@@ -22,7 +22,7 @@ Make sure you have installed:
 - [Node.js](https://nodejs.org/) 20+
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 
-Also read [CONTRIBUTING.md](./CONTRIBUTING.md) — it covers branch naming, commit format, and PR rules.
+Also read [CONTRIBUTING.md](./CONTRIBUTING.MD) — it covers branch naming, commit format, and PR rules.
 
 ---
 
