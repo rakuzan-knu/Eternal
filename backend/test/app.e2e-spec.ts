@@ -1,29 +1,36 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import type { INestApplication } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import request from 'supertest';
-import { App } from 'supertest/types';
+import type { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 
-describe('AppController (e2e)', () => {
+describe('Health (e2e)', () => {
   let app: INestApplication<App>;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
     await app.init();
   });
 
-  it('/ (GET)', () => {
-    return request(app.getHttpServer())
-      .get('/')
-      .expect(200)
-      .expect('Hello World!');
+  afterAll(async () => {
+    if (app) {
+      await app.close();
+    }
   });
 
-  afterEach(async () => {
-    await app.close();
+  it('GET /health returns ok or degraded', async () => {
+    const res = await request(app.getHttpServer()).get('/health').expect(200);
+    const body = res.body as { status: string; timestamp: string; uptime: number };
+    expect(body).toHaveProperty('status');
+    expect(['ok', 'degraded']).toContain(body.status);
+    expect(body).toHaveProperty('timestamp');
+    expect(body).toHaveProperty('uptime');
   });
 });

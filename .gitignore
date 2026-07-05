@@ -142,3 +142,18 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
 .idea/
+
+# Prisma generated client (regenerated on install)
+**/src/generated/
+
+# Husky
+.husky/_/
+
+# Storybook
+frontend/storybook-static/
+
+# Lighthouse
+.lighthouseci/
+
+# Semantic release
+CHANGELOG.md

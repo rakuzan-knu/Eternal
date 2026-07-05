@@ -7,12 +7,10 @@ export class CreatePostDto {
     example: 'My first post',
     description: 'Post content',
   })
-  @Transform(({ value }: { value: unknown }) =>
-    typeof value === 'string' ? value.trim() : value,
-  )
+  @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
   @IsNotEmpty()
-  content: string;
+  content!: string;
 
   @ApiPropertyOptional({
     example: 'https://example.com/image.jpg',

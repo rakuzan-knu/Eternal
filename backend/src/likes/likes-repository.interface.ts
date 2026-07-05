@@ -1,4 +1,4 @@
-import { Like, Post } from '@prisma/client';
+import type { Like } from '@prisma/client';
 
 export interface ILikesRepository {
   createLike(postId: string, userId: string): Promise<Like>;

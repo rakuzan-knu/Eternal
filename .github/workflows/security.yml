@@ -1,0 +1,144 @@
+name: Security
+
+on:
+  schedule:
+    # Every day at 3:00 UTC
+    - cron: '0 3 * * *'
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  npm-audit:
+    name: npm audit — ${{ matrix.workspace }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        workspace: [backend, frontend]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm ci --workspace=${{ matrix.workspace }} --legacy-peer-deps
+
+      - name: Run npm audit
+        run: npm audit --workspace=${{ matrix.workspace }} --audit-level=high --json > ${{ matrix.workspace }}/audit-report.json || true
+
+      - name: Check for critical vulnerabilities
+        working-directory: ${{ matrix.workspace }}
+        run: |
+          CRITICAL=$(cat audit-report.json | node -e "
+            const d=require('fs').readFileSync('/dev/stdin','utf8');
+            const r=JSON.parse(d);
+            const vulns = r.vulnerabilities || {};
+            const critical = Object.values(vulns).filter(v=>v.severity==='critical').length;
+            const high = Object.values(vulns).filter(v=>v.severity==='high').length;
+            console.log(critical);
+          " 2>/dev/null || echo "0")
+          echo "Critical vulnerabilities: $CRITICAL"
+          if [ "$CRITICAL" -gt "0" ]; then
+            echo "Found $CRITICAL critical vulnerability/ies. Failing build."
+            exit 1
+          fi
+
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit-${{ matrix.workspace == 'backend' && 'backend' || 'frontend' }}
+          path: ${{ matrix.workspace }}/audit-report.json
+          retention-days: 30
+
+  trivy-fs:
+    name: Trivy — Filesystem
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: sarif
+          output: trivy-fs.sarif
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'
+      - uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-fs.sarif
+          category: trivy-filesystem
+
+  trivy-backend:
+    name: Trivy — Backend image
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'schedule'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: false
+          tags: social-network-backend:scan
+          load: true
+          cache-from: type=gha,scope=backend
+      - uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: social-network-backend:scan
+          format: sarif
+          output: trivy-backend.sarif
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'
+      - uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-backend.sarif
+          category: trivy-backend
+
+  trivy-frontend:
+    name: Trivy — Frontend image
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'schedule'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          push: false
+          tags: social-network-frontend:scan
+          load: true
+          cache-from: type=gha,scope=frontend
+      - uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: social-network-frontend:scan
+          format: sarif
+          output: trivy-frontend.sarif
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'
+      - uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-frontend.sarif
+          category: trivy-frontend
+
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run Gitleaks
+        uses: docker://zricethezav/gitleaks:latest
+        with:
+          args: detect --source . --verbose --redact

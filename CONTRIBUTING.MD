@@ -4,10 +4,10 @@ Welcome to the team! This document describes the development workflow, coding st
 
 Following these guidelines helps us:
 
-* Keep the codebase clean and maintainable
-* Reduce code review time
-* Minimize Git conflicts
-* Ensure consistent architecture across the project
+- Keep the codebase clean and maintainable
+- Reduce code review time
+- Minimize Git conflicts
+- Ensure consistent architecture across the project
 
 ---
 
@@ -28,9 +28,9 @@ Before writing a single line of code, you **must** have an assigned Jira task.
 
 Before starting development, verify that the task contains:
 
-* ✅ Description
-* ✅ Acceptance Criteria (AC)
-* ✅ Story Point estimation
+- ✅ Description
+- ✅ Acceptance Criteria (AC)
+- ✅ Story Point estimation
 
 > **If anything is unclear, contact the team in the Team Chat.**
 
@@ -40,9 +40,9 @@ Before starting development, verify that the task contains:
 
 We use a **Feature Branch Workflow**.
 
-* Every branch is created from `main`.
-* Every change goes back to `main` through a **Pull Request**.
-* Direct commits to `main` are **not allowed**.
+- Every branch is created from `main`.
+- Every change goes back to `main` through a **Pull Request**.
+- Direct commits to `main` are **not allowed**.
 
 ## Branch Naming
 
@@ -75,9 +75,9 @@ We follow **Conventional Commits**.
 
 This is required for:
 
-* automated changelogs
-* clean Git history
-* readable project timeline
+- automated changelogs
+- clean Git history
+- readable project timeline
 
 ## Format
 
@@ -87,13 +87,13 @@ This is required for:
 
 ### Types
 
-* feat
-* fix
-* refactor
-* chore
-* docs
-* style
-* test
+- feat
+- fix
+- refactor
+- chore
+- docs
+- style
+- test
 
 ### Scope
 
@@ -101,11 +101,11 @@ Use the module or FSD slice you are working on.
 
 Examples:
 
-* `feed`
-* `chat`
-* `auth`
-* `profile`
-* `user`
+- `feed`
+- `chat`
+- `auth`
+- `profile`
+- `user`
 
 ### Examples
 
@@ -128,17 +128,18 @@ refactor(profile): move avatar component to entities layer [SOC-55]
 - Follow the standard NestJS modular architecture.
 - Organize code by feature modules (auth, users, posts, comments, etc.).
 - Keep controllers, services, DTOs, and repositories inside their corresponding module.
+
 ### Prisma
 
-* Use `PrismaService` through Dependency Injection.
-* ❌ Do not execute raw SQL.
+- Use `PrismaService` through Dependency Injection.
+- ❌ Do not execute raw SQL.
 
 ### Validation
 
 Every request must use:
 
-* DTOs
-* `class-validator`
+- DTOs
+- `class-validator`
 
 ---
 
@@ -185,9 +186,9 @@ feat(feed): implement post likes [SOC-124]
 
 Include:
 
-* What was implemented
-* How to test the changes
-* Link to the Jira ticket
+- What was implemented
+- How to test the changes
+- Link to the Jira ticket
 
 ---
 
@@ -197,9 +198,9 @@ Aim for **less than 300 lines of code**.
 
 Smaller PRs are:
 
-* easier to review
-* easier to test
-* less likely to cause merge conflicts
+- easier to review
+- easier to test
+- less likely to cause merge conflicts
 
 ---
 
@@ -207,12 +208,12 @@ Smaller PRs are:
 
 Before merging:
 
-* ✅ At least **2 approvals**
-* ✅ All CI checks must pass
-* ✅ Build succeeds
-* ✅ Linter passes
-* ✅ Formatter passes
-* ✅ Tests pass
+- ✅ At least **2 approvals**
+- ✅ All CI checks must pass
+- ✅ Build succeeds
+- ✅ Linter passes
+- ✅ Formatter passes
+- ✅ Tests pass
 
 ---
 
@@ -220,11 +221,38 @@ Before merging:
 
 After approval:
 
-* Use **Squash and Merge**
-* Move the Jira task to:
+- Use **Squash and Merge**
+- Move the Jira task to:
+  - **In Review**
+  - **Done**
 
-    * **In Review**
-    * **Done**
+---
+
+# ⚙️ 5. Environment Setup (Required before the first commit)
+
+To ensure everyone gets an identical `lint`/`format`/`build` result regardless of their OS:
+
+1. Use the Node version from `.nvmrc`:
+   ```bash
+   nvm use
+   ```
+   If the Node version doesn't match, `npm install` will intentionally fail (`engine-strict=true` in `.npmrc`). This is a feature, not a bug—install the required version.
+2. Run `npm install` in the repository root (not inside `backend/` or `frontend/` separately)—workspaces will handle everything automatically, plus `prisma generate` will run automatically.
+3. Do not change `end_of_line`/`indent_style` in your editor—they are fixed in `.editorconfig` and `.gitattributes`. Git will automatically normalize line endings to LF upon commit.
+4. Never commit with `--no-verify`—if a hook gets in the way, it's a bug in the hook, not a reason to bypass it. Write to the Team Chat.
+
+---
+
+# 🔒 6. Why PRs Cannot Be Merged Manually
+
+The `main` branch is protected by branch protection rules:
+
+- You cannot push to `main` directly (even admins).
+- A PR cannot be merged until all mandatory CI jobs are green: `lint`, `typecheck`, `test`, `build`, `PR Title Lint`.
+- A minimum of 1 approval is required, and for `backend/`, `frontend/`, `.github/`—an approval from the corresponding code owner from `.github/CODEOWNERS`.
+- Only **Squash and Merge** is allowed—the PR title becomes the final commit message in `main`, therefore:
+  - The PR title must be in the format `<type>(<scope>): <description> [SOC-XXX]`.
+  - Do not squash or amend commits in your branch after pushing—leave the history "as is", this does not affect the final history of `main` and allows GitHub to correctly insert `pull_request_template.md` instead of the commit text.
 
 ---
 

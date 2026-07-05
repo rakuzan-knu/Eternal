@@ -1,13 +1,4 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Patch,
-  Post,
-  Query,
-} from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { PostsService } from './posts.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { EditPostDto } from './dto/edit-post.dto';
@@ -24,10 +15,7 @@ export class PostsController {
     status: 200,
     description: 'Posts retrieved successfully.',
   })
-  getAllPosts(
-    @Query('limit') limit: number = 10,
-    @Query('after') after?: string,
-  ) {
+  getAllPosts(@Query('limit') limit: number = 10, @Query('after') after?: string) {
     return this.postsService.getAllPosts(Number(limit), after);
   }
 

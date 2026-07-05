@@ -1,4 +1,4 @@
-type LikeResult = {
+export type LikeResult = {
   liked: boolean;
   likesCount: number;
 };

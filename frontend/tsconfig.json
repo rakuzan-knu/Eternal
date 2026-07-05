@@ -5,8 +5,6 @@
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
     "module": "ESNext",
     "skipLibCheck": true,
-
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     },
@@ -17,5 +15,9 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx"
-  }
+  },
+  "include": [
+    "src/**/*", 
+    ".storybook/**/*"
+  ]
 }
