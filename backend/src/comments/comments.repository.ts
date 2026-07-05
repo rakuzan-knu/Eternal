@@ -9,13 +9,13 @@ export class CommentsRepository implements ICommentsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async addComment(postId: string, userId: string, dto: CreateCommentDto): Promise<Comment> {
-    return this.prisma.comment.create({
+    return await this.prisma.comment.create({
       data: { text: dto.text, postId, userId },
     });
   }
 
   async getCommentsByPostId(postId: string): Promise<Comment[]> {
-    return this.prisma.comment.findMany({
+    return await this.prisma.comment.findMany({
       where: { postId },
       orderBy: { createdAt: 'asc' },
     });
@@ -26,6 +26,6 @@ export class CommentsRepository implements ICommentsRepository {
     if (!comment) throw new NotFoundException('Comment not found');
     if (comment.userId !== userId)
       throw new ForbiddenException('You can only delete your own comments');
-    return this.prisma.comment.delete({ where: { id: commentId } });
+    return await this.prisma.comment.delete({ where: { id: commentId } });
   }
 }
