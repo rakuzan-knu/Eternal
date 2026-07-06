@@ -24,6 +24,7 @@ export class PostsService {
       },
     };
   }
+
   async createPost(dto: CreatePostDto, authorId: string): Promise<Post> {
     return this.postsRepository.createPost({
       ...dto,

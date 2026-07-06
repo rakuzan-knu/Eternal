@@ -14,7 +14,6 @@ import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CommentsService } from './comments.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 
-// TODO: After merging AuthModule — replace @Headers('x-user-id') with @CurrentUser() + @UseGuards(AuthGuard)
 @ApiTags('Comments')
 @Controller()
 export class CommentsController {

@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import type { User } from '@prisma/client';
+import type { Prisma, User } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CreateUserDto } from '../dto/create-user.dto';
-import { IUsersRepository } from '../interfaces/users-repository.interface';
+import type { CreateUserDto } from '../dto/create-user.dto';
+import type { IUsersRepository } from '../interfaces/users-repository.interface';
 
 @Injectable()
 export class UsersRepository implements IUsersRepository {
@@ -28,6 +28,17 @@ export class UsersRepository implements IUsersRepository {
         passwordHash: dto.passwordHash,
         displayName: dto.displayName ?? null,
       },
+    });
+  }
+
+  updateUser(id: string, data: Prisma.UserUpdateInput): Promise<User> {
+    return this.prisma.user.update({ where: { id }, data });
+  }
+
+  updateAvatar(id: string, avatarUrl: string | null): Promise<User> {
+    return this.prisma.user.update({
+      where: { id },
+      data: { avatar: avatarUrl },
     });
   }
 }

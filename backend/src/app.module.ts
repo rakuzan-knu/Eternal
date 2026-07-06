@@ -10,6 +10,9 @@ import { LikesModule } from './likes/likes.module';
 import { PostsModule } from './posts/posts.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
+import { UsersModule } from './users/users.module';
+import { FollowersModule } from './followers/followers.module';
+import { AvatarsModule } from './avatars/avatars.module';
 
 @Module({
   imports: [
@@ -27,6 +30,9 @@ import { RedisModule } from './redis/redis.module';
     PostsModule,
     LikesModule,
     CommentsModule,
+    UsersModule,
+    FollowersModule,
+    AvatarsModule,
   ],
   controllers: [],
   providers: [
