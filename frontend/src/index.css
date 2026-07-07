@@ -1,1 +1,32 @@
 @import "tailwindcss";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  background-color: #050505;
+}
+
+.bg-radial-gradient {
+  background-image: radial-gradient(
+    circle at 20% 40%, 
+    rgba(88, 28, 135, 0.15) 0%, 
+    rgba(0, 0, 0, 0) 50%
+  );
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #262626;
+  border-radius: 99px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #404040;
+}
