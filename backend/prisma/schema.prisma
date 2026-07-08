@@ -22,6 +22,16 @@ model User {
   followers Follow[]  @relation("following")
   following Follow[]  @relation("follower")
   comments  Comment[]
+
+  conversationParticipants ConversationParticipant[]
+  sentMessages             Message[]                 @relation("SentMessages")
+  messageReactions         MessageReaction[]
+  messageReadReceipts      MessageReadReceipt[]
+  blockedUsers             UserBlock[]               @relation("Blocker")
+  blockedByUsers           UserBlock[]               @relation("Blocked")
+  reportsFiled             Report[]                  @relation("Reporter")
+  reportsReceived          Report[]                  @relation("Reported")
+  deletedMessages          MessageDeletion[]
 }
 
 model Post {
@@ -66,3 +76,247 @@ model Comment {
   post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
+model Conversation {
+  id          String           @id @default(uuid())
+  type        ConversationType @default(DIRECT)
+  /// Group-only fields
+  name        String? // group display name
+  avatar      String? // group avatar URL
+  description String?
+  /// Who created this conversation (group admin baseline)
+  createdById String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  participants ConversationParticipant[]
+  messages     Message[]
+  pinnedMessages PinnedMessage[]
+
+  @@index([createdAt])
+}
+
+enum ConversationType {
+  DIRECT
+  GROUP
+}
+
+model ConversationParticipant {
+  id             String   @id @default(uuid())
+  conversationId String
+  userId         String
+  /// Nickname the current user gave to this OTHER participant (or group alias)
+  nickname       String?
+  /// Role within a group (MEMBER | ADMIN | OWNER)
+  role           ParticipantRole @default(MEMBER)
+  /// Custom colour theme chosen for this conversation by this user
+  theme          String?         @default("default")
+  /// Mute level chosen by this user for this conversation
+  muteLevel      MuteLevel       @default(NONE)
+  /// Until when the conversation is muted (null = forever muted if muteLevel != NONE)
+  mutedUntil     DateTime?
+  /// Soft-delete: user left / was removed (keeps message history intact)
+  leftAt         DateTime?
+  /// Archived on the user's side
+  archivedAt     DateTime?
+  joinedAt       DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+  @@index([conversationId])
+}
+
+enum ParticipantRole {
+  MEMBER
+  ADMIN
+  OWNER
+}
+
+enum MuteLevel {
+  NONE 
+  MESSAGES
+  CALLS
+  MESSAGES_AND_CALLS
+}
+
+model Message {
+  id             String      @id @default(uuid())
+  conversationId String
+  senderId       String
+  /// NULL for system messages (e.g. "X joined the group")
+  body           String?
+  messageType    MessageType @default(TEXT)
+  /// For REPLY threading
+  replyToId      String?
+  /// For FORWARD — original message reference (informational)
+  forwardedFromId String?
+  /// Soft-delete: body becomes NULL, type becomes DELETED
+  deletedAt      DateTime?
+  deletedForAll  Boolean     @default(false)
+  /// Edited flag
+  editedAt       DateTime?
+  createdAt      DateTime    @default(now())
+
+  conversation  Conversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender        User              @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  replyTo       Message?          @relation("Replies", fields: [replyToId], references: [id])
+  replies       Message[]         @relation("Replies")
+  forwardedFrom Message?          @relation("Forwards", fields: [forwardedFromId], references: [id])
+  forwards      Message[]         @relation("Forwards")
+  attachments   MessageAttachment[]
+  reactions     MessageReaction[]
+  readReceipts  MessageReadReceipt[]
+  pinnedIn      PinnedMessage[]
+  deletedFor    MessageDeletion[]
+
+  @@index([conversationId, createdAt])
+  @@index([senderId])
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  AUDIO
+  FILE
+  GIF
+  STICKER
+  LOCATION
+  CALL_LOG    // missed / answered call record
+  SYSTEM      // "X joined", "theme changed", etc.
+  DELETED     // tombstone after hard-delete for all
+}
+
+model MessageAttachment {
+  id          String         @id @default(uuid())
+  messageId   String
+  type        AttachmentType
+  url         String         // S3 / CDN URL
+  fileName    String?        // original file name
+  mimeType    String?
+  size        Int?           // bytes
+  width       Int?           // images / videos
+  height      Int?
+  duration    Int?           // audio / video seconds
+  thumbnailUrl String?
+  createdAt   DateTime       @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+}
+
+enum AttachmentType {
+  IMAGE
+  VIDEO
+  AUDIO
+  FILE
+  LINK   // open-graph link preview
+  GIF
+}
+
+model MessageReaction {
+  id        String   @id @default(uuid())
+  messageId String
+  userId    String
+  emoji     String   // unicode emoji
+  createdAt DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// One reaction type per user per message
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+}
+
+model MessageReadReceipt {
+  id        String   @id @default(uuid())
+  messageId String
+  userId    String
+  readAt    DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+  @@index([userId])
+}
+
+model PinnedMessage {
+  id             String   @id @default(uuid())
+  conversationId String
+  messageId      String
+  pinnedByUserId String
+  pinnedAt       DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  message      Message      @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, messageId])
+  @@index([conversationId])
+}
+
+model MessageDeletion {
+  messageId String
+  userId    String
+  deletedAt DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([messageId, userId])
+}
+
+model UserBlock {
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+
+  blocker User @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@id([blockerId, blockedId])
+}
+
+model Report {
+  id         String       @id @default(uuid())
+  reporterId String
+  reportedId String
+  /// Conversation or message context (optional)
+  messageId  String?
+  category   ReportCategory
+  details    String?
+  status     ReportStatus @default(PENDING)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  reporter User @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reported User @relation("Reported", fields: [reportedId], references: [id], onDelete: Cascade)
+
+  @@index([reportedId])
+  @@index([status])
+}
+
+enum ReportCategory {
+  SPAM
+  SUICIDE_SELF_HARM
+  IMPERSONATION
+  VIOLENCE_DANGEROUS_ORGS
+  NUDITY_SEXUAL
+  RESTRICTED_GOODS
+  FRAUD
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  DISMISSED
+  ACTION_TAKEN
+}
+
