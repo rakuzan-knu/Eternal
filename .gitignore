@@ -143,6 +143,9 @@ vite.config.ts.timestamp-*
 .vite/
 .idea/
 
+# Claude Code local settings
+.claude/
+
 # Prisma generated client (regenerated on install)
 **/src/generated/
 
