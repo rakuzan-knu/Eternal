@@ -5,12 +5,12 @@ export default {
     'type-enum': [
       2,
       'always',
-      ['feat', 'fix', 'refactor', 'chore', 'docs', 'style', 'test', 'perf', 'ci', 'revert'],
+      ['feat', 'fix', 'refactor', 'chore', 'docs', 'style', 'test', 'perf', 'ci', 'revert', 'optimization'],
     ],
     'scope-enum': [
       1,
       'always',
-      ['auth', 'feed', 'chat', 'profile', 'user', 'post', 'follow', 'media', 'ws', 'infra', 'deps', 'security'],
+      ['auth', 'feed', 'chat', 'profile', 'user', 'post', 'follow', 'media', 'ws', 'infra', 'deps', 'security', 'backend', 'frontend'],
     ],
     'subject-max-length': [2, 'always', 100],
     'body-max-line-length': [1, 'always', 200],

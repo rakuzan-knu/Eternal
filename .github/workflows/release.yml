@@ -21,7 +21,6 @@ jobs:
     outputs:
       new-release-published: ${{ steps.release.outputs.new-release-published }}
       new-release-version: ${{ steps.release.outputs.new-release-version }}
-
     steps:
       - uses: actions/checkout@v4
         with:
@@ -34,7 +33,7 @@ jobs:
           cache: 'npm'
 
       - name: Install root deps
-        run: npm ci
+        run: npm ci --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
 
       - name: Run Semantic Release
         id: release

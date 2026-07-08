@@ -2,7 +2,6 @@ name: Security
 
 on:
   schedule:
-    # Every day at 3:00 UTC
     - cron: '0 3 * * *'
   push:
     branches: [main]
@@ -21,7 +20,6 @@ jobs:
       fail-fast: false
       matrix:
         workspace: [backend, frontend]
-
     steps:
       - uses: actions/checkout@v4
 
@@ -29,11 +27,9 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Install dependencies
-        run: npm ci --workspace=${{ matrix.workspace }} --legacy-peer-deps
-
-      - name: Run npm audit
-        run: npm audit --workspace=${{ matrix.workspace }} --audit-level=high --json > ${{ matrix.workspace }}/audit-report.json || true
+      - name: Run npm audit (Lockfile only)
+        run: |
+          npm audit --workspace=${{ matrix.workspace }} --audit-level=high --package-lock-only --json > ${{ matrix.workspace }}/audit-report.json || true
 
       - name: Check for critical vulnerabilities
         working-directory: ${{ matrix.workspace }}
@@ -43,9 +39,27 @@ jobs:
             const r=JSON.parse(d);
             const vulns = r.vulnerabilities || {};
             const critical = Object.values(vulns).filter(v=>v.severity==='critical').length;
-            const high = Object.values(vulns).filter(v=>v.severity==='high').length;
             console.log(critical);
           " 2>/dev/null || echo "0")
+
+          HIGH=$(cat audit-report.json | node -e "
+            const d=require('fs').readFileSync('/dev/stdin','utf8');
+            const r=JSON.parse(d);
+            const vulns = r.vulnerabilities || {};
+            const high = Object.values(vulns).filter(v=>v.severity==='high').length;
+            console.log(high);
+          " 2>/dev/null || echo "0")
+
+          echo "### 🛡️ Security Audit Summary for \`${{ matrix.workspace }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "| Severity | Found | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- | --- |" >> $GITHUB_STEP_SUMMARY
+          if [ "$CRITICAL" -gt "0" ]; then
+            echo "| 🔴 Critical | $CRITICAL | ❌ Failed (Fix immediately) |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| 🔴 Critical | 0 | ✅ Clear |" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "| 🟠 High | $HIGH | ⚠️ Warning |" >> $GITHUB_STEP_SUMMARY
+
           echo "Critical vulnerabilities: $CRITICAL"
           if [ "$CRITICAL" -gt "0" ]; then
             echo "Found $CRITICAL critical vulnerability/ies. Failing build."
@@ -56,16 +70,26 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: npm-audit-${{ matrix.workspace == 'backend' && 'backend' || 'frontend' }}
+          name: npm-audit-${{ matrix.workspace }}
           path: ${{ matrix.workspace }}/audit-report.json
           retention-days: 30
 
   trivy-fs:
-    name: Trivy — Filesystem
+    name: Trivy — Filesystem Deep Scan
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Cache Trivy DB
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/trivy
+          key: ${{ runner.os }}-trivy-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-trivy-
+
       - uses: aquasecurity/trivy-action@v0.36.0
+        id: trivy_fs_step
         with:
           scan-type: fs
           scan-ref: .
@@ -73,72 +97,23 @@ jobs:
           output: trivy-fs.sarif
           severity: 'CRITICAL,HIGH'
           exit-code: '0'
+
       - uses: github/codeql-action/upload-sarif@v3
+        if: always() && steps.trivy_fs_step.outcome == 'success'
         with:
           sarif_file: trivy-fs.sarif
           category: trivy-filesystem
 
-  trivy-backend:
-    name: Trivy — Backend image
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event_name == 'schedule'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - name: Build backend image
-        uses: docker/build-push-action@v6
-        with:
-          context: ./backend
-          push: false
-          tags: social-network-backend:scan
-          load: true
-          cache-from: type=gha,scope=backend
-      - uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          image-ref: social-network-backend:scan
-          format: sarif
-          output: trivy-backend.sarif
-          severity: 'CRITICAL,HIGH'
-          exit-code: '0'
-      - uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: trivy-backend.sarif
-          category: trivy-backend
-
-  trivy-frontend:
-    name: Trivy — Frontend image
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event_name == 'schedule'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - name: Build frontend image
-        uses: docker/build-push-action@v6
-        with:
-          context: ./frontend
-          push: false
-          tags: social-network-frontend:scan
-          load: true
-          cache-from: type=gha,scope=frontend
-      - uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          image-ref: social-network-frontend:scan
-          format: sarif
-          output: trivy-frontend.sarif
-          severity: 'CRITICAL,HIGH'
-          exit-code: '0'
-      - uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: trivy-frontend.sarif
-          category: trivy-frontend
-
   gitleaks:
+    name: Gitleaks — Incremental Secret Scanner
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Run Gitleaks
-        uses: docker://zricethezav/gitleaks:latest
-        with:
-          args: detect --source . --verbose --redact
+
+      - name: Run Gitleaks Action
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}

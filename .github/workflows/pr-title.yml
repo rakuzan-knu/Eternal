@@ -37,4 +37,4 @@ jobs:
             deps
           requireScope: false
           subjectPattern: ^.{1,100}$
-          subjectPatternError: 'Заголовок PR не должен превышать 100 символов и должен соответствовать Conventional Commits'
+          subjectPatternError: 'The PR title must not exceed 100 characters and must comply with Conventional Commits'
