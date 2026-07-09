@@ -13,6 +13,7 @@ import { RedisModule } from './redis/redis.module';
 import { UsersModule } from './users/users.module';
 import { FollowersModule } from './followers/followers.module';
 import { AvatarsModule } from './avatars/avatars.module';
+import { MessengerModule } from './messenger/messenger.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { AvatarsModule } from './avatars/avatars.module';
     UsersModule,
     FollowersModule,
     AvatarsModule,
+    MessengerModule,
   ],
   controllers: [],
   providers: [

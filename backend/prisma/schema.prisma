@@ -26,7 +26,6 @@ model User {
   conversationParticipants ConversationParticipant[]
   sentMessages             Message[]                 @relation("SentMessages")
   messageReactions         MessageReaction[]
-  messageReadReceipts      MessageReadReceipt[]
   blockedUsers             UserBlock[]               @relation("Blocker")
   blockedByUsers           UserBlock[]               @relation("Blocked")
   reportsFiled             Report[]                  @relation("Reporter")
@@ -105,20 +104,14 @@ model ConversationParticipant {
   id             String   @id @default(uuid())
   conversationId String
   userId         String
-  /// Nickname the current user gave to this OTHER participant (or group alias)
   nickname       String?
-  /// Role within a group (MEMBER | ADMIN | OWNER)
   role           ParticipantRole @default(MEMBER)
-  /// Custom colour theme chosen for this conversation by this user
   theme          String?         @default("default")
-  /// Mute level chosen by this user for this conversation
   muteLevel      MuteLevel       @default(NONE)
-  /// Until when the conversation is muted (null = forever muted if muteLevel != NONE)
   mutedUntil     DateTime?
-  /// Soft-delete: user left / was removed (keeps message history intact)
   leftAt         DateTime?
-  /// Archived on the user's side
   archivedAt     DateTime?
+  lastReadAt     DateTime        @default(now())
   joinedAt       DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
@@ -147,31 +140,25 @@ model Message {
   id             String      @id @default(uuid())
   conversationId String
   senderId       String
-  /// NULL for system messages (e.g. "X joined the group")
   body           String?
   messageType    MessageType @default(TEXT)
-  /// For REPLY threading
   replyToId      String?
-  /// For FORWARD — original message reference (informational)
   forwardedFromId String?
-  /// Soft-delete: body becomes NULL, type becomes DELETED
   deletedAt      DateTime?
   deletedForAll  Boolean     @default(false)
-  /// Edited flag
   editedAt       DateTime?
   createdAt      DateTime    @default(now())
 
-  conversation  Conversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  sender        User              @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
-  replyTo       Message?          @relation("Replies", fields: [replyToId], references: [id])
-  replies       Message[]         @relation("Replies")
-  forwardedFrom Message?          @relation("Forwards", fields: [forwardedFromId], references: [id])
-  forwards      Message[]         @relation("Forwards")
+  conversation  Conversation        @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender        User                @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  replyTo       Message?            @relation("Replies", fields: [replyToId], references: [id])
+  replies       Message[]           @relation("Replies")
+  forwardedFrom Message?            @relation("Forwards", fields: [forwardedFromId], references: [id])
+  forwards      Message[]           @relation("Forwards")
   attachments   MessageAttachment[]
   reactions     MessageReaction[]
-  readReceipts  MessageReadReceipt[]
-  pinnedIn      PinnedMessage[]
   deletedFor    MessageDeletion[]
+  pinnedIn      PinnedMessage[]
 
   @@index([conversationId, createdAt])
   @@index([senderId])
@@ -232,19 +219,6 @@ model MessageReaction {
   /// One reaction type per user per message
   @@unique([messageId, userId, emoji])
   @@index([messageId])
-}
-
-model MessageReadReceipt {
-  id        String   @id @default(uuid())
-  messageId String
-  userId    String
-  readAt    DateTime @default(now())
-
-  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([messageId, userId])
-  @@index([userId])
 }
 
 model PinnedMessage {
