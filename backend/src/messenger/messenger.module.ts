@@ -12,6 +12,7 @@ import { CONVERSATIONS_REPOSITORY } from './interfaces/conversations-repository.
 import { MessagesRepository } from './repositories/messages.repository';
 import { MESSAGES_REPOSITORY } from './interfaces/messages-repository.interface';
 
+import { MessengerGateway } from './gateway/messenger.gateway';
 import { MessengerMapper } from './messenger.mapper';
 
 @Module({
@@ -28,7 +29,8 @@ import { MessengerMapper } from './messenger.mapper';
     },
     ConversationsService,
     MessengerMapper,
+    MessengerGateway,
   ],
-  exports: [ConversationsService],
+  exports: [ConversationsService, MessengerGateway],
 })
 export class MessengerModule {}
