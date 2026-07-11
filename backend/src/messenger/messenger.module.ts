@@ -9,6 +9,8 @@ import { ConversationsService } from './conversations/conversations.service';
 import { ConversationsRepository } from './repositories/conversations.repository';
 import { CONVERSATIONS_REPOSITORY } from './interfaces/conversations-repository.interface';
 
+import { MessagesController } from './messages/messages.controller';
+import { MessagesService } from './messages/messages.service';
 import { MessagesRepository } from './repositories/messages.repository';
 import { MESSAGES_REPOSITORY } from './interfaces/messages-repository.interface';
 
@@ -17,7 +19,7 @@ import { MessengerMapper } from './messenger.mapper';
 
 @Module({
   imports: [PrismaModule, UsersModule, AuthModule, JwtModule.register({})],
-  controllers: [ConversationsController],
+  controllers: [ConversationsController, MessagesController],
   providers: [
     {
       provide: CONVERSATIONS_REPOSITORY,
@@ -28,9 +30,10 @@ import { MessengerMapper } from './messenger.mapper';
       useClass: MessagesRepository,
     },
     ConversationsService,
+    MessagesService,
     MessengerMapper,
     MessengerGateway,
   ],
-  exports: [ConversationsService, MessengerGateway],
+  exports: [ConversationsService, MessagesService, MessengerGateway],
 })
 export class MessengerModule {}
