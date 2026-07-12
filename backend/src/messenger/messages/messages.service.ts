@@ -1,4 +1,5 @@
 import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
+import { MessageType, AttachmentType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CONVERSATIONS_REPOSITORY } from '../interfaces/conversations-repository.interface';
 import type { IConversationsRepository } from '../interfaces/conversations-repository.interface';
@@ -70,5 +71,90 @@ export class MessagesService {
   private async assertMember(conversationId: string, userId: string): Promise<void> {
     const p = await this.convsRepo.findParticipant(conversationId, userId);
     if (!p) throw new ForbiddenException('Not a member of this conversation');
+  }
+
+  async send(
+    conversationId: string,
+    senderId: string,
+    dto: {
+      text?: string;
+      messageType?: MessageType;
+      attachments?: Array<{
+        type: AttachmentType;
+        url: string;
+        fileName?: string;
+        mimeType?: string;
+        size?: number;
+        width?: number;
+        height?: number;
+        duration?: number;
+        thumbnailUrl?: string;
+      }>;
+    },
+  ): Promise<MessageView> {
+    let finalMessageType = dto.messageType || MessageType.TEXT;
+    if (!dto.messageType && dto.attachments && dto.attachments.length > 0) {
+      finalMessageType = dto.attachments[0].type as unknown as MessageType;
+    }
+
+    const message = await this.prisma.message.create({
+      data: {
+        conversationId,
+        senderId,
+        body: dto.text || null,
+        messageType: finalMessageType,
+        attachments:
+          dto.attachments && dto.attachments.length > 0
+            ? {
+                create: dto.attachments.map((att) => ({
+                  type: att.type,
+                  url: att.url,
+                  fileName: att.fileName || null,
+                  mimeType: att.mimeType || null,
+                  size: att.size || null,
+                  width: att.width || null,
+                  height: att.height || null,
+                  duration: att.duration || null,
+                  thumbnailUrl: att.thumbnailUrl || null,
+                })),
+              }
+            : undefined,
+      },
+      include: {
+        sender: true,
+        attachments: true,
+        conversation: {
+          include: {
+            participants: true,
+          },
+        },
+        replyTo: {
+          include: {
+            sender: true,
+            attachments: true,
+          },
+        },
+        forwardedFrom: {
+          include: {
+            sender: true,
+            attachments: true,
+          },
+        },
+        reactions: {
+          include: {
+            user: true,
+          },
+        },
+        deletedFor: true,
+        pinnedIn: true,
+        replies: true,
+        forwards: true,
+      },
+    });
+
+    const pinnedIds = await this.convsRepo.findPinnedMessages(conversationId);
+    const pinnedSet = new Set(pinnedIds);
+
+    return this.mapper.mapMessage(message, senderId, pinnedSet);
   }
 }

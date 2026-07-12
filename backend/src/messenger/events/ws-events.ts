@@ -5,6 +5,9 @@ export const WS_EVENTS = {
   TYPING_STOP: 'typingStop',
   MARK_READ: 'markRead',
 
+  SEND_MESSAGE: 'sendMessage',
+  RATE_LIMIT_EXCEEDED: 'rateLimitExceeded',
+
   NEW_MESSAGE: 'newMessage',
   MESSAGE_EDITED: 'messageEdited',
   MESSAGE_DELETED: 'messageDeleted',

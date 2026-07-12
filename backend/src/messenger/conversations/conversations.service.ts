@@ -362,4 +362,11 @@ export class ConversationsService {
     const p = await this.convsRepo.findParticipant(conversationId, userId);
     if (!p) throw new ForbiddenException('Not a member of this conversation');
   }
+
+  async touchUpdatedAt(conversationId: string): Promise<void> {
+    await this.prisma.conversation.update({
+      where: { id: conversationId },
+      data: { updatedAt: new Date() },
+    });
+  }
 }

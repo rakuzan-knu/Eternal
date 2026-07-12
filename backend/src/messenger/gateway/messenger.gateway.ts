@@ -16,6 +16,7 @@ import { ConfigService } from '@nestjs/config';
 import { WS_EVENTS } from '../events/ws-events';
 import { MessagesService } from '../messages/messages.service';
 import { ConversationsService } from '../conversations/conversations.service';
+import { MessageType } from '@prisma/client';
 
 interface AuthenticatedSocket extends Socket {
   userId: string;
@@ -153,6 +154,57 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
       });
     } catch {
       throw new WsException('Failed to mark messages as read');
+    }
+  }
+
+  @SubscribeMessage(WS_EVENTS.SEND_MESSAGE)
+  async handleSendMessage(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody()
+    payload: {
+      conversationId: string;
+      text?: string;
+      messageType?: MessageType;
+      attachments?: any[];
+    },
+    callback?: (res: { status: string; message?: unknown; error?: string }) => void,
+  ): Promise<void> {
+    try {
+      const trimmedText = payload.text?.trim() || '';
+      const hasAttachments = payload.attachments && payload.attachments.length > 0;
+
+      if (!payload || !payload.conversationId || (!trimmedText && !hasAttachments)) {
+        const validationError = 'Cannot send an empty message. Provide text or attachments.';
+
+        client.emit('error', { message: validationError });
+        callback?.({ status: 'error', error: validationError });
+        return;
+      }
+
+      payload.text = trimmedText;
+
+      await this.convsService.assertMember(payload.conversationId, client.userId);
+
+      const message = await this.messagesService.send(
+        payload.conversationId,
+        client.userId,
+        payload,
+      );
+
+      await this.convsService.touchUpdatedAt(payload.conversationId);
+
+      this.emitNewMessage(payload.conversationId, message);
+
+      callback?.({ status: 'ok', message });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to send message';
+      this.logger.error(
+        `Failed to handle send_message: ${errorMessage}`,
+        err instanceof Error ? err.stack : '',
+      );
+
+      client.emit('error', { message: errorMessage });
+      callback?.({ status: 'error', error: errorMessage });
     }
   }
 
