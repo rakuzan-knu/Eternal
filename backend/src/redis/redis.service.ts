@@ -1,9 +1,10 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import Redis from 'ioredis';
 import { REDIS_CLIENT } from './redis.constants';
 
 @Injectable()
 export class RedisService {
+  private readonly logger = new Logger(RedisService.name);
   constructor(@Inject(REDIS_CLIENT) private readonly client: Redis) {}
 
   getClient(): Redis {
@@ -26,5 +27,22 @@ export class RedisService {
   async exists(key: string): Promise<boolean> {
     const result = await this.client.exists(key);
     return result === 1;
+  }
+
+  async getOrSet<T>(key: string, ttlSeconds: number, loader: () => Promise<T>): Promise<T> {
+    try {
+      const cached = await this.client.get(key);
+      if (cached) return JSON.parse(cached) as T;
+    } catch (e) {
+      this.logger.warn(`Redis get failed for ${key}: ${String(e)}`);
+    }
+    const value = await loader();
+    const ttl = ttlSeconds + Math.floor(Math.random() * 15);
+    try {
+      await this.client.set(key, JSON.stringify(value), 'EX', ttl);
+    } catch (e) {
+      this.logger.warn(`Redis get failed for ${key}: ${String(e)}`);
+    }
+    return value;
   }
 }

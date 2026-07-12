@@ -11,13 +11,19 @@ import { UpdateUserDto } from './dto/update-users.dto';
 import { UserProfileDto } from './dto/user-profile.dto';
 import { USERS_REPOSITORY } from './interfaces/users-repository.interface';
 import type { IUsersRepository } from './interfaces/users-repository.interface';
+import { RedisService } from '../redis/redis.service';
 
 @Injectable()
 export class UsersService {
   constructor(
     @Inject(USERS_REPOSITORY)
     private readonly usersRepository: IUsersRepository,
+    private readonly redis: RedisService,
   ) {}
+
+  private userKey(id: string): string {
+    return `user${id}`;
+  }
 
   findByEmail(email: string): Promise<User | null> {
     return this.usersRepository.findByEmail(email);
@@ -36,11 +42,14 @@ export class UsersService {
   }
 
   async getProfile(id: string): Promise<UserProfileDto> {
-    const user = await this.usersRepository.findById(id);
-    if (!user) {
-      throw new NotFoundException(`User with id ${id} not found`);
-    }
-    return this.toProfileDto(user);
+    const key = this.userKey(id);
+    return this.redis.getOrSet(key, 3600, async () => {
+      const user = await this.usersRepository.findById(id);
+      if (!user) {
+        throw new NotFoundException(`User with id ${id} not found`);
+      }
+      return this.toProfileDto(user);
+    });
   }
 
   async updateUser(id: string, dto: UpdateUserDto): Promise<UserProfileDto> {
@@ -72,6 +81,7 @@ export class UsersService {
     if (dto.bio !== undefined) data.bio = dto.bio;
 
     const updated = await this.usersRepository.updateUser(id, data);
+    await this.redis.del(this.userKey(id));
     return this.toProfileDto(updated);
   }
 
