@@ -50,9 +50,36 @@ export class MessagesService {
     };
   }
 
-  async markRead(conversationId: string, userId: string): Promise<void> {
+  async markRead(conversationId: string, userId: string, messageId?: string): Promise<boolean> {
     await this.assertMember(conversationId, userId);
+
+    let targetSenderId: string | null = null;
+
+    if (messageId) {
+      const message = await this.prisma.message.findUnique({
+        where: { id: messageId },
+        select: { senderId: true },
+      });
+      if (message) {
+        targetSenderId = message.senderId;
+      }
+    } else {
+      const lastMessage = await this.prisma.message.findFirst({
+        where: { conversationId },
+        orderBy: { createdAt: 'desc' },
+        select: { senderId: true },
+      });
+      if (lastMessage) {
+        targetSenderId = lastMessage.senderId;
+      }
+    }
+
+    if (targetSenderId === userId) {
+      return false;
+    }
+
     await this.messagesRepo.markAllRead(conversationId, userId);
+    return true;
   }
 
   async search(

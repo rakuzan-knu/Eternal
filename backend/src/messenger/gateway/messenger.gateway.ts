@@ -146,16 +146,27 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
   @SubscribeMessage(WS_EVENTS.MARK_READ)
   async handleMarkRead(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() payload: { conversationId: string },
+    @MessageBody() payload: { conversationId: string; messageId?: string },
   ) {
     try {
-      await this.messagesService.markRead(payload.conversationId, client.userId);
+      const isUpdated = await this.messagesService.markRead(
+        payload.conversationId,
+        client.userId,
+        payload.messageId,
+      );
+
+      if (!isUpdated) {
+        return;
+      }
+
       this.server.to(payload.conversationId).emit(WS_EVENTS.MESSAGE_READ, {
         conversationId: payload.conversationId,
         userId: client.userId,
+        messageId: payload.messageId || null,
         readAt: new Date().toISOString(),
       });
-    } catch {
+    } catch (err) {
+      this.logger.error(`Failed to mark read: ${err instanceof Error ? err.message : String(err)}`);
       throw new WsException('Failed to mark messages as read');
     }
   }
