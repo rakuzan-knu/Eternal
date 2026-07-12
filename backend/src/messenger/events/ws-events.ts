@@ -21,7 +21,7 @@ export const WS_EVENTS = {
   PARTICIPANT_ADDED: 'participantAdded',
   PARTICIPANT_LEFT: 'participantLeft',
   // PARTICIPANT_PROMOTED: 'participantPromoted',
-  // USER_ONLINE: 'userOnline',
+  USER_ONLINE: 'userOnline',
   USER_OFFLINE: 'userOffline',
 } as const;
 

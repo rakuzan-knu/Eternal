@@ -17,6 +17,7 @@ import { WS_EVENTS } from '../events/ws-events';
 import { MessagesService } from '../messages/messages.service';
 import { ConversationsService } from '../conversations/conversations.service';
 import { MessageType } from '@prisma/client';
+import { RedisService } from '../../redis/redis.service';
 
 interface AuthenticatedSocket extends Socket {
   userId: string;
@@ -31,14 +32,17 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
   private readonly server!: Server;
 
   private readonly logger = new Logger(MessengerGateway.name);
-
   private readonly onlineUsers = new Map<string, Set<string>>();
+
+  private readonly RATE_LIMIT = 20;
+  private readonly RATE_WINDOW_MS = 10_000;
 
   constructor(
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly messagesService: MessagesService,
     private readonly convsService: ConversationsService,
+    private readonly redisService: RedisService,
   ) {}
 
   afterInit() {
@@ -61,7 +65,6 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
       }
 
       const userId = payload.sub;
-
       (client as AuthenticatedSocket).userId = userId;
 
       if (!this.onlineUsers.has(userId)) {
@@ -169,20 +172,31 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
     },
     callback?: (res: { status: string; message?: unknown; error?: string }) => void,
   ): Promise<void> {
+    const isLimited = await this.isRateLimited(client.userId).catch((err: unknown) => {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      this.logger.error(`Rate Limiter Redis error: ${errMsg}`);
+      return false;
+    });
+
+    if (isLimited) {
+      const rateLimitError = 'Too many messages, slow down';
+      client.emit(WS_EVENTS.RATE_LIMIT_EXCEEDED, { message: rateLimitError });
+      callback?.({ status: 'error', error: rateLimitError });
+      return;
+    }
+
     try {
       const trimmedText = payload.text?.trim() || '';
       const hasAttachments = payload.attachments && payload.attachments.length > 0;
 
       if (!payload || !payload.conversationId || (!trimmedText && !hasAttachments)) {
         const validationError = 'Cannot send an empty message. Provide text or attachments.';
-
         client.emit('error', { message: validationError });
         callback?.({ status: 'error', error: validationError });
         return;
       }
 
       payload.text = trimmedText;
-
       await this.convsService.assertMember(payload.conversationId, client.userId);
 
       const message = await this.messagesService.send(
@@ -192,9 +206,7 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
       );
 
       await this.convsService.touchUpdatedAt(payload.conversationId);
-
       this.emitNewMessage(payload.conversationId, message);
-
       callback?.({ status: 'ok', message });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to send message';
@@ -202,7 +214,6 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
         `Failed to handle send_message: ${errorMessage}`,
         err instanceof Error ? err.stack : '',
       );
-
       client.emit('error', { message: errorMessage });
       callback?.({ status: 'error', error: errorMessage });
     }
@@ -285,6 +296,32 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
 
   getOnlineUsers(): string[] {
     return Array.from(this.onlineUsers.keys());
+  }
+
+  private async isRateLimited(userId: string): Promise<boolean> {
+    const now = Date.now();
+    const key = `rate_limit:messages:${userId}`;
+    const clearBefore = now - this.RATE_WINDOW_MS;
+
+    const member = `${now}:${Math.random()}`;
+
+    const results = await this.redisService
+      .getClient()
+      .multi()
+      .zremrangebyscore(key, 0, clearBefore)
+      .zadd(key, now, member)
+      .zcard(key)
+      .pexpire(key, this.RATE_WINDOW_MS)
+      .exec();
+
+    if (!results) {
+      return false;
+    }
+
+    const zcardRow = results[2];
+    const totalRequestsInWindow = zcardRow && zcardRow[1] ? (zcardRow[1] as number) : 0;
+
+    return totalRequestsInWindow > this.RATE_LIMIT;
   }
 
   private extractToken(client: Socket): string | null {
