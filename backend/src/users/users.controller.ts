@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
@@ -13,6 +14,8 @@ import { AuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UpdateUserDto } from './dto/update-users.dto';
 import { UserProfileDto } from './dto/user-profile.dto';
 import { UsersService } from './users.service';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { RequestUser } from '../auth/interfaces/jwt-payload.interface';
 
 @ApiTags('Users')
 @Controller('users')
@@ -37,7 +40,12 @@ export class UsersController {
   @ApiResponse({ status: 400, description: 'No fields provided or validation error' })
   @ApiResponse({ status: 404, description: 'User not found' })
   @ApiResponse({ status: 409, description: 'Email or username already taken' })
-  updateUser(@Param('id') id: string, @Body() dto: UpdateUserDto): Promise<UserProfileDto> {
+  updateUser(
+    @Param('id') id: string,
+    @Body() dto: UpdateUserDto,
+    @CurrentUser() user: RequestUser,
+  ): Promise<UserProfileDto> {
+    if (user.id !== id) throw new ForbiddenException('You can only update your own profile');
     return this.usersService.updateUser(id, dto);
   }
 }

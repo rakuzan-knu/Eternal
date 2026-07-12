@@ -2,13 +2,14 @@ import { Module } from '@nestjs/common';
 import { CommentsController } from './comments.controller';
 import { CommentsRepository } from './comments.repository';
 import { CommentsService } from './comments.service';
+import { COMMENTS_REPOSITORY } from './interfaces/comments-repository.interface';
 
 @Module({
   controllers: [CommentsController],
   providers: [
     CommentsService,
     {
-      provide: 'ICommentsRepository',
+      provide: COMMENTS_REPOSITORY,
       useClass: CommentsRepository,
     },
   ],

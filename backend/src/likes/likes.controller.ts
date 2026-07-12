@@ -1,6 +1,9 @@
-import { Body, Controller, Delete, Param, Post } from '@nestjs/common';
+import { Controller, Delete, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { LikesService } from './likes.service';
+import { AuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { RequestUser } from '../auth/interfaces/jwt-payload.interface';
 
 @ApiTags('Likes')
 @Controller('posts')
@@ -17,8 +20,9 @@ export class LikesController {
     status: 404,
     description: 'Post not found.',
   })
-  addLike(@Param('id') id: string, @Body('userId') userId: string) {
-    return this.likesService.likePost(id, userId);
+  @UseGuards(AuthGuard)
+  addLike(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    return this.likesService.likePost(id, user.id);
   }
 
   @Delete(':id/like')
@@ -31,7 +35,8 @@ export class LikesController {
     status: 404,
     description: 'Like or post not found.',
   })
-  unLike(@Param('id') id: string, @Body('userId') userId: string) {
-    return this.likesService.unlikePost(id, userId);
+  @UseGuards(AuthGuard)
+  unLike(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    return this.likesService.unlikePost(id, user.id);
   }
 }

@@ -8,15 +8,15 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email       String   @unique
-  username    String   @unique
-  displayName String?
+  id           String   @id @default(uuid())
+  email        String   @unique
+  username     String   @unique
+  displayName  String?
   passwordHash String
-  avatar    String?
-  bio       String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  avatar       String?
+  bio          String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   posts     Post[]
   followers Follow[]  @relation("following")
@@ -57,12 +57,14 @@ model Like {
 }
 
 model Follow {
-  follower    User   @relation("follower", fields: [followerId], references: [id])
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  follower    User     @relation("follower", fields: [followerId], references: [id])
   followerId  String
-  following   User   @relation("following", fields: [followingId], references: [id])
+  following   User     @relation("following", fields: [followingId], references: [id])
   followingId String
 
-  @@id([followerId, followingId])
+  @@unique([followerId, followingId])
 }
 
 model Comment {

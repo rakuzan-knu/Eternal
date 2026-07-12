@@ -1,8 +1,22 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { PostsService } from './posts.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { EditPostDto } from './dto/edit-post.dto';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { AuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { RequestUser } from '../auth/interfaces/jwt-payload.interface';
+import { GetPostsQueryDto } from './dto/get-posts-query.dto';
 
 @ApiTags('Posts')
 @Controller('posts')
@@ -15,10 +29,10 @@ export class PostsController {
     status: 200,
     description: 'Posts retrieved successfully.',
   })
-  getAllPosts(@Query('limit') limit: number = 10, @Query('after') after?: string) {
-    return this.postsService.getAllPosts(Number(limit), after);
+  getAllPosts(@Query() query: GetPostsQueryDto) {
+    return this.postsService.getAllPosts(query.limit, query.after);
   }
-
+  @UseGuards(AuthGuard)
   @Post()
   @ApiOperation({ summary: 'Create a new post' })
   @ApiBody({ type: CreatePostDto })
@@ -26,8 +40,8 @@ export class PostsController {
     status: 201,
     description: 'Post created successfully.',
   })
-  createPost(@Body() dto: CreatePostDto, @Body('author-id') authorId: string) {
-    return this.postsService.createPost(dto, authorId);
+  createPost(@Body() dto: CreatePostDto, @CurrentUser() user: RequestUser) {
+    return this.postsService.createPost(dto, user.id);
   }
 
   @Get(':id')
@@ -44,6 +58,7 @@ export class PostsController {
     return this.postsService.getPostById(id);
   }
 
+  @UseGuards(AuthGuard)
   @Patch(':id')
   @ApiOperation({ summary: 'Update a post' })
   @ApiBody({ type: EditPostDto })
@@ -55,8 +70,8 @@ export class PostsController {
     status: 404,
     description: 'Post not found.',
   })
-  editPost(@Param('id') id: string, @Body() dto: EditPostDto) {
-    return this.postsService.editPost(id, dto);
+  editPost(@Param('id') id: string, @Body() dto: EditPostDto, @CurrentUser() user: RequestUser) {
+    return this.postsService.editPost(id, dto, user.id);
   }
 
   @Delete(':id')
@@ -69,7 +84,8 @@ export class PostsController {
     status: 404,
     description: 'Post not found.',
   })
-  deletePost(@Param('id') id: string) {
-    return this.postsService.deletePost(id);
+  @UseGuards(AuthGuard)
+  deletePost(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    return this.postsService.deletePost(id, user.id);
   }
 }

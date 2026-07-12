@@ -1,26 +1,35 @@
 import { Injectable } from '@nestjs/common';
 import { IFollowersRepository } from '../interfaces/followers-repository.interface';
 import { PrismaService } from '../../prisma/prisma.service';
-import { User } from '@prisma/client';
+import { publicUserSelect } from '../../users/users.select';
+import type { FollowUserRow } from '../types/followers.types';
 
 @Injectable()
 export class FollowersRepository implements IFollowersRepository {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async getFollowers(userId: string): Promise<User[]> {
+  async getFollowers(userId: string, limit: number, after?: string): Promise<FollowUserRow[]> {
     const follows = await this.prismaService.follow.findMany({
       where: { followingId: userId },
-      include: { follower: true },
+      include: { follower: { select: publicUserSelect } },
+      take: limit + 1,
+      skip: after ? 1 : 0,
+      cursor: after ? { id: after } : undefined,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
     });
-    return follows.map((f) => f.follower);
+    return follows.map((f) => ({ id: f.id, user: f.follower }));
   }
 
-  async getFollowing(userId: string): Promise<User[]> {
+  async getFollowing(userId: string, limit: number, after?: string): Promise<FollowUserRow[]> {
     const follows = await this.prismaService.follow.findMany({
       where: { followerId: userId },
-      include: { following: true },
+      include: { following: { select: publicUserSelect } },
+      take: limit + 1,
+      skip: after ? 1 : 0,
+      cursor: after ? { id: after } : undefined,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
     });
-    return follows.map((f) => f.following);
+    return follows.map((f) => ({ id: f.id, user: f.following }));
   }
 
   async followUser(followerId: string, followingId: string): Promise<void> {

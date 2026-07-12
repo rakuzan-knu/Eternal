@@ -5,9 +5,6 @@ export class UserProfileDto {
   id!: string;
 
   @ApiProperty()
-  email!: string;
-
-  @ApiProperty()
   username!: string;
 
   @ApiProperty({ nullable: true })

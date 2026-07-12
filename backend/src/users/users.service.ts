@@ -78,7 +78,6 @@ export class UsersService {
   private toProfileDto(user: User): UserProfileDto {
     return {
       id: user.id,
-      email: user.email,
       username: user.username,
       displayName: user.displayName,
       avatar: user.avatar,

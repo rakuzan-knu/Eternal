@@ -8,4 +8,4 @@ export interface IAvatarRepository {
   updateAvatar(userId: string, avatar: string | null): Promise<AvatarView>;
 }
 
-export const AVATAR_REPOSITORY = 'AVATAR_REPOSITORY';
+export const AVATAR_REPOSITORY = Symbol('AVATAR_REPOSITORY');

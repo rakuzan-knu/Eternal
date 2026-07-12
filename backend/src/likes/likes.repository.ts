@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { ILikesRepository } from './likes-repository.interface';
+import type { ILikesRepository } from './interfaces/likes-repository.interface';
 import { PrismaService } from '../prisma/prisma.service';
 import type { Like } from '@prisma/client';
 

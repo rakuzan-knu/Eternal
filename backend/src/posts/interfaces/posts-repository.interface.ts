@@ -1,5 +1,7 @@
 import type { Post, Prisma } from '@prisma/client';
 
+export const POSTS_REPOSITORY = Symbol('POSTS_REPOSITORY');
+
 export interface IPostRepository {
   createPost(data: Prisma.PostCreateInput): Promise<Post>;
   getAllPosts(limit: number, after?: string): Promise<Post[]>;

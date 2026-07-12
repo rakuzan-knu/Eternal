@@ -2,17 +2,21 @@ import {
   Body,
   Controller,
   Delete,
-  ForbiddenException,
   Get,
-  Headers,
   HttpCode,
   HttpStatus,
   Param,
   Post,
+  Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CommentsService } from './comments.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
+import { AuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { RequestUser } from '../auth/interfaces/jwt-payload.interface';
+import { GetCommentsQueryDto } from './dto/get-comments-query.dto';
 
 @ApiTags('Comments')
 @Controller()
@@ -24,20 +28,20 @@ export class CommentsController {
   @ApiBody({ type: CreateCommentDto })
   @ApiResponse({ status: 201, description: 'Comment created successfully.' })
   @ApiResponse({ status: 404, description: 'Post not found.' })
+  @UseGuards(AuthGuard)
   addComment(
     @Param('id') postId: string,
-    @Headers('x-user-id') userId: string,
+    @CurrentUser() user: RequestUser,
     @Body() dto: CreateCommentDto,
   ) {
-    if (!userId) throw new ForbiddenException('Missing x-user-id header');
-    return this.commentsService.addComment(postId, userId, dto);
+    return this.commentsService.addComment(postId, user.id, dto);
   }
 
   @Get('posts/:id/comments')
   @ApiOperation({ summary: 'Get comments for a post' })
   @ApiResponse({ status: 200, description: 'Comments retrieved successfully.' })
-  getComments(@Param('id') postId: string) {
-    return this.commentsService.getComments(postId);
+  getComments(@Param('id') postId: string, @Query() query: GetCommentsQueryDto) {
+    return this.commentsService.getComments(postId, query.limit, query.after);
   }
 
   @Delete('comments/:id')
@@ -45,8 +49,8 @@ export class CommentsController {
   @ApiOperation({ summary: 'Delete a comment' })
   @ApiResponse({ status: 204, description: 'Comment deleted successfully.' })
   @ApiResponse({ status: 404, description: 'Comment not found.' })
-  deleteComment(@Param('id') commentId: string, @Headers('x-user-id') userId: string) {
-    if (!userId) throw new ForbiddenException('Missing x-user-id header');
-    return this.commentsService.deleteComment(commentId, userId);
+  @UseGuards(AuthGuard)
+  deleteComment(@Param('id') commentId: string, @CurrentUser() user: RequestUser) {
+    return this.commentsService.deleteComment(commentId, user.id);
   }
 }

@@ -11,6 +11,7 @@ import {
   UploadedFile,
   UseGuards,
   UseInterceptors,
+  ForbiddenException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -24,6 +25,8 @@ import {
 import { AuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AvatarsService } from './avatars.service';
 import type { AvatarView } from './interfaces/avatars-repository.interface';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { RequestUser } from '../auth/interfaces/jwt-payload.interface';
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 
@@ -52,6 +55,7 @@ export class AvatarsController {
   @ApiResponse({ status: 404, description: 'User not found' })
   upload(
     @Param('id') userId: string,
+    @CurrentUser() user: RequestUser,
     @UploadedFile(
       new ParseFilePipe({
         validators: [
@@ -62,6 +66,7 @@ export class AvatarsController {
     )
     file: Express.Multer.File,
   ): Promise<AvatarView> {
+    if (user.id !== userId) throw new ForbiddenException('You can only upload your own avatar');
     return this.avatarsService.uploadAvatar(userId, file);
   }
 
@@ -72,7 +77,8 @@ export class AvatarsController {
   @ApiOperation({ summary: 'Delete avatar of a user' })
   @ApiResponse({ status: 200, description: 'Avatar deleted successfully' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  delete(@Param('id') userId: string): Promise<AvatarView> {
+  delete(@Param('id') userId: string, @CurrentUser() user: RequestUser): Promise<AvatarView> {
+    if (user.id !== userId) throw new ForbiddenException('You can only delete your own avatar');
     return this.avatarsService.deleteAvatar(userId);
   }
 }
