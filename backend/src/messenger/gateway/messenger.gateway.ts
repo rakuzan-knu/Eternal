@@ -1,7 +1,10 @@
 import {
+  ConnectedSocket,
+  MessageBody,
   OnGatewayConnection,
   OnGatewayDisconnect,
   OnGatewayInit,
+  SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
   WsException,
@@ -10,6 +13,9 @@ import { Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { WS_EVENTS } from '../events/ws-events';
+import { MessagesService } from '../messages/messages.service';
+import { ConversationsService } from '../conversations/conversations.service';
 
 interface AuthenticatedSocket extends Socket {
   userId: string;
@@ -30,6 +36,8 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
   constructor(
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly messagesService: MessagesService,
+    private readonly convsService: ConversationsService,
   ) {}
 
   afterInit() {
@@ -78,10 +86,145 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
       userSockets.delete(client.id);
       if (userSockets.size === 0) {
         this.onlineUsers.delete(userId);
+        this.server.emit(WS_EVENTS.USER_OFFLINE, { userId });
       }
     }
 
     this.logger.log(`Client disconnected: ${client.id} (user: ${userId})`);
+  }
+
+  @SubscribeMessage(WS_EVENTS.JOIN_CONVERSATION)
+  async handleJoin(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { conversationId: string },
+  ) {
+    try {
+      await this.convsService.assertMember(payload.conversationId, client.userId);
+      await client.join(payload.conversationId);
+      this.logger.debug(`User ${client.userId} joined room ${payload.conversationId}`);
+    } catch {
+      throw new WsException('Not a member of this conversation');
+    }
+  }
+
+  @SubscribeMessage(WS_EVENTS.LEAVE_CONVERSATION)
+  async handleLeave(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { conversationId: string },
+  ) {
+    await client.leave(payload.conversationId);
+  }
+
+  @SubscribeMessage(WS_EVENTS.TYPING_START)
+  handleTypingStart(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { conversationId: string },
+  ) {
+    client.to(payload.conversationId).emit(WS_EVENTS.TYPING, {
+      conversationId: payload.conversationId,
+      userId: client.userId,
+      isTyping: true,
+    });
+  }
+
+  @SubscribeMessage(WS_EVENTS.TYPING_STOP)
+  handleTypingStop(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { conversationId: string },
+  ) {
+    client.to(payload.conversationId).emit(WS_EVENTS.TYPING, {
+      conversationId: payload.conversationId,
+      userId: client.userId,
+      isTyping: false,
+    });
+  }
+
+  @SubscribeMessage(WS_EVENTS.MARK_READ)
+  async handleMarkRead(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { conversationId: string },
+  ) {
+    try {
+      await this.messagesService.markRead(payload.conversationId, client.userId);
+      this.server.to(payload.conversationId).emit(WS_EVENTS.MESSAGE_READ, {
+        conversationId: payload.conversationId,
+        userId: client.userId,
+        readAt: new Date().toISOString(),
+      });
+    } catch {
+      throw new WsException('Failed to mark messages as read');
+    }
+  }
+
+  emitNewMessage(conversationId: string, message: unknown) {
+    this.server.to(conversationId).emit(WS_EVENTS.NEW_MESSAGE, {
+      conversationId,
+      message,
+    });
+  }
+
+  emitMessageEdited(conversationId: string, message: unknown) {
+    this.server.to(conversationId).emit(WS_EVENTS.MESSAGE_EDITED, {
+      conversationId,
+      message,
+    });
+  }
+
+  emitMessageDeleted(conversationId: string, messageId: string, deletedForAll: boolean) {
+    this.server.to(conversationId).emit(WS_EVENTS.MESSAGE_DELETED, {
+      conversationId,
+      messageId,
+      deletedForAll,
+    });
+  }
+
+  emitReactionAdded(conversationId: string, message: unknown) {
+    this.server.to(conversationId).emit(WS_EVENTS.MESSAGE_REACTION_ADDED, {
+      conversationId,
+      message,
+    });
+  }
+
+  emitReactionRemoved(conversationId: string, message: unknown) {
+    this.server.to(conversationId).emit(WS_EVENTS.MESSAGE_REACTION_REMOVED, {
+      conversationId,
+      message,
+    });
+  }
+
+  emitMessagePinned(conversationId: string, messageId: string) {
+    this.server.to(conversationId).emit(WS_EVENTS.MESSAGE_PINNED, {
+      conversationId,
+      messageId,
+    });
+  }
+
+  emitMessageUnpinned(conversationId: string, messageId: string) {
+    this.server.to(conversationId).emit(WS_EVENTS.MESSAGE_UNPINNED, {
+      conversationId,
+      messageId,
+    });
+  }
+
+  emitConversationUpdated(conversationId: string, data: unknown) {
+    this.server.to(conversationId).emit(WS_EVENTS.CONVERSATION_UPDATED, {
+      conversationId,
+      data,
+    });
+  }
+
+  emitParticipantAdded(conversationId: string, participant: unknown) {
+    this.server.to(conversationId).emit(WS_EVENTS.PARTICIPANT_ADDED, {
+      conversationId,
+      participant,
+    });
+  }
+
+  emitParticipantLeft(conversationId: string, userId: string) {
+    this.server.to(conversationId).emit(WS_EVENTS.PARTICIPANT_LEFT, {
+      conversationId,
+      userId,
+    });
   }
 
   isOnline(userId: string): boolean {
