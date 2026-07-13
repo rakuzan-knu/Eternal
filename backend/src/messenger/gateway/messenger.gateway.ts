@@ -9,20 +9,33 @@ import {
   WebSocketServer,
   WsException,
 } from '@nestjs/websockets';
-import { Logger } from '@nestjs/common';
+import { Logger, UseFilters, UsePipes, ValidationPipe } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { WS_EVENTS } from '../events/ws-events';
 import { MessagesService } from '../messages/messages.service';
 import { ConversationsService } from '../conversations/conversations.service';
-import { MessageType } from '@prisma/client';
 import { RedisService } from '../../redis/redis.service';
+import { WsValidationFilter } from '../filters/ws-validation.filter';
+import {
+  SendMessageDto,
+  EditMessageDto,
+  DeleteMessageDto,
+  ForwardMessageDto,
+  ReactToMessageDto,
+  TogglePinMessageDto,
+  ConversationIdDto,
+  MarkReadDto,
+} from '../dto/message.dto';
 
 interface AuthenticatedSocket extends Socket {
   userId: string;
 }
 
+const WsPipe = new ValidationPipe({ transform: true, whitelist: true });
+
+@UseFilters(WsValidationFilter)
 @WebSocketGateway({
   namespace: '/messenger',
   cors: { origin: '*', credentials: true },
@@ -46,35 +59,27 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
   ) {}
 
   afterInit() {
-    this.logger.log(`Messenger WebSocket Gateway initialised. Server status: ${!!this.server}`);
+    this.logger.log(`Messenger WebSocket Gateway initialised.`);
   }
 
   async handleConnection(client: Socket): Promise<void> {
     try {
       const token = this.extractToken(client);
-      if (!token) {
-        throw new WsException('Missing auth token');
-      }
+      if (!token) throw new WsException('Missing auth token');
 
       const payload = await this.jwtService.verifyAsync<{ sub: string; type: string }>(token, {
         secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
       });
 
-      if (payload.type !== 'access') {
-        throw new WsException('Invalid token type');
-      }
+      if (payload.type !== 'access') throw new WsException('Invalid token type');
 
       const userId = payload.sub;
       (client as AuthenticatedSocket).userId = userId;
 
-      if (!this.onlineUsers.has(userId)) {
-        this.onlineUsers.set(userId, new Set());
-      }
+      if (!this.onlineUsers.has(userId)) this.onlineUsers.set(userId, new Set());
       this.onlineUsers.get(userId)!.add(client.id);
 
-      this.logger.log(
-        `Client connected: ${client.id} (user: ${userId}). Total tabs: ${this.onlineUsers.get(userId)!.size}`,
-      );
+      this.logger.log(`Client connected: ${client.id} (user: ${userId})`);
     } catch (err) {
       this.logger.warn(`Rejected connection: ${(err as Error).message}`);
       client.disconnect(true);
@@ -93,36 +98,33 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
         this.server.emit(WS_EVENTS.USER_OFFLINE, { userId });
       }
     }
-
-    this.logger.log(`Client disconnected: ${client.id} (user: ${userId})`);
+    this.logger.log(`Client disconnected: ${client.id}`);
   }
 
+  @UsePipes(WsPipe)
   @SubscribeMessage(WS_EVENTS.JOIN_CONVERSATION)
   async handleJoin(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() payload: { conversationId: string },
+    @MessageBody() payload: ConversationIdDto,
   ) {
-    try {
-      await this.convsService.assertMember(payload.conversationId, client.userId);
-      await client.join(payload.conversationId);
-      this.logger.debug(`User ${client.userId} joined room ${payload.conversationId}`);
-    } catch {
-      throw new WsException('Not a member of this conversation');
-    }
+    await this.convsService.assertMember(payload.conversationId, client.userId);
+    await client.join(payload.conversationId);
   }
 
+  @UsePipes(WsPipe)
   @SubscribeMessage(WS_EVENTS.LEAVE_CONVERSATION)
   async handleLeave(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() payload: { conversationId: string },
+    @MessageBody() payload: ConversationIdDto,
   ) {
     await client.leave(payload.conversationId);
   }
 
+  @UsePipes(WsPipe)
   @SubscribeMessage(WS_EVENTS.TYPING_START)
   handleTypingStart(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() payload: { conversationId: string },
+    @MessageBody() payload: ConversationIdDto,
   ) {
     client.to(payload.conversationId).emit(WS_EVENTS.TYPING, {
       conversationId: payload.conversationId,
@@ -131,10 +133,11 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
     });
   }
 
+  @UsePipes(WsPipe)
   @SubscribeMessage(WS_EVENTS.TYPING_STOP)
   handleTypingStop(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() payload: { conversationId: string },
+    @MessageBody() payload: ConversationIdDto,
   ) {
     client.to(payload.conversationId).emit(WS_EVENTS.TYPING, {
       conversationId: payload.conversationId,
@@ -143,52 +146,36 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
     });
   }
 
+  @UsePipes(WsPipe)
   @SubscribeMessage(WS_EVENTS.MARK_READ)
   async handleMarkRead(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() payload: { conversationId: string; messageId?: string },
+    @MessageBody() payload: MarkReadDto,
   ) {
-    try {
-      const isUpdated = await this.messagesService.markRead(
-        payload.conversationId,
-        client.userId,
-        payload.messageId,
-      );
+    const isUpdated = await this.messagesService.markRead(
+      payload.conversationId,
+      client.userId,
+      payload.messageId,
+    );
 
-      if (!isUpdated) {
-        return;
-      }
+    if (!isUpdated) return;
 
-      this.server.to(payload.conversationId).emit(WS_EVENTS.MESSAGE_READ, {
-        conversationId: payload.conversationId,
-        userId: client.userId,
-        messageId: payload.messageId || null,
-        readAt: new Date().toISOString(),
-      });
-    } catch (err) {
-      this.logger.error(`Failed to mark read: ${err instanceof Error ? err.message : String(err)}`);
-      throw new WsException('Failed to mark messages as read');
-    }
+    this.server.to(payload.conversationId).emit(WS_EVENTS.MESSAGE_READ, {
+      conversationId: payload.conversationId,
+      userId: client.userId,
+      messageId: payload.messageId || null,
+      readAt: new Date().toISOString(),
+    });
   }
 
+  @UsePipes(WsPipe)
   @SubscribeMessage(WS_EVENTS.SEND_MESSAGE)
   async handleSendMessage(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody()
-    payload: {
-      conversationId: string;
-      text?: string;
-      messageType?: MessageType;
-      attachments?: any[];
-    },
+    @MessageBody() payload: SendMessageDto,
     callback?: (res: { status: string; message?: unknown; error?: string }) => void,
   ): Promise<void> {
-    const isLimited = await this.isRateLimited(client.userId).catch((err: unknown) => {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      this.logger.error(`Rate Limiter Redis error: ${errMsg}`);
-      return false;
-    });
-
+    const isLimited = await this.isRateLimited(client.userId).catch(() => false);
     if (isLimited) {
       const rateLimitError = 'Too many messages, slow down';
       client.emit(WS_EVENTS.RATE_LIMIT_EXCEEDED, { message: rateLimitError });
@@ -196,124 +183,165 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
       return;
     }
 
-    try {
-      const trimmedText = payload.text?.trim() || '';
-      const hasAttachments = payload.attachments && payload.attachments.length > 0;
+    await this.convsService.assertMember(payload.conversationId, client.userId);
 
-      if (!payload || !payload.conversationId || (!trimmedText && !hasAttachments)) {
-        const validationError = 'Cannot send an empty message. Provide text or attachments.';
-        client.emit('error', { message: validationError });
-        callback?.({ status: 'error', error: validationError });
-        return;
-      }
+    const message = await this.messagesService.send(payload.conversationId, client.userId, payload);
 
-      payload.text = trimmedText;
-      await this.convsService.assertMember(payload.conversationId, client.userId);
+    await this.convsService.touchUpdatedAt(payload.conversationId);
+    this.emitNewMessage(payload.conversationId, message);
+    callback?.({ status: 'ok', message });
+  }
 
-      const message = await this.messagesService.send(
-        payload.conversationId,
-        client.userId,
-        payload,
-      );
+  @UsePipes(WsPipe)
+  @SubscribeMessage(WS_EVENTS.EDIT_MESSAGE)
+  async handleEditMessage(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: EditMessageDto,
+    callback?: (res: { status: string; message?: unknown; error?: string }) => void,
+  ): Promise<void> {
+    const updatedMessage = await this.messagesService.edit(
+      payload.messageId,
+      client.userId,
+      payload,
+    );
+    this.emitMessageEdited(updatedMessage.conversationId, updatedMessage);
+    callback?.({ status: 'ok', message: updatedMessage });
+  }
 
-      await this.convsService.touchUpdatedAt(payload.conversationId);
-      this.emitNewMessage(payload.conversationId, message);
-      callback?.({ status: 'ok', message });
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to send message';
-      this.logger.error(
-        `Failed to handle send_message: ${errorMessage}`,
-        err instanceof Error ? err.stack : '',
-      );
-      client.emit('error', { message: errorMessage });
-      callback?.({ status: 'error', error: errorMessage });
+  @UsePipes(WsPipe)
+  @SubscribeMessage(WS_EVENTS.DELETE_MESSAGE)
+  async handleDeleteMessage(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: DeleteMessageDto,
+    callback?: (res: { status: string; deletedForAll: boolean; error?: string }) => void,
+  ): Promise<void> {
+    const result = await this.messagesService.delete(payload.messageId, client.userId, payload);
+
+    const msg = await this.messagesService['messagesRepo'].findOne(
+      payload.messageId,
+      client.userId,
+    );
+    if (msg) {
+      this.emitMessageDeleted(msg.conversationId, result.messageId, result.deletedForAll);
     }
+
+    callback?.({ status: 'ok', deletedForAll: result.deletedForAll });
+  }
+
+  @UsePipes(WsPipe)
+  @SubscribeMessage(WS_EVENTS.FORWARD_MESSAGE)
+  async handleForwardMessage(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: ForwardMessageDto,
+    callback?: (res: { status: string; messages?: unknown[]; error?: string }) => void,
+  ): Promise<void> {
+    const results = await this.messagesService.forward(payload.messageId, client.userId, payload);
+
+    results.forEach((msg) => {
+      this.emitNewMessage(msg.conversationId, msg);
+    });
+
+    callback?.({ status: 'ok', messages: results });
+  }
+
+  @UsePipes(WsPipe)
+  @SubscribeMessage(WS_EVENTS.ADD_REACTION)
+  async handleAddReaction(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: ReactToMessageDto,
+    callback?: (res: { status: string; message?: unknown; error?: string }) => void,
+  ): Promise<void> {
+    const updated = await this.messagesService.addReaction(
+      payload.messageId,
+      client.userId,
+      payload,
+    );
+    this.emitReactionAdded(updated.conversationId, updated);
+    callback?.({ status: 'ok', message: updated });
+  }
+
+  @UsePipes(WsPipe)
+  @SubscribeMessage(WS_EVENTS.REMOVE_REACTION)
+  async handleRemoveReaction(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: ReactToMessageDto,
+    callback?: (res: { status: string; message?: unknown; error?: string }) => void,
+  ): Promise<void> {
+    const updated = await this.messagesService.removeReaction(
+      payload.messageId,
+      client.userId,
+      payload.emoji,
+    );
+    this.emitReactionRemoved(updated.conversationId, updated);
+    callback?.({ status: 'ok', message: updated });
+  }
+
+  @UsePipes(WsPipe)
+  @SubscribeMessage(WS_EVENTS.PIN_MESSAGE)
+  async handlePinMessage(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: TogglePinMessageDto,
+    callback?: (res: { status: string; error?: string }) => void,
+  ): Promise<void> {
+    await this.messagesService.pinMessage(payload.conversationId, payload.messageId, client.userId);
+    this.emitMessagePinned(payload.conversationId, payload.messageId);
+    callback?.({ status: 'ok' });
+  }
+
+  @UsePipes(WsPipe)
+  @SubscribeMessage(WS_EVENTS.UNPIN_MESSAGE)
+  async handleUnpinMessage(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: TogglePinMessageDto,
+    callback?: (res: { status: string; error?: string }) => void,
+  ): Promise<void> {
+    await this.messagesService.unpinMessage(
+      payload.conversationId,
+      payload.messageId,
+      client.userId,
+    );
+    this.emitMessageUnpinned(payload.conversationId, payload.messageId);
+    callback?.({ status: 'ok' });
   }
 
   emitNewMessage(conversationId: string, message: unknown) {
-    this.server.to(conversationId).emit(WS_EVENTS.NEW_MESSAGE, {
-      conversationId,
-      message,
-    });
+    this.server.to(conversationId).emit(WS_EVENTS.NEW_MESSAGE, { conversationId, message });
   }
 
   emitMessageEdited(conversationId: string, message: unknown) {
-    this.server.to(conversationId).emit(WS_EVENTS.MESSAGE_EDITED, {
-      conversationId,
-      message,
-    });
+    this.server.to(conversationId).emit(WS_EVENTS.MESSAGE_EDITED, { conversationId, message });
   }
 
   emitMessageDeleted(conversationId: string, messageId: string, deletedForAll: boolean) {
-    this.server.to(conversationId).emit(WS_EVENTS.MESSAGE_DELETED, {
-      conversationId,
-      messageId,
-      deletedForAll,
-    });
+    this.server
+      .to(conversationId)
+      .emit(WS_EVENTS.MESSAGE_DELETED, { conversationId, messageId, deletedForAll });
   }
 
   emitReactionAdded(conversationId: string, message: unknown) {
-    this.server.to(conversationId).emit(WS_EVENTS.MESSAGE_REACTION_ADDED, {
-      conversationId,
-      message,
-    });
+    this.server
+      .to(conversationId)
+      .emit(WS_EVENTS.MESSAGE_REACTION_ADDED, { conversationId, message });
   }
 
   emitReactionRemoved(conversationId: string, message: unknown) {
-    this.server.to(conversationId).emit(WS_EVENTS.MESSAGE_REACTION_REMOVED, {
-      conversationId,
-      message,
-    });
+    this.server
+      .to(conversationId)
+      .emit(WS_EVENTS.MESSAGE_REACTION_REMOVED, { conversationId, message });
   }
 
   emitMessagePinned(conversationId: string, messageId: string) {
-    this.server.to(conversationId).emit(WS_EVENTS.MESSAGE_PINNED, {
-      conversationId,
-      messageId,
-    });
+    this.server.to(conversationId).emit(WS_EVENTS.MESSAGE_PINNED, { conversationId, messageId });
   }
 
   emitMessageUnpinned(conversationId: string, messageId: string) {
-    this.server.to(conversationId).emit(WS_EVENTS.MESSAGE_UNPINNED, {
-      conversationId,
-      messageId,
-    });
-  }
-
-  emitConversationUpdated(conversationId: string, data: unknown) {
-    this.server.to(conversationId).emit(WS_EVENTS.CONVERSATION_UPDATED, {
-      conversationId,
-      data,
-    });
-  }
-
-  emitParticipantAdded(conversationId: string, participant: unknown) {
-    this.server.to(conversationId).emit(WS_EVENTS.PARTICIPANT_ADDED, {
-      conversationId,
-      participant,
-    });
-  }
-
-  emitParticipantLeft(conversationId: string, userId: string) {
-    this.server.to(conversationId).emit(WS_EVENTS.PARTICIPANT_LEFT, {
-      conversationId,
-      userId,
-    });
-  }
-
-  isOnline(userId: string): boolean {
-    return (this.onlineUsers.get(userId)?.size ?? 0) > 0;
-  }
-
-  getOnlineUsers(): string[] {
-    return Array.from(this.onlineUsers.keys());
+    this.server.to(conversationId).emit(WS_EVENTS.MESSAGE_UNPINNED, { conversationId, messageId });
   }
 
   private async isRateLimited(userId: string): Promise<boolean> {
     const now = Date.now();
     const key = `rate_limit:messages:${userId}`;
     const clearBefore = now - this.RATE_WINDOW_MS;
-
     const member = `${now}:${Math.random()}`;
 
     const results = await this.redisService
@@ -325,21 +353,15 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
       .pexpire(key, this.RATE_WINDOW_MS)
       .exec();
 
-    if (!results) {
-      return false;
-    }
-
+    if (!results) return false;
     const zcardRow = results[2];
     const totalRequestsInWindow = zcardRow && zcardRow[1] ? (zcardRow[1] as number) : 0;
-
     return totalRequestsInWindow > this.RATE_LIMIT;
   }
 
   private extractToken(client: Socket): string | null {
     const authHeader = client.handshake.headers.authorization;
-    if (authHeader?.startsWith('Bearer ')) {
-      return authHeader.slice(7);
-    }
+    if (authHeader?.startsWith('Bearer ')) return authHeader.slice(7);
     return (client.handshake.auth?.token as string) ?? null;
   }
 }

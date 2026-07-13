@@ -3,27 +3,38 @@ export const WS_EVENTS = {
   LEAVE_CONVERSATION: 'leaveConversation',
   TYPING_START: 'typingStart',
   TYPING_STOP: 'typingStop',
+  TYPING: 'typing',
   MARK_READ: 'markRead',
-
-  SEND_MESSAGE: 'sendMessage',
+  MESSAGE_READ: 'messageRead',
+  USER_OFFLINE: 'userOffline',
   RATE_LIMIT_EXCEEDED: 'rateLimitExceeded',
 
+  SEND_MESSAGE: 'sendMessage',
   NEW_MESSAGE: 'newMessage',
+
+  EDIT_MESSAGE: 'editMessage',
   MESSAGE_EDITED: 'messageEdited',
+
+  DELETE_MESSAGE: 'deleteMessage',
   MESSAGE_DELETED: 'messageDeleted',
+
+  FORWARD_MESSAGE: 'forwardMessage',
+
+  ADD_REACTION: 'addReaction',
   MESSAGE_REACTION_ADDED: 'messageReactionAdded',
+  REMOVE_REACTION: 'removeReaction',
   MESSAGE_REACTION_REMOVED: 'messageReactionRemoved',
-  MESSAGE_READ: 'messageRead',
+
+  PIN_MESSAGE: 'pinMessage',
   MESSAGE_PINNED: 'messagePinned',
+  UNPIN_MESSAGE: 'unpinMessage',
   MESSAGE_UNPINNED: 'messageUnpinned',
-  TYPING: 'typing',
+
   CONVERSATION_UPDATED: 'conversationUpdated',
   PARTICIPANT_ADDED: 'participantAdded',
   PARTICIPANT_LEFT: 'participantLeft',
-  // PARTICIPANT_PROMOTED: 'participantPromoted',
-  USER_ONLINE: 'userOnline',
-  USER_OFFLINE: 'userOffline',
 } as const;
 
 export type WsEventKey = keyof typeof WS_EVENTS;
 export type WsEventValue = (typeof WS_EVENTS)[WsEventKey];
+export type WsEventType = (typeof WS_EVENTS)[keyof typeof WS_EVENTS];
