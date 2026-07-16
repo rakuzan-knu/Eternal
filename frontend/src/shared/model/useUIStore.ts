@@ -1,29 +1,6 @@
 import { create } from 'zustand';
-
-export interface CommentType {
-  id: string | number;
-  author: string;
-  avatar?: string;
-  handle: string;
-  text: string;
-  time: string;
-}
-
-export interface PostType {
-  id: string | number;
-  author: string;
-  avatar?: string;
-  handle: string;
-  text: string;
-  type?: 'repost' | string;
-  repostedBy?: string;
-  time?: string;
-  image?: string;
-  comments?: number;
-  reposts?: number;
-  likes?: number;
-  commentList?: CommentType[];
-}
+import { PostType } from '../../entities/post/model/types';
+import { CommentType } from '../../entities/comment/model/types';
 
 interface UIState {
   isSidebarExpanded: boolean;
@@ -48,3 +25,5 @@ export const useUIStore = create<UIState>((set) => ({
   openCommentModal: (post) => set({ isCommentModalOpen: true, activePostForComments: post }),
   closeCommentModal: () => set({ isCommentModalOpen: false, activePostForComments: null }),
 }));
+
+export type { PostType, CommentType };

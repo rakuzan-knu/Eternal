@@ -14,9 +14,8 @@ export const ResetMethod: React.FC<ResetMethodProps> = ({ user, onCancel }) => {
 
   const handleSendCode = async () => {
     setIsSending(true);
-    // await axios.post('/api/auth/send-reset-code', { userId: user.id, method: selectedMethod });
     alert(
-      `Код надіслано на обраний канал: ${selectedMethod === 'email' ? user.maskedEmail : user.maskedPhone}`,
+      `Code sent to selected channel: ${selectedMethod === 'email' ? user.maskedEmail : user.maskedPhone}`,
     );
     setIsSending(false);
   };
@@ -25,7 +24,7 @@ export const ResetMethod: React.FC<ResetMethodProps> = ({ user, onCancel }) => {
     <div className="flex flex-col gap-5">
       <div className="flex items-center gap-3 p-3 bg-neutral-900/30 border border-neutral-800/40 rounded-xl">
         <div className="rounded-full border border-purple-500/20 p-[2px]">
-          <Avatar emoji={user.emoji} src={user.src} size="md" />
+          <Avatar src={user.src} size="md" />
         </div>
 
         <div className="flex flex-col text-left">
@@ -37,7 +36,7 @@ export const ResetMethod: React.FC<ResetMethodProps> = ({ user, onCancel }) => {
       <div className="flex flex-col gap-2">
         <label className="flex items-center justify-between p-3.5 bg-[#121214]/40 border border-neutral-800/60 rounded-xl cursor-pointer hover:bg-neutral-800/20 transition-all select-none">
           <span className="text-sm font-medium text-neutral-300">
-            Надіслати код на Email ({user.maskedEmail})
+            Send code to Email ({user.maskedEmail})
           </span>
           <input
             type="radio"
@@ -50,7 +49,7 @@ export const ResetMethod: React.FC<ResetMethodProps> = ({ user, onCancel }) => {
 
         <label className="flex items-center justify-between p-3.5 bg-[#121214]/40 border border-neutral-800/60 rounded-xl cursor-pointer hover:bg-neutral-800/20 transition-all select-none">
           <span className="text-sm font-medium text-neutral-300">
-            Надіслати код по SMS ({user.maskedPhone})
+            Send code via SMS ({user.maskedPhone})
           </span>
           <input
             type="radio"
@@ -64,10 +63,10 @@ export const ResetMethod: React.FC<ResetMethodProps> = ({ user, onCancel }) => {
 
       <div className="flex flex-col gap-2 mt-2">
         <Button onClick={handleSendCode} disabled={isSending}>
-          {isSending ? 'Надсилання...' : 'Продовжити'}
+          {isSending ? 'Sending...' : 'Continue'}
         </Button>
         <Button variant="secondary" onClick={onCancel} disabled={isSending}>
-          Це не ви?
+          Isn't that you?
         </Button>
       </div>
     </div>

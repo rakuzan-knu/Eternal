@@ -12,7 +12,7 @@ export default function ProfileTabs({ activeTab, setActiveTab }: ProfileTabsProp
         onClick={() => setActiveTab('posts')}
         className={`flex-1 py-4 cursor-pointer text-center text-sm font-semibold relative ${activeTab === 'posts' ? 'text-white' : 'text-gray-500'}`}
       >
-        Пости
+        Posts
         {activeTab === 'posts' && (
           <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-[3px] bg-white rounded-full" />
         )}
@@ -21,7 +21,7 @@ export default function ProfileTabs({ activeTab, setActiveTab }: ProfileTabsProp
         onClick={() => setActiveTab('reposts')}
         className={`flex-1 py-4 cursor-pointer text-center text-sm font-semibold relative ${activeTab === 'reposts' ? 'text-white' : 'text-gray-500'}`}
       >
-        Репости
+        Reposts
         {activeTab === 'reposts' && (
           <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-[3px] bg-white rounded-full" />
         )}

@@ -3,31 +3,36 @@ import { describe, expect, it } from 'vitest';
 import Avatar from '../Avatar';
 
 describe('Avatar', () => {
-  it('renders the default emoji when no props are provided', () => {
-    render(<Avatar />);
+  it('renders the default SVG placeholder when no src is provided', () => {
+    const { container } = render(<Avatar />);
 
-    expect(screen.getByText('💀')).toBeInTheDocument();
+    expect(container.querySelector('svg')).toBeInTheDocument();
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
   });
 
-  it('renders a custom emoji when src is not provided', () => {
-    render(<Avatar emoji="🔥" />);
+  it('renders an image and hides the placeholder when src is provided', () => {
+    const { container } = render(<Avatar src="https://example.com/avatar.png" />);
 
-    expect(screen.getByText('🔥')).toBeInTheDocument();
+    expect(screen.getByRole('img')).toHaveAttribute('src', 'https://example.com/avatar.png');
+    expect(container.querySelector('svg')).not.toBeInTheDocument();
   });
 
-  it('renders an image and hides the emoji when src is provided', () => {
-    render(<Avatar emoji="🔥" src="https://example.com/avatar.png" />);
+  it('uses the default "User avatar" alt text when none is given', () => {
+    render(<Avatar src="https://example.com/avatar.png" />);
 
-    const img = screen.getByRole('img', { name: 'Avatar' });
-    expect(img).toHaveAttribute('src', 'https://example.com/avatar.png');
-    expect(screen.queryByText('🔥')).not.toBeInTheDocument();
+    expect(screen.getByAltText('User avatar')).toBeInTheDocument();
   });
 
-  it('falls back to the emoji when src is explicitly null', () => {
-    render(<Avatar emoji="🌙" src={null} />);
+  it('uses a custom alt when one is provided', () => {
+    render(<Avatar src="https://example.com/avatar.png" alt="Ayate's profile picture" />);
 
-    expect(screen.getByText('🌙')).toBeInTheDocument();
+    expect(screen.getByAltText("Ayate's profile picture")).toBeInTheDocument();
+  });
+
+  it('falls back to the SVG placeholder when src is explicitly null', () => {
+    const { container } = render(<Avatar src={null} />);
+
+    expect(container.querySelector('svg')).toBeInTheDocument();
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
   });
 

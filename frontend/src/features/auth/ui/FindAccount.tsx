@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { AlertCircle, X, Loader2 } from 'lucide-react';
 import { Button } from '../../../shared/ui/Button';
 import { FoundUserResponse } from '../model/types';
+import { useAuthMutations } from '../api/useAuth';
+import axios from 'axios';
 
 interface FindAccountProps {
   onSuccess: (userData: FoundUserResponse) => void;
@@ -10,7 +12,7 @@ interface FindAccountProps {
 export const FindAccount: React.FC<FindAccountProps> = ({ onSuccess }) => {
   const [inputValue, setInputValue] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const { findAccountMutation } = useAuthMutations();
 
   const validateInput = (value: string): 'email' | 'phone' | 'invalid' => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -27,52 +29,31 @@ export const FindAccount: React.FC<FindAccountProps> = ({ onSuccess }) => {
     const target = inputValue.trim();
 
     if (!target) {
-      setError('Будь ласка, введіть вашу електронну адресу або номер телефону.');
+      setError('Please enter your email address or phone number.');
       return;
     }
 
     const inputType = validateInput(target);
     if (inputType === 'invalid') {
-      setError('Введіть коректний формат Email або номера телефону.');
+      setError('Please enter the correct Email or phone number format.');
       return;
     }
 
     try {
-      setIsLoading(true);
       setError(null);
-
-      // const response = await axios.post('/api/auth/find-account', { identity: target });
-      // onSuccess(response.data);
-
+      const realUserData = await findAccountMutation.mutateAsync(target);
       await new Promise((resolve) => setTimeout(resolve, 800));
-
-      if (target === 'error@test.com' || target === '000') {
-        throw new Error('Обліковий запис не знайдено. Перевірте дані та спробуйте ще раз.');
-      }
-
-      const mockBackendUser: FoundUserResponse = {
-        id: 'usr_9921',
-        name: 'Alex Kovalenko',
-        role: 'Eternal User',
-        emoji: '⚡',
-        src: null,
-        maskedEmail: target.includes('@')
-          ? target.replace(/(?<=.).(?=.*@)/g, '•')
-          : 'a••••••@gmail.com',
-        maskedPhone: !target.includes('@') ? target.replace(/.(?=.{2})/g, '•') : '+••••••••32',
-      };
-
-      onSuccess(mockBackendUser);
+      onSuccess(realUserData);
     } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
+      if (axios.isAxiosError(err) && err.response?.status === 404) {
+        setError('The user with this phone number or e-mail does not exist.');
       } else {
-        setError('Щось пішло не так. Спробуйте пізніше.');
+        setError('There was an error searching for your account. Please try again later.');
       }
-    } finally {
-      setIsLoading(false);
     }
   };
+
+  const isPending = findAccountMutation.isPending;
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -80,19 +61,19 @@ export const FindAccount: React.FC<FindAccountProps> = ({ onSuccess }) => {
         <input
           type="text"
           value={inputValue}
-          disabled={isLoading}
+          disabled={isPending}
           onChange={(e) => {
             setInputValue(e.target.value);
             if (error) setError(null);
           }}
-          placeholder="Електронна пошта або номер"
+          placeholder="Email or number"
           className={`w-full px-4 py-3 bg-[#121214]/60 rounded-xl border text-sm transition-all focus:outline-none placeholder-neutral-600 ${
             error
               ? 'border-red-500/80 focus:border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.15)] pr-10'
               : 'border-neutral-800/80 focus:border-purple-500/80'
-          } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+          } ${isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
         />
-        {inputValue && !isLoading && (
+        {inputValue && !isPending && (
           <button
             type="button"
             onClick={() => {
@@ -115,16 +96,16 @@ export const FindAccount: React.FC<FindAccountProps> = ({ onSuccess }) => {
 
       <Button
         type="submit"
-        disabled={isLoading}
+        disabled={isPending}
         className="w-full mt-2 flex items-center justify-center gap-2"
       >
-        {isLoading ? (
+        {isPending ? (
           <>
             <Loader2 size={16} className="animate-spin" />
-            Пошук аккаунту...
+            Search account...
           </>
         ) : (
-          'Продовжити'
+          'Continue'
         )}
       </Button>
     </form>

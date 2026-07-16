@@ -29,7 +29,7 @@ export const AddGifButton: React.FC<AddGifButtonProps> = ({ isOpen, onToggle, on
     <div className="relative">
       <button
         onClick={handleToggle}
-        title="Додати GIF"
+        title="Add GIF"
         className={`p-2.5 rounded-xl transition-all duration-200 ${isOpen ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
       >
         <FileImage size={18} />
@@ -39,7 +39,7 @@ export const AddGifButton: React.FC<AddGifButtonProps> = ({ isOpen, onToggle, on
         <div
           className={`absolute left-0 z-50 shadow-[0_10px_30px_rgba(0,0,0,0.5)] bg-[#1a1a1a] rounded-2xl overflow-hidden border border-white/5 animate-fadeIn p-3 w-[320px] backdrop-blur-md ${direction === 'top' ? 'bottom-full mb-3' : 'top-full mt-3'}`}
         >
-          <span className="text-xs font-semibold text-gray-400 px-1">Тренди Giphy / Tenor</span>
+          <span className="text-xs font-semibold text-gray-400 px-1">Trends Giphy / Tenor</span>
           <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1 custom-scrollbar mt-2">
             {mockGifs.map((gif, index) => (
               <img

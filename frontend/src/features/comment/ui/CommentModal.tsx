@@ -14,7 +14,7 @@ export function CommentModal() {
       <div className="bg-[#0a0a0c]/80 backdrop-blur-2xl border border-white/[0.08] rounded-3xl w-full max-w-xl max-h-[85vh] flex flex-col p-5 shadow-2xl shadow-black/80">
         <div className="flex justify-between items-center pb-3 border-b border-white/[0.06]">
           <h3 className="text-sm font-medium text-gray-400">
-            Допис користувача {activePostForComments.author}
+            User post {activePostForComments.author}
           </h3>
           <button
             onClick={closeCommentModal}
@@ -26,7 +26,7 @@ export function CommentModal() {
 
         <div className="flex-1 overflow-y-auto my-3 pr-1 space-y-4 custom-scrollbar">
           <div className="flex gap-3 items-start border-b border-white/[0.06] pb-4 mt-1">
-            <Avatar size="sm" emoji={activePostForComments.avatar} />
+            <Avatar src={activePostForComments.avatar} size="sm" />
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-bold text-white text-sm">{activePostForComments.author}</span>
@@ -44,14 +44,14 @@ export function CommentModal() {
             ) : (
               <div className="flex flex-col items-center justify-center py-14 text-gray-500 gap-2">
                 <MessageSquare size={32} className="opacity-30" />
-                <p className="text-sm font-medium">Немає коментарів</p>
-                <p className="text-xs opacity-60">Додайте перший коментар.</p>
+                <p className="text-sm font-medium">No comments</p>
+                <p className="text-xs opacity-60">Add the first comment.</p>
               </div>
             )}
           </div>
         </div>
 
-        <CommentForm currentUserHandle="Ayate" />
+        <CommentForm currentUserHandle="user" />
       </div>
     </div>
   );

@@ -1,13 +1,21 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useForm, Controller, Control, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useQuery } from '@tanstack/react-query';
-import { z } from 'zod';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+
 import { Input } from '../../../shared/ui/Input';
 import { Button } from '../../../shared/ui/Button';
 import { Select } from '../../../shared/ui/Select';
 import { useAuthMutations } from '../api/useAuth';
-import { HelpCircle, Loader2, Eye, EyeOff } from 'lucide-react';
+import { RegisterPayload, AuthResponse } from '../api/authApi';
+import { registerSchema, type RegisterFields } from '../model/registerSchema';
+import { useCheckUsername } from '@/entities/profile/model/useCheckUsername';
+import { useAuthStore } from '@/shared/model/useAuthStore';
+import { useAccountsStore } from '@/shared/model/useAccountsStore';
+import { useDebounce } from '@/shared/lib/useDebounce';
+
+import { HelpCircle, Loader2, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
 const MONTHS = [
   'January',
@@ -23,54 +31,8 @@ const MONTHS = [
   'November',
   'December',
 ];
+
 const YEARS = Array.from({ length: 2026 - 1876 + 1 }, (_, i) => String(2026 - i));
-
-const registerSchema = z.object({
-  firstName: z
-    .string()
-    .min(1, "Введіть ім'я")
-    .regex(/^[A-Za-zА-Яа-яЁёІіЇїЄєҐґ']+$/, "Ім'я може містити лише літери"),
-  lastName: z
-    .string()
-    .min(1, 'Введіть прізвище')
-    .regex(/^[A-Za-zА-Яа-яЁёІіЇїЄєҐґ']+$/, 'Прізвище може містити лише літери'),
-  username: z
-    .string()
-    .min(3, 'Юзернейм має бути не менше 3 символів')
-    .startsWith('@', 'Юзернейм повинен починатися з @')
-    .regex(/^@[a-zA-Z0-9_]+$/, 'Можна використовувати лише літери, цифри та символ підкреслення'),
-  birthMonth: z.string().min(1, 'Виберіть місяць'),
-  birthDay: z.string().min(1, 'Виберіть день'),
-  birthYear: z.string().min(1, 'Виберіть рік'),
-  gender: z.string().refine((val) => ['Male', 'Female', 'Custom'].includes(val), {
-    message: 'Виберіть стать',
-  }),
-  identity: z.string().refine(
-    (val) => {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      const phoneRegex = /^(\+?0|0)\d{9,14}$/;
-      const cleanPhone = val.replace(/[\s\-()]/g, '');
-      return emailRegex.test(val) || phoneRegex.test(cleanPhone);
-    },
-    {
-      message: 'Введіть коректну електронну адресу або номер телефону.',
-    },
-  ),
-  password: z.string().min(6, 'Пароль має містити щонайменше 6 символів.'),
-});
-
-type RegisterFields = z.infer<typeof registerSchema>;
-
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-
-  useEffect(() => {
-    const handler = setTimeout(() => setDebouncedValue(value), delay);
-    return () => clearTimeout(handler);
-  }, [value, delay]);
-
-  return debouncedValue;
-}
 
 const InfoTooltip: React.FC<{ text: string }> = ({ text }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -123,7 +85,7 @@ const UsernameField: React.FC<{
       name="username"
       render={({ field, fieldState: { error } }) => {
         const serverError =
-          isUsernameAvailable === false ? 'Цей юзернейм уже зайнятий.' : undefined;
+          isUsernameAvailable === false ? 'This username is already taken.' : undefined;
         const displayError = error?.message || serverError;
 
         return (
@@ -186,6 +148,9 @@ const BirthdayFields: React.FC<{ control: Control<RegisterFields> }> = ({ contro
 export const RegisterForm: React.FC = () => {
   const { registerMutation } = useAuthMutations();
   const [showPassword, setShowPassword] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
+
+  const navigate = useNavigate();
 
   const {
     register,
@@ -208,21 +173,68 @@ export const RegisterForm: React.FC = () => {
   const usernameValue = useWatch({ control, name: 'username' });
   const debouncedUsername = useDebounce(usernameValue, 500);
 
-  const { data: usernameStatus, isFetching: isCheckingUsername } = useQuery({
-    queryKey: ['checkUsername', debouncedUsername],
-    queryFn: async () => {
-      // there will be fetch to backend
-      // test:
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      return { isAvailable: debouncedUsername !== '@test_taken' };
-    },
-    enabled: !!debouncedUsername && debouncedUsername !== '@' && debouncedUsername.length >= 4,
-    retry: false,
-    refetchOnWindowFocus: false,
-  });
+  const { data: usernameStatus, isFetching: isCheckingUsername } = useCheckUsername(
+    debouncedUsername,
+    !!debouncedUsername && debouncedUsername !== '@' && debouncedUsername.length >= 4,
+  );
+
+  const isUsernameTaken = usernameStatus?.isAvailable === false;
 
   const onSubmit = async (data: RegisterFields) => {
-    registerMutation.mutate(data);
+    if (isUsernameTaken) return;
+    setServerError(null);
+
+    const monthIndex = MONTHS.indexOf(data.birthMonth);
+    const birthDate = new Date(
+      parseInt(data.birthYear),
+      monthIndex,
+      parseInt(data.birthDay),
+      12,
+    ).toISOString();
+
+    const payload: RegisterPayload = {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      username: data.username,
+      gender: data.gender,
+      identity: data.identity,
+      password: data.password,
+      birthDate,
+    };
+
+    registerMutation.mutate(payload, {
+      onSuccess: (responseData: AuthResponse) => {
+        localStorage.setItem('accessToken', responseData.accessToken);
+        localStorage.setItem('refreshToken', responseData.refreshToken);
+        useAuthStore.getState().setAuth(responseData.user.id);
+        useAccountsStore.getState().upsertAccount({
+          id: responseData.user.id,
+          username: responseData.user.username,
+          displayName: responseData.user.displayName,
+          avatar: responseData.user.avatar ?? null,
+          accessToken: responseData.accessToken,
+          refreshToken: responseData.refreshToken,
+        });
+        navigate('/feed');
+      },
+      onError: (error) => {
+        if (axios.isAxiosError(error)) {
+          const status = error.response?.status;
+
+          if (status === 409) {
+            setServerError('This Email, phone number or username is already taken.');
+          } else if (status === 400) {
+            setServerError('Data validation error. Please check the entered fields.');
+          } else {
+            setServerError(
+              'The server is unavailable or an internal error has occurred. Please try again later.',
+            );
+          }
+        } else {
+          setServerError('An unexpected error occurred.');
+        }
+      },
+    });
   };
 
   const isUsernameAvailable = usernameStatus?.isAvailable;
@@ -233,7 +245,13 @@ export const RegisterForm: React.FC = () => {
       onSubmit={handleSubmit(onSubmit)}
       className="flex flex-col gap-4 text-left w-full max-w-md mx-auto"
     >
-      {/* Name Fields */}
+      {serverError && (
+        <div className="p-3.5 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-2.5 text-xs text-neutral-300 animate-fadeIn">
+          <AlertCircle size={16} className="text-red-500 mt-0.5 flex-shrink-0" />
+          <div className="text-left leading-relaxed">{serverError}</div>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-3">
         <Input
           label="Name"
@@ -265,7 +283,6 @@ export const RegisterForm: React.FC = () => {
         isChecking={isCheckingUsername}
       />
 
-      {/* Birthday */}
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center gap-1.5">
           <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
@@ -276,7 +293,6 @@ export const RegisterForm: React.FC = () => {
         <BirthdayFields control={control} />
       </div>
 
-      {/* Gender */}
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center gap-1.5">
           <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
@@ -291,7 +307,6 @@ export const RegisterForm: React.FC = () => {
         />
       </div>
 
-      {/* Identity */}
       <Input
         label="Mobile number or email"
         placeholder="Mobile number or email"
@@ -302,7 +317,6 @@ export const RegisterForm: React.FC = () => {
         error={errors.identity?.message}
       />
 
-      {/* Password */}
       <Input
         label="Password"
         placeholder="New password"

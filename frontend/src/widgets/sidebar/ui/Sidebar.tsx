@@ -2,19 +2,22 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { Home, Search, Compass, MessageSquare, Bell, PlusSquare, ChevronRight } from 'lucide-react';
 import { useUIStore } from '../../../shared/model/useUIStore';
+import { useCurrentUser } from '@/entities/profile/model/useCurrentUser';
+import { ProfileMenu } from '@/features/sidebar/ui/SidebarMenu';
 import Avatar from '../../../shared/ui/Avatar';
 
 const menuItems = [
-  { to: '/', icon: <Home size={24} />, label: 'Головна' },
-  { to: '/search', icon: <Search size={24} />, label: 'Пошук' },
-  { to: '/explore', icon: <Compass size={24} />, label: 'Цікаве' },
-  { to: '/messages', icon: <MessageSquare size={24} />, label: 'Повідомлення' },
-  { to: '/notifications', icon: <Bell size={24} />, label: 'Сповіщення' },
-  { to: '/create', icon: <PlusSquare size={24} />, label: 'Створити' },
+  { to: '/', icon: <Home size={24} />, label: 'Home' },
+  { to: '/search', icon: <Search size={24} />, label: 'Search' },
+  { to: '/reels', icon: <Compass size={24} />, label: 'Reels' },
+  { to: '/messages', icon: <MessageSquare size={24} />, label: 'Message' },
+  { to: '/notifications', icon: <Bell size={24} />, label: 'Notifications' },
+  { to: '/create', icon: <PlusSquare size={24} />, label: 'Create' },
 ];
 
 export default function Sidebar() {
   const { isSidebarExpanded, setSidebarExpanded } = useUIStore();
+  const { data: currentUser } = useCurrentUser();
 
   return (
     <aside
@@ -80,22 +83,28 @@ export default function Sidebar() {
         </div>
 
         <div className="w-full px-2 mt-2">
+          <ProfileMenu isSidebarExpanded={isSidebarExpanded} />
+        </div>
+
+        <div className="w-full px-2 mt-2">
           <NavLink
-            to="/ayate"
+            to={currentUser ? `/${currentUser.username}` : '#'}
             className={({ isActive }) =>
               `flex items-center rounded-2xl transition-all duration-200 h-12 w-full ${
                 isActive ? 'bg-white/10 text-white font-semibold' : 'hover:bg-white/5 text-gray-400'
               } ${isSidebarExpanded ? 'px-3 gap-3' : 'justify-center mx-auto w-12'}`
             }
           >
-            <Avatar size="sm" emoji="💀" />
+            <Avatar size="sm" src={currentUser?.avatar} />
 
             <div
-              className={`flex items-center justify-between flex-1 transition-all duration-300 overflow-hidden ${
+              className={`flex items-center justify-between flex-1 transition-all duration-300 overflow-hidden min-w-0 ${
                 isSidebarExpanded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4 hidden'
               }`}
             >
-              <span className="text-sm font-semibold whitespace-nowrap">Ayate</span>
+              <span className="text-sm font-semibold whitespace-nowrap truncate">
+                {currentUser?.displayName || currentUser?.username || 'Profile'}
+              </span>
               <ChevronRight size={18} className="text-gray-500" />
             </div>
           </NavLink>

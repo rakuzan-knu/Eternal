@@ -1,5 +1,6 @@
-import axios from 'axios';
+import { apiClient as api } from '@/shared/api/httpClient';
 import { FoundUserResponse } from '../model/types';
+import { UserProfile } from '@/entities/profile/model/types';
 
 export interface LoginPayload {
   identity: string;
@@ -10,9 +11,7 @@ export interface RegisterPayload {
   firstName: string;
   lastName: string;
   username: string;
-  birthMonth: string;
-  birthDay: string;
-  birthYear: string;
+  birthDate: string;
   gender: 'Male' | 'Female' | 'Custom' | string;
   identity: string;
   password?: string;
@@ -31,19 +30,10 @@ export interface ResetPasswordPayload {
 }
 
 export interface AuthResponse {
-  user: {
-    id: string;
-    username: string;
-    email?: string;
-    phone?: string;
-  };
-  token: string;
+  user: UserProfile;
+  accessToken: string;
+  refreshToken: string;
 }
-
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
-  withCredentials: true,
-});
 
 export const authApi = {
   login: (data: LoginPayload) =>
@@ -51,6 +41,11 @@ export const authApi = {
 
   register: (data: RegisterPayload) =>
     api.post<AuthResponse>('/auth/register', data).then((res) => res.data),
+
+  logout: (refreshToken?: string) => {
+    const token = refreshToken || localStorage.getItem('refreshToken') || '';
+    return api.post('/auth/logout', { refreshToken: token });
+  },
 
   findAccount: (identifier: string) =>
     api

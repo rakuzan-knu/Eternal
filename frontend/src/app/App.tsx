@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 
 import Sidebar from '../widgets/sidebar/ui/Sidebar';
 import EditProfileModal from '../features/profile/ui/EditProfileModal';
+
 import FeedPage from '../pages/Feed/Feed';
 import ProfilePage from '../pages/Profile/Profile';
 import { LoginPage } from '../pages/Login/LoginPage';
@@ -10,10 +11,12 @@ import { RegisterPage } from '../pages/Register/RegisterPage';
 import { ForgotPasswordPage } from '../pages/Forgot-Password/ForgotPasswordPage';
 
 import { useUIStore } from '../shared/model/useUIStore';
+import { useAuthStore } from '../shared/model/useAuthStore';
 
-const isAuthenticated = false;
+// const isAuthenticated = true;
 
 export default function App() {
+  const { isAuthenticated } = useAuthStore();
   const isSidebarExpanded = useUIStore((state) => state.isSidebarExpanded);
 
   if (!isAuthenticated) {
@@ -47,15 +50,15 @@ export default function App() {
               path="/search"
               element={
                 <div className="text-center py-20 text-gray-500 animate-fadeIn">
-                  Сторінка пошуку в розробці...
+                  Search page under development...
                 </div>
               }
             />
             <Route
-              path="/explore"
+              path="/reels"
               element={
                 <div className="text-center py-20 text-gray-500 animate-fadeIn">
-                  Сторінка цікавого контенту...
+                  Reels page under development...
                 </div>
               }
             />
@@ -63,7 +66,7 @@ export default function App() {
               path="/messages"
               element={
                 <div className="text-center py-20 text-gray-500 animate-fadeIn">
-                  Приватні повідомлення користувачів...
+                  Private messages from users...
                 </div>
               }
             />
@@ -71,7 +74,7 @@ export default function App() {
               path="/notifications"
               element={
                 <div className="text-center py-20 text-gray-500 animate-fadeIn">
-                  Список ваших повідомлень (Колокольчик 🔔)
+                  List of your notifications
                 </div>
               }
             />
@@ -79,7 +82,7 @@ export default function App() {
               path="/create"
               element={
                 <div className="text-center py-20 text-gray-500 animate-fadeIn">
-                  Швидке створення публікації...
+                  Quickly create a publication...
                 </div>
               }
             />

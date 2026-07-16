@@ -13,10 +13,12 @@ vi.mock('emoji-picker-react', () => ({
 
 const post: PostType = {
   id: 1,
+  authorId: 'author-1',
   author: 'Ayate',
   handle: 'ayate',
   avatar: '💀',
   text: 'Post body',
+  createdAt: '2026-07-15T09:00:00.000Z',
   commentList: [{ id: 10, author: 'Bob', handle: 'bob', text: 'Nice!', time: '1h' }],
 };
 

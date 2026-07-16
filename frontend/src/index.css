@@ -30,3 +30,53 @@ body {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #404040;
 }
+
+.EmojiPickerReact {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+.EmojiPickerReact *::-webkit-scrollbar {
+  width: 6px;
+}
+.EmojiPickerReact *::-webkit-scrollbar-track {
+  background: transparent;
+}
+.EmojiPickerReact *::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+}
+.EmojiPickerReact *::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+}
+
+.volume-slider {
+  accent-color: white;
+}
+.volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 9999px;
+  background: white;
+  cursor: pointer;
+}
+
+@layer utilities {
+  .skeleton-shimmer {
+    background: linear-gradient(
+      100deg,
+      rgba(255, 255, 255, 0.04) 20%,
+      rgba(255, 255, 255, 0.09) 40%,
+      rgba(255, 255, 255, 0.04) 60%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.6s ease-in-out infinite;
+    border-radius: 6px;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: 150% 0; }
+    100% { background-position: -50% 0; }
+  }
+}

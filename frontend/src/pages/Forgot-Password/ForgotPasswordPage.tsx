@@ -31,12 +31,12 @@ export const ForgotPasswordPage: React.FC = () => {
           <GlassCard className="w-full">
             <div className="text-left mb-4">
               <h2 className="text-2xl font-bold text-white tracking-tight">
-                {step === 1 ? 'Знайти ваш акаунт' : 'Оберіть спосіб скидання'}
+                {step === 1 ? 'Find your account' : 'Choose a reset method'}
               </h2>
               <p className="text-sm text-neutral-500 mt-1">
                 {step === 1
-                  ? 'Введіть номер мобільного або адресу електронної пошти.'
-                  : 'Оберіть спосіб отримання коду підтвердження.'}
+                  ? 'Enter your mobile number or email address.'
+                  : 'Choose a method for receiving the verification code.'}
               </p>
             </div>
 

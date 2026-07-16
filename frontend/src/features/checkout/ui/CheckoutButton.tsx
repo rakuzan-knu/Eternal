@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useCheckout } from '../model/useCheckout';
 
 interface CheckoutProps {
   cartId: string;
@@ -7,34 +8,19 @@ interface CheckoutProps {
 }
 
 export const CheckoutButton: React.FC<CheckoutProps> = ({ cartId, onSuccess, onError }) => {
-  const [isLoading, setIsLoading] = useState(false);
+  const { mutate, isPending } = useCheckout();
 
-  const handleCheckout = async () => {
-    if (isLoading) return;
-    setIsLoading(true);
-
-    try {
-      const response = await fetch(`/api/checkout/${cartId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Server responded with status ${response.status}`);
-      }
-
-      const data = await response.json();
-      onSuccess(data.orderId);
-    } catch (error: unknown) {
-      onError(error instanceof Error ? error.message : 'Something went wrong');
-    } finally {
-      setIsLoading(false);
-    }
+  const handleCheckout = () => {
+    if (isPending) return;
+    mutate(cartId, {
+      onSuccess: (data) => onSuccess(data.orderId),
+      onError: (error) => onError(error instanceof Error ? error.message : 'Something went wrong'),
+    });
   };
 
   return (
-    <button onClick={handleCheckout} disabled={isLoading} data-testid="checkout-btn">
-      {isLoading ? 'Processing...' : 'Pay Now'}
+    <button onClick={handleCheckout} disabled={isPending} data-testid="checkout-btn">
+      {isPending ? 'Processing...' : 'Pay Now'}
     </button>
   );
 };
