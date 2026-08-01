@@ -5,6 +5,7 @@ import { REDIS_CLIENT } from './redis.constants';
 @Injectable()
 export class RedisService {
   private readonly logger = new Logger(RedisService.name);
+
   constructor(@Inject(REDIS_CLIENT) private readonly client: Redis) {}
 
   getClient(): Redis {
@@ -24,6 +25,23 @@ export class RedisService {
     await this.client.del(key);
   }
 
+  async delByPattern(pattern: string): Promise<void> {
+    try {
+      const stream = this.client.scanStream({ match: pattern, count: 100 });
+      const keysToDelete: string[] = [];
+
+      for await (const resultKeys of stream) {
+        keysToDelete.push(...(resultKeys as string[]));
+      }
+
+      if (keysToDelete.length > 0) {
+        await this.client.unlink(...keysToDelete);
+      }
+    } catch (e) {
+      this.logger.error(`Redis delByPattern failed for pattern ${pattern}: ${String(e)}`);
+    }
+  }
+
   async exists(key: string): Promise<boolean> {
     const result = await this.client.exists(key);
     return result === 1;
@@ -36,13 +54,16 @@ export class RedisService {
     } catch (e) {
       this.logger.warn(`Redis get failed for ${key}: ${String(e)}`);
     }
+
     const value = await loader();
     const ttl = ttlSeconds + Math.floor(Math.random() * 15);
+
     try {
       await this.client.set(key, JSON.stringify(value), 'EX', ttl);
     } catch (e) {
-      this.logger.warn(`Redis get failed for ${key}: ${String(e)}`);
+      this.logger.warn(`Redis set failed for ${key}: ${String(e)}`);
     }
+
     return value;
   }
 }

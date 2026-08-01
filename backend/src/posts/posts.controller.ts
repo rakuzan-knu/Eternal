@@ -32,8 +32,9 @@ export class PostsController {
   getAllPosts(@Query() query: GetPostsQueryDto) {
     return this.postsService.getAllPosts(query.limit, query.after);
   }
-  @UseGuards(AuthGuard)
+
   @Post()
+  @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Create a new post' })
   @ApiBody({ type: CreatePostDto })
   @ApiResponse({
@@ -58,8 +59,8 @@ export class PostsController {
     return this.postsService.getPostById(id);
   }
 
-  @UseGuards(AuthGuard)
   @Patch(':id')
+  @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Update a post' })
   @ApiBody({ type: EditPostDto })
   @ApiResponse({
@@ -75,6 +76,7 @@ export class PostsController {
   }
 
   @Delete(':id')
+  @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Delete a post' })
   @ApiResponse({
     status: 200,
@@ -84,7 +86,6 @@ export class PostsController {
     status: 404,
     description: 'Post not found.',
   })
-  @UseGuards(AuthGuard)
   deletePost(@Param('id') id: string, @CurrentUser() user: RequestUser) {
     return this.postsService.deletePost(id, user.id);
   }

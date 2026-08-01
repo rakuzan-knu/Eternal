@@ -1,4 +1,4 @@
-import { type Comment } from '@prisma/client';
 import type { Paginated } from '../../common/pagination';
+import type { CommentResponseDto } from '../dto/comment-response.dto';
 
-export type GetAllCommentsResult = Paginated<Comment>;
+export type GetAllCommentsResult = Paginated<CommentResponseDto>;

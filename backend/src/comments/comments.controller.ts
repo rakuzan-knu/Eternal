@@ -24,11 +24,11 @@ export class CommentsController {
   constructor(private readonly commentsService: CommentsService) {}
 
   @Post('posts/:id/comments')
+  @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Add a comment to a post' })
   @ApiBody({ type: CreateCommentDto })
   @ApiResponse({ status: 201, description: 'Comment created successfully.' })
   @ApiResponse({ status: 404, description: 'Post not found.' })
-  @UseGuards(AuthGuard)
   addComment(
     @Param('id') postId: string,
     @CurrentUser() user: RequestUser,
@@ -46,10 +46,10 @@ export class CommentsController {
 
   @Delete('comments/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Delete a comment' })
   @ApiResponse({ status: 204, description: 'Comment deleted successfully.' })
   @ApiResponse({ status: 404, description: 'Comment not found.' })
-  @UseGuards(AuthGuard)
   deleteComment(@Param('id') commentId: string, @CurrentUser() user: RequestUser) {
     return this.commentsService.deleteComment(commentId, user.id);
   }
