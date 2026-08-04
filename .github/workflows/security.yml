@@ -4,18 +4,22 @@ on:
   schedule:
     - cron: '0 3 * * *'
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
 
-permissions:
-  contents: read
-  security-events: write
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: read-all
 
 jobs:
   npm-audit:
     name: npm audit — ${{ matrix.workspace }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -25,7 +29,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version-file: '.nvmrc'
 
       - name: Run npm audit (Lockfile only)
         run: |
@@ -77,6 +81,9 @@ jobs:
   trivy-fs:
     name: Trivy — Filesystem Deep Scan
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - uses: actions/checkout@v4
 
@@ -107,6 +114,8 @@ jobs:
   gitleaks:
     name: Gitleaks — Incremental Secret Scanner
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
         with:

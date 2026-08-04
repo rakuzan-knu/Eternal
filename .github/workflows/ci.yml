@@ -11,13 +11,14 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  NODE_VERSION: '22'
+permissions: read-all
 
 jobs:
   changes:
     name: Detect changes
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
@@ -57,6 +58,8 @@ jobs:
     name: Commitlint
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
         with:
@@ -64,7 +67,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: '.nvmrc'
           cache: 'npm'
 
       - name: Install root deps
@@ -82,6 +85,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: changes
     if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true' || needs.changes.outputs.ci == 'true'
+    permissions:
+      contents: read
     outputs:
       cache-key: ${{ steps.cache-key-gen.outputs.key }}
     steps:
@@ -89,7 +94,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: '.nvmrc'
           cache: 'npm'
           cache-dependency-path: package-lock.json
 
@@ -120,12 +125,14 @@ jobs:
     runs-on: ubuntu-latest
     needs: [changes, setup]
     if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.ci == 'true'
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: '.nvmrc'
 
       - name: Restore Monorepo Dependencies
         uses: actions/cache/restore@v4
@@ -160,6 +167,8 @@ jobs:
     timeout-minutes: 10
     needs: [changes, setup]
     if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.ci == 'true'
+    permissions:
+      contents: read
     strategy:
       matrix:
         shard: [1, 2, 3]
@@ -168,7 +177,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: '.nvmrc'
 
       - name: Restore Monorepo Dependencies
         uses: actions/cache/restore@v4
@@ -206,6 +215,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [setup, backend-lint, backend-test]
+    permissions:
+      contents: read
 
     services:
       postgres:
@@ -250,7 +261,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: '.nvmrc'
 
       - name: Restore Monorepo Dependencies
         uses: actions/cache/restore@v4
@@ -276,12 +287,14 @@ jobs:
     runs-on: ubuntu-latest
     needs: [changes, setup]
     if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.ci == 'true'
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: '.nvmrc'
 
       - name: Restore Monorepo Dependencies
         uses: actions/cache/restore@v4
@@ -316,12 +329,14 @@ jobs:
     timeout-minutes: 10
     needs: [changes, setup]
     if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.ci == 'true'
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: '.nvmrc'
 
       - name: Restore Monorepo Dependencies
         uses: actions/cache/restore@v4
@@ -369,7 +384,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: '.nvmrc'
 
       - name: Restore Monorepo Dependencies
         uses: actions/cache/restore@v4
@@ -460,6 +475,7 @@ jobs:
     needs: [frontend-test]
     if: github.event_name == 'pull_request'
     permissions:
+      contents: read
       pull-requests: write
     steps:
       - name: Download frontend coverage
@@ -489,6 +505,8 @@ jobs:
       - frontend-prod-assessment
       - docker-build
     if: always()
+    permissions:
+      contents: read
     steps:
       - name: Evaluate results
         run: |
