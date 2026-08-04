@@ -8,6 +8,7 @@ Following these guidelines helps us:
 - Reduce code review time
 - Minimize Git conflicts
 - Ensure consistent architecture across the project
+- Automatically generate releases, version tags, and changelogs via **semantic-release**
 
 ---
 
@@ -21,8 +22,8 @@ Before writing a single line of code, you **must** have an assigned Jira task.
 2. Move it to **In Progress**.
 3. Read the task carefully.
 4. Create a Pull Request (PR) once the code is ready.
-5. Move the task to In Review.
-6. Once the PR is merged, move the task to Done.
+5. Move the task to **In Review**.
+6. Once the PR is merged, move the task to **Done**.
 
 ### Requirements
 
@@ -36,24 +37,31 @@ Before starting development, verify that the task contains:
 
 ---
 
-# 🌿 2. Git Workflow
+# 🌿 2. Git Workflow & Branching
 
-We use a **Feature Branch Workflow**.
+We use a **Feature Branch Workflow** integrated with automated release channels.
 
-- Every branch is created from `main`.
-- Every change goes back to `main` through a **Pull Request**.
-- Direct commits to `main` are **not allowed**.
+- Standard feature branches are created from `main` or `develop`.
+- Direct pushes to `main` or `develop` are **strictly forbidden**.
+- All changes must pass through a **Pull Request**.
 
-## Branch Naming
+### Release Channels & Target Branches
+
+| Branch    | Release Channel      | Resulting Version Example |
+| :---      | :---                 | :---                      |
+| `main`    | Production (Stable)  | `v1.2.0`                  |
+| `develop` | Beta (Pre-release)   | `v1.2.0-beta.1`           |
+
+## Branch Naming Standard
 
 ```text
 <type>/<jira-ticket-id>-<short-description>
 ```
 
-### Available Types
+### Available Branch Types
 
 | Type        | Description                                 |
-| ----------- | ------------------------------------------- |
+| :---        | :---                                        |
 | `feat/`     | New features or architectural additions     |
 | `fix/`      | Bug fixes                                   |
 | `refactor/` | Code improvements without changing behavior |
@@ -69,43 +77,46 @@ chore/SOC-210-update-prisma-client
 
 ---
 
-# 💬 3. Commit Message Convention
+# 💬 3. Commit Message Convention & Release Impact
 
-We follow **Conventional Commits**.
+We follow **Conventional Commits**, strictly enforced via `@commitlint` and processed by **Semantic Release**.
 
-This is required for:
-
-- automated changelogs
-- clean Git history
-- readable project timeline
-
-## Format
+## Commit Format
 
 ```text
 <type>(<scope>): <short description> [<Jira-ID>]
 ```
 
-### Types
+## Constraints
 
-- feat
-- fix
-- refactor
-- chore
-- docs
-- style
-- test
+- **Subject Length:** Maximum **100 characters**.
+- **Body Line Length:** Maximum **200 characters** per line.
+- **Jira Suffix:** Mandatory suffix format for tasks: `[SOC-XXX]`.
+- **Ignored Commits:** Commits starting with `Merge` or `Revert` bypass linter rules automatically.
 
-### Scope
+### Allowed Types & Release Impact
 
-Use the module or FSD slice you are working on.
+The type you choose dictates how **Semantic Release** bumps project versions and updates `CHANGELOG.md`:
 
-Examples:
+| Type                | Version Bump        | Listed in Changelog?           | Description                            |
+| :---                | :---                | :---                           | :---                                   |
+| **`feat`**          | **Minor** (`x.X.0`) | YES (Features)                 | A new feature                          |
+| **`fix`**           | **Patch** (`x.x.X`) | YES (Bug Fixes)                | A bug fix                              |
+| **`perf`**          | **Patch** (`x.x.X`) | YES (Maintenance/Tooling)      | Performance improvement                |
+| **`revert`**        | **Patch** (`x.x.X`) | YES (Maintenance/Tooling)      | Reverts a previous commit              |
+| **`refactor`**      | None                | YES (Refactoring)              | Code change with no logic modification |
+| **`chore`**         | None                | YES (Maintenance/Tooling)      | Dependencies, configs, tooling         |
+| **`docs`**          | None                | YES (Maintenance/Tooling)      | Documentation changes                  |
+| **`style`**         | None                | YES (Maintenance/Tooling)      | Formatting, missing semi-colons, etc.  |
+| **`test`**          | None                | YES (Maintenance/Tooling)      | Adding or fixing tests                 |
+| **`ci`**            | None                | YES (Maintenance/Tooling)      | CI/CD changes                          |
 
-- `feed`
-- `chat`
-- `auth`
-- `profile`
-- `user`
+> 💥 **Breaking Changes:** Any commit containing `BREAKING CHANGE:` in its footer or body will automatically trigger a **Major version bump** (`X.0.0`), regardless of type.
+
+### Allowed Scopes
+
+Scope is optional. If provided, it must be one of:
+`auth`, `feed`, `chat`, `profile`, `user`, `post`, `follow`, `media`, `ws`, `infra`, `deps`, `security`, `backend`, `frontend`.
 
 ### Examples
 
@@ -168,39 +179,30 @@ Before creating a new component:
 
 # 🔀 5. Pull Request Guidelines
 
-When your feature is complete, open a Pull Request from your feature branch into `main`.
+When your feature is complete, open a PR into `main` (for stable releases) or `develop` (for beta builds).
 
-## PR Title
+## PR Title Guidelines
 
-Use the same format as Conventional Commits.
+PR Titles are validated in CI via GitHub Actions (`amannn/action-semantic-pull-request`).
 
-Example:
+- **Format:** Must strictly follow Conventional Commits format (`<type>(<scope>): <description> [SOC-XXX]`).
+- **Subject Length:** Maximum **100 characters**.
+- **Scope:** Optional, but if specified, it must match allowed scopes.
 
-```text
-feat(feed): implement post likes [SOC-124]
-```
+### Allowed PR Types
 
----
+`feat`, `fix`, `refactor`, `chore`, `docs`, `style`, `test`, `perf`, `ci`, `revert`
 
-## PR Description
+### Allowed PR Scopes
 
-Include:
-
-- What was implemented
-- How to test the changes
-- Link to the Jira ticket
+`auth`, `feed`, `chat`, `profile`, `user`, `post`, `follow`, `media`, `ws`, `infra`, `deps`
 
 ---
 
-## Keep PRs Small
+## PR Description & Rules
 
-Aim for **less than 300 lines of code**.
-
-Smaller PRs are:
-
-- easier to review
-- easier to test
-- less likely to cause merge conflicts
+- **Content:** Detail what was implemented, how to test, and include a link to the Jira ticket.
+- **Keep PRs Small:** Aim for **less than 300 lines of code**.
 
 ---
 
@@ -208,51 +210,45 @@ Smaller PRs are:
 
 Before merging:
 
-- ✅ At least **2 approvals**
-- ✅ All CI checks must pass
-- ✅ Build succeeds
-- ✅ Linter passes
-- ✅ Formatter passes
-- ✅ Tests pass
+- ✅ At least **2 approvals** (including relevant Code Owners)
+- ✅ All CI checks must pass (`lint`, `typecheck`, `test`, `build`, `PR Title Lint`)
+- ✅ Build, linter, formatter, and tests succeed.
 
 ---
 
-## Merging
+## Merging & Automated Release
 
 After approval:
 
-- Use **Squash and Merge**
-- Move the Jira task to:
-  - **In Review**
-  - **Done**
+- Use **Squash and Merge**.
+- The PR title becomes the squash commit message in `main`/`develop`, which directly triggers **Semantic Release**.
+- Move the Jira task to **Done**.
 
 ---
 
-# ⚙️ 5. Environment Setup (Required before the first commit)
+# ⚙️ 6. Environment Setup (Required before the first commit)
 
-To ensure everyone gets an identical `lint`/`format`/`build` result regardless of their OS:
+To ensure everyone gets an identical `lint`/`format`/`build` result regardless of OS:
 
 1. Use the Node version from `.nvmrc`:
    ```bash
    nvm use
    ```
-   If the Node version doesn't match, `npm install` will intentionally fail (`engine-strict=true` in `.npmrc`). This is a feature, not a bug—install the required version.
-2. Run `npm install` in the repository root (not inside `backend/` or `frontend/` separately)—workspaces will handle everything automatically, plus `prisma generate` will run automatically.
-3. Do not change `end_of_line`/`indent_style` in your editor—they are fixed in `.editorconfig` and `.gitattributes`. Git will automatically normalize line endings to LF upon commit.
-4. Never commit with `--no-verify`—if a hook gets in the way, it's a bug in the hook, not a reason to bypass it. Write to the Team Chat.
+   If the Node version doesn't match, `npm install` will fail (`engine-strict=true` in `.npmrc`).
+2. Run `npm install` in the repository root (workspaces will handle everything, including `prisma generate`).
+3. Do not change `end_of_line`/`indent_style` in your editor—they are fixed in `.editorconfig` and `.gitattributes`.
+4. Never commit with `--no-verify`—if a hook fails, ask in Team Chat.
 
 ---
 
-# 🔒 6. Why PRs Cannot Be Merged Manually
+# 🔒 7. Why PRs Cannot Be Merged Manually
 
-The `main` branch is protected by branch protection rules:
+Protected branch rules are enabled on `main` and `develop`:
 
-- You cannot push to `main` directly (even admins).
-- A PR cannot be merged until all mandatory CI jobs are green: `lint`, `typecheck`, `test`, `build`, `PR Title Lint`.
-- A minimum of 1 approval is required, and for `backend/`, `frontend/`, `.github/`—an approval from the corresponding code owner from `.github/CODEOWNERS`.
-- Only **Squash and Merge** is allowed—the PR title becomes the final commit message in `main`, therefore:
-  - The PR title must be in the format `<type>(<scope>): <description> [SOC-XXX]`.
-  - Do not squash or amend commits in your branch after pushing—leave the history "as is", this does not affect the final history of `main` and allows GitHub to correctly insert `pull_request_template.md` instead of the commit text.
+- Direct pushes are prohibited.
+- PRs cannot be merged until all mandatory CI checks pass.
+- Approvals from `.github/CODEOWNERS` are mandatory for `backend/`, `frontend/`, and `.github/`.
+- Only **Squash and Merge** is allowed—because the PR title becomes the single commit entry driving automatic releases.
 
 ---
 
@@ -260,12 +256,10 @@ The `main` branch is protected by branch protection rules:
 
 1. Open Jira.
 2. Move your ticket to **In Progress**.
-3. Create a branch.
-
-```bash
-git checkout -b feat/SOC-123-your-feature
-```
-
+3. Create a branch:
+   ```bash
+   git checkout -b feat/SOC-123-your-feature
+   ```
 4. Start coding.
 
 ---

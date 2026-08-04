@@ -1,146 +1,171 @@
-# Social Network — Onboarding Guide
+# 🌐 Social Network
 
-<div align="center">
-
-![NestJS](https://img.shields.io/badge/-NestJS-E0234E?logo=nestjs&logoColor=white&style=for-the-badge)
-![React](https://img.shields.io/badge/-React-61DAFB?logo=react&logoColor=white&style=for-the-badge)
-![TypeScript](https://img.shields.io/badge/-TypeScript-3178C6?logo=typescript&logoColor=white&style=for-the-badge)
-![PostgreSQL](https://img.shields.io/badge/-PostgreSQL-4169E1?logo=postgresql&logoColor=white&style=for-the-badge)
-![Redis](https://img.shields.io/badge/-Redis-DC382D?logo=redis&logoColor=white&style=for-the-badge)
-![Prisma](https://img.shields.io/badge/-Prisma-2D3748?logo=prisma&logoColor=white&style=for-the-badge)
-![Socket.io](https://img.shields.io/badge/-Socket.io-010101?logo=socket.io&logoColor=white&style=for-the-badge)
-![Docker](https://img.shields.io/badge/-Docker-2496ED?logo=docker&logoColor=white&style=for-the-badge)
-
-</div>
+A modern, high-performance **Social Network Application** built as a monorepo using **npm workspaces**. Powered by **NestJS** on the backend and **React + Vite** on the frontend.
 
 ---
 
-## Before You Start
+## 🛠️ Tech Stack
 
-Make sure you have installed:
+### 🟦 Back-End (NestJS)
+* **Framework:** NestJS (Modular Architecture)
+* **API Documentation:** Swagger
+* **Database & Caching:** PostgreSQL, Redis, Prisma ORM
+* **Real-time Communication:** Socket.io
+* **Auth & Security:** Passport.js + JWT, Argon2 hashing, `class-validator`, Helmet, CORS, NestJS Throttler (rate limiting)
+* **File Processing & Storage:** MINIO
+* **Asynchronous Jobs & Queues:** BullMQ
+* **Logging:** Pino (`nestjs-pino`)
 
-- [Node.js](https://nodejs.org/) 20+
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+### 🟩 Front-End (React + Vite)
+* **Core & Build Tools:** React, Vite, React Compiler
+* **Styling & UI:** Tailwind CSS
+* **State Management:** TanStack Query (Server State), Zustand (Client State)
+* **Routing:** React Router 7
+* **Form Handling & Validation:** React Hook Form, Zod
+* **Real-time Client:** Socket.io Client
+* **Testing:** Vitest, React Testing Library
 
-Also read [CONTRIBUTING.md](./CONTRIBUTING.MD) — it covers branch naming, commit format, and PR rules.
+### 🟨 Infrastructure & DevOps
+* **Monorepo Management:** npm Workspaces (`packageManager: npm@10.9.0`)
+* **Containerization:** Docker
+* **CI/CD & Release:** GitHub Actions, `@commitlint`, `lint-staged`, `husky`, `semantic-release`
 
 ---
 
-## Getting Started
+## 📁 Project Structure
 
-**1. Clone the repository:**
+```text
+social-network/
+├── .agents/                 # AI Agent rules & workspace custom guidelines
+├── .github/                 # CI/CD Workflows, PR templates & CODEOWNERS
+├── .husky/                  # Git hooks (commit-msg, pre-commit, pre-push)
+├── backend/                 # NestJS API application & Prisma schema
+├── frontend/                # React + Vite application (Feature-Sliced Design)
+├── scripts/                 # Root maintenance & postinstall scripts
+├── .dockerignore            # Docker build exclusion rules
+├── .editorconfig            # Cross-editor indentation & formatting rules
+├── .gitattributes          # Git line endings (LF) normalization settings
+├── .gitignore               # Git ignore patterns
+├── .lighthouserc.json       # Lighthouse CI frontend performance configuration
+├── .npmrc                   # NPM engine-strict & workspace behavior setup
+├── .nvmrc                   # Project target Node.js version
+├── .prettierignore          # Prettier formatting exclusion rules
+├── .prettierrc.json         # Prettier code style configuration
+├── CHANGELOG.md             # Auto-generated release history & release notes
+├── commitlint.config.js     # Conventional Commits validation rules
+├── CONTRIBUTING.MD          # Development workflow, branch & commit standards
+├── docker-compose.dev.yml   # Local development Docker environment
+├── docker-compose.prod.yml  # Production Docker deployment setup
+├── package-lock.json        # Dependency tree lockfile
+├── package.json             # Monorepo root scripts & workspaces setup
+├── README.md                # Main project overview & onboarding guide
+└── release.config.js        # Semantic release & tagging configuration
+```
+
+---
+
+## ⚙️ Prerequisites
+
+Ensure your system meets the minimum requirements specified in `package.json`:
+
+* **Node.js:** `>=20.18.0`
+* **npm:** `>=10.0.0` (Recommended: `npm@10.9.0`)
+
+> ⚠️ Note: `npm install` enforces strict Node engine checks (`engine-strict=true`). Make sure to use the correct Node version (`nvm use`).
+
+---
+
+## 🚀 Getting Started
+
+### 1. Clone the repository
 ```bash
-git clone <url>
+git clone <repository-url>
 cd social-network
 ```
 
-**2. Set up environment variables:**
+### 2. Install dependencies
+Run `npm install` in the **root directory**. This will install dependencies for all workspaces (`backend` and `frontend`) and run automated setup hooks (e.g., `prisma generate`, `husky`).
+
+```bash
+nvm use
+npm install
+```
+
+### 3. Environment Variables
+Copy `.env.example` files in both workspace directories and configure your environment variables:
+
 ```bash
 cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
 ```
-Open `backend/.env` and fill in your local values (see table below).
 
-**3. Start PostgreSQL and Redis:**
+### 4. Run Development Servers
+
+Start **both backend and frontend** simultaneously:
 ```bash
-docker compose -f docker-compose.dev.yml up -d
+npm run dev
 ```
 
-**4. Install all dependencies:**
+Or start workspaces individually:
 ```bash
-npm run install:all
-```
+# Backend only (NestJS dev mode)
+npm run dev:backend
 
-**5. Run database migrations:**
-```bash
-cd backend
-npx prisma generate
-npx prisma migrate dev
-cd ..
-```
-
-**6. Start the project:**
-```bash
-npm run dev:backend   # API → http://localhost:3000
-npm run dev:frontend  # App → http://localhost:5173
-```
-
-If everything works — you're ready to pick up a task from Jira.
-
----
-
-## Environment Variables
-
-Fill these in `backend/.env`. Ask the tech lead if you need real values for AWS.
-
-| Variable | Description | Example |
-|---|---|---|
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:password@localhost:5432/social` |
-| `REDIS_URL` | Redis connection string | `redis://localhost:6379` |
-| `JWT_SECRET` | Secret key for JWT tokens | any random string |
-| `JWT_EXPIRES_IN` | Token lifetime | `7d` |
-| `PORT` | Backend port | `3000` |
-| `AWS_BUCKET_NAME` | S3 bucket name | — |
-| `AWS_ACCESS_KEY` | AWS Access Key | — |
-| `AWS_SECRET_KEY` | AWS Secret Key | — |
-| `AWS_REGION` | AWS Region | `eu-central-1` |
-
-> `AWS_*` variables are not required for local development.
-
----
-
-## Project Structure
-
-```
-social-network/
-├── backend/               # NestJS API
-│   ├── src/
-│   │   ├── auth/          # authentication, JWT, guards
-│   │   ├── users/         # user profiles
-│   │   ├── feed/          # posts, likes, comments
-│   │   ├── chat/          # Socket.io gateway
-│   │   ├── common/        # shared guards, pipes, decorators
-│   │   └── prisma/        # Prisma service
-│   └── prisma/
-│       └── schema.prisma  # database schema
-├── frontend/              # React + Vite
-│   └── src/
-│       ├── app/           # router, providers, layout
-│       ├── pages/         # route pages
-│       ├── features/      # feature slices (auth, feed, chat...)
-│       ├── entities/      # domain entities (user, post...)
-│       └── shared/        # ui-kit, utils, constants
-└── docker-compose.dev.yml
+# Frontend only (Vite dev mode)
+npm run dev:frontend
 ```
 
 ---
 
-## Daily Commands
+## 📜 Available Root Scripts
 
-**From root:**
-```bash
-npm run install:all       # install all dependencies
-npm run dev:backend       # start backend
-npm run dev:frontend      # start frontend
-```
+All root commands execute across both `backend` and `frontend` workspaces:
 
-**Database:**
-```bash
-npx prisma migrate dev    # apply new migration
-npx prisma generate       # regenerate Prisma Client after schema change
-npx prisma studio         # visual database UI → http://localhost:5555
-```
-
-**Docker:**
-```bash
-docker compose -f docker-compose.dev.yml up -d    # start containers
-docker compose -f docker-compose.dev.yml down     # stop containers
-docker compose -f docker-compose.dev.yml logs     # view logs
-```
+| Script                 | Description                                                |
+| :---                   | :---                                                       |
+| `npm run dev`          | Runs backend and frontend concurrently in development mode |
+| `npm run dev:backend`  | Starts NestJS server in watch mode                         |
+| `npm run dev:frontend` | Starts Vite frontend dev server                            |
+| `npm run build`        | Builds both backend and frontend for production            |
+| `npm run lint`         | Runs ESLint check across all workspaces                    |
+| `npm run lint:fix`     | Fixes ESLint errors automatically across workspaces        |
+| `npm run format`       | Formats codebase using Prettier                            |
+| `npm run typecheck`    | Validates TypeScript types without emitting files          |
+| `npm run test`         | Runs unit tests for backend and frontend                   |
+| `npm run test:cov`     | Generates unit test coverage reports                       |
+| `npm run test:e2e`     | Runs E2E tests for the backend workspace                   |
 
 ---
 
-## Stuck?
+## 🧹 Code Quality & Git Hooks
 
-- Check that Docker containers are running: `docker ps`
-- Check that `.env` is filled correctly
-- Don't spend more than **1 hour** on a problem alone — message us in the chat.
+We enforce high code quality standard prior to every commit and pull request:
+
+* **Husky & lint-staged:** Runs ESLint and Prettier on staged files before every commit.
+* **Commitlint:** Validates commit messages to comply with Conventional Commits rules.
+* **PR Title Lint:** Validates Pull Request titles via GitHub Actions.
+
+> ❌ **Never** use `git commit --no-verify` to bypass pre-commit hooks.
+
+---
+
+## ⏱️ The 1-Hour Rule
+
+If you are stuck on a technical blocker or issue for **more than 1 hour**:
+
+1. Pause your investigation.
+2. Summarize what you have tried, error logs, and relevant context.
+3. Reach out to the team in **Team Chat** or tag your mentor/tech lead.
+
+Don't stay blocked—communication keeps the velocity high! 🚀
+
+---
+
+## 🤝 Contributing
+
+Before contributing, please read our detailed [CONTRIBUTING.md](./CONTRIBUTING.md) guide covering:
+- Jira task workflow
+- Git branch naming conventions (`feat/SOC-XXX-...`, `fix/SOC-XXX-...`)
+- Commit message guidelines & scope rules
+- Architectural standards (NestJS Modules & Feature-Sliced Design)
+- Pull Request approval guidelines and automated release flow

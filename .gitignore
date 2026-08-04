@@ -158,5 +158,4 @@ frontend/storybook-static/
 # Lighthouse
 .lighthouseci/
 
-# Semantic release
-CHANGELOG.md
+.agents/
