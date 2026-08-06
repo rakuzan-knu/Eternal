@@ -1,0 +1,98 @@
+name: Vercel Preview
+
+on:
+  pull_request:
+    branches: [main, develop]
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'frontend/src/**'
+      - 'frontend/package*.json'
+      - 'frontend/vite.config.ts'
+      - 'frontend/public/**'
+      - 'vercel.json'
+
+concurrency:
+  group: vercel-preview-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: read-all
+
+jobs:
+  deploy-preview:
+    name: Vercel — Deploy Preview
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      deployments: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install root deps
+        run: npm ci --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
+
+      - name: Build monorepo
+        working-directory: ./
+        run: npm run build
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL_PREVIEW || 'https://api.socialnetwork.dev' }}
+
+      - name: Deploy to Vercel (Preview)
+        id: vercel-deploy
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-version: 'latest'
+          working-directory: ./
+          github-comment: false
+
+      - name: Post or Update preview URL in PR
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const url = '${{ steps.vercel-deploy.outputs.preview-url }}';
+            const sha = context.payload.pull_request.head.sha.substring(0, 7);
+            const tag = '<!-- vercel-preview-comment -->';
+            
+            const body = [
+              tag,
+              '## 🚀 Vercel Preview Deployment',
+              '',
+              '| | |',
+              '|---|---|',
+              `| **Preview URL** | [${url}](${url}) |`,
+              `| **Commit** | \`${sha}\` |`,
+              `| **Status** | ✅ Ready |`,
+            ].join('\n');
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+            });
+
+            const botComment = comments.find(c => c.body?.includes(tag));
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body,
+              });
+            }

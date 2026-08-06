@@ -75,6 +75,9 @@ Ensure your system meets the minimum requirements specified in `package.json`:
 
 ---
 
+## 📄 License
+This project is licensed under the [AGPL-3.0 License](./LICENSE).
+
 ## 🚀 Getting Started
 
 ### 1. Clone the repository

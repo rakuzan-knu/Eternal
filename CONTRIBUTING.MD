@@ -2,6 +2,11 @@
 
 Welcome to the team! This document describes the development workflow, coding standards, and Git rules for our **Social Network** project.
 
+## 💡 Reporting Issues & Requests
+When reporting bugs or suggesting features, please use our standardized issue templates located in `/.github/ISSUE_TEMPLATE/`:
+- [🐛 Bug Report](/.github/ISSUE_TEMPLATE/bug_report.md)
+- [🚀 Feature Request](/.github/ISSUE_TEMPLATE/feature_request.md)
+
 Following these guidelines helps us:
 
 - Keep the codebase clean and maintainable

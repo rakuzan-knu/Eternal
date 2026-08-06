@@ -41,6 +41,13 @@ export class HealthController {
     };
   }
 
+  @Get('debug-sentry')
+  @ApiOperation({ summary: 'Trigger Sentry test error' })
+  @ApiResponse({ status: 500, description: 'Internal Server Error (Sentry Test)' })
+  debugSentry(): void {
+    throw new Error('🔥 Sentry Integration Test Error from NestJS Health Check!');
+  }
+
   private async checkDatabase(): Promise<boolean> {
     try {
       await this.prisma.$queryRaw`SELECT 1`;

@@ -1,5 +1,14 @@
 import { plainToInstance } from 'class-transformer';
-import { IsInt, IsNotEmpty, IsString, Max, Min, MinLength, validateSync } from 'class-validator';
+import {
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+  MinLength,
+  validateSync,
+} from 'class-validator';
 
 class EnvironmentVariables {
   @IsString()
@@ -34,6 +43,14 @@ class EnvironmentVariables {
   @Min(1)
   @Max(65535)
   PORT!: number;
+
+  @IsOptional()
+  @IsString()
+  SENTRY_DSN?: string;
+
+  @IsOptional()
+  @IsString()
+  SENTRY_TRACES_SAMPLE_RATE?: string;
 }
 
 export function validateEnv(config: Record<string, unknown>) {

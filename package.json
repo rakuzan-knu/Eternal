@@ -1,6 +1,7 @@
 {
   "name": "social-network",
   "private": true,
+  "license": "AGPL-3.0",
   "type": "module",
   "packageManager": "npm@10.9.0",
   "workspaces": [
