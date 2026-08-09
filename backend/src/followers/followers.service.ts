@@ -11,6 +11,7 @@ import type { IFollowersRepository } from './interfaces/followers-repository.int
 import type { GetFollowersResult } from './types/followers.types';
 import { paginate } from '../common/pagination';
 import { RedisService } from '../redis/redis.service';
+import { toUserProfileDto } from './followers.mapper';
 
 @Injectable()
 export class FollowersService {
@@ -20,29 +21,47 @@ export class FollowersService {
     private readonly redis: RedisService,
   ) {}
 
-  async getFollowers(id: string, limit: number, after?: string): Promise<GetFollowersResult> {
+  async getFollowers(
+    id: string,
+    limit: number,
+    after?: string,
+    currentUserId?: string,
+  ): Promise<GetFollowersResult> {
     if (!id) {
       throw new BadRequestException('id is required');
     }
 
-    const key = `followers:${id}:${limit}:${after ?? 'first'}`;
+    const cacheKey = `followers:${id}:${limit}:${after ?? 'first'}:${currentUserId ?? 'anon'}`;
 
-    return this.redis.getOrSet(key, 60, async () => {
+    return this.redis.getOrSet(cacheKey, 60, async () => {
       const rows = await this.followersRepository.getFollowers(id, limit, after);
-      return paginate(rows, limit, (row) => row.user);
+
+      return paginate(rows, limit, (row) => {
+        const isFollowing = currentUserId ? row.user.id === currentUserId : false;
+        return toUserProfileDto(row.user, isFollowing);
+      });
     });
   }
 
-  async getFollowing(id: string, limit: number, after?: string): Promise<GetFollowersResult> {
+  async getFollowing(
+    id: string,
+    limit: number,
+    after?: string,
+    currentUserId?: string,
+  ): Promise<GetFollowersResult> {
     if (!id) {
       throw new BadRequestException('id is required');
     }
 
-    const key = `following:${id}:${limit}:${after ?? 'first'}`;
+    const cacheKey = `following:${id}:${limit}:${after ?? 'first'}:${currentUserId ?? 'anon'}`;
 
-    return this.redis.getOrSet(key, 60, async () => {
+    return this.redis.getOrSet(cacheKey, 60, async () => {
       const rows = await this.followersRepository.getFollowing(id, limit, after);
-      return paginate(rows, limit, (row) => row.user);
+
+      return paginate(rows, limit, (row) => {
+        const isFollowing = currentUserId === id ? true : false;
+        return toUserProfileDto(row.user, isFollowing);
+      });
     });
   }
 

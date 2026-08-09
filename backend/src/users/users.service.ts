@@ -12,6 +12,7 @@ import { UserProfileDto } from './dto/user-profile.dto';
 import { USERS_REPOSITORY } from './interfaces/users-repository.interface';
 import type { IUsersRepository } from './interfaces/users-repository.interface';
 import { RedisService } from '../redis/redis.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class UsersService {
@@ -19,10 +20,11 @@ export class UsersService {
     @Inject(USERS_REPOSITORY)
     private readonly usersRepository: IUsersRepository,
     private readonly redis: RedisService,
+    private readonly prisma: PrismaService,
   ) {}
 
   private userKey(id: string): string {
-    return `user${id}`;
+    return `user:${id}`;
   }
 
   findByEmail(email: string): Promise<User | null> {
@@ -41,14 +43,20 @@ export class UsersService {
     return this.usersRepository.create(dto);
   }
 
-  async getProfile(id: string): Promise<UserProfileDto> {
-    const key = this.userKey(id);
+  async getProfile(targetId: string, viewerId?: string): Promise<UserProfileDto> {
+    if (viewerId) {
+      const user = await this.usersRepository.findById(targetId);
+      if (!user) throw new NotFoundException(`User with id ${targetId} not found`);
+
+      const isFollowing = await this.checkIsFollowing(viewerId, targetId);
+      return this.toProfileDto(user, isFollowing);
+    }
+
+    const key = this.userKey(targetId);
     return this.redis.getOrSet(key, 3600, async () => {
-      const user = await this.usersRepository.findById(id);
-      if (!user) {
-        throw new NotFoundException(`User with id ${id} not found`);
-      }
-      return this.toProfileDto(user);
+      const user = await this.usersRepository.findById(targetId);
+      if (!user) throw new NotFoundException(`User with id ${targetId} not found`);
+      return this.toProfileDto(user, false);
     });
   }
 
@@ -60,9 +68,7 @@ export class UsersService {
     }
 
     const user = await this.usersRepository.findById(id);
-    if (!user) {
-      throw new NotFoundException(`User with id ${id} not found`);
-    }
+    if (!user) throw new NotFoundException(`User with id ${id} not found`);
 
     if (dto.email && dto.email !== user.email) {
       const existing = await this.usersRepository.findByEmail(dto.email);
@@ -82,18 +88,28 @@ export class UsersService {
 
     const updated = await this.usersRepository.updateUser(id, data);
     await this.redis.del(this.userKey(id));
-    return this.toProfileDto(updated);
+    return this.toProfileDto(updated, false);
   }
 
-  private toProfileDto(user: User): UserProfileDto {
+  private async checkIsFollowing(followerId: string, followingId: string): Promise<boolean> {
+    if (followerId === followingId) return false;
+    const follow = await this.prisma.follow.findUnique({
+      where: { followerId_followingId: { followerId, followingId } },
+      select: { id: true },
+    });
+    return follow !== null;
+  }
+
+  private toProfileDto(user: User, isFollowing: boolean): UserProfileDto {
     return {
       id: user.id,
       username: user.username,
       displayName: user.displayName,
       avatar: user.avatar,
       bio: user.bio,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
+      createdAt: user.createdAt.toISOString(),
+      updatedAt: user.updatedAt.toISOString(),
+      isFollowing,
     };
   }
 }

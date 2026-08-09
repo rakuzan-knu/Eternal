@@ -1,24 +1,31 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UserProfileDto {
-  @ApiProperty()
+  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
   id!: string;
 
-  @ApiProperty()
+  @ApiProperty({ example: 'johndoe' })
   username!: string;
 
-  @ApiProperty({ nullable: true })
+  @ApiPropertyOptional({ example: 'John Doe' })
   displayName!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiPropertyOptional({ example: 'https://cdn.example.com/avatar.jpg' })
   avatar!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiPropertyOptional({ example: 'Software engineer & coffee enthusiast' })
   bio!: string | null;
 
-  @ApiProperty()
-  createdAt!: Date;
+  @ApiProperty({ example: '2026-01-01T00:00:00.000Z' })
+  createdAt!: string;
 
-  @ApiProperty()
-  updatedAt!: Date;
+  @ApiProperty({ example: '2026-01-01T00:00:00.000Z' })
+  updatedAt!: string;
+
+  @ApiProperty({
+    example: false,
+    description:
+      'Whether the requesting user is following this profile. Always false for anonymous requests.',
+  })
+  isFollowing!: boolean;
 }
