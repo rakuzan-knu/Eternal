@@ -110,7 +110,7 @@
       "!**/*.guard.ts",
       "!**/*.strategy.ts"
     ],
-    "coverageDirectory": "../coverage",
+    "coverageDirectory": "coverage",
     "coverageReporters": [
       "text",
       "lcov",

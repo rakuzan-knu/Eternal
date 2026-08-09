@@ -1,10 +1,10 @@
 /// <reference types="vitest" />
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import babel from '@rolldown/plugin-babel'
-import tailwindcss from '@tailwindcss/vite'
-import reactCompiler from 'babel-plugin-react-compiler'
-import path from 'path'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import babel from '@rolldown/plugin-babel';
+import tailwindcss from '@tailwindcss/vite';
+import reactCompiler from 'babel-plugin-react-compiler';
+import path from 'path';
 
 export default defineConfig({
   plugins: [
@@ -19,6 +19,9 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    sourcemap: 'hidden',
+  },
   test: {
     globals: true,
     environment: 'jsdom',
@@ -27,12 +30,7 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'lcov', 'html'],
       include: ['src/**/*.{ts,tsx}'],
-      exclude: [
-        'src/test/**',
-        'src/**/*.d.ts',
-        'src/main.tsx',
-        'src/vite-env.d.ts',
-      ],
+      exclude: ['src/test/**', 'src/**/*.d.ts', 'src/main.tsx', 'src/vite-env.d.ts'],
       thresholds: {
         lines: 70,
         functions: 70,
@@ -41,4 +39,4 @@ export default defineConfig({
       },
     },
   },
-})
+});

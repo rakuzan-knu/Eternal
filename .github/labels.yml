@@ -1,0 +1,43 @@
+- name: backend
+  color: '0E8A16'
+  description: Backend / NestJS changes
+
+- name: frontend
+  color: '1D76DB'
+  description: Frontend / React changes
+
+- name: infra
+  color: '5319E7'
+  description: Docker, CI, deployment, infrastructure
+
+- name: docs
+  color: '0075CA'
+  description: Documentation changes
+
+- name: deps
+  color: 'D4C5F9'
+  description: Dependency updates
+
+- name: database
+  color: 'B60205'
+  description: Prisma schema or migration changes
+
+- name: ci
+  color: 'FBCA04'
+  description: CI/CD workflow changes
+
+- name: automated
+  color: 'EDEDED'
+  description: Opened by automation (Dependabot, bots)
+
+- name: security
+  color: 'D93F0B'
+  description: Security-related changes
+
+- name: bug
+  color: 'D73A4A'
+  description: Something isn't working
+
+- name: enhancement
+  color: 'A2EEEF'
+  description: New feature or request

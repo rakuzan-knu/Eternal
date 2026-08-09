@@ -1,9 +1,116 @@
+# Auto detect text files and normalize line endings to LF on checkout
 * text=auto eol=lf
 
+# Explicitly declare text files that should always be normalized
+*.ts text
+*.tsx text
+*.js text
+*.jsx text
+*.mjs text
+*.cjs text
+*.json text
+*.md text
+*.yml text
+*.yaml text
+*.css text
+*.scss text
+*.html text
+*.svg text
+*.sh text eol=lf
+*.graphql text
+*.gql text
+*.prisma text
+
+# Docker & infrastructure
+Dockerfile text
+docker-compose*.yml text
+*.conf text
+nginx.conf text
+
+# Config files
+.editorconfig text
+.gitattributes text
+.gitignore text
+.prettierrc.json text
+.prettierignore text
+.eslintignore text
+.npmrc text
+.nvmrc text
+.env text
+.env.example text
+.env.*.text
+
+# Scripts
+*.bash text eol=lf
+*.zsh text eol=lf
+
+# Declare binary files that should not be modified
 *.png binary
 *.jpg binary
 *.jpeg binary
+*.gif binary
 *.ico binary
-*.dylib.node binary
+*.webp binary
+*.avif binary
+*.tiff binary
+*.bmp binary
+*.svg text
+
+# Fonts
 *.woff binary
 *.woff2 binary
+*.ttf binary
+*.otf binary
+*.eot binary
+
+# Compiled / native
+*.dylib.node binary
+*.node binary
+*.dll binary
+*.so binary
+*.dylib binary
+*.exe binary
+*.o binary
+*.a binary
+
+# Archives
+*.zip binary
+*.tar binary
+*.gz binary
+*.bz2 binary
+*.7z binary
+*.rar binary
+*.xz binary
+
+# Database / binary data
+*.sqlite binary
+*.sqlite3 binary
+*.db binary
+*.bin binary
+*.dat binary
+*.wasm binary
+
+# Documents
+*.pdf binary
+*.doc binary
+*.docx binary
+*.xls binary
+*.xlsx binary
+*.ppt binary
+*.pptx binary
+
+# Media
+*.mp3 binary
+*.mp4 binary
+*.wav binary
+*.avi binary
+*.mov binary
+*.webm binary
+*.flac binary
+
+# Lock files (keep as-is)
+package-lock.json binary
+pnpm-lock.yaml binary
+yarn.lock binary
+bun.lockb binary
+*.lock binary

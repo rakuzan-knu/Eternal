@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @tailwind base;
 @tailwind components;
@@ -11,8 +11,8 @@ body {
 
 .bg-radial-gradient {
   background-image: radial-gradient(
-    circle at 20% 40%, 
-    rgba(88, 28, 135, 0.15) 0%, 
+    circle at 20% 40%,
+    rgba(88, 28, 135, 0.15) 0%,
     rgba(0, 0, 0, 0) 50%
   );
 }
@@ -76,7 +76,11 @@ body {
   }
 
   @keyframes shimmer {
-    0% { background-position: 150% 0; }
-    100% { background-position: -50% 0; }
+    0% {
+      background-position: 150% 0;
+    }
+    100% {
+      background-position: -50% 0;
+    }
   }
 }

@@ -1,21 +1,31 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Sidebar from '../Sidebar';
 import { useUIStore } from '../../../../shared/model/useUIStore';
+import { useAuthStore } from '../../../../shared/model/useAuthStore';
 import { resetUIStore } from '../../../../test/resetUIStore';
 
 function renderSidebar(initialEntries: string[] = ['/']) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <MemoryRouter initialEntries={initialEntries}>
-      <Sidebar />
-    </MemoryRouter>,
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={initialEntries}>
+        <Sidebar />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
 describe('Sidebar', () => {
+  beforeEach(() => {
+    useAuthStore.getState().setAuth('user-1');
+  });
+
   afterEach(() => {
     resetUIStore();
+    useAuthStore.getState().clearAuth();
   });
 
   it('renders collapsed by default', () => {

@@ -18,6 +18,7 @@ jobs:
   npm-audit:
     name: npm audit — ${{ matrix.workspace }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
     strategy:
@@ -81,6 +82,7 @@ jobs:
   trivy-fs:
     name: Trivy — Filesystem Deep Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
       security-events: write
@@ -91,7 +93,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/trivy
-          key: ${{ runner.os }}-trivy-${{ github.run_id }}
+          key: ${{ runner.os }}-trivy-${{ hashFiles('.github/workflows/security.yml') }}
           restore-keys: |
             ${{ runner.os }}-trivy-
 
@@ -114,6 +116,7 @@ jobs:
   gitleaks:
     name: Gitleaks — Incremental Secret Scanner
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:

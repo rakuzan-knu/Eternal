@@ -51,4 +51,31 @@ export const authHandlers = [
   http.post(`${API_URL}/auth/logout`, () => {
     return new HttpResponse(null, { status: 204 });
   }),
+
+  http.get(`${API_URL}/users/me`, () => {
+    return HttpResponse.json({
+      id: 'user-1',
+      username: 'my_profile',
+      displayName: 'Ayate',
+      email: 'test@example.com',
+      bio: 'Rozroblyayu Eternal.',
+      avatar: null,
+      createdAt: '2026-06-30T00:00:00.000Z',
+      updatedAt: '2026-07-01T00:00:00.000Z',
+    });
+  }),
+
+  http.get(`${API_URL}/users/:id`, ({ params }) => {
+    const { id } = params;
+    return HttpResponse.json({
+      id: id as string,
+      username: 'my_profile',
+      displayName: 'Ayate',
+      email: 'test@example.com',
+      bio: 'Rozroblyayu Eternal.',
+      avatar: null,
+      createdAt: '2026-06-30T00:00:00.000Z',
+      updatedAt: '2026-07-01T00:00:00.000Z',
+    });
+  }),
 ];

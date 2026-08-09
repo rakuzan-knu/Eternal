@@ -11,7 +11,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -19,10 +19,10 @@ services:
     networks:
       - internal
     logging: &default-logging
-      driver: "json-file"
+      driver: 'json-file'
       options:
-        max-size: "10m"
-        max-file: "3"
+        max-size: '10m'
+        max-file: '3'
     deploy:
       resources:
         limits:
@@ -36,7 +36,7 @@ services:
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ['CMD', 'redis-cli', '-a', '${REDIS_PASSWORD}', 'ping']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -78,7 +78,7 @@ services:
       S3_PORT: 9000
       S3_ACCESS_KEY: ${MINIO_ROOT_USER}
       S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
-      S3_BUCKET_AVATARS: "avatars"
+      S3_BUCKET_AVATARS: 'avatars'
     depends_on:
       postgres:
         condition: service_healthy
@@ -89,7 +89,7 @@ services:
     networks:
       - internal
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:3000/health']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -120,13 +120,13 @@ services:
     volumes:
       - minio_data:/data
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - '9000:9000'
+      - '9001:9001'
     networks:
       - internal
       - public
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ['CMD', 'mc', 'ready', 'local']
       interval: 10s
       timeout: 5s
       retries: 3
@@ -142,7 +142,7 @@ services:
     depends_on:
       minio:
         condition: service_healthy
-    restart: "no"
+    restart: 'no'
     networks:
       - internal
     entrypoint: >
@@ -158,8 +158,8 @@ services:
     image: ${DOCKER_REGISTRY}/social-network-frontend:${IMAGE_TAG:-latest}
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
+      - '80:80'
+      - '443:443'
     depends_on:
       backend:
         condition: service_healthy

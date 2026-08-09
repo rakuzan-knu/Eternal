@@ -1,0 +1,37 @@
+name: "Setup Node & Restore Dependencies"
+description: "Checkout, setup Node.js, and restore cached monorepo dependencies. Reusable across all CI jobs."
+
+inputs:
+  node-version-file:
+    description: "Path to .nvmrc"
+    required: false
+    default: ".nvmrc"
+  cache-key:
+    description: "Cache key output from setup job"
+    required: true
+  fetch-depth:
+    description: "Git fetch depth"
+    required: false
+    default: "1"
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: ${{ inputs.fetch-depth }}
+
+    - uses: actions/setup-node@v4
+      with:
+        node-version-file: ${{ inputs.node-version-file }}
+
+    - name: Restore Monorepo Dependencies
+      uses: actions/cache/restore@v4
+      with:
+        path: |
+          node_modules
+          backend/node_modules
+          frontend/node_modules
+          ~/.cache/prisma
+        key: ${{ inputs.cache-key }}
+        fail-on-cache-miss: true

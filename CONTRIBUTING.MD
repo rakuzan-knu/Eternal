@@ -3,7 +3,9 @@
 Welcome to the team! This document describes the development workflow, coding standards, and Git rules for our **Social Network** project.
 
 ## 💡 Reporting Issues & Requests
+
 When reporting bugs or suggesting features, please use our standardized issue templates located in `/.github/ISSUE_TEMPLATE/`:
+
 - [🐛 Bug Report](/.github/ISSUE_TEMPLATE/bug_report.md)
 - [🚀 Feature Request](/.github/ISSUE_TEMPLATE/feature_request.md)
 
@@ -52,10 +54,10 @@ We use a **Feature Branch Workflow** integrated with automated release channels.
 
 ### Release Channels & Target Branches
 
-| Branch    | Release Channel      | Resulting Version Example |
-| :---      | :---                 | :---                      |
-| `main`    | Production (Stable)  | `v1.2.0`                  |
-| `develop` | Beta (Pre-release)   | `v1.2.0-beta.1`           |
+| Branch    | Release Channel     | Resulting Version Example |
+| :-------- | :------------------ | :------------------------ |
+| `main`    | Production (Stable) | `v1.2.0`                  |
+| `develop` | Beta (Pre-release)  | `v1.2.0-beta.1`           |
 
 ## Branch Naming Standard
 
@@ -66,7 +68,7 @@ We use a **Feature Branch Workflow** integrated with automated release channels.
 ### Available Branch Types
 
 | Type        | Description                                 |
-| :---        | :---                                        |
+| :---------- | :------------------------------------------ |
 | `feat/`     | New features or architectural additions     |
 | `fix/`      | Bug fixes                                   |
 | `refactor/` | Code improvements without changing behavior |
@@ -103,18 +105,18 @@ We follow **Conventional Commits**, strictly enforced via `@commitlint` and proc
 
 The type you choose dictates how **Semantic Release** bumps project versions and updates `CHANGELOG.md`:
 
-| Type                | Version Bump        | Listed in Changelog?           | Description                            |
-| :---                | :---                | :---                           | :---                                   |
-| **`feat`**          | **Minor** (`x.X.0`) | YES (Features)                 | A new feature                          |
-| **`fix`**           | **Patch** (`x.x.X`) | YES (Bug Fixes)                | A bug fix                              |
-| **`perf`**          | **Patch** (`x.x.X`) | YES (Maintenance/Tooling)      | Performance improvement                |
-| **`revert`**        | **Patch** (`x.x.X`) | YES (Maintenance/Tooling)      | Reverts a previous commit              |
-| **`refactor`**      | None                | YES (Refactoring)              | Code change with no logic modification |
-| **`chore`**         | None                | YES (Maintenance/Tooling)      | Dependencies, configs, tooling         |
-| **`docs`**          | None                | YES (Maintenance/Tooling)      | Documentation changes                  |
-| **`style`**         | None                | YES (Maintenance/Tooling)      | Formatting, missing semi-colons, etc.  |
-| **`test`**          | None                | YES (Maintenance/Tooling)      | Adding or fixing tests                 |
-| **`ci`**            | None                | YES (Maintenance/Tooling)      | CI/CD changes                          |
+| Type           | Version Bump        | Listed in Changelog?      | Description                            |
+| :------------- | :------------------ | :------------------------ | :------------------------------------- |
+| **`feat`**     | **Minor** (`x.X.0`) | YES (Features)            | A new feature                          |
+| **`fix`**      | **Patch** (`x.x.X`) | YES (Bug Fixes)           | A bug fix                              |
+| **`perf`**     | **Patch** (`x.x.X`) | YES (Maintenance/Tooling) | Performance improvement                |
+| **`revert`**   | **Patch** (`x.x.X`) | YES (Maintenance/Tooling) | Reverts a previous commit              |
+| **`refactor`** | None                | YES (Refactoring)         | Code change with no logic modification |
+| **`chore`**    | None                | YES (Maintenance/Tooling) | Dependencies, configs, tooling         |
+| **`docs`**     | None                | YES (Maintenance/Tooling) | Documentation changes                  |
+| **`style`**    | None                | YES (Maintenance/Tooling) | Formatting, missing semi-colons, etc.  |
+| **`test`**     | None                | YES (Maintenance/Tooling) | Adding or fixing tests                 |
+| **`ci`**       | None                | YES (Maintenance/Tooling) | CI/CD changes                          |
 
 > 💥 **Breaking Changes:** Any commit containing `BREAKING CHANGE:` in its footer or body will automatically trigger a **Major version bump** (`X.0.0`), regardless of type.
 

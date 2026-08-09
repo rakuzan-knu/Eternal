@@ -4,11 +4,16 @@ on:
   pull_request:
     types: [opened, edited, synchronize]
 
+concurrency:
+  group: pr-title-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 permissions: read-all
 
 jobs:
   lint-pr-title:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       pull-requests: read
     steps:
@@ -27,6 +32,7 @@ jobs:
             perf
             ci
             revert
+            optimization
           scopes: |
             auth
             feed
@@ -39,6 +45,9 @@ jobs:
             ws
             infra
             deps
+            security
+            backend
+            frontend
           requireScope: false
           subjectPattern: ^.{1,100}$
           subjectPatternError: 'The PR title must not exceed 100 characters and must comply with Conventional Commits'

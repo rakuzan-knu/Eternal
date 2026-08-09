@@ -12,5 +12,5 @@ const exists = fs.existsSync(prismaBin) || fs.existsSync(prismaBin + '.cmd');
 if (exists) {
   execSync('npm run db:generate -w backend', { stdio: 'inherit' });
 } else {
-  console.log('[postinstall] backend deps not installed in this scope — skipping prisma generate');
+  console.log('[postinstall] backend deps not installed in this scope, skipping prisma generate');
 }

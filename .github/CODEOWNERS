@@ -1,5 +1,15 @@
-/backend/            @subvincdebian
-/backend/prisma/     @chupikx228
-/frontend/           @chupikx228
-/.github/            @subvincdebian
-/docker-compose.prod.yml @subvincdebian
+# Default owners for everything
+*                           @subvincdebian
+
+/backend/                   @subvincdebian @chupikx228
+/backend/prisma/            @subvincdebian @chupikx228
+/frontend/                  @chupikx228
+/.github/                   @subvincdebian
+/docker-compose.prod.yml    @subvincdebian
+/docker-compose.dev.yml     @subvincdebian
+/vercel.json                @subvincdebian
+/package.json               @subvincdebian @chupikx228
+/package-lock.json          @subvincdebian @chupikx228
+/scripts/                   @subvincdebian
+/.npmrc                     @subvincdebian
+/SECURITY.md                @subvincdebian

@@ -7,28 +7,31 @@ A modern, high-performance **Social Network Application** built as a monorepo us
 ## 🛠️ Tech Stack
 
 ### 🟦 Back-End (NestJS)
-* **Framework:** NestJS (Modular Architecture)
-* **API Documentation:** Swagger
-* **Database & Caching:** PostgreSQL, Redis, Prisma ORM
-* **Real-time Communication:** Socket.io
-* **Auth & Security:** Passport.js + JWT, Argon2 hashing, `class-validator`, Helmet, CORS, NestJS Throttler (rate limiting)
-* **File Processing & Storage:** MINIO
-* **Asynchronous Jobs & Queues:** BullMQ
-* **Logging:** Pino (`nestjs-pino`)
+
+- **Framework:** NestJS (Modular Architecture)
+- **API Documentation:** Swagger
+- **Database & Caching:** PostgreSQL, Redis, Prisma ORM
+- **Real-time Communication:** Socket.io
+- **Auth & Security:** Passport.js + JWT, Argon2 hashing, `class-validator`, Helmet, CORS, NestJS Throttler (rate limiting)
+- **File Processing & Storage:** MINIO
+- **Asynchronous Jobs & Queues:** BullMQ
+- **Logging:** Pino (`nestjs-pino`)
 
 ### 🟩 Front-End (React + Vite)
-* **Core & Build Tools:** React, Vite, React Compiler
-* **Styling & UI:** Tailwind CSS
-* **State Management:** TanStack Query (Server State), Zustand (Client State)
-* **Routing:** React Router 7
-* **Form Handling & Validation:** React Hook Form, Zod
-* **Real-time Client:** Socket.io Client
-* **Testing:** Vitest, React Testing Library
+
+- **Core & Build Tools:** React, Vite, React Compiler
+- **Styling & UI:** Tailwind CSS
+- **State Management:** TanStack Query (Server State), Zustand (Client State)
+- **Routing:** React Router 7
+- **Form Handling & Validation:** React Hook Form, Zod
+- **Real-time Client:** Socket.io Client
+- **Testing:** Vitest, React Testing Library
 
 ### 🟨 Infrastructure & DevOps
-* **Monorepo Management:** npm Workspaces (`packageManager: npm@10.9.0`)
-* **Containerization:** Docker
-* **CI/CD & Release:** GitHub Actions, `@commitlint`, `lint-staged`, `husky`, `semantic-release`
+
+- **Monorepo Management:** npm Workspaces (`packageManager: npm@10.9.0`)
+- **Containerization:** Docker
+- **CI/CD & Release:** GitHub Actions, `@commitlint`, `lint-staged`, `husky`, `semantic-release`
 
 ---
 
@@ -68,25 +71,28 @@ social-network/
 
 Ensure your system meets the minimum requirements specified in `package.json`:
 
-* **Node.js:** `>=20.18.0`
-* **npm:** `>=10.0.0` (Recommended: `npm@10.9.0`)
+- **Node.js:** `>=20.18.0`
+- **npm:** `>=10.0.0` (Recommended: `npm@10.9.0`)
 
 > ⚠️ Note: `npm install` enforces strict Node engine checks (`engine-strict=true`). Make sure to use the correct Node version (`nvm use`).
 
 ---
 
 ## 📄 License
+
 This project is licensed under the [AGPL-3.0 License](./LICENSE).
 
 ## 🚀 Getting Started
 
 ### 1. Clone the repository
+
 ```bash
 git clone <repository-url>
 cd social-network
 ```
 
 ### 2. Install dependencies
+
 Run `npm install` in the **root directory**. This will install dependencies for all workspaces (`backend` and `frontend`) and run automated setup hooks (e.g., `prisma generate`, `husky`).
 
 ```bash
@@ -95,6 +101,7 @@ npm install
 ```
 
 ### 3. Environment Variables
+
 Copy `.env.example` files in both workspace directories and configure your environment variables:
 
 ```bash
@@ -105,11 +112,13 @@ cp frontend/.env.example frontend/.env
 ### 4. Run Development Servers
 
 Start **both backend and frontend** simultaneously:
+
 ```bash
 npm run dev
 ```
 
 Or start workspaces individually:
+
 ```bash
 # Backend only (NestJS dev mode)
 npm run dev:backend
@@ -125,7 +134,7 @@ npm run dev:frontend
 All root commands execute across both `backend` and `frontend` workspaces:
 
 | Script                 | Description                                                |
-| :---                   | :---                                                       |
+| :--------------------- | :--------------------------------------------------------- |
 | `npm run dev`          | Runs backend and frontend concurrently in development mode |
 | `npm run dev:backend`  | Starts NestJS server in watch mode                         |
 | `npm run dev:frontend` | Starts Vite frontend dev server                            |
@@ -144,9 +153,9 @@ All root commands execute across both `backend` and `frontend` workspaces:
 
 We enforce high code quality standard prior to every commit and pull request:
 
-* **Husky & lint-staged:** Runs ESLint and Prettier on staged files before every commit.
-* **Commitlint:** Validates commit messages to comply with Conventional Commits rules.
-* **PR Title Lint:** Validates Pull Request titles via GitHub Actions.
+- **Husky & lint-staged:** Runs ESLint and Prettier on staged files before every commit.
+- **Commitlint:** Validates commit messages to comply with Conventional Commits rules.
+- **PR Title Lint:** Validates Pull Request titles via GitHub Actions.
 
 > ❌ **Never** use `git commit --no-verify` to bypass pre-commit hooks.
 
@@ -167,6 +176,7 @@ Don't stay blocked—communication keeps the velocity high! 🚀
 ## 🤝 Contributing
 
 Before contributing, please read our detailed [CONTRIBUTING.md](./CONTRIBUTING.md) guide covering:
+
 - Jira task workflow
 - Git branch naming conventions (`feat/SOC-XXX-...`, `fix/SOC-XXX-...`)
 - Commit message guidelines & scope rules

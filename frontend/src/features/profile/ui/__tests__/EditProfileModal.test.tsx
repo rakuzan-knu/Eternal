@@ -1,9 +1,20 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import EditProfileModal from '../EditProfileModal';
 import { useUIStore } from '../../../../shared/model/useUIStore';
+import { useAuthStore } from '../../../../shared/model/useAuthStore';
 import { resetUIStore } from '../../../../test/resetUIStore';
+
+function renderModal() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <EditProfileModal />
+    </QueryClientProvider>,
+  );
+}
 
 class MockFileReader {
   result: string | null = null;
@@ -44,33 +55,35 @@ describe('EditProfileModal', () => {
     originalFileReader = global.FileReader;
     // @ts-expect-error - simplified mock, not a full FileReader implementation
     global.FileReader = MockFileReader;
+    useAuthStore.getState().setAuth('user-1');
   });
 
   afterEach(() => {
     global.FileReader = originalFileReader;
     resetUIStore();
+    useAuthStore.getState().clearAuth();
   });
 
   it('renders nothing when the modal is closed', () => {
-    const { container } = render(<EditProfileModal />);
+    const { container } = renderModal();
 
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders the account tab with default field values when open', () => {
+  it('renders the account tab with default field values when open', async () => {
     useUIStore.getState().openEditProfile();
 
-    render(<EditProfileModal />);
+    renderModal();
 
     expect(screen.getByRole('heading', { name: 'Аккаунт' })).toBeInTheDocument();
-    expect(getUsernameInput()).toHaveValue('my_profile');
+    await waitFor(() => expect(getUsernameInput()).toHaveValue('my_profile'));
     expect(getBioTextarea()).toHaveValue('Rozroblyayu Eternal.');
   });
 
   it('switches to the privacy tab content when its menu item is clicked', async () => {
     useUIStore.getState().openEditProfile();
     const user = userEvent.setup();
-    render(<EditProfileModal />);
+    renderModal();
 
     await user.click(screen.getByText('Приватність'));
 
@@ -81,7 +94,7 @@ describe('EditProfileModal', () => {
   it('calls closeEditProfile when the close (X) button is clicked', async () => {
     useUIStore.getState().openEditProfile();
     const user = userEvent.setup();
-    render(<EditProfileModal />);
+    renderModal();
 
     await user.click(screen.getAllByRole('button')[0]);
 
@@ -91,7 +104,7 @@ describe('EditProfileModal', () => {
   it('shows a validation error and keeps the modal open when the username is too short', async () => {
     useUIStore.getState().openEditProfile();
     const user = userEvent.setup();
-    render(<EditProfileModal />);
+    renderModal();
     await user.type(getNameInput(), 'Ayate');
     const usernameInput = getUsernameInput();
     await user.clear(usernameInput);
@@ -106,7 +119,7 @@ describe('EditProfileModal', () => {
   it('submits successfully and closes the modal when all fields are valid', async () => {
     useUIStore.getState().openEditProfile();
     const user = userEvent.setup();
-    render(<EditProfileModal />);
+    renderModal();
     await fillValidNameAndUsername(user);
 
     await user.click(screen.getByText('Зберегти зміни'));
@@ -117,7 +130,7 @@ describe('EditProfileModal', () => {
   it('does not submit twice when the save button is double-clicked with valid data', async () => {
     useUIStore.getState().openEditProfile();
     const user = userEvent.setup();
-    render(<EditProfileModal />);
+    renderModal();
     await fillValidNameAndUsername(user);
     const saveButton = screen.getByText('Зберегти зміни');
 
@@ -129,7 +142,7 @@ describe('EditProfileModal', () => {
   it('toggles the online status switch on the privacy tab', async () => {
     useUIStore.getState().openEditProfile();
     const user = userEvent.setup();
-    render(<EditProfileModal />);
+    renderModal();
     await user.click(screen.getByText('Приватність'));
     const toggles = screen.getAllByRole('button', { name: '' });
     const onlineToggle = toggles.find((btn) => btn.className.includes('w-11'))!;
@@ -143,7 +156,7 @@ describe('EditProfileModal', () => {
   it('toggles the notification switches on the notifications tab', async () => {
     useUIStore.getState().openEditProfile();
     const user = userEvent.setup();
-    render(<EditProfileModal />);
+    renderModal();
     await user.click(screen.getByText('Сповіщення'));
     const toggles = screen
       .getAllByRole('button', { name: '' })
@@ -162,7 +175,7 @@ describe('EditProfileModal', () => {
   it('shows an avatar preview after uploading a file', async () => {
     useUIStore.getState().openEditProfile();
     const user = userEvent.setup();
-    render(<EditProfileModal />);
+    renderModal();
     const avatarButton = screen.getAllByText('Вибрати')[0];
     const avatarInput = avatarButton
       .closest('div')!
@@ -177,7 +190,7 @@ describe('EditProfileModal', () => {
   it('shows a banner preview after uploading a file and repositions it when dragged', async () => {
     useUIStore.getState().openEditProfile();
     const user = userEvent.setup();
-    render(<EditProfileModal />);
+    renderModal();
     const bannerInputs = document.querySelectorAll('input[type="file"]');
     const bannerInput = bannerInputs[1] as HTMLInputElement;
     const file = new File(['content'], 'banner.png', { type: 'image/png' });
@@ -198,7 +211,7 @@ describe('EditProfileModal', () => {
   it('repositions the banner via touch drag events as well as mouse events', async () => {
     useUIStore.getState().openEditProfile();
     const user = userEvent.setup();
-    render(<EditProfileModal />);
+    renderModal();
     const bannerInput = document.querySelectorAll('input[type="file"]')[1] as HTMLInputElement;
     const file = new File(['content'], 'banner.png', { type: 'image/png' });
     await user.upload(bannerInput, file);
@@ -213,7 +226,7 @@ describe('EditProfileModal', () => {
 
   it('ignores drag events when no banner has been uploaded yet', () => {
     useUIStore.getState().openEditProfile();
-    render(<EditProfileModal />);
+    renderModal();
     const bannerContainer = screen.getByText('Банер не встановлено').closest('div')!.parentElement!;
 
     fireEvent.mouseDown(bannerContainer, { clientY: 100 });

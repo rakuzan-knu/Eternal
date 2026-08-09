@@ -1,7 +1,9 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import FeedPage from '../Feed';
+import { useAuthStore } from '../../../shared/model/useAuthStore';
 import { resetUIStore } from '../../../test/resetUIStore';
 
 vi.mock('emoji-picker-react', () => ({
@@ -10,26 +12,40 @@ vi.mock('emoji-picker-react', () => ({
   EmojiStyle: { APPLE: 'apple' },
 }));
 
+function renderFeed() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <FeedPage />
+    </QueryClientProvider>,
+  );
+}
+
 describe('FeedPage', () => {
+  beforeEach(() => {
+    useAuthStore.getState().setAuth('user-1');
+  });
+
   afterEach(() => {
     resetUIStore();
+    useAuthStore.getState().clearAuth();
     vi.restoreAllMocks();
   });
 
   it('renders the create-post composer', () => {
-    render(<FeedPage />);
+    renderFeed();
 
     expect(screen.getByPlaceholderText('Що нового?')).toBeInTheDocument();
   });
 
   it('renders the empty-feed placeholder', () => {
-    render(<FeedPage />);
+    renderFeed();
 
     expect(screen.getByText('Тут поки що нічого немає...')).toBeInTheDocument();
   });
 
   it('does not render the comment modal by default', () => {
-    render(<FeedPage />);
+    renderFeed();
 
     expect(screen.queryByText('Немає коментарів')).not.toBeInTheDocument();
   });
@@ -37,7 +53,7 @@ describe('FeedPage', () => {
   it('logs the new post payload and clears the composer on submit', async () => {
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     const user = userEvent.setup();
-    render(<FeedPage />);
+    renderFeed();
 
     await user.type(screen.getByPlaceholderText('Що нового?'), 'Hello feed');
     await user.click(screen.getByText('Опублікувати'));
@@ -52,7 +68,7 @@ describe('FeedPage', () => {
   it('does not log anything when publishing an empty post', async () => {
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     const user = userEvent.setup();
-    render(<FeedPage />);
+    renderFeed();
 
     await user.click(screen.getByText('Опублікувати'));
 

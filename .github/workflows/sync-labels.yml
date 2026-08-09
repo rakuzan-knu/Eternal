@@ -1,0 +1,63 @@
+name: Sync Labels
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/labels.yml'
+      - '.github/workflows/sync-labels.yml'
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sync labels
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 - << 'PYEOF'
+          import json, urllib.request, os
+
+          with open(".github/labels.yml") as f:
+              import yaml
+              labels = yaml.safe_load(f)
+
+          token = os.environ["GITHUB_TOKEN"]
+          repo = os.environ["GITHUB_REPOSITORY"]
+          base = f"https://api.github.com/repos/{repo}/labels"
+
+          req = urllib.request.Request(base)
+          req.add_header("Authorization", f"Bearer {token}")
+          req.add_header("Accept", "application/vnd.github+json")
+          existing = json.loads(urllib.request.urlopen(req).read())
+          existing_names = {l["name"] for l in existing}
+
+          for label in labels:
+              name = label["name"]
+              color = label.get("color", "EDEDED")
+              desc = label.get("description", "")
+
+              payload = json.dumps({"name": name, "color": color, "description": desc}).encode()
+
+              if name in existing_names:
+                  req = urllib.request.Request(f"{base}/{name.replace(' ', '%20')}", data=payload, method="PATCH")
+              else:
+                  req = urllib.request.Request(base, data=payload, method="POST")
+
+              req.add_header("Authorization", f"Bearer {token}")
+              req.add_header("Accept", "application/vnd.github+json")
+              req.add_header("Content-Type", "application/json")
+
+              try:
+                  urllib.request.urlopen(req)
+                  print(f"{'Updated' if name in existing_names else 'Created'}: {name}")
+              except Exception as e:
+                  print(f"Error with {name}: {e}")
+          PYEOF

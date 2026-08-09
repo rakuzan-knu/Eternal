@@ -4,4 +4,4 @@ set -e
 echo "Running typecheck..."
 npm run typecheck -w backend
 npm run typecheck -w frontend
-echo "Typecheck passed ✅"
+echo "Typecheck passed"

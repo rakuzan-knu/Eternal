@@ -18,32 +18,20 @@ jobs:
   build-storybook:
     name: Build Storybook
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: ${{ hashFiles('frontend/src/**/*.stories.ts') != '' || hashFiles('frontend/src/**/*.stories.tsx') != '' }}
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check if stories exist
-        id: stories-check
-        run: |
-          COUNT=$(git ls-files | grep -E '\.stories\.(ts|tsx)$' | wc -l || echo "0")
-          echo "count=$COUNT" >> $GITHUB_OUTPUT
-          echo "Found $COUNT story files"
-
-      - name: Skip execution if no stories
-        if: steps.stories-check.outputs.count == '0'
-        run: |
-          echo "No .stories.ts(x) files found — skipping environment setup and build."
-          exit 0
-
       - uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install deps
-        working-directory: frontend
         run: npm ci --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
 
       - name: Cache Storybook Build Compiler

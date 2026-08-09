@@ -1,0 +1,8 @@
+paths-ignore:
+  - '**/*.spec.ts'
+  - '**/*.e2e-spec.ts'
+  - 'backend/test/**'
+  - 'frontend/src/test/**'
+  - '**/dist/**'
+  - '**/node_modules/**'
+  - 'backend/prisma/migrations/**'
