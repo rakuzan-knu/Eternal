@@ -26,6 +26,8 @@ jobs:
       contents: read
       pull-requests: write
       deployments: write
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -44,6 +46,7 @@ jobs:
           VITE_API_URL: ${{ secrets.VITE_API_URL_PREVIEW || 'https://api.socialnetwork.dev' }}
 
       - name: Deploy to Vercel (Preview)
+        if: env.VERCEL_TOKEN != ''
         id: vercel-deploy
         uses: amondnet/vercel-action@v25
         with:
@@ -55,6 +58,7 @@ jobs:
           github-comment: false
 
       - name: Post or Update preview URL in PR
+        if: env.VERCEL_TOKEN != '' && steps.vercel-deploy.outputs.preview-url != ''
         uses: actions/github-script@v7
         env:
           PREVIEW_URL: ${{ steps.vercel-deploy.outputs.preview-url }}

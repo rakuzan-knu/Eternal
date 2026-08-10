@@ -26,10 +26,10 @@ jobs:
       docker: ${{ steps.filter.outputs.docker }}
       ci: ${{ steps.filter.outputs.ci }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: dorny/paths-filter@v3
+      - uses: dorny/paths-filter@v4
         id: filter
         with:
           filters: |
@@ -62,9 +62,9 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
@@ -80,11 +80,11 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
@@ -110,9 +110,9 @@ jobs:
     outputs:
       cache-key: ${{ steps.cache-key-gen.outputs.key }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
@@ -125,7 +125,7 @@ jobs:
 
       - name: Cache Node Modules & Prisma
         id: monorepo-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             node_modules
@@ -149,14 +149,14 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: '.nvmrc'
 
       - name: Restore Monorepo Dependencies
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: |
             node_modules
@@ -178,14 +178,14 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: '.nvmrc'
 
       - name: Restore Monorepo Dependencies
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: |
             node_modules
@@ -196,7 +196,7 @@ jobs:
           fail-on-cache-miss: true
 
       - name: Cache ESLint
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: backend/.eslintcache
           key: ${{ runner.os }}-backend-eslint-${{ github.ref }}
@@ -223,14 +223,14 @@ jobs:
       matrix:
         shard: [1, 2, 3]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: '.nvmrc'
 
       - name: Restore Monorepo Dependencies
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: |
             node_modules
@@ -241,7 +241,7 @@ jobs:
           fail-on-cache-miss: true
 
       - name: Cache Test Compiler (Backend)
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: backend/node_modules/.cache
           key: ${{ runner.os }}-backend-compiler-shard-${{ matrix.shard }}-${{ github.sha }}
@@ -254,7 +254,7 @@ jobs:
 
       - name: Upload coverage
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: backend-coverage-shard-${{ matrix.shard }}
           path: backend/coverage/
@@ -308,14 +308,14 @@ jobs:
       MINIO_PUBLIC_URL: http://localhost:9000
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: '.nvmrc'
 
       - name: Restore Monorepo Dependencies
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: |
             node_modules
@@ -342,14 +342,14 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: '.nvmrc'
 
       - name: Restore Monorepo Dependencies
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: |
             node_modules
@@ -360,7 +360,7 @@ jobs:
           fail-on-cache-miss: true
 
       - name: Cache ESLint
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: frontend/.eslintcache
           key: ${{ runner.os }}-frontend-eslint-${{ github.ref }}
@@ -384,14 +384,14 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: '.nvmrc'
 
       - name: Restore Monorepo Dependencies
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: |
             node_modules
@@ -402,7 +402,7 @@ jobs:
           fail-on-cache-miss: true
 
       - name: Cache Vitest Compiler (Frontend)
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: frontend/node_modules/.cache
           key: ${{ runner.os }}-frontend-compiler-${{ github.sha }}
@@ -415,7 +415,7 @@ jobs:
 
       - name: Upload coverage
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: frontend-coverage
           path: frontend/coverage/
@@ -433,14 +433,14 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: '.nvmrc'
 
       - name: Restore Monorepo Dependencies
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: |
             node_modules
@@ -457,11 +457,12 @@ jobs:
           VITE_API_URL: http://localhost:3000
 
       - name: Check bundle size changes
-        uses: preactjs/compressed-size-action@v2
+        uses: preactjs/compressed-size-action@v3
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           pattern: 'frontend/dist/**/*.{js,css}'
           strip-hash: "\\b\\w{8}\\."
+          build-script: "build"
 
       - name: Run Lighthouse CI
         uses: treosh/lighthouse-ci-action@v12
@@ -490,13 +491,13 @@ jobs:
           - service: frontend
             context: ./frontend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Build image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ${{ matrix.context }}/Dockerfile
@@ -518,7 +519,7 @@ jobs:
 
       - name: Upload Trivy SARIF report
         if: always() && steps.trivy_scanner.outcome == 'success'
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-${{ matrix.service }}.sarif
           category: trivy-${{ matrix.service }}-image
@@ -534,7 +535,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Download frontend coverage
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: frontend-coverage
           path: frontend-coverage

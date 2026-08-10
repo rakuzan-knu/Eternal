@@ -19,7 +19,6 @@ jobs:
     name: Build Storybook
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: ${{ hashFiles('frontend/src/**/*.stories.ts') != '' || hashFiles('frontend/src/**/*.stories.tsx') != '' }}
     permissions:
       contents: read
     steps:

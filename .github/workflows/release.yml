@@ -63,7 +63,7 @@ jobs:
         id: release
         uses: cycjimmy/semantic-release-action@v4
         with:
-          semantic_version: 24
+          semantic_version: 19
           extra_plugins: |
             @semantic-release/changelog
             @semantic-release/git
@@ -85,7 +85,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Download frontend artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: frontend-dist
           path: frontend/dist/
