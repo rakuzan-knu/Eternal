@@ -1,4 +1,4 @@
-FROM node:22-alpine AS deps
+FROM node:26-alpine AS deps
 RUN apk add --no-cache libc6-compat python3 make g++
 WORKDIR /app
 
@@ -13,7 +13,7 @@ RUN npm ci --workspace=backend
 RUN cd backend && npx prisma generate
 
 # Stage 2: builder
-FROM node:22-alpine AS builder
+FROM node:26-alpine AS builder
 WORKDIR /app
 
 COPY --from=deps /app ./
@@ -22,7 +22,7 @@ COPY backend ./backend
 RUN npm run build --workspace=backend
 
 # Stage 3: production
-FROM node:22-alpine AS production
+FROM node:26-alpine AS production
 RUN apk add --no-cache tini
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nestjs
 WORKDIR /app
