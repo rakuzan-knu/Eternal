@@ -12,6 +12,7 @@
     "target": "es2022",
     "sourceMap": true,
     "outDir": "./dist",
+    "rootDir": "..",
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": true,
@@ -19,10 +20,19 @@
     "noImplicitAny": false,
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
-    "types": ["jest", "node", "multer"],
+    "types": [
+      "jest",
+      "node",
+      "multer"
+    ],
     "paths": {
-      "*": ["./*"]
+      "*": [
+        "./*"
+      ]
     }
   },
-  "include": ["src/**/*", "test/**/*"]
+  "include": [
+    "src/**/*",
+    "test/**/*"
+  ]
 }
