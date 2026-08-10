@@ -23,7 +23,7 @@ ENV VITE_API_URL=$VITE_API_URL
 RUN npm run build --workspace=frontend
 
 # Stage 3: production
-FROM nginx:1.27-alpine AS production
+FROM nginx:1.31-alpine AS production
 
 COPY frontend/docker/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /app/frontend/dist /usr/share/nginx/html
