@@ -155,6 +155,7 @@ export class MessengerMapper {
       myMuteLevel: myParticipant?.muteLevel ?? 'NONE',
       myNickname: myParticipant?.nickname ?? null,
       isArchived: !!myParticipant?.archivedAt,
+      isPinned: !!myParticipant?.pinnedAt,
       blockedByMe: iBlockedThem,
       blockingMe: theyBlockedMe,
       isBlocked: iBlockedThem || theyBlockedMe,

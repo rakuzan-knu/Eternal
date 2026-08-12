@@ -1,6 +1,6 @@
 import { Transform } from 'class-transformer';
-import { IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { IsNotEmpty, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateCommentDto {
   @ApiProperty({
@@ -15,4 +15,12 @@ export class CreateCommentDto {
   @MinLength(1)
   @MaxLength(1000)
   text!: string;
+
+  @ApiPropertyOptional({
+    example: 'cuid...',
+    description: 'Optional parent comment ID for replies',
+  })
+  @IsOptional()
+  @IsString()
+  parentId?: string;
 }

@@ -8,23 +8,130 @@ import {
   HttpStatus,
   Param,
   Patch,
+  Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OptionalAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { UpdateUserDto } from './dto/update-users.dto';
 import { DeleteAccountDto } from './dto/delete-account.dto';
 import { UserProfileDto } from './dto/user-profile.dto';
+import { SetUserAliasDto } from './dto/set-user-alias.dto';
 import { UsersService } from './users.service';
+import { PostsService } from '../posts/posts.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/interfaces/jwt-payload.interface';
+import { GetPostsQueryDto } from '../posts/dto/get-posts-query.dto';
 
 @ApiTags('Users')
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly postsService: PostsService,
+  ) {}
+
+  @Get('by-username/:username')
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get user profile by username' })
+  @ApiResponse({ status: 200, description: 'Profile retrieved', type: UserProfileDto })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  getProfileByUsername(
+    @Param('username') username: string,
+    @CurrentUser() viewer?: RequestUser,
+  ): Promise<UserProfileDto> {
+    return this.usersService.getProfileByUsername(username, viewer?.id ?? null);
+  }
+
+  @Get('me/saved-posts')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get my saved/bookmarked posts feed' })
+  @ApiResponse({ status: 200, description: 'Saved posts retrieved successfully' })
+  getSavedPosts(@Query() query: GetPostsQueryDto, @CurrentUser() user: RequestUser) {
+    return this.postsService.getSavedPosts(user.id, query.limit, query.after);
+  }
+
+  @Get(':id/posts')
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get paginated posts created by a specific user' })
+  @ApiResponse({ status: 200, description: 'User posts retrieved successfully' })
+  getUserPosts(
+    @Param('id') id: string,
+    @Query() query: GetPostsQueryDto,
+    @CurrentUser() viewer?: RequestUser,
+  ) {
+    return this.postsService.getUserPosts(id, query.limit, query.after, viewer?.id);
+  }
+
+  @Get(':id/reposts')
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get paginated posts reposted by a specific user' })
+  @ApiResponse({ status: 200, description: 'User reposts retrieved successfully' })
+  getUserReposts(
+    @Param('id') id: string,
+    @Query() query: GetPostsQueryDto,
+    @CurrentUser() viewer?: RequestUser,
+  ) {
+    return this.postsService.getUserReposts(id, query.limit, query.after, viewer?.id);
+  }
+
+  @Post(':id/block')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Block a user' })
+  @ApiResponse({ status: 200, description: 'User blocked successfully' })
+  @ApiResponse({ status: 400, description: "Can't block yourself" })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  blockUser(@Param('id') targetId: string, @CurrentUser() user: RequestUser) {
+    return this.usersService.blockUser(user.id, targetId);
+  }
+
+  @Delete(':id/block')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Unblock a user' })
+  @ApiResponse({ status: 200, description: 'User unblocked successfully' })
+  unblockUser(@Param('id') targetId: string, @CurrentUser() user: RequestUser) {
+    return this.usersService.unblockUser(user.id, targetId);
+  }
+
+  @Post(':id/alias')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Set private custom alias for a user' })
+  @ApiResponse({ status: 200, description: 'Alias set successfully' })
+  setUserAlias(
+    @Param('id') targetId: string,
+    @Body() dto: SetUserAliasDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.usersService.setUserAlias(user.id, targetId, dto.alias);
+  }
+
+  @Delete(':id/alias')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete private custom alias for a user' })
+  @ApiResponse({ status: 200, description: 'Alias deleted successfully' })
+  deleteUserAlias(@Param('id') targetId: string, @CurrentUser() user: RequestUser) {
+    return this.usersService.deleteUserAlias(user.id, targetId);
+  }
 
   @Get(':id')
   @UseGuards(OptionalAuthGuard)

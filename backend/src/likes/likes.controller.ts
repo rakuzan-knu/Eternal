@@ -1,5 +1,6 @@
 import { Controller, Delete, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { LikesService } from './likes.service';
 import { AuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -12,6 +13,7 @@ export class LikesController {
 
   @Post(':id/like')
   @UseGuards(AuthGuard)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Like a post' })
   @ApiResponse({
     status: 201,

@@ -150,6 +150,9 @@ export class ConversationsRepository implements IConversationsRepository {
       mutedUntil: Date | null;
       role: ParticipantRole;
       archivedAt: Date | null;
+      leftAt: Date | null;
+      pinnedAt: Date | null;
+      lastReadAt: Date;
     }>,
   ): Promise<ConversationParticipant> {
     return this.prisma.conversationParticipant.update({

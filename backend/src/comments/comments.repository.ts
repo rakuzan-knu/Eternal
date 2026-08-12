@@ -9,8 +9,25 @@ export class CommentsRepository implements ICommentsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async addComment(postId: string, userId: string, dto: CreateCommentDto): Promise<Comment> {
+    const post = await this.prisma.post.findUnique({ where: { id: postId } });
+    if (!post) throw new NotFoundException('Post not found');
+
+    if (dto.parentId) {
+      const parentComment = await this.prisma.comment.findUnique({
+        where: { id: dto.parentId },
+      });
+      if (!parentComment || parentComment.postId !== postId) {
+        throw new NotFoundException('Parent comment not found');
+      }
+    }
+
     return this.prisma.comment.create({
-      data: { text: dto.text, postId, userId },
+      data: {
+        text: dto.text,
+        postId,
+        userId,
+        parentId: dto.parentId,
+      },
     });
   }
 
@@ -20,7 +37,7 @@ export class CommentsRepository implements ICommentsRepository {
       take: limit + 1,
       skip: after ? 1 : 0,
       cursor: after ? { id: after } : undefined,
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
     });
   }
 

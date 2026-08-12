@@ -102,9 +102,82 @@ export class UsersService {
   }
 
   async getProfileFor(id: string, viewerId: string | null): Promise<UserProfileDto> {
+    if (viewerId && viewerId !== id) {
+      const isBlocked = await this.prisma.userBlock.findFirst({
+        where: {
+          OR: [
+            { blockerId: viewerId, blockedId: id },
+            { blockerId: id, blockedId: viewerId },
+          ],
+        },
+      });
+      if (isBlocked) throw new NotFoundException('User not found');
+    }
+
     const raw = await this.getRawProfile(id);
     const ctx = await this.visibility.loadContext([id], viewerId);
-    return this.applyPrivacy(raw, viewerId, ctx);
+    const profile = this.applyPrivacy(raw, viewerId, ctx);
+
+    if (viewerId && viewerId !== id) {
+      const aliasRecord = await this.prisma.userAlias.findUnique({
+        where: { ownerId_targetId: { ownerId: viewerId, targetId: id } },
+      });
+      if (aliasRecord) {
+        profile.alias = aliasRecord.alias;
+      }
+    }
+
+    return profile;
+  }
+
+  async setUserAlias(ownerId: string, targetId: string, alias: string): Promise<{ success: true }> {
+    if (ownerId === targetId) {
+      throw new BadRequestException('Cannot set alias for yourself');
+    }
+    const target = await this.usersRepository.findById(targetId);
+    if (!target) throw new NotFoundException('User not found');
+
+    await this.prisma.userAlias.upsert({
+      where: { ownerId_targetId: { ownerId, targetId } },
+      create: { ownerId, targetId, alias: alias.trim() },
+      update: { alias: alias.trim() },
+    });
+    return { success: true };
+  }
+
+  async deleteUserAlias(ownerId: string, targetId: string): Promise<{ success: true }> {
+    await this.prisma.userAlias.deleteMany({
+      where: { ownerId, targetId },
+    });
+    return { success: true };
+  }
+
+  async getProfileByUsername(username: string, viewerId: string | null): Promise<UserProfileDto> {
+    const user = await this.usersRepository.findByUsername(username);
+    if (!user) throw new NotFoundException('User not found');
+    return this.getProfileFor(user.id, viewerId);
+  }
+
+  async blockUser(blockerId: string, targetId: string): Promise<{ success: true }> {
+    if (blockerId === targetId) throw new BadRequestException("Can't block yourself");
+    const target = await this.usersRepository.findById(targetId);
+    if (!target) throw new NotFoundException('User not found');
+
+    await this.usersRepository.blockUser(blockerId, targetId);
+    await Promise.all([
+      this.redis.del(this.userKey(blockerId)),
+      this.redis.del(this.userKey(targetId)),
+    ]);
+    return { success: true };
+  }
+
+  async unblockUser(blockerId: string, targetId: string): Promise<{ success: true }> {
+    await this.usersRepository.unblockUser(blockerId, targetId);
+    await Promise.all([
+      this.redis.del(this.userKey(blockerId)),
+      this.redis.del(this.userKey(targetId)),
+    ]);
+    return { success: true };
   }
 
   getProfile(id: string): Promise<UserProfileDto> {

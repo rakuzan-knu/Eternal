@@ -44,20 +44,74 @@ model User {
   sessions                 Session[]
   polls Poll[] @relation("CreatedPolls")
   votes Vote[]
+  reposts Repost[]
+  savedPosts SavedPost[]
+  aliasesCreated UserAlias[] @relation("AliasOwner")
+  aliasesTargeted UserAlias[] @relation("AliasTarget")
 }
 
 model Post {
   id        String   @id @default(uuid())
   content   String
-  image     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  author   User      @relation(fields: [authorId], references: [id])
+  author   User        @relation(fields: [authorId], references: [id])
   authorId String
+  media    PostMedia[]
   likes    Like[]
   comments Comment[]
+  reposts  Repost[]
+  savedBy  SavedPost[]
+  reports  Report[]
   poll     Poll?
+}
+
+model PostMedia {
+  id        String    @id @default(uuid())
+  postId    String
+  type      MediaType
+  url       String
+  poster    String?
+  order     Int       @default(0)
+  createdAt DateTime  @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
+model Repost {
+  id        String   @id @default(uuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([userId])
+  @@index([postId])
+}
+
+model SavedPost {
+  id        String   @id @default(uuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([userId])
+  @@index([postId])
 }
 
 model Like {
@@ -93,10 +147,16 @@ model Comment {
   text      String
   postId    String
   userId    String
+  parentId  String?
   createdAt DateTime @default(now())
 
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post    Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent  Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies Comment[] @relation("CommentReplies")
+
+  @@index([postId])
+  @@index([parentId])
 }
 
 model Conversation {
@@ -134,6 +194,7 @@ model ConversationParticipant {
   mutedUntil     DateTime?
   leftAt         DateTime?
   archivedAt     DateTime?
+  pinnedAt       DateTime?
   lastReadAt     DateTime        @default(now())
   joinedAt       DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
@@ -285,7 +346,8 @@ model Report {
   id         String         @id @default(uuid())
   reporterId String
   reportedId String
-  /// Conversation or message context (optional)
+  /// Post, conversation or message context (optional)
+  postId     String?
   messageId  String?
   category   ReportCategory
   details    String?
@@ -293,10 +355,12 @@ model Report {
   createdAt  DateTime       @default(now())
   updatedAt  DateTime       @updatedAt
 
-  reporter User @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
-  reported User @relation("Reported", fields: [reportedId], references: [id], onDelete: Cascade)
+  reporter User  @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reported User  @relation("Reported", fields: [reportedId], references: [id], onDelete: Cascade)
+  post     Post? @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@index([reportedId])
+  @@index([postId])
   @@index([status])
 }
 
@@ -449,3 +513,20 @@ model Vote {
   @@index([pollId, userId])
   @@map("votes")
 }
+
+model UserAlias {
+  id        String   @id @default(uuid())
+  ownerId   String
+  targetId  String
+  alias     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner  User @relation("AliasOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  target User @relation("AliasTarget", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@unique([ownerId, targetId])
+  @@index([ownerId])
+  @@map("user_aliases")
+}
+

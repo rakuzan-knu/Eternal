@@ -57,4 +57,28 @@ export class UsersRepository implements IUsersRepository {
       await tx.user.delete({ where: { id } });
     });
   }
+
+  async blockUser(blockerId: string, blockedId: string): Promise<void> {
+    await this.prisma.$transaction([
+      this.prisma.userBlock.upsert({
+        where: { blockerId_blockedId: { blockerId, blockedId } },
+        create: { blockerId, blockedId },
+        update: {},
+      }),
+      this.prisma.follow.deleteMany({
+        where: {
+          OR: [
+            { followerId: blockerId, followingId: blockedId },
+            { followerId: blockedId, followingId: blockerId },
+          ],
+        },
+      }),
+    ]);
+  }
+
+  async unblockUser(blockerId: string, blockedId: string): Promise<void> {
+    await this.prisma.userBlock.deleteMany({
+      where: { blockerId, blockedId },
+    });
+  }
 }

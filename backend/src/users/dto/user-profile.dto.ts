@@ -74,4 +74,10 @@ export class UserProfileDto {
       'Whether the requesting user is following this profile. Always false for anonymous requests.',
   })
   isFollowing?: boolean;
+
+  @ApiPropertyOptional({
+    example: 'Best Friend',
+    description: 'Private custom alias set by the viewer for this target user',
+  })
+  alias?: string | null;
 }

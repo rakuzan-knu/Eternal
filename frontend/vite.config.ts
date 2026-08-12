@@ -1,19 +1,11 @@
 /// <reference types="vitest" />
 import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import babel from '@rolldown/plugin-babel';
+import react from '@vitejs/plugin-react-swc';
 import tailwindcss from '@tailwindcss/vite';
-import reactCompiler from 'babel-plugin-react-compiler';
 import path from 'path';
 
 export default defineConfig({
-  plugins: [
-    react(),
-    babel({
-      plugins: [[reactCompiler]],
-    }),
-    tailwindcss(),
-  ],
+  plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

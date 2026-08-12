@@ -3,16 +3,30 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Patch,
   Post,
   Query,
+  UploadedFiles,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { Throttle } from '@nestjs/throttler';
 import { PostsService } from './posts.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { EditPostDto } from './dto/edit-post.dto';
-import { ApiBody, ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ReportPostDto } from './dto/report-post.dto';
+import {
+  ApiBody,
+  ApiBearerAuth,
+  ApiConsumes,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { AuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -46,11 +60,17 @@ export class PostsController {
   @Post()
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create a new post' })
+  @UseInterceptors(FilesInterceptor('media', 5))
+  @ApiConsumes('multipart/form-data', 'application/json')
+  @ApiOperation({ summary: 'Create a new post with optional media files' })
   @ApiBody({ type: CreatePostDto })
   @ApiResponse({ status: 201, description: 'Post created successfully.' })
-  createPost(@Body() dto: CreatePostDto, @CurrentUser() user: RequestUser) {
-    return this.postsService.createPost(dto, user.id);
+  createPost(
+    @Body() dto: CreatePostDto,
+    @CurrentUser() user: RequestUser,
+    @UploadedFiles() files?: Express.Multer.File[],
+  ) {
+    return this.postsService.createPost(dto, user.id, files);
   }
 
   @Patch(':id')
@@ -72,5 +92,63 @@ export class PostsController {
   @ApiResponse({ status: 404, description: 'Post not found.' })
   deletePost(@Param('id') id: string, @CurrentUser() user: RequestUser) {
     return this.postsService.deletePost(id, user.id);
+  }
+
+  @Post(':id/save')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Save/bookmark a post' })
+  @ApiResponse({ status: 200, description: 'Post saved successfully.' })
+  @ApiResponse({ status: 404, description: 'Post not found.' })
+  savePost(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    return this.postsService.savePost(id, user.id);
+  }
+
+  @Delete(':id/save')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Remove saved/bookmarked post' })
+  @ApiResponse({ status: 200, description: 'Post unsaved successfully.' })
+  unsavePost(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    return this.postsService.unsavePost(id, user.id);
+  }
+
+  @Post(':id/repost')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Repost a post' })
+  @ApiResponse({ status: 200, description: 'Post reposted successfully.' })
+  @ApiResponse({ status: 404, description: 'Post not found.' })
+  repost(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    return this.postsService.repost(id, user.id);
+  }
+
+  @Delete(':id/repost')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Remove a repost' })
+  @ApiResponse({ status: 200, description: 'Repost removed successfully.' })
+  unrepost(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    return this.postsService.unrepost(id, user.id);
+  }
+
+  @Post(':id/report')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Report a post for moderation review' })
+  @ApiResponse({ status: 200, description: 'Post report queued successfully.' })
+  @ApiResponse({ status: 404, description: 'Post not found.' })
+  reportPost(
+    @Param('id') id: string,
+    @Body() dto: ReportPostDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.postsService.reportPost(id, user.id, dto.category, dto.details);
   }
 }

@@ -13,4 +13,6 @@ export interface IUsersRepository {
   updateAvatar(id: string, avatarUrl: string | null): Promise<User>;
   updatePassword(id: string, passwordHash: string): Promise<void>;
   deleteUser(id: string): Promise<void>;
+  blockUser(blockerId: string, blockedId: string): Promise<void>;
+  unblockUser(blockerId: string, blockedId: string): Promise<void>;
 }

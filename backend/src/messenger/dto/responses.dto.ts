@@ -77,6 +77,7 @@ export interface ConversationView {
   myMuteLevel: MuteLevel;
   myNickname: string | null;
   isArchived: boolean;
+  isPinned: boolean;
   blockedByMe: boolean;
   blockingMe: boolean;
   isBlocked: boolean;

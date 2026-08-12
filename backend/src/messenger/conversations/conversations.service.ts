@@ -5,6 +5,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import sharp from 'sharp';
 import { UsersService } from '../../users/users.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CONVERSATIONS_REPOSITORY } from '../interfaces/conversations-repository.interface';
@@ -28,6 +31,8 @@ import type { ReportDto } from '../dto/message.dto';
 
 @Injectable()
 export class ConversationsService {
+  private readonly s3: S3Client;
+
   constructor(
     @Inject(CONVERSATIONS_REPOSITORY)
     private readonly convsRepo: IConversationsRepository,
@@ -36,7 +41,27 @@ export class ConversationsService {
     private readonly usersService: UsersService,
     private readonly mapper: MessengerMapper,
     private readonly prisma: PrismaService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.s3 = new S3Client({
+      endpoint:
+        this.configService.get<string>('MINIO_ENDPOINT') ??
+        this.configService.get<string>('S3_ENDPOINT') ??
+        'http://localhost:9000',
+      region: 'us-east-1',
+      credentials: {
+        accessKeyId:
+          this.configService.get<string>('MINIO_ACCESS_KEY') ??
+          this.configService.get<string>('S3_ACCESS_KEY') ??
+          'rootuser',
+        secretAccessKey:
+          this.configService.get<string>('MINIO_SECRET_KEY') ??
+          this.configService.get<string>('S3_SECRET_KEY') ??
+          'rootpassword',
+      },
+      forcePathStyle: true,
+    });
+  }
 
   async getConversations(userId: string): Promise<ConversationView[]> {
     const [convs, blockCtx] = await Promise.all([
@@ -399,5 +424,84 @@ export class ConversationsService {
       where: { id: conversationId },
       data: { updatedAt: new Date() },
     });
+  }
+
+  async deleteConversation(conversationId: string, userId: string): Promise<void> {
+    const conv = await this.convsRepo.findOneForUser(conversationId, userId);
+    if (!conv) throw new NotFoundException('Conversation not found');
+    await this.convsRepo.updateParticipant(conversationId, userId, {
+      leftAt: new Date(),
+    });
+  }
+
+  async pinConversation(conversationId: string, userId: string): Promise<void> {
+    const conv = await this.convsRepo.findOneForUser(conversationId, userId);
+    if (!conv) throw new NotFoundException('Conversation not found');
+    await this.convsRepo.updateParticipant(conversationId, userId, {
+      pinnedAt: new Date(),
+    });
+  }
+
+  async unpinConversation(conversationId: string, userId: string): Promise<void> {
+    const conv = await this.convsRepo.findOneForUser(conversationId, userId);
+    if (!conv) throw new NotFoundException('Conversation not found');
+    await this.convsRepo.updateParticipant(conversationId, userId, {
+      pinnedAt: null,
+    });
+  }
+
+  async markUnread(conversationId: string, userId: string): Promise<void> {
+    const conv = await this.convsRepo.findOneForUser(conversationId, userId);
+    if (!conv) throw new NotFoundException('Conversation not found');
+    await this.convsRepo.updateParticipant(conversationId, userId, {
+      lastReadAt: new Date(0),
+    });
+  }
+
+  async uploadGroupAvatar(
+    conversationId: string,
+    userId: string,
+    file: Express.Multer.File,
+  ): Promise<{ avatarUrl: string }> {
+    const conv = await this.convsRepo.findOneForUser(conversationId, userId);
+    if (!conv) throw new NotFoundException('Conversation not found');
+    if (conv.type !== 'GROUP') throw new BadRequestException('Not a group conversation');
+
+    await this.assertGroupAdmin(conversationId, userId);
+
+    if (!file || !Buffer.isBuffer(file.buffer)) {
+      throw new BadRequestException('Invalid avatar file');
+    }
+
+    const processedBuffer = await sharp(file.buffer)
+      .resize(512, 512, { fit: 'cover' })
+      .webp({ quality: 85 })
+      .toBuffer();
+
+    const bucket = this.configService.get<string>('MINIO_BUCKET_AVATARS', 'avatars');
+    const publicUrl =
+      this.configService.get<string>('MINIO_PUBLIC_URL') ??
+      this.configService.get<string>('S3_PUBLIC_URL') ??
+      'http://localhost:9000';
+
+    const key = `group-avatars/${conversationId}.webp`;
+
+    await this.s3.send(
+      new PutObjectCommand({
+        Bucket: bucket,
+        Key: key,
+        Body: processedBuffer,
+        ContentType: 'image/webp',
+      }),
+    );
+
+    const avatarUrl = `${publicUrl}/${bucket}/${key}`;
+
+    await this.prisma.conversation.update({
+      where: { id: conversationId },
+      data: { avatar: avatarUrl },
+    });
+
+    return { avatarUrl };
   }
 }

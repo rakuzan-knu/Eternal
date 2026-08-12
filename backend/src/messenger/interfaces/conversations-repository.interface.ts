@@ -52,6 +52,9 @@ export interface IConversationsRepository {
       mutedUntil: Date | null;
       role: ParticipantRole;
       archivedAt: Date | null;
+      leftAt: Date | null;
+      pinnedAt: Date | null;
+      lastReadAt: Date;
     }>,
   ): Promise<ConversationParticipant>;
 

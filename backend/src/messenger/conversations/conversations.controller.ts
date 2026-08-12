@@ -8,9 +8,13 @@ import {
   Param,
   Patch,
   Post,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags, ApiParam } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { Throttle } from '@nestjs/throttler';
+import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags, ApiParam } from '@nestjs/swagger';
 import { AuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../../auth/interfaces/jwt-payload.interface';
@@ -47,6 +51,13 @@ export class ConversationsController {
     return this.service.getConversation(id, user.id);
   }
 
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete a conversation for current user' })
+  deleteConversation(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    return this.service.deleteConversation(id, user.id);
+  }
+
   @Post('direct')
   @ApiOperation({ summary: 'Start or get a direct conversation' })
   createDirect(@Body() dto: CreateDirectConversationDto, @CurrentUser() user: RequestUser) {
@@ -67,6 +78,39 @@ export class ConversationsController {
     @CurrentUser() user: RequestUser,
   ) {
     return this.service.updateGroup(id, user.id, dto);
+  }
+
+  @Post(':id/avatar')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Upload group conversation avatar' })
+  uploadAvatar(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.service.uploadGroupAvatar(id, user.id, file);
+  }
+
+  @Post(':id/pin')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Pin a conversation' })
+  pin(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    return this.service.pinConversation(id, user.id);
+  }
+
+  @Delete(':id/pin')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Unpin a conversation' })
+  unpin(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    return this.service.unpinConversation(id, user.id);
+  }
+
+  @Post(':id/unread')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Mark conversation as unread' })
+  markUnread(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    return this.service.markUnread(id, user.id);
   }
 
   @Post(':id/members')
@@ -180,6 +224,7 @@ export class ConversationsController {
   }
 
   @Post('users/:userId/block')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Block a user' })
   block(@Param('userId') userId: string, @CurrentUser() user: RequestUser) {
@@ -194,6 +239,7 @@ export class ConversationsController {
   }
 
   @Post('users/:userId/report')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Report a user' })
   report(
