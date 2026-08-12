@@ -17,6 +17,7 @@ import { PostsModule } from './posts/posts.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 import { UsersModule } from './users/users.module';
+import { PollModule } from './poll/poll.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { UsersModule } from './users/users.module';
     FollowersModule,
     AvatarsModule,
     MessengerModule,
+    PollModule,
   ],
   controllers: [],
   providers: [

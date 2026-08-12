@@ -31,6 +31,8 @@ model User {
   reportsFiled             Report[]                  @relation("Reporter")
   reportsReceived          Report[]                  @relation("Reported")
   deletedMessages          MessageDeletion[]
+  polls Poll[] @relation("CreatedPolls")
+  votes Vote[]
 }
 
 model Post {
@@ -44,6 +46,7 @@ model Post {
   authorId String
   likes    Like[]
   comments Comment[]
+  poll     Poll?
 }
 
 model Like {
@@ -90,8 +93,8 @@ model Conversation {
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
 
-  participants ConversationParticipant[]
-  messages     Message[]
+  participants   ConversationParticipant[]
+  messages       Message[]
   pinnedMessages PinnedMessage[]
 
   @@index([createdAt])
@@ -103,7 +106,7 @@ enum ConversationType {
 }
 
 model ConversationParticipant {
-  id             String   @id @default(uuid())
+  id             String          @id @default(uuid())
   conversationId String
   userId         String
   nickname       String?
@@ -132,24 +135,24 @@ enum ParticipantRole {
 }
 
 enum MuteLevel {
-  NONE 
+  NONE
   MESSAGES
   CALLS
   MESSAGES_AND_CALLS
 }
 
 model Message {
-  id             String      @id @default(uuid())
-  conversationId String
-  senderId       String
-  body           String?
-  messageType    MessageType @default(TEXT)
-  replyToId      String?
+  id              String      @id @default(uuid())
+  conversationId  String
+  senderId        String
+  body            String?
+  messageType     MessageType @default(TEXT)
+  replyToId       String?
   forwardedFromId String?
-  deletedAt      DateTime?
-  deletedForAll  Boolean     @default(false)
-  editedAt       DateTime?
-  createdAt      DateTime    @default(now())
+  deletedAt       DateTime?
+  deletedForAll   Boolean     @default(false)
+  editedAt        DateTime?
+  createdAt       DateTime    @default(now())
 
   conversation  Conversation        @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   sender        User                @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
@@ -175,24 +178,24 @@ enum MessageType {
   GIF
   STICKER
   LOCATION
-  CALL_LOG    // missed / answered call record
-  SYSTEM      // "X joined", "theme changed", etc.
-  DELETED     // tombstone after hard-delete for all
+  CALL_LOG // missed / answered call record
+  SYSTEM // "X joined", "theme changed", etc.
+  DELETED // tombstone after hard-delete for all
 }
 
 model MessageAttachment {
-  id          String         @id @default(uuid())
-  messageId   String
-  type        AttachmentType
-  url         String         // S3 / CDN URL
-  fileName    String?        // original file name
-  mimeType    String?
-  size        Int?           // bytes
-  width       Int?           // images / videos
-  height      Int?
-  duration    Int?           // audio / video seconds
+  id           String         @id @default(uuid())
+  messageId    String
+  type         AttachmentType
+  url          String // S3 / CDN URL
+  fileName     String? // original file name
+  mimeType     String?
+  size         Int? // bytes
+  width        Int? // images / videos
+  height       Int?
+  duration     Int? // audio / video seconds
   thumbnailUrl String?
-  createdAt   DateTime       @default(now())
+  createdAt    DateTime       @default(now())
 
   message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
@@ -204,7 +207,7 @@ enum AttachmentType {
   VIDEO
   AUDIO
   FILE
-  LINK   // open-graph link preview
+  LINK // open-graph link preview
   GIF
 }
 
@@ -212,7 +215,7 @@ model MessageReaction {
   id        String   @id @default(uuid())
   messageId String
   userId    String
-  emoji     String   // unicode emoji
+  emoji     String // unicode emoji
   createdAt DateTime @default(now())
 
   message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
@@ -260,16 +263,16 @@ model UserBlock {
 }
 
 model Report {
-  id         String       @id @default(uuid())
+  id         String         @id @default(uuid())
   reporterId String
   reportedId String
   /// Conversation or message context (optional)
   messageId  String?
   category   ReportCategory
   details    String?
-  status     ReportStatus @default(PENDING)
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
+  status     ReportStatus   @default(PENDING)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
 
   reporter User @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
   reported User @relation("Reported", fields: [reportedId], references: [id], onDelete: Cascade)
@@ -296,3 +299,54 @@ enum ReportStatus {
   ACTION_TAKEN
 }
 
+model Poll {
+  id          String    @id @default(uuid())
+  title       String    @db.VarChar(255)
+  description String?   @db.Text
+  isMultiple  Boolean   @default(false) @map("is_multiple")
+  isActive    Boolean   @default(true) @map("is_active")
+  expiresAt   DateTime? @map("expires_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  options PollOption[]
+  votes   Vote[]
+
+  authorId String @map("author_id")
+  author   User   @relation("CreatedPolls", fields: [authorId], references: [id], onDelete: Cascade)
+
+  postId String @unique @map("post_id")
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([authorId])
+  @@map("polls")
+}
+
+model PollOption {
+  id         String @id @default(uuid())
+  pollId     String @map("poll_id")
+  optionText String @map("option_text") @db.VarChar(255)
+  votesCount Int    @default(0) @map("votes_count")
+  sortOrder  Int    @default(0) @map("sort_order")
+
+  poll  Poll   @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes Vote[]
+
+  @@index([pollId])
+  @@map("poll_options")
+}
+
+model Vote {
+  id        String   @id @default(uuid())
+  pollId    String   @map("poll_id")
+  optionId  String   @map("option_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  poll   Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  option PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([pollId, userId], name: "unique_user_vote_per_poll")
+  @@index([pollId, userId])
+  @@map("votes")
+}
