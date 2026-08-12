@@ -396,6 +396,8 @@ model Session {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
 model Poll {
   id          String    @id @default(uuid())
   title       String    @db.VarChar(255)
