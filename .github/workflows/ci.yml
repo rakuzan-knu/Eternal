@@ -462,7 +462,7 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           pattern: 'frontend/dist/**/*.{js,css}'
           strip-hash: "\\b\\w{8}\\."
-          build-script: "build"
+          build-script: "npm run build"
 
       - name: Run Lighthouse CI
         uses: treosh/lighthouse-ci-action@v12
@@ -487,9 +487,11 @@ jobs:
       matrix:
         include:
           - service: backend
-            context: ./backend
+            context: .
+            file: backend/Dockerfile
           - service: frontend
             context: ./frontend
+            file: frontend/Dockerfile
     steps:
       - uses: actions/checkout@v7
 
@@ -499,8 +501,8 @@ jobs:
       - name: Build image
         uses: docker/build-push-action@v7
         with:
-          context: .
-          file: ${{ matrix.context }}/Dockerfile
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
           push: false
           load: true
           tags: social-network-${{ matrix.service }}:ci-${{ github.sha }}

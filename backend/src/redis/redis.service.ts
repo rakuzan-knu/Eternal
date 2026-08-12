@@ -25,6 +25,7 @@ export class RedisService {
     await this.client.del(key);
   }
 
+  /** Deletes every key matching a glob pattern using scanStream. */
   async delByPattern(pattern: string): Promise<void> {
     try {
       const stream = this.client.scanStream({ match: pattern, count: 100 });

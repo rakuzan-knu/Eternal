@@ -1,62 +1,51 @@
-import React from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { X, ArrowLeft } from 'lucide-react';
 
 interface ModalProps {
   onClose: () => void;
-  onBack?: () => void;
-  title: string;
-  children: React.ReactNode;
-  widthClassName?: string;
+  children: (requestClose: () => void) => React.ReactNode;
+  className?: string;
+  exitDurationMs?: number;
 }
 
-export function Modal({
+export default function Modal({
   onClose,
-  onBack,
-  title,
   children,
-  widthClassName = 'max-w-md',
+  className = '',
+  exitDurationMs = 180,
 }: ModalProps) {
-  if (typeof document === 'undefined') return null;
+  const [isClosing, setIsClosing] = useState(false);
+
+  const requestClose = useCallback(() => {
+    if (isClosing) return;
+    setIsClosing(true);
+    setTimeout(onClose, exitDurationMs);
+  }, [isClosing, onClose, exitDurationMs]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') requestClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [requestClose]);
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-      role="presentation"
+      onClick={requestClose}
+      className={`fixed inset-0 z-[300] flex items-center justify-center transition-colors duration-200 ${
+        isClosing ? 'bg-black/0' : 'bg-black/60'
+      }`}
     >
       <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        className={`w-full ${widthClassName} mx-4 bg-[#16161a]/95 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-2xl p-6 animate-modalIn`}
+        onClick={(e) => e.stopPropagation()}
+        className={`transition-all duration-150 ease-in ${
+          isClosing
+            ? 'opacity-0 scale-95 translate-y-1'
+            : 'opacity-100 scale-100 translate-y-0 animate-modalPop'
+        } ${className}`}
       >
-        <div className="flex items-center justify-between mb-4 gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            {onBack && (
-              <button
-                type="button"
-                onClick={onBack}
-                className="text-gray-400 hover:text-white transition-colors -ml-1 p-1 shrink-0"
-                aria-label="Back"
-              >
-                <ArrowLeft size={18} />
-              </button>
-            )}
-            <h2 className="text-lg font-bold text-white truncate">{title}</h2>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors p-1 shrink-0"
-            aria-label="Close"
-          >
-            <X size={18} />
-          </button>
-        </div>
-        {children}
+        {children(requestClose)}
       </div>
     </div>,
     document.body,

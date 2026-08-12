@@ -188,6 +188,13 @@ export class MarkReadDto extends ConversationIdDto {
   messageId?: string;
 }
 
+export class GetOnlineStatusDto {
+  @ApiProperty({ description: 'User IDs to check', type: [String] })
+  @IsArray()
+  @IsUUID(undefined, { each: true })
+  userIds!: string[];
+}
+
 export class GetMessagesQueryDto {
   @ApiPropertyOptional({ description: 'Cursor (message id) for pagination' })
   @IsOptional()

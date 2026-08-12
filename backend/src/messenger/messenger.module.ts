@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PrismaModule } from '../prisma/prisma.module';
 import { UsersModule } from '../users/users.module';
@@ -16,9 +17,11 @@ import { MESSAGES_REPOSITORY } from './interfaces/messages-repository.interface'
 
 import { MessengerGateway } from './gateway/messenger.gateway';
 import { MessengerMapper } from './messenger.mapper';
+import { AutoDeleteService } from './auto-delete/auto-delete.service';
+import { autoDeleteS3Provider } from './auto-delete/s3-provider';
 
 @Module({
-  imports: [PrismaModule, UsersModule, AuthModule, JwtModule.register({})],
+  imports: [PrismaModule, UsersModule, AuthModule, ConfigModule, JwtModule.register({})],
   controllers: [ConversationsController, MessagesController],
   providers: [
     {
@@ -33,6 +36,8 @@ import { MessengerMapper } from './messenger.mapper';
     MessagesService,
     MessengerMapper,
     MessengerGateway,
+    AutoDeleteService,
+    autoDeleteS3Provider,
   ],
   exports: [ConversationsService, MessagesService, MessengerGateway],
 })

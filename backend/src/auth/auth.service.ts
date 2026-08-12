@@ -1,4 +1,10 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  ConflictException,
+  Inject,
+  Injectable,
+  UnauthorizedException,
+  forwardRef,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
@@ -9,8 +15,10 @@ import type { StringValue } from 'ms';
 import { RedisService } from '../redis/redis.service';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { UsersService } from '../users/users.service';
+import { SessionsService, type RequestMeta } from '../sessions/sessions.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { AccessTokenPayload, RefreshTokenPayload } from './interfaces/jwt-payload.interface';
 import { PublicUser } from './interfaces/public-user.interface';
 import { TokenPair } from './interfaces/token-pair.interface';
@@ -22,9 +30,11 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly redisService: RedisService,
+    @Inject(forwardRef(() => SessionsService))
+    private readonly sessionsService: SessionsService,
   ) {}
 
-  async register(dto: RegisterDto) {
+  async register(dto: RegisterDto, meta: RequestMeta = {}) {
     const [existingByEmail, existingByUsername] = await Promise.all([
       this.usersService.findByEmail(dto.email),
       this.usersService.findByUsername(dto.username),
@@ -56,7 +66,7 @@ export class AuthService {
       throw error;
     }
 
-    const tokens = await this.issueTokenPair(user.id, user.email, user.username);
+    const tokens = await this.issueTokenPair(user.id, user.email, user.username, meta);
 
     return {
       ...tokens,
@@ -64,7 +74,7 @@ export class AuthService {
     };
   }
 
-  async login(dto: LoginDto) {
+  async login(dto: LoginDto, meta: RequestMeta = {}) {
     const user = await this.usersService.findByEmail(dto.email);
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
@@ -75,7 +85,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const tokens = await this.issueTokenPair(user.id, user.email, user.username);
+    const tokens = await this.issueTokenPair(user.id, user.email, user.username, meta);
 
     return {
       ...tokens,
@@ -97,7 +107,8 @@ export class AuthService {
       throw new UnauthorizedException('User no longer exists');
     }
 
-    const accessToken = await this.signAccessToken(user.id, user.email, user.username);
+    const accessToken = await this.signAccessToken(user.id, user.email, user.username, payload.jti);
+    await this.sessionsService.touch(payload.jti);
 
     return { accessToken };
   }
@@ -111,25 +122,59 @@ export class AuthService {
 
     const redisKey = this.buildRefreshKey(payload.sub, payload.jti);
     await this.redisService.del(redisKey);
+    await this.sessionsService.deleteByJti(payload.jti);
+  }
+
+  async changePassword(userId: string, dto: ChangePasswordDto, keepJti?: string): Promise<void> {
+    const user = await this.usersService.findById(userId);
+    if (!user) throw new UnauthorizedException('User no longer exists');
+
+    const matches = await argon2.verify(user.passwordHash, dto.currentPassword);
+    if (!matches) throw new UnauthorizedException('Current password is incorrect');
+
+    const newHash = await argon2.hash(dto.newPassword);
+    await this.usersService.updatePasswordHash(userId, newHash);
+
+    if (keepJti) await this.revokeOtherSessions(userId, keepJti);
+  }
+
+  async revokeRefreshByJti(userId: string, jti: string): Promise<void> {
+    await this.redisService.del(this.buildRefreshKey(userId, jti));
+  }
+
+  async revokeOtherSessions(userId: string, keepJti: string): Promise<void> {
+    const revokedJtis = await this.sessionsService.revokeOthers(userId, keepJti);
+    await Promise.all(
+      revokedJtis.map((jti) => this.redisService.del(this.buildRefreshKey(userId, jti))),
+    );
   }
 
   private async issueTokenPair(
     userId: string,
     email: string,
     username: string,
+    meta: RequestMeta = {},
   ): Promise<TokenPair> {
-    const accessToken = await this.signAccessToken(userId, email, username);
-    const refreshToken = await this.signRefreshToken(userId);
+    const { token: refreshToken, jti } = await this.signRefreshToken(userId);
+    const accessToken = await this.signAccessToken(userId, email, username, jti);
+
+    await this.sessionsService.create(userId, jti, meta);
 
     return { accessToken, refreshToken };
   }
 
-  private signAccessToken(userId: string, email: string, username: string): Promise<string> {
+  private signAccessToken(
+    userId: string,
+    email: string,
+    username: string,
+    jti: string,
+  ): Promise<string> {
     const payload: AccessTokenPayload = {
       type: 'access',
       sub: userId,
       email,
       username,
+      jti,
     };
     return this.jwtService.signAsync(payload, {
       secret: this.getRequiredEnv('JWT_ACCESS_SECRET'),
@@ -137,7 +182,7 @@ export class AuthService {
     });
   }
 
-  private async signRefreshToken(userId: string): Promise<string> {
+  private async signRefreshToken(userId: string): Promise<{ token: string; jti: string }> {
     const jti = randomUUID();
     const ttl = this.getRequiredEnv('JWT_REFRESH_TTL');
 
@@ -150,7 +195,7 @@ export class AuthService {
     const ttlSeconds = this.parseTtlToSeconds(ttl);
     await this.redisService.set(this.buildRefreshKey(userId, jti), '1', ttlSeconds);
 
-    return token;
+    return { token, jti };
   }
 
   private getRequiredEnv(key: string): string {
@@ -184,7 +229,6 @@ export class AuthService {
   private parseTtlToSeconds(ttl: string): number {
     const match = /^(\d+)([smhd])$/.exec(ttl);
     if (!match) {
-      // fall back: assume value is already in seconds
       const asNumber = Number(ttl);
       return Number.isNaN(asNumber) ? 60 * 60 * 24 * 7 : asNumber;
     }

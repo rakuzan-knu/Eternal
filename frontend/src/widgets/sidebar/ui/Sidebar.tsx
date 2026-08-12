@@ -1,10 +1,13 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { Home, Search, Compass, MessageSquare, Bell, PlusSquare, ChevronRight } from 'lucide-react';
 import { useUIStore } from '../../../shared/model/useUIStore';
 import { useCurrentUser } from '@/entities/profile/model/useCurrentUser';
 import { ProfileMenu } from '@/features/sidebar/ui/SidebarMenu';
 import Avatar from '../../../shared/ui/Avatar';
+import OnlineStatusIndicator from '../../../shared/ui/OnlineStatusIndicator';
+import { useQueryOnlineStatus } from '@/features/chat/model/usePresence';
+import { useUnreadMessagesCount } from '@/features/chat/model/useUnreadMessagesCount';
 
 const menuItems = [
   { to: '/', icon: <Home size={24} />, label: 'Home' },
@@ -18,13 +21,27 @@ const menuItems = [
 export default function Sidebar() {
   const { isSidebarExpanded, setSidebarExpanded } = useUIStore();
   const { data: currentUser } = useCurrentUser();
+  const location = useLocation();
+  const profilePath = currentUser?.username ? `/${currentUser.username}` : null;
+  const isProfileActive = Boolean(profilePath && location.pathname === profilePath);
+  const activeConversationId = location.pathname.startsWith('/messages/')
+    ? location.pathname.split('/')[2] || null
+    : null;
+  const isAuthRoute = ['/login', '/register', '/forgot-password'].includes(location.pathname);
+  const showPushNotifications =
+    Boolean(currentUser?.id) && !location.pathname.startsWith('/messages') && !isAuthRoute;
+  const unreadMessagesCount = useUnreadMessagesCount(activeConversationId, {
+    showPushNotifications,
+  });
+  const unreadMessagesLabel = unreadMessagesCount > 99 ? '99+' : String(unreadMessagesCount);
+  useQueryOnlineStatus(currentUser?.id ? [currentUser.id] : []);
 
   return (
     <aside
       onMouseEnter={() => setSidebarExpanded(true)}
       onMouseLeave={() => setSidebarExpanded(false)}
       className={`fixed top-4 left-4 h-[calc(100vh-2rem)] bg-[#16161a]/60 backdrop-blur-2xl border border-white/5 flex flex-col justify-between py-6 z-50 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)] ease-in-out transition-all duration-300 ${
-        isSidebarExpanded ? 'w-64 px-4 rounded-[2rem]' : 'w-20 px-0 rounded-[2.5rem]'
+        isSidebarExpanded ? 'w-[256px] px-4 rounded-[2rem]' : 'w-20 px-0 rounded-[2.5rem]'
       }`}
     >
       <div className="flex flex-col w-full h-full">
@@ -50,6 +67,7 @@ export default function Sidebar() {
             <NavLink
               key={item.to}
               to={item.to}
+              end={item.to === '/'}
               className={({ isActive }) =>
                 `flex items-center rounded-2xl transition-all duration-200 group relative h-12 ${
                   isActive
@@ -63,7 +81,14 @@ export default function Sidebar() {
               }
             >
               <div className="flex-shrink-0 flex items-center justify-center transition-transform duration-200 group-hover:scale-105">
-                {item.icon}
+                <span className="relative flex items-center justify-center">
+                  {item.icon}
+                  {!isSidebarExpanded && item.to === '/messages' && unreadMessagesCount > 0 && (
+                    <span className="absolute left-[18px] top-1/2 -translate-y-1/2 min-w-[18px] h-[18px] px-1 rounded-full bg-white text-black border-2 border-[#16161a] text-[10px] font-bold leading-none flex items-center justify-center">
+                      {unreadMessagesLabel}
+                    </span>
+                  )}
+                </span>
               </div>
               <span
                 className={`text-[15px] font-medium transition-all duration-200 whitespace-nowrap ${
@@ -74,6 +99,11 @@ export default function Sidebar() {
               >
                 {item.label}
               </span>
+              {isSidebarExpanded && item.to === '/messages' && unreadMessagesCount > 0 && (
+                <span className="ml-auto min-w-[20px] h-5 px-1.5 rounded-full bg-white text-black text-[11px] font-bold leading-none flex items-center justify-center">
+                  {unreadMessagesLabel}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
@@ -88,14 +118,17 @@ export default function Sidebar() {
 
         <div className="w-full px-2 mt-2">
           <NavLink
-            to={currentUser ? `/${currentUser.username}` : '#'}
-            className={({ isActive }) =>
-              `flex items-center rounded-2xl transition-all duration-200 h-12 w-full ${
-                isActive ? 'bg-white/10 text-white font-semibold' : 'hover:bg-white/5 text-gray-400'
-              } ${isSidebarExpanded ? 'px-3 gap-3' : 'justify-center mx-auto w-12'}`
-            }
+            to={profilePath ?? location.pathname}
+            className={`flex items-center rounded-2xl transition-all duration-200 h-12 w-full ${
+              isProfileActive
+                ? 'bg-white/10 text-white font-semibold'
+                : 'hover:bg-white/5 text-gray-400'
+            } ${isSidebarExpanded ? 'px-3 gap-3' : 'justify-center mx-auto w-12'}`}
           >
-            <Avatar size="sm" src={currentUser?.avatar} />
+            <div className="relative flex-shrink-0">
+              <Avatar size="sm" src={currentUser?.avatar} />
+              {currentUser?.id && <OnlineStatusIndicator userId={currentUser.id} variant="dot" />}
+            </div>
 
             <div
               className={`flex items-center justify-between flex-1 transition-all duration-300 overflow-hidden min-w-0 ${

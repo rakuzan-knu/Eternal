@@ -17,6 +17,7 @@ export default {
         'ci',
         'revert',
         'optimization',
+        'merge',
       ],
     ],
     'scope-enum': [
@@ -41,7 +42,14 @@ export default {
     ],
     'subject-max-length': [2, 'always', 100],
     'body-max-line-length': [1, 'always', 200],
+    'subject-case': [0],
   },
   // jira ticket suffix, smth like [SOC-7]
-  ignores: [(commit) => commit.startsWith('Merge') || commit.startsWith('Revert')],
+  ignores: [
+    (commit) =>
+      commit.startsWith('Merge') ||
+      commit.startsWith('Revert') ||
+      commit.includes('Copilot Autofix') ||
+      commit.includes('github-advanced-security'),
+  ],
 };

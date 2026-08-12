@@ -35,15 +35,19 @@ Social Network is a full-stack monorepo application built with:
 
 ## Documentation Index
 
-| Document                                | Description                           |
-| --------------------------------------- | ------------------------------------- |
-| [API Reference](api-reference.md)       | Complete HTTP endpoint documentation  |
-| [Real-time Events](real-time-events.md) | Socket.IO events for chat/messaging   |
-| [Database Schema](database-schema.md)   | Prisma models, relations, enums       |
-| [Deployment Guide](deployment-guide.md) | Docker, Vercel, environment variables |
-| [Testing Guide](testing-guide.md)       | Unit tests, E2E tests, Lighthouse CI  |
-| [CI/CD Pipeline](ci/README.md)          | GitHub Actions workflows              |
-| [ADR](adr/README.md)                    | Architecture Decision Records         |
+| Document                                          | Description                           |
+| ------------------------------------------------- | ------------------------------------- |
+| [API Reference](api-reference.md)                 | Complete HTTP endpoint documentation  |
+| [Real-time Events](real-time-events.md)           | Socket.IO events for chat/messaging   |
+| [Database Schema](database-schema.md)             | Prisma models, relations, enums       |
+| [Deployment Guide](deployment-guide.md)           | Docker, Vercel, environment variables |
+| [Testing Guide](testing-guide.md)                 | Unit tests, E2E tests, Lighthouse CI  |
+| [Monitoring Quickstart](monitoring/quickstart.md) | Prometheus & Grafana quick start      |
+| [Monitoring Setup](monitoring/setup.md)           | Full monitoring architecture & alerts |
+| [Docker Optimization](docker-optimization.md)     | Multi-stage Docker & security guide   |
+| [Optimization Summary](optimization-summary.md)   | System-wide performance overview      |
+| [CI/CD Pipeline](ci/README.md)                    | GitHub Actions workflows              |
+| [ADR](adr/README.md)                              | Architecture Decision Records         |
 
 ---
 

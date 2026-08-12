@@ -114,6 +114,7 @@ export class MessengerMapper {
     conv: ConversationWithDetails,
     requestingUserId: string,
     unreadCount: number,
+    blockCtx?: { blockedByMe: Set<string>; blockingMe: Set<string> },
   ): ConversationView {
     const myParticipant = conv.participants.find((p) => p.userId === requestingUserId);
 
@@ -123,9 +124,21 @@ export class MessengerMapper {
       this.mapMessage(pm.message, requestingUserId, pinnedMessageIds),
     );
 
+    const blockedByMe = blockCtx?.blockedByMe ?? new Set<string>();
+    const blockingMe = blockCtx?.blockingMe ?? new Set<string>();
+    const otherUserId =
+      conv.type === 'DIRECT'
+        ? conv.participants.find((p) => p.userId !== requestingUserId)?.userId
+        : undefined;
+    const iBlockedThem = !!otherUserId && blockedByMe.has(otherUserId);
+    const theyBlockedMe = !!otherUserId && blockingMe.has(otherUserId);
+
+    const lastRaw = conv.messages && conv.messages.length > 0 ? conv.messages[0] : null;
+    const lastSenderHidden =
+      !!lastRaw && (blockedByMe.has(lastRaw.senderId) || blockingMe.has(lastRaw.senderId));
     const lastMessage =
-      conv.messages && conv.messages.length > 0
-        ? this.mapMessage(conv.messages[0], requestingUserId, pinnedMessageIds)
+      lastRaw && !lastSenderHidden
+        ? this.mapMessage(lastRaw, requestingUserId, pinnedMessageIds)
         : null;
 
     return {
@@ -142,6 +155,9 @@ export class MessengerMapper {
       myMuteLevel: myParticipant?.muteLevel ?? 'NONE',
       myNickname: myParticipant?.nickname ?? null,
       isArchived: !!myParticipant?.archivedAt,
+      blockedByMe: iBlockedThem,
+      blockingMe: theyBlockedMe,
+      isBlocked: iBlockedThem || theyBlockedMe,
       pinnedMessages,
       createdAt: conv.createdAt,
       updatedAt: conv.updatedAt,

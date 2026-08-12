@@ -7,11 +7,20 @@ export const s3Provider = {
   provide: S3_CLIENT,
   useFactory: (configService: ConfigService) => {
     return new S3Client({
-      endpoint: configService.getOrThrow<string>('MINIO_ENDPOINT'),
+      endpoint:
+        configService.get<string>('MINIO_ENDPOINT') ??
+        configService.get<string>('S3_ENDPOINT') ??
+        'http://minio:9000',
       region: 'us-east-1',
       credentials: {
-        accessKeyId: configService.getOrThrow<string>('MINIO_ACCESS_KEY'),
-        secretAccessKey: configService.getOrThrow<string>('MINIO_SECRET_KEY'),
+        accessKeyId:
+          configService.get<string>('MINIO_ACCESS_KEY') ??
+          configService.get<string>('S3_ACCESS_KEY') ??
+          'rootuser',
+        secretAccessKey:
+          configService.get<string>('MINIO_SECRET_KEY') ??
+          configService.get<string>('S3_SECRET_KEY') ??
+          'rootpassword',
       },
       forcePathStyle: true,
     });

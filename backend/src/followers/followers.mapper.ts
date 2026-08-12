@@ -11,8 +11,9 @@ export function toUserProfileDto(
     displayName: user.displayName,
     avatar: user.avatar,
     bio: user.bio,
-    createdAt: user.createdAt.toISOString(),
-    updatedAt: user.updatedAt.toISOString(),
+    isPrivate: user.isPrivate,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
     isFollowing,
   };
 }

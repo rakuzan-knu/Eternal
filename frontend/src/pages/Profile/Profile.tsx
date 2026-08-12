@@ -12,6 +12,7 @@ import ProfileTabs from '../../shared/ui/ProfileTabs';
 import CreatePost from '../../features/posts/ui/CreatePost';
 import { PostCard } from '@/widgets/post/ui/PostCard';
 import { CommentModal } from '../../features/comment/ui/CommentModal';
+import { SkeletonFeed } from '../../entities/post/ui/SkeletonPostCard';
 
 function SkeletonProfileHeader() {
   return (
@@ -130,7 +131,7 @@ export default function ProfilePage() {
       )}
 
       {activeQuery.isLoading ? (
-        <p className="text-gray-500 text-sm text-center py-10">Loading...</p>
+        <SkeletonFeed count={4} />
       ) : activeFeed.length > 0 ? (
         <div className="flex flex-col gap-4">
           {activeFeed.map((post) => (

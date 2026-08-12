@@ -40,31 +40,92 @@
     "format:check": "prettier --check . --ignore-unknown --no-error-on-unmatched-pattern",
     "validate": "npm run validate:eol && npm run validate:env && npm run typecheck && npm run lint"
   },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1105.0",
+    "@nestjs/bull": "^11.0.4",
+    "@nestjs/common": "^11.0.1",
+    "@nestjs/config": "4.0.4",
+    "@nestjs/core": "^11.0.1",
+    "@nestjs/jwt": "^11.0.2",
+    "@nestjs/passport": "^11.0.5",
+    "@nestjs/platform-express": "^11.1.28",
+    "@nestjs/platform-socket.io": "^11.1.28",
+    "@nestjs/schedule": "6.1.3",
+    "@nestjs/swagger": "^11.4.6",
+    "@nestjs/throttler": "^6.5.0",
+    "@nestjs/websockets": "^11.1.28",
+    "@prisma/client": "^5.22.0",
+    "@sentry/nestjs": "10.69.0",
+    "argon2": "^0.45.1",
+    "bullmq": "^5.81.3",
+    "class-transformer": "0.5.1",
+    "class-validator": "0.15.1",
+    "dotenv": "17.4.2",
+    "geoip-lite": "2.0.3",
+    "ioredis": "^5.11.1",
+    "multer": "^2.2.0",
+    "nestjs-pino": "^4.6.1",
+    "passport": "^0.7.0",
+    "passport-jwt": "^4.0.1",
+    "pino-http": "^11.0.0",
+    "prisma": "^5.22.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "sanitize-html": "^2.14.0",
+    "sharp": "^0.35.2",
+    "socket.io": "^4.8.3",
+    "ua-parser-js": "2.0.10",
+    "prom-client": "^15.1.3",
+    "require-in-the-middle": "^7.5.2",
+    "import-in-the-middle": "^1.14.1",
+    "uid": "^2.0.2",
+    "load-esm": "^1.0.0",
+    "iterare": "^1.2.1",
+    "luxon": "^3.5.0",
+    "validator": "^13.12.0",
+    "libphonenumber-js": "^1.11.19",
+    "node-gyp-build": "^4.8.4",
+    "streamsearch": "^1.1.0"
+  },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",
+    "jsonc-parser": "^3.3.1",
+    "yoctocolors-cjs": "^2.1.1",
+    "ora": "^5.4.1",
     "@commitlint/config-conventional": "^19.8.1",
     "@lhci/cli": "^0.15.1",
-    "concurrently": "^9.1.2",
-    "husky": "^9.1.7",
-    "lint-staged": "^16.1.2",
-    "prettier": "^3.5.3",
-    "semantic-release": "^24.2.3",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
-    "conventional-changelog-conventionalcommits": "^8.0.0"
+    "concurrently": "^9.1.2",
+    "conventional-changelog-conventionalcommits": "^8.0.0",
+    "enhanced-resolve": "5.24.5",
+    "eslint": "9.39.5",
+    "husky": "^9.1.7",
+    "jsesc": "3.1.0",
+    "json-stable-stringify-without-jsonify": "1.0.1",
+    "lint-staged": "^16.1.2",
+    "node-releases": "2.0.53",
+    "prettier": "^3.5.3",
+    "readdirp": "5.1.1",
+    "redent": "^4.0.0",
+    "semantic-release": "^24.2.3",
+    "signal-exit": "4.1.0",
+    "strip-literal": "^2.1.1",
+    "tapable": "2.3.3",
+    "zod-validation-error": "5.0.0"
   },
   "overrides": {
-    "vite": "^8.1.3",
+    "vite": "^6.0.0",
     "multer": "^2.2.0",
     "uuid": "^11.1.1",
-    "js-yaml": "^4.3.1",
+    "js-yaml": "^5.2.2",
     "postcss": "^8.5.18",
     "react-router": "^7.18.2",
     "socket.io-parser": "^4.2.7",
     "nanoid": "^3.3.17",
     "lucide-react": "1.29.0",
     "@storybook/react-vite": {
-      "vite": "^8.1.3"
+      "vite": "^6.0.0"
     }
   },
   "allowScripts": {
@@ -73,23 +134,26 @@
     "@prisma/client": true,
     "@prisma/engines": true,
     "argon2": true,
+    "node-gyp-build": true,
+    "cross-env": true,
     "msw": true,
     "msgpackr-extract": true,
     "unrs-resolver": true,
     "@scarf/scarf": false
   },
   "lint-staged": {
+    "**/*": [
+      "npx prettier --write --ignore-unknown"
+    ],
     "backend/src/**/*.ts": [
-      "npm exec -w backend -- eslint --fix",
-      "npm exec -w backend -- prettier --write"
+      "npx eslint --config backend/eslint.config.mjs --fix"
     ],
     "frontend/src/**/*.{ts,tsx}": [
-      "npm exec -w frontend -- eslint --fix",
-      "npm exec -w frontend -- prettier --write"
+      "npx eslint --config frontend/eslint.config.js --fix"
     ]
   },
   "engines": {
-    "node": ">=22.14.0",
+    "node": ">=24.0.0",
     "npm": ">=10.0.0"
   }
 }

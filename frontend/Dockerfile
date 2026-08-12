@@ -1,41 +1,40 @@
-FROM node:26-alpine AS deps
-RUN apk add --no-cache libc6-compat
+FROM node:24-alpine AS builder
+
+RUN --mount=type=cache,target=/var/cache/apk \
+    apk add --no-cache libc6-compat
+
 WORKDIR /app
 
-COPY package*.json ./
-COPY frontend/package*.json ./frontend/
-COPY scripts ./scripts/
+COPY package.json ./
 
-ENV CI=true
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --no-audit --no-fund
 
-RUN npm ci --workspace=frontend
+COPY . .
 
-# Stage 2: builder
-FROM node:26-alpine AS builder
-WORKDIR /app
+ENV NODE_ENV=production
+RUN npm run build
 
-COPY --from=deps /app ./
-COPY frontend ./frontend
+FROM nginx:1.27-alpine AS production
 
-ARG VITE_API_URL=http://localhost:3000
-ENV VITE_API_URL=$VITE_API_URL
+RUN --mount=type=cache,target=/var/cache/apk \
+    apk add --no-cache curl
 
-RUN npm run build --workspace=frontend
+RUN rm -rf /usr/share/nginx/html/*
 
-# Stage 3: production
-FROM nginx:1.31-alpine AS production
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
 
-COPY frontend/docker/nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=builder /app/frontend/dist /usr/share/nginx/html
-
-RUN chown -R nginx:nginx /usr/share/nginx/html && \
-    chown -R nginx:nginx /var/cache/nginx && \
-    chown -R nginx:nginx /var/log/nginx && \
-    touch /var/run/nginx.pid && \
-    chown -R nginx:nginx /var/run/nginx.pid
+RUN chown -R nginx:nginx /usr/share/nginx/html \
+    && chown -R nginx:nginx /var/cache/nginx \
+    && chown -R nginx:nginx /var/log/nginx \
+    && touch /var/run/nginx.pid \
+    && chown nginx:nginx /var/run/nginx.pid
 
 USER nginx
 EXPOSE 80
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-    CMD wget -qO- http://localhost:80/health || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost/health || exit 1
+
+CMD ["nginx", "-g", "daemon off;"]

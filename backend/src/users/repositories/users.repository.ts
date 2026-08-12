@@ -41,4 +41,20 @@ export class UsersRepository implements IUsersRepository {
       data: { avatar: avatarUrl },
     });
   }
+
+  async updatePassword(id: string, passwordHash: string): Promise<void> {
+    await this.prisma.user.update({ where: { id }, data: { passwordHash } });
+  }
+
+  async deleteUser(id: string): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.post.deleteMany({ where: { authorId: id } });
+      await tx.follow.deleteMany({
+        where: {
+          OR: [{ followerId: id }, { followingId: id }],
+        },
+      });
+      await tx.user.delete({ where: { id } });
+    });
+  }
 }

@@ -3,6 +3,7 @@ export interface AccessTokenPayload {
   sub: string;
   email: string;
   username: string;
+  jti: string;
 }
 
 export interface RefreshTokenPayload {
@@ -15,4 +16,5 @@ export interface RequestUser {
   id: string;
   email: string;
   username: string;
+  sessionJti?: string;
 }

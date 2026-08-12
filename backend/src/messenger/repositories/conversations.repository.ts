@@ -4,7 +4,8 @@ import type { Conversation, ConversationParticipant } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { IConversationsRepository } from '../interfaces/conversations-repository.interface';
 import type { ConversationWithDetails, ParticipantWithUser } from '../interfaces/types';
-import { conversationInclude, participantInclude } from '../interfaces/types';
+import type { UserSnapshot } from '../dto/responses.dto';
+import { conversationInclude, participantInclude, userSnapshot } from '../interfaces/types';
 
 @Injectable()
 export class ConversationsRepository implements IConversationsRepository {
@@ -103,6 +104,23 @@ export class ConversationsRepository implements IConversationsRepository {
     });
   }
 
+  async findBlockedUsers(blockerId: string): Promise<UserSnapshot[]> {
+    const rows = await this.prisma.userBlock.findMany({
+      where: { blockerId },
+      orderBy: { createdAt: 'desc' },
+      select: { blocked: { select: userSnapshot } },
+    });
+    return rows.map((r) => r.blocked);
+  }
+
+  async findParticipantIds(conversationId: string): Promise<string[]> {
+    const rows = await this.prisma.conversationParticipant.findMany({
+      where: { conversationId, leftAt: null },
+      select: { userId: true },
+    });
+    return rows.map((r) => r.userId);
+  }
+
   async addParticipants(conversationId: string, userIds: string[]): Promise<void> {
     await this.prisma.$transaction(
       userIds.map((userId) =>
@@ -147,7 +165,11 @@ export class ConversationsRepository implements IConversationsRepository {
     });
   }
 
-  async countUnread(conversationId: string, userId: string): Promise<number> {
+  async countUnread(
+    conversationId: string,
+    userId: string,
+    hiddenUserIds: string[] = [],
+  ): Promise<number> {
     const participant = await this.prisma.conversationParticipant.findUnique({
       where: { conversationId_userId: { conversationId, userId } },
       select: { joinedAt: true, lastReadAt: true },
@@ -158,7 +180,7 @@ export class ConversationsRepository implements IConversationsRepository {
     return this.prisma.message.count({
       where: {
         conversationId,
-        senderId: { not: userId },
+        senderId: { notIn: [userId, ...hiddenUserIds] },
         deletedAt: null,
         deletedForAll: false,
         createdAt: {

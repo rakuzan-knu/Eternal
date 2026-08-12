@@ -1,6 +1,53 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsEmail, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import sanitizeHtmlLib from 'sanitize-html';
+import {
+  IsEmail,
+  IsNotIn,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
+
+export const RESERVED_USERNAMES = [
+  'settings',
+  'login',
+  'register',
+  'explore',
+  'music',
+  'messages',
+  'feed',
+  'terms',
+  'privacy',
+  'notifications',
+  'search',
+  'reels',
+  'create',
+  'null',
+  'undefined',
+  'api',
+  'admin',
+  'support',
+  'system',
+  'official',
+  'help',
+  'staff',
+  'moderator',
+  'security',
+  'eternal',
+];
+
+export const HARDENED_USERNAME_REGEX = /^(?![._])(?!.*[._]{2})[a-zA-Z0-9._]{2,32}(?<![._])$/;
+
+function sanitizeHtml(value: unknown): unknown {
+  if (typeof value !== 'string') return value;
+  return sanitizeHtmlLib(value, {
+    allowedTags: [],
+    allowedAttributes: {},
+  }).trim();
+}
 
 export class UpdateUserDto {
   @ApiPropertyOptional({ example: 'newemail@example.com' })
@@ -11,25 +58,32 @@ export class UpdateUserDto {
   @IsEmail()
   email?: string;
 
-  @ApiPropertyOptional({ example: 'new_username', minLength: 3, maxLength: 32 })
+  @ApiPropertyOptional({ example: 'new_username', minLength: 2, maxLength: 32 })
   @IsOptional()
-  @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value))
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? (sanitizeHtml(value.toLowerCase()) as string) : value,
+  )
   @IsString()
-  @MinLength(3)
+  @MinLength(2)
   @MaxLength(32)
+  @Matches(HARDENED_USERNAME_REGEX, {
+    message:
+      'Username must be 2-32 characters, cannot start/end with . or _, and cannot contain consecutive dots or underscores.',
+  })
+  @IsNotIn(RESERVED_USERNAMES, { message: 'This username is reserved and cannot be used.' })
   username?: string;
 
-  @ApiPropertyOptional({ example: 'New Display Name', maxLength: 64 })
+  @ApiPropertyOptional({ example: 'New Display Name', maxLength: 32 })
   @IsOptional()
-  @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value))
+  @Transform(({ value }: { value: unknown }) => sanitizeHtml(value) as string)
   @IsString()
-  @MaxLength(64)
+  @MaxLength(32)
   displayName?: string;
 
-  @ApiPropertyOptional({ example: 'Full-stack developer from Kyiv', maxLength: 300 })
+  @ApiPropertyOptional({ example: 'Full-stack developer from Kyiv', maxLength: 200 })
   @IsOptional()
-  @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value))
+  @Transform(({ value }: { value: unknown }) => sanitizeHtml(value) as string)
   @IsString()
-  @MaxLength(300)
+  @MaxLength(200)
   bio?: string;
 }

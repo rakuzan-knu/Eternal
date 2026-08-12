@@ -19,6 +19,7 @@ export interface IMessagesRepository {
     before?: string;
     after?: string;
     limit: number;
+    hiddenUserIds?: string[];
   }): Promise<MessageWithDetails[]>;
 
   findOne(messageId: string, requestingUserId: string): Promise<MessageWithDetails | null>;
@@ -39,7 +40,12 @@ export interface IMessagesRepository {
 
   getReactions(messageId: string): Promise<MessageReaction[]>;
 
-  search(conversationId: string, query: string, limit: number): Promise<MessageWithDetails[]>;
+  search(
+    conversationId: string,
+    query: string,
+    limit: number,
+    hiddenUserIds?: string[],
+  ): Promise<MessageWithDetails[]>;
 
   findLastMessage(conversationId: string): Promise<MessageWithDetails | null>;
 

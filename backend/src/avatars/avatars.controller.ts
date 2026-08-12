@@ -28,7 +28,7 @@ import type { AvatarView } from './interfaces/avatars-repository.interface';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/interfaces/jwt-payload.interface';
 
-const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
 @ApiTags('Avatars')
 @Controller('users/:id/avatar')
@@ -60,7 +60,7 @@ export class AvatarsController {
       new ParseFilePipe({
         validators: [
           new MaxFileSizeValidator({ maxSize: MAX_FILE_SIZE_BYTES }),
-          new FileTypeValidator({ fileType: /^image\/(jpeg|png|webp)$/ }),
+          new FileTypeValidator({ fileType: /^image\/(jpeg|jpg|png|gif|webp)$/ }),
         ],
       }),
     )

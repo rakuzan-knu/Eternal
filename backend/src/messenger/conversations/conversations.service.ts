@@ -22,7 +22,7 @@ import type {
   TransferOwnershipDto,
 } from '../dto/conversation.dto';
 import { MessengerMapper } from '../messenger.mapper';
-import type { ConversationView } from '../dto/responses.dto';
+import type { ConversationView, UserSnapshot } from '../dto/responses.dto';
 import type { ReportCategory } from '@prisma/client';
 import type { ReportDto } from '../dto/message.dto';
 
@@ -39,12 +39,16 @@ export class ConversationsService {
   ) {}
 
   async getConversations(userId: string): Promise<ConversationView[]> {
-    const convs = await this.convsRepo.findAllForUser(userId);
+    const [convs, blockCtx] = await Promise.all([
+      this.convsRepo.findAllForUser(userId),
+      this.getBlockRelationships(userId),
+    ]);
+    const hiddenUserIds = [...blockCtx.blockedByMe, ...blockCtx.blockingMe];
 
     return Promise.all(
       convs.map(async (conv) => {
-        const unread = await this.convsRepo.countUnread(conv.id, userId);
-        return this.mapper.mapConversation(conv, userId, unread);
+        const unread = await this.convsRepo.countUnread(conv.id, userId, hiddenUserIds);
+        return this.mapper.mapConversation(conv, userId, unread, blockCtx);
       }),
     );
   }
@@ -52,8 +56,10 @@ export class ConversationsService {
   async getConversation(conversationId: string, userId: string): Promise<ConversationView> {
     const conv = await this.convsRepo.findOneForUser(conversationId, userId);
     if (!conv) throw new NotFoundException('Conversation not found');
-    const unread = await this.convsRepo.countUnread(conv.id, userId);
-    return this.mapper.mapConversation(conv, userId, unread);
+    const blockCtx = await this.getBlockRelationships(userId);
+    const hiddenUserIds = [...blockCtx.blockedByMe, ...blockCtx.blockingMe];
+    const unread = await this.convsRepo.countUnread(conv.id, userId, hiddenUserIds);
+    return this.mapper.mapConversation(conv, userId, unread, blockCtx);
   }
 
   async createDirect(userId: string, dto: CreateDirectConversationDto): Promise<ConversationView> {
@@ -320,9 +326,34 @@ export class ConversationsService {
   }
 
   async unblockUser(blockerId: string, blockedId: string): Promise<void> {
-    await this.prisma.userBlock.delete({
-      where: { blockerId_blockedId: { blockerId, blockedId } },
+    await this.prisma.userBlock.deleteMany({
+      where: { blockerId, blockedId },
     });
+  }
+
+  async getBlockedUsers(userId: string): Promise<UserSnapshot[]> {
+    return this.convsRepo.findBlockedUsers(userId);
+  }
+
+  async getBlockRelationships(
+    userId: string,
+  ): Promise<{ blockedByMe: Set<string>; blockingMe: Set<string> }> {
+    const rows = await this.prisma.userBlock.findMany({
+      where: { OR: [{ blockerId: userId }, { blockedId: userId }] },
+      select: { blockerId: true, blockedId: true },
+    });
+
+    const blockedByMe = new Set<string>();
+    const blockingMe = new Set<string>();
+    for (const row of rows) {
+      if (row.blockerId === userId) blockedByMe.add(row.blockedId);
+      if (row.blockedId === userId) blockingMe.add(row.blockerId);
+    }
+    return { blockedByMe, blockingMe };
+  }
+
+  async getParticipantIds(conversationId: string): Promise<string[]> {
+    return this.convsRepo.findParticipantIds(conversationId);
   }
 
   async reportUser(reporterId: string, reportedId: string, dto: ReportDto): Promise<void> {

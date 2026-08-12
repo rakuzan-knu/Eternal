@@ -1,22 +1,26 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { SentryModule } from '@sentry/nestjs/setup';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { AuthModule } from './auth/auth.module';
-import { AvatarsModule } from './avatars/avatars.module';
 import { CommentsModule } from './comments/comments.module';
 import { validateEnv } from './config/env.validation';
-import { FollowersModule } from './followers/followers.module';
 import { HealthModule } from './health/health.module';
 import { LikesModule } from './likes/likes.module';
-import { MessengerModule } from './messenger/messenger.module';
 import { PostsModule } from './posts/posts.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 import { UsersModule } from './users/users.module';
+import { FollowersModule } from './followers/followers.module';
+import { AvatarsModule } from './avatars/avatars.module';
+import { BannersModule } from './banners/banners.module';
+import { MessengerModule } from './messenger/messenger.module';
+import { SessionsModule } from './sessions/sessions.module';
+import { MetricsModule } from './metrics/metrics.module';
 import { PollModule } from './poll/poll.module';
 
 @Module({
@@ -30,6 +34,8 @@ import { PollModule } from './poll/poll.module';
     ThrottlerModule.forRoot({
       throttlers: [{ ttl: 60_000, limit: 100 }],
     }),
+    ScheduleModule.forRoot(),
+    MetricsModule,
     PrismaModule,
     RedisModule,
     AuthModule,
@@ -40,7 +46,9 @@ import { PollModule } from './poll/poll.module';
     UsersModule,
     FollowersModule,
     AvatarsModule,
+    BannersModule,
     MessengerModule,
+    SessionsModule,
     PollModule,
   ],
   controllers: [],

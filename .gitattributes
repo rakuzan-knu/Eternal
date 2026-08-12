@@ -2,24 +2,25 @@
 * text=auto eol=lf
 
 # Explicitly declare text files that should always be normalized
-*.ts text
-*.tsx text
-*.js text
-*.jsx text
-*.mjs text
-*.cjs text
-*.json text
-*.md text
-*.yml text
-*.yaml text
-*.css text
-*.scss text
-*.html text
-*.svg text
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.mjs text eol=lf
+*.cjs text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.css text eol=lf
+*.scss text eol=lf
+*.html text eol=lf
+*.sql text eol=lf
+*.svg text eol=lf
 *.sh text eol=lf
-*.graphql text
-*.gql text
-*.prisma text
+*.graphql text eol=lf
+*.gql text eol=lf
+*.prisma text eol=lf
 
 # Docker & infrastructure
 Dockerfile text

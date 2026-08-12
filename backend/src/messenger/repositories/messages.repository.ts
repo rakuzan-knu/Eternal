@@ -37,8 +37,9 @@ export class MessagesRepository implements IMessagesRepository {
     before?: string;
     after?: string;
     limit: number;
+    hiddenUserIds?: string[];
   }): Promise<MessageWithDetails[]> {
-    const { conversationId, requestingUserId, before, after, limit } = params;
+    const { conversationId, requestingUserId, before, after, limit, hiddenUserIds } = params;
     const cursor = before ?? after;
     const take = before ? limit : after ? -limit : limit;
 
@@ -47,6 +48,9 @@ export class MessagesRepository implements IMessagesRepository {
         conversationId,
         deletedForAll: false,
         deletedFor: { none: { userId: requestingUserId } },
+        ...(hiddenUserIds && hiddenUserIds.length > 0
+          ? { senderId: { notIn: hiddenUserIds } }
+          : {}),
       },
       orderBy: { createdAt: 'desc' },
       take: take,
@@ -134,13 +138,22 @@ export class MessagesRepository implements IMessagesRepository {
     });
   }
 
-  search(conversationId: string, query: string, limit: number): Promise<MessageWithDetails[]> {
+  search(
+    conversationId: string,
+    query: string,
+    limit: number,
+    hiddenUserIds?: string[],
+  ): Promise<MessageWithDetails[]> {
+    const escapedQuery = query.replace(/[%_\\]/g, '\\$&');
     return this.prisma.message.findMany({
       where: {
         conversationId,
-        body: { contains: query, mode: 'insensitive' },
+        body: { contains: escapedQuery, mode: 'insensitive' },
         deletedAt: null,
         deletedForAll: false,
+        ...(hiddenUserIds && hiddenUserIds.length > 0
+          ? { senderId: { notIn: hiddenUserIds } }
+          : {}),
       },
       orderBy: { createdAt: 'desc' },
       take: limit,

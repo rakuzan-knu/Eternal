@@ -1,0 +1,41 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: 'default'
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+  routes:
+    - match:
+        severity: critical
+      receiver: 'critical'
+      repeat_interval: 1h
+
+    - match:
+        severity: warning
+      receiver: 'warning'
+      repeat_interval: 4h
+
+receivers:
+  - name: 'default'
+    # Webhook receiver for custom integrations
+    webhook_configs:
+      - url: 'http://localhost:5001/alerts'
+
+  - name: 'critical'
+    webhook_configs:
+      - url: 'http://localhost:5001/alerts/critical'
+
+  - name: 'warning'
+    webhook_configs:
+      - url: 'http://localhost:5001/alerts/warning'
+
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'dev', 'instance']

@@ -173,6 +173,12 @@ export class ConversationsController {
     return this.service.unarchiveConversation(id, user.id);
   }
 
+  @Get('users/blocked')
+  @ApiOperation({ summary: 'List users the current user has blocked' })
+  getBlockedUsers(@CurrentUser() user: RequestUser) {
+    return this.service.getBlockedUsers(user.id);
+  }
+
   @Post('users/:userId/block')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Block a user' })

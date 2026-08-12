@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Send, Image, X } from 'lucide-react';
-import { AddEmojiButton } from '../../posts/ui/AddEmojiButton';
+import { AddEmojiButton } from '../../../shared/ui/AddEmojiButton';
 
 export function CommentForm({ currentUserHandle }: { currentUserHandle: string }) {
   const [text, setText] = useState('');

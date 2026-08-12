@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -8,15 +9,21 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  username     String   @unique
-  displayName  String?
-  passwordHash String
-  avatar       String?
-  bio          String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id               String           @id @default(uuid())
+  email            String           @unique
+  username         String           @unique
+  displayName      String?
+  passwordHash     String
+  avatar           String?
+  bio              String?
+  banner           String?
+  bannerPosition   Int              @default(50)
+  isPrivate        Boolean          @default(false)
+  birthDate        DateTime?
+  lastSeenAt       DateTime?
+  autoDeletePeriod AutoDeletePeriod @default(OFF)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
   posts     Post[]
   followers Follow[]  @relation("following")
@@ -31,6 +38,10 @@ model User {
   reportsFiled             Report[]                  @relation("Reporter")
   reportsReceived          Report[]                  @relation("Reported")
   deletedMessages          MessageDeletion[]
+  privacy                  UserPrivacy?
+  privacyExceptions        PrivacyException[]        @relation("PrivacyOwner")
+  privacyTargetedBy        PrivacyException[]        @relation("PrivacyTarget")
+  sessions                 Session[]
   polls Poll[] @relation("CreatedPolls")
   votes Vote[]
 }
@@ -60,14 +71,21 @@ model Like {
 }
 
 model Follow {
-  id          String   @id @default(cuid())
-  createdAt   DateTime @default(now())
-  follower    User     @relation("follower", fields: [followerId], references: [id])
+  id          String       @id @default(cuid())
+  createdAt   DateTime     @default(now())
+  status      FollowStatus @default(ACCEPTED)
+  follower    User         @relation("follower", fields: [followerId], references: [id])
   followerId  String
-  following   User     @relation("following", fields: [followingId], references: [id])
+  following   User         @relation("following", fields: [followingId], references: [id])
   followingId String
 
   @@unique([followerId, followingId])
+  @@index([followingId, status])
+}
+
+enum FollowStatus {
+  PENDING
+  ACCEPTED
 }
 
 model Comment {
@@ -167,6 +185,7 @@ model Message {
 
   @@index([conversationId, createdAt])
   @@index([senderId])
+  @@index([createdAt])
 }
 
 enum MessageType {
@@ -299,6 +318,84 @@ enum ReportStatus {
   ACTION_TAKEN
 }
 
+enum Visibility {
+  EVERYBODY // anyone
+  CONTACTS // followers (ACCEPTED)
+  NOBODY
+}
+
+enum PrivacyDimension {
+  LAST_SEEN
+  AVATAR
+  BANNER
+  FORWARD_LINK
+  CALLS
+  VOICE_MESSAGES
+  MESSAGES
+  BIRTHDAY
+  BIO
+  GROUP_INVITES
+}
+
+enum ExceptionMode {
+  ALLOW
+  DENY
+}
+
+enum AutoDeletePeriod {
+  OFF
+  DAY
+  WEEK
+  MONTH
+  QUARTER
+}
+
+model UserPrivacy {
+  userId        String     @id
+  lastSeen      Visibility @default(EVERYBODY)
+  avatar        Visibility @default(EVERYBODY)
+  banner        Visibility @default(EVERYBODY)
+  forwardLink   Visibility @default(EVERYBODY)
+  calls         Visibility @default(EVERYBODY)
+  voiceMessages Visibility @default(EVERYBODY)
+  messages      Visibility @default(EVERYBODY)
+  birthday      Visibility @default(NOBODY)
+  bio           Visibility @default(EVERYBODY)
+  groupInvites  Visibility @default(EVERYBODY)
+  updatedAt     DateTime   @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PrivacyException {
+  ownerId   String
+  targetId  String
+  dimension PrivacyDimension
+  mode      ExceptionMode
+  createdAt DateTime         @default(now())
+
+  owner  User @relation("PrivacyOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  target User @relation("PrivacyTarget", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@id([ownerId, dimension, targetId])
+  @@index([ownerId, dimension])
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  userId       String
+  jti          String   @unique
+  deviceName   String?
+  userAgent    String?
+  ip           String?
+  city         String?
+  country      String?
+  createdAt    DateTime @default(now())
+  lastActiveAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 model Poll {
   id          String    @id @default(uuid())
   title       String    @db.VarChar(255)

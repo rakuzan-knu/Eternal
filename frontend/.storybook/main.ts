@@ -25,7 +25,7 @@ const config: StorybookConfig = {
     config.resolve = config.resolve ?? {};
     config.resolve.alias = {
       ...config.resolve.alias,
-      '@': path.resolve(__dirname, '../src'),
+      '@': path.resolve(process.cwd(), 'frontend/src'),
     };
     return config;
   },

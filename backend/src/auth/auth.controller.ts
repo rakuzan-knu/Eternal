@@ -1,4 +1,15 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Headers,
+  HttpCode,
+  HttpStatus,
+  Ip,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import type { Request } from 'express';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
@@ -7,8 +18,14 @@ import { AccessTokenResponseDto, AuthResponseDto } from './dto/auth-response.dto
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RegisterDto } from './dto/register.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { AuthGuard } from './guards/jwt-auth.guard';
 import type { RequestUser } from './interfaces/jwt-payload.interface';
+import type { RequestMeta } from '../sessions/sessions.service';
+
+function extractMeta(req: Request, ip: string, ua?: string): RequestMeta {
+  return { ip: req.ip ?? ip ?? null, userAgent: ua ?? null };
+}
 
 @ApiTags('auth')
 @Controller('auth')
@@ -31,8 +48,13 @@ export class AuthController {
     status: HttpStatus.BAD_REQUEST,
     description: 'Validation failed',
   })
-  register(@Body() dto: RegisterDto): Promise<AuthResponseDto> {
-    return this.authService.register(dto);
+  register(
+    @Body() dto: RegisterDto,
+    @Req() req: Request,
+    @Ip() ip: string,
+    @Headers('user-agent') ua?: string,
+  ): Promise<AuthResponseDto> {
+    return this.authService.register(dto, extractMeta(req, ip, ua));
   }
 
   @Post('login')
@@ -48,8 +70,13 @@ export class AuthController {
     status: HttpStatus.UNAUTHORIZED,
     description: 'Invalid credentials',
   })
-  login(@Body() dto: LoginDto): Promise<AuthResponseDto> {
-    return this.authService.login(dto);
+  login(
+    @Body() dto: LoginDto,
+    @Req() req: Request,
+    @Ip() ip: string,
+    @Headers('user-agent') ua?: string,
+  ): Promise<AuthResponseDto> {
+    return this.authService.login(dto, extractMeta(req, ip, ua));
   }
 
   @Post('refresh')
@@ -66,6 +93,22 @@ export class AuthController {
   })
   refresh(@Body() dto: RefreshTokenDto): Promise<AccessTokenResponseDto> {
     return this.authService.refresh(dto.refreshToken);
+  }
+
+  @Post('change-password')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Change the current account password' })
+  @ApiResponse({ status: HttpStatus.OK, description: 'Password changed' })
+  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Current password incorrect' })
+  async changePassword(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: ChangePasswordDto,
+  ): Promise<{ success: true }> {
+    await this.authService.changePassword(user.id, dto, user.sessionJti);
+    return { success: true };
   }
 
   @Post('logout')

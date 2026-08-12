@@ -29,6 +29,9 @@ export class MessagesService {
   ) {}
 
   async send(conversationId: string, senderId: string, dto: SendMessageDto): Promise<MessageView> {
+    await this.assertMember(conversationId, senderId);
+    await this.assertNotBlockedDirect(conversationId, senderId);
+
     let finalMessageType = dto.messageType || MessageType.TEXT;
     if (!dto.messageType && dto.attachments && dto.attachments.length > 0) {
       finalMessageType = dto.attachments[0].type as unknown as MessageType;
@@ -104,6 +107,7 @@ export class MessagesService {
   ): Promise<PaginatedMessages> {
     await this.assertMember(conversationId, userId);
 
+    const hiddenUserIds = await this.getHiddenUserIds(userId);
     const limit = Math.min(query.limit ?? 50, 100);
     const messages = await this.messagesRepo.findMany({
       conversationId,
@@ -111,6 +115,7 @@ export class MessagesService {
       before: query.before,
       after: query.after,
       limit: limit + 1,
+      hiddenUserIds,
     });
 
     const hasMore = messages.length > limit;
@@ -269,8 +274,9 @@ export class MessagesService {
     query: SearchMessagesQueryDto,
   ): Promise<MessageView[]> {
     await this.assertMember(conversationId, userId);
+    const hiddenUserIds = await this.getHiddenUserIds(userId);
     const limit = Math.min(query.limit ?? 30, 100);
-    const results = await this.messagesRepo.search(conversationId, query.q, limit);
+    const results = await this.messagesRepo.search(conversationId, query.q, limit, hiddenUserIds);
     const pinnedIds = await this.convsRepo.findPinnedMessages(conversationId);
     const pinnedSet = new Set(pinnedIds);
     return results.map((m) => this.mapper.mapMessage(m, userId, pinnedSet));
@@ -279,5 +285,43 @@ export class MessagesService {
   private async assertMember(conversationId: string, userId: string): Promise<void> {
     const p = await this.convsRepo.findParticipant(conversationId, userId);
     if (!p) throw new ForbiddenException('Not a member of this conversation');
+  }
+
+  private async getHiddenUserIds(userId: string): Promise<string[]> {
+    const rows = await this.prisma.userBlock.findMany({
+      where: { OR: [{ blockerId: userId }, { blockedId: userId }] },
+      select: { blockerId: true, blockedId: true },
+    });
+    const hidden = new Set<string>();
+    for (const row of rows) {
+      hidden.add(row.blockerId === userId ? row.blockedId : row.blockerId);
+    }
+    return Array.from(hidden);
+  }
+
+  private async assertNotBlockedDirect(conversationId: string, senderId: string): Promise<void> {
+    const conversation = await this.prisma.conversation.findUnique({
+      where: { id: conversationId },
+      select: {
+        type: true,
+        participants: { where: { leftAt: null }, select: { userId: true } },
+      },
+    });
+
+    if (!conversation || conversation.type !== 'DIRECT') return;
+
+    const otherId = conversation.participants.find((p) => p.userId !== senderId)?.userId;
+    if (!otherId) return;
+
+    const block = await this.prisma.userBlock.findFirst({
+      where: {
+        OR: [
+          { blockerId: senderId, blockedId: otherId },
+          { blockerId: otherId, blockedId: senderId },
+        ],
+      },
+      select: { blockerId: true },
+    });
+    if (block) throw new ForbiddenException('You cannot message this user');
   }
 }

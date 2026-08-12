@@ -17,6 +17,9 @@ import { WS_EVENTS } from '../events/ws-events';
 import { MessagesService } from '../messages/messages.service';
 import { ConversationsService } from '../conversations/conversations.service';
 import { RedisService } from '../../redis/redis.service';
+import { UsersService } from '../../users/users.service';
+import { VisibilityResolver } from '../../users/privacy/visibility.resolver';
+import { PrivacyDimension } from '@prisma/client';
 import { WsValidationFilter } from '../filters/ws-validation.filter';
 import {
   SendMessageDto,
@@ -27,14 +30,17 @@ import {
   TogglePinMessageDto,
   ConversationIdDto,
   MarkReadDto,
+  GetOnlineStatusDto,
 } from '../dto/message.dto';
 
 interface AuthenticatedSocket extends Socket {
   userId: string;
 }
 
+const WsPipe = new ValidationPipe({ transform: true, whitelist: true });
+
 @UseFilters(WsValidationFilter)
-@UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
+@UsePipes(WsPipe)
 @WebSocketGateway({
   namespace: '/messenger',
   cors: { origin: '*', credentials: true },
@@ -55,6 +61,8 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
     private readonly messagesService: MessagesService,
     private readonly convsService: ConversationsService,
     private readonly redisService: RedisService,
+    private readonly usersService: UsersService,
+    private readonly visibility: VisibilityResolver,
   ) {}
 
   afterInit() {
@@ -75,8 +83,12 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
       const userId = payload.sub;
       (client as AuthenticatedSocket).userId = userId;
 
+      const wasOffline = !this.onlineUsers.has(userId);
       if (!this.onlineUsers.has(userId)) this.onlineUsers.set(userId, new Set());
       this.onlineUsers.get(userId)!.add(client.id);
+      if (wasOffline) {
+        await this.emitPresenceExceptBlocked(userId, WS_EVENTS.USER_ONLINE, { userId });
+      }
 
       this.logger.log(`Client connected: ${client.id} (user: ${userId})`);
     } catch (err) {
@@ -94,12 +106,35 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
       userSockets.delete(client.id);
       if (userSockets.size === 0) {
         this.onlineUsers.delete(userId);
-        this.server.emit(WS_EVENTS.USER_OFFLINE, { userId });
+        void this.usersService.touchLastSeen(userId).catch(() => {});
+        void this.emitPresenceExceptBlocked(userId, WS_EVENTS.USER_OFFLINE, { userId });
       }
     }
     this.logger.log(`Client disconnected: ${client.id}`);
   }
 
+  @UsePipes(WsPipe)
+  @SubscribeMessage(WS_EVENTS.GET_ONLINE_STATUS)
+  async handleGetOnlineStatus(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: GetOnlineStatusDto,
+    callback?: (res: { status: string; online?: string[]; error?: string }) => void,
+  ): Promise<void> {
+    const onlineSubjects = payload.userIds.filter((userId) => this.onlineUsers.has(userId));
+    if (onlineSubjects.length === 0) {
+      callback?.({ status: 'ok', online: [] });
+      return;
+    }
+
+    // Resolve each subject's LAST_SEEN visibility toward this viewer (block + privacy + exceptions).
+    const ctx = await this.visibility.loadContext(onlineSubjects, client.userId);
+    const online = onlineSubjects.filter((userId) =>
+      this.visibility.resolve(PrivacyDimension.LAST_SEEN, userId, ctx),
+    );
+    callback?.({ status: 'ok', online });
+  }
+
+  @UsePipes(WsPipe)
   @SubscribeMessage(WS_EVENTS.JOIN_CONVERSATION)
   async handleJoin(
     @ConnectedSocket() client: AuthenticatedSocket,
@@ -118,27 +153,39 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
   }
 
   @SubscribeMessage(WS_EVENTS.TYPING_START)
-  handleTypingStart(
+  async handleTypingStart(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() payload: ConversationIdDto,
   ) {
-    client.to(payload.conversationId).emit(WS_EVENTS.TYPING, {
-      conversationId: payload.conversationId,
-      userId: client.userId,
-      isTyping: true,
-    });
+    await this.emitToConversationExceptBlocked(
+      payload.conversationId,
+      client.userId,
+      WS_EVENTS.TYPING,
+      {
+        conversationId: payload.conversationId,
+        userId: client.userId,
+        isTyping: true,
+      },
+      { includeActor: false },
+    );
   }
 
   @SubscribeMessage(WS_EVENTS.TYPING_STOP)
-  handleTypingStop(
+  async handleTypingStop(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() payload: ConversationIdDto,
   ) {
-    client.to(payload.conversationId).emit(WS_EVENTS.TYPING, {
-      conversationId: payload.conversationId,
-      userId: client.userId,
-      isTyping: false,
-    });
+    await this.emitToConversationExceptBlocked(
+      payload.conversationId,
+      client.userId,
+      WS_EVENTS.TYPING,
+      {
+        conversationId: payload.conversationId,
+        userId: client.userId,
+        isTyping: false,
+      },
+      { includeActor: false },
+    );
   }
 
   @SubscribeMessage(WS_EVENTS.MARK_READ)
@@ -154,12 +201,18 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
 
     if (!isUpdated) return;
 
-    this.server.to(payload.conversationId).emit(WS_EVENTS.MESSAGE_READ, {
-      conversationId: payload.conversationId,
-      userId: client.userId,
-      messageId: payload.messageId || null,
-      readAt: new Date().toISOString(),
-    });
+    await this.emitToConversationExceptBlocked(
+      payload.conversationId,
+      client.userId,
+      WS_EVENTS.MESSAGE_READ,
+      {
+        conversationId: payload.conversationId,
+        userId: client.userId,
+        messageId: payload.messageId || null,
+        readAt: new Date().toISOString(),
+      },
+      { includeActor: false },
+    );
   }
 
   @SubscribeMessage(WS_EVENTS.SEND_MESSAGE)
@@ -181,7 +234,12 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
     const message = await this.messagesService.send(payload.conversationId, client.userId, payload);
 
     await this.convsService.touchUpdatedAt(payload.conversationId);
-    this.emitNewMessage(payload.conversationId, message);
+    await this.emitToConversationExceptBlocked(
+      payload.conversationId,
+      client.userId,
+      WS_EVENTS.NEW_MESSAGE,
+      { conversationId: payload.conversationId, message },
+    );
     callback?.({ status: 'ok', message });
   }
 
@@ -227,9 +285,14 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
   ): Promise<void> {
     const results = await this.messagesService.forward(payload.messageId, client.userId, payload);
 
-    results.forEach((msg) => {
-      this.emitNewMessage(msg.conversationId, msg);
-    });
+    for (const msg of results) {
+      await this.emitToConversationExceptBlocked(
+        msg.conversationId,
+        client.userId,
+        WS_EVENTS.NEW_MESSAGE,
+        { conversationId: msg.conversationId, message: msg },
+      );
+    }
 
     callback?.({ status: 'ok', messages: results });
   }
@@ -290,8 +353,54 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
     callback?.({ status: 'ok' });
   }
 
-  emitNewMessage(conversationId: string, message: unknown) {
-    this.server.to(conversationId).emit(WS_EVENTS.NEW_MESSAGE, { conversationId, message });
+  private async emitToConversationExceptBlocked(
+    conversationId: string,
+    actingUserId: string,
+    event: string,
+    payload: unknown,
+    opts: { includeActor?: boolean } = {},
+  ): Promise<void> {
+    const includeActor = opts.includeActor ?? true;
+
+    const [participantIds, { blockedByMe, blockingMe }] = await Promise.all([
+      this.convsService.getParticipantIds(conversationId),
+      this.convsService.getBlockRelationships(actingUserId),
+    ]);
+
+    for (const userId of participantIds) {
+      if (userId === actingUserId) {
+        if (includeActor) this.emitToUser(userId, event, payload);
+        continue;
+      }
+      if (blockedByMe.has(userId) || blockingMe.has(userId)) continue;
+      this.emitToUser(userId, event, payload);
+    }
+  }
+
+  private async emitPresenceExceptBlocked(
+    subjectUserId: string,
+    event: string,
+    payload: unknown,
+  ): Promise<void> {
+    const candidates = [...this.onlineUsers.keys()].filter((id) => id !== subjectUserId);
+    if (candidates.length === 0) return;
+
+    const audience = await this.visibility.resolvePresenceAudience(subjectUserId, candidates);
+
+    for (const [userId, socketIds] of this.onlineUsers.entries()) {
+      if (userId !== subjectUserId && !audience.has(userId)) continue;
+      for (const socketId of socketIds) {
+        this.server.to(socketId).emit(event, payload);
+      }
+    }
+  }
+
+  private emitToUser(userId: string, event: string, payload: unknown): void {
+    const socketIds = this.onlineUsers.get(userId);
+    if (!socketIds) return;
+    for (const socketId of socketIds) {
+      this.server.to(socketId).emit(event, payload);
+    }
   }
 
   emitMessageEdited(conversationId: string, message: unknown) {

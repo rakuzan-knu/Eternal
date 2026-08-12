@@ -6,7 +6,9 @@ export const WS_EVENTS = {
   TYPING: 'typing',
   MARK_READ: 'markRead',
   MESSAGE_READ: 'messageRead',
+  USER_ONLINE: 'userOnline',
   USER_OFFLINE: 'userOffline',
+  GET_ONLINE_STATUS: 'getOnlineStatus',
   RATE_LIMIT_EXCEEDED: 'rateLimitExceeded',
 
   SEND_MESSAGE: 'sendMessage',

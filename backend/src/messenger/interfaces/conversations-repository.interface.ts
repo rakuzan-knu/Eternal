@@ -5,6 +5,7 @@ import type {
   ParticipantRole,
 } from '@prisma/client';
 import type { ConversationWithDetails, ParticipantWithUser } from './types';
+import type { UserSnapshot } from '../dto/responses.dto';
 
 export const CONVERSATIONS_REPOSITORY = 'CONVERSATIONS_REPOSITORY';
 
@@ -33,6 +34,10 @@ export interface IConversationsRepository {
 
   findParticipants(conversationId: string): Promise<ParticipantWithUser[]>;
 
+  findBlockedUsers(blockerId: string): Promise<UserSnapshot[]>;
+
+  findParticipantIds(conversationId: string): Promise<string[]>;
+
   addParticipants(conversationId: string, userIds: string[]): Promise<void>;
 
   removeParticipant(conversationId: string, userId: string): Promise<void>;
@@ -52,7 +57,7 @@ export interface IConversationsRepository {
 
   touchUpdatedAt(conversationId: string): Promise<void>;
 
-  countUnread(conversationId: string, userId: string): Promise<number>;
+  countUnread(conversationId: string, userId: string, hiddenUserIds?: string[]): Promise<number>;
 
   findPinnedMessages(conversationId: string): Promise<string[]>;
 

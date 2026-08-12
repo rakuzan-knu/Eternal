@@ -4,15 +4,36 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
-import { Prisma, User } from '@prisma/client';
+import * as argon2 from 'argon2';
+import { PrivacyDimension, Prisma, User } from '@prisma/client';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-users.dto';
-import { UserProfileDto } from './dto/user-profile.dto';
+import { FollowStatusView, UserProfileDto } from './dto/user-profile.dto';
 import { USERS_REPOSITORY } from './interfaces/users-repository.interface';
 import type { IUsersRepository } from './interfaces/users-repository.interface';
 import { RedisService } from '../redis/redis.service';
+import { VisibilityResolver } from './privacy/visibility.resolver';
+import type { VisibilityContext } from './privacy/visibility.resolver';
+import { toLastSeenGranularity } from './privacy/last-seen.util';
 import { PrismaService } from '../prisma/prisma.service';
+
+type RawProfile = {
+  id: string;
+  username: string;
+  displayName: string | null;
+  avatar: string | null;
+  banner: string | null;
+  bannerPosition: number;
+  bio: string | null;
+  birthDate: string | null;
+  isPrivate: boolean;
+  lastSeenAt: string | null;
+  autoDeletePeriod: User['autoDeletePeriod'];
+  createdAt: string;
+  updatedAt: string;
+};
 
 @Injectable()
 export class UsersService {
@@ -20,6 +41,7 @@ export class UsersService {
     @Inject(USERS_REPOSITORY)
     private readonly usersRepository: IUsersRepository,
     private readonly redis: RedisService,
+    private readonly visibility: VisibilityResolver,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -43,21 +65,50 @@ export class UsersService {
     return this.usersRepository.create(dto);
   }
 
-  async getProfile(targetId: string, viewerId?: string): Promise<UserProfileDto> {
-    if (viewerId) {
-      const user = await this.usersRepository.findById(targetId);
-      if (!user) throw new NotFoundException(`User with id ${targetId} not found`);
+  async updatePasswordHash(id: string, passwordHash: string): Promise<void> {
+    await this.usersRepository.updatePassword(id, passwordHash);
+    await this.redis.del(this.userKey(id));
+  }
 
-      const isFollowing = await this.checkIsFollowing(viewerId, targetId);
-      return this.toProfileDto(user, isFollowing);
+  async touchLastSeen(id: string, when: Date = new Date()): Promise<void> {
+    await this.usersRepository.updateUser(id, { lastSeenAt: when });
+    await this.redis.del(this.userKey(id));
+  }
+
+  async deleteAccount(id: string, password: string): Promise<void> {
+    const user = await this.usersRepository.findById(id);
+    if (!user) {
+      throw new NotFoundException(`User with id ${id} not found`);
     }
 
-    const key = this.userKey(targetId);
+    const matches = await argon2.verify(user.passwordHash, password);
+    if (!matches) {
+      throw new UnauthorizedException('Incorrect password');
+    }
+
+    await this.usersRepository.deleteUser(id);
+    await this.redis.del(this.userKey(id));
+  }
+
+  private async getRawProfile(id: string): Promise<RawProfile> {
+    const key = this.userKey(id);
     return this.redis.getOrSet(key, 3600, async () => {
-      const user = await this.usersRepository.findById(targetId);
-      if (!user) throw new NotFoundException(`User with id ${targetId} not found`);
-      return this.toProfileDto(user, false);
+      const user = await this.usersRepository.findById(id);
+      if (!user) {
+        throw new NotFoundException(`User with id ${id} not found`);
+      }
+      return this.toRawProfile(user);
     });
+  }
+
+  async getProfileFor(id: string, viewerId: string | null): Promise<UserProfileDto> {
+    const raw = await this.getRawProfile(id);
+    const ctx = await this.visibility.loadContext([id], viewerId);
+    return this.applyPrivacy(raw, viewerId, ctx);
+  }
+
+  getProfile(id: string): Promise<UserProfileDto> {
+    return this.getProfileFor(id, null);
   }
 
   async updateUser(id: string, dto: UpdateUserDto): Promise<UserProfileDto> {
@@ -76,8 +127,14 @@ export class UsersService {
     }
 
     if (dto.username && dto.username !== user.username) {
+      const cooldownKey = `username_change_cooldown:${id}`;
+      const lastChange = await this.redis.get(cooldownKey);
+      if (lastChange) {
+        throw new BadRequestException('Username can only be changed once every 7 days.');
+      }
       const existing = await this.usersRepository.findByUsername(dto.username);
       if (existing) throw new ConflictException('Username is already taken');
+      await this.redis.set(cooldownKey, Date.now().toString(), 604800);
     }
 
     const data: Prisma.UserUpdateInput = {};
@@ -86,30 +143,97 @@ export class UsersService {
     if (dto.displayName !== undefined) data.displayName = dto.displayName;
     if (dto.bio !== undefined) data.bio = dto.bio;
 
-    const updated = await this.usersRepository.updateUser(id, data);
+    await this.usersRepository.updateUser(id, data);
     await this.redis.del(this.userKey(id));
-    return this.toProfileDto(updated, false);
+    return this.getProfileFor(id, id);
   }
 
-  private async checkIsFollowing(followerId: string, followingId: string): Promise<boolean> {
-    if (followerId === followingId) return false;
-    const follow = await this.prisma.follow.findUnique({
-      where: { followerId_followingId: { followerId, followingId } },
-      select: { id: true },
-    });
-    return follow !== null;
-  }
-
-  private toProfileDto(user: User, isFollowing: boolean): UserProfileDto {
+  private toRawProfile(user: User): RawProfile {
     return {
       id: user.id,
       username: user.username,
       displayName: user.displayName,
       avatar: user.avatar,
+      banner: user.banner,
+      bannerPosition: user.bannerPosition,
       bio: user.bio,
+      birthDate: user.birthDate ? user.birthDate.toISOString() : null,
+      isPrivate: user.isPrivate,
+      lastSeenAt: user.lastSeenAt ? user.lastSeenAt.toISOString() : null,
+      autoDeletePeriod: user.autoDeletePeriod,
       createdAt: user.createdAt.toISOString(),
       updatedAt: user.updatedAt.toISOString(),
-      isFollowing,
     };
+  }
+
+  private followStatusView(ownerId: string, ctx: VisibilityContext): FollowStatusView {
+    if (ctx.acceptedFollowing.has(ownerId)) return FollowStatusView.FOLLOWING;
+    if (ctx.pendingFollowing.has(ownerId)) return FollowStatusView.PENDING;
+    return FollowStatusView.NONE;
+  }
+
+  applyPrivacy(
+    raw: RawProfile,
+    viewerId: string | null,
+    ctx: VisibilityContext,
+    now: number = Date.now(),
+  ): UserProfileDto {
+    const isOwner = viewerId === raw.id;
+    const isFollower = this.visibility.isFollower(raw.id, ctx);
+
+    const base: UserProfileDto = {
+      id: raw.id,
+      username: raw.username,
+      displayName: raw.displayName,
+      avatar: raw.avatar,
+      bio: null,
+      isPrivate: raw.isPrivate,
+      createdAt: new Date(raw.createdAt),
+      updatedAt: new Date(raw.updatedAt),
+    };
+
+    if (!isOwner) {
+      base.followStatus = this.followStatusView(raw.id, ctx);
+    }
+
+    if (raw.isPrivate && !isOwner && !isFollower) {
+      return { ...base, avatar: raw.avatar };
+    }
+
+    if (isOwner || this.visibility.resolve(PrivacyDimension.AVATAR, raw.id, ctx)) {
+      base.avatar = raw.avatar;
+    } else {
+      base.avatar = null;
+    }
+
+    if (isOwner || this.visibility.resolve(PrivacyDimension.BANNER, raw.id, ctx)) {
+      base.banner = raw.banner;
+      base.bannerPosition = raw.bannerPosition;
+    }
+
+    if (isOwner || this.visibility.resolve(PrivacyDimension.BIO, raw.id, ctx)) {
+      base.bio = raw.bio;
+    }
+
+    if (isOwner || this.visibility.resolve(PrivacyDimension.BIRTHDAY, raw.id, ctx)) {
+      base.birthDate = raw.birthDate;
+    }
+
+    if (raw.lastSeenAt) {
+      const parsed = new Date(raw.lastSeenAt);
+      const isOnline = now - parsed.getTime() < 5 * 60 * 1000;
+      if (isOwner || this.visibility.resolve(PrivacyDimension.LAST_SEEN, raw.id, ctx)) {
+        base.lastSeen = parsed.toISOString();
+        base.lastSeenAt = parsed.toISOString();
+        base.isOnline = isOnline;
+      } else {
+        const gran = toLastSeenGranularity(parsed, now);
+        base.lastSeen = gran;
+        base.lastSeenAt = gran;
+        base.isOnline = false;
+      }
+    }
+
+    return base;
   }
 }

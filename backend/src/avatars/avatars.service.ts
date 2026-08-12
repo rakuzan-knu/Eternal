@@ -16,7 +16,10 @@ export class AvatarsService {
     private readonly configService: ConfigService,
   ) {
     this.bucket = this.configService.get<string>('MINIO_BUCKET', 'avatars');
-    this.publicUrl = this.configService.getOrThrow<string>('MINIO_PUBLIC_URL');
+    this.publicUrl =
+      this.configService.get<string>('MINIO_PUBLIC_URL') ??
+      this.configService.get<string>('S3_PUBLIC_URL') ??
+      'http://localhost:9000';
   }
 
   async uploadAvatar(userId: string, file: Express.Multer.File): Promise<AvatarView> {

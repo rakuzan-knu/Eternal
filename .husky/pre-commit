@@ -1,13 +1,55 @@
 #!/bin/sh
 set -e
 
-echo "Validating line endings..."
-node scripts/validate-eol.js
+log_info()    { node scripts/log.js info "$1"; }
+log_success() { node scripts/log.js success "$1"; }
+log_error()   { node scripts/log.js error "$1"; }
+log_gray()    { node scripts/log.js gray "$1"; }
+log_bold_success() { node scripts/log.js bold-success "$1"; }
 
-echo "Updating Graphify code graph..."
-graphify . --code-only
-graphify cluster-only .
+log_info "Validating line endings..."
+node scripts/validate-eol.js >/dev/null 2>&1 || {
+  log_error "Line endings validation failed!"
+  node scripts/validate-eol.js
+  exit 1
+}
+log_success "Line endings valid"
 
-git add graphify-out/GRAPH_REPORT.md 2>/dev/null || true
+if git diff --cached --name-only | grep -qE '(^|/)package\.json$'; then
+  log_info "Checking package.json & lockfile sync..."
 
-npx lint-staged --concurrent false
+  # Update the lockfile on disk to ensure it's in sync with current package.json
+  npm install --package-lock-only --ignore-scripts --no-audit >/dev/null 2>&1
+
+  # Check if the lockfile on disk differs from HEAD
+  if ! git diff --exit-code package-lock.json >/dev/null 2>&1; then
+    # If modified, check if it's staged
+    if ! git diff --cached --name-only | grep -qE '(^|/)package-lock\.json$'; then
+      log_error "package-lock.json is out of sync or modified, but NOT staged!"
+      log_gray "Run 'npm install' to fix lockfile and stage the updated package-lock.json"
+      exit 1
+    fi
+  fi
+  log_success "Lockfile is synced"
+fi
+
+if command -v graphify >/dev/null 2>&1; then
+  if git diff --cached --name-only | grep -qE '\.(js|jsx|ts|tsx)$'; then
+    log_info "Updating code graph (Graphify)..."
+    
+    graphify . --code-only >/dev/null 2>&1 || true
+    graphify cluster-only . >/dev/null 2>&1 || true
+    git add graphify-out/GRAPH_REPORT.md 2>/dev/null || true
+    
+    log_success "Code graph updated"
+  fi
+fi
+
+log_info "Running lint-staged..."
+if [ -f "./node_modules/.bin/lint-staged" ]; then
+  ./node_modules/.bin/lint-staged --concurrent false
+else
+  npx --no-install lint-staged --concurrent false
+fi
+
+log_bold_success "All pre-commit checks passed successfully!"

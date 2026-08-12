@@ -6,6 +6,7 @@ export const publicUserSelect = {
   displayName: true,
   avatar: true,
   bio: true,
+  isPrivate: true,
   createdAt: true,
   updatedAt: true,
 } satisfies Prisma.UserSelect;

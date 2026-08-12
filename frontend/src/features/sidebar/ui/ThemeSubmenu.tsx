@@ -16,7 +16,7 @@ export function ThemeMenuItem() {
       <div className="flex flex-col gap-1">
         <div className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-white bg-white/10">
           <Moon size={16} className="text-gray-300" />
-          <span className="flex-1 text-left font-medium">Darkа</span>
+          <span className="flex-1 text-left font-medium">Dark</span>
           {theme === 'dark' && <Check size={16} className="text-purple-400" />}
         </div>
         <div className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-500 opacity-50 cursor-not-allowed">

@@ -1,17 +1,20 @@
 import './instrument';
 import { type INestApplication, Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { ExpressAdapter } from '@nestjs/platform-express';
+import type { NestExpressApplication } from '@nestjs/platform-express';
+import { AppModule } from './app.module';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import express, { type Request, type Response } from 'express';
-import { AppModule } from './app.module';
+import { type Request, type Response } from 'express';
 
 const logger = new Logger('Bootstrap');
 
-async function createNestServer(expressApp: express.Express): Promise<INestApplication> {
-  const adapter = new ExpressAdapter(expressApp);
-  const app = await NestFactory.create(AppModule, adapter);
+let cachedApp: INestApplication | undefined;
+
+async function bootstrap() {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  app.set('trust proxy', 1);
 
   app.enableCors({
     origin: process.env.CORS_ORIGIN?.split(',') ?? 'http://localhost:5173',
@@ -37,30 +40,38 @@ async function createNestServer(expressApp: express.Express): Promise<INestAppli
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
-  await app.init();
-  return app;
+  const port = process.env.PORT ?? 3000;
+  await app.listen(port);
+  logger.log(`Server running on port ${port}`);
 }
 
-// Local development
-if (process.env.NODE_ENV !== 'production') {
-  async function bootstrap() {
-    const expressApp = express();
-    await createNestServer(expressApp);
-    const port = process.env.PORT ?? 3000;
-    expressApp.listen(port, () => {
-      logger.log(`Server running on port ${port}`);
-    });
-  }
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
   void bootstrap();
 }
 
 // Vercel Serverless Handler
-let expressAppInstance: express.Express | undefined;
-
 export default async function handler(req: Request, res: Response): Promise<void> {
-  if (!expressAppInstance) {
-    expressAppInstance = express();
-    await createNestServer(expressAppInstance);
+  if (!cachedApp) {
+    const app = await NestFactory.create<NestExpressApplication>(AppModule);
+    app.set('trust proxy', 1);
+    app.enableCors({
+      origin: process.env.CORS_ORIGIN?.split(',') ?? '*',
+      credentials: true,
+    });
+    app.useWebSocketAdapter(new IoAdapter(app));
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
+    );
+    await app.init();
+    cachedApp = app;
   }
-  expressAppInstance(req, res);
+  const instance = cachedApp.getHttpAdapter().getInstance() as (
+    req: Request,
+    res: Response,
+  ) => void;
+  instance(req, res);
 }
