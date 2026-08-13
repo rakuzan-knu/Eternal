@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: social-network-backend
+    env: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    plan: free
+    region: frankfurt
+    healthCheckPath: /ping
+    autoDeploy: true
+    preDeployCommand: npx prisma migrate deploy --schema=./backend/prisma/schema.prisma
+    envVars:
+      - key: PORT
+        value: '3000'
+      - key: NODE_ENV
+        value: 'production'
+      - key: CORS_ORIGIN
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+    # Secrets synced automatically via GitOps script scripts/sync-render-secrets.sh
+    # or optional Environment Group binding:
+    # envVarGroups:
+    #   - name: social-network-production-secrets

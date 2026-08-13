@@ -26,6 +26,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
     strategy:
       matrix:
         include:
@@ -40,6 +41,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install Cosign
+        if: github.event_name != 'pull_request'
+        uses: sigstore/cosign-installer@c56c2d3e59e4281cc41dea2217323ba5694b171e # v3.8.0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
@@ -64,11 +69,14 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.service }}
           tags: |
-            type=ref,event=branch
-            type=semver,pattern={{version}}
-            type=sha,prefix={{branch}}-
+            type=raw,value=sha-${{ github.sha }},enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=dev-${{ github.sha }},enable=${{ github.ref == 'refs/heads/develop' }}
+            type=raw,value=dev,enable=${{ github.ref == 'refs/heads/develop' }}
+            type=semver,pattern={{version}},enable=${{ startsWith(github.ref, 'refs/tags/') }}
 
       - name: Build and push ${{ matrix.service }} image
+        id: build-push
         uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
         with:
           context: ${{ matrix.context }}
@@ -81,8 +89,33 @@ jobs:
           build-args: |
             BUILDKIT_INLINE_CACHE=1
             VITE_API_URL=${{ secrets.VITE_API_URL || 'https://api.example.com' }}
-          provenance: false
-          sbom: false
+          provenance: true
+          sbom: true
+
+      - name: Sign container image with Cosign
+        if: github.event_name != 'pull_request'
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+          DIGEST: ${{ steps.build-push.outputs.digest }}
+        run: |
+          images=""
+          for tag in ${TAGS}; do
+            images="${images} ${tag}@${DIGEST}"
+          done
+          cosign sign --yes ${images}
+
+      - name: Verify image signature and SLSA provenance
+        if: github.event_name != 'pull_request'
+        env:
+          DIGEST: ${{ steps.build-push.outputs.digest }}
+        run: |
+          image="${REGISTRY}/${IMAGE_NAME}-${{ matrix.service }}@${DIGEST}"
+          echo "Verifying image signature and provenance attestation for ${image}..."
+          cosign verify \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            --certificate-identity-regexp "^https://github.com/${{ github.repository_owner }}/.*" \
+            "${image}"
+
 
   test:
     needs: build
@@ -132,9 +165,6 @@ jobs:
       contents: read
       security-events: write
     if: github.event_name != 'pull_request'
-    permissions:
-      contents: read
-      security-events: write
     
     strategy:
       matrix:

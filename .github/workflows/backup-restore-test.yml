@@ -1,0 +1,106 @@
+name: Automated Database Backup & Restore Drill (RPO/RTO Verification)
+
+on:
+  schedule:
+    - cron: '0 3 * * *' # Daily at 03:00 UTC
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/backup-db.sh'
+      - 'scripts/verify-backup.sh'
+      - 'scripts/backup-exporter.sh'
+      - '.github/workflows/backup-restore-test.yml'
+
+concurrency:
+  group: backup-restore-test-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backup-restore-drill:
+    name: Execute Encrypted Backup & Restore Test Drill
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: social
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: testpassword123
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U user -d social"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install PostgreSQL Client & Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client openssl gzip
+
+      - name: Seed Test Schema & Sample Data
+        env:
+          PGPASSWORD: testpassword123
+        run: |
+          echo "🌱 Seeding test database tables and sample records..."
+          psql -h localhost -p 5432 -U user -d social -c "
+            CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, username VARCHAR(50), created_at TIMESTAMP DEFAULT NOW());
+            CREATE TABLE IF NOT EXISTS posts (id SERIAL PRIMARY KEY, user_id INT, content TEXT, created_at TIMESTAMP DEFAULT NOW());
+            INSERT INTO users (username) VALUES ('test_admin'), ('test_user_1');
+            INSERT INTO posts (user_id, content) VALUES (1, 'Initial seed post for restore verification');
+          "
+          echo "✅ Seed completed."
+
+      - name: Create Encrypted Database Backup
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_DB: social
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: testpassword123
+          BACKUP_DIR: ./test-backups
+          BACKUP_ENCRYPTION_KEY: ci_restore_drill_encryption_key_32bytes
+        run: |
+          chmod +x scripts/backup-db.sh
+          ./scripts/backup-db.sh
+
+      - name: Verify Encrypted File Exists & Ciphertext Integrity
+        run: |
+          echo "🔍 Checking generated backup artifact..."
+          BACKUP_FILE=$(ls ./test-backups/backup_social_*.sql.gz.enc | head -n 1)
+          if [ -z "$BACKUP_FILE" ]; then
+            echo "❌ Failed to generate encrypted backup file!"
+            exit 1
+          fi
+          echo "✅ Encrypted backup generated: $BACKUP_FILE ($(du -h "$BACKUP_FILE" | cut -f1))"
+          
+          # Verify file cannot be gunzipped directly (verifying encryption at rest)
+          if gunzip -t "$BACKUP_FILE" 2>/dev/null; then
+            echo "❌ Security breach: Backup file is unencrypted plaintext!"
+            exit 1
+          else
+            echo "🔒 Verification confirmed: File is encrypted ciphertext at rest."
+          fi
+
+      - name: Run Automated Restore Drill & RTO Validation
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: testpassword123
+          BACKUP_DIR: ./test-backups
+          BACKUP_ENCRYPTION_KEY: ci_restore_drill_encryption_key_32bytes
+        run: |
+          chmod +x scripts/verify-backup.sh
+          ./scripts/verify-backup.sh

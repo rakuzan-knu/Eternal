@@ -12,7 +12,7 @@ COPY package*.json ./
 COPY backend/package*.json ./backend/
 COPY frontend/package*.json ./frontend/
 COPY backend/prisma ./backend/prisma/
-COPY scripts ./scripts/
+COPY scripts/postinstall.js ./scripts/postinstall.js
 
 ENV CI=true
 
@@ -26,6 +26,7 @@ FROM node:24-alpine AS builder
 WORKDIR /app
 
 COPY --from=deps /app ./
+COPY scripts ./scripts
 COPY backend ./backend
 COPY frontend ./frontend
 
@@ -52,6 +53,7 @@ COPY --from=deps /app/backend/node_modules ./backend/node_modules
 RUN if [ -d ./backend/node_modules ]; then cp -rn ./backend/node_modules/* ./node_modules/ 2>/dev/null || true; fi
 COPY --from=builder /app/backend/dist ./backend/dist
 COPY --from=deps /app/backend/prisma ./backend/prisma
+COPY --from=builder /app/scripts/backup-db.sh ./scripts/backup-db.sh
 
 RUN chown -R nestjs:nodejs /app
 USER nestjs

@@ -33,4 +33,11 @@ describe('Health (e2e)', () => {
     expect(body).toHaveProperty('timestamp');
     expect(body).toHaveProperty('uptime');
   });
+
+  it('GET /ping returns status ok', async () => {
+    const res = await request(app.getHttpServer()).get('/ping').expect(200);
+    const body = res.body as { status: string; timestamp: string };
+    expect(body.status).toBe('ok');
+    expect(typeof body.timestamp).toBe('string');
+  });
 });

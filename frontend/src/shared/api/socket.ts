@@ -12,7 +12,11 @@ export function getSocket(): Socket {
 
   socket = io(`${getSocketBaseUrl()}/messenger`, {
     autoConnect: false,
-    transports: ['websocket'],
+    transports: ['polling', 'websocket'],
+    reconnection: true,
+    reconnectionAttempts: Infinity,
+    reconnectionDelay: 1000,
+    reconnectionDelayMax: 5000,
     auth: (cb) => cb({ token: localStorage.getItem('accessToken') }),
   });
 

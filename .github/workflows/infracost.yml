@@ -1,0 +1,51 @@
+name: Infracost (Infrastructure Cost Guardrails)
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'infrastructure/**'
+      - '.github/workflows/infracost.yml'
+
+concurrency:
+  group: infracost-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+jobs:
+  infracost:
+    name: Infracost Cost Diff & PR Comment
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Infracost
+        uses: infracost/actions/setup@e9d6e6cd65e168e76b0de50ff9957d2fe8bb1832 # v3.0.0
+        with:
+          api-key: ${{ secrets.INFRACOST_API_KEY }}
+
+      - name: Generate Infracost JSON breakdown
+        if: env.INFRACOST_API_KEY != ''
+        run: |
+          infracost breakdown --path=infrastructure \
+                              --format=json \
+                              --out-file=/tmp/infracost-base.json
+
+      - name: Post Infracost Comment to PR
+        if: github.event_name == 'pull_request' && env.INFRACOST_API_KEY != ''
+        run: |
+          infracost comment github --path=/tmp/infracost-base.json \
+                                   --repo=${{ github.repository }} \
+                                   --github-token=${{ secrets.GITHUB_TOKEN }} \
+                                   --pull-request=${{ github.event.pull_request.number }} \
+                                   --behavior=update

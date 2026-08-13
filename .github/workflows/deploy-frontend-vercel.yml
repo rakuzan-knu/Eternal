@@ -1,0 +1,72 @@
+name: Deploy Frontend to Vercel
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/src/**'
+      - 'frontend/package*.json'
+      - 'frontend/vite.config.ts'
+      - 'frontend/public/**'
+      - 'vercel.json'
+
+concurrency:
+  group: deploy-frontend-vercel-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Vercel — Deploy Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install root deps
+        run: npm ci --ignore-scripts --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
+
+      - name: Build Frontend
+        run: npm run build --workspace=frontend
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL || 'https://social-network-backend.onrender.com/api' }}
+
+      - name: Deploy to Vercel (Staged Preview)
+        id: vercel_stage
+        if: env.VERCEL_TOKEN != ''
+        uses: amondnet/vercel-action@16e87c0a08142b0d0d33b76aeaf20823c381b9b9 # v25.0.0
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-version: 'latest'
+          working-directory: ./
+
+      - name: Run Synthetic Smoke Test on Staged Deployment
+        if: env.VERCEL_TOKEN != ''
+        env:
+          VERCEL_PREVIEW_URL: ${{ steps.vercel_stage.outputs.preview-url }}
+        run: |
+          echo "🧪 Running synthetic smoke test against preview deployment: ${VERCEL_PREVIEW_URL}"
+          node scripts/smoke-test-frontend.js
+
+      - name: Promote Deployment to Production Apex
+        if: env.VERCEL_TOKEN != ''
+        uses: amondnet/vercel-action@16e87c0a08142b0d0d33b76aeaf20823c381b9b9 # v25.0.0
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+          vercel-version: 'latest'
+          working-directory: ./
+

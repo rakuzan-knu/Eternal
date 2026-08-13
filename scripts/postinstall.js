@@ -6,11 +6,20 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const prismaBin = path.join(__dirname, '..', 'backend', 'node_modules', '.bin', 'prisma');
-const exists = fs.existsSync(prismaBin) || fs.existsSync(prismaBin + '.cmd');
+const rootPrismaBin = path.join(__dirname, '..', 'node_modules', '.bin', 'prisma');
+const backendPrismaBin = path.join(__dirname, '..', 'backend', 'node_modules', '.bin', 'prisma');
+const exists =
+  fs.existsSync(rootPrismaBin) ||
+  fs.existsSync(rootPrismaBin + '.cmd') ||
+  fs.existsSync(backendPrismaBin) ||
+  fs.existsSync(backendPrismaBin + '.cmd');
 
 if (exists) {
-  execSync('npm run db:generate -w backend', { stdio: 'inherit' });
+  try {
+    execSync('npm run db:generate -w backend', { stdio: 'inherit' });
+  } catch (err) {
+    console.error('[postinstall] Failed to run prisma generate:', err);
+  }
 } else {
-  console.log('[postinstall] backend deps not installed in this scope, skipping prisma generate');
+  console.log('[postinstall] prisma binary not found in node_modules, skipping prisma generate');
 }

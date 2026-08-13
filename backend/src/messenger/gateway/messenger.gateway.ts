@@ -39,11 +39,33 @@ interface AuthenticatedSocket extends Socket {
 
 const WsPipe = new ValidationPipe({ transform: true, whitelist: true });
 
+const getCorsOrigin = () => {
+  const envOrigins = process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim())
+    : [];
+  return (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    if (
+      !origin ||
+      envOrigins.includes(origin) ||
+      origin.startsWith('http://localhost:') ||
+      origin.endsWith('.vercel.app') ||
+      process.env.NODE_ENV !== 'production'
+    ) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'), false);
+    }
+  };
+};
+
 @UseFilters(WsValidationFilter)
 @UsePipes(WsPipe)
 @WebSocketGateway({
   namespace: '/messenger',
-  cors: { origin: '*', credentials: true },
+  cors: {
+    origin: getCorsOrigin(),
+    credentials: true,
+  },
 })
 export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()

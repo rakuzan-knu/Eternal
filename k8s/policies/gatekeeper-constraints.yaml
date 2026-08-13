@@ -1,0 +1,91 @@
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8sdisallowlatesttag
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sDisallowLatestTag
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8sdisallowlatesttag
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.template.spec.containers[_]
+          endswith(container.image, ":latest")
+          msg := sprintf("Container image '%v' uses prohibited ':latest' tag", [container.image])
+        }
+---
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sDisallowLatestTag
+metadata:
+  name: disallow-latest-tag-constraint
+spec:
+  match:
+    kinds:
+      - apiGroups: ['apps']
+        kinds: ['Deployment']
+---
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8srequirereadonlyrootfs
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sRequireReadOnlyRootFS
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8srequirereadonlyrootfs
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.template.spec.containers[_]
+          not container.securityContext.readOnlyRootFilesystem == true
+          msg := sprintf("Container '%v' must have readOnlyRootFilesystem: true", [container.name])
+        }
+---
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sRequireReadOnlyRootFS
+metadata:
+  name: require-readonly-rootfs-constraint
+spec:
+  match:
+    kinds:
+      - apiGroups: ['apps']
+        kinds: ['Deployment']
+---
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8srequireresourcelimits
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sRequireResourceLimits
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8srequireresourcelimits
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.template.spec.containers[_]
+          not container.resources.limits.cpu
+          msg := sprintf("Container '%v' missing CPU resource limits", [container.name])
+        }
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.template.spec.containers[_]
+          not container.resources.limits.memory
+          msg := sprintf("Container '%v' missing Memory resource limits", [container.name])
+        }
+---
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sRequireResourceLimits
+metadata:
+  name: require-resource-limits-constraint
+spec:
+  match:
+    kinds:
+      - apiGroups: ['apps']
+        kinds: ['Deployment']

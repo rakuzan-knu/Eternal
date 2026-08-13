@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Backup Metrics Exporter
-# Exposes backup metrics for Prometheus
+# Exposes backup metrics for Prometheus (supports encrypted & legacy backups)
 
-BACKUP_DIR="/backups"
+BACKUP_DIR="${BACKUP_DIR:-/backups}"
 METRICS_FILE="/tmp/backup_metrics.txt"
 PORT="${BACKUP_METRICS_PORT:-9114}"
 
@@ -16,7 +16,7 @@ generate_metrics() {
     echo "# HELP backup_latest_size_bytes Size of the latest backup in bytes"
     echo "# TYPE backup_latest_size_bytes gauge"
     
-    LATEST_BACKUP=$(find "${BACKUP_DIR}" -maxdepth 1 -name "backup_*.sql.gz" -type f -printf '%T@ %s\n' 2>/dev/null | sort -rn | head -1)
+    LATEST_BACKUP=$(find "${BACKUP_DIR}" -maxdepth 1 \( -name "backup_*.sql.gz" -o -name "backup_*.sql.gz.enc" \) -type f -printf '%T@ %s\n' 2>/dev/null | sort -rn | head -1)
     
     if [ -n "$LATEST_BACKUP" ]; then
       SIZE=$(echo "$LATEST_BACKUP" | awk '{print $2}')
@@ -29,7 +29,7 @@ generate_metrics() {
     echo "# HELP backup_latest_time_seconds Timestamp of the latest backup"
     echo "# TYPE backup_latest_time_seconds gauge"
     
-    LATEST_TIME=$(find "${BACKUP_DIR}" -maxdepth 1 -name "backup_*.sql.gz" -type f -printf '%T@\n' 2>/dev/null | sort -rn | head -1)
+    LATEST_TIME=$(find "${BACKUP_DIR}" -maxdepth 1 \( -name "backup_*.sql.gz" -o -name "backup_*.sql.gz.enc" \) -type f -printf '%T@\n' 2>/dev/null | sort -rn | head -1)
     
     if [ -n "$LATEST_TIME" ]; then
       echo "backup_latest_time_seconds $(echo "$LATEST_TIME" | cut -d. -f1)"
@@ -40,13 +40,13 @@ generate_metrics() {
     echo ""
     echo "# HELP backups_total_count Total number of backups stored"
     echo "# TYPE backups_total_count gauge"
-    COUNT=$(find "${BACKUP_DIR}" -maxdepth 1 -name "backup_*.sql.gz" -type f | wc -l)
+    COUNT=$(find "${BACKUP_DIR}" -maxdepth 1 \( -name "backup_*.sql.gz" -o -name "backup_*.sql.gz.enc" \) -type f | wc -l)
     echo "backups_total_count $COUNT"
     
     echo ""
     echo "# HELP backup_disk_usage_bytes Total disk usage of backups"
     echo "# TYPE backup_disk_usage_bytes gauge"
-    USAGE=$(find "${BACKUP_DIR}" -maxdepth 1 -name "backup_*.sql.gz" -type f -exec du -b {} + | awk '{sum+=$1} END {print sum}')
+    USAGE=$(find "${BACKUP_DIR}" -maxdepth 1 \( -name "backup_*.sql.gz" -o -name "backup_*.sql.gz.enc" \) -type f -exec du -b {} + | awk '{sum+=$1} END {print sum}')
     echo "backup_disk_usage_bytes ${USAGE:-0}"
   } > "${METRICS_FILE}"
 }

@@ -19,18 +19,29 @@ updates:
     groups:
       production-dependencies:
         dependency-type: production
+        update-types:
+          - "minor"
+          - "patch"
       dev-dependencies:
         dependency-type: development
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
+        update-types:
+          - "minor"
+          - "patch"
+      major-dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
+
 
   - package-ecosystem: github-actions
     directories:
       - "/"
       - "/.github/actions/setup-node-deps"
     schedule:
-      interval: monthly
+      interval: weekly
+      day: monday
+      time: "04:00"
     open-pull-requests-limit: 5
     commit-message:
       prefix: "chore(ci)"
@@ -47,7 +58,13 @@ updates:
       - "/backend"
       - "/frontend"
     schedule:
-      interval: monthly
+      interval: weekly
+      day: monday
+      time: "04:00"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(infra)"
+      include: scope
     labels:
       - infra
       - automated

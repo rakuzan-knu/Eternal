@@ -115,7 +115,7 @@ jobs:
           category: trivy-filesystem
 
   gitleaks:
-    name: Gitleaks — Incremental Secret Scanner
+    name: Gitleaks — Baseline Secret Scanner
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -125,8 +125,42 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Run Gitleaks Action
+      - name: Run Gitleaks Action with Baseline Config
         uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+          GITLEAKS_CONFIG: .gitleaks.toml
+
+  trufflehog:
+    name: TruffleHog — Entropy Secret Scanner
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: TruffleHog Secret Scan
+        uses: trufflesecurity/trufflehog@96b593f460badf7a3da2ad3487e0e4986243ef03 # main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --debug --only-verified
+
+  k8s-policy-check:
+    name: Policy-as-Code — K8s Guardrails Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Run K8s Policy-as-Code verification script
+        run: node scripts/verify-k8s-policies.cjs
+
+

@@ -6,6 +6,15 @@
     },
     "assert": {
       "preset": "lighthouse:no-pwa",
+      "budgets": [
+        {
+          "path": "/*",
+          "resourceSizes": [
+            { "resourceType": "script", "budget": 600 },
+            { "resourceType": "total", "budget": 2500 }
+          ]
+        }
+      ],
       "assertions": {
         "categories:performance": ["error", { "minScore": 0.85 }],
         "categories:accessibility": ["error", { "minScore": 0.95 }],

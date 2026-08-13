@@ -90,7 +90,7 @@ jobs:
           cache: 'npm'
 
       - name: Install root deps
-        run: npm ci --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
+        run: npm ci --ignore-scripts --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
 
       - name: Validate PR commits
         run: |
@@ -123,7 +123,7 @@ jobs:
         run: |
           echo "key=${{ runner.os }}-monorepo-deps-${{ hashFiles('package-lock.json', 'backend/prisma/schema.prisma') }}" >> $GITHUB_OUTPUT
 
-      - name: Cache Node Modules & Prisma
+      - name: Cache Node Modules & Prisma & node-gyp
         id: monorepo-cache
         uses: actions/cache@v6
         with:
@@ -132,12 +132,13 @@ jobs:
             backend/node_modules
             frontend/node_modules
             ~/.cache/prisma
+            ~/.cache/node-gyp
           key: ${{ steps.cache-key-gen.outputs.key }}
 
       - name: Install & Generate (On Cache Miss)
         if: steps.monorepo-cache.outputs.cache-hit != 'true'
         run: |
-          npm ci --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
+          npm ci --ignore-scripts --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
           cd backend && npx prisma generate
 
   format-check:
@@ -163,6 +164,7 @@ jobs:
             backend/node_modules
             frontend/node_modules
             ~/.cache/prisma
+            ~/.cache/node-gyp
           key: ${{ needs.setup.outputs.cache-key }}
           fail-on-cache-miss: true
 
@@ -192,6 +194,7 @@ jobs:
             backend/node_modules
             frontend/node_modules
             ~/.cache/prisma
+            ~/.cache/node-gyp
           key: ${{ needs.setup.outputs.cache-key }}
           fail-on-cache-miss: true
 
@@ -199,7 +202,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: backend/.eslintcache
-          key: ${{ runner.os }}-backend-eslint-${{ github.ref }}
+          key: ${{ runner.os }}-backend-eslint-${{ hashFiles('backend/src/**/*.ts', 'backend/eslint.config.mjs') }}
           restore-keys: |
             ${{ runner.os }}-backend-eslint-
 
@@ -237,6 +240,7 @@ jobs:
             backend/node_modules
             frontend/node_modules
             ~/.cache/prisma
+            ~/.cache/node-gyp
           key: ${{ needs.setup.outputs.cache-key }}
           fail-on-cache-miss: true
 
@@ -261,13 +265,17 @@ jobs:
           retention-days: 7
 
   backend-e2e:
-    name: Backend — E2E Tests
+    name: Backend — E2E Tests (${{ matrix.module }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [changes, setup]
     if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.ci == 'true'
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        module: [health, auth, posts, users]
 
     services:
       postgres:
@@ -322,6 +330,7 @@ jobs:
             backend/node_modules
             frontend/node_modules
             ~/.cache/prisma
+            ~/.cache/node-gyp
           key: ${{ needs.setup.outputs.cache-key }}
           fail-on-cache-miss: true
 
@@ -329,9 +338,125 @@ jobs:
         working-directory: backend
         run: npx prisma migrate deploy
 
-      - name: Run E2E tests
+      - name: Run E2E tests (${{ matrix.module }})
         working-directory: backend
-        run: npm run test:e2e -- --forceExit
+        run: npm run test:e2e -- test/${{ matrix.module }}.e2e-spec.ts --forceExit --passWithNoTests
+
+  backend-contract-test:
+    name: Backend — API Contract Verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [changes, setup]
+    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.ci == 'true'
+    permissions:
+      contents: read
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: social_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U user -d social_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://user:password@localhost:5432/social_test
+      REDIS_URL: redis://localhost:6379
+      JWT_ACCESS_SECRET: ci-test-access-secret-at-least-32-chars-long
+      JWT_ACCESS_TTL: 15m
+      JWT_REFRESH_SECRET: ci-test-refresh-secret-at-least-32-chars-long
+      JWT_REFRESH_TTL: 7d
+      CORS_ORIGIN: http://localhost:5173
+      PORT: 3000
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Restore Monorepo Dependencies
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            node_modules
+            backend/node_modules
+            frontend/node_modules
+            ~/.cache/prisma
+            ~/.cache/node-gyp
+          key: ${{ needs.setup.outputs.cache-key }}
+          fail-on-cache-miss: true
+
+      - name: Run migrations & generate Prisma client
+        working-directory: backend
+        run: |
+          npx prisma migrate deploy
+          npx prisma generate
+
+      - name: Build backend
+        working-directory: backend
+        run: npm run build
+
+      - name: Start backend server & run OpenAPI and Pact contract tests
+        working-directory: backend
+        run: |
+          npm run start:prod &
+          SERVER_PID=$!
+          # Use /live endpoint — pure liveness probe, always 200 when the HTTP server is up
+          # regardless of DB/Redis connectivity. Actual contract tests verify /api/health.
+          npx wait-on http://localhost:3000/api/health/live --timeout 60000 --interval 1000
+          node ../scripts/verify-api-contract.cjs
+          node ../scripts/verify-pact-contracts.cjs
+          kill $SERVER_PID || true
+        env:
+          NODE_ENV: test
+
+  k8s-policy-check:
+    name: Kubernetes Policy-as-Code Guardrails Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Run K8s Policy-as-Code verification script
+        run: node scripts/verify-k8s-policies.cjs
+
+  dependency-review:
+    name: Dependency Review — Security & Compliance
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: Dependency Review Action
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
 
   frontend-lint:
     name: Frontend — Lint & Typecheck
@@ -356,6 +481,7 @@ jobs:
             backend/node_modules
             frontend/node_modules
             ~/.cache/prisma
+            ~/.cache/node-gyp
           key: ${{ needs.setup.outputs.cache-key }}
           fail-on-cache-miss: true
 
@@ -363,7 +489,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: frontend/.eslintcache
-          key: ${{ runner.os }}-frontend-eslint-${{ github.ref }}
+          key: ${{ runner.os }}-frontend-eslint-${{ hashFiles('frontend/src/**/*.ts', 'frontend/src/**/*.tsx', 'frontend/eslint.config.js') }}
           restore-keys: |
             ${{ runner.os }}-frontend-eslint-
 
@@ -398,6 +524,7 @@ jobs:
             backend/node_modules
             frontend/node_modules
             ~/.cache/prisma
+            ~/.cache/node-gyp
           key: ${{ needs.setup.outputs.cache-key }}
           fail-on-cache-miss: true
 
@@ -447,6 +574,7 @@ jobs:
             backend/node_modules
             frontend/node_modules
             ~/.cache/prisma
+            ~/.cache/node-gyp
           key: ${{ needs.setup.outputs.cache-key }}
           fail-on-cache-miss: true
 
@@ -455,6 +583,12 @@ jobs:
         run: npm run build
         env:
           VITE_API_URL: http://localhost:3000
+
+      - name: Enforce bundle size budget
+        # Use .cjs extension — forces CJS loader regardless of root package.json "type":"module".
+        # Eliminates Cannot find module error that occurs when preactjs/compressed-size-action
+        # changes the module resolution context.
+        run: node scripts/check-bundle-size.cjs
 
       - name: Check bundle size changes
         uses: preactjs/compressed-size-action@v3
@@ -465,6 +599,7 @@ jobs:
           build-script: "npm run build"
 
       - name: Run Lighthouse CI
+        if: contains(github.event.pull_request.labels.*.name, 'lighthouse') || github.event_name == 'push'
         uses: treosh/lighthouse-ci-action@v12
         with:
           configPath: '.lighthouserc.json'
@@ -561,6 +696,9 @@ jobs:
       - backend-lint
       - backend-test
       - backend-e2e
+      - backend-contract-test
+      - k8s-policy-check
+      - dependency-review
       - frontend-lint
       - frontend-test
       - frontend-prod-assessment

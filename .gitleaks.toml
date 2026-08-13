@@ -1,0 +1,27 @@
+# Gitleaks Configuration & Baseline Rules
+title = "Social Network Gitleaks Security Scan Baseline"
+
+[allowlist]
+description = "Global allowlist for false positive tokens and test credentials"
+paths = [
+  '''package-lock\.json''',
+  '''node_modules''',
+  '''dist''',
+  '''coverage''',
+  '''backend/test/.*''',
+  '''\.env\.example''',
+]
+regexes = [
+  '''ci_test_access_secret_key_32_bytes_min''',
+  '''ci_test_refresh_secret_key_32_bytes_min''',
+  '''ci-test-access-secret-at-least-32-chars-long''',
+  '''ci-test-refresh-secret-at-least-32-chars-long''',
+  '''postgresql://user:pass@localhost:5432/db''',
+]
+
+[[rules]]
+id = "generic-api-key"
+description = "Generic API Key Leak Detection"
+regex = '''(?i)(api_key|apikey|secret_key|access_token)\s*[:=]\s*['"][0-9a-zA-Z\-_]{20,}['"]'''
+entropy = 3.5
+keywords = ["api_key", "apikey", "secret_key", "access_token"]

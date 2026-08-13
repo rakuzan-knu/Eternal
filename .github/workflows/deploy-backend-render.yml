@@ -1,0 +1,88 @@
+name: Deploy Backend to Render
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/src/**'
+      - 'backend/prisma/**'
+      - 'backend/package*.json'
+      - 'backend/Dockerfile'
+      - 'render.yaml'
+
+concurrency:
+  group: deploy-backend-render-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+  RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+  RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+  IMAGE_REF: ghcr.io/${{ github.repository }}-backend:main
+
+jobs:
+  deploy:
+    name: Verify Signature & Deploy Backend to Render
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@c56c2d3e59e4281cc41dea2217323ba5694b171e # v3.8.0
+
+      - name: Verify Image Signature before Deployment
+        run: |
+          echo "🔒 Verifying Cosign image signature for ${IMAGE_REF}..."
+          cosign verify \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            --certificate-identity-regexp "^https://github.com/${{ github.repository_owner }}/.*" \
+            "${IMAGE_REF}" || {
+              echo "❌ Image verification failed! Refusing to deploy unsigned/untrusted image."
+              exit 1
+            }
+          echo "✅ Image signature verified successfully."
+
+      - name: Sync GitOps Secrets to Render
+        if: env.RENDER_SERVICE_ID != '' && env.RENDER_API_KEY != ''
+        env:
+          CORS_ORIGIN: ${{ secrets.CORS_ORIGIN }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+          JWT_SECRET: ${{ secrets.JWT_ACCESS_SECRET }}
+        run: |
+          chmod +x scripts/sync-render-secrets.sh
+          ./scripts/sync-render-secrets.sh
+
+      - name: Trigger Render Deployment
+        if: env.RENDER_DEPLOY_HOOK_URL != ''
+        run: |
+          echo "🚀 Triggering deployment on Render..."
+          curl -s -X POST "$RENDER_DEPLOY_HOOK_URL"
+
+      - name: Setup Node.js for Smoke Test
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Run Canary Smoke Test against Backend
+        env:
+          BACKEND_URL: ${{ secrets.BACKEND_URL || 'https://social-network-backend.onrender.com' }}
+          SMOKE_MAX_ATTEMPTS: 12
+          SMOKE_DELAY_MS: 10000
+        run: |
+          echo "🧪 Running post-deploy canary smoke test..."
+          node scripts/smoke-test-backend.js
+
+      - name: Rollback Deployment on Failure
+        if: failure() && env.RENDER_SERVICE_ID != '' && env.RENDER_API_KEY != ''
+        run: |
+          echo "🚨 Smoke test failed! Triggering rollback on Render..."
+          curl -s -X POST "https://api.render.com/v1/services/${RENDER_SERVICE_ID}/deploys" \
+            -H "Authorization: Bearer ${RENDER_API_KEY}" \
+            -H "Content-Type: application/json"
+

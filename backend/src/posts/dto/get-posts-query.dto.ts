@@ -7,7 +7,7 @@ export class GetPostsQueryDto {
   @IsInt()
   @Min(1)
   @Max(100)
-  limit: number;
+  limit: number = 20;
 
   @IsString()
   @IsOptional()

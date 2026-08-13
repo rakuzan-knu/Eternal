@@ -1,0 +1,85 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: enforce-devsecops-k8s-standards
+  annotations:
+    policies.kyverno.io/title: Enforce DevSecOps Workload Standards
+    policies.kyverno.io/category: Security, Best Practices
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/description: >-
+      Enforces container security contexts (non-root, readOnlyRootFS), prohibits untagged or
+      :latest container images, and mandates CPU/memory resource requests and limits.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: disallow-root-user
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+                - Deployment
+      validate:
+        message: 'Containers must run as non-root (runAsNonRoot: true).'
+        pattern:
+          spec:
+            template:
+              spec:
+                securityContext:
+                  runAsNonRoot: true
+
+    - name: require-readonly-root-filesystem
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+                - Deployment
+      validate:
+        message: 'Containers must enforce a read-only root filesystem (readOnlyRootFilesystem: true).'
+        pattern:
+          spec:
+            template:
+              spec:
+                containers:
+                  - securityContext:
+                      readOnlyRootFilesystem: true
+
+    - name: disallow-latest-tag
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+                - Deployment
+      validate:
+        message: "Using ':latest' container image tag is prohibited. Use immutable version tag or digest."
+        pattern:
+          spec:
+            template:
+              spec:
+                containers:
+                  - image: '!*:latest'
+
+    - name: require-resource-limits
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+                - Deployment
+      validate:
+        message: 'CPU and Memory resource requests and limits must be specified.'
+        pattern:
+          spec:
+            template:
+              spec:
+                containers:
+                  - resources:
+                      requests:
+                        cpu: '?*'
+                        memory: '?*'
+                      limits:
+                        cpu: '?*'
+                        memory: '?*'

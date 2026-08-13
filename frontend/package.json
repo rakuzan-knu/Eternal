@@ -18,6 +18,7 @@
     "test:cov": "vitest run --config vitest.config.ts --coverage",
     "test:ui": "vitest --config vitest.config.ts --ui",
     "typecheck": "tsc --noEmit",
+    "check:bundle": "node ../scripts/check-bundle-size.js",
     "storybook": "storybook dev -p 6006",
     "build:storybook": "storybook build"
   },
