@@ -8,6 +8,7 @@ import { useMessageActions } from '../model/useMessageActions';
 import { useConversationRealtime } from '../model/useConversationRealtime';
 import { useQueryOnlineStatus } from '../model/usePresence';
 import { useStagedAttachments } from '@/shared/model/useStagedAttachments';
+import { chatApi } from '../api/chatApi';
 import ChatThreadHeader from './ChatThreadHeader';
 import MessageList from './MessageList';
 import MessageComposer from './MessageComposer';
@@ -100,9 +101,7 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
 
   const handleReport = (message: MessageView) => {
     if (!otherParticipant) return;
-    import('../../../features/chat/api/chatApi').then(({ chatApi }) =>
-      chatApi.reportUser(otherParticipant.userId, 'MESSAGE', message.id),
-    );
+    chatApi.reportUser(otherParticipant.userId, 'MESSAGE', message.id);
   };
 
   return (

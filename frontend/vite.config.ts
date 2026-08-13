@@ -12,31 +12,40 @@ export default defineConfig({
     },
   },
   build: {
+    chunkSizeWarningLimit: 1000,
     sourcemap: 'hidden',
     rollupOptions: {
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('emoji-picker-react')) {
+            const normalizedId = id.replace(/\\/g, '/');
+            if (normalizedId.includes('/emoji-picker-react/')) {
               return 'vendor-emoji';
             }
-            if (
-              id.includes('/react/') ||
-              id.includes('/react-dom/') ||
-              id.includes('/react-router/') ||
-              id.includes('/scheduler/') ||
-              id.includes('/use-sync-external-store/')
-            ) {
-              return 'vendor-react';
-            }
-            if (id.includes('@tanstack') || id.includes('zustand')) {
-              return 'vendor-state';
-            }
-            if (id.includes('lucide-react')) {
+            if (normalizedId.includes('/lucide-react/')) {
               return 'vendor-icons';
             }
-            if (id.includes('socket.io-client') || id.includes('engine.io-client')) {
+            if (
+              normalizedId.includes('/socket.io-client/') ||
+              normalizedId.includes('/engine.io-client/')
+            ) {
               return 'vendor-socket';
+            }
+            if (normalizedId.includes('/@tanstack/') || normalizedId.includes('/zustand/')) {
+              return 'vendor-state';
+            }
+            if (normalizedId.includes('/@sentry/')) {
+              return 'vendor-sentry';
+            }
+            if (
+              normalizedId.includes('/node_modules/react/') ||
+              normalizedId.includes('/node_modules/react-dom/') ||
+              normalizedId.includes('/node_modules/react-router/') ||
+              normalizedId.includes('/node_modules/react-router-dom/') ||
+              normalizedId.includes('/node_modules/scheduler/') ||
+              normalizedId.includes('/node_modules/use-sync-external-store/')
+            ) {
+              return 'vendor-react';
             }
             return 'vendor-libs';
           }
