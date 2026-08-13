@@ -8,7 +8,6 @@ services:
     region: frankfurt
     healthCheckPath: /ping
     autoDeploy: true
-    preDeployCommand: npx prisma migrate deploy --schema=./backend/prisma/schema.prisma
     envVars:
       - key: PORT
         value: '3000'

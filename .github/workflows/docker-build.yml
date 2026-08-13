@@ -171,14 +171,15 @@ jobs:
         image: [backend, frontend]
     
     steps:
+      - name: Install Trivy CLI
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@18f2510ee396bbf400402947b394f2dd8c87dbb0 # v0.29.0
-        with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.image }}:latest
-          format: 'sarif'
-          output: 'trivy-${{ matrix.image }}.sarif'
-          severity: 'HIGH,CRITICAL'
+        run: |
+          trivy image ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.image }}:latest --severity HIGH,CRITICAL --format sarif -o trivy-${{ matrix.image }}.sarif
         continue-on-error: true
+
 
       - name: Upload Trivy results to GitHub Security
         uses: github/codeql-action/upload-sarif@4c50b6f6fd9dc6fe03111c2d045c8be2a724cce1 # v3.28.11

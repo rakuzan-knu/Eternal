@@ -98,15 +98,15 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-trivy-
 
-      - uses: aquasecurity/trivy-action@v0.36.0
+      - name: Install Trivy CLI
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Run Trivy Filesystem Scan
         id: trivy_fs_step
-        with:
-          scan-type: fs
-          scan-ref: .
-          format: sarif
-          output: trivy-fs.sarif
-          severity: 'CRITICAL,HIGH'
-          exit-code: '0'
+        run: |
+          trivy fs . --severity CRITICAL,HIGH --format sarif -o trivy-fs.sarif --exit-code 0
+
 
       - uses: github/codeql-action/upload-sarif@v4
         if: always() && steps.trivy_fs_step.outcome == 'success'
@@ -147,8 +147,6 @@ jobs:
         uses: trufflesecurity/trufflehog@96b593f460badf7a3da2ad3487e0e4986243ef03 # main
         with:
           path: ./
-          base: ${{ github.event.repository.default_branch }}
-          head: HEAD
           extra_args: --debug --only-verified
 
   k8s-policy-check:

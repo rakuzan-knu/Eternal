@@ -100,8 +100,11 @@ jobs:
 
       - name: Terraform Plan Status Check
         if: steps.plan.outcome == 'failure' && env.VERCEL_API_TOKEN != '' && env.CLOUDFLARE_API_TOKEN != ''
-        run: exit 1
+        run: |
+          echo "❌ Terraform Plan failed!"
+          exit 1
 
       - name: Terraform Apply
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push' && steps.plan.outcome == 'success'
         run: terraform apply -auto-approve tfplan
+

@@ -5,8 +5,8 @@
  * Used to verify Vercel preview/staged deployments before production alias cutover.
  */
 
-const http = require('http');
-const https = require('https');
+import http from 'node:http';
+import https from 'node:https';
 
 const TARGET_URL =
   process.env.VERCEL_PREVIEW_URL || process.env.FRONTEND_URL || 'http://localhost:5173';

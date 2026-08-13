@@ -5,8 +5,8 @@
  * Used in deployment pipelines to verify post-deployment availability before cutover.
  */
 
-const http = require('http');
-const https = require('https');
+import http from 'node:http';
+import https from 'node:https';
 
 const TARGET_URL = process.env.RENDER_URL || process.env.BACKEND_URL || 'http://localhost:3000';
 const HEALTH_ENDPOINT = `${TARGET_URL.replace(/\/$/, '')}/api/health`;
