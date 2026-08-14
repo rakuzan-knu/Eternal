@@ -17,9 +17,33 @@ services:
         sync: false
       - key: DATABASE_URL
         sync: false
+      - key: DIRECT_URL
+        sync: false
       - key: REDIS_URL
         sync: false
-      - key: JWT_SECRET
+      - key: REDIS_PASSWORD
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        sync: false
+      - key: JWT_ACCESS_TTL
+        value: '15m'
+      - key: JWT_REFRESH_SECRET
+        sync: false
+      - key: JWT_REFRESH_TTL
+        value: '7d'
+      - key: SENTRY_DSN
+        sync: false
+      - key: SENTRY_TRACES_SAMPLE_RATE
+        value: '1.0'
+      - key: MINIO_ENDPOINT
+        sync: false
+      - key: MINIO_ACCESS_KEY
+        sync: false
+      - key: MINIO_SECRET_KEY
+        sync: false
+      - key: MINIO_BUCKET
+        value: 'avatars'
+      - key: MINIO_PUBLIC_URL
         sync: false
     # Secrets synced automatically via GitOps script scripts/sync-render-secrets.sh
     # or optional Environment Group binding:
