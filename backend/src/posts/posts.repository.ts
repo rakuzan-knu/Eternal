@@ -1,19 +1,48 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { IPostRepository } from './interfaces/posts-repository.interface';
 import { PrismaService } from '../prisma/prisma.service';
-import type { Post, PostMedia, Prisma, ReportCategory } from '@prisma/client';
+import {
+  FollowStatus,
+  type Post,
+  type PostMedia,
+  type Prisma,
+  type ReportCategory,
+} from '@prisma/client';
 import type { PostWithRelations } from './dto/post-response.dto';
 
 type PrismaPostQueryResult = {
   id: string;
   content: string;
+  sharesCount?: number;
   authorId: string;
   createdAt: Date;
   updatedAt: Date;
   media?: PostMedia[];
-  author?: Record<string, unknown> | null;
+  poll?: {
+    id: string;
+    title: string;
+    description?: string | null;
+    isMultiple: boolean;
+    isActive: boolean;
+    options: {
+      id: string;
+      optionText: string;
+      votesCount: number;
+    }[];
+    votes?: { optionId: string }[];
+  } | null;
+  author?: {
+    id?: string;
+    username?: string;
+    displayName?: string | null;
+    avatar?: string | null;
+    isVerified?: boolean;
+    primaryBadge?: string | null;
+    followers?: { id: string }[];
+  } | null;
   savedPosts?: { id: string }[] | null;
   reposts?: { id: string }[] | null;
+  likes?: { id: string }[] | null;
   _count?: { likes?: number; reposts?: number; comments?: number } | null;
 };
 
@@ -40,23 +69,46 @@ export class PostsRepository implements IPostRepository {
   private postInclude(viewerId?: string) {
     return {
       media: { orderBy: { order: 'asc' as const } },
-      _count: {
+      author: {
         select: {
-          likes: true,
-          reposts: true,
-          comments: true,
-        },
-      },
-      ...(viewerId
-        ? {
-            author: {
-              select: {
+          id: true,
+          username: true,
+          displayName: true,
+          avatar: true,
+          isVerified: true,
+          primaryBadge: true,
+          ...(viewerId
+            ? {
                 followers: {
                   where: { followerId: viewerId },
                   select: { id: true },
                   take: 1,
                 },
-              },
+              }
+            : {}),
+        },
+      },
+      poll: {
+        include: {
+          options: {
+            orderBy: { sortOrder: 'asc' as const },
+          },
+          ...(viewerId
+            ? {
+                votes: {
+                  where: { userId: viewerId },
+                  select: { optionId: true },
+                },
+              }
+            : {}),
+        },
+      },
+      ...(viewerId
+        ? {
+            likes: {
+              where: { userId: viewerId },
+              select: { id: true },
+              take: 1,
             },
             savedPosts: {
               where: { userId: viewerId },
@@ -70,26 +122,49 @@ export class PostsRepository implements IPostRepository {
             },
           }
         : {}),
+      _count: {
+        select: {
+          likes: true,
+          reposts: true,
+          comments: true,
+        },
+      },
     };
   }
 
   private mapPost(post: PrismaPostQueryResult, viewerId?: string): PostWithRelations {
-    const authorRecord = post.author as { followers?: { id: string }[] } | undefined | null;
+    const authorRecord = post.author;
+
     const isFollowing = viewerId != null ? (authorRecord?.followers?.length ?? 0) > 0 : false;
     const isSaved = viewerId != null ? (post.savedPosts?.length ?? 0) > 0 : false;
     const isReposted = viewerId != null ? (post.reposts?.length ?? 0) > 0 : false;
+    const isLiked = viewerId != null ? (post.likes?.length ?? 0) > 0 : false;
+    const isOwner = viewerId != null ? post.authorId === viewerId : false;
 
     return {
       id: post.id,
       content: post.content,
-      sharesCount: (post as unknown as { sharesCount?: number }).sharesCount ?? 0,
+      sharesCount: post.sharesCount ?? 0,
       authorId: post.authorId,
+      author: authorRecord
+        ? {
+            id: authorRecord.id ?? post.authorId,
+            username: authorRecord.username ?? 'user',
+            displayName: authorRecord.displayName ?? null,
+            avatar: authorRecord.avatar ?? null,
+            isVerified: authorRecord.isVerified ?? false,
+            primaryBadge: authorRecord.primaryBadge ?? null,
+          }
+        : undefined,
       createdAt: post.createdAt,
       updatedAt: post.updatedAt,
       media: post.media ?? [],
+      poll: post.poll ?? null,
       isFollowing,
       isSaved,
       isReposted,
+      isLiked,
+      isOwner,
       _count: post._count ?? undefined,
     };
   }
@@ -221,6 +296,158 @@ export class PostsRepository implements IPostRepository {
     });
 
     return saved.map((s) => this.mapPost(s.post, userId));
+  }
+
+  async getExploreMediaPosts(
+    limit: number,
+    after?: string,
+    viewerId?: string,
+  ): Promise<PostWithRelations[]> {
+    const blockedIds = viewerId ? await this.getBlockedUserIds(viewerId) : [];
+
+    const andFilters: Prisma.PostWhereInput[] = [{ media: { some: {} } }];
+
+    if (blockedIds.length > 0) {
+      andFilters.push({ authorId: { notIn: blockedIds } });
+    }
+
+    if (viewerId) {
+      andFilters.push({
+        OR: [
+          { author: { isPrivate: false } },
+          { authorId: viewerId },
+          {
+            author: {
+              followers: {
+                some: { followerId: viewerId, status: FollowStatus.ACCEPTED },
+              },
+            },
+          },
+        ],
+      });
+    } else {
+      andFilters.push({ author: { isPrivate: false } });
+    }
+
+    const posts = await this.prisma.post.findMany({
+      where: { AND: andFilters },
+      take: limit + 1,
+      skip: after ? 1 : 0,
+      cursor: after ? { id: after } : undefined,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      include: this.postInclude(viewerId),
+    });
+
+    return posts.map((post) => this.mapPost(post, viewerId));
+  }
+
+  async getPostsByHashtag(
+    hashtag: string,
+    limit: number,
+    after?: string,
+    viewerId?: string,
+  ): Promise<{ posts: PostWithRelations[]; totalCount: number }> {
+    const cleanTag = hashtag.replace(/^#+/, '').trim();
+    const blockedIds = viewerId ? await this.getBlockedUserIds(viewerId) : [];
+
+    const andFilters: Prisma.PostWhereInput[] = [
+      { content: { contains: `#${cleanTag}`, mode: 'insensitive' } },
+    ];
+
+    if (blockedIds.length > 0) {
+      andFilters.push({ authorId: { notIn: blockedIds } });
+    }
+
+    if (viewerId) {
+      andFilters.push({
+        OR: [
+          { author: { isPrivate: false } },
+          { authorId: viewerId },
+          {
+            author: {
+              followers: {
+                some: { followerId: viewerId, status: FollowStatus.ACCEPTED },
+              },
+            },
+          },
+        ],
+      });
+    } else {
+      andFilters.push({ author: { isPrivate: false } });
+    }
+
+    const whereClause: Prisma.PostWhereInput = { AND: andFilters };
+
+    const [posts, totalCount] = await Promise.all([
+      this.prisma.post.findMany({
+        where: whereClause,
+        take: limit + 1,
+        skip: after ? 1 : 0,
+        cursor: after ? { id: after } : undefined,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        include: this.postInclude(viewerId),
+      }),
+      this.prisma.post.count({ where: whereClause }),
+    ]);
+
+    return {
+      posts: posts.map((post) => this.mapPost(post, viewerId)),
+      totalCount,
+    };
+  }
+
+  async searchPosts(
+    query: string,
+    limit: number,
+    after?: string,
+    viewerId?: string,
+    mediaOnly?: boolean,
+  ): Promise<PostWithRelations[]> {
+    const term = (query || '').trim();
+    if (!term) return [];
+
+    const blockedIds = viewerId ? await this.getBlockedUserIds(viewerId) : [];
+
+    const andFilters: Prisma.PostWhereInput[] = [
+      { content: { contains: term, mode: 'insensitive' } },
+    ];
+
+    if (blockedIds.length > 0) {
+      andFilters.push({ authorId: { notIn: blockedIds } });
+    }
+
+    if (mediaOnly) {
+      andFilters.push({ media: { some: {} } });
+    }
+
+    if (viewerId) {
+      andFilters.push({
+        OR: [
+          { author: { isPrivate: false } },
+          { authorId: viewerId },
+          {
+            author: {
+              followers: {
+                some: { followerId: viewerId, status: FollowStatus.ACCEPTED },
+              },
+            },
+          },
+        ],
+      });
+    } else {
+      andFilters.push({ author: { isPrivate: false } });
+    }
+
+    const posts = await this.prisma.post.findMany({
+      where: { AND: andFilters },
+      take: limit + 1,
+      skip: after ? 1 : 0,
+      cursor: after ? { id: after } : undefined,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      include: this.postInclude(viewerId),
+    });
+
+    return posts.map((post) => this.mapPost(post, viewerId));
   }
 
   async editPost(id: string, data: Prisma.PostUpdateInput): Promise<PostWithRelations> {

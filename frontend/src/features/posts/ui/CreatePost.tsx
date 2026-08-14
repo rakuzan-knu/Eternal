@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { X } from 'lucide-react';
 import Avatar from '../../../shared/ui/Avatar';
 import { PollCreator } from './PollCreator';
@@ -6,6 +6,7 @@ import { AddFileButton } from './AddFileButton';
 import { AddEmojiButton } from '../../../shared/ui/AddEmojiButton';
 import { AddGifButton } from '../../../shared/ui/AddGifButton';
 import { AddPollButton } from './AddPollButton';
+import { MentionAutocomplete } from './MentionAutocomplete';
 import { useCurrentUser } from '@/entities/profile/model/useCurrentUser';
 import { PollOptionDraft, MediaDraft } from '../model/types';
 
@@ -23,10 +24,12 @@ export default function CreatePost({
 }) {
   const { data: currentUser } = useCurrentUser();
   const [text, setText] = useState('');
+  const [cursorPos, setCursorPos] = useState(0);
   const [media, setMedia] = useState<MediaDraft[]>([]);
   const [activeMenu, setActiveMenu] = useState<'emoji' | 'gif' | null>(null);
   const [showPoll, setShowPoll] = useState(false);
   const [pollOptions, setPollOptions] = useState<PollOptionDraft[]>(emptyPollOptions());
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const canAddMore = media.length < MAX_MEDIA;
 
@@ -45,6 +48,27 @@ export default function CreatePost({
   };
 
   const removeMedia = (idx: number) => setMedia((prev) => prev.filter((_, i) => i !== idx));
+
+  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setText(e.target.value);
+    setCursorPos(e.target.selectionStart || 0);
+  };
+
+  const handleCursorMove = (e: React.SyntheticEvent<HTMLTextAreaElement>) => {
+    const target = e.target as HTMLTextAreaElement;
+    setCursorPos(target.selectionStart || 0);
+  };
+
+  const handleMentionSelect = (newText: string, newPos: number) => {
+    setText(newText);
+    setCursorPos(newPos);
+    requestAnimationFrame(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        textareaRef.current.setSelectionRange(newPos, newPos);
+      }
+    });
+  };
 
   const handleSubmit = () => {
     if (!text.trim() && media.length === 0) return;
@@ -71,16 +95,21 @@ export default function CreatePost({
   };
 
   return (
-    <div className="w-full bg-[#111111] border border-white/[0.05] rounded-3xl p-4 flex flex-col gap-3">
+    <div className="w-full bg-[#111111] border border-white/[0.05] rounded-3xl p-4 flex flex-col gap-3 relative">
       <div className="flex gap-4 items-start">
         <Avatar size="md" src={currentUser?.avatar} />
-        <div className="flex-1 flex flex-col gap-3">
+        <div className="flex-1 flex flex-col gap-3 relative">
           <textarea
+            ref={textareaRef}
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={handleTextChange}
+            onKeyUp={handleCursorMove}
+            onClick={handleCursorMove}
             placeholder="What's new?"
             className="w-full bg-transparent resize-none text-white placeholder-gray-500 focus:outline-none text-[15px] min-h-[50px] pt-2"
           />
+
+          <MentionAutocomplete text={text} cursorPos={cursorPos} onSelect={handleMentionSelect} />
 
           {media.length > 0 && (
             <div className="grid grid-cols-3 gap-2">
@@ -122,7 +151,10 @@ export default function CreatePost({
           <AddEmojiButton
             isOpen={activeMenu === 'emoji'}
             onToggle={() => setActiveMenu((v) => (v === 'emoji' ? null : 'emoji'))}
-            onEmojiSelect={(e) => setText((p) => p + e)}
+            onEmojiSelect={(e) => {
+              setText((p) => p + e);
+              setCursorPos((p) => p + e.length);
+            }}
           />
           <AddGifButton
             isOpen={activeMenu === 'gif'}
@@ -134,7 +166,7 @@ export default function CreatePost({
         <button
           onClick={handleSubmit}
           disabled={!text.trim() && media.length === 0}
-          className="bg-white text-black font-bold px-5 py-1.5 rounded-full hover:bg-gray-200 disabled:opacity-40 transition-all text-sm"
+          className="bg-white text-black font-bold px-5 py-1.5 rounded-full hover:bg-gray-200 disabled:opacity-40 transition-all text-sm cursor-pointer"
         >
           Publish
         </button>

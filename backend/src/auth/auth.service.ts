@@ -14,6 +14,7 @@ import { randomUUID } from 'crypto';
 import type { StringValue } from 'ms';
 import { RedisService } from '../redis/redis.service';
 import { CreateUserDto } from '../users/dto/create-user.dto';
+import { RESERVED_USERNAMES } from '../users/dto/update-users.dto';
 import { UsersService } from '../users/users.service';
 import { SessionsService, type RequestMeta } from '../sessions/sessions.service';
 import { LoginDto } from './dto/login.dto';
@@ -37,6 +38,9 @@ export class AuthService {
   async checkUsername(rawUsername: string): Promise<{ isAvailable: boolean }> {
     const username = (rawUsername || '').replace(/^@+/, '').trim();
     if (!username || username.length < 2) {
+      return { isAvailable: false };
+    }
+    if (RESERVED_USERNAMES.includes(username.toLowerCase())) {
       return { isAvailable: false };
     }
     const user = await this.usersService.findByUsername(username);

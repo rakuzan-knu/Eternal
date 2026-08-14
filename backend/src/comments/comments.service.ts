@@ -58,6 +58,71 @@ export class CommentsService {
           });
         }
       }
+
+      // Check mentions in comment text
+      const rawMatches: string[] = dto.text.match(/@([a-zA-Z0-9._]{1,32})/g) ?? [];
+      const trailingPunct = new Set(['.', '_', ',', '!', '?', ':', ';']);
+      const cleanUsernames = Array.from(
+        new Set(
+          rawMatches
+            .map((m: string): string => {
+              const handle = m.startsWith('@') ? m.slice(1) : m;
+              let start = 0;
+              while (start < handle.length && (handle[start] === '.' || handle[start] === '_')) {
+                start++;
+              }
+              let end = handle.length - 1;
+              while (end >= start && trailingPunct.has(handle[end])) {
+                end--;
+              }
+              return handle.slice(start, end + 1).toLowerCase();
+            })
+            .filter((u: string) => u.length >= 2 && u.length <= 30),
+        ),
+      );
+
+      if (cleanUsernames.length > 0) {
+        const cappedUsernames = cleanUsernames.slice(0, 10);
+        const mentionedUsers = await this.prisma.user.findMany({
+          where: {
+            username: { in: cappedUsernames, mode: 'insensitive' },
+            id: { not: userId }, // Exclude self-mentions
+          },
+          select: { id: true, username: true },
+        });
+
+        // Deduplicate target users
+        const uniqueTargets = Array.from(new Map(mentionedUsers.map((u) => [u.id, u])).values());
+
+        if (uniqueTargets.length > 0) {
+          const actor = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { id: true, username: true, displayName: true, avatar: true },
+          });
+
+          if (actor) {
+            const preview = dto.text.trim();
+            const commentBody = preview.length > 50 ? `${preview.slice(0, 50)}...` : preview;
+            for (const target of uniqueTargets) {
+              if (target.id !== userId) {
+                this.gateway.emitToUser(target.id, WS_EVENTS.SOCIAL_NOTIFICATION, {
+                  type: 'MENTION',
+                  actor: {
+                    id: actor.id,
+                    username: actor.username,
+                    displayName: actor.displayName || actor.username,
+                    avatar: actor.avatar,
+                  },
+                  postId: postId,
+                  authorUsername: actor.username,
+                  commentText: dto.text,
+                  message: `mentioned you in a comment: "${commentBody}"`,
+                });
+              }
+            }
+          }
+        }
+      }
     } catch {
       // Non-blocking notification
     }

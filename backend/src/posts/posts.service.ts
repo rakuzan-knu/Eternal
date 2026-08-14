@@ -116,8 +116,116 @@ export class PostsService {
           : undefined,
     });
 
+    // Check mentions in content and emit notifications
+    try {
+      const rawMatches: string[] = dto.content.match(/@([a-zA-Z0-9._]{1,32})/g) ?? [];
+      const trailingPunct = new Set(['.', '_', ',', '!', '?', ':', ';']);
+      const cleanUsernames = Array.from(
+        new Set(
+          rawMatches
+            .map((m: string): string => {
+              const handle = m.startsWith('@') ? m.slice(1) : m;
+              let start = 0;
+              while (start < handle.length && (handle[start] === '.' || handle[start] === '_')) {
+                start++;
+              }
+              let end = handle.length - 1;
+              while (end >= start && trailingPunct.has(handle[end])) {
+                end--;
+              }
+              return handle.slice(start, end + 1).toLowerCase();
+            })
+            .filter((u: string) => u.length >= 2 && u.length <= 30),
+        ),
+      );
+
+      if (cleanUsernames.length > 0) {
+        // Cap to at most 10 mentions to prevent notification spam
+        const cappedUsernames = cleanUsernames.slice(0, 10);
+        const mentionedUsers = await this.prisma.user.findMany({
+          where: {
+            username: { in: cappedUsernames, mode: 'insensitive' },
+            id: { not: authorId }, // Exclude self-mentions
+          },
+          select: { id: true, username: true },
+        });
+
+        // Deduplicate target users
+        const uniqueTargets = Array.from(new Map(mentionedUsers.map((u) => [u.id, u])).values());
+
+        if (uniqueTargets.length > 0) {
+          const actor = await this.prisma.user.findUnique({
+            where: { id: authorId },
+            select: { id: true, username: true, displayName: true, avatar: true },
+          });
+
+          if (actor) {
+            const preview = dto.content.trim();
+            const postBody = preview.length > 60 ? `${preview.slice(0, 60)}...` : preview;
+            for (const target of uniqueTargets) {
+              if (target.id !== authorId) {
+                this.gateway.emitToUser(target.id, WS_EVENTS.SOCIAL_NOTIFICATION, {
+                  type: 'MENTION',
+                  actor: {
+                    id: actor.id,
+                    username: actor.username,
+                    displayName: actor.displayName || actor.username,
+                    avatar: actor.avatar,
+                  },
+                  postId: post.id,
+                  authorUsername: actor.username,
+                  message: `mentioned you in a post: "${postBody}"`,
+                });
+              }
+            }
+          }
+        }
+      }
+    } catch {
+      // Non-blocking notification
+    }
+
     await this.invalidateFeedAndPost();
     return PostResponseDto.fromPrisma(post);
+  }
+
+  async searchPosts(
+    query: string,
+    limit: number,
+    after?: string,
+    viewerId?: string,
+    mediaOnly?: boolean,
+  ): Promise<Paginated<PostResponseDto>> {
+    const posts = await this.postsRepository.searchPosts(query, limit, after, viewerId, mediaOnly);
+    return paginate(posts, limit, PostResponseDto.fromPrisma);
+  }
+
+  async getExplorePosts(
+    limit: number,
+    after?: string,
+    viewerId?: string,
+  ): Promise<Paginated<PostResponseDto>> {
+    const posts = await this.postsRepository.getExploreMediaPosts(limit, after, viewerId);
+    return paginate(posts, limit, PostResponseDto.fromPrisma);
+  }
+
+  async getPostsByHashtag(
+    hashtag: string,
+    limit: number,
+    after?: string,
+    viewerId?: string,
+  ): Promise<Paginated<PostResponseDto> & { totalCount: number }> {
+    const { posts, totalCount } = await this.postsRepository.getPostsByHashtag(
+      hashtag,
+      limit,
+      after,
+      viewerId,
+    );
+    const paginated = paginate(posts, limit, PostResponseDto.fromPrisma);
+    return {
+      ...paginated,
+      totalCount,
+    };
   }
 
   async editPost(id: string, dto: EditPostDto, userId: string): Promise<PostResponseDto> {

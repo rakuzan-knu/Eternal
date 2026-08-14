@@ -1,5 +1,7 @@
+import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, expect, it } from 'vitest';
 import { CommentItem } from '../CommentItem';
 import { CommentType } from '../../../../shared/model/useUIStore';
@@ -12,13 +14,20 @@ const baseComment: CommentType = {
   time: '2h',
 };
 
+function renderWithClient(ui: React.ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>{ui}</MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
+
 describe('CommentItem', () => {
   it('renders author, handle, time and text', () => {
-    render(
-      <MemoryRouter>
-        <CommentItem comment={baseComment} />
-      </MemoryRouter>,
-    );
+    renderWithClient(<CommentItem comment={baseComment} />);
 
     expect(screen.getByText('Ayate')).toBeInTheDocument();
     expect(screen.getByText('@ayate • 2h')).toBeInTheDocument();
@@ -28,21 +37,13 @@ describe('CommentItem', () => {
   it('renders custom avatar image when src is provided', () => {
     const comment: CommentType = { ...baseComment, avatar: 'https://example.com/avatar.png' };
 
-    render(
-      <MemoryRouter>
-        <CommentItem comment={comment} />
-      </MemoryRouter>,
-    );
+    renderWithClient(<CommentItem comment={comment} />);
 
     expect(screen.getByRole('img')).toHaveAttribute('src', 'https://example.com/avatar.png');
   });
 
   it('falls back to default svg placeholder avatar when none is provided', () => {
-    const { container } = render(
-      <MemoryRouter>
-        <CommentItem comment={baseComment} />
-      </MemoryRouter>,
-    );
+    const { container } = renderWithClient(<CommentItem comment={baseComment} />);
 
     expect(container.querySelector('svg')).toBeInTheDocument();
   });
@@ -50,11 +51,7 @@ describe('CommentItem', () => {
   it('renders an empty comment text without crashing', () => {
     const comment: CommentType = { ...baseComment, text: '' };
 
-    render(
-      <MemoryRouter>
-        <CommentItem comment={comment} />
-      </MemoryRouter>,
-    );
+    renderWithClient(<CommentItem comment={comment} />);
 
     expect(screen.getByText('Ayate')).toBeInTheDocument();
   });

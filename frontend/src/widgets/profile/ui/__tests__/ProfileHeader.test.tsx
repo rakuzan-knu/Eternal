@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import ProfileHeader from '../ProfileHeader';
 
@@ -20,13 +21,21 @@ const defaultProps = {
   onEditClick: vi.fn(),
 };
 
+function renderHeader(props = {}) {
+  return render(
+    <MemoryRouter>
+      <ProfileHeader {...defaultProps} {...props} />
+    </MemoryRouter>,
+  );
+}
+
 describe('ProfileHeader', () => {
   afterEach(() => {
     vi.clearAllMocks();
   });
 
   it('renders the username with an @ prefix', () => {
-    render(<ProfileHeader {...defaultProps} />);
+    renderHeader();
 
     expect(screen.getByText('@ayate')).toBeInTheDocument();
   });
@@ -34,7 +43,7 @@ describe('ProfileHeader', () => {
   it('calls onEditClick exactly once when the edit button is clicked', async () => {
     const onEditClick = vi.fn();
     const user = userEvent.setup();
-    render(<ProfileHeader {...defaultProps} onEditClick={onEditClick} />);
+    renderHeader({ onEditClick });
 
     await user.click(screen.getByText('Edit'));
 
@@ -43,7 +52,7 @@ describe('ProfileHeader', () => {
 
   it('opens the followers list when the followers count is clicked', async () => {
     const user = userEvent.setup();
-    render(<ProfileHeader {...defaultProps} followersCount={12} />);
+    renderHeader({ followersCount: 12 });
 
     await user.click(screen.getByText(/followers/i));
 
@@ -52,7 +61,7 @@ describe('ProfileHeader', () => {
 
   it('opens the following list when the following count is clicked', async () => {
     const user = userEvent.setup();
-    render(<ProfileHeader {...defaultProps} followingCount={8} />);
+    renderHeader({ followingCount: 8 });
 
     await user.click(screen.getByText(/following/i));
 
@@ -62,7 +71,7 @@ describe('ProfileHeader', () => {
   it('does not call onEditClick when only the followers count is clicked', async () => {
     const onEditClick = vi.fn();
     const user = userEvent.setup();
-    render(<ProfileHeader {...defaultProps} onEditClick={onEditClick} followersCount={12} />);
+    renderHeader({ onEditClick, followersCount: 12 });
 
     await user.click(screen.getByText(/followers/i));
 

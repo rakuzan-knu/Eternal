@@ -47,6 +47,49 @@ export class PostsController {
     return this.postsService.getAllPosts(query.limit, query.after, user?.id);
   }
 
+  @Get('explore')
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get explore media posts (images and videos)' })
+  @ApiResponse({ status: 200, description: 'Explore media posts retrieved successfully.' })
+  getExplorePosts(@Query() query: GetPostsQueryDto, @CurrentUser() user?: RequestUser) {
+    return this.postsService.getExplorePosts(query.limit ?? 9, query.after, user?.id);
+  }
+
+  @Get('hashtag/:tag')
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get posts by hashtag' })
+  @ApiResponse({ status: 200, description: 'Hashtag posts retrieved successfully.' })
+  getPostsByHashtag(
+    @Param('tag') tag: string,
+    @Query() query: GetPostsQueryDto,
+    @CurrentUser() user?: RequestUser,
+  ) {
+    return this.postsService.getPostsByHashtag(tag, query.limit ?? 10, query.after, user?.id);
+  }
+
+  @Get('search')
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Search posts by text query' })
+  @ApiResponse({ status: 200, description: 'Posts matching query retrieved successfully.' })
+  searchPosts(
+    @Query('q') q: string,
+    @Query('mediaOnly') mediaOnly?: string,
+    @Query() query?: GetPostsQueryDto,
+    @CurrentUser() user?: RequestUser,
+  ) {
+    const safeQuery = typeof q === 'string' ? q : '';
+    return this.postsService.searchPosts(
+      safeQuery,
+      query?.limit ?? 10,
+      query?.after,
+      user?.id,
+      mediaOnly === 'true',
+    );
+  }
+
   @Get(':id')
   @UseGuards(OptionalJwtAuthGuard)
   @ApiBearerAuth()

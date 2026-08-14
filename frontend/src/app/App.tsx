@@ -13,6 +13,7 @@ import { useAuthStore } from '../shared/model/useAuthStore';
 const FeedPage = lazy(() => import('../pages/Feed/Feed'));
 const ProfilePage = lazy(() => import('../pages/Profile/Profile'));
 const MessengerPage = lazy(() => import('../pages/Chat/Messenger'));
+const SearchPage = lazy(() => import('../pages/Search/SearchPage'));
 const LoginPage = lazy(() =>
   import('../pages/Login/LoginPage').then((m) => ({ default: m.LoginPage })),
 );
@@ -42,29 +43,31 @@ function CenteredPage({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  const { isAuthenticated } = useAuthStore();
   const isSidebarExpanded = useUIStore((state) => state.isSidebarExpanded);
   const location = useLocation();
-  const isMessengerRoute = location.pathname.startsWith('/messages');
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   if (!isAuthenticated) {
     return (
-      <Suspense fallback={<PageFallback />}>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
-      </Suspense>
+      <div className="relative min-h-screen bg-[#070709] text-white">
+        <Suspense fallback={<PageFallback />}>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+        </Suspense>
+      </div>
     );
   }
 
+  const isMessengerRoute = location.pathname.startsWith('/messages');
+
   return (
     <DeviceLockGate>
-      <div className="flex min-h-screen overflow-x-hidden bg-[#0b0b0c] font-sans text-gray-200 antialiased">
-        {!isMessengerRoute && <Sidebar />}
-
+      <div className="relative min-h-screen bg-[#070709] text-white">
+        <Sidebar />
         <EditProfileModal />
         <ShareModal />
         {!isMessengerRoute && <MessageToastViewport />}
@@ -89,7 +92,24 @@ export default function App() {
                 }
               />
               <Route
-                path="/:username"
+                path="/feed"
+                element={
+                  <CenteredPage>
+                    <FeedPage />
+                  </CenteredPage>
+                }
+              />
+
+              <Route
+                path="/profile"
+                element={
+                  <CenteredPage>
+                    <ProfilePage />
+                  </CenteredPage>
+                }
+              />
+              <Route
+                path="/profile/:username"
                 element={
                   <CenteredPage>
                     <ProfilePage />
@@ -101,12 +121,19 @@ export default function App() {
                 path="/search"
                 element={
                   <CenteredPage>
-                    <div className="animate-fadeIn py-20 text-center text-gray-500">
-                      Search page under development...
-                    </div>
+                    <SearchPage />
                   </CenteredPage>
                 }
               />
+              <Route
+                path="/explore"
+                element={
+                  <CenteredPage>
+                    <SearchPage />
+                  </CenteredPage>
+                }
+              />
+
               <Route
                 path="/reels"
                 element={
@@ -135,12 +162,21 @@ export default function App() {
                 path="/create"
                 element={
                   <CenteredPage>
-                    <div className="animate-fadeIn py-20 text-center text-gray-500">
-                      Quickly create a publication...
-                    </div>
+                    <FeedPage />
                   </CenteredPage>
                 }
               />
+
+              <Route
+                path="/:username"
+                element={
+                  <CenteredPage>
+                    <ProfilePage />
+                  </CenteredPage>
+                }
+              />
+
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
         </main>

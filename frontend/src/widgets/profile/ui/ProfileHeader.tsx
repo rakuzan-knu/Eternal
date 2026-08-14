@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Calendar, Edit3 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Calendar, Edit3, MessageSquare } from 'lucide-react';
 import Avatar from '../../../shared/ui/Avatar';
 import Banner from '../../../shared/ui/Banner';
 import { FollowButton } from '@/features/follow/ui/FollowButton';
@@ -7,6 +8,7 @@ import { UserListModal } from '@/features/follow/ui/UserListModal';
 import { UserNameWithBadges } from '@/entities/profile/ui/UserNameWithBadges';
 import BadgeList from '@/features/profile/ui/BadgeList';
 import { getBadgeById, Badge } from '@/entities/profile/model/badges';
+import { chatApi } from '@/features/chat/api/chatApi';
 
 interface ProfileHeaderProps {
   userId: string;
@@ -61,7 +63,25 @@ export default function ProfileHeader({
   followingCount = 0,
   onEditClick,
 }: ProfileHeaderProps) {
+  const navigate = useNavigate();
   const [openList, setOpenList] = useState<'followers' | 'following' | null>(null);
+  const [isStartingChat, setIsStartingChat] = useState(false);
+
+  const handleStartChat = async () => {
+    try {
+      setIsStartingChat(true);
+      const conv = await chatApi.createDirectConversation(userId);
+      if (conv?.id) {
+        navigate(`/messages/${conv.id}`);
+      } else {
+        navigate('/messages');
+      }
+    } catch {
+      navigate('/messages');
+    } finally {
+      setIsStartingChat(false);
+    }
+  };
 
   const mappedBadges: Badge[] =
     badges && badges.length > 0
@@ -81,7 +101,7 @@ export default function ProfileHeader({
           </div>
         </div>
 
-        <div className="flex justify-end pt-4">
+        <div className="flex items-center gap-2 justify-end pt-4">
           {isOwnProfile ? (
             <button
               onClick={onEditClick}
@@ -90,7 +110,18 @@ export default function ProfileHeader({
               <Edit3 size={14} /> Edit
             </button>
           ) : (
-            <FollowButton authorId={userId} isFollowing={!!isFollowing} />
+            <>
+              <button
+                type="button"
+                onClick={handleStartChat}
+                disabled={isStartingChat}
+                className="flex items-center gap-1.5 bg-white/[0.07] hover:bg-white/[0.12] border border-white/[0.08] text-white font-semibold text-xs px-4 py-2 rounded-xl transition-all duration-200 cursor-pointer disabled:opacity-50"
+              >
+                <MessageSquare size={14} />
+                <span>Message</span>
+              </button>
+              <FollowButton authorId={userId} isFollowing={!!isFollowing} />
+            </>
           )}
         </div>
 

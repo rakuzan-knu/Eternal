@@ -111,6 +111,24 @@ export class UserProfileDto {
   followsYou?: boolean;
 
   @ApiPropertyOptional({
+    example: 0,
+    description: 'Number of accepted followers',
+  })
+  followersCount?: number;
+
+  @ApiPropertyOptional({
+    example: 0,
+    description: 'Number of posts published by this user',
+  })
+  postsCount?: number;
+
+  @ApiPropertyOptional({
+    example: 0,
+    description: 'Number of users this profile is following',
+  })
+  followingCount?: number;
+
+  @ApiPropertyOptional({
     example: 'Best Friend',
     description: 'Private custom alias set by the viewer for this target user',
   })

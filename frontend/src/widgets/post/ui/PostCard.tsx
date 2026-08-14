@@ -17,6 +17,7 @@ import { useRepostMutation } from '@/features/posts/model/useRepostMutation';
 import { useSavePostMutation } from '@/features/posts/model/useSavePostMutation';
 import { formatRelativeTime } from '@/shared/lib/formatRelativeTime';
 import { UserNameWithBadges } from '@/entities/profile/ui/UserNameWithBadges';
+import { MiniProfileHoverCard } from '@/entities/profile/ui/MiniProfileHoverCard';
 
 interface PostCardProps {
   post: PostType;
@@ -79,21 +80,25 @@ export function PostCard({ post, queryKey }: PostCardProps) {
         </div>
       )}
       <div className="flex gap-4 items-start">
-        <Link to={`/profile/${post.handle}`}>
-          <Avatar size="md" src={post.avatar} />
-        </Link>
+        <MiniProfileHoverCard username={post.handle}>
+          <Link to={`/profile/${post.handle}`}>
+            <Avatar size="md" src={post.avatar} />
+          </Link>
+        </MiniProfileHoverCard>
         <div className="flex flex-col flex-1 gap-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
-              <Link to={`/profile/${post.handle}`} className="hover:underline">
-                <UserNameWithBadges
-                  displayName={post.author}
-                  username={post.handle}
-                  isVerified={post.isVerified}
-                  primaryBadge={post.primaryBadge}
-                  size="sm"
-                />
-              </Link>
+              <MiniProfileHoverCard username={post.handle}>
+                <Link to={`/profile/${post.handle}`} className="hover:underline inline-block">
+                  <UserNameWithBadges
+                    displayName={post.author}
+                    username={post.handle}
+                    isVerified={post.isVerified}
+                    primaryBadge={post.primaryBadge}
+                    size="sm"
+                  />
+                </Link>
+              </MiniProfileHoverCard>
               <span className="text-xs text-gray-500 shrink-0">
                 @{post.handle} • {formatRelativeTime(post.createdAt)}
               </span>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { useUIStore } from '../../shared/model/useUIStore';
 import { useUserByUsername } from '../../entities/profile/model/useUserByUsername';
+import { useCurrentUser } from '../../entities/profile/model/useCurrentUser';
 import { useAuthStore } from '../../shared/model/useAuthStore';
 import { useUserReposts } from '../../entities/post/model/useUserReposts';
 import { useCreatePost } from '@/features/posts/model/useCreatePost';
@@ -14,6 +15,7 @@ import { PostCard } from '@/widgets/post/ui/PostCard';
 import { CommentModal } from '../../features/comment/ui/CommentModal';
 import { SkeletonFeed } from '../../entities/post/ui/SkeletonPostCard';
 import { SavedPostsView } from '@/features/profile/ui/saved/SavedPostsView';
+import { RESERVED_USERNAMES } from '@/features/profile/model/profileSchema';
 
 function SkeletonProfileHeader() {
   return (
@@ -32,13 +34,22 @@ function SkeletonProfileHeader() {
 }
 
 export default function ProfilePage() {
-  const { username } = useParams();
+  const { username: rawUsername } = useParams();
+  const { data: currentUser } = useCurrentUser();
   const { userId: myUserId } = useAuthStore();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const effectiveUsername = username || 'my_profile';
+  const isReserved = !!rawUsername && RESERVED_USERNAMES.includes(rawUsername.toLowerCase());
+
+  const effectiveUsername = isReserved
+    ? '__reserved__'
+    : rawUsername || currentUser?.username || 'my_profile';
+
   const { data: user, isLoading, error } = useUserByUsername(effectiveUsername);
-  const isOwnProfile = Boolean(user && user.id === myUserId);
+
+  const isOwnProfile = Boolean(
+    user && (user.id === myUserId || user.username === currentUser?.username),
+  );
 
   const tabParam = searchParams.get('tab') as ProfileTabType | null;
   const [localTab, setLocalTab] = useState<ProfileTabType>('posts');
@@ -70,6 +81,23 @@ export default function ProfilePage() {
       }, 100);
     }
   }, [postsQuery.isLoading]);
+
+  if (isReserved) {
+    return (
+      <div className="w-full min-h-[450px] flex flex-col items-center justify-center bg-white/[0.02] backdrop-blur-2xl border border-white/[0.05] rounded-[2.5rem] p-8 text-center shadow-[0_12px_40px_rgba(0,0,0,0.6)] animate-fadeIn">
+        <h3 className="text-lg font-bold text-white mb-2">Page Not Found</h3>
+        <p className="text-xs text-gray-500 max-w-xs mb-6">
+          The requested system page or profile does not exist.
+        </p>
+        <Link
+          to="/"
+          className="flex items-center gap-2 bg-white/[0.07] hover:bg-white/[0.12] border border-white/[0.08] text-white font-medium text-xs px-5 py-3 rounded-xl transition-all duration-200"
+        >
+          Return to Feed
+        </Link>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -115,14 +143,20 @@ export default function ProfilePage() {
           to="/"
           className="flex items-center gap-2 bg-white/[0.07] hover:bg-white/[0.12] border border-white/[0.08] text-white font-medium text-xs px-5 py-3 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-lg"
         >
-          Here's the link to the Home Page
+          Return to Feed
         </Link>
       </div>
     );
   }
 
-  const posts = postsQuery.data?.pages.flatMap((p) => p.posts) ?? [];
-  const reposts = repostsQuery.data?.pages.flatMap((p) => p.posts) ?? [];
+  const posts =
+    postsQuery.data?.pages
+      ?.flatMap((p) => (Array.isArray(p?.posts) ? p.posts : []))
+      .filter(Boolean) ?? [];
+  const reposts =
+    repostsQuery.data?.pages
+      ?.flatMap((p) => (Array.isArray(p?.posts) ? p.posts : []))
+      .filter(Boolean) ?? [];
 
   const activeFeed = activeTab === 'posts' ? posts : reposts;
   const activeQuery = activeTab === 'posts' ? postsQuery : repostsQuery;

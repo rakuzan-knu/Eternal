@@ -37,6 +37,81 @@ export class UsersController {
     private readonly postsService: PostsService,
   ) {}
 
+  @Get('search')
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Search users by username or display name' })
+  @ApiResponse({ status: 200, description: 'Matching users retrieved', type: [UserProfileDto] })
+  searchUsers(
+    @Query('q') q: string,
+    @CurrentUser() viewer?: RequestUser,
+  ): Promise<UserProfileDto[]> {
+    const safeQuery = typeof q === 'string' ? q : '';
+    return this.usersService.searchUsers(safeQuery, viewer?.id ?? null);
+  }
+
+  @Get('mention-suggestions')
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Get smart mention suggestions prioritized by mutuals, follows and chats',
+  })
+  @ApiResponse({ status: 200, description: 'Matching users retrieved', type: [UserProfileDto] })
+  searchMentionSuggestions(
+    @Query('q') q: string,
+    @CurrentUser() viewer?: RequestUser,
+  ): Promise<UserProfileDto[]> {
+    const safeQuery = typeof q === 'string' ? q : '';
+    return this.usersService.searchMentionSuggestions(safeQuery, viewer?.id ?? null);
+  }
+
+  @Get('top')
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get top creators sorted by follower count' })
+  @ApiResponse({ status: 200, description: 'Top users retrieved', type: [UserProfileDto] })
+  getTopUsers(
+    @Query('limit') limit?: string,
+    @CurrentUser() viewer?: RequestUser,
+  ): Promise<UserProfileDto[]> {
+    return this.usersService.getTopFollowedUsers(
+      limit ? parseInt(limit, 10) : 5,
+      viewer?.id ?? null,
+    );
+  }
+
+  @Get('suggested')
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get suggested users for viewer' })
+  @ApiResponse({ status: 200, description: 'Suggested users retrieved', type: [UserProfileDto] })
+  getSuggestedUsers(
+    @Query('limit') limit?: string,
+    @CurrentUser() viewer?: RequestUser,
+  ): Promise<UserProfileDto[]> {
+    return this.usersService.getSuggestedUsers(viewer?.id ?? null, limit ? parseInt(limit, 10) : 5);
+  }
+
+  @Get('hashtags')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Search hashtags' })
+  @ApiResponse({ status: 200, description: 'Matching hashtags with post counts' })
+  searchHashtags(@Query('q') q: string): Promise<{ tag: string; count: number }[]> {
+    return this.usersService.searchHashtags(q || '');
+  }
+
+  @Get('trending-hashtags')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get trending hashtags from recent posts' })
+  @ApiResponse({ status: 200, description: 'Trending hashtags retrieved' })
+  getTrendingHashtags(@Query('limit') limit?: string): Promise<{ tag: string; count: number }[]> {
+    return this.usersService.getTrendingHashtags(limit ? parseInt(limit, 10) : 6);
+  }
+
   @Get('by-username/:username')
   @UseGuards(OptionalJwtAuthGuard)
   @ApiBearerAuth()

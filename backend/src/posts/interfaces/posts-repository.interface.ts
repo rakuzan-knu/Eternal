@@ -24,6 +24,24 @@ export interface IPostRepository {
     limit: number,
     after?: string,
   ): Promise<PostWithRelations[]>;
+  getExploreMediaPosts(
+    limit: number,
+    after?: string,
+    viewerId?: string,
+  ): Promise<PostWithRelations[]>;
+  getPostsByHashtag(
+    hashtag: string,
+    limit: number,
+    after?: string,
+    viewerId?: string,
+  ): Promise<{ posts: PostWithRelations[]; totalCount: number }>;
+  searchPosts(
+    query: string,
+    limit: number,
+    after?: string,
+    viewerId?: string,
+    mediaOnly?: boolean,
+  ): Promise<PostWithRelations[]>;
   editPost(id: string, data: Prisma.PostUpdateInput): Promise<PostWithRelations>;
   deletePost(id: string): Promise<Post>;
   savePost(postId: string, userId: string): Promise<void>;
