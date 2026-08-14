@@ -6,6 +6,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -84,6 +85,8 @@ model Post {
   savedPosts SavedPost[]
   reports    Report[]
   poll       Poll?
+
+  @@index([authorId])
 }
 
 model PostMedia {
@@ -141,6 +144,7 @@ model Like {
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([postId, userId])
+  @@index([userId])
 }
 
 model Follow {
@@ -176,6 +180,7 @@ model Comment {
 
   @@index([postId])
   @@index([parentId])
+  @@index([userId])
 }
 
 model Conversation {
