@@ -1,9 +1,8 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PrismaModule } from '../prisma/prisma.module';
 import { UsersModule } from '../users/users.module';
-import { AuthModule } from '../auth/auth.module';
 
 import { ConversationsController } from './conversations/conversations.controller';
 import { ConversationsService } from './conversations/conversations.service';
@@ -21,7 +20,7 @@ import { AutoDeleteService } from './auto-delete/auto-delete.service';
 import { autoDeleteS3Provider } from './auto-delete/s3-provider';
 
 @Module({
-  imports: [PrismaModule, UsersModule, AuthModule, ConfigModule, JwtModule.register({})],
+  imports: [PrismaModule, forwardRef(() => UsersModule), ConfigModule, JwtModule.register({})],
   controllers: [ConversationsController, MessagesController],
   providers: [
     {

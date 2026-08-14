@@ -7,7 +7,7 @@
   },
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --force",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint . --ignore-pattern \"storybook-static\" --cache --cache-location .eslintcache",

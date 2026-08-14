@@ -30,7 +30,14 @@ const privacy = {
 };
 
 export const profileHandlers = [
-  http.get(`${API_URL}/auth/check-username`, () => HttpResponse.json({ isAvailable: true })),
+  http.get(`${API_URL}/auth/check-username`, ({ request }) => {
+    const url = new URL(request.url);
+    const username = url.searchParams.get('username');
+    if (username && username.includes('taken')) {
+      return HttpResponse.json({ isAvailable: false });
+    }
+    return HttpResponse.json({ isAvailable: true });
+  }),
 
   http.get(`${API_URL}/users/me/privacy`, () => HttpResponse.json(privacy)),
 
@@ -40,7 +47,14 @@ export const profileHandlers = [
     HttpResponse.json({ data: [], meta: { nextCursor: null, hasNextPage: false } }),
   ),
 
-  http.get(`${API_URL}/auth/sessions`, () => HttpResponse.json([])),
+  http.get(`${API_URL}/users/by-username/:username`, ({ params }) => {
+    const username = params.username as string;
+    return HttpResponse.json({
+      ...profile,
+      username,
+      displayName: username === 'kolya_dev' ? 'Kolya' : profile.displayName,
+    });
+  }),
 
   http.get(`${API_URL}/users/:id`, () => HttpResponse.json(profile)),
 
@@ -49,4 +63,8 @@ export const profileHandlers = [
 
   http.delete('/api/users/:id', () => HttpResponse.json({ success: true })),
   http.delete(`${API_URL}/users/:id`, () => HttpResponse.json({ success: true })),
+
+  http.get('https://api.github.com/repos/rakuzan-knu/social-network/pulls', () =>
+    HttpResponse.json([]),
+  ),
 ];

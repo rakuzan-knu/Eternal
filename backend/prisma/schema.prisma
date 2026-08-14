@@ -19,6 +19,11 @@ model User {
   banner           String?
   bannerPosition   Int              @default(50)
   isPrivate        Boolean          @default(false)
+  isVerified       Boolean          @default(false) @map("is_verified")
+  primaryBadge     String?          @map("primary_badge")
+  githubId         String?          @unique @map("github_id")
+  githubUsername   String?          @map("github_username")
+  mergedPrsCount   Int              @default(0) @map("merged_prs_count")
   birthDate        DateTime?
   lastSeenAt       DateTime?
   autoDeletePeriod AutoDeletePeriod @default(OFF)
@@ -42,29 +47,43 @@ model User {
   privacyExceptions        PrivacyException[]        @relation("PrivacyOwner")
   privacyTargetedBy        PrivacyException[]        @relation("PrivacyTarget")
   sessions                 Session[]
-  polls Poll[] @relation("CreatedPolls")
-  votes Vote[]
-  reposts Repost[]
-  savedPosts SavedPost[]
-  aliasesCreated UserAlias[] @relation("AliasOwner")
-  aliasesTargeted UserAlias[] @relation("AliasTarget")
+  polls                    Poll[]                    @relation("CreatedPolls")
+  votes                    Vote[]
+  badges                   UserBadge[]
+  reposts                  Repost[]
+  savedPosts               SavedPost[]
+  aliasesCreated           UserAlias[]               @relation("AliasOwner")
+  aliasesTargeted          UserAlias[]               @relation("AliasTarget")
+}
+
+model UserBadge {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  badgeId   String   @map("badge_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+  @@map("user_badges")
 }
 
 model Post {
-  id        String   @id @default(uuid())
-  content   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String      @id @default(uuid())
+  content     String
+  sharesCount Int         @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
-  author   User        @relation(fields: [authorId], references: [id])
-  authorId String
-  media    PostMedia[]
-  likes    Like[]
-  comments Comment[]
-  reposts  Repost[]
-  savedBy  SavedPost[]
-  reports  Report[]
-  poll     Poll?
+  author     User        @relation(fields: [authorId], references: [id])
+  authorId   String
+  media      PostMedia[]
+  likes      Like[]
+  comments   Comment[]
+  reposts    Repost[]
+  savedPosts SavedPost[]
+  reports    Report[]
+  poll       Poll?
 }
 
 model PostMedia {
@@ -529,4 +548,3 @@ model UserAlias {
   @@index([ownerId])
   @@map("user_aliases")
 }
-

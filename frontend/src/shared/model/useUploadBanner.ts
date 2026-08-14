@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { USER_KEY } from '@/shared/api/queryKeys';
+import { apiClient } from '@/shared/api/httpClient';
 
 interface UploadBannerPayload {
   userId: string;
@@ -16,21 +17,11 @@ export function useUploadBanner() {
       formData.append('file', file);
       formData.append('bannerPosition', positionY.toString());
 
-      const token = localStorage.getItem('accessToken');
-
-      const response = await fetch(`/api/users/${userId}/banner`, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const response = await apiClient.post(`/users/${userId}/banner`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to load banner');
-      }
-
-      return response.json();
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [USER_KEY] });

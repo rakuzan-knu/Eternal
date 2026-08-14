@@ -12,6 +12,10 @@ export interface NotificationSettingsState {
   privateChats: boolean;
   groups: boolean;
   reactions: boolean;
+  likes: boolean;
+  comments: boolean;
+  reposts: boolean;
+  followers: boolean;
   toastPosition: NotificationPosition;
   maxToasts: number; // 1 to 5
 
@@ -23,6 +27,10 @@ export interface NotificationSettingsState {
   setPrivateChats: (val: boolean) => void;
   setGroups: (val: boolean) => void;
   setReactions: (val: boolean) => void;
+  setLikes: (val: boolean) => void;
+  setComments: (val: boolean) => void;
+  setReposts: (val: boolean) => void;
+  setFollowers: (val: boolean) => void;
   setToastPosition: (pos: NotificationPosition) => void;
   setMaxToasts: (count: number) => void;
 }
@@ -38,6 +46,10 @@ export const useNotificationSettingsStore = create<NotificationSettingsState>()(
       privateChats: true,
       groups: true,
       reactions: true,
+      likes: true,
+      comments: true,
+      reposts: true,
+      followers: true,
       toastPosition: 'bottom-right',
       maxToasts: 3,
 
@@ -64,6 +76,10 @@ export const useNotificationSettingsStore = create<NotificationSettingsState>()(
       setPrivateChats: (privateChats) => set({ privateChats }),
       setGroups: (groups) => set({ groups }),
       setReactions: (reactions) => set({ reactions }),
+      setLikes: (likes) => set({ likes }),
+      setComments: (comments) => set({ comments }),
+      setReposts: (reposts) => set({ reposts }),
+      setFollowers: (followers) => set({ followers }),
       setToastPosition: (toastPosition) => set({ toastPosition }),
       setMaxToasts: (maxToasts) => set({ maxToasts: Math.max(1, Math.min(5, maxToasts)) }),
     }),

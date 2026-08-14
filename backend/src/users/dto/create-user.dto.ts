@@ -3,16 +3,19 @@ export class CreateUserDto {
   readonly username: string;
   readonly passwordHash: string;
   readonly displayName?: string;
+  readonly birthDate?: Date | null;
 
   constructor(props: {
     email: string;
     username: string;
     passwordHash: string;
     displayName?: string;
+    birthDate?: Date | null;
   }) {
     this.email = props.email;
     this.username = props.username;
     this.passwordHash = props.passwordHash;
     this.displayName = props.displayName;
+    this.birthDate = props.birthDate;
   }
 }

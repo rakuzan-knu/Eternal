@@ -30,5 +30,4 @@ jobs:
       - name: Execute Automated Failover Drill
         run: node scripts/execute-dr-failover.cjs --dry-run
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+          DR_MODE: 'offline_verification'

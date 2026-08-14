@@ -22,10 +22,10 @@ class MockFileReader {
 }
 
 function getTextarea() {
-  return screen.getByPlaceholderText('Що нового?');
+  return screen.getByPlaceholderText("What's new?");
 }
 function getPublishButton() {
-  return screen.getByText('Опублікувати');
+  return screen.getByRole('button', { name: 'Publish' });
 }
 function formDataEntries(fd: FormData) {
   const entries: Record<string, FormDataEntryValue[]> = {};
@@ -125,7 +125,7 @@ describe('CreatePost', () => {
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     await user.upload(fileInput, new File(['content'], 'photo.png', { type: 'image/png' }));
 
-    await user.click(screen.getByTitle('Додати GIF'));
+    await user.click(screen.getByTitle('Add GIF'));
 
     await user.click(screen.getAllByRole('img', { name: 'gif' })[0]);
 
@@ -135,10 +135,10 @@ describe('CreatePost', () => {
   it('opening the emoji menu closes an already-open gif menu (single active menu)', async () => {
     renderCreatePost();
     const user = userEvent.setup();
-    await user.click(screen.getByTitle('Додати GIF'));
+    await user.click(screen.getByTitle('Add GIF'));
     expect(screen.getAllByRole('img', { name: 'gif' }).length).toBeGreaterThan(0);
 
-    await user.click(screen.getByTitle('Додати емодзі'));
+    await user.click(screen.getByTitle('Add Emoji'));
 
     expect(screen.queryAllByRole('img', { name: 'gif' })).toHaveLength(0);
     expect(await screen.findByTestId('mock-emoji-picker')).toBeInTheDocument();
@@ -148,7 +148,7 @@ describe('CreatePost', () => {
     renderCreatePost();
     const user = userEvent.setup();
 
-    await user.click(screen.getByTitle('Додати емодзі'));
+    await user.click(screen.getByTitle('Add Emoji'));
     await user.click(await screen.findByTestId('mock-emoji-picker'));
 
     expect(getTextarea()).toHaveValue('😀');
@@ -158,9 +158,9 @@ describe('CreatePost', () => {
     const onSubmitFormData = renderCreatePost();
     const user = userEvent.setup();
 
-    await user.click(screen.getByTitle('Створити опитування'));
-    await user.type(screen.getByPlaceholderText('Варіант 1'), 'Cats');
-    await user.type(screen.getByPlaceholderText('Варіант 2'), 'Dogs');
+    await user.click(screen.getByTitle('Create poll'));
+    await user.type(screen.getByPlaceholderText('Variant 1'), 'Cats');
+    await user.type(screen.getByPlaceholderText('Variant 2'), 'Dogs');
     await user.type(getTextarea(), 'Vote now');
     await user.click(getPublishButton());
 
@@ -171,22 +171,22 @@ describe('CreatePost', () => {
   it('adds a third poll option via the "add option" control', async () => {
     renderCreatePost();
     const user = userEvent.setup();
-    await user.click(screen.getByTitle('Створити опитування'));
-    expect(screen.queryByPlaceholderText('Варіант 3')).not.toBeInTheDocument();
+    await user.click(screen.getByTitle('Create poll'));
+    expect(screen.queryByPlaceholderText('Variant 3')).not.toBeInTheDocument();
 
-    await user.click(screen.getByText(/Додати варіант/));
+    await user.click(screen.getByText(/Add Variant/));
 
-    expect(screen.getByPlaceholderText('Варіант 3')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Variant 3')).toBeInTheDocument();
   });
 
   it('resets and closes the poll UI after a successful submit', async () => {
     renderCreatePost();
     const user = userEvent.setup();
-    await user.click(screen.getByTitle('Створити опитування'));
+    await user.click(screen.getByTitle('Create poll'));
     await user.type(getTextarea(), 'Vote now');
 
     await user.click(getPublishButton());
 
-    expect(screen.queryByPlaceholderText('Варіант 1')).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('Variant 1')).not.toBeInTheDocument();
   });
 });

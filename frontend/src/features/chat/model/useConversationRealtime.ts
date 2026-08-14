@@ -128,10 +128,36 @@ export function useConversationRealtime(conversationId: string | null) {
     syncConversationPinned((pinned) => pinned.filter((m) => m.id !== p.messageId));
   });
 
+  useChatSocketEvent<{
+    conversationId: string;
+    userId: string;
+    messageId?: string | null;
+    readAt: string;
+  }>('messageRead', (payload) => {
+    if (payload.conversationId !== conversationId) return;
+    updatePages((pages) =>
+      mapMessages(pages, (m) => {
+        if (!m.readBy.includes(payload.userId)) {
+          return { ...m, readBy: [...m.readBy, payload.userId] };
+        }
+        return m;
+      }),
+    );
+  });
+
+  const typingTimerRef = useState(() => new Map<string, NodeJS.Timeout>())[0];
+
   useChatSocketEvent<{ conversationId: string; userId: string; isTyping: boolean }>(
     'typing',
     (payload) => {
       if (payload.conversationId !== conversationId || payload.userId === userId) return;
+
+      const existing = typingTimerRef.get(payload.userId);
+      if (existing) {
+        clearTimeout(existing);
+        typingTimerRef.delete(payload.userId);
+      }
+
       setTypingUserIds((prev) => {
         const next = new Set(prev);
         if (payload.isTyping) {
@@ -141,6 +167,18 @@ export function useConversationRealtime(conversationId: string | null) {
         }
         return next;
       });
+
+      if (payload.isTyping) {
+        const timer = setTimeout(() => {
+          setTypingUserIds((prev) => {
+            const next = new Set(prev);
+            next.delete(payload.userId);
+            return next;
+          });
+          typingTimerRef.delete(payload.userId);
+        }, 3500);
+        typingTimerRef.set(payload.userId, timer);
+      }
     },
   );
 

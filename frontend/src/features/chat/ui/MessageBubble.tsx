@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Smile, Reply, MoreHorizontal, Check, CheckCheck } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Smile, Reply, MoreHorizontal, Check, CheckCheck, Clock } from 'lucide-react';
 import Avatar from '../../../shared/ui/Avatar';
 import { MessageView } from '../../../entities/chat/model/types';
 import { formatMessageTime } from '../lib/groupMessagesByDate';
@@ -8,12 +8,15 @@ import MessageReactionsModal from './MessageReactionsModal';
 import MessageContextMenu from './MessageContextMenu';
 import DeleteMessageModal from './DeleteMessageModal';
 import MessageAttachments from './MessageAttachments';
+import { PostEmbedCard } from './PostEmbedCard';
+import { ClusterPosition } from './MessageList';
 
 interface MessageBubbleProps {
   message: MessageView;
   isOwnMessage: boolean;
   showAvatar: boolean;
   isReadByOther: boolean;
+  clusterPosition?: ClusterPosition;
   currentUserId: string | null;
   onReply: (message: MessageView) => void;
   onEdit: (message: MessageView) => void;
@@ -25,11 +28,54 @@ interface MessageBubbleProps {
   onUnreact: (messageId: string, emoji: string) => void;
 }
 
+function getBubbleRounding(isOwnMessage: boolean, position: ClusterPosition = 'single'): string {
+  if (isOwnMessage) {
+    switch (position) {
+      case 'first':
+        return 'rounded-[18px] rounded-br-md';
+      case 'middle':
+        return 'rounded-l-[18px] rounded-r-md';
+      case 'last':
+        return 'rounded-l-[18px] rounded-tr-md rounded-br-[4px]';
+      case 'single':
+      default:
+        return 'rounded-[18px] rounded-br-[4px]';
+    }
+  } else {
+    switch (position) {
+      case 'first':
+        return 'rounded-[18px] rounded-bl-md';
+      case 'middle':
+        return 'rounded-r-[18px] rounded-l-md';
+      case 'last':
+        return 'rounded-r-[18px] rounded-tl-md rounded-bl-[4px]';
+      case 'single':
+      default:
+        return 'rounded-[18px] rounded-bl-[4px]';
+    }
+  }
+}
+
+function extractPostInfo(body: string): { displayText: string; postId: string | null } {
+  if (!body) return { displayText: '', postId: null };
+
+  const postMatch = body.match(/(?:https?:\/\/[^\s]+)?(?:#post-|\/post\/)([a-zA-Z0-9_-]+)/i);
+  if (postMatch) {
+    const postId = postMatch[1];
+    const urlRegex = /(?:https?:\/\/[^\s]+)?(?:#post-|\/post\/)[a-zA-Z0-9_-]+/gi;
+    const cleanText = body.replace(urlRegex, '').trim();
+    return { displayText: cleanText, postId };
+  }
+
+  return { displayText: body, postId: null };
+}
+
 export default function MessageBubble({
   message,
   isOwnMessage,
   showAvatar,
   isReadByOther,
+  clusterPosition = 'single',
   currentUserId,
   onReply,
   onEdit,
@@ -46,10 +92,49 @@ export default function MessageBubble({
   const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
   const [isReactionsModalOpen, setReactionsModalOpen] = useState(false);
 
+  const { displayText, postId: embeddedPostId } = extractPostInfo(message.body || '');
+
+  const [swipeOffset, setSwipeOffset] = useState(0);
+  const [isSwiping, setIsSwiping] = useState(false);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartRef.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+    };
+    setIsSwiping(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+    const deltaX = e.touches[0].clientX - touchStartRef.current.x;
+    const deltaY = Math.abs(e.touches[0].clientY - touchStartRef.current.y);
+
+    if (deltaX > 0 && deltaX > deltaY) {
+      const clamped = Math.min(deltaX * 0.55, 65);
+      setSwipeOffset(clamped);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (swipeOffset >= 42) {
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(15);
+      }
+      onReply(message);
+    }
+    setSwipeOffset(0);
+    setIsSwiping(false);
+    touchStartRef.current = null;
+  };
+
   if (message.isDeleted) {
     return (
-      <div className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} px-4`}>
-        <p className="text-sm italic text-gray-600 py-1.5">This message was deleted</p>
+      <div className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} px-4 py-0.5`}>
+        <p className="text-xs italic text-gray-500 bg-white/5 border border-white/5 px-3 py-1 rounded-xl">
+          This message was deleted
+        </p>
       </div>
     );
   }
@@ -60,174 +145,273 @@ export default function MessageBubble({
     else onReact(message.id, emoji);
   };
 
+  const isSending = Boolean((message as unknown as { isPending?: boolean }).isPending);
+  const statusLabel = isSending ? 'Sending...' : isReadByOther ? 'Read' : 'Delivered';
+
+  const statusIcon = isSending ? (
+    <Clock size={11} className="text-gray-400 animate-spin" />
+  ) : isReadByOther ? (
+    <CheckCheck size={13} className="text-blue-500 stroke-[2.2]" />
+  ) : (
+    <Check size={13} className="text-gray-400 stroke-[2]" />
+  );
+
+  const roundingClass = getBubbleRounding(isOwnMessage, clusterPosition);
+
+  const isClusterEnd = clusterPosition === 'last' || clusterPosition === 'single';
+  const verticalSpacingClass = isClusterEnd ? 'mb-1.5' : 'mb-0.5';
+
   return (
     <div
-      className={`group flex items-end gap-2 px-4 py-0.5 ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
+      className={`group relative flex items-end gap-2 px-3 sm:px-4 py-0 ${verticalSpacingClass} ${
+        isOwnMessage ? 'justify-end' : 'justify-start'
+      }`}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {!isOwnMessage && (
-        <div className="w-8 flex-shrink-0 self-end">
-          {showAvatar && <Avatar size="sm" src={message.sender.avatar} />}
-        </div>
-      )}
-
-      {isOwnMessage && (isHovered || isPickerOpen || isMenuOpen) && (
-        <div className="relative flex items-center gap-1 mb-1">
-          <button
-            onClick={() => setPickerOpen((v) => !v)}
-            className="w-7 h-7 flex items-center justify-center rounded-full text-gray-400 hover:bg-white/10 hover:text-white transition-colors"
-          >
-            <Smile size={16} />
-          </button>
-          <button
-            onClick={() => onReply(message)}
-            className="w-7 h-7 flex items-center justify-center rounded-full text-gray-400 hover:bg-white/10 hover:text-white transition-colors"
-          >
-            <Reply size={16} />
-          </button>
-          <div className="relative">
-            <button
-              onClick={() => setMenuOpen((v) => !v)}
-              className="w-7 h-7 flex items-center justify-center rounded-full text-gray-400 hover:bg-white/10 hover:text-white transition-colors"
-            >
-              <MoreHorizontal size={16} />
-            </button>
-            {isMenuOpen && (
-              <MessageContextMenu
-                message={message}
-                isOwnMessage={isOwnMessage}
-                align="right"
-                onClose={() => setMenuOpen(false)}
-                onEdit={() => onEdit(message)}
-                onDelete={() => setDeleteModalOpen(true)}
-                onForward={() => onForward(message)}
-                onTogglePin={() => onTogglePin(message)}
-                onReport={() => onReport(message)}
-              />
-            )}
-          </div>
-          {isPickerOpen && (
-            <MessageReactionPicker
-              align="right"
-              onPick={(emoji) => handleReactionClick(emoji)}
-              onClose={() => setPickerOpen(false)}
-            />
-          )}
+      {swipeOffset > 0 && (
+        <div
+          className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-7 h-7 rounded-full bg-blue-500/20 border border-blue-400/40 text-blue-400 pointer-events-none transition-transform duration-75"
+          style={{
+            transform: `translateY(-50%) scale(${Math.min(swipeOffset / 42, 1.15)})`,
+            opacity: Math.min(swipeOffset / 25, 1),
+          }}
+        >
+          <Reply size={15} />
         </div>
       )}
 
       <div
-        className="max-w-[70%] flex flex-col"
-        style={{ alignItems: isOwnMessage ? 'flex-end' : 'flex-start' }}
+        className={`flex items-end gap-2 max-w-full ${isOwnMessage ? 'justify-end' : 'justify-start'} ${
+          isSwiping ? '' : 'transition-transform duration-200 ease-out'
+        }`}
+        style={{
+          transform: swipeOffset > 0 ? `translateX(${swipeOffset}px)` : undefined,
+        }}
       >
-        {message.forwardedFrom && (
-          <p className="text-[11px] text-gray-500 mb-0.5 px-1">
-            Forwarded from{' '}
-            {message.forwardedFrom.sender.displayName ?? message.forwardedFrom.sender.username}
-          </p>
-        )}
-
-        {message.replyTo && (
-          <div className="mb-1 px-3 py-1.5 border-l-2 border-blue-400 bg-white/5 rounded-lg max-w-full">
-            <p className="text-[12px] font-semibold text-blue-400">
-              {message.replyTo.sender.displayName ?? message.replyTo.sender.username}
-            </p>
-            <p className="text-[12px] text-gray-400 truncate">{message.replyTo.body}</p>
+        {!isOwnMessage && (
+          <div className="w-8 flex-shrink-0 self-end flex items-end justify-center mb-0.5">
+            {showAvatar ? (
+              <Avatar size="sm" src={message.sender.avatar} />
+            ) : (
+              <div className="w-8 h-8 pointer-events-none" />
+            )}
           </div>
         )}
 
-        <MessageAttachments attachments={message.attachments} isOwnMessage={isOwnMessage} />
-
-        {message.body && (
-          <div
-            className={`px-4 py-2.5 rounded-2xl ${
-              isOwnMessage
-                ? 'bg-blue-500 text-white rounded-br-md'
-                : 'bg-white/10 text-gray-100 rounded-bl-md'
-            }`}
-          >
-            <p className="text-[15px] whitespace-pre-wrap break-words">{message.body}</p>
+        {isOwnMessage && (isHovered || isPickerOpen || isMenuOpen) && (
+          <div className="relative flex items-center gap-1 mb-1">
+            <button
+              onClick={() => setPickerOpen((v) => !v)}
+              className="w-7 h-7 flex items-center justify-center rounded-full text-gray-400 hover:bg-white/10 hover:text-white transition-colors"
+            >
+              <Smile size={16} />
+            </button>
+            <button
+              onClick={() => onReply(message)}
+              className="w-7 h-7 flex items-center justify-center rounded-full text-gray-400 hover:bg-white/10 hover:text-white transition-colors"
+            >
+              <Reply size={16} />
+            </button>
+            <div className="relative">
+              <button
+                onClick={() => setMenuOpen((v) => !v)}
+                className="w-7 h-7 flex items-center justify-center rounded-full text-gray-400 hover:bg-white/10 hover:text-white transition-colors"
+              >
+                <MoreHorizontal size={16} />
+              </button>
+              {isMenuOpen && (
+                <MessageContextMenu
+                  message={message}
+                  isOwnMessage={isOwnMessage}
+                  align="right"
+                  onClose={() => setMenuOpen(false)}
+                  onEdit={() => onEdit(message)}
+                  onDelete={() => setDeleteModalOpen(true)}
+                  onForward={() => onForward(message)}
+                  onTogglePin={() => onTogglePin(message)}
+                  onReport={() => onReport(message)}
+                />
+              )}
+            </div>
+            {isPickerOpen && (
+              <MessageReactionPicker
+                align="right"
+                onPick={(emoji) => handleReactionClick(emoji)}
+                onClose={() => setPickerOpen(false)}
+              />
+            )}
           </div>
         )}
 
         <div
-          className={`flex items-center gap-1 mt-0.5 px-1 ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'}`}
+          className="max-w-[82%] sm:max-w-[72%] flex flex-col"
+          style={{ alignItems: isOwnMessage ? 'flex-end' : 'flex-start' }}
         >
-          <span className="text-[11px] text-gray-500">{formatMessageTime(message.createdAt)}</span>
-          {message.isEdited && <span className="text-[11px] text-gray-600">edited</span>}
-          {isOwnMessage &&
-            (isReadByOther ? (
-              <CheckCheck size={13} className="text-blue-400" />
-            ) : (
-              <Check size={13} className="text-gray-500" />
-            ))}
-        </div>
+          {message.forwardedFrom && (
+            <p className="text-[11px] text-gray-400 mb-0.5 px-1 font-medium">
+              Forwarded from{' '}
+              {message.forwardedFrom.sender.displayName ?? message.forwardedFrom.sender.username}
+            </p>
+          )}
 
-        {message.reactions.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-1">
-            {message.reactions.map((r) => (
-              <button
-                key={r.emoji}
-                onClick={() => setReactionsModalOpen(true)}
-                className={`animate-popIn flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border transition-transform duration-150 hover:scale-110 ${
-                  r.selfReacted
-                    ? 'bg-blue-500/20 border-blue-400/40 text-blue-300'
-                    : 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10'
+          <div
+            className={`relative px-3.5 py-2 shadow-sm transition-all ${roundingClass} ${
+              isOwnMessage
+                ? 'bg-white text-black border border-black/5'
+                : 'bg-[#18181b] text-white border border-white/10'
+            }`}
+          >
+            {message.replyTo && (
+              <div
+                className={`mb-1.5 px-2.5 py-1 rounded-lg max-w-full text-left ${
+                  isOwnMessage
+                    ? 'border-l-[3px] border-black/40 bg-black/5 text-black'
+                    : 'border-l-[3px] border-blue-400 bg-white/5 text-gray-200'
                 }`}
               >
-                <span>{r.emoji}</span>
-                <span>{r.count}</span>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+                <p
+                  className={`text-[11px] font-bold ${
+                    isOwnMessage ? 'text-black' : 'text-blue-400'
+                  }`}
+                >
+                  {message.replyTo.sender.displayName ?? message.replyTo.sender.username}
+                </p>
+                <p
+                  className={`text-[11px] truncate ${
+                    isOwnMessage ? 'text-black/70' : 'text-gray-400'
+                  }`}
+                >
+                  {message.replyTo.body || 'Attachment'}
+                </p>
+              </div>
+            )}
 
-      {!isOwnMessage && (isHovered || isPickerOpen || isMenuOpen) && (
-        <div className="relative flex items-center gap-1 mb-1">
-          <button
-            onClick={() => setPickerOpen((v) => !v)}
-            className="w-7 h-7 flex items-center justify-center rounded-full text-gray-400 hover:bg-white/10 hover:text-white transition-colors"
-          >
-            <Smile size={16} />
-          </button>
-          <button
-            onClick={() => onReply(message)}
-            className="w-7 h-7 flex items-center justify-center rounded-full text-gray-400 hover:bg-white/10 hover:text-white transition-colors"
-          >
-            <Reply size={16} />
-          </button>
-          <div className="relative">
+            {message.attachments && message.attachments.length > 0 && (
+              <div className="relative mb-1">
+                <MessageAttachments attachments={message.attachments} isOwnMessage={isOwnMessage} />
+                {!message.body && (
+                  <div
+                    className="absolute bottom-1.5 right-1.5 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/60 backdrop-blur-sm text-white select-none"
+                    title={statusLabel}
+                  >
+                    <span className="text-[10px] font-normal tracking-tight">
+                      {formatMessageTime(message.createdAt)}
+                    </span>
+                    {isOwnMessage && statusIcon}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {message.body && (
+              <div className="relative text-[14.5px] leading-[1.38] break-words">
+                {displayText && (
+                  <span className={`font-normal ${isOwnMessage ? 'text-black' : 'text-gray-100'}`}>
+                    {displayText}
+                  </span>
+                )}
+
+                {embeddedPostId && (
+                  <PostEmbedCard postId={embeddedPostId} isOwnMessage={isOwnMessage} />
+                )}
+
+                <span
+                  className={`inline-flex items-center gap-1 align-baseline float-right ml-2 mt-1 select-none whitespace-nowrap ${
+                    isOwnMessage ? 'text-gray-500' : 'text-gray-400'
+                  }`}
+                >
+                  {message.isEdited && (
+                    <span className="text-[10px] opacity-75 font-normal">edited</span>
+                  )}
+                  <span className="text-[11px] font-normal tracking-tight">
+                    {formatMessageTime(message.createdAt)}
+                  </span>
+
+                  {isOwnMessage && (
+                    <span
+                      className="relative group/status inline-flex items-center cursor-default"
+                      title={statusLabel}
+                    >
+                      {statusIcon}
+                      <span className="absolute bottom-full mb-1.5 right-1/2 translate-x-1/2 hidden group-hover/status:flex items-center px-2 py-0.5 rounded-md bg-black/90 text-white text-[10px] font-medium whitespace-nowrap shadow-lg border border-white/10 z-30 pointer-events-none animate-fadeIn">
+                        {statusLabel}
+                      </span>
+                    </span>
+                  )}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {message.reactions.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1 px-1">
+              {message.reactions.map((r) => (
+                <button
+                  key={r.emoji}
+                  onClick={() => setReactionsModalOpen(true)}
+                  className={`animate-popIn flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs border transition-transform duration-150 hover:scale-105 ${
+                    r.selfReacted
+                      ? 'bg-blue-500/20 border-blue-400/40 text-blue-300'
+                      : 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10'
+                  }`}
+                >
+                  <span>{r.emoji}</span>
+                  <span className="font-semibold text-[11px]">{r.count}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {!isOwnMessage && (isHovered || isPickerOpen || isMenuOpen) && (
+          <div className="relative flex items-center gap-1 mb-1">
             <button
-              onClick={() => setMenuOpen((v) => !v)}
+              onClick={() => setPickerOpen((v) => !v)}
               className="w-7 h-7 flex items-center justify-center rounded-full text-gray-400 hover:bg-white/10 hover:text-white transition-colors"
             >
-              <MoreHorizontal size={16} />
+              <Smile size={16} />
             </button>
-            {isMenuOpen && (
-              <MessageContextMenu
-                message={message}
-                isOwnMessage={isOwnMessage}
+            <button
+              onClick={() => onReply(message)}
+              className="w-7 h-7 flex items-center justify-center rounded-full text-gray-400 hover:bg-white/10 hover:text-white transition-colors"
+            >
+              <Reply size={16} />
+            </button>
+            <div className="relative">
+              <button
+                onClick={() => setMenuOpen((v) => !v)}
+                className="w-7 h-7 flex items-center justify-center rounded-full text-gray-400 hover:bg-white/10 hover:text-white transition-colors"
+              >
+                <MoreHorizontal size={16} />
+              </button>
+              {isMenuOpen && (
+                <MessageContextMenu
+                  message={message}
+                  isOwnMessage={isOwnMessage}
+                  align="left"
+                  onClose={() => setMenuOpen(false)}
+                  onEdit={() => onEdit(message)}
+                  onDelete={() => setDeleteModalOpen(true)}
+                  onForward={() => onForward(message)}
+                  onTogglePin={() => onTogglePin(message)}
+                  onReport={() => onReport(message)}
+                />
+              )}
+            </div>
+            {isPickerOpen && (
+              <MessageReactionPicker
                 align="left"
-                onClose={() => setMenuOpen(false)}
-                onEdit={() => onEdit(message)}
-                onDelete={() => setDeleteModalOpen(true)}
-                onForward={() => onForward(message)}
-                onTogglePin={() => onTogglePin(message)}
-                onReport={() => onReport(message)}
+                onPick={(emoji) => handleReactionClick(emoji)}
+                onClose={() => setPickerOpen(false)}
               />
             )}
           </div>
-          {isPickerOpen && (
-            <MessageReactionPicker
-              align="left"
-              onPick={(emoji) => handleReactionClick(emoji)}
-              onClose={() => setPickerOpen(false)}
-            />
-          )}
-        </div>
-      )}
+        )}
+      </div>
 
       {isDeleteModalOpen && (
         <DeleteMessageModal

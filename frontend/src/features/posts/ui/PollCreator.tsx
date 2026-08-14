@@ -31,7 +31,7 @@ export const PollCreator: React.FC<PollProps> = ({ isOpen, options, onChange, on
   return (
     <div className="w-full max-w-sm mx-auto bg-white/[0.03] border border-white/[0.08] rounded-2xl p-4 flex flex-col gap-2.5 animate-fadeIn mt-3">
       <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
-        <span className="font-semibold text-gray-300">Створити опитування</span>
+        <span className="font-semibold text-gray-300">Create poll</span>
         <button
           type="button"
           onClick={onClose}
@@ -45,7 +45,7 @@ export const PollCreator: React.FC<PollProps> = ({ isOpen, options, onChange, on
         <div key={option.id} className="flex items-center gap-2">
           <input
             type="text"
-            placeholder={`Варіант ${idx + 1}`}
+            placeholder={`Variant ${idx + 1}`}
             value={option.text}
             maxLength={80}
             onChange={(e) => updateOption(option.id, e.target.value)}
@@ -69,7 +69,7 @@ export const PollCreator: React.FC<PollProps> = ({ isOpen, options, onChange, on
           onClick={addOption}
           className="flex items-center justify-center gap-1.5 text-xs font-medium text-gray-400 hover:text-white border border-dashed border-white/10 hover:border-white/20 rounded-xl py-2 transition-colors mt-1"
         >
-          <Plus size={14} /> Додати варіант ({options.length}/{MAX_OPTIONS})
+          <Plus size={14} /> Add Variant ({options.length}/{MAX_OPTIONS})
         </button>
       )}
     </div>

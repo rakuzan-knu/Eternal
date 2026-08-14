@@ -17,15 +17,23 @@ export default function MessageToastViewport() {
   const { toasts, removeToast, dismissAll } = useMessageToastStore();
   const { toastPosition, maxToasts } = useNotificationSettingsStore();
 
-  const openToast = (toastId: string, conversationId: string, messageId: string) => {
-    removeToast(toastId);
-    queryClient.setQueryData<ConversationView[]>([CONVERSATIONS_KEY], (prev) =>
-      prev?.map((conversation) =>
-        conversation.id === conversationId ? { ...conversation, unreadCount: 0 } : conversation,
-      ),
-    );
-    chatApi.markRead(conversationId).catch(() => {});
-    navigate(`/messages/${conversationId}?messageId=${messageId}`);
+  const openToast = (toast: (typeof toasts)[0]) => {
+    removeToast(toast.id);
+    if (toast.linkUrl) {
+      navigate(toast.linkUrl);
+      return;
+    }
+    if (toast.conversationId) {
+      queryClient.setQueryData<ConversationView[]>([CONVERSATIONS_KEY], (prev) =>
+        prev?.map((conversation) =>
+          conversation.id === toast.conversationId
+            ? { ...conversation, unreadCount: 0 }
+            : conversation,
+        ),
+      );
+      chatApi.markRead(toast.conversationId).catch(() => {});
+      navigate(`/messages/${toast.conversationId}?messageId=${toast.messageId}`);
+    }
   };
 
   const visibleToasts = toasts.slice(0, maxToasts);
@@ -58,11 +66,11 @@ export default function MessageToastViewport() {
           key={toast.id}
           role="button"
           tabIndex={0}
-          onClick={() => openToast(toast.id, toast.conversationId, toast.messageId)}
+          onClick={() => openToast(toast)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
-              openToast(toast.id, toast.conversationId, toast.messageId);
+              openToast(toast);
             }
           }}
           className="pointer-events-auto group relative flex min-h-[82px] items-center gap-3 rounded-[22px] border border-white/10 bg-[#171b22]/88 px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,0.45)] backdrop-blur-2xl transition-all duration-300 ease-out animate-slideInRight hover:bg-[#1d232c]/92"
@@ -87,12 +95,18 @@ export default function MessageToastViewport() {
             )}
           </div>
 
-          <div className="min-w-0 flex-1 pr-5">
+          <div className="min-w-0 flex-1 pr-2">
             <p className="truncate text-sm font-semibold text-white">{toast.title}</p>
             <p className="truncate text-[13px] leading-5 text-gray-300">{toast.body}</p>
           </div>
 
-          <span className="flex-shrink-0 self-end pb-1 text-[13px] text-gray-500">...</span>
+          {toast.linkUrl ? (
+            <span className="flex-shrink-0 text-xs font-semibold text-sky-400 group-hover:underline pr-4">
+              View saved posts
+            </span>
+          ) : (
+            <span className="flex-shrink-0 self-end pb-1 text-[13px] text-gray-500">...</span>
+          )}
 
           <button
             type="button"

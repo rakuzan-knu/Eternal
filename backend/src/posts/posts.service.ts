@@ -1,4 +1,10 @@
-import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+  forwardRef,
+} from '@nestjs/common';
 import { CreatePostDto } from './dto/create-post.dto';
 import { EditPostDto } from './dto/edit-post.dto';
 import { PostResponseDto } from './dto/post-response.dto';
@@ -8,6 +14,9 @@ import type { Paginated } from '../common/pagination';
 import { paginate } from '../common/pagination';
 import { RedisService } from '../redis/redis.service';
 import { PostsMediaService } from './posts-media.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { MessengerGateway } from '../messenger/gateway/messenger.gateway';
+import { WS_EVENTS } from '../messenger/events/ws-events';
 import { MediaType, type ReportCategory } from '@prisma/client';
 
 @Injectable()
@@ -20,6 +29,9 @@ export class PostsService {
     private readonly postsRepository: IPostRepository,
     private readonly mediaService: PostsMediaService,
     private readonly redis: RedisService,
+    private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => MessengerGateway))
+    private readonly gateway: MessengerGateway,
   ) {}
 
   private getPostKey(id: string): string {
@@ -165,6 +177,39 @@ export class PostsService {
 
     await this.postsRepository.repost(postId, userId);
     await this.invalidateFeedAndPost(postId);
+
+    // Emit real-time notification to post author
+    try {
+      if (post.authorId !== userId) {
+        const [actor, author] = await Promise.all([
+          this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { id: true, username: true, displayName: true, avatar: true },
+          }),
+          this.prisma.user.findUnique({
+            where: { id: post.authorId },
+            select: { username: true },
+          }),
+        ]);
+        if (actor) {
+          this.gateway.emitToUser(post.authorId, WS_EVENTS.SOCIAL_NOTIFICATION, {
+            type: 'REPOST',
+            actor: {
+              id: actor.id,
+              username: actor.username,
+              displayName: actor.displayName || actor.username,
+              avatar: actor.avatar,
+            },
+            postId: post.id,
+            authorUsername: author?.username || '',
+            message: 'reposted your post',
+          });
+        }
+      }
+    } catch {
+      // Non-blocking notification
+    }
+
     return { success: true };
   }
 
@@ -202,5 +247,11 @@ export class PostsService {
   ): Promise<{ id: string; status: 'queued' }> {
     const report = await this.postsRepository.reportPost(postId, reporterId, category, details);
     return { id: report.id, status: 'queued' };
+  }
+
+  async sharePost(postId: string): Promise<{ success: true }> {
+    await this.postsRepository.incrementShareCount(postId);
+    await this.invalidateFeedAndPost(postId);
+    return { success: true };
   }
 }

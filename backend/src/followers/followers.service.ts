@@ -4,6 +4,7 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  forwardRef,
 } from '@nestjs/common';
 import { FollowStatus, Prisma } from '@prisma/client';
 import { FOLLOWERS_REPOSITORY } from './interfaces/followers-repository.interface';
@@ -15,6 +16,9 @@ import type {
 } from './types/followers.types';
 import { paginate } from '../common/pagination';
 import { RedisService } from '../redis/redis.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { MessengerGateway } from '../messenger/gateway/messenger.gateway';
+import { WS_EVENTS } from '../messenger/events/ws-events';
 import { toUserProfileDto } from './followers.mapper';
 
 @Injectable()
@@ -23,6 +27,9 @@ export class FollowersService {
     @Inject(FOLLOWERS_REPOSITORY)
     private readonly followersRepository: IFollowersRepository,
     private readonly redis: RedisService,
+    private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => MessengerGateway))
+    private readonly gateway: MessengerGateway,
   ) {}
 
   async getFollowers(
@@ -39,10 +46,37 @@ export class FollowersService {
 
     return this.redis.getOrSet(cacheKey, 60, async () => {
       const rows = await this.followersRepository.getFollowers(id, limit, after);
+      const userIds = rows.map((r) => r.user.id);
+      let myFollowingsSet = new Set<string>();
+      let myFollowersSet = new Set<string>();
+
+      if (currentUserId && userIds.length > 0) {
+        const [myFollowings, myFollowers] = await Promise.all([
+          this.prisma.follow.findMany({
+            where: {
+              followerId: currentUserId,
+              followingId: { in: userIds },
+              status: FollowStatus.ACCEPTED,
+            },
+            select: { followingId: true },
+          }),
+          this.prisma.follow.findMany({
+            where: {
+              followingId: currentUserId,
+              followerId: { in: userIds },
+              status: FollowStatus.ACCEPTED,
+            },
+            select: { followerId: true },
+          }),
+        ]);
+        myFollowingsSet = new Set(myFollowings.map((f) => f.followingId));
+        myFollowersSet = new Set(myFollowers.map((f) => f.followerId));
+      }
 
       return paginate(rows, limit, (row) => {
-        const isFollowing = currentUserId ? row.user.id === currentUserId : false;
-        return toUserProfileDto(row.user, isFollowing);
+        const isFollowing = currentUserId ? myFollowingsSet.has(row.user.id) : false;
+        const followsYou = currentUserId ? myFollowersSet.has(row.user.id) : false;
+        return toUserProfileDto(row.user, isFollowing, followsYou);
       });
     });
   }
@@ -61,10 +95,37 @@ export class FollowersService {
 
     return this.redis.getOrSet(cacheKey, 60, async () => {
       const rows = await this.followersRepository.getFollowing(id, limit, after);
+      const userIds = rows.map((r) => r.user.id);
+      let myFollowingsSet = new Set<string>();
+      let myFollowersSet = new Set<string>();
+
+      if (currentUserId && userIds.length > 0) {
+        const [myFollowings, myFollowers] = await Promise.all([
+          this.prisma.follow.findMany({
+            where: {
+              followerId: currentUserId,
+              followingId: { in: userIds },
+              status: FollowStatus.ACCEPTED,
+            },
+            select: { followingId: true },
+          }),
+          this.prisma.follow.findMany({
+            where: {
+              followingId: currentUserId,
+              followerId: { in: userIds },
+              status: FollowStatus.ACCEPTED,
+            },
+            select: { followerId: true },
+          }),
+        ]);
+        myFollowingsSet = new Set(myFollowings.map((f) => f.followingId));
+        myFollowersSet = new Set(myFollowers.map((f) => f.followerId));
+      }
 
       return paginate(rows, limit, (row) => {
-        const isFollowing = currentUserId === id ? true : false;
-        return toUserProfileDto(row.user, isFollowing);
+        const isFollowing = currentUserId ? myFollowingsSet.has(row.user.id) : false;
+        const followsYou = currentUserId ? myFollowersSet.has(row.user.id) : false;
+        return toUserProfileDto(row.user, isFollowing, followsYou);
       });
     });
   }
@@ -90,6 +151,30 @@ export class FollowersService {
         initialStatus,
       );
       await this.invalidateFollowCaches(followerId, followingId);
+
+      // Emit real-time notification to the followed user
+      try {
+        const follower = await this.prisma.user.findUnique({
+          where: { id: followerId },
+          select: { id: true, username: true, displayName: true, avatar: true },
+        });
+        if (follower) {
+          this.gateway.emitToUser(followingId, WS_EVENTS.NEW_FOLLOWER, {
+            follower: {
+              id: follower.id,
+              username: follower.username,
+              displayName: follower.displayName || follower.username,
+              avatar: follower.avatar,
+            },
+            status,
+            message:
+              status === FollowStatus.PENDING ? 'sent you a follow request' : 'subscribed to you',
+          });
+        }
+      } catch {
+        // Non-blocking notification emission
+      }
+
       return { status };
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError) {
@@ -141,6 +226,28 @@ export class FollowersService {
       throw new NotFoundException('Follow request not found');
     }
     await this.invalidateFollowCaches(followerId, ownerId);
+
+    // Emit real-time notification to follower that their request was accepted
+    try {
+      const owner = await this.prisma.user.findUnique({
+        where: { id: ownerId },
+        select: { id: true, username: true, displayName: true, avatar: true },
+      });
+      if (owner) {
+        this.gateway.emitToUser(followerId, WS_EVENTS.NEW_FOLLOWER, {
+          follower: {
+            id: owner.id,
+            username: owner.username,
+            displayName: owner.displayName || owner.username,
+            avatar: owner.avatar,
+          },
+          status: FollowStatus.ACCEPTED,
+          message: 'accepted your follow request',
+        });
+      }
+    } catch {
+      // Non-blocking notification emission
+    }
   }
 
   async rejectRequest(ownerId: string, followerId: string): Promise<void> {

@@ -32,8 +32,8 @@ describe('PollCreator', () => {
       />,
     );
 
-    expect(screen.getByPlaceholderText('Варіант 1')).toHaveValue('Cats');
-    expect(screen.getByPlaceholderText('Варіант 2')).toHaveValue('Dogs');
+    expect(screen.getByPlaceholderText('Variant 1')).toHaveValue('Cats');
+    expect(screen.getByPlaceholderText('Variant 2')).toHaveValue('Dogs');
   });
 
   it('calls onChange with the updated text for the edited option, preserving the others', async () => {
@@ -48,7 +48,7 @@ describe('PollCreator', () => {
       />,
     );
 
-    await user.type(screen.getByPlaceholderText('Варіант 1'), 'C');
+    await user.type(screen.getByPlaceholderText('Variant 1'), 'C');
 
     expect(onChange).toHaveBeenCalledWith([
       { id: 'opt-0', text: 'C' },
@@ -68,7 +68,7 @@ describe('PollCreator', () => {
       />,
     );
 
-    await user.click(screen.getByRole('button'));
+    await user.click(screen.getAllByRole('button')[0]);
 
     expect(onClose).toHaveBeenCalledTimes(1);
   });
@@ -85,7 +85,7 @@ describe('PollCreator', () => {
       />,
     );
 
-    await user.click(screen.getByText(/Додати варіант/));
+    await user.click(screen.getByText(/Add Variant/));
 
     expect(onChange).toHaveBeenCalledWith([
       { id: 'opt-0', text: 'Cats' },
@@ -124,6 +124,6 @@ describe('PollCreator', () => {
       />,
     );
 
-    expect(screen.getAllByRole('button')).toHaveLength(1);
+    expect(screen.getAllByRole('button')).toHaveLength(2);
   });
 });

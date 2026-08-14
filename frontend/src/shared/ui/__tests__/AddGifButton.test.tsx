@@ -39,7 +39,7 @@ describe('AddGifButton', () => {
     const user = userEvent.setup();
     render(<AddGifButton isOpen={false} onToggle={onToggle} onGifSelect={vi.fn()} />);
 
-    await user.click(screen.getByTitle('Додати GIF'));
+    await user.click(screen.getByTitle('Add GIF'));
 
     expect(onToggle).toHaveBeenCalledTimes(1);
   });
@@ -62,7 +62,7 @@ describe('AddGifButton', () => {
       <AddGifButton isOpen={false} onToggle={vi.fn()} onGifSelect={vi.fn()} />,
     );
 
-    await user.click(screen.getByTitle('Додати GIF'));
+    await user.click(screen.getByTitle('Add GIF'));
     rerender(<AddGifButton isOpen={true} onToggle={vi.fn()} onGifSelect={vi.fn()} />);
 
     expect(screen.getAllByRole('img')[0].closest('div.absolute')).toHaveClass(
@@ -78,7 +78,7 @@ describe('AddGifButton', () => {
       <AddGifButton isOpen={false} onToggle={vi.fn()} onGifSelect={vi.fn()} />,
     );
 
-    await user.click(screen.getByTitle('Додати GIF'));
+    await user.click(screen.getByTitle('Add GIF'));
     rerender(<AddGifButton isOpen={true} onToggle={vi.fn()} onGifSelect={vi.fn()} />);
 
     expect(screen.getAllByRole('img')[0].closest('div.absolute')).toHaveClass('top-full', 'mt-3');

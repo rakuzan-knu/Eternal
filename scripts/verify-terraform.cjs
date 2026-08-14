@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Infrastructure Test Suite (Terratest alternative / HCL Static Unit Tester)
+ * Infrastructure Test Suite (HCL Static Unit Tester)
  * Validates Terraform HCL infrastructure declarations for DevSecOps rule compliance.
  */
 
@@ -11,34 +11,26 @@ const path = require('path');
 const INFRA_DIR = path.join(__dirname, '..', 'infrastructure');
 
 function verifyTerraformHCL() {
-  console.log('🏗️ Starting Infrastructure Test Suite (Terraform HCL Assertions)...');
+  console.log('🏗️ Starting Infrastructure Test Suite (Free Tier Terraform Assertions)...');
 
   if (!fs.existsSync(INFRA_DIR)) {
     console.error(`❌ Infrastructure directory not found at ${INFRA_DIR}`);
     process.exit(1);
   }
 
-  const files = fs.readdirSync(INFRA_DIR).filter((f) => f.endsWith('.tf'));
   let passed = 0;
   let errors = 0;
 
   const checks = [
     {
       file: 'main.tf',
-      assertion: (content) =>
-        content.includes('required_providers') && content.includes('cloudflare'),
-      message: 'main.tf must specify Cloudflare required provider',
-    },
-    {
-      file: 'cloudflare.tf',
-      assertion: (content) =>
-        content.includes('/api/health') && content.includes('steering_policy'),
-      message: 'cloudflare.tf must define /api/health monitor and steering policy',
+      assertion: (content) => content.includes('required_providers') && content.includes('vercel'),
+      message: 'main.tf must specify Vercel required provider',
     },
     {
       file: 'budget.tf',
-      assertion: (content) => content.includes('aws_budgets_budget') && content.includes('COST'),
-      message: 'budget.tf must declare AWS Cost Budget resources with alert thresholds',
+      assertion: (content) => content.includes('free_tier_limits') && content.includes('Free Tier'),
+      message: 'budget.tf must declare $0 Zero-Cost Free Tier infrastructure budget policy',
     },
   ];
 
@@ -65,7 +57,7 @@ function verifyTerraformHCL() {
     process.exit(1);
   }
 
-  console.log(`🎉 All ${passed} Infrastructure HCL unit tests PASSED successfully!`);
+  console.log(`🎉 All ${passed} Free Tier Infrastructure HCL unit tests PASSED successfully!`);
 }
 
 verifyTerraformHCL();

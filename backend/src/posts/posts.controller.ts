@@ -151,4 +151,12 @@ export class PostsController {
   ) {
     return this.postsService.reportPost(id, user.id, dto.category, dto.details);
   }
+
+  @Post(':id/share')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Track share of a post' })
+  @ApiResponse({ status: 200, description: 'Post share recorded successfully.' })
+  sharePost(@Param('id') id: string) {
+    return this.postsService.sharePost(id);
+  }
 }

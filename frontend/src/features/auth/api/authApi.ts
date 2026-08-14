@@ -3,18 +3,17 @@ import { FoundUserResponse } from '../model/types';
 import { UserProfile } from '@/entities/profile/model/types';
 
 export interface LoginPayload {
-  identity: string;
+  email?: string;
+  identity?: string;
   password?: string;
 }
 
 export interface RegisterPayload {
-  firstName: string;
-  lastName: string;
+  email: string;
   username: string;
-  birthDate: string;
-  gender: 'Male' | 'Female' | 'Custom' | string;
-  identity: string;
+  displayName?: string;
   password?: string;
+  birthDate?: string;
 }
 
 export interface FindAccountPayload {

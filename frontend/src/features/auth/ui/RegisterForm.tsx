@@ -186,18 +186,19 @@ export const RegisterForm: React.FC = () => {
 
     const monthIndex = MONTHS.indexOf(data.birthMonth);
     const birthDate = new Date(
-      parseInt(data.birthYear),
-      monthIndex,
-      parseInt(data.birthDay),
+      parseInt(data.birthYear, 10),
+      monthIndex >= 0 ? monthIndex : 0,
+      parseInt(data.birthDay, 10),
       12,
     ).toISOString();
 
+    const cleanUsername = data.username.replace(/^@+/, '').trim();
+    const displayName = `${data.firstName.trim()} ${data.lastName.trim()}`.trim() || undefined;
+
     const payload: RegisterPayload = {
-      firstName: data.firstName,
-      lastName: data.lastName,
-      username: data.username,
-      gender: data.gender,
-      identity: data.identity,
+      email: data.identity.trim().toLowerCase(),
+      username: cleanUsername,
+      displayName,
       password: data.password,
       birthDate,
     };
@@ -220,14 +221,27 @@ export const RegisterForm: React.FC = () => {
       onError: (error) => {
         if (axios.isAxiosError(error)) {
           const status = error.response?.status;
+          const message = error.response?.data?.message;
 
           if (status === 409) {
-            setServerError('This Email, phone number or username is already taken.');
+            setServerError(
+              typeof message === 'string'
+                ? message
+                : 'This Email, phone number or username is already taken.',
+            );
           } else if (status === 400) {
-            setServerError('Data validation error. Please check the entered fields.');
+            if (Array.isArray(message)) {
+              setServerError(message.join(', '));
+            } else if (typeof message === 'string') {
+              setServerError(message);
+            } else {
+              setServerError('Data validation error. Please check the entered fields.');
+            }
           } else {
             setServerError(
-              'The server is unavailable or an internal error has occurred. Please try again later.',
+              typeof message === 'string'
+                ? message
+                : 'The server is unavailable or an internal error has occurred. Please try again later.',
             );
           }
         } else {

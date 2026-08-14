@@ -1,13 +1,18 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsEmail, IsString, MinLength } from 'class-validator';
-import { trimAndLowercase } from '../../common/transformers';
+import { IsOptional, IsString, MinLength } from 'class-validator';
+import { trimAndLowercase, trimString } from '../../common/transformers';
 
 export class LoginDto {
-  @ApiProperty({ example: 'user@example.com' })
+  @ApiPropertyOptional({ example: 'user@example.com' })
+  @IsOptional()
   @Transform(trimAndLowercase)
-  @IsEmail()
-  email!: string;
+  email?: string;
+
+  @ApiPropertyOptional({ example: 'user@example.com or @username' })
+  @IsOptional()
+  @Transform(trimString)
+  identity?: string;
 
   @ApiProperty({ example: 'StrongP@ssw0rd' })
   @IsString()

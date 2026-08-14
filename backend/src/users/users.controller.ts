@@ -27,6 +27,8 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/interfaces/jwt-payload.interface';
 import { GetPostsQueryDto } from '../posts/dto/get-posts-query.dto';
 
+import { UpdatePrimaryBadgeDto } from './dto/update-primary-badge.dto';
+
 @ApiTags('Users')
 @Controller('users')
 export class UsersController {
@@ -131,6 +133,31 @@ export class UsersController {
   @ApiResponse({ status: 200, description: 'Alias deleted successfully' })
   deleteUserAlias(@Param('id') targetId: string, @CurrentUser() user: RequestUser) {
     return this.usersService.deleteUserAlias(user.id, targetId);
+  }
+
+  @Patch('primary-badge')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Update primary badge with DB ownership verification' })
+  @ApiResponse({ status: 200, description: 'Primary badge updated', type: UserProfileDto })
+  @ApiResponse({ status: 403, description: 'User does not own the requested badge' })
+  updatePrimaryBadge(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: UpdatePrimaryBadgeDto,
+  ): Promise<UserProfileDto> {
+    return this.usersService.updatePrimaryBadge(user.id, dto.badgeId);
+  }
+
+  @Patch('/profile/primary-badge')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  updatePrimaryBadgeProfileAlias(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: UpdatePrimaryBadgeDto,
+  ): Promise<UserProfileDto> {
+    return this.usersService.updatePrimaryBadge(user.id, dto.badgeId);
   }
 
   @Get(':id')

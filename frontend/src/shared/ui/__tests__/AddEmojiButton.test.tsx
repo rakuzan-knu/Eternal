@@ -38,10 +38,10 @@ describe('AddEmojiButton', () => {
     expect(screen.queryByTestId('mock-emoji-picker')).not.toBeInTheDocument();
   });
 
-  it('renders the picker when isOpen is true', () => {
+  it('renders the picker when isOpen is true', async () => {
     render(<AddEmojiButton isOpen={true} onToggle={vi.fn()} onEmojiSelect={vi.fn()} />);
 
-    expect(screen.getByTestId('mock-emoji-picker')).toBeInTheDocument();
+    expect(await screen.findByTestId('mock-emoji-picker')).toBeInTheDocument();
   });
 
   it('calls onToggle when the trigger button is clicked', async () => {
@@ -49,7 +49,7 @@ describe('AddEmojiButton', () => {
     const user = userEvent.setup();
     render(<AddEmojiButton isOpen={false} onToggle={onToggle} onEmojiSelect={vi.fn()} />);
 
-    await user.click(screen.getByTitle('Додати емодзі'));
+    await user.click(screen.getByTitle('Add Emoji'));
 
     expect(onToggle).toHaveBeenCalledTimes(1);
   });
@@ -59,7 +59,7 @@ describe('AddEmojiButton', () => {
     const user = userEvent.setup();
     render(<AddEmojiButton isOpen={true} onToggle={vi.fn()} onEmojiSelect={onEmojiSelect} />);
 
-    await user.click(screen.getByTestId('mock-emoji-picker'));
+    await user.click(await screen.findByTestId('mock-emoji-picker'));
 
     expect(onEmojiSelect).toHaveBeenCalledWith('😀');
   });
@@ -71,13 +71,11 @@ describe('AddEmojiButton', () => {
       <AddEmojiButton isOpen={false} onToggle={vi.fn()} onEmojiSelect={vi.fn()} />,
     );
 
-    await user.click(screen.getByTitle('Додати емодзі'));
+    await user.click(screen.getByTitle('Add Emoji'));
     rerender(<AddEmojiButton isOpen={true} onToggle={vi.fn()} onEmojiSelect={vi.fn()} />);
 
-    expect(screen.getByTestId('mock-emoji-picker').closest('div.absolute')).toHaveClass(
-      'bottom-full',
-      'mb-3',
-    );
+    const picker = await screen.findByTestId('mock-emoji-picker');
+    expect(picker.closest('div.absolute')).toHaveClass('bottom-full', 'mb-3');
   });
 
   it('opens below the button (top-full) when there is not enough room above (rect.top < 380)', async () => {
@@ -87,12 +85,10 @@ describe('AddEmojiButton', () => {
       <AddEmojiButton isOpen={false} onToggle={vi.fn()} onEmojiSelect={vi.fn()} />,
     );
 
-    await user.click(screen.getByTitle('Додати емодзі'));
+    await user.click(screen.getByTitle('Add Emoji'));
     rerender(<AddEmojiButton isOpen={true} onToggle={vi.fn()} onEmojiSelect={vi.fn()} />);
 
-    expect(screen.getByTestId('mock-emoji-picker').closest('div.absolute')).toHaveClass(
-      'top-full',
-      'mt-3',
-    );
+    const picker = await screen.findByTestId('mock-emoji-picker');
+    expect(picker.closest('div.absolute')).toHaveClass('top-full', 'mt-3');
   });
 });

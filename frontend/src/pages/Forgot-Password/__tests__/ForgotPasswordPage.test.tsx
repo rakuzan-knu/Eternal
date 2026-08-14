@@ -16,9 +16,9 @@ function renderForgotPasswordPage() {
 }
 
 async function advanceToStep2(user: ReturnType<typeof userEvent.setup>) {
-  await user.type(screen.getByPlaceholderText('Електронна пошта або номер'), 'user@example.com');
-  await user.click(screen.getByText('Продовжити'));
-  await waitFor(() => expect(screen.getByText('Оберіть спосіб скидання')).toBeInTheDocument(), {
+  await user.type(screen.getByPlaceholderText('Email or number'), 'user@example.com');
+  await user.click(screen.getByText('Continue'));
+  await waitFor(() => expect(screen.getByText('Alex Kovalenko')).toBeInTheDocument(), {
     timeout: 2000,
   });
 }
@@ -35,8 +35,8 @@ describe('ForgotPasswordPage', () => {
   it('renders step 1 (find account) by default', () => {
     renderForgotPasswordPage();
 
-    expect(screen.getByText('Знайти ваш акаунт')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Електронна пошта або номер')).toBeInTheDocument();
+    expect(screen.getByText('Find your account')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Email or number')).toBeInTheDocument();
   });
 
   it('navigates to /login when the back button is clicked on step 1', async () => {
@@ -64,18 +64,18 @@ describe('ForgotPasswordPage', () => {
 
     await user.click(screen.getAllByRole('button')[0]);
 
-    expect(screen.getByText('Знайти ваш акаунт')).toBeInTheDocument();
+    expect(screen.getByText('Find your account')).toBeInTheDocument();
     expect(screen.queryByText('Login page')).not.toBeInTheDocument();
   });
 
-  it('returns to step 1 when ResetMethod reports "Це не ви?"', async () => {
+  it('returns to step 1 when ResetMethod reports "Isn\'t that you?"', async () => {
     const user = userEvent.setup();
     renderForgotPasswordPage();
     await advanceToStep2(user);
 
-    await user.click(screen.getByText('Це не ви?'));
+    await user.click(screen.getByText("Isn't that you?"));
 
-    expect(screen.getByText('Знайти ваш акаунт')).toBeInTheDocument();
+    expect(screen.getByText('Find your account')).toBeInTheDocument();
   });
 
   it('renders the footer on both steps', async () => {

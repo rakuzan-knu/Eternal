@@ -39,7 +39,14 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, redirectOnSucce
       setWrongPasswordError(false);
       setGlobalError(false);
 
-      const responseData = await loginMutation.mutateAsync(data);
+      const rawIdentity = data.identity.trim();
+      const payload = {
+        email: rawIdentity.toLowerCase(),
+        identity: rawIdentity,
+        password: data.password,
+      };
+
+      const responseData = await loginMutation.mutateAsync(payload);
 
       localStorage.setItem('accessToken', responseData.accessToken);
       localStorage.setItem('refreshToken', responseData.refreshToken);

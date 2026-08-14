@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { useUIStore } from '../../shared/model/useUIStore';
 import { useUserByUsername } from '../../entities/profile/model/useUserByUsername';
 import { useAuthStore } from '../../shared/model/useAuthStore';
@@ -8,11 +8,12 @@ import { useCreatePost } from '@/features/posts/model/useCreatePost';
 import { USER_POSTS_KEY, USER_REPOSTS_KEY } from '@/shared/api/queryKeys';
 import { useUserPosts } from '../../entities/post/model/useUserPosts';
 import ProfileHeader from '@/widgets/profile/ui/ProfileHeader';
-import ProfileTabs from '../../shared/ui/ProfileTabs';
+import ProfileTabs, { ProfileTabType } from '../../shared/ui/ProfileTabs';
 import CreatePost from '../../features/posts/ui/CreatePost';
 import { PostCard } from '@/widgets/post/ui/PostCard';
 import { CommentModal } from '../../features/comment/ui/CommentModal';
 import { SkeletonFeed } from '../../entities/post/ui/SkeletonPostCard';
+import { SavedPostsView } from '@/features/profile/ui/saved/SavedPostsView';
 
 function SkeletonProfileHeader() {
   return (
@@ -33,15 +34,42 @@ function SkeletonProfileHeader() {
 export default function ProfilePage() {
   const { username } = useParams();
   const { userId: myUserId } = useAuthStore();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const { data: user, isLoading, error } = useUserByUsername(username);
+  const effectiveUsername = username || 'my_profile';
+  const { data: user, isLoading, error } = useUserByUsername(effectiveUsername);
+  const isOwnProfile = Boolean(user && user.id === myUserId);
 
-  const [activeTab, setActiveTab] = useState<'posts' | 'reposts'>('posts');
+  const tabParam = searchParams.get('tab') as ProfileTabType | null;
+  const [localTab, setLocalTab] = useState<ProfileTabType>('posts');
+
+  const activeTab: ProfileTabType =
+    tabParam &&
+    (tabParam === 'posts' || tabParam === 'reposts' || (tabParam === 'saved' && isOwnProfile))
+      ? tabParam
+      : localTab;
+
+  const handleTabChange = (tab: ProfileTabType) => {
+    setLocalTab(tab);
+    setSearchParams(tab === 'posts' ? {} : { tab });
+  };
+
   const openEditProfile = useUIStore((state) => state.openEditProfile);
 
   const postsQuery = useUserPosts(user?.id ?? '');
   const repostsQuery = useUserReposts(user?.id ?? '');
   const createPost = useCreatePost([USER_POSTS_KEY, user?.id ?? '']);
+
+  useEffect(() => {
+    if (!postsQuery.isLoading && window.location.hash) {
+      setTimeout(() => {
+        const el = document.querySelector(window.location.hash);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+    }
+  }, [postsQuery.isLoading]);
 
   if (isLoading) {
     return (
@@ -93,8 +121,6 @@ export default function ProfilePage() {
     );
   }
 
-  const isOwnProfile = user.id === myUserId;
-
   const posts = postsQuery.data?.pages.flatMap((p) => p.posts) ?? [];
   const reposts = repostsQuery.data?.pages.flatMap((p) => p.posts) ?? [];
 
@@ -117,11 +143,19 @@ export default function ProfilePage() {
           createdAt={user.createdAt}
           isOwnProfile={isOwnProfile}
           isFollowing={user.isFollowing}
+          followsYou={user.followsYou}
+          isVerified={user.isVerified}
+          primaryBadge={user.primaryBadge}
+          badges={user.badges}
           followersCount={user.followersCount}
           followingCount={user.followingCount}
           onEditClick={openEditProfile}
         />
-        <ProfileTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+        <ProfileTabs
+          activeTab={activeTab}
+          setActiveTab={handleTabChange}
+          showSavedTab={isOwnProfile}
+        />
       </div>
 
       {isOwnProfile && activeTab === 'posts' && (
@@ -130,7 +164,9 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {activeQuery.isLoading ? (
+      {activeTab === 'saved' && isOwnProfile ? (
+        <SavedPostsView userId={user.id} />
+      ) : activeQuery.isLoading ? (
         <SkeletonFeed count={4} />
       ) : activeFeed.length > 0 ? (
         <div className="flex flex-col gap-4">

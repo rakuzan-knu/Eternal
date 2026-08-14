@@ -18,11 +18,13 @@ class MockFileReader {
 }
 
 function getNameInput() {
-  return screen.getByPlaceholderText('Your name');
+  return (document.querySelector('input[name="displayName"]') ||
+    screen.getByPlaceholderText(/Your name|Ayate/)) as HTMLInputElement;
 }
 
 function getUsernameInput() {
-  return screen.getByPlaceholderText('username') as HTMLInputElement;
+  return (document.querySelector('input[name="username"]') ||
+    screen.getByPlaceholderText(/username|my_profile/)) as HTMLInputElement;
 }
 
 function getBioTextarea() {
@@ -72,7 +74,7 @@ describe('EditProfileModal', () => {
   it('renders the account tab with default field values when open', async () => {
     await openAndWaitForProfile();
 
-    expect(screen.getByRole('heading', { name: 'Account' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Account Information' })).toBeInTheDocument();
     expect(getUsernameInput()).toHaveValue('my_profile');
     expect(getBioTextarea()).toHaveValue('Rozroblyayu Eternal.');
   });
@@ -84,7 +86,7 @@ describe('EditProfileModal', () => {
     await user.click(screen.getByText('Privacy'));
 
     expect(await screen.findByText('Who can see you and contact you')).toBeInTheDocument();
-    expect(screen.queryByPlaceholderText('Your name')).not.toBeInTheDocument();
+    expect(document.querySelector('input[name="displayName"]')).not.toBeInTheDocument();
   });
 
   it('calls closeEditProfile when the close (X) button is clicked', async () => {
@@ -103,7 +105,7 @@ describe('EditProfileModal', () => {
     await user.clear(usernameInput);
     await user.type(usernameInput, 'a');
 
-    await user.click(screen.getByText('Save changes'));
+    await user.click(screen.getAllByText('Save changes')[0]);
 
     await waitFor(() => expect(screen.getByText('Minimum 2 characters')).toBeInTheDocument());
     expect(useUIStore.getState().isEditProfileOpen).toBe(true);
@@ -114,7 +116,7 @@ describe('EditProfileModal', () => {
     await openAndWaitForProfile();
     await fillValidNameAndUsername(user);
 
-    await user.click(screen.getByText('Save changes'));
+    await user.click(screen.getAllByText('Save changes')[0]);
 
     await waitFor(() => expect(useUIStore.getState().isEditProfileOpen).toBe(false));
   });
@@ -124,7 +126,7 @@ describe('EditProfileModal', () => {
     await openAndWaitForProfile();
     await fillValidNameAndUsername(user);
 
-    await user.dblClick(screen.getByText('Save changes'));
+    await user.dblClick(screen.getAllByText('Save changes')[0]);
 
     await waitFor(() => expect(useUIStore.getState().isEditProfileOpen).toBe(false));
   });

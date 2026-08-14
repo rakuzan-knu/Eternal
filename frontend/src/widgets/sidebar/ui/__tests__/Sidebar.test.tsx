@@ -1,10 +1,18 @@
 import { fireEvent, screen } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Sidebar from '../Sidebar';
 import { useUIStore } from '../../../../shared/model/useUIStore';
 import { useAuthStore } from '../../../../shared/model/useAuthStore';
 import { resetUIStore } from '../../../../test/resetUIStore';
 import { renderWithProviders } from '../../../../test/renderWithProviders';
+
+vi.mock('@/features/chat/model/usePresence', () => ({
+  useQueryOnlineStatus: vi.fn(),
+}));
+
+vi.mock('@/features/chat/model/useUnreadMessagesCount', () => ({
+  useUnreadMessagesCount: () => 0,
+}));
 
 describe('Sidebar', () => {
   beforeEach(() => {
@@ -65,6 +73,8 @@ describe('Sidebar', () => {
   });
 
   it('falls back to a generic profile link when no user is authenticated', () => {
+    useAuthStore.getState().clearAuth();
+    useUIStore.getState().setSidebarExpanded(true);
     renderWithProviders(<Sidebar />);
 
     expect(screen.getByText('Profile').closest('a')).toHaveAttribute('href', '/');

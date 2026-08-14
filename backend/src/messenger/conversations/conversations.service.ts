@@ -4,6 +4,7 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  forwardRef,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
@@ -38,6 +39,7 @@ export class ConversationsService {
     private readonly convsRepo: IConversationsRepository,
     @Inject(MESSAGES_REPOSITORY)
     private readonly messagesRepo: IMessagesRepository,
+    @Inject(forwardRef(() => UsersService))
     private readonly usersService: UsersService,
     private readonly mapper: MessengerMapper,
     private readonly prisma: PrismaService,

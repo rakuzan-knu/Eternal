@@ -12,6 +12,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthGuard } from '../auth/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/interfaces/jwt-payload.interface';
 import { FollowersService } from './followers.service';
@@ -28,6 +29,7 @@ export class FollowersController {
   constructor(private readonly followersService: FollowersService) {}
 
   @Get(':id/followers')
+  @UseGuards(OptionalJwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get followers of a user' })
   @ApiResponse({ status: 200, description: 'Paginated list of followers' })
@@ -41,6 +43,7 @@ export class FollowersController {
   }
 
   @Get(':id/following')
+  @UseGuards(OptionalJwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get users that a user is following' })
   @ApiResponse({ status: 200, description: 'Paginated list of following' })
@@ -136,5 +139,19 @@ export class FollowersController {
     @CurrentUser() currentUser: RequestUser,
   ): Promise<void> {
     return this.followersService.unfollowUser(currentUser.id, followingId);
+  }
+
+  @Delete('me/followers/:followerId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Remove a follower from my followers' })
+  @ApiResponse({ status: 204, description: 'Follower removed' })
+  @ApiResponse({ status: 404, description: 'Follow relation not found' })
+  removeFollower(
+    @Param('followerId') followerId: string,
+    @CurrentUser() currentUser: RequestUser,
+  ): Promise<void> {
+    return this.followersService.unfollowUser(followerId, currentUser.id);
   }
 }

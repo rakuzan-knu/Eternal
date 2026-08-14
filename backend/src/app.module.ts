@@ -22,6 +22,7 @@ import { MessengerModule } from './messenger/messenger.module';
 import { SessionsModule } from './sessions/sessions.module';
 import { MetricsModule } from './metrics/metrics.module';
 import { PollModule } from './poll/poll.module';
+import { GithubModule } from './github/github.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { PollModule } from './poll/poll.module';
     MessengerModule,
     SessionsModule,
     PollModule,
+    GithubModule,
   ],
   controllers: [],
   providers: [

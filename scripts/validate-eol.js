@@ -126,6 +126,7 @@ function getTrackedFiles() {
 }
 
 function main() {
+  const fixMode = process.argv.includes('--fix') || process.argv.includes('-f');
   console.log('[validate-eol] Checking for CRLF line endings...\n');
 
   const trackedFiles = getTrackedFiles();
@@ -145,7 +146,7 @@ function main() {
 
   for (const file of filesToCheck) {
     if (hasCRLF(file)) {
-      violations.push(path.relative(rootDir, file));
+      violations.push(file);
     }
   }
 
@@ -154,11 +155,23 @@ function main() {
     process.exit(0);
   }
 
+  if (fixMode) {
+    for (const file of violations) {
+      const content = fs.readFileSync(file, 'utf8');
+      fs.writeFileSync(file, content.replace(/\r\n/g, '\n'), 'utf8');
+    }
+    console.log(`[validate-eol] 🔧 Fixed CRLF line endings in ${violations.length} file(s):`);
+    for (const file of violations) {
+      console.log(`  fixed ${path.relative(rootDir, file)}`);
+    }
+    process.exit(0);
+  }
+
   console.error(`[validate-eol] ❌ Found ${violations.length} file(s) with CRLF line endings:\n`);
   for (const file of violations) {
-    console.error(`  ✗ ${file}`);
+    console.error(`  ✗ ${path.relative(rootDir, file)}`);
   }
-  console.error(`\n[validate-eol] Fix: run "git add --renormalize ." or convert to LF.\n`);
+  console.error(`\n[validate-eol] Fix: run "npm run fix:eol" or convert to LF.\n`);
   process.exit(1);
 }
 

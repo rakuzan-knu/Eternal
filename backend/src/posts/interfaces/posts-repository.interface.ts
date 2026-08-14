@@ -30,6 +30,7 @@ export interface IPostRepository {
   unsavePost(postId: string, userId: string): Promise<void>;
   repost(postId: string, userId: string): Promise<void>;
   unrepost(postId: string, userId: string): Promise<void>;
+  incrementShareCount(postId: string): Promise<void>;
   reportPost(
     postId: string,
     reporterId: string,

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MoreHorizontal, Pin, Users } from 'lucide-react';
+import { MoreHorizontal, Pin, Users, BellOff } from 'lucide-react';
 import Avatar from '../../../shared/ui/Avatar';
 import { ConversationView } from '../../../entities/chat/model/types';
 import {
@@ -8,6 +8,7 @@ import {
 } from '../../../features/chat/lib/getConversationDisplay';
 import ChatItemMenu from './ChatItemMenu';
 import OnlineStatusIndicator from '../../../shared/ui/OnlineStatusIndicator';
+import { useTypingStore } from '../model/useTypingStore';
 
 interface ChatListItemProps {
   conversation: ConversationView;
@@ -50,6 +51,10 @@ export default function ChatListItem({
   const [isMenuOpen, setMenuOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
+  const isMuted = conversation.myMuteLevel !== 'NONE';
+  const typists = useTypingStore((s) => s.typingByConversation[conversation.id] ?? []);
+  const isTyping = typists.length > 0;
+
   const display = getConversationDisplay(conversation, currentUserId);
   const hasUnread = isForcedUnread || conversation.unreadCount > 0;
   const visibleUnreadCount = Math.max(conversation.unreadCount, isForcedUnread ? 1 : 0);
@@ -86,11 +91,27 @@ export default function ChatListItem({
           >
             {display.title}
           </span>
+          {isMuted && <BellOff size={12} className="text-gray-500 flex-shrink-0" />}
           {isPinnedLocally && <Pin size={12} className="text-gray-500 flex-shrink-0" />}
         </div>
-        <p className={`text-[13px] truncate ${hasUnread ? 'text-gray-200' : 'text-gray-500'}`}>
-          {getMessagePreview(conversation)}
-        </p>
+        {isTyping ? (
+          <div className="flex items-center gap-1.5 text-[13px] text-sky-400 font-medium animate-fadeIn">
+            <span className="flex gap-0.5 items-center">
+              <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-bounce [animation-delay:-0.3s]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-bounce [animation-delay:-0.15s]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-bounce" />
+            </span>
+            <span className="truncate">
+              {display.isGroup && typists[0].username
+                ? `${typists[0].username} is typing...`
+                : 'typing...'}
+            </span>
+          </div>
+        ) : (
+          <p className={`text-[13px] truncate ${hasUnread ? 'text-gray-200' : 'text-gray-500'}`}>
+            {getMessagePreview(conversation)}
+          </p>
+        )}
       </div>
 
       <div className="flex-shrink-0 flex items-center w-12 justify-end">

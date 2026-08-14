@@ -5,18 +5,6 @@ terraform {
       source  = "vercel/vercel"
       version = "~> 1.0"
     }
-    render = {
-      source  = "render-oss/render"
-      version = "~> 1.0"
-    }
-    cloudflare = {
-      source  = "cloudflare/cloudflare"
-      version = "~> 4.0"
-    }
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
   }
 }
 
@@ -24,15 +12,8 @@ provider "vercel" {
   api_token = var.vercel_api_token
 }
 
-provider "cloudflare" {
-  api_token = var.cloudflare_api_token
-}
-
-provider "aws" {
-  region = var.aws_region
-}
-
 resource "vercel_project" "social_network_frontend" {
+  count     = var.vercel_api_token != "dummy_vercel_token" && var.vercel_api_token != "dummy_token" && var.vercel_api_token != "" ? 1 : 0
   name      = var.app_name
   framework = "vite"
 
@@ -43,7 +24,8 @@ resource "vercel_project" "social_network_frontend" {
 }
 
 resource "vercel_project_environment_variable" "vite_api_url" {
-  project_id = vercel_project.social_network_frontend.id
+  count      = var.vercel_api_token != "dummy_vercel_token" && var.vercel_api_token != "dummy_token" && var.vercel_api_token != "" ? 1 : 0
+  project_id = vercel_project.social_network_frontend[0].id
   key        = "VITE_API_URL"
   value      = var.api_url
   target     = ["production", "preview", "development"]

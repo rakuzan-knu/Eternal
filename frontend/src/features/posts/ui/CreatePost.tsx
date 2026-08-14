@@ -78,7 +78,7 @@ export default function CreatePost({
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Що нового?"
+            placeholder="What's new?"
             className="w-full bg-transparent resize-none text-white placeholder-gray-500 focus:outline-none text-[15px] min-h-[50px] pt-2"
           />
 
@@ -136,7 +136,7 @@ export default function CreatePost({
           disabled={!text.trim() && media.length === 0}
           className="bg-white text-black font-bold px-5 py-1.5 rounded-full hover:bg-gray-200 disabled:opacity-40 transition-all text-sm"
         >
-          Опублікувати
+          Publish
         </button>
       </div>
     </div>

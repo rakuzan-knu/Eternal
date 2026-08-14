@@ -51,6 +51,26 @@ class EnvironmentVariables {
   @IsOptional()
   @IsString()
   SENTRY_TRACES_SAMPLE_RATE?: string;
+
+  @IsOptional()
+  @IsString()
+  GITHUB_CLIENT_ID?: string;
+
+  @IsOptional()
+  @IsString()
+  GITHUB_CLIENT_SECRET?: string;
+
+  @IsOptional()
+  @IsString()
+  GITHUB_CALLBACK_URL?: string;
+
+  @IsOptional()
+  @IsString()
+  GITHUB_SYSTEM_TOKEN?: string;
+
+  @IsOptional()
+  @IsString()
+  GITHUB_WEBHOOK_SECRET?: string;
 }
 
 export function validateEnv(config: Record<string, unknown>) {

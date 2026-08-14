@@ -44,7 +44,7 @@ WORKDIR /app
 COPY package*.json ./
 COPY backend/package*.json ./backend/
 
-ENV NODE_ENV=production NODE_OPTIONS="--max-old-space-size=512"
+ENV NODE_ENV=production NODE_OPTIONS="--max-old-space-size=256 --optimize-for-size"
 ENV PATH="/app/backend/node_modules/.bin:/app/node_modules/.bin:${PATH}"
 ENV NODE_PATH="/app/node_modules:/app/backend/node_modules"
 

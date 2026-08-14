@@ -1,6 +1,18 @@
 import React, { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Bell, Volume2, VolumeX, User, Users, Heart, Check, X } from 'lucide-react';
+import {
+  Bell,
+  Volume2,
+  VolumeX,
+  User,
+  Users,
+  Heart,
+  Check,
+  X,
+  MessageSquare,
+  Repeat,
+  UserPlus,
+} from 'lucide-react';
 import {
   NotificationPosition,
   useNotificationSettingsStore,
@@ -34,6 +46,10 @@ export default function NotificationsTab() {
     privateChats,
     groups,
     reactions,
+    likes,
+    comments,
+    reposts,
+    followers,
     maxToasts,
     setEnableNotifications,
     setAllowSound,
@@ -43,6 +59,10 @@ export default function NotificationsTab() {
     setPrivateChats,
     setGroups,
     setReactions,
+    setLikes,
+    setComments,
+    setReposts,
+    setFollowers,
   } = useNotificationSettingsStore();
 
   const [hoveredCorner, setHoveredCorner] = useState<NotificationPosition | null>(null);
@@ -263,6 +283,68 @@ export default function NotificationsTab() {
               </div>
             </div>
             <Toggle checked={reactions} onChange={() => setReactions(!reactions)} />
+          </div>
+        </div>
+      </section>
+
+      {/* Notifications for Posts & Activity */}
+      <section>
+        <h3 className="px-1 mb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+          Activity notifications
+        </h3>
+        <div className="rounded-2xl border border-white/10 bg-white/[0.02] divide-y divide-white/5 overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3.5">
+            <div className="flex items-center gap-3">
+              <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-rose-400">
+                <Heart size={17} />
+              </span>
+              <div>
+                <h4 className="text-sm font-medium text-gray-200">Likes</h4>
+                <p className="text-xs text-gray-500">When someone likes your posts</p>
+              </div>
+            </div>
+            <Toggle checked={likes} onChange={() => setLikes(!likes)} />
+          </div>
+
+          <div className="flex items-center justify-between px-4 py-3.5">
+            <div className="flex items-center gap-3">
+              <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-sky-400">
+                <MessageSquare size={17} />
+              </span>
+              <div>
+                <h4 className="text-sm font-medium text-gray-200">Comments</h4>
+                <p className="text-xs text-gray-500">When someone comments on your posts</p>
+              </div>
+            </div>
+            <Toggle checked={comments} onChange={() => setComments(!comments)} />
+          </div>
+
+          <div className="flex items-center justify-between px-4 py-3.5">
+            <div className="flex items-center gap-3">
+              <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-emerald-400">
+                <Repeat size={17} />
+              </span>
+              <div>
+                <h4 className="text-sm font-medium text-gray-200">Reposts</h4>
+                <p className="text-xs text-gray-500">When someone reposts your publications</p>
+              </div>
+            </div>
+            <Toggle checked={reposts} onChange={() => setReposts(!reposts)} />
+          </div>
+
+          <div className="flex items-center justify-between px-4 py-3.5">
+            <div className="flex items-center gap-3">
+              <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-amber-400">
+                <UserPlus size={17} />
+              </span>
+              <div>
+                <h4 className="text-sm font-medium text-gray-200">Followers</h4>
+                <p className="text-xs text-gray-500">
+                  When someone subscribes or sends a follow request
+                </p>
+              </div>
+            </div>
+            <Toggle checked={followers} onChange={() => setFollowers(!followers)} />
           </div>
         </div>
       </section>

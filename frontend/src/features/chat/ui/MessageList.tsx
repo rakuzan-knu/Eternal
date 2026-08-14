@@ -6,6 +6,8 @@ import MessageBubble from './MessageBubble';
 import TypingIndicatorBubble from '@/shared/ui/TypingIndicatorBubble';
 import { OlderMessagesSkeleton, MessageThreadSkeleton } from './MessageListSkeletons';
 
+export type ClusterPosition = 'single' | 'first' | 'middle' | 'last';
+
 interface MessageListProps {
   messages: MessageView[];
   currentUserId: string | null;
@@ -30,9 +32,28 @@ interface MessageListProps {
 
 type Row =
   | { type: 'separator'; key: string; label: string }
-  | { type: 'message'; key: string; message: MessageView; showAvatar: boolean };
+  | {
+      type: 'message';
+      key: string;
+      message: MessageView;
+      showAvatar: boolean;
+      clusterPosition: ClusterPosition;
+    };
 
 const START_INDEX = 100000;
+
+function isSameSenderAndMinute(msg1: MessageView, msg2: MessageView): boolean {
+  if (msg1.sender.id !== msg2.sender.id) return false;
+  const d1 = new Date(msg1.createdAt);
+  const d2 = new Date(msg2.createdAt);
+  return (
+    d1.getFullYear() === d2.getFullYear() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getDate() === d2.getDate() &&
+    d1.getHours() === d2.getHours() &&
+    d1.getMinutes() === d2.getMinutes()
+  );
+}
 
 function buildRows(messages: MessageView[]): Row[] {
   const groups = groupMessagesByDate(messages);
@@ -41,8 +62,29 @@ function buildRows(messages: MessageView[]): Row[] {
     rows.push({ type: 'separator', key: `sep-${groupIndex}-${group.label}`, label: group.label });
     group.messages.forEach((message, index) => {
       const prev = group.messages[index - 1];
-      const showAvatar = !prev || prev.sender.id !== message.sender.id;
-      rows.push({ type: 'message', key: message.id, message, showAvatar });
+      const next = group.messages[index + 1];
+      const isPrevSame = prev ? isSameSenderAndMinute(prev, message) : false;
+      const isNextSame = next ? isSameSenderAndMinute(message, next) : false;
+
+      let clusterPosition: ClusterPosition = 'single';
+      if (!isPrevSame && isNextSame) {
+        clusterPosition = 'first';
+      } else if (isPrevSame && isNextSame) {
+        clusterPosition = 'middle';
+      } else if (isPrevSame && !isNextSame) {
+        clusterPosition = 'last';
+      }
+
+      // Avatar is only displayed on the LAST message of a cluster or on single messages
+      const showAvatar = !isNextSame;
+
+      rows.push({
+        type: 'message',
+        key: message.id,
+        message,
+        showAvatar,
+        clusterPosition,
+      });
     });
   });
   return rows;
@@ -129,20 +171,18 @@ export default function MessageList({
         Header: () => (isFetchingMore ? <OlderMessagesSkeleton /> : null),
         Footer: () => <TypingIndicatorBubble typists={typingParticipants} isGroup={isGroup} />,
       }}
-      itemContent={(_index, row) => {
+      itemContent={(_index: number, row: Row) => {
         if (row.type === 'separator') {
           return (
-            <div className="flex items-center gap-3 px-4 my-3">
-              <div className="flex-1 h-px bg-white/5" />
-              <span className="text-[11px] font-medium text-gray-500 whitespace-nowrap">
+            <div className="sticky top-2 z-20 flex justify-center my-3 pointer-events-none">
+              <div className="px-3.5 py-1 rounded-full bg-[#18181b]/80 border border-white/10 backdrop-blur-md shadow-md text-[11px] font-medium text-gray-300 pointer-events-auto select-none transition-all">
                 {row.label}
-              </span>
-              <div className="flex-1 h-px bg-white/5" />
+              </div>
             </div>
           );
         }
 
-        const { message, showAvatar } = row;
+        const { message, showAvatar, clusterPosition } = row;
         const isOwnMessage = message.sender.id === currentUserId;
         const isReadByOther = otherParticipantId
           ? message.readBy.includes(otherParticipantId)
@@ -157,6 +197,7 @@ export default function MessageList({
               isOwnMessage={isOwnMessage}
               showAvatar={showAvatar}
               isReadByOther={isReadByOther}
+              clusterPosition={clusterPosition}
               currentUserId={currentUserId}
               onReply={onReply}
               onEdit={onEdit}

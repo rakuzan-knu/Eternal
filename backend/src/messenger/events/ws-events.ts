@@ -35,6 +35,9 @@ export const WS_EVENTS = {
   CONVERSATION_UPDATED: 'conversationUpdated',
   PARTICIPANT_ADDED: 'participantAdded',
   PARTICIPANT_LEFT: 'participantLeft',
+
+  NEW_FOLLOWER: 'newFollower',
+  SOCIAL_NOTIFICATION: 'socialNotification',
 } as const;
 
 export type WsEventKey = keyof typeof WS_EVENTS;

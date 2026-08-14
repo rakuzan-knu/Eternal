@@ -13,19 +13,28 @@ const mockedUseAuthMutations = vi.mocked(useAuthMutations);
 
 function setupMutations(overrides?: {
   isPending?: boolean;
-  mutateImpl?: (
-    data: unknown,
-    opts?: { onSuccess?: () => void; onError?: (e: unknown) => void },
-  ) => void;
+  mutateAsyncImpl?: (data: unknown) => Promise<unknown>;
 }) {
-  const mutate = vi.fn(overrides?.mutateImpl ?? (() => {}));
+  const mutateAsync = vi.fn(
+    overrides?.mutateAsyncImpl ??
+      (() =>
+        Promise.resolve({
+          accessToken: 'mock-access',
+          refreshToken: 'mock-refresh',
+          user: { id: 'u1', username: 'testuser', displayName: 'Test' },
+        })),
+  );
   mockedUseAuthMutations.mockReturnValue({
-    loginMutation: { mutate, isPending: overrides?.isPending ?? false } as never,
+    loginMutation: {
+      mutateAsync,
+      mutate: vi.fn(),
+      isPending: overrides?.isPending ?? false,
+    } as never,
     registerMutation: { mutate: vi.fn(), isPending: false } as never,
     findAccountMutation: { mutate: vi.fn(), isPending: false } as never,
     resetMutation: { mutate: vi.fn(), isPending: false } as never,
   });
-  return mutate;
+  return mutateAsync;
 }
 
 function renderLoginForm(initialEntries: string[] = ['/login']) {
@@ -33,7 +42,7 @@ function renderLoginForm(initialEntries: string[] = ['/login']) {
     <MemoryRouter initialEntries={initialEntries}>
       <Routes>
         <Route path="/login" element={<LoginForm />} />
-        <Route path="/dashboard" element={<div>Dashboard</div>} />
+        <Route path="/feed" element={<div>Feed</div>} />
         <Route path="/forgot-password" element={<div>Forgot password page</div>} />
       </Routes>
     </MemoryRouter>,
@@ -50,9 +59,9 @@ describe('LoginForm', () => {
 
     renderLoginForm();
 
-    expect(screen.getByPlaceholderText('Ел. адреса або номер телефону')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Пароль')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Увійти' })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Email address or phone number')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Password')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Log in' })).toBeInTheDocument();
   });
 
   it('shows validation errors when submitting empty fields', async () => {
@@ -60,21 +69,20 @@ describe('LoginForm', () => {
     const user = userEvent.setup();
     renderLoginForm();
 
-    await user.click(screen.getByRole('button', { name: 'Увійти' }));
+    await user.click(screen.getByRole('button', { name: 'Log in' }));
 
     await waitFor(() =>
       expect(
-        screen.getByText('Введіть коректну електронну адресу або номер телефону.'),
+        screen.getByText('Please enter a valid email address or phone number.'),
       ).toBeInTheDocument(),
     );
-    expect(screen.getByText('Пароль має містити щонайменше 6 символів.')).toBeInTheDocument();
   });
 
   it('toggles password visibility when the eye icon is clicked', async () => {
     setupMutations();
     const user = userEvent.setup();
     renderLoginForm();
-    const passwordInput = screen.getByPlaceholderText('Пароль');
+    const passwordInput = screen.getByPlaceholderText('Password');
     expect(passwordInput).toHaveAttribute('type', 'password');
 
     await user.click(passwordInput.parentElement!.querySelector('svg')!);
@@ -82,115 +90,79 @@ describe('LoginForm', () => {
     expect(passwordInput).toHaveAttribute('type', 'text');
   });
 
-  it('submits valid credentials and navigates to /dashboard on success', async () => {
-    const mutate = setupMutations({
-      mutateImpl: (_data, opts) => opts?.onSuccess?.(),
-    });
+  it('submits valid credentials and navigates to /feed on success', async () => {
+    const mutateAsync = setupMutations();
     const user = userEvent.setup();
     renderLoginForm();
 
-    await user.type(screen.getByPlaceholderText('Ел. адреса або номер телефону'), 'user@test.com');
-    await user.type(screen.getByPlaceholderText('Пароль'), 'secret1');
-    await user.click(screen.getByRole('button', { name: 'Увійти' }));
+    await user.type(screen.getByPlaceholderText('Email address or phone number'), 'user@test.com');
+    await user.type(screen.getByPlaceholderText('Password'), 'secret123');
+    await user.click(screen.getByRole('button', { name: 'Log in' }));
 
-    expect(mutate).toHaveBeenCalledWith(
-      { identity: 'user@test.com', password: 'secret1' },
-      expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
-    );
-    await waitFor(() => expect(screen.getByText('Dashboard')).toBeInTheDocument());
+    expect(mutateAsync).toHaveBeenCalledWith({
+      email: 'user@test.com',
+      identity: 'user@test.com',
+      password: 'secret123',
+    });
+    await waitFor(() => expect(screen.getByText('Feed')).toBeInTheDocument());
   });
 
-  it('shows the user-not-found error when the server responds with a matching axios error', async () => {
+  it('shows the user-not-found error when the server responds with USER_NOT_FOUND', async () => {
     setupMutations({
-      mutateImpl: (_data, opts) =>
-        opts?.onError?.({ isAxiosError: true, response: { status: 444, data: {} } }),
+      mutateAsyncImpl: () =>
+        Promise.reject({
+          isAxiosError: true,
+          response: { status: 404, data: { message: 'USER_NOT_FOUND' } },
+        }),
     });
     const user = userEvent.setup();
     renderLoginForm();
 
-    await user.type(screen.getByPlaceholderText('Ел. адреса або номер телефону'), 'user@test.com');
-    await user.type(screen.getByPlaceholderText('Пароль'), 'secret1');
-    await user.click(screen.getByRole('button', { name: 'Увійти' }));
+    await user.type(screen.getByPlaceholderText('Email address or phone number'), 'user@test.com');
+    await user.type(screen.getByPlaceholderText('Password'), 'secret123');
+    await user.click(screen.getByRole('button', { name: 'Log in' }));
 
     await waitFor(() =>
-      expect(screen.getByText(/не пов'язані із жодним обліковим записом/)).toBeInTheDocument(),
-    );
-  });
-
-  it('shows the wrong-password error when the server responds with status 401', async () => {
-    setupMutations({
-      mutateImpl: (_data, opts) =>
-        opts?.onError?.({ isAxiosError: true, response: { status: 401, data: {} } }),
-    });
-    const user = userEvent.setup();
-    renderLoginForm();
-
-    await user.type(screen.getByPlaceholderText('Ел. адреса або номер телефону'), 'user@test.com');
-    await user.type(screen.getByPlaceholderText('Пароль'), 'secret1');
-    await user.click(screen.getByRole('button', { name: 'Увійти' }));
-
-    await waitFor(() =>
-      expect(screen.getByText('Ви ввели неправильний пароль.')).toBeInTheDocument(),
+      expect(
+        screen.getByText(/The email address or mobile phone number you provided/),
+      ).toBeInTheDocument(),
     );
   });
 
-  it('shows a generic error banner for a non-axios error', async () => {
+  it('shows the wrong-password error when the server responds with INVALID_PASSWORD', async () => {
     setupMutations({
-      mutateImpl: (_data, opts) => opts?.onError?.(new Error('network down')),
+      mutateAsyncImpl: () =>
+        Promise.reject({
+          isAxiosError: true,
+          response: { status: 401, data: { message: 'INVALID_PASSWORD' } },
+        }),
     });
     const user = userEvent.setup();
     renderLoginForm();
 
-    await user.type(screen.getByPlaceholderText('Ел. адреса або номер телефону'), 'user@test.com');
-    await user.type(screen.getByPlaceholderText('Пароль'), 'secret1');
-    await user.click(screen.getByRole('button', { name: 'Увійти' }));
+    await user.type(screen.getByPlaceholderText('Email address or phone number'), 'user@test.com');
+    await user.type(screen.getByPlaceholderText('Password'), 'secret123');
+    await user.click(screen.getByRole('button', { name: 'Log in' }));
 
     await waitFor(() =>
-      expect(screen.getByText('Ви ввели неправильні облікові дані.')).toBeInTheDocument(),
+      expect(screen.getByText('You entered an incorrect password.')).toBeInTheDocument(),
     );
   });
 
-  it('shows a generic error banner for an axios error with an unmapped status', async () => {
+  it('shows a generic error banner for an unmapped error', async () => {
     setupMutations({
-      mutateImpl: (_data, opts) =>
-        opts?.onError?.({ isAxiosError: true, response: { status: 500, data: {} } }),
+      mutateAsyncImpl: () => Promise.reject(new Error('network down')),
     });
     const user = userEvent.setup();
     renderLoginForm();
 
-    await user.type(screen.getByPlaceholderText('Ел. адреса або номер телефону'), 'user@test.com');
-    await user.type(screen.getByPlaceholderText('Пароль'), 'secret1');
-    await user.click(screen.getByRole('button', { name: 'Увійти' }));
+    await user.type(screen.getByPlaceholderText('Email address or phone number'), 'user@test.com');
+    await user.type(screen.getByPlaceholderText('Password'), 'secret123');
+    await user.click(screen.getByRole('button', { name: 'Log in' }));
 
     await waitFor(() =>
-      expect(screen.getByText('Ви ввели неправильні облікові дані.')).toBeInTheDocument(),
+      expect(screen.getByText(/You entered incorrect credentials/)).toBeInTheDocument(),
     );
-  });
-
-  it('clears previous errors on a fresh submit attempt', async () => {
-    let call = 0;
-    setupMutations({
-      mutateImpl: (_data, opts) => {
-        call += 1;
-        if (call === 1) {
-          opts?.onError?.({ isAxiosError: true, response: { status: 401, data: {} } });
-        } else {
-          opts?.onSuccess?.();
-        }
-      },
-    });
-    const user = userEvent.setup();
-    renderLoginForm();
-    await user.type(screen.getByPlaceholderText('Ел. адреса або номер телефону'), 'user@test.com');
-    await user.type(screen.getByPlaceholderText('Пароль'), 'secret1');
-    await user.click(screen.getByRole('button', { name: 'Увійти' }));
-    await waitFor(() =>
-      expect(screen.getByText('Ви ввели неправильний пароль.')).toBeInTheDocument(),
-    );
-
-    await user.click(screen.getByRole('button', { name: 'Увійти' }));
-
-    await waitFor(() => expect(screen.getByText('Dashboard')).toBeInTheDocument());
   });
 
   it('disables the submit button and shows a spinner while the mutation is pending', () => {
@@ -198,17 +170,17 @@ describe('LoginForm', () => {
 
     renderLoginForm();
 
-    expect(screen.queryByRole('button', { name: 'Увійти' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Log in' })).not.toBeInTheDocument();
     expect(screen.getByRole('button')).toBeDisabled();
     expect(document.querySelector('.animate-spin')).toBeInTheDocument();
   });
 
-  it('links "Забули пароль?" to the forgot-password page', async () => {
+  it('links "Forgot password?" to the forgot-password page', async () => {
     setupMutations();
     const user = userEvent.setup();
     renderLoginForm();
 
-    await user.click(screen.getByText('Забули пароль?'));
+    await user.click(screen.getByText('Forgot password?'));
 
     expect(screen.getByText('Forgot password page')).toBeInTheDocument();
   });

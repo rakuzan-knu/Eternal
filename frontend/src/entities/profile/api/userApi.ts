@@ -9,8 +9,22 @@ export const userApi = {
 
   getMe: () => api.get<UserProfile>('/users/me').then((res) => res.data),
 
-  checkUsername: (username: string) =>
+  checkUsername: (username: string) => {
+    const cleanUsername = username.replace(/^@+/, '').trim();
+    return api
+      .get<{ isAvailable: boolean }>(`/auth/check-username`, {
+        params: { username: cleanUsername },
+      })
+      .then((res) => res.data);
+  },
+
+  updatePrimaryBadge: (badgeId: string | null) =>
+    api.patch<UserProfile>('/users/primary-badge', { badgeId }).then((res) => res.data),
+
+  syncGithub: () =>
     api
-      .get<{ isAvailable: boolean }>(`/auth/check-username`, { params: { username } })
+      .post<{ mergedPrsCount: number; githubUsername: string | null }>('/users/sync-github')
       .then((res) => res.data),
+
+  unlinkGithub: () => api.delete<{ success: boolean }>('/auth/github').then((res) => res.data),
 };

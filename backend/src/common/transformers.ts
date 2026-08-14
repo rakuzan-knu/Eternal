@@ -7,3 +7,7 @@ export function trimAndLowercase({ value }: TransformFnParams): unknown {
 export function trimString({ value }: TransformFnParams): unknown {
   return typeof value === 'string' ? value.trim() : value;
 }
+
+export function cleanUsername({ value }: TransformFnParams): unknown {
+  return typeof value === 'string' ? value.replace(/^@+/, '').trim() : value;
+}

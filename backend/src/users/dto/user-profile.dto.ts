@@ -42,6 +42,35 @@ export class UserProfileDto {
   @ApiProperty()
   isPrivate!: boolean;
 
+  @ApiProperty({ example: false, description: 'Verification checkmark status' })
+  isVerified!: boolean;
+
+  @ApiPropertyOptional({
+    example: 'DEVELOPER',
+    nullable: true,
+    description: 'Active single primary badge',
+  })
+  primaryBadge?: string | null;
+
+  @ApiPropertyOptional({
+    example: ['DEVELOPER', 'BETA_TESTER'],
+    description: 'List of owned badge IDs',
+  })
+  badges?: string[];
+
+  @ApiPropertyOptional({
+    example: 'AyateAgh',
+    nullable: true,
+    description: 'Linked GitHub username',
+  })
+  githubUsername?: string | null;
+
+  @ApiPropertyOptional({
+    example: 5,
+    description: 'Total merged Pull Requests count in main repository',
+  })
+  mergedPrsCount?: number;
+
   @ApiPropertyOptional({
     enum: FollowStatusView,
     description: "Viewer's follow relationship; omitted for owner/anonymous",
@@ -74,6 +103,12 @@ export class UserProfileDto {
       'Whether the requesting user is following this profile. Always false for anonymous requests.',
   })
   isFollowing?: boolean;
+
+  @ApiPropertyOptional({
+    example: false,
+    description: 'Whether this target user is following the requesting user.',
+  })
+  followsYou?: boolean;
 
   @ApiPropertyOptional({
     example: 'Best Friend',

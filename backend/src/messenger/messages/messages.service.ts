@@ -1,5 +1,14 @@
-import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { MessageType } from '@prisma/client';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { AttachmentType, MessageType } from '@prisma/client';
+import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { uid } from 'uid';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CONVERSATIONS_REPOSITORY } from '../interfaces/conversations-repository.interface';
 import type { IConversationsRepository } from '../interfaces/conversations-repository.interface';
@@ -19,6 +28,8 @@ import type { MessageView, PaginatedMessages } from '../dto/responses.dto';
 
 @Injectable()
 export class MessagesService {
+  private readonly s3: S3Client;
+
   constructor(
     @Inject(CONVERSATIONS_REPOSITORY)
     private readonly convsRepo: IConversationsRepository,
@@ -26,7 +37,95 @@ export class MessagesService {
     private readonly messagesRepo: IMessagesRepository,
     private readonly mapper: MessengerMapper,
     private readonly prisma: PrismaService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.s3 = new S3Client({
+      endpoint:
+        this.configService.get<string>('MINIO_ENDPOINT') ??
+        this.configService.get<string>('S3_ENDPOINT') ??
+        'http://localhost:9000',
+      region: 'us-east-1',
+      credentials: {
+        accessKeyId:
+          this.configService.get<string>('MINIO_ACCESS_KEY') ??
+          this.configService.get<string>('S3_ACCESS_KEY') ??
+          'rootuser',
+        secretAccessKey:
+          this.configService.get<string>('MINIO_SECRET_KEY') ??
+          this.configService.get<string>('S3_SECRET_KEY') ??
+          'rootpassword',
+      },
+      forcePathStyle: true,
+    });
+  }
+
+  async uploadAttachment(
+    conversationId: string,
+    userId: string,
+    file: Express.Multer.File,
+  ): Promise<{
+    type: AttachmentType;
+    url: string;
+    fileName: string;
+    mimeType: string;
+    size: number;
+    width?: number;
+    height?: number;
+  }> {
+    await this.assertMember(conversationId, userId);
+    await this.assertNotBlockedDirect(conversationId, userId);
+
+    if (!file || !file.buffer) {
+      throw new BadRequestException('No file provided');
+    }
+
+    const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB
+    if (file.buffer.length > MAX_FILE_SIZE_BYTES) {
+      throw new BadRequestException('File size exceeds 25 MB limit');
+    }
+
+    const mimetype = (file.mimetype || '').toLowerCase();
+    let attachmentType: AttachmentType = AttachmentType.FILE;
+
+    if (mimetype === 'image/gif') {
+      attachmentType = AttachmentType.GIF;
+    } else if (mimetype.startsWith('image/')) {
+      attachmentType = AttachmentType.IMAGE;
+    } else if (mimetype.startsWith('video/')) {
+      attachmentType = AttachmentType.VIDEO;
+    } else if (mimetype.startsWith('audio/')) {
+      attachmentType = AttachmentType.AUDIO;
+    }
+
+    const fileId = uid(16);
+    const originalExt = file.originalname?.split('.').pop() || 'bin';
+    const key = `attachments/${conversationId}/${fileId}.${originalExt}`;
+
+    const bucket = this.configService.get<string>('MINIO_BUCKET', 'attachments');
+    const publicUrl =
+      this.configService.get<string>('MINIO_PUBLIC_URL') ??
+      this.configService.get<string>('S3_PUBLIC_URL') ??
+      'http://localhost:9000';
+
+    await this.s3.send(
+      new PutObjectCommand({
+        Bucket: bucket,
+        Key: key,
+        Body: file.buffer,
+        ContentType: file.mimetype || 'application/octet-stream',
+      }),
+    );
+
+    const url = `${publicUrl}/${bucket}/${key}`;
+
+    return {
+      type: attachmentType,
+      url,
+      fileName: file.originalname,
+      mimeType: file.mimetype,
+      size: file.buffer.length,
+    };
+  }
 
   async send(conversationId: string, senderId: string, dto: SendMessageDto): Promise<MessageView> {
     await this.assertMember(conversationId, senderId);
@@ -92,6 +191,11 @@ export class MessagesService {
         replies: true,
         forwards: true,
       },
+    });
+
+    await this.prisma.conversation.update({
+      where: { id: conversationId },
+      data: { updatedAt: new Date() },
     });
 
     const pinnedIds = await this.convsRepo.findPinnedMessages(conversationId);

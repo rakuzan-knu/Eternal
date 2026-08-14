@@ -9,7 +9,7 @@ import {
   WebSocketServer,
   WsException,
 } from '@nestjs/websockets';
-import { Logger, UseFilters, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Logger, UseFilters, UsePipes, ValidationPipe, forwardRef, Inject } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -83,7 +83,9 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
     private readonly messagesService: MessagesService,
     private readonly convsService: ConversationsService,
     private readonly redisService: RedisService,
+    @Inject(forwardRef(() => UsersService))
     private readonly usersService: UsersService,
+    @Inject(forwardRef(() => VisibilityResolver))
     private readonly visibility: VisibilityResolver,
   ) {}
 
@@ -417,7 +419,7 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
     }
   }
 
-  private emitToUser(userId: string, event: string, payload: unknown): void {
+  emitToUser(userId: string, event: string, payload: unknown): void {
     const socketIds = this.onlineUsers.get(userId);
     if (!socketIds) return;
     for (const socketId of socketIds) {

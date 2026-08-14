@@ -19,6 +19,7 @@ import { AuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../../auth/interfaces/jwt-payload.interface';
 import { ConversationsService } from './conversations.service';
+import { MessagesService } from '../messages/messages.service';
 import {
   AddMembersDto,
   CreateDirectConversationDto,
@@ -36,12 +37,27 @@ import { ReportDto } from '../dto/message.dto';
 @UseGuards(AuthGuard)
 @Controller('conversations')
 export class ConversationsController {
-  constructor(private readonly service: ConversationsService) {}
+  constructor(
+    private readonly service: ConversationsService,
+    private readonly messagesService: MessagesService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Get all conversations for the current user' })
   getAll(@CurrentUser() user: RequestUser) {
     return this.service.getConversations(user.id);
+  }
+
+  @Post(':id/attachments')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Upload attachment for conversation message' })
+  uploadAttachment(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.messagesService.uploadAttachment(id, user.id, file);
   }
 
   @Get(':id')

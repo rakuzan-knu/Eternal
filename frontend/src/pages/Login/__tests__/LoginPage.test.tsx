@@ -38,7 +38,7 @@ describe('LoginPage', () => {
     renderLoginPage();
 
     expect(screen.getByText('Welcome back')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Ел. адреса або номер телефону')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Email address or phone number')).toBeInTheDocument();
   });
 
   it('renders the hero section copy', () => {

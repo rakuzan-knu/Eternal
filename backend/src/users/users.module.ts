@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
 import { PostsModule } from '../posts/posts.module';
 import { USERS_REPOSITORY } from './interfaces/users-repository.interface';
@@ -10,7 +10,7 @@ import { PrivacyService } from './privacy/privacy.service';
 import { VisibilityResolver } from './privacy/visibility.resolver';
 
 @Module({
-  imports: [PrismaModule, PostsModule],
+  imports: [PrismaModule, forwardRef(() => PostsModule)],
   controllers: [UsersController, PrivacyController],
   providers: [
     UsersService,

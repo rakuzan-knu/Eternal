@@ -14,7 +14,7 @@ vi.mock('emoji-picker-react', () => ({
 }));
 
 function getTextarea() {
-  return screen.getByPlaceholderText('Коментувати як @ayate...');
+  return screen.getByPlaceholderText('Comment as @ayate...');
 }
 
 describe('CommentForm', () => {
@@ -93,8 +93,8 @@ describe('CommentForm', () => {
     const user = userEvent.setup();
     render(<CommentForm currentUserHandle="@ayate" />);
 
-    await user.click(screen.getByTitle('Додати емодзі'));
-    await user.click(screen.getByTestId('mock-emoji-picker'));
+    await user.click(screen.getByTitle('Add Emoji'));
+    await user.click(await screen.findByTestId('mock-emoji-picker'));
 
     expect(getTextarea()).toHaveValue('😀');
   });

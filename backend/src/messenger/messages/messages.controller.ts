@@ -9,10 +9,13 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { Throttle } from '@nestjs/throttler';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../../auth/interfaces/jwt-payload.interface';
@@ -42,6 +45,18 @@ export class MessagesController {
     @CurrentUser() user: RequestUser,
   ) {
     return this.service.getMessages(conversationId, user.id, query);
+  }
+
+  @Post('attachments')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Upload attachment for conversation message' })
+  uploadAttachment(
+    @Param('conversationId') conversationId: string,
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.service.uploadAttachment(conversationId, user.id, file);
   }
 
   @Get('search')

@@ -55,6 +55,7 @@ jobs:
         if: env.VERCEL_TOKEN != ''
         env:
           VERCEL_PREVIEW_URL: ${{ steps.vercel_stage.outputs.preview-url }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: |
           echo "🧪 Running synthetic smoke test against preview deployment: ${VERCEL_PREVIEW_URL}"
           node scripts/smoke-test-frontend.js

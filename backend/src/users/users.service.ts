@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
@@ -29,6 +30,11 @@ type RawProfile = {
   bio: string | null;
   birthDate: string | null;
   isPrivate: boolean;
+  isVerified: boolean;
+  primaryBadge: string | null;
+  badges: string[];
+  githubUsername: string | null;
+  mergedPrsCount: number;
   lastSeenAt: string | null;
   autoDeletePeriod: User['autoDeletePeriod'];
   createdAt: string;
@@ -93,11 +99,16 @@ export class UsersService {
   private async getRawProfile(id: string): Promise<RawProfile> {
     const key = this.userKey(id);
     return this.redis.getOrSet(key, 3600, async () => {
-      const user = await this.usersRepository.findById(id);
+      const user = await this.prisma.user.findUnique({
+        where: { id },
+        include: { badges: true },
+      });
       if (!user) {
         throw new NotFoundException(`User with id ${id} not found`);
       }
-      return this.toRawProfile(user);
+
+      const ownedBadges = user.badges.map((b) => b.badgeId);
+      return this.toRawProfile(user, ownedBadges);
     });
   }
 
@@ -184,6 +195,33 @@ export class UsersService {
     return this.getProfileFor(id, null);
   }
 
+  async updatePrimaryBadge(userId: string, badgeId?: string | null): Promise<UserProfileDto> {
+    const targetBadgeId = badgeId && badgeId.trim() !== '' ? badgeId.trim() : null;
+
+    if (targetBadgeId !== null) {
+      const ownership = await this.prisma.userBadge.findUnique({
+        where: {
+          userId_badgeId: {
+            userId,
+            badgeId: targetBadgeId,
+          },
+        },
+      });
+
+      if (!ownership) {
+        throw new ForbiddenException(`You do not own the badge '${targetBadgeId}'`);
+      }
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { primaryBadge: targetBadgeId },
+    });
+
+    await this.redis.del(this.userKey(userId));
+    return this.getProfileFor(userId, userId);
+  }
+
   async updateUser(id: string, dto: UpdateUserDto): Promise<UserProfileDto> {
     const hasFields =
       dto.email || dto.username || dto.displayName !== undefined || dto.bio !== undefined;
@@ -221,7 +259,7 @@ export class UsersService {
     return this.getProfileFor(id, id);
   }
 
-  private toRawProfile(user: User): RawProfile {
+  private toRawProfile(user: User, badges: string[] = []): RawProfile {
     return {
       id: user.id,
       username: user.username,
@@ -232,6 +270,11 @@ export class UsersService {
       bio: user.bio,
       birthDate: user.birthDate ? user.birthDate.toISOString() : null,
       isPrivate: user.isPrivate,
+      isVerified: user.isVerified ?? false,
+      primaryBadge: user.primaryBadge ?? null,
+      badges,
+      githubUsername: user.githubUsername ?? null,
+      mergedPrsCount: user.mergedPrsCount ?? 0,
       lastSeenAt: user.lastSeenAt ? user.lastSeenAt.toISOString() : null,
       autoDeletePeriod: user.autoDeletePeriod,
       createdAt: user.createdAt.toISOString(),
@@ -261,6 +304,11 @@ export class UsersService {
       avatar: raw.avatar,
       bio: null,
       isPrivate: raw.isPrivate,
+      isVerified: raw.isVerified ?? false,
+      primaryBadge: raw.primaryBadge ?? null,
+      badges: raw.badges ?? [],
+      githubUsername: raw.githubUsername ?? null,
+      mergedPrsCount: raw.mergedPrsCount ?? 0,
       createdAt: new Date(raw.createdAt),
       updatedAt: new Date(raw.updatedAt),
     };

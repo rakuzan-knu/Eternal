@@ -32,6 +32,7 @@ export class PostMediaResponseDto {
 export type PostWithRelations = {
   id: string;
   content: string;
+  sharesCount?: number;
   authorId: string;
   createdAt: Date;
   updatedAt: Date;
@@ -90,6 +91,9 @@ export class PostResponseDto {
   repostsCount!: number;
 
   @ApiProperty({ example: 0 })
+  sharesCount!: number;
+
+  @ApiProperty({ example: 0 })
   commentsCount!: number;
 
   static fromPrisma(this: void, post: PostWithRelations): PostResponseDto {
@@ -105,6 +109,7 @@ export class PostResponseDto {
       isReposted: post.isReposted ?? false,
       likesCount: post._count?.likes ?? 0,
       repostsCount: post._count?.reposts ?? 0,
+      sharesCount: post.sharesCount ?? 0,
       commentsCount: post._count?.comments ?? 0,
     };
   }

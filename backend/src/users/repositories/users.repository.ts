@@ -27,6 +27,7 @@ export class UsersRepository implements IUsersRepository {
         username: dto.username,
         passwordHash: dto.passwordHash,
         displayName: dto.displayName ?? null,
+        birthDate: dto.birthDate ?? null,
       },
     });
   }

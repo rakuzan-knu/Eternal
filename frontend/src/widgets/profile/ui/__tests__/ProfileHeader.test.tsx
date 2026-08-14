@@ -45,7 +45,7 @@ describe('ProfileHeader', () => {
     const user = userEvent.setup();
     render(<ProfileHeader {...defaultProps} followersCount={12} />);
 
-    await user.click(screen.getByText('followers'));
+    await user.click(screen.getByText(/followers/i));
 
     expect(screen.getByTestId('mock-user-list-modal')).toHaveTextContent('followers');
   });
@@ -54,7 +54,7 @@ describe('ProfileHeader', () => {
     const user = userEvent.setup();
     render(<ProfileHeader {...defaultProps} followingCount={8} />);
 
-    await user.click(screen.getByText('following'));
+    await user.click(screen.getByText(/following/i));
 
     expect(screen.getByTestId('mock-user-list-modal')).toHaveTextContent('following');
   });
@@ -64,7 +64,7 @@ describe('ProfileHeader', () => {
     const user = userEvent.setup();
     render(<ProfileHeader {...defaultProps} onEditClick={onEditClick} followersCount={12} />);
 
-    await user.click(screen.getByText('followers'));
+    await user.click(screen.getByText(/followers/i));
 
     expect(onEditClick).not.toHaveBeenCalled();
   });

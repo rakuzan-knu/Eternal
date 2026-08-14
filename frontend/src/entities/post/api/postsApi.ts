@@ -18,4 +18,9 @@ export const postsApi = {
 
   getPollVoters: (postId: string | number) =>
     api.get(`/posts/${postId}/poll/voters`).then((r) => r.data),
+
+  getSavedPosts: (after?: string, limit = 10) =>
+    api.get<FeedPage>('/users/me/saved-posts', { params: { after, limit } }).then((r) => r.data),
+
+  getPostById: (postId: string) => api.get<PostType>(`/posts/${postId}`).then((r) => r.data),
 };

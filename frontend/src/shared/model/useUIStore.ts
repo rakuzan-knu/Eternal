@@ -17,10 +17,16 @@ interface UIState {
   isEditProfileOpen: boolean;
   openEditProfile: () => void;
   closeEditProfile: () => void;
+
   isCommentModalOpen: boolean;
   activePostForComments: PostType | null;
   openCommentModal: (post: PostType) => void;
   closeCommentModal: () => void;
+
+  isShareModalOpen: boolean;
+  activePostForShare: PostType | null;
+  openShareModal: (post: PostType) => void;
+  closeShareModal: () => void;
 }
 
 export const useUIStore = create<UIState>((set, get) => ({
@@ -38,10 +44,16 @@ export const useUIStore = create<UIState>((set, get) => ({
   isEditProfileOpen: false,
   openEditProfile: () => set({ isEditProfileOpen: true }),
   closeEditProfile: () => set({ isEditProfileOpen: false }),
+
   isCommentModalOpen: false,
   activePostForComments: null,
   openCommentModal: (post) => set({ isCommentModalOpen: true, activePostForComments: post }),
   closeCommentModal: () => set({ isCommentModalOpen: false, activePostForComments: null }),
+
+  isShareModalOpen: false,
+  activePostForShare: null,
+  openShareModal: (post) => set({ isShareModalOpen: true, activePostForShare: post }),
+  closeShareModal: () => set({ isShareModalOpen: false, activePostForShare: null }),
 }));
 
 export type { PostType, CommentType };

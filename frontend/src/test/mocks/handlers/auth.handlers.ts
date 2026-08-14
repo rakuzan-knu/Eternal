@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw';
 
-const API_URL = 'http://localhost:3000';
+const API_URL = 'http://localhost:3000/api';
 
 export const authHandlers = [
   http.post(`${API_URL}/auth/login`, async ({ request }) => {
@@ -20,6 +20,15 @@ export const authHandlers = [
     }
 
     return HttpResponse.json({ message: 'Invalid credentials' }, { status: 401 });
+  }),
+
+  http.get(`${API_URL}/auth/check-username`, ({ request }) => {
+    const url = new URL(request.url);
+    const username = url.searchParams.get('username');
+    if (username === 'taken' || username === 'test_taken' || username === 'existing') {
+      return HttpResponse.json({ isAvailable: false });
+    }
+    return HttpResponse.json({ isAvailable: true });
   }),
 
   http.post(`${API_URL}/auth/register`, async ({ request }) => {
@@ -50,6 +59,18 @@ export const authHandlers = [
 
   http.post(`${API_URL}/auth/logout`, () => {
     return new HttpResponse(null, { status: 204 });
+  }),
+
+  http.post('*/auth/find-account', async () => {
+    return HttpResponse.json({
+      id: 'user-1',
+      name: 'Alex Kovalenko',
+      role: 'User',
+      emoji: '👑',
+      src: null,
+      maskedEmail: 'u***@example.com',
+      maskedPhone: '+380 •• ••• •• 99',
+    });
   }),
 
   http.get(`${API_URL}/users/me`, () => {

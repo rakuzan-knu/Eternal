@@ -25,6 +25,8 @@ export interface PostType {
   handle: string;
   text: string;
   createdAt: string;
+  isVerified?: boolean;
+  primaryBadge?: string | null;
   type?: 'repost' | string;
   repostedBy?: string;
   media?: PostMedia[];
@@ -33,7 +35,9 @@ export interface PostType {
   comments?: number;
   reposts?: number;
   likes?: number;
+  sharesCount?: number;
   isLiked?: boolean;
+  isReposted?: boolean;
   isSaved?: boolean;
   isFollowing?: boolean;
   isOwner?: boolean;

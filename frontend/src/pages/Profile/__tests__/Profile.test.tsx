@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -39,23 +39,23 @@ describe('ProfilePage', () => {
     vi.restoreAllMocks();
   });
 
-  it('falls back to "my_profile" when no username route param is present', () => {
+  it('falls back to "my_profile" when no username route param is present', async () => {
     renderProfile(['/']);
 
-    expect(screen.getByText('@my_profile')).toBeInTheDocument();
+    expect(await screen.findByText('@my_profile')).toBeInTheDocument();
   });
 
-  it('uses the username from the route param when present', () => {
+  it('uses the username from the route param when present', async () => {
     renderProfile(['/kolya_dev']);
 
-    expect(screen.getByText('@kolya_dev')).toBeInTheDocument();
+    expect(await screen.findByText('@kolya_dev')).toBeInTheDocument();
   });
 
-  it('shows the posts tab content by default', () => {
+  it('shows the posts tab content by default', async () => {
     renderProfile();
 
-    expect(screen.getByText('Thats fire!')).toBeInTheDocument();
-    expect(screen.getByText('Eternal CEO is here!')).toBeInTheDocument();
+    expect(await screen.findByText('Thats fire!')).toBeInTheDocument();
+    expect(await screen.findByText('Eternal CEO is here!')).toBeInTheDocument();
     expect(screen.queryByText('New update available!')).not.toBeInTheDocument();
   });
 
@@ -63,50 +63,55 @@ describe('ProfilePage', () => {
     const user = userEvent.setup();
     renderProfile();
 
-    await user.click(screen.getByText('Репости'));
+    const repostsTab = await screen.findByText('Reposts');
+    await user.click(repostsTab);
 
-    expect(screen.getByText('New update available!')).toBeInTheDocument();
+    expect(await screen.findByText('New update available!')).toBeInTheDocument();
     expect(screen.queryByText('Thats fire!')).not.toBeInTheDocument();
   });
 
   it('hides the create-post composer on the reposts tab', async () => {
     const user = userEvent.setup();
     renderProfile();
-    expect(screen.getByPlaceholderText('Що нового?')).toBeInTheDocument();
 
-    await user.click(screen.getByText('Репости'));
+    expect(await screen.findByPlaceholderText("What's new?")).toBeInTheDocument();
 
-    expect(screen.queryByPlaceholderText('Що нового?')).not.toBeInTheDocument();
+    const repostsTab = await screen.findByText('Reposts');
+    await user.click(repostsTab);
+
+    expect(screen.queryByPlaceholderText("What's new?")).not.toBeInTheDocument();
   });
 
   it('calls openEditProfile when the edit button is clicked', async () => {
     const user = userEvent.setup();
     renderProfile();
 
-    await user.click(screen.getByText('Редагувати'));
+    const editBtn = await screen.findByText('Edit');
+    await user.click(editBtn);
 
     expect(useUIStore.getState().isEditProfileOpen).toBe(true);
   });
 
-  it('logs the new post payload when submitting from the profile composer', async () => {
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+  it('submits a new post from the profile composer and clears the input', async () => {
     const user = userEvent.setup();
     renderProfile();
 
-    await user.type(screen.getByPlaceholderText('Що нового?'), 'From my profile');
-    await user.click(screen.getByText('Опублікувати'));
+    const composer = await screen.findByPlaceholderText("What's new?");
+    await user.type(composer, 'From my profile');
+    await user.click(screen.getByText('Publish'));
 
-    expect(consoleSpy).toHaveBeenCalledWith(
-      'Пост створено з профілю користувача:',
-      expect.objectContaining({ text: 'From my profile' }),
-    );
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText("What's new?")).toHaveValue('');
+    });
   });
 
   it('opens the comment modal with the clicked post', async () => {
     const user = userEvent.setup();
     renderProfile();
 
-    const commentButton = screen.getByText('2').closest('button')!;
+    await screen.findByText('Thats fire!');
+
+    const commentButton = await screen.findByText('2');
     await user.click(commentButton);
 
     expect(useUIStore.getState().isCommentModalOpen).toBe(true);

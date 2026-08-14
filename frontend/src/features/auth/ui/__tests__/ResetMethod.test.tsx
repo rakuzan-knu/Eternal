@@ -60,7 +60,7 @@ describe('ResetMethod', () => {
     const user = userEvent.setup();
     render(<ResetMethod user={user1} onCancel={vi.fn()} />);
 
-    await user.click(screen.getByText('Продовжити'));
+    await user.click(screen.getByText('Continue'));
 
     expect(window.alert).toHaveBeenCalledWith(expect.stringContaining('a••••@test.com'));
   });
@@ -70,26 +70,26 @@ describe('ResetMethod', () => {
     render(<ResetMethod user={user1} onCancel={vi.fn()} />);
     await user.click(screen.getAllByRole('radio')[1]);
 
-    await user.click(screen.getByText('Продовжити'));
+    await user.click(screen.getByText('Continue'));
 
     expect(window.alert).toHaveBeenCalledWith(expect.stringContaining('+••••••••32'));
   });
 
-  it('calls onCancel when "Це не ви?" is clicked', async () => {
+  it('calls onCancel when "Isn\'t that you?" is clicked', async () => {
     const onCancel = vi.fn();
     const user = userEvent.setup();
     render(<ResetMethod user={user1} onCancel={onCancel} />);
 
-    await user.click(screen.getByText('Це не ви?'));
+    await user.click(screen.getByText("Isn't that you?"));
 
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
-  it('renders the default 💀 avatar when the user has no custom emoji or src', () => {
-    const userWithoutAvatar: FoundUserResponse = { ...user1, emoji: undefined, src: null };
+  it('renders the default avatar placeholder when the user has no src', () => {
+    const userWithoutAvatar: FoundUserResponse = { ...user1, src: null };
 
-    render(<ResetMethod user={userWithoutAvatar} onCancel={vi.fn()} />);
+    const { container } = render(<ResetMethod user={userWithoutAvatar} onCancel={vi.fn()} />);
 
-    expect(screen.getByText('💀')).toBeInTheDocument();
+    expect(container.querySelector('svg')).toBeInTheDocument();
   });
 });

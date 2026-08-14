@@ -2,6 +2,7 @@
  * Consumer-Driven API Contract Specification (Pact)
  * Defines frontend API contract expectations for backend service endpoints.
  */
+import { describe, expect, it } from 'vitest';
 
 export interface PactInteraction {
   uponReceiving: string;
@@ -77,3 +78,11 @@ export const frontendBackendContract: PactContract = {
     },
   ],
 };
+
+describe('Pact Consumer Contract', () => {
+  it('defines valid consumer contract interactions', () => {
+    expect(frontendBackendContract.consumer.name).toBe('SocialNetworkFrontend');
+    expect(frontendBackendContract.provider.name).toBe('SocialNetworkBackend');
+    expect(frontendBackendContract.interactions.length).toBeGreaterThan(0);
+  });
+});

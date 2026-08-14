@@ -11,6 +11,7 @@ import {
 } from '@/shared/lib/messageNotificationSound';
 import { useMessageToastStore } from '@/shared/model/useMessageToastStore';
 import { useNotificationSettingsStore } from '@/shared/model/useNotificationSettingsStore';
+import { useTypingStore } from './useTypingStore';
 import { getConversationDisplay } from '../lib/getConversationDisplay';
 import { getMessageToastPreview } from '../lib/getMessageToastPreview';
 
@@ -23,11 +24,26 @@ export function useMessengerRealtime(
   const queryClient = useQueryClient();
   const { userId } = useAuthStore();
   const addToast = useMessageToastStore((s) => s.addToast);
-  const { enableNotifications, privateChats, groups, reactions, showName, showText } =
-    useNotificationSettingsStore();
+  const setTypist = useTypingStore((s) => s.setTypist);
+  const {
+    enableNotifications,
+    allowSound,
+    privateChats,
+    groups,
+    reactions,
+    likes,
+    comments,
+    reposts,
+    followers,
+    showName,
+    showText,
+  } = useNotificationSettingsStore();
 
   const joinedRef = useRef<Set<string>>(new Set());
   const playedMessageIdsRef = useRef<Set<string>>(new Set());
+  const socialBatchRef = useRef<
+    Map<string, { firstActor: string; count: number; lastTimestamp: number }>
+  >(new Map());
 
   useEffect(() => {
     initializeMessageNotificationSound();
@@ -45,6 +61,7 @@ export function useMessengerRealtime(
     const conversations = queryClient.getQueryData<ConversationView[]>([CONVERSATIONS_KEY]);
     const conversation = conversations?.find((c) => c.id === message.conversationId);
     const isGroup = conversation?.type === 'GROUP';
+    const isMessengerPage = window.location.pathname.startsWith('/messages');
 
     if (isGroup && !groups) return;
     if (!isGroup && !privateChats) return;
@@ -56,26 +73,36 @@ export function useMessengerRealtime(
       conversation?.myMuteLevel !== 'MESSAGES_AND_CALLS' &&
       !playedMessageIdsRef.current.has(message.id);
 
-    queryClient.setQueryData<ConversationView[]>([CONVERSATIONS_KEY], (prev) =>
-      prev?.map((c) =>
+    queryClient.setQueryData<ConversationView[]>([CONVERSATIONS_KEY], (prev) => {
+      if (!prev) return prev;
+      const exists = prev.some((c) => c.id === message.conversationId);
+      if (!exists) {
+        queryClient.invalidateQueries({ queryKey: [CONVERSATIONS_KEY] });
+        return prev;
+      }
+      return prev.map((c) =>
         c.id === message.conversationId
           ? {
               ...c,
               lastMessage: message,
+              updatedAt: message.createdAt,
               unreadCount:
                 message.sender.id === userId || c.id === activeConversationId
                   ? 0
                   : c.unreadCount + 1,
             }
           : c,
-      ),
-    );
+      );
+    });
 
     if (shouldNotify) {
       playedMessageIdsRef.current.add(message.id);
-      playMessageNotificationSound();
+      if (allowSound) {
+        playMessageNotificationSound();
+      }
 
-      if (showPushNotifications && enableNotifications && conversation) {
+      // If user is on the Messenger page, audio plays for other chats, but push toast is suppressed
+      if (!isMessengerPage && showPushNotifications && enableNotifications && conversation) {
         const display = getConversationDisplay(conversation, userId);
         const toastTitle = showName ? display.title : 'Eternal';
         const toastBody = showName
@@ -110,6 +137,7 @@ export function useMessengerRealtime(
     if (!reactions) return;
     const conversations = queryClient.getQueryData<ConversationView[]>([CONVERSATIONS_KEY]);
     const conversation = conversations?.find((c) => c.id === conversationId);
+    const isMessengerPage = window.location.pathname.startsWith('/messages');
 
     const latestReaction = message.reactions?.[message.reactions.length - 1];
     if (!latestReaction) return;
@@ -122,9 +150,11 @@ export function useMessengerRealtime(
       conversation?.myMuteLevel !== 'MESSAGES' &&
       conversation?.myMuteLevel !== 'MESSAGES_AND_CALLS'
     ) {
-      playMessageNotificationSound();
+      if (allowSound) {
+        playMessageNotificationSound();
+      }
 
-      if (showPushNotifications && enableNotifications) {
+      if (!isMessengerPage && showPushNotifications && enableNotifications) {
         const reactorName = reactor.displayName || reactor.username;
         const toastTitle = showName && reactorName ? reactorName : 'Eternal';
         const toastBody = showName
@@ -153,6 +183,116 @@ export function useMessengerRealtime(
     );
   };
 
+  const handleNewFollower = ({
+    follower,
+    status,
+    message,
+  }: {
+    follower: { id: string; username: string; displayName?: string | null; avatar?: string | null };
+    status: 'ACCEPTED' | 'PENDING';
+    message?: string;
+  }) => {
+    if (!enableNotifications || !followers) return;
+    if (allowSound) {
+      playMessageNotificationSound();
+    }
+    const title = showName ? follower.displayName || `@${follower.username}` : 'Eternal';
+    const body =
+      message || (status === 'PENDING' ? 'sent you a follow request' : 'subscribed to you');
+
+    addToast({
+      id: `follow-${follower.id}-${Date.now()}`,
+      conversationId: '',
+      messageId: '',
+      title,
+      body,
+      avatar: showName ? follower.avatar || null : null,
+      memberAvatars: [],
+      isGroup: false,
+      linkUrl: `/profile/${follower.username}`,
+    });
+  };
+
+  const handleSocialNotification = ({
+    type,
+    actor,
+    postId,
+    authorUsername,
+    message,
+  }: {
+    type: 'LIKE' | 'COMMENT' | 'REPOST';
+    actor: { id: string; username: string; displayName?: string | null; avatar?: string | null };
+    postId: string;
+    authorUsername: string;
+    message: string;
+  }) => {
+    if (!enableNotifications) return;
+    if (type === 'LIKE' && !likes) return;
+    if (type === 'COMMENT' && !comments) return;
+    if (type === 'REPOST' && !reposts) return;
+
+    if (allowSound) {
+      playMessageNotificationSound();
+    }
+
+    const targetProfile = authorUsername || actor.username;
+    const actorDisplayName = actor.displayName || `@${actor.username}`;
+
+    // Smart notification batching for Likes and Reposts within 10 seconds
+    const batchKey = `${type}:${postId}`;
+    const now = Date.now();
+    const existingBatch = socialBatchRef.current.get(batchKey);
+
+    let toastId = `social-${type}-${postId}-${actor.id}-${now}`;
+    let toastBody = showText ? message : `New ${type.toLowerCase()} on your post`;
+    const toastTitle = showName ? actorDisplayName : 'Eternal';
+
+    if (type === 'LIKE' || type === 'REPOST') {
+      toastId = `social-batch-${type}-${postId}`;
+      if (existingBatch && now - existingBatch.lastTimestamp < 10000) {
+        existingBatch.count += 1;
+        existingBatch.lastTimestamp = now;
+        const count = existingBatch.count;
+        const othersLabel = count === 1 ? '1 other' : `${count} others`;
+        const actionVerb = type === 'LIKE' ? 'liked' : 'reposted';
+        toastBody = showText
+          ? `${existingBatch.firstActor} and ${othersLabel} ${actionVerb} your post`
+          : `New ${type.toLowerCase()}s on your post`;
+      } else {
+        socialBatchRef.current.set(batchKey, {
+          firstActor: actorDisplayName,
+          count: 0,
+          lastTimestamp: now,
+        });
+      }
+    }
+
+    addToast({
+      id: toastId,
+      conversationId: '',
+      messageId: '',
+      title: toastTitle,
+      body: toastBody,
+      avatar: showName ? actor.avatar || null : null,
+      memberAvatars: [],
+      isGroup: false,
+      linkUrl: `/${targetProfile}#post-${postId}`,
+    });
+  };
+
+  const handleGlobalTyping = (payload: {
+    conversationId: string;
+    userId: string;
+    isTyping: boolean;
+  }) => {
+    if (payload.userId === userId) return;
+    const conversations = queryClient.getQueryData<ConversationView[]>([CONVERSATIONS_KEY]);
+    const conversation = conversations?.find((c) => c.id === payload.conversationId);
+    const participant = conversation?.participants.find((p) => p.userId === payload.userId);
+    const username = participant?.user.displayName || participant?.user.username;
+    setTypist(payload.conversationId, payload.userId, payload.isTyping, username);
+  };
+
   useChatSocketEvent<{ conversationId: string; message: MessageView }>(
     'newMessage',
     handleNewMessage,
@@ -165,4 +305,21 @@ export function useMessengerRealtime(
     'conversationUpdated',
     handleConversationUpdated,
   );
+  useChatSocketEvent<{
+    follower: { id: string; username: string; displayName?: string | null; avatar?: string | null };
+    status: 'ACCEPTED' | 'PENDING';
+    message?: string;
+  }>('newFollower', handleNewFollower);
+  useChatSocketEvent<{
+    type: 'LIKE' | 'COMMENT' | 'REPOST';
+    actor: { id: string; username: string; displayName?: string | null; avatar?: string | null };
+    postId: string;
+    authorUsername: string;
+    message: string;
+  }>('socialNotification', handleSocialNotification);
+  useChatSocketEvent<{
+    conversationId: string;
+    userId: string;
+    isTyping: boolean;
+  }>('typing', handleGlobalTyping);
 }

@@ -24,7 +24,7 @@ permissions:
 
 jobs:
   terraform:
-    name: Terraform Plan & Apply
+    name: Free Tier Infrastructure Plan & Verification
     runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults:
@@ -32,15 +32,8 @@ jobs:
         working-directory: infrastructure
 
     env:
-      AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
-      AWS_REGION: ${{ secrets.AWS_REGION }}
-      VERCEL_API_TOKEN: ${{ secrets.VERCEL_API_TOKEN }}
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
-      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
-      TF_VAR_vercel_api_token: ${{ secrets.VERCEL_API_TOKEN }}
-      TF_VAR_cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      TF_VAR_cloudflare_zone_id: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+      VERCEL_API_TOKEN: ${{ secrets.VERCEL_TOKEN || 'dummy_token' }}
+      TF_VAR_vercel_api_token: ${{ secrets.VERCEL_TOKEN || 'dummy_token' }}
 
     steps:
       - name: Checkout code
@@ -50,13 +43,6 @@ jobs:
         uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
         with:
           terraform_version: '1.7.0'
-
-      - name: Configure AWS OIDC Credentials (Optional Cloud Backend)
-        if: env.AWS_ROLE_ARN != ''
-        uses: aws-actions/configure-aws-credentials@4fc4975a852c8cd99761e2de1f4ba73402e44dd9 # v4.0.3
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION != '' && env.AWS_REGION || 'us-east-1' }}
 
       - name: Terraform Format Check
         run: terraform fmt -check
@@ -72,7 +58,16 @@ jobs:
 
       - name: Terraform Plan
         id: plan
-        run: terraform plan -no-color -out=tfplan
+        run: |
+          set +e
+          PLAN_OUT=$(terraform plan -no-color -out=tfplan 2>&1)
+          PLAN_EXIT_CODE=$?
+          {
+            echo "PLAN_OUT<<EOF"
+            echo "$PLAN_OUT"
+            echo "EOF"
+          } >> $GITHUB_ENV
+          exit $PLAN_EXIT_CODE
         continue-on-error: true
 
       - name: Post Plan Summary to PR
@@ -99,12 +94,11 @@ jobs:
             });
 
       - name: Terraform Plan Status Check
-        if: steps.plan.outcome == 'failure' && env.VERCEL_API_TOKEN != '' && env.CLOUDFLARE_API_TOKEN != ''
+        if: steps.plan.outcome == 'failure' && env.VERCEL_API_TOKEN != 'dummy_token'
         run: |
           echo "❌ Terraform Plan failed!"
           exit 1
 
       - name: Terraform Apply
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push' && steps.plan.outcome == 'success'
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push' && steps.plan.outcome == 'success' && env.VERCEL_API_TOKEN != 'dummy_token'
         run: terraform apply -auto-approve tfplan
-

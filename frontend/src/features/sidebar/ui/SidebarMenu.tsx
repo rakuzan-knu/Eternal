@@ -128,7 +128,18 @@ export function ProfileMenu({ isSidebarExpanded }: ProfileMenuProps) {
               setIsOpen(false);
             }}
           />
-          <MenuItem icon={Bookmark} label="Saved" onClick={() => setIsOpen(false)} />
+          <MenuItem
+            icon={Bookmark}
+            label="Saved"
+            onClick={() => {
+              setIsOpen(false);
+              if (currentUser?.username) {
+                navigate(`/${currentUser.username}?tab=saved`);
+              } else {
+                navigate('/');
+              }
+            }}
+          />
           <ThemeMenuItem />
           <MenuItem
             icon={AlertTriangle}

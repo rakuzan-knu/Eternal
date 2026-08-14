@@ -34,6 +34,15 @@ export class AuthService {
     private readonly sessionsService: SessionsService,
   ) {}
 
+  async checkUsername(rawUsername: string): Promise<{ isAvailable: boolean }> {
+    const username = (rawUsername || '').replace(/^@+/, '').trim();
+    if (!username || username.length < 2) {
+      return { isAvailable: false };
+    }
+    const user = await this.usersService.findByUsername(username);
+    return { isAvailable: !user };
+  }
+
   async register(dto: RegisterDto, meta: RequestMeta = {}) {
     const [existingByEmail, existingByUsername] = await Promise.all([
       this.usersService.findByEmail(dto.email),
@@ -57,6 +66,7 @@ export class AuthService {
           username: dto.username,
           displayName: dto.displayName,
           passwordHash,
+          birthDate: dto.birthDate ? new Date(dto.birthDate) : undefined,
         }),
       );
     } catch (error) {
@@ -75,7 +85,17 @@ export class AuthService {
   }
 
   async login(dto: LoginDto, meta: RequestMeta = {}) {
-    const user = await this.usersService.findByEmail(dto.email);
+    const rawIdentifier = (dto.email || dto.identity || '').trim();
+    if (!rawIdentifier) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const identifier = rawIdentifier.toLowerCase();
+    let user = await this.usersService.findByEmail(identifier);
+    if (!user) {
+      user = await this.usersService.findByUsername(rawIdentifier.replace(/^@+/, ''));
+    }
+
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }

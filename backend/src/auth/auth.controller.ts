@@ -1,11 +1,13 @@
 import {
   Body,
   Controller,
+  Get,
   Headers,
   HttpCode,
   HttpStatus,
   Ip,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -15,6 +17,7 @@ import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { AccessTokenResponseDto, AuthResponseDto } from './dto/auth-response.dto';
+import { CheckUsernameDto } from './dto/check-username.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -31,6 +34,18 @@ function extractMeta(req: Request, ip: string, ua?: string): RequestMeta {
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  @Get('check-username')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Check if a username is available' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Username availability status',
+  })
+  checkUsername(@Query() query: CheckUsernameDto): Promise<{ isAvailable: boolean }> {
+    return this.authService.checkUsername(query.username);
+  }
 
   @Post('register')
   @Throttle({ default: { limit: 5, ttl: 60_000 } })

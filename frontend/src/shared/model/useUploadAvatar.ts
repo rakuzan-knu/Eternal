@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { USER_KEY } from '@/shared/api/queryKeys';
+import { apiClient } from '@/shared/api/httpClient';
 
 interface UploadAvatarPayload {
   userId: string;
@@ -14,21 +15,11 @@ export function useUploadAvatar() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const token = localStorage.getItem('accessToken');
-
-      const response = await fetch(`/api/users/${userId}/avatar`, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const response = await apiClient.post(`/users/${userId}/avatar`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to load avatar');
-      }
-
-      return response.json();
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [USER_KEY] });

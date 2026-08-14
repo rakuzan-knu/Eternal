@@ -12,7 +12,7 @@ type PrismaPostQueryResult = {
   updatedAt: Date;
   media?: PostMedia[];
   author?: Record<string, unknown> | null;
-  savedBy?: { id: string }[] | null;
+  savedPosts?: { id: string }[] | null;
   reposts?: { id: string }[] | null;
   _count?: { likes?: number; reposts?: number; comments?: number } | null;
 };
@@ -58,7 +58,7 @@ export class PostsRepository implements IPostRepository {
                 },
               },
             },
-            savedBy: {
+            savedPosts: {
               where: { userId: viewerId },
               select: { id: true },
               take: 1,
@@ -76,12 +76,13 @@ export class PostsRepository implements IPostRepository {
   private mapPost(post: PrismaPostQueryResult, viewerId?: string): PostWithRelations {
     const authorRecord = post.author as { followers?: { id: string }[] } | undefined | null;
     const isFollowing = viewerId != null ? (authorRecord?.followers?.length ?? 0) > 0 : false;
-    const isSaved = viewerId != null ? (post.savedBy?.length ?? 0) > 0 : false;
+    const isSaved = viewerId != null ? (post.savedPosts?.length ?? 0) > 0 : false;
     const isReposted = viewerId != null ? (post.reposts?.length ?? 0) > 0 : false;
 
     return {
       id: post.id,
       content: post.content,
+      sharesCount: (post as unknown as { sharesCount?: number }).sharesCount ?? 0,
       authorId: post.authorId,
       createdAt: post.createdAt,
       updatedAt: post.updatedAt,
@@ -91,6 +92,15 @@ export class PostsRepository implements IPostRepository {
       isReposted,
       _count: post._count ?? undefined,
     };
+  }
+
+  async incrementShareCount(postId: string): Promise<void> {
+    await this.prisma.post.update({
+      where: { id: postId },
+      data: {
+        sharesCount: { increment: 1 },
+      },
+    });
   }
 
   async createPost(data: Prisma.PostCreateInput): Promise<PostWithRelations> {

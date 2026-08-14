@@ -5,9 +5,6 @@
  * Used in deployment pipelines to verify post-deployment availability before cutover.
  */
 
-import http from 'node:http';
-import https from 'node:https';
-
 const TARGET_URL = process.env.RENDER_URL || process.env.BACKEND_URL || 'http://localhost:3000';
 const HEALTH_ENDPOINT = `${TARGET_URL.replace(/\/$/, '')}/api/health`;
 const MAX_ATTEMPTS = parseInt(process.env.SMOKE_MAX_ATTEMPTS || '12', 10);
@@ -17,23 +14,27 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function checkEndpoint(urlStr) {
-  return new Promise((resolve) => {
-    const url = new URL(urlStr);
-    const client = url.protocol === 'https:' ? https : http;
-    const req = client.get(urlStr, (res) => {
-      let data = '';
-      res.on('data', (chunk) => (data += chunk));
-      res.on('end', () => {
-        resolve({ statusCode: res.statusCode, data });
-      });
+async function checkEndpoint(urlStr) {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+    const res = await fetch(urlStr, {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) SmokeTest/1.0',
+        Accept: 'application/json',
+      },
+      redirect: 'follow',
+      signal: controller.signal,
     });
-    req.on('error', (err) => resolve({ statusCode: 0, error: err.message }));
-    req.setTimeout(5000, () => {
-      req.destroy();
-      resolve({ statusCode: 0, error: 'Request timeout' });
-    });
-  });
+    clearTimeout(timeoutId);
+
+    const data = await res.text();
+    return { statusCode: res.status, data };
+  } catch (err) {
+    return { statusCode: 0, error: err.message };
+  }
 }
 
 async function runBackendSmokeTest() {
@@ -48,12 +49,14 @@ async function runBackendSmokeTest() {
         const body = JSON.parse(res.data);
         if (body.status === 'ok' || body.status === 'success' || body.status === 'up') {
           console.log(`✅ Backend Smoke Test PASSED! Response:`, JSON.stringify(body));
-          process.exit(0);
+          process.exitCode = 0;
+          return;
         }
         console.warn(`⚠️ Endpoint returned 200 OK but health status was: ${body.status}`);
       } catch (e) {
         console.log(`✅ Backend responded 200 OK.`);
-        process.exit(0);
+        process.exitCode = 0;
+        return;
       }
     } else {
       console.warn(
@@ -67,7 +70,7 @@ async function runBackendSmokeTest() {
   }
 
   console.error(`❌ Backend Smoke Test FAILED after ${MAX_ATTEMPTS} attempts.`);
-  process.exit(1);
+  process.exitCode = 1;
 }
 
 runBackendSmokeTest();

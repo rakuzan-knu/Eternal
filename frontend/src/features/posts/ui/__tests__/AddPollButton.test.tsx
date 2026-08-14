@@ -7,14 +7,14 @@ describe('AddPollButton', () => {
   it('renders in the closed (inactive) state by default styling', () => {
     render(<AddPollButton isOpen={false} onToggle={vi.fn()} />);
 
-    const button = screen.getByTitle('Створити опитування');
+    const button = screen.getByTitle('Create poll');
     expect(button).not.toHaveClass('bg-white/10');
   });
 
   it('renders in the open (active) state styling when isOpen is true', () => {
     render(<AddPollButton isOpen={true} onToggle={vi.fn()} />);
 
-    const button = screen.getByTitle('Створити опитування');
+    const button = screen.getByTitle('Create poll');
     expect(button).toHaveClass('bg-white/10');
   });
 
@@ -23,7 +23,7 @@ describe('AddPollButton', () => {
     const user = userEvent.setup();
     render(<AddPollButton isOpen={false} onToggle={onToggle} />);
 
-    await user.click(screen.getByTitle('Створити опитування'));
+    await user.click(screen.getByTitle('Create poll'));
 
     expect(onToggle).toHaveBeenCalledTimes(1);
   });
@@ -32,7 +32,7 @@ describe('AddPollButton', () => {
     const onToggle = vi.fn();
     const user = userEvent.setup();
     render(<AddPollButton isOpen={false} onToggle={onToggle} />);
-    const button = screen.getByTitle('Створити опитування');
+    const button = screen.getByTitle('Create poll');
 
     await user.click(button);
     await user.click(button);

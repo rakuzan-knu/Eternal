@@ -20,14 +20,8 @@ variable "cloudflare_zone_id" {
 
 variable "domain_name" {
   type        = string
-  description = "Domain name for Cloudflare Load Balancer"
-  default     = "api.socialnetwork.dev"
-}
-
-variable "aws_region" {
-  type        = string
-  description = "AWS Region for Budget Alerts & Infrastructure"
-  default     = "us-east-1"
+  description = "Domain name for Cloudflare DNS"
+  default     = "socialnetwork.dev"
 }
 
 variable "app_name" {
@@ -45,23 +39,5 @@ variable "github_repository" {
 variable "api_url" {
   type        = string
   description = "Production Backend API URL"
-  default     = "https://social-network-api.onrender.com/api"
-}
-
-variable "primary_backend_address" {
-  type        = string
-  description = "Primary Region Backend Origin (US-East)"
-  default     = "us-primary.api.socialnetwork.dev"
-}
-
-variable "secondary_backend_address" {
-  type        = string
-  description = "Secondary Region Backend Origin (EU-Central)"
-  default     = "eu-secondary.api.socialnetwork.dev"
-}
-
-variable "budget_alert_email" {
-  type        = string
-  description = "Email address for AWS Budget & Cost alerts"
-  default     = "devops-alerts@socialnetwork.dev"
+  default     = "https://social-network-backend.onrender.com/api"
 }

@@ -9,6 +9,7 @@ export interface MessageToast {
   avatar: string | null;
   memberAvatars: (string | null)[];
   isGroup: boolean;
+  linkUrl?: string;
 }
 
 interface MessageToastState {

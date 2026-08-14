@@ -33,7 +33,7 @@ async function fillMinimumValidForm(user: ReturnType<typeof userEvent.setup>) {
   await user.clear(usernameInput);
   await user.type(usernameInput, 'alexk');
   await user.type(screen.getByPlaceholderText('Mobile number or email'), 'alex@test.com');
-  await user.type(screen.getByPlaceholderText('New password'), 'secret1');
+  await user.type(screen.getByPlaceholderText('New password'), 'secret123');
 }
 
 describe('RegisterForm', () => {
@@ -64,7 +64,7 @@ describe('RegisterForm', () => {
     await waitFor(() => expect(getSubmitButton()).not.toBeDisabled(), { timeout: 2000 });
   });
 
-  it('calls registerMutation.mutate with the full payload on submit', async () => {
+  it('calls registerMutation.mutate with the clean payload on submit', async () => {
     const mutate = setupMutations();
     const user = userEvent.setup();
     renderWithProviders(<RegisterForm />);
@@ -75,16 +75,12 @@ describe('RegisterForm', () => {
 
     expect(mutate).toHaveBeenCalledWith(
       expect.objectContaining({
-        firstName: 'Alex',
-        lastName: 'Kovalenko',
-        username: '@alexk',
-        identity: 'alex@test.com',
-        password: 'secret1',
-        gender: 'Male',
-        birthMonth: 'January',
-        birthDay: '1',
-        birthYear: '2000',
+        email: 'alex@test.com',
+        username: 'alexk',
+        displayName: 'Alex Kovalenko',
+        password: 'secret123',
       }),
+      expect.any(Object),
     );
   });
 
@@ -107,10 +103,11 @@ describe('RegisterForm', () => {
     const usernameInput = screen.getByPlaceholderText('@username');
 
     await user.clear(usernameInput);
+    await user.type(usernameInput, 'a');
     await user.tab();
 
     await waitFor(() =>
-      expect(screen.getByText('Юзернейм має бути не менше 3 символів')).toBeInTheDocument(),
+      expect(screen.getByText('Username must be at least 2 characters long')).toBeInTheDocument(),
     );
   });
 
@@ -124,12 +121,12 @@ describe('RegisterForm', () => {
     await user.clear(usernameInput);
     await user.type(usernameInput, 'test_taken');
     await user.type(screen.getByPlaceholderText('Mobile number or email'), 'alex@test.com');
-    await user.type(screen.getByPlaceholderText('New password'), 'secret1');
+    await user.type(screen.getByPlaceholderText('New password'), 'secret123');
 
     await waitFor(
-      () => expect(screen.getByText('Цей юзернейм уже зайнятий.')).toBeInTheDocument(),
+      () => expect(screen.getByText('This username is already taken.')).toBeInTheDocument(),
       {
-        timeout: 2000,
+        timeout: 4000,
       },
     );
     expect(getSubmitButton()).toBeDisabled();

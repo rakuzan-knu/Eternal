@@ -11,6 +11,11 @@ export type PublicUserSummary = {
   avatar: string | null;
   bio: string | null;
   isPrivate: boolean;
+  isVerified?: boolean;
+  primaryBadge?: string | null;
+  badges?: { badgeId: string }[] | string[];
+  githubUsername?: string | null;
+  mergedPrsCount?: number;
   createdAt: Date;
   updatedAt: Date;
 };
