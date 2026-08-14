@@ -112,21 +112,33 @@ jobs:
       contents: read
     env:
       SENTRY_VERSION: ${{ needs.release.outputs.new-release-version }}
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+      SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
     steps:
+      - name: Check Sentry Configuration
+        id: check-sentry
+        run: |
+          if [ -n "$SENTRY_AUTH_TOKEN" ] && [ -n "$SENTRY_ORG" ] && [ -n "$SENTRY_PROJECT" ]; then
+            echo "configured=true" >> $GITHUB_OUTPUT
+          else
+            echo "configured=false" >> $GITHUB_OUTPUT
+            echo "ℹ️ Sentry secrets not configured. Skipping Sentry release creation."
+          fi
+
       - uses: actions/checkout@v4
+        if: steps.check-sentry.outputs.configured == 'true'
 
       - name: Download frontend artifact
-        uses: actions/download-artifact@v8
+        if: steps.check-sentry.outputs.configured == 'true'
+        uses: actions/download-artifact@v4
         with:
           name: frontend-dist
           path: frontend/dist/
 
       - name: Create Sentry release
+        if: steps.check-sentry.outputs.configured == 'true'
         uses: getsentry/action-release@v3
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
         with:
           environment: production
           release: ${{ env.SENTRY_VERSION }}
