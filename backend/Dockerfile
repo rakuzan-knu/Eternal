@@ -60,7 +60,7 @@ USER nestjs
 
 EXPOSE 3000
 ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["sh", "-c", "if [ -f backend/dist/backend/src/main.js ]; then node backend/dist/backend/src/main; elif [ -f backend/dist/src/main.js ]; then node backend/dist/src/main; else node backend/dist/main; fi"]
+CMD ["sh", "-c", "export NODE_OPTIONS=$(echo \"${NODE_OPTIONS:-}\" | sed 's/--optimize-for-size//g'); if [ -f backend/dist/backend/src/main.js ]; then node backend/dist/backend/src/main; elif [ -f backend/dist/src/main.js ]; then node backend/dist/src/main; else node backend/dist/main; fi"]
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD node -e "require('http').get('http://localhost:3000/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1))"
+    CMD sh -c "export NODE_OPTIONS=\$(echo \"\${NODE_OPTIONS:-}\" | sed 's/--optimize-for-size//g'); node -e \"require('http').get('http://localhost:3000/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1))\""

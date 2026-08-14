@@ -36,7 +36,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: true
-          token: ${{ steps.app-token.outputs.token != '' && steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.RELEASE_PAT || (steps.app-token.outputs.token != '' && steps.app-token.outputs.token || secrets.GITHUB_TOKEN) }}
 
       - uses: actions/setup-node@v4
         with:
@@ -71,7 +71,7 @@ jobs:
             @semantic-release/git
             conventional-changelog-conventionalcommits
         env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token != '' && steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_PAT || (steps.app-token.outputs.token != '' && steps.app-token.outputs.token || secrets.GITHUB_TOKEN) }}
 
   sbom-attestation:
     name: SBOM Generation & Cosign Attestation

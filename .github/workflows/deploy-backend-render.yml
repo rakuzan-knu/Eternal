@@ -1,14 +1,12 @@
 name: Deploy Backend to Render
 
 on:
-  push:
+  workflow_run:
+    workflows: ["Build & Push Docker Images"]
     branches: [main]
-    paths:
-      - 'backend/src/**'
-      - 'backend/prisma/**'
-      - 'backend/package*.json'
-      - 'backend/Dockerfile'
-      - 'render.yaml'
+    types:
+      - completed
+  workflow_dispatch:
 
 concurrency:
   group: deploy-backend-render-${{ github.ref }}
@@ -25,6 +23,7 @@ jobs:
     name: Verify Signature & Deploy Backend to Render
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     permissions:
       contents: read
       packages: read
