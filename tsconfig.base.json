@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "strictBindCallApply": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "moduleResolution": "Node16",
+    "paths": {
+      "@backend/*": ["backend/src/*", "apps/backend/src/*"],
+      "@frontend/*": ["frontend/src/*", "apps/frontend/src/*"],
+      "@common/*": ["backend/src/common/*", "backend/src/common/*/index.ts"],
+      "@common/prisma": ["backend/src/common/prisma/index.ts"],
+      "@common/contracts": ["backend/src/common/contracts/index.ts"]
+    }
+  }
+}

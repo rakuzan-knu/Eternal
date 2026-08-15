@@ -7,10 +7,14 @@ import {
   UserPrivacy,
   Visibility,
 } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '@common/prisma';
 import { RedisService } from '../../redis/redis.service';
-import { DimensionExceptionsDto, PrivacyExceptionUserDto } from './dto/privacy-exceptions.dto';
-import { PrivacySettingsDto, UpdatePrivacyDto } from './dto/privacy-settings.dto';
+import {
+  type DimensionExceptionsDto,
+  type PrivacyExceptionUserDto,
+  type PrivacySettingsDto,
+  type UpdatePrivacyDto,
+} from '@common/contracts';
 
 const DEFAULT_PRIVACY: Omit<PrivacySettingsDto, 'isPrivate' | 'autoDeletePeriod'> = {
   lastSeen: Visibility.EVERYBODY,

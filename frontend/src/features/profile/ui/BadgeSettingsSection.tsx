@@ -52,10 +52,10 @@ export function BadgeSettingsSection({
   const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
   const [isContributorModalOpen, setIsContributorModalOpen] = useState(false);
 
-  const userOwnedBadgeIds = currentUser?.badges || [];
+  const userOwnedBadgeIds: string[] = currentUser?.badges || [];
 
   const ownedBadges: Badge[] = userOwnedBadgeIds
-    .map((id) => getBadgeById(id))
+    .map((id: string) => getBadgeById(id))
     .filter(Boolean) as Badge[];
 
   const isChanged = draftPrimaryBadge !== (currentUser?.primaryBadge ?? null);

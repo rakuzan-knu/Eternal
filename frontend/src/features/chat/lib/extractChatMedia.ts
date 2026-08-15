@@ -3,7 +3,7 @@ import { MediaItem, LinkItem, GroupedSection } from '../model/chatMediaTypes';
 
 const URL_REGEX = /https?:\/\/[^\s<>"')\]]+/gi;
 
-function monthLabel(iso: string): string {
+function monthLabel(iso: string | Date): string {
   return new Date(iso).toLocaleDateString([], { month: 'long', year: 'numeric' });
 }
 

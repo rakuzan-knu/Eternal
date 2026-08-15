@@ -21,16 +21,26 @@ import type { RequestUser } from '../../auth/interfaces/jwt-payload.interface';
 import { ConversationsService } from './conversations.service';
 import { MessagesService } from '../messages/messages.service';
 import {
-  AddMembersDto,
-  CreateDirectConversationDto,
-  CreateGroupConversationDto,
-  MuteConversationDto,
-  SetNicknameDto,
-  SetThemeDto,
-  TransferOwnershipDto,
-  UpdateGroupConversationDto,
-} from '../dto/conversation.dto';
-import { ReportDto } from '../dto/message.dto';
+  type AddMembersDto,
+  type CreateDirectConversationDto,
+  type CreateGroupConversationDto,
+  type MuteConversationDto,
+  type ReportDto,
+  type SetNicknameDto,
+  type SetThemeDto,
+  type TransferOwnershipDto,
+  type UpdateGroupConversationDto,
+  addMembersSchema,
+  createDirectConversationSchema,
+  createGroupConversationSchema,
+  muteConversationSchema,
+  reportSchema,
+  setNicknameSchema,
+  setThemeSchema,
+  transferOwnershipSchema,
+  updateGroupConversationSchema,
+} from '@common/contracts';
+import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 
 @ApiTags('Messenger / Conversations')
 @ApiBearerAuth()
@@ -76,13 +86,19 @@ export class ConversationsController {
 
   @Post('direct')
   @ApiOperation({ summary: 'Start or get a direct conversation' })
-  createDirect(@Body() dto: CreateDirectConversationDto, @CurrentUser() user: RequestUser) {
+  createDirect(
+    @Body(new ZodValidationPipe(createDirectConversationSchema)) dto: CreateDirectConversationDto,
+    @CurrentUser() user: RequestUser,
+  ) {
     return this.service.createDirect(user.id, dto);
   }
 
   @Post('group')
   @ApiOperation({ summary: 'Create a group conversation' })
-  createGroup(@Body() dto: CreateGroupConversationDto, @CurrentUser() user: RequestUser) {
+  createGroup(
+    @Body(new ZodValidationPipe(createGroupConversationSchema)) dto: CreateGroupConversationDto,
+    @CurrentUser() user: RequestUser,
+  ) {
     return this.service.createGroup(user.id, dto);
   }
 
@@ -90,7 +106,7 @@ export class ConversationsController {
   @ApiOperation({ summary: 'Update group info (name, description)' })
   updateGroup(
     @Param('id') id: string,
-    @Body() dto: UpdateGroupConversationDto,
+    @Body(new ZodValidationPipe(updateGroupConversationSchema)) dto: UpdateGroupConversationDto,
     @CurrentUser() user: RequestUser,
   ) {
     return this.service.updateGroup(id, user.id, dto);
@@ -133,7 +149,7 @@ export class ConversationsController {
   @ApiOperation({ summary: 'Add members to a group' })
   addMembers(
     @Param('id') id: string,
-    @Body() dto: AddMembersDto,
+    @Body(new ZodValidationPipe(addMembersSchema)) dto: AddMembersDto,
     @CurrentUser() user: RequestUser,
   ) {
     return this.service.addMembers(id, user.id, dto);
@@ -162,7 +178,7 @@ export class ConversationsController {
   @ApiOperation({ summary: 'Transfer group ownership' })
   transferOwnership(
     @Param('id') id: string,
-    @Body() dto: TransferOwnershipDto,
+    @Body(new ZodValidationPipe(transferOwnershipSchema)) dto: TransferOwnershipDto,
     @CurrentUser() user: RequestUser,
   ) {
     return this.service.transferOwnership(id, user.id, dto);
@@ -195,7 +211,7 @@ export class ConversationsController {
   @ApiOperation({ summary: 'Set a nickname for a participant' })
   setNickname(
     @Param('id') id: string,
-    @Body() dto: SetNicknameDto,
+    @Body(new ZodValidationPipe(setNicknameSchema)) dto: SetNicknameDto,
     @CurrentUser() user: RequestUser,
   ) {
     return this.service.setNickname(id, user.id, dto);
@@ -204,7 +220,11 @@ export class ConversationsController {
   @Patch(':id/theme')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Set conversation theme for the current user' })
-  setTheme(@Param('id') id: string, @Body() dto: SetThemeDto, @CurrentUser() user: RequestUser) {
+  setTheme(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(setThemeSchema)) dto: SetThemeDto,
+    @CurrentUser() user: RequestUser,
+  ) {
     return this.service.setTheme(id, user.id, dto);
   }
 
@@ -213,7 +233,7 @@ export class ConversationsController {
   @ApiOperation({ summary: 'Mute/unmute notifications for a conversation' })
   mute(
     @Param('id') id: string,
-    @Body() dto: MuteConversationDto,
+    @Body(new ZodValidationPipe(muteConversationSchema)) dto: MuteConversationDto,
     @CurrentUser() user: RequestUser,
   ) {
     return this.service.muteConversation(id, user.id, dto);
@@ -260,7 +280,7 @@ export class ConversationsController {
   @ApiOperation({ summary: 'Report a user' })
   report(
     @Param('userId') userId: string,
-    @Body() dto: ReportDto,
+    @Body(new ZodValidationPipe(reportSchema)) dto: ReportDto,
     @CurrentUser() user: RequestUser,
   ) {
     return this.service.reportUser(user.id, userId, dto);

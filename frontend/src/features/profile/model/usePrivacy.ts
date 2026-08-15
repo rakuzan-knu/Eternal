@@ -6,7 +6,7 @@ import type { PrivacySettings, UpdatePrivacyPayload } from './privacyTypes';
 
 export function usePrivacy() {
   const { isAuthenticated } = useAuthStore();
-  return useQuery({
+  return useQuery<PrivacySettings>({
     queryKey: [PRIVACY_KEY],
     queryFn: privacyApi.getPrivacy,
     enabled: isAuthenticated,

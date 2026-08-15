@@ -1,5 +1,5 @@
 import { Module, forwardRef } from '@nestjs/common';
-import { PrismaModule } from '../prisma/prisma.module';
+import { PrismaModule } from '@common/prisma';
 import { PostsModule } from '../posts/posts.module';
 import { USERS_REPOSITORY } from './interfaces/users-repository.interface';
 import { UsersRepository } from './repositories/users.repository';

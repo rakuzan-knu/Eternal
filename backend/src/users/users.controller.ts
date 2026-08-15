@@ -18,18 +18,25 @@ import { Throttle } from '@nestjs/throttler';
 import { AuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OptionalAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
-import { UpdateUserDto } from './dto/update-users.dto';
-import { DeleteAccountDto } from './dto/delete-account.dto';
-import { UserProfileDto } from './dto/user-profile.dto';
-import { SetUserAliasDto } from './dto/set-user-alias.dto';
+import {
+  type DeleteAccountDto,
+  type GetPostsQueryDto,
+  type SetUserAliasDto,
+  type UpdatePrimaryBadgeDto,
+  type UpdateUserDto,
+  type UserProfileDto,
+  deleteAccountSchema,
+  getPostsQuerySchema,
+  setUserAliasSchema,
+  updatePrimaryBadgeSchema,
+  updateUserSchema,
+} from '@common/contracts';
+import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import { UsersService } from './users.service';
 import { PostsService } from '../posts/posts.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/interfaces/jwt-payload.interface';
-import { GetPostsQueryDto } from '../posts/dto/get-posts-query.dto';
 import type { Request } from 'express';
-
-import { UpdatePrimaryBadgeDto } from './dto/update-primary-badge.dto';
 
 @ApiTags('Users')
 @Controller('users')
@@ -44,7 +51,7 @@ export class UsersController {
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Search users by username or display name' })
-  @ApiResponse({ status: 200, description: 'Matching users retrieved', type: [UserProfileDto] })
+  @ApiResponse({ status: 200, description: 'Matching users retrieved' })
   searchUsers(
     @Query('q') q: string,
     @CurrentUser() viewer?: RequestUser,
@@ -60,7 +67,7 @@ export class UsersController {
   @ApiOperation({
     summary: 'Get smart mention suggestions prioritized by mutuals, follows and chats',
   })
-  @ApiResponse({ status: 200, description: 'Matching users retrieved', type: [UserProfileDto] })
+  @ApiResponse({ status: 200, description: 'Matching users retrieved' })
   searchMentionSuggestions(
     @Query('q') q: string,
     @CurrentUser() viewer?: RequestUser,
@@ -74,7 +81,7 @@ export class UsersController {
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get top creators sorted by follower count' })
-  @ApiResponse({ status: 200, description: 'Top users retrieved', type: [UserProfileDto] })
+  @ApiResponse({ status: 200, description: 'Top users retrieved' })
   getTopUsers(
     @Query('limit') limit?: string,
     @CurrentUser() viewer?: RequestUser,
@@ -90,7 +97,7 @@ export class UsersController {
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get suggested users for viewer' })
-  @ApiResponse({ status: 200, description: 'Suggested users retrieved', type: [UserProfileDto] })
+  @ApiResponse({ status: 200, description: 'Suggested users retrieved' })
   getSuggestedUsers(
     @Query('limit') limit?: string,
     @CurrentUser() viewer?: RequestUser,
@@ -140,7 +147,7 @@ export class UsersController {
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get user profile by username' })
-  @ApiResponse({ status: 200, description: 'Profile retrieved', type: UserProfileDto })
+  @ApiResponse({ status: 200, description: 'Profile retrieved' })
   @ApiResponse({ status: 404, description: 'User not found' })
   getProfileByUsername(
     @Param('username') username: string,
@@ -155,7 +162,10 @@ export class UsersController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get my saved/bookmarked posts feed' })
   @ApiResponse({ status: 200, description: 'Saved posts retrieved successfully' })
-  getSavedPosts(@Query() query: GetPostsQueryDto, @CurrentUser() user: RequestUser) {
+  getSavedPosts(
+    @Query(new ZodValidationPipe(getPostsQuerySchema)) query: GetPostsQueryDto,
+    @CurrentUser() user: RequestUser,
+  ) {
     return this.postsService.getSavedPosts(user.id, query.limit, query.after);
   }
 
@@ -167,7 +177,7 @@ export class UsersController {
   @ApiResponse({ status: 200, description: 'User posts retrieved successfully' })
   getUserPosts(
     @Param('id') id: string,
-    @Query() query: GetPostsQueryDto,
+    @Query(new ZodValidationPipe(getPostsQuerySchema)) query: GetPostsQueryDto,
     @CurrentUser() viewer?: RequestUser,
   ) {
     return this.postsService.getUserPosts(id, query.limit, query.after, viewer?.id);
@@ -181,7 +191,7 @@ export class UsersController {
   @ApiResponse({ status: 200, description: 'User reposts retrieved successfully' })
   getUserReposts(
     @Param('id') id: string,
-    @Query() query: GetPostsQueryDto,
+    @Query(new ZodValidationPipe(getPostsQuerySchema)) query: GetPostsQueryDto,
     @CurrentUser() viewer?: RequestUser,
   ) {
     return this.postsService.getUserReposts(id, query.limit, query.after, viewer?.id);
@@ -217,7 +227,7 @@ export class UsersController {
   @ApiResponse({ status: 200, description: 'Alias set successfully' })
   setUserAlias(
     @Param('id') targetId: string,
-    @Body() dto: SetUserAliasDto,
+    @Body(new ZodValidationPipe(setUserAliasSchema)) dto: SetUserAliasDto,
     @CurrentUser() user: RequestUser,
   ) {
     return this.usersService.setUserAlias(user.id, targetId, dto.alias);
@@ -238,11 +248,11 @@ export class UsersController {
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update primary badge with DB ownership verification' })
-  @ApiResponse({ status: 200, description: 'Primary badge updated', type: UserProfileDto })
+  @ApiResponse({ status: 200, description: 'Primary badge updated' })
   @ApiResponse({ status: 403, description: 'User does not own the requested badge' })
   updatePrimaryBadge(
     @CurrentUser() user: RequestUser,
-    @Body() dto: UpdatePrimaryBadgeDto,
+    @Body(new ZodValidationPipe(updatePrimaryBadgeSchema)) dto: UpdatePrimaryBadgeDto,
   ): Promise<UserProfileDto> {
     return this.usersService.updatePrimaryBadge(user.id, dto.badgeId);
   }
@@ -253,7 +263,7 @@ export class UsersController {
   @HttpCode(HttpStatus.OK)
   updatePrimaryBadgeProfileAlias(
     @CurrentUser() user: RequestUser,
-    @Body() dto: UpdatePrimaryBadgeDto,
+    @Body(new ZodValidationPipe(updatePrimaryBadgeSchema)) dto: UpdatePrimaryBadgeDto,
   ): Promise<UserProfileDto> {
     return this.usersService.updatePrimaryBadge(user.id, dto.badgeId);
   }
@@ -263,7 +273,7 @@ export class UsersController {
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get public user profile by ID (privacy-aware)' })
-  @ApiResponse({ status: 200, description: 'Profile retrieved', type: UserProfileDto })
+  @ApiResponse({ status: 200, description: 'Profile retrieved' })
   @ApiResponse({ status: 404, description: 'User not found' })
   getProfile(
     @Param('id') id: string,
@@ -278,13 +288,13 @@ export class UsersController {
   @Throttle({ default: { limit: 3, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update own profile' })
-  @ApiResponse({ status: 200, description: 'Profile updated', type: UserProfileDto })
+  @ApiResponse({ status: 200, description: 'Profile updated' })
   @ApiResponse({ status: 400, description: 'No fields provided or validation error' })
   @ApiResponse({ status: 404, description: 'User not found' })
   @ApiResponse({ status: 409, description: 'Email or username already taken' })
   updateUser(
     @Param('id') id: string,
-    @Body() dto: UpdateUserDto,
+    @Body(new ZodValidationPipe(updateUserSchema)) dto: UpdateUserDto,
     @CurrentUser() user: RequestUser,
   ): Promise<UserProfileDto> {
     if (user.id !== id) throw new ForbiddenException('You can only update your own profile');
@@ -301,7 +311,7 @@ export class UsersController {
   @ApiResponse({ status: 403, description: 'Forbidden' })
   async deleteUser(
     @Param('id') id: string,
-    @Body() dto: DeleteAccountDto,
+    @Body(new ZodValidationPipe(deleteAccountSchema)) dto: DeleteAccountDto,
     @CurrentUser() user: RequestUser,
   ): Promise<{ success: true }> {
     if (user.id !== id) throw new ForbiddenException('You can only delete your own account');

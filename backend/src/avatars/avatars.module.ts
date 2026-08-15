@@ -3,7 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AvatarsController } from './avatars.controller';
 import { AvatarsService } from './avatars.service';
 import { s3Provider } from './s3-provider';
-import { PrismaModule } from '../prisma/prisma.module';
+import { PrismaModule } from '@common/prisma';
 import { PrismaAvatarRepository } from './repositories/avatars.repository';
 import { AVATAR_REPOSITORY } from './interfaces/avatars-repository.interface';
 

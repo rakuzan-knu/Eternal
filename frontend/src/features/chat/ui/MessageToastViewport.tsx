@@ -24,12 +24,14 @@ export default function MessageToastViewport() {
       return;
     }
     if (toast.conversationId) {
-      queryClient.setQueryData<ConversationView[]>([CONVERSATIONS_KEY], (prev) =>
-        prev?.map((conversation) =>
-          conversation.id === toast.conversationId
-            ? { ...conversation, unreadCount: 0 }
-            : conversation,
-        ),
+      queryClient.setQueryData<ConversationView[]>(
+        [CONVERSATIONS_KEY],
+        (prev: ConversationView[] | undefined) =>
+          prev?.map((conversation: ConversationView) =>
+            conversation.id === toast.conversationId
+              ? { ...conversation, unreadCount: 0 }
+              : conversation,
+          ),
       );
       chatApi.markRead(toast.conversationId).catch(() => {});
       navigate(`/messages/${toast.conversationId}?messageId=${toast.messageId}`);

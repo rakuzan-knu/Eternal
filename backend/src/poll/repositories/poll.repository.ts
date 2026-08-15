@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { IPollRepository } from '../interfaces/poll-repository.interface';
-import { PrismaService } from '../../prisma/prisma.service';
-import { CreatePollDto } from '../dto/create-poll.dto';
+import { PrismaService } from '@common/prisma';
+import { type CreatePollDto } from '@common/contracts';
 
 @Injectable()
 export class PollRepository implements IPollRepository {

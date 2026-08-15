@@ -3,7 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { AutoDeletePeriod } from '@prisma/client';
 import { DeleteObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '@common/prisma';
 import { MessengerGateway } from '../gateway/messenger.gateway';
 import { AUTO_DELETE_S3_CLIENT } from './s3-provider';
 import { cutoffFor } from './auto-delete.util';

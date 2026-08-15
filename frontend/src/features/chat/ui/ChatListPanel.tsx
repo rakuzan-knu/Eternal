@@ -67,12 +67,12 @@ export default function ChatListPanel({
     const remaining = baseFolders.filter((folder) => !order.includes(folder.id));
     return [...ordered, ...remaining];
   }, [folderOrderOwnerId, folderOrders, folders, systemFolders]);
-  const visibleDirectUserIds = useMemo(
+  const visibleDirectUserIds = useMemo<string[]>(
     () =>
       conversations
-        ?.filter((c) => c.type === 'DIRECT')
-        .map((c) => getConversationDisplay(c, userId).otherUserId)
-        .filter((id): id is string => Boolean(id)) ?? [],
+        ?.filter((c: ConversationView) => c.type === 'DIRECT')
+        .map((c: ConversationView) => getConversationDisplay(c, userId).otherUserId)
+        .filter((id: string | null | undefined): id is string => Boolean(id)) ?? [],
     [conversations, userId],
   );
   useQueryOnlineStatus(visibleDirectUserIds);
@@ -107,7 +107,7 @@ export default function ChatListPanel({
 
   const effectiveConversations = useMemo<ConversationView[]>(
     () =>
-      conversations?.map((conversation) =>
+      conversations?.map((conversation: ConversationView) =>
         locallyReadConversations.has(conversation.id)
           ? { ...conversation, unreadCount: 0 }
           : conversation,
@@ -123,7 +123,7 @@ export default function ChatListPanel({
   const filteredConversations = useMemo(() => {
     if (!activeFolder) return [];
     return getFolderConversations(activeFolder, effectiveConversations, forcedUnreadLocally)
-      .filter((c) =>
+      .filter((c: ConversationView) =>
         getConversationDisplay(c, userId).title.toLowerCase().includes(search.toLowerCase()),
       )
       .sort((a, b) => getConversationActivityTime(b) - getConversationActivityTime(a));
@@ -150,7 +150,7 @@ export default function ChatListPanel({
   };
 
   const archivedCount = useMemo(
-    () => conversations?.filter((c) => c.isArchived).length ?? 0,
+    () => conversations?.filter((c: ConversationView) => c.isArchived).length ?? 0,
     [conversations],
   );
 

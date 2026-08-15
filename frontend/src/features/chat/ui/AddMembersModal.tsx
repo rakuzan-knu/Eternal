@@ -22,7 +22,9 @@ export default function AddMembersModal({
   const { results, isSearching } = useUserSearch(query);
   const addMembers = useAddMembers();
 
-  const filteredResults = results.filter((u) => !existingMemberIds.includes(u.id));
+  const filteredResults = results.filter(
+    (u: UserSearchResult) => !existingMemberIds.includes(u.id),
+  );
 
   const toggleUser = (user: UserSearchResult) => {
     setSelected((prev) =>
@@ -100,7 +102,7 @@ export default function AddMembersModal({
                 <p className="text-center text-sm text-gray-500 mt-8 px-6">No users found</p>
               )}
 
-              {filteredResults.map((user) => {
+              {filteredResults.map((user: UserSearchResult) => {
                 const selectedState = isSelected(user.id);
                 return (
                   <button

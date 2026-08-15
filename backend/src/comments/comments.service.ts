@@ -1,11 +1,10 @@
 import { Inject, Injectable, forwardRef } from '@nestjs/common';
-import { CreateCommentDto } from './dto/create-comment.dto';
+import { type CreateCommentDto, CommentResponseDto } from '@common/contracts';
 import { COMMENTS_REPOSITORY } from './interfaces/comments-repository.interface';
 import type { ICommentsRepository } from './interfaces/comments-repository.interface';
-import { CommentResponseDto } from './dto/comment-response.dto';
 import { GetAllCommentsResult } from './types/comments.types';
 import { paginate } from '../common/pagination';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '@common/prisma';
 import { MessengerGateway } from '../messenger/gateway/messenger.gateway';
 import { WS_EVENTS } from '../messenger/events/ws-events';
 

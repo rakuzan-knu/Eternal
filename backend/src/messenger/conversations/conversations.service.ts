@@ -10,7 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import sharp from 'sharp';
 import { UsersService } from '../../users/users.service';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '@common/prisma';
 import { CONVERSATIONS_REPOSITORY } from '../interfaces/conversations-repository.interface';
 import type { IConversationsRepository } from '../interfaces/conversations-repository.interface';
 import { MESSAGES_REPOSITORY } from '../interfaces/messages-repository.interface';
@@ -24,11 +24,12 @@ import type {
   UpdateGroupConversationDto,
   AddMembersDto,
   TransferOwnershipDto,
-} from '../dto/conversation.dto';
+  ConversationView,
+  UserSnapshot,
+  ReportDto,
+} from '@common/contracts';
 import { MessengerMapper } from '../messenger.mapper';
-import type { ConversationView, UserSnapshot } from '../dto/responses.dto';
 import type { ReportCategory } from '@prisma/client';
-import type { ReportDto } from '../dto/message.dto';
 
 @Injectable()
 export class ConversationsService {

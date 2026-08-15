@@ -1,12 +1,16 @@
 {
   "moduleFileExtensions": ["js", "json", "ts"],
-  "rootDir": ".",
+  "rootDir": "..",
   "testEnvironment": "node",
   "testRegex": ".e2e-spec.ts$",
+  "moduleNameMapper": {
+    "^@common/(.*)$": "<rootDir>/src/common/$1",
+    "^@backend/(.*)$": "<rootDir>/src/$1"
+  },
   "transformIgnorePatterns": [
-    "node_modules/(?!sanitize-html|htmlparser2|domutils|domhandler|dom-serializer|entities|domelementtype)"
+    "node_modules/(?!(\\.pnpm/)?(sanitize-html|htmlparser2|domutils|domhandler|dom-serializer|entities|domelementtype))"
   ],
   "transform": {
-    "^.+\\.(t|j)s$": "ts-jest"
+    "^.+\\.(t|j)sx?$": ["ts-jest", { "isolatedModules": true }]
   }
 }

@@ -39,8 +39,9 @@ export function PollDisplay({
       <div className="flex flex-col gap-2">
         {poll.options.map((option) => {
           const isMine = option.id === poll.myVoteOptionId || option.id === justVotedId;
+          const votesCount = option.votes ?? option.votesCount ?? 0;
           const percentage =
-            poll.totalVotes > 0 ? Math.round((option.votes / poll.totalVotes) * 100) : 0;
+            poll.totalVotes > 0 ? Math.round((votesCount / poll.totalVotes) * 100) : 0;
 
           if (!showResults) {
             return (

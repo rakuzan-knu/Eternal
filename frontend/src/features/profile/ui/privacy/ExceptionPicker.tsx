@@ -8,7 +8,11 @@ import {
   useAddException,
   useRemoveException,
 } from '../../model/usePrivacyExceptions';
-import type { ExceptionMode, PrivacyDimension } from '../../model/privacyTypes';
+import type {
+  ExceptionMode,
+  PrivacyDimension,
+  PrivacyExceptionUser,
+} from '../../model/privacyTypes';
 
 interface ExceptionPickerProps {
   dimension: PrivacyDimension;
@@ -23,10 +27,11 @@ export default function ExceptionPicker({ dimension, mode }: ExceptionPickerProp
   const addException = useAddException(dimension);
   const removeException = useRemoveException(dimension);
 
-  const list = mode === 'ALLOW' ? (exceptions?.allow ?? []) : (exceptions?.deny ?? []);
-  const listedIds = new Set(list.map((u) => u.id));
+  const list: PrivacyExceptionUser[] =
+    mode === 'ALLOW' ? (exceptions?.allow ?? []) : (exceptions?.deny ?? []);
+  const listedIds = new Set(list.map((u: PrivacyExceptionUser) => u.id));
 
-  const filtered = results.filter((u) => !listedIds.has(u.id));
+  const filtered = results.filter((u: UserSearchResult) => !listedIds.has(u.id));
 
   const add = (user: UserSearchResult) => {
     addException.mutate({ targetId: user.id, mode });
@@ -39,7 +44,7 @@ export default function ExceptionPicker({ dimension, mode }: ExceptionPickerProp
     <div>
       {list.length > 0 && (
         <ul className="flex flex-col gap-1 mb-3">
-          {list.map((u) => (
+          {list.map((u: PrivacyExceptionUser) => (
             <li
               key={u.id}
               className="flex items-center gap-3 px-3 py-2 rounded-2xl border border-white/5 bg-white/[0.03] animate-popIn"
@@ -86,7 +91,7 @@ export default function ExceptionPicker({ dimension, mode }: ExceptionPickerProp
 
       {filtered.length > 0 && (
         <ul className="flex flex-col gap-1 mt-2">
-          {filtered.map((u) => (
+          {filtered.map((u: UserSearchResult) => (
             <li key={u.id}>
               <button
                 onClick={() => add(u)}

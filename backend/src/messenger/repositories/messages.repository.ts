@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import type { MessageReaction, ConversationParticipant } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '@common/prisma';
 import type { IMessagesRepository } from '../interfaces/messages-repository.interface';
 import type { MessageWithDetails } from '../interfaces/types';
 import { messageInclude } from '../interfaces/types';

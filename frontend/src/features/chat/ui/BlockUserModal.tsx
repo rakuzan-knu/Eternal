@@ -8,6 +8,9 @@ import { useBlockedUsers } from '../model/useBlockedUsers';
 import { useBlockUser } from '../model/useConversationMutations';
 import { useAuthStore } from '@/shared/model/useAuthStore';
 import { BlockCandidate } from '../model/chatUiTypes';
+import type { UserSearchResult } from '../api/userSearchApi';
+
+import { UserSnapshot } from '../../../entities/chat/model/types';
 
 interface BlockUserModalProps {
   onClose: () => void;
@@ -21,7 +24,10 @@ export default function BlockUserModal({ onClose }: BlockUserModalProps) {
   const { data: blockedUsers } = useBlockedUsers();
   const blockUser = useBlockUser();
 
-  const blockedIds = useMemo(() => new Set((blockedUsers ?? []).map((u) => u.id)), [blockedUsers]);
+  const blockedIds = useMemo(
+    () => new Set((blockedUsers ?? []).map((u: UserSnapshot) => u.id)),
+    [blockedUsers],
+  );
 
   const chattedWith = useMemo<BlockCandidate[]>(() => {
     const map = new Map<string, BlockCandidate>();
@@ -47,14 +53,14 @@ export default function BlockUserModal({ onClose }: BlockUserModalProps) {
 
   const candidates = useMemo<BlockCandidate[]>(() => {
     const source: BlockCandidate[] = trimmed
-      ? results.map((u) => ({
+      ? results.map((u: UserSearchResult) => ({
           id: u.id,
           username: u.username,
           displayName: u.displayName,
           avatar: u.avatar,
         }))
       : chattedWith;
-    return source.filter((u) => u.id !== userId && !blockedIds.has(u.id));
+    return source.filter((u: BlockCandidate) => u.id !== userId && !blockedIds.has(u.id));
   }, [trimmed, results, chattedWith, userId, blockedIds]);
 
   return (

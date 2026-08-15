@@ -18,11 +18,14 @@ import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../../auth/interfaces/jwt-payload.interface';
 import { PrivacyService } from './privacy.service';
 import {
-  AddPrivacyExceptionDto,
-  PrivacySettingsDto,
-  UpdatePrivacyDto,
-} from './dto/privacy-settings.dto';
-import { DimensionExceptionsDto } from './dto/privacy-exceptions.dto';
+  type AddPrivacyExceptionDto,
+  DimensionExceptionsDto,
+  type PrivacySettingsDto,
+  type UpdatePrivacyDto,
+  addPrivacyExceptionSchema,
+  updatePrivacySchema,
+} from '@common/contracts';
+import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 
 @ApiTags('Privacy')
 @ApiBearerAuth()
@@ -34,7 +37,7 @@ export class PrivacyController {
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get my privacy settings' })
-  @ApiResponse({ status: 200, type: PrivacySettingsDto })
+  @ApiResponse({ status: 200 })
   getMyPrivacy(@CurrentUser() user: RequestUser): Promise<PrivacySettingsDto> {
     return this.privacyService.getMyPrivacy(user.id);
   }
@@ -42,10 +45,10 @@ export class PrivacyController {
   @Patch()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update my privacy settings' })
-  @ApiResponse({ status: 200, type: PrivacySettingsDto })
+  @ApiResponse({ status: 200 })
   updateMyPrivacy(
     @CurrentUser() user: RequestUser,
-    @Body() dto: UpdatePrivacyDto,
+    @Body(new ZodValidationPipe(updatePrivacySchema)) dto: UpdatePrivacyDto,
   ): Promise<PrivacySettingsDto> {
     return this.privacyService.updateMyPrivacy(user.id, dto);
   }
@@ -68,7 +71,7 @@ export class PrivacyController {
   @ApiResponse({ status: 204, description: 'Exception saved' })
   addException(
     @CurrentUser() user: RequestUser,
-    @Body() dto: AddPrivacyExceptionDto,
+    @Body(new ZodValidationPipe(addPrivacyExceptionSchema)) dto: AddPrivacyExceptionDto,
   ): Promise<void> {
     return this.privacyService.addException(user.id, dto.dimension, dto.targetId, dto.mode);
   }

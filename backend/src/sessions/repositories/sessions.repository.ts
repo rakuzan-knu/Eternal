@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { Session } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '@common/prisma';
 import type {
   CreateSessionData,
   ISessionsRepository,
@@ -62,6 +62,6 @@ export class SessionsRepository implements ISessionsRepository {
     await this.prisma.session.deleteMany({
       where: { userId, jti: { not: keepJti } },
     });
-    return rows.map((r) => r.jti);
+    return rows.map((r: { jti: string }) => r.jti);
   }
 }

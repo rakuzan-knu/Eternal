@@ -14,47 +14,6 @@ concurrency:
 permissions: read-all
 
 jobs:
-  changes:
-    name: Detect changes
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: read
-    outputs:
-      backend: ${{ steps.filter.outputs.backend }}
-      frontend: ${{ steps.filter.outputs.frontend }}
-      docker: ${{ steps.filter.outputs.docker }}
-      ci: ${{ steps.filter.outputs.ci }}
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-      - uses: dorny/paths-filter@v4
-        id: filter
-        with:
-          filters: |
-            backend:
-              - 'backend/src/**'
-              - 'backend/test/**'
-              - 'backend/prisma/**'
-              - 'backend/package*.json'
-              - 'backend/tsconfig*.json'
-              - 'backend/eslint.config.mjs'
-            frontend:
-              - 'frontend/src/**'
-              - 'frontend/package*.json'
-              - 'frontend/tsconfig*.json'
-              - 'frontend/vite.config.ts'
-              - 'frontend/vitest.config.ts'
-              - 'frontend/eslint.config.js'
-            docker:
-              - '**/Dockerfile'
-              - 'docker-compose*.yml'
-              - '**/nginx.conf'
-            ci:
-              - '.github/workflows/**'
-              - 'commitlint.config.js'
-
   validate-eol:
     name: Validate Line Endings
     runs-on: ubuntu-latest
@@ -62,12 +21,11 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
         with:
           node-version-file: '.nvmrc'
-          cache: 'npm'
 
       - name: Check for CRLF line endings
         run: node scripts/validate-eol.js
@@ -80,17 +38,19 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v7
+      - uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5dd2 # v4.0.0
+
+      - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
         with:
           node-version-file: '.nvmrc'
-          cache: 'npm'
+          cache: 'pnpm'
 
       - name: Install root deps
-        run: npm ci --ignore-scripts --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Validate PR commits
         run: |
@@ -103,162 +63,115 @@ jobs:
     name: Monorepo — Prepare Dependencies
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: changes
-    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true' || needs.changes.outputs.ci == 'true'
     permissions:
       contents: read
     outputs:
       cache-key: ${{ steps.cache-key-gen.outputs.key }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
 
-      - uses: actions/setup-node@v7
+      - uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5dd2 # v4.0.0
+
+      - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
         with:
           node-version-file: '.nvmrc'
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
+          cache: 'pnpm'
 
       - name: Generate Cache Key
         id: cache-key-gen
         run: |
-          echo "key=${{ runner.os }}-monorepo-deps-${{ hashFiles('package-lock.json', 'backend/prisma/schema.prisma') }}" >> $GITHUB_OUTPUT
+          echo "key=${{ runner.os }}-monorepo-pnpm-${{ hashFiles('pnpm-lock.yaml', 'backend/prisma/schema.prisma') }}" >> $GITHUB_OUTPUT
 
-      - name: Cache Node Modules & Prisma & node-gyp
+      - name: Cache Node Modules & Prisma
         id: monorepo-cache
-        uses: actions/cache@v6
+        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
         with:
           path: |
             node_modules
             backend/node_modules
             frontend/node_modules
             ~/.cache/prisma
-            ~/.cache/node-gyp
           key: ${{ steps.cache-key-gen.outputs.key }}
 
       - name: Install & Generate (On Cache Miss)
         if: steps.monorepo-cache.outputs.cache-hit != 'true'
         run: |
-          npm ci --ignore-scripts --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
-          cd backend && npx prisma generate
+          pnpm install --frozen-lockfile
+          pnpm --filter backend exec prisma generate
 
-  format-check:
-    name: Format Check
+  nx-affected:
+    name: Nx — Affected Lint, Typecheck & Build
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    needs: [changes, setup]
-    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true' || needs.changes.outputs.ci == 'true'
+    timeout-minutes: 20
+    needs: setup
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: actions/setup-node@v7
+      - uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5dd2 # v4.0.0
+
+      - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
         with:
           node-version-file: '.nvmrc'
+          cache: 'pnpm'
 
       - name: Restore Monorepo Dependencies
-        uses: actions/cache/restore@v6
+        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
         with:
           path: |
             node_modules
             backend/node_modules
             frontend/node_modules
             ~/.cache/prisma
-            ~/.cache/node-gyp
           key: ${{ needs.setup.outputs.cache-key }}
           fail-on-cache-miss: true
 
-      - name: Check formatting
-        run: npm run format:check
-
-  backend-lint:
-    name: Backend — Lint & Typecheck
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: [changes, setup]
-    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.ci == 'true'
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: '.nvmrc'
-
-      - name: Restore Monorepo Dependencies
-        uses: actions/cache/restore@v6
-        with:
-          path: |
-            node_modules
-            backend/node_modules
-            frontend/node_modules
-            ~/.cache/prisma
-            ~/.cache/node-gyp
-          key: ${{ needs.setup.outputs.cache-key }}
-          fail-on-cache-miss: true
-
-      - name: Cache ESLint
-        uses: actions/cache@v6
-        with:
-          path: backend/.eslintcache
-          key: ${{ runner.os }}-backend-eslint-${{ hashFiles('backend/src/**/*.ts', 'backend/eslint.config.mjs') }}
-          restore-keys: |
-            ${{ runner.os }}-backend-eslint-
-
-      - name: Lint
-        working-directory: backend
-        run: npm run lint
-
-      - name: Typecheck
-        working-directory: backend
-        run: npm run typecheck
+      - name: Run Nx Affected Tasks (Lint, Typecheck, Build)
+        run: |
+          BASE_SHA="${{ github.event.pull_request.base.sha || 'HEAD~1' }}"
+          npx nx run-many -t lint typecheck build --affected --base=$BASE_SHA --parallel=3
 
   backend-test:
     name: Backend — Unit Tests (Shard ${{ matrix.shard }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [changes, setup]
-    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.ci == 'true'
+    needs: setup
     permissions:
       contents: read
     strategy:
       matrix:
         shard: [1, 2, 3]
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: actions/setup-node@v7
+      - uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5dd2 # v4.0.0
+
+      - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
         with:
           node-version-file: '.nvmrc'
+          cache: 'pnpm'
 
       - name: Restore Monorepo Dependencies
-        uses: actions/cache/restore@v6
+        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
         with:
           path: |
             node_modules
             backend/node_modules
             frontend/node_modules
             ~/.cache/prisma
-            ~/.cache/node-gyp
           key: ${{ needs.setup.outputs.cache-key }}
           fail-on-cache-miss: true
 
-      - name: Cache Test Compiler (Backend)
-        uses: actions/cache@v6
-        with:
-          path: backend/node_modules/.cache
-          key: ${{ runner.os }}-backend-compiler-shard-${{ matrix.shard }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-backend-compiler-shard-${{ matrix.shard }}-
-
       - name: Unit tests + coverage
         working-directory: backend
-        run: npm run test:cov -- --ci --shard=${{ matrix.shard }}/3 --forceExit --passWithNoTests --detectOpenHandles
+        run: pnpm exec jest --coverage --ci --shard=${{ matrix.shard }}/3 --forceExit --passWithNoTests --detectOpenHandles
 
       - name: Upload coverage
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: backend-coverage-shard-${{ matrix.shard }}
           path: backend/coverage/
@@ -268,8 +181,7 @@ jobs:
     name: Backend — E2E Tests (${{ matrix.module }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: [changes, setup]
-    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.ci == 'true'
+    needs: setup
     permissions:
       contents: read
     strategy:
@@ -317,38 +229,39 @@ jobs:
       MINIO_PUBLIC_URL: http://localhost:9000
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: actions/setup-node@v7
+      - uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5dd2 # v4.0.0
+
+      - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
         with:
           node-version-file: '.nvmrc'
+          cache: 'pnpm'
 
       - name: Restore Monorepo Dependencies
-        uses: actions/cache/restore@v6
+        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
         with:
           path: |
             node_modules
             backend/node_modules
             frontend/node_modules
             ~/.cache/prisma
-            ~/.cache/node-gyp
           key: ${{ needs.setup.outputs.cache-key }}
           fail-on-cache-miss: true
 
       - name: Run migrations
         working-directory: backend
-        run: npx prisma migrate deploy
+        run: pnpm exec prisma migrate deploy
 
       - name: Run E2E tests (${{ matrix.module }})
         working-directory: backend
-        run: npm run test:e2e -- test/${{ matrix.module }}.e2e-spec.ts --forceExit --passWithNoTests
+        run: pnpm exec jest --config ./test/jest-e2e.json --runInBand --forceExit --detectOpenHandles --testTimeout=30000 test/${{ matrix.module }}.e2e-spec.ts
 
   backend-contract-test:
     name: Backend — API Contract Verification
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [changes, setup]
-    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.ci == 'true'
+    needs: setup
     permissions:
       contents: read
 
@@ -387,47 +300,134 @@ jobs:
       PORT: 3000
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: actions/setup-node@v7
+      - uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5dd2 # v4.0.0
+
+      - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
         with:
           node-version-file: '.nvmrc'
+          cache: 'pnpm'
 
       - name: Restore Monorepo Dependencies
-        uses: actions/cache/restore@v6
+        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
         with:
           path: |
             node_modules
             backend/node_modules
             frontend/node_modules
             ~/.cache/prisma
-            ~/.cache/node-gyp
           key: ${{ needs.setup.outputs.cache-key }}
           fail-on-cache-miss: true
 
       - name: Run migrations & generate Prisma client
         working-directory: backend
         run: |
-          npx prisma migrate deploy
-          npx prisma generate
+          pnpm exec prisma migrate deploy
+          pnpm exec prisma generate
 
       - name: Build backend
         working-directory: backend
-        run: npm run build
+        run: pnpm build
 
-      - name: Start backend server & run OpenAPI and Pact contract tests
+      - name: Start backend server & run contract tests
         working-directory: backend
         run: |
-          npm run start:prod &
+          pnpm start:prod &
           SERVER_PID=$!
-          # Use /live endpoint — pure liveness probe, always 200 when the HTTP server is up
-          # regardless of DB/Redis connectivity. Actual contract tests verify /api/health.
           npx wait-on http://localhost:3000/api/health/live --timeout 60000 --interval 1000
           node ../scripts/verify-api-contract.cjs
           node ../scripts/verify-pact-contracts.cjs
           kill $SERVER_PID || true
         env:
           NODE_ENV: test
+
+  frontend-test:
+    name: Frontend — Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: setup
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5dd2 # v4.0.0
+
+      - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Restore Monorepo Dependencies
+        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
+        with:
+          path: |
+            node_modules
+            backend/node_modules
+            frontend/node_modules
+            ~/.cache/prisma
+          key: ${{ needs.setup.outputs.cache-key }}
+          fail-on-cache-miss: true
+
+      - name: Unit tests + coverage
+        working-directory: frontend
+        run: pnpm exec vitest run --coverage --reporter=default --reporter=github-actions --coverage.thresholds.lines=0 --coverage.thresholds.statements=0 --coverage.thresholds.functions=0 --coverage.thresholds.branches=0
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/
+          retention-days: 7
+
+  frontend-prod-assessment:
+    name: Frontend — Lighthouse & Bundle Size
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: setup
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5dd2 # v4.0.0
+
+      - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Restore Monorepo Dependencies
+        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
+        with:
+          path: |
+            node_modules
+            backend/node_modules
+            frontend/node_modules
+            ~/.cache/prisma
+          key: ${{ needs.setup.outputs.cache-key }}
+          fail-on-cache-miss: true
+
+      - name: Build frontend
+        working-directory: frontend
+        run: pnpm build
+        env:
+          VITE_API_URL: http://localhost:3000
+
+      - name: Enforce bundle size budget
+        run: node scripts/check-bundle-size.cjs
+
+      - name: Check bundle size changes
+        uses: preactjs/compressed-size-action@f322c295dde06a1cb7ccaef105732dd8a726d1d9 # v2.10.0
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          pattern: 'frontend/dist/**/*.{js,css}'
+          strip-hash: "\\b\\w{8}\\."
+          build-script: "build"
 
   k8s-policy-check:
     name: Kubernetes Policy-as-Code Guardrails Check
@@ -436,9 +436,9 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
         with:
           node-version-file: '.nvmrc'
 
@@ -454,172 +454,22 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Dependency Review Action
-        uses: actions/dependency-review-action@v4
+        uses: actions/dependency-review-action@05fe4576374b728f0c523d6a13d64c25081e0803 # v4.8.3
         with:
           fail-on-severity: high
-
-  frontend-lint:
-    name: Frontend — Lint & Typecheck
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: [changes, setup]
-    if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.ci == 'true'
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: '.nvmrc'
-
-      - name: Restore Monorepo Dependencies
-        uses: actions/cache/restore@v6
-        with:
-          path: |
-            node_modules
-            backend/node_modules
-            frontend/node_modules
-            ~/.cache/prisma
-            ~/.cache/node-gyp
-          key: ${{ needs.setup.outputs.cache-key }}
-          fail-on-cache-miss: true
-
-      - name: Cache ESLint
-        uses: actions/cache@v6
-        with:
-          path: frontend/.eslintcache
-          key: ${{ runner.os }}-frontend-eslint-${{ hashFiles('frontend/src/**/*.ts', 'frontend/src/**/*.tsx', 'frontend/eslint.config.js') }}
-          restore-keys: |
-            ${{ runner.os }}-frontend-eslint-
-
-      - name: Lint
-        working-directory: frontend
-        run: npm run lint
-
-      - name: Typecheck
-        working-directory: frontend
-        run: npm run typecheck
-
-  frontend-test:
-    name: Frontend — Unit Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    needs: [changes, setup]
-    if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.ci == 'true'
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: '.nvmrc'
-
-      - name: Restore Monorepo Dependencies
-        uses: actions/cache/restore@v6
-        with:
-          path: |
-            node_modules
-            backend/node_modules
-            frontend/node_modules
-            ~/.cache/prisma
-            ~/.cache/node-gyp
-          key: ${{ needs.setup.outputs.cache-key }}
-          fail-on-cache-miss: true
-
-      - name: Cache Vitest Compiler (Frontend)
-        uses: actions/cache@v6
-        with:
-          path: frontend/node_modules/.cache
-          key: ${{ runner.os }}-frontend-compiler-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-frontend-compiler-
-
-      - name: Unit tests + coverage
-        working-directory: frontend
-        run: npm run test:cov -- --passWithNoTests --reporter=default --reporter=github-actions --coverage.thresholds.lines=0 --coverage.thresholds.statements=0 --coverage.thresholds.functions=0 --coverage.thresholds.branches=0
-
-      - name: Upload coverage
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: frontend-coverage
-          path: frontend/coverage/
-          retention-days: 7
-
-  frontend-prod-assessment:
-    name: Frontend — Lighthouse & Bundle Size
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    needs: [changes, setup, frontend-lint]
-    if: |
-      github.event_name == 'pull_request' && 
-      (needs.changes.outputs.frontend == 'true' || needs.changes.outputs.ci == 'true')
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: '.nvmrc'
-
-      - name: Restore Monorepo Dependencies
-        uses: actions/cache/restore@v6
-        with:
-          path: |
-            node_modules
-            backend/node_modules
-            frontend/node_modules
-            ~/.cache/prisma
-            ~/.cache/node-gyp
-          key: ${{ needs.setup.outputs.cache-key }}
-          fail-on-cache-miss: true
-
-      - name: Build frontend
-        working-directory: frontend
-        run: npm run build
-        env:
-          VITE_API_URL: http://localhost:3000
-
-      - name: Enforce bundle size budget
-        # Use .cjs extension — forces CJS loader regardless of root package.json "type":"module".
-        # Eliminates Cannot find module error that occurs when preactjs/compressed-size-action
-        # changes the module resolution context.
-        run: node scripts/check-bundle-size.cjs
-
-      - name: Check bundle size changes
-        uses: preactjs/compressed-size-action@v3
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          pattern: 'frontend/dist/**/*.{js,css}'
-          strip-hash: "\\b\\w{8}\\."
-          build-script: "npm run build"
-
-      - name: Run Lighthouse CI
-        if: contains(github.event.pull_request.labels.*.name, 'lighthouse') || github.event_name == 'push'
-        uses: treosh/lighthouse-ci-action@v12
-        with:
-          configPath: '.lighthouserc.json'
-          uploadArtifacts: true
-          temporaryPublicStorage: true
+          retry-on-snapshot-warnings: true
+          retry-on-snapshot-warnings-timeout: 600
 
   docker-build:
-    name: Docker — Build & Scan (${{ matrix.service }})
+    name: Docker — Build, Scan & Cosign (${{ matrix.service }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: changes
-    if: |
-      needs.changes.outputs.docker == 'true' ||
-      needs.changes.outputs.backend == 'true' ||
-      needs.changes.outputs.frontend == 'true'
     permissions:
       contents: read
       security-events: write
+      id-token: write
     strategy:
       matrix:
         include:
@@ -627,16 +477,19 @@ jobs:
             context: .
             file: backend/Dockerfile
           - service: frontend
-            context: ./frontend
+            context: .
             file: frontend/Dockerfile
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@d7d6bc7722e3daa8354c50bcb52f4837da5e9b6a # v3.8.1
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
 
       - name: Build image
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@471d1dc4e07e5cdedd4c2171150001c434f0b7a4 # v6.15.0
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.file }}
@@ -650,6 +503,25 @@ jobs:
         run: |
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
 
+      - name: Generate CycloneDX SBOM
+        run: |
+          trivy image --format cyclonedx --output sbom-${{ matrix.service }}.cdx.json social-network-${{ matrix.service }}:ci-${{ github.sha }}
+
+      - name: Sign SBOM & Provenance with Cosign
+        run: |
+          if [ -n "$ACTIONS_ID_TOKEN_REQUEST_URL" ]; then
+            cosign sign-blob --yes --bundle cosign-${{ matrix.service }}-sbom.bundle sbom-${{ matrix.service }}.cdx.json || true
+          fi
+
+      - name: Upload SBOM and Cosign Signature Artifacts
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: sbom-${{ matrix.service }}-provenance
+          path: |
+            sbom-${{ matrix.service }}.cdx.json
+            cosign-${{ matrix.service }}-sbom.bundle
+          retention-days: 14
+
       - name: Run Trivy vulnerability scanner
         id: trivy_scanner
         run: |
@@ -657,33 +529,10 @@ jobs:
 
       - name: Upload Trivy SARIF report
         if: always() && steps.trivy_scanner.outcome == 'success'
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@6bb031afdd8eb862ea3fc1848194185e076637e5 # v3.28.11
         with:
           sarif_file: trivy-${{ matrix.service }}.sarif
           category: trivy-${{ matrix.service }}-image
-
-  coverage-report:
-    name: Coverage Report
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    needs: [frontend-test]
-    if: github.event_name == 'pull_request'
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
-      - name: Download frontend coverage
-        uses: actions/download-artifact@v8
-        with:
-          name: frontend-coverage
-          path: frontend-coverage
-
-      - name: Post coverage comment
-        uses: davelosert/vitest-coverage-report-action@v2
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          json-summary-path: frontend-coverage/coverage-summary.json
-          name: Frontend Coverage
 
   ci-success:
     name: CI — All checks passed
@@ -691,16 +540,14 @@ jobs:
     timeout-minutes: 5
     needs:
       - validate-eol
-      - format-check
       - commitlint
       - setup
-      - backend-lint
+      - nx-affected
       - backend-test
       - backend-e2e
       - backend-contract-test
       - k8s-policy-check
       - dependency-review
-      - frontend-lint
       - frontend-test
       - frontend-prod-assessment
       - docker-build

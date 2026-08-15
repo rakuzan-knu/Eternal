@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { chatApi } from '../api/chatApi';
 
+import type { MessageView } from '../../../entities/chat/model/types';
+
 const DEBOUNCE_MS = 300;
 
 export function useMessageSearch(conversationId: string | null, rawQuery: string) {
@@ -14,7 +16,7 @@ export function useMessageSearch(conversationId: string | null, rawQuery: string
 
   const trimmed = debouncedQuery.trim();
 
-  const query = useQuery({
+  const query = useQuery<MessageView[]>({
     queryKey: ['message-search', conversationId, trimmed],
     queryFn: () => chatApi.searchMessages(conversationId!, trimmed),
     enabled: !!conversationId && trimmed.length > 0,

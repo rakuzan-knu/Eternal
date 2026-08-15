@@ -1,11 +1,12 @@
 import './instrument';
-import { type INestApplication, Logger, ValidationPipe } from '@nestjs/common';
+import { type INestApplication, Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { type Request, type Response } from 'express';
+import helmet from 'helmet';
 
 const logger = new Logger('Bootstrap');
 
@@ -19,6 +20,7 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   app.set('trust proxy', 1);
+  app.use(helmet());
 
   const allowedOrigins = process.env.CORS_ORIGIN
     ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim())
@@ -41,14 +43,6 @@ async function bootstrap() {
   });
 
   app.useWebSocketAdapter(new IoAdapter(app));
-
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    }),
-  );
 
   const config = new DocumentBuilder()
     .setTitle('Social Network API')
@@ -73,18 +67,12 @@ export default async function handler(req: Request, res: Response): Promise<void
   if (!cachedApp) {
     const app = await NestFactory.create<NestExpressApplication>(AppModule);
     app.set('trust proxy', 1);
+    app.use(helmet());
     app.enableCors({
       origin: process.env.CORS_ORIGIN?.split(',') ?? '*',
       credentials: true,
     });
     app.useWebSocketAdapter(new IoAdapter(app));
-    app.useGlobalPipes(
-      new ValidationPipe({
-        whitelist: true,
-        forbidNonWhitelisted: true,
-        transform: true,
-      }),
-    );
     await app.init();
     cachedApp = app;
   }

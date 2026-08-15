@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '@common/prisma';
 import { RedisService } from '../redis/redis.service';
 import * as crypto from 'crypto';
 import type { Request, Response } from 'express';

@@ -16,7 +16,8 @@ import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/interfaces/jwt-payload.interface';
 import { FollowersService } from './followers.service';
-import { GetFollowersQueryDto } from './dto/get-followers-query.dto';
+import { type GetFollowersQueryDto, getFollowersQuerySchema } from '@common/contracts';
+import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import type {
   FollowActionResult,
   GetFollowersResult,
@@ -36,7 +37,7 @@ export class FollowersController {
   @ApiResponse({ status: 404, description: 'User not found' })
   getFollowers(
     @Param('id') id: string,
-    @Query() query: GetFollowersQueryDto,
+    @Query(new ZodValidationPipe(getFollowersQuerySchema)) query: GetFollowersQueryDto,
     @CurrentUser() currentUser?: RequestUser,
   ): Promise<GetFollowersResult> {
     return this.followersService.getFollowers(id, query.limit, query.after, currentUser?.id);
@@ -50,7 +51,7 @@ export class FollowersController {
   @ApiResponse({ status: 404, description: 'User not found' })
   getFollowing(
     @Param('id') id: string,
-    @Query() query: GetFollowersQueryDto,
+    @Query(new ZodValidationPipe(getFollowersQuerySchema)) query: GetFollowersQueryDto,
     @CurrentUser() currentUser?: RequestUser,
   ): Promise<GetFollowersResult> {
     return this.followersService.getFollowing(id, query.limit, query.after, currentUser?.id);
@@ -74,7 +75,7 @@ export class FollowersController {
   @ApiResponse({ status: 200, description: 'Paginated list of pending requesters' })
   getFollowRequests(
     @CurrentUser() currentUser: RequestUser,
-    @Query() query: GetFollowersQueryDto,
+    @Query(new ZodValidationPipe(getFollowersQuerySchema)) query: GetFollowersQueryDto,
   ): Promise<GetFollowRequestsResult> {
     return this.followersService.getFollowRequests(currentUser.id, query.limit, query.after);
   }

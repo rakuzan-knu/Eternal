@@ -72,17 +72,20 @@ export function useCreatePost(queryKey: unknown[]) {
       }
     },
     onSuccess: (newPost, _variables, context) => {
-      queryClient.setQueryData<InfiniteData<FeedPage>>(queryKey, (old) => {
-        if (!old) return old;
-        const tempId = context?.tempId;
-        return {
-          ...old,
-          pages: old.pages.map((page) => ({
-            ...page,
-            posts: page.posts.map((p) => (p.id === tempId ? newPost : p)),
-          })),
-        };
-      });
+      queryClient.setQueryData<InfiniteData<FeedPage>>(
+        queryKey,
+        (old: InfiniteData<FeedPage> | undefined) => {
+          if (!old) return old;
+          const tempId = context?.tempId;
+          return {
+            ...old,
+            pages: old.pages.map((page: FeedPage) => ({
+              ...page,
+              posts: page.posts.map((p: PostType) => (p.id === tempId ? newPost : p)),
+            })),
+          };
+        },
+      );
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey });

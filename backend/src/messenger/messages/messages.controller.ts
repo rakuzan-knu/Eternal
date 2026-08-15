@@ -21,14 +21,22 @@ import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../../auth/interfaces/jwt-payload.interface';
 import { MessagesService } from './messages.service';
 import {
-  DeleteMessageDto,
-  EditMessageDto,
-  ForwardMessageDto,
-  GetMessagesQueryDto,
-  ReactToMessageDto,
-  SearchMessagesQueryDto,
-  SendMessageDto,
-} from '../dto/message.dto';
+  type DeleteMessageDto,
+  type EditMessageDto,
+  type ForwardMessageDto,
+  type GetMessagesQueryDto,
+  type ReactToMessageDto,
+  type SearchMessagesQueryDto,
+  type SendMessageDto,
+  deleteMessageSchema,
+  editMessageSchema,
+  forwardMessageSchema,
+  getMessagesQuerySchema,
+  reactToMessageSchema,
+  searchMessagesQuerySchema,
+  sendMessageSchema,
+} from '@common/contracts';
+import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 
 @ApiTags('Messenger / Messages')
 @ApiBearerAuth()
@@ -41,7 +49,7 @@ export class MessagesController {
   @ApiOperation({ summary: 'Get paginated messages in a conversation' })
   getMessages(
     @Param('conversationId') conversationId: string,
-    @Query() query: GetMessagesQueryDto,
+    @Query(new ZodValidationPipe(getMessagesQuerySchema)) query: GetMessagesQueryDto,
     @CurrentUser() user: RequestUser,
   ) {
     return this.service.getMessages(conversationId, user.id, query);
@@ -64,7 +72,7 @@ export class MessagesController {
   @ApiOperation({ summary: 'Full-text search messages in a conversation' })
   search(
     @Param('conversationId') conversationId: string,
-    @Query() query: SearchMessagesQueryDto,
+    @Query(new ZodValidationPipe(searchMessagesQuerySchema)) query: SearchMessagesQueryDto,
     @CurrentUser() user: RequestUser,
   ) {
     return this.service.search(conversationId, user.id, query);
@@ -74,7 +82,7 @@ export class MessagesController {
   @ApiOperation({ summary: 'Send a message' })
   send(
     @Param('conversationId') conversationId: string,
-    @Body() dto: SendMessageDto,
+    @Body(new ZodValidationPipe(sendMessageSchema)) dto: SendMessageDto,
     @CurrentUser() user: RequestUser,
   ) {
     return this.service.send(conversationId, user.id, dto);
@@ -84,7 +92,7 @@ export class MessagesController {
   @ApiOperation({ summary: 'Edit a message (sender only)' })
   edit(
     @Param('messageId') messageId: string,
-    @Body() dto: EditMessageDto,
+    @Body(new ZodValidationPipe(editMessageSchema)) dto: EditMessageDto,
     @CurrentUser() user: RequestUser,
   ) {
     return this.service.edit(messageId, user.id, dto);
@@ -94,7 +102,7 @@ export class MessagesController {
   @ApiOperation({ summary: 'Delete a message' })
   delete(
     @Param('messageId') messageId: string,
-    @Body() dto: DeleteMessageDto,
+    @Body(new ZodValidationPipe(deleteMessageSchema)) dto: DeleteMessageDto,
     @CurrentUser() user: RequestUser,
   ) {
     return this.service.delete(messageId, user.id, dto);
@@ -104,7 +112,7 @@ export class MessagesController {
   @ApiOperation({ summary: 'Forward a message to one or more conversations' })
   forward(
     @Param('messageId') messageId: string,
-    @Body() dto: ForwardMessageDto,
+    @Body(new ZodValidationPipe(forwardMessageSchema)) dto: ForwardMessageDto,
     @CurrentUser() user: RequestUser,
   ) {
     return this.service.forward(messageId, user.id, dto);
@@ -114,7 +122,7 @@ export class MessagesController {
   @ApiOperation({ summary: 'Add a reaction to a message' })
   addReaction(
     @Param('messageId') messageId: string,
-    @Body() dto: ReactToMessageDto,
+    @Body(new ZodValidationPipe(reactToMessageSchema)) dto: ReactToMessageDto,
     @CurrentUser() user: RequestUser,
   ) {
     return this.service.addReaction(messageId, user.id, dto);

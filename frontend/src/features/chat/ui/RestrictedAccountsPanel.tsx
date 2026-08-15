@@ -5,6 +5,8 @@ import { useBlockedUsers } from '../model/useBlockedUsers';
 import { useUnblockUser } from '../model/useConversationMutations';
 import BlockUserModal from './BlockUserModal';
 
+import type { UserSnapshot } from '../../../entities/chat/model/types';
+
 interface RestrictedAccountsPanelProps {
   onClose: () => void;
 }
@@ -70,7 +72,7 @@ export default function RestrictedAccountsPanel({ onClose }: RestrictedAccountsP
           </div>
         ) : (
           <ul className="mt-1 flex flex-col">
-            {blockedUsers.map((u) => (
+            {blockedUsers.map((u: UserSnapshot) => (
               <li
                 key={u.id}
                 className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/5"

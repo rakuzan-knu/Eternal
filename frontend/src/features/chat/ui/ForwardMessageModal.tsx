@@ -6,6 +6,8 @@ import { useConversations } from '../model/useConversations';
 import { getConversationDisplay } from '../lib/getConversationDisplay';
 import { useAuthStore } from '@/shared/model/useAuthStore';
 
+import type { ConversationView } from '../../../entities/chat/model/types';
+
 interface ForwardMessageModalProps {
   onClose: () => void;
   onForward: (conversationIds: string[]) => void;
@@ -42,7 +44,7 @@ export default function ForwardMessageModal({ onClose, onForward }: ForwardMessa
           </div>
 
           <div className="flex-1 overflow-y-auto custom-scrollbar px-5 flex flex-col gap-1">
-            {conversations?.map((c) => {
+            {conversations?.map((c: ConversationView) => {
               const display = getConversationDisplay(c, userId);
               const isSelected = selected.has(c.id);
               return (

@@ -1,5 +1,5 @@
 import { apiClient as api } from '@/shared/api/httpClient';
-import { PostType } from '../model/types';
+import { PostType, PollVoterGroup } from '../model/types';
 
 export interface FeedPage {
   posts: PostType[];
@@ -122,8 +122,8 @@ export const postsApi = {
       .get<Record<string, unknown>>(`/users/${userId}/reposts`, { params: { after } })
       .then((r) => normalizeFeedPage(r.data)),
 
-  getPollVoters: (postId: string | number) =>
-    api.get(`/posts/${postId}/poll/voters`).then((r) => r.data),
+  getPollVoters: (postId: string | number): Promise<PollVoterGroup[]> =>
+    api.get<PollVoterGroup[]>(`/posts/${postId}/poll/voters`).then((r) => r.data),
 
   getSavedPosts: (after?: string, limit = 10): Promise<FeedPage> =>
     api

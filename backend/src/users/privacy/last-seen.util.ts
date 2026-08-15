@@ -1,4 +1,4 @@
-import { LastSeenGranularity } from '../dto/user-profile.dto';
+import { LastSeenGranularity } from '@common/contracts';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 

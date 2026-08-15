@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { FollowStatus } from '@prisma/client';
 import { IFollowersRepository } from '../interfaces/followers-repository.interface';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '@common/prisma';
 import { publicUserSelect } from '../../users/users.select';
 import type { FollowRequestRow, FollowUserRow } from '../types/followers.types';
 

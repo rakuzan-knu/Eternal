@@ -29,12 +29,14 @@ export default function ArchivedChatsModal({ onClose }: ArchivedChatsModalProps)
   const archived = useMemo(
     () =>
       (conversations ?? [])
-        .filter((c) => c.isArchived)
-        .sort((a, b) => getActivityTime(b) - getActivityTime(a)),
+        .filter((c: ConversationView) => c.isArchived)
+        .sort(
+          (a: ConversationView, b: ConversationView) => getActivityTime(b) - getActivityTime(a),
+        ),
     [conversations],
   );
 
-  const activeConversation = archived.find((c) => c.id === activeId) ?? null;
+  const activeConversation = archived.find((c: ConversationView) => c.id === activeId) ?? null;
   if (activeId && !activeConversation) setActiveId(null);
 
   const sizeClass = isExpanded

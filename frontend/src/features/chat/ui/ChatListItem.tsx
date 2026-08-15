@@ -21,7 +21,7 @@ interface ChatListItemProps {
   onToggleUnreadLocally: (conversationId: string) => void;
 }
 
-function formatChatListTime(iso: string) {
+function formatChatListTime(iso: string | Date) {
   const date = new Date(iso);
   const diffMs = Date.now() - date.getTime();
   const diffMinutes = Math.max(0, Math.floor(diffMs / 60_000));

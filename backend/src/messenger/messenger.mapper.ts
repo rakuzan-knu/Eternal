@@ -4,7 +4,7 @@ import type {
   ConversationView,
   ParticipantView,
   ReactionSummary,
-} from './dto/responses.dto';
+} from '@common/contracts';
 import type {
   MessageWithDetails,
   ConversationWithDetails,

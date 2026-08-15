@@ -4,7 +4,7 @@ import { PostsService } from './posts.service';
 import { PostsController } from './posts.controller';
 import { PostsMediaService } from './posts-media.service';
 import { postsS3Provider } from './s3-provider';
-import { PrismaModule } from '../prisma/prisma.module';
+import { PrismaModule } from '@common/prisma';
 import { MessengerModule } from '../messenger/messenger.module';
 import { POSTS_REPOSITORY } from './interfaces/posts-repository.interface';
 

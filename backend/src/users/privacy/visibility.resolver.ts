@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ExceptionMode, FollowStatus, PrivacyDimension, Visibility } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '@common/prisma';
 
 interface ExceptionSets {
   allow: Set<string>;
@@ -201,7 +201,7 @@ export class VisibilityResolver {
     for (const row of exceptionRows) {
       (row.mode === ExceptionMode.ALLOW ? allow : deny).add(row.targetId);
     }
-    const followers = new Set(followRows.map((r) => r.followerId));
+    const followers = new Set(followRows.map((r: { followerId: string }) => r.followerId));
     const blocked = new Set<string>();
     for (const row of blockRows) {
       blocked.add(row.blockerId === ownerId ? row.blockedId : row.blockerId);

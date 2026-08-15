@@ -3,7 +3,7 @@ import { FollowersController } from './followers.controller';
 import { FollowersService } from './followers.service';
 import { FollowersRepository } from './repositories/followers.repository';
 import { FOLLOWERS_REPOSITORY } from './interfaces/followers-repository.interface';
-import { PrismaModule } from '../prisma/prisma.module';
+import { PrismaModule } from '@common/prisma';
 import { MessengerModule } from '../messenger/messenger.module';
 
 @Module({

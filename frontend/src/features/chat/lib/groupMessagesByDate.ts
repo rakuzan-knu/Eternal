@@ -34,6 +34,6 @@ export function groupMessagesByDate(messages: MessageView[]): MessageGroup[] {
   return groups;
 }
 
-export function formatMessageTime(iso: string): string {
+export function formatMessageTime(iso: string | Date): string {
   return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }

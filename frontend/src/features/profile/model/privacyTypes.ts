@@ -1,20 +1,17 @@
 import type { AutoDeletePeriod } from '@/entities/profile/model/types';
+import type {
+  PrivacySettingsDto,
+  PrivacyDimension as BackendPrivacyDimension,
+  ExceptionMode as BackendExceptionMode,
+  Visibility as BackendVisibility,
+  DimensionExceptionsDto,
+  PrivacyExceptionUserDto,
+  SessionViewDto,
+} from '@backend/common/contracts';
 
-export type Visibility = 'EVERYBODY' | 'CONTACTS' | 'NOBODY';
-
-export type PrivacyDimension =
-  | 'LAST_SEEN'
-  | 'AVATAR'
-  | 'BANNER'
-  | 'FORWARD_LINK'
-  | 'CALLS'
-  | 'VOICE_MESSAGES'
-  | 'MESSAGES'
-  | 'BIRTHDAY'
-  | 'BIO'
-  | 'GROUP_INVITES';
-
-export type ExceptionMode = 'ALLOW' | 'DENY';
+export type Visibility = BackendVisibility;
+export type PrivacyDimension = BackendPrivacyDimension;
+export type ExceptionMode = BackendExceptionMode;
 
 export interface PrivacyVisibilitySettings {
   lastSeen: Visibility;
@@ -35,29 +32,14 @@ export interface PrivacySettings extends PrivacyVisibilitySettings {
   allowNearbyRecommendations?: boolean;
 }
 
-export type UpdatePrivacyPayload = Partial<PrivacySettings>;
+export type UpdatePrivacyPayload = Partial<PrivacySettingsDto>;
 
-export interface PrivacyExceptionUser {
-  id: string;
-  username: string;
-  displayName: string | null;
-  avatar: string | null;
-}
+export type PrivacyExceptionUser = PrivacyExceptionUserDto;
+export type DimensionExceptions = DimensionExceptionsDto;
 
-export interface DimensionExceptions {
-  allow: PrivacyExceptionUser[];
-  deny: PrivacyExceptionUser[];
-}
-
-export interface SessionView {
-  id: string;
-  deviceName: string | null;
-  ip: string | null;
-  city: string | null;
-  country: string | null;
+export interface SessionView extends Omit<SessionViewDto, 'createdAt' | 'lastActiveAt'> {
   createdAt: string;
   lastActiveAt: string;
-  isCurrent: boolean;
 }
 
 export interface FollowRequestUser {

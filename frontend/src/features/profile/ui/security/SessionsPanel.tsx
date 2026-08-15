@@ -35,7 +35,7 @@ export default function SessionsPanel({ onClose }: SessionsPanelProps) {
   const revoke = useRevokeSession();
   const revokeAll = useRevokeAllSessions();
 
-  const others = sessions?.filter((s) => !s.isCurrent) ?? [];
+  const others = sessions?.filter((s: SessionView) => !s.isCurrent) ?? [];
 
   return (
     <SlideOverPanel title="Active sessions" onClose={onClose}>
@@ -45,7 +45,7 @@ export default function SessionsPanel({ onClose }: SessionsPanelProps) {
         </div>
       ) : (
         <>
-          {sessions?.map((s) => {
+          {sessions?.map((s: SessionView) => {
             const Icon = deviceIcon(s.deviceName);
             return (
               <div

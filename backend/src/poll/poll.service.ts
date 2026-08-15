@@ -8,8 +8,8 @@ import {
 } from '@nestjs/common';
 import type { IPollRepository } from './interfaces/poll-repository.interface';
 import { POLL_REPOSITORY } from './interfaces/poll-repository.interface';
-import { CreatePollDto } from './dto/create-poll.dto';
-import { PrismaService } from '../prisma/prisma.service';
+import { type CreatePollDto } from '@common/contracts';
+import { PrismaService } from '@common/prisma';
 
 @Injectable()
 export class PollService {

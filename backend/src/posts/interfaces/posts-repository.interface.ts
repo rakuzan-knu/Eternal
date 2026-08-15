@@ -1,5 +1,5 @@
 import type { Post, Prisma, ReportCategory } from '@prisma/client';
-import type { PostWithRelations } from '../dto/post-response.dto';
+import type { PostWithRelations } from '@common/contracts';
 
 export const POSTS_REPOSITORY = Symbol('POSTS_REPOSITORY');
 

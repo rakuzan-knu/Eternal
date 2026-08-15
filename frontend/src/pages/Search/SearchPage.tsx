@@ -21,7 +21,7 @@ import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import Avatar from '@/shared/ui/Avatar';
 import { apiClient as api } from '@/shared/api/httpClient';
 import { postsApi } from '@/entities/post/api/postsApi';
-import { PostType } from '@/entities/post/model/types';
+import { PostType, PostMedia } from '@/entities/post/model/types';
 import { useUIStore } from '@/shared/model/useUIStore';
 import { CommentModal } from '@/features/comment/ui/CommentModal';
 import { PostCard } from '@/widgets/post/ui/PostCard';
@@ -75,10 +75,11 @@ function GridMediaSkeleton({ count = 9 }: { count?: number }) {
 function GridMediaCard({ post, onClick }: { post: PostType; onClick: () => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const playPromiseRef = useRef<Promise<void> | null>(null);
-  const mediaItem =
-    post.media?.[0] ?? (post.image ? { type: 'image' as const, url: post.image } : null);
+  const mediaItem: PostMedia | null =
+    post.media?.[0] ?? (post.image ? { type: 'image', url: post.image } : null);
   const isVideo =
     mediaItem?.type === 'video' ||
+    mediaItem?.type === 'VIDEO' ||
     Boolean(mediaItem?.url && mediaItem.url.match(/\.(mp4|webm|mov)(\?.*)?$/i));
   const hasMediaUrl = Boolean(mediaItem?.url);
 
@@ -129,7 +130,7 @@ function GridMediaCard({ post, onClick }: { post: PostType; onClick: () => void 
           <video
             ref={videoRef}
             src={mediaItem?.url}
-            poster={mediaItem?.poster}
+            poster={mediaItem?.poster ?? undefined}
             className="w-full h-full object-cover"
             muted
             playsInline
@@ -556,7 +557,7 @@ export default function SearchPage() {
                 <span className="text-white font-bold text-sm">Trending Hashtags</span>
               </div>
               <div className="flex flex-wrap gap-2">
-                {trendingHashtags.map((h) => (
+                {trendingHashtags.map((h: HashtagItem) => (
                   <button
                     key={h.tag}
                     type="button"
@@ -581,7 +582,7 @@ export default function SearchPage() {
                 </div>
               </div>
               <div className="flex flex-col divide-y divide-white/[0.03]">
-                {suggestedUsers.map((u) => (
+                {suggestedUsers.map((u: SearchUserItem) => (
                   <div
                     key={u.id}
                     onClick={() => handleUserClick(u)}
@@ -640,7 +641,7 @@ export default function SearchPage() {
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                    {topUsers.map((u) => (
+                    {topUsers.map((u: SearchUserItem) => (
                       <div
                         key={u.id}
                         onClick={() => handleUserClick(u)}
@@ -724,7 +725,7 @@ export default function SearchPage() {
                         </button>
                       </div>
                       <div className="divide-y divide-white/[0.03]">
-                        {searchUsers.slice(0, 3).map((u) => (
+                        {searchUsers.slice(0, 3).map((u: SearchUserItem) => (
                           <div
                             key={u.id}
                             onClick={() => handleUserClick(u)}
@@ -767,7 +768,7 @@ export default function SearchPage() {
                     <div className="flex flex-col gap-2">
                       <span className="text-white font-bold text-sm">Hashtags</span>
                       <div className="flex flex-wrap gap-2">
-                        {searchHashtags.map((h) => (
+                        {searchHashtags.map((h: HashtagItem) => (
                           <button
                             key={h.tag}
                             type="button"
@@ -855,7 +856,7 @@ export default function SearchPage() {
                     </div>
                   ) : (
                     <div className="divide-y divide-white/[0.03]">
-                      {searchUsers.map((u) => (
+                      {searchUsers.map((u: SearchUserItem) => (
                         <div
                           key={u.id}
                           onClick={() => handleUserClick(u)}
@@ -936,7 +937,7 @@ export default function SearchPage() {
                     </div>
                   ) : (
                     <div className="divide-y divide-white/[0.03]">
-                      {searchHashtags.map((h) => (
+                      {searchHashtags.map((h: HashtagItem) => (
                         <div
                           key={h.tag}
                           onClick={() => handleHashtagClick(h.tag)}

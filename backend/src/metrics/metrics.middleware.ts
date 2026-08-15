@@ -12,7 +12,7 @@ export class MetricsMiddleware implements NestMiddleware {
     const method = req.method;
 
     // Intercept response
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
     const originalSend = res.send.bind(res);
     res.send = (data: unknown) => {
       const duration = Date.now() - startTime;
@@ -25,9 +25,8 @@ export class MetricsMiddleware implements NestMiddleware {
         this.metricsService.recordHttpError(method, route, statusCode);
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       res.send = originalSend;
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call
+
       return originalSend(data);
     };
 

@@ -170,3 +170,9 @@ GEMINI.md
 graphify-out/cache/
 graphify-out/20*
 graphify-out/
+
+# Nx / Turbo / Workspace Build
+.nx/
+.turbo/
+apps/*/dist/
+apps/*/coverage/

@@ -275,7 +275,8 @@ export function MiniProfileHoverCard({
                         (post.image ? { type: 'image' as const, url: post.image } : null);
                       const isVideo =
                         mediaItem?.type === 'video' ||
-                        (mediaItem?.url && mediaItem.url.match(/\.(mp4|webm|mov)(\?.*)?$/i));
+                        mediaItem?.type === 'VIDEO' ||
+                        Boolean(mediaItem?.url && mediaItem.url.match(/\.(mp4|webm|mov)(\?.*)?$/i));
 
                       return (
                         <div
@@ -291,7 +292,7 @@ export function MiniProfileHoverCard({
                               {isVideo ? (
                                 <video
                                   src={mediaItem.url}
-                                  poster={mediaItem.poster}
+                                  poster={mediaItem.poster ?? undefined}
                                   className="w-full h-full object-cover"
                                   muted
                                   playsInline

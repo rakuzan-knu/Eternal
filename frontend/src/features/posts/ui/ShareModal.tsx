@@ -57,15 +57,17 @@ export function ShareModal() {
   const mutualUsers = useMemo<FollowUserSummary[]>(() => {
     if (!followingData?.items || !followersData?.items) return [];
 
-    const followerIds = new Set(followersData.items.map((u) => u.id));
+    const followerIds = new Set(followersData.items.map((u: FollowUserSummary) => u.id));
     const following = followingData.items;
 
     // Filter users who follow each other
-    const mutuals = following.filter((u) => u.followsYou || followerIds.has(u.id));
+    const mutuals = following.filter(
+      (u: FollowUserSummary) => u.followsYou || followerIds.has(u.id),
+    );
 
     // If fewer mutuals, include other following/followers up to 20
     const combined = [...mutuals];
-    const seen = new Set(mutuals.map((u) => u.id));
+    const seen = new Set(mutuals.map((u: FollowUserSummary) => u.id));
 
     for (const u of following) {
       if (!seen.has(u.id) && combined.length < 20) {

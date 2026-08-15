@@ -3,9 +3,11 @@ import { SESSIONS_KEY } from '@/shared/api/queryKeys';
 import { useAuthStore } from '@/shared/model/useAuthStore';
 import { sessionsApi } from '../api/sessionsApi';
 
+import type { SessionView } from '../model/privacyTypes';
+
 export function useSessions() {
   const { isAuthenticated } = useAuthStore();
-  return useQuery({
+  return useQuery<SessionView[]>({
     queryKey: [SESSIONS_KEY],
     queryFn: sessionsApi.list,
     enabled: isAuthenticated,

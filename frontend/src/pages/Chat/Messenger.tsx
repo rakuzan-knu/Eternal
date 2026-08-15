@@ -8,6 +8,8 @@ import { useUIStore } from '../../shared/model/useUIStore';
 import { useConversations } from '../../features/chat/model/useConversations';
 import { usePresenceSync } from '../../features/chat/model/usePresence';
 
+import type { ConversationView } from '../../entities/chat/model/types';
+
 export default function MessengerPage() {
   const { conversationId } = useParams<{ conversationId?: string }>();
   const navigate = useNavigate();
@@ -15,7 +17,8 @@ export default function MessengerPage() {
   const { data: conversations } = useConversations();
   usePresenceSync();
 
-  const activeConversation = conversations?.find((c) => c.id === conversationId) ?? null;
+  const activeConversation =
+    conversations?.find((c: ConversationView) => c.id === conversationId) ?? null;
 
   const handleSelectConversation = (id: string) => navigate(`/messages/${id}`);
 

@@ -1,13 +1,13 @@
 import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { UAParser } from 'ua-parser-js';
 import geoip from 'geoip-lite';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '@common/prisma';
 import {
   SESSIONS_REPOSITORY,
   type CreateSessionData,
   type ISessionsRepository,
 } from './interfaces/sessions-repository.interface';
-import { SessionViewDto } from './dto/session-view.dto';
+import { type SessionViewDto } from '@common/contracts';
 
 export interface RequestMeta {
   userAgent?: string | null;

@@ -9,28 +9,31 @@ A modern, high-performance **Social Network Application** built as a monorepo us
 ### 🟦 Back-End (NestJS)
 
 - **Framework:** NestJS (Modular Architecture)
-- **API Documentation:** Swagger
-- **Database & Caching:** PostgreSQL, Redis, Prisma ORM
+- **Validation & Contracts:** Single-Source-of-Truth Zod Contracts (`@common/contracts`), Custom `ZodValidationPipe` (zero `class-validator`)
+- **API Documentation:** Swagger OpenAPI
+- **Database & Caching:** PostgreSQL, Redis, Prisma ORM (`@common/prisma`)
 - **Real-time Communication:** Socket.io
-- **Auth & Security:** Passport.js + JWT, Argon2 hashing, `class-validator`, Helmet, CORS, NestJS Throttler (rate limiting)
-- **File Processing & Storage:** MINIO
+- **Auth & Security:** Passport.js + JWT, Argon2 hashing, Helmet, Strict CORS, NestJS Throttler
+- **File Processing & Storage:** MINIO / S3
 - **Asynchronous Jobs & Queues:** BullMQ
-- **Logging:** Pino (`nestjs-pino`)
+- **Observability & Tracing:** Correlation ID middleware (`x-correlation-id`), Prometheus Metrics (`prom-client`), Sentry error tracking, Pino structured logging
 
 ### 🟩 Front-End (React + Vite)
 
-- **Core & Build Tools:** React, Vite, React Compiler
+- **Core & Build Tools:** React 19, Vite, React Compiler
+- **Architecture:** Feature-Sliced Design (FSD)
 - **Styling & UI:** Tailwind CSS
 - **State Management:** TanStack Query (Server State), Zustand (Client State)
 - **Routing:** React Router 7
-- **Form Handling & Validation:** React Hook Form, Zod
+- **Form Handling & Validation:** React Hook Form + Zod
 - **Real-time Client:** Socket.io Client
-- **Testing:** Vitest, React Testing Library
+- **Type Integration:** Direct backend contract consumption (`@backend/common/contracts`)
 
 ### 🟨 Infrastructure & DevOps
 
-- **Monorepo Management:** npm Workspaces (`packageManager: npm@10.9.0`)
-- **Containerization:** Docker
+- **Monorepo Management:** npm Workspaces + **Nx** (`nx.json`, task graph & affected execution)
+- **Supply Chain Security:** Cosign keyless artifact signing, CycloneDX SBOM generation, Trivy container scanning, strict `allowScripts` lockdown
+- **Containerization:** Docker (multi-stage non-root images)
 - **CI/CD & Release:** GitHub Actions, `@commitlint`, `lint-staged`, `husky`, `semantic-release`
 
 ---

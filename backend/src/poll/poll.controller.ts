@@ -1,7 +1,8 @@
 import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
-import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { PollService } from './poll.service';
-import { CreatePollDto } from './dto/create-poll.dto';
+import { type CreatePollDto, createPollSchema } from '@common/contracts';
+import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import { AuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/interfaces/jwt-payload.interface';
@@ -22,10 +23,12 @@ export class PollController {
   @Post()
   @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Create a poll' })
-  @ApiBody({ type: CreatePollDto })
   @ApiResponse({ status: 201, description: 'Poll created successfully.' })
   @ApiResponse({ status: 409, description: 'Post already has a poll.' })
-  addPoll(@Body() dto: CreatePollDto, @CurrentUser() user: RequestUser) {
+  addPoll(
+    @Body(new ZodValidationPipe(createPollSchema)) dto: CreatePollDto,
+    @CurrentUser() user: RequestUser,
+  ) {
     return this.pollService.addPoll(user.id, dto);
   }
 

@@ -1,7 +1,8 @@
 {
+  "extends": "../tsconfig.base.json",
   "compilerOptions": {
-    "module": "Node16",
-    "moduleResolution": "Node16",
+    "module": "commonjs",
+    "moduleResolution": "node",
     "esModuleInterop": true,
     "isolatedModules": true,
     "declaration": true,
@@ -15,15 +16,20 @@
     "rootDir": ".",
     "incremental": true,
     "tsBuildInfoFile": "./dist/.tsbuildinfo",
-    "skipLibCheck": true,
-    "strictNullChecks": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "strictBindCallApply": true,
+    "noFallthroughCasesInSwitch": true,
     "forceConsistentCasingInFileNames": true,
-    "noImplicitAny": false,
-    "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false,
+    "skipLibCheck": true,
     "types": ["jest", "node", "multer"],
+    "baseUrl": ".",
     "paths": {
-      "*": ["./*"]
+      "@backend/*": ["./src/*"],
+      "@common/*": ["./src/common/*", "./src/common/*/index.ts"],
+      "@common/prisma": ["./src/common/prisma/index.ts"],
+      "@common/contracts": ["./src/common/contracts/index.ts"],
+      "@common/pagination": ["./src/common/pagination/index.ts"]
     }
   },
   "include": ["src/**/*", "test/**/*"]

@@ -6,16 +6,14 @@ import {
   NotFoundException,
   forwardRef,
 } from '@nestjs/common';
-import { CreatePostDto } from './dto/create-post.dto';
-import { EditPostDto } from './dto/edit-post.dto';
-import { PostResponseDto } from './dto/post-response.dto';
+import { type CreatePostDto, type EditPostDto, PostResponseDto } from '@common/contracts';
 import { POSTS_REPOSITORY } from './interfaces/posts-repository.interface';
 import type { IPostRepository } from './interfaces/posts-repository.interface';
 import type { Paginated } from '../common/pagination';
 import { paginate } from '../common/pagination';
 import { RedisService } from '../redis/redis.service';
 import { PostsMediaService } from './posts-media.service';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '@common/prisma';
 import { MessengerGateway } from '../messenger/gateway/messenger.gateway';
 import { WS_EVENTS } from '../messenger/events/ws-events';
 import { MediaType, type ReportCategory } from '@prisma/client';
@@ -90,18 +88,23 @@ export class PostsService {
     const mediaItems: { type: MediaType; url: string; poster?: string; order: number }[] = [];
 
     if (dto.media && dto.media.length > 0) {
-      dto.media.forEach((item, index) => {
-        mediaItems.push({
-          type: item.type,
-          url: item.url,
-          poster: item.poster,
-          order: item.order ?? index,
-        });
-      });
+      dto.media.forEach(
+        (
+          item: { type: MediaType; url: string; poster?: string; order?: number },
+          index: number,
+        ) => {
+          mediaItems.push({
+            type: item.type,
+            url: item.url,
+            poster: item.poster,
+            order: item.order ?? index,
+          });
+        },
+      );
     }
 
     if (dto.gifUrls && dto.gifUrls.length > 0) {
-      dto.gifUrls.forEach((gifUrl, index) => {
+      dto.gifUrls.forEach((gifUrl: string, index: number) => {
         if (typeof gifUrl === 'string' && gifUrl.trim()) {
           mediaItems.push({
             type: MediaType.IMAGE,
@@ -143,7 +146,7 @@ export class PostsService {
     // If poll options were provided, create the poll
     if (dto.poll && Array.isArray(dto.poll) && dto.poll.length >= 2) {
       try {
-        const validOptions = dto.poll.map((opt) => String(opt).trim()).filter(Boolean);
+        const validOptions = dto.poll.map((opt: string) => String(opt).trim()).filter(Boolean);
         if (validOptions.length >= 2) {
           const pollTitle = contentText.length > 0 ? contentText.slice(0, 100) : 'Poll';
           const createdPoll = await this.prisma.poll.create({
@@ -153,7 +156,7 @@ export class PostsService {
               title: pollTitle,
               options: {
                 createMany: {
-                  data: validOptions.map((text, index) => ({
+                  data: validOptions.map((text: string, index: number) => ({
                     optionText: text,
                     sortOrder: index,
                   })),
@@ -208,7 +211,11 @@ export class PostsService {
           });
 
           // Deduplicate target users
-          const uniqueTargets = Array.from(new Map(mentionedUsers.map((u) => [u.id, u])).values());
+          const uniqueTargets = Array.from(
+            new Map(
+              mentionedUsers.map((u: { id: string; username: string }) => [u.id, u]),
+            ).values(),
+          );
 
           if (uniqueTargets.length > 0) {
             const actor = await this.prisma.user.findUnique({
@@ -437,12 +444,14 @@ export class PostsService {
       throw new GoneException('Poll is no longer active');
     }
 
-    const option = poll.options.find((o) => o.id === optionId);
+    const option = poll.options.find((o: { id: string }) => o.id === optionId);
     if (!option) {
       throw new NotFoundException('Poll option not found');
     }
 
-    const existingVote = poll.votes.find((v) => v.userId === userId);
+    const existingVote = poll.votes.find(
+      (v: { userId: string; id: string; optionId: string }) => v.userId === userId,
+    );
 
     if (existingVote) {
       if (existingVote.optionId === optionId) {

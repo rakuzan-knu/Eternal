@@ -1,0 +1,40 @@
+{
+  "name": "frontend",
+  "sourceRoot": "frontend/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/frontend/dist"],
+      "options": {
+        "command": "pnpm build",
+        "cwd": "frontend",
+        "forwardAllArgs": false
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm lint",
+        "cwd": "frontend",
+        "forwardAllArgs": false
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm typecheck",
+        "cwd": "frontend",
+        "forwardAllArgs": false
+      }
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm dev",
+        "cwd": "frontend",
+        "forwardAllArgs": false
+      }
+    }
+  }
+}

@@ -7,7 +7,7 @@ import { ProgressiveImage } from '@/shared/ui/ProgressiveImage';
 export function PostMedia({ media }: { media: PostMediaType[] }) {
   if (!media?.length) return null;
 
-  const hasVideo = media.some((m) => m.type === 'video');
+  const hasVideo = media.some((m) => m.type === 'video' || m.type === 'VIDEO');
 
   if (media.length > 1) {
     if (hasVideo) return <MediaCarousel media={media} />;
@@ -35,10 +35,12 @@ export function PostMedia({ media }: { media: PostMediaType[] }) {
   }
 
   const item = media[0];
+  const isVideo = item.type === 'video' || item.type === 'VIDEO';
+
   return (
     <div className="mt-3 rounded-2xl overflow-hidden border border-white/5 aspect-video bg-black/20">
-      {item.type === 'video' ? (
-        <VideoPlayer src={item.url} poster={item.poster} />
+      {isVideo ? (
+        <VideoPlayer src={item.url} poster={item.poster ?? undefined} />
       ) : (
         <ProgressiveImage
           src={item.url}

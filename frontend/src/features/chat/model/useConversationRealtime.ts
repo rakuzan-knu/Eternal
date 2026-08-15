@@ -32,7 +32,8 @@ export function useConversationRealtime(conversationId: string | null) {
     if (!conversationId) return;
     queryClient.setQueryData<InfiniteMessagesData>(
       [CONVERSATION_MESSAGES_KEY, conversationId],
-      (prev) => (prev ? { ...prev, pages: updater(prev.pages) } : prev),
+      (prev: InfiniteMessagesData | undefined) =>
+        prev ? { ...prev, pages: updater(prev.pages) } : prev,
     );
   };
 
@@ -49,10 +50,12 @@ export function useConversationRealtime(conversationId: string | null) {
   };
 
   const syncConversationPinned = (updater: (pinned: MessageView[]) => MessageView[]) => {
-    queryClient.setQueryData<ConversationView[]>([CONVERSATIONS_KEY], (prev) =>
-      prev?.map((c) =>
-        c.id === conversationId ? { ...c, pinnedMessages: updater(c.pinnedMessages) } : c,
-      ),
+    queryClient.setQueryData<ConversationView[]>(
+      [CONVERSATIONS_KEY],
+      (prev: ConversationView[] | undefined) =>
+        prev?.map((c: ConversationView) =>
+          c.id === conversationId ? { ...c, pinnedMessages: updater(c.pinnedMessages) } : c,
+        ),
     );
   };
 

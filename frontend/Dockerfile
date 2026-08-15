@@ -1,20 +1,34 @@
+# Stage 1: Builder
 FROM node:24-alpine AS builder
 
 RUN --mount=type=cache,target=/var/cache/apk \
     apk add --no-cache libc6-compat
 
+RUN corepack enable && corepack prepare pnpm@10.5.2 --activate
+
 WORKDIR /app
 
-COPY package.json ./
+# Copy package files and workspace config
+COPY pnpm-lock.yaml package.json pnpm-workspace.yaml ./
+COPY frontend/package.json ./frontend/
+COPY backend/package.json ./backend/
+COPY backend/prisma ./backend/prisma/
+COPY scripts ./scripts/
 
-RUN --mount=type=cache,target=/root/.npm \
-    npm install --no-audit --no-fund
+# Copy source code needed for build
+COPY tsconfig.base.json ./
+COPY backend ./backend
+COPY frontend ./frontend
 
-COPY . .
+# Install dependencies
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile
 
+# Build frontend
 ENV NODE_ENV=production
-RUN npm run build
+RUN pnpm --filter frontend build
 
+# Stage 2: Production (Nginx)
 FROM nginx:1.27-alpine AS production
 
 RUN --mount=type=cache,target=/var/cache/apk \
@@ -22,8 +36,8 @@ RUN --mount=type=cache,target=/var/cache/apk \
 
 RUN rm -rf /usr/share/nginx/html/*
 
-COPY --from=builder /app/dist /usr/share/nginx/html
-COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=builder /app/frontend/dist /usr/share/nginx/html
+COPY frontend/docker/nginx.conf /etc/nginx/conf.d/default.conf
 
 RUN chown -R nginx:nginx /usr/share/nginx/html \
     && chown -R nginx:nginx /var/cache/nginx \

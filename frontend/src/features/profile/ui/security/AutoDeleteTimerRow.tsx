@@ -30,7 +30,7 @@ export default function AutoDeleteTimerRow() {
   const [panelOpen, setPanelOpen] = useState(false);
   const [pendingPeriod, setPendingPeriod] = useState<AutoDeletePeriod | null>(null);
 
-  const current = privacy?.autoDeletePeriod ?? 'OFF';
+  const current: AutoDeletePeriod = privacy?.autoDeletePeriod ?? 'OFF';
 
   const handleSelect = (value: AutoDeletePeriod) => {
     if (value === current) {

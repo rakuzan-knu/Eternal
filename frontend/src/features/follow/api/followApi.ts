@@ -1,19 +1,14 @@
 import { apiClient as api } from '@/shared/api/httpClient';
+import type {
+  RecommendationMutualFriendDto,
+  RecommendationReasonDto,
+  UserProfileDto,
+} from '@backend/common/contracts';
 
-export interface RecommendationMutualFriend {
-  id: string;
-  username: string;
-  avatar?: string | null;
-}
+export type RecommendationMutualFriend = RecommendationMutualFriendDto;
+export type RecommendationReason = RecommendationReasonDto;
 
-export interface RecommendationReason {
-  type: 'MUTUAL_FRIENDS' | 'NEARBY' | 'SAME_CITY' | 'POPULAR';
-  text: string;
-  mutualFriends?: RecommendationMutualFriend[];
-  totalMutualCount?: number;
-}
-
-export interface FollowUserSummary {
+export type FollowUserSummary = Omit<Partial<UserProfileDto>, 'recommendationReason'> & {
   id: string;
   username: string;
   displayName?: string | null;
@@ -25,7 +20,7 @@ export interface FollowUserSummary {
   isVerified?: boolean;
   primaryBadge?: string | null;
   recommendationReason?: RecommendationReason | null;
-}
+};
 
 export interface FollowListPage {
   items: FollowUserSummary[];

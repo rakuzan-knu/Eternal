@@ -4,33 +4,36 @@ FROM node:24-alpine AS deps
 RUN --mount=type=cache,target=/var/cache/apk \
     apk add --no-cache libc6-compat build-base python3 openssl
 
-RUN npm install -g node-gyp-build cross-env node-gyp
+RUN corepack enable && corepack prepare pnpm@10.5.2 --activate
 
 WORKDIR /app
 
-COPY package*.json ./
-COPY backend/package*.json ./backend/
-COPY frontend/package*.json ./frontend/
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY backend/package.json ./backend/
+COPY frontend/package.json ./frontend/
 COPY backend/prisma ./backend/prisma/
-COPY scripts/postinstall.js ./scripts/postinstall.js
+COPY scripts ./scripts/
 
 ENV CI=true
 
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --legacy-peer-deps --no-audit --no-fund --workspaces
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile
 
-RUN npm run db:generate --workspace=backend
+RUN pnpm --filter backend exec prisma generate
 
 # Stage 2: Builder
 FROM node:24-alpine AS builder
+
+RUN corepack enable && corepack prepare pnpm@10.5.2 --activate
+
 WORKDIR /app
 
 COPY --from=deps /app ./
-COPY scripts ./scripts
+COPY tsconfig.base.json* nx.json* ./
 COPY backend ./backend
 COPY frontend ./frontend
 
-RUN npm run build --workspace=backend
+RUN pnpm --filter backend build
 
 # Stage 3: Production
 FROM node:24-alpine AS production
@@ -41,8 +44,8 @@ RUN --mount=type=cache,target=/var/cache/apk \
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nestjs
 WORKDIR /app
 
-COPY package*.json ./
-COPY backend/package*.json ./backend/
+COPY package.json pnpm-workspace.yaml ./
+COPY backend/package.json ./backend/
 
 ENV NODE_ENV=production NODE_OPTIONS="--max-old-space-size=512"
 ENV PATH="/app/backend/node_modules/.bin:/app/node_modules/.bin:${PATH}"

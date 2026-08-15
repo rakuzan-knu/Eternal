@@ -1,20 +1,21 @@
 import { apiClient as api } from '@/shared/api/httpClient';
-import { FoundUserResponse } from '../model/types';
-import { UserProfile } from '@/entities/profile/model/types';
+import type { FoundUserResponse } from '../model/types';
+import type { UserProfile } from '@/entities/profile/model/types';
+import type { LoginDto, RegisterDto } from '@backend/common/contracts';
 
-export interface LoginPayload {
+export type LoginPayload = Partial<LoginDto> & {
   email?: string;
   identity?: string;
   password?: string;
-}
+};
 
-export interface RegisterPayload {
+export type RegisterPayload = Partial<RegisterDto> & {
   email: string;
   username: string;
   displayName?: string;
   password?: string;
   birthDate?: string;
-}
+};
 
 export interface FindAccountPayload {
   identifier: string;

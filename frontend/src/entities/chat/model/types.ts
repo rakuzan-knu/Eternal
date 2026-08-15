@@ -1,102 +1,71 @@
+import type {
+  AttachmentType,
+  MessageType as BackendMessageType,
+  MuteLevel as BackendMuteLevel,
+  UserSnapshot as BackendUserSnapshot,
+  AttachmentView as BackendAttachmentView,
+  ReactionSummary as BackendReactionSummary,
+  MessageView as BackendMessageView,
+  ParticipantView as BackendParticipantView,
+  ConversationView as BackendConversationView,
+  PaginatedMessages as BackendPaginatedMessages,
+} from '@backend/common/contracts';
+
 export type ConversationType = 'DIRECT' | 'GROUP';
 export type ParticipantRole = 'MEMBER' | 'ADMIN' | 'OWNER';
-export type MuteLevel = 'NONE' | 'MESSAGES' | 'CALLS' | 'MESSAGES_AND_CALLS';
-export type MessageType = 'TEXT' | 'IMAGE' | 'VIDEO' | 'AUDIO' | 'FILE' | 'GIF' | 'SYSTEM';
+export type MuteLevel = BackendMuteLevel;
+export type MessageType = BackendMessageType;
 
-export interface UserSnapshot {
-  id: string;
-  username: string;
-  displayName: string | null;
-  avatar: string | null;
-}
-
-export interface AttachmentView {
-  id: string;
-  type: string;
-  url: string;
-  fileName: string | null;
-  mimeType: string | null;
-  size: number | null;
-  width: number | null;
-  height: number | null;
-  duration: number | null;
-  thumbnailUrl: string | null;
-}
+export type UserSnapshot = BackendUserSnapshot;
+export type AttachmentView = BackendAttachmentView;
 
 export interface OutgoingAttachment {
-  type: string;
+  type: AttachmentType | string;
   url: string;
   fileName?: string;
   mimeType?: string;
   size?: number;
 }
 
-export interface ReactionSummary {
-  emoji: string;
-  count: number;
-  selfReacted: boolean;
-  users: UserSnapshot[];
-}
+export type ReactionSummary = BackendReactionSummary;
 
-export interface MessageView {
-  id: string;
-  conversationId: string;
-  sender: UserSnapshot;
-  body: string | null;
-  messageType: MessageType;
-  replyTo: MessageView | null;
-  forwardedFrom: Pick<MessageView, 'id' | 'body' | 'sender'> | null;
-  attachments: AttachmentView[];
-  reactions: ReactionSummary[];
-  readBy: string[];
-  isEdited: boolean;
-  isDeleted: boolean;
-  isPinned: boolean;
+export interface MessageView extends Omit<
+  BackendMessageView,
+  'createdAt' | 'editedAt' | 'replyTo'
+> {
   createdAt: string;
   editedAt: string | null;
+  replyTo: MessageView | null;
   tempId?: string;
   clientMessageId?: string;
   status?: 'SENDING' | 'SENT' | 'ERROR';
 }
 
-export interface ParticipantView {
+export interface ParticipantView extends Omit<
+  BackendParticipantView,
+  'joinedAt' | 'mutedUntil' | 'role'
+> {
   userId: string;
   user: UserSnapshot;
-  nickname: string | null;
   role: ParticipantRole;
-  theme: string;
-  muteLevel: MuteLevel;
   mutedUntil: string | null;
   joinedAt: string;
 }
 
-export interface ConversationView {
-  id: string;
+export interface ConversationView extends Omit<
+  BackendConversationView,
+  'createdAt' | 'updatedAt' | 'type' | 'participants' | 'lastMessage' | 'pinnedMessages'
+> {
   type: ConversationType;
-  name: string | null;
-  avatar: string | null;
-  description: string | null;
-  createdById: string | null;
   participants: ParticipantView[];
   lastMessage: MessageView | null;
-  unreadCount: number;
-
-  myTheme: string;
-  myMuteLevel: MuteLevel;
-  myNickname: string | null;
-  isArchived: boolean;
-  blockedByMe: boolean;
-  blockingMe: boolean;
-  isBlocked: boolean;
   pinnedMessages: MessageView[];
   createdAt: string;
   updatedAt: string;
 }
 
-export interface PaginatedMessages {
+export interface PaginatedMessages extends Omit<BackendPaginatedMessages, 'data'> {
   data: MessageView[];
-  hasMore: boolean;
-  nextCursor: string | null;
 }
 
 export interface InfiniteMessagesData {

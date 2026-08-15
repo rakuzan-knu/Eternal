@@ -25,12 +25,12 @@ export default function NewGroupModal({ onClose, onCreated }: NewGroupModalProps
 
   const createGroup = useMutation({
     mutationFn: () => {
-      const name = [currentUser?.username, ...selected.map((u) => u.username)]
+      const name = [currentUser?.username, ...selected.map((u: UserSearchResult) => u.username)]
         .filter(Boolean)
         .join(', ');
       return chatApi.createGroupConversation(
         name,
-        selected.map((u) => u.id),
+        selected.map((u: UserSearchResult) => u.id),
       );
     },
     onSuccess: (conversation) => {
@@ -39,16 +39,18 @@ export default function NewGroupModal({ onClose, onCreated }: NewGroupModalProps
     },
   });
 
-  const filteredResults = results.filter((u) => u.id !== currentUser?.id);
+  const filteredResults = results.filter((u: UserSearchResult) => u.id !== currentUser?.id);
 
   const toggleUser = (user: UserSearchResult) => {
     if (user.id === currentUser?.id) return;
     setSelected((prev) =>
-      prev.some((u) => u.id === user.id) ? prev.filter((u) => u.id !== user.id) : [...prev, user],
+      prev.some((u: UserSearchResult) => u.id === user.id)
+        ? prev.filter((u: UserSearchResult) => u.id !== user.id)
+        : [...prev, user],
     );
   };
 
-  const isSelected = (id: string) => selected.some((u) => u.id === id);
+  const isSelected = (id: string) => selected.some((u: UserSearchResult) => u.id === id);
 
   return (
     <Modal onClose={onClose} className="w-full max-w-md max-h-[75vh] flex flex-col">
@@ -116,7 +118,7 @@ export default function NewGroupModal({ onClose, onCreated }: NewGroupModalProps
               <p className="text-center text-sm text-gray-500 mt-8 px-6">No users found</p>
             )}
 
-            {filteredResults.map((user) => {
+            {filteredResults.map((user: UserSearchResult) => {
               const selectedState = isSelected(user.id);
               const disabled = !selectedState && selected.length >= MAX_MEMBERS;
               return (

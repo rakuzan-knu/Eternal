@@ -3,13 +3,13 @@ import * as promClient from 'prom-client';
 
 @Injectable()
 export class MetricsService {
-  private httpRequestDuration: promClient.Histogram;
-  private httpRequestTotal: promClient.Counter;
-  private httpRequestErrors: promClient.Counter;
-  private activeConnections: promClient.Gauge;
-  private databaseQueryDuration: promClient.Histogram;
-  private redisOperationDuration: promClient.Histogram;
-  private processUptime: promClient.Gauge;
+  private httpRequestDuration!: promClient.Histogram;
+  private httpRequestTotal!: promClient.Counter;
+  private httpRequestErrors!: promClient.Counter;
+  private activeConnections!: promClient.Gauge;
+  private databaseQueryDuration!: promClient.Histogram;
+  private redisOperationDuration!: promClient.Histogram;
+  private processUptime!: promClient.Gauge;
 
   constructor() {
     this.initializeMetrics();

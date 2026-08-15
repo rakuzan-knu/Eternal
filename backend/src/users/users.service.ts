@@ -10,16 +10,20 @@ import {
 import * as argon2 from 'argon2';
 import * as geoip from 'geoip-lite';
 import { FollowStatus, PrivacyDimension, Prisma, User } from '@prisma/client';
-import { CreateUserDto } from './dto/create-user.dto';
-import { RESERVED_USERNAMES, UpdateUserDto } from './dto/update-users.dto';
-import { FollowStatusView, UserProfileDto } from './dto/user-profile.dto';
+import {
+  CreateUserDto,
+  FollowStatusView,
+  RESERVED_USERNAMES,
+  type UpdateUserDto,
+  type UserProfileDto,
+} from '@common/contracts';
 import { USERS_REPOSITORY } from './interfaces/users-repository.interface';
 import type { IUsersRepository } from './interfaces/users-repository.interface';
 import { RedisService } from '../redis/redis.service';
 import { VisibilityResolver } from './privacy/visibility.resolver';
 import type { VisibilityContext } from './privacy/visibility.resolver';
 import { toLastSeenGranularity } from './privacy/last-seen.util';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '@common/prisma';
 
 const MAX_SEARCH_TERM_LENGTH = 64;
 
@@ -180,7 +184,7 @@ export class UsersService {
 
   async getProfileByUsername(username: string, viewerId: string | null): Promise<UserProfileDto> {
     const clean = (username || '').replace(/^@+/, '').trim();
-    if (!clean || RESERVED_USERNAMES.includes(clean.toLowerCase())) {
+    if (!clean || (RESERVED_USERNAMES as readonly string[]).includes(clean.toLowerCase())) {
       throw new NotFoundException('User not found');
     }
     const user = await this.usersRepository.findByUsername(clean);
@@ -262,7 +266,7 @@ export class UsersService {
 
     if (dto.username && dto.username !== user.username) {
       const cleanUsername = dto.username.replace(/^@+/, '').trim();
-      if (RESERVED_USERNAMES.includes(cleanUsername.toLowerCase())) {
+      if ((RESERVED_USERNAMES as readonly string[]).includes(cleanUsername.toLowerCase())) {
         throw new BadRequestException('This username is reserved and cannot be used.');
       }
       const cooldownKey = `username_change_cooldown:${id}`;
@@ -306,7 +310,7 @@ export class UsersService {
             },
             select: { blockerId: true, blockedId: true },
           })
-          .then((blocks) => {
+          .then((blocks: { blockerId: string; blockedId: string }[]) => {
             const set = new Set<string>();
             for (const b of blocks) {
               if (b.blockerId === viewerId) set.add(b.blockedId);
@@ -321,7 +325,7 @@ export class UsersService {
       where: {
         AND: [
           blockedIds.length > 0 ? { id: { notIn: blockedIds } } : {},
-          { username: { notIn: RESERVED_USERNAMES } },
+          { username: { notIn: [...RESERVED_USERNAMES] } },
         ],
       },
       take: 60,
@@ -358,16 +362,16 @@ export class UsersService {
         score += Math.min((u._count?.followers || 0) / 1000, 50);
         return { user: u, score };
       })
-      .filter((item) => item.score > 0)
-      .sort((a, b) => b.score - a.score)
+      .filter((item: { score: number }) => item.score > 0)
+      .sort((a: { score: number }, b: { score: number }) => b.score - a.score)
       .slice(0, 20)
-      .map((item) => item.user);
+      .map((item: { user: (typeof candidates)[0] }) => item.user);
 
     const ids = scored.map((u) => u.id);
     const ctx = await this.visibility.loadContext(ids, viewerId ?? null);
 
     return scored.map((u) => {
-      const ownedBadges = u.badges.map((b) => b.badgeId);
+      const ownedBadges = (u.badges ?? []).map((b: { badgeId: string }) => b.badgeId);
       const raw = this.toRawProfile(u, ownedBadges);
       return this.applyPrivacy(raw, viewerId ?? null, ctx);
     });
@@ -424,9 +428,9 @@ export class UsersService {
         }),
       ]);
 
-      followingIds = new Set(following.map((f) => f.followingId));
-      followerIds = new Set(followers.map((f) => f.followerId));
-      recentChatIds = new Set(chats.map((c) => c.userId));
+      followingIds = new Set(following.map((f: { followingId: string }) => f.followingId));
+      followerIds = new Set(followers.map((f: { followerId: string }) => f.followerId));
+      recentChatIds = new Set(chats.map((c: { userId: string }) => c.userId));
     }
 
     const candidates = await this.prisma.user.findMany({
@@ -434,7 +438,7 @@ export class UsersService {
         AND: [
           viewerId ? { id: { not: viewerId } } : {},
           blockedIds.length > 0 ? { id: { notIn: blockedIds } } : {},
-          { username: { notIn: RESERVED_USERNAMES } },
+          { username: { notIn: [...RESERVED_USERNAMES] } },
         ],
       },
       take: 60,
@@ -479,16 +483,16 @@ export class UsersService {
 
         return { user: u, score };
       })
-      .filter((item) => item.score >= 0)
-      .sort((a, b) => b.score - a.score)
+      .filter((item: { score: number }) => item.score >= 0)
+      .sort((a: { score: number }, b: { score: number }) => b.score - a.score)
       .slice(0, 8)
-      .map((item) => item.user);
+      .map((item: { user: (typeof candidates)[0] }) => item.user);
 
     const ids = scored.map((u) => u.id);
     const ctx = await this.visibility.loadContext(ids, viewerId ?? null);
 
     return scored.map((u) => {
-      const ownedBadges = u.badges.map((b) => b.badgeId);
+      const ownedBadges = (u.badges ?? []).map((b: { badgeId: string }) => b.badgeId);
       const raw = this.toRawProfile(u, ownedBadges);
       return this.applyPrivacy(raw, viewerId ?? null, ctx);
     });
@@ -588,7 +592,7 @@ export class UsersService {
             },
             select: { blockerId: true, blockedId: true },
           })
-          .then((blocks) => {
+          .then((blocks: { blockerId: string; blockedId: string }[]) => {
             const set = new Set<string>();
             for (const b of blocks) {
               if (b.blockerId === viewerId) set.add(b.blockedId);
@@ -607,7 +611,7 @@ export class UsersService {
             where: { followerId: viewerId, status: FollowStatus.ACCEPTED },
             select: { followingId: true },
           })
-          .then((res) => res.map((r) => r.followingId)),
+          .then((res: { followingId: string }[]) => res.map((r) => r.followingId)),
         this.redis.smembers(`user:dismissed_suggestions:${viewerId}`),
       ]);
     }
@@ -645,20 +649,20 @@ export class UsersService {
         select: { followingId: true },
         take: 40,
       });
-      pool2FofIds = fof.map((f) => f.followingId);
+      pool2FofIds = fof.map((f: { followingId: string }) => f.followingId);
     }
 
     // Pool 3: Popular Profiles (Top 20 by follower count)
     const pool3Popular = await this.prisma.user.findMany({
       where: {
         id: { notIn: Array.from(excludeIds) },
-        username: { notIn: RESERVED_USERNAMES },
+        username: { notIn: [...RESERVED_USERNAMES] },
       },
       orderBy: { followers: { _count: 'desc' } },
       select: { id: true },
       take: 20,
     });
-    const pool3PopularIds = pool3Popular.map((p) => p.id);
+    const pool3PopularIds = pool3Popular.map((p: { id: string }) => p.id);
 
     // Merge into combined unique candidate pool (~50-80 candidates)
     const candidateIds = Array.from(
@@ -673,7 +677,7 @@ export class UsersService {
     const candidateUsers = await this.prisma.user.findMany({
       where: {
         id: { in: candidateIds },
-        username: { notIn: RESERVED_USERNAMES },
+        username: { notIn: [...RESERVED_USERNAMES] },
       },
       include: {
         badges: true,
@@ -766,9 +770,9 @@ export class UsersService {
             mutualFriends: [first],
             totalMutualCount: 1,
           };
-        } else if (scoreProx > 0.0 && proxReasonText) {
+        } else if (proxReasonText) {
           recommendationReason = {
-            type: proxReasonText.includes('city') ? 'SAME_CITY' : 'NEARBY',
+            type: proxReasonText.startsWith('From your city') ? 'SAME_CITY' : 'NEARBY',
             text: proxReasonText,
           };
         } else {
@@ -794,7 +798,9 @@ export class UsersService {
     const ctx = await this.visibility.loadContext(ids, viewerId ?? null);
 
     return topCandidates.map((c) => {
-      const ownedBadges = Array.isArray(c.user.badges) ? c.user.badges.map((b) => b.badgeId) : [];
+      const ownedBadges = Array.isArray(c.user.badges)
+        ? c.user.badges.map((b: { badgeId: string }) => b.badgeId)
+        : [];
       const raw = this.toRawProfile(c.user, ownedBadges);
       const dto = this.applyPrivacy(raw, viewerId ?? null, ctx);
       dto.recommendationReason = c.recommendationReason;
@@ -841,7 +847,7 @@ export class UsersService {
             },
             select: { blockerId: true, blockedId: true },
           })
-          .then((blocks) => {
+          .then((blocks: { blockerId: string; blockedId: string }[]) => {
             const set = new Set<string>();
             for (const b of blocks) {
               if (b.blockerId === viewerId) set.add(b.blockedId);
@@ -855,7 +861,7 @@ export class UsersService {
       where: {
         AND: [
           blockedIds.length > 0 ? { id: { notIn: blockedIds } } : {},
-          { username: { notIn: RESERVED_USERNAMES } },
+          { username: { notIn: [...RESERVED_USERNAMES] } },
         ],
       },
       orderBy: {
@@ -879,7 +885,7 @@ export class UsersService {
     const ctx = await this.visibility.loadContext(ids, viewerId ?? null);
 
     return users.map((u) => {
-      const ownedBadges = u.badges.map((b) => b.badgeId);
+      const ownedBadges = (u.badges ?? []).map((b: { badgeId: string }) => b.badgeId);
       const raw = this.toRawProfile(u, ownedBadges);
       return this.applyPrivacy(raw, viewerId ?? null, ctx);
     });

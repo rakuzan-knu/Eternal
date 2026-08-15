@@ -1,4 +1,4 @@
-import { type CreatePollDto } from '../dto/create-poll.dto';
+import { type CreatePollDto } from '@common/contracts';
 
 export interface IPollRepository {
   getPollByPostId(postId: string): Promise<unknown>;

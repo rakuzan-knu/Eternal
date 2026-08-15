@@ -1,4 +1,5 @@
-export function formatRelativeTime(iso: string): string {
+export function formatRelativeTime(iso: string | Date | null | undefined): string {
+  if (!iso) return 'just now';
   const diffMs = Date.now() - new Date(iso).getTime();
   const min = Math.floor(diffMs / 60000);
   if (min < 1) return 'just now';
@@ -11,5 +12,5 @@ export function formatRelativeTime(iso: string): string {
   if (weeks < 5) return `${weeks} weeks`;
   const months = Math.floor(days / 30);
   if (months < 12) return `${months} months`;
-  return `${Math.floor(days / 365)} р`;
+  return `${Math.floor(days / 365)} years`;
 }

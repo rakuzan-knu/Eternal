@@ -1,5 +1,4 @@
-import type { CreateCommentDto } from '../dto/create-comment.dto';
-import type { CommentWithUser } from '../dto/comment-response.dto';
+import type { CreateCommentDto, CommentWithUser } from '@common/contracts';
 
 export const COMMENTS_REPOSITORY = Symbol('COMMENTS_REPOSITORY');
 

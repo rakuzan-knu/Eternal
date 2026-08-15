@@ -16,8 +16,8 @@ export function MediaCarousel({ media }: { media: PostMediaType[] }) {
             i === index ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
           }`}
         >
-          {item.type === 'video' ? (
-            <VideoPlayer src={item.url} poster={item.poster} active={i === index} />
+          {item.type === 'video' || item.type === 'VIDEO' ? (
+            <VideoPlayer src={item.url} poster={item.poster ?? undefined} active={i === index} />
           ) : (
             <img src={item.url} alt="" className="w-full h-full object-cover" />
           )}

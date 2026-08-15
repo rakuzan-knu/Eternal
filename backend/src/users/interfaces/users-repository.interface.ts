@@ -1,5 +1,5 @@
 import type { Prisma, User } from '@prisma/client';
-import type { CreateUserDto } from '../dto/create-user.dto';
+import type { CreateUserDto } from '@common/contracts';
 
 export const USERS_REPOSITORY = Symbol('USERS_REPOSITORY');
 

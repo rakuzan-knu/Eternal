@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PRIVACY_EXCEPTIONS_KEY } from '@/shared/api/queryKeys';
 import { privacyApi } from '../api/privacyApi';
-import type { ExceptionMode, PrivacyDimension } from './privacyTypes';
+import type { DimensionExceptions, ExceptionMode, PrivacyDimension } from './privacyTypes';
 
 export function usePrivacyExceptions(dimension: PrivacyDimension, enabled = true) {
-  return useQuery({
+  return useQuery<DimensionExceptions>({
     queryKey: [PRIVACY_EXCEPTIONS_KEY, dimension],
     queryFn: () => privacyApi.listExceptions(dimension),
     enabled,

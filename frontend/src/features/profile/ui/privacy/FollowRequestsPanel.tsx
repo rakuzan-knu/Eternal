@@ -3,6 +3,8 @@ import Avatar from '@/shared/ui/Avatar';
 import SlideOverPanel from '@/shared/ui/SlideOverPanel';
 import { useFollowRequests, useRespondToFollowRequest } from '../../model/useFollowRequests';
 
+import type { FollowRequestUser } from '../../model/privacyTypes';
+
 interface FollowRequestsPanelProps {
   onClose: () => void;
 }
@@ -36,7 +38,7 @@ export default function FollowRequestsPanel({ onClose }: FollowRequestsPanelProp
         </div>
       ) : (
         <ul className="flex flex-col gap-1">
-          {requests.map((u) => {
+          {requests.map((u: FollowRequestUser) => {
             const busy = pendingId === u.id;
             return (
               <li

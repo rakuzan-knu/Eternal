@@ -1,0 +1,248 @@
+import { z } from 'zod';
+import { MediaType, ReportCategory, type PostMedia } from '@prisma/client';
+export { MediaType, ReportCategory };
+
+export const mediaSchema = z.object({
+  type: z.nativeEnum(MediaType),
+  url: z.string().url(),
+  poster: z.string().url().optional(),
+  order: z.number().int().optional(),
+});
+export type MediaDto = z.infer<typeof mediaSchema>;
+
+export const createPostSchema = z.object({
+  content: z
+    .string()
+    .transform((val) => val.trim())
+    .optional(),
+  media: z
+    .preprocess((val) => {
+      if (typeof val === 'string') {
+        try {
+          return JSON.parse(val);
+        } catch {
+          return val;
+        }
+      }
+      return val;
+    }, z.array(mediaSchema))
+    .optional(),
+  gifUrls: z
+    .preprocess((val) => {
+      if (typeof val === 'string') {
+        try {
+          const parsed: unknown = JSON.parse(val);
+          return Array.isArray(parsed) ? (parsed as string[]) : [val];
+        } catch {
+          return [val];
+        }
+      }
+      return val;
+    }, z.array(z.string()))
+    .optional(),
+  poll: z
+    .preprocess((val) => {
+      if (typeof val === 'string') {
+        try {
+          const parsed: unknown = JSON.parse(val);
+          return Array.isArray(parsed) ? (parsed as string[]) : [val];
+        } catch {
+          return [val];
+        }
+      }
+      return val;
+    }, z.array(z.string()))
+    .optional(),
+});
+export type CreatePostDto = z.infer<typeof createPostSchema>;
+
+export const editPostSchema = z.object({
+  content: z
+    .string()
+    .min(1)
+    .transform((val) => val.trim())
+    .optional(),
+  image: z.string().url().optional(),
+});
+export type EditPostDto = z.infer<typeof editPostSchema>;
+
+export const getPostsQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  after: z.string().optional(),
+});
+export type GetPostsQueryDto = z.infer<typeof getPostsQuerySchema>;
+
+export const searchPostsSchema = z.object({
+  q: z.string().optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  after: z.string().optional(),
+  mediaOnly: z.preprocess((val) => val === 'true' || val === true, z.boolean()).optional(),
+});
+export type SearchPostsDto = z.infer<typeof searchPostsSchema>;
+
+export const reportPostSchema = z.object({
+  category: z.nativeEnum(ReportCategory),
+  details: z.string().max(1000).optional(),
+});
+export type ReportPostDto = z.infer<typeof reportPostSchema>;
+
+export class PostMediaResponseDto {
+  id!: string;
+  type!: MediaType;
+  url!: string;
+  poster!: string | null;
+  order!: number;
+
+  static fromPrisma(this: void, media: PostMedia): PostMediaResponseDto {
+    return {
+      id: media.id,
+      type: media.type,
+      url: media.url,
+      poster: media.poster,
+      order: media.order,
+    };
+  }
+}
+
+export class PostPollOptionDto {
+  id!: string;
+  text!: string;
+  votesCount!: number;
+}
+
+export class PostPollDto {
+  id!: string;
+  title!: string;
+  description?: string | null;
+  isMultiple!: boolean;
+  isActive!: boolean;
+  totalVotes!: number;
+  myVoteOptionId!: string | null;
+  options!: PostPollOptionDto[];
+}
+
+export type PostWithRelations = {
+  id: string;
+  content: string;
+  sharesCount?: number;
+  authorId: string;
+  author?: {
+    id: string;
+    username: string;
+    displayName?: string | null;
+    avatar?: string | null;
+    isVerified?: boolean;
+    primaryBadge?: string | null;
+    followers?: { id: string }[];
+  } | null;
+  createdAt: Date;
+  updatedAt: Date;
+  media?: PostMedia[];
+  poll?: {
+    id: string;
+    title: string;
+    description?: string | null;
+    isMultiple: boolean;
+    isActive: boolean;
+    options: {
+      id: string;
+      optionText: string;
+      votesCount: number;
+    }[];
+    votes?: { optionId: string }[];
+  } | null;
+  isFollowing?: boolean;
+  isSaved?: boolean;
+  isReposted?: boolean;
+  isLiked?: boolean;
+  isOwner?: boolean;
+  _count?: {
+    likes?: number;
+    reposts?: number;
+    comments?: number;
+  };
+};
+
+export class PostResponseDto {
+  id!: string;
+  content!: string;
+  text!: string;
+  media!: PostMediaResponseDto[];
+  authorId!: string;
+  author!: string;
+  handle!: string;
+  avatar!: string | null;
+  isVerified!: boolean;
+  primaryBadge!: string | null;
+  createdAt!: string;
+  updatedAt!: string;
+  isFollowing!: boolean;
+  isSaved!: boolean;
+  isReposted!: boolean;
+  isLiked!: boolean;
+  isOwner!: boolean;
+  likesCount!: number;
+  likes!: number;
+  repostsCount!: number;
+  reposts!: number;
+  sharesCount!: number;
+  commentsCount!: number;
+  comments!: number;
+  poll?: PostPollDto | null;
+
+  static fromPrisma(this: void, post: PostWithRelations): PostResponseDto {
+    const displayName = post.author?.displayName || post.author?.username || 'User';
+    const handle = post.author?.username || 'user';
+    const avatar = post.author?.avatar || null;
+    const isVerified = post.author?.isVerified ?? false;
+    const primaryBadge = post.author?.primaryBadge ?? null;
+
+    let pollDto: PostPollDto | null = null;
+    if (post.poll) {
+      const totalVotes = post.poll.options.reduce((sum, opt) => sum + (opt.votesCount ?? 0), 0);
+      const myVoteOptionId = post.poll.votes?.[0]?.optionId ?? null;
+      pollDto = {
+        id: post.poll.id,
+        title: post.poll.title,
+        description: post.poll.description ?? null,
+        isMultiple: post.poll.isMultiple,
+        isActive: post.poll.isActive,
+        totalVotes,
+        myVoteOptionId,
+        options: post.poll.options.map((opt) => ({
+          id: opt.id,
+          text: opt.optionText,
+          votesCount: opt.votesCount,
+        })),
+      };
+    }
+
+    return {
+      id: post.id,
+      content: post.content,
+      text: post.content,
+      media: post.media ? post.media.map((m) => PostMediaResponseDto.fromPrisma(m)) : [],
+      authorId: post.authorId,
+      author: displayName,
+      handle,
+      avatar,
+      isVerified,
+      primaryBadge,
+      createdAt: post.createdAt.toISOString(),
+      updatedAt: post.updatedAt.toISOString(),
+      isFollowing: post.isFollowing ?? false,
+      isSaved: post.isSaved ?? false,
+      isReposted: post.isReposted ?? false,
+      isLiked: post.isLiked ?? false,
+      isOwner: post.isOwner ?? false,
+      likesCount: post._count?.likes ?? 0,
+      likes: post._count?.likes ?? 0,
+      repostsCount: post._count?.reposts ?? 0,
+      reposts: post._count?.reposts ?? 0,
+      sharesCount: post.sharesCount ?? 0,
+      commentsCount: post._count?.comments ?? 0,
+      comments: post._count?.comments ?? 0,
+      poll: pollDto,
+    };
+  }
+}

@@ -10,12 +10,14 @@ export function useLikeMutation(postId: string | number, isLiked: boolean, query
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey });
       const prev = queryClient.getQueryData<InfiniteData<FeedPage>>(queryKey);
-      queryClient.setQueryData<InfiniteData<FeedPage>>(queryKey, (old) =>
-        patchPost(old, postId, (p) => ({
-          ...p,
-          isLiked: !isLiked,
-          likes: (p.likes ?? 0) + (isLiked ? -1 : 1),
-        })),
+      queryClient.setQueryData<InfiniteData<FeedPage>>(
+        queryKey,
+        (old: InfiniteData<FeedPage> | undefined) =>
+          patchPost(old, postId, (p: PostType) => ({
+            ...p,
+            isLiked: !isLiked,
+            likes: (p.likes ?? 0) + (isLiked ? -1 : 1),
+          })),
       );
       return { prev };
     },
@@ -31,9 +33,9 @@ function patchPost(
   if (!old) return old;
   return {
     ...old,
-    pages: old.pages.map((page) => ({
+    pages: old.pages.map((page: FeedPage) => ({
       ...page,
-      posts: page.posts.map((p) => (p.id === postId ? updater(p) : p)),
+      posts: page.posts.map((p: PostType) => (p.id === postId ? updater(p) : p)),
     })),
   };
 }

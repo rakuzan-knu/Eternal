@@ -17,23 +17,24 @@ import {
 import { FilesInterceptor, FileInterceptor } from '@nestjs/platform-express';
 import { Throttle } from '@nestjs/throttler';
 import { PostsService } from './posts.service';
-import { CreatePostDto } from './dto/create-post.dto';
-import { EditPostDto } from './dto/edit-post.dto';
-import { ReportPostDto } from './dto/report-post.dto';
 import {
-  ApiBody,
-  ApiBearerAuth,
-  ApiConsumes,
-  ApiOperation,
-  ApiResponse,
-  ApiTags,
-} from '@nestjs/swagger';
+  type CreatePostDto,
+  type EditPostDto,
+  type GetPostsQueryDto,
+  type ReportPostDto,
+  type SearchPostsDto,
+  createPostSchema,
+  editPostSchema,
+  getPostsQuerySchema,
+  reportPostSchema,
+  searchPostsSchema,
+} from '@common/contracts';
+import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
+import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/interfaces/jwt-payload.interface';
-import { GetPostsQueryDto } from './dto/get-posts-query.dto';
-import { SearchPostsDto } from './dto/search-posts.dto';
 
 @ApiTags('Posts')
 @Controller('posts')
@@ -45,7 +46,10 @@ export class PostsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get paginated feed of posts' })
   @ApiResponse({ status: 200, description: 'Posts retrieved successfully.' })
-  getAllPosts(@Query() query: GetPostsQueryDto, @CurrentUser() user?: RequestUser) {
+  getAllPosts(
+    @Query(new ZodValidationPipe(getPostsQuerySchema)) query: GetPostsQueryDto,
+    @CurrentUser() user?: RequestUser,
+  ) {
     return this.postsService.getAllPosts(query.limit, query.after, user?.id);
   }
 
@@ -54,7 +58,10 @@ export class PostsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get explore media posts (images and videos)' })
   @ApiResponse({ status: 200, description: 'Explore media posts retrieved successfully.' })
-  getExplorePosts(@Query() query: GetPostsQueryDto, @CurrentUser() user?: RequestUser) {
+  getExplorePosts(
+    @Query(new ZodValidationPipe(getPostsQuerySchema)) query: GetPostsQueryDto,
+    @CurrentUser() user?: RequestUser,
+  ) {
     return this.postsService.getExplorePosts(query.limit ?? 9, query.after, user?.id);
   }
 
@@ -65,7 +72,7 @@ export class PostsController {
   @ApiResponse({ status: 200, description: 'Hashtag posts retrieved successfully.' })
   getPostsByHashtag(
     @Param('tag') tag: string,
-    @Query() query: GetPostsQueryDto,
+    @Query(new ZodValidationPipe(getPostsQuerySchema)) query: GetPostsQueryDto,
     @CurrentUser() user?: RequestUser,
   ) {
     return this.postsService.getPostsByHashtag(tag, query.limit ?? 10, query.after, user?.id);
@@ -76,7 +83,10 @@ export class PostsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Search posts by text query' })
   @ApiResponse({ status: 200, description: 'Posts matching query retrieved successfully.' })
-  searchPosts(@Query() query: SearchPostsDto, @CurrentUser() user?: RequestUser) {
+  searchPosts(
+    @Query(new ZodValidationPipe(searchPostsSchema)) query: SearchPostsDto,
+    @CurrentUser() user?: RequestUser,
+  ) {
     const safeQuery = typeof query.q === 'string' ? query.q : '';
     return this.postsService.searchPosts(
       safeQuery,
@@ -103,10 +113,9 @@ export class PostsController {
   @UseInterceptors(FilesInterceptor('media', 5))
   @ApiConsumes('multipart/form-data', 'application/json')
   @ApiOperation({ summary: 'Create a new post with optional media files' })
-  @ApiBody({ type: CreatePostDto })
   @ApiResponse({ status: 201, description: 'Post created successfully.' })
   createPost(
-    @Body() dto: CreatePostDto,
+    @Body(new ZodValidationPipe(createPostSchema)) dto: CreatePostDto,
     @CurrentUser() user: RequestUser,
     @UploadedFiles() files?: Express.Multer.File[],
   ) {
@@ -145,10 +154,13 @@ export class PostsController {
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a post' })
-  @ApiBody({ type: EditPostDto })
   @ApiResponse({ status: 200, description: 'Post updated successfully.' })
   @ApiResponse({ status: 404, description: 'Post not found.' })
-  editPost(@Param('id') id: string, @Body() dto: EditPostDto, @CurrentUser() user: RequestUser) {
+  editPost(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(editPostSchema)) dto: EditPostDto,
+    @CurrentUser() user: RequestUser,
+  ) {
     return this.postsService.editPost(id, dto, user.id);
   }
 
@@ -214,7 +226,7 @@ export class PostsController {
   @ApiResponse({ status: 404, description: 'Post not found.' })
   reportPost(
     @Param('id') id: string,
-    @Body() dto: ReportPostDto,
+    @Body(new ZodValidationPipe(reportPostSchema)) dto: ReportPostDto,
     @CurrentUser() user: RequestUser,
   ) {
     return this.postsService.reportPost(id, user.id, dto.category, dto.details);

@@ -31,13 +31,16 @@ export function CommentModal() {
   const addCommentMutation = useMutation({
     mutationFn: (text: string) => commentsApi.addComment(postId, text),
     onSuccess: (newComment) => {
-      queryClient.setQueryData<CommentListPage>(['comments', postId], (old) => {
-        if (!old) return { comments: [newComment], nextCursor: null };
-        return {
-          ...old,
-          comments: [...old.comments, newComment],
-        };
-      });
+      queryClient.setQueryData<CommentListPage>(
+        ['comments', postId],
+        (old: CommentListPage | undefined) => {
+          if (!old) return { comments: [newComment], nextCursor: null };
+          return {
+            ...old,
+            comments: [...old.comments, newComment],
+          };
+        },
+      );
       queryClient.invalidateQueries({ queryKey: ['posts'] });
     },
   });
@@ -45,11 +48,9 @@ export function CommentModal() {
   if (!isCommentModalOpen || !activePostForComments) return null;
 
   const commentsList = commentPage?.comments ?? activePostForComments.commentList ?? [];
-  const media =
+  const media: import('@/entities/post/model/types').PostMedia[] =
     activePostForComments.media ??
-    (activePostForComments.image
-      ? [{ type: 'image' as const, url: activePostForComments.image }]
-      : []);
+    (activePostForComments.image ? [{ type: 'image', url: activePostForComments.image }] : []);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-fadeIn">
@@ -101,7 +102,9 @@ export function CommentModal() {
                 <div className="w-6 h-6 animate-spin rounded-full border-2 border-violet-500 border-t-transparent" />
               </div>
             ) : commentsList.length > 0 ? (
-              commentsList.map((c) => <CommentItem key={c.id} comment={c} />)
+              commentsList.map((c: import('@/entities/comment/model/types').CommentType) => (
+                <CommentItem key={c.id} comment={c} />
+              ))
             ) : (
               <div className="flex flex-col items-center justify-center py-14 text-gray-500 gap-2">
                 <MessageSquare size={32} className="opacity-30" />

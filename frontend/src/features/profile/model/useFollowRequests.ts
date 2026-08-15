@@ -3,9 +3,16 @@ import { FOLLOW_REQUESTS_KEY, USER_KEY } from '@/shared/api/queryKeys';
 import { useAuthStore } from '@/shared/model/useAuthStore';
 import { followRequestsApi } from '../api/followRequestsApi';
 
+import type { FollowRequestUser } from '../model/privacyTypes';
+
+export interface FollowRequestsResponse {
+  data: FollowRequestUser[];
+  meta: { nextCursor: string | null; hasNextPage: boolean };
+}
+
 export function useFollowRequests(enabled = true) {
   const { isAuthenticated } = useAuthStore();
-  return useQuery({
+  return useQuery<FollowRequestsResponse>({
     queryKey: [FOLLOW_REQUESTS_KEY, 'list'],
     queryFn: () => followRequestsApi.list(),
     enabled: isAuthenticated && enabled,

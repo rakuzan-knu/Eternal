@@ -40,7 +40,8 @@ export function useMessageActions(conversationId: string | null) {
       if (!conversationId) return;
       queryClient.setQueryData<InfiniteMessagesData>(
         [CONVERSATION_MESSAGES_KEY, conversationId],
-        (prev) => (prev ? { ...prev, pages: updater(prev.pages) } : prev),
+        (prev: InfiniteMessagesData | undefined) =>
+          prev ? { ...prev, pages: updater(prev.pages) } : prev,
       );
     },
     [conversationId, queryClient],
@@ -214,10 +215,14 @@ export function useMessageActions(conversationId: string | null) {
       }
 
       markReadTimeoutRef.current = setTimeout(() => {
-        queryClient.setQueryData<ConversationView[]>([CONVERSATIONS_KEY], (prev) =>
-          prev?.map((conversation) =>
-            conversation.id === conversationId ? { ...conversation, unreadCount: 0 } : conversation,
-          ),
+        queryClient.setQueryData<ConversationView[]>(
+          [CONVERSATIONS_KEY],
+          (prev: ConversationView[] | undefined) =>
+            prev?.map((conversation: ConversationView) =>
+              conversation.id === conversationId
+                ? { ...conversation, unreadCount: 0 }
+                : conversation,
+            ),
         );
         socket.emit('markRead', { conversationId, messageId: lastReadMessageId });
       }, 350);

@@ -171,7 +171,7 @@ function main() {
   for (const file of violations) {
     console.error(`  ✗ ${path.relative(rootDir, file)}`);
   }
-  console.error(`\n[validate-eol] Fix: run "npm run fix:eol" or convert to LF.\n`);
+  console.error(`\n[validate-eol] Fix: run "pnpm fix:eol" or convert to LF.\n`);
   process.exit(1);
 }
 

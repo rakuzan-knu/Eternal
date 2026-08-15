@@ -23,14 +23,18 @@ export function useRemoveFollowerMutation(profileUserId: string) {
       // 3. Optimistically remove user from follower lists immediately
       queryClient.setQueriesData<InfiniteData<FollowListPage>>(
         { queryKey: [FOLLOW_LIST_KEY] },
-        (old) =>
-          old?.pages && {
-            ...old,
-            pages: old.pages.map((page) => ({
-              ...page,
-              items: page.items.filter((u) => u.id !== followerId),
-            })),
-          },
+        (old: InfiniteData<FollowListPage> | undefined) =>
+          old?.pages
+            ? {
+                ...old,
+                pages: old.pages.map((page: FollowListPage) => ({
+                  ...page,
+                  items: page.items.filter(
+                    (u: FollowListPage['items'][number]) => u.id !== followerId,
+                  ),
+                })),
+              }
+            : old,
       );
 
       // 4. Optimistically decrement followers count
@@ -39,7 +43,8 @@ export function useRemoveFollowerMutation(profileUserId: string) {
           queryKey: [USER_KEY],
           predicate: (q) => (q.state.data as UserProfile | undefined)?.id === profileUserId,
         },
-        (old) => old && { ...old, followersCount: Math.max(0, (old.followersCount ?? 0) - 1) },
+        (old: UserProfile | undefined) =>
+          old ? { ...old, followersCount: Math.max(0, (old.followersCount ?? 0) - 1) } : old,
       );
 
       return { previousFollowLists, previousUsers };

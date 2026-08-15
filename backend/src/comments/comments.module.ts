@@ -4,7 +4,7 @@ import { CommentsRepository } from './comments.repository';
 import { CommentsService } from './comments.service';
 import { COMMENTS_REPOSITORY } from './interfaces/comments-repository.interface';
 
-import { PrismaModule } from '../prisma/prisma.module';
+import { PrismaModule } from '@common/prisma';
 import { MessengerModule } from '../messenger/messenger.module';
 
 @Module({

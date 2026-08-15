@@ -23,7 +23,11 @@ import { MiniProfileHoverCard } from '@/entities/profile/ui/MiniProfileHoverCard
 import { FollowButton } from '@/features/follow/ui/FollowButton';
 import Avatar from '@/shared/ui/Avatar';
 import { chatApi } from '@/features/chat/api/chatApi';
-import type { FollowUserSummary } from '@/features/follow/api/followApi';
+import type { ParticipantView } from '@/entities/chat/model/types';
+import type {
+  FollowUserSummary,
+  RecommendationMutualFriend,
+} from '@/features/follow/api/followApi';
 
 export function OnlineFriendsSidebar() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -31,7 +35,7 @@ export function OnlineFriendsSidebar() {
   const [isOfflineExpanded, setIsOfflineExpanded] = useState(false);
 
   const { data: friends, isLoading: isFriendsLoading } = useFriends();
-  const { data: suggestedUsers, isLoading: isSuggestedLoading } = useSuggestedUsers(5);
+  const { data: suggestedUsers = [], isLoading: isSuggestedLoading } = useSuggestedUsers(5);
   const dismissMutation = useDismissSuggestedUser();
   const { data: conversations } = useConversations();
   const onlineUserIds = usePresenceStore((s) => s.onlineUserIds);
@@ -45,7 +49,9 @@ export function OnlineFriendsSidebar() {
 
     for (const conv of conversations) {
       if (conv.type === 'DIRECT' && conv.unreadCount > 0) {
-        const otherParticipant = conv.participants?.find((p) => p.user?.id !== currentUserId);
+        const otherParticipant = conv.participants?.find(
+          (p: ParticipantView) => p.user?.id !== currentUserId,
+        );
         if (otherParticipant?.user?.id) {
           map.set(otherParticipant.user.id, conv.unreadCount);
         }
@@ -210,7 +216,7 @@ export function OnlineFriendsSidebar() {
             </div>
           ) : suggestedUsers && suggestedUsers.length > 0 ? (
             <div className="flex flex-col gap-2">
-              {suggestedUsers.slice(0, 5).map((user) => (
+              {suggestedUsers.slice(0, 5).map((user: FollowUserSummary) => (
                 <MiniProfileHoverCard key={user.id} username={user.username} side="left">
                   <div className="flex items-center justify-between gap-2 p-2 rounded-2xl hover:bg-white/[0.04] transition-colors">
                     <Link
@@ -234,14 +240,16 @@ export function OnlineFriendsSidebar() {
                         user.recommendationReason.mutualFriends.length > 0 ? (
                           <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
                             <div className="flex -space-x-1.5 shrink-0">
-                              {user.recommendationReason.mutualFriends.map((m, idx) => (
-                                <img
-                                  key={m.id || idx}
-                                  src={m.avatar || '/default-avatar.png'}
-                                  alt={m.username}
-                                  className="w-3.5 h-3.5 rounded-full object-cover ring-1 ring-[#070709] bg-white/10"
-                                />
-                              ))}
+                              {user.recommendationReason.mutualFriends.map(
+                                (m: RecommendationMutualFriend, idx: number) => (
+                                  <img
+                                    key={m.id || idx}
+                                    src={m.avatar || '/default-avatar.png'}
+                                    alt={m.username}
+                                    className="w-3.5 h-3.5 rounded-full object-cover ring-1 ring-[#070709] bg-white/10"
+                                  />
+                                ),
+                              )}
                             </div>
                             <span className="text-[10px] text-gray-400 truncate leading-none">
                               {user.recommendationReason.text}
@@ -393,7 +401,7 @@ export function OnlineFriendsSidebar() {
                       Online — {onlineFriends.length}
                     </span>
                   </div>
-                  {onlineFriends.map((f) => renderFriendRow(f, true))}
+                  {onlineFriends.map((f: FollowUserSummary) => renderFriendRow(f, true))}
                 </div>
               )}
 
@@ -405,7 +413,7 @@ export function OnlineFriendsSidebar() {
                       Offline — {offlineFriends.length}
                     </span>
                   </div>
-                  {displayedOffline.map((f) => renderFriendRow(f, false))}
+                  {displayedOffline.map((f: FollowUserSummary) => renderFriendRow(f, false))}
 
                   {/* Show All / Show Less Accordion Toggle */}
                   {hasHiddenOffline && !hasFilter && (

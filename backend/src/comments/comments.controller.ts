@@ -10,13 +10,18 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CommentsService } from './comments.service';
-import { CreateCommentDto } from './dto/create-comment.dto';
+import {
+  type CreateCommentDto,
+  type GetCommentsQueryDto,
+  createCommentSchema,
+  getCommentsQuerySchema,
+} from '@common/contracts';
+import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import { AuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/interfaces/jwt-payload.interface';
-import { GetCommentsQueryDto } from './dto/get-comments-query.dto';
 
 @ApiTags('Comments')
 @Controller()
@@ -26,13 +31,12 @@ export class CommentsController {
   @Post('posts/:id/comments')
   @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Add a comment to a post' })
-  @ApiBody({ type: CreateCommentDto })
   @ApiResponse({ status: 201, description: 'Comment created successfully.' })
   @ApiResponse({ status: 404, description: 'Post not found.' })
   addComment(
     @Param('id') postId: string,
     @CurrentUser() user: RequestUser,
-    @Body() dto: CreateCommentDto,
+    @Body(new ZodValidationPipe(createCommentSchema)) dto: CreateCommentDto,
   ) {
     return this.commentsService.addComment(postId, user.id, dto);
   }
@@ -40,7 +44,10 @@ export class CommentsController {
   @Get('posts/:id/comments')
   @ApiOperation({ summary: 'Get comments for a post' })
   @ApiResponse({ status: 200, description: 'Comments retrieved successfully.' })
-  getComments(@Param('id') postId: string, @Query() query: GetCommentsQueryDto) {
+  getComments(
+    @Param('id') postId: string,
+    @Query(new ZodValidationPipe(getCommentsQuerySchema)) query: GetCommentsQueryDto,
+  ) {
     return this.commentsService.getComments(postId, query.limit, query.after);
   }
 

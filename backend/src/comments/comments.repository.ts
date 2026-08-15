@@ -1,8 +1,7 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '@common/prisma';
 import type { ICommentsRepository } from './interfaces/comments-repository.interface';
-import type { CreateCommentDto } from './dto/create-comment.dto';
-import type { CommentWithUser } from './dto/comment-response.dto';
+import type { CreateCommentDto, CommentWithUser } from '@common/contracts';
 
 const userSelect = {
   id: true,

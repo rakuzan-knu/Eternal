@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma, User } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
-import type { CreateUserDto } from '../dto/create-user.dto';
+import { PrismaService } from '@common/prisma';
+import type { CreateUserDto } from '@common/contracts';
 import type { IUsersRepository } from '../interfaces/users-repository.interface';
 
 @Injectable()
@@ -48,7 +48,7 @@ export class UsersRepository implements IUsersRepository {
   }
 
   async deleteUser(id: string): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
+    await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       await tx.post.deleteMany({ where: { authorId: id } });
       await tx.follow.deleteMany({
         where: {

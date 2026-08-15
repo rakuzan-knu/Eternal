@@ -8,7 +8,7 @@ jest.mock('sanitize-html', () => ({
 
 import { Test, type TestingModule } from '@nestjs/testing';
 import { UsersService } from '../users.service';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '@common/prisma';
 import { RedisService } from '../../redis/redis.service';
 import { USERS_REPOSITORY } from '../interfaces/users-repository.interface';
 import { VisibilityResolver } from '../privacy/visibility.resolver';

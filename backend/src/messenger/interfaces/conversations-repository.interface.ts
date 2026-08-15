@@ -5,7 +5,7 @@ import type {
   ParticipantRole,
 } from '@prisma/client';
 import type { ConversationWithDetails, ParticipantWithUser } from './types';
-import type { UserSnapshot } from '../dto/responses.dto';
+import type { UserSnapshot } from '@common/contracts';
 
 export const CONVERSATIONS_REPOSITORY = 'CONVERSATIONS_REPOSITORY';
 

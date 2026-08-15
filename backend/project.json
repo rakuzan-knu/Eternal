@@ -1,0 +1,40 @@
+{
+  "name": "backend",
+  "sourceRoot": "backend/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/backend/dist"],
+      "options": {
+        "command": "pnpm build",
+        "cwd": "backend",
+        "forwardAllArgs": false
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm lint",
+        "cwd": "backend",
+        "forwardAllArgs": false
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm typecheck",
+        "cwd": "backend",
+        "forwardAllArgs": false
+      }
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm start:dev",
+        "cwd": "backend",
+        "forwardAllArgs": false
+      }
+    }
+  }
+}

@@ -37,7 +37,8 @@ export function SavedPostsView({ userId }: SavedPostsViewProps) {
   const getCollectionCover = (postIds: string[]) => {
     const matchingPosts = allSavedPosts.filter((p) => postIds.includes(String(p.id)));
     for (const post of matchingPosts) {
-      const img = post.media?.find((m) => m.type === 'image')?.url || post.image;
+      const img =
+        post.media?.find((m) => m.type === 'image' || m.type === 'IMAGE')?.url || post.image;
       if (img) return img;
     }
     return null;
@@ -45,7 +46,8 @@ export function SavedPostsView({ userId }: SavedPostsViewProps) {
 
   const getAllPostsCover = () => {
     for (const post of allSavedPosts) {
-      const img = post.media?.find((m) => m.type === 'image')?.url || post.image;
+      const img =
+        post.media?.find((m) => m.type === 'image' || m.type === 'IMAGE')?.url || post.image;
       if (img) return img;
     }
     return null;

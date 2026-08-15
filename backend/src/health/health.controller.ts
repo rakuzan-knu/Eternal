@@ -2,7 +2,7 @@ import { Controller, Get, HttpStatus, Res } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
 import type { Response } from 'express';
-import { HealthResponseDto, PingResponseDto } from './dto/health-response.dto';
+import { HealthResponseDto, PingResponseDto } from '@common/contracts';
 import { HealthService } from './health.service';
 
 @ApiTags('health')

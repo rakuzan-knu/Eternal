@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { IPostRepository } from './interfaces/posts-repository.interface';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '@common/prisma';
 import {
   FollowStatus,
   type Post,
@@ -8,7 +8,7 @@ import {
   type Prisma,
   type ReportCategory,
 } from '@prisma/client';
-import type { PostWithRelations } from './dto/post-response.dto';
+import type { PostWithRelations } from '@common/contracts';
 
 type PrismaPostQueryResult = {
   id: string;

@@ -5,6 +5,8 @@ import { useMessageSearch } from '../model/useMessageSearch';
 import { highlightMatches } from '@/shared/lib/highlightMatches';
 import { formatMessageTime } from '../lib/groupMessagesByDate';
 
+import type { MessageView } from '../../../entities/chat/model/types';
+
 interface MessageSearchPanelProps {
   conversationId: string;
   onClose: () => void;
@@ -82,7 +84,7 @@ export default function MessageSearchPanel({
         )}
 
         <div className="flex flex-col gap-0.5">
-          {results.map((message, index) => (
+          {results.map((message: MessageView, index: number) => (
             <button
               key={message.id}
               onClick={() => onJumpToMessage(message.id)}

@@ -13,6 +13,7 @@ import { SaveToCollectionPopover } from '@/features/posts/ui/SaveToCollectionPop
 import { LinkPreviewCard } from '@/shared/ui/LinkPreviewCard';
 import { extractFirstUrl } from '@/shared/lib/urlUtils';
 
+import type { PostMedia as PostMediaType } from '@/entities/post/model/types';
 import { useUIStore, PostType } from '@/shared/model/useUIStore';
 import { useLikeMutation } from '@/features/posts/model/useLikeMutation';
 import { useRepostMutation } from '@/features/posts/model/useRepostMutation';
@@ -40,7 +41,8 @@ export function PostCard({ post, queryKey }: PostCardProps) {
   const repostMutation = useRepostMutation(post.id, !!post.isReposted, queryKey);
   const saveMutation = useSavePostMutation(post.id, !!post.isSaved, queryKey);
 
-  const media = post.media ?? (post.image ? [{ type: 'image' as const, url: post.image }] : []);
+  const media: PostMediaType[] =
+    post.media ?? (post.image ? [{ type: 'image', url: post.image }] : []);
   const firstUrl = media.length === 0 && !post.poll ? extractFirstUrl(post.text) : null;
 
   const handleLike = () => {

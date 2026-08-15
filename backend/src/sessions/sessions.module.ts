@@ -1,5 +1,5 @@
 import { Module, forwardRef } from '@nestjs/common';
-import { PrismaModule } from '../prisma/prisma.module';
+import { PrismaModule } from '@common/prisma';
 import { AuthModule } from '../auth/auth.module';
 import { SessionsController } from './sessions.controller';
 import { SessionsService } from './sessions.service';

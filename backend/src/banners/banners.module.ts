@@ -3,7 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { BannersController } from './banners.controller';
 import { BannersService } from './banners.service';
 import { bannerS3Provider } from './s3-provider';
-import { PrismaModule } from '../prisma/prisma.module';
+import { PrismaModule } from '@common/prisma';
 import { PrismaBannerRepository } from './repositories/banners.repository';
 import { BANNER_REPOSITORY } from './interfaces/banners-repository.interface';
 

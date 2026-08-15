@@ -1,5 +1,5 @@
 import type { PublicUserEntity, PublicUserSummary } from './types/followers.types';
-import type { UserProfileDto } from '../users/dto/user-profile.dto';
+import type { UserProfileDto } from '@common/contracts';
 
 export function toUserProfileDto(
   user: PublicUserEntity | PublicUserSummary,

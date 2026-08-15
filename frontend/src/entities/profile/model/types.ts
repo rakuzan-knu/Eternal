@@ -1,10 +1,26 @@
-export type AutoDeletePeriod = 'OFF' | 'DAY' | 'WEEK' | 'MONTH' | 'QUARTER';
+import type {
+  UserProfileDto,
+  AutoDeletePeriod as BackendAutoDeletePeriod,
+  FollowStatusView as BackendFollowStatusView,
+  LastSeenGranularity as BackendLastSeenGranularity,
+} from '@backend/common/contracts';
 
-export type FollowStatusView = 'none' | 'pending' | 'following';
+export type AutoDeletePeriod =
+  BackendAutoDeletePeriod | 'OFF' | 'DAY' | 'WEEK' | 'MONTH' | 'QUARTER';
+export type FollowStatusView = BackendFollowStatusView | 'none' | 'pending' | 'following';
+export type LastSeenGranularity =
+  BackendLastSeenGranularity | 'RECENTLY' | 'WITHIN_WEEK' | 'WITHIN_MONTH' | 'LONG_AGO';
 
-export type LastSeenGranularity = 'RECENTLY' | 'WITHIN_WEEK' | 'WITHIN_MONTH' | 'LONG_AGO';
-
-export interface UserProfile {
+export interface UserProfile extends Omit<
+  Partial<UserProfileDto>,
+  | 'createdAt'
+  | 'updatedAt'
+  | 'birthDate'
+  | 'followStatus'
+  | 'autoDeletePeriod'
+  | 'lastSeen'
+  | 'lastSeenAt'
+> {
   id: string;
   username: string;
   displayName?: string;
@@ -12,11 +28,11 @@ export interface UserProfile {
   avatar?: string | null;
   banner?: string | null;
   bannerPosition?: number;
-  identity: string;
+  identity?: string;
   birthDate?: string | null;
-  gender: 'Male' | 'Female' | 'Custom' | string;
+  gender?: 'Male' | 'Female' | 'Custom' | string;
   createdAt: string;
-  isOwnProfile: boolean;
+  isOwnProfile?: boolean;
   isFollowing?: boolean;
   followsYou?: boolean;
   followersCount?: number;

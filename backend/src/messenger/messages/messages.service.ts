@@ -9,7 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { AttachmentType, MessageType } from '@prisma/client';
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { uid } from 'uid';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '@common/prisma';
 import { CONVERSATIONS_REPOSITORY } from '../interfaces/conversations-repository.interface';
 import type { IConversationsRepository } from '../interfaces/conversations-repository.interface';
 import { MESSAGES_REPOSITORY } from '../interfaces/messages-repository.interface';
@@ -23,8 +23,9 @@ import type {
   ForwardMessageDto,
   ReactToMessageDto,
   SendMessageDto,
-} from '../dto/message.dto';
-import type { MessageView, PaginatedMessages } from '../dto/responses.dto';
+  MessageView,
+  PaginatedMessages,
+} from '@common/contracts';
 
 @Injectable()
 export class MessagesService {

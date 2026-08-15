@@ -19,14 +19,14 @@ if git diff --cached --name-only | grep -qE '(^|/)package\.json$'; then
   log_info "Checking package.json & lockfile sync..."
 
   # Update the lockfile on disk to ensure it's in sync with current package.json
-  npm install --package-lock-only --ignore-scripts --no-audit >/dev/null 2>&1
+  pnpm install --lockfile-only --ignore-scripts >/dev/null 2>&1
 
   # Check if the lockfile on disk differs from HEAD
-  if ! git diff --exit-code package-lock.json >/dev/null 2>&1; then
+  if ! git diff --exit-code pnpm-lock.yaml >/dev/null 2>&1; then
     # If modified, check if it's staged
-    if ! git diff --cached --name-only | grep -qE '(^|/)package-lock\.json$'; then
-      log_error "package-lock.json is out of sync or modified, but NOT staged!"
-      log_gray "Run 'npm install' to fix lockfile and stage the updated package-lock.json"
+    if ! git diff --cached --name-only | grep -qE '(^|/)pnpm-lock\.yaml$'; then
+      log_error "pnpm-lock.yaml is out of sync or modified, but NOT staged!"
+      log_gray "Run 'pnpm install' to fix lockfile and stage the updated pnpm-lock.yaml"
       exit 1
     fi
   fi

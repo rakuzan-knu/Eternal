@@ -7,8 +7,10 @@ function useOptimisticConversationUpdate() {
   const queryClient = useQueryClient();
 
   return (conversationId: string, patch: Partial<ConversationView>) => {
-    queryClient.setQueryData<ConversationView[]>([CONVERSATIONS_KEY], (prev) =>
-      prev?.map((c) => (c.id === conversationId ? { ...c, ...patch } : c)),
+    queryClient.setQueryData<ConversationView[]>(
+      [CONVERSATIONS_KEY],
+      (prev: ConversationView[] | undefined) =>
+        prev?.map((c: ConversationView) => (c.id === conversationId ? { ...c, ...patch } : c)),
     );
   };
 }
@@ -102,17 +104,19 @@ export function useSetNickname() {
       nickname: string | null;
     }) => chatApi.setNickname(conversationId, targetUserId, nickname),
     onMutate: ({ conversationId, targetUserId, nickname }) => {
-      queryClient.setQueryData<ConversationView[]>([CONVERSATIONS_KEY], (prev) =>
-        prev?.map((c) =>
-          c.id === conversationId
-            ? {
-                ...c,
-                participants: c.participants.map((p) =>
-                  p.userId === targetUserId ? { ...p, nickname } : p,
-                ),
-              }
-            : c,
-        ),
+      queryClient.setQueryData<ConversationView[]>(
+        [CONVERSATIONS_KEY],
+        (prev: ConversationView[] | undefined) =>
+          prev?.map((c: ConversationView) =>
+            c.id === conversationId
+              ? {
+                  ...c,
+                  participants: c.participants.map((p: ConversationView['participants'][number]) =>
+                    p.userId === targetUserId ? { ...p, nickname } : p,
+                  ),
+                }
+              : c,
+          ),
       );
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: [CONVERSATIONS_KEY] }),

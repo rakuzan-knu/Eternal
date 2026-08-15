@@ -24,10 +24,10 @@ function fromHex(hex: string): Uint8Array {
   return out;
 }
 
-function toArrayBufferView(view: Uint8Array): Uint8Array<ArrayBuffer> {
-  const copy = new Uint8Array(new ArrayBuffer(view.byteLength));
-  copy.set(view);
-  return copy as Uint8Array<ArrayBuffer>;
+function toArrayBuffer(view: Uint8Array): ArrayBuffer {
+  const buffer = new ArrayBuffer(view.byteLength);
+  new Uint8Array(buffer).set(view);
+  return buffer;
 }
 
 function subtle(): SubtleCrypto | null {
@@ -51,7 +51,7 @@ async function deriveHex(password: string, salt: Uint8Array, algo: DeriveAlgo): 
   if (algo === 'PBKDF2') {
     const keyMaterial = await s.importKey(
       'raw',
-      toArrayBufferView(enc.encode(password)),
+      toArrayBuffer(enc.encode(password)),
       'PBKDF2',
       false,
       ['deriveBits'],
@@ -59,7 +59,7 @@ async function deriveHex(password: string, salt: Uint8Array, algo: DeriveAlgo): 
     const bits = await s.deriveBits(
       {
         name: 'PBKDF2',
-        salt: toArrayBufferView(salt),
+        salt: toArrayBuffer(salt),
         iterations: PBKDF2_ITERATIONS,
         hash: 'SHA-256',
       },
@@ -73,7 +73,7 @@ async function deriveHex(password: string, salt: Uint8Array, algo: DeriveAlgo): 
   const combined = new Uint8Array(salt.length + pw.length);
   combined.set(salt, 0);
   combined.set(pw, salt.length);
-  const digest = await s.digest('SHA-256', toArrayBufferView(combined));
+  const digest = await s.digest('SHA-256', toArrayBuffer(combined));
   return toHex(new Uint8Array(digest));
 }
 

@@ -5,7 +5,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/interfaces/jwt-payload.interface';
 import { AuthService } from '../auth/auth.service';
 import { SessionsService } from './sessions.service';
-import { SessionViewDto } from './dto/session-view.dto';
+import { type SessionViewDto } from '@common/contracts';
 
 @ApiTags('sessions')
 @ApiBearerAuth()

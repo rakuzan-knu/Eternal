@@ -27,35 +27,37 @@ jobs:
       - name: Generate GitHub App Token
         id: app-token
         continue-on-error: true
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@21cfef2b496dd8ef5b904c159339626a10ad380e # v1.11.6
         with:
           app-id: ${{ secrets.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
           persist-credentials: true
           token: ${{ secrets.RELEASE_PAT || (steps.app-token.outputs.token != '' && steps.app-token.outputs.token || secrets.GITHUB_TOKEN) }}
 
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5dd2 # v4.0.0
+
+      - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
         with:
           node-version-file: '.nvmrc'
-          cache: 'npm'
+          cache: 'pnpm'
 
       - name: Install root deps
-        run: npm ci --ignore-scripts --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Build frontend (with source maps)
         working-directory: frontend
-        run: npm run build
+        run: pnpm build
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
           VITE_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           NODE_ENV: production
 
       - name: Upload frontend artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: frontend-dist
           path: frontend/dist/
@@ -63,7 +65,7 @@ jobs:
 
       - name: Run Semantic Release
         id: release
-        uses: cycjimmy/semantic-release-action@v4
+        uses: cycjimmy/semantic-release-action@b1b432f13acb7768e0c8efdec416d363a57546f2 # v4.1.1
         with:
           semantic_version: 24
           extra_plugins: |
@@ -83,10 +85,10 @@ jobs:
       packages: write
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Install Cosign
-        uses: sigstore/cosign-installer@c56c2d3e59e4281cc41dea2217323ba5694b171e # v3.8.0
+        uses: sigstore/cosign-installer@d7d6bc7722e3daa8354c50bcb52f4837da5e9b6a # v3.8.1
 
       - name: Install Syft
         uses: anchore/sbom-action/download-syft@f325610c9f50a54015d37c8d16cb3b0e2c8f4de0 # v0.18.0
@@ -96,7 +98,7 @@ jobs:
           syft dir:. -o spdx-json=sbom.spdx.json
 
       - name: Upload Release SBOM Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: sbom-release-v${{ needs.release.outputs.new-release-version }}
           path: sbom.spdx.json
@@ -126,19 +128,19 @@ jobs:
             echo "ℹ️ Sentry secrets not configured. Skipping Sentry release creation."
           fi
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         if: steps.check-sentry.outputs.configured == 'true'
 
       - name: Download frontend artifact
         if: steps.check-sentry.outputs.configured == 'true'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
           name: frontend-dist
           path: frontend/dist/
 
       - name: Create Sentry release
         if: steps.check-sentry.outputs.configured == 'true'
-        uses: getsentry/action-release@v3
+        uses: getsentry/action-release@db19a8438b9ff55beba8fbb40fdce2571e85bbd9 # v3.1.2
         with:
           environment: production
           release: ${{ env.SENTRY_VERSION }}

@@ -25,37 +25,40 @@ export function useFollowMutation(id: string, isFollowing: boolean) {
       });
 
       // 3. Optimistically update target user's profile and current user's profile
-      queryClient.setQueriesData<UserProfile>({ queryKey: [USER_KEY] }, (old) => {
-        if (!old) return old;
-        // Target user profile
-        if (old.id === id) {
-          return {
-            ...old,
-            isFollowing: nextIsFollowing,
-            followersCount: Math.max(0, (old.followersCount ?? 0) + (nextIsFollowing ? 1 : -1)),
-          };
-        }
-        // Current user profile (updates followingCount)
-        if (myUserId && old.id === myUserId) {
-          return {
-            ...old,
-            followingCount: Math.max(0, (old.followingCount ?? 0) + (nextIsFollowing ? 1 : -1)),
-          };
-        }
-        return old;
-      });
+      queryClient.setQueriesData<UserProfile>(
+        { queryKey: [USER_KEY] },
+        (old: UserProfile | undefined) => {
+          if (!old) return old;
+          // Target user profile
+          if (old.id === id) {
+            return {
+              ...old,
+              isFollowing: nextIsFollowing,
+              followersCount: Math.max(0, (old.followersCount ?? 0) + (nextIsFollowing ? 1 : -1)),
+            };
+          }
+          // Current user profile (updates followingCount)
+          if (myUserId && old.id === myUserId) {
+            return {
+              ...old,
+              followingCount: Math.max(0, (old.followingCount ?? 0) + (nextIsFollowing ? 1 : -1)),
+            };
+          }
+          return old;
+        },
+      );
 
       // 4. Optimistically update follow lists cache
       queryClient.setQueriesData<InfiniteData<FollowListPage>>(
         { queryKey: [FOLLOW_LIST_KEY] },
-        (old) => {
+        (old: InfiniteData<FollowListPage> | undefined) => {
           if (!old?.pages) return old;
 
           return {
             ...old,
-            pages: old.pages.map((page) => ({
+            pages: old.pages.map((page: FollowListPage) => ({
               ...page,
-              items: page.items.map((u) =>
+              items: page.items.map((u: FollowListPage['items'][number]) =>
                 u.id === id ? { ...u, isFollowing: nextIsFollowing } : u,
               ),
             })),
@@ -67,13 +70,13 @@ export function useFollowMutation(id: string, isFollowing: boolean) {
       if (myUserId && !nextIsFollowing) {
         queryClient.setQueryData<InfiniteData<FollowListPage>>(
           [FOLLOW_LIST_KEY, myUserId, 'following'],
-          (old) => {
+          (old: InfiniteData<FollowListPage> | undefined) => {
             if (!old?.pages) return old;
             return {
               ...old,
-              pages: old.pages.map((page) => ({
+              pages: old.pages.map((page: FollowListPage) => ({
                 ...page,
-                items: page.items.filter((u) => u.id !== id),
+                items: page.items.filter((u: FollowListPage['items'][number]) => u.id !== id),
               })),
             };
           },

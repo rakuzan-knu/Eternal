@@ -140,27 +140,30 @@ export function useMessengerRealtime(
       conversation?.myMuteLevel !== 'MESSAGES_AND_CALLS' &&
       !playedMessageIdsRef.current.has(message.id);
 
-    queryClient.setQueryData<ConversationView[]>([CONVERSATIONS_KEY], (prev) => {
-      if (!prev) return prev;
-      const exists = prev.some((c) => c.id === message.conversationId);
-      if (!exists) {
-        queryClient.invalidateQueries({ queryKey: [CONVERSATIONS_KEY] });
-        return prev;
-      }
-      return prev.map((c) =>
-        c.id === message.conversationId
-          ? {
-              ...c,
-              lastMessage: message,
-              updatedAt: message.createdAt,
-              unreadCount:
-                message.sender.id === userId || c.id === activeConversationId
-                  ? 0
-                  : c.unreadCount + 1,
-            }
-          : c,
-      );
-    });
+    queryClient.setQueryData<ConversationView[]>(
+      [CONVERSATIONS_KEY],
+      (prev: ConversationView[] | undefined) => {
+        if (!prev) return prev;
+        const exists = prev.some((c: ConversationView) => c.id === message.conversationId);
+        if (!exists) {
+          queryClient.invalidateQueries({ queryKey: [CONVERSATIONS_KEY] });
+          return prev;
+        }
+        return prev.map((c: ConversationView) =>
+          c.id === message.conversationId
+            ? {
+                ...c,
+                lastMessage: message,
+                updatedAt: message.createdAt,
+                unreadCount:
+                  message.sender.id === userId || c.id === activeConversationId
+                    ? 0
+                    : c.unreadCount + 1,
+              }
+            : c,
+        );
+      },
+    );
 
     if (shouldNotify) {
       playedMessageIdsRef.current.add(message.id);
@@ -249,8 +252,10 @@ export function useMessengerRealtime(
   };
 
   const handleConversationUpdated = (updated: Partial<ConversationView> & { id: string }) => {
-    queryClient.setQueryData<ConversationView[]>([CONVERSATIONS_KEY], (prev) =>
-      prev?.map((c) => (c.id === updated.id ? { ...c, ...updated } : c)),
+    queryClient.setQueryData<ConversationView[]>(
+      [CONVERSATIONS_KEY],
+      (prev: ConversationView[] | undefined) =>
+        prev?.map((c: ConversationView) => (c.id === updated.id ? { ...c, ...updated } : c)),
     );
   };
 

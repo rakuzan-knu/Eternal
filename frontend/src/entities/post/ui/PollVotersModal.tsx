@@ -1,7 +1,7 @@
 import React from 'react';
 import { X } from 'lucide-react';
 import Avatar from '../../../shared/ui/Avatar';
-import { usePollVoters } from '../model/usePollVoters';
+import { usePollVoters, type PollVoterGroup } from '../model/usePollVoters';
 
 interface PollVotersModalProps {
   postId: string | number;
@@ -32,7 +32,8 @@ export function PollVotersModal({ postId, options, onClose }: PollVotersModalPro
           <p className="text-gray-500 text-sm text-center py-6">Loading...</p>
         ) : (
           options.map((option) => {
-            const voters = data?.find((g) => g.optionId === option.id)?.voters ?? [];
+            const voters =
+              data?.find((g: PollVoterGroup) => g.optionId === option.id)?.voters ?? [];
             return (
               <div key={option.id} className="mb-4">
                 <p className="text-sm font-semibold text-gray-300 mb-2">
@@ -42,7 +43,7 @@ export function PollVotersModal({ postId, options, onClose }: PollVotersModalPro
                   <p className="text-xs text-gray-600">No one voted yet..</p>
                 ) : (
                   <div className="flex flex-col gap-2">
-                    {voters.map((v) => (
+                    {voters.map((v: PollVoterGroup['voters'][number]) => (
                       <div key={v.id} className="flex items-center gap-2.5">
                         <Avatar size="sm" src={v.avatar} />
                         <span className="text-sm text-gray-200">{v.displayName || v.username}</span>

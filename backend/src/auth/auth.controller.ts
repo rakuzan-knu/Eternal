@@ -16,12 +16,20 @@ import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagg
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
-import { AccessTokenResponseDto, AuthResponseDto } from './dto/auth-response.dto';
-import { CheckUsernameDto } from './dto/check-username.dto';
-import { LoginDto } from './dto/login.dto';
-import { RefreshTokenDto } from './dto/refresh-token.dto';
-import { RegisterDto } from './dto/register.dto';
-import { ChangePasswordDto } from './dto/change-password.dto';
+import {
+  type AuthResponse,
+  type ChangePasswordDto,
+  type CheckUsernameDto,
+  type LoginDto,
+  type RefreshTokenDto,
+  type RegisterDto,
+  changePasswordSchema,
+  checkUsernameSchema,
+  loginSchema,
+  refreshTokenSchema,
+  registerSchema,
+} from '@common/contracts';
+import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import { AuthGuard } from './guards/jwt-auth.guard';
 import type { RequestUser } from './interfaces/jwt-payload.interface';
 import type { RequestMeta } from '../sessions/sessions.service';
@@ -43,7 +51,9 @@ export class AuthController {
     status: HttpStatus.OK,
     description: 'Username availability status',
   })
-  checkUsername(@Query() query: CheckUsernameDto): Promise<{ isAvailable: boolean }> {
+  checkUsername(
+    @Query(new ZodValidationPipe(checkUsernameSchema)) query: CheckUsernameDto,
+  ): Promise<{ isAvailable: boolean }> {
     return this.authService.checkUsername(query.username);
   }
 
@@ -53,7 +63,6 @@ export class AuthController {
   @ApiResponse({
     status: HttpStatus.CREATED,
     description: 'User successfully registered',
-    type: AuthResponseDto,
   })
   @ApiResponse({
     status: HttpStatus.CONFLICT,
@@ -64,11 +73,11 @@ export class AuthController {
     description: 'Validation failed',
   })
   register(
-    @Body() dto: RegisterDto,
+    @Body(new ZodValidationPipe(registerSchema)) dto: RegisterDto,
     @Req() req: Request,
     @Ip() ip: string,
     @Headers('user-agent') ua?: string,
-  ): Promise<AuthResponseDto> {
+  ): Promise<AuthResponse> {
     return this.authService.register(dto, extractMeta(req, ip, ua));
   }
 
@@ -79,18 +88,17 @@ export class AuthController {
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Login successful',
-    type: AuthResponseDto,
   })
   @ApiResponse({
     status: HttpStatus.UNAUTHORIZED,
     description: 'Invalid credentials',
   })
   login(
-    @Body() dto: LoginDto,
+    @Body(new ZodValidationPipe(loginSchema)) dto: LoginDto,
     @Req() req: Request,
     @Ip() ip: string,
     @Headers('user-agent') ua?: string,
-  ): Promise<AuthResponseDto> {
+  ): Promise<AuthResponse> {
     return this.authService.login(dto, extractMeta(req, ip, ua));
   }
 
@@ -100,13 +108,14 @@ export class AuthController {
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'New access token issued',
-    type: AccessTokenResponseDto,
   })
   @ApiResponse({
     status: HttpStatus.UNAUTHORIZED,
     description: 'Refresh token is invalid, expired or revoked',
   })
-  refresh(@Body() dto: RefreshTokenDto): Promise<AccessTokenResponseDto> {
+  refresh(
+    @Body(new ZodValidationPipe(refreshTokenSchema)) dto: RefreshTokenDto,
+  ): Promise<{ accessToken: string }> {
     return this.authService.refresh(dto.refreshToken);
   }
 
@@ -120,7 +129,7 @@ export class AuthController {
   @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Current password incorrect' })
   async changePassword(
     @CurrentUser() user: RequestUser,
-    @Body() dto: ChangePasswordDto,
+    @Body(new ZodValidationPipe(changePasswordSchema)) dto: ChangePasswordDto,
   ): Promise<{ success: true }> {
     await this.authService.changePassword(user.id, dto, user.sessionJti);
     return { success: true };
@@ -141,7 +150,10 @@ export class AuthController {
     status: HttpStatus.UNAUTHORIZED,
     description: 'Missing or invalid access token',
   })
-  async logout(@CurrentUser() user: RequestUser, @Body() dto: RefreshTokenDto): Promise<void> {
+  async logout(
+    @CurrentUser() user: RequestUser,
+    @Body(new ZodValidationPipe(refreshTokenSchema)) dto: RefreshTokenDto,
+  ): Promise<void> {
     await this.authService.logout(user.id, dto.refreshToken);
   }
 }

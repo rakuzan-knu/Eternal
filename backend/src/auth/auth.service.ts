@@ -13,13 +13,15 @@ import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { randomUUID } from 'crypto';
 import type { StringValue } from 'ms';
 import { RedisService } from '../redis/redis.service';
-import { CreateUserDto } from '../users/dto/create-user.dto';
-import { RESERVED_USERNAMES } from '../users/dto/update-users.dto';
 import { UsersService } from '../users/users.service';
 import { SessionsService, type RequestMeta } from '../sessions/sessions.service';
-import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
-import { ChangePasswordDto } from './dto/change-password.dto';
+import {
+  CreateUserDto,
+  type ChangePasswordDto,
+  type LoginDto,
+  type RegisterDto,
+  RESERVED_USERNAMES,
+} from '@common/contracts';
 import { AccessTokenPayload, RefreshTokenPayload } from './interfaces/jwt-payload.interface';
 import { PublicUser } from './interfaces/public-user.interface';
 import { TokenPair } from './interfaces/token-pair.interface';
@@ -40,7 +42,7 @@ export class AuthService {
     if (!username || username.length < 2) {
       return { isAvailable: false };
     }
-    if (RESERVED_USERNAMES.includes(username.toLowerCase())) {
+    if ((RESERVED_USERNAMES as readonly string[]).includes(username.toLowerCase())) {
       return { isAvailable: false };
     }
     const user = await this.usersService.findByUsername(username);

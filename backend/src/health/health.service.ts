@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { RedisService } from '../redis/redis.service';
-import { HealthResponseDto, PingResponseDto } from './dto/health-response.dto';
+import { type HealthResponseDto, type PingResponseDto } from '@common/contracts';
 import { HealthRepository } from './health.repository';
 
 @Injectable()

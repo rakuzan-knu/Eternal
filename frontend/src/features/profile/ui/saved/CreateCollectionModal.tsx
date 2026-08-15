@@ -99,7 +99,9 @@ export function CreateCollectionModal({
               <div className="grid grid-cols-3 gap-2 max-h-52 overflow-y-auto pr-1">
                 {savedPosts.map((post) => {
                   const isSelected = selectedPostIds.includes(String(post.id));
-                  const firstImg = post.media?.find((m) => m.type === 'image')?.url || post.image;
+                  const firstImg =
+                    post.media?.find((m) => m.type === 'image' || m.type === 'IMAGE')?.url ||
+                    post.image;
 
                   return (
                     <div

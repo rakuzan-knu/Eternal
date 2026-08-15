@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { MuteLevel, ParticipantRole } from '@prisma/client';
 import type { Conversation, ConversationParticipant } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '@common/prisma';
 import type { IConversationsRepository } from '../interfaces/conversations-repository.interface';
 import type { ConversationWithDetails, ParticipantWithUser } from '../interfaces/types';
-import type { UserSnapshot } from '../dto/responses.dto';
+import type { UserSnapshot } from '@common/contracts';
 import { conversationInclude, participantInclude, userSnapshot } from '../interfaces/types';
 
 @Injectable()

@@ -16,7 +16,7 @@ const exists =
 
 if (exists) {
   try {
-    execSync('npm run db:generate -w backend', { stdio: 'inherit' });
+    execSync('pnpm --filter backend exec prisma generate', { stdio: 'inherit' });
   } catch (err) {
     console.error('[postinstall] Failed to run prisma generate:', err);
   }

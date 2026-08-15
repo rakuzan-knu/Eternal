@@ -9,7 +9,7 @@ import {
   WebSocketServer,
   WsException,
 } from '@nestjs/websockets';
-import { Logger, UseFilters, UsePipes, ValidationPipe, forwardRef, Inject } from '@nestjs/common';
+import { Logger, UseFilters, forwardRef, Inject } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -22,23 +22,21 @@ import { VisibilityResolver } from '../../users/privacy/visibility.resolver';
 import { PrivacyDimension } from '@prisma/client';
 import { WsValidationFilter } from '../filters/ws-validation.filter';
 import {
-  SendMessageDto,
-  EditMessageDto,
-  DeleteMessageDto,
-  ForwardMessageDto,
-  ReactToMessageDto,
-  TogglePinMessageDto,
-  ConversationIdDto,
-  MarkReadDto,
-  GetOnlineStatusDto,
-  GatewayResumeDto,
-} from '../dto/message.dto';
+  type SendMessageDto,
+  type EditMessageDto,
+  type DeleteMessageDto,
+  type ForwardMessageDto,
+  type ReactToMessageDto,
+  type TogglePinMessageDto,
+  type ConversationIdDto,
+  type MarkReadDto,
+  type GetOnlineStatusDto,
+  type GatewayResumeDto,
+} from '@common/contracts';
 
 interface AuthenticatedSocket extends Socket {
   userId: string;
 }
-
-const WsPipe = new ValidationPipe({ transform: true, whitelist: true });
 
 const getCorsOrigin = () => {
   const envOrigins = process.env.CORS_ORIGIN
@@ -60,7 +58,6 @@ const getCorsOrigin = () => {
 };
 
 @UseFilters(WsValidationFilter)
-@UsePipes(WsPipe)
 @WebSocketGateway({
   namespace: '/messenger',
   cors: {
@@ -153,7 +150,6 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
     this.logger.log(`Client disconnected: ${client.id}`);
   }
 
-  @UsePipes(WsPipe)
   @SubscribeMessage(WS_EVENTS.GET_ONLINE_STATUS)
   async handleGetOnlineStatus(
     @ConnectedSocket() client: AuthenticatedSocket,
@@ -174,7 +170,6 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
     callback?.({ status: 'ok', online });
   }
 
-  @UsePipes(WsPipe)
   @SubscribeMessage(WS_EVENTS.JOIN_CONVERSATION)
   async handleJoin(
     @ConnectedSocket() client: AuthenticatedSocket,
@@ -298,7 +293,6 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
     callback?.({ status: 'ok', message, clientMessageId: payload.clientMessageId });
   }
 
-  @UsePipes(WsPipe)
   @SubscribeMessage(WS_EVENTS.GATEWAY_RESUME)
   async handleGatewayResume(
     @ConnectedSocket() client: AuthenticatedSocket,

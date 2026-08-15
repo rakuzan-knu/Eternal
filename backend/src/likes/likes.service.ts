@@ -9,7 +9,7 @@ import { LIKES_REPOSITORY } from './interfaces/likes-repository.interface';
 import type { ILikesRepository } from './interfaces/likes-repository.interface';
 import { POSTS_REPOSITORY } from '../posts/interfaces/posts-repository.interface';
 import type { IPostRepository } from '../posts/interfaces/posts-repository.interface';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '@common/prisma';
 import { MessengerGateway } from '../messenger/gateway/messenger.gateway';
 import { WS_EVENTS } from '../messenger/events/ws-events';
 import { Like, Prisma } from '@prisma/client';

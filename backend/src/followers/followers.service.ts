@@ -16,11 +16,11 @@ import type {
 } from './types/followers.types';
 import { paginate } from '../common/pagination';
 import { RedisService } from '../redis/redis.service';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '@common/prisma';
 import { MessengerGateway } from '../messenger/gateway/messenger.gateway';
 import { WS_EVENTS } from '../messenger/events/ws-events';
 import { toUserProfileDto } from './followers.mapper';
-import type { UserProfileDto } from '../users/dto/user-profile.dto';
+import type { UserProfileDto } from '@common/contracts';
 
 @Injectable()
 export class FollowersService {

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { ILikesRepository } from './interfaces/likes-repository.interface';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '@common/prisma';
 import type { Like } from '@prisma/client';
 
 @Injectable()

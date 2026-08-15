@@ -2,6 +2,5 @@
 set -e
 
 echo "Running typecheck..."
-npm run typecheck -w backend
-npm run typecheck -w frontend
+pnpm run typecheck
 echo "Typecheck passed"

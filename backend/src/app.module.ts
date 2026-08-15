@@ -12,7 +12,7 @@ import { validateEnv } from './config/env.validation';
 import { HealthModule } from './health/health.module';
 import { LikesModule } from './likes/likes.module';
 import { PostsModule } from './posts/posts.module';
-import { PrismaModule } from './prisma/prisma.module';
+import { PrismaModule } from '@common/prisma';
 import { RedisModule } from './redis/redis.module';
 import { UsersModule } from './users/users.module';
 import { FollowersModule } from './followers/followers.module';
@@ -24,6 +24,10 @@ import { MetricsModule } from './metrics/metrics.module';
 import { PollModule } from './poll/poll.module';
 import { GithubModule } from './github/github.module';
 import { OpenGraphModule } from './opengraph/opengraph.module';
+
+import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
+import { MetricsMiddleware } from './metrics/metrics.middleware';
+import type { MiddlewareConsumer, NestModule } from '@nestjs/common';
 
 @Module({
   imports: [
@@ -67,4 +71,8 @@ import { OpenGraphModule } from './opengraph/opengraph.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(CorrelationIdMiddleware, MetricsMiddleware).forRoutes('*');
+  }
+}
