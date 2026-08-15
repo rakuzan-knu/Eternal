@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, X } from 'lucide-react';
 import Modal from '@/shared/ui/Modal';
 import { LoginForm } from '@/features/auth/ui/LoginForm';
@@ -12,10 +13,12 @@ interface AddAccountModalProps {
 
 export function AddAccountModal({ onClose, onBack }: AddAccountModalProps) {
   const switchAccount = useAccountsStore((s) => s.switchAccount);
+  const navigate = useNavigate();
 
   const handleSuccess = (data: AuthResponse) => {
     switchAccount(data.user.id);
-    window.location.href = '/feed';
+    onClose();
+    navigate('/feed');
   };
 
   return (

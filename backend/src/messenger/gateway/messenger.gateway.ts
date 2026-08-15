@@ -31,6 +31,7 @@ import {
   ConversationIdDto,
   MarkReadDto,
   GetOnlineStatusDto,
+  GatewayResumeDto,
 } from '../dto/message.dto';
 
 interface AuthenticatedSocket extends Socket {
@@ -110,9 +111,18 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
       const wasOffline = !this.onlineUsers.has(userId);
       if (!this.onlineUsers.has(userId)) this.onlineUsers.set(userId, new Set());
       this.onlineUsers.get(userId)!.add(client.id);
+
+      // Track in Redis Socket Set for Multi-Tab Presence
+      await this.redisService.sadd(`user:sockets:${userId}`, client.id).catch(() => {});
+      await this.redisService.set(`user:presence:${userId}`, 'online', 60).catch(() => {});
+
       if (wasOffline) {
         await this.emitPresenceExceptBlocked(userId, WS_EVENTS.USER_ONLINE, { userId });
       }
+
+      const seqRaw = await this.redisService.get(`user:seq:${userId}`).catch(() => '0');
+      const currentSeq = Number(seqRaw || '0');
+      client.emit(WS_EVENTS.GATEWAY_READY, { sessionId: client.id, seq: currentSeq });
 
       this.logger.log(`Client connected: ${client.id} (user: ${userId})`);
     } catch (err) {
@@ -121,18 +131,24 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
     }
   }
 
-  handleDisconnect(client: Socket): void {
+  async handleDisconnect(client: Socket): Promise<void> {
     const userId = (client as AuthenticatedSocket).userId;
     if (!userId) return;
 
     const userSockets = this.onlineUsers.get(userId);
     if (userSockets) {
       userSockets.delete(client.id);
-      if (userSockets.size === 0) {
-        this.onlineUsers.delete(userId);
-        void this.usersService.touchLastSeen(userId).catch(() => {});
-        void this.emitPresenceExceptBlocked(userId, WS_EVENTS.USER_OFFLINE, { userId });
-      }
+    }
+
+    await this.redisService.srem(`user:sockets:${userId}`, client.id).catch(() => {});
+    const remainingSockets = await this.redisService.scard(`user:sockets:${userId}`).catch(() => 0);
+
+    // Only switch to offline if all tabs / sockets are closed
+    if ((!userSockets || userSockets.size === 0) && remainingSockets === 0) {
+      this.onlineUsers.delete(userId);
+      await this.redisService.del(`user:presence:${userId}`).catch(() => {});
+      void this.usersService.touchLastSeen(userId).catch(() => {});
+      void this.emitPresenceExceptBlocked(userId, WS_EVENTS.USER_OFFLINE, { userId });
     }
     this.logger.log(`Client disconnected: ${client.id}`);
   }
@@ -181,6 +197,9 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() payload: ConversationIdDto,
   ) {
+    const isTypingLimited = await this.isTypingRateLimited(client.userId).catch(() => false);
+    if (isTypingLimited) return;
+
     await this.emitToConversationExceptBlocked(
       payload.conversationId,
       client.userId,
@@ -192,6 +211,13 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
       },
       { includeActor: false },
     );
+  }
+
+  @SubscribeMessage(WS_EVENTS.HEARTBEAT)
+  async handleHeartbeat(@ConnectedSocket() client: AuthenticatedSocket): Promise<void> {
+    const userId = client.userId;
+    if (!userId) return;
+    await this.redisService.set(`user:presence:${userId}`, 'online', 45);
   }
 
   @SubscribeMessage(WS_EVENTS.TYPING_STOP)
@@ -243,7 +269,12 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
   async handleSendMessage(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() payload: SendMessageDto,
-    callback?: (res: { status: string; message?: unknown; error?: string }) => void,
+    callback?: (res: {
+      status: string;
+      message?: unknown;
+      error?: string;
+      clientMessageId?: string;
+    }) => void,
   ): Promise<void> {
     const isLimited = await this.isRateLimited(client.userId).catch(() => false);
     if (isLimited) {
@@ -262,9 +293,70 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
       payload.conversationId,
       client.userId,
       WS_EVENTS.NEW_MESSAGE,
-      { conversationId: payload.conversationId, message },
+      { conversationId: payload.conversationId, message, clientMessageId: payload.clientMessageId },
     );
-    callback?.({ status: 'ok', message });
+    callback?.({ status: 'ok', message, clientMessageId: payload.clientMessageId });
+  }
+
+  @UsePipes(WsPipe)
+  @SubscribeMessage(WS_EVENTS.GATEWAY_RESUME)
+  async handleGatewayResume(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: GatewayResumeDto,
+    callback?: (res: {
+      status: string;
+      events?: any[];
+      currentSeq?: number;
+      error?: string;
+    }) => void,
+  ): Promise<void> {
+    const userId = client.userId;
+    if (!userId) {
+      callback?.({ status: 'invalid_session' });
+      return;
+    }
+
+    try {
+      const bufferKey = `user:events:${userId}`;
+      const seqRaw = await this.redisService.get(`user:seq:${userId}`).catch(() => '0');
+      const currentSeq = Number(seqRaw || '0');
+
+      // If sequence gap exceeds 500 events or requested sequence is ahead
+      if (currentSeq > 0 && (currentSeq - payload.lastSeq > 500 || payload.lastSeq > currentSeq)) {
+        client.emit(WS_EVENTS.RESYNC_REQUIRED, { currentSeq, reason: 'sequence_gap_too_large' });
+        callback?.({ status: 'resync_required', currentSeq });
+        return;
+      }
+
+      const rawEvents = await this.redisService.zrangebyscore(
+        bufferKey,
+        `(${payload.lastSeq}`,
+        '+inf',
+      );
+
+      // If client is behind but buffer is empty (expired), trigger full state resync
+      if (currentSeq > payload.lastSeq && rawEvents.length === 0) {
+        client.emit(WS_EVENTS.RESYNC_REQUIRED, { currentSeq, reason: 'buffer_expired' });
+        callback?.({ status: 'resync_required', currentSeq });
+        return;
+      }
+
+      const events = rawEvents
+        .map((str) => {
+          try {
+            return JSON.parse(str) as Record<string, unknown>;
+          } catch {
+            return null;
+          }
+        })
+        .filter(Boolean);
+
+      client.emit(WS_EVENTS.GATEWAY_RESUMED, { currentSeq, count: events.length });
+      callback?.({ status: 'ok', events, currentSeq });
+    } catch {
+      client.emit(WS_EVENTS.RESYNC_REQUIRED, { reason: 'resume_error' });
+      callback?.({ status: 'resync_required' });
+    }
   }
 
   @SubscribeMessage(WS_EVENTS.EDIT_MESSAGE)
@@ -420,6 +512,19 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
   }
 
   emitToUser(userId: string, event: string, payload: unknown): void {
+    void (async () => {
+      try {
+        const seq = await this.redisService.incr(`user:seq:${userId}`);
+        const wrapped = { seq, event, payload, timestamp: Date.now() };
+        const bufferKey = `user:events:${userId}`;
+        await this.redisService.zadd(bufferKey, seq, JSON.stringify(wrapped));
+        await this.redisService.zremrangebyrank(bufferKey, 0, -500);
+        await this.redisService.expire(bufferKey, 600);
+      } catch {
+        // Redis buffer error is non-fatal for direct emit
+      }
+    })();
+
     const socketIds = this.onlineUsers.get(userId);
     if (!socketIds) return;
     for (const socketId of socketIds) {
@@ -476,6 +581,14 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
     const zcardRow = results[2];
     const totalRequestsInWindow = zcardRow && zcardRow[1] ? (zcardRow[1] as number) : 0;
     return totalRequestsInWindow > this.RATE_LIMIT;
+  }
+
+  private async isTypingRateLimited(userId: string): Promise<boolean> {
+    const key = `rate_limit:typing:${userId}`;
+    const exists = await this.redisService.exists(key);
+    if (exists) return true;
+    await this.redisService.set(key, '1', 4);
+    return false;
   }
 
   private extractToken(client: Socket): string | null {

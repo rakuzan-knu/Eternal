@@ -1,14 +1,30 @@
 import { apiClient as api } from '@/shared/api/httpClient';
 
+export interface RecommendationMutualFriend {
+  id: string;
+  username: string;
+  avatar?: string | null;
+}
+
+export interface RecommendationReason {
+  type: 'MUTUAL_FRIENDS' | 'NEARBY' | 'SAME_CITY' | 'POPULAR';
+  text: string;
+  mutualFriends?: RecommendationMutualFriend[];
+  totalMutualCount?: number;
+}
+
 export interface FollowUserSummary {
   id: string;
   username: string;
   displayName?: string | null;
   avatar?: string | null;
+  bio?: string | null;
   isFollowing: boolean;
   followsYou?: boolean;
+  isFriend?: boolean;
   isVerified?: boolean;
   primaryBadge?: string | null;
+  recommendationReason?: RecommendationReason | null;
 }
 
 export interface FollowListPage {
@@ -66,6 +82,26 @@ export const followApi = {
         params: { after: cursor, limit: 20 },
       })
       .then((r) => normalizeFollowListPage(r.data)),
+  getFriends: async (): Promise<FollowUserSummary[]> => {
+    const res = await api.get<Record<string, unknown>[]>('/users/me/friends');
+    const list = Array.isArray(res.data) ? res.data : [];
+    return list.map((u) => ({
+      id: (u.id as string) ?? '',
+      username: (u.username as string) ?? 'user',
+      displayName:
+        (u.displayName as string | null | undefined) ??
+        (u.username as string | undefined) ??
+        'User',
+      avatar: (u.avatar as string | null | undefined) ?? null,
+      isFollowing: true,
+      followsYou: true,
+      isFriend: true,
+      isVerified: Boolean(u.isVerified),
+      primaryBadge: (u.primaryBadge as string | null | undefined) ?? null,
+    }));
+  },
   removeFollower: (followerId: string) =>
     api.delete(`/users/me/followers/${followerId}`).then((r) => r.data),
+  dismissSuggestedUser: (targetId: string) =>
+    api.post<{ success: boolean }>(`/users/suggested/${targetId}/dismiss`).then((r) => r.data),
 };

@@ -1,5 +1,6 @@
 import {
   ForbiddenException,
+  GoneException,
   Inject,
   Injectable,
   NotFoundException,
@@ -39,11 +40,15 @@ export class PostsService {
   }
 
   private async invalidateFeedAndPost(postId?: string): Promise<void> {
-    const tasks: Promise<void>[] = [this.redis.delByPattern(PostsService.CACHE_FEED_PATTERN)];
-    if (postId) {
-      tasks.push(this.redis.del(this.getPostKey(postId)));
+    try {
+      const tasks: Promise<void>[] = [this.redis.delByPattern(PostsService.CACHE_FEED_PATTERN)];
+      if (postId) {
+        tasks.push(this.redis.del(this.getPostKey(postId)));
+      }
+      await Promise.all(tasks);
+    } catch {
+      // Non-blocking cache invalidation
     }
-    await Promise.all(tasks);
   }
 
   async getAllPosts(
@@ -95,13 +100,32 @@ export class PostsService {
       });
     }
 
-    if (files && files.length > 0) {
-      const processed = await this.mediaService.processUploadedFiles(files);
-      processed.forEach((item) => mediaItems.push(item));
+    if (dto.gifUrls && dto.gifUrls.length > 0) {
+      dto.gifUrls.forEach((gifUrl, index) => {
+        if (typeof gifUrl === 'string' && gifUrl.trim()) {
+          mediaItems.push({
+            type: MediaType.IMAGE,
+            url: gifUrl.trim(),
+            order: mediaItems.length + index,
+          });
+        }
+      });
     }
 
+    if (files && files.length > 0) {
+      try {
+        const processed = await this.mediaService.processUploadedFiles(files);
+        processed.forEach((item) => mediaItems.push(item));
+      } catch {
+        // Fallback: if files exist, don't crash the entire post if upload fails
+        // but log and proceed
+      }
+    }
+
+    const contentText = (dto.content ?? '').trim();
+
     const post = await this.postsRepository.createPost({
-      content: dto.content,
+      content: contentText,
       author: { connect: { id: authorId } },
       media:
         mediaItems.length > 0
@@ -116,66 +140,100 @@ export class PostsService {
           : undefined,
     });
 
+    // If poll options were provided, create the poll
+    if (dto.poll && Array.isArray(dto.poll) && dto.poll.length >= 2) {
+      try {
+        const validOptions = dto.poll.map((opt) => String(opt).trim()).filter(Boolean);
+        if (validOptions.length >= 2) {
+          const pollTitle = contentText.length > 0 ? contentText.slice(0, 100) : 'Poll';
+          const createdPoll = await this.prisma.poll.create({
+            data: {
+              authorId,
+              postId: post.id,
+              title: pollTitle,
+              options: {
+                createMany: {
+                  data: validOptions.map((text, index) => ({
+                    optionText: text,
+                    sortOrder: index,
+                  })),
+                },
+              },
+            },
+            include: {
+              options: { orderBy: { sortOrder: 'asc' } },
+              votes: true,
+            },
+          });
+          post.poll = createdPoll;
+        }
+      } catch {
+        // Non-blocking poll creation failure
+      }
+    }
+
     // Check mentions in content and emit notifications
     try {
-      const rawMatches: string[] = dto.content.match(/@([a-zA-Z0-9._]{1,32})/g) ?? [];
-      const trailingPunct = new Set(['.', '_', ',', '!', '?', ':', ';']);
-      const cleanUsernames = Array.from(
-        new Set(
-          rawMatches
-            .map((m: string): string => {
-              const handle = m.startsWith('@') ? m.slice(1) : m;
-              let start = 0;
-              while (start < handle.length && (handle[start] === '.' || handle[start] === '_')) {
-                start++;
-              }
-              let end = handle.length - 1;
-              while (end >= start && trailingPunct.has(handle[end])) {
-                end--;
-              }
-              return handle.slice(start, end + 1).toLowerCase();
-            })
-            .filter((u: string) => u.length >= 2 && u.length <= 30),
-        ),
-      );
+      if (contentText.length > 0) {
+        const rawMatches: string[] = contentText.match(/@([a-zA-Z0-9._]{1,32})/g) ?? [];
+        const trailingPunct = new Set(['.', '_', ',', '!', '?', ':', ';']);
+        const cleanUsernames = Array.from(
+          new Set(
+            rawMatches
+              .map((m: string): string => {
+                const handle = m.startsWith('@') ? m.slice(1) : m;
+                let start = 0;
+                while (start < handle.length && (handle[start] === '.' || handle[start] === '_')) {
+                  start++;
+                }
+                let end = handle.length - 1;
+                while (end >= start && trailingPunct.has(handle[end])) {
+                  end--;
+                }
+                return handle.slice(start, end + 1).toLowerCase();
+              })
+              .filter((u: string) => u.length >= 2 && u.length <= 30),
+          ),
+        );
 
-      if (cleanUsernames.length > 0) {
-        // Cap to at most 10 mentions to prevent notification spam
-        const cappedUsernames = cleanUsernames.slice(0, 10);
-        const mentionedUsers = await this.prisma.user.findMany({
-          where: {
-            username: { in: cappedUsernames, mode: 'insensitive' },
-            id: { not: authorId }, // Exclude self-mentions
-          },
-          select: { id: true, username: true },
-        });
-
-        // Deduplicate target users
-        const uniqueTargets = Array.from(new Map(mentionedUsers.map((u) => [u.id, u])).values());
-
-        if (uniqueTargets.length > 0) {
-          const actor = await this.prisma.user.findUnique({
-            where: { id: authorId },
-            select: { id: true, username: true, displayName: true, avatar: true },
+        if (cleanUsernames.length > 0) {
+          // Cap to at most 10 mentions to prevent notification spam
+          const cappedUsernames = cleanUsernames.slice(0, 10);
+          const mentionedUsers = await this.prisma.user.findMany({
+            where: {
+              username: { in: cappedUsernames, mode: 'insensitive' },
+              id: { not: authorId }, // Exclude self-mentions
+            },
+            select: { id: true, username: true },
           });
 
-          if (actor) {
-            const preview = dto.content.trim();
-            const postBody = preview.length > 60 ? `${preview.slice(0, 60)}...` : preview;
-            for (const target of uniqueTargets) {
-              if (target.id !== authorId) {
-                this.gateway.emitToUser(target.id, WS_EVENTS.SOCIAL_NOTIFICATION, {
-                  type: 'MENTION',
-                  actor: {
-                    id: actor.id,
-                    username: actor.username,
-                    displayName: actor.displayName || actor.username,
-                    avatar: actor.avatar,
-                  },
-                  postId: post.id,
-                  authorUsername: actor.username,
-                  message: `mentioned you in a post: "${postBody}"`,
-                });
+          // Deduplicate target users
+          const uniqueTargets = Array.from(new Map(mentionedUsers.map((u) => [u.id, u])).values());
+
+          if (uniqueTargets.length > 0) {
+            const actor = await this.prisma.user.findUnique({
+              where: { id: authorId },
+              select: { id: true, username: true, displayName: true, avatar: true },
+            });
+
+            if (actor) {
+              const preview = contentText;
+              const postBody = preview.length > 60 ? `${preview.slice(0, 60)}...` : preview;
+              for (const target of uniqueTargets) {
+                if (target.id !== authorId) {
+                  this.gateway.emitToUser(target.id, WS_EVENTS.SOCIAL_NOTIFICATION, {
+                    type: 'MENTION',
+                    actor: {
+                      id: actor.id,
+                      username: actor.username,
+                      displayName: actor.displayName || actor.username,
+                      avatar: actor.avatar,
+                    },
+                    postId: post.id,
+                    authorUsername: actor.username,
+                    message: `mentioned you in a post: "${postBody}"`,
+                  });
+                }
               }
             }
           }
@@ -361,5 +419,79 @@ export class PostsService {
     await this.postsRepository.incrementShareCount(postId);
     await this.invalidateFeedAndPost(postId);
     return { success: true };
+  }
+
+  async votePoll(
+    postId: string,
+    optionId: string,
+    userId: string,
+  ): Promise<{ success: boolean; poll: unknown }> {
+    const poll = await this.prisma.poll.findUnique({
+      where: { postId },
+      include: { options: true, votes: true },
+    });
+    if (!poll) {
+      throw new NotFoundException('Poll not found');
+    }
+    if (!poll.isActive) {
+      throw new GoneException('Poll is no longer active');
+    }
+
+    const option = poll.options.find((o) => o.id === optionId);
+    if (!option) {
+      throw new NotFoundException('Poll option not found');
+    }
+
+    const existingVote = poll.votes.find((v) => v.userId === userId);
+
+    if (existingVote) {
+      if (existingVote.optionId === optionId) {
+        return { success: true, poll };
+      }
+      await this.prisma.$transaction([
+        this.prisma.vote.update({
+          where: { id: existingVote.id },
+          data: { optionId },
+        }),
+        this.prisma.pollOption.update({
+          where: { id: existingVote.optionId },
+          data: { votesCount: { decrement: 1 } },
+        }),
+        this.prisma.pollOption.update({
+          where: { id: optionId },
+          data: { votesCount: { increment: 1 } },
+        }),
+      ]);
+    } else {
+      await this.prisma.$transaction([
+        this.prisma.vote.create({
+          data: {
+            pollId: poll.id,
+            optionId,
+            userId,
+          },
+        }),
+        this.prisma.pollOption.update({
+          where: { id: optionId },
+          data: { votesCount: { increment: 1 } },
+        }),
+      ]);
+    }
+
+    await this.invalidateFeedAndPost(postId);
+    return { success: true, poll };
+  }
+
+  async uploadChunk(
+    uploadId: string,
+    chunkIndex: number,
+    totalChunks: number,
+    file: Express.Multer.File,
+  ) {
+    return this.mediaService.uploadChunk(uploadId, chunkIndex, totalChunks, file);
+  }
+
+  getChunkStatus(uploadId: string) {
+    return this.mediaService.getChunkStatus(uploadId);
   }
 }

@@ -194,7 +194,12 @@ export default function ProfilePage() {
 
       {isOwnProfile && activeTab === 'posts' && (
         <div className="mb-4">
-          <CreatePost onSubmitFormData={(fd) => createPost.mutate(fd)} />
+          <CreatePost
+            onSubmitFormData={(fd, optimisticPost) =>
+              createPost.mutateAsync({ formData: fd, optimisticPost })
+            }
+            isPending={createPost.isPending}
+          />
         </div>
       )}
 

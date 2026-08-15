@@ -4,6 +4,7 @@ import { MessageView, UserSnapshot } from '../../../entities/chat/model/types';
 import { groupMessagesByDate } from '../lib/groupMessagesByDate';
 import MessageBubble from './MessageBubble';
 import TypingIndicatorBubble from '@/shared/ui/TypingIndicatorBubble';
+import Avatar from '@/shared/ui/Avatar';
 import { OlderMessagesSkeleton, MessageThreadSkeleton } from './MessageListSkeletons';
 
 export type ClusterPosition = 'single' | 'first' | 'middle' | 'last';
@@ -12,6 +13,16 @@ interface MessageListProps {
   messages: MessageView[];
   currentUserId: string | null;
   otherParticipantId: string | null;
+  otherParticipant?: {
+    userId: string;
+    nickname?: string | null;
+    user: UserSnapshot;
+  };
+  display?: {
+    title: string;
+    avatar?: string | null;
+    isGroup: boolean;
+  };
   hasMore: boolean;
   isLoading: boolean;
   isFetchingMore: boolean;
@@ -26,6 +37,7 @@ interface MessageListProps {
   onReport: (message: MessageView) => void;
   onReact: (messageId: string, emoji: string) => void;
   onUnreact: (messageId: string, emoji: string) => void;
+  onMarkRead?: (lastReadMessageId?: string) => void;
   highlightMessageId?: string | null;
   onHighlightHandled?: () => void;
 }
@@ -94,6 +106,8 @@ export default function MessageList({
   messages,
   currentUserId,
   otherParticipantId,
+  otherParticipant,
+  display,
   hasMore,
   isLoading,
   isFetchingMore,
@@ -108,6 +122,7 @@ export default function MessageList({
   onReport,
   onReact,
   onUnreact,
+  onMarkRead,
   highlightMessageId,
   onHighlightHandled,
 }: MessageListProps) {
@@ -157,6 +172,39 @@ export default function MessageList({
     );
   }
 
+  if (messages.length === 0) {
+    const avatarUrl = otherParticipant?.user.avatar || display?.avatar;
+    const name =
+      otherParticipant?.nickname ||
+      otherParticipant?.user.displayName ||
+      otherParticipant?.user.username ||
+      display?.title ||
+      'User';
+    const handle = otherParticipant?.user.username
+      ? `@${otherParticipant.user.username}`
+      : undefined;
+
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center animate-fadeIn select-none">
+        <div className="relative mb-4 group">
+          <div className="absolute -inset-2 rounded-full bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600 opacity-30 blur-lg group-hover:opacity-60 transition duration-500" />
+          <div className="relative p-1 rounded-full bg-[#18181c] border border-white/10 shadow-2xl">
+            <Avatar size="xl" src={avatarUrl} />
+          </div>
+        </div>
+
+        <h3 className="text-xl font-bold text-white tracking-tight flex items-center gap-1.5">
+          {name}
+        </h3>
+        {handle && <p className="text-xs text-gray-400 font-medium mt-0.5">{handle}</p>}
+
+        <p className="text-sm text-gray-300 max-w-sm mt-4 leading-relaxed font-normal bg-white/[0.04] px-5 py-2.5 rounded-2xl border border-white/[0.08] backdrop-blur-md shadow-inner">
+          Start your adventure with this user now.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <Virtuoso
       ref={virtuosoRef}
@@ -167,6 +215,20 @@ export default function MessageList({
       alignToBottom
       followOutput="auto"
       startReached={handleStartReached}
+      rangeChanged={(range) => {
+        const visibleRows = rows.slice(
+          Math.max(0, range.startIndex - firstItemIndex),
+          Math.max(0, range.endIndex - firstItemIndex + 1),
+        );
+        const lastMsgRow = [...visibleRows].reverse().find((r) => r.type === 'message');
+        if (
+          lastMsgRow &&
+          lastMsgRow.type === 'message' &&
+          lastMsgRow.message.sender.id !== currentUserId
+        ) {
+          onMarkRead?.(lastMsgRow.message.id);
+        }
+      }}
       components={{
         Header: () => (isFetchingMore ? <OlderMessagesSkeleton /> : null),
         Footer: () => <TypingIndicatorBubble typists={typingParticipants} isGroup={isGroup} />,

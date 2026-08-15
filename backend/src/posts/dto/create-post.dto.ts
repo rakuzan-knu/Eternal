@@ -4,7 +4,6 @@ import {
   IsArray,
   IsEnum,
   IsInt,
-  IsNotEmpty,
   IsOptional,
   IsString,
   IsUrl,
@@ -35,14 +34,16 @@ export class MediaDto {
 }
 
 export class CreatePostDto {
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 'My first post',
-    description: 'Post content',
+    description: 'Post content caption (optional when media or poll is attached)',
   })
-  @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value))
+  @IsOptional()
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : (value ?? ''),
+  )
   @IsString()
-  @IsNotEmpty()
-  content!: string;
+  content?: string;
 
   @ApiPropertyOptional({ type: [MediaDto], description: 'Optional media items' })
   @IsOptional()
@@ -60,4 +61,40 @@ export class CreatePostDto {
   @ValidateNested({ each: true })
   @Type(() => MediaDto)
   media?: MediaDto[];
+
+  @ApiPropertyOptional({ description: 'Optional GIF URLs (array or JSON string)' })
+  @IsOptional()
+  @Transform(({ value }: { value: unknown }) => {
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value) as unknown;
+        return Array.isArray(parsed) ? (parsed as string[]) : [value];
+      } catch {
+        return [value];
+      }
+    }
+    if (Array.isArray(value)) return value as string[];
+    return value;
+  })
+  @IsArray()
+  @IsString({ each: true })
+  gifUrls?: string[];
+
+  @ApiPropertyOptional({ description: 'Optional poll option strings (array or JSON string)' })
+  @IsOptional()
+  @Transform(({ value }: { value: unknown }) => {
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value) as unknown;
+        return Array.isArray(parsed) ? (parsed as string[]) : [value];
+      } catch {
+        return [value];
+      }
+    }
+    if (Array.isArray(value)) return value as string[];
+    return value;
+  })
+  @IsArray()
+  @IsString({ each: true })
+  poll?: string[];
 }

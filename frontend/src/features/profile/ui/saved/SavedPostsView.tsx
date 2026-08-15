@@ -166,7 +166,7 @@ export function SavedPostsView({ userId }: SavedPostsViewProps) {
           <button
             type="button"
             onClick={() => setIsCreateModalOpen(true)}
-            className="flex items-center gap-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-semibold text-xs px-6 py-2.5 rounded-full hover:opacity-95 transition-all shadow-lg hover:shadow-pink-500/25 active:scale-95 cursor-pointer"
+            className="flex items-center gap-2 bg-gradient-to-r from-purple-600 via-violet-600 to-indigo-600 hover:from-purple-500 hover:via-violet-500 hover:to-indigo-500 text-white font-semibold text-xs px-6 py-2.5 rounded-full transition-all duration-300 shadow-lg shadow-purple-600/30 hover:shadow-purple-600/50 hover:scale-[1.02] active:scale-95 cursor-pointer"
           >
             <Plus size={16} /> Create a new collection
           </button>

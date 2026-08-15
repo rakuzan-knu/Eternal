@@ -46,7 +46,6 @@ export default function ChatListHeaderMenu({
       key: 'privacy',
       label: 'Privacy and safety',
       icon: <Lock size={18} />,
-      hasSubmenu: true,
       onClick: () => onOpen('privacy'),
     },
     {

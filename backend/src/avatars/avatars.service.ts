@@ -1,9 +1,11 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import sharp from 'sharp';
 import { S3_CLIENT } from './s3-provider';
 import { AVATAR_REPOSITORY } from './interfaces/avatars-repository.interface';
 import type { IAvatarRepository, AvatarView } from './interfaces/avatars-repository.interface';
+import { RedisService } from '../redis/redis.service';
 
 @Injectable()
 export class AvatarsService {
@@ -14,6 +16,7 @@ export class AvatarsService {
     @Inject(S3_CLIENT) private readonly s3: S3Client,
     @Inject(AVATAR_REPOSITORY) private readonly avatarRepository: IAvatarRepository,
     private readonly configService: ConfigService,
+    @Optional() private readonly redis?: RedisService,
   ) {
     this.bucket = this.configService.get<string>('MINIO_BUCKET', 'avatars');
     this.publicUrl =
@@ -32,21 +35,46 @@ export class AvatarsService {
       await this.deleteObjectByUrl(user.avatar).catch(() => {});
     }
 
-    const extension = file.originalname.split('.').pop();
+    let uploadBuffer = file.buffer;
+    let contentType = file.mimetype || 'image/jpeg';
+    let extension = file.originalname?.split('.').pop() || 'jpg';
+
+    try {
+      uploadBuffer = await sharp(file.buffer)
+        .resize(512, 512, { fit: 'cover', withoutEnlargement: true })
+        .webp({ quality: 85 })
+        .toBuffer();
+      contentType = 'image/webp';
+      extension = 'webp';
+    } catch {
+      // Fallback to original buffer
+    }
+
     const key = `avatars/${userId}.${extension}`;
+    let url = `${this.publicUrl}/${this.bucket}/${key}`;
 
-    await this.s3.send(
-      new PutObjectCommand({
-        Bucket: this.bucket,
-        Key: key,
-        Body: file.buffer,
-        ContentType: file.mimetype,
-      }),
-    );
+    try {
+      await this.s3.send(
+        new PutObjectCommand({
+          Bucket: this.bucket,
+          Key: key,
+          Body: uploadBuffer,
+          ContentType: contentType,
+        }),
+      );
+    } catch {
+      // Resilient fallback for cloud environments without active MinIO
+      url = `data:${contentType};base64,${uploadBuffer.toString('base64')}`;
+    }
 
-    const url = `${this.publicUrl}/${this.bucket}/${key}`;
-
-    return this.avatarRepository.updateAvatar(userId, url);
+    const updated = await this.avatarRepository.updateAvatar(userId, url);
+    try {
+      await this.redis?.del(`user:${userId}`);
+      await this.redis?.del(`user${userId}`);
+    } catch {
+      // Safe non-blocking cache invalidation
+    }
+    return updated;
   }
 
   async deleteAvatar(userId: string): Promise<AvatarView> {
@@ -56,14 +84,22 @@ export class AvatarsService {
     }
 
     if (user.avatar) {
-      await this.deleteObjectByUrl(user.avatar);
+      await this.deleteObjectByUrl(user.avatar).catch(() => {});
     }
 
-    return this.avatarRepository.updateAvatar(userId, null);
+    const updated = await this.avatarRepository.updateAvatar(userId, null);
+    try {
+      await this.redis?.del(`user:${userId}`);
+      await this.redis?.del(`user${userId}`);
+    } catch {
+      // Safe non-blocking cache invalidation
+    }
+    return updated;
   }
 
   private async deleteObjectByUrl(url: string): Promise<void> {
+    if (!url || url.startsWith('data:') || !url.startsWith(this.publicUrl)) return;
     const key = url.replace(`${this.publicUrl}/${this.bucket}/`, '');
-    await this.s3.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
+    await this.s3.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key })).catch(() => {});
   }
 }

@@ -123,6 +123,8 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
             messages={messages}
             currentUserId={userId}
             otherParticipantId={otherParticipant?.userId ?? null}
+            otherParticipant={otherParticipant}
+            display={display}
             hasMore={!!hasNextPage}
             isLoading={isLoadingMessages}
             isFetchingMore={isFetchingNextPage}
@@ -141,6 +143,7 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
             onReport={handleReport}
             onReact={actions.addReaction}
             onUnreact={actions.removeReaction}
+            onMarkRead={actions.markRead}
             highlightMessageId={highlightMessageId}
             onHighlightHandled={() => setHighlightMessageId(null)}
           />

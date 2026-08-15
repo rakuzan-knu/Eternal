@@ -14,6 +14,34 @@ export enum FollowStatusView {
   FOLLOWING = 'following',
 }
 
+export class RecommendationMutualFriendDto {
+  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
+  id!: string;
+
+  @ApiProperty({ example: 'alice' })
+  username!: string;
+
+  @ApiPropertyOptional({ example: 'https://cdn.example.com/avatar.jpg', nullable: true })
+  avatar!: string | null;
+}
+
+export class RecommendationReasonDto {
+  @ApiProperty({
+    enum: ['MUTUAL_FRIENDS', 'NEARBY', 'SAME_CITY', 'POPULAR'],
+    example: 'MUTUAL_FRIENDS',
+  })
+  type!: 'MUTUAL_FRIENDS' | 'NEARBY' | 'SAME_CITY' | 'POPULAR';
+
+  @ApiProperty({ example: 'Followed by benjamin_edm and 2 others' })
+  text!: string;
+
+  @ApiPropertyOptional({ type: [RecommendationMutualFriendDto] })
+  mutualFriends?: RecommendationMutualFriendDto[];
+
+  @ApiPropertyOptional({ example: 3 })
+  totalMutualCount?: number;
+}
+
 export class UserProfileDto {
   @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
   id!: string;
@@ -39,43 +67,23 @@ export class UserProfileDto {
   @ApiPropertyOptional({ nullable: true, description: 'Only present when the viewer may see it' })
   birthDate?: string | null;
 
-  @ApiProperty()
+  @ApiProperty({ example: false })
   isPrivate!: boolean;
 
-  @ApiProperty({ example: false, description: 'Verification checkmark status' })
+  @ApiProperty({ example: false })
   isVerified!: boolean;
 
-  @ApiPropertyOptional({
-    example: 'DEVELOPER',
-    nullable: true,
-    description: 'Active single primary badge',
-  })
+  @ApiPropertyOptional({ nullable: true, example: 'verified' })
   primaryBadge?: string | null;
 
-  @ApiPropertyOptional({
-    example: ['DEVELOPER', 'BETA_TESTER'],
-    description: 'List of owned badge IDs',
-  })
+  @ApiPropertyOptional({ example: ['verified', 'contributor'] })
   badges?: string[];
 
-  @ApiPropertyOptional({
-    example: 'AyateAgh',
-    nullable: true,
-    description: 'Linked GitHub username',
-  })
+  @ApiPropertyOptional({ nullable: true, example: 'johndoe' })
   githubUsername?: string | null;
 
-  @ApiPropertyOptional({
-    example: 5,
-    description: 'Total merged Pull Requests count in main repository',
-  })
+  @ApiPropertyOptional({ example: 42 })
   mergedPrsCount?: number;
-
-  @ApiPropertyOptional({
-    enum: FollowStatusView,
-    description: "Viewer's follow relationship; omitted for owner/anonymous",
-  })
-  followStatus?: FollowStatusView;
 
   @ApiPropertyOptional({
     description: 'Exact ISO date when visible, otherwise a LastSeenGranularity bucket',
@@ -87,6 +95,13 @@ export class UserProfileDto {
 
   @ApiPropertyOptional()
   isOnline?: boolean;
+
+  @ApiPropertyOptional({
+    enum: FollowStatusView,
+    example: FollowStatusView.NONE,
+    description: 'Follow status from the perspective of the requesting user',
+  })
+  followStatus?: FollowStatusView;
 
   @ApiPropertyOptional({ enum: AutoDeletePeriod, description: 'Owner-only' })
   autoDeletePeriod?: AutoDeletePeriod;
@@ -111,6 +126,12 @@ export class UserProfileDto {
   followsYou?: boolean;
 
   @ApiPropertyOptional({
+    example: false,
+    description: 'Whether both users follow each other (mutual friends).',
+  })
+  isFriend?: boolean;
+
+  @ApiPropertyOptional({
     example: 0,
     description: 'Number of accepted followers',
   })
@@ -133,4 +154,10 @@ export class UserProfileDto {
     description: 'Private custom alias set by the viewer for this target user',
   })
   alias?: string | null;
+
+  @ApiPropertyOptional({
+    type: () => RecommendationReasonDto,
+    description: 'Contextual reason why this profile was recommended to the viewer',
+  })
+  recommendationReason?: RecommendationReasonDto;
 }

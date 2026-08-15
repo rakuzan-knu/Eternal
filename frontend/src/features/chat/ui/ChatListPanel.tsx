@@ -163,8 +163,12 @@ export default function ChatListPanel({
       setRestrictedOpen(true);
       return;
     }
-    if (section === 'settings' || section === 'privacy') {
-      openEditProfile();
+    if (section === 'settings') {
+      openEditProfile('account');
+      return;
+    }
+    if (section === 'privacy') {
+      openEditProfile('privacy');
       return;
     }
     // TODO: wire the remaining sections to real routes/modals once they exist

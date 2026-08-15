@@ -3,6 +3,7 @@ import { Transform } from 'class-transformer';
 import sanitizeHtmlLib from 'sanitize-html';
 import {
   IsEmail,
+  IsNumber,
   IsNotIn,
   IsOptional,
   IsString,
@@ -110,4 +111,10 @@ export class UpdateUserDto {
   @IsString()
   @MaxLength(200)
   bio?: string;
+
+  @ApiPropertyOptional({ example: 50, minimum: 0, maximum: 100 })
+  @IsOptional()
+  @Transform(({ value }: { value: unknown }) => (value !== undefined ? Number(value) : undefined))
+  @IsNumber()
+  bannerPosition?: number;
 }

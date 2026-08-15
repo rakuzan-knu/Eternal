@@ -56,19 +56,43 @@ export function useConversationRealtime(conversationId: string | null) {
     );
   };
 
-  useChatSocketEvent<{ conversationId: string; message: MessageView }>('newMessage', (payload) => {
-    if (payload.conversationId !== conversationId) return;
-    updatePages((pages) => {
-      if (pages.length === 0)
-        return [{ data: [payload.message], hasMore: false, nextCursor: null }];
-      const next = [...pages];
-      next[0] = { ...next[0], data: [payload.message, ...next[0].data] };
-      return next;
-    });
-    if (payload.message.sender.id !== userId) {
-      socket.emit('markRead', { conversationId });
-    }
-  });
+  useChatSocketEvent<{ conversationId: string; message: MessageView; clientMessageId?: string }>(
+    'newMessage',
+    (payload) => {
+      if (payload.conversationId !== conversationId) return;
+      updatePages((pages) => {
+        const clientMid = payload.clientMessageId;
+        const exists = pages.some((p) =>
+          p.data.some(
+            (m) =>
+              m.id === payload.message.id ||
+              (clientMid && (m.id === clientMid || m.tempId === clientMid)),
+          ),
+        );
+
+        if (exists) {
+          return pages.map((p) => ({
+            ...p,
+            data: p.data.map((m) =>
+              m.id === payload.message.id ||
+              (clientMid && (m.id === clientMid || m.tempId === clientMid))
+                ? { ...payload.message, status: 'SENT' as const }
+                : m,
+            ),
+          }));
+        }
+
+        if (pages.length === 0)
+          return [{ data: [payload.message], hasMore: false, nextCursor: null }];
+        const next = [...pages];
+        next[0] = { ...next[0], data: [payload.message, ...next[0].data] };
+        return next;
+      });
+      if (payload.message.sender.id !== userId) {
+        socket.emit('markRead', { conversationId });
+      }
+    },
+  );
 
   useChatSocketEvent<{ conversationId: string; message: MessageView }>(
     'messageEdited',
@@ -135,9 +159,16 @@ export function useConversationRealtime(conversationId: string | null) {
     readAt: string;
   }>('messageRead', (payload) => {
     if (payload.conversationId !== conversationId) return;
+    const readTimestamp = payload.readAt ? new Date(payload.readAt).getTime() : Date.now();
+
     updatePages((pages) =>
       mapMessages(pages, (m) => {
-        if (!m.readBy.includes(payload.userId)) {
+        const msgTime = new Date(m.createdAt).getTime();
+        const isUpToWatermark = payload.messageId
+          ? m.id === payload.messageId || msgTime <= readTimestamp
+          : true;
+
+        if (isUpToWatermark && !m.readBy.includes(payload.userId)) {
           return { ...m, readBy: [...m.readBy, payload.userId] };
         }
         return m;

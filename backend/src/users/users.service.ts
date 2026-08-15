@@ -8,7 +8,8 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import * as argon2 from 'argon2';
-import { PrivacyDimension, Prisma, User } from '@prisma/client';
+import * as geoip from 'geoip-lite';
+import { FollowStatus, PrivacyDimension, Prisma, User } from '@prisma/client';
 import { CreateUserDto } from './dto/create-user.dto';
 import { RESERVED_USERNAMES, UpdateUserDto } from './dto/update-users.dto';
 import { FollowStatusView, UserProfileDto } from './dto/user-profile.dto';
@@ -242,7 +243,11 @@ export class UsersService {
 
   async updateUser(id: string, dto: UpdateUserDto): Promise<UserProfileDto> {
     const hasFields =
-      dto.email || dto.username || dto.displayName !== undefined || dto.bio !== undefined;
+      dto.email ||
+      dto.username ||
+      dto.displayName !== undefined ||
+      dto.bio !== undefined ||
+      dto.bannerPosition !== undefined;
     if (!hasFields) {
       throw new BadRequestException('At least one field must be provided');
     }
@@ -276,9 +281,15 @@ export class UsersService {
     if (dto.username !== undefined) data.username = dto.username;
     if (dto.displayName !== undefined) data.displayName = dto.displayName;
     if (dto.bio !== undefined) data.bio = dto.bio;
+    if (dto.bannerPosition !== undefined) data.bannerPosition = dto.bannerPosition;
 
     await this.usersRepository.updateUser(id, data);
-    await this.redis.del(this.userKey(id));
+    try {
+      await this.redis.del(this.userKey(id));
+      await this.redis.del(`user${id}`);
+    } catch {
+      // Safe non-blocking cache invalidation
+    }
     return this.getProfileFor(id, id);
   }
 
@@ -510,7 +521,65 @@ export class UsersService {
       .slice(0, limit);
   }
 
-  async getSuggestedUsers(viewerId?: string | null, limit = 5): Promise<UserProfileDto[]> {
+  async getSuggestedUsers(
+    viewerId?: string | null,
+    limit = 5,
+    clientIp?: string | null,
+    headers?: Record<string, string | string[] | undefined>,
+    explicitGeo?: { latitude: number; longitude: number } | null,
+  ): Promise<UserProfileDto[]> {
+    // 1. Resolve viewer GeoIP
+    let viewerGeo: { latitude: number; longitude: number; city: string | null } | null = explicitGeo
+      ? { latitude: explicitGeo.latitude, longitude: explicitGeo.longitude, city: null }
+      : null;
+    const rawIp =
+      (typeof headers?.['cf-connecting-ip'] === 'string' && headers['cf-connecting-ip']) ||
+      (typeof headers?.['x-forwarded-for'] === 'string' &&
+        headers['x-forwarded-for'].split(',')[0].trim()) ||
+      (typeof headers?.['x-real-ip'] === 'string' && headers['x-real-ip']) ||
+      clientIp;
+
+    if (!viewerGeo && rawIp) {
+      const isLocal =
+        rawIp === '127.0.0.1' ||
+        rawIp === '::1' ||
+        rawIp.startsWith('::ffff:127.0.0.1') ||
+        rawIp.startsWith('10.') ||
+        rawIp.startsWith('192.168.') ||
+        rawIp === 'localhost';
+
+      const lookup = geoip.lookup(rawIp);
+      if (lookup && lookup.ll) {
+        viewerGeo = {
+          latitude: lookup.ll[0],
+          longitude: lookup.ll[1],
+          city:
+            (typeof headers?.['cf-ipcity'] === 'string' ? headers['cf-ipcity'] : lookup.city) ||
+            null,
+        };
+      } else if (isLocal || process.env.NODE_ENV !== 'production') {
+        viewerGeo = {
+          latitude: 50.4501,
+          longitude: 30.5234,
+          city: 'Kyiv',
+        };
+      }
+    } else if (process.env.NODE_ENV !== 'production') {
+      viewerGeo = {
+        latitude: 50.4501,
+        longitude: 30.5234,
+        city: 'Kyiv',
+      };
+    }
+
+    if (viewerId && viewerGeo) {
+      await this.redis.geoadd('user_geo', viewerGeo.longitude, viewerGeo.latitude, viewerId);
+      if (viewerGeo.city) {
+        await this.redis.set(`user_city:${viewerId}`, viewerGeo.city, 86400 * 30);
+      }
+    }
+
+    // 2. Viewer exclusions (blocked, followed, self)
     const blockedIds = viewerId
       ? await this.prisma.userBlock
           .findMany({
@@ -530,51 +599,211 @@ export class UsersService {
       : [];
 
     let followingIds: string[] = [];
+    let dismissedIds: string[] = [];
     if (viewerId) {
-      followingIds = await this.prisma.follow
-        .findMany({
-          where: { followerId: viewerId, status: 'ACCEPTED' },
-          select: { followingId: true },
-        })
-        .then((res) => res.map((r) => r.followingId));
+      [followingIds, dismissedIds] = await Promise.all([
+        this.prisma.follow
+          .findMany({
+            where: { followerId: viewerId, status: FollowStatus.ACCEPTED },
+            select: { followingId: true },
+          })
+          .then((res) => res.map((r) => r.followingId)),
+        this.redis.smembers(`user:dismissed_suggestions:${viewerId}`),
+      ]);
     }
 
-    const excludeIds = Array.from(
-      new Set([...blockedIds, ...followingIds, ...(viewerId ? [viewerId] : [])]),
-    );
+    const excludeIds = new Set([
+      ...blockedIds,
+      ...followingIds,
+      ...dismissedIds,
+      ...(viewerId ? [viewerId] : []),
+    ]);
 
-    const users = await this.prisma.user.findMany({
-      where: {
-        AND: [
-          excludeIds.length > 0 ? { id: { notIn: excludeIds } } : {},
-          { username: { notIn: RESERVED_USERNAMES } },
-        ],
-      },
-      orderBy: {
-        followers: {
-          _count: 'desc',
+    // 3. 3-Pool Candidate Selection Pipeline (Max ~100 Candidates to protect CPU & RAM)
+    // Pool 1: Geolocation (Top 30 within 100km)
+    let pool1GeoIds: string[] = [];
+    if (viewerGeo) {
+      const geoCandidates = await this.redis.geosearchMembers(
+        'user_geo',
+        viewerGeo.longitude,
+        viewerGeo.latitude,
+        100,
+        30,
+      );
+      pool1GeoIds = geoCandidates.filter((id) => !excludeIds.has(id));
+    }
+
+    // Pool 2: Friends of Friends (Top 40 2-hop graph)
+    let pool2FofIds: string[] = [];
+    if (followingIds.length > 0) {
+      const fof = await this.prisma.follow.findMany({
+        where: {
+          followerId: { in: followingIds.slice(0, 50) },
+          status: FollowStatus.ACCEPTED,
+          followingId: { notIn: Array.from(excludeIds) },
         },
+        select: { followingId: true },
+        take: 40,
+      });
+      pool2FofIds = fof.map((f) => f.followingId);
+    }
+
+    // Pool 3: Popular Profiles (Top 20 by follower count)
+    const pool3Popular = await this.prisma.user.findMany({
+      where: {
+        id: { notIn: Array.from(excludeIds) },
+        username: { notIn: RESERVED_USERNAMES },
       },
-      take: limit,
+      orderBy: { followers: { _count: 'desc' } },
+      select: { id: true },
+      take: 20,
+    });
+    const pool3PopularIds = pool3Popular.map((p) => p.id);
+
+    // Merge into combined unique candidate pool (~50-80 candidates)
+    const candidateIds = Array.from(
+      new Set([...pool1GeoIds, ...pool2FofIds, ...pool3PopularIds]),
+    ).filter((id) => !excludeIds.has(id));
+
+    if (candidateIds.length === 0) {
+      return [];
+    }
+
+    // 4. Fetch candidate user details & mutual followers in bulk
+    const candidateUsers = await this.prisma.user.findMany({
+      where: {
+        id: { in: candidateIds },
+        username: { notIn: RESERVED_USERNAMES },
+      },
       include: {
         badges: true,
+        privacy: {
+          select: { allowNearbyRecommendations: true },
+        },
         _count: {
           select: {
-            followers: { where: { status: 'ACCEPTED' } },
-            following: { where: { status: 'ACCEPTED' } },
+            followers: { where: { status: FollowStatus.ACCEPTED } },
+            following: { where: { status: FollowStatus.ACCEPTED } },
+            posts: true,
           },
+        },
+        followers: {
+          where: {
+            followerId: { in: followingIds },
+            status: FollowStatus.ACCEPTED,
+          },
+          select: {
+            follower: {
+              select: {
+                id: true,
+                username: true,
+                avatar: true,
+              },
+            },
+          },
+          take: 3,
         },
       },
     });
 
-    const ids = users.map((u) => u.id);
+    // 5. Compute Normalized Metric Scores (each normalized to [0.0; 1.0])
+    const scoredCandidates = await Promise.all(
+      candidateUsers.map(async (user) => {
+        // Proximity Score: Score_prox = max(0, 1 - distance_km / 100)
+        let scoreProx = 0.0;
+        let proxReasonText: string | null = null;
+        const allowNearby = user.privacy?.allowNearbyRecommendations ?? true;
+
+        if (viewerId && viewerGeo && allowNearby) {
+          const distKm = await this.redis.geodist('user_geo', viewerId, user.id, 'km');
+          if (distKm !== null && distKm <= 100) {
+            scoreProx = Math.max(0, 1 - distKm / 100);
+            if (distKm <= 10) {
+              proxReasonText = 'Near you';
+            } else {
+              const candidateCity = await this.redis.get(`user_city:${user.id}`);
+              proxReasonText = candidateCity ? `From your city (${candidateCity})` : 'Near you';
+            }
+          }
+        }
+
+        // Mutual Friends Score: Score_mut = min(1, mutual_count / 5)
+        const mutualCount = user.followers.length;
+        const scoreMut = Math.min(1, mutualCount / 5);
+
+        // Popularity Score: Score_pop = min(1, log10(followers_count + 1) / 4)
+        const followersCount = user._count.followers;
+        const scorePop = Math.min(1, Math.log10(followersCount + 1) / 4);
+
+        // Final Composite Score: (0.4 * prox) + (0.4 * mut) + (0.2 * pop)
+        const finalScore = scoreProx * 0.4 + scoreMut * 0.4 + scorePop * 0.2;
+
+        // Contextual Recommendation Reason matching Instagram
+        let recommendationReason: {
+          type: 'MUTUAL_FRIENDS' | 'NEARBY' | 'SAME_CITY' | 'POPULAR';
+          text: string;
+          mutualFriends?: { id: string; username: string; avatar: string | null }[];
+          totalMutualCount?: number;
+        };
+
+        if (mutualCount >= 2) {
+          const first = user.followers[0].follower;
+          const second = user.followers[1].follower;
+          const text = `Followed by ${first.username} and ${mutualCount - 1} other${
+            mutualCount > 2 ? 's' : ''
+          }`;
+          recommendationReason = {
+            type: 'MUTUAL_FRIENDS',
+            text,
+            mutualFriends: [first, second],
+            totalMutualCount: mutualCount,
+          };
+        } else if (mutualCount === 1) {
+          const first = user.followers[0].follower;
+          recommendationReason = {
+            type: 'MUTUAL_FRIENDS',
+            text: `Followed by ${first.username}`,
+            mutualFriends: [first],
+            totalMutualCount: 1,
+          };
+        } else if (scoreProx > 0.0 && proxReasonText) {
+          recommendationReason = {
+            type: proxReasonText.includes('city') ? 'SAME_CITY' : 'NEARBY',
+            text: proxReasonText,
+          };
+        } else {
+          recommendationReason = {
+            type: 'POPULAR',
+            text: 'Suggested for you',
+          };
+        }
+
+        return {
+          user,
+          finalScore,
+          recommendationReason,
+        };
+      }),
+    );
+
+    // Sort by FinalScore descending and take limit
+    scoredCandidates.sort((a, b) => b.finalScore - a.finalScore);
+    const topCandidates = scoredCandidates.slice(0, limit);
+
+    const ids = topCandidates.map((c) => c.user.id);
     const ctx = await this.visibility.loadContext(ids, viewerId ?? null);
 
-    return users.map((u) => {
-      const ownedBadges = u.badges.map((b) => b.badgeId);
-      const raw = this.toRawProfile(u, ownedBadges);
-      return this.applyPrivacy(raw, viewerId ?? null, ctx);
+    return topCandidates.map((c) => {
+      const ownedBadges = Array.isArray(c.user.badges) ? c.user.badges.map((b) => b.badgeId) : [];
+      const raw = this.toRawProfile(c.user, ownedBadges);
+      const dto = this.applyPrivacy(raw, viewerId ?? null, ctx);
+      dto.recommendationReason = c.recommendationReason;
+      return dto;
     });
+  }
+
+  async dismissSuggestedUser(viewerId: string, targetId: string): Promise<void> {
+    await this.redis.dismissSuggestedUser(viewerId, targetId);
   }
 
   private levenshtein(a: string, b: string): number {
@@ -713,8 +942,8 @@ export class UsersService {
       mergedPrsCount: user.mergedPrsCount ?? 0,
       lastSeenAt: user.lastSeenAt ? user.lastSeenAt.toISOString() : null,
       autoDeletePeriod: user.autoDeletePeriod,
-      createdAt: user.createdAt.toISOString(),
-      updatedAt: user.updatedAt.toISOString(),
+      createdAt: user.createdAt ? user.createdAt.toISOString() : new Date().toISOString(),
+      updatedAt: user.updatedAt ? user.updatedAt.toISOString() : new Date().toISOString(),
       followersCount: user._count?.followers ?? 0,
       followingCount: user._count?.following ?? 0,
       postsCount: user._count?.posts ?? 0,

@@ -23,6 +23,7 @@ export const s3Provider = {
           'rootpassword',
       },
       forcePathStyle: true,
+      maxAttempts: 1,
     });
   },
   inject: [ConfigService],

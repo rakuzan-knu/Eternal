@@ -57,6 +57,21 @@ function formatCount(num?: number): string {
   return num.toString();
 }
 
+function GridMediaSkeleton({ count = 9 }: { count?: number }) {
+  return (
+    <div className="grid grid-cols-3 gap-2 md:gap-3" data-testid="grid-media-skeleton">
+      {Array.from({ length: count }).map((_, i) => (
+        <div
+          key={i}
+          className="aspect-square relative overflow-hidden rounded-2xl bg-[#141418] border border-white/[0.04] animate-pulse"
+        >
+          <div className="absolute inset-0 bg-gradient-to-tr from-white/[0.02] via-white/[0.05] to-white/[0.02]" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function GridMediaCard({ post, onClick }: { post: PostType; onClick: () => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const playPromiseRef = useRef<Promise<void> | null>(null);
@@ -64,7 +79,8 @@ function GridMediaCard({ post, onClick }: { post: PostType; onClick: () => void 
     post.media?.[0] ?? (post.image ? { type: 'image' as const, url: post.image } : null);
   const isVideo =
     mediaItem?.type === 'video' ||
-    (mediaItem?.url && mediaItem.url.match(/\.(mp4|webm|mov)(\?.*)?$/i));
+    Boolean(mediaItem?.url && mediaItem.url.match(/\.(mp4|webm|mov)(\?.*)?$/i));
+  const hasMediaUrl = Boolean(mediaItem?.url);
 
   const handleMouseEnter = () => {
     if (isVideo && videoRef.current) {
@@ -106,26 +122,46 @@ function GridMediaCard({ post, onClick }: { post: PostType; onClick: () => void 
       onClick={onClick}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      className="aspect-square relative overflow-hidden rounded-2xl bg-[#111114] border border-white/[0.04] group cursor-pointer select-none transition-transform duration-200 hover:scale-[1.01]"
+      className="aspect-square relative overflow-hidden rounded-2xl bg-[#111114] border border-white/[0.06] group cursor-pointer select-none transition-all duration-200 hover:scale-[1.01] hover:border-white/20 shadow-md"
     >
-      {isVideo ? (
-        <video
-          ref={videoRef}
-          src={mediaItem?.url}
-          poster={mediaItem?.poster}
-          className="w-full h-full object-cover"
-          muted
-          playsInline
-          loop
-          preload="metadata"
-        />
+      {hasMediaUrl ? (
+        isVideo ? (
+          <video
+            ref={videoRef}
+            src={mediaItem?.url}
+            poster={mediaItem?.poster}
+            className="w-full h-full object-cover"
+            muted
+            playsInline
+            loop
+            preload="metadata"
+          />
+        ) : (
+          <img
+            src={mediaItem?.url}
+            alt={post.text || 'Explore post'}
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
+        )
       ) : (
-        <img
-          src={mediaItem?.url ?? post.image ?? ''}
-          alt={post.text || 'Explore post'}
-          className="w-full h-full object-cover"
-          loading="lazy"
-        />
+        <div className="w-full h-full p-4 flex flex-col justify-between bg-gradient-to-br from-[#1b1528] via-[#121216] to-[#111625] text-white">
+          <div className="flex items-center gap-2">
+            <Avatar src={post.avatar} size="sm" />
+            <span className="text-[11px] font-semibold text-gray-300 truncate">@{post.handle}</span>
+          </div>
+          <p className="text-xs text-gray-200 line-clamp-3 leading-relaxed font-medium">
+            {post.text || 'Community post'}
+          </p>
+          <div className="flex items-center gap-3 text-[11px] text-gray-400">
+            <span className="flex items-center gap-1">
+              <Heart size={12} /> {formatCount(post.likes)}
+            </span>
+            <span className="flex items-center gap-1">
+              <MessageSquare size={12} /> {formatCount(post.comments)}
+            </span>
+          </div>
+        </div>
       )}
 
       {isVideo && (
@@ -135,7 +171,7 @@ function GridMediaCard({ post, onClick }: { post: PostType; onClick: () => void 
       )}
 
       {/* Hover Overlay with Likes & Comments Count */}
-      <div className="absolute inset-0 bg-black/55 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-6 text-white font-bold text-base z-10">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-6 text-white font-bold text-base z-10">
         <div className="flex items-center gap-2">
           <Heart size={20} className="fill-white text-white" />
           <span>{formatCount(post.likes)}</span>
@@ -287,6 +323,7 @@ export default function SearchPage() {
   // 6. Posts Search Results (Text Posts)
   const {
     data: postsData,
+    isLoading: isLoadingPosts,
     fetchNextPage: fetchNextPosts,
     hasNextPage: hasNextPosts,
     isFetchingNextPage: isFetchingNextPosts,
@@ -303,6 +340,7 @@ export default function SearchPage() {
   // 7. Media Explore Grid (Hashtag feed or Explore media)
   const {
     data: exploreMediaData,
+    isLoading: isLoadingExplore,
     fetchNextPage: fetchNextExplore,
     hasNextPage: hasNextExplore,
     isFetchingNextPage: isFetchingNextExplore,
@@ -639,15 +677,29 @@ export default function SearchPage() {
                   <span className="text-gray-400 text-xs font-medium">Trending clips & photos</span>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 md:gap-3">
-                  {mediaPosts.map((post) => (
-                    <GridMediaCard
-                      key={post.id}
-                      post={post}
-                      onClick={() => openCommentModal(post)}
-                    />
-                  ))}
-                </div>
+                {isLoadingExplore ? (
+                  <GridMediaSkeleton count={9} />
+                ) : mediaPosts.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-14 text-center bg-[#111115]/95 border border-white/[0.06] rounded-3xl p-6">
+                    <div className="w-12 h-12 rounded-full bg-white/[0.04] flex items-center justify-center text-gray-400 mb-3">
+                      <Film size={22} />
+                    </div>
+                    <p className="text-sm font-semibold text-white">No explore posts yet</p>
+                    <p className="text-xs text-gray-500 mt-1 max-w-xs">
+                      Be the first to share photos and videos with the community!
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2 md:gap-3">
+                    {mediaPosts.map((post) => (
+                      <GridMediaCard
+                        key={post.id}
+                        post={post}
+                        onClick={() => openCommentModal(post)}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -733,7 +785,12 @@ export default function SearchPage() {
                   )}
 
                   {/* Matching Media Grid */}
-                  {mediaPosts.length > 0 && (
+                  {isLoadingExplore ? (
+                    <div className="flex flex-col gap-3">
+                      <span className="text-white font-bold text-sm">Media</span>
+                      <GridMediaSkeleton count={6} />
+                    </div>
+                  ) : mediaPosts.length > 0 ? (
                     <div className="flex flex-col gap-3">
                       <span className="text-white font-bold text-sm">Media</span>
                       <div className="grid grid-cols-3 gap-2 md:gap-3">
@@ -746,10 +803,22 @@ export default function SearchPage() {
                         ))}
                       </div>
                     </div>
-                  )}
+                  ) : null}
 
                   {/* Matching Posts Feed */}
-                  {matchingPosts.length > 0 && (
+                  {isLoadingPosts ? (
+                    <div className="flex flex-col gap-4">
+                      <span className="text-white font-bold text-sm">Posts</span>
+                      <div className="space-y-4">
+                        {[1, 2].map((i) => (
+                          <div
+                            key={i}
+                            className="h-36 bg-[#111115] border border-white/[0.06] rounded-3xl animate-pulse"
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ) : matchingPosts.length > 0 ? (
                     <div className="flex flex-col gap-4">
                       <span className="text-white font-bold text-sm">Posts</span>
                       <div className="flex flex-col gap-4">
@@ -762,9 +831,11 @@ export default function SearchPage() {
                         ))}
                       </div>
                     </div>
-                  )}
+                  ) : null}
 
-                  {searchUsers.length === 0 &&
+                  {!isLoadingExplore &&
+                    !isLoadingPosts &&
+                    searchUsers.length === 0 &&
                     searchHashtags.length === 0 &&
                     mediaPosts.length === 0 &&
                     matchingPosts.length === 0 && (
@@ -831,8 +902,17 @@ export default function SearchPage() {
               {/* Tab: POSTS */}
               {activeTab === 'Posts' && (
                 <div className="flex flex-col gap-4">
-                  {matchingPosts.length === 0 ? (
-                    <div className="text-center py-12 text-gray-400 text-sm">
+                  {isLoadingPosts ? (
+                    <div className="space-y-4">
+                      {[1, 2, 3].map((i) => (
+                        <div
+                          key={i}
+                          className="h-36 bg-[#111115] border border-white/[0.06] rounded-3xl animate-pulse"
+                        />
+                      ))}
+                    </div>
+                  ) : matchingPosts.length === 0 ? (
+                    <div className="text-center py-12 text-gray-400 text-sm bg-[#111115]/95 border border-white/[0.06] rounded-3xl p-6">
                       No posts found matching "{debouncedTerm}"
                     </div>
                   ) : (
@@ -883,23 +963,24 @@ export default function SearchPage() {
               )}
 
               {/* Tab: MEDIA */}
-              {activeTab === 'Media' && (
-                <div className="grid grid-cols-3 gap-2 md:gap-3">
-                  {mediaPosts.length === 0 ? (
-                    <div className="col-span-3 text-center py-12 text-gray-400 text-sm">
-                      No media found matching "{debouncedTerm}"
-                    </div>
-                  ) : (
-                    mediaPosts.map((post) => (
+              {activeTab === 'Media' &&
+                (isLoadingExplore ? (
+                  <GridMediaSkeleton count={9} />
+                ) : mediaPosts.length === 0 ? (
+                  <div className="col-span-3 text-center py-12 text-gray-400 text-sm bg-[#111115]/95 border border-white/[0.06] rounded-3xl p-6">
+                    No media found matching "{debouncedTerm}"
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2 md:gap-3">
+                    {mediaPosts.map((post) => (
                       <GridMediaCard
                         key={post.id}
                         post={post}
                         onClick={() => openCommentModal(post)}
                       />
-                    ))
-                  )}
-                </div>
-              )}
+                    ))}
+                  </div>
+                ))}
             </>
           )}
 

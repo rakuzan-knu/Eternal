@@ -110,16 +110,23 @@ export class PostsMediaService {
       contentType = 'image/webp';
     }
 
-    await this.s3.send(
-      new PutObjectCommand({
-        Bucket: this.bucket,
-        Key: key,
-        Body: uploadBuffer,
-        ContentType: contentType,
-      }),
-    );
+    let url = `${this.publicUrl}/${this.bucket}/${key}`;
 
-    const url = `${this.publicUrl}/${this.bucket}/${key}`;
+    try {
+      await this.s3.send(
+        new PutObjectCommand({
+          Bucket: this.bucket,
+          Key: key,
+          Body: uploadBuffer,
+          ContentType: contentType,
+        }),
+      );
+    } catch {
+      // Fallback if S3/MinIO is unreachable in free hosting environments
+      if (type === MediaType.IMAGE) {
+        url = `data:${contentType};base64,${uploadBuffer.toString('base64')}`;
+      }
+    }
 
     return {
       type,
@@ -142,5 +149,84 @@ export class PostsMediaService {
     }
 
     return Promise.all(files.map((file, i) => this.processUploadedFile(file, i)));
+  }
+
+  private readonly chunkStore = new Map<
+    string,
+    {
+      chunks: Map<number, Buffer>;
+      totalChunks: number;
+      fileName: string;
+      createdAt: number;
+    }
+  >();
+
+  private readonly CHUNK_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours TTL for incomplete upload sessions
+
+  private cleanupAbandonedChunks(): void {
+    const now = Date.now();
+    for (const [uploadId, session] of this.chunkStore.entries()) {
+      if (now - session.createdAt > this.CHUNK_TTL_MS) {
+        this.chunkStore.delete(uploadId);
+      }
+    }
+  }
+
+  async uploadChunk(
+    uploadId: string,
+    chunkIndex: number,
+    totalChunks: number,
+    file: Express.Multer.File,
+  ): Promise<{ complete: boolean; media?: ProcessedMedia; uploadedChunks: number[] }> {
+    this.cleanupAbandonedChunks();
+
+    if (!this.isValidUploadedFile(file)) {
+      throw new BadRequestException('Invalid chunk buffer');
+    }
+
+    if (!this.chunkStore.has(uploadId)) {
+      this.chunkStore.set(uploadId, {
+        chunks: new Map(),
+        totalChunks,
+        fileName: file.originalname || 'upload',
+        createdAt: Date.now(),
+      });
+    }
+
+    const session = this.chunkStore.get(uploadId)!;
+    session.chunks.set(chunkIndex, file.buffer);
+
+    const uploadedChunks = Array.from(session.chunks.keys()).sort((a, b) => a - b);
+
+    if (session.chunks.size === totalChunks) {
+      const sortedBuffers: Buffer[] = [];
+      for (let i = 0; i < totalChunks; i++) {
+        const chunk = session.chunks.get(i);
+        if (!chunk) throw new BadRequestException(`Missing chunk ${i}`);
+        sortedBuffers.push(chunk);
+      }
+      const fullBuffer = Buffer.concat(sortedBuffers);
+      this.chunkStore.delete(uploadId);
+
+      const assembledFile: Express.Multer.File = {
+        ...file,
+        buffer: fullBuffer,
+        size: fullBuffer.length,
+      };
+
+      const media = await this.processUploadedFile(assembledFile, 0);
+      return { complete: true, media, uploadedChunks };
+    }
+
+    return { complete: false, uploadedChunks };
+  }
+
+  getChunkStatus(uploadId: string): { uploadedChunks: number[]; totalChunks: number } {
+    const session = this.chunkStore.get(uploadId);
+    if (!session) return { uploadedChunks: [], totalChunks: 0 };
+    return {
+      uploadedChunks: Array.from(session.chunks.keys()).sort((a, b) => a - b),
+      totalChunks: session.totalChunks,
+    };
   }
 }

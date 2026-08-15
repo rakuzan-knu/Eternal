@@ -11,12 +11,14 @@ export function getSocket(): Socket {
   if (socket) return socket;
 
   socket = io(`${getSocketBaseUrl()}/messenger`, {
-    autoConnect: false,
-    transports: ['polling', 'websocket'],
+    autoConnect: true,
+    transports: ['websocket'],
+    withCredentials: true,
     reconnection: true,
     reconnectionAttempts: Infinity,
     reconnectionDelay: 1000,
     reconnectionDelayMax: 5000,
+    randomizationFactor: 0.5,
     auth: (cb) => cb({ token: localStorage.getItem('accessToken') }),
   });
 

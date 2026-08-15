@@ -38,6 +38,12 @@ export const WS_EVENTS = {
 
   NEW_FOLLOWER: 'newFollower',
   SOCIAL_NOTIFICATION: 'socialNotification',
+
+  GATEWAY_READY: 'gatewayReady',
+  GATEWAY_RESUME: 'gatewayResume',
+  GATEWAY_RESUMED: 'gatewayResumed',
+  RESYNC_REQUIRED: 'resyncRequired',
+  HEARTBEAT: 'heartbeat',
 } as const;
 
 export type WsEventKey = keyof typeof WS_EVENTS;

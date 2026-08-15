@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useChatSocket } from './useChatSocket';
 import { useAuthStore } from '@/shared/model/useAuthStore';
@@ -63,9 +63,12 @@ export function useMessageActions(conversationId: string | null) {
       if (!conversationId) return;
       if (!text.trim() && (!attachments || attachments.length === 0)) return;
 
-      const optimisticId = `optimistic-${Date.now()}`;
+      const optimisticId = `client_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
       const optimisticMessage: MessageView = {
         id: optimisticId,
+        tempId: optimisticId,
+        clientMessageId: optimisticId,
+        status: 'SENDING',
         conversationId,
         sender: { id: userId ?? '', username: '', displayName: null, avatar: null },
         body: text || null,
@@ -107,19 +110,27 @@ export function useMessageActions(conversationId: string | null) {
           text: text || undefined,
           replyToId,
           attachments,
+          clientMessageId: optimisticId,
         });
         if (res.message) {
-          const real = res.message;
+          const real = { ...res.message, status: 'SENT' as const };
           updatePages((pages) =>
             pages.map((p) => ({
               ...p,
-              data: p.data.map((m) => (m.id === optimisticId ? real : m)),
+              data: p.data.map((m) =>
+                m.id === optimisticId || m.tempId === optimisticId ? real : m,
+              ),
             })),
           );
         }
       } catch (err) {
         updatePages((pages) =>
-          pages.map((p) => ({ ...p, data: p.data.filter((m) => m.id !== optimisticId) })),
+          pages.map((p) => ({
+            ...p,
+            data: p.data.map((m) =>
+              m.id === optimisticId ? { ...m, status: 'ERROR' as const } : m,
+            ),
+          })),
         );
         throw err;
       }
@@ -171,23 +182,48 @@ export function useMessageActions(conversationId: string | null) {
     [socket, conversationId],
   );
 
+  const lastTypingSentAtRef = useRef<number>(0);
+
   const setTyping = useCallback(
     (isTyping: boolean) => {
       if (!conversationId) return;
-      socket.emit(isTyping ? 'typingStart' : 'typingStop', { conversationId });
+      const now = Date.now();
+      if (isTyping) {
+        if (now - lastTypingSentAtRef.current < 4000) return;
+        lastTypingSentAtRef.current = now;
+        socket.emit('typingStart', { conversationId });
+      } else {
+        lastTypingSentAtRef.current = 0;
+        socket.emit('typingStop', { conversationId });
+      }
     },
     [socket, conversationId],
   );
 
-  const markRead = useCallback(() => {
-    if (!conversationId) return;
-    queryClient.setQueryData<ConversationView[]>([CONVERSATIONS_KEY], (prev) =>
-      prev?.map((conversation) =>
-        conversation.id === conversationId ? { ...conversation, unreadCount: 0 } : conversation,
-      ),
-    );
-    socket.emit('markRead', { conversationId });
-  }, [socket, conversationId, queryClient]);
+  const lastReadMessageIdRef = useRef<string | null>(null);
+  const markReadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const markRead = useCallback(
+    (lastReadMessageId?: string) => {
+      if (!conversationId) return;
+      if (lastReadMessageId && lastReadMessageIdRef.current === lastReadMessageId) return;
+      if (lastReadMessageId) lastReadMessageIdRef.current = lastReadMessageId;
+
+      if (markReadTimeoutRef.current) {
+        clearTimeout(markReadTimeoutRef.current);
+      }
+
+      markReadTimeoutRef.current = setTimeout(() => {
+        queryClient.setQueryData<ConversationView[]>([CONVERSATIONS_KEY], (prev) =>
+          prev?.map((conversation) =>
+            conversation.id === conversationId ? { ...conversation, unreadCount: 0 } : conversation,
+          ),
+        );
+        socket.emit('markRead', { conversationId, messageId: lastReadMessageId });
+      }, 350);
+    },
+    [socket, conversationId, queryClient],
+  );
 
   return {
     sendMessage,

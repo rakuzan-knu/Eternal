@@ -56,6 +56,16 @@ export class FollowersController {
     return this.followersService.getFollowing(id, query.limit, query.after, currentUser?.id);
   }
 
+  @Get('me/friends')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get mutual friends of the current user' })
+  @ApiResponse({ status: 200, description: 'List of mutual friends' })
+  getFriends(@CurrentUser() currentUser: RequestUser) {
+    return this.followersService.getFriends(currentUser.id);
+  }
+
   @Get('me/follow-requests')
   @HttpCode(HttpStatus.OK)
   @UseGuards(AuthGuard)

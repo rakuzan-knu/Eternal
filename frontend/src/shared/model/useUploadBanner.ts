@@ -17,9 +17,7 @@ export function useUploadBanner() {
       formData.append('file', file);
       formData.append('bannerPosition', positionY.toString());
 
-      const response = await apiClient.post(`/users/${userId}/banner`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const response = await apiClient.post(`/users/${userId}/banner`, formData);
 
       return response.data;
     },

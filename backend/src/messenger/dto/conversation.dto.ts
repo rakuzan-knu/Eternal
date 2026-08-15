@@ -12,7 +12,7 @@ import { MuteLevel } from '@prisma/client';
 
 export class CreateDirectConversationDto {
   @ApiProperty({ description: 'ID of the other user' })
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   participantId!: string;
 }

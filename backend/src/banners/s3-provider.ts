@@ -23,6 +23,7 @@ export const bannerS3Provider = {
           'rootpassword',
       },
       forcePathStyle: true,
+      maxAttempts: 1,
     });
   },
   inject: [ConfigService],

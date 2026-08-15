@@ -77,7 +77,6 @@ export const chatApi = {
     formData.append('file', file);
     return api
       .post(`/conversations/${conversationId}/attachments`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
         onUploadProgress: (e) => {
           if (onProgress && e.total) onProgress(Math.round((e.loaded / e.total) * 100));
         },

@@ -26,5 +26,6 @@ export function toUserProfileDto(
     updatedAt: user.updatedAt,
     isFollowing,
     followsYou,
+    isFriend: Boolean(isFollowing && followsYou),
   };
 }

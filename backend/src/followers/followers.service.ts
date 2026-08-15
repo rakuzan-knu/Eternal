@@ -20,6 +20,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { MessengerGateway } from '../messenger/gateway/messenger.gateway';
 import { WS_EVENTS } from '../messenger/events/ws-events';
 import { toUserProfileDto } from './followers.mapper';
+import type { UserProfileDto } from '../users/dto/user-profile.dto';
 
 @Injectable()
 export class FollowersService {
@@ -127,6 +128,57 @@ export class FollowersService {
         const followsYou = currentUserId ? myFollowersSet.has(row.user.id) : false;
         return toUserProfileDto(row.user, isFollowing, followsYou);
       });
+    });
+  }
+
+  async getFriends(userId: string): Promise<UserProfileDto[]> {
+    if (!userId) {
+      throw new BadRequestException('userId is required');
+    }
+
+    const cacheKey = `friends:${userId}`;
+
+    return this.redis.getOrSet(cacheKey, 30, async () => {
+      // 1. Find all users I follow with ACCEPTED status
+      const following = await this.prisma.follow.findMany({
+        where: {
+          followerId: userId,
+          status: FollowStatus.ACCEPTED,
+        },
+        select: { followingId: true },
+      });
+      const followingIds = following.map((f) => f.followingId);
+      if (followingIds.length === 0) return [];
+
+      // 2. Find which of these users also follow me with ACCEPTED status (mutual)
+      const mutualFollows = await this.prisma.follow.findMany({
+        where: {
+          followerId: { in: followingIds },
+          followingId: userId,
+          status: FollowStatus.ACCEPTED,
+        },
+        include: {
+          follower: {
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+              avatar: true,
+              bio: true,
+              isPrivate: true,
+              isVerified: true,
+              primaryBadge: true,
+              badges: true,
+              githubUsername: true,
+              mergedPrsCount: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          },
+        },
+      });
+
+      return mutualFollows.map((mf) => toUserProfileDto(mf.follower, true, true));
     });
   }
 
@@ -259,11 +311,19 @@ export class FollowersService {
   }
 
   private async invalidateFollowCaches(followerId: string, followingId: string): Promise<void> {
-    await Promise.all([
-      this.redis.delByPattern(`followers:${followingId}:*`),
-      this.redis.delByPattern(`following:${followerId}:*`),
-      this.redis.del(`user${followerId}`),
-      this.redis.del(`user${followingId}`),
-    ]);
+    try {
+      await Promise.all([
+        this.redis.delByPattern(`followers:${followingId}:*`),
+        this.redis.delByPattern(`following:${followerId}:*`),
+        this.redis.del(`friends:${followerId}`),
+        this.redis.del(`friends:${followingId}`),
+        this.redis.del(`user:${followerId}`),
+        this.redis.del(`user:${followingId}`),
+        this.redis.del(`user${followerId}`),
+        this.redis.del(`user${followingId}`),
+      ]);
+    } catch {
+      // Safe non-blocking cache invalidation
+    }
   }
 }

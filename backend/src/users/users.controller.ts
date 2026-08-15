@@ -10,6 +10,7 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -26,6 +27,7 @@ import { PostsService } from '../posts/posts.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/interfaces/jwt-payload.interface';
 import { GetPostsQueryDto } from '../posts/dto/get-posts-query.dto';
+import type { Request } from 'express';
 
 import { UpdatePrimaryBadgeDto } from './dto/update-primary-badge.dto';
 
@@ -92,8 +94,29 @@ export class UsersController {
   getSuggestedUsers(
     @Query('limit') limit?: string,
     @CurrentUser() viewer?: RequestUser,
+    @Req() req?: Request,
   ): Promise<UserProfileDto[]> {
-    return this.usersService.getSuggestedUsers(viewer?.id ?? null, limit ? parseInt(limit, 10) : 5);
+    const clientIp = req?.ip ?? null;
+    return this.usersService.getSuggestedUsers(
+      viewer?.id ?? null,
+      limit ? parseInt(limit, 10) : 5,
+      clientIp,
+      req?.headers,
+    );
+  }
+
+  @Post('suggested/:targetId/dismiss')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Dismiss a suggested user recommendation (negative feedback)' })
+  @ApiResponse({ status: 200, description: 'User recommendation dismissed' })
+  async dismissSuggestedUser(
+    @Param('targetId') targetId: string,
+    @CurrentUser() viewer: RequestUser,
+  ): Promise<{ success: boolean }> {
+    await this.usersService.dismissSuggestedUser(viewer.id, targetId);
+    return { success: true };
   }
 
   @Get('hashtags')

@@ -15,7 +15,8 @@ interface UIState {
   setActiveConversationId: (conversationId: string | null) => void;
 
   isEditProfileOpen: boolean;
-  openEditProfile: () => void;
+  editProfileInitialTab: string;
+  openEditProfile: (tab?: string) => void;
   closeEditProfile: () => void;
 
   isCommentModalOpen: boolean;
@@ -42,7 +43,9 @@ export const useUIStore = create<UIState>((set, get) => ({
   setActiveConversationId: (conversationId) => set({ activeConversationId: conversationId }),
 
   isEditProfileOpen: false,
-  openEditProfile: () => set({ isEditProfileOpen: true }),
+  editProfileInitialTab: 'account',
+  openEditProfile: (tab?: string) =>
+    set({ isEditProfileOpen: true, editProfileInitialTab: tab || 'account' }),
   closeEditProfile: () => set({ isEditProfileOpen: false }),
 
   isCommentModalOpen: false,

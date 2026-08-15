@@ -1,5 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { useAuthStore } from './useAuthStore';
+import { resetSessionStores } from './resetSession';
+import { notifyAuthChange } from '@/shared/lib/broadcastSync';
 
 export interface SavedAccount {
   id: string;
@@ -46,7 +49,10 @@ export const useAccountsStore = create<AccountsState>()(
 
         localStorage.setItem('accessToken', account.accessToken);
         localStorage.setItem('refreshToken', account.refreshToken);
+        useAuthStore.getState().setAuth(account.id);
+        resetSessionStores();
         set({ activeAccountId: id });
+        notifyAuthChange('ACCOUNT_SWITCHED', { accountId: id });
         return account;
       },
 

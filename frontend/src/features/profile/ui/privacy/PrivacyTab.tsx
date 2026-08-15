@@ -5,6 +5,7 @@ import { usePrivacy } from '../../model/usePrivacy';
 import { useFollowRequestsCount } from '../../model/useFollowRequests';
 import type { PrivacyDimension } from '../../model/privacyTypes';
 import PrivateAccountToggle from './PrivateAccountToggle';
+import NearbyRecommendationsToggle from './NearbyRecommendationsToggle';
 import PrivacyDimensionRow from './PrivacyDimensionRow';
 import PrivacySettingPanel from './PrivacySettingPanel';
 import FollowRequestsPanel from './FollowRequestsPanel';
@@ -37,6 +38,7 @@ export default function PrivacyTab() {
   return (
     <div className="animate-fadeIn flex flex-col gap-6">
       <PrivateAccountToggle />
+      <NearbyRecommendationsToggle />
 
       {isError && (
         <div className="flex items-start gap-3 px-4 py-3.5 rounded-2xl border border-red-500/20 bg-red-500/[0.06]">

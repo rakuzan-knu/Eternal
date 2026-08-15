@@ -22,6 +22,7 @@ interface ProfileHeaderProps {
   isOwnProfile: boolean;
   isFollowing?: boolean;
   followsYou?: boolean;
+  isFriend?: boolean;
   isVerified?: boolean;
   primaryBadge?: string | null;
   badges?: string[];
@@ -56,6 +57,7 @@ export default function ProfileHeader({
   isOwnProfile,
   isFollowing,
   followsYou = false,
+  isFriend = false,
   isVerified = false,
   primaryBadge = null,
   badges = [],
@@ -104,10 +106,12 @@ export default function ProfileHeader({
         <div className="flex items-center gap-2 justify-end pt-4">
           {isOwnProfile ? (
             <button
+              type="button"
               onClick={onEditClick}
-              className="flex items-center gap-2 bg-white/[0.07] hover:bg-white/[0.12] border border-white/[0.08] text-white font-medium text-xs px-4 py-2 rounded-xl transition-all duration-200"
+              className="flex items-center gap-2 bg-white/[0.07] hover:bg-white/[0.14] hover:border-white/20 active:scale-[0.98] border border-white/[0.08] text-white font-medium text-xs px-4 py-2 rounded-xl transition-all duration-200 cursor-pointer shadow-sm"
             >
-              <Edit3 size={14} /> Edit
+              <Edit3 size={14} />
+              <span>Edit</span>
             </button>
           ) : (
             <>
@@ -115,12 +119,17 @@ export default function ProfileHeader({
                 type="button"
                 onClick={handleStartChat}
                 disabled={isStartingChat}
-                className="flex items-center gap-1.5 bg-white/[0.07] hover:bg-white/[0.12] border border-white/[0.08] text-white font-semibold text-xs px-4 py-2 rounded-xl transition-all duration-200 cursor-pointer disabled:opacity-50"
+                className="flex items-center gap-1.5 bg-white/[0.07] hover:bg-white/[0.14] hover:border-white/20 active:scale-[0.98] border border-white/[0.08] text-white font-semibold text-xs px-4 py-2 rounded-xl transition-all duration-200 cursor-pointer disabled:opacity-50 shadow-sm"
               >
                 <MessageSquare size={14} />
                 <span>Message</span>
               </button>
-              <FollowButton authorId={userId} isFollowing={!!isFollowing} />
+              <FollowButton
+                authorId={userId}
+                isFollowing={!!isFollowing}
+                isFriend={isFriend}
+                followsYou={followsYou}
+              />
             </>
           )}
         </div>
@@ -144,31 +153,43 @@ export default function ProfileHeader({
           </div>
         </div>
 
-        <p className="text-sm text-gray-300 mt-3 leading-relaxed whitespace-pre-wrap">
-          {bio ||
-            'There is no bio yet. You can add a bio to your profile to let others know more about you.'}
-        </p>
+        {(bio || isOwnProfile) && (
+          <p className="text-sm text-gray-300 mt-3 leading-relaxed whitespace-pre-wrap">
+            {bio ||
+              'There is no bio yet. You can add a bio to your profile to let others know more about you.'}
+          </p>
+        )}
 
         <div className="flex items-center gap-2 text-xs text-gray-400 mt-4 font-medium">
           <Calendar size={14} className="text-gray-500" />
           <span>Joined {formatJoinedDate(createdAt)}</span>
         </div>
 
-        <div className="flex items-center gap-6 mt-4 text-xs font-semibold">
+        <div className="flex items-center gap-6 mt-5">
           <button
-            onClick={() => setOpenList('following')}
-            className="hover:underline text-gray-300 flex items-center gap-1"
+            type="button"
+            onClick={() => setOpenList('followers')}
+            className="group flex items-center gap-1.5 cursor-pointer transition-all duration-200"
           >
-            <span className="text-white font-bold">{followingCount}</span>
-            <span className="text-gray-500 font-normal">Following</span>
+            <span className="text-white font-bold text-sm sm:text-base tracking-tight group-hover:text-blue-400 transition-colors">
+              {followersCount}
+            </span>
+            <span className="text-gray-400 group-hover:text-gray-200 text-xs sm:text-sm font-medium transition-colors">
+              Followers
+            </span>
           </button>
 
           <button
-            onClick={() => setOpenList('followers')}
-            className="hover:underline text-gray-300 flex items-center gap-1"
+            type="button"
+            onClick={() => setOpenList('following')}
+            className="group flex items-center gap-1.5 cursor-pointer transition-all duration-200"
           >
-            <span className="text-white font-bold">{followersCount}</span>
-            <span className="text-gray-500 font-normal">Followers</span>
+            <span className="text-white font-bold text-sm sm:text-base tracking-tight group-hover:text-blue-400 transition-colors">
+              {followingCount}
+            </span>
+            <span className="text-gray-400 group-hover:text-gray-200 text-xs sm:text-sm font-medium transition-colors">
+              Following
+            </span>
           </button>
         </div>
       </div>

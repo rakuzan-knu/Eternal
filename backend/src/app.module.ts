@@ -23,6 +23,7 @@ import { SessionsModule } from './sessions/sessions.module';
 import { MetricsModule } from './metrics/metrics.module';
 import { PollModule } from './poll/poll.module';
 import { GithubModule } from './github/github.module';
+import { OpenGraphModule } from './opengraph/opengraph.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { GithubModule } from './github/github.module';
     SessionsModule,
     PollModule,
     GithubModule,
+    OpenGraphModule,
   ],
   controllers: [],
   providers: [

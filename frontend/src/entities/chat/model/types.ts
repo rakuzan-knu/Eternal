@@ -54,6 +54,9 @@ export interface MessageView {
   isPinned: boolean;
   createdAt: string;
   editedAt: string | null;
+  tempId?: string;
+  clientMessageId?: string;
+  status?: 'SENDING' | 'SENT' | 'ERROR';
 }
 
 export interface ParticipantView {

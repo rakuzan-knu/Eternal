@@ -9,6 +9,10 @@ import { type Request, type Response } from 'express';
 
 const logger = new Logger('Bootstrap');
 
+if (!process.env.DIRECT_URL && process.env.DATABASE_URL) {
+  process.env.DIRECT_URL = process.env.DATABASE_URL;
+}
+
 let cachedApp: INestApplication | undefined;
 
 async function bootstrap() {

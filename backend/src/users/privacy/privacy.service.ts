@@ -76,6 +76,11 @@ export class PrivacyService {
     if (dto.isPrivate !== undefined) userData.isPrivate = dto.isPrivate;
     if (dto.autoDeletePeriod !== undefined) userData.autoDeletePeriod = dto.autoDeletePeriod;
 
+    if (dto.allowNearbyRecommendations !== undefined) {
+      privacyData.allowNearbyRecommendations = dto.allowNearbyRecommendations;
+      privacyUpdate.allowNearbyRecommendations = dto.allowNearbyRecommendations;
+    }
+
     const [privacy, user] = await this.prisma.$transaction([
       this.prisma.userPrivacy.upsert({
         where: { userId },
@@ -158,6 +163,7 @@ export class PrivacyService {
       groupInvites: base.groupInvites,
       isPrivate,
       autoDeletePeriod,
+      allowNearbyRecommendations: privacy ? privacy.allowNearbyRecommendations : true,
     };
   }
 }

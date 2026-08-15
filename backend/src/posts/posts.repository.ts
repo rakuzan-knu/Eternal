@@ -338,6 +338,39 @@ export class PostsRepository implements IPostRepository {
       include: this.postInclude(viewerId),
     });
 
+    if (posts.length === 0 && !after) {
+      const fallbackFilters: Prisma.PostWhereInput[] = [];
+      if (blockedIds.length > 0) {
+        fallbackFilters.push({ authorId: { notIn: blockedIds } });
+      }
+      if (viewerId) {
+        fallbackFilters.push({
+          OR: [
+            { author: { isPrivate: false } },
+            { authorId: viewerId },
+            {
+              author: {
+                followers: {
+                  some: { followerId: viewerId, status: FollowStatus.ACCEPTED },
+                },
+              },
+            },
+          ],
+        });
+      } else {
+        fallbackFilters.push({ author: { isPrivate: false } });
+      }
+
+      const fallbackPosts = await this.prisma.post.findMany({
+        where: fallbackFilters.length > 0 ? { AND: fallbackFilters } : undefined,
+        take: limit + 1,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        include: this.postInclude(viewerId),
+      });
+
+      return fallbackPosts.map((post) => this.mapPost(post, viewerId));
+    }
+
     return posts.map((post) => this.mapPost(post, viewerId));
   }
 

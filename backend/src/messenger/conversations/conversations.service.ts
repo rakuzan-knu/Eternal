@@ -94,59 +94,67 @@ export class ConversationsService {
       throw new BadRequestException('Cannot create a conversation with yourself');
     }
 
-    return this.prisma.$transaction(async (tx) => {
-      const other = await this.usersService.findById(dto.participantId);
-      if (!other) throw new NotFoundException('User not found');
+    const other = await this.usersService.findById(dto.participantId);
+    if (!other) throw new NotFoundException('User not found');
 
-      const block = await tx.userBlock.findFirst({
+    const block = await this.prisma.userBlock.findFirst({
+      where: {
+        OR: [
+          { blockerId: userId, blockedId: dto.participantId },
+          { blockerId: dto.participantId, blockedId: userId },
+        ],
+      },
+    });
+    if (block) throw new ForbiddenException('User is blocked');
+
+    const existing = await this.convsRepo.findDirectBetween(userId, dto.participantId);
+    if (existing) {
+      // Re-activate any participants who might have left the conversation
+      await this.prisma.conversationParticipant.updateMany({
         where: {
-          OR: [
-            { blockerId: userId, blockedId: dto.participantId },
-            { blockerId: dto.participantId, blockedId: userId },
-          ],
+          conversationId: existing.id,
+          userId: { in: [userId, dto.participantId] },
         },
+        data: { leftAt: null },
       });
-      if (block) throw new ForbiddenException('User is blocked');
 
-      const existing = await this.convsRepo.findDirectBetween(userId, dto.participantId);
-      if (existing) {
-        const conv = await this.convsRepo.findOneForUser(existing.id, userId);
-        if (!conv) throw new NotFoundException('Conversation not found');
+      const conv = await this.convsRepo.findOneForUser(existing.id, userId);
+      if (conv) {
         return this.mapper.mapConversation(conv, userId, 0);
       }
+    }
 
-      const conv = await this.convsRepo.createDirect(userId, dto.participantId);
-      return this.mapper.mapConversation(conv, userId, 0);
-    });
+    const conv = await this.convsRepo.createDirect(userId, dto.participantId);
+    return this.mapper.mapConversation(conv, userId, 0);
   }
 
   async createGroup(userId: string, dto: CreateGroupConversationDto): Promise<ConversationView> {
-    if (dto.memberIds.includes(userId)) {
-      dto.memberIds = dto.memberIds.filter((id) => id !== userId);
-    }
+    const uniqueMemberIds = Array.from(new Set(dto.memberIds)).filter((id) => id !== userId);
 
-    if (dto.memberIds.length > 0) {
+    if (uniqueMemberIds.length > 0) {
       const existingUsersCount = await this.prisma.user.count({
-        where: { id: { in: dto.memberIds } },
+        where: { id: { in: uniqueMemberIds } },
       });
-      if (existingUsersCount !== dto.memberIds.length) {
+      if (existingUsersCount !== uniqueMemberIds.length) {
         throw new NotFoundException('One or more users not found');
       }
 
       const block = await this.prisma.userBlock.findFirst({
         where: {
-          blockerId: { in: dto.memberIds },
+          blockerId: { in: uniqueMemberIds },
           blockedId: userId,
         },
       });
       if (block) throw new ForbiddenException('One or more users have blocked you');
     }
 
+    const groupName = dto.name?.trim() || 'New Group';
+
     const conv = await this.convsRepo.createGroup({
-      name: dto.name,
-      description: dto.description,
+      name: groupName,
+      description: dto.description?.trim() || undefined,
       createdById: userId,
-      memberIds: dto.memberIds,
+      memberIds: uniqueMemberIds,
     });
     return this.mapper.mapConversation(conv, userId, 0);
   }

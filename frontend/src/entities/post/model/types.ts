@@ -2,6 +2,10 @@ export interface PostMedia {
   type: 'image' | 'video';
   url: string;
   poster?: string;
+  blurhash?: string | null;
+  width?: number;
+  height?: number;
+  aspectRatio?: number;
 }
 
 export interface PollOptionResult {

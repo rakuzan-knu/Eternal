@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { resetSessionStores } from './resetSession';
+import { notifyAuthChange } from '@/shared/lib/broadcastSync';
 
 interface AuthState {
   userId: string | null;
@@ -18,6 +20,8 @@ export const useAuthStore = create<AuthState>()(
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
         set({ userId: null, isAuthenticated: false });
+        resetSessionStores();
+        notifyAuthChange('LOGOUT');
       },
     }),
     {

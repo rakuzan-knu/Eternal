@@ -39,7 +39,10 @@ export default function NewGroupModal({ onClose, onCreated }: NewGroupModalProps
     },
   });
 
+  const filteredResults = results.filter((u) => u.id !== currentUser?.id);
+
   const toggleUser = (user: UserSearchResult) => {
+    if (user.id === currentUser?.id) return;
     setSelected((prev) =>
       prev.some((u) => u.id === user.id) ? prev.filter((u) => u.id !== user.id) : [...prev, user],
     );
@@ -109,11 +112,11 @@ export default function NewGroupModal({ onClose, onCreated }: NewGroupModalProps
                 Search for people to add to the group
               </p>
             )}
-            {query.trim() && !isSearching && results.length === 0 && (
+            {query.trim() && !isSearching && filteredResults.length === 0 && (
               <p className="text-center text-sm text-gray-500 mt-8 px-6">No users found</p>
             )}
 
-            {results.map((user) => {
+            {filteredResults.map((user) => {
               const selectedState = isSelected(user.id);
               const disabled = !selectedState && selected.length >= MAX_MEMBERS;
               return (

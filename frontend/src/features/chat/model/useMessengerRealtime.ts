@@ -44,10 +44,77 @@ export function useMessengerRealtime(
   const socialBatchRef = useRef<
     Map<string, { firstActor: string; count: number; lastTimestamp: number }>
   >(new Map());
+  const lastSeqRef = useRef<number>(0);
+  const sessionIdRef = useRef<string>('');
+
+  const handleNewMessageRef = useRef<
+    ((data: { conversationId: string; message: MessageView }) => void) | null
+  >(null);
 
   useEffect(() => {
     initializeMessageNotificationSound();
   }, []);
+
+  useEffect(() => {
+    const handleGatewayReady = (data: { sessionId: string; seq: number }) => {
+      sessionIdRef.current = data.sessionId;
+      lastSeqRef.current = data.seq;
+    };
+
+    const handleConnect = () => {
+      if (sessionIdRef.current && lastSeqRef.current > 0) {
+        socket.emit(
+          'gatewayResume',
+          { sessionId: sessionIdRef.current, lastSeq: lastSeqRef.current },
+          (res: {
+            status: string;
+            events?: Array<{ seq: number; event: string; payload: unknown }>;
+            currentSeq?: number;
+          }) => {
+            if (res?.status === 'ok' && res.events) {
+              res.events.forEach((evt) => {
+                lastSeqRef.current = evt.seq;
+                if (evt.event === 'newMessage') {
+                  handleNewMessageRef.current?.(
+                    evt.payload as { conversationId: string; message: MessageView },
+                  );
+                }
+              });
+            } else {
+              // resync_required / session_invalidated: execute full state refresh
+              lastSeqRef.current = res?.currentSeq ?? 0;
+              queryClient.invalidateQueries({ queryKey: [CONVERSATIONS_KEY] });
+            }
+          },
+        );
+      }
+    };
+
+    const handleResyncRequired = (data?: { currentSeq?: number }) => {
+      lastSeqRef.current = data?.currentSeq ?? 0;
+      queryClient.invalidateQueries({ queryKey: [CONVERSATIONS_KEY] });
+    };
+
+    socket.on('gatewayReady', handleGatewayReady);
+    socket.on('connect', handleConnect);
+    socket.on('resyncRequired', handleResyncRequired);
+
+    return () => {
+      socket.off('gatewayReady', handleGatewayReady);
+      socket.off('connect', handleConnect);
+      socket.off('resyncRequired', handleResyncRequired);
+    };
+  }, [socket, queryClient]);
+
+  // Periodic lightweight heartbeat ping (Discord model) every 25s
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (socket.connected) {
+        socket.emit('heartbeat');
+      }
+    }, 25000);
+    return () => clearInterval(interval);
+  }, [socket]);
 
   useEffect(() => {
     conversationIds.forEach((id) => {
@@ -126,6 +193,10 @@ export function useMessengerRealtime(
       }
     }
   };
+
+  useEffect(() => {
+    handleNewMessageRef.current = handleNewMessage;
+  });
 
   const handleReactionAdded = ({
     conversationId,

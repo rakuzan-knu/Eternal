@@ -73,14 +73,16 @@ describe('RegisterForm', () => {
 
     await user.click(getSubmitButton());
 
-    expect(mutate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        email: 'alex@test.com',
-        username: 'alexk',
-        displayName: 'Alex Kovalenko',
-        password: 'secret123',
-      }),
-      expect.any(Object),
+    await waitFor(() =>
+      expect(mutate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: 'alex@test.com',
+          username: 'alexk',
+          displayName: 'Alex Kovalenko',
+          password: 'secret123',
+        }),
+        expect.any(Object),
+      ),
     );
   });
 

@@ -104,12 +104,30 @@ export class SendMessageDto {
   @IsUUID()
   forwardedFromId?: string;
 
+  @ApiPropertyOptional({ description: 'Client temporary message ID for optimistic reconciliation' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  clientMessageId?: string;
+
   @ApiPropertyOptional({ type: [AttachmentDto], description: 'Array of media attachments' })
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => AttachmentDto)
   attachments?: AttachmentDto[];
+}
+
+export class GatewayResumeDto {
+  @ApiProperty({ description: 'Gateway Session ID' })
+  @IsString()
+  @IsNotEmpty()
+  sessionId!: string;
+
+  @ApiProperty({ description: 'Last received sequence number' })
+  @IsInt()
+  @Min(0)
+  lastSeq!: number;
 }
 
 export class EditMessageDto {

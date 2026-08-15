@@ -24,6 +24,8 @@ interface MiniProfileData {
   followingCount: number;
   postsCount?: number;
   isFollowing: boolean;
+  followsYou?: boolean;
+  isFriend?: boolean;
 }
 
 function formatCount(num?: number): string {
@@ -38,12 +40,14 @@ interface MiniProfileHoverCardProps {
   username: string;
   children: React.ReactNode;
   align?: 'left' | 'center' | 'right';
+  side?: 'top' | 'bottom' | 'left' | 'right';
 }
 
 export function MiniProfileHoverCard({
   username,
   children,
   align = 'left',
+  side = 'top',
 }: MiniProfileHoverCardProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isHoveredFollow, setIsHoveredFollow] = useState(false);
@@ -93,7 +97,7 @@ export function MiniProfileHoverCard({
     }
     enterTimerRef.current = setTimeout(() => {
       setIsOpen(true);
-    }, 250);
+    }, 300);
   };
 
   const handleMouseLeave = () => {
@@ -132,6 +136,15 @@ export function MiniProfileHoverCard({
   const alignClasses =
     align === 'center' ? 'left-1/2 -translate-x-1/2' : align === 'right' ? 'right-0' : 'left-0';
 
+  const positionClasses =
+    side === 'left'
+      ? 'right-full mr-3 top-0'
+      : side === 'right'
+        ? 'left-full ml-3 top-0'
+        : side === 'bottom'
+          ? `top-full mt-3 ${alignClasses}`
+          : `bottom-full mb-3 ${alignClasses}`;
+
   return (
     <span
       className="relative inline-block"
@@ -144,7 +157,7 @@ export function MiniProfileHoverCard({
         <div
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
-          className={`absolute z-50 bottom-full mb-3 w-[340px] sm:w-[360px] ${alignClasses} rounded-[28px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.85)] border border-white/[0.12] bg-[#0c0c10]/95 backdrop-blur-2xl animate-fadeIn text-left select-none`}
+          className={`absolute z-50 w-[340px] sm:w-[360px] ${positionClasses} rounded-[28px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.85)] border border-white/[0.12] bg-[#0c0c10]/95 backdrop-blur-2xl animate-fadeIn text-left select-none`}
         >
           {/* 1. Background Banner with Liquid Frosted Glass Overlay */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -335,7 +348,7 @@ export function MiniProfileHoverCard({
                       <span>Message</span>
                     </button>
 
-                    {/* Follow / Following Button */}
+                    {/* Follow / Following / Friends Button */}
                     <button
                       type="button"
                       onClick={handleFollowClick}
@@ -346,11 +359,19 @@ export function MiniProfileHoverCard({
                         isFollowing
                           ? isHoveredFollow
                             ? 'bg-red-500/15 text-red-400 border-red-500/30'
-                            : 'bg-white/[0.08] text-white border-white/[0.1] hover:bg-white/[0.12]'
+                            : profile?.isFriend || (isFollowing && profile?.followsYou)
+                              ? 'bg-blue-500/15 text-blue-300 border-blue-500/30 hover:bg-red-500/15 hover:text-red-400 hover:border-red-500/30'
+                              : 'bg-white/[0.08] text-white border-white/[0.1] hover:bg-white/[0.12]'
                           : 'bg-white text-black border-transparent hover:bg-gray-200 shadow-md'
                       }`}
                     >
-                      {isFollowing ? (isHoveredFollow ? 'Unfollow' : 'Following') : 'Follow'}
+                      {isFollowing
+                        ? isHoveredFollow
+                          ? 'Unfollow'
+                          : profile?.isFriend || (isFollowing && profile?.followsYou)
+                            ? 'Friends'
+                            : 'Following'
+                        : 'Follow'}
                     </button>
                   </div>
                 )}

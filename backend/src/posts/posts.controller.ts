@@ -10,10 +10,11 @@ import {
   Post,
   Query,
   UploadedFiles,
+  UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { FilesInterceptor } from '@nestjs/platform-express';
+import { FilesInterceptor, FileInterceptor } from '@nestjs/platform-express';
 import { Throttle } from '@nestjs/throttler';
 import { PostsService } from './posts.service';
 import { CreatePostDto } from './dto/create-post.dto';
@@ -32,6 +33,7 @@ import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/interfaces/jwt-payload.interface';
 import { GetPostsQueryDto } from './dto/get-posts-query.dto';
+import { SearchPostsDto } from './dto/search-posts.dto';
 
 @ApiTags('Posts')
 @Controller('posts')
@@ -74,19 +76,14 @@ export class PostsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Search posts by text query' })
   @ApiResponse({ status: 200, description: 'Posts matching query retrieved successfully.' })
-  searchPosts(
-    @Query('q') q: string,
-    @Query('mediaOnly') mediaOnly?: string,
-    @Query() query?: GetPostsQueryDto,
-    @CurrentUser() user?: RequestUser,
-  ) {
-    const safeQuery = typeof q === 'string' ? q : '';
+  searchPosts(@Query() query: SearchPostsDto, @CurrentUser() user?: RequestUser) {
+    const safeQuery = typeof query.q === 'string' ? query.q : '';
     return this.postsService.searchPosts(
       safeQuery,
-      query?.limit ?? 10,
-      query?.after,
+      query.limit ?? 10,
+      query.after,
       user?.id,
-      mediaOnly === 'true',
+      query.mediaOnly ?? false,
     );
   }
 
@@ -114,6 +111,34 @@ export class PostsController {
     @UploadedFiles() files?: Express.Multer.File[],
   ) {
     return this.postsService.createPost(dto, user.id, files);
+  }
+
+  @Post('upload/chunk')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @UseInterceptors(FileInterceptor('chunk'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Upload a 5MB chunk of a media file (resumable upload)' })
+  uploadChunk(
+    @Body('uploadId') uploadId: string,
+    @Body('chunkIndex') chunkIndex: string,
+    @Body('totalChunks') totalChunks: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.postsService.uploadChunk(
+      uploadId,
+      parseInt(chunkIndex, 10),
+      parseInt(totalChunks, 10),
+      file,
+    );
+  }
+
+  @Get('upload/chunk/:uploadId/status')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get list of uploaded chunks for session resume' })
+  getChunkStatus(@Param('uploadId') uploadId: string) {
+    return this.postsService.getChunkStatus(uploadId);
   }
 
   @Patch(':id')
@@ -201,5 +226,19 @@ export class PostsController {
   @ApiResponse({ status: 200, description: 'Post share recorded successfully.' })
   sharePost(@Param('id') id: string) {
     return this.postsService.sharePost(id);
+  }
+
+  @Post(':id/poll/vote')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Vote on post poll' })
+  @ApiResponse({ status: 200, description: 'Vote recorded successfully.' })
+  votePoll(
+    @Param('id') id: string,
+    @Body('optionId') optionId: string,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.postsService.votePoll(id, optionId, user.id);
   }
 }

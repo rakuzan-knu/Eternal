@@ -3,6 +3,7 @@ import { MoreHorizontal, X } from 'lucide-react';
 import Modal from '@/shared/ui/Modal';
 import Avatar from '@/shared/ui/Avatar';
 import { useAccountsStore } from '@/shared/model/useAccountsStore';
+import { useAuthStore } from '@/shared/model/useAuthStore';
 import { authApi } from '@/features/auth/api/authApi';
 
 interface ManageAccountsModalProps {
@@ -43,9 +44,13 @@ export function ManageAccountsModal({
     removeAccount(id);
 
     if (wasActive) {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      window.location.href = '/login';
+      const remainingAccounts = accounts.filter((a) => a.id !== id);
+      if (remainingAccounts.length > 0) {
+        onSwitchAccount(remainingAccounts[0].id);
+      } else {
+        useAuthStore.getState().clearAuth();
+        onClose();
+      }
     }
   };
 

@@ -13,6 +13,7 @@ import {
 import { useClickOutside } from '@/shared/lib/useClickOutside';
 import { useUIStore } from '@/shared/model/useUIStore';
 import { useAccountsStore } from '@/shared/model/useAccountsStore';
+import { useAuthStore } from '@/shared/model/useAuthStore';
 import { useCurrentUser } from '@/entities/profile/model/useCurrentUser';
 import { authApi } from '@/features/auth/api/authApi';
 import { MenuItem } from './MenuItem';
@@ -74,7 +75,8 @@ export function ProfileMenu({ isSidebarExpanded }: ProfileMenuProps) {
   const handleSwitchAccount = (id: string) => {
     const account = switchAccountInStore(id);
     if (!account) return;
-    window.location.href = '/feed';
+    closeAll();
+    navigate('/feed');
   };
 
   const handleLogout = async () => {
@@ -84,10 +86,9 @@ export function ProfileMenu({ isSidebarExpanded }: ProfileMenuProps) {
     } catch {
       // Best-effort — still forget it locally even if the server call fails.
     }
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
     if (activeId) useAccountsStore.getState().removeAccount(activeId);
-    window.location.href = '/login';
+    useAuthStore.getState().clearAuth();
+    closeAll();
   };
 
   return (

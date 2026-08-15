@@ -30,13 +30,13 @@ export function VideoPlayer({ src, poster, active = true }: VideoPlayerProps) {
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.6) {
           video.play().catch(() => {});
         } else {
           video.pause();
         }
       },
-      { threshold: 0.5 },
+      { threshold: [0, 0.6, 1.0] },
     );
     observer.observe(el);
     return () => observer.disconnect();

@@ -9,6 +9,8 @@ import MessageContextMenu from './MessageContextMenu';
 import DeleteMessageModal from './DeleteMessageModal';
 import MessageAttachments from './MessageAttachments';
 import { PostEmbedCard } from './PostEmbedCard';
+import { LinkPreviewCard } from '../../../shared/ui/LinkPreviewCard';
+import { extractFirstUrl } from '../../../shared/lib/urlUtils';
 import { ClusterPosition } from './MessageList';
 
 interface MessageBubbleProps {
@@ -93,6 +95,7 @@ export default function MessageBubble({
   const [isReactionsModalOpen, setReactionsModalOpen] = useState(false);
 
   const { displayText, postId: embeddedPostId } = extractPostInfo(message.body || '');
+  const firstExternalUrl = !embeddedPostId ? extractFirstUrl(message.body) : null;
 
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
@@ -318,6 +321,8 @@ export default function MessageBubble({
                 {embeddedPostId && (
                   <PostEmbedCard postId={embeddedPostId} isOwnMessage={isOwnMessage} />
                 )}
+
+                {firstExternalUrl && <LinkPreviewCard url={firstExternalUrl} />}
 
                 <span
                   className={`inline-flex items-center gap-1 align-baseline float-right ml-2 mt-1 select-none whitespace-nowrap ${

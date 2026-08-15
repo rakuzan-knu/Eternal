@@ -4,11 +4,7 @@ import { normalizePost } from '@/entities/post/api/postsApi';
 
 export const postsApi = {
   createPost: (data: FormData): Promise<PostType> =>
-    api
-      .post<Record<string, unknown>>('/posts', data, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
-      .then((r) => normalizePost(r.data)),
+    api.post<Record<string, unknown>>('/posts', data).then((r) => normalizePost(r.data)),
 
   votePoll: (postId: string | number, optionId: string) =>
     api.post(`/posts/${postId}/poll/vote`, { optionId }).then((r) => r.data),

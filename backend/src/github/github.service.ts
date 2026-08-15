@@ -49,7 +49,24 @@ export class GithubService {
   }
 
   getAuthorizationUrl(req: Request, res: Response): void {
-    const state = crypto.randomBytes(32).toString('hex');
+    const csrf = crypto.randomBytes(32).toString('hex');
+    let userIdParam = '';
+    const rawToken = typeof req.query.token === 'string' ? req.query.token : undefined;
+    if (rawToken) {
+      try {
+        const parts = rawToken.split('.');
+        if (parts.length === 3) {
+          const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8')) as {
+            sub?: string;
+          };
+          if (payload.sub) userIdParam = String(payload.sub);
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    const state = userIdParam ? `${csrf}:${userIdParam}` : csrf;
 
     const forwardedProtoHeader = req.headers['x-forwarded-proto'];
     const forwardedProto = Array.isArray(forwardedProtoHeader)
@@ -58,7 +75,7 @@ export class GithubService {
     const isSecureRequest =
       req.secure || forwardedProto?.trim() === 'https' || process.env.NODE_ENV === 'production';
 
-    res.cookie('github_oauth_state', state, {
+    res.cookie('github_oauth_state', csrf, {
       httpOnly: true,
       secure: isSecureRequest,
       sameSite: 'lax',
@@ -81,9 +98,10 @@ export class GithubService {
     res: Response,
     userId?: string,
   ): Promise<void> {
+    const [csrfFromState, userIdFromState] = (state || '').split(':');
     const cookieState = (req.cookies as Record<string, string> | undefined)?.github_oauth_state;
 
-    if (!state || !cookieState || state !== cookieState) {
+    if (!csrfFromState || !cookieState || csrfFromState !== cookieState) {
       this.logger.warn(`CSRF state mismatch during GitHub OAuth callback.`);
       res.clearCookie('github_oauth_state');
       const corsOrigin = this.config.get<string>('CORS_ORIGIN') || 'http://localhost:5173';
@@ -129,7 +147,7 @@ export class GithubService {
       const githubId = ghUser.id ? String(ghUser.id) : '';
       const githubUsername = ghUser.login || null;
 
-      let targetUserId = userId;
+      let targetUserId = userId || userIdFromState;
       if (!targetUserId && githubId) {
         const existing = await this.prisma.user.findFirst({
           where: { githubId },

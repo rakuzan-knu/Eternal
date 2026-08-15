@@ -1,10 +1,12 @@
-import { screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { screen, act } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../App';
 import { renderWithProviders } from '../../test/renderWithProviders';
+import { useAuthStore } from '@/shared/model/useAuthStore';
 
 vi.mock('@/features/chat/model/usePresence', () => ({
   useQueryOnlineStatus: vi.fn(),
+  usePresenceSync: vi.fn(),
 }));
 
 vi.mock('@/features/chat/model/useUnreadMessagesCount', () => ({
@@ -15,7 +17,17 @@ vi.mock('@/features/chat/ui/MessageToastViewport', () => ({
   default: () => null,
 }));
 
+vi.mock('@/pages/Feed/Feed', () => ({
+  default: () => <div>Feed Content</div>,
+}));
+
 describe('App', () => {
+  beforeEach(() => {
+    act(() => {
+      useAuthStore.getState().clearAuth();
+    });
+  });
+
   it('renders the login page at /login', async () => {
     renderWithProviders(<App />, { initialEntries: ['/login'] });
 
@@ -50,5 +62,25 @@ describe('App', () => {
     renderWithProviders(<App />, { initialEntries: ['/some_user'] });
 
     expect(await screen.findByText('Welcome back')).toBeInTheDocument();
+  });
+
+  it('redirects /login to the home/feed route when authenticated', async () => {
+    act(() => {
+      useAuthStore.getState().setAuth('user-123');
+    });
+
+    renderWithProviders(<App />, { initialEntries: ['/login'] });
+
+    expect(await screen.findByText('Feed Content')).toBeInTheDocument();
+  });
+
+  it('redirects /register to the home/feed route when authenticated', async () => {
+    act(() => {
+      useAuthStore.getState().setAuth('user-123');
+    });
+
+    renderWithProviders(<App />, { initialEntries: ['/register'] });
+
+    expect(await screen.findByText('Feed Content')).toBeInTheDocument();
   });
 });

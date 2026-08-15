@@ -1,6 +1,7 @@
 import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { UAParser } from 'ua-parser-js';
 import geoip from 'geoip-lite';
+import { PrismaService } from '../prisma/prisma.service';
 import {
   SESSIONS_REPOSITORY,
   type CreateSessionData,
@@ -18,22 +19,63 @@ export class SessionsService {
   constructor(
     @Inject(SESSIONS_REPOSITORY)
     private readonly sessionsRepo: ISessionsRepository,
+    private readonly prisma: PrismaService,
   ) {}
 
   async create(userId: string, jti: string, meta: RequestMeta): Promise<void> {
+    const deviceName = this.parseDeviceName(meta.userAgent);
+    const normalizedIp = this.normalizeIp(meta.ip);
+    const geo = this.lookupGeo(meta.ip);
+
+    // If user already has an active session from the same browser/device, update it
+    if (meta.userAgent) {
+      const existing = await this.prisma.session.findFirst({
+        where: {
+          userId,
+          userAgent: meta.userAgent,
+        },
+      });
+
+      if (existing) {
+        await this.prisma.session.update({
+          where: { id: existing.id },
+          data: {
+            jti,
+            deviceName: deviceName ?? existing.deviceName,
+            ip: normalizedIp ?? existing.ip,
+            city: geo.city ?? existing.city,
+            country: geo.country ?? existing.country,
+            lastActiveAt: new Date(),
+          },
+        });
+        return;
+      }
+    }
+
     const data: CreateSessionData = {
       userId,
       jti,
-      deviceName: this.parseDeviceName(meta.userAgent),
+      deviceName,
       userAgent: meta.userAgent ?? null,
-      ...this.lookupGeo(meta.ip),
-      ip: this.normalizeIp(meta.ip),
+      ...geo,
+      ip: normalizedIp,
     };
     await this.sessionsRepo.create(data);
   }
 
-  touch(jti: string): Promise<void> {
-    return this.sessionsRepo.touchByJti(jti);
+  async touch(jti: string, meta?: RequestMeta): Promise<void> {
+    const data: Record<string, unknown> = { lastActiveAt: new Date() };
+    if (meta?.ip) {
+      const normalizedIp = this.normalizeIp(meta.ip);
+      const geo = this.lookupGeo(meta.ip);
+      if (normalizedIp) data.ip = normalizedIp;
+      if (geo.city) data.city = geo.city;
+      if (geo.country) data.country = geo.country;
+    }
+    await this.prisma.session.updateMany({
+      where: { jti },
+      data,
+    });
   }
 
   deleteByJti(jti: string): Promise<void> {

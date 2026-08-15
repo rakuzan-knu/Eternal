@@ -10,6 +10,8 @@ import { PollDisplay } from '@/features/posts/ui/PollDisplay';
 import { PostMedia } from '@/entities/post/ui/PostMedia';
 import { PollVotersModal } from '@/entities/post/ui/PollVotersModal';
 import { SaveToCollectionPopover } from '@/features/posts/ui/SaveToCollectionPopover';
+import { LinkPreviewCard } from '@/shared/ui/LinkPreviewCard';
+import { extractFirstUrl } from '@/shared/lib/urlUtils';
 
 import { useUIStore, PostType } from '@/shared/model/useUIStore';
 import { useLikeMutation } from '@/features/posts/model/useLikeMutation';
@@ -39,6 +41,7 @@ export function PostCard({ post, queryKey }: PostCardProps) {
   const saveMutation = useSavePostMutation(post.id, !!post.isSaved, queryKey);
 
   const media = post.media ?? (post.image ? [{ type: 'image' as const, url: post.image }] : []);
+  const firstUrl = media.length === 0 && !post.poll ? extractFirstUrl(post.text) : null;
 
   const handleLike = () => {
     setIsLikePopping(true);
@@ -110,6 +113,7 @@ export function PostCard({ post, queryKey }: PostCardProps) {
           </div>
 
           <ExpandableText text={post.text} />
+          {firstUrl && <LinkPreviewCard url={firstUrl} />}
           <PostMedia media={media} />
           {post.poll && (
             <>

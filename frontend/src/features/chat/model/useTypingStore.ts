@@ -12,7 +12,7 @@ interface TypingState {
   clearTypistsForConversation: (conversationId: string) => void;
 }
 
-const TYPING_TIMEOUT_MS = 3500;
+const TYPING_TIMEOUT_MS = 5000;
 
 export const useTypingStore = create<TypingState>((set) => ({
   typingByConversation: {},

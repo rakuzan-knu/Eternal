@@ -49,6 +49,7 @@ import SecurityTab from './security/SecurityTab';
 import PrivacyTab from './privacy/PrivacyTab';
 import NotificationsTab from './notifications/NotificationsTab';
 import BadgeSettingsSection from './BadgeSettingsSection';
+import { compressImage } from '@/shared/lib/compressImage';
 
 function addProfileToast(title: string, body: string) {
   useMessageToastStore.getState().addToast({
@@ -118,7 +119,7 @@ const TABS_CONFIG: MainTab[] = [
 ];
 
 export default function EditProfileModal() {
-  const { isEditProfileOpen, closeEditProfile } = useUIStore();
+  const { isEditProfileOpen, closeEditProfile, editProfileInitialTab } = useUIStore();
   const clearAuth = useAuthStore((state) => state.clearAuth);
   const [activeTab, setActiveTab] = useState('account');
   const [activeSection, setActiveSection] = useState('sec-account-info');
@@ -130,9 +131,31 @@ export default function EditProfileModal() {
     privacy: false,
     notifications: false,
   });
+
+  const prevTabRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (
+      isEditProfileOpen &&
+      editProfileInitialTab &&
+      prevTabRef.current !== editProfileInitialTab
+    ) {
+      prevTabRef.current = editProfileInitialTab;
+      queueMicrotask(() => {
+        setActiveTab(editProfileInitialTab);
+        setExpandedTabs((prev) => ({ ...prev, [editProfileInitialTab]: true }));
+        const foundTab = TABS_CONFIG.find((t) => t.id === editProfileInitialTab);
+        if (foundTab && foundTab.subsections.length > 0) {
+          setActiveSection(foundTab.subsections[0].id);
+        }
+      });
+    }
+  }, [isEditProfileOpen, editProfileInitialTab]);
+
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -317,7 +340,10 @@ export default function EditProfileModal() {
   };
 
   const handleConnectGithubOAuth = () => {
-    window.location.href = '/api/auth/github';
+    const rawApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    const baseBackendUrl = rawApiUrl.replace(/\/api\/?$/, '').replace(/\/$/, '');
+    const token = localStorage.getItem('accessToken');
+    window.location.href = `${baseBackendUrl}/auth/github${token ? `?token=${encodeURIComponent(token)}` : ''}`;
   };
 
   const handleSyncGitHub = async () => {
@@ -348,36 +374,49 @@ export default function EditProfileModal() {
 
   if (!isEditProfileOpen) return null;
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      if (file.size > 5 * 1024 * 1024) {
-        addProfileToast('File too large', 'Avatar must be less than 5MB');
-        return;
+      const rawFile = e.target.files[0];
+      try {
+        const file = await compressImage(rawFile, 1024, 1024, 0.85);
+        setAvatarFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setLocalAvatarPreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+      } catch {
+        setAvatarFile(rawFile);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setLocalAvatarPreview(reader.result as string);
+        };
+        reader.readAsDataURL(rawFile);
       }
-      setAvatarFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setLocalAvatarPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
     }
   };
 
-  const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBannerChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      if (file.size > 10 * 1024 * 1024) {
-        addProfileToast('File too large', 'Banner must be less than 10MB');
-        return;
+      const rawFile = e.target.files[0];
+      try {
+        const file = await compressImage(rawFile, 1920, 1080, 0.85);
+        setBannerFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setLocalBannerPreview(reader.result as string);
+          setLocalBannerPos(50);
+        };
+        reader.readAsDataURL(file);
+      } catch {
+        setBannerFile(rawFile);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setLocalBannerPreview(reader.result as string);
+          setLocalBannerPos(50);
+        };
+        reader.readAsDataURL(rawFile);
       }
-      setBannerFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setLocalBannerPreview(reader.result as string);
-        setLocalBannerPos(50);
-      };
-      reader.readAsDataURL(file);
     }
   };
 
@@ -403,9 +442,10 @@ export default function EditProfileModal() {
   };
 
   const onSubmit = async (data: ProfileFormValues) => {
-    if (isUsernameTaken) return;
+    if (isUsernameTaken || isSaving) return;
     try {
       if (!currentUser) return;
+      setIsSaving(true);
 
       if (avatarFile && currentUser?.id) {
         await uploadAvatarMutation.mutateAsync({
@@ -430,6 +470,7 @@ export default function EditProfileModal() {
       });
 
       queryClient.invalidateQueries({ queryKey: [USER_KEY] });
+      addProfileToast('Profile Updated', 'Your profile changes have been saved successfully.');
       if (data.username !== currentUser.username) {
         navigate(`/${data.username}`, { replace: true });
       }
@@ -447,6 +488,8 @@ export default function EditProfileModal() {
       } else {
         addProfileToast('Profile Update Error', 'Failed to update profile.');
       }
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -708,7 +751,7 @@ export default function EditProfileModal() {
                         <button
                           type="button"
                           onClick={() => avatarInputRef.current?.click()}
-                          className="bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] text-white px-4 py-2 rounded-xl text-xs font-medium flex items-center gap-2 transition"
+                          className="bg-white/[0.06] hover:bg-white/[0.14] hover:border-white/20 active:scale-[0.98] border border-white/[0.08] text-white px-4 py-2 rounded-xl text-xs font-medium flex items-center gap-2 transition cursor-pointer"
                         >
                           <Upload size={14} /> Choose
                         </button>
@@ -733,7 +776,7 @@ export default function EditProfileModal() {
                         <button
                           type="button"
                           onClick={() => bannerInputRef.current?.click()}
-                          className="bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] text-white px-4 py-2 rounded-xl text-xs font-medium flex items-center gap-2 transition"
+                          className="bg-white/[0.06] hover:bg-white/[0.14] hover:border-white/20 active:scale-[0.98] border border-white/[0.08] text-white px-4 py-2 rounded-xl text-xs font-medium flex items-center gap-2 transition cursor-pointer"
                         >
                           <Upload size={14} /> Choose
                         </button>
@@ -862,14 +905,24 @@ export default function EditProfileModal() {
                     <div className="flex justify-end mt-4">
                       <button
                         type="submit"
-                        disabled={isUsernameTaken || isCheckingUsername}
-                        className={`bg-white text-black hover:bg-gray-200 px-6 py-2.5 rounded-xl text-sm font-bold transition flex items-center gap-2 ${
-                          isUsernameTaken || isCheckingUsername
-                            ? 'opacity-40 cursor-not-allowed'
-                            : ''
+                        disabled={isUsernameTaken || isCheckingUsername || isSaving}
+                        className={`bg-white text-black hover:bg-gray-200 px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 cursor-pointer shadow-md ${
+                          isUsernameTaken || isCheckingUsername || isSaving
+                            ? 'opacity-40 cursor-not-allowed pointer-events-none'
+                            : 'hover:scale-[1.02] active:scale-[0.98]'
                         }`}
                       >
-                        <Check size={16} /> Save changes
+                        {isSaving ? (
+                          <>
+                            <Loader2 size={16} className="animate-spin" />
+                            <span>Saving...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Check size={16} />
+                            <span>Save changes</span>
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>

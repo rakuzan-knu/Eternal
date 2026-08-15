@@ -2,6 +2,7 @@ import React from 'react';
 import { PostMedia as PostMediaType } from '../model/types';
 import { VideoPlayer } from './VideoPlayer';
 import { MediaCarousel } from './MediaCarousel';
+import { ProgressiveImage } from '@/shared/ui/ProgressiveImage';
 
 export function PostMedia({ media }: { media: PostMediaType[] }) {
   if (!media?.length) return null;
@@ -14,8 +15,14 @@ export function PostMedia({ media }: { media: PostMediaType[] }) {
     return (
       <div className="mt-3 grid grid-cols-2 gap-1 rounded-2xl overflow-hidden border border-white/5">
         {media.slice(0, 4).map((item, i) => (
-          <div key={i} className="relative aspect-square bg-black/20">
-            <img src={item.url} alt="" className="w-full h-full object-cover" />
+          <div key={i} className="relative aspect-square bg-black/20 overflow-hidden">
+            <ProgressiveImage
+              src={item.url}
+              blurhash={item.blurhash}
+              aspectRatio={1}
+              alt=""
+              className="w-full h-full"
+            />
             {i === 3 && media.length > 4 && (
               <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-semibold text-lg">
                 +{media.length - 4}
@@ -33,7 +40,13 @@ export function PostMedia({ media }: { media: PostMediaType[] }) {
       {item.type === 'video' ? (
         <VideoPlayer src={item.url} poster={item.poster} />
       ) : (
-        <img src={item.url} alt="" className="w-full h-full object-cover" />
+        <ProgressiveImage
+          src={item.url}
+          blurhash={item.blurhash}
+          aspectRatio={item.aspectRatio || 16 / 9}
+          alt=""
+          className="w-full h-full"
+        />
       )}
     </div>
   );

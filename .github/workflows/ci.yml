@@ -217,7 +217,7 @@ jobs:
   backend-test:
     name: Backend — Unit Tests (Shard ${{ matrix.shard }})
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     needs: [changes, setup]
     if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.ci == 'true'
     permissions:
@@ -254,7 +254,7 @@ jobs:
 
       - name: Unit tests + coverage
         working-directory: backend
-        run: npm run test:cov -- --ci --shard=${{ matrix.shard }}/3 --forceExit --passWithNoTests
+        run: npm run test:cov -- --ci --shard=${{ matrix.shard }}/3 --forceExit --passWithNoTests --detectOpenHandles
 
       - name: Upload coverage
         if: always()

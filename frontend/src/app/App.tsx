@@ -26,6 +26,9 @@ const ForgotPasswordPage = lazy(() =>
   })),
 );
 
+import { OnlineFriendsSidebar } from '../widgets/sidebar/ui/OnlineFriendsSidebar';
+import { usePresenceSync } from '../features/chat/model/usePresence';
+
 function PageFallback() {
   return (
     <div className="flex h-64 w-full items-center justify-center">
@@ -42,10 +45,21 @@ function CenteredPage({ children }: { children: React.ReactNode }) {
   );
 }
 
+function FeedLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex w-full justify-center gap-8 py-8 px-4">
+      <div className="w-full max-w-2xl">{children}</div>
+      <OnlineFriendsSidebar />
+    </div>
+  );
+}
+
 export default function App() {
   const isSidebarExpanded = useUIStore((state) => state.isSidebarExpanded);
   const location = useLocation();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+
+  usePresenceSync();
 
   if (!isAuthenticated) {
     return (
@@ -62,12 +76,13 @@ export default function App() {
     );
   }
 
-  const isMessengerRoute = location.pathname.startsWith('/messages');
+  const isMessengerRoute =
+    location.pathname.startsWith('/messages') || location.pathname.startsWith('/messenger');
 
   return (
     <DeviceLockGate>
       <div className="relative min-h-screen bg-[#070709] text-white">
-        <Sidebar />
+        {!isMessengerRoute && <Sidebar />}
         <EditProfileModal />
         <ShareModal />
         {!isMessengerRoute && <MessageToastViewport />}
@@ -86,17 +101,17 @@ export default function App() {
               <Route
                 path="/"
                 element={
-                  <CenteredPage>
+                  <FeedLayout>
                     <FeedPage />
-                  </CenteredPage>
+                  </FeedLayout>
                 }
               />
               <Route
                 path="/feed"
                 element={
-                  <CenteredPage>
+                  <FeedLayout>
                     <FeedPage />
-                  </CenteredPage>
+                  </FeedLayout>
                 }
               />
 
@@ -125,6 +140,15 @@ export default function App() {
                   </CenteredPage>
                 }
               />
+              <Route
+                path="/explore"
+                element={
+                  <CenteredPage>
+                    <SearchPage />
+                  </CenteredPage>
+                }
+              />
+
               <Route
                 path="/explore"
                 element={
@@ -166,6 +190,10 @@ export default function App() {
                   </CenteredPage>
                 }
               />
+
+              <Route path="/login" element={<Navigate to="/" replace />} />
+              <Route path="/register" element={<Navigate to="/" replace />} />
+              <Route path="/forgot-password" element={<Navigate to="/" replace />} />
 
               <Route
                 path="/:username"

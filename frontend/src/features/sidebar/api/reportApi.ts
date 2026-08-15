@@ -24,8 +24,6 @@ export const reportApi = {
     formData.append('area', area);
     if (screenshot) formData.append('screenshot', screenshot);
 
-    return api
-      .post('/reports', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
-      .then((r) => r.data);
+    return api.post('/reports', formData).then((r) => r.data);
   },
 };

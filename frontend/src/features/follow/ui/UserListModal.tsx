@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Search, X, Users, UserPlus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Avatar from '@/shared/ui/Avatar';
@@ -55,9 +56,9 @@ export function UserListModal({ userId, mode, isOwnProfile, onClose }: UserListM
 
   const title = mode === 'followers' ? 'Followers' : 'Following';
 
-  return (
+  const modalContent = (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md animate-fadeIn p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md animate-fadeIn p-4"
       onClick={onClose}
     >
       <div
@@ -76,7 +77,8 @@ export function UserListModal({ userId, mode, isOwnProfile, onClose }: UserListM
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+            aria-label="Close modal"
           >
             <X size={16} />
           </button>
@@ -98,7 +100,7 @@ export function UserListModal({ userId, mode, isOwnProfile, onClose }: UserListM
             {search && (
               <button
                 onClick={() => setSearch('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 cursor-pointer"
               >
                 <X size={14} />
               </button>
@@ -131,7 +133,7 @@ export function UserListModal({ userId, mode, isOwnProfile, onClose }: UserListM
                 <Link
                   to="/search"
                   onClick={onClose}
-                  className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white text-black text-xs font-semibold hover:bg-gray-200 transition-colors shadow-sm"
+                  className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white text-black text-xs font-semibold hover:bg-gray-200 transition-colors shadow-sm cursor-pointer"
                 >
                   <UserPlus size={14} />
                   Find friends here
@@ -144,13 +146,13 @@ export function UserListModal({ userId, mode, isOwnProfile, onClose }: UserListM
                 key={u.id}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-2xl hover:bg-white/[0.04] transition-colors"
               >
-                <Link to={`/${u.username}`} onClick={onClose} className="shrink-0">
+                <Link to={`/${u.username}`} onClick={onClose} className="shrink-0 cursor-pointer">
                   <Avatar size="md" src={u.avatar} />
                 </Link>
                 <Link
                   to={`/${u.username}`}
                   onClick={onClose}
-                  className="flex-1 min-w-0 flex flex-col gap-0.5 text-left"
+                  className="flex-1 min-w-0 flex flex-col gap-0.5 text-left cursor-pointer"
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <UserNameWithBadges
@@ -175,7 +177,7 @@ export function UserListModal({ userId, mode, isOwnProfile, onClose }: UserListM
                     type="button"
                     disabled={removeFollowerMutation.isPending}
                     onClick={() => removeFollowerMutation.mutate(u.id)}
-                    className="text-xs font-semibold px-4 py-1.5 rounded-full border border-white/10 text-gray-300 bg-white/5 hover:bg-red-500/15 hover:text-red-400 hover:border-red-500/30 transition-all disabled:opacity-40 shrink-0"
+                    className="text-xs font-semibold px-4 py-1.5 rounded-full border border-white/10 text-gray-300 bg-white/5 hover:bg-red-500/15 hover:text-red-400 hover:border-red-500/30 transition-all disabled:opacity-40 shrink-0 cursor-pointer"
                   >
                     Remove
                   </button>
@@ -191,7 +193,7 @@ export function UserListModal({ userId, mode, isOwnProfile, onClose }: UserListM
               type="button"
               onClick={() => query.fetchNextPage()}
               disabled={query.isFetchingNextPage}
-              className="w-full text-xs font-medium text-gray-400 hover:text-white py-3 transition-colors disabled:opacity-40"
+              className="w-full text-xs font-medium text-gray-400 hover:text-white py-3 transition-colors disabled:opacity-40 cursor-pointer"
             >
               {query.isFetchingNextPage ? 'Loading more...' : 'Load more'}
             </button>
@@ -200,4 +202,6 @@ export function UserListModal({ userId, mode, isOwnProfile, onClose }: UserListM
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 }

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Mail,
   MailOpen,
@@ -42,6 +43,7 @@ export default function ChatItemMenu({
   onTogglePinLocally,
   onToggleUnreadLocally,
 }: ChatItemMenuProps) {
+  const navigate = useNavigate();
   const muteConversation = useMuteConversation();
   const archiveConversation = useArchiveConversation();
   const markRead = useMarkConversationRead();
@@ -57,9 +59,11 @@ export default function ChatItemMenu({
       label: hasUnread ? 'Mark as read' : 'Mark as unread',
       icon: hasUnread ? <MailOpen size={18} /> : <Mail size={18} />,
       onClick: () => {
-        if (hasUnread) markRead.mutate(conversation.id);
-        // No "mark as unread" endpoint exists yet — this only flips a local, non-persisted flag.
-        else onToggleUnreadLocally(conversation.id);
+        if (hasUnread) {
+          markRead.mutate(conversation.id);
+        } else {
+          onToggleUnreadLocally(conversation.id);
+        }
       },
     },
     {
@@ -79,7 +83,7 @@ export default function ChatItemMenu({
             label: 'View profile',
             icon: <UserRound size={18} />,
             onClick: () => {
-              window.location.href = `/${otherUserId}`;
+              navigate(`/${otherUserId}`);
             },
           } satisfies DropdownMenuItem,
         ]

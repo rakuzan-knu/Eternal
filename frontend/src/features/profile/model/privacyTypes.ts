@@ -32,6 +32,7 @@ export interface PrivacyVisibilitySettings {
 export interface PrivacySettings extends PrivacyVisibilitySettings {
   isPrivate: boolean;
   autoDeletePeriod: AutoDeletePeriod;
+  allowNearbyRecommendations?: boolean;
 }
 
 export type UpdatePrivacyPayload = Partial<PrivacySettings>;

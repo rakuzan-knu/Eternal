@@ -14,3 +14,4 @@ export const PRIVACY_KEY = 'privacy';
 export const PRIVACY_EXCEPTIONS_KEY = 'privacy-exceptions';
 export const FOLLOW_REQUESTS_KEY = 'follow-requests';
 export const SAVED_POSTS_KEY = 'saved-posts';
+export const FRIENDS_KEY = 'friends';

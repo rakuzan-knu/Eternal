@@ -1,5 +1,6 @@
 import React from 'react';
 import { usePresenceStore } from '@/shared/model/usePresenceStore';
+import { useAuthStore } from '@/shared/model/useAuthStore';
 
 interface OnlineStatusIndicatorProps {
   userId: string;
@@ -16,7 +17,11 @@ export default function OnlineStatusIndicator({
   className = '',
   showOfflineDot = true,
 }: OnlineStatusIndicatorProps) {
-  const isOnline = usePresenceStore((s) => s.onlineUserIds.has(userId));
+  const currentUserId = useAuthStore((s) => s.userId);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isOnlineInStore = usePresenceStore((s) => s.onlineUserIds.has(userId));
+
+  const isOnline = (isAuthenticated && currentUserId === userId) || isOnlineInStore;
 
   if (variant === 'text') {
     return (

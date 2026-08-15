@@ -15,6 +15,7 @@ export class PrivacySettingsDto {
   @ApiProperty({ enum: Visibility }) groupInvites!: Visibility;
   @ApiProperty() isPrivate!: boolean;
   @ApiProperty({ enum: AutoDeletePeriod }) autoDeletePeriod!: AutoDeletePeriod;
+  @ApiPropertyOptional() allowNearbyRecommendations?: boolean;
 }
 
 export class UpdatePrivacyDto {
@@ -77,6 +78,13 @@ export class UpdatePrivacyDto {
   @IsOptional()
   @IsEnum(AutoDeletePeriod)
   autoDeletePeriod?: AutoDeletePeriod;
+
+  @ApiPropertyOptional({
+    description: 'Whether to show this user in nearby location recommendations',
+  })
+  @IsOptional()
+  @IsBoolean()
+  allowNearbyRecommendations?: boolean;
 }
 
 export class AddPrivacyExceptionDto {
