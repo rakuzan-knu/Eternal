@@ -40,7 +40,11 @@ export class HealthService {
 
   private async checkRedis(): Promise<boolean> {
     try {
-      await this.redisService.getClient().ping();
+      const pingPromise = this.redisService.getClient().ping();
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Redis ping timeout')), 1500),
+      );
+      await Promise.race([pingPromise, timeoutPromise]);
       return true;
     } catch {
       return false;

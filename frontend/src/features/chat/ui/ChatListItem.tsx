@@ -52,8 +52,12 @@ export default function ChatListItem({
   const [isHovered, setIsHovered] = useState(false);
 
   const isMuted = conversation.myMuteLevel !== 'NONE';
-  const typists = useTypingStore((s) => s.typingByConversation[conversation.id] ?? []);
-  const isTyping = typists.length > 0;
+  const isTyping = useTypingStore(
+    (s) => (s.typingByConversation[conversation.id]?.length ?? 0) > 0,
+  );
+  const firstTypistUsername = useTypingStore(
+    (s) => s.typingByConversation[conversation.id]?.[0]?.username,
+  );
 
   const display = getConversationDisplay(conversation, currentUserId);
   const hasUnread = isForcedUnread || conversation.unreadCount > 0;
@@ -102,8 +106,8 @@ export default function ChatListItem({
               <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-bounce" />
             </span>
             <span className="truncate">
-              {display.isGroup && typists[0].username
-                ? `${typists[0].username} is typing...`
+              {display.isGroup && firstTypistUsername
+                ? `${firstTypistUsername} is typing...`
                 : 'typing...'}
             </span>
           </div>

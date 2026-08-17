@@ -1,0 +1,715 @@
+{
+  "consumer": {
+    "name": "frontend"
+  },
+  "interactions": [
+    {
+      "description": "a conversation list request",
+      "providerStates": [
+        {
+          "name": "the user participates in one direct conversation with a last message"
+        }
+      ],
+      "request": {
+        "headers": {
+          "Authorization": "Bearer pact-access-token"
+        },
+        "method": "GET",
+        "path": "/conversations"
+      },
+      "response": {
+        "body": [
+          {
+            "id": "e2490de5-5bd3-43d5-b7c4-526e33f71304",
+            "lastMessage": {
+              "body": "Hey there",
+              "createdAt": "2026-01-01T12:00:00.000Z",
+              "id": "e2490de5-5bd3-43d5-b7c4-526e33f71304"
+            },
+            "participants": [
+              {
+                "user": {
+                  "displayName": "Bob Mock",
+                  "id": "e2490de5-5bd3-43d5-b7c4-526e33f71304",
+                  "username": "bob"
+                },
+                "userId": "e2490de5-5bd3-43d5-b7c4-526e33f71304"
+              }
+            ],
+            "type": "DIRECT",
+            "unreadCount": 1
+          }
+        ],
+        "generators": {
+          "body": {
+            "$[*].id": {
+              "type": "Uuid"
+            },
+            "$[*].lastMessage.id": {
+              "type": "Uuid"
+            },
+            "$[*].participants[*].user.id": {
+              "type": "Uuid"
+            },
+            "$[*].participants[*].userId": {
+              "type": "Uuid"
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$[*].lastMessage": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$[*].lastMessage.body": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$[*].lastMessage.createdAt": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "^\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d\\.\\d+(Z|[+-][0-2]\\d:?[0-5]\\d)$"
+                }
+              ]
+            },
+            "$[*].lastMessage.id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$[*].participants": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$[*].participants[*].user": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$[*].participants[*].user.displayName": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$[*].participants[*].user.id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$[*].participants[*].user.username": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$[*].participants[*].userId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$[*].type": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$[*].unreadCount": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "a login request",
+      "providerStates": [
+        {
+          "name": "a user exists with email alice@example.com"
+        }
+      ],
+      "request": {
+        "body": {
+          "email": "alice@example.com",
+          "identity": "alice@example.com",
+          "password": "correct-horse-battery"
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "method": "POST",
+        "path": "/auth/login"
+      },
+      "response": {
+        "body": {
+          "accessToken": "jwt-access-token",
+          "refreshToken": "jwt-refresh-token",
+          "user": {
+            "displayName": "Alice Mock",
+            "email": "alice@example.com",
+            "id": "e2490de5-5bd3-43d5-b7c4-526e33f71304",
+            "username": "alice"
+          }
+        },
+        "generators": {
+          "body": {
+            "$.user.id": {
+              "type": "Uuid"
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$.accessToken": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.refreshToken": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.user": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.user.displayName": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.user.email": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.user.id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.user.username": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "a paginated feed request",
+      "providerStates": [
+        {
+          "name": "the feed contains exactly one post and no further pages"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/posts",
+        "query": {
+          "limit": ["10"]
+        }
+      },
+      "response": {
+        "body": {
+          "data": [
+            {
+              "author": "Alice Mock",
+              "authorId": "e2490de5-5bd3-43d5-b7c4-526e33f71304",
+              "commentsCount": 3,
+              "content": "Hello from the contract test",
+              "createdAt": "2026-01-01T12:00:00.000Z",
+              "handle": "alice",
+              "id": "e2490de5-5bd3-43d5-b7c4-526e33f71304",
+              "likesCount": 12,
+              "media": [
+                {
+                  "order": 0,
+                  "type": "IMAGE",
+                  "url": "https://cdn.example.com/post.jpg"
+                }
+              ],
+              "repostsCount": 1
+            }
+          ],
+          "meta": {
+            "hasNextPage": false,
+            "nextCursor": null
+          }
+        },
+        "generators": {
+          "body": {
+            "$.data[*].authorId": {
+              "type": "Uuid"
+            },
+            "$.data[*].id": {
+              "type": "Uuid"
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$.data": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.data[*].author": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.data[*].authorId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.data[*].commentsCount": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.data[*].content": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.data[*].createdAt": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "^\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d\\.\\d+(Z|[+-][0-2]\\d:?[0-5]\\d)$"
+                }
+              ]
+            },
+            "$.data[*].handle": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.data[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.data[*].likesCount": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.data[*].media": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.data[*].media[*].order": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.data[*].media[*].type": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.data[*].media[*].url": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.data[*].repostsCount": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.meta.hasNextPage": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.meta.nextCursor": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "null"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "a people search request",
+      "providerStates": [
+        {
+          "name": "a user with username carol and no avatar exists"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/users/search",
+        "query": {
+          "q": ["carol"]
+        }
+      },
+      "response": {
+        "body": [
+          {
+            "avatar": null,
+            "displayName": "Carol Mock",
+            "id": "e2490de5-5bd3-43d5-b7c4-526e33f71304",
+            "isPrivate": false,
+            "isVerified": false,
+            "username": "carol"
+          }
+        ],
+        "generators": {
+          "body": {
+            "$[*].id": {
+              "type": "Uuid"
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$[*].avatar": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "null"
+                }
+              ]
+            },
+            "$[*].displayName": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$[*].isPrivate": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$[*].isVerified": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$[*].username": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "a profile lookup by username",
+      "providerStates": [
+        {
+          "name": "a user with username alice exists"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/users/by-username/alice"
+      },
+      "response": {
+        "body": {
+          "avatar": null,
+          "bio": "Mocked biography",
+          "createdAt": "2026-01-01T12:00:00.000Z",
+          "displayName": "Alice Mock",
+          "id": "e2490de5-5bd3-43d5-b7c4-526e33f71304",
+          "isPrivate": false,
+          "isVerified": false,
+          "username": "alice"
+        },
+        "generators": {
+          "body": {
+            "$.id": {
+              "type": "Uuid"
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.avatar": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "null"
+                }
+              ]
+            },
+            "$.bio": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.createdAt": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "^\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d\\.\\d+(Z|[+-][0-2]\\d:?[0-5]\\d)$"
+                }
+              ]
+            },
+            "$.displayName": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.isPrivate": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.isVerified": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.username": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    }
+  ],
+  "metadata": {
+    "pact-js": {
+      "version": "17.1.2"
+    },
+    "pactRust": {
+      "ffi": "0.5.6",
+      "models": "1.3.14"
+    },
+    "pactSpecification": {
+      "version": "3.0.0"
+    }
+  },
+  "provider": {
+    "name": "backend"
+  }
+}

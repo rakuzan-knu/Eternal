@@ -10,6 +10,22 @@ Element.prototype.scrollIntoView = Element.prototype.scrollIntoView || (() => {}
 global.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
 global.URL.revokeObjectURL = vi.fn();
 
+// jsdom does not implement ResizeObserver & IntersectionObserver
+global.ResizeObserver = class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+
+global.IntersectionObserver = class IntersectionObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+  takeRecords() {
+    return [];
+  }
+} as unknown as typeof IntersectionObserver;
+
 vi.mock('socket.io-client', () => ({
   io: vi.fn(() => ({
     on: vi.fn(),

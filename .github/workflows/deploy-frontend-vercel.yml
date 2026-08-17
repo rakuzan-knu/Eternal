@@ -37,10 +37,13 @@ jobs:
       - name: Install root deps
         run: pnpm install --frozen-lockfile --ignore-scripts
 
+      - name: Generate Prisma Client
+        run: pnpm --filter backend exec prisma generate
+
       - name: Build Frontend
         run: pnpm --filter frontend build
         env:
-          VITE_API_URL: ${{ secrets.VITE_API_URL || 'https://social-network-backend.onrender.com/api' }}
+          VITE_API_URL: ${{ secrets.VITE_API_URL || 'https://social-network-backend-4h47.onrender.com' }}
 
       - name: Deploy to Vercel (Staged Preview)
         id: vercel_stage

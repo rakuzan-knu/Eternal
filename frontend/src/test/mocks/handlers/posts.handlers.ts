@@ -1,7 +1,5 @@
 import { http, HttpResponse } from 'msw';
 
-const API_URL = 'http://localhost:3000/api';
-
 const mockPosts = [
   {
     id: 1,
@@ -60,14 +58,14 @@ const mockReposts = [
 ];
 
 export const postsHandlers = [
-  http.get(`${API_URL}/posts`, () =>
+  http.get('*/posts', () =>
     HttpResponse.json({
       posts: mockPosts,
       nextCursor: null,
     }),
   ),
 
-  http.post(`${API_URL}/posts`, () =>
+  http.post('*/posts', () =>
     HttpResponse.json({
       id: 999,
       authorId: 'user-1',
@@ -85,23 +83,23 @@ export const postsHandlers = [
     }),
   ),
 
-  http.get(`${API_URL}/users/:userId/posts`, () =>
+  http.get('*/users/:userId/posts', () =>
     HttpResponse.json({
       posts: mockPosts,
       nextCursor: null,
     }),
   ),
 
-  http.get(`${API_URL}/users/:userId/reposts`, () =>
+  http.get('*/users/:userId/reposts', () =>
     HttpResponse.json({
       posts: mockReposts,
       nextCursor: null,
     }),
   ),
 
-  http.post(`${API_URL}/posts/:id/like`, () => HttpResponse.json({ success: true })),
-  http.delete(`${API_URL}/posts/:id/like`, () => HttpResponse.json({ success: true })),
-  http.post(`${API_URL}/posts/:id/repost`, () => HttpResponse.json({ success: true })),
-  http.post(`${API_URL}/posts/:id/poll/vote`, () => HttpResponse.json({ success: true })),
-  http.get(`${API_URL}/posts/:id/poll/voters`, () => HttpResponse.json([])),
+  http.post('*/posts/:id/like', () => HttpResponse.json({ success: true })),
+  http.delete('*/posts/:id/like', () => HttpResponse.json({ success: true })),
+  http.post('*/posts/:id/repost', () => HttpResponse.json({ success: true })),
+  http.post('*/posts/:id/poll/vote', () => HttpResponse.json({ success: true })),
+  http.get('*/posts/:id/poll/voters', () => HttpResponse.json([])),
 ];

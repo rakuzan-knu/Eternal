@@ -13,7 +13,11 @@ import { REDIS_CLIENT } from './redis.constants';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
         const url = configService.get<string>('REDIS_URL');
-        return new Redis(url as string);
+        return new Redis(url as string, {
+          maxRetriesPerRequest: 2,
+          connectTimeout: 2000,
+          retryStrategy: (times) => (times > 3 ? null : Math.min(times * 100, 1000)),
+        });
       },
     },
     RedisService,
@@ -24,6 +28,19 @@ export class RedisModule implements OnModuleDestroy {
   constructor(private readonly redisService: RedisService) {}
 
   async onModuleDestroy(): Promise<void> {
-    await this.redisService.getClient().quit();
+    try {
+      const client = this.redisService.getClient();
+      if (
+        client.status === 'ready' ||
+        client.status === 'connecting' ||
+        client.status === 'connect'
+      ) {
+        await client.quit();
+      } else {
+        client.disconnect();
+      }
+    } catch {
+      // ignore on teardown
+    }
   }
 }

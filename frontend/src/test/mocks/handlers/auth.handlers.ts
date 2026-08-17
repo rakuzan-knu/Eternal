@@ -1,9 +1,7 @@
 import { http, HttpResponse } from 'msw';
 
-const API_URL = 'http://localhost:3000/api';
-
 export const authHandlers = [
-  http.post(`${API_URL}/auth/login`, async ({ request }) => {
+  http.post('*/auth/login', async ({ request }) => {
     const body = (await request.json()) as { email: string; password: string };
 
     if (body.email === 'test@example.com' && body.password === 'Password123!') {
@@ -22,7 +20,7 @@ export const authHandlers = [
     return HttpResponse.json({ message: 'Invalid credentials' }, { status: 401 });
   }),
 
-  http.get(`${API_URL}/auth/check-username`, ({ request }) => {
+  http.get('*/auth/check-username', ({ request }) => {
     const url = new URL(request.url);
     const username = url.searchParams.get('username');
     if (username === 'taken' || username === 'test_taken' || username === 'existing') {
@@ -31,7 +29,7 @@ export const authHandlers = [
     return HttpResponse.json({ isAvailable: true });
   }),
 
-  http.post(`${API_URL}/auth/register`, async ({ request }) => {
+  http.post('*/auth/register', async ({ request }) => {
     const body = (await request.json()) as Record<string, string>;
 
     if (body.email === 'existing@example.com') {
@@ -53,11 +51,11 @@ export const authHandlers = [
     );
   }),
 
-  http.post(`${API_URL}/auth/refresh`, () => {
+  http.post('*/auth/refresh', () => {
     return HttpResponse.json({ accessToken: 'new-mock-access-token' });
   }),
 
-  http.post(`${API_URL}/auth/logout`, () => {
+  http.post('*/auth/logout', () => {
     return new HttpResponse(null, { status: 204 });
   }),
 
@@ -73,7 +71,7 @@ export const authHandlers = [
     });
   }),
 
-  http.get(`${API_URL}/users/me`, () => {
+  http.get('*/users/me', () => {
     return HttpResponse.json({
       id: 'user-1',
       username: 'my_profile',
@@ -86,7 +84,7 @@ export const authHandlers = [
     });
   }),
 
-  http.get(`${API_URL}/users/:id`, ({ params }) => {
+  http.get('*/users/:id', ({ params }) => {
     const { id } = params;
     return HttpResponse.json({
       id: id as string,

@@ -184,6 +184,38 @@ Before creating a new component:
 
 ---
 
+## Testing Standards
+
+### Test Pyramid & Tooling
+
+| Layer                                            | Tool             | Command                                | Location                      |
+| ------------------------------------------------ | ---------------- | -------------------------------------- | ----------------------------- |
+| Backend unit                                     | Jest             | `pnpm --filter backend test`           | `src/**/*.spec.ts`            |
+| Backend integration (Testcontainers/GH services) | Jest + Supertest | `pnpm --filter backend test:e2e`       | `test/*.e2e-spec.ts`          |
+| Frontend unit                                    | Vitest + RTL     | `pnpm --filter frontend test`          | `src/**/*.test.{ts,tsx}`      |
+| Frontend E2E                                     | Playwright       | `pnpm --filter frontend test:e2e`      | `e2e/*.spec.ts`               |
+| Contract tests                                   | Pact             | `pnpm --filter frontend test:contract` | `src/contract/*.pact.test.ts` |
+| Mutation testing                                 | Stryker          | `pnpm --filter <pkg> test:mutation`    | `stryker.config.json`         |
+
+### Writing Tests
+
+- **Test behavior, not implementation.** Assert observable outcomes (rendered content, returned values, HTTP status), never that a dependency "was called".
+- **No coverage padding.** Forbidden patterns: `expect(x).toBeTruthy()`, assertions that only check `toBeDefined()`, snapshot-only tests, `test.skip`/`describe.skip`, empty `waitFor`.
+- **No type-safety bypasses.** `any`, `@ts-ignore`, and `eslint-disable` are rejected in review and by lint.
+- **Backend units:** mock at the boundary (Prisma, Redis, MinIO) with `jest.mock(..., requireActual)` when partial mocking is needed; keep business logic tests DB-free.
+- **Frontend units:** mock the API layer with MSW; test components through user-visible roles and labels (RTL queries), not CSS selectors.
+- **Playwright:** scope API mocks to the backend origin via `e2e/fixtures.ts` helpers (`mockApi`), never a bare `/api/` glob — loose globs hijack Vite dev-server asset URLs. The app uses `withCredentials`, so mocks must echo CORS headers (the helpers do this for you).
+- **Contracts:** when a frontend API call's request/response shape changes, update `src/contract/api.pact.test.ts` and commit the regenerated `backend/pacts/frontend-backend.json`.
+
+### Quality Gates (CI-enforced)
+
+- `pnpm run typecheck` and `pnpm run lint` must pass with zero errors/warnings.
+- All unit, integration, and E2E suites must pass on every PR.
+- Stryker mutation score must stay **≥ 85%** (`break` threshold in each `stryker.config.json`); full runs execute weekly and on demand via the _Mutation Testing_ workflow.
+- Playwright and Pact consumer suites run on every PR; provider verification runs via `pnpm --filter backend test:pact:verify` against a seeded environment.
+
+---
+
 # 🔀 5. Pull Request Guidelines
 
 When your feature is complete, open a PR into `main` (for stable releases) or `develop` (for beta builds).

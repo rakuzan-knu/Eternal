@@ -29,7 +29,8 @@
       "@common/*": ["./src/common/*", "./src/common/*/index.ts"],
       "@common/prisma": ["./src/common/prisma/index.ts"],
       "@common/contracts": ["./src/common/contracts/index.ts"],
-      "@common/pagination": ["./src/common/pagination/index.ts"]
+      "@common/pagination": ["./src/common/pagination.ts"],
+      "socket.io-client": ["./node_modules/socket.io-client/build/cjs/index.d.ts"]
     }
   },
   "include": ["src/**/*", "test/**/*"]

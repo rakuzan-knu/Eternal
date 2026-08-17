@@ -69,7 +69,7 @@ export default async function handler(req: Request, res: Response): Promise<void
     app.set('trust proxy', 1);
     app.use(helmet());
     app.enableCors({
-      origin: process.env.CORS_ORIGIN?.split(',') ?? '*',
+      origin: process.env.CORS_ORIGIN?.split(',').map((o) => o.trim()) ?? '*',
       credentials: true,
     });
     app.useWebSocketAdapter(new IoAdapter(app));

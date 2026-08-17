@@ -56,6 +56,11 @@ jobs:
       - name: Terraform Validate
         run: terraform validate
 
+      - name: Import Existing Vercel Project if Present
+        if: env.VERCEL_API_TOKEN != 'dummy_token' && env.VERCEL_API_TOKEN != ''
+        run: |
+          terraform import vercel_project.social_network_frontend[0] social-network || true
+
       - name: Terraform Plan
         id: plan
         run: |

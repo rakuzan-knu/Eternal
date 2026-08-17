@@ -7,6 +7,8 @@ import ProfilePage from '../Profile';
 import { useUIStore } from '../../../shared/model/useUIStore';
 import { useAuthStore } from '../../../shared/model/useAuthStore';
 import { resetUIStore } from '../../../test/resetUIStore';
+import { server } from '../../../test/mocks/server';
+import { http, HttpResponse } from 'msw';
 
 vi.mock('emoji-picker-react', () => ({
   default: () => <div data-testid="mock-emoji-picker" />,
@@ -113,8 +115,22 @@ describe('ProfilePage', () => {
 
     const commentButton = await screen.findByText('2');
     await user.click(commentButton);
-
     expect(useUIStore.getState().isCommentModalOpen).toBe(true);
     expect(useUIStore.getState().activePostForComments?.text).toBe('Thats fire!');
+  });
+
+  it('renders error fallback when profile fails to load', async () => {
+    server.use(
+      http.get('*/users/by-username/:username', () => {
+        return HttpResponse.json({ message: 'User not found' }, { status: 404 });
+      }),
+    );
+
+    renderProfile(['/nonexistent_user']);
+
+    expect(
+      await screen.findByText('Failed to load profile. Please try again later.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Return to Feed')).toBeInTheDocument();
   });
 });

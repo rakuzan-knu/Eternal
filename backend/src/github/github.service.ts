@@ -34,10 +34,15 @@ export class GithubService {
   }
 
   private get callbackUrl(): string {
-    return (
-      this.config.get<string>('GITHUB_CALLBACK_URL') ||
-      'http://localhost:5000/api/auth/github/callback'
-    );
+    const configured = this.config.get<string>('GITHUB_CALLBACK_URL');
+    if (configured) return configured;
+    const port = this.config.get<number>('PORT') || 3000;
+    return `http://localhost:${port}/auth/github/callback`;
+  }
+
+  private get frontendRedirectUrl(): string {
+    const raw = this.config.get<string>('CORS_ORIGIN') || 'http://localhost:5173';
+    return raw.split(',')[0].trim().replace(/\/+$/, '');
   }
 
   private get systemToken(): string {
@@ -104,8 +109,7 @@ export class GithubService {
     if (!csrfFromState || !cookieState || csrfFromState !== cookieState) {
       this.logger.warn(`CSRF state mismatch during GitHub OAuth callback.`);
       res.clearCookie('github_oauth_state');
-      const corsOrigin = this.config.get<string>('CORS_ORIGIN') || 'http://localhost:5173';
-      return res.redirect(`${corsOrigin}/settings?error=csrf_state_mismatch`);
+      return res.redirect(`${this.frontendRedirectUrl}/settings?error=csrf_state_mismatch`);
     }
 
     res.clearCookie('github_oauth_state');
@@ -168,13 +172,11 @@ export class GithubService {
         await this.syncUserGithubContributions(targetUserId);
       }
 
-      const corsOrigin = this.config.get<string>('CORS_ORIGIN') || 'http://localhost:5173';
-      res.redirect(`${corsOrigin}/settings?github=connected`);
+      res.redirect(`${this.frontendRedirectUrl}/settings?github=connected`);
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
       this.logger.error(`GitHub OAuth Callback Exception: ${errMsg}`);
-      const corsOrigin = this.config.get<string>('CORS_ORIGIN') || 'http://localhost:5173';
-      res.redirect(`${corsOrigin}/settings?error=oauth_failed`);
+      res.redirect(`${this.frontendRedirectUrl}/settings?error=oauth_failed`);
     }
   }
 

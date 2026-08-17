@@ -16,7 +16,9 @@ const MAX_429_RETRIES = 3;
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+  baseURL: (import.meta.env.VITE_API_URL || 'http://localhost:3000')
+    .replace(/\/api\/?$/, '')
+    .replace(/\/+$/, ''),
   withCredentials: true,
 });
 
@@ -32,7 +34,8 @@ async function requestTokenRefresh(): Promise<string> {
   const refreshToken = localStorage.getItem('refreshToken');
   if (!refreshToken) throw new Error('No refresh token available');
 
-  const response = await axios.post(`${apiClient.defaults.baseURL}/auth/refresh`, {
+  const base = (apiClient.defaults.baseURL || '').replace(/\/+$/, '');
+  const response = await axios.post(`${base}/auth/refresh`, {
     refreshToken,
   });
   const { accessToken, refreshToken: newRefreshToken } = response.data;

@@ -35,6 +35,14 @@
         "cwd": "backend",
         "forwardAllArgs": false
       }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm test:ci",
+        "cwd": "backend",
+        "forwardAllArgs": false
+      }
     }
   }
 }

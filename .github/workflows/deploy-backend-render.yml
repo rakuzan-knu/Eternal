@@ -23,7 +23,7 @@ jobs:
     name: Verify Signature & Deploy Backend to Render
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     permissions:
       contents: read
       packages: read
@@ -90,7 +90,7 @@ jobs:
 
       - name: Run Canary Smoke Test against Backend
         env:
-          BACKEND_URL: ${{ secrets.BACKEND_URL || 'https://social-network-backend.onrender.com' }}
+          BACKEND_URL: ${{ secrets.BACKEND_URL || 'https://social-network-backend-4h47.onrender.com' }}
           SMOKE_MAX_ATTEMPTS: 12
           SMOKE_DELAY_MS: 10000
         run: |

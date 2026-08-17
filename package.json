@@ -80,7 +80,7 @@
     "@scarf/scarf": false
   },
   "engines": {
-    "node": ">=24.0.0",
+    "node": ">=24.11.0",
     "pnpm": ">=10.0.0",
     "npm": ">=10.0.0"
   },

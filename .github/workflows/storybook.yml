@@ -34,6 +34,9 @@ jobs:
       - name: Install deps
         run: pnpm install --frozen-lockfile --ignore-scripts
 
+      - name: Generate Prisma Client
+        run: pnpm --filter backend exec prisma generate
+
       - name: Build Storybook
         run: pnpm --filter frontend run build:storybook
 
@@ -43,3 +46,41 @@ jobs:
           name: storybook-build
           path: frontend/storybook-static/
           retention-days: 3
+
+  # Skipped until the CHROMATIC_TOKEN repository secret is configured; once
+  # present, every PR publishes snapshots and fails on visual regressions.
+  visual-regression:
+    name: Visual Regression — Chromatic
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: build-storybook
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5dd2 # v4.0.0
+
+      - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Download Storybook build
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          name: storybook-build
+          path: frontend/storybook-static
+
+      - name: Publish to Chromatic
+        if: env.CHROMATIC_PROJECT_TOKEN != ''
+        working-directory: frontend
+        run: pnpm exec chromatic --storybook-build-dir=storybook-static --exit-once-uploaded
+        env:
+          CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_TOKEN }}

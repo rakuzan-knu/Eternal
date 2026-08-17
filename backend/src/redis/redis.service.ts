@@ -13,16 +13,29 @@ export class RedisService {
   }
 
   async set(key: string, value: string, ttlSeconds: number): Promise<void> {
-    const safeTtl = Math.max(1, Math.floor(ttlSeconds));
-    await this.client.set(key, value, 'EX', safeTtl);
+    try {
+      const safeTtl = Math.max(1, Math.floor(ttlSeconds));
+      await this.client.set(key, value, 'EX', safeTtl);
+    } catch (e) {
+      this.logger.warn(`Redis set failed for ${key}: ${String(e)}`);
+    }
   }
 
   async get(key: string): Promise<string | null> {
-    return this.client.get(key);
+    try {
+      return await this.client.get(key);
+    } catch (e) {
+      this.logger.warn(`Redis get failed for ${key}: ${String(e)}`);
+      return null;
+    }
   }
 
   async del(key: string): Promise<void> {
-    await this.client.del(key);
+    try {
+      await this.client.del(key);
+    } catch (e) {
+      this.logger.warn(`Redis del failed for ${key}: ${String(e)}`);
+    }
   }
 
   /** Deletes every key matching a glob pattern using scanStream. */
@@ -44,8 +57,13 @@ export class RedisService {
   }
 
   async exists(key: string): Promise<boolean> {
-    const result = await this.client.exists(key);
-    return result === 1;
+    try {
+      const result = await this.client.exists(key);
+      return result === 1;
+    } catch (e) {
+      this.logger.warn(`Redis exists failed for ${key}: ${String(e)}`);
+      return false;
+    }
   }
 
   async getOrSet<T>(key: string, ttlSeconds: number, loader: () => Promise<T>): Promise<T> {

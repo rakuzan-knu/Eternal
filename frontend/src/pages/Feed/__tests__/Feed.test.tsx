@@ -41,11 +41,7 @@ describe('FeedPage', () => {
   });
 
   it('renders the empty-feed placeholder when there are no posts', async () => {
-    server.use(
-      http.get('http://localhost:3000/api/posts', () =>
-        HttpResponse.json({ posts: [], nextCursor: null }),
-      ),
-    );
+    server.use(http.get('*/posts', () => HttpResponse.json({ posts: [], nextCursor: null })));
 
     renderWithProviders(<FeedPage />);
 

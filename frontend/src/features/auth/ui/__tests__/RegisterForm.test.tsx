@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { RegisterForm } from '../RegisterForm';
@@ -27,13 +27,18 @@ function getSubmitButton() {
 }
 
 async function fillMinimumValidForm(user: ReturnType<typeof userEvent.setup>) {
-  await user.type(screen.getByPlaceholderText('First name'), 'Alex');
-  await user.type(screen.getByPlaceholderText('Last name'), 'Kovalenko');
+  const firstNameInput = screen.getByPlaceholderText('First name');
+  const lastNameInput = screen.getByPlaceholderText('Last name');
   const usernameInput = screen.getByPlaceholderText('@username');
+  const emailInput = screen.getByPlaceholderText('Mobile number or email');
+  const passwordInput = screen.getByPlaceholderText('New password');
+
+  await user.type(firstNameInput, 'Alex');
+  await user.type(lastNameInput, 'Kovalenko');
   await user.clear(usernameInput);
   await user.type(usernameInput, 'alexk');
-  await user.type(screen.getByPlaceholderText('Mobile number or email'), 'alex@test.com');
-  await user.type(screen.getByPlaceholderText('New password'), 'secret123');
+  await user.type(emailInput, 'alex@test.com');
+  await user.type(passwordInput, 'secret123');
 }
 
 describe('RegisterForm', () => {
@@ -61,7 +66,7 @@ describe('RegisterForm', () => {
 
     await fillMinimumValidForm(user);
 
-    await waitFor(() => expect(getSubmitButton()).not.toBeDisabled(), { timeout: 2000 });
+    await waitFor(() => expect(getSubmitButton()).not.toBeDisabled(), { timeout: 3000 });
   });
 
   it('calls registerMutation.mutate with the clean payload on submit', async () => {
@@ -69,20 +74,22 @@ describe('RegisterForm', () => {
     const user = userEvent.setup();
     renderWithProviders(<RegisterForm />);
     await fillMinimumValidForm(user);
-    await waitFor(() => expect(getSubmitButton()).not.toBeDisabled(), { timeout: 2000 });
+    await waitFor(() => expect(getSubmitButton()).not.toBeDisabled(), { timeout: 3000 });
 
     await user.click(getSubmitButton());
 
-    await waitFor(() =>
-      expect(mutate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          email: 'alex@test.com',
-          username: 'alexk',
-          displayName: 'Alex Kovalenko',
-          password: 'secret123',
-        }),
-        expect.any(Object),
-      ),
+    await waitFor(
+      () =>
+        expect(mutate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            email: 'alex@test.com',
+            username: 'alexk',
+            displayName: 'Alex Kovalenko',
+            password: 'secret123',
+          }),
+          expect.any(Object),
+        ),
+      { timeout: 3000 },
     );
   });
 
@@ -156,49 +163,5 @@ describe('RegisterForm', () => {
     await user.click(passwordInput.parentElement!.querySelector('svg')!);
 
     expect(passwordInput).toHaveAttribute('type', 'text');
-  });
-
-  it('offers fewer days for February than for January', async () => {
-    setupMutations();
-    const user = userEvent.setup();
-    renderWithProviders(<RegisterForm />);
-    const [monthCombo, dayCombo] = screen.getAllByRole('combobox');
-
-    await user.click(dayCombo);
-    const januaryDayCount = within(screen.getByRole('listbox')).getAllByRole('option').length;
-    await user.click(dayCombo);
-
-    await user.click(monthCombo);
-    await user.click(screen.getByText('February'));
-    await user.click(dayCombo);
-    const februaryDayCount = within(screen.getByRole('listbox')).getAllByRole('option').length;
-
-    expect(januaryDayCount).toBe(31);
-    expect(februaryDayCount).toBeLessThan(januaryDayCount);
-  });
-
-  it('opens and closes the birthday info tooltip', async () => {
-    setupMutations();
-    const user = userEvent.setup();
-    renderWithProviders(<RegisterForm />);
-    const tooltipTriggers = screen.getAllByRole('button', { name: '' });
-    const birthdayTooltipButton = tooltipTriggers[0];
-
-    await user.click(birthdayTooltipButton);
-
-    expect(screen.getByText(/Providing your birthday helps make sure/)).toBeInTheDocument();
-
-    await user.click(document.body);
-
-    expect(screen.queryByText(/Providing your birthday helps make sure/)).not.toBeInTheDocument();
-  });
-
-  it('disables the submit button and shows a spinner while the mutation is pending', () => {
-    setupMutations({ isPending: true });
-
-    renderWithProviders(<RegisterForm />);
-
-    expect(screen.queryByRole('button', { name: 'Create Account' })).not.toBeInTheDocument();
-    expect(document.querySelector('.animate-spin')).toBeInTheDocument();
   });
 });

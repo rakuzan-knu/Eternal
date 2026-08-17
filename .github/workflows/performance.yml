@@ -3,8 +3,10 @@ name: Performance Benchmarks & Regression Detection
 on:
   push:
     branches: [main, develop]
-  pull_request:
-    branches: [main, develop]
+  schedule:
+    # Nightly regression detection; too heavy to gate every PR.
+    - cron: '0 1 * * *'
+  workflow_dispatch:
 
 concurrency:
   group: performance-${{ github.ref }}

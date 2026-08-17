@@ -6,12 +6,24 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['eslint.config.mjs', 'dist/**'],
+    ignores: [
+      '**/eslint.config.mjs',
+      '**/dist/**',
+      '**/build/**',
+      '**/coverage/**',
+      '**/src/coverage/**',
+      '**/reports/**',
+      '**/.stryker-tmp/**',
+      '**/.eslintcache',
+      '**/*.log',
+      '**/node_modules/**',
+    ],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   eslintPluginPrettierRecommended,
   {
+    files: ['**/*.ts'],
     languageOptions: {
       globals: {
         ...globals.node,
@@ -23,8 +35,6 @@ export default tseslint.config(
         tsconfigRootDir: import.meta.dirname,
       },
     },
-  },
-  {
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-floating-promises': 'warn',

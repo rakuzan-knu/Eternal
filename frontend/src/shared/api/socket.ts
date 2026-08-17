@@ -3,8 +3,8 @@ import { io, Socket } from 'socket.io-client';
 let socket: Socket | null = null;
 
 function getSocketBaseUrl() {
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
-  return apiUrl.replace(/\/api\/?$/, '');
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  return apiUrl.replace(/\/api\/?$/, '').replace(/\/+$/, '');
 }
 
 export function getSocket(): Socket {

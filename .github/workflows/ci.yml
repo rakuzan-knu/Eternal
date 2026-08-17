@@ -14,8 +14,8 @@ concurrency:
 permissions: read-all
 
 jobs:
-  validate-eol:
-    name: Validate Line Endings
+  preflight:
+    name: Preflight — EOL & K8s Policies
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -29,6 +29,56 @@ jobs:
 
       - name: Check for CRLF line endings
         run: node scripts/validate-eol.js
+
+      - name: Run K8s Policy-as-Code verification script
+        run: node scripts/verify-k8s-policies.cjs
+
+  plan:
+    name: Plan — Changed Paths
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      base-sha: ${{ steps.sha.outputs.base }}
+      backend-changed: ${{ steps.paths.outputs.backend }}
+      frontend-changed: ${{ steps.paths.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Resolve comparison base
+        id: sha
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE="${{ github.event.before }}"
+          fi
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            BASE=$(git rev-parse HEAD~1 2>/dev/null || git rev-list --max-parents=0 HEAD)
+          fi
+          echo "base=$BASE" >> $GITHUB_OUTPUT
+
+      - name: Detect changed areas
+        id: paths
+        run: |
+          BASE="${{ steps.sha.outputs.base }}"
+          MB=$(git merge-base "$BASE" HEAD)
+          git diff --name-only "$MB" HEAD > /tmp/changed.txt
+
+          SHARED='^(pnpm-lock\.yaml|package\.json|nx\.json|tsconfig\.base\.json|\.github/workflows/ci\.yml)$'
+          if grep -Eq "^backend/|$SHARED" /tmp/changed.txt; then
+            echo "backend=true" >> $GITHUB_OUTPUT
+          else
+            echo "backend=false" >> $GITHUB_OUTPUT
+          fi
+          if grep -Eq "^frontend/|$SHARED" /tmp/changed.txt; then
+            echo "frontend=true" >> $GITHUB_OUTPUT
+          else
+            echo "frontend=false" >> $GITHUB_OUTPUT
+          fi
 
   commitlint:
     name: Commitlint
@@ -105,7 +155,7 @@ jobs:
     name: Nx — Affected Lint, Typecheck & Build
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: setup
+    needs: [setup, plan]
     permissions:
       contents: read
     steps:
@@ -128,22 +178,26 @@ jobs:
             ~/.cache/prisma
           key: ${{ needs.setup.outputs.cache-key }}
           fail-on-cache-miss: true
+
+      - name: Cache Nx task outputs
+        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
+        with:
+          path: .nx
+          key: nx-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          restore-keys: |
+            nx-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
 
       - name: Run Nx Affected Tasks (Lint, Typecheck, Build)
         run: |
-          BASE_SHA="${{ github.event.pull_request.base.sha || 'HEAD~1' }}"
-          npx nx run-many -t lint typecheck build --affected --base=$BASE_SHA --parallel=3
+          npx nx run-many -t lint typecheck build --affected --base=${{ needs.plan.outputs.base-sha }} --parallel=3
 
-  backend-test:
-    name: Backend — Unit Tests (Shard ${{ matrix.shard }})
+  unit-tests:
+    name: Unit Tests — Affected (PR) / Full (trunk)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: setup
+    timeout-minutes: 20
+    needs: [setup, plan]
     permissions:
       contents: read
-    strategy:
-      matrix:
-        shard: [1, 2, 3]
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
@@ -165,29 +219,36 @@ jobs:
           key: ${{ needs.setup.outputs.cache-key }}
           fail-on-cache-miss: true
 
-      - name: Unit tests + coverage
-        working-directory: backend
-        run: pnpm exec jest --coverage --ci --shard=${{ matrix.shard }}/3 --forceExit --passWithNoTests --detectOpenHandles
+      - name: Run affected unit tests
+        if: github.event_name == 'pull_request'
+        run: npx nx run-many -t test --affected --base=${{ needs.plan.outputs.base-sha }} --parallel=2
+
+      - name: Run full unit tests with coverage (trunk)
+        if: github.event_name != 'pull_request'
+        run: pnpm -r test:cov:ci
 
       - name: Upload coverage
-        if: always()
+        if: always() && github.event_name != 'pull_request'
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
-          name: backend-coverage-shard-${{ matrix.shard }}
-          path: backend/coverage/
+          name: unit-test-coverage
+          path: |
+            backend/coverage/
+            frontend/coverage/
           retention-days: 7
 
   backend-e2e:
     name: Backend — E2E Tests (${{ matrix.module }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: setup
+    needs: [setup, plan]
+    if: needs.plan.outputs.backend-changed == 'true'
     permissions:
       contents: read
     strategy:
       fail-fast: false
       matrix:
-        module: [health, auth, posts, users]
+        module: [health, auth, posts, users, chat, chat.socket]
 
     services:
       postgres:
@@ -261,7 +322,8 @@ jobs:
     name: Backend — API Contract Verification
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: setup
+    needs: [setup, plan]
+    if: needs.plan.outputs.backend-changed == 'true'
     permissions:
       contents: read
 
@@ -338,15 +400,17 @@ jobs:
           npx wait-on http://localhost:3000/api/health/live --timeout 60000 --interval 1000
           node ../scripts/verify-api-contract.cjs
           node ../scripts/verify-pact-contracts.cjs
+          PACT_PROVIDER_URL=http://localhost:3000 pnpm test:pact:verify
           kill $SERVER_PID || true
         env:
           NODE_ENV: test
 
-  frontend-test:
-    name: Frontend — Unit Tests
+  frontend-e2e:
+    name: Frontend — Playwright E2E
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    needs: setup
+    timeout-minutes: 20
+    needs: [setup, plan]
+    if: needs.plan.outputs.frontend-changed == 'true'
     permissions:
       contents: read
     steps:
@@ -370,24 +434,67 @@ jobs:
           key: ${{ needs.setup.outputs.cache-key }}
           fail-on-cache-miss: true
 
-      - name: Unit tests + coverage
-        working-directory: frontend
-        run: pnpm exec vitest run --coverage --reporter=default --reporter=github-actions --coverage.thresholds.lines=0 --coverage.thresholds.statements=0 --coverage.thresholds.functions=0 --coverage.thresholds.branches=0
+      - name: Cache Playwright browsers
+        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
 
-      - name: Upload coverage
-        if: always()
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run Playwright E2E suite
+        working-directory: frontend
+        run: pnpm test:e2e
+
+      - name: Upload Playwright report
+        if: failure()
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
-          name: frontend-coverage
-          path: frontend/coverage/
+          name: frontend-playwright-report
+          path: frontend/playwright-report/
           retention-days: 7
+
+  frontend-contract:
+    name: Frontend — Pact Consumer Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [setup, plan]
+    if: needs.plan.outputs.frontend-changed == 'true'
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5dd2 # v4.0.0
+
+      - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Restore Monorepo Dependencies
+        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
+        with:
+          path: |
+            node_modules
+            backend/node_modules
+            frontend/node_modules
+            ~/.cache/prisma
+          key: ${{ needs.setup.outputs.cache-key }}
+          fail-on-cache-miss: true
+
+      - name: Run Pact consumer contract tests
+        working-directory: frontend
+        run: pnpm test:contract
 
   frontend-prod-assessment:
     name: Frontend — Lighthouse & Bundle Size
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    needs: setup
-    if: github.event_name == 'pull_request'
+    needs: [setup, plan]
+    if: github.event_name == 'pull_request' && needs.plan.outputs.frontend-changed == 'true'
     permissions:
       contents: read
       pull-requests: write
@@ -429,22 +536,6 @@ jobs:
           strip-hash: "\\b\\w{8}\\."
           build-script: "build"
 
-  k8s-policy-check:
-    name: Kubernetes Policy-as-Code Guardrails Check
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
-        with:
-          node-version-file: '.nvmrc'
-
-      - name: Run K8s Policy-as-Code verification script
-        run: node scripts/verify-k8s-policies.cjs
-
   dependency-review:
     name: Dependency Review — Security & Compliance
     runs-on: ubuntu-latest
@@ -466,6 +557,8 @@ jobs:
     name: Docker — Build, Scan & Cosign (${{ matrix.service }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    needs: [setup, plan]
+    if: needs.plan.outputs.backend-changed == 'true' || needs.plan.outputs.frontend-changed == 'true'
     permissions:
       contents: read
       security-events: write
@@ -539,16 +632,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs:
-      - validate-eol
+      - preflight
       - commitlint
       - setup
+      - plan
       - nx-affected
-      - backend-test
+      - unit-tests
       - backend-e2e
       - backend-contract-test
-      - k8s-policy-check
       - dependency-review
-      - frontend-test
+      - frontend-e2e
+      - frontend-contract
       - frontend-prod-assessment
       - docker-build
     if: always()

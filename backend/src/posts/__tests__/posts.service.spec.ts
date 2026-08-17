@@ -1,0 +1,351 @@
+import { ForbiddenException, GoneException, NotFoundException } from '@nestjs/common';
+import { MediaType } from '@prisma/client';
+import { PostsService } from '../posts.service';
+import type { PostsMediaService } from '../posts-media.service';
+import type { RedisService } from '../../redis/redis.service';
+import type { PrismaService } from '@common/prisma';
+import type { MessengerGateway } from '../../messenger/gateway/messenger.gateway';
+
+describe('PostsService', () => {
+  let service: PostsService;
+  let mockPostsRepository: {
+    getAllPosts: jest.Mock;
+    getPostById: jest.Mock;
+    createPost: jest.Mock;
+    searchPosts: jest.Mock;
+    getExploreMediaPosts: jest.Mock;
+    getPostsByHashtag: jest.Mock;
+    editPost: jest.Mock;
+    deletePost: jest.Mock;
+    savePost: jest.Mock;
+    unsavePost: jest.Mock;
+    getSavedPostsByUserId: jest.Mock;
+    repost: jest.Mock;
+    unrepost: jest.Mock;
+    getPostsByUserId: jest.Mock;
+    getRepostsByUserId: jest.Mock;
+    reportPost: jest.Mock;
+    incrementShareCount: jest.Mock;
+  };
+  let mockMediaService: {
+    processUploadedFiles: jest.Mock;
+  };
+  let mockRedis: {
+    get: jest.Mock;
+    set: jest.Mock;
+    del: jest.Mock;
+    delByPattern: jest.Mock;
+    getOrSet: jest.Mock;
+  };
+  let mockPrisma: {
+    poll: {
+      create: jest.Mock;
+      findUnique: jest.Mock;
+    };
+    vote: {
+      create: jest.Mock;
+      deleteMany: jest.Mock;
+    };
+    pollOption: {
+      update: jest.Mock;
+    };
+    user: {
+      findMany: jest.Mock;
+      findUnique: jest.Mock;
+    };
+    $transaction: jest.Mock;
+  };
+  let mockGateway: {
+    emitToUser: jest.Mock;
+  };
+
+  const sampleDate = new Date('2026-08-16T12:00:00.000Z');
+
+  const basePost = {
+    id: 'post-100',
+    content: 'Check this out @sam_dev #coding',
+    sharesCount: 1,
+    authorId: 'usr-author-1',
+    createdAt: sampleDate,
+    updatedAt: sampleDate,
+    media: [],
+    poll: null,
+    author: {
+      id: 'usr-author-1',
+      username: 'author_one',
+      displayName: 'Author One',
+      avatar: null,
+      isVerified: true,
+      primaryBadge: null,
+    },
+    isFollowing: false,
+    isSaved: false,
+    isReposted: false,
+    isLiked: false,
+    isOwner: false,
+    _count: { likes: 0, reposts: 0, comments: 0 },
+  };
+
+  beforeEach(() => {
+    mockPostsRepository = {
+      getAllPosts: jest.fn().mockResolvedValue([]),
+      getPostById: jest.fn(),
+      createPost: jest.fn(),
+      searchPosts: jest.fn().mockResolvedValue([]),
+      getExploreMediaPosts: jest.fn().mockResolvedValue([]),
+      getPostsByHashtag: jest.fn().mockResolvedValue({ posts: [], totalCount: 0 }),
+      editPost: jest.fn(),
+      deletePost: jest.fn(),
+      savePost: jest.fn().mockResolvedValue(undefined),
+      unsavePost: jest.fn().mockResolvedValue(undefined),
+      getSavedPostsByUserId: jest.fn().mockResolvedValue([]),
+      repost: jest.fn().mockResolvedValue(undefined),
+      unrepost: jest.fn().mockResolvedValue(undefined),
+      getPostsByUserId: jest.fn().mockResolvedValue([]),
+      getRepostsByUserId: jest.fn().mockResolvedValue([]),
+      reportPost: jest.fn().mockResolvedValue({ id: 'rep-1' }),
+      incrementShareCount: jest.fn().mockResolvedValue(undefined),
+    };
+
+    mockMediaService = {
+      processUploadedFiles: jest.fn().mockResolvedValue([]),
+    };
+
+    mockRedis = {
+      get: jest.fn(),
+      set: jest.fn(),
+      del: jest.fn().mockResolvedValue(1),
+      delByPattern: jest.fn().mockResolvedValue(1),
+      getOrSet: jest
+        .fn()
+        .mockImplementation((_key: string, _ttl: number, factory: () => unknown) => factory()),
+    };
+
+    mockPrisma = {
+      poll: {
+        create: jest.fn().mockResolvedValue({ id: 'poll-1', options: [], votes: [] }),
+        findUnique: jest.fn(),
+      },
+      vote: {
+        create: jest.fn().mockResolvedValue({}),
+        deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+      pollOption: {
+        update: jest.fn().mockResolvedValue({}),
+      },
+      user: {
+        findMany: jest.fn().mockResolvedValue([]),
+        findUnique: jest.fn(),
+      },
+      $transaction: jest
+        .fn()
+        .mockImplementation((cb: ((p: unknown) => unknown) | unknown[]) =>
+          typeof cb === 'function' ? cb(mockPrisma) : cb,
+        ),
+    };
+
+    mockGateway = {
+      emitToUser: jest.fn(),
+    };
+
+    service = new PostsService(
+      mockPostsRepository,
+      mockMediaService as unknown as PostsMediaService,
+      mockRedis as unknown as RedisService,
+      mockPrisma as unknown as PrismaService,
+      mockGateway as unknown as MessengerGateway,
+    );
+  });
+
+  describe('getAllPosts & getPostById', () => {
+    it('getAllPosts fetches from repository and paginates', async () => {
+      mockPostsRepository.getAllPosts.mockResolvedValueOnce([basePost]);
+
+      const result = await service.getAllPosts(10, undefined, 'usr-viewer');
+
+      expect(mockPostsRepository.getAllPosts).toHaveBeenCalledWith(10, undefined, 'usr-viewer');
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].id).toBe('post-100');
+    });
+
+    it('getPostById throws NotFoundException when post does not exist', async () => {
+      mockPostsRepository.getPostById.mockResolvedValueOnce(null);
+
+      await expect(service.getPostById('missing-post', 'usr-viewer')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('getPostById returns mapped post when found', async () => {
+      mockPostsRepository.getPostById.mockResolvedValueOnce(basePost);
+
+      const post = await service.getPostById('post-100', 'usr-viewer');
+      expect(post.id).toBe('post-100');
+      expect(post.handle).toBe('author_one');
+      expect(post.author).toBe('Author One');
+    });
+  });
+
+  describe('createPost', () => {
+    it('creates post with media, poll and notifies mentioned users', async () => {
+      mockPostsRepository.createPost.mockResolvedValueOnce({
+        ...basePost,
+        id: 'post-new-1',
+      });
+      mockPrisma.user.findMany.mockResolvedValueOnce([{ id: 'usr-sam', username: 'sam_dev' }]);
+      mockPrisma.user.findUnique.mockResolvedValueOnce({
+        id: 'usr-author-1',
+        username: 'author_one',
+        displayName: 'Author One',
+        avatar: null,
+      });
+
+      const dto = {
+        content: 'Check this out @sam_dev #coding',
+        media: [{ type: MediaType.IMAGE, url: 'https://cdn.com/img.png', order: 0 }],
+        gifUrls: ['https://cdn.com/a.gif'],
+        poll: ['Option A', 'Option B'],
+      };
+
+      const result = await service.createPost(dto, 'usr-author-1');
+
+      expect(mockPostsRepository.createPost).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.poll.create).toHaveBeenCalledTimes(1);
+      expect(mockGateway.emitToUser).toHaveBeenCalledWith(
+        'usr-sam',
+        'socialNotification',
+        expect.objectContaining({
+          type: 'MENTION',
+          postId: 'post-new-1',
+        }),
+      );
+      expect(mockRedis.delByPattern).toHaveBeenCalledWith('posts:feed:*');
+      expect(result.id).toBe('post-new-1');
+    });
+  });
+
+  describe('editPost & deletePost', () => {
+    it('editPost throws ForbiddenException if user is not post author', async () => {
+      mockPostsRepository.getPostById.mockResolvedValueOnce(basePost);
+
+      await expect(
+        service.editPost('post-100', { content: 'New content' }, 'other-user'),
+      ).rejects.toThrow(new ForbiddenException('You can only edit your own posts'));
+    });
+
+    it('editPost updates post and invalidates cache when user is author', async () => {
+      mockPostsRepository.getPostById.mockResolvedValueOnce(basePost);
+      mockPostsRepository.editPost.mockResolvedValueOnce({
+        ...basePost,
+        content: 'Updated content',
+      });
+
+      const result = await service.editPost(
+        'post-100',
+        { content: 'Updated content' },
+        'usr-author-1',
+      );
+
+      expect(mockPostsRepository.editPost).toHaveBeenCalledWith('post-100', {
+        content: 'Updated content',
+      });
+      expect(mockRedis.del).toHaveBeenCalledWith('posts:post-100');
+      expect(result.content).toBe('Updated content');
+    });
+
+    it('deletePost throws ForbiddenException if user is not author', async () => {
+      mockPostsRepository.getPostById.mockResolvedValueOnce(basePost);
+
+      await expect(service.deletePost('post-100', 'other-user')).rejects.toThrow(
+        new ForbiddenException('You can only delete your own posts'),
+      );
+    });
+
+    it('deletePost deletes post and clears cache when user is author', async () => {
+      mockPostsRepository.getPostById.mockResolvedValueOnce(basePost);
+      mockPostsRepository.deletePost.mockResolvedValueOnce(basePost);
+
+      const result = await service.deletePost('post-100', 'usr-author-1');
+
+      expect(mockPostsRepository.deletePost).toHaveBeenCalledWith('post-100');
+      expect(mockRedis.del).toHaveBeenCalledWith('posts:post-100');
+      expect(result.id).toBe('post-100');
+    });
+  });
+
+  describe('savePost, unsavePost, getSavedPosts', () => {
+    it('savePost and unsavePost delegate to repository and clear cache', async () => {
+      mockPostsRepository.getPostById.mockResolvedValueOnce(basePost);
+
+      expect(await service.savePost('post-100', 'usr-1')).toEqual({ success: true });
+      expect(mockPostsRepository.savePost).toHaveBeenCalledWith('post-100', 'usr-1');
+
+      expect(await service.unsavePost('post-100', 'usr-1')).toEqual({ success: true });
+      expect(mockPostsRepository.unsavePost).toHaveBeenCalledWith('post-100', 'usr-1');
+    });
+
+    it('getSavedPosts paginates saved posts', async () => {
+      mockPostsRepository.getSavedPostsByUserId.mockResolvedValueOnce([basePost]);
+
+      const result = await service.getSavedPosts('usr-1', 10);
+      expect(result.data).toHaveLength(1);
+    });
+  });
+
+  describe('repost & unrepost', () => {
+    it('repost delegates to repository, invalidates cache and emits notification', async () => {
+      mockPostsRepository.getPostById.mockResolvedValueOnce(basePost);
+      mockPrisma.user.findUnique
+        .mockResolvedValueOnce({ id: 'usr-reposter', username: 'reposter_user' })
+        .mockResolvedValueOnce({ username: 'author_one' });
+
+      const result = await service.repost('post-100', 'usr-reposter');
+
+      expect(mockPostsRepository.repost).toHaveBeenCalledWith('post-100', 'usr-reposter');
+      expect(mockGateway.emitToUser).toHaveBeenCalledWith(
+        'usr-author-1',
+        'socialNotification',
+        expect.objectContaining({ type: 'REPOST' }),
+      );
+      expect(result).toEqual({ success: true });
+    });
+
+    it('unrepost delegates to repository and invalidates cache', async () => {
+      const result = await service.unrepost('post-100', 'usr-reposter');
+      expect(mockPostsRepository.unrepost).toHaveBeenCalledWith('post-100', 'usr-reposter');
+      expect(result).toEqual({ success: true });
+    });
+  });
+
+  describe('votePoll', () => {
+    it('throws NotFoundException if poll does not exist', async () => {
+      mockPrisma.poll.findUnique.mockResolvedValueOnce(null);
+
+      await expect(service.votePoll('post-missing', 'opt-1', 'usr-1')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('throws GoneException if poll is no longer active', async () => {
+      mockPrisma.poll.findUnique.mockResolvedValueOnce({
+        isActive: false,
+        options: [{ id: 'opt-1' }],
+        votes: [],
+      });
+
+      await expect(service.votePoll('post-100', 'opt-1', 'usr-1')).rejects.toThrow(GoneException);
+    });
+
+    it('throws NotFoundException if chosen option is not in poll', async () => {
+      mockPrisma.poll.findUnique.mockResolvedValueOnce({
+        isActive: true,
+        options: [{ id: 'opt-1' }],
+        votes: [],
+      });
+
+      await expect(service.votePoll('post-100', 'opt-nonexistent', 'usr-1')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+});
