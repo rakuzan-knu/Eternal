@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0](https://github.com/rakuzan-knu/social-network/compare/v1.1.0...v1.2.0) (2026-08-18)
+
 ## [1.1.0](https://github.com/rakuzan-knu/social-network/compare/v1.0.4...v1.1.0) (2026-08-17)
 
 ## [1.0.4](https://github.com/rakuzan-knu/social-network/compare/v1.0.3...v1.0.4) (2026-08-15)
