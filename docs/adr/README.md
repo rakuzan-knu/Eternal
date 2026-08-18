@@ -4,25 +4,25 @@ This document records significant architectural decisions made for this project.
 
 ---
 
-## ADR-001: Monorepo with npm Workspaces
+## ADR-001: Monorepo with pnpm Workspaces
 
 **Status**: Accepted
 
-**Date**: 2026-06
+**Date**: 2026-06 (Updated 2026-08)
 
 ### Context
 
-We needed a way to manage both backend and frontend codebases in a single repository while maintaining clear separation of concerns.
+We needed a way to manage both backend and frontend codebases in a single repository while maintaining strict dependency isolation and fast installation speeds.
 
 ### Decision
 
-Use **npm workspaces** with two packages (`backend`, `frontend`) and a single root `package-lock.json`.
+Use **pnpm workspaces** with two packages (`backend`, `frontend`), `pnpm-workspace.yaml`, and a single root `pnpm-lock.yaml`.
 
 ### Consequences
 
-- **Positive**: Single dependency install, shared tooling, atomic commits across stack
-- **Negative**: Requires careful CI caching strategy, nested lockfiles must be avoided
-- **Rejected alternatives**: Turborepo (overkill for 2 packages), Yarn (team familiarity with npm)
+- **Positive**: Hard-linked content-addressable storage, strict dependency resolution, zero phantom dependencies, atomic commits across stack
+- **Negative**: Requires Corepack or pnpm CLI installed, strict peer dependency handling
+- **Rejected alternatives**: npm workspaces (slow installs, phantom dependencies), Yarn (pnpm offers better disk and build performance)
 
 ---
 

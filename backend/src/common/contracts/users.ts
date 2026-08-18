@@ -11,18 +11,20 @@ function sanitizeHtml(value: unknown): unknown {
   }).trim();
 }
 
-export enum LastSeenGranularity {
-  RECENTLY = 'RECENTLY',
-  WITHIN_WEEK = 'WITHIN_WEEK',
-  WITHIN_MONTH = 'WITHIN_MONTH',
-  LONG_AGO = 'LONG_AGO',
-}
+export const LastSeenGranularity = {
+  RECENTLY: 'RECENTLY',
+  WITHIN_WEEK: 'WITHIN_WEEK',
+  WITHIN_MONTH: 'WITHIN_MONTH',
+  LONG_AGO: 'LONG_AGO',
+} as const;
+export type LastSeenGranularity = (typeof LastSeenGranularity)[keyof typeof LastSeenGranularity];
 
-export enum FollowStatusView {
-  NONE = 'none',
-  PENDING = 'pending',
-  FOLLOWING = 'following',
-}
+export const FollowStatusView = {
+  NONE: 'none',
+  PENDING: 'pending',
+  FOLLOWING: 'following',
+} as const;
+export type FollowStatusView = (typeof FollowStatusView)[keyof typeof FollowStatusView];
 
 export const updateUserSchema = z.object({
   email: z

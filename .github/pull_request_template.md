@@ -23,9 +23,9 @@
 
 ### ⚡ Validation & Testing
 
-- [ ] `npm run lint` — Passes with no errors
-- [ ] `npm run typecheck` — Passes with no errors
-- [ ] `npm run test` — All tests are green
+- [ ] `pnpm run lint` — Passes with no errors
+- [ ] `pnpm run typecheck` — Passes with no errors
+- [ ] `pnpm run test` — All tests are green
 - [ ] Updated/added tests for the new logic
 
 ### 📦 Ecosystem & UI

@@ -9,14 +9,14 @@
     "dev:backend": "pnpm --filter backend start:dev",
     "dev:frontend": "pnpm --filter frontend dev",
     "dev": "concurrently -n backend,frontend -c blue,green \"pnpm dev:backend\" \"pnpm dev:frontend\"",
-    "build": "pnpm -r build",
-    "lint": "pnpm -r lint",
-    "lint:fix": "pnpm -r lint:fix",
-    "test": "pnpm -r test",
-    "test:cov": "pnpm -r test:cov",
+    "build": "pnpm -r --parallel build",
+    "lint": "pnpm -r --parallel lint",
+    "lint:fix": "pnpm -r --parallel lint:fix",
+    "test": "pnpm -r --parallel test",
+    "test:cov": "pnpm -r --parallel test:cov",
     "test:e2e": "pnpm --filter backend test:e2e",
-    "format": "pnpm -r format",
-    "typecheck": "pnpm -r typecheck",
+    "format": "pnpm -r --parallel format",
+    "typecheck": "pnpm -r --parallel typecheck",
     "prepare": "node -e \"process.env.CI || require('child_process').execSync('husky', { stdio: 'inherit' })\"",
     "docker:dev:up": "docker compose -f docker-compose.dev.yml up -d",
     "docker:dev:down": "docker compose -f docker-compose.dev.yml down",
@@ -58,11 +58,13 @@
     "conventional-changelog-conventionalcommits": "^8.0.0",
     "eslint": "9.39.5",
     "husky": "^9.1.7",
+    "js-yaml": "^4.1.0",
     "lint-staged": "^15.4.3",
     "nx": "^23.1.1",
     "prettier": "^3.5.3",
     "semantic-release": "^24.2.3",
-    "typescript": "^5.7.3"
+    "@typescript/native": "npm:typescript@^7.0.2",
+    "typescript": "npm:@typescript/typescript6@^6.0.2"
   },
   "allowScripts": {
     "esbuild": true,
@@ -81,11 +83,6 @@
   },
   "engines": {
     "node": ">=24.11.0",
-    "pnpm": ">=10.0.0",
-    "npm": ">=10.0.0"
-  },
-  "overrides": {
-    "js-yaml": ">=5.2.2",
-    "brace-expansion@5": "^5.0.9"
+    "pnpm": ">=10.0.0"
   }
 }

@@ -31,9 +31,9 @@ This guide describes how to deploy the Social Network application and set up Con
 2. Click **Add New Project** and import the `social-network` repository.
 3. Configure project settings:
    - **Framework Preset**: Vite
-   - **Build Command**: `npm run build --workspace=frontend`
+   - **Build Command**: `pnpm --filter frontend build`
    - **Output Directory**: `frontend/dist`
-   - **Install Command**: `npm ci`
+   - **Install Command**: `pnpm install`
 4. Add Environment Variables:
    - `VITE_API_URL`: `https://<your-render-app>.onrender.com/api`
 5. Click **Deploy**.

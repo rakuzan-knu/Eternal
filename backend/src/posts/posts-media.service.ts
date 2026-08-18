@@ -1,10 +1,10 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import sharp from 'sharp';
+import type { S3Client } from '@aws-sdk/client-s3';
 import { MediaType } from '@prisma/client';
 import { POSTS_S3_CLIENT } from './s3-provider';
 import { uid } from 'uid';
+import { optimizePostImage, uploadToStorageWithFallback } from '../common/media/image-processor';
 
 export type ProcessedMedia = {
   type: MediaType;
@@ -99,34 +99,27 @@ export class PostsMediaService {
     }
 
     const fileId = uid(16);
-    const key = `posts/${fileId}.${ext}`;
-
     let uploadBuffer = file.buffer;
     let contentType = file.mimetype;
+    let fileExt = ext;
 
     if (type === MediaType.IMAGE) {
-      // Re-encode all images through Sharp for safety
-      uploadBuffer = await sharp(file.buffer).webp({ quality: 85 }).toBuffer();
-      contentType = 'image/webp';
+      // Re-encode all images through Sharp for safety, compression, and privacy
+      const optimized = await optimizePostImage(file.buffer);
+      uploadBuffer = optimized.buffer;
+      contentType = optimized.contentType;
+      fileExt = optimized.ext;
     }
 
-    let url = `${this.publicUrl}/${this.bucket}/${key}`;
+    const key = `posts/${fileId}.${fileExt}`;
 
-    try {
-      await this.s3.send(
-        new PutObjectCommand({
-          Bucket: this.bucket,
-          Key: key,
-          Body: uploadBuffer,
-          ContentType: contentType,
-        }),
-      );
-    } catch {
-      // Fallback if S3/MinIO is unreachable in free hosting environments
-      if (type === MediaType.IMAGE) {
-        url = `data:${contentType};base64,${uploadBuffer.toString('base64')}`;
-      }
-    }
+    const url = await uploadToStorageWithFallback(this.s3, {
+      bucket: this.bucket,
+      key,
+      buffer: uploadBuffer,
+      contentType,
+      publicUrl: this.publicUrl,
+    });
 
     return {
       type,

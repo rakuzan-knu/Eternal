@@ -484,16 +484,16 @@ Migrations are stored in `backend/prisma/migrations/` and managed via Prisma CLI
 
 ```bash
 # Create a new migration
-npm run db:migrate -w backend
+pnpm --filter backend db:migrate
 
 # Apply migrations (production)
-npx prisma migrate deploy
+pnpm --filter backend exec prisma migrate deploy
 
 # Reset database (development)
-npx prisma migrate reset
+pnpm --filter backend exec prisma migrate reset
 
 # Open Prisma Studio (GUI)
-npm run db:studio -w backend
+pnpm --filter backend db:studio
 ```
 
 ---

@@ -15,25 +15,25 @@ This project uses multiple testing strategies:
 
 ```bash
 # Run all tests
-npm test
+pnpm test
 
 # Backend unit tests
-npm run test -w backend
+pnpm --filter backend test
 
 # Frontend unit tests
-npm run test -w frontend
+pnpm --filter frontend test
 
 # Backend E2E tests
-npm run test:e2e
+pnpm test:e2e
 
 # Tests with coverage
-npm run test:cov
+pnpm test:cov
 
 # Frontend tests with UI
-npm run test:ui -w frontend
+pnpm --filter frontend test:ui
 
 # Frontend tests in watch mode
-npm run test:watch -w frontend
+pnpm --filter frontend test:watch
 ```
 
 ---
@@ -57,16 +57,16 @@ Backend unit tests use **Jest** with **ts-jest**.
 
 ```bash
 # All unit tests
-npm run test -w backend
+pnpm --filter backend test
 
 # With coverage
-npm run test:cov -w backend
+pnpm --filter backend test:cov
 
 # Specific file
-npm run test -w backend -- --testPathPattern=auth.service
+pnpm --filter backend test -- --testPathPattern=auth.service
 
 # Watch mode
-npm run test:watch -w backend
+pnpm --filter backend test:watch
 ```
 
 ### E2E Tests
@@ -87,10 +87,10 @@ Backend E2E tests use Jest with a real PostgreSQL and Redis instance.
 docker compose -f docker-compose.dev.yml up postgres redis -d
 
 # Run E2E tests
-npm run test:e2e
+pnpm test:e2e
 
 # Run with force exit
-npm run test:e2e -- --forceExit
+pnpm test:e2e -- --forceExit
 ```
 
 ### Test Structure
@@ -124,16 +124,16 @@ Frontend unit tests use **Vitest** with **React Testing Library**.
 
 ```bash
 # All tests
-npm run test -w frontend
+pnpm --filter frontend test
 
 # With coverage
-npm run test:cov -w frontend
+pnpm --filter frontend test:cov
 
 # UI mode
-npm run test:ui -w frontend
+pnpm --filter frontend test:ui
 
 # Watch mode
-npm run test:watch -w frontend
+pnpm --filter frontend test:watch
 ```
 
 ### Test Setup
@@ -171,10 +171,10 @@ Lighthouse CI is configured in `.lighthouserc.json`:
 
 ```bash
 # Build frontend first
-npm run build -w frontend
+pnpm --filter frontend build
 
 # Run Lighthouse CI
-npm run lhci
+pnpm run lhci
 ```
 
 ### Performance Budgets
@@ -295,12 +295,12 @@ docker compose -f docker-compose.dev.yml up -d
 
 ```bash
 # Build frontend first
-npm run build -w frontend
+pnpm --filter frontend build
 ```
 
 **Coverage not collected**:
 
 ```bash
 # Ensure coverage reporters are configured
-npm run test:cov
+pnpm test:cov
 ```

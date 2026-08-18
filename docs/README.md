@@ -55,14 +55,15 @@ Social Network is a full-stack monorepo application built with:
 
 ### Monorepo Structure
 
-The project uses **npm workspaces** with two packages:
+The project uses **pnpm workspaces** with two packages:
 
 ```
 social-network/
-├── backend/          # NestJS API server
-├── frontend/         # React SPA
-├── package.json      # Root workspace config
-└── package-lock.json # Single lockfile (nested lockfiles removed)
+├── backend/            # NestJS API server
+├── frontend/           # React SPA
+├── package.json        # Root workspace config
+├── pnpm-workspace.yaml # PNPM workspace config
+└── pnpm-lock.yaml      # PNPM lockfile
 ```
 
 ### Backend Architecture
@@ -134,6 +135,8 @@ social-network/
 ├── docker-compose.dev.yml # Development services
 ├── docker-compose.prod.yml # Production services
 ├── package.json           # Root workspace config
+├── pnpm-workspace.yaml    # PNPM workspace definition
+├── pnpm-lock.yaml         # PNPM lockfile
 ├── vercel.json            # Vercel deployment config
 └── commitlint.config.js   # Commit message linting rules
 ```
@@ -144,8 +147,8 @@ social-network/
 
 ### Prerequisites
 
-- Node.js >= 22.12.0
-- npm >= 10.0.0
+- Node.js >= 24.11.0
+- pnpm >= 10.0.0
 - Docker + Docker Compose
 
 ### Quick Start
@@ -156,7 +159,7 @@ git clone <repo-url>
 cd social-network
 
 # 2. Install dependencies
-npm ci
+pnpm install
 
 # 3. Set up environment variables
 cp backend/.env.example backend/.env
@@ -164,13 +167,13 @@ cp frontend/.env.example frontend/.env
 # Edit .env files with your values
 
 # 4. Start development databases (Postgres + Redis + MinIO)
-npm run docker:dev:up
+pnpm run docker:dev:up
 
 # 5. Run migrations
-npm run db:migrate -w backend
+pnpm --filter backend db:migrate
 
 # 6. Start development servers
-npm run dev
+pnpm dev
 ```
 
 ### Environment Variables
@@ -206,16 +209,16 @@ npm run dev
 
 ```bash
 # Start all dev services
-npm run docker:dev:up
+pnpm run docker:dev:up
 
 # Stop dev services
-npm run docker:dev:down
+pnpm run docker:dev:down
 
 # View logs
-npm run docker:dev:logs
+pnpm run docker:dev:logs
 
 # Rebuild services
-npm run docker:dev:build
+pnpm run docker:dev:build
 ```
 
 Dev services include:
@@ -228,10 +231,10 @@ Dev services include:
 
 ```bash
 # Start production stack
-npm run docker:prod:up
+pnpm run docker:prod:up
 
 # Stop production stack
-npm run docker:prod:down
+pnpm run docker:prod:down
 ```
 
 Production stack includes all dev services plus:
@@ -244,30 +247,30 @@ Production stack includes all dev services plus:
 
 ## Scripts
 
-| Script                     | Description                                    |
-| -------------------------- | ---------------------------------------------- |
-| `npm run dev`              | Start backend + frontend in dev mode           |
-| `npm run dev:backend`      | Start backend dev server only                  |
-| `npm run dev:frontend`     | Start frontend dev server only                 |
-| `npm run build`            | Build both workspaces                          |
-| `npm run lint`             | Lint both workspaces                           |
-| `npm run lint:fix`         | Lint + auto-fix both workspaces                |
-| `npm run test`             | Run tests for both workspaces                  |
-| `npm run test:cov`         | Run tests with coverage                        |
-| `npm run test:e2e`         | Run backend E2E tests                          |
-| `npm run typecheck`        | TypeScript type checking                       |
-| `npm run format`           | Format code with Prettier                      |
-| `npm run format:check`     | Check code formatting                          |
-| `npm run validate`         | Run all validators (EOL, env, typecheck, lint) |
-| `npm run validate:eol`     | Validate line endings (LF)                     |
-| `npm run validate:env`     | Validate environment variables                 |
-| `npm run clean`            | Clean build artifacts + node_modules           |
-| `npm run clean:prune`      | Clean + Docker prune                           |
-| `npm run lhci`             | Run Lighthouse CI locally                      |
-| `npm run docker:dev:up`    | Start dev Docker services                      |
-| `npm run docker:dev:down`  | Stop dev Docker services                       |
-| `npm run docker:prod:up`   | Start production Docker stack                  |
-| `npm run docker:prod:down` | Stop production Docker stack                   |
+| Script                      | Description                                    |
+| --------------------------- | ---------------------------------------------- |
+| `pnpm dev`                  | Start backend + frontend in dev mode           |
+| `pnpm dev:backend`          | Start backend dev server only                  |
+| `pnpm dev:frontend`         | Start frontend dev server only                 |
+| `pnpm build`                | Build both workspaces                          |
+| `pnpm lint`                 | Lint both workspaces                           |
+| `pnpm lint:fix`             | Lint + auto-fix both workspaces                |
+| `pnpm test`                 | Run tests for both workspaces                  |
+| `pnpm test:cov`             | Run tests with coverage                        |
+| `pnpm test:e2e`             | Run backend E2E tests                          |
+| `pnpm typecheck`            | TypeScript type checking                       |
+| `pnpm format`               | Format code with Prettier                      |
+| `pnpm format:check`         | Check code formatting                          |
+| `pnpm validate`             | Run all validators (EOL, env, typecheck, lint) |
+| `pnpm validate:eol`         | Validate line endings (LF)                     |
+| `pnpm validate:env`         | Validate environment variables                 |
+| `pnpm clean`                | Clean build artifacts + node_modules           |
+| `pnpm clean:prune`          | Clean + Docker prune                           |
+| `pnpm lhci`                 | Run Lighthouse CI locally                      |
+| `pnpm run docker:dev:up`    | Start dev Docker services                      |
+| `pnpm run docker:dev:down`  | Stop dev Docker services                       |
+| `pnpm run docker:prod:up`   | Start production Docker stack                  |
+| `pnpm run docker:prod:down` | Stop production Docker stack                   |
 
 ---
 

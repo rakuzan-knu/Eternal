@@ -7,8 +7,11 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import sharp from 'sharp';
+import { S3Client } from '@aws-sdk/client-s3';
+import {
+  optimizeGroupAvatar,
+  uploadToStorageWithFallback,
+} from '../../common/media/image-processor';
 import { UsersService } from '../../users/users.service';
 import { PrismaService } from '@common/prisma';
 import { CONVERSATIONS_REPOSITORY } from '../interfaces/conversations-repository.interface';
@@ -484,10 +487,7 @@ export class ConversationsService {
       throw new BadRequestException('Invalid avatar file');
     }
 
-    const processedBuffer = await sharp(file.buffer)
-      .resize(512, 512, { fit: 'cover' })
-      .webp({ quality: 85 })
-      .toBuffer();
+    const { buffer: processedBuffer, contentType } = await optimizeGroupAvatar(file.buffer);
 
     const bucket = this.configService.get<string>('MINIO_BUCKET_AVATARS', 'avatars');
     const publicUrl =
@@ -497,16 +497,13 @@ export class ConversationsService {
 
     const key = `group-avatars/${conversationId}.webp`;
 
-    await this.s3.send(
-      new PutObjectCommand({
-        Bucket: bucket,
-        Key: key,
-        Body: processedBuffer,
-        ContentType: 'image/webp',
-      }),
-    );
-
-    const avatarUrl = `${publicUrl}/${bucket}/${key}`;
+    const avatarUrl = await uploadToStorageWithFallback(this.s3, {
+      bucket,
+      key,
+      buffer: processedBuffer,
+      contentType,
+      publicUrl,
+    });
 
     await this.prisma.conversation.update({
       where: { id: conversationId },

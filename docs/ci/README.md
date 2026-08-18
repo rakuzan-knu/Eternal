@@ -79,7 +79,7 @@ The CI/CD pipeline uses GitHub Actions with a staged architecture for fast feedb
 
 - **Purpose**: Install dependencies and generate cache key
 - **Cache**: `node_modules` + `backend/node_modules` + `frontend/node_modules` + `~/.cache/prisma`
-- **Key**: `{runner.os}-monorepo-deps-{hash(package-lock.json, schema.prisma)}`
+- **Key**: `{runner.os}-monorepo-pnpm-{hash(pnpm-lock.yaml, schema.prisma)}`
 - **Timeout**: 15 min
 
 ### backend-lint / frontend-lint

@@ -15,7 +15,9 @@
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["production", "^production"],
-      "cache": true
+      "outputs": ["{projectRoot}/dist", "{projectRoot}/storybook-static"],
+      "cache": true,
+      "parallelism": true
     },
     "lint": {
       "inputs": [
@@ -24,11 +26,25 @@
         "{workspaceRoot}/eslint.config.*",
         "{workspaceRoot}/.eslintignore"
       ],
-      "cache": true
+      "outputs": ["{projectRoot}/.eslintcache"],
+      "cache": true,
+      "parallelism": true
     },
     "typecheck": {
       "inputs": ["default", "{workspaceRoot}/tsconfig.base.json"],
-      "cache": true
+      "outputs": [
+        "{projectRoot}/tsconfig.tsbuildinfo",
+        "{projectRoot}/dist/.tsbuildinfo",
+        "{projectRoot}/node_modules/.tmp/*.tsbuildinfo"
+      ],
+      "cache": true,
+      "parallelism": true
+    },
+    "test": {
+      "inputs": ["default"],
+      "outputs": ["{projectRoot}/coverage"],
+      "cache": true,
+      "parallelism": true
     }
   }
 }

@@ -18,7 +18,7 @@ This project supports multiple deployment targets:
 
 ```bash
 # Start all development services
-npm run docker:dev:up
+pnpm run docker:dev:up
 
 # Services started:
 # - PostgreSQL 16 (port 5432)
@@ -42,7 +42,7 @@ cp backend/.env.example backend/.env
 # Edit backend/.env with production values
 
 # Start production stack
-npm run docker:prod:up
+pnpm run docker:prod:up
 ```
 
 ### Building Images
@@ -94,17 +94,17 @@ docker build -t social-network-frontend:latest ./frontend
 
 ```bash
 # Create and apply migration
-npm run db:migrate -w backend
+pnpm --filter backend db:migrate
 
 # Open Prisma Studio (database GUI)
-npm run db:studio -w backend
+pnpm --filter backend db:studio
 ```
 
 ### Production
 
 ```bash
 # Apply existing migrations
-npx prisma migrate deploy
+pnpm --filter backend exec prisma migrate deploy
 
 # Or via Docker (runs automatically)
 docker compose -f docker-compose.prod.yml up prisma-migrate
@@ -118,8 +118,9 @@ The frontend is configured for Vercel deployment via `vercel.json`:
 
 ```json
 {
-  "buildCommand": "npm run build",
+  "buildCommand": "pnpm --filter frontend build",
   "outputDirectory": "frontend/dist",
+  "installCommand": "pnpm install",
   "framework": "vite"
 }
 ```
@@ -190,32 +191,32 @@ The backend supports horizontal scaling:
 
 ```bash
 # Reset database (development only!)
-npx prisma migrate reset
+pnpm --filter backend exec prisma migrate reset
 
 # Resolve migration conflicts
-npx prisma migrate resolve --applied <migration_name>
+pnpm --filter backend exec prisma migrate resolve --applied <migration_name>
 ```
 
 ### Docker Issues
 
 ```bash
 # Rebuild containers
-npm run docker:dev:build
+pnpm run docker:dev:build
 
 # View logs
-npm run docker:dev:logs
+pnpm run docker:dev:logs
 
 # Clean up
-npm run clean:prune
+pnpm run clean:prune
 ```
 
 ### Build Failures
 
 ```bash
 # Clean and reinstall
-npm run clean
-npm ci
+pnpm run clean
+pnpm install
 
 # Rebuild
-npm run build
+pnpm run build
 ```

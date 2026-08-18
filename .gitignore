@@ -130,6 +130,7 @@ dist
 
 # pnpm
 .pnpm-store
+package-lock.json
 
 # yarn v3
 .pnp.*

@@ -1,6 +1,6 @@
 # 🌐 Social Network
 
-A modern, high-performance **Social Network Application** built as a monorepo using **npm workspaces**. Powered by **NestJS** on the backend and **React + Vite** on the frontend.
+A modern, high-performance **Social Network Application** built as a monorepo using **pnpm workspaces**. Powered by **NestJS** on the backend and **React + Vite** on the frontend.
 
 ---
 
@@ -31,7 +31,7 @@ A modern, high-performance **Social Network Application** built as a monorepo us
 
 ### 🟨 Infrastructure & DevOps
 
-- **Monorepo Management:** npm Workspaces + **Nx** (`nx.json`, task graph & affected execution)
+- **Monorepo Management:** pnpm Workspaces + **Nx** (`nx.json`, task graph & affected execution)
 - **Supply Chain Security:** Cosign keyless artifact signing, CycloneDX SBOM generation, Trivy container scanning, strict `allowScripts` lockdown
 - **Containerization:** Docker (multi-stage non-root images)
 - **CI/CD & Release:** GitHub Actions, `@commitlint`, `lint-staged`, `husky`, `semantic-release`
@@ -53,8 +53,9 @@ social-network/
 ├── .gitattributes          # Git line endings (LF) normalization settings
 ├── .gitignore               # Git ignore patterns
 ├── .lighthouserc.json       # Lighthouse CI frontend performance configuration
-├── .npmrc                   # NPM engine-strict & workspace behavior setup
+├── .npmrc                   # NPM engine-strict setup
 ├── .nvmrc                   # Project target Node.js version
+├── .pnpmrc                  # PNPM hoist & workspace behavior setup
 ├── .prettierignore          # Prettier formatting exclusion rules
 ├── .prettierrc.json         # Prettier code style configuration
 ├── CHANGELOG.md             # Auto-generated release history & release notes
@@ -62,10 +63,11 @@ social-network/
 ├── CONTRIBUTING.MD          # Development workflow, branch & commit standards
 ├── docker-compose.dev.yml   # Local development Docker environment
 ├── docker-compose.prod.yml  # Production Docker deployment setup
-├── package-lock.json        # Dependency tree lockfile
-├── package.json             # Monorepo root scripts & workspaces setup
+├── package.json             # Monorepo root scripts & packageManager setup
+├── pnpm-lock.yaml           # PNPM dependency tree lockfile
+├── pnpm-workspace.yaml      # PNPM workspace definition & shared overrides
 ├── README.md                # Main project overview & onboarding guide
-└── release.config.js        # Semantic release & tagging configuration
+└── release.config.cjs       # Semantic release & tagging configuration
 ```
 
 ---
@@ -74,10 +76,10 @@ social-network/
 
 Ensure your system meets the minimum requirements specified in `package.json`:
 
-- **Node.js:** `>=20.18.0`
-- **npm:** `>=10.0.0` (Recommended: `npm@10.9.0`)
+- **Node.js:** `>=24.11.0`
+- **pnpm:** `>=10.0.0` (Recommended: `pnpm@10.5.2`)
 
-> ⚠️ Note: `npm install` enforces strict Node engine checks (`engine-strict=true`). Make sure to use the correct Node version (`nvm use`).
+> ⚠️ Note: `pnpm install` enforces strict Node engine checks (`engine-strict=true`). Make sure to use the correct Node version (`nvm use`).
 
 ---
 
@@ -96,11 +98,11 @@ cd social-network
 
 ### 2. Install dependencies
 
-Run `npm install` in the **root directory**. This will install dependencies for all workspaces (`backend` and `frontend`) and run automated setup hooks (e.g., `prisma generate`, `husky`).
+Run `pnpm install` in the **root directory**. This will install dependencies for all workspaces (`backend` and `frontend`) and run automated setup hooks (e.g., `prisma generate`, `husky`).
 
 ```bash
 nvm use
-npm install
+pnpm install
 ```
 
 ### 3. Environment Variables
@@ -117,17 +119,17 @@ cp frontend/.env.example frontend/.env
 Start **both backend and frontend** simultaneously:
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 Or start workspaces individually:
 
 ```bash
 # Backend only (NestJS dev mode)
-npm run dev:backend
+pnpm dev:backend
 
 # Frontend only (Vite dev mode)
-npm run dev:frontend
+pnpm dev:frontend
 ```
 
 ---
@@ -136,19 +138,19 @@ npm run dev:frontend
 
 All root commands execute across both `backend` and `frontend` workspaces:
 
-| Script                 | Description                                                |
-| :--------------------- | :--------------------------------------------------------- |
-| `npm run dev`          | Runs backend and frontend concurrently in development mode |
-| `npm run dev:backend`  | Starts NestJS server in watch mode                         |
-| `npm run dev:frontend` | Starts Vite frontend dev server                            |
-| `npm run build`        | Builds both backend and frontend for production            |
-| `npm run lint`         | Runs ESLint check across all workspaces                    |
-| `npm run lint:fix`     | Fixes ESLint errors automatically across workspaces        |
-| `npm run format`       | Formats codebase using Prettier                            |
-| `npm run typecheck`    | Validates TypeScript types without emitting files          |
-| `npm run test`         | Runs unit tests for backend and frontend                   |
-| `npm run test:cov`     | Generates unit test coverage reports                       |
-| `npm run test:e2e`     | Runs E2E tests for the backend workspace                   |
+| Script              | Description                                                |
+| :------------------ | :--------------------------------------------------------- |
+| `pnpm dev`          | Runs backend and frontend concurrently in development mode |
+| `pnpm dev:backend`  | Starts NestJS server in watch mode                         |
+| `pnpm dev:frontend` | Starts Vite frontend dev server                            |
+| `pnpm build`        | Builds both backend and frontend for production            |
+| `pnpm lint`         | Runs ESLint check across all workspaces                    |
+| `pnpm lint:fix`     | Fixes ESLint errors automatically across workspaces        |
+| `pnpm format`       | Formats codebase using Prettier                            |
+| `pnpm typecheck`    | Validates TypeScript types without emitting files          |
+| `pnpm test`         | Runs unit tests for backend and frontend                   |
+| `pnpm test:cov`     | Generates unit test coverage reports                       |
+| `pnpm test:e2e`     | Runs E2E tests for the backend workspace                   |
 
 ---
 

@@ -27,7 +27,7 @@
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "test:mutation": "stryker run",
-    "test:pact:verify": "ts-node -P tsconfig.json test/pact-verify.ts",
+    "test:pact:verify": "tsx test/pact-verify.ts",
     "test:ci": "jest --ci --forceExit --passWithNoTests --detectOpenHandles",
     "test:cov:ci": "jest --coverage --ci --forceExit --passWithNoTests --detectOpenHandles"
   },
@@ -82,11 +82,6 @@
     "zod": "^3.24.2",
     "zod-validation-error": "^3.4.0"
   },
-  "overrides": {
-    "multer": "^2.2.0",
-    "uuid": "^11.1.1",
-    "js-yaml": ">=5.2.2"
-  },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.6",
     "@eslint/js": "^9.39.5",
@@ -131,8 +126,10 @@
     "ts-loader": "^9.5.2",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.7.3",
-    "typescript-eslint": "^8.20.0"
+    "tsx": "^4.23.12",
+    "@typescript/native": "npm:typescript@^7.0.2",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "typescript-eslint": "^8.67.0"
   },
   "jest": {
     "moduleFileExtensions": [

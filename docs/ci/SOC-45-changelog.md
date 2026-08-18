@@ -168,7 +168,7 @@ Environment variable validator:
 
 2. **Docker**: Dev containers now have resource limits. Adjust in `docker-compose.dev.yml` if needed.
 
-3. **Formatting**: `format:check` now covers the entire repository. Run `npm run format` to auto-fix.
+3. **Formatting**: `format:check` now covers the entire repository. Run `pnpm format` to auto-fix.
 
 4. **Node version**: `.nvmrc` is now `22.12.0`. Update your local Node if needed.
 

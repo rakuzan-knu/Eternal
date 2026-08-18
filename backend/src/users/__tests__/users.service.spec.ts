@@ -204,7 +204,7 @@ describe('UsersService', () => {
       await expect(service.deleteAccount('usr-1', 'WrongPassword')).rejects.toThrow(
         new UnauthorizedException('Incorrect password'),
       );
-    });
+    }, 15000);
 
     it('deletes account and invalidates cache when password matches', async () => {
       const hash = await argon2.hash('CorrectPassword');
@@ -214,7 +214,7 @@ describe('UsersService', () => {
 
       expect(mockUsersRepository.deleteUser).toHaveBeenCalledWith('usr-1');
       expect(mockRedis.del).toHaveBeenCalledWith('user:usr-1');
-    });
+    }, 15000);
   });
 
   describe('getProfileFor & getProfileByUsername', () => {

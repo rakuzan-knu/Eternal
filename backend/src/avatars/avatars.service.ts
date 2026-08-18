@@ -1,11 +1,15 @@
 import { Injectable, Inject, NotFoundException, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
-import sharp from 'sharp';
+import type { S3Client } from '@aws-sdk/client-s3';
 import { S3_CLIENT } from './s3-provider';
 import { AVATAR_REPOSITORY } from './interfaces/avatars-repository.interface';
 import type { IAvatarRepository, AvatarView } from './interfaces/avatars-repository.interface';
 import { RedisService } from '../redis/redis.service';
+import {
+  optimizeAvatar,
+  uploadToStorageWithFallback,
+  deleteFromStorage,
+} from '../common/media/image-processor';
 
 @Injectable()
 export class AvatarsService {
@@ -32,40 +36,23 @@ export class AvatarsService {
     }
 
     if (user.avatar) {
-      await this.deleteObjectByUrl(user.avatar).catch(() => {});
+      await deleteFromStorage(this.s3, {
+        url: user.avatar,
+        bucket: this.bucket,
+        publicUrl: this.publicUrl,
+      }).catch(() => {});
     }
 
-    let uploadBuffer = file.buffer;
-    let contentType = file.mimetype || 'image/jpeg';
-    let extension = file.originalname?.split('.').pop() || 'jpg';
+    const { buffer: uploadBuffer, contentType, ext } = await optimizeAvatar(file.buffer);
+    const key = `avatars/${userId}.${ext}`;
 
-    try {
-      uploadBuffer = await sharp(file.buffer)
-        .resize(512, 512, { fit: 'cover', withoutEnlargement: true })
-        .webp({ quality: 85 })
-        .toBuffer();
-      contentType = 'image/webp';
-      extension = 'webp';
-    } catch {
-      // Fallback to original buffer
-    }
-
-    const key = `avatars/${userId}.${extension}`;
-    let url = `${this.publicUrl}/${this.bucket}/${key}`;
-
-    try {
-      await this.s3.send(
-        new PutObjectCommand({
-          Bucket: this.bucket,
-          Key: key,
-          Body: uploadBuffer,
-          ContentType: contentType,
-        }),
-      );
-    } catch {
-      // Resilient fallback for cloud environments without active MinIO
-      url = `data:${contentType};base64,${uploadBuffer.toString('base64')}`;
-    }
+    const url = await uploadToStorageWithFallback(this.s3, {
+      bucket: this.bucket,
+      key,
+      buffer: uploadBuffer,
+      contentType,
+      publicUrl: this.publicUrl,
+    });
 
     const updated = await this.avatarRepository.updateAvatar(userId, url);
     try {
@@ -84,7 +71,11 @@ export class AvatarsService {
     }
 
     if (user.avatar) {
-      await this.deleteObjectByUrl(user.avatar).catch(() => {});
+      await deleteFromStorage(this.s3, {
+        url: user.avatar,
+        bucket: this.bucket,
+        publicUrl: this.publicUrl,
+      }).catch(() => {});
     }
 
     const updated = await this.avatarRepository.updateAvatar(userId, null);
@@ -95,11 +86,5 @@ export class AvatarsService {
       // Safe non-blocking cache invalidation
     }
     return updated;
-  }
-
-  private async deleteObjectByUrl(url: string): Promise<void> {
-    if (!url || url.startsWith('data:') || !url.startsWith(this.publicUrl)) return;
-    const key = url.replace(`${this.publicUrl}/${this.bucket}/`, '');
-    await this.s3.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key })).catch(() => {});
   }
 }

@@ -16,7 +16,7 @@
 ### Frontend Dockerfile (`frontend/Dockerfile`)
 
 - **Multi-Stage Build**:
-  - `builder`: Builds Vite/React bundle with npm layer caching.
+  - `builder`: Builds Vite/React bundle with pnpm layer caching.
   - `production`: High-performance `nginx:1.27-alpine` web server.
 - **Security & Hardening**:
   - Non-root user execution (`USER nginx`).
