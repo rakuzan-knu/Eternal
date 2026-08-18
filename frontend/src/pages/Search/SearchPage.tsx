@@ -7,7 +7,6 @@ import {
   Heart,
   MessageSquare,
   Play,
-  CheckCircle2,
   Hash,
   Sparkles,
   TrendingUp,
@@ -26,7 +25,9 @@ import { useUIStore } from '@/shared/model/useUIStore';
 import { CommentModal } from '@/features/comment/ui/CommentModal';
 import { PostCard } from '@/widgets/post/ui/PostCard';
 import { FollowButton } from '@/features/follow/ui/FollowButton';
+import { VerifiedCheckmark } from '@/entities/profile/ui/VerifiedCheckmark';
 import { useAuthStore } from '@/shared/model/useAuthStore';
+import { userApi } from '@/entities/profile/api/userApi';
 
 interface SearchUserItem {
   id: string;
@@ -262,6 +263,114 @@ export default function SearchPage() {
     }, 300);
     return () => clearTimeout(timer);
   }, [searchTerm, activeTab, setSearchParams]);
+
+  // Fetch current user profile to ensure own recent avatar and display name are fresh
+  const { data: meProfile } = useQuery({
+    queryKey: ['currentUserProfile'],
+    queryFn: () => userApi.getMe(),
+    staleTime: 10 * 1000,
+  });
+
+  // Sync meProfile with recent searches
+  useEffect(() => {
+    if (!meProfile) return;
+    queueMicrotask(() => {
+      setRecentSearches((prev) => {
+        let changed = false;
+        const updated = prev.map((u) => {
+          const isMatch =
+            (meProfile.id && u.id === meProfile.id) ||
+            (meProfile.username && u.username.toLowerCase() === meProfile.username.toLowerCase());
+          if (isMatch) {
+            if (
+              u.displayName !== meProfile.displayName ||
+              u.avatar !== meProfile.avatar ||
+              u.username !== meProfile.username ||
+              u.isVerified !== meProfile.isVerified ||
+              u.primaryBadge !== meProfile.primaryBadge
+            ) {
+              changed = true;
+              return {
+                ...u,
+                displayName: meProfile.displayName ?? u.displayName,
+                avatar: meProfile.avatar ?? u.avatar,
+                username: meProfile.username ?? u.username,
+                isVerified: meProfile.isVerified ?? u.isVerified,
+                primaryBadge: meProfile.primaryBadge ?? u.primaryBadge,
+              };
+            }
+          }
+          return u;
+        });
+        if (changed) {
+          try {
+            localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
+          } catch (e) {
+            void e;
+          }
+          return updated;
+        }
+        return prev;
+      });
+    });
+  }, [meProfile]);
+
+  // Refresh all recent searches users on mount
+  useEffect(() => {
+    if (recentSearches.length === 0) return;
+    const usernames = recentSearches.map((u) => u.username).filter(Boolean);
+    if (usernames.length === 0) return;
+
+    Promise.allSettled(
+      usernames.map((un) => api.get<SearchUserItem>(`/users/${un}`).then((r) => r.data)),
+    ).then((results) => {
+      const freshUsers: SearchUserItem[] = [];
+      for (const res of results) {
+        if (res.status === 'fulfilled' && res.value && res.value.id) {
+          freshUsers.push(res.value);
+        }
+      }
+      if (freshUsers.length > 0) {
+        setRecentSearches((prev) => {
+          let changed = false;
+          const updated = prev.map((u) => {
+            const fresh = freshUsers.find(
+              (f) => f.id === u.id || f.username.toLowerCase() === u.username.toLowerCase(),
+            );
+            if (
+              fresh &&
+              (fresh.avatar !== u.avatar ||
+                fresh.displayName !== u.displayName ||
+                fresh.isVerified !== u.isVerified ||
+                fresh.primaryBadge !== u.primaryBadge ||
+                fresh.followersCount !== u.followersCount)
+            ) {
+              changed = true;
+              return {
+                ...u,
+                avatar: fresh.avatar,
+                displayName: fresh.displayName,
+                isVerified: fresh.isVerified,
+                primaryBadge: fresh.primaryBadge,
+                followersCount: fresh.followersCount ?? u.followersCount,
+              };
+            }
+            return u;
+          });
+          if (changed) {
+            try {
+              localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
+            } catch (e) {
+              void e;
+            }
+            return updated;
+          }
+          return prev;
+        });
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // 1. Trending Hashtags
   const { data: trendingHashtags = [] } = useQuery<HashtagItem[]>({
@@ -524,12 +633,11 @@ export default function SearchPage() {
                           <span className="text-white font-semibold text-sm group-hover:text-purple-300 transition-colors truncate">
                             {u.username}
                           </span>
-                          {u.isVerified && (
-                            <CheckCircle2
-                              size={14}
-                              className="text-sky-400 fill-sky-400/20 shrink-0"
-                            />
-                          )}
+                          <VerifiedCheckmark
+                            isVerified={u.isVerified}
+                            primaryBadge={u.primaryBadge}
+                            size="sm"
+                          />
                         </div>
                         <span className="text-xs text-gray-400 truncate">
                           {u.displayName || u.username} · {formatCount(u.followersCount)} followers
@@ -595,12 +703,11 @@ export default function SearchPage() {
                           <span className="text-white font-semibold text-sm group-hover:text-purple-300 transition-colors truncate">
                             {u.displayName || u.username}
                           </span>
-                          {u.isVerified && (
-                            <CheckCircle2
-                              size={14}
-                              className="text-sky-400 fill-sky-400/20 shrink-0"
-                            />
-                          )}
+                          <VerifiedCheckmark
+                            isVerified={u.isVerified}
+                            primaryBadge={u.primaryBadge}
+                            size="sm"
+                          />
                         </div>
                         <span className="text-xs text-gray-400 truncate">
                           @{u.username} · {formatCount(u.followersCount)} followers
@@ -653,12 +760,11 @@ export default function SearchPage() {
                             <span className="font-semibold text-xs text-white truncate group-hover:text-purple-300">
                               {u.displayName || u.username}
                             </span>
-                            {u.isVerified && (
-                              <CheckCircle2
-                                size={12}
-                                className="text-sky-400 fill-sky-400/20 shrink-0"
-                              />
-                            )}
+                            <VerifiedCheckmark
+                              isVerified={u.isVerified}
+                              primaryBadge={u.primaryBadge}
+                              size="xs"
+                            />
                           </div>
                           <span className="text-[11px] text-gray-400 truncate">@{u.username}</span>
                           <span className="text-[11px] text-purple-400 font-semibold mt-1">
@@ -738,12 +844,11 @@ export default function SearchPage() {
                                   <span className="text-white font-semibold text-sm group-hover:text-purple-300 truncate">
                                     {u.displayName || u.username}
                                   </span>
-                                  {u.isVerified && (
-                                    <CheckCircle2
-                                      size={14}
-                                      className="text-sky-400 fill-sky-400/20 shrink-0"
-                                    />
-                                  )}
+                                  <VerifiedCheckmark
+                                    isVerified={u.isVerified}
+                                    primaryBadge={u.primaryBadge}
+                                    size="sm"
+                                  />
                                 </div>
                                 <span className="text-xs text-gray-400 truncate">
                                   @{u.username} · {formatCount(u.followersCount)} followers
@@ -869,12 +974,11 @@ export default function SearchPage() {
                                 <span className="text-white font-semibold text-sm group-hover:text-purple-300 truncate">
                                   {u.displayName || u.username}
                                 </span>
-                                {u.isVerified && (
-                                  <CheckCircle2
-                                    size={14}
-                                    className="text-sky-400 fill-sky-400/20 shrink-0"
-                                  />
-                                )}
+                                <VerifiedCheckmark
+                                  isVerified={u.isVerified}
+                                  primaryBadge={u.primaryBadge}
+                                  size="sm"
+                                />
                               </div>
                               <span className="text-xs text-gray-400 truncate">
                                 @{u.username} · {formatCount(u.followersCount)} followers

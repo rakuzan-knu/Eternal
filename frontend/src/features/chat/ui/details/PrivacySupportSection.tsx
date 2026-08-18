@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, BellOff, ShieldQuestion, Eye, ShieldAlert, Ban, Flag } from 'lucide-react';
+import { Bell, BellOff, ShieldQuestion, ShieldAlert, Ban, Flag } from 'lucide-react';
 import { ExpandableSection, SectionButton } from './SectionButton';
 
 interface PrivacySupportSectionProps {
@@ -9,8 +9,10 @@ interface PrivacySupportSectionProps {
   onToggleMute: () => void;
   isGroup: boolean;
   otherUserId: string | null;
+  onOpenPermissions: () => void;
+  onOpenRestrict: () => void;
   onBlock: (userId: string) => void;
-  onReport: (userId: string) => void;
+  onOpenReport: () => void;
 }
 
 export default function PrivacySupportSection({
@@ -20,8 +22,10 @@ export default function PrivacySupportSection({
   onToggleMute,
   isGroup,
   otherUserId,
+  onOpenPermissions,
+  onOpenRestrict,
   onBlock,
-  onReport,
+  onOpenReport,
 }: PrivacySupportSectionProps) {
   return (
     <ExpandableSection label="Privacy and support" isOpen={isOpen} onToggle={onToggle}>
@@ -30,9 +34,12 @@ export default function PrivacySupportSection({
         label={isMuted ? 'Unmute notifications' : 'Mute notifications'}
         onClick={onToggleMute}
       />
-      <SectionButton icon={<ShieldQuestion size={17} />} label="Message permissions" />
-      <SectionButton icon={<Eye size={17} />} label="Read receipts" sublabel="On" />
-      <SectionButton icon={<ShieldAlert size={17} />} label="Restrict" />
+      <SectionButton
+        icon={<ShieldQuestion size={17} />}
+        label="Message permissions"
+        onClick={onOpenPermissions}
+      />
+      <SectionButton icon={<ShieldAlert size={17} />} label="Restrict" onClick={onOpenRestrict} />
       {!isGroup && otherUserId && (
         <SectionButton
           icon={<Ban size={17} />}
@@ -47,7 +54,7 @@ export default function PrivacySupportSection({
           label="Report"
           sublabel="Leave feedback and report this conversation"
           danger
-          onClick={() => onReport(otherUserId)}
+          onClick={onOpenReport}
         />
       )}
     </ExpandableSection>

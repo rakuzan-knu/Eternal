@@ -6,6 +6,13 @@ export const postsApi = {
   createPost: (data: FormData): Promise<PostType> =>
     api.post<Record<string, unknown>>('/posts', data).then((r) => normalizePost(r.data)),
 
+  editPost: (postId: string | number, content: string): Promise<PostType> =>
+    api
+      .patch<Record<string, unknown>>(`/posts/${postId}`, { content })
+      .then((r) => normalizePost(r.data)),
+
+  deletePost: (postId: string | number) => api.delete(`/posts/${postId}`).then((r) => r.data),
+
   votePoll: (postId: string | number, optionId: string) =>
     api.post(`/posts/${postId}/poll/vote`, { optionId }).then((r) => r.data),
 
@@ -16,4 +23,12 @@ export const postsApi = {
   save: (postId: string | number) => api.post(`/posts/${postId}/save`).then((r) => r.data),
   unsave: (postId: string | number) => api.delete(`/posts/${postId}/save`).then((r) => r.data),
   share: (postId: string | number) => api.post(`/posts/${postId}/share`).then((r) => r.data),
+  report: (postId: string | number, reason: string) =>
+    api.post(`/posts/${postId}/report`, { reason }).then((r) => r.data),
+
+  pin: (postId: string | number): Promise<PostType> =>
+    api.post<Record<string, unknown>>(`/posts/${postId}/pin`).then((r) => normalizePost(r.data)),
+
+  unpin: (postId: string | number): Promise<PostType> =>
+    api.delete<Record<string, unknown>>(`/posts/${postId}/pin`).then((r) => normalizePost(r.data)),
 };

@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useChatSocket } from './useChatSocket';
 import { useChatSocketEvent } from './useChatSocketEvent';
-import { CONVERSATIONS_KEY } from '@/shared/api/queryKeys';
+import { CONVERSATIONS_KEY, CONVERSATION_MESSAGES_KEY } from '@/shared/api/queryKeys';
 import { ConversationView, MessageView } from '../../../entities/chat/model/types';
 import { useAuthStore } from '@/shared/model/useAuthStore';
 import {
@@ -369,6 +369,33 @@ export function useMessengerRealtime(
     setTypist(payload.conversationId, payload.userId, payload.isTyping, username);
   };
 
+  const handleConversationDeleted = (payload: { conversationId: string }) => {
+    queryClient.setQueryData<ConversationView[]>([CONVERSATIONS_KEY], (prev) =>
+      prev?.filter((c) => c.id !== payload.conversationId),
+    );
+    queryClient.removeQueries({ queryKey: [CONVERSATION_MESSAGES_KEY, payload.conversationId] });
+    if (activeConversationId === payload.conversationId) {
+      if (window.location.pathname.startsWith('/messages')) {
+        window.history.pushState(null, '', '/messages');
+      }
+    }
+  };
+
+  const handleMessagesCleared = (payload: { conversationId: string }) => {
+    queryClient.setQueryData([CONVERSATION_MESSAGES_KEY, payload.conversationId], {
+      pages: [{ data: [], hasMore: false, nextCursor: null }],
+      pageParams: [undefined],
+    });
+    queryClient.setQueryData<ConversationView[]>([CONVERSATIONS_KEY], (prev) =>
+      prev?.map((c) =>
+        c.id === payload.conversationId ? { ...c, lastMessage: null, unreadCount: 0 } : c,
+      ),
+    );
+    queryClient.invalidateQueries({
+      queryKey: [CONVERSATION_MESSAGES_KEY, payload.conversationId],
+    });
+  };
+
   useChatSocketEvent<{ conversationId: string; message: MessageView }>(
     'newMessage',
     handleNewMessage,
@@ -381,6 +408,8 @@ export function useMessengerRealtime(
     'conversationUpdated',
     handleConversationUpdated,
   );
+  useChatSocketEvent<{ conversationId: string }>('conversationDeleted', handleConversationDeleted);
+  useChatSocketEvent<{ conversationId: string }>('messagesCleared', handleMessagesCleared);
   useChatSocketEvent<{
     follower: { id: string; username: string; displayName?: string | null; avatar?: string | null };
     status: 'ACCEPTED' | 'PENDING';

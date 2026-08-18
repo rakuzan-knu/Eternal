@@ -49,7 +49,7 @@ describe('OnlineFriendsSidebar', () => {
     } as unknown as ReturnType<typeof useSuggestedUsersModule.useDismissSuggestedUser>);
   });
 
-  it('renders "Suggested for you" block when user has 0 friends to avoid layout shift', () => {
+  it('renders "Suggested for you" block and "Friends" block when user has 0 friends', () => {
     vi.spyOn(useFriendsModule, 'useFriends').mockReturnValue({
       data: [],
       isLoading: false,
@@ -72,11 +72,26 @@ describe('OnlineFriendsSidebar', () => {
     render(<OnlineFriendsSidebar />);
     expect(screen.getByText('Suggested for you')).toBeInTheDocument();
     expect(screen.getByText('Creator One')).toBeInTheDocument();
-    expect(screen.getByText('Find more people')).toBeInTheDocument();
+    expect(screen.getByText('Friends')).toBeInTheDocument();
+    expect(screen.getByText(/No friends yet/i)).toBeInTheDocument();
   });
 
-  it('renders online and offline sections sorted A-Z when user has friends', () => {
+  it('renders online and offline sections sorted A-Z and suggested block above them when user has friends', () => {
     usePresenceStore.setState({ onlineUserIds: new Set(['user-2']) });
+
+    vi.spyOn(useSuggestedUsersModule, 'useSuggestedUsers').mockReturnValue({
+      data: [
+        {
+          id: 'suggested-1',
+          username: 'creator1',
+          displayName: 'Creator One',
+          avatar: null,
+          isFollowing: false,
+          followsYou: false,
+        },
+      ],
+      isLoading: false,
+    } as unknown as ReturnType<typeof useSuggestedUsersModule.useSuggestedUsers>);
 
     vi.spyOn(useFriendsModule, 'useFriends').mockReturnValue({
       data: [
@@ -98,69 +113,31 @@ describe('OnlineFriendsSidebar', () => {
           followsYou: true,
           isFriend: true,
         },
-        {
-          id: 'user-3',
-          username: 'bob',
-          displayName: 'Bob Jones',
-          avatar: null,
-          isFollowing: true,
-          followsYou: true,
-          isFriend: true,
-        },
       ],
       isLoading: false,
     } as unknown as ReturnType<typeof useFriendsModule.useFriends>);
 
     render(<OnlineFriendsSidebar />);
 
-    expect(screen.getByText('Friends')).toBeInTheDocument();
+    expect(screen.getByText('Suggested for you')).toBeInTheDocument();
     expect(screen.getByText('Online — 1')).toBeInTheDocument();
-    expect(screen.getByText('Offline — 2')).toBeInTheDocument();
-
+    expect(screen.getByText('Offline — 1')).toBeInTheDocument();
     expect(screen.getByText('Alice Smith')).toBeInTheDocument();
-    expect(screen.getByText('Bob Jones')).toBeInTheDocument();
     expect(screen.getByText('Zack Walker')).toBeInTheDocument();
   });
 
-  it('collapses offline section by default if > 5 friends and shows "Show all (N)" accordion', () => {
-    const manyOfflineFriends = Array.from({ length: 8 }, (_, i) => ({
-      id: `offline-${i}`,
-      username: `offline_user_${i}`,
-      displayName: `User ${i}`,
-      avatar: null,
-      isFollowing: true,
-      followsYou: true,
-      isFriend: true,
-    }));
-
-    vi.spyOn(useFriendsModule, 'useFriends').mockReturnValue({
-      data: manyOfflineFriends,
+  it('filters friends list using search input in Friends block', () => {
+    vi.spyOn(useSuggestedUsersModule, 'useSuggestedUsers').mockReturnValue({
+      data: [],
       isLoading: false,
-    } as unknown as ReturnType<typeof useFriendsModule.useFriends>);
+    } as unknown as ReturnType<typeof useSuggestedUsersModule.useSuggestedUsers>);
 
-    render(<OnlineFriendsSidebar />);
-
-    expect(screen.getByText('Offline — 8')).toBeInTheDocument();
-    expect(screen.getByText('Show all (8)')).toBeInTheDocument();
-
-    // First 5 are visible, 6th is initially hidden
-    expect(screen.getByText('User 0')).toBeInTheDocument();
-    expect(screen.getByText('User 4')).toBeInTheDocument();
-    expect(screen.queryByText('User 7')).not.toBeInTheDocument();
-
-    // Click "Show all (8)" to expand accordion
-    fireEvent.click(screen.getByText('Show all (8)'));
-    expect(screen.getByText('User 7')).toBeInTheDocument();
-    expect(screen.getByText('Show less')).toBeInTheDocument();
-  });
-
-  it('filters friends list using search input', () => {
     vi.spyOn(useFriendsModule, 'useFriends').mockReturnValue({
       data: [
         {
           id: 'user-1',
-          username: 'alice',
-          displayName: 'Alice Smith',
+          username: 'zack',
+          displayName: 'Zack Walker',
           avatar: null,
           isFollowing: true,
           followsYou: true,
@@ -168,8 +145,8 @@ describe('OnlineFriendsSidebar', () => {
         },
         {
           id: 'user-2',
-          username: 'bob',
-          displayName: 'Bob Jones',
+          username: 'alice',
+          displayName: 'Alice Smith',
           avatar: null,
           isFollowing: true,
           followsYou: true,
@@ -189,10 +166,44 @@ describe('OnlineFriendsSidebar', () => {
     fireEvent.change(input, { target: { value: 'alice' } });
 
     expect(screen.getByText('Alice Smith')).toBeInTheDocument();
-    expect(screen.queryByText('Bob Jones')).not.toBeInTheDocument();
+    expect(screen.queryByText('Zack Walker')).not.toBeInTheDocument();
   });
 
-  it('displays unread direct message count badge for a friend', () => {
+  it('expands offline friends accordion when clicking show all', () => {
+    vi.spyOn(useSuggestedUsersModule, 'useSuggestedUsers').mockReturnValue({
+      data: [],
+      isLoading: false,
+    } as unknown as ReturnType<typeof useSuggestedUsersModule.useSuggestedUsers>);
+
+    const mockOfflineFriends = Array.from({ length: 8 }, (_, i) => ({
+      id: `user-${i}`,
+      username: `user_${i}`,
+      displayName: `User ${i}`,
+      avatar: null,
+      isFollowing: true,
+      followsYou: true,
+      isFriend: true,
+    }));
+
+    vi.spyOn(useFriendsModule, 'useFriends').mockReturnValue({
+      data: mockOfflineFriends,
+      isLoading: false,
+    } as unknown as ReturnType<typeof useFriendsModule.useFriends>);
+
+    render(<OnlineFriendsSidebar />);
+
+    expect(screen.getByText('Show all (8)')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Show all (8)'));
+    expect(screen.getByText('Show less')).toBeInTheDocument();
+  });
+
+  it('shows unread badge on friend row if there are direct messages', () => {
+    vi.spyOn(useSuggestedUsersModule, 'useSuggestedUsers').mockReturnValue({
+      data: [],
+      isLoading: false,
+    } as unknown as ReturnType<typeof useSuggestedUsersModule.useSuggestedUsers>);
+
     vi.spyOn(useFriendsModule, 'useFriends').mockReturnValue({
       data: [
         {

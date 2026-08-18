@@ -183,7 +183,8 @@ export class PostsRepository implements IPostRepository {
       data,
       include: this.postInclude(),
     });
-    return this.mapPost(created);
+    const authorId = (data.author as { connect?: { id?: string } })?.connect?.id;
+    return this.mapPost(created, authorId);
   }
 
   async getAllPosts(

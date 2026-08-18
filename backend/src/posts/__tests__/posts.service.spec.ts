@@ -1,5 +1,5 @@
 import { ForbiddenException, GoneException, NotFoundException } from '@nestjs/common';
-import { MediaType } from '@prisma/client';
+import { MediaType } from '@common/contracts';
 import { PostsService } from '../posts.service';
 import type { PostsMediaService } from '../posts-media.service';
 import type { RedisService } from '../../redis/redis.service';
@@ -346,6 +346,83 @@ describe('PostsService', () => {
       await expect(service.votePoll('post-100', 'opt-nonexistent', 'usr-1')).rejects.toThrow(
         NotFoundException,
       );
+    });
+
+    it('getPollVoters returns grouped options with voter details', async () => {
+      mockPrisma.poll.findUnique.mockResolvedValueOnce({
+        options: [{ id: 'opt-1' }, { id: 'opt-2' }],
+        votes: [
+          {
+            optionId: 'opt-1',
+            user: { id: 'u-1', username: 'ayate', displayName: 'Ayate', avatar: null },
+          },
+        ],
+      });
+
+      const voters = await service.getPollVoters('post-100', 'usr-1');
+      expect(voters).toHaveLength(2);
+      expect(voters[0].optionId).toBe('opt-1');
+      expect(voters[0].voters).toHaveLength(1);
+      expect(voters[0].voters[0].username).toBe('ayate');
+      expect(voters[1].voters).toHaveLength(0);
+    });
+
+    it('getPollVoters throws NotFoundException when poll does not exist', async () => {
+      mockPrisma.poll.findUnique.mockResolvedValueOnce(null);
+      await expect(service.getPollVoters('post-none', 'usr-1')).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('pinPost, unpinPost, sharePost & getPostOgHtml', () => {
+    it('pinPost sets user pinned post and marks isPinned true', async () => {
+      mockPostsRepository.getPostById.mockResolvedValue({
+        ...basePost,
+        id: 'post-100',
+        authorId: 'usr-author-1',
+      });
+
+      const result = await service.pinPost('post-100', 'usr-author-1');
+      expect(mockRedis.set).toHaveBeenCalledWith(
+        'user:pinned_post:usr-author-1',
+        'post-100',
+        expect.any(Number),
+      );
+      expect(result.isPinned).toBe(true);
+    });
+
+    it('unpinPost removes user pinned post if matching', async () => {
+      mockPostsRepository.getPostById.mockResolvedValue({
+        ...basePost,
+        id: 'post-100',
+        authorId: 'usr-author-1',
+      });
+      mockRedis.get.mockResolvedValueOnce('post-100');
+
+      const result = await service.unpinPost('post-100', 'usr-author-1');
+      expect(mockRedis.del).toHaveBeenCalledWith('user:pinned_post:usr-author-1');
+      expect(result.isPinned).toBe(false);
+    });
+
+    it('sharePost handles unique tracking per user and increments count', async () => {
+      mockRedis.get.mockResolvedValueOnce(null); // not shared yet
+      const res = await service.sharePost('post-100', 'usr-1');
+      expect(mockPostsRepository.incrementShareCount).toHaveBeenCalledWith('post-100');
+      expect(res.incremented).toBe(true);
+
+      mockRedis.get.mockResolvedValueOnce('1'); // already shared
+      const res2 = await service.sharePost('post-100', 'usr-1');
+      expect(res2.incremented).toBe(false);
+    });
+
+    it('getPostOgHtml returns HTML with metadata', async () => {
+      mockPostsRepository.getPostById.mockResolvedValueOnce({
+        ...basePost,
+        content: 'Check out this awesome post!',
+      });
+
+      const html = await service.getPostOgHtml('post-100');
+      expect(html).toContain('<meta property="og:site_name" content="Eternal Social Network" />');
+      expect(html).toContain('Check out this awesome post!');
     });
   });
 });

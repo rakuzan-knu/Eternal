@@ -87,6 +87,28 @@ describe('AvatarsService', () => {
       expect(mockRedis.del).toHaveBeenCalledWith('user:usr-1');
       expect(result.avatar).toContain('usr-1');
     });
+
+    it('handles animated GIF avatar upload preserving gif extension', async () => {
+      const mockGifFile: Express.Multer.File = {
+        ...mockFile,
+        originalname: 'animated.gif',
+        mimetype: 'image/gif',
+        buffer: Buffer.from('GIF89a...fake-gif-bytes'),
+      };
+
+      mockAvatarRepo.findById.mockResolvedValueOnce({ id: 'usr-1', avatar: null });
+      mockAvatarRepo.updateAvatar.mockResolvedValueOnce({
+        id: 'usr-1',
+        avatar: 'https://s3.example.com/avatars/avatars/usr-1.gif',
+      });
+
+      const result = await service.uploadAvatar('usr-1', mockGifFile);
+      expect(mockAvatarRepo.updateAvatar).toHaveBeenCalledWith(
+        'usr-1',
+        expect.stringContaining('usr-1.gif'),
+      );
+      expect(result.avatar).toContain('usr-1.gif');
+    });
   });
 
   describe('deleteAvatar', () => {

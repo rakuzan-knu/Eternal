@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { CheckCircle2, Hash } from 'lucide-react';
+import { Hash } from 'lucide-react';
 import Avatar from '@/shared/ui/Avatar';
+import { VerifiedCheckmark } from '@/entities/profile/ui/VerifiedCheckmark';
 import { apiClient as api } from '@/shared/api/httpClient';
 
 interface UserOption {
@@ -52,6 +53,8 @@ function MentionAutocompletePopup({
   onClose?: () => void;
 }) {
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const popupRef = useRef<HTMLDivElement>(null);
+  const [placement, setPlacement] = useState<'top' | 'bottom'>('top');
 
   // Smart search prioritized by mutuals, following and chats
   const { data: users = [] } = useQuery<UserOption[]>({
@@ -76,6 +79,35 @@ function MentionAutocompletePopup({
   });
 
   const items = triggerType === '@' ? users : hashtags;
+
+  // Responsive position calculation based on viewport boundaries
+  useEffect(() => {
+    const updatePosition = () => {
+      if (!popupRef.current) return;
+      const parent = popupRef.current.parentElement;
+      if (!parent) return;
+      const rect = parent.getBoundingClientRect();
+      const dropdownEstimatedHeight = 240;
+
+      const spaceAbove = rect.top;
+      const spaceBelow = window.innerHeight - rect.bottom;
+
+      // If not enough room above the composer, flip to bottom
+      if (spaceAbove < dropdownEstimatedHeight && spaceBelow >= 140) {
+        setPlacement('bottom');
+      } else {
+        setPlacement('top');
+      }
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [items.length]);
 
   const handleSelectItem = useCallback(
     (item: UserOption | HashtagOption) => {
@@ -133,9 +165,12 @@ function MentionAutocompletePopup({
 
   return (
     <div
+      ref={popupRef}
       role="listbox"
       aria-label={triggerType === '@' ? 'User mention suggestions' : 'Hashtag suggestions'}
-      className="absolute z-50 bottom-full left-0 mb-2 w-full max-w-sm bg-[#121215]/95 backdrop-blur-2xl border border-white/[0.1] rounded-2xl shadow-2xl overflow-hidden animate-fadeIn py-1 max-h-64 overflow-y-auto custom-scrollbar"
+      className={`absolute z-50 left-0 w-full max-w-sm bg-[#121215]/95 backdrop-blur-2xl border border-white/[0.1] rounded-2xl shadow-2xl overflow-hidden animate-fadeIn py-1 max-h-64 overflow-y-auto custom-scrollbar ${
+        placement === 'bottom' ? 'top-full mt-2' : 'bottom-full mb-2'
+      }`}
     >
       {triggerType === '@'
         ? (items as UserOption[]).map((user, idx) => {
@@ -158,9 +193,11 @@ function MentionAutocompletePopup({
                     <span className="font-semibold text-xs text-white truncate">
                       {user.displayName || user.username}
                     </span>
-                    {user.isVerified && (
-                      <CheckCircle2 size={13} className="text-sky-400 fill-sky-400/20 shrink-0" />
-                    )}
+                    <VerifiedCheckmark
+                      isVerified={user.isVerified}
+                      primaryBadge={user.primaryBadge}
+                      size="sm"
+                    />
                   </div>
                   <span className="text-[11px] text-gray-400 truncate">@{user.username}</span>
                 </div>
@@ -225,3 +262,5 @@ export function MentionAutocomplete({
     />
   );
 }
+
+export default MentionAutocomplete;

@@ -157,14 +157,72 @@ export function useMessageActions(conversationId: string | null) {
   );
 
   const addReaction = useCallback(
-    (messageId: string, emoji: string) => emitWithAck(socket, 'addReaction', { messageId, emoji }),
-    [socket],
+    async (messageId: string, emoji: string) => {
+      updatePages((pages) =>
+        pages.map((p) => ({
+          ...p,
+          data: p.data.map((m) => {
+            if (m.id !== messageId) return m;
+            const existingIdx = m.reactions.findIndex((r) => r.emoji === emoji);
+            const nextReactions = [...m.reactions];
+            if (existingIdx !== -1) {
+              const prev = nextReactions[existingIdx];
+              nextReactions[existingIdx] = {
+                ...prev,
+                count: prev.selfReacted ? prev.count : prev.count + 1,
+                selfReacted: true,
+                users: prev.users || [],
+              };
+            } else {
+              nextReactions.push({ emoji, count: 1, selfReacted: true, users: [] });
+            }
+            return { ...m, reactions: nextReactions };
+          }),
+        })),
+      );
+
+      try {
+        await emitWithAck(socket, 'addReaction', { messageId, emoji });
+      } catch (err) {
+        console.error('Failed to add reaction:', err);
+      }
+    },
+    [socket, updatePages],
   );
 
   const removeReaction = useCallback(
-    (messageId: string, emoji: string) =>
-      emitWithAck(socket, 'removeReaction', { messageId, emoji }),
-    [socket],
+    async (messageId: string, emoji: string) => {
+      updatePages((pages) =>
+        pages.map((p) => ({
+          ...p,
+          data: p.data.map((m) => {
+            if (m.id !== messageId) return m;
+            const existingIdx = m.reactions.findIndex((r) => r.emoji === emoji);
+            if (existingIdx === -1) return m;
+            let nextReactions = [...m.reactions];
+            const prev = nextReactions[existingIdx];
+            if (prev.count <= 1) {
+              nextReactions = nextReactions.filter((r) => r.emoji !== emoji);
+            } else {
+              nextReactions[existingIdx] = {
+                ...prev,
+                count: prev.selfReacted ? prev.count - 1 : prev.count,
+                selfReacted: false,
+                users: prev.users || [],
+              };
+            }
+            return { ...m, reactions: nextReactions };
+          }),
+        })),
+      );
+
+      try {
+        await emitWithAck(socket, 'removeReaction', { messageId, emoji });
+      } catch (err) {
+        console.error('Failed to remove reaction:', err);
+      }
+    },
+    [socket, updatePages],
   );
 
   const pinMessage = useCallback(
@@ -230,11 +288,63 @@ export function useMessageActions(conversationId: string | null) {
     [socket, conversationId, queryClient],
   );
 
+  const batchDeleteMessages = useCallback(
+    async (messageIds: string[], forAll: boolean) => {
+      if (!conversationId || messageIds.length === 0) return;
+      const res = await chatApi.batchDeleteMessages(conversationId, messageIds, forAll);
+      updatePages((pages) =>
+        pages.map((p) => ({
+          ...p,
+          data: p.data.map((m) => {
+            if (messageIds.includes(m.id)) {
+              return { ...m, isDeleted: true, body: null, attachments: [] };
+            }
+            return m;
+          }),
+        })),
+      );
+      return res;
+    },
+    [conversationId, updatePages],
+  );
+
+  const batchForwardMessages = useCallback(
+    async (messageIds: string[], conversationIds: string[], hideAuthor = false) => {
+      if (!conversationId || messageIds.length === 0 || conversationIds.length === 0) return;
+      return chatApi.batchForwardMessages(conversationId, messageIds, conversationIds, hideAuthor);
+    },
+    [conversationId],
+  );
+
+  const loadAroundMessages = useCallback(
+    async (messageId: string) => {
+      if (!conversationId) return;
+      const res = await chatApi.getMessagesAround(conversationId, messageId);
+      if (res && res.data) {
+        updatePages((pages) => {
+          if (pages.length === 0) return [res];
+          const existingIds = new Set(pages.flatMap((p) => p.data.map((m) => m.id)));
+          const newMessages = res.data.filter((m) => !existingIds.has(m.id));
+          if (newMessages.length === 0) return pages;
+          const merged = [...pages[0].data, ...newMessages].sort(
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+          );
+          return [{ ...pages[0], data: merged }, ...pages.slice(1)];
+        });
+      }
+      return res;
+    },
+    [conversationId, updatePages],
+  );
+
   return {
     sendMessage,
     editMessage,
     deleteMessage,
+    batchDeleteMessages,
     forwardMessage,
+    batchForwardMessages,
+    loadAroundMessages,
     addReaction,
     removeReaction,
     pinMessage,

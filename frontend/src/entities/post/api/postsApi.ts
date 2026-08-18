@@ -68,6 +68,17 @@ export function normalizePost(raw: Record<string, unknown> | null | undefined): 
     avatar,
     text,
     createdAt: (raw.createdAt as string) ?? new Date().toISOString(),
+    editedAt:
+      (raw.editedAt as string | undefined) ??
+      (raw.updatedAt &&
+      new Date(raw.updatedAt as string).getTime() >
+        new Date((raw.createdAt as string) || 0).getTime() + 1000
+        ? (raw.updatedAt as string)
+        : undefined),
+    isPinned: Boolean(raw.isPinned),
+    pinnedAt:
+      (raw.pinnedAt as string | undefined) ??
+      (raw.isPinned ? (raw.createdAt as string) : undefined),
     isVerified,
     primaryBadge,
     type: raw.type as PostType['type'],
@@ -164,4 +175,19 @@ export const postsApi = {
         params: { q: query, after, limit, mediaOnly: mediaOnly ? 'true' : undefined },
       })
       .then((r) => normalizeFeedPage(r.data)),
+
+  editPost: (postId: string | number, dto: { content: string }): Promise<PostType> =>
+    api.patch<Record<string, unknown>>(`/posts/${postId}`, dto).then((r) => normalizePost(r.data)),
+
+  deletePost: (postId: string | number): Promise<unknown> =>
+    api.delete(`/posts/${postId}`).then((r) => r.data),
+
+  reportPost: (postId: string | number, reason: string): Promise<unknown> =>
+    api.post(`/posts/${postId}/report`, { reason }).then((r) => r.data),
+
+  pinPost: (postId: string | number): Promise<PostType> =>
+    api.post<Record<string, unknown>>(`/posts/${postId}/pin`).then((r) => normalizePost(r.data)),
+
+  unpinPost: (postId: string | number): Promise<PostType> =>
+    api.delete<Record<string, unknown>>(`/posts/${postId}/pin`).then((r) => normalizePost(r.data)),
 };

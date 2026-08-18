@@ -29,8 +29,8 @@ export function validateEnv(config: Record<string, unknown>): EnvironmentVariabl
   const result = envSchema.safeParse(config);
 
   if (!result.success) {
-    const message = result.error.errors
-      .map((err) => `${err.path.join('.')}: ${err.message}`)
+    const message = result.error.issues
+      .map((err: z.ZodIssue) => `${err.path.join('.')}: ${err.message}`)
       .join('; ');
     throw new Error(`Environment validation failed: ${message}`);
   }

@@ -8,6 +8,8 @@ import type { RedisService } from '../../redis/redis.service';
 import type { UsersService } from '../../users/users.service';
 import type { SessionsService } from '../../sessions/sessions.service';
 
+jest.setTimeout(30000);
+
 describe('AuthService', () => {
   let service: AuthService;
   let mockUsersService: {

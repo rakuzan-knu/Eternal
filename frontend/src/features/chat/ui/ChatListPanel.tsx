@@ -3,6 +3,7 @@ import { Search, UserPlus, MoreHorizontal, PanelLeftClose, PanelLeftOpen } from 
 import { useUIStore } from '../../../shared/model/useUIStore';
 import { useAuthStore } from '../../../shared/model/useAuthStore';
 import Tooltip from '../../../shared/ui/Tooltip';
+import { useMessageToastStore } from '../../../shared/model/useMessageToastStore';
 import { ConversationView } from '../../../entities/chat/model/types';
 import { useConversations } from '../../../features/chat/model/useConversations';
 import { useQueryOnlineStatus } from '../../../features/chat/model/usePresence';
@@ -11,6 +12,7 @@ import { useLocalConversationOverrides } from '../../../features/chat/model/useL
 import { getConversationDisplay } from '../../../features/chat/lib/getConversationDisplay';
 import { getFolderConversations } from '../../../features/chat/lib/chatFolderUtils';
 import { ChatFolder, useChatFoldersStore } from '../../../features/chat/model/useChatFoldersStore';
+import { useChatDraftsStore } from '../../../features/chat/model/useChatDraftsStore';
 import ChatListItem from './ChatListItem';
 import ChatListHeaderMenu, { ChatListHeaderSection } from './ChatListHeaderMenu';
 import NewGroupModal from './NewGroupModal';
@@ -102,6 +104,21 @@ export default function ChatListPanel({
     markConversationsRead,
   } = useLocalConversationOverrides();
 
+  const handleTogglePinLocally = (conversationId: string) => {
+    togglePinLocally(conversationId, () => {
+      useMessageToastStore.getState().addToast({
+        id: `pin-limit-${Date.now()}`,
+        conversationId: '',
+        messageId: '',
+        title: 'Pin Limit Reached',
+        body: 'You can pin a maximum of 5 chats.',
+        avatar: null,
+        memberAvatars: [],
+        isGroup: false,
+      });
+    });
+  };
+
   const { width, isResizing, isHandleHovered, setIsHandleHovered, handleResizeStart } =
     useResizablePanel(MIN_WIDTH, MAX_WIDTH, DEFAULT_WIDTH);
 
@@ -120,14 +137,23 @@ export default function ChatListPanel({
     [activeFolderId, allFolders],
   );
 
+  const drafts = useChatDraftsStore((s) => s.drafts);
+
   const filteredConversations = useMemo(() => {
     if (!activeFolder) return [];
     return getFolderConversations(activeFolder, effectiveConversations, forcedUnreadLocally)
       .filter((c: ConversationView) =>
         getConversationDisplay(c, userId).title.toLowerCase().includes(search.toLowerCase()),
       )
-      .sort((a, b) => getConversationActivityTime(b) - getConversationActivityTime(a));
-  }, [activeFolder, effectiveConversations, forcedUnreadLocally, search, userId]);
+      .sort((a, b) => {
+        const hasDraftA = Boolean(drafts[a.id]?.text?.trim());
+        const hasDraftB = Boolean(drafts[b.id]?.text?.trim());
+        if (hasDraftA !== hasDraftB) {
+          return hasDraftA ? -1 : 1;
+        }
+        return getConversationActivityTime(b) - getConversationActivityTime(a);
+      });
+  }, [activeFolder, drafts, effectiveConversations, forcedUnreadLocally, search, userId]);
 
   const visibleConversations = filteredConversations.slice(0, visibleConversationCount);
   const visiblePinnedConversations = visibleConversations.filter((c) => pinnedLocally.has(c.id));
@@ -324,8 +350,13 @@ export default function ChatListPanel({
                             isPinnedLocally={pinnedLocally.has(c.id)}
                             isForcedUnread={forcedUnreadLocally.has(c.id)}
                             onSelect={onSelectConversation}
-                            onTogglePinLocally={togglePinLocally}
+                            onTogglePinLocally={handleTogglePinLocally}
                             onToggleUnreadLocally={toggleUnreadLocally}
+                            onMarkReadLocally={(id) => markConversationsRead([id])}
+                            onCreateFolder={() => {
+                              setEditingFolder(null);
+                              setFolderModalOpen(true);
+                            }}
                           />
                         </div>
                       ))}
@@ -343,8 +374,13 @@ export default function ChatListPanel({
                         isPinnedLocally={pinnedLocally.has(c.id)}
                         isForcedUnread={forcedUnreadLocally.has(c.id)}
                         onSelect={onSelectConversation}
-                        onTogglePinLocally={togglePinLocally}
+                        onTogglePinLocally={handleTogglePinLocally}
                         onToggleUnreadLocally={toggleUnreadLocally}
+                        onMarkReadLocally={(id) => markConversationsRead([id])}
+                        onCreateFolder={() => {
+                          setEditingFolder(null);
+                          setFolderModalOpen(true);
+                        }}
                       />
                     </div>
                   ))}

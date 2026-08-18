@@ -232,12 +232,44 @@ export class PostsController {
     return this.postsService.reportPost(id, user.id, dto.category, dto.details);
   }
 
-  @Post(':id/share')
+  @Post(':id/pin')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Track share of a post' })
+  @ApiOperation({ summary: 'Pin a post to author profile' })
+  @ApiResponse({ status: 200, description: 'Post pinned successfully.' })
+  pinPost(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    return this.postsService.pinPost(id, user.id);
+  }
+
+  @Delete(':id/pin')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Unpin a post from author profile' })
+  @ApiResponse({ status: 200, description: 'Post unpinned successfully.' })
+  unpinPost(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    return this.postsService.unpinPost(id, user.id);
+  }
+
+  @Post(':id/share')
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Track unique share of a post' })
   @ApiResponse({ status: 200, description: 'Post share recorded successfully.' })
-  sharePost(@Param('id') id: string) {
+  sharePost(@Param('id') id: string, @CurrentUser() user?: RequestUser) {
+    if (user?.id) {
+      return this.postsService.sharePost(id, user.id);
+    }
     return this.postsService.sharePost(id);
+  }
+
+  @Get(':id/og')
+  @ApiOperation({ summary: 'Get OpenGraph HTML preview for post link embeds' })
+  @ApiResponse({ status: 200, description: 'OpenGraph HTML content' })
+  async getPostOgHtml(@Param('id') id: string) {
+    return this.postsService.getPostOgHtml(id);
   }
 
   @Post(':id/poll/vote')
@@ -252,5 +284,14 @@ export class PostsController {
     @CurrentUser() user: RequestUser,
   ) {
     return this.postsService.votePoll(id, optionId, user.id);
+  }
+
+  @Get(':id/poll/voters')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get post poll voters' })
+  @ApiResponse({ status: 200, description: 'Poll voters retrieved successfully.' })
+  getPollVoters(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    return this.postsService.getPollVoters(id, user.id);
   }
 }

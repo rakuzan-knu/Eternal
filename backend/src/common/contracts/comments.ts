@@ -8,6 +8,9 @@ export const createCommentSchema = z.object({
     .max(1000)
     .transform((val) => val.trim()),
   parentId: z.string().optional(),
+  replyToUserId: z.string().optional(),
+  mediaUrl: z.string().url().optional().or(z.string().length(0)),
+  clientMutationId: z.string().optional(),
 });
 export type CreateCommentDto = z.infer<typeof createCommentSchema>;
 
@@ -26,6 +29,20 @@ export type CommentWithUser = Comment & {
     isVerified?: boolean;
     primaryBadge?: string | null;
   } | null;
+  replyToUser?: {
+    id: string;
+    username: string;
+    displayName: string | null;
+  } | null;
+  _count?: {
+    replies?: number;
+    likes?: number;
+  } | null;
+  likes?: { userId: string }[];
+  isLiked?: boolean;
+  isLikedByAuthor?: boolean;
+  likesCount?: number;
+  replyCount?: number;
 };
 
 export class CommentResponseDto {
@@ -39,18 +56,50 @@ export class CommentResponseDto {
   isVerified!: boolean;
   primaryBadge!: string | null;
   parentId!: string | null;
+  rootParentId!: string | null;
+  replyToUserId!: string | null;
+  replyToUser!: { id: string; username: string; displayName: string | null } | null;
+  mediaUrl!: string | null;
+  likesCount!: number;
+  replyCount!: number;
+  isLiked!: boolean;
+  isLikedByAuthor!: boolean;
+  isPinned!: boolean;
+  isDeleted!: boolean;
   createdAt!: string;
 
-  static fromPrisma(this: void, comment: CommentWithUser): CommentResponseDto {
+  static fromPrisma(
+    this: void,
+    comment: CommentWithUser,
+    viewerId?: string,
+    postAuthorId?: string,
+  ): CommentResponseDto {
     const displayName = comment.user?.displayName || comment.user?.username || 'User';
     const handle = comment.user?.username || 'user';
     const avatar = comment.user?.avatar || null;
     const isVerified = comment.user?.isVerified ?? false;
     const primaryBadge = comment.user?.primaryBadge ?? null;
 
+    const likesCount =
+      comment.likesCount ??
+      comment._count?.likes ??
+      (Array.isArray(comment.likes) ? comment.likes.length : 0);
+
+    const replyCount = comment.replyCount ?? comment._count?.replies ?? 0;
+
+    const isLiked =
+      comment.isLiked !== undefined
+        ? comment.isLiked
+        : Boolean(viewerId && comment.likes?.some((l) => l.userId === viewerId));
+
+    const isLikedByAuthor =
+      comment.isLikedByAuthor !== undefined
+        ? comment.isLikedByAuthor
+        : Boolean(postAuthorId && comment.likes?.some((l) => l.userId === postAuthorId));
+
     return {
       id: comment.id,
-      text: comment.text,
+      text: comment.isDeleted ? '[Comment deleted]' : comment.text,
       postId: comment.postId,
       userId: comment.userId,
       author: displayName,
@@ -59,6 +108,22 @@ export class CommentResponseDto {
       isVerified,
       primaryBadge,
       parentId: comment.parentId ?? null,
+      rootParentId: comment.rootParentId ?? null,
+      replyToUserId: comment.replyToUserId ?? null,
+      replyToUser: comment.replyToUser
+        ? {
+            id: comment.replyToUser.id,
+            username: comment.replyToUser.username,
+            displayName: comment.replyToUser.displayName || comment.replyToUser.username,
+          }
+        : null,
+      mediaUrl: comment.isDeleted ? null : (comment.mediaUrl ?? null),
+      likesCount,
+      replyCount,
+      isLiked,
+      isLikedByAuthor,
+      isPinned: comment.isPinned ?? false,
+      isDeleted: comment.isDeleted ?? false,
       createdAt: comment.createdAt.toISOString(),
     };
   }

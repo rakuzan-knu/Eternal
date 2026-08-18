@@ -58,6 +58,11 @@ export interface PostType extends Omit<Partial<PostResponseDto>, 'id' | 'media' 
   isSaved?: boolean;
   isFollowing?: boolean;
   isOwner?: boolean;
+  isPinned?: boolean;
+  pinnedAt?: string | null;
+  editedAt?: string | null;
+  hideLikesCount?: boolean;
+  isCommentsDisabled?: boolean;
   commentList?: import('../../comment/model/types').CommentType[];
 }
 
@@ -71,4 +76,9 @@ export interface PollVoter {
 export interface PollVoterGroup {
   optionId: string;
   voters: PollVoter[];
+}
+
+export interface FeedPage {
+  posts: PostType[];
+  nextCursor: string | null;
 }

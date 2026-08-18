@@ -13,6 +13,7 @@ import {
 import Avatar from '../../../shared/ui/Avatar';
 import OnlineStatusIndicator from '../../../shared/ui/OnlineStatusIndicator';
 import { ConversationView, ParticipantView } from '../../../entities/chat/model/types';
+import { VerifiedCheckmark } from '@/entities/profile/ui/VerifiedCheckmark';
 import { chatApi } from '../api/chatApi';
 import { CONVERSATIONS_KEY } from '@/shared/api/queryKeys';
 import {
@@ -69,7 +70,10 @@ export default function GroupMemberDetailView({
             <Avatar size="xl" src={participant.user.avatar} />
             <OnlineStatusIndicator userId={participant.userId} variant="dot" size="md" />
           </div>
-          <p className="text-lg font-bold text-white">{name}</p>
+          <div className="flex items-center justify-center gap-1.5 min-w-0">
+            <p className="text-lg font-bold text-white truncate">{name}</p>
+            {participant.user.isVerified && <VerifiedCheckmark size="md" />}
+          </div>
           <OnlineStatusIndicator
             userId={participant.userId}
             variant="text"

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { useUIStore } from '../../shared/model/useUIStore';
 import { useUserByUsername } from '../../entities/profile/model/useUserByUsername';
@@ -70,6 +70,24 @@ export default function ProfilePage() {
   const postsQuery = useUserPosts(user?.id ?? '');
   const repostsQuery = useUserReposts(user?.id ?? '');
   const createPost = useCreatePost([USER_POSTS_KEY, user?.id ?? '']);
+
+  const posts = useMemo(() => {
+    const raw =
+      postsQuery.data?.pages
+        ?.flatMap((p) => (Array.isArray(p?.posts) ? p.posts : []))
+        .filter(Boolean) ?? [];
+    const pinned = raw.filter((p) => p.isPinned);
+    const unpinned = raw.filter((p) => !p.isPinned);
+    return [...pinned, ...unpinned];
+  }, [postsQuery.data]);
+
+  const reposts = useMemo(() => {
+    return (
+      repostsQuery.data?.pages
+        ?.flatMap((p) => (Array.isArray(p?.posts) ? p.posts : []))
+        .filter(Boolean) ?? []
+    );
+  }, [repostsQuery.data]);
 
   useEffect(() => {
     if (!postsQuery.isLoading && window.location.hash) {
@@ -149,15 +167,6 @@ export default function ProfilePage() {
     );
   }
 
-  const posts =
-    postsQuery.data?.pages
-      ?.flatMap((p) => (Array.isArray(p?.posts) ? p.posts : []))
-      .filter(Boolean) ?? [];
-  const reposts =
-    repostsQuery.data?.pages
-      ?.flatMap((p) => (Array.isArray(p?.posts) ? p.posts : []))
-      .filter(Boolean) ?? [];
-
   const activeFeed = activeTab === 'posts' ? posts : reposts;
   const activeQuery = activeTab === 'posts' ? postsQuery : repostsQuery;
   const feedQueryKey =
@@ -183,7 +192,7 @@ export default function ProfilePage() {
           badges={user.badges}
           followersCount={user.followersCount}
           followingCount={user.followingCount}
-          onEditClick={openEditProfile}
+          onEditClick={() => openEditProfile('account')}
         />
         <ProfileTabs
           activeTab={activeTab}

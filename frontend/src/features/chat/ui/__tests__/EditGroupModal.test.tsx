@@ -38,17 +38,23 @@ describe('EditGroupModal', () => {
 
   it('renders edit group title and input with initial group name', () => {
     const onClose = vi.fn();
+    const onOpenParticipants = vi.fn();
+    const onOpenAdmins = vi.fn();
+
     render(
       <QueryClientProvider client={queryClient}>
         <EditGroupModal
           conversation={mockGroupConv}
           onClose={onClose}
-          onOpenParticipants={vi.fn()}
+          onOpenParticipants={onOpenParticipants}
+          onOpenAdmins={onOpenAdmins}
         />
       </QueryClientProvider>,
     );
 
     expect(screen.getByText('Edit group')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Engineers')).toBeInTheDocument();
+    expect(screen.getByText('Admins')).toBeInTheDocument();
+    expect(screen.getByText('Participants')).toBeInTheDocument();
   });
 });

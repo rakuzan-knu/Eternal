@@ -1,11 +1,14 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
+import { ChevronDown } from 'lucide-react';
 import { MessageView, UserSnapshot } from '../../../entities/chat/model/types';
 import { groupMessagesByDate } from '../lib/groupMessagesByDate';
 import MessageBubble from './MessageBubble';
 import TypingIndicatorBubble from '@/shared/ui/TypingIndicatorBubble';
 import Avatar from '@/shared/ui/Avatar';
 import { OlderMessagesSkeleton, MessageThreadSkeleton } from './MessageListSkeletons';
+
+import SystemMessageCluster from './SystemMessageCluster';
 
 export type ClusterPosition = 'single' | 'first' | 'middle' | 'last';
 
@@ -28,6 +31,9 @@ interface MessageListProps {
   isFetchingMore: boolean;
   typingParticipants: UserSnapshot[];
   isGroup: boolean;
+  isSelectionMode?: boolean;
+  selectedMessageIds?: Set<string>;
+  onToggleSelectMessage?: (messageId: string, isShift: boolean) => void;
   onLoadMore: () => void;
   onReply: (message: MessageView) => void;
   onEdit: (message: MessageView) => void;
@@ -40,6 +46,8 @@ interface MessageListProps {
   onMarkRead?: (lastReadMessageId?: string) => void;
   highlightMessageId?: string | null;
   onHighlightHandled?: () => void;
+  onJumpToMessage?: (messageId: string) => void;
+  onLoadAround?: (messageId: string) => Promise<unknown>;
 }
 
 type Row =
@@ -50,6 +58,11 @@ type Row =
       message: MessageView;
       showAvatar: boolean;
       clusterPosition: ClusterPosition;
+    }
+  | {
+      type: 'system_cluster';
+      key: string;
+      messages: MessageView[];
     };
 
 const START_INDEX = 100000;
@@ -72,32 +85,74 @@ function buildRows(messages: MessageView[]): Row[] {
   const rows: Row[] = [];
   groups.forEach((group, groupIndex) => {
     rows.push({ type: 'separator', key: `sep-${groupIndex}-${group.label}`, label: group.label });
-    group.messages.forEach((message, index) => {
-      const prev = group.messages[index - 1];
-      const next = group.messages[index + 1];
-      const isPrevSame = prev ? isSameSenderAndMinute(prev, message) : false;
-      const isNextSame = next ? isSameSenderAndMinute(message, next) : false;
 
-      let clusterPosition: ClusterPosition = 'single';
-      if (!isPrevSame && isNextSame) {
-        clusterPosition = 'first';
-      } else if (isPrevSame && isNextSame) {
-        clusterPosition = 'middle';
-      } else if (isPrevSame && !isNextSame) {
-        clusterPosition = 'last';
+    let currentSystemCluster: MessageView[] = [];
+
+    const flushSystemCluster = () => {
+      if (currentSystemCluster.length > 0) {
+        rows.push({
+          type: 'system_cluster',
+          key: `sys-cluster-${currentSystemCluster[0].id}-${currentSystemCluster.length}`,
+          messages: [...currentSystemCluster],
+        });
+        currentSystemCluster = [];
       }
+    };
 
-      // Avatar is only displayed on the LAST message of a cluster or on single messages
-      const showAvatar = !isNextSame;
+    group.messages.forEach((message, index) => {
+      const isSystem =
+        message.messageType === 'SYSTEM' || (message.messageType as string) === 'SYSTEM_ACTION';
 
-      rows.push({
-        type: 'message',
-        key: message.id,
-        message,
-        showAvatar,
-        clusterPosition,
-      });
+      if (isSystem) {
+        if (currentSystemCluster.length === 0) {
+          currentSystemCluster.push(message);
+        } else {
+          const prevTime = new Date(
+            currentSystemCluster[currentSystemCluster.length - 1].createdAt,
+          ).getTime();
+          const currTime = new Date(message.createdAt).getTime();
+          const diffMinutes = Math.abs(currTime - prevTime) / (1000 * 60);
+
+          if (diffMinutes <= 10) {
+            currentSystemCluster.push(message);
+          } else {
+            flushSystemCluster();
+            currentSystemCluster.push(message);
+          }
+        }
+      } else {
+        flushSystemCluster();
+
+        const prev = group.messages[index - 1];
+        const next = group.messages[index + 1];
+        const isPrevSame =
+          prev && prev.messageType !== 'SYSTEM' ? isSameSenderAndMinute(prev, message) : false;
+        const isNextSame =
+          next && next.messageType !== 'SYSTEM' ? isSameSenderAndMinute(message, next) : false;
+
+        let clusterPosition: ClusterPosition = 'single';
+        if (!isPrevSame && isNextSame) {
+          clusterPosition = 'first';
+        } else if (isPrevSame && isNextSame) {
+          clusterPosition = 'middle';
+        } else if (isPrevSame && !isNextSame) {
+          clusterPosition = 'last';
+        }
+
+        // Avatar is only displayed on the LAST message of a cluster or on single messages
+        const showAvatar = !isNextSame;
+
+        rows.push({
+          type: 'message',
+          key: message.id,
+          message,
+          showAvatar,
+          clusterPosition,
+        });
+      }
     });
+
+    flushSystemCluster();
   });
   return rows;
 }
@@ -113,6 +168,9 @@ export default function MessageList({
   isFetchingMore,
   typingParticipants,
   isGroup,
+  isSelectionMode = false,
+  selectedMessageIds,
+  onToggleSelectMessage,
   onLoadMore,
   onReply,
   onEdit,
@@ -125,10 +183,15 @@ export default function MessageList({
   onMarkRead,
   highlightMessageId,
   onHighlightHandled,
+  onJumpToMessage,
+  onLoadAround,
 }: MessageListProps) {
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const prevRowsRef = useRef<Row[]>([]);
   const [firstItemIndex, setFirstItemIndex] = useState(START_INDEX);
+
+  const [showScrollBottom, setShowScrollBottom] = useState(false);
+  const [unreadBelowCount, setUnreadBelowCount] = useState(0);
 
   const rows = useMemo(() => buildRows(messages), [messages]);
 
@@ -149,15 +212,18 @@ export default function MessageList({
     const relativeIndex = rows.findIndex(
       (r) => r.type === 'message' && r.message.id === highlightMessageId,
     );
-    if (relativeIndex === -1) return;
-    virtuosoRef.current?.scrollToIndex({
-      index: firstItemIndex + relativeIndex,
-      align: 'center',
-      behavior: 'smooth',
-    });
-    const timeout = setTimeout(() => onHighlightHandled?.(), 1700);
-    return () => clearTimeout(timeout);
-  }, [highlightMessageId, rows, firstItemIndex, onHighlightHandled]);
+    if (relativeIndex !== -1) {
+      virtuosoRef.current?.scrollToIndex({
+        index: firstItemIndex + relativeIndex,
+        align: 'center',
+        behavior: 'smooth',
+      });
+      const timeout = setTimeout(() => onHighlightHandled?.(), 1700);
+      return () => clearTimeout(timeout);
+    } else if (onLoadAround) {
+      onLoadAround(highlightMessageId).catch(() => {});
+    }
+  }, [highlightMessageId, rows, firstItemIndex, onHighlightHandled, onLoadAround]);
 
   const handleStartReached = () => {
     if (!hasMore || isFetchingMore) return;
@@ -198,81 +264,125 @@ export default function MessageList({
         </h3>
         {handle && <p className="text-xs text-gray-400 font-medium mt-0.5">{handle}</p>}
 
-        <p className="text-sm text-gray-300 max-w-sm mt-4 leading-relaxed font-normal bg-white/[0.04] px-5 py-2.5 rounded-2xl border border-white/[0.08] backdrop-blur-md shadow-inner">
-          Start your adventure with this user now.
+        <p className="text-xs text-gray-500 mt-2 max-w-xs leading-relaxed">
+          No messages here yet. Send a greeting to start the conversation!
         </p>
       </div>
     );
   }
 
   return (
-    <Virtuoso
-      ref={virtuosoRef}
-      className="flex-1 py-4"
-      data={rows}
-      firstItemIndex={firstItemIndex}
-      initialTopMostItemIndex={Math.max(rows.length - 1, 0)}
-      alignToBottom
-      followOutput="auto"
-      startReached={handleStartReached}
-      rangeChanged={(range) => {
-        const visibleRows = rows.slice(
-          Math.max(0, range.startIndex - firstItemIndex),
-          Math.max(0, range.endIndex - firstItemIndex + 1),
-        );
-        const lastMsgRow = [...visibleRows].reverse().find((r) => r.type === 'message');
-        if (
-          lastMsgRow &&
-          lastMsgRow.type === 'message' &&
-          lastMsgRow.message.sender.id !== currentUserId
-        ) {
-          onMarkRead?.(lastMsgRow.message.id);
-        }
-      }}
-      components={{
-        Header: () => (isFetchingMore ? <OlderMessagesSkeleton /> : null),
-        Footer: () => <TypingIndicatorBubble typists={typingParticipants} isGroup={isGroup} />,
-      }}
-      itemContent={(_index: number, row: Row) => {
-        if (row.type === 'separator') {
-          return (
-            <div className="sticky top-2 z-20 flex justify-center my-3 pointer-events-none">
-              <div className="px-3.5 py-1 rounded-full bg-[#18181b]/80 border border-white/10 backdrop-blur-md shadow-md text-[11px] font-medium text-gray-300 pointer-events-auto select-none transition-all">
-                {row.label}
+    <div className="relative flex-1 flex flex-col min-h-0">
+      <Virtuoso
+        ref={virtuosoRef}
+        firstItemIndex={firstItemIndex}
+        initialTopMostItemIndex={Math.max(0, rows.length - 1)}
+        data={rows}
+        startReached={handleStartReached}
+        atBottomStateChange={(atBottom) => {
+          setShowScrollBottom(!atBottom);
+          if (atBottom) setUnreadBelowCount(0);
+        }}
+        followOutput="smooth"
+        className="flex-1 custom-scrollbar py-2"
+        style={{ overflowAnchor: 'auto' }}
+        rangeChanged={(range) => {
+          const visibleRows = rows.slice(
+            Math.max(0, range.startIndex - firstItemIndex),
+            Math.max(0, range.endIndex - firstItemIndex + 1),
+          );
+          const lastMsgRow = [...visibleRows].reverse().find((r) => r.type === 'message');
+          if (
+            lastMsgRow &&
+            lastMsgRow.type === 'message' &&
+            lastMsgRow.message.sender.id !== currentUserId
+          ) {
+            onMarkRead?.(lastMsgRow.message.id);
+          }
+
+          const bottomRowIndex = Math.max(0, range.endIndex - firstItemIndex);
+          const belowCount = Math.max(0, rows.length - 1 - bottomRowIndex);
+          setUnreadBelowCount(belowCount);
+        }}
+        components={{
+          Header: () => (isFetchingMore ? <OlderMessagesSkeleton /> : null),
+          Footer: () => <TypingIndicatorBubble typists={typingParticipants} isGroup={isGroup} />,
+        }}
+        itemContent={(_index: number, row: Row) => {
+          if (row.type === 'separator') {
+            return (
+              <div className="sticky top-2 z-20 flex justify-center my-3 pointer-events-none">
+                <div className="px-3.5 py-1 rounded-full bg-[#18181b]/80 border border-white/10 backdrop-blur-md shadow-md text-[11px] font-medium text-gray-300 pointer-events-auto select-none transition-all">
+                  {row.label}
+                </div>
               </div>
+            );
+          }
+
+          if (row.type === 'system_cluster') {
+            return <SystemMessageCluster key={row.key} messages={row.messages} />;
+          }
+
+          const { message, showAvatar, clusterPosition } = row;
+          const isOwnMessage = message.sender.id === currentUserId;
+          const isReadByOther = otherParticipantId
+            ? message.readBy.includes(otherParticipantId)
+            : false;
+
+          return (
+            <div
+              className={`rounded-2xl transition-all ${
+                highlightMessageId === message.id ? 'animate-jumpHighlight' : ''
+              }`}
+            >
+              <MessageBubble
+                message={message}
+                isOwnMessage={isOwnMessage}
+                showAvatar={showAvatar}
+                isReadByOther={isReadByOther}
+                clusterPosition={clusterPosition}
+                currentUserId={currentUserId}
+                isSelectionMode={isSelectionMode}
+                isSelected={selectedMessageIds?.has(message.id)}
+                onToggleSelect={onToggleSelectMessage}
+                onReply={onReply}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onForward={onForward}
+                onTogglePin={onTogglePin}
+                onReport={onReport}
+                onReact={onReact}
+                onUnreact={onUnreact}
+                onJumpToMessage={onJumpToMessage}
+              />
             </div>
           );
-        }
+        }}
+      />
 
-        const { message, showAvatar, clusterPosition } = row;
-        const isOwnMessage = message.sender.id === currentUserId;
-        const isReadByOther = otherParticipantId
-          ? message.readBy.includes(otherParticipantId)
-          : false;
+      {showScrollBottom && (
+        <button
+          type="button"
+          onClick={() => {
+            virtuosoRef.current?.scrollToIndex({
+              index: firstItemIndex + rows.length - 1,
+              align: 'end',
+              behavior: 'smooth',
+            });
+            setUnreadBelowCount(0);
+          }}
+          className="group absolute bottom-4 right-4 sm:right-6 z-30 w-10 h-10 rounded-full bg-[#181926]/90 border border-white/15 backdrop-blur-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] flex items-center justify-center text-gray-300 hover:text-white hover:bg-purple-600/30 hover:border-purple-400/50 hover:shadow-[0_0_15px_rgba(168,85,247,0.4)] transition-all duration-200 active:scale-95 animate-popIn cursor-pointer"
+          title="Scroll to bottom"
+        >
+          <ChevronDown size={20} className="group-hover:translate-y-0.5 transition-transform" />
 
-        return (
-          <div
-            className={`rounded-2xl ${highlightMessageId === message.id ? 'animate-jumpHighlight' : ''}`}
-          >
-            <MessageBubble
-              message={message}
-              isOwnMessage={isOwnMessage}
-              showAvatar={showAvatar}
-              isReadByOther={isReadByOther}
-              clusterPosition={clusterPosition}
-              currentUserId={currentUserId}
-              onReply={onReply}
-              onEdit={onEdit}
-              onDelete={onDelete}
-              onForward={onForward}
-              onTogglePin={onTogglePin}
-              onReport={onReport}
-              onReact={onReact}
-              onUnreact={onUnreact}
-            />
-          </div>
-        );
-      }}
-    />
+          {unreadBelowCount > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 rounded-full bg-gradient-to-r from-purple-500 to-indigo-500 text-[10.5px] font-bold text-white flex items-center justify-center border-2 border-[#181926] shadow-[0_0_10px_rgba(168,85,247,0.7)] animate-popIn tabular-nums">
+              {unreadBelowCount > 99 ? '+99' : `+${unreadBelowCount}`}
+            </span>
+          )}
+        </button>
+      )}
+    </div>
   );
 }

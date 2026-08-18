@@ -23,7 +23,11 @@ describe('PostsController', () => {
     getUserReposts: jest.Mock;
     reportPost: jest.Mock;
     sharePost: jest.Mock;
+    pinPost: jest.Mock;
+    unpinPost: jest.Mock;
+    getPostOgHtml: jest.Mock;
     votePoll: jest.Mock;
+    getPollVoters: jest.Mock;
   };
 
   const mockUser: RequestUser = {
@@ -52,7 +56,11 @@ describe('PostsController', () => {
       getUserReposts: jest.fn(),
       reportPost: jest.fn(),
       sharePost: jest.fn(),
+      pinPost: jest.fn(),
+      unpinPost: jest.fn(),
+      getPostOgHtml: jest.fn(),
       votePoll: jest.fn(),
+      getPollVoters: jest.fn(),
     };
 
     controller = new PostsController(mockPostsService as unknown as PostsService);
@@ -180,7 +188,27 @@ describe('PostsController', () => {
     await controller.sharePost('post-1');
     expect(mockPostsService.sharePost).toHaveBeenCalledWith('post-1');
 
+    await controller.sharePost('post-1', mockUser);
+    expect(mockPostsService.sharePost).toHaveBeenCalledWith('post-1', 'usr-1');
+
     await controller.votePoll('post-1', 'opt-1', mockUser);
     expect(mockPostsService.votePoll).toHaveBeenCalledWith('post-1', 'opt-1', 'usr-1');
+
+    mockPostsService.getPollVoters.mockResolvedValueOnce([{ optionId: 'opt-1', voters: [] }]);
+    await controller.getPollVoters('post-1', mockUser);
+    expect(mockPostsService.getPollVoters).toHaveBeenCalledWith('post-1', 'usr-1');
+
+    mockPostsService.pinPost.mockResolvedValueOnce({ id: 'post-1', isPinned: true });
+    await controller.pinPost('post-1', mockUser);
+    expect(mockPostsService.pinPost).toHaveBeenCalledWith('post-1', 'usr-1');
+
+    mockPostsService.unpinPost.mockResolvedValueOnce({ id: 'post-1', isPinned: false });
+    await controller.unpinPost('post-1', mockUser);
+    expect(mockPostsService.unpinPost).toHaveBeenCalledWith('post-1', 'usr-1');
+
+    mockPostsService.getPostOgHtml.mockResolvedValueOnce('<html></html>');
+    const ogHtml = await controller.getPostOgHtml('post-1');
+    expect(ogHtml).toBe('<html></html>');
+    expect(mockPostsService.getPostOgHtml).toHaveBeenCalledWith('post-1');
   });
 });

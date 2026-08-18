@@ -1,16 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import {
-  MessageSquare,
-  Users,
-  Search,
-  X,
-  ChevronDown,
-  Sparkles,
-  Compass,
-  MapPin,
-  CheckCircle2,
-} from 'lucide-react';
+import { MessageSquare, Users, Search, X, ChevronDown, Sparkles, MapPin } from 'lucide-react';
 import { useFriends } from '@/features/follow/model/useFriends';
 import {
   useSuggestedUsers,
@@ -22,6 +12,7 @@ import { useAuthStore } from '@/shared/model/useAuthStore';
 import { MiniProfileHoverCard } from '@/entities/profile/ui/MiniProfileHoverCard';
 import { FollowButton } from '@/features/follow/ui/FollowButton';
 import Avatar from '@/shared/ui/Avatar';
+import { VerifiedCheckmark } from '@/entities/profile/ui/VerifiedCheckmark';
 import { chatApi } from '@/features/chat/api/chatApi';
 import type { ParticipantView } from '@/entities/chat/model/types';
 import type {
@@ -33,9 +24,10 @@ export function OnlineFriendsSidebar() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isOfflineExpanded, setIsOfflineExpanded] = useState(false);
+  const [suggestedVisibleCount, setSuggestedVisibleCount] = useState(3);
 
   const { data: friends, isLoading: isFriendsLoading } = useFriends();
-  const { data: suggestedUsers = [], isLoading: isSuggestedLoading } = useSuggestedUsers(5);
+  const { data: suggestedUsers = [], isLoading: isSuggestedLoading } = useSuggestedUsers(15);
   const dismissMutation = useDismissSuggestedUser();
   const { data: conversations } = useConversations();
   const onlineUserIds = usePresenceStore((s) => s.onlineUserIds);
@@ -128,7 +120,7 @@ export function OnlineFriendsSidebar() {
           }`}
         >
           <div className="flex items-center gap-2.5 min-w-0">
-            {/* Avatar with Status Ring */}
+            {/* Avatar with Status Dot */}
             <div className="relative shrink-0">
               <Avatar src={friend.avatar} alt={displayName} size="sm" />
               <span
@@ -173,157 +165,158 @@ export function OnlineFriendsSidebar() {
     );
   };
 
-  const hasFriends = Boolean(friends && friends.length > 0);
-
-  // 1. Fallback State: Suggested Users Block (Zero Friends State)
-  if (!isFriendsLoading && !hasFriends) {
-    return (
-      <aside className="w-72 shrink-0 hidden xl:flex flex-col gap-4 self-start sticky top-8 animate-fadeIn select-none">
-        <div className="bg-white/[0.02] backdrop-blur-xl border border-white/[0.05] rounded-3xl p-4 shadow-xl flex flex-col gap-4">
-          {/* Header */}
-          <div className="flex items-center justify-between pb-3 border-b border-white/[0.05]">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-purple-400" />
-              <span className="text-xs font-bold text-gray-200 tracking-wider uppercase">
-                Suggested for you
-              </span>
-            </div>
-            <Link
-              to="/search"
-              title="Explore all creators"
-              className="text-[11px] text-gray-400 hover:text-white flex items-center gap-1 transition-colors"
-            >
-              <Compass className="w-3 h-3 text-purple-400" />
-              <span>Explore</span>
-            </Link>
-          </div>
-
-          {/* List of Suggested Users */}
-          {isSuggestedLoading ? (
-            <div className="flex flex-col gap-3 py-4">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="flex items-center justify-between gap-3 animate-pulse">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full bg-white/[0.05]" />
-                    <div className="flex flex-col gap-1">
-                      <div className="w-20 h-3 rounded bg-white/[0.05]" />
-                      <div className="w-14 h-2 rounded bg-white/[0.05]" />
-                    </div>
-                  </div>
-                  <div className="w-16 h-6 rounded-full bg-white/[0.05]" />
-                </div>
-              ))}
-            </div>
-          ) : suggestedUsers && suggestedUsers.length > 0 ? (
-            <div className="flex flex-col gap-2">
-              {suggestedUsers.slice(0, 5).map((user: FollowUserSummary) => (
-                <MiniProfileHoverCard key={user.id} username={user.username} side="left">
-                  <div className="flex items-center justify-between gap-2 p-2 rounded-2xl hover:bg-white/[0.04] transition-colors">
-                    <Link
-                      to={`/profile/${user.username}`}
-                      className="flex items-center gap-2.5 min-w-0 flex-1"
-                    >
-                      <Avatar src={user.avatar} alt={user.displayName || user.username} size="sm" />
-                      <div className="flex flex-col min-w-0 flex-1">
-                        <div className="flex items-center gap-1 min-w-0">
-                          <span className="text-xs font-semibold text-gray-200 truncate hover:text-white transition-colors">
-                            {user.displayName || user.username}
-                          </span>
-                          {user.isVerified && (
-                            <CheckCircle2 className="w-3 h-3 text-blue-400 shrink-0 inline" />
-                          )}
-                        </div>
-
-                        {/* Recommendation Reason Context (Instagram-style) */}
-                        {user.recommendationReason?.type === 'MUTUAL_FRIENDS' &&
-                        user.recommendationReason.mutualFriends &&
-                        user.recommendationReason.mutualFriends.length > 0 ? (
-                          <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
-                            <div className="flex -space-x-1.5 shrink-0">
-                              {user.recommendationReason.mutualFriends.map(
-                                (m: RecommendationMutualFriend, idx: number) => (
-                                  <img
-                                    key={m.id || idx}
-                                    src={m.avatar || '/default-avatar.png'}
-                                    alt={m.username}
-                                    className="w-3.5 h-3.5 rounded-full object-cover ring-1 ring-[#070709] bg-white/10"
-                                  />
-                                ),
-                              )}
-                            </div>
-                            <span className="text-[10px] text-gray-400 truncate leading-none">
-                              {user.recommendationReason.text}
-                            </span>
-                          </div>
-                        ) : user.recommendationReason?.type === 'NEARBY' ||
-                          user.recommendationReason?.type === 'SAME_CITY' ? (
-                          <div className="flex items-center gap-1 mt-0.5 min-w-0">
-                            <MapPin className="w-2.5 h-2.5 text-blue-400 shrink-0" />
-                            <span className="text-[10px] text-blue-300/80 truncate leading-none">
-                              {user.recommendationReason.text}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-[10px] text-gray-500 truncate mt-0.5">
-                            {user.recommendationReason?.text || `@${user.username}`}
-                          </span>
-                        )}
-                      </div>
-                    </Link>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <FollowButton
-                        authorId={user.id}
-                        isFollowing={user.isFollowing}
-                        isFriend={user.isFriend}
-                        followsYou={user.followsYou}
-                        className="px-3 py-1 text-[11px]"
-                      />
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          dismissMutation.mutate(user.id);
-                        }}
-                        title="Hide recommendation"
-                        aria-label={`Hide recommendation for ${user.username}`}
-                        className="opacity-0 group-hover:opacity-100 p-1 rounded-lg text-gray-500 hover:text-white hover:bg-white/10 transition-all"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                </MiniProfileHoverCard>
-              ))}
-            </div>
-          ) : (
-            <div className="text-xs text-gray-500 text-center py-6">
-              Search and follow people to see friends here.
-            </div>
-          )}
-
-          {/* Quick Search Link */}
-          <Link
-            to="/search"
-            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-xs font-medium text-gray-300 hover:text-white transition-all text-center"
-          >
-            <Search className="w-3.5 h-3.5 text-gray-400" />
-            <span>Find more people</span>
-          </Link>
-        </div>
-      </aside>
-    );
-  }
-
-  // 2. Active Friends List State
   const displayedOffline = isOfflineExpanded ? offlineFriends : offlineFriends.slice(0, 5);
   const hasHiddenOffline = offlineFriends.length > 5;
 
   return (
-    <aside className="w-72 shrink-0 hidden xl:flex flex-col gap-4 self-start sticky top-8 animate-fadeIn select-none">
-      <div className="bg-white/[0.02] backdrop-blur-xl border border-white/[0.05] rounded-3xl p-4 shadow-xl">
+    <aside className="w-72 shrink-0 hidden xl:flex flex-col gap-4 self-start animate-fadeIn select-none">
+      {/* 1. Recommended users to follow block (Always visible above Friends, scrolls away with page) */}
+      <div className="bg-white/[0.02] backdrop-blur-xl border border-white/[0.05] rounded-3xl p-4 shadow-xl flex flex-col gap-3.5">
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 mb-2 border-b border-white/[0.05]">
+        <div className="flex items-center justify-between pb-3 border-b border-white/[0.05]">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-purple-400" />
+            <span className="text-xs font-bold text-gray-200 tracking-wider uppercase">
+              Suggested for you
+            </span>
+          </div>
+        </div>
+
+        {/* List of Suggested Users */}
+        {isSuggestedLoading ? (
+          <div className="flex flex-col gap-3 py-2">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center justify-between gap-3 animate-pulse">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-white/[0.05]" />
+                  <div className="flex flex-col gap-1">
+                    <div className="w-20 h-3 rounded bg-white/[0.05]" />
+                    <div className="w-14 h-2 rounded bg-white/[0.05]" />
+                  </div>
+                </div>
+                <div className="w-16 h-6 rounded-full bg-white/[0.05]" />
+              </div>
+            ))}
+          </div>
+        ) : suggestedUsers && suggestedUsers.length > 0 ? (
+          <div className="flex flex-col gap-2">
+            {suggestedUsers.slice(0, suggestedVisibleCount).map((user: FollowUserSummary) => (
+              <MiniProfileHoverCard key={user.id} username={user.username} side="left">
+                <div className="flex items-center justify-between gap-2 p-2 rounded-2xl hover:bg-white/[0.04] transition-colors group">
+                  <Link
+                    to={`/profile/${user.username}`}
+                    className="flex items-center gap-2.5 min-w-0 flex-1"
+                  >
+                    <Avatar src={user.avatar} alt={user.displayName || user.username} size="sm" />
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <div className="flex items-center gap-1 min-w-0">
+                        <span className="text-xs font-semibold text-gray-200 truncate hover:text-white transition-colors">
+                          {user.displayName || user.username}
+                        </span>
+                        <VerifiedCheckmark
+                          isVerified={user.isVerified}
+                          primaryBadge={user.primaryBadge}
+                          size="xs"
+                        />
+                      </div>
+
+                      {/* Recommendation Reason Context */}
+                      {user.recommendationReason?.type === 'MUTUAL_FRIENDS' &&
+                      user.recommendationReason.mutualFriends &&
+                      user.recommendationReason.mutualFriends.length > 0 ? (
+                        <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
+                          <div className="flex -space-x-1.5 shrink-0">
+                            {user.recommendationReason.mutualFriends.map(
+                              (m: RecommendationMutualFriend, idx: number) => (
+                                <img
+                                  key={m.id || idx}
+                                  src={m.avatar || '/default-avatar.png'}
+                                  alt={m.username}
+                                  className="w-3.5 h-3.5 rounded-full object-cover ring-1 ring-[#070709] bg-white/10"
+                                />
+                              ),
+                            )}
+                          </div>
+                          <span className="text-[10px] text-gray-400 truncate leading-none">
+                            {user.recommendationReason.text}
+                          </span>
+                        </div>
+                      ) : user.recommendationReason?.type === 'NEARBY' ||
+                        user.recommendationReason?.type === 'SAME_CITY' ? (
+                        <div className="flex items-center gap-1 mt-0.5 min-w-0">
+                          <MapPin className="w-2.5 h-2.5 text-blue-400 shrink-0" />
+                          <span className="text-[10px] text-blue-300/80 truncate leading-none">
+                            {user.recommendationReason.text}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-gray-500 truncate mt-0.5">
+                          {user.recommendationReason?.text || `@${user.username}`}
+                        </span>
+                      )}
+                    </div>
+                  </Link>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <FollowButton
+                      authorId={user.id}
+                      isFollowing={user.isFollowing}
+                      isFriend={user.isFriend}
+                      followsYou={user.followsYou}
+                      className="px-3 py-1 text-[11px]"
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        dismissMutation.mutate(user.id);
+                      }}
+                      title="Hide recommendation"
+                      aria-label={`Hide recommendation for ${user.username}`}
+                      className="opacity-0 group-hover:opacity-100 p-1 rounded-lg text-gray-500 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </MiniProfileHoverCard>
+            ))}
+
+            {/* "See more" button replacing the search link */}
+            {suggestedUsers.length > 3 && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (suggestedVisibleCount >= suggestedUsers.length) {
+                    setSuggestedVisibleCount(3);
+                  } else {
+                    setSuggestedVisibleCount((prev) => Math.min(prev + 4, suggestedUsers.length));
+                  }
+                }}
+                className="w-full flex items-center justify-center gap-1.5 py-2 px-3 mt-1 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-xs font-medium text-gray-300 hover:text-white transition-all text-center cursor-pointer active:scale-[0.98]"
+              >
+                <span>
+                  {suggestedVisibleCount >= suggestedUsers.length ? 'See less' : 'See more'}
+                </span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                    suggestedVisibleCount >= suggestedUsers.length ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="text-xs text-gray-500 text-center py-4">
+            No suggestions available right now.
+          </div>
+        )}
+      </div>
+
+      {/* 2. Friends Block (Sticky on scroll, max height constrained) */}
+      <div className="sticky top-8 bg-white/[0.02] backdrop-blur-xl border border-white/[0.05] rounded-3xl p-4 shadow-xl flex flex-col gap-2 max-h-[calc(100vh-theme(spacing.16))] overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between pb-3 mb-1 border-b border-white/[0.05]">
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-blue-400" />
             <span className="text-xs font-bold text-gray-200 tracking-wider uppercase">
@@ -363,7 +356,7 @@ export function OnlineFriendsSidebar() {
 
         {/* Search / Filter Input */}
         {(isSearchOpen || hasFilter) && (
-          <div className="mb-3 relative animate-fadeIn">
+          <div className="mb-2 relative animate-fadeIn">
             <Search className="w-3.5 h-3.5 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
@@ -377,7 +370,7 @@ export function OnlineFriendsSidebar() {
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white cursor-pointer"
               >
                 <X className="w-3 h-3" />
               </button>
@@ -385,11 +378,22 @@ export function OnlineFriendsSidebar() {
           </div>
         )}
 
-        {/* Lists Container */}
-        <div className="flex flex-col gap-3 max-h-[calc(100vh-160px)] overflow-y-auto custom-scrollbar pr-1">
-          {onlineFriends.length === 0 && offlineFriends.length === 0 && hasFilter ? (
+        {/* Scrollable Friends List Container */}
+        <div className="flex flex-col gap-3 max-h-[calc(100vh-220px)] overflow-y-auto custom-scrollbar pr-1">
+          {isFriendsLoading ? (
+            <div className="flex flex-col gap-2 py-4 animate-pulse">
+              {[1, 2].map((i) => (
+                <div key={i} className="flex items-center gap-2.5 p-2">
+                  <div className="w-7 h-7 rounded-full bg-white/[0.05]" />
+                  <div className="w-24 h-3 rounded bg-white/[0.05]" />
+                </div>
+              ))}
+            </div>
+          ) : onlineFriends.length === 0 && offlineFriends.length === 0 ? (
             <div className="text-xs text-gray-500 text-center py-6">
-              No friends found matching &ldquo;{searchQuery}&rdquo;
+              {hasFilter
+                ? `No friends found matching "${searchQuery}"`
+                : 'No friends yet. Follow creators above to start chatting!'}
             </div>
           ) : (
             <>

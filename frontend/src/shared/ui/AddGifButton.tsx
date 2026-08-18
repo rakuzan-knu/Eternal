@@ -3,6 +3,8 @@ import { FileImage } from 'lucide-react';
 
 interface AddGifButtonProps {
   isOpen: boolean;
+  disabled?: boolean;
+  title?: string;
   onToggle: () => void;
   onGifSelect: (gif: string) => void;
 }
@@ -14,10 +16,17 @@ const mockGifs = [
   'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbW9pZnd5Ym9pZnd5Ym9pZnd5Ym9pZnd5Ym9pZnd5JnB0Xz1mLg/3ntq5Fx7vH7E4/giphy.gif',
 ];
 
-export const AddGifButton: React.FC<AddGifButtonProps> = ({ isOpen, onToggle, onGifSelect }) => {
+export const AddGifButton: React.FC<AddGifButtonProps> = ({
+  isOpen,
+  disabled = false,
+  title = 'Add GIF',
+  onToggle,
+  onGifSelect,
+}) => {
   const [direction, setDirection] = useState<'top' | 'bottom'>('top');
 
   const handleToggle = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (disabled) return;
     if (!isOpen) {
       const rect = e.currentTarget.getBoundingClientRect();
       setDirection(rect.top < 280 ? 'bottom' : 'top');
@@ -29,15 +38,24 @@ export const AddGifButton: React.FC<AddGifButtonProps> = ({ isOpen, onToggle, on
     <div className="relative">
       <button
         onClick={handleToggle}
-        title="Add GIF"
-        className={`p-2.5 rounded-xl transition-all duration-200 ${isOpen ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
+        disabled={disabled}
+        title={title}
+        className={`p-2.5 rounded-xl transition-all duration-200 ${
+          disabled
+            ? 'opacity-40 cursor-not-allowed text-gray-500'
+            : isOpen
+              ? 'bg-white/10 text-white'
+              : 'text-gray-400 hover:bg-white/5 hover:text-white'
+        }`}
       >
         <FileImage size={18} />
       </button>
 
-      {isOpen && (
+      {!disabled && isOpen && (
         <div
-          className={`absolute left-0 z-50 shadow-[0_10px_30px_rgba(0,0,0,0.5)] bg-[#1a1a1a] rounded-2xl overflow-hidden border border-white/5 animate-fadeIn p-3 w-[320px] backdrop-blur-md ${direction === 'top' ? 'bottom-full mb-3' : 'top-full mt-3'}`}
+          className={`absolute right-0 z-50 shadow-[0_10px_30px_rgba(0,0,0,0.5)] bg-[#1a1a1a] rounded-2xl overflow-hidden border border-white/5 animate-fadeIn p-3 w-[320px] max-w-[calc(100vw-24px)] backdrop-blur-md ${
+            direction === 'top' ? 'bottom-full mb-3' : 'top-full mt-3'
+          }`}
         >
           <span className="text-xs font-semibold text-gray-400 px-1">Trends Giphy / Tenor</span>
           <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1 custom-scrollbar mt-2">

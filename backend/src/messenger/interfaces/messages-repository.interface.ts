@@ -22,6 +22,14 @@ export interface IMessagesRepository {
     hiddenUserIds?: string[];
   }): Promise<MessageWithDetails[]>;
 
+  findAround(params: {
+    conversationId: string;
+    targetMessageId: string;
+    requestingUserId: string;
+    limit: number;
+    hiddenUserIds?: string[];
+  }): Promise<MessageWithDetails[]>;
+
   findOne(messageId: string, requestingUserId: string): Promise<MessageWithDetails | null>;
 
   edit(messageId: string, body: string): Promise<MessageWithDetails>;

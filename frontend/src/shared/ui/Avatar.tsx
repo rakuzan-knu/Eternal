@@ -2,12 +2,21 @@ import React from 'react';
 
 interface AvatarProps {
   src?: string | null;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   alt?: string;
+  className?: string;
+  name?: string;
 }
 
-export default function Avatar({ src, size = 'md', alt = 'User avatar' }: AvatarProps) {
+export default function Avatar({
+  src,
+  size = 'md',
+  alt = 'User avatar',
+  className = '',
+  name,
+}: AvatarProps) {
   const sizeClasses = {
+    xs: 'w-6 h-6',
     sm: 'w-8 h-8',
     md: 'w-10 h-10',
     lg: 'w-16 h-16',
@@ -16,12 +25,13 @@ export default function Avatar({ src, size = 'md', alt = 'User avatar' }: Avatar
 
   return (
     <div
-      className={`${sizeClasses[size]} rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden select-none bg-[#09090b] border border-white/5`}
+      title={name}
+      className={`${sizeClasses[size] || 'w-10 h-10'} rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden select-none bg-[#09090b] border border-white/5 ${className}`}
     >
       {src ? (
         <img
           src={src}
-          alt={alt}
+          alt={name || alt}
           className="w-full h-full object-cover"
           onError={(e) => {
             (e.target as HTMLImageElement).style.display = 'none';

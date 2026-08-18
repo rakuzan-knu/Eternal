@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { ExternalLink, Layers, MessageSquare, Heart } from 'lucide-react';
 import { postsApi } from '@/entities/post/api/postsApi';
 import Avatar from '@/shared/ui/Avatar';
+import { VerifiedCheckmark } from '@/entities/profile/ui/VerifiedCheckmark';
+import { UserBadgeIcon } from '@/entities/profile/ui/UserBadgeIcon';
 
 interface PostEmbedCardProps {
   postId: string;
@@ -72,17 +74,25 @@ export function PostEmbedCard({ postId, isOwnMessage }: PostEmbedCardProps) {
       }`}
     >
       {/* Author Bar */}
-      <div className="flex items-center justify-between gap-2 mb-1.5">
+      <div className="flex items-center justify-between gap-2 mb-2">
         <div className="flex items-center gap-2 min-w-0">
           <Avatar size="sm" src={post.avatar} />
           <div className="flex flex-col min-w-0">
+            <div className="flex items-center gap-1 min-w-0">
+              <span
+                className={`text-[12px] font-bold truncate leading-tight ${
+                  isOwnMessage ? 'text-black' : 'text-white'
+                }`}
+              >
+                {post.author}
+              </span>
+              {post.isVerified && <VerifiedCheckmark size="sm" />}
+              {post.primaryBadge && <UserBadgeIcon badgeId={post.primaryBadge} size="sm" />}
+            </div>
             <span
-              className={`text-[12px] font-bold truncate leading-tight ${isOwnMessage ? 'text-black' : 'text-white'}`}
-            >
-              {post.author}
-            </span>
-            <span
-              className={`text-[10px] truncate leading-tight ${isOwnMessage ? 'text-black/60' : 'text-gray-400'}`}
+              className={`text-[10px] truncate leading-tight ${
+                isOwnMessage ? 'text-black/60' : 'text-gray-400'
+              }`}
             >
               @{post.handle}
             </span>
@@ -94,15 +104,6 @@ export function PostEmbedCard({ postId, isOwnMessage }: PostEmbedCardProps) {
           <ExternalLink size={11} />
         </div>
       </div>
-
-      {/* Post Text */}
-      {post.text && (
-        <p
-          className={`text-[12px] line-clamp-2 leading-relaxed mb-2 ${isOwnMessage ? 'text-black/80' : 'text-gray-300'}`}
-        >
-          {post.text}
-        </p>
-      )}
 
       {/* Media Thumbnail */}
       {firstMedia && (
@@ -121,9 +122,22 @@ export function PostEmbedCard({ postId, isOwnMessage }: PostEmbedCardProps) {
         </div>
       )}
 
+      {/* Post Text */}
+      {post.text && (
+        <p
+          className={`text-[12px] line-clamp-2 leading-relaxed mb-2 ${
+            isOwnMessage ? 'text-black/80' : 'text-gray-300'
+          }`}
+        >
+          {post.text}
+        </p>
+      )}
+
       {/* Footer info stats */}
       <div
-        className={`flex items-center gap-3 text-[10px] pt-1 border-t ${isOwnMessage ? 'border-black/10 text-black/60' : 'border-white/[0.06] text-gray-500'}`}
+        className={`flex items-center gap-3 text-[10px] pt-1 border-t ${
+          isOwnMessage ? 'border-black/10 text-black/60' : 'border-white/[0.06] text-gray-500'
+        }`}
       >
         <span className="flex items-center gap-1">
           <Heart size={10} /> {post.likes ?? 0}

@@ -4,6 +4,7 @@ import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { FollowButton } from '../FollowButton';
 import * as useFollowMutationModule from '../../model/useFollowMutation';
+import { useAuthStore } from '@/shared/model/useAuthStore';
 
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
@@ -14,11 +15,16 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
+vi.mock('@/entities/profile/model/useCurrentUser', () => ({
+  useCurrentUser: () => ({ data: { id: 'my-user-id', username: 'me' } }),
+}));
+
 describe('FollowButton', () => {
   const mockMutate = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
+    useAuthStore.setState({ userId: 'my-user-id', isAuthenticated: true });
     vi.spyOn(useFollowMutationModule, 'useFollowMutation').mockReturnValue({
       mutate: mockMutate,
       isPending: false,
@@ -32,9 +38,20 @@ describe('FollowButton', () => {
       </MemoryRouter>,
     );
 
+  it('renders nothing when authorId is the current user ID or username', () => {
+    const { container: c1 } = renderComponent({ authorId: 'my-user-id', isFollowing: false });
+    expect(c1.firstChild).toBeNull();
+
+    const { container: c2 } = renderComponent({ authorId: 'me', isFollowing: false });
+    expect(c2.firstChild).toBeNull();
+  });
+
   it('renders "Follow" when isFollowing is false', () => {
     renderComponent({ authorId: 'user-1', isFollowing: false });
-    expect(screen.getByRole('button', { name: 'Follow' })).toBeInTheDocument();
+    const btn = screen.getByRole('button', { name: 'Follow' });
+    expect(btn).toBeInTheDocument();
+    expect(btn.className).toContain('min-w-[94px]');
+    expect(btn.className).toContain('whitespace-nowrap');
   });
 
   it('renders "Following" when following a one-way user', () => {

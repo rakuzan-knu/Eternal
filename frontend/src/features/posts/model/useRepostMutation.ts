@@ -26,15 +26,16 @@ export function useRepostMutation(
           ...old,
           pages: old.pages.map((page) => ({
             ...page,
-            posts: page.posts.map((p) =>
-              p.id === postId
-                ? {
-                    ...p,
-                    isReposted: nextIsReposted,
-                    reposts: Math.max(0, (p.reposts ?? 0) + (nextIsReposted ? 1 : -1)),
-                  }
-                : p,
-            ),
+            posts: page.posts.map((p) => {
+              if (p.id !== postId) return p;
+              // Guard against double increment/decrement across matching queries
+              if (p.isReposted === nextIsReposted) return p;
+              return {
+                ...p,
+                isReposted: nextIsReposted,
+                reposts: Math.max(0, (p.reposts ?? 0) + (nextIsReposted ? 1 : -1)),
+              };
+            }),
           })),
         };
       };

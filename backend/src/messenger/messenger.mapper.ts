@@ -141,6 +141,10 @@ export class MessengerMapper {
         ? this.mapMessage(lastRaw, requestingUserId, pinnedMessageIds)
         : null;
 
+    const isMuteExpired =
+      myParticipant?.mutedUntil && new Date(myParticipant.mutedUntil).getTime() <= Date.now();
+    const effectiveMuteLevel = isMuteExpired ? 'NONE' : (myParticipant?.muteLevel ?? 'NONE');
+
     return {
       id: conv.id,
       type: conv.type,
@@ -152,7 +156,8 @@ export class MessengerMapper {
       lastMessage,
       unreadCount,
       myTheme: myParticipant?.theme ?? 'default',
-      myMuteLevel: myParticipant?.muteLevel ?? 'NONE',
+      myMuteLevel: effectiveMuteLevel,
+      myMutedUntil: isMuteExpired ? null : (myParticipant?.mutedUntil ?? null),
       myNickname: myParticipant?.nickname ?? null,
       isArchived: !!myParticipant?.archivedAt,
       isPinned: !!myParticipant?.pinnedAt,

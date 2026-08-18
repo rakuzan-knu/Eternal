@@ -116,6 +116,20 @@ export function useConversationRealtime(conversationId: string | null) {
     );
   });
 
+  useChatSocketEvent<{ conversationId: string }>('messagesCleared', (payload) => {
+    if (payload.conversationId !== conversationId) return;
+    queryClient.setQueryData<InfiniteMessagesData>([CONVERSATION_MESSAGES_KEY, conversationId], {
+      pages: [{ data: [], hasMore: false, nextCursor: null }],
+      pageParams: [undefined],
+    });
+    queryClient.invalidateQueries({ queryKey: [CONVERSATION_MESSAGES_KEY, conversationId] });
+  });
+
+  useChatSocketEvent<{ conversationId: string }>('conversationDeleted', (payload) => {
+    if (payload.conversationId !== conversationId) return;
+    queryClient.removeQueries({ queryKey: [CONVERSATION_MESSAGES_KEY, conversationId] });
+  });
+
   const handleReaction = (payload: { conversationId: string; message: MessageView }) => {
     if (payload.conversationId !== conversationId) return;
     updatePages((pages) =>

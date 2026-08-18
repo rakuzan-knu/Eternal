@@ -44,8 +44,11 @@ export const useUIStore = create<UIState>((set, get) => ({
 
   isEditProfileOpen: false,
   editProfileInitialTab: 'account',
-  openEditProfile: (tab?: string) =>
-    set({ isEditProfileOpen: true, editProfileInitialTab: tab || 'account' }),
+  openEditProfile: (tab?: unknown) =>
+    set({
+      isEditProfileOpen: true,
+      editProfileInitialTab: typeof tab === 'string' && tab ? tab : 'account',
+    }),
   closeEditProfile: () => set({ isEditProfileOpen: false }),
 
   isCommentModalOpen: false,

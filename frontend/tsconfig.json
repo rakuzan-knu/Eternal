@@ -15,7 +15,8 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "types": ["node", "vite/client"]
   },
-  "include": ["src/**/*", ".storybook/**/*", "vite.config.ts"]
+  "include": ["src/**/*", ".storybook/**/*", "vite.config.ts", "playwright.config.ts", "e2e/**/*"]
 }

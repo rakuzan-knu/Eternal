@@ -14,6 +14,7 @@ describe('ConversationsController', () => {
     setNickname: jest.Mock;
     setTheme: jest.Mock;
     mute: jest.Mock;
+    clearHistory: jest.Mock;
   };
   let mockMessagesService: {
     uploadAttachment: jest.Mock;
@@ -31,6 +32,7 @@ describe('ConversationsController', () => {
       getConversations: jest.fn().mockResolvedValue([]),
       getConversation: jest.fn().mockResolvedValue({ id: 'conv-1' }),
       deleteConversation: jest.fn().mockResolvedValue(undefined),
+      clearHistory: jest.fn().mockResolvedValue(undefined),
       createDirect: jest.fn().mockResolvedValue({ id: 'conv-1' }),
       createGroup: jest.fn().mockResolvedValue({ id: 'conv-group-1' }),
       setNickname: jest.fn().mockResolvedValue({}),
@@ -71,7 +73,17 @@ describe('ConversationsController', () => {
 
   it('deleteConversation delegates to ConversationsService', async () => {
     await controller.deleteConversation('conv-1', mockUser);
-    expect(mockConversationsService.deleteConversation).toHaveBeenCalledWith('conv-1', 'usr-1');
+    expect(mockConversationsService.deleteConversation).toHaveBeenCalledWith(
+      'conv-1',
+      'usr-1',
+      false,
+    );
+  });
+
+  it('clearHistory delegates to ConversationsService', async () => {
+    mockConversationsService.clearHistory = jest.fn().mockResolvedValue(undefined);
+    await controller.clearHistory('conv-1', mockUser, 'true');
+    expect(mockConversationsService.clearHistory).toHaveBeenCalledWith('conv-1', 'usr-1', true);
   });
 
   it('uploadAttachment delegates to MessagesService', async () => {

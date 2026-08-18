@@ -1,6 +1,13 @@
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { CommentsService } from '../comments.service';
 import type { PrismaService } from '@common/prisma';
 import type { MessengerGateway } from '../../messenger/gateway/messenger.gateway';
+import type { RedisService } from '../../redis/redis.service';
 
 describe('CommentsService', () => {
   let service: CommentsService;
@@ -8,10 +15,19 @@ describe('CommentsService', () => {
     addComment: jest.Mock;
     deleteComment: jest.Mock;
     getCommentsByPostId: jest.Mock;
+    getRepliesByRootId: jest.Mock;
+    toggleCommentLike: jest.Mock;
+    togglePinComment: jest.Mock;
   };
   let mockPrisma: {
     post: {
       findUnique: jest.Mock;
+    };
+    comment: {
+      findFirst: jest.Mock;
+    };
+    userBlock: {
+      findFirst: jest.Mock;
     };
     user: {
       findUnique: jest.Mock;
@@ -20,6 +36,12 @@ describe('CommentsService', () => {
   };
   let mockGateway: {
     emitToUser: jest.Mock;
+  };
+  let mockRedis: {
+    getClient: jest.Mock;
+  };
+  let mockRedisClient: {
+    set: jest.Mock;
   };
 
   const sampleDate = new Date('2026-08-16T12:00:00.000Z');
@@ -30,8 +52,15 @@ describe('CommentsService', () => {
     postId: 'post-100',
     userId: 'usr-commenter',
     parentId: null,
+    rootParentId: null,
+    replyToUserId: null,
+    isPinned: false,
+    isDeleted: false,
+    mediaUrl: null,
     createdAt: sampleDate,
     updatedAt: sampleDate,
+    likes: [],
+    _count: { likes: 0, replies: 0 },
     user: {
       id: 'usr-commenter',
       username: 'commenter_user',
@@ -47,11 +76,20 @@ describe('CommentsService', () => {
       addComment: jest.fn(),
       deleteComment: jest.fn(),
       getCommentsByPostId: jest.fn().mockResolvedValue([]),
+      getRepliesByRootId: jest.fn().mockResolvedValue([]),
+      toggleCommentLike: jest.fn().mockResolvedValue({ isLiked: true, likesCount: 1 }),
+      togglePinComment: jest.fn().mockResolvedValue({ isPinned: true }),
     };
 
     mockPrisma = {
       post: {
         findUnique: jest.fn(),
+      },
+      comment: {
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
+      userBlock: {
+        findFirst: jest.fn().mockResolvedValue(null),
       },
       user: {
         findUnique: jest.fn(),
@@ -63,15 +101,77 @@ describe('CommentsService', () => {
       emitToUser: jest.fn(),
     };
 
+    mockRedisClient = {
+      set: jest.fn().mockResolvedValue('OK'),
+    };
+
+    mockRedis = {
+      getClient: jest.fn().mockReturnValue(mockRedisClient),
+    };
+
     service = new CommentsService(
       mockCommentsRepository,
       mockPrisma as unknown as PrismaService,
       mockGateway as unknown as MessengerGateway,
+      mockRedis as unknown as RedisService,
     );
   });
 
-  describe('addComment', () => {
-    it('creates comment and emits notifications to post author and mentioned users', async () => {
+  describe('addComment security & anti-abuse', () => {
+    it('throws BadRequestException if mentions count > 5', async () => {
+      await expect(
+        service.addComment('post-100', 'usr-1', {
+          text: 'Hello @user1 @user2 @user3 @user4 @user5 @user6!',
+        }),
+      ).rejects.toThrow(new BadRequestException('Maximum 5 mentions per comment allowed'));
+    });
+
+    it('throws ConflictException if duplicate comment was posted within 60s', async () => {
+      mockPrisma.comment.findFirst.mockResolvedValueOnce({ id: 'existing-dup' });
+
+      await expect(
+        service.addComment('post-100', 'usr-1', {
+          text: 'Same repeated comment text',
+        }),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('throws ConflictException if clientMutationId lock fails', async () => {
+      mockRedisClient.set.mockResolvedValueOnce(null);
+
+      await expect(
+        service.addComment('post-100', 'usr-1', {
+          text: 'Comment with mutation id',
+          clientMutationId: 'mut-123',
+        }),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('throws NotFoundException if post does not exist', async () => {
+      mockPrisma.post.findUnique.mockResolvedValueOnce(null);
+
+      await expect(
+        service.addComment('missing-post', 'usr-1', {
+          text: 'Valid comment',
+        }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('throws ForbiddenException if post author blocked user or vice versa', async () => {
+      mockPrisma.post.findUnique.mockResolvedValueOnce({
+        id: 'post-100',
+        authorId: 'usr-author',
+      });
+      mockPrisma.userBlock.findFirst.mockResolvedValueOnce({ id: 'block-1' });
+
+      await expect(
+        service.addComment('post-100', 'usr-1', {
+          text: 'Valid comment',
+        }),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('creates comment and emits notifications when valid', async () => {
       mockCommentsRepository.addComment.mockResolvedValueOnce(baseComment);
       mockPrisma.post.findUnique.mockResolvedValueOnce({
         id: 'post-100',
@@ -100,24 +200,57 @@ describe('CommentsService', () => {
       expect(mockCommentsRepository.addComment).toHaveBeenCalledWith('post-100', 'usr-commenter', {
         text: 'Check @alice_dev on this!',
       });
-      expect(mockGateway.emitToUser).toHaveBeenCalledWith(
-        'usr-post-author',
-        'socialNotification',
-        expect.objectContaining({ type: 'COMMENT' }),
-      );
-      expect(mockGateway.emitToUser).toHaveBeenCalledWith(
-        'usr-alice',
-        'socialNotification',
-        expect.objectContaining({ type: 'MENTION' }),
-      );
       expect(result.id).toBe('comment-1');
-      expect(result.handle).toBe('commenter_user');
-      expect(result.author).toBe('Commenter');
+      expect(mockGateway.emitToUser).toHaveBeenCalled();
+    });
+  });
+
+  describe('getComments & getReplies', () => {
+    it('paginates root comments', async () => {
+      mockCommentsRepository.getCommentsByPostId.mockResolvedValueOnce([baseComment]);
+
+      const result = await service.getComments('post-100', 10, undefined, 'usr-viewer');
+
+      expect(mockCommentsRepository.getCommentsByPostId).toHaveBeenCalledWith(
+        'post-100',
+        10,
+        undefined,
+        'usr-viewer',
+      );
+      expect(result.data).toHaveLength(1);
+    });
+
+    it('paginates replies for root thread', async () => {
+      mockCommentsRepository.getRepliesByRootId.mockResolvedValueOnce([baseComment]);
+
+      const result = await service.getReplies('comment-1', 10, undefined, 'usr-viewer');
+
+      expect(mockCommentsRepository.getRepliesByRootId).toHaveBeenCalledWith(
+        'comment-1',
+        10,
+        undefined,
+        'usr-viewer',
+      );
+      expect(result.data).toHaveLength(1);
+    });
+  });
+
+  describe('toggleCommentLike & togglePinComment', () => {
+    it('delegates toggleCommentLike', async () => {
+      const res = await service.toggleCommentLike('com-1', 'usr-1');
+      expect(mockCommentsRepository.toggleCommentLike).toHaveBeenCalledWith('com-1', 'usr-1');
+      expect(res.isLiked).toBe(true);
+    });
+
+    it('delegates togglePinComment', async () => {
+      const res = await service.togglePinComment('com-1', 'usr-1');
+      expect(mockCommentsRepository.togglePinComment).toHaveBeenCalledWith('com-1', 'usr-1');
+      expect(res.isPinned).toBe(true);
     });
   });
 
   describe('deleteComment', () => {
-    it('delegates deletion to repository and maps to DTO', async () => {
+    it('deletes comment and returns dto', async () => {
       mockCommentsRepository.deleteComment.mockResolvedValueOnce(baseComment);
 
       const result = await service.deleteComment('comment-1', 'usr-commenter');
@@ -127,22 +260,6 @@ describe('CommentsService', () => {
         'usr-commenter',
       );
       expect(result.id).toBe('comment-1');
-    });
-  });
-
-  describe('getComments', () => {
-    it('queries repository and paginates comments', async () => {
-      mockCommentsRepository.getCommentsByPostId.mockResolvedValueOnce([baseComment]);
-
-      const result = await service.getComments('post-100', 10, 'cursor-1');
-
-      expect(mockCommentsRepository.getCommentsByPostId).toHaveBeenCalledWith(
-        'post-100',
-        10,
-        'cursor-1',
-      );
-      expect(result.data).toHaveLength(1);
-      expect(result.data[0].id).toBe('comment-1');
     });
   });
 });

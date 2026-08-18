@@ -1,58 +1,96 @@
-import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { CommentItem } from '../CommentItem';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { describe, expect, it } from 'vitest';
-import { CommentItem } from '../CommentItem';
-import { CommentType } from '../../../../shared/model/useUIStore';
-
-const baseComment: CommentType = {
-  id: 1,
-  author: 'Ayate',
-  handle: 'ayate',
-  text: 'Hello world',
-  time: '2h',
-};
-
-function renderWithClient(ui: React.ReactElement) {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
-  });
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter>{ui}</MemoryRouter>
-    </QueryClientProvider>,
-  );
-}
+import type { CommentType } from '../../model/types';
 
 describe('CommentItem', () => {
-  it('renders author, handle, time and text', () => {
-    renderWithClient(<CommentItem comment={baseComment} />);
+  let queryClient: QueryClient;
 
-    expect(screen.getByText('Ayate')).toBeInTheDocument();
-    expect(screen.getByText('@ayate • 2h')).toBeInTheDocument();
-    expect(screen.getByText('Hello world')).toBeInTheDocument();
+  beforeEach(() => {
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
   });
 
-  it('renders custom avatar image when src is provided', () => {
-    const comment: CommentType = { ...baseComment, avatar: 'https://example.com/avatar.png' };
+  const mockComment: CommentType = {
+    id: 'c-1',
+    text: 'Hello @alice this is a comment!',
+    time: '2h',
+    handle: 'bob_dev',
+    author: 'Bob Developer',
+    userId: 'usr-bob',
+    likesCount: 5,
+    isLiked: false,
+    isPinned: false,
+    isDeleted: false,
+  };
 
-    renderWithClient(<CommentItem comment={comment} />);
+  it('renders author info, text, and like button', () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <CommentItem comment={mockComment} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
 
-    expect(screen.getByRole('img')).toHaveAttribute('src', 'https://example.com/avatar.png');
+    expect(screen.getByText('Bob Developer')).toBeInTheDocument();
+    expect(screen.getByText(/Hello/)).toBeInTheDocument();
+    expect(screen.getByText('5')).toBeInTheDocument();
   });
 
-  it('falls back to default svg placeholder avatar when none is provided', () => {
-    const { container } = renderWithClient(<CommentItem comment={baseComment} />);
+  it('triggers onLike callback when like button is clicked', () => {
+    const onLike = vi.fn();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <CommentItem comment={mockComment} onLike={onLike} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
 
-    expect(container.querySelector('svg')).toBeInTheDocument();
+    const likeBtn = screen.getByTitle('Like');
+    fireEvent.click(likeBtn);
+
+    expect(onLike).toHaveBeenCalledWith('c-1');
   });
 
-  it('renders an empty comment text without crashing', () => {
-    const comment: CommentType = { ...baseComment, text: '' };
+  it('renders Author badge when comment author matches postAuthorId', () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <CommentItem comment={mockComment} postAuthorId="usr-bob" />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
 
-    renderWithClient(<CommentItem comment={comment} />);
+    expect(screen.getByText('Author')).toBeInTheDocument();
+  });
 
-    expect(screen.getByText('Ayate')).toBeInTheDocument();
+  it('renders Pinned badge when isPinned is true', () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <CommentItem comment={{ ...mockComment, isPinned: true }} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(screen.getByText('Pinned')).toBeInTheDocument();
+  });
+
+  it('renders [Comment deleted] when isDeleted is true', () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <CommentItem comment={{ ...mockComment, isDeleted: true }} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(screen.getByText('[Comment deleted]')).toBeInTheDocument();
+    expect(screen.queryByTitle('Like')).not.toBeInTheDocument();
   });
 });

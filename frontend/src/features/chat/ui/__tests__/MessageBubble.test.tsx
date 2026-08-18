@@ -53,4 +53,36 @@ describe('MessageBubble', () => {
 
     expect(screen.getByText('Hello from the other side')).toBeInTheDocument();
   });
+
+  it('renders solo emoji with big transparent font', () => {
+    const emojiMessage: MessageView = {
+      ...mockMessage,
+      id: 'msg-emoji',
+      body: '🔥',
+    };
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MessageBubble
+          message={emojiMessage}
+          isOwnMessage={true}
+          showAvatar={false}
+          isReadByOther={false}
+          currentUserId="usr-1"
+          onReply={vi.fn()}
+          onEdit={vi.fn()}
+          onDelete={vi.fn()}
+          onForward={vi.fn()}
+          onTogglePin={vi.fn()}
+          onReport={vi.fn()}
+          onReact={vi.fn()}
+          onUnreact={vi.fn()}
+        />
+      </QueryClientProvider>,
+    );
+
+    const emojiElement = screen.getByText('🔥');
+    expect(emojiElement).toBeInTheDocument();
+    expect(emojiElement.className).toContain('text-4xl');
+  });
 });

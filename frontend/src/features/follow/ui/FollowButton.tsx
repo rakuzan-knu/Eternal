@@ -4,6 +4,9 @@ import { MessageSquare, UserMinus, ChevronDown } from 'lucide-react';
 import { useFollowMutation } from '../model/useFollowMutation';
 import { chatApi } from '@/features/chat/api/chatApi';
 
+import { useAuthStore } from '@/shared/model/useAuthStore';
+import { useCurrentUser } from '@/entities/profile/model/useCurrentUser';
+
 interface FollowButtonProps {
   authorId: string;
   isFollowing: boolean;
@@ -25,6 +28,9 @@ export function FollowButton({
   const navigate = useNavigate();
   const mutation = useFollowMutation(authorId, isFollowing);
 
+  const currentUserId = useAuthStore((s) => s.userId);
+  const { data: currentUser } = useCurrentUser();
+
   const isMutual = Boolean(isFriend || (isFollowing && followsYou));
 
   // Close dropdown on outside click
@@ -38,6 +44,15 @@ export function FollowButton({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isMenuOpen]);
+
+  // Never show follow button for oneself
+  if (
+    !authorId ||
+    authorId === currentUserId ||
+    (currentUser && (authorId === currentUser.id || authorId === currentUser.username))
+  ) {
+    return null;
+  }
 
   const handleMainClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -84,14 +99,14 @@ export function FollowButton({
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         disabled={mutation.isPending}
-        className={`text-xs font-semibold px-3.5 py-1.5 rounded-full border transition-all duration-200 cursor-pointer disabled:opacity-40 select-none flex items-center justify-center gap-1 active:scale-[0.98] ${
+        className={`min-w-[94px] w-auto whitespace-nowrap text-xs font-semibold px-3.5 py-1.5 rounded-full border transition-all duration-200 ease-out cursor-pointer disabled:opacity-40 select-none flex items-center justify-center gap-1 active:scale-95 hover:-translate-y-0.5 ${
           isFollowing
             ? isMutual
-              ? 'bg-blue-500/15 text-blue-300 border-blue-500/30 hover:bg-blue-500/25 hover:border-blue-500/45 shadow-[0_0_12px_rgba(59,130,246,0.15)]'
+              ? 'bg-blue-500/15 text-blue-300 border-blue-500/30 hover:bg-blue-500/25 hover:border-blue-500/45 hover:shadow-[0_6px_20px_rgba(59,130,246,0.3)] shadow-[0_0_12px_rgba(59,130,246,0.15)]'
               : isHovered
-                ? 'bg-red-500/10 text-red-400 border-red-500/30'
-                : 'bg-white/10 text-gray-200 border-white/10 hover:bg-white/15'
-            : 'bg-white text-black border-transparent hover:bg-gray-200 shadow-sm'
+                ? 'bg-red-500/10 text-red-400 border-red-500/30 hover:shadow-[0_6px_20px_rgba(239,68,68,0.2)]'
+                : 'bg-white/10 text-gray-200 border-white/10 hover:bg-white/15 hover:shadow-[0_6px_20px_rgba(255,255,255,0.08)]'
+            : 'bg-white text-black border-transparent hover:bg-gray-100 hover:shadow-[0_6px_20px_rgba(255,255,255,0.15)] shadow-sm'
         } ${className}`}
       >
         <span>{getLabel()}</span>

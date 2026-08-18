@@ -5,31 +5,47 @@ import { MuteLevel } from '../../../entities/chat/model/types';
 import { MuteOption } from '../model/chatUiTypes';
 
 const DURATION_OPTIONS = [
+  { label: 'For 30 minutes', value: 0.5 },
   { label: 'For 1 hour', value: 1 },
   { label: 'For 8 hours', value: 8 },
   { label: 'For 24 hours', value: 24 },
+  { label: 'For 7 days', value: 168 },
   { label: 'Until I turn it back on', value: -1 },
 ];
 
 const LEVEL_OPTIONS: MuteOption[] = [
+  { value: 'MESSAGES_AND_CALLS', label: 'Mute messages and calls' },
   { value: 'MESSAGES', label: 'Mute message notifications' },
   { value: 'CALLS', label: 'Mute call notifications' },
-  { value: 'MESSAGES_AND_CALLS', label: 'Mute messages and calls' },
 ];
 
 interface MuteOptionsModalProps {
   onClose: () => void;
-  onConfirm: (muteLevel: MuteLevel) => void;
+  onConfirm: (muteLevel: MuteLevel, mutedUntil?: string) => void;
 }
 
 export default function MuteOptionsModal({ onClose, onConfirm }: MuteOptionsModalProps) {
   const [selectedLevel, setSelectedLevel] = useState<MuteLevel>('MESSAGES_AND_CALLS');
   const [selectedDuration, setSelectedDuration] = useState<number>(-1);
 
+  const handleConfirm = () => {
+    let mutedUntil: string | undefined = undefined;
+    if (selectedDuration > 0) {
+      const ms = selectedDuration * 60 * 60 * 1000;
+      mutedUntil = new Date(Date.now() + ms).toISOString();
+    }
+    if (mutedUntil) {
+      onConfirm(selectedLevel, mutedUntil);
+    } else {
+      onConfirm(selectedLevel);
+    }
+    onClose();
+  };
+
   return (
     <Modal onClose={onClose} className="w-full max-w-sm">
-      {(close) => (
-        <div className="bg-[#1c1c20] border border-white/10 rounded-3xl shadow-2xl overflow-hidden">
+      {() => (
+        <div className="bg-[#151922]/95 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-2xl overflow-hidden text-left">
           <div className="flex items-center justify-between px-5 pt-5 pb-3">
             <div className="flex items-center gap-2.5">
               <span className="w-8 h-8 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400">
@@ -38,7 +54,7 @@ export default function MuteOptionsModal({ onClose, onConfirm }: MuteOptionsModa
               <h2 className="text-base font-bold text-white">Mute conversation</h2>
             </div>
             <button
-              onClick={close}
+              onClick={onClose}
               className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white transition-colors active:scale-90"
             >
               <X size={16} />
@@ -79,11 +95,11 @@ export default function MuteOptionsModal({ onClose, onConfirm }: MuteOptionsModa
                 >
                   <span
                     className={`flex-shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${
-                      selectedLevel === option.value ? 'border-blue-500' : 'border-gray-600'
+                      selectedLevel === option.value ? 'border-sky-500' : 'border-gray-600'
                     }`}
                   >
                     {selectedLevel === option.value && (
-                      <span className="w-2 h-2 rounded-full bg-blue-500 animate-popIn" />
+                      <span className="w-2 h-2 rounded-full bg-sky-500 animate-popIn" />
                     )}
                   </span>
                   <span className="text-xs font-medium text-white">{option.label}</span>
@@ -92,24 +108,21 @@ export default function MuteOptionsModal({ onClose, onConfirm }: MuteOptionsModa
             </div>
           </div>
 
-          <p className="px-5 pb-4 text-[11px] text-gray-500 leading-relaxed">
-            Messages will still arrive and move the chat to the top, but sound and push alerts will
-            be silenced.
+          <p className="px-5 pb-4 text-[11.5px] text-gray-400 leading-relaxed">
+            Messages will still arrive, but sounds and notification alerts will be silenced for this
+            chat.
           </p>
 
           <div className="flex items-center gap-3 px-5 py-4 border-t border-white/10">
             <button
-              onClick={close}
+              onClick={onClose}
               className="flex-1 py-2.5 rounded-full text-sm font-semibold text-gray-300 bg-white/5 hover:bg-white/10 transition-colors active:scale-95"
             >
               Cancel
             </button>
             <button
-              onClick={() => {
-                onConfirm(selectedLevel);
-                close();
-              }}
-              className="flex-1 py-2.5 rounded-full text-sm font-semibold bg-blue-500 hover:bg-blue-400 text-white transition-colors active:scale-95"
+              onClick={handleConfirm}
+              className="flex-1 py-2.5 rounded-full text-sm font-semibold bg-sky-500 hover:bg-sky-400 text-white transition-colors active:scale-95"
             >
               Mute
             </button>

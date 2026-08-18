@@ -121,7 +121,13 @@ const TABS_CONFIG: MainTab[] = [
 export default function EditProfileModal() {
   const { isEditProfileOpen, closeEditProfile, editProfileInitialTab } = useUIStore();
   const clearAuth = useAuthStore((state) => state.clearAuth);
-  const [activeTab, setActiveTab] = useState('account');
+  const targetTab =
+    typeof editProfileInitialTab === 'string' &&
+    TABS_CONFIG.some((t) => t.id === editProfileInitialTab)
+      ? editProfileInitialTab
+      : 'account';
+
+  const [activeTab, setActiveTab] = useState(targetTab);
   const [activeSection, setActiveSection] = useState('sec-account-info');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedTabs, setExpandedTabs] = useState<Record<string, boolean>>({
@@ -132,23 +138,20 @@ export default function EditProfileModal() {
     notifications: false,
   });
 
-  const prevTabRef = useRef<string | null>(null);
-
   useEffect(() => {
-    if (
-      isEditProfileOpen &&
-      editProfileInitialTab &&
-      prevTabRef.current !== editProfileInitialTab
-    ) {
-      prevTabRef.current = editProfileInitialTab;
-      queueMicrotask(() => {
-        setActiveTab(editProfileInitialTab);
-        setExpandedTabs((prev) => ({ ...prev, [editProfileInitialTab]: true }));
-        const foundTab = TABS_CONFIG.find((t) => t.id === editProfileInitialTab);
-        if (foundTab && foundTab.subsections.length > 0) {
-          setActiveSection(foundTab.subsections[0].id);
-        }
-      });
+    if (isEditProfileOpen) {
+      const validTab =
+        typeof editProfileInitialTab === 'string' &&
+        TABS_CONFIG.some((t) => t.id === editProfileInitialTab)
+          ? editProfileInitialTab
+          : 'account';
+
+      setActiveTab(validTab);
+      setExpandedTabs((prev) => ({ ...prev, [validTab]: true }));
+      const foundTab = TABS_CONFIG.find((t) => t.id === validTab);
+      if (foundTab && foundTab.subsections.length > 0) {
+        setActiveSection(foundTab.subsections[0].id);
+      }
     }
   }, [isEditProfileOpen, editProfileInitialTab]);
 
@@ -377,6 +380,19 @@ export default function EditProfileModal() {
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const rawFile = e.target.files[0];
+      const isGif =
+        rawFile.type?.toLowerCase() === 'image/gif' || rawFile.name?.toLowerCase().endsWith('.gif');
+
+      if (isGif) {
+        setAvatarFile(rawFile);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setLocalAvatarPreview(reader.result as string);
+        };
+        reader.readAsDataURL(rawFile);
+        return;
+      }
+
       try {
         const file = await compressImage(rawFile, 1024, 1024, 0.85);
         setAvatarFile(file);
@@ -399,6 +415,20 @@ export default function EditProfileModal() {
   const handleBannerChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const rawFile = e.target.files[0];
+      const isGif =
+        rawFile.type?.toLowerCase() === 'image/gif' || rawFile.name?.toLowerCase().endsWith('.gif');
+
+      if (isGif) {
+        setBannerFile(rawFile);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setLocalBannerPreview(reader.result as string);
+          setLocalBannerPos(50);
+        };
+        reader.readAsDataURL(rawFile);
+        return;
+      }
+
       try {
         const file = await compressImage(rawFile, 1920, 1080, 0.85);
         setBannerFile(file);

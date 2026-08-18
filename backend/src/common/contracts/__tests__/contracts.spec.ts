@@ -416,6 +416,11 @@ describe('Common Contracts & Zod Schemas', () => {
         postId: 'post-1',
         userId: 'user-1',
         parentId: null,
+        replyToUserId: null,
+        mediaUrl: null,
+        rootParentId: null,
+        isPinned: false,
+        isDeleted: false,
         createdAt: new Date('2026-08-16T12:00:00.000Z'),
         user: {
           id: 'user-1',

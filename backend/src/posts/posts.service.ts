@@ -12,7 +12,7 @@ import type { IPostRepository } from './interfaces/posts-repository.interface';
 import type { Paginated } from '../common/pagination';
 import { paginate } from '../common/pagination';
 import { RedisService } from '../redis/redis.service';
-import { PostsMediaService } from './posts-media.service';
+import { PostsMediaService, type ProcessedMedia } from './posts-media.service';
 import { PrismaService } from '@common/prisma';
 import { MessengerGateway } from '../messenger/gateway/messenger.gateway';
 import { WS_EVENTS } from '../messenger/events/ws-events';
@@ -118,7 +118,7 @@ export class PostsService {
     if (files && files.length > 0) {
       try {
         const processed = await this.mediaService.processUploadedFiles(files);
-        processed.forEach((item) => mediaItems.push(item));
+        processed.forEach((item: ProcessedMedia) => mediaItems.push(item));
       } catch {
         // Fallback: if files exist, don't crash the entire post if upload fails
         // but log and proceed
@@ -398,8 +398,63 @@ export class PostsService {
     after?: string,
     viewerId?: string,
   ): Promise<Paginated<PostResponseDto>> {
+    const pinnedPostId = await this.redis.get(`user:pinned_post:${userId}`);
     const posts = await this.postsRepository.getPostsByUserId(userId, limit, after, viewerId);
-    return paginate(posts, limit, PostResponseDto.fromPrisma);
+
+    const mapped = posts.map((p) => ({
+      ...p,
+      isPinned: p.id === pinnedPostId,
+      pinnedAt: p.id === pinnedPostId ? p.createdAt : undefined,
+    }));
+
+    if (!after && pinnedPostId) {
+      const idx = mapped.findIndex((p) => p.id === pinnedPostId);
+      if (idx > 0) {
+        const [pinned] = mapped.splice(idx, 1);
+        mapped.unshift(pinned);
+      }
+    }
+
+    return paginate(mapped, limit, PostResponseDto.fromPrisma);
+  }
+
+  async pinPost(postId: string, userId: string): Promise<PostResponseDto> {
+    const post = await this.postsRepository.getPostById(postId, userId);
+    if (!post) throw new NotFoundException('Post not found');
+    if (post.authorId !== userId) {
+      throw new ForbiddenException('You can only pin your own posts');
+    }
+
+    const pinnedKey = `user:pinned_post:${userId}`;
+    await this.redis.set(pinnedKey, postId, 86400 * 365);
+    await this.invalidateFeedAndPost(postId);
+
+    return PostResponseDto.fromPrisma({
+      ...post,
+      isPinned: true,
+      pinnedAt: new Date(),
+    });
+  }
+
+  async unpinPost(postId: string, userId: string): Promise<PostResponseDto> {
+    const post = await this.postsRepository.getPostById(postId, userId);
+    if (!post) throw new NotFoundException('Post not found');
+    if (post.authorId !== userId) {
+      throw new ForbiddenException('You can only unpin your own posts');
+    }
+
+    const pinnedKey = `user:pinned_post:${userId}`;
+    const current = await this.redis.get(pinnedKey);
+    if (current === postId) {
+      await this.redis.del(pinnedKey);
+    }
+    await this.invalidateFeedAndPost(postId);
+
+    return PostResponseDto.fromPrisma({
+      ...post,
+      isPinned: false,
+      pinnedAt: null,
+    });
   }
 
   async getUserReposts(
@@ -422,10 +477,61 @@ export class PostsService {
     return { id: report.id, status: 'queued' };
   }
 
-  async sharePost(postId: string): Promise<{ success: true }> {
+  async sharePost(
+    postId: string,
+    userId?: string,
+  ): Promise<{ success: true; incremented: boolean }> {
+    if (userId) {
+      const shareKey = `post:shares:${postId}:${userId}`;
+      const alreadyShared = await this.redis.get(shareKey);
+      if (alreadyShared) {
+        return { success: true, incremented: false };
+      }
+      await this.redis.set(shareKey, '1', 60 * 60 * 24 * 30);
+    }
     await this.postsRepository.incrementShareCount(postId);
     await this.invalidateFeedAndPost(postId);
-    return { success: true };
+    return { success: true, incremented: true };
+  }
+
+  async getPostOgHtml(postId: string): Promise<string> {
+    const post = await this.postsRepository.getPostById(postId);
+    if (!post) {
+      return `<!DOCTYPE html><html><head><title>Post Not Found</title></head><body><h1>Post not found</h1></body></html>`;
+    }
+
+    const authorName = post.author?.displayName || post.author?.username || 'User';
+    const authorHandle = post.author?.username || 'user';
+    const title = `${authorName} (@${authorHandle}) on Eternal`;
+    const description = post.content
+      ? post.content.length > 200
+        ? post.content.slice(0, 197) + '...'
+        : post.content
+      : `Check out ${authorName}'s post on Eternal`;
+    const image = post.media?.[0]?.url || post.author?.avatar || '/favicon.svg';
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>${title}</title>
+  <meta name="description" content="${description.replace(/"/g, '&quot;')}" />
+  <meta property="og:site_name" content="Eternal Social Network" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="${title.replace(/"/g, '&quot;')}" />
+  <meta property="og:description" content="${description.replace(/"/g, '&quot;')}" />
+  <meta property="og:image" content="${image}" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="${title.replace(/"/g, '&quot;')}" />
+  <meta name="twitter:description" content="${description.replace(/"/g, '&quot;')}" />
+  <meta name="twitter:image" content="${image}" />
+</head>
+<body>
+  <h1>${title}</h1>
+  <p>${description}</p>
+  <img src="${image}" alt="Post Preview" />
+</body>
+</html>`;
   }
 
   async votePoll(
@@ -491,13 +597,59 @@ export class PostsService {
     return { success: true, poll };
   }
 
+  async getPollVoters(postId: string, _userId?: string) {
+    const poll = await this.prisma.poll.findUnique({
+      where: { postId },
+      include: {
+        options: true,
+        votes: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                displayName: true,
+                avatar: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!poll) {
+      throw new NotFoundException('Poll not found');
+    }
+
+    return poll.options.map((opt: { id: string }) => ({
+      optionId: opt.id,
+      voters: poll.votes
+        .filter((v: { optionId: string }) => v.optionId === opt.id)
+        .map(
+          (v: {
+            user: {
+              id: string;
+              username: string;
+              displayName?: string | null;
+              avatar?: string | null;
+            };
+          }) => ({
+            id: v.user.id,
+            username: v.user.username,
+            displayName: v.user.displayName || v.user.username,
+            avatar: v.user.avatar,
+          }),
+        ),
+    }));
+  }
+
   async uploadChunk(
     uploadId: string,
     chunkIndex: number,
     totalChunks: number,
     file: Express.Multer.File,
   ) {
-    return this.mediaService.uploadChunk(uploadId, chunkIndex, totalChunks, file);
+    return await this.mediaService.uploadChunk(uploadId, chunkIndex, totalChunks, file);
   }
 
   getChunkStatus(uploadId: string) {

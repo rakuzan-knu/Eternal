@@ -556,6 +556,20 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
     this.server.to(conversationId).emit(WS_EVENTS.MESSAGE_UNPINNED, { conversationId, messageId });
   }
 
+  emitConversationDeleted(conversationId: string, participantUserIds: string[] = []) {
+    this.server.to(conversationId).emit(WS_EVENTS.CONVERSATION_DELETED, { conversationId });
+    for (const userId of participantUserIds) {
+      this.emitToUser(userId, WS_EVENTS.CONVERSATION_DELETED, { conversationId });
+    }
+  }
+
+  emitMessagesCleared(conversationId: string, participantUserIds: string[] = []) {
+    this.server.to(conversationId).emit(WS_EVENTS.MESSAGES_CLEARED, { conversationId });
+    for (const userId of participantUserIds) {
+      this.emitToUser(userId, WS_EVENTS.MESSAGES_CLEARED, { conversationId });
+    }
+  }
+
   private async isRateLimited(userId: string): Promise<boolean> {
     const now = Date.now();
     const key = `rate_limit:messages:${userId}`;

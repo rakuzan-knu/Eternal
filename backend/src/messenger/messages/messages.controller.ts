@@ -24,13 +24,17 @@ import {
   type DeleteMessageDto,
   type EditMessageDto,
   type ForwardMessageDto,
+  type ForwardMultipleMessagesDto,
+  type BatchDeleteMessagesDto,
   type GetMessagesQueryDto,
   type ReactToMessageDto,
   type SearchMessagesQueryDto,
   type SendMessageDto,
   deleteMessageSchema,
+  batchDeleteMessagesSchema,
   editMessageSchema,
   forwardMessageSchema,
+  forwardMultipleMessagesSchema,
   getMessagesQuerySchema,
   reactToMessageSchema,
   searchMessagesQuerySchema,
@@ -44,6 +48,38 @@ import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 @Controller('conversations/:conversationId/messages')
 export class MessagesController {
   constructor(private readonly service: MessagesService) {}
+
+  @Get('around/:messageId')
+  @ApiOperation({ summary: 'Get messages context window centered on target message ID' })
+  getAround(
+    @Param('conversationId') conversationId: string,
+    @Param('messageId') messageId: string,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.service.getAround(conversationId, messageId, user.id);
+  }
+
+  @Post('batch-delete')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Batch delete up to 50 messages' })
+  batchDelete(
+    @Param('conversationId') conversationId: string,
+    @Body(new ZodValidationPipe(batchDeleteMessagesSchema)) dto: BatchDeleteMessagesDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.service.batchDelete(conversationId, user.id, dto);
+  }
+
+  @Post('batch-forward')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Batch forward up to 50 messages' })
+  batchForward(
+    @Param('conversationId') conversationId: string,
+    @Body(new ZodValidationPipe(forwardMultipleMessagesSchema)) dto: ForwardMultipleMessagesDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.service.batchForward(conversationId, user.id, dto);
+  }
 
   @Get()
   @ApiOperation({ summary: 'Get paginated messages in a conversation' })

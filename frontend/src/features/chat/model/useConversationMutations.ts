@@ -1,6 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { chatApi } from '../api/chatApi';
-import { CONVERSATIONS_KEY, BLOCKED_USERS_KEY } from '@/shared/api/queryKeys';
+import {
+  CONVERSATIONS_KEY,
+  CONVERSATION_MESSAGES_KEY,
+  BLOCKED_USERS_KEY,
+} from '@/shared/api/queryKeys';
 import { ConversationView, MuteLevel } from '../../../entities/chat/model/types';
 
 function useOptimisticConversationUpdate() {
@@ -20,10 +24,17 @@ export function useMuteConversation() {
   const applyOptimistic = useOptimisticConversationUpdate();
 
   return useMutation({
-    mutationFn: ({ conversationId, muteLevel }: { conversationId: string; muteLevel: MuteLevel }) =>
-      chatApi.mute(conversationId, muteLevel),
-    onMutate: ({ conversationId, muteLevel }) =>
-      applyOptimistic(conversationId, { myMuteLevel: muteLevel }),
+    mutationFn: ({
+      conversationId,
+      muteLevel,
+      mutedUntil,
+    }: {
+      conversationId: string;
+      muteLevel: MuteLevel;
+      mutedUntil?: string;
+    }) => chatApi.mute(conversationId, muteLevel, mutedUntil),
+    onMutate: ({ conversationId, muteLevel, mutedUntil }) =>
+      applyOptimistic(conversationId, { myMuteLevel: muteLevel, myMutedUntil: mutedUntil ?? null }),
     onSettled: () => queryClient.invalidateQueries({ queryKey: [CONVERSATIONS_KEY] }),
   });
 }
@@ -180,5 +191,57 @@ export function useDemoteMember() {
     mutationFn: ({ conversationId, userId }: { conversationId: string; userId: string }) =>
       chatApi.demoteMember(conversationId, userId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [CONVERSATIONS_KEY] }),
+  });
+}
+
+export function useDeleteConversation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      conversationId,
+      forAll = false,
+    }: {
+      conversationId: string;
+      forAll?: boolean;
+    }) => chatApi.deleteConversation(conversationId, forAll),
+    onMutate: ({ conversationId }) => {
+      queryClient.setQueryData<ConversationView[]>([CONVERSATIONS_KEY], (prev) =>
+        prev?.filter((c) => c.id !== conversationId),
+      );
+    },
+    onSettled: (_data, _error, { conversationId }) => {
+      queryClient.invalidateQueries({ queryKey: [CONVERSATIONS_KEY] });
+      queryClient.removeQueries({ queryKey: [CONVERSATION_MESSAGES_KEY, conversationId] });
+    },
+  });
+}
+
+export function useClearChatHistory() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      conversationId,
+      forAll = false,
+    }: {
+      conversationId: string;
+      forAll?: boolean;
+    }) => chatApi.clearHistory(conversationId, forAll),
+    onMutate: ({ conversationId }) => {
+      queryClient.setQueryData([CONVERSATION_MESSAGES_KEY, conversationId], {
+        pages: [{ data: [], hasMore: false, nextCursor: null }],
+        pageParams: [undefined],
+      });
+      queryClient.setQueryData<ConversationView[]>([CONVERSATIONS_KEY], (prev) =>
+        prev?.map((c) =>
+          c.id === conversationId ? { ...c, lastMessage: null, unreadCount: 0 } : c,
+        ),
+      );
+    },
+    onSettled: (_data, _error, { conversationId }) => {
+      queryClient.invalidateQueries({ queryKey: [CONVERSATIONS_KEY] });
+      queryClient.invalidateQueries({ queryKey: [CONVERSATION_MESSAGES_KEY, conversationId] });
+    },
   });
 }

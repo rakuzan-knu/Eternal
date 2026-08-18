@@ -20,7 +20,7 @@ describe('AttachmentDropZone', () => {
       dataTransfer: { types: ['Files'] },
     });
 
-    expect(screen.getByText('Drop files to attach')).toBeInTheDocument();
+    expect(screen.getByText('Drop files here to send')).toBeInTheDocument();
 
     fireEvent.drop(container, {
       dataTransfer: { files: [file], types: ['Files'] },

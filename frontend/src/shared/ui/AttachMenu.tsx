@@ -4,6 +4,8 @@ import { Plus, Image as ImageIcon, Paperclip, BarChart2 } from 'lucide-react';
 interface AttachMenuProps {
   isGroup: boolean;
   disabled?: boolean;
+  canSendMedia?: boolean;
+  canSendPolls?: boolean;
   onPickMedia: (files: File[]) => void;
   onPickFile: (files: File[]) => void;
   onTogglePoll: () => void;
@@ -14,6 +16,8 @@ type AttachItemKey = 'media' | 'file' | 'poll';
 export default function AttachMenu({
   isGroup,
   disabled,
+  canSendMedia = true,
+  canSendPolls = true,
   onPickMedia,
   onPickFile,
   onTogglePoll,
@@ -76,25 +80,47 @@ export default function AttachMenu({
         onClick={() => setIsOpen((v) => !v)}
         disabled={disabled}
         title="Attach"
-        className={`w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-full transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed ${
-          isOpen ? 'bg-blue-500 text-white rotate-45' : 'text-blue-400 hover:bg-white/5'
+        className={`w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-full transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed ${
+          isOpen
+            ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white rotate-45 shadow-lg shadow-purple-500/30'
+            : 'text-purple-400 hover:text-purple-300 hover:bg-white/5'
         }`}
       >
-        <Plus size={22} />
+        <Plus size={20} />
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 bottom-full mb-3 w-52 bg-[#1c1c20]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_12px_40px_0_rgba(0,0,0,0.6)] py-2 animate-popIn origin-bottom-left z-50">
-          {items.map((item) => (
-            <button
-              key={item.key}
-              onClick={() => handleItemClick(item.key)}
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-200 hover:bg-white/5 transition-colors"
-            >
-              <span className="text-blue-400">{item.icon}</span>
-              {item.label}
-            </button>
-          ))}
+        <div className="absolute left-0 bottom-full mb-3 w-56 bg-[#1c1c20]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_12px_40px_0_rgba(0,0,0,0.6)] py-2 animate-popIn origin-bottom-left z-50">
+          {items.map((item) => {
+            const isItemRestricted =
+              (item.key === 'media' && !canSendMedia) ||
+              (item.key === 'file' && !canSendMedia) ||
+              (item.key === 'poll' && !canSendPolls);
+
+            return (
+              <button
+                key={item.key}
+                onClick={() => !isItemRestricted && handleItemClick(item.key)}
+                disabled={isItemRestricted}
+                title={isItemRestricted ? 'This action is restricted in this chat' : undefined}
+                className={`w-full flex items-center justify-between px-4 py-2.5 text-sm font-medium transition-colors ${
+                  isItemRestricted
+                    ? 'opacity-40 cursor-not-allowed text-gray-500'
+                    : 'text-gray-200 hover:bg-white/5 cursor-pointer'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className={isItemRestricted ? 'text-gray-500' : 'text-purple-400'}>
+                    {item.icon}
+                  </span>
+                  <span>{item.label}</span>
+                </div>
+                {isItemRestricted && (
+                  <span className="text-[10px] text-gray-400 font-normal">Restricted</span>
+                )}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

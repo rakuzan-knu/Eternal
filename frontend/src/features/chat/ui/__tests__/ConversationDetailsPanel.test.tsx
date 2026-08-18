@@ -59,5 +59,7 @@ describe('ConversationDetailsPanel', () => {
 
     expect(screen.getByText('Chat details')).toBeInTheDocument();
     expect(screen.getByText('Alice Smith')).toBeInTheDocument();
+    expect(screen.getByText('Change theme')).toBeInTheDocument();
+    expect(screen.queryByText('Read receipts')).not.toBeInTheDocument();
   });
 });

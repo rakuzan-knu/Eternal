@@ -122,6 +122,7 @@ export default function ArchivedThreadPane({
         />
 
         <MessageComposer
+          conversationId={conversation.id}
           actions={actions}
           replyingTo={replyingTo}
           onCancelReply={() => setReplyingTo(null)}

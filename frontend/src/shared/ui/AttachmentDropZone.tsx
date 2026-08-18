@@ -1,6 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { UploadCloud } from 'lucide-react';
-import { MAX_ATTACHMENTS_PER_MESSAGE } from '../lib/attachmentLimits';
+import ChatDropzoneOverlay from '../../features/chat/ui/ChatDropzoneOverlay';
 
 interface AttachmentDropZoneProps {
   onFilesDropped: (files: File[]) => void;
@@ -46,18 +45,7 @@ export default function AttachmentDropZone({ onFilesDropped, children }: Attachm
       onDrop={handleDrop}
     >
       {children}
-
-      {isDragging && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fadeIn pointer-events-none">
-          <div className="flex flex-col items-center gap-3 px-10 py-8 rounded-3xl border-2 border-dashed border-blue-400/60 bg-white/5 backdrop-blur-2xl">
-            <UploadCloud size={40} className="text-blue-400" />
-            <p className="text-white font-semibold">Drop files to attach</p>
-            <p className="text-xs text-gray-400">
-              Images, videos, and files up to 25 MB — max {MAX_ATTACHMENTS_PER_MESSAGE} at a time
-            </p>
-          </div>
-        </div>
-      )}
+      <ChatDropzoneOverlay isDragging={isDragging} />
     </div>
   );
 }

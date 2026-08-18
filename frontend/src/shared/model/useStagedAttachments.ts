@@ -4,6 +4,7 @@ import { validateIncomingFiles } from '../lib/attachmentLimits';
 export interface StagedFile {
   file: File;
   previewUrl: string;
+  isSpoiler?: boolean;
 }
 
 export function useStagedAttachments() {
@@ -17,7 +18,11 @@ export function useStagedAttachments() {
       if (accepted.length === 0) return prev;
       return [
         ...prev,
-        ...accepted.map((file) => ({ file, previewUrl: URL.createObjectURL(file) })),
+        ...accepted.map((file) => ({
+          file,
+          previewUrl: URL.createObjectURL(file),
+          isSpoiler: false,
+        })),
       ];
     });
   }, []);
@@ -29,12 +34,28 @@ export function useStagedAttachments() {
     });
   }, []);
 
-  const replaceFile = useCallback((index: number, newFile: File) => {
+  const replaceFile = useCallback((index: number, newFile: File, isSpoiler?: boolean) => {
     setFiles((prev) => {
       if (!prev[index]) return prev;
       URL.revokeObjectURL(prev[index].previewUrl);
       const next = [...prev];
-      next[index] = { file: newFile, previewUrl: URL.createObjectURL(newFile) };
+      next[index] = {
+        file: newFile,
+        previewUrl: URL.createObjectURL(newFile),
+        isSpoiler: isSpoiler !== undefined ? isSpoiler : prev[index].isSpoiler,
+      };
+      return next;
+    });
+  }, []);
+
+  const toggleSpoiler = useCallback((index: number) => {
+    setFiles((prev) => {
+      if (!prev[index]) return prev;
+      const next = [...prev];
+      next[index] = {
+        ...next[index],
+        isSpoiler: !next[index].isSpoiler,
+      };
       return next;
     });
   }, []);
@@ -53,6 +74,7 @@ export function useStagedAttachments() {
     addFiles,
     removeFile,
     replaceFile,
+    toggleSpoiler,
     clear,
     dismissError: () => setError(null),
   };

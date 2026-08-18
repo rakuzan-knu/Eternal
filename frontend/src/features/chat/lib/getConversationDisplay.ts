@@ -5,6 +5,9 @@ export interface ConversationDisplay {
   avatar: string | null;
   isGroup: boolean;
   otherUserId: string | null;
+  otherUsername?: string | null;
+  isVerified?: boolean;
+  primaryBadge?: string | null;
 }
 
 export function getConversationDisplay(
@@ -17,6 +20,9 @@ export function getConversationDisplay(
       avatar: conversation.avatar,
       isGroup: true,
       otherUserId: null,
+      otherUsername: null,
+      isVerified: Boolean(conversation.isVerified),
+      primaryBadge: conversation.primaryBadge ?? null,
     };
   }
 
@@ -27,6 +33,9 @@ export function getConversationDisplay(
     avatar: other?.user.avatar ?? null,
     isGroup: false,
     otherUserId: other?.userId ?? null,
+    otherUsername: other?.user.username ?? null,
+    isVerified: Boolean(other?.user.isVerified),
+    primaryBadge: other?.user.primaryBadge ?? null,
   };
 }
 

@@ -58,7 +58,7 @@ export class AuthController {
   }
 
   @Post('register')
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Throttle({ default: { limit: 3, ttl: 3600_000 } })
   @ApiOperation({ summary: 'Register a new user account' })
   @ApiResponse({
     status: HttpStatus.CREATED,

@@ -1,15 +1,8 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  ChevronLeft,
-  ChevronRight,
-  X,
-  CheckCircle2,
-  MapPin,
-  Sparkles,
-  Compass,
-} from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, MapPin, Sparkles, Compass } from 'lucide-react';
 import Avatar from '@/shared/ui/Avatar';
+import { VerifiedCheckmark } from '@/entities/profile/ui/VerifiedCheckmark';
 import { FollowButton } from '@/features/follow/ui/FollowButton';
 import { MiniProfileHoverCard } from '@/entities/profile/ui/MiniProfileHoverCard';
 import {
@@ -246,18 +239,27 @@ function SuggestedCreatorCard({
               <Avatar src={user.avatar} alt={displayName} size="lg" />
             </div>
             {user.isVerified && (
-              <span className="absolute bottom-0 right-0 p-0.5 rounded-full bg-[#070709]">
-                <CheckCircle2 className="w-4 h-4 text-blue-400" />
+              <span className="absolute bottom-0 right-0 p-0.5 rounded-full bg-[#070709] flex items-center justify-center">
+                <VerifiedCheckmark isVerified size="xs" />
               </span>
             )}
           </div>
 
           {/* Name & Handle */}
           <div className="w-full flex flex-col items-center min-w-0">
-            <span className="text-xs font-bold text-gray-100 truncate w-full group-hover/card:text-white transition-colors">
-              {displayName}
+            <div className="flex items-center justify-center gap-1 max-w-full">
+              <span className="text-xs font-bold text-gray-100 truncate group-hover/card:text-white transition-colors">
+                {displayName}
+              </span>
+              <VerifiedCheckmark
+                isVerified={user.isVerified}
+                primaryBadge={user.primaryBadge}
+                size="xs"
+              />
+            </div>
+            <span className="text-[11px] text-gray-500 truncate w-full text-center">
+              @{user.username}
             </span>
-            <span className="text-[11px] text-gray-500 truncate w-full">@{user.username}</span>
           </div>
 
           {/* Recommendation Reason Context */}

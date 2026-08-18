@@ -58,11 +58,25 @@ export const deleteMessageSchema = z.object({
 });
 export type DeleteMessageDto = z.infer<typeof deleteMessageSchema>;
 
+export const batchDeleteMessagesSchema = z.object({
+  messageIds: z.array(z.string().uuid()).min(1).max(50),
+  forAll: z.coerce.boolean().optional(),
+});
+export type BatchDeleteMessagesDto = z.infer<typeof batchDeleteMessagesSchema>;
+
 export const forwardMessageSchema = z.object({
   messageId: z.string().uuid(),
   conversationIds: z.array(z.string().uuid()),
+  hideAuthor: z.boolean().optional(),
 });
 export type ForwardMessageDto = z.infer<typeof forwardMessageSchema>;
+
+export const forwardMultipleMessagesSchema = z.object({
+  messageIds: z.array(z.string().uuid()).min(1).max(50),
+  conversationIds: z.array(z.string().uuid()).min(1),
+  hideAuthor: z.boolean().optional(),
+});
+export type ForwardMultipleMessagesDto = z.infer<typeof forwardMultipleMessagesSchema>;
 
 export const reactToMessageSchema = z.object({
   messageId: z.string().uuid(),
@@ -232,6 +246,7 @@ export interface ConversationView {
 
   myTheme: string;
   myMuteLevel: MuteLevel;
+  myMutedUntil?: Date | null;
   myNickname: string | null;
   isArchived: boolean;
   isPinned: boolean;

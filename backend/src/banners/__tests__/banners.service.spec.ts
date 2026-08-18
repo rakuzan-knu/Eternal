@@ -89,6 +89,30 @@ describe('BannersService', () => {
       expect(mockRedis.del).toHaveBeenCalledWith('user:usr-1');
       expect(result.banner).toContain('usr-1');
     });
+
+    it('handles animated GIF banner upload preserving gif extension', async () => {
+      const mockGifFile: Express.Multer.File = {
+        ...mockFile,
+        originalname: 'animated-banner.gif',
+        mimetype: 'image/gif',
+        buffer: Buffer.from('GIF89a...fake-gif-bytes'),
+      };
+
+      mockBannerRepo.findById.mockResolvedValueOnce({ id: 'usr-1', banner: null });
+      mockBannerRepo.updateBanner.mockResolvedValueOnce({
+        id: 'usr-1',
+        banner: 'https://s3.example.com/avatars/banners/usr-1.gif',
+        bannerPosition: 60,
+      });
+
+      const result = await service.uploadBanner('usr-1', mockGifFile, 60);
+      expect(mockBannerRepo.updateBanner).toHaveBeenCalledWith(
+        'usr-1',
+        expect.stringContaining('usr-1.gif'),
+        60,
+      );
+      expect(result.banner).toContain('usr-1.gif');
+    });
   });
 
   describe('deleteBanner', () => {

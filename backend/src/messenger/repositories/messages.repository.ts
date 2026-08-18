@@ -60,6 +60,61 @@ export class MessagesRepository implements IMessagesRepository {
     });
   }
 
+  async findAround(params: {
+    conversationId: string;
+    targetMessageId: string;
+    requestingUserId: string;
+    limit: number;
+    hiddenUserIds?: string[];
+  }): Promise<MessageWithDetails[]> {
+    const { conversationId, targetMessageId, requestingUserId, limit, hiddenUserIds } = params;
+    const target = await this.prisma.message.findUnique({
+      where: { id: targetMessageId },
+      select: { createdAt: true },
+    });
+    if (!target) return [];
+
+    const half = Math.max(1, Math.floor(limit / 2));
+
+    const [beforeMsgs, afterMsgs] = await Promise.all([
+      this.prisma.message.findMany({
+        where: {
+          conversationId,
+          deletedForAll: false,
+          deletedFor: { none: { userId: requestingUserId } },
+          createdAt: { lte: target.createdAt },
+          ...(hiddenUserIds && hiddenUserIds.length > 0
+            ? { senderId: { notIn: hiddenUserIds } }
+            : {}),
+        },
+        orderBy: { createdAt: 'desc' },
+        take: half + 1,
+        include: messageInclude,
+      }),
+      this.prisma.message.findMany({
+        where: {
+          conversationId,
+          deletedForAll: false,
+          deletedFor: { none: { userId: requestingUserId } },
+          createdAt: { gt: target.createdAt },
+          ...(hiddenUserIds && hiddenUserIds.length > 0
+            ? { senderId: { notIn: hiddenUserIds } }
+            : {}),
+        },
+        orderBy: { createdAt: 'asc' },
+        take: half,
+        include: messageInclude,
+      }),
+    ]);
+
+    const combined = [...afterMsgs.reverse(), ...beforeMsgs];
+    const map = new Map<string, MessageWithDetails>();
+    combined.forEach((m) => map.set(m.id, m));
+    return Array.from(map.values()).sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+  }
+
   findOne(messageId: string, _requestingUserId: string): Promise<MessageWithDetails | null> {
     void _requestingUserId;
 

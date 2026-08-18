@@ -9,6 +9,8 @@ import {
 import ChatItemMenu from './ChatItemMenu';
 import OnlineStatusIndicator from '../../../shared/ui/OnlineStatusIndicator';
 import { useTypingStore } from '../model/useTypingStore';
+import { useChatDraftsStore } from '../model/useChatDraftsStore';
+import { VerifiedCheckmark } from '@/entities/profile/ui/VerifiedCheckmark';
 
 interface ChatListItemProps {
   conversation: ConversationView;
@@ -19,6 +21,8 @@ interface ChatListItemProps {
   onSelect: (conversationId: string) => void;
   onTogglePinLocally: (conversationId: string) => void;
   onToggleUnreadLocally: (conversationId: string) => void;
+  onMarkReadLocally?: (conversationId: string) => void;
+  onCreateFolder?: () => void;
 }
 
 function formatChatListTime(iso: string | Date) {
@@ -47,6 +51,8 @@ export default function ChatListItem({
   onSelect,
   onTogglePinLocally,
   onToggleUnreadLocally,
+  onMarkReadLocally,
+  onCreateFolder,
 }: ChatListItemProps) {
   const [isMenuOpen, setMenuOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -58,6 +64,9 @@ export default function ChatListItem({
   const firstTypistUsername = useTypingStore(
     (s) => s.typingByConversation[conversation.id]?.[0]?.username,
   );
+
+  const draft = useChatDraftsStore((s) => s.drafts[conversation.id]);
+  const hasDraft = Boolean(draft?.text?.trim());
 
   const display = getConversationDisplay(conversation, currentUserId);
   const hasUnread = isForcedUnread || conversation.unreadCount > 0;
@@ -89,16 +98,30 @@ export default function ChatListItem({
       </div>
 
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 min-w-0">
           <span
-            className={`text-[15px] truncate ${hasUnread ? 'text-white font-semibold' : 'text-gray-200 font-medium'}`}
+            className={`text-[15px] truncate ${
+              hasUnread
+                ? 'text-white font-semibold'
+                : isMuted
+                  ? 'text-gray-400 font-medium'
+                  : 'text-gray-200 font-medium'
+            }`}
           >
             {display.title}
           </span>
-          {isMuted && <BellOff size={12} className="text-gray-500 flex-shrink-0" />}
-          {isPinnedLocally && <Pin size={12} className="text-gray-500 flex-shrink-0" />}
+          {display.isVerified && <VerifiedCheckmark size="sm" />}
+          {isMuted && <BellOff size={13} className="text-gray-400 flex-shrink-0" />}
+          {isPinnedLocally && <Pin size={12} className="text-gray-400 flex-shrink-0" />}
         </div>
-        {isTyping ? (
+        {hasDraft ? (
+          <p className="text-[13px] truncate flex items-center gap-1">
+            <span className="text-red-400 font-semibold drop-shadow-[0_0_8px_rgba(248,113,113,0.4)] flex-shrink-0">
+              Draft:
+            </span>
+            <span className="text-gray-300 truncate">{draft!.text}</span>
+          </p>
+        ) : isTyping ? (
           <div className="flex items-center gap-1.5 text-[13px] text-sky-400 font-medium animate-fadeIn">
             <span className="flex gap-0.5 items-center">
               <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-bounce [animation-delay:-0.3s]" />
@@ -112,7 +135,11 @@ export default function ChatListItem({
             </span>
           </div>
         ) : (
-          <p className={`text-[13px] truncate ${hasUnread ? 'text-gray-200' : 'text-gray-500'}`}>
+          <p
+            className={`text-[13px] truncate ${
+              hasUnread ? 'text-gray-200' : isMuted ? 'text-gray-500' : 'text-gray-400'
+            }`}
+          >
             {getMessagePreview(conversation)}
           </p>
         )}
@@ -150,11 +177,18 @@ export default function ChatListItem({
                 <ChatItemMenu
                   conversation={conversation}
                   otherUserId={display.otherUserId}
+                  otherUsername={display.otherUsername}
+                  conversationTitle={display.title}
+                  avatarUrl={display.avatar}
+                  isGroup={display.isGroup}
+                  memberAvatars={conversation.participants.map((p) => p.user.avatar)}
                   isPinnedLocally={isPinnedLocally}
                   isForcedUnread={isForcedUnread}
                   onClose={() => setMenuOpen(false)}
                   onTogglePinLocally={onTogglePinLocally}
                   onToggleUnreadLocally={onToggleUnreadLocally}
+                  onMarkReadLocally={onMarkReadLocally}
+                  onCreateFolder={onCreateFolder}
                 />
               </div>
             )}

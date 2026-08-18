@@ -4,6 +4,7 @@ import Avatar from '../../../shared/ui/Avatar';
 import GroupAvatarCollage from '../../../shared/ui/GroupAvatarCollage';
 import OnlineStatusIndicator from '../../../shared/ui/OnlineStatusIndicator';
 import { ConversationDisplay } from '../lib/getConversationDisplay';
+import { VerifiedCheckmark } from '@/entities/profile/ui/VerifiedCheckmark';
 
 interface ChatThreadHeaderProps {
   display: ConversationDisplay;
@@ -40,7 +41,10 @@ export default function ChatThreadHeader({
           )}
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-white truncate">{display.title}</p>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <p className="text-sm font-semibold text-white truncate">{display.title}</p>
+            {display.isVerified && <VerifiedCheckmark size="sm" />}
+          </div>
           {isOtherTyping ? (
             <p className="text-[12px] truncate text-blue-400">Typing…</p>
           ) : isGroup ? (

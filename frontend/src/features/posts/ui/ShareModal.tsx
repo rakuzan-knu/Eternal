@@ -35,7 +35,7 @@ export function ShareModal() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
-  const [messageText, setMessageText] = useState('Yo check this!');
+  const [messageText, setMessageText] = useState('');
   const [isSending, setIsSending] = useState(false);
 
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -109,6 +109,15 @@ export function ShareModal() {
   }"`;
 
   const trackShare = () => {
+    // Unique share check per user and post
+    const shareKey = `shared_${myUserId || 'guest'}_${post.id}`;
+    if (typeof window !== 'undefined' && localStorage.getItem(shareKey)) {
+      return;
+    }
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(shareKey, 'true');
+    }
+
     // Increment shares count optimistically
     const updateFeedData = (old: InfiniteData<FeedPage> | undefined) => {
       if (!old?.pages) return old;
@@ -205,7 +214,7 @@ export function ShareModal() {
     trackShare();
 
     try {
-      const fullText = `${messageText ? messageText + '\n' : ''}${postUrl}`;
+      const fullText = messageText.trim() ? `${messageText.trim()}\n${postUrl}` : postUrl;
       const socket = getSocket();
 
       for (const targetUserId of selectedUserIds) {
@@ -229,6 +238,7 @@ export function ShareModal() {
         `Shared post with ${selectedUserIds.length} friend${selectedUserIds.length > 1 ? 's' : ''}.`,
       );
       setSelectedUserIds([]);
+      setMessageText('');
       closeShareModal();
     } catch {
       showToast('Error', 'Failed to send post.');
@@ -410,7 +420,7 @@ export function ShareModal() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search"
-              className="w-full bg-white/[0.04] border border-white/10 rounded-2xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-white/25 transition-colors"
+              className="w-full bg-white/[0.04] border border-white/10 rounded-2xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 transition-colors"
             />
           </div>
         </div>
@@ -438,20 +448,20 @@ export function ShareModal() {
                     onClick={() => toggleSelectUser(u.id)}
                     className="flex flex-col items-center gap-1.5 group cursor-pointer"
                   >
-                    <div className="relative">
+                    <div className="relative flex items-center justify-center">
                       <div
-                        className={`w-14 h-14 rounded-full p-0.5 transition-all duration-200 ${
+                        className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-200 ${
                           isSelected
-                            ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-[#141418]'
+                            ? 'ring-2 ring-purple-500 ring-offset-2 ring-offset-[#141418]'
                             : 'group-hover:scale-105'
                         }`}
                       >
                         <Avatar size="lg" src={u.avatar} />
                       </div>
 
-                      {/* Selected Blue Checkmark Badge */}
+                      {/* Selected Purple Checkmark Badge */}
                       {isSelected && (
-                        <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-blue-500 text-white flex items-center justify-center border-2 border-[#141418] shadow-md animate-popIn">
+                        <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-purple-600 text-white flex items-center justify-center border-2 border-[#141418] shadow-md animate-popIn">
                           <Check size={12} strokeWidth={3} />
                         </div>
                       )}
@@ -477,39 +487,53 @@ export function ShareModal() {
         <div className="p-4 border-t border-white/[0.08] bg-[#101014]">
           {hasSelectedUsers ? (
             <div className="flex flex-col gap-3 animate-fadeIn">
-              <input
-                type="text"
-                value={messageText}
-                onChange={(e) => setMessageText(e.target.value)}
-                placeholder="Write a message..."
-                className="w-full bg-transparent text-sm text-white placeholder-gray-500 focus:outline-none px-1"
-              />
+              <div className="relative">
+                <textarea
+                  value={messageText}
+                  onChange={(e) => setMessageText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendToSelectedUsers();
+                    }
+                  }}
+                  rows={2}
+                  maxLength={1000}
+                  placeholder="Write a message..."
+                  className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 resize-none transition-colors max-h-32"
+                />
+                {messageText.length > 0 && (
+                  <div className="text-[10px] text-gray-500 text-right px-2">
+                    {messageText.length}/1000
+                  </div>
+                )}
+              </div>
 
               <button
                 type="button"
                 onClick={handleSendToSelectedUsers}
                 disabled={isSending}
-                className="w-full py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 cursor-pointer"
+                className="w-full py-3 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 active:from-purple-700 active:to-indigo-700 text-white font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-purple-600/20 disabled:opacity-50 cursor-pointer"
               >
                 <Send size={16} />
-                <span>{isSending ? 'Sending...' : 'Надіслати'}</span>
+                <span>{isSending ? 'Sending...' : 'Send to Direct'}</span>
               </button>
             </div>
           ) : (
-            <div className="relative flex items-center">
+            <div className="relative flex items-center px-1">
               {/* Left Carousel Arrow */}
               <button
                 type="button"
                 onClick={() => scrollCarousel('left')}
-                className="absolute -left-2 z-10 p-1.5 rounded-full bg-[#1c1c22] border border-white/10 text-gray-300 hover:text-white shadow-lg transition-transform hover:scale-110"
+                className="absolute left-0 z-10 p-2 rounded-full bg-[#1c1c22]/90 backdrop-blur-md border border-white/15 text-gray-300 hover:text-white shadow-xl transition-transform hover:scale-110 cursor-pointer"
               >
-                <ChevronLeft size={14} />
+                <ChevronLeft size={16} />
               </button>
 
               {/* Social Buttons Carousel */}
               <div
                 ref={carouselRef}
-                className="flex items-center gap-4 overflow-x-auto px-4 py-1 no-scrollbar scroll-smooth"
+                className="flex items-center gap-4 overflow-x-auto px-8 py-1 no-scrollbar scroll-smooth w-full"
               >
                 {socialButtons.map((btn) => (
                   <button
@@ -534,9 +558,9 @@ export function ShareModal() {
               <button
                 type="button"
                 onClick={() => scrollCarousel('right')}
-                className="absolute -right-2 z-10 p-1.5 rounded-full bg-[#1c1c22] border border-white/10 text-gray-300 hover:text-white shadow-lg transition-transform hover:scale-110"
+                className="absolute right-0 z-10 p-2 rounded-full bg-[#1c1c22]/90 backdrop-blur-md border border-white/15 text-gray-300 hover:text-white shadow-xl transition-transform hover:scale-110 cursor-pointer"
               >
-                <ChevronRight size={14} />
+                <ChevronRight size={16} />
               </button>
             </div>
           )}
@@ -545,3 +569,5 @@ export function ShareModal() {
     </div>
   );
 }
+
+export default ShareModal;

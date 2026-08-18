@@ -66,7 +66,7 @@ export const AddEmojiButton: React.FC<AddEmojiButtonProps> = ({
       className={`z-50 overflow-hidden rounded-2xl border border-white/10 bg-[#1f1f23]/95 shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-2xl backdrop-saturate-150 animate-fadeIn ${
         usePortal
           ? ''
-          : `absolute left-0 ${direction === 'top' ? 'bottom-full mb-3' : 'top-full mt-3'}`
+          : `absolute right-0 ${direction === 'top' ? 'bottom-full mb-3' : 'top-full mt-3'} max-w-[calc(100vw-24px)]`
       }`}
       style={usePortal ? (portalStyle ?? undefined) : undefined}
     >

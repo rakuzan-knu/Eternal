@@ -21,6 +21,7 @@ import { usePresenceStore } from '@/shared/model/usePresenceStore';
 import { useAuthStore } from '@/shared/model/useAuthStore';
 import { ConversationView, MessageView, MuteLevel } from '../../../entities/chat/model/types';
 import { ConversationDisplay } from '../lib/getConversationDisplay';
+import { VerifiedCheckmark } from '@/entities/profile/ui/VerifiedCheckmark';
 import NicknamesModal from './NicknamesModal';
 import PinnedMessagesModal from './PinnedMessagesModal';
 import MuteOptionsModal from './MuteOptionsModal';
@@ -33,13 +34,18 @@ import GroupMembersSection from './details/GroupMembersSection';
 import ChatInfoSection from './details/ChatInfoSection';
 import PrivacySupportSection from './details/PrivacySupportSection';
 import { SectionButton } from './details/SectionButton';
+import SelectThemeModal from './SelectThemeModal';
+import MessagePermissionsModal from './MessagePermissionsModal';
+import RestrictUserModal from './RestrictUserModal';
+import ReportConversationModal from './ReportConversationModal';
+import DeleteChatModal from './DeleteChatModal';
 import { useMessageActions } from '../model/useMessageActions';
 import {
   useArchiveConversation,
   useBlockUser,
   useMuteConversation,
-  useReportUser,
   useLeaveConversation,
+  useDeleteConversation,
 } from '../model/useConversationMutations';
 
 interface ConversationDetailsPanelProps {
@@ -52,7 +58,19 @@ interface ConversationDetailsPanelProps {
   onJumpToMessage: (messageId: string) => void;
 }
 
-type DetailsModal = 'nicknames' | 'pinned' | 'mute' | 'editGroup' | 'participants' | 'addMembers';
+type DetailsModal =
+  | 'nicknames'
+  | 'pinned'
+  | 'mute'
+  | 'editGroup'
+  | 'participants'
+  | 'admins'
+  | 'addMembers'
+  | 'theme'
+  | 'permissions'
+  | 'restrict'
+  | 'report'
+  | 'delete';
 
 export default function ConversationDetailsPanel({
   conversation,
@@ -73,8 +91,8 @@ export default function ConversationDetailsPanel({
   const muteConversation = useMuteConversation();
   const archiveConversation = useArchiveConversation();
   const blockUser = useBlockUser();
-  const reportUser = useReportUser();
   const leaveConversation = useLeaveConversation();
+  const deleteConversation = useDeleteConversation();
   const messageActions = useMessageActions(conversation.id);
 
   const [isInfoOpen, setInfoOpen] = useState(true);
@@ -134,6 +152,19 @@ export default function ConversationDetailsPanel({
     });
   };
 
+  const handleDeleteChat = (forAll: boolean) => {
+    deleteConversation.mutate(
+      { conversationId: conversation.id, forAll },
+      {
+        onSuccess: () => {
+          navigate('/messages');
+          requestClose();
+        },
+      },
+    );
+    setActiveModal(null);
+  };
+
   const viewedParticipant = conversation.participants.find((p) => p.userId === viewedMemberId);
   const canManageMembers = myParticipant?.role === 'OWNER';
 
@@ -187,7 +218,10 @@ export default function ConversationDetailsPanel({
               </>
             )}
           </div>
-          <p className="text-lg font-bold text-white">{display.title}</p>
+          <div className="flex items-center justify-center gap-1.5 min-w-0">
+            <p className="text-lg font-bold text-white truncate">{display.title}</p>
+            {display.isVerified && <VerifiedCheckmark size="md" />}
+          </div>
           {isGroup ? (
             <p className="text-sm mt-0.5 text-gray-500">
               {conversation.participants.length} members
@@ -271,9 +305,12 @@ export default function ConversationDetailsPanel({
           onOpenGallery={(tab) => setGalleryTab(tab)}
         />
 
-        <button className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left text-gray-200 hover:bg-white/5 transition-colors">
+        <button
+          onClick={() => setActiveModal('theme')}
+          className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left text-gray-200 hover:bg-white/5 transition-colors cursor-pointer"
+        >
           <span className="flex items-center gap-3 text-sm font-medium">
-            <Palette size={17} className="text-gray-400" /> Change theme
+            <Palette size={17} className="text-purple-400" /> Change theme
           </span>
           <ChevronRight size={16} className="text-gray-500" />
         </button>
@@ -281,7 +318,7 @@ export default function ConversationDetailsPanel({
         {isGroup ? (
           <button
             onClick={() => setActiveModal('editGroup')}
-            className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left text-gray-200 hover:bg-white/5 transition-colors"
+            className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left text-gray-200 hover:bg-white/5 transition-colors cursor-pointer"
           >
             <span className="flex items-center gap-3 text-sm font-medium">
               <Pencil size={17} className="text-gray-400" /> Edit group
@@ -291,7 +328,7 @@ export default function ConversationDetailsPanel({
         ) : (
           <button
             onClick={() => setActiveModal('nicknames')}
-            className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left text-gray-200 hover:bg-white/5 transition-colors"
+            className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left text-gray-200 hover:bg-white/5 transition-colors cursor-pointer"
           >
             <span className="flex items-center gap-3 text-sm font-medium">
               <Pencil size={17} className="text-gray-400" /> Edit nickname
@@ -313,8 +350,10 @@ export default function ConversationDetailsPanel({
           onToggleMute={handleToggleMute}
           isGroup={isGroup}
           otherUserId={otherUserId}
+          onOpenPermissions={() => setActiveModal('permissions')}
+          onOpenRestrict={() => setActiveModal('restrict')}
           onBlock={(userId) => blockUser.mutate(userId)}
-          onReport={(userId) => reportUser.mutate({ userId, category: 'OTHER' })}
+          onOpenReport={() => setActiveModal('report')}
         />
 
         <div className="h-px bg-white/5 my-2" />
@@ -339,7 +378,12 @@ export default function ConversationDetailsPanel({
                 })
               }
             />
-            <SectionButton icon={<Trash2 size={17} />} label="Delete chat" danger />
+            <SectionButton
+              icon={<Trash2 size={17} />}
+              label="Delete chat"
+              danger
+              onClick={() => setActiveModal('delete')}
+            />
           </>
         )}
       </div>
@@ -378,13 +422,15 @@ export default function ConversationDetailsPanel({
           conversation={conversation}
           onClose={() => setActiveModal(null)}
           onOpenParticipants={() => setActiveModal('participants')}
+          onOpenAdmins={() => setActiveModal('admins')}
         />
       )}
 
-      {activeModal === 'participants' && (
+      {(activeModal === 'participants' || activeModal === 'admins') && (
         <GroupParticipantsModal
           conversation={conversation}
           currentUserId={currentUserId}
+          roleFilter={activeModal === 'admins' ? 'ADMINS' : 'ALL'}
           onClose={() => setActiveModal(null)}
           onSelectMember={(userId) => setViewedMemberId(userId)}
         />
@@ -395,6 +441,41 @@ export default function ConversationDetailsPanel({
           conversationId={conversation.id}
           existingMemberIds={conversation.participants.map((p) => p.userId)}
           onClose={() => setActiveModal(null)}
+        />
+      )}
+
+      {activeModal === 'theme' && (
+        <SelectThemeModal
+          conversationId={conversation.id}
+          currentTheme={conversation.myTheme}
+          onClose={() => setActiveModal(null)}
+        />
+      )}
+
+      {activeModal === 'permissions' && (
+        <MessagePermissionsModal onClose={() => setActiveModal(null)} />
+      )}
+
+      {activeModal === 'restrict' && otherUserId && (
+        <RestrictUserModal userId={otherUserId} onClose={() => setActiveModal(null)} />
+      )}
+
+      {activeModal === 'report' && otherUserId && (
+        <ReportConversationModal
+          userId={otherUserId}
+          conversationId={conversation.id}
+          onClose={() => setActiveModal(null)}
+        />
+      )}
+
+      {activeModal === 'delete' && (
+        <DeleteChatModal
+          onClose={() => setActiveModal(null)}
+          onConfirm={handleDeleteChat}
+          conversationName={display.title}
+          avatarUrl={display.avatar}
+          isGroup={isGroup}
+          otherUserName={display.title}
         />
       )}
     </div>

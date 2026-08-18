@@ -12,7 +12,7 @@ export class RedisService {
     return this.client;
   }
 
-  async set(key: string, value: string, ttlSeconds: number): Promise<void> {
+  async set(key: string, value: string, ttlSeconds: number = 86400 * 30): Promise<void> {
     try {
       const safeTtl = Math.max(1, Math.floor(ttlSeconds));
       await this.client.set(key, value, 'EX', safeTtl);

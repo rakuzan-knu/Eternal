@@ -1,3 +1,4 @@
+import process from 'node:process';
 import { test as base, expect, type Page, type Route } from '@playwright/test';
 
 /**
@@ -12,16 +13,17 @@ const API_BASE = (process.env.VITE_API_URL ?? 'http://localhost:3000')
   .replace(/\/+$/, '');
 
 /**
- * CORS headers: the app is served on :5173 and calls the API cross-origin with
- * `withCredentials`, which forbids the wildcard origin — echo the app origin.
+ * CORS headers helper: echoes the request origin or fallback.
  */
-const APP_ORIGIN = 'http://localhost:5173';
-const CORS_HEADERS: Record<string, string> = {
-  'Access-Control-Allow-Origin': APP_ORIGIN,
-  'Access-Control-Allow-Credentials': 'true',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Authorization, Content-Type',
-};
+function getCorsHeaders(route: Route): Record<string, string> {
+  const reqOrigin = route.request().headers()['origin'] || 'http://127.0.0.1:5173';
+  return {
+    'Access-Control-Allow-Origin': reqOrigin,
+    'Access-Control-Allow-Credentials': 'true',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+  };
+}
 
 /** Response payload for a mocked API route. */
 interface MockResponse {
@@ -31,14 +33,15 @@ interface MockResponse {
 
 /** Fulfills a mocked API request, answering CORS preflights automatically. */
 async function fulfillApi(route: Route, response: MockResponse = {}): Promise<void> {
+  const headers = getCorsHeaders(route);
   if (route.request().method() === 'OPTIONS') {
-    await route.fulfill({ status: 204, headers: CORS_HEADERS });
+    await route.fulfill({ status: 204, headers });
     return;
   }
   await route.fulfill({
     status: response.status ?? 200,
     contentType: 'application/json',
-    headers: CORS_HEADERS,
+    headers,
     body: JSON.stringify(response.json ?? {}),
   });
 }
@@ -52,7 +55,14 @@ async function mockApi(
   pathPattern: string,
   response: MockResponse = {},
 ): Promise<void> {
-  await page.route(`${API_BASE}${pathPattern}`, (route) => fulfillApi(route, response));
+  const handler = (route: Route) => fulfillApi(route, response);
+  await page.route(`${API_BASE}${pathPattern}`, handler);
+  if (!API_BASE.includes('localhost')) {
+    await page.route(`http://localhost:3000${pathPattern}`, handler);
+  }
+  if (!API_BASE.includes('127.0.0.1')) {
+    await page.route(`http://127.0.0.1:3000${pathPattern}`, handler);
+  }
 }
 
 /**
@@ -81,7 +91,16 @@ export const test = base.extend<{
     // Catch-all: endpoints a spec does not explicitly mock fail like a downed
     // backend (network error), which the app handles gracefully. Serving a
     // generic `{}` 200 instead crashes consumers that expect typed payloads.
-    await page.route(`${API_BASE}/**`, (route) => route.abort('blockedbyclient'));
+    const abortHandler = (route: Route) => {
+      const url = route.request().url();
+      if (url.includes(':5173') || url.includes('/src/') || url.includes('/@')) {
+        return route.continue();
+      }
+      return route.abort('blockedbyclient');
+    };
+    await page.route(`${API_BASE}/**`, abortHandler);
+    await page.route(`http://localhost:3000/**`, abortHandler);
+    await page.route(`http://127.0.0.1:3000/**`, abortHandler);
     await fixtureUse(page);
   },
 });

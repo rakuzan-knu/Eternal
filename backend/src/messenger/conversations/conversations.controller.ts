@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -77,11 +78,28 @@ export class ConversationsController {
     return this.service.getConversation(id, user.id);
   }
 
-  @Delete(':id')
+  @Delete(':id/history')
+  @Throttle({ default: { limit: 2, ttl: 10000 } })
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete a conversation for current user' })
-  deleteConversation(@Param('id') id: string, @CurrentUser() user: RequestUser) {
-    return this.service.deleteConversation(id, user.id);
+  @ApiOperation({ summary: 'Delete message history for conversation' })
+  clearHistory(
+    @Param('id') id: string,
+    @CurrentUser() user: RequestUser,
+    @Query('forAll') forAll?: string,
+  ) {
+    return this.service.clearHistory(id, user.id, forAll === 'true' || forAll === '1');
+  }
+
+  @Delete(':id')
+  @Throttle({ default: { limit: 2, ttl: 10000 } })
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete a conversation for current user or all participants' })
+  deleteConversation(
+    @Param('id') id: string,
+    @CurrentUser() user: RequestUser,
+    @Query('forAll') forAll?: string,
+  ) {
+    return this.service.deleteConversation(id, user.id, forAll === 'true' || forAll === '1');
   }
 
   @Post('direct')
@@ -204,6 +222,25 @@ export class ConversationsController {
     @CurrentUser() user: RequestUser,
   ) {
     return this.service.demoteMember(id, user.id, userId);
+  }
+
+  @Patch(':id/members/:userId/permissions')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Update admin permissions in a group (Owner only)' })
+  updatePermissions(
+    @Param('id') id: string,
+    @Param('userId') targetUserId: string,
+    @Body()
+    dto: {
+      canEditGroup?: boolean;
+      canDeleteMessages?: boolean;
+      canManageMembers?: boolean;
+      canPinMessages?: boolean;
+      canInviteUsers?: boolean;
+    },
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.service.updateAdminPermissions(id, user.id, targetUserId, dto);
   }
 
   @Patch(':id/nickname')

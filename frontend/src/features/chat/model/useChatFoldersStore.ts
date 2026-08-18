@@ -21,6 +21,7 @@ interface ChatFoldersState {
   updateFolder: (id: string, patch: Omit<ChatFolder, 'id' | 'isSystem'>) => void;
   deleteFolder: (id: string) => void;
   reorderFolders: (ownerId: string, orderedIds: string[]) => void;
+  toggleConversationInFolder: (folderId: string, conversationId: string) => void;
 }
 
 const STORAGE_KEY = 'eternal-chat-folders';
@@ -154,5 +155,19 @@ export const useChatFoldersStore = create<ChatFoldersState>((set) => ({
       const folderOrders = { ...state.folderOrders, [ownerId]: orderedIds };
       saveFolderOrders(folderOrders);
       return { folderOrders };
+    }),
+  toggleConversationInFolder: (folderId, conversationId) =>
+    set((state) => {
+      const targetFolder = state.folders.find((f) => f.id === folderId);
+      if (!targetFolder) return state;
+      const isIncluded = targetFolder.includeIds.includes(conversationId);
+      const nextIncludeIds = isIncluded
+        ? targetFolder.includeIds.filter((id) => id !== conversationId)
+        : [...targetFolder.includeIds, conversationId];
+      const folders = state.folders.map((f) =>
+        f.id === folderId ? { ...f, includeIds: nextIncludeIds } : f,
+      );
+      saveFolders(folders);
+      return { folders };
     }),
 }));

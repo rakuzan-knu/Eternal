@@ -26,6 +26,14 @@ export const chatApi = {
       .patch<ConversationView>(`/conversations/${conversationId}/group`, patch)
       .then((r) => r.data),
 
+  uploadGroupAvatar: (conversationId: string, file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api
+      .post<{ avatarUrl: string }>(`/conversations/${conversationId}/avatar`, formData)
+      .then((r) => r.data);
+  },
+
   addMembers: (conversationId: string, memberIds: string[]) =>
     api.post(`/conversations/${conversationId}/members`, { memberIds }).then((r) => r.data),
 
@@ -50,6 +58,13 @@ export const chatApi = {
     api
       .get<PaginatedMessages>(`/conversations/${conversationId}/messages`, {
         params: { before, limit },
+      })
+      .then((r) => r.data),
+
+  getMessagesAround: (conversationId: string, messageId: string, limit = 50) =>
+    api
+      .get<PaginatedMessages>(`/conversations/${conversationId}/messages/around/${messageId}`, {
+        params: { limit },
       })
       .then((r) => r.data),
 
@@ -104,6 +119,57 @@ export const chatApi = {
   getBlockedUsers: () =>
     api.get<UserSnapshot[]>('/conversations/users/blocked').then((r) => r.data),
 
+  deleteConversation: (conversationId: string, forAll = false) =>
+    api.delete(`/conversations/${conversationId}`, { params: { forAll } }).then((r) => r.data),
+
+  clearHistory: (conversationId: string, forAll = false) =>
+    api
+      .delete(`/conversations/${conversationId}/history`, { params: { forAll } })
+      .then((r) => r.data),
+
+  batchDeleteMessages: (conversationId: string, messageIds: string[], forAll = false) =>
+    api
+      .post<{ deletedIds: string[]; forAll: boolean }>(
+        `/conversations/${conversationId}/messages/batch-delete`,
+        { messageIds, forAll },
+      )
+      .then((r) => r.data),
+
+  batchForwardMessages: (
+    conversationId: string,
+    messageIds: string[],
+    conversationIds: string[],
+    hideAuthor = false,
+  ) =>
+    api
+      .post<MessageView[]>(`/conversations/${conversationId}/messages/batch-forward`, {
+        messageIds,
+        conversationIds,
+        hideAuthor,
+      })
+      .then((r) => r.data),
+
   reportUser: (userId: string, category: string, details?: string) =>
     api.post(`/conversations/users/${userId}/report`, { category, details }).then((r) => r.data),
+
+  updateAdminPermissions: (
+    conversationId: string,
+    userId: string,
+    permissions: {
+      canEditGroup?: boolean;
+      canDeleteMessages?: boolean;
+      canManageMembers?: boolean;
+      canPinMessages?: boolean;
+      canInviteUsers?: boolean;
+    },
+  ) =>
+    api
+      .patch(`/conversations/${conversationId}/members/${userId}/permissions`, permissions)
+      .then((r) => r.data),
+
+  setTheme: (conversationId: string, theme: string) =>
+    api.patch(`/conversations/${conversationId}/theme`, { theme }).then((r) => r.data),
+
+  restrictAccount: (userId: string) =>
+    api.post(`/conversations/users/${userId}/restrict`).then((r) => r.data),
 };

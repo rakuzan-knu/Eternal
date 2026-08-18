@@ -16,10 +16,11 @@ export function PollDisplay({
 }) {
   const voteMutation = useVotePollMutation(postId, queryKey);
   const [justVotedId, setJustVotedId] = useState<string | null>(null);
-  const showResults = poll.myVoteOptionId !== null || !!isOwner || justVotedId !== null;
+  const hasVoted = poll.myVoteOptionId !== null || justVotedId !== null;
+  const showResults = hasVoted || !!isOwner;
 
   const handleVote = (optionId: string) => {
-    if (voteMutation.isPending) return;
+    if (voteMutation.isPending || hasVoted) return;
     setJustVotedId(optionId);
     voteMutation.mutate(optionId);
   };
@@ -61,11 +62,15 @@ export function PollDisplay({
           return (
             <div
               key={option.id}
-              onClick={() => handleVote(option.id)}
-              className={`relative overflow-hidden rounded-xl border transition-all duration-300 p-3 flex flex-col justify-center cursor-pointer select-none ${
+              onClick={() => {
+                if (!hasVoted) handleVote(option.id);
+              }}
+              className={`relative overflow-hidden rounded-xl border transition-all duration-300 p-3 flex flex-col justify-center select-none ${
+                hasVoted ? 'cursor-default' : 'cursor-pointer hover:bg-white/[0.04]'
+              } ${
                 isMine
                   ? 'border-purple-500/40 bg-purple-950/20 shadow-sm'
-                  : 'border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04]'
+                  : 'border-white/[0.06] bg-white/[0.02]'
               }`}
             >
               {/* Animated Progress Bar */}
@@ -94,7 +99,7 @@ export function PollDisplay({
                   </span>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-[11px] text-gray-400 font-normal">{option.votes}</span>
+                  <span className="text-[11px] text-gray-400 font-normal">{votesCount}</span>
                   <span
                     className={`text-xs font-bold transition-all duration-500 tabular-nums ${
                       isMine ? 'text-purple-300' : 'text-gray-300'

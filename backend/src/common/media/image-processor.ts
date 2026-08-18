@@ -19,10 +19,22 @@ export interface ProcessedImageResult {
 }
 
 /**
- * Optimizes an avatar image: 512x512 cover, WebP, stripped EXIF metadata
+ * Optimizes an avatar image: 512x512 cover, WebP/GIF, stripped EXIF metadata
  */
 export async function optimizeAvatar(buffer: Buffer): Promise<ProcessedImageResult> {
+  const isGif = buffer.length >= 6 && buffer.toString('ascii', 0, 3) === 'GIF';
   try {
+    if (isGif) {
+      const optimized = await sharp(buffer, { animated: true })
+        .resize(512, 512, { fit: 'cover', withoutEnlargement: true })
+        .gif()
+        .toBuffer();
+      return {
+        buffer: optimized,
+        contentType: 'image/gif',
+        ext: 'gif',
+      };
+    }
     const optimized = await sharp(buffer)
       .resize(512, 512, { fit: 'cover', withoutEnlargement: true })
       .webp({ quality: 85, effort: 4 })
@@ -35,17 +47,29 @@ export async function optimizeAvatar(buffer: Buffer): Promise<ProcessedImageResu
   } catch {
     return {
       buffer,
-      contentType: 'image/jpeg',
-      ext: 'jpg',
+      contentType: isGif ? 'image/gif' : 'image/jpeg',
+      ext: isGif ? 'gif' : 'jpg',
     };
   }
 }
 
 /**
- * Optimizes a profile banner: max 1920x1080 inside, WebP, stripped metadata
+ * Optimizes a profile banner: max 1920x1080 inside, WebP/GIF, stripped metadata
  */
 export async function optimizeBanner(buffer: Buffer): Promise<ProcessedImageResult> {
+  const isGif = buffer.length >= 6 && buffer.toString('ascii', 0, 3) === 'GIF';
   try {
+    if (isGif) {
+      const optimized = await sharp(buffer, { animated: true })
+        .resize(1920, 1080, { fit: 'inside', withoutEnlargement: true })
+        .gif()
+        .toBuffer();
+      return {
+        buffer: optimized,
+        contentType: 'image/gif',
+        ext: 'gif',
+      };
+    }
     const optimized = await sharp(buffer)
       .resize(1920, 1080, { fit: 'inside', withoutEnlargement: true })
       .webp({ quality: 85, effort: 4 })
@@ -58,17 +82,26 @@ export async function optimizeBanner(buffer: Buffer): Promise<ProcessedImageResu
   } catch {
     return {
       buffer,
-      contentType: 'image/jpeg',
-      ext: 'jpg',
+      contentType: isGif ? 'image/gif' : 'image/jpeg',
+      ext: isGif ? 'gif' : 'jpg',
     };
   }
 }
 
 /**
- * Optimizes a post image: max 2560x2560 inside, WebP, stripped GPS/EXIF for privacy
+ * Optimizes a post image: max 2560x2560 inside, WebP/GIF, stripped GPS/EXIF for privacy
  */
 export async function optimizePostImage(buffer: Buffer): Promise<ProcessedImageResult> {
+  const isGif = buffer.length >= 6 && buffer.toString('ascii', 0, 3) === 'GIF';
   try {
+    if (isGif) {
+      const optimized = await sharp(buffer, { animated: true }).gif().toBuffer();
+      return {
+        buffer: optimized,
+        contentType: 'image/gif',
+        ext: 'gif',
+      };
+    }
     const optimized = await sharp(buffer)
       .resize(2560, 2560, { fit: 'inside', withoutEnlargement: true })
       .webp({ quality: 85, effort: 4 })
@@ -81,17 +114,29 @@ export async function optimizePostImage(buffer: Buffer): Promise<ProcessedImageR
   } catch {
     return {
       buffer,
-      contentType: 'image/webp',
-      ext: 'webp',
+      contentType: isGif ? 'image/gif' : 'image/webp',
+      ext: isGif ? 'gif' : 'webp',
     };
   }
 }
 
 /**
- * Optimizes a group conversation avatar: 512x512 cover, WebP
+ * Optimizes a group conversation avatar: 512x512 cover, WebP/GIF
  */
 export async function optimizeGroupAvatar(buffer: Buffer): Promise<ProcessedImageResult> {
+  const isGif = buffer.length >= 6 && buffer.toString('ascii', 0, 3) === 'GIF';
   try {
+    if (isGif) {
+      const optimized = await sharp(buffer, { animated: true })
+        .resize(512, 512, { fit: 'cover', withoutEnlargement: true })
+        .gif()
+        .toBuffer();
+      return {
+        buffer: optimized,
+        contentType: 'image/gif',
+        ext: 'gif',
+      };
+    }
     const optimized = await sharp(buffer)
       .resize(512, 512, { fit: 'cover', withoutEnlargement: true })
       .webp({ quality: 85, effort: 4 })
@@ -104,8 +149,8 @@ export async function optimizeGroupAvatar(buffer: Buffer): Promise<ProcessedImag
   } catch {
     return {
       buffer,
-      contentType: 'image/webp',
-      ext: 'webp',
+      contentType: isGif ? 'image/gif' : 'image/webp',
+      ext: isGif ? 'gif' : 'webp',
     };
   }
 }

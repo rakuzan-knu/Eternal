@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pencil, Trash2, Forward, Pin, PinOff, Flag } from 'lucide-react';
+import { Pencil, Trash2, Forward, Pin, PinOff, Flag, CheckSquare } from 'lucide-react';
 import DropdownMenu, { DropdownMenuItem } from '../../../shared/ui/DropdownMenu';
 import { MessageView } from '../../../entities/chat/model/types';
 
@@ -12,6 +12,7 @@ interface MessageContextMenuProps {
   onForward: () => void;
   onTogglePin: () => void;
   onReport: () => void;
+  onSelectMessage?: () => void;
   align?: 'left' | 'right';
 }
 
@@ -24,9 +25,20 @@ export default function MessageContextMenu({
   onForward,
   onTogglePin,
   onReport,
+  onSelectMessage,
   align = 'left',
 }: MessageContextMenuProps) {
   const items: DropdownMenuItem[] = [
+    ...(onSelectMessage
+      ? [
+          {
+            key: 'select',
+            label: 'Select',
+            icon: <CheckSquare size={16} />,
+            onClick: onSelectMessage,
+          } satisfies DropdownMenuItem,
+        ]
+      : []),
     ...(isOwnMessage
       ? [
           {

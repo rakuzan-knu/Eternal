@@ -107,7 +107,7 @@ export default function ProfileHeader({
           {isOwnProfile ? (
             <button
               type="button"
-              onClick={onEditClick}
+              onClick={() => onEditClick?.()}
               className="flex items-center gap-2 bg-white/[0.07] hover:bg-white/[0.14] hover:border-white/20 active:scale-[0.98] border border-white/[0.08] text-white font-medium text-xs px-4 py-2 rounded-xl transition-all duration-200 cursor-pointer shadow-sm"
             >
               <Edit3 size={14} />

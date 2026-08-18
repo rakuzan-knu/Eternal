@@ -156,6 +156,9 @@ export type PostWithRelations = {
   isReposted?: boolean;
   isLiked?: boolean;
   isOwner?: boolean;
+  isPinned?: boolean;
+  pinnedAt?: Date | null;
+  editedAt?: Date | string | null;
   _count?: {
     likes?: number;
     reposts?: number;
@@ -176,6 +179,9 @@ export class PostResponseDto {
   primaryBadge!: string | null;
   createdAt!: string;
   updatedAt!: string;
+  editedAt?: string | null;
+  isPinned?: boolean;
+  pinnedAt?: string | null;
   isFollowing!: boolean;
   isSaved!: boolean;
   isReposted!: boolean;
@@ -217,6 +223,26 @@ export class PostResponseDto {
       };
     }
 
+    const isEdited =
+      post.editedAt != null
+        ? typeof post.editedAt === 'string'
+          ? post.editedAt
+          : post.editedAt.toISOString()
+        : post.updatedAt &&
+            post.createdAt &&
+            post.updatedAt.getTime() > post.createdAt.getTime() + 1000
+          ? post.updatedAt.toISOString()
+          : null;
+
+    const isPinned = post.isPinned ?? false;
+    const pinnedAt = post.pinnedAt
+      ? typeof post.pinnedAt === 'string'
+        ? post.pinnedAt
+        : post.pinnedAt.toISOString()
+      : isPinned
+        ? post.createdAt.toISOString()
+        : null;
+
     return {
       id: post.id,
       content: post.content,
@@ -230,6 +256,9 @@ export class PostResponseDto {
       primaryBadge,
       createdAt: post.createdAt.toISOString(),
       updatedAt: post.updatedAt.toISOString(),
+      editedAt: isEdited,
+      isPinned,
+      pinnedAt,
       isFollowing: post.isFollowing ?? false,
       isSaved: post.isSaved ?? false,
       isReposted: post.isReposted ?? false,

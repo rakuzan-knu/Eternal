@@ -1,4 +1,13 @@
-import { Inject, Injectable, forwardRef } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+  Optional,
+  forwardRef,
+} from '@nestjs/common';
 import { type CreateCommentDto, CommentResponseDto } from '@common/contracts';
 import { COMMENTS_REPOSITORY } from './interfaces/comments-repository.interface';
 import type { ICommentsRepository } from './interfaces/comments-repository.interface';
@@ -7,6 +16,7 @@ import { paginate } from '../common/pagination';
 import { PrismaService } from '@common/prisma';
 import { MessengerGateway } from '../messenger/gateway/messenger.gateway';
 import { WS_EVENTS } from '../messenger/events/ws-events';
+import { RedisService } from '../redis/redis.service';
 
 @Injectable()
 export class CommentsService {
@@ -16,6 +26,7 @@ export class CommentsService {
     private readonly prisma: PrismaService,
     @Inject(forwardRef(() => MessengerGateway))
     private readonly gateway: MessengerGateway,
+    @Optional() private readonly redis?: RedisService,
   ) {}
 
   async addComment(
@@ -23,16 +34,84 @@ export class CommentsService {
     userId: string,
     dto: CreateCommentDto,
   ): Promise<CommentResponseDto> {
+    // 1. Idempotency Key Guard
+    if (dto.clientMutationId && this.redis) {
+      const lockKey = `idempotency:comment:${userId}:${dto.clientMutationId}`;
+      try {
+        const client = this.redis.getClient();
+        const acquired = await client.set(lockKey, 'locked', 'EX', 30, 'NX');
+        if (!acquired) {
+          throw new ConflictException(
+            'Duplicate mutation request in progress or already processed',
+          );
+        }
+      } catch (err) {
+        if (err instanceof ConflictException) throw err;
+        // Non-blocking fallback if redis error
+      }
+    }
+
+    // 2. Anti-Spam: Mention Bombing Protection (Max 5 mentions)
+    const rawMatches: string[] = dto.text.match(/@([a-zA-Z0-9._]{1,32})/g) ?? [];
+    if (rawMatches.length > 5) {
+      throw new BadRequestException('Maximum 5 mentions per comment allowed');
+    }
+
+    // 3. Anti-Spam: Duplicate Comment Guard (Same text within 60s)
+    const sixtySecondsAgo = new Date(Date.now() - 60 * 1000);
+    const duplicate = await this.prisma.comment.findFirst({
+      where: {
+        userId,
+        text: dto.text.trim(),
+        createdAt: { gte: sixtySecondsAgo },
+      },
+    });
+    if (duplicate) {
+      throw new ConflictException(
+        'Duplicate comment detected. Please wait before posting identical text.',
+      );
+    }
+
+    // 4. Post & Blocklist Permission Checks
+    const post = await this.prisma.post.findUnique({
+      where: { id: postId },
+      select: { id: true, authorId: true, author: { select: { username: true } } },
+    });
+    if (!post) throw new NotFoundException('Post not found');
+
+    if (post.authorId !== userId) {
+      const isBlocked = await this.prisma.userBlock.findFirst({
+        where: {
+          OR: [
+            { blockerId: post.authorId, blockedId: userId },
+            { blockerId: userId, blockedId: post.authorId },
+          ],
+        },
+      });
+      if (isBlocked) {
+        throw new ForbiddenException('You cannot comment on this post due to block settings');
+      }
+    }
+
+    if (dto.replyToUserId && dto.replyToUserId !== userId) {
+      const isReplyBlocked = await this.prisma.userBlock.findFirst({
+        where: {
+          OR: [
+            { blockerId: dto.replyToUserId, blockedId: userId },
+            { blockerId: userId, blockedId: dto.replyToUserId },
+          ],
+        },
+      });
+      if (isReplyBlocked) {
+        throw new ForbiddenException('You cannot reply to this user due to block settings');
+      }
+    }
+
     const comment = await this.commentsRepository.addComment(postId, userId, dto);
 
-    // Emit real-time notification to post author
+    // 5. Emit real-time notifications
     try {
-      const post = await this.prisma.post.findUnique({
-        where: { id: postId },
-        include: { author: true },
-      });
-
-      if (post && post.authorId !== userId) {
+      if (post.authorId !== userId) {
         const actor = await this.prisma.user.findUnique({
           where: { id: userId },
           select: { id: true, username: true, displayName: true, avatar: true },
@@ -53,13 +132,14 @@ export class CommentsService {
             postId: post.id,
             authorUsername: post.author.username,
             commentText: dto.text,
-            message: `commented: "${commentBody}"`,
+            message: dto.parentId
+              ? `replied to a comment on your post: "${commentBody}"`
+              : `commented: "${commentBody}"`,
           });
         }
       }
 
       // Check mentions in comment text
-      const rawMatches: string[] = dto.text.match(/@([a-zA-Z0-9._]{1,32})/g) ?? [];
       const trailingPunct = new Set(['.', '_', ',', '!', '?', ':', ';']);
       const cleanUsernames = Array.from(
         new Set(
@@ -81,16 +161,15 @@ export class CommentsService {
       );
 
       if (cleanUsernames.length > 0) {
-        const cappedUsernames = cleanUsernames.slice(0, 10);
+        const cappedUsernames = cleanUsernames.slice(0, 5);
         const mentionedUsers = await this.prisma.user.findMany({
           where: {
             username: { in: cappedUsernames, mode: 'insensitive' },
-            id: { not: userId }, // Exclude self-mentions
+            id: { not: userId },
           },
           select: { id: true, username: true },
         });
 
-        // Deduplicate target users
         const uniqueTargets = Array.from(new Map(mentionedUsers.map((u) => [u.id, u])).values());
 
         if (uniqueTargets.length > 0) {
@@ -134,8 +213,44 @@ export class CommentsService {
     return CommentResponseDto.fromPrisma(comment);
   }
 
-  async getComments(postId: string, limit: number, cursor?: string): Promise<GetAllCommentsResult> {
-    const comments = await this.commentsRepository.getCommentsByPostId(postId, limit, cursor);
-    return paginate(comments, limit, (comment) => CommentResponseDto.fromPrisma(comment));
+  async getComments(
+    postId: string,
+    limit: number,
+    cursor?: string,
+    viewerId?: string,
+  ): Promise<GetAllCommentsResult> {
+    const comments = await this.commentsRepository.getCommentsByPostId(
+      postId,
+      limit,
+      cursor,
+      viewerId,
+    );
+    return paginate(comments, limit, (comment) => CommentResponseDto.fromPrisma(comment, viewerId));
+  }
+
+  async getReplies(
+    rootCommentId: string,
+    limit: number,
+    cursor?: string,
+    viewerId?: string,
+  ): Promise<GetAllCommentsResult> {
+    const replies = await this.commentsRepository.getRepliesByRootId(
+      rootCommentId,
+      limit,
+      cursor,
+      viewerId,
+    );
+    return paginate(replies, limit, (comment) => CommentResponseDto.fromPrisma(comment, viewerId));
+  }
+
+  async toggleCommentLike(
+    commentId: string,
+    userId: string,
+  ): Promise<{ isLiked: boolean; likesCount: number }> {
+    return this.commentsRepository.toggleCommentLike(commentId, userId);
+  }
+
+  async togglePinComment(commentId: string, userId: string): Promise<{ isPinned: boolean }> {
+    return this.commentsRepository.togglePinComment(commentId, userId);
   }
 }

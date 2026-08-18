@@ -20,7 +20,9 @@ import type {
   SearchMessagesQueryDto,
   EditMessageDto,
   DeleteMessageDto,
+  BatchDeleteMessagesDto,
   ForwardMessageDto,
+  ForwardMultipleMessagesDto,
   ReactToMessageDto,
   SendMessageDto,
   MessageView,
@@ -137,6 +139,24 @@ export class MessagesService {
       finalMessageType = dto.attachments[0].type as unknown as MessageType;
     }
 
+    // Backend validation against circle spoofing & duration limits
+    if (dto.attachments && dto.attachments.length > 0) {
+      for (const att of dto.attachments) {
+        if (
+          (att.type === AttachmentType.AUDIO ||
+            att.type === AttachmentType.VIDEO ||
+            att.fileName?.includes('note')) &&
+          att.duration &&
+          att.duration > 65
+        ) {
+          throw new BadRequestException('Voice and Video notes cannot exceed 65 seconds');
+        }
+        if (att.size && att.size > 25 * 1024 * 1024) {
+          throw new BadRequestException('Attachment size cannot exceed 25 MB');
+        }
+      }
+    }
+
     const message = await this.prisma.message.create({
       data: {
         conversationId,
@@ -237,6 +257,33 @@ export class MessagesService {
     };
   }
 
+  async getAround(
+    conversationId: string,
+    messageId: string,
+    userId: string,
+    limit = 50,
+  ): Promise<PaginatedMessages> {
+    await this.assertMember(conversationId, userId);
+
+    const hiddenUserIds = await this.getHiddenUserIds(userId);
+    const messages = await this.messagesRepo.findAround({
+      conversationId,
+      targetMessageId: messageId,
+      requestingUserId: userId,
+      limit,
+      hiddenUserIds,
+    });
+
+    const pinnedIds = await this.convsRepo.findPinnedMessages(conversationId);
+    const pinnedSet = new Set(pinnedIds);
+
+    return {
+      data: messages.map((m) => this.mapper.mapMessage(m, userId, pinnedSet)),
+      hasMore: false,
+      nextCursor: null,
+    };
+  }
+
   async edit(messageId: string, userId: string, dto: EditMessageDto): Promise<MessageView> {
     const msg = await this.messagesRepo.findOne(messageId, userId);
     if (!msg) throw new NotFoundException('Message not found');
@@ -268,6 +315,19 @@ export class MessagesService {
         if (!p || (p.role !== 'ADMIN' && p.role !== 'OWNER')) {
           throw new ForbiddenException('Cannot delete message for everyone');
         }
+
+        const senderParticipant = await this.convsRepo.findParticipant(
+          msg.conversationId,
+          msg.senderId,
+        );
+        if (senderParticipant) {
+          if (senderParticipant.role === 'OWNER') {
+            throw new ForbiddenException('Cannot delete messages from the group owner');
+          }
+          if (p.role === 'ADMIN' && senderParticipant.role === 'ADMIN') {
+            throw new ForbiddenException('Admins cannot delete messages from other admins');
+          }
+        }
       }
       await this.messagesRepo.deleteForAll(messageId);
     } else {
@@ -275,6 +335,73 @@ export class MessagesService {
     }
 
     return { messageId, deletedForAll: forAll };
+  }
+
+  async batchDelete(
+    conversationId: string,
+    userId: string,
+    dto: BatchDeleteMessagesDto,
+  ): Promise<{ deletedIds: string[]; forAll: boolean }> {
+    await this.assertMember(conversationId, userId);
+
+    const messageIds = dto.messageIds;
+    if (messageIds.length === 0) {
+      return { deletedIds: [], forAll: !!dto.forAll };
+    }
+    if (messageIds.length > 50) {
+      throw new BadRequestException('Cannot batch delete more than 50 messages at once');
+    }
+
+    const conv = await this.convsRepo.findOneForUser(conversationId, userId);
+    if (!conv) throw new NotFoundException('Conversation not found');
+
+    const participant = conv.participants.find((p) => p.userId === userId);
+    if (!participant || participant.leftAt) {
+      throw new ForbiddenException('You are not an active participant');
+    }
+
+    const forAll = dto.forAll ?? false;
+
+    if (forAll) {
+      const isGroupAdminOrOwner =
+        conv.type === 'GROUP' && (participant.role === 'ADMIN' || participant.role === 'OWNER');
+
+      const messages = await this.prisma.message.findMany({
+        where: {
+          id: { in: messageIds },
+          conversationId,
+        },
+        select: { id: true, senderId: true },
+      });
+
+      if (!isGroupAdminOrOwner) {
+        const unauthorized = messages.some((m) => m.senderId !== userId);
+        if (unauthorized) {
+          throw new ForbiddenException('Cannot delete other users messages for everyone');
+        }
+      }
+
+      await this.prisma.$transaction(async (tx) => {
+        await tx.message.updateMany({
+          where: { id: { in: messageIds }, conversationId },
+          data: {
+            body: null,
+            messageType: 'DELETED',
+            deletedAt: new Date(),
+            deletedForAll: true,
+          },
+        });
+      });
+    } else {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.messageDeletion.createMany({
+          data: messageIds.map((id) => ({ messageId: id, userId })),
+          skipDuplicates: true,
+        });
+      });
+    }
+
+    return { deletedIds: messageIds, forAll };
   }
 
   async forward(messageId: string, userId: string, dto: ForwardMessageDto): Promise<MessageView[]> {
@@ -291,11 +418,51 @@ export class MessagesService {
         senderId: userId,
         body: original.body ?? undefined,
         messageType: original.messageType,
-        forwardedFromId: messageId,
+        forwardedFromId: dto.hideAuthor ? undefined : messageId,
       });
       await this.convsRepo.touchUpdatedAt(conversationId);
       const pinnedIds = await this.convsRepo.findPinnedMessages(conversationId);
       results.push(this.mapper.mapMessage(msg, userId, new Set(pinnedIds)));
+    }
+
+    return results;
+  }
+
+  async batchForward(
+    conversationId: string,
+    userId: string,
+    dto: ForwardMultipleMessagesDto,
+  ): Promise<MessageView[]> {
+    await this.assertMember(conversationId, userId);
+
+    const messageIds = dto.messageIds;
+    if (messageIds.length > 50) {
+      throw new BadRequestException('Cannot batch forward more than 50 messages at once');
+    }
+
+    const messages = await this.prisma.message.findMany({
+      where: { id: { in: messageIds }, conversationId },
+      include: { attachments: true },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const results: MessageView[] = [];
+
+    for (const targetConvId of dto.conversationIds) {
+      await this.assertMember(targetConvId, userId);
+
+      for (const msg of messages) {
+        const created = await this.messagesRepo.create({
+          conversationId: targetConvId,
+          senderId: userId,
+          body: msg.body ?? undefined,
+          messageType: msg.messageType,
+          forwardedFromId: dto.hideAuthor ? undefined : msg.id,
+        });
+        await this.convsRepo.touchUpdatedAt(targetConvId);
+        const pinnedIds = await this.convsRepo.findPinnedMessages(targetConvId);
+        results.push(this.mapper.mapMessage(created, userId, new Set(pinnedIds)));
+      }
     }
 
     return results;

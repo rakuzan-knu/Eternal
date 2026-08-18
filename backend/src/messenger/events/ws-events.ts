@@ -33,6 +33,8 @@ export const WS_EVENTS = {
   MESSAGE_UNPINNED: 'messageUnpinned',
 
   CONVERSATION_UPDATED: 'conversationUpdated',
+  CONVERSATION_DELETED: 'conversationDeleted',
+  MESSAGES_CLEARED: 'messagesCleared',
   PARTICIPANT_ADDED: 'participantAdded',
   PARTICIPANT_LEFT: 'participantLeft',
 

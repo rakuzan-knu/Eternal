@@ -1,0 +1,37 @@
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
+import DeleteChatModal from '../DeleteChatModal';
+
+describe('DeleteChatModal', () => {
+  it('renders confirmation prompt, handles Also delete for checkbox and calls onConfirm with forAll value', () => {
+    const onClose = vi.fn();
+    const onConfirm = vi.fn();
+
+    render(
+      <DeleteChatModal
+        conversationName="Alice"
+        avatarUrl={null}
+        otherUserName="Alice"
+        onClose={onClose}
+        onConfirm={onConfirm}
+      />,
+    );
+
+    expect(screen.getByText(/Delete chat/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Are you sure you want to delete all message history with/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Also delete for Alice/i)).toBeInTheDocument();
+
+    const checkbox = screen.getByRole('checkbox');
+    expect(checkbox).not.toBeChecked();
+
+    fireEvent.click(checkbox);
+    expect(checkbox).toBeChecked();
+
+    const deleteBtn = screen.getByRole('button', { name: /^Delete$/i });
+    fireEvent.click(deleteBtn);
+
+    expect(onConfirm).toHaveBeenCalledWith(true);
+  });
+});

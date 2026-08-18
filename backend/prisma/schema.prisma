@@ -55,6 +55,8 @@ model User {
   savedPosts               SavedPost[]
   aliasesCreated           UserAlias[]               @relation("AliasOwner")
   aliasesTargeted          UserAlias[]               @relation("AliasTarget")
+  commentLikes             CommentLike[]
+  commentsRepliedTo        Comment[]                 @relation("CommentReplyToUser")
 }
 
 model UserBadge {
@@ -166,21 +168,44 @@ enum FollowStatus {
 }
 
 model Comment {
+  id            String   @id @default(cuid())
+  text          String
+  postId        String
+  userId        String
+  parentId      String?
+  rootParentId  String?
+  replyToUserId String?
+  mediaUrl      String?
+  isPinned      Boolean  @default(false)
+  isDeleted     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  post        Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent      Comment?      @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies     Comment[]     @relation("CommentReplies")
+  replyToUser User?         @relation("CommentReplyToUser", fields: [replyToUserId], references: [id], onDelete: SetNull)
+  likes       CommentLike[]
+
+  @@index([postId, parentId, createdAt])
+  @@index([postId, rootParentId, createdAt])
+  @@index([parentId, createdAt])
+  @@index([rootParentId, createdAt])
+  @@index([userId])
+}
+
+model CommentLike {
   id        String   @id @default(cuid())
-  text      String
-  postId    String
+  commentId String
   userId    String
-  parentId  String?
   createdAt DateTime @default(now())
 
-  post    Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  parent  Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies Comment[] @relation("CommentReplies")
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([postId])
-  @@index([parentId])
+  @@unique([commentId, userId])
   @@index([userId])
+  @@index([commentId])
 }
 
 model Conversation {

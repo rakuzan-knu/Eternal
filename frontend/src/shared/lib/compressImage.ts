@@ -9,8 +9,12 @@ export async function compressImage(
   maxHeight = 1920,
   quality = 0.85,
 ): Promise<File> {
+  const mime = (file.type || '').toLowerCase();
+  const name = (file.name || '').toLowerCase();
+  const isGif = mime === 'image/gif' || name.endsWith('.gif');
+
   // If not an image or is an animated GIF, do not compress
-  if (!file.type.startsWith('image/') || file.type === 'image/gif') {
+  if (isGif || !mime.startsWith('image/')) {
     return file;
   }
 

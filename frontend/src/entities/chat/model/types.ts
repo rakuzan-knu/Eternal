@@ -16,8 +16,13 @@ export type ParticipantRole = 'MEMBER' | 'ADMIN' | 'OWNER';
 export type MuteLevel = BackendMuteLevel;
 export type MessageType = BackendMessageType;
 
-export type UserSnapshot = BackendUserSnapshot;
-export type AttachmentView = BackendAttachmentView;
+export type UserSnapshot = BackendUserSnapshot & {
+  isVerified?: boolean;
+  primaryBadge?: string | null;
+};
+export type AttachmentView = BackendAttachmentView & {
+  isSpoiler?: boolean;
+};
 
 export interface OutgoingAttachment {
   type: AttachmentType | string;
@@ -25,20 +30,29 @@ export interface OutgoingAttachment {
   fileName?: string;
   mimeType?: string;
   size?: number;
+  duration?: number;
+  waveform?: number[];
+  width?: number;
+  height?: number;
+  thumbnailUrl?: string | null;
+  isSpoiler?: boolean;
 }
 
 export type ReactionSummary = BackendReactionSummary;
 
 export interface MessageView extends Omit<
   BackendMessageView,
-  'createdAt' | 'editedAt' | 'replyTo'
+  'createdAt' | 'editedAt' | 'replyTo' | 'sender'
 > {
+  sender: UserSnapshot;
   createdAt: string;
   editedAt: string | null;
   replyTo: MessageView | null;
   tempId?: string;
   clientMessageId?: string;
   status?: 'SENDING' | 'SENT' | 'ERROR';
+  senderId?: string;
+  type?: MessageType;
 }
 
 export interface ParticipantView extends Omit<
@@ -52,9 +66,17 @@ export interface ParticipantView extends Omit<
   joinedAt: string;
 }
 
+export type ConversationParticipantView = ParticipantView;
+
 export interface ConversationView extends Omit<
   BackendConversationView,
-  'createdAt' | 'updatedAt' | 'type' | 'participants' | 'lastMessage' | 'pinnedMessages'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'type'
+  | 'participants'
+  | 'lastMessage'
+  | 'pinnedMessages'
+  | 'myMutedUntil'
 > {
   type: ConversationType;
   participants: ParticipantView[];
@@ -62,6 +84,9 @@ export interface ConversationView extends Omit<
   pinnedMessages: MessageView[];
   createdAt: string;
   updatedAt: string;
+  myMutedUntil?: string | null;
+  isVerified?: boolean;
+  primaryBadge?: string | null;
 }
 
 export interface PaginatedMessages extends Omit<BackendPaginatedMessages, 'data'> {

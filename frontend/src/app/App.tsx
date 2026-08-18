@@ -4,8 +4,10 @@ import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import Sidebar from '../widgets/sidebar/ui/Sidebar';
 import EditProfileModal from '../features/profile/ui/EditProfileModal';
 import { ShareModal } from '../features/posts/ui/ShareModal';
+import { UndoHideSnackbar } from '../features/posts/ui/UndoHideSnackbar';
 import DeviceLockGate from '../features/profile/ui/security/DeviceLockGate';
 import MessageToastViewport from '../features/chat/ui/MessageToastViewport';
+import FloatingVideoNotePiP from '../features/chat/ui/FloatingVideoNotePiP';
 
 import { useUIStore } from '../shared/model/useUIStore';
 import { useAuthStore } from '../shared/model/useAuthStore';
@@ -13,6 +15,7 @@ import { useAuthStore } from '../shared/model/useAuthStore';
 const FeedPage = lazy(() => import('../pages/Feed/Feed'));
 const ProfilePage = lazy(() => import('../pages/Profile/Profile'));
 const MessengerPage = lazy(() => import('../pages/Chat/Messenger'));
+const StandaloneChatPage = lazy(() => import('../pages/Chat/StandaloneChatPage'));
 const SearchPage = lazy(() => import('../pages/Search/SearchPage'));
 const LoginPage = lazy(() =>
   import('../pages/Login/LoginPage').then((m) => ({ default: m.LoginPage })),
@@ -85,6 +88,8 @@ export default function App() {
         {!isMessengerRoute && <Sidebar />}
         <EditProfileModal />
         <ShareModal />
+        <UndoHideSnackbar />
+        <FloatingVideoNotePiP />
         {!isMessengerRoute && <MessageToastViewport />}
 
         <main
@@ -169,6 +174,8 @@ export default function App() {
                 }
               />
 
+              <Route path="/messages/standalone/:conversationId" element={<StandaloneChatPage />} />
+              <Route path="/chat/standalone/:conversationId" element={<StandaloneChatPage />} />
               <Route path="/messages" element={<MessengerPage />} />
               <Route path="/messages/:conversationId" element={<MessengerPage />} />
 

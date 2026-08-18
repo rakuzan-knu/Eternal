@@ -10,6 +10,7 @@ import {
   Smile,
   Type,
   Pipette,
+  EyeOff,
 } from 'lucide-react';
 import type { Theme, EmojiStyle } from 'emoji-picker-react';
 import { useUndoRedoStack } from '../model/useUndoRedoStack';
@@ -32,14 +33,21 @@ const COLORS = [
 
 interface ImageEditorModalProps {
   file: File;
+  initialSpoiler?: boolean;
   onCancel: () => void;
-  onSave: (editedFile: File) => void;
+  onSave: (editedFile: File, isSpoiler?: boolean) => void;
 }
 
-export default function ImageEditorModal({ file, onCancel, onSave }: ImageEditorModalProps) {
+export default function ImageEditorModal({
+  file,
+  initialSpoiler = false,
+  onCancel,
+  onSave,
+}: ImageEditorModalProps) {
   const { current, setCurrent, commit, undo, redo, canUndo, canRedo } =
     useUndoRedoStack<Snapshot>();
 
+  const [isSpoiler, setIsSpoiler] = useState(initialSpoiler);
   const [toolMode, setToolMode] = useState<ToolMode>('draw');
   const [drawTool, setDrawTool] = useState<DrawTool>('pencil');
   const [color, setColor] = useState(COLORS[0]);
@@ -117,7 +125,7 @@ export default function ImageEditorModal({ file, onCancel, onSave }: ImageEditor
     canvas.toBlob((blob) => {
       if (!blob) return;
       const edited = new File([blob], file.name.replace(/\.\w+$/, '.png'), { type: 'image/png' });
-      onSave(edited);
+      onSave(edited, isSpoiler);
     }, 'image/png');
   };
 
@@ -139,10 +147,26 @@ export default function ImageEditorModal({ file, onCancel, onSave }: ImageEditor
           Cancel
         </button>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setIsSpoiler((v) => !v)}
+            title={isSpoiler ? 'Hide under spoiler: On' : 'Hide under spoiler: Off'}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer ${
+              isSpoiler
+                ? 'bg-purple-500/20 border-purple-400 text-purple-200 shadow-[0_0_12px_rgba(168,85,247,0.4)]'
+                : 'bg-white/5 border-white/10 text-gray-300 hover:text-white hover:bg-white/10'
+            }`}
+          >
+            <EyeOff size={14} className={isSpoiler ? 'text-purple-300' : 'text-gray-400'} />
+            <span>Hide under spoiler</span>
+          </button>
+
+          <div className="w-px h-5 bg-white/10" />
+
           <button
             onClick={handleMirror}
-            title="Mirror"
+            title="Mirror 180°"
             className="w-9 h-9 flex items-center justify-center rounded-full text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
           >
             <FlipHorizontal size={18} />
@@ -158,7 +182,7 @@ export default function ImageEditorModal({ file, onCancel, onSave }: ImageEditor
 
         <button
           onClick={handleDone}
-          className="px-5 py-2 rounded-full text-sm font-semibold bg-blue-500 hover:bg-blue-400 text-white transition-colors"
+          className="px-5 py-2 rounded-full text-sm font-semibold bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-400 hover:to-indigo-400 text-white shadow-lg shadow-purple-500/25 transition-all active:scale-95 cursor-pointer"
         >
           Done
         </button>
@@ -240,7 +264,7 @@ export default function ImageEditorModal({ file, onCancel, onSave }: ImageEditor
               max={40}
               value={size}
               onChange={(e) => setSize(Number(e.target.value))}
-              className="flex-1 mx-2 accent-blue-500"
+              className="flex-1 mx-2 accent-purple-500"
             />
 
             <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -250,7 +274,9 @@ export default function ImageEditorModal({ file, onCancel, onSave }: ImageEditor
                   onClick={() => setColor(c)}
                   style={{ backgroundColor: c }}
                   className={`w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 ${
-                    color === c ? 'border-white scale-110' : 'border-transparent'
+                    color === c
+                      ? 'border-white scale-110 shadow-[0_0_8px_rgba(255,255,255,0.4)]'
+                      : 'border-transparent'
                   }`}
                 />
               ))}
@@ -272,7 +298,7 @@ export default function ImageEditorModal({ file, onCancel, onSave }: ImageEditor
 
         {toolMode === 'sticker' && (
           <div className="flex items-center justify-between px-6 pt-4">
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-400">
               {pendingSticker
                 ? 'Click on the image to place it'
                 : 'Pick an emoji, then click on the image'}
@@ -280,12 +306,12 @@ export default function ImageEditorModal({ file, onCancel, onSave }: ImageEditor
             <div className="relative">
               <button
                 onClick={() => setEmojiPickerOpen((v) => !v)}
-                className="px-3 py-1.5 rounded-full text-xs font-medium bg-white/10 text-white hover:bg-white/15 transition-colors"
+                className="px-3 py-1.5 rounded-full text-xs font-semibold bg-purple-500/20 border border-purple-400/30 text-purple-300 hover:bg-purple-500/30 transition-colors"
               >
                 Choose emoji
               </button>
               {isEmojiPickerOpen && (
-                <div className="absolute bottom-full right-0 mb-3 shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-2xl bg-white/[0.05] rounded-2xl overflow-hidden border border-white/10 animate-fadeIn">
+                <div className="absolute bottom-full right-0 mb-3 shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-2xl bg-[#1c1d29]/95 rounded-2xl overflow-hidden border border-white/10 animate-fadeIn">
                   <Suspense
                     fallback={
                       <div className="w-[300px] h-[350px] flex items-center justify-center text-gray-500 text-sm">
@@ -314,14 +340,14 @@ export default function ImageEditorModal({ file, onCancel, onSave }: ImageEditor
 
         {toolMode === 'text' && (
           <div className="flex items-center gap-4 px-6 pt-4">
-            <p className="text-xs text-gray-500 flex-shrink-0">Click on the image to add text</p>
+            <p className="text-xs text-gray-400 flex-shrink-0">Click on the image to add text</p>
             <input
               type="range"
               min={10}
               max={40}
               value={size}
               onChange={(e) => setSize(Number(e.target.value))}
-              className="flex-1 accent-blue-500"
+              className="flex-1 accent-purple-500"
             />
             <div className="flex items-center gap-1.5 flex-shrink-0">
               {COLORS.map((c) => (
@@ -330,7 +356,9 @@ export default function ImageEditorModal({ file, onCancel, onSave }: ImageEditor
                   onClick={() => setColor(c)}
                   style={{ backgroundColor: c }}
                   className={`w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 ${
-                    color === c ? 'border-white scale-110' : 'border-transparent'
+                    color === c
+                      ? 'border-white scale-110 shadow-[0_0_8px_rgba(255,255,255,0.4)]'
+                      : 'border-transparent'
                   }`}
                 />
               ))}
@@ -349,8 +377,10 @@ export default function ImageEditorModal({ file, onCancel, onSave }: ImageEditor
             <button
               key={key}
               onClick={() => setToolMode(key)}
-              className={`flex flex-col items-center gap-1 px-5 py-2 rounded-2xl text-xs font-medium transition-colors ${
-                toolMode === key ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300'
+              className={`flex flex-col items-center gap-1 px-5 py-2 rounded-2xl text-xs font-medium transition-all ${
+                toolMode === key
+                  ? 'bg-purple-500/20 text-purple-300 border border-purple-400/30 shadow-md shadow-purple-500/10'
+                  : 'text-gray-400 hover:text-gray-200 hover:bg-white/5 border border-transparent'
               }`}
             >
               <Icon size={18} />
