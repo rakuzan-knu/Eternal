@@ -36,10 +36,11 @@ describe('Avatar', () => {
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
   });
 
-  it.each(['xs', 'sm', 'md', 'lg', 'xl'] as const)('applies the %s size classes', (size) => {
+  it.each(['2xs', 'xs', 'sm', 'md', 'lg', 'xl'] as const)('applies the %s size classes', (size) => {
     const { container } = render(<Avatar size={size} />);
 
     const sizeClassMap: Record<typeof size, string> = {
+      '2xs': 'w-3.5',
       xs: 'w-6',
       sm: 'w-8',
       md: 'w-10',

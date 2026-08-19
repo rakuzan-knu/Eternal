@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { RefreshCw, Trash2, Send, Play, Pause, Square } from 'lucide-react';
+import { RefreshCw, Trash2, Send, Play, Pause, Square, Camera, Check } from 'lucide-react';
 import { RecordedPayload, RecordState } from '../model/useMediaRecorderGesture';
 
 interface VideoNoteRecorderCircleProps {
@@ -8,7 +8,11 @@ interface VideoNoteRecorderCircleProps {
   stream: MediaStream | null;
   previewPayload: RecordedPayload | null;
   dragOffset: { x: number; y: number };
+  availableCameras?: { deviceId: string; label: string }[];
+  activeCameraId?: string | null;
+  cameraToast?: { text: string; isFading: boolean } | null;
   onToggleFacing: () => void;
+  onSelectCamera?: (deviceId: string) => void;
   onDiscard: () => void;
   onPausePreview: () => void;
   onSend: () => void;
@@ -26,7 +30,11 @@ export default function VideoNoteRecorderCircle({
   stream,
   previewPayload,
   dragOffset,
+  availableCameras = [],
+  activeCameraId,
+  cameraToast,
   onToggleFacing,
+  onSelectCamera,
   onDiscard,
   onPausePreview,
   onSend,
@@ -34,6 +42,7 @@ export default function VideoNoteRecorderCircle({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const previewVideoRef = useRef<HTMLVideoElement | null>(null);
   const [isPlayingPreview, setIsPlayingPreview] = useState(true);
+  const [isCameraMenuOpen, setIsCameraMenuOpen] = useState(false);
 
   // Bind live stream
   useEffect(() => {
@@ -123,7 +132,7 @@ export default function VideoNoteRecorderCircle({
         </svg>
 
         {/* Duration Timer Capsule at Top */}
-        <div className="absolute top-3 inset-x-0 flex justify-center pointer-events-none">
+        <div className="absolute top-3 inset-x-0 flex justify-center pointer-events-none z-10">
           <div className="px-3 py-1 rounded-full bg-black/70 border border-white/10 backdrop-blur-md text-[11px] font-mono font-bold text-white flex items-center gap-1.5 shadow-lg">
             <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
             <span>
@@ -135,13 +144,76 @@ export default function VideoNoteRecorderCircle({
           </div>
         </div>
 
-        {/* Camera Flip Button at Bottom */}
+        {/* Camera Switched Glass Toast */}
+        {cameraToast && (
+          <div className="absolute top-12 inset-x-0 flex justify-center pointer-events-none z-20">
+            <div
+              className={`px-3 py-1 rounded-full bg-[#181926]/90 border border-white/20 backdrop-blur-2xl text-[11px] font-medium text-white flex items-center gap-1.5 shadow-xl transition-all duration-300 ${
+                cameraToast.isFading ? 'opacity-0 scale-95' : 'opacity-100 scale-100 animate-popIn'
+              }`}
+            >
+              <Camera size={12} className="text-purple-400" />
+              <span className="truncate max-w-[140px]">{cameraToast.text}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Multi-Camera Glass Selection Menu */}
+        {isCameraMenuOpen && availableCameras.length > 1 && recordState !== 'preview' && (
+          <div className="absolute bottom-14 inset-x-4 z-30 rounded-2xl bg-[#14151f]/95 backdrop-blur-2xl border border-white/15 p-1.5 shadow-[0_16px_50px_rgba(0,0,0,0.85)] animate-popIn">
+            <div className="text-[10px] font-semibold text-gray-400 px-2.5 py-1 uppercase tracking-wider">
+              Select Camera
+            </div>
+            <div className="max-h-36 overflow-y-auto custom-scrollbar flex flex-col gap-0.5">
+              {availableCameras.map((cam) => {
+                const isActive = activeCameraId === cam.deviceId;
+                return (
+                  <button
+                    key={cam.deviceId}
+                    type="button"
+                    onClick={() => {
+                      onSelectCamera?.(cam.deviceId);
+                      setIsCameraMenuOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition-all ${
+                      isActive
+                        ? 'bg-purple-600/30 border border-purple-500/40 text-purple-200 shadow-sm'
+                        : 'text-gray-300 hover:bg-white/10 hover:text-white'
+                    }`}
+                  >
+                    <Camera size={13} className={isActive ? 'text-purple-400' : 'text-gray-400'} />
+                    <span className="truncate flex-1 text-left">{cam.label}</span>
+                    {isActive && <Check size={12} className="text-purple-400" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Camera Switch / Flip Button at Bottom */}
         {recordState !== 'preview' && (
-          <div className="absolute bottom-3 inset-x-0 flex justify-center">
+          <div className="absolute bottom-3 inset-x-0 flex justify-center z-20">
             <button
               type="button"
-              onClick={onToggleFacing}
-              title="Flip camera"
+              onClick={() => {
+                if (availableCameras.length > 1) {
+                  onToggleFacing();
+                } else {
+                  onToggleFacing();
+                }
+              }}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                if (availableCameras.length > 1) {
+                  setIsCameraMenuOpen((prev) => !prev);
+                }
+              }}
+              title={
+                availableCameras.length > 1
+                  ? 'Click to switch camera, right-click to choose camera'
+                  : 'Flip camera'
+              }
               className="w-9 h-9 rounded-full bg-black/70 border border-white/20 text-white flex items-center justify-center hover:bg-black/90 hover:scale-110 active:scale-95 transition-all shadow-lg cursor-pointer"
             >
               <RefreshCw size={15} />

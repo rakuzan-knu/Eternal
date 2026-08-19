@@ -18,9 +18,17 @@ function emitWithAck<T = unknown>(
   socket: ReturnType<typeof useChatSocket>,
   event: string,
   payload: object,
+  timeoutMs = 5000,
 ): Promise<AckResponse<T>> {
   return new Promise((resolve, reject) => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    if (timeoutMs > 0) {
+      timer = setTimeout(() => {
+        reject(new Error(`${event} timed out after ${timeoutMs}ms`));
+      }, timeoutMs);
+    }
     socket.emit(event, payload, (res: AckResponse<T>) => {
+      if (timer) clearTimeout(timer);
       if (!res || res.status === 'error') {
         reject(new Error(res?.error ?? `${event} failed`));
         return;
@@ -106,15 +114,36 @@ export function useMessageActions(conversationId: string | null) {
       });
 
       try {
-        const res = await emitWithAck<MessageView>(socket, 'sendMessage', {
-          conversationId,
-          text: text || undefined,
-          replyToId,
-          attachments,
-          clientMessageId: optimisticId,
-        });
-        if (res.message) {
-          const real = { ...res.message, status: 'SENT' as const };
+        let realMessage: MessageView | null = null;
+
+        try {
+          const res = await emitWithAck<MessageView>(
+            socket,
+            'sendMessage',
+            {
+              conversationId,
+              text: text || undefined,
+              replyToId,
+              attachments,
+              clientMessageId: optimisticId,
+            },
+            4000,
+          );
+          if (res.message) {
+            realMessage = res.message;
+          }
+        } catch {
+          // Transparent HTTP REST fallback if WebSocket ACK times out or fails
+          realMessage = await chatApi.sendMessage(conversationId, {
+            text: text || undefined,
+            replyToId,
+            attachments,
+            clientMessageId: optimisticId,
+          });
+        }
+
+        if (realMessage) {
+          const real = { ...realMessage, status: 'SENT' as const };
           updatePages((pages) =>
             pages.map((p) => ({
               ...p,

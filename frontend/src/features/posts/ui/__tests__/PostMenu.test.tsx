@@ -4,7 +4,7 @@ import { PostMenu } from '../PostMenu';
 import { useHiddenPostsStore } from '@/shared/model/useHiddenPostsStore';
 
 describe('PostMenu', () => {
-  it('opens popup menu on trigger click and triggers callbacks for non-owner', () => {
+  it('opens popup menu on trigger click and triggers callbacks for non-owner with Report at bottom', () => {
     const onSave = vi.fn();
     const onReport = vi.fn();
     const onBlockAuthor = vi.fn();
@@ -25,14 +25,18 @@ describe('PostMenu', () => {
     expect(screen.getByText('Save post')).toBeInTheDocument();
     expect(screen.getByText('Hide post')).toBeInTheDocument();
     expect(screen.getByText('Block author')).toBeInTheDocument();
-    expect(screen.getByText('Report')).toBeInTheDocument();
     expect(screen.getByText('Copy link')).toBeInTheDocument();
+    expect(screen.getByText('Report')).toBeInTheDocument();
+
+    const buttons = screen.getAllByRole('button');
+    // The last item in the dropdown should be Report
+    expect(buttons[buttons.length - 1]).toHaveTextContent('Report');
 
     fireEvent.click(screen.getByText('Save post'));
     expect(onSave).toHaveBeenCalled();
   });
 
-  it('renders owner-specific menu items for owner', () => {
+  it('renders owner-specific menu items for owner with Delete your post at bottom', () => {
     const onDelete = vi.fn();
     const onEdit = vi.fn();
     const onToggleHideLikes = vi.fn();
@@ -53,11 +57,17 @@ describe('PostMenu', () => {
     fireEvent.click(trigger);
 
     expect(screen.getByText('Edit post')).toBeInTheDocument();
-    expect(screen.getByText('Delete your post')).toBeInTheDocument();
     expect(screen.getByText('Hide like count')).toBeInTheDocument();
     expect(screen.getByText('Disable commenting')).toBeInTheDocument();
+    expect(screen.getByText('Save post')).toBeInTheDocument();
+    expect(screen.getByText('Copy link')).toBeInTheDocument();
+    expect(screen.getByText('Delete your post')).toBeInTheDocument();
     expect(screen.queryByText('Hide post')).not.toBeInTheDocument();
     expect(screen.queryByText('Report')).not.toBeInTheDocument();
+
+    const buttons = screen.getAllByRole('button');
+    // The last item in the dropdown should be Delete your post
+    expect(buttons[buttons.length - 1]).toHaveTextContent('Delete your post');
 
     fireEvent.click(screen.getByText('Delete your post'));
     expect(onDelete).toHaveBeenCalled();

@@ -2,7 +2,7 @@ import React from 'react';
 
 interface AvatarProps {
   src?: string | null;
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  size?: '2xs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   alt?: string;
   className?: string;
   name?: string;
@@ -15,7 +15,8 @@ export default function Avatar({
   className = '',
   name,
 }: AvatarProps) {
-  const sizeClasses = {
+  const sizeClasses: Record<string, string> = {
+    '2xs': 'w-3.5 h-3.5',
     xs: 'w-6 h-6',
     sm: 'w-8 h-8',
     md: 'w-10 h-10',

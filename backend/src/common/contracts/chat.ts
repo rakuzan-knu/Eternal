@@ -15,7 +15,7 @@ export const attachmentSchema = z.object({
   size: z.number().int().min(0).optional(),
   width: z.number().int().min(0).optional(),
   height: z.number().int().min(0).optional(),
-  duration: z.number().int().min(0).optional(),
+  duration: z.coerce.number().min(0).optional(),
   thumbnailUrl: z.string().optional(),
 });
 export type AttachmentDto = z.infer<typeof attachmentSchema>;

@@ -9,7 +9,7 @@ export const createCommentSchema = z.object({
     .transform((val) => val.trim()),
   parentId: z.string().optional(),
   replyToUserId: z.string().optional(),
-  mediaUrl: z.string().url().optional().or(z.string().length(0)),
+  mediaUrl: z.string().optional().or(z.string().length(0)),
   clientMutationId: z.string().optional(),
 });
 export type CreateCommentDto = z.infer<typeof createCommentSchema>;
@@ -124,7 +124,13 @@ export class CommentResponseDto {
       isLikedByAuthor,
       isPinned: comment.isPinned ?? false,
       isDeleted: comment.isDeleted ?? false,
-      createdAt: comment.createdAt.toISOString(),
+      createdAt: comment.createdAt
+        ? typeof comment.createdAt === 'string'
+          ? comment.createdAt
+          : comment.createdAt instanceof Date
+            ? comment.createdAt.toISOString()
+            : new Date(comment.createdAt).toISOString()
+        : new Date().toISOString(),
     };
   }
 }

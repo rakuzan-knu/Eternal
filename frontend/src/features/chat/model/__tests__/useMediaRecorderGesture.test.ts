@@ -29,6 +29,10 @@ describe('useMediaRecorderGesture', () => {
     });
 
     expect(result.current.mode).toBe('video');
+    expect(result.current.modeToast).toEqual({
+      text: 'Hold to record video. Click to switch to audio.',
+      isFading: false,
+    });
 
     // Click again to switch back to voice
     act(() => {
@@ -37,6 +41,33 @@ describe('useMediaRecorderGesture', () => {
     });
 
     expect(result.current.mode).toBe('voice');
+    expect(result.current.modeToast).toEqual({
+      text: 'Hold to record audio. Click to switch to video.',
+      isFading: false,
+    });
+  });
+
+  it('switches camera and triggers cameraToast', () => {
+    const onSend = vi.fn();
+    const { result } = renderHook(() => useMediaRecorderGesture({ onSend }));
+
+    act(() => {
+      result.current.switchCamera();
+    });
+
+    expect(result.current.cameraToast).toEqual({
+      text: 'Back Camera',
+      isFading: false,
+    });
+
+    act(() => {
+      result.current.switchCamera();
+    });
+
+    expect(result.current.cameraToast).toEqual({
+      text: 'Front Camera',
+      isFading: false,
+    });
   });
 
   it('supports mime type fallback functions', () => {

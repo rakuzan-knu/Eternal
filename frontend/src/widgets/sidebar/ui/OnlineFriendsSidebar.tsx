@@ -228,11 +228,12 @@ export function OnlineFriendsSidebar() {
                           <div className="flex -space-x-1.5 shrink-0">
                             {user.recommendationReason.mutualFriends.map(
                               (m: RecommendationMutualFriend, idx: number) => (
-                                <img
+                                <Avatar
                                   key={m.id || idx}
-                                  src={m.avatar || '/default-avatar.png'}
+                                  src={m.avatar}
                                   alt={m.username}
-                                  className="w-3.5 h-3.5 rounded-full object-cover ring-1 ring-[#070709] bg-white/10"
+                                  size="2xs"
+                                  className="w-3.5 h-3.5 ring-1 ring-[#070709] border-0 shrink-0"
                                 />
                               ),
                             )}

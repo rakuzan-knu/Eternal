@@ -2,8 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Image as ImageIcon, X, Loader2 } from 'lucide-react';
 import { AddEmojiButton } from '../../../shared/ui/AddEmojiButton';
 import { MentionAutocomplete } from '../../posts/ui/MentionAutocomplete';
+import { commentsApi } from '../api/commentsApi';
 
 const MAX_COMMENT_LENGTH = 1000;
+const MAX_TEXTAREA_HEIGHT = 115; // Allows ~4 to 4.5 lines of text comfortably
 
 interface CommentComposerProps {
   currentUserHandle: string;
@@ -32,6 +34,16 @@ export function CommentComposer({
   const [isEmojiOpen, setIsEmojiOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-expand textarea height smoothly up to 4 - 4.5 lines
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      const scrollH = textareaRef.current.scrollHeight;
+      const targetHeight = Math.max(38, Math.min(scrollH, MAX_TEXTAREA_HEIGHT));
+      textareaRef.current.style.height = `${targetHeight}px`;
+    }
+  }, [text]);
 
   // Focus textarea when replyingTo changes
   useEffect(() => {
@@ -72,7 +84,7 @@ export function CommentComposer({
     });
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       if (file.size > 5 * 1024 * 1024) {
@@ -80,6 +92,16 @@ export function CommentComposer({
         return;
       }
       setIsUploadingImage(true);
+      try {
+        const url = await commentsApi.uploadMedia(file);
+        if (url) {
+          setImagePreview(url);
+          setIsUploadingImage(false);
+          return;
+        }
+      } catch {
+        // Fallback to local data URI
+      }
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
@@ -128,7 +150,7 @@ export function CommentComposer({
     !isUploadingImage;
 
   return (
-    <div className="sticky bottom-0 bg-[#0d0e16]/95 backdrop-blur-2xl border-t border-white/[0.08] p-3 sm:p-4 z-20 transition-all">
+    <div className="sticky bottom-0 bg-[#0c0d16]/95 backdrop-blur-2xl border-t border-white/[0.08] p-3 sm:p-4 z-20 transition-all shrink-0">
       {/* Sliding Replying Banner */}
       {replyingTo && (
         <div className="flex items-center justify-between bg-purple-950/40 border border-purple-500/30 rounded-xl px-3 py-1.5 mb-2.5 text-xs text-purple-200 animate-fadeIn">
@@ -139,7 +161,7 @@ export function CommentComposer({
           <button
             type="button"
             onClick={onCancelReply}
-            className="text-purple-300 hover:text-white p-0.5 rounded-lg hover:bg-white/10 transition-colors"
+            className="text-purple-300 hover:text-white p-0.5 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
             title="Cancel reply (Esc)"
           >
             <X size={14} />
@@ -172,7 +194,7 @@ export function CommentComposer({
       )}
 
       {/* Input Form */}
-      <form onSubmit={handleSubmit} className="flex items-end gap-2 relative">
+      <form onSubmit={handleSubmit} className="flex items-end gap-2.5 relative">
         <div className="flex-1 relative flex flex-col rounded-2xl bg-white/[0.04] border border-white/[0.08] focus-within:border-purple-500/50 focus-within:ring-1 focus-within:ring-purple-500/30 transition-all">
           <textarea
             ref={textareaRef}
@@ -184,21 +206,23 @@ export function CommentComposer({
             placeholder={
               replyingTo
                 ? `Reply to @${replyingTo.username}...`
-                : `Comment as @${currentUserHandle}...`
+                : `Add a comment as @${currentUserHandle}...`
             }
-            className="w-full bg-transparent px-3.5 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none resize-none max-h-32 min-h-[42px]"
+            className="w-full bg-transparent px-3.5 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none resize-none min-h-[38px] max-h-[115px] leading-relaxed overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full"
           />
 
           {/* Action Tools Inside Input Bar */}
           <div className="flex items-center justify-between px-3 py-1.5 border-t border-white/[0.04]">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <AddEmojiButton
                 isOpen={isEmojiOpen}
                 onToggle={() => setIsEmojiOpen((prev) => !prev)}
                 onEmojiSelect={(emoji) => {
                   setText((prev) => prev + emoji);
+                  setIsEmojiOpen(false);
                   textareaRef.current?.focus();
                 }}
+                usePortal={true}
               />
 
               <input
@@ -242,13 +266,13 @@ export function CommentComposer({
         {/* Mention Autocomplete */}
         <MentionAutocomplete text={text} cursorPos={cursorPos} onSelect={handleMentionSelect} />
 
-        {/* Glowing Purple Send Button */}
+        {/* Glowing Purple Post / Send Button */}
         <button
           type="submit"
           disabled={!canSubmit}
-          className={`h-[42px] px-4 rounded-2xl flex items-center justify-center transition-all duration-200 shrink-0 ${
+          className={`h-[42px] px-4 rounded-2xl font-medium text-sm flex items-center justify-center transition-all duration-200 shrink-0 ${
             canSubmit
-              ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-[0_0_15px_rgba(147,51,234,0.5)] cursor-pointer active:scale-95'
+              ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-[0_0_20px_rgba(147,51,234,0.5)] cursor-pointer active:scale-95'
               : 'bg-white/[0.05] text-gray-500 cursor-not-allowed opacity-50'
           }`}
           title="Send comment"
@@ -256,7 +280,10 @@ export function CommentComposer({
           {isSubmitting ? (
             <Loader2 size={17} className="animate-spin text-white" />
           ) : (
-            <Send size={17} className={canSubmit ? 'translate-x-0.5' : ''} />
+            <span className="flex items-center gap-1.5 font-semibold">
+              <Send size={15} />
+              <span className="hidden sm:inline">Post</span>
+            </span>
           )}
         </button>
       </form>

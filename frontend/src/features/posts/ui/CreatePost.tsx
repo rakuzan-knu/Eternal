@@ -238,11 +238,13 @@ export default function CreatePost({ onSubmitFormData, isPending = false }: Crea
               setText((p) => p + e);
               setCursorPos((p) => p + e.length);
             }}
+            usePortal={true}
           />
           <AddGifButton
             isOpen={activeMenu === 'gif'}
             onToggle={() => setActiveMenu((v) => (v === 'gif' ? null : 'gif'))}
             onGifSelect={handleGifSelect}
+            usePortal={true}
           />
           <AddPollButton isOpen={showPoll} onToggle={() => setShowPoll((v) => !v)} />
         </div>

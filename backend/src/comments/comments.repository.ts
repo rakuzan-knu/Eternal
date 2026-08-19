@@ -96,10 +96,10 @@ export class CommentsRepository implements ICommentsRepository {
 
     return comments.map((c) => ({
       ...c,
-      isLiked: Boolean(viewerId && c.likes.some((l) => l.userId === viewerId)),
-      isLikedByAuthor: Boolean(post?.authorId && c.likes.some((l) => l.userId === post.authorId)),
-      likesCount: c._count.likes,
-      replyCount: c._count.replies,
+      isLiked: Boolean(viewerId && c.likes?.some((l) => l.userId === viewerId)),
+      isLikedByAuthor: Boolean(post?.authorId && c.likes?.some((l) => l.userId === post.authorId)),
+      likesCount: c._count?.likes ?? (Array.isArray(c.likes) ? c.likes.length : 0),
+      replyCount: c._count?.replies ?? 0,
     }));
   }
 
@@ -135,10 +135,10 @@ export class CommentsRepository implements ICommentsRepository {
 
     return replies.map((r) => ({
       ...r,
-      isLiked: Boolean(viewerId && r.likes.some((l) => l.userId === viewerId)),
-      isLikedByAuthor: Boolean(postAuthorId && r.likes.some((l) => l.userId === postAuthorId)),
-      likesCount: r._count.likes,
-      replyCount: r._count.replies,
+      isLiked: Boolean(viewerId && r.likes?.some((l) => l.userId === viewerId)),
+      isLikedByAuthor: Boolean(postAuthorId && r.likes?.some((l) => l.userId === postAuthorId)),
+      likesCount: r._count?.likes ?? (Array.isArray(r.likes) ? r.likes.length : 0),
+      replyCount: r._count?.replies ?? 0,
     }));
   }
 
@@ -175,7 +175,7 @@ export class CommentsRepository implements ICommentsRepository {
     });
     if (!comment) throw new NotFoundException('Comment not found');
 
-    if (comment.post.authorId !== userId) {
+    if (comment.post?.authorId !== userId) {
       throw new ForbiddenException('Only the post author can pin comments');
     }
 
@@ -214,13 +214,13 @@ export class CommentsRepository implements ICommentsRepository {
     });
     if (!comment) throw new NotFoundException('Comment not found');
 
-    if (comment.userId !== userId && comment.post.authorId !== userId) {
+    if (comment.userId !== userId && comment.post?.authorId !== userId) {
       throw new ForbiddenException(
         'You can only delete your own comments or comments on your posts',
       );
     }
 
-    const hasReplies = comment._count.replies > 0;
+    const hasReplies = (comment._count?.replies ?? 0) > 0;
 
     if (hasReplies) {
       // Tombstone soft-delete to preserve replies tree

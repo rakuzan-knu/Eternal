@@ -49,6 +49,19 @@ export function useMediaRecorderGesture({ onSend, onError }: UseMediaRecorderGes
   const [previewPayload, setPreviewPayload] = useState<RecordedPayload | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
+  // 1-second dissolving center toast for mode switch
+  const [modeToast, setModeToast] = useState<{ text: string; isFading: boolean } | null>(null);
+  const modeToastTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const modeToastFadeTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Multi-camera support
+  const [availableCameras, setAvailableCameras] = useState<{ deviceId: string; label: string }[]>(
+    [],
+  );
+  const [activeCameraId, setActiveCameraId] = useState<string | null>(null);
+  const [cameraToast, setCameraToast] = useState<{ text: string; isFading: boolean } | null>(null);
+  const cameraToastTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
   const durationTimerRef = useRef<NodeJS.Timeout | null>(null);
   const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -64,6 +77,54 @@ export function useMediaRecorderGesture({ onSend, onError }: UseMediaRecorderGes
 
   const previewVideoRef = useRef<HTMLVideoElement | null>(null);
   const stopAndSendRef = useRef<() => void>(() => {});
+
+  // 1-second dissolving center toast for mode switch
+  const showModeToast = useCallback((message: string) => {
+    if (modeToastTimerRef.current) clearTimeout(modeToastTimerRef.current);
+    if (modeToastFadeTimerRef.current) clearTimeout(modeToastFadeTimerRef.current);
+
+    setModeToast({ text: message, isFading: false });
+
+    // 1000ms (1 second) display, then 300ms dissolve transition
+    modeToastTimerRef.current = setTimeout(() => {
+      setModeToast((prev) => (prev ? { ...prev, isFading: true } : null));
+      modeToastFadeTimerRef.current = setTimeout(() => {
+        setModeToast(null);
+      }, 300);
+    }, 1000);
+  }, []);
+
+  const refreshCameras = useCallback(async () => {
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.enumerateDevices) return;
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoInputs = devices.filter((d) => d.kind === 'videoinput');
+      const formatted = videoInputs.map((d, idx) => ({
+        deviceId: d.deviceId,
+        label:
+          d.label || (idx === 0 ? 'Front Camera' : idx === 1 ? 'Back Camera' : `Camera ${idx + 1}`),
+      }));
+      setAvailableCameras(formatted);
+      if (formatted.length > 0 && !activeCameraId) {
+        setActiveCameraId(formatted[0].deviceId);
+      }
+    } catch {
+      // Ignore enumeration errors
+    }
+  }, [activeCameraId]);
+
+  useEffect(() => {
+    refreshCameras();
+  }, [refreshCameras]);
+
+  const showCameraToast = useCallback((label: string) => {
+    if (cameraToastTimerRef.current) clearTimeout(cameraToastTimerRef.current);
+    setCameraToast({ text: label, isFading: false });
+    cameraToastTimerRef.current = setTimeout(() => {
+      setCameraToast((prev) => (prev ? { ...prev, isFading: true } : null));
+      setTimeout(() => setCameraToast(null), 300);
+    }, 1200);
+  }, []);
 
   // Stop all media tracks and audio contexts (Hardware Privacy Leak Protection)
   const cleanupMedia = useCallback(() => {
@@ -196,7 +257,11 @@ export function useMediaRecorderGesture({ onSend, onError }: UseMediaRecorderGes
 
   // Start recording actual media
   const startRecording = useCallback(
-    async (currentMode: RecorderMode, currentFacing: 'user' | 'environment') => {
+    async (
+      currentMode: RecorderMode,
+      currentFacing: 'user' | 'environment',
+      targetDeviceId?: string | null,
+    ) => {
       try {
         cleanupMedia();
         recordedChunksRef.current = [];
@@ -208,15 +273,24 @@ export function useMediaRecorderGesture({ onSend, onError }: UseMediaRecorderGes
         if (currentMode === 'voice') {
           stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         } else {
+          const selectedId = targetDeviceId ?? activeCameraId;
+          const videoConstraints: MediaTrackConstraints = {
+            aspectRatio: 1,
+            width: { ideal: 480 },
+            height: { ideal: 480 },
+          };
+          if (selectedId) {
+            videoConstraints.deviceId = { exact: selectedId };
+          } else {
+            videoConstraints.facingMode = currentFacing;
+          }
+
           stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-              aspectRatio: 1,
-              facingMode: currentFacing,
-              width: { ideal: 480 },
-              height: { ideal: 480 },
-            },
+            video: videoConstraints,
             audio: true,
           });
+
+          refreshCameras();
         }
 
         streamRef.current = stream;
@@ -257,8 +331,7 @@ export function useMediaRecorderGesture({ onSend, onError }: UseMediaRecorderGes
         onError?.('Camera or microphone access is required to record notes.');
       }
     },
-     
-    [cleanupMedia, discardRecording, onError, setupAudioAnalyser],
+    [activeCameraId, cleanupMedia, discardRecording, onError, refreshCameras, setupAudioAnalyser],
   );
 
   // Stop recording and send
@@ -342,14 +415,41 @@ export function useMediaRecorderGesture({ onSend, onError }: UseMediaRecorderGes
     cleanupMedia();
   }, [cleanupMedia, computeFinalWaveform, mode]);
 
-  // Toggle Camera Front / Back
+  // Switch or Flip Camera
+  const switchCamera = useCallback(
+    (targetDeviceId?: string) => {
+      if (availableCameras.length > 1) {
+        let nextId: string;
+        if (targetDeviceId) {
+          nextId = targetDeviceId;
+        } else {
+          const currentIndex = availableCameras.findIndex((c) => c.deviceId === activeCameraId);
+          const nextIndex = (currentIndex + 1) % availableCameras.length;
+          nextId = availableCameras[nextIndex].deviceId;
+        }
+        setActiveCameraId(nextId);
+        const cam = availableCameras.find((c) => c.deviceId === nextId);
+        const label = cam?.label || 'Camera Switched';
+        showCameraToast(label);
+
+        if (recordState === 'recording' || recordState === 'locked') {
+          startRecording('video', facingMode, nextId);
+        }
+      } else {
+        const nextFacing = facingMode === 'user' ? 'environment' : 'user';
+        setFacingMode(nextFacing);
+        showCameraToast(nextFacing === 'user' ? 'Front Camera' : 'Back Camera');
+        if (recordState === 'recording' || recordState === 'locked') {
+          startRecording('video', nextFacing);
+        }
+      }
+    },
+    [activeCameraId, availableCameras, facingMode, recordState, showCameraToast, startRecording],
+  );
+
   const toggleFacingMode = useCallback(() => {
-    const nextFacing = facingMode === 'user' ? 'environment' : 'user';
-    setFacingMode(nextFacing);
-    if (recordState === 'recording' || recordState === 'locked') {
-      startRecording('video', nextFacing);
-    }
-  }, [facingMode, recordState, startRecording]);
+    switchCamera();
+  }, [switchCamera]);
 
   // Pointer Down on Trigger Button
   const handlePointerDown = useCallback(
@@ -360,10 +460,10 @@ export function useMediaRecorderGesture({ onSend, onError }: UseMediaRecorderGes
 
       // Start 300ms hold timer
       holdTimerRef.current = setTimeout(() => {
-        startRecording(mode, facingMode);
+        startRecording(mode, facingMode, activeCameraId);
       }, 300);
     },
-    [facingMode, mode, recordState, startRecording],
+    [activeCameraId, facingMode, mode, recordState, startRecording],
   );
 
   // Pointer Move
@@ -392,11 +492,17 @@ export function useMediaRecorderGesture({ onSend, onError }: UseMediaRecorderGes
   // Pointer Up
   const handlePointerUp = useCallback(() => {
     if (holdTimerRef.current) {
-      // Released before 300ms -> Quick Click Toggle Mode
+      // Released before 300ms -> Quick Click Toggle Mode with 1-second dissolving toast
       clearTimeout(holdTimerRef.current);
       holdTimerRef.current = null;
       if (recordState === 'idle') {
-        setMode((prev) => (prev === 'voice' ? 'video' : 'voice'));
+        const nextMode: RecorderMode = mode === 'voice' ? 'video' : 'voice';
+        setMode(nextMode);
+        showModeToast(
+          nextMode === 'video'
+            ? 'Hold to record video. Click to switch to audio.'
+            : 'Hold to record audio. Click to switch to video.',
+        );
       }
       return;
     }
@@ -405,7 +511,7 @@ export function useMediaRecorderGesture({ onSend, onError }: UseMediaRecorderGes
       // Releasing while actively holding -> Send
       stopAndSend();
     }
-  }, [recordState, stopAndSend]);
+  }, [mode, recordState, showModeToast, stopAndSend]);
 
   return {
     mode,
@@ -418,6 +524,12 @@ export function useMediaRecorderGesture({ onSend, onError }: UseMediaRecorderGes
     previewVideoRef,
     dragOffset,
     stream: streamRef.current,
+    modeToast,
+    showModeToast,
+    availableCameras,
+    activeCameraId,
+    cameraToast,
+    switchCamera,
     toggleFacingMode,
     handlePointerDown,
     handlePointerMove,

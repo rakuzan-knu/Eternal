@@ -7,9 +7,10 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AttachmentType, MessageType } from '@prisma/client';
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { S3Client } from '@aws-sdk/client-s3';
 import { uid } from 'uid';
 import { PrismaService } from '@common/prisma';
+import { uploadToStorageWithFallback } from '../../common/media/image-processor';
 import { CONVERSATIONS_REPOSITORY } from '../interfaces/conversations-repository.interface';
 import type { IConversationsRepository } from '../interfaces/conversations-repository.interface';
 import { MESSAGES_REPOSITORY } from '../interfaces/messages-repository.interface';
@@ -88,20 +89,33 @@ export class MessagesService {
     }
 
     const mimetype = (file.mimetype || '').toLowerCase();
+    const originalName = (file.originalname || '').toLowerCase();
     let attachmentType: AttachmentType = AttachmentType.FILE;
 
-    if (mimetype === 'image/gif') {
+    if (mimetype === 'image/gif' || originalName.endsWith('.gif')) {
       attachmentType = AttachmentType.GIF;
-    } else if (mimetype.startsWith('image/')) {
+    } else if (
+      mimetype.startsWith('image/') ||
+      /\.(jpg|jpeg|png|webp|avif|bmp|svg)$/i.test(originalName)
+    ) {
       attachmentType = AttachmentType.IMAGE;
-    } else if (mimetype.startsWith('video/')) {
+    } else if (mimetype.startsWith('video/') || /\.(mp4|webm|mov|mkv|avi)$/i.test(originalName)) {
       attachmentType = AttachmentType.VIDEO;
-    } else if (mimetype.startsWith('audio/')) {
+    } else if (
+      mimetype.startsWith('audio/') ||
+      /\.(mp3|wav|ogg|m4a|aac|opus|webm)$/i.test(originalName)
+    ) {
       attachmentType = AttachmentType.AUDIO;
     }
 
     const fileId = uid(16);
-    const originalExt = file.originalname?.split('.').pop() || 'bin';
+    const originalExt =
+      file.originalname?.split('.').pop() ||
+      (attachmentType === AttachmentType.AUDIO
+        ? 'webm'
+        : attachmentType === AttachmentType.VIDEO
+          ? 'webm'
+          : 'bin');
     const key = `attachments/${conversationId}/${fileId}.${originalExt}`;
 
     const bucket = this.configService.get<string>('MINIO_BUCKET', 'attachments');
@@ -110,22 +124,19 @@ export class MessagesService {
       this.configService.get<string>('S3_PUBLIC_URL') ??
       'http://localhost:9000';
 
-    await this.s3.send(
-      new PutObjectCommand({
-        Bucket: bucket,
-        Key: key,
-        Body: file.buffer,
-        ContentType: file.mimetype || 'application/octet-stream',
-      }),
-    );
-
-    const url = `${publicUrl}/${bucket}/${key}`;
+    const url = await uploadToStorageWithFallback(this.s3, {
+      bucket,
+      key,
+      buffer: file.buffer,
+      contentType: file.mimetype || 'application/octet-stream',
+      publicUrl,
+    });
 
     return {
       type: attachmentType,
       url,
       fileName: file.originalname,
-      mimeType: file.mimetype,
+      mimeType: file.mimetype || 'application/octet-stream',
       size: file.buffer.length,
     };
   }

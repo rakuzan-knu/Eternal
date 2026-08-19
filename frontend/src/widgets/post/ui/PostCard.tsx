@@ -127,9 +127,9 @@ export function PostCard({ post, queryKey }: PostCardProps) {
   return (
     <div
       id={`post-${post.id}`}
-      className={`bg-white/[0.02] backdrop-blur-xl border border-white/[0.05] rounded-3xl shadow-lg flex flex-col gap-3 transition-all duration-300 ease-out scroll-mt-20 relative overflow-hidden ${
+      className={`bg-white/[0.02] backdrop-blur-xl border border-white/[0.05] rounded-3xl shadow-lg flex flex-col gap-3 transition-all duration-300 ease-out scroll-mt-20 relative ${
         isCollapsing
-          ? 'max-h-0 opacity-0 py-0 -my-2 border-0 pointer-events-none scale-95'
+          ? 'max-h-0 opacity-0 py-0 -my-2 border-0 pointer-events-none scale-95 overflow-hidden'
           : 'max-h-[3000px] opacity-100 p-5 hover:bg-white/[0.03]'
       } ${isMenuOpen ? 'z-30' : 'z-10'}`}
     >
@@ -206,6 +206,7 @@ export function PostCard({ post, queryKey }: PostCardProps) {
               isPinned={!!post.isPinned}
               hideLikesCount={hideLikesCount}
               isCommentsDisabled={isCommentsDisabled}
+              onOpenChange={setIsMenuOpen}
               onSave={() => saveMutation.mutate()}
               onTogglePin={() => pinMutation.mutate()}
               onHide={handleHidePost}
@@ -262,7 +263,6 @@ export function PostCard({ post, queryKey }: PostCardProps) {
                   return next;
                 });
               }}
-              onOpenChange={setIsMenuOpen}
             />
           </div>
 

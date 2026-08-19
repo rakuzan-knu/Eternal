@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { PostType } from '@/entities/post/model/types';
 import Avatar from '@/shared/ui/Avatar';
-import { Smile } from 'lucide-react';
+import { AddEmojiButton } from '@/shared/ui/AddEmojiButton';
 import { PostMedia } from '@/entities/post/ui/PostMedia';
 
 interface EditPostModalProps {
@@ -22,12 +23,30 @@ export function EditPostModal({
   onSave,
 }: EditPostModalProps) {
   const [content, setContent] = useState(post.text || '');
+  const [isEmojiOpen, setIsEmojiOpen] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setContent(post.text || '');
+      setIsEmojiOpen(false);
+
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape' && !isSaving) {
+          setIsEmojiOpen(false);
+          onClose();
+        }
+      };
+
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      window.addEventListener('keydown', handleKeyDown);
+
+      return () => {
+        document.body.style.overflow = originalOverflow;
+        window.removeEventListener('keydown', handleKeyDown);
+      };
     }
-  }, [isOpen, post.text]);
+  }, [isOpen, isSaving, onClose, post.text]);
 
   if (!isOpen) return null;
 
@@ -50,10 +69,15 @@ export function EditPostModal({
     }
   };
 
-  return (
+  const modalContent = (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn"
-      onClick={onClose}
+      className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fadeIn"
+      onClick={() => {
+        if (!isSaving) {
+          setIsEmojiOpen(false);
+          onClose();
+        }
+      }}
     >
       <div
         className="bg-[#1c1c20] border border-white/10 rounded-3xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-scaleIn"
@@ -64,7 +88,10 @@ export function EditPostModal({
           <button
             type="button"
             disabled={isSaving}
-            onClick={onClose}
+            onClick={() => {
+              setIsEmojiOpen(false);
+              onClose();
+            }}
             className="text-sm font-medium text-gray-300 hover:text-white transition-colors cursor-pointer"
           >
             Cancel
@@ -121,23 +148,15 @@ export function EditPostModal({
               {/* Bottom footer inside editor */}
               <div className="flex items-center justify-between pt-3 border-t border-white/5 mt-2">
                 <div className="flex items-center gap-1.5 text-gray-400">
-                  {['✨', '🔥', '❤️', '👏', '🚀'].map((em) => (
-                    <button
-                      key={em}
-                      type="button"
-                      onClick={() => handleInsertEmoji(em)}
-                      className="text-base p-1 hover:bg-white/5 rounded-lg transition-colors cursor-pointer"
-                    >
-                      {em}
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => handleInsertEmoji('😊')}
-                    className="p-1 hover:bg-white/5 rounded-lg transition-colors cursor-pointer"
-                  >
-                    <Smile size={18} />
-                  </button>
+                  <AddEmojiButton
+                    isOpen={isEmojiOpen}
+                    onToggle={() => setIsEmojiOpen((prev) => !prev)}
+                    onEmojiSelect={(emoji) => {
+                      handleInsertEmoji(emoji);
+                      setIsEmojiOpen(false);
+                    }}
+                    usePortal={true}
+                  />
                 </div>
 
                 <span
@@ -152,6 +171,8 @@ export function EditPostModal({
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : null;
 }
 
 export default EditPostModal;

@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
 import { ChevronDown } from 'lucide-react';
 import { MessageView, UserSnapshot } from '../../../entities/chat/model/types';
@@ -187,11 +187,31 @@ export default function MessageList({
   onLoadAround,
 }: MessageListProps) {
   const virtuosoRef = useRef<VirtuosoHandle>(null);
+  const scrollerElementRef = useRef<HTMLElement | null>(null);
   const prevRowsRef = useRef<Row[]>([]);
   const [firstItemIndex, setFirstItemIndex] = useState(START_INDEX);
 
   const [showScrollBottom, setShowScrollBottom] = useState(false);
   const [unreadBelowCount, setUnreadBelowCount] = useState(0);
+
+  const checkScrollPosition = useCallback(() => {
+    const el = scrollerElementRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    // Only appear when the user scrolls up by at least the height of the chat screen (el.clientHeight)
+    const isOneScreenUp = el.clientHeight > 0 && distanceFromBottom >= el.clientHeight;
+    setShowScrollBottom(isOneScreenUp);
+    if (distanceFromBottom <= 20) {
+      setUnreadBelowCount(0);
+    }
+  }, []);
+
+  useEffect(() => {
+    const el = scrollerElementRef.current;
+    if (!el) return;
+    el.addEventListener('scroll', checkScrollPosition, { passive: true });
+    return () => el.removeEventListener('scroll', checkScrollPosition);
+  }, [checkScrollPosition]);
 
   const rows = useMemo(() => buildRows(messages), [messages]);
 
@@ -275,18 +295,29 @@ export default function MessageList({
     <div className="relative flex-1 flex flex-col min-h-0">
       <Virtuoso
         ref={virtuosoRef}
+        scrollerRef={(ref) => {
+          if (ref instanceof HTMLElement) {
+            scrollerElementRef.current = ref;
+            checkScrollPosition();
+          }
+        }}
         firstItemIndex={firstItemIndex}
         initialTopMostItemIndex={Math.max(0, rows.length - 1)}
         data={rows}
         startReached={handleStartReached}
         atBottomStateChange={(atBottom) => {
-          setShowScrollBottom(!atBottom);
-          if (atBottom) setUnreadBelowCount(0);
+          if (atBottom) {
+            setShowScrollBottom(false);
+            setUnreadBelowCount(0);
+          } else {
+            checkScrollPosition();
+          }
         }}
         followOutput="smooth"
         className="flex-1 custom-scrollbar py-2"
         style={{ overflowAnchor: 'auto' }}
         rangeChanged={(range) => {
+          checkScrollPosition();
           const visibleRows = rows.slice(
             Math.max(0, range.startIndex - firstItemIndex),
             Math.max(0, range.endIndex - firstItemIndex + 1),
@@ -369,6 +400,7 @@ export default function MessageList({
               align: 'end',
               behavior: 'smooth',
             });
+            setShowScrollBottom(false);
             setUnreadBelowCount(0);
           }}
           className="group absolute bottom-4 right-4 sm:right-6 z-30 w-10 h-10 rounded-full bg-[#181926]/90 border border-white/15 backdrop-blur-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] flex items-center justify-center text-gray-300 hover:text-white hover:bg-purple-600/30 hover:border-purple-400/50 hover:shadow-[0_0_15px_rgba(168,85,247,0.4)] transition-all duration-200 active:scale-95 animate-popIn cursor-pointer"

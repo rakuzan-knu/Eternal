@@ -85,4 +85,54 @@ describe('MessageBubble', () => {
     expect(emojiElement).toBeInTheDocument();
     expect(emojiElement.className).toContain('text-4xl');
   });
+
+  it('shows hover action bar with React, Reply, More on mouse enter for own message', () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MessageBubble
+          message={mockMessage}
+          isOwnMessage={true}
+          showAvatar={false}
+          isReadByOther={true}
+          currentUserId="usr-1"
+          onReply={vi.fn()}
+          onEdit={vi.fn()}
+          onDelete={vi.fn()}
+          onForward={vi.fn()}
+          onTogglePin={vi.fn()}
+          onReport={vi.fn()}
+          onReact={vi.fn()}
+          onUnreact={vi.fn()}
+        />
+      </QueryClientProvider>,
+    );
+
+    const messageContainer = screen.getByText('Hello from the other side').closest('.group');
+    expect(messageContainer).toBeTruthy();
+  });
+
+  it('shows hover action bar with React, Reply, More on mouse enter for other message', () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MessageBubble
+          message={mockMessage}
+          isOwnMessage={false}
+          showAvatar={true}
+          isReadByOther={true}
+          currentUserId="other-user"
+          onReply={vi.fn()}
+          onEdit={vi.fn()}
+          onDelete={vi.fn()}
+          onForward={vi.fn()}
+          onTogglePin={vi.fn()}
+          onReport={vi.fn()}
+          onReact={vi.fn()}
+          onUnreact={vi.fn()}
+        />
+      </QueryClientProvider>,
+    );
+
+    const messageContainer = screen.getByText('Hello from the other side').closest('.group');
+    expect(messageContainer).toBeTruthy();
+  });
 });

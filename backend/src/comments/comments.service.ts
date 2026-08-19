@@ -38,12 +38,14 @@ export class CommentsService {
     if (dto.clientMutationId && this.redis) {
       const lockKey = `idempotency:comment:${userId}:${dto.clientMutationId}`;
       try {
-        const client = this.redis.getClient();
-        const acquired = await client.set(lockKey, 'locked', 'EX', 30, 'NX');
-        if (!acquired) {
-          throw new ConflictException(
-            'Duplicate mutation request in progress or already processed',
-          );
+        const client = typeof this.redis.getClient === 'function' ? this.redis.getClient() : null;
+        if (client) {
+          const acquired = await client.set(lockKey, 'locked', 'EX', 30, 'NX');
+          if (!acquired) {
+            throw new ConflictException(
+              'Duplicate mutation request in progress or already processed',
+            );
+          }
         }
       } catch (err) {
         if (err instanceof ConflictException) throw err;
@@ -205,12 +207,12 @@ export class CommentsService {
       // Non-blocking notification
     }
 
-    return CommentResponseDto.fromPrisma(comment);
+    return CommentResponseDto.fromPrisma(comment, userId, post.authorId);
   }
 
   async deleteComment(commentId: string, userId: string): Promise<CommentResponseDto> {
     const comment = await this.commentsRepository.deleteComment(commentId, userId);
-    return CommentResponseDto.fromPrisma(comment);
+    return CommentResponseDto.fromPrisma(comment, userId);
   }
 
   async getComments(

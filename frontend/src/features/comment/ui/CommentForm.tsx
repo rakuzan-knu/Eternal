@@ -121,6 +121,7 @@ export function CommentForm({
                 setText((prev) => prev + emoji);
                 setCursorPos((prev) => prev + emoji.length);
               }}
+              usePortal={true}
             />
 
             <button

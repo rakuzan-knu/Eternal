@@ -1,4 +1,5 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   MoreHorizontal,
   EyeOff,
@@ -14,7 +15,6 @@ import {
   Pin,
   PinOff,
 } from 'lucide-react';
-import { useClickOutside } from '../../../shared/lib/useClickOutside';
 import { useHiddenPostsStore } from '../../../shared/model/useHiddenPostsStore';
 import { useMessageToastStore } from '@/shared/model/useMessageToastStore';
 
@@ -56,16 +56,90 @@ export function PostMenu({
   onOpenChange,
 }: PostMenuProps) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState<{ top?: number; bottom?: number; right: number } | null>(
+    null,
+  );
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const hidePost = useHiddenPostsStore((s) => s.hidePost);
 
   useEffect(() => {
     onOpenChange?.(open);
   }, [open, onOpenChange]);
 
-  useClickOutside(ref, () => {
-    setOpen(false);
-  });
+  const updateCoords = useCallback(() => {
+    if (!buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    const measuredHeight = menuRef.current?.offsetHeight;
+    const estimatedHeight =
+      measuredHeight && measuredHeight > 50 ? measuredHeight : isOwner ? 340 : 250;
+    const gap = 6;
+    const spaceBelow = window.innerHeight - rect.bottom - gap;
+    const spaceAbove = rect.top - gap;
+
+    let nextCoords: { top?: number; bottom?: number; right: number };
+
+    // If not enough room below and more space above, open ABOVE the trigger button
+    if (spaceBelow < estimatedHeight && spaceAbove >= spaceBelow) {
+      nextCoords = {
+        bottom: Math.max(12, window.innerHeight - rect.top + gap),
+        right: Math.max(12, Math.min(window.innerWidth - 12, window.innerWidth - rect.right)),
+      };
+    } else {
+      nextCoords = {
+        top: Math.max(12, Math.min(rect.bottom + gap, window.innerHeight - estimatedHeight - 12)),
+        right: Math.max(12, Math.min(window.innerWidth - 12, window.innerWidth - rect.right)),
+      };
+    }
+
+    setCoords(nextCoords);
+  }, [isOwner]);
+
+  useLayoutEffect(() => {
+    if (open) {
+      updateCoords();
+      // Re-measure after mount to ensure pixel-perfect positioning with actual DOM height
+      const rafId = requestAnimationFrame(() => {
+        updateCoords();
+      });
+      return () => cancelAnimationFrame(rafId);
+    }
+  }, [open, updateCoords]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        buttonRef.current &&
+        !buttonRef.current.contains(e.target as Node) &&
+        menuRef.current &&
+        !menuRef.current.contains(e.target as Node)
+      ) {
+        setOpen(false);
+      }
+    };
+
+    const handleScrollOrResize = () => {
+      updateCoords();
+    };
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    window.addEventListener('scroll', handleScrollOrResize, true);
+    window.addEventListener('resize', handleScrollOrResize);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+      window.removeEventListener('scroll', handleScrollOrResize, true);
+      window.removeEventListener('resize', handleScrollOrResize);
+    };
+  }, [open, updateCoords]);
 
   const handleCopyLink = async () => {
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
@@ -114,8 +188,9 @@ export function PostMenu({
   );
 
   return (
-    <div className={`relative ${open ? 'z-50' : 'z-10'}`} ref={ref}>
+    <div className="relative inline-block">
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label="More options"
@@ -124,62 +199,77 @@ export function PostMenu({
         <MoreHorizontal size={18} />
       </button>
 
-      {open && (
-        <div className="absolute right-0 top-9 z-50 w-64 bg-[#141418]/95 backdrop-blur-2xl border border-white/[0.12] rounded-2xl shadow-2xl shadow-black/80 p-1.5 animate-fadeIn space-y-0.5">
-          {isOwner ? (
-            <>
-              {item(
-                isPinned ? <PinOff size={16} /> : <Pin size={16} />,
-                isPinned ? 'Unpin from profile' : 'Pin to top of profile',
-                onTogglePin,
-              )}
-              {item(<Pencil size={16} />, 'Edit post', onEdit)}
-              {item(
-                <Trash2 size={16} className="text-red-400" />,
-                'Delete your post',
-                onDelete,
-                'danger',
-              )}
-              {item(
-                <HeartOff size={16} />,
-                hideLikesCount ? 'Show like count' : 'Hide like count',
-                onToggleHideLikes,
-              )}
-              {item(
-                <MessageSquareOff size={16} />,
-                isCommentsDisabled ? 'Enable commenting' : 'Disable commenting',
-                onToggleDisableComments,
-              )}
-              {item(
-                isSaved ? (
-                  <BookmarkCheck size={16} className="text-sky-400" />
-                ) : (
-                  <Bookmark size={16} />
-                ),
-                isSaved ? 'Unsave post' : 'Save post',
-                onSave,
-              )}
-              {item(<Link2 size={16} />, 'Copy link', handleCopyLink)}
-            </>
-          ) : (
-            <>
-              {item(
-                isSaved ? (
-                  <BookmarkCheck size={16} className="text-sky-400" />
-                ) : (
-                  <Bookmark size={16} />
-                ),
-                isSaved ? 'Unsave post' : 'Save post',
-                onSave,
-              )}
-              {item(<EyeOff size={16} />, 'Hide post', onHide ? onHide : () => hidePost(postId))}
-              {item(<UserX size={16} />, 'Block author', onBlockAuthor)}
-              {item(<Flag size={16} className="text-red-400" />, 'Report', onReport, 'danger')}
-              {item(<Link2 size={16} />, 'Copy link', handleCopyLink)}
-            </>
-          )}
-        </div>
-      )}
+      {open &&
+        coords &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            ref={menuRef}
+            style={{
+              position: 'fixed',
+              top: coords.top !== undefined ? `${coords.top}px` : undefined,
+              bottom: coords.bottom !== undefined ? `${coords.bottom}px` : undefined,
+              right: `${coords.right}px`,
+            }}
+            className={`z-[99999] w-64 max-h-[calc(100vh-24px)] overflow-y-auto custom-scrollbar bg-[#141418]/95 backdrop-blur-2xl border border-white/[0.12] rounded-2xl shadow-2xl shadow-black/80 p-1.5 animate-fadeIn space-y-0.5 ${
+              coords.bottom !== undefined ? 'origin-bottom-right' : 'origin-top-right'
+            }`}
+          >
+            {isOwner ? (
+              <>
+                {item(
+                  isPinned ? <PinOff size={16} /> : <Pin size={16} />,
+                  isPinned ? 'Unpin from profile' : 'Pin to top of profile',
+                  onTogglePin,
+                )}
+                {item(<Pencil size={16} />, 'Edit post', onEdit)}
+                {item(
+                  <HeartOff size={16} />,
+                  hideLikesCount ? 'Show like count' : 'Hide like count',
+                  onToggleHideLikes,
+                )}
+                {item(
+                  <MessageSquareOff size={16} />,
+                  isCommentsDisabled ? 'Enable commenting' : 'Disable commenting',
+                  onToggleDisableComments,
+                )}
+                {item(
+                  isSaved ? (
+                    <BookmarkCheck size={16} className="text-sky-400" />
+                  ) : (
+                    <Bookmark size={16} />
+                  ),
+                  isSaved ? 'Unsave post' : 'Save post',
+                  onSave,
+                )}
+                {item(<Link2 size={16} />, 'Copy link', handleCopyLink)}
+                {item(
+                  <Trash2 size={16} className="text-red-400" />,
+                  'Delete your post',
+                  onDelete,
+                  'danger',
+                )}
+              </>
+            ) : (
+              <>
+                {item(
+                  isSaved ? (
+                    <BookmarkCheck size={16} className="text-sky-400" />
+                  ) : (
+                    <Bookmark size={16} />
+                  ),
+                  isSaved ? 'Unsave post' : 'Save post',
+                  onSave,
+                )}
+                {item(<EyeOff size={16} />, 'Hide post', onHide ? onHide : () => hidePost(postId))}
+                {item(<UserX size={16} />, 'Block author', onBlockAuthor)}
+                {item(<Link2 size={16} />, 'Copy link', handleCopyLink)}
+                {item(<Flag size={16} className="text-red-400" />, 'Report', onReport, 'danger')}
+              </>
+            )}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

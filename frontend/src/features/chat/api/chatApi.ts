@@ -3,6 +3,7 @@ import {
   ConversationView,
   MessageView,
   MuteLevel,
+  OutgoingAttachment,
   PaginatedMessages,
   UserSnapshot,
 } from '../../../entities/chat/model/types';
@@ -82,6 +83,22 @@ export const chatApi = {
 
   markRead: (conversationId: string) =>
     api.post(`/conversations/${conversationId}/messages/read`).then((r) => r.data),
+
+  sendMessage: (
+    conversationId: string,
+    dto: {
+      text?: string;
+      replyToId?: string;
+      attachments?: OutgoingAttachment[];
+      clientMessageId?: string;
+    },
+  ) =>
+    api
+      .post<MessageView>(`/conversations/${conversationId}/messages`, {
+        ...dto,
+        conversationId,
+      })
+      .then((r) => r.data),
 
   uploadAttachment: (
     conversationId: string,

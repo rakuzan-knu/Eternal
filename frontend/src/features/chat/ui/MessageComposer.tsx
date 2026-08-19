@@ -96,14 +96,40 @@ export default function MessageComposer({
   const handleSendRecordedMedia = async (payload: RecordedPayload) => {
     try {
       setIsSending(true);
-      const uploaded = await actions.uploadAttachment(payload.file);
+      let uploaded: Partial<OutgoingAttachment> = {};
+
+      try {
+        uploaded = await actions.uploadAttachment(payload.file);
+      } catch (uploadErr) {
+        // Resilient fallback: convert recorded Blob to Data URL if server upload endpoint fails
+        try {
+          const reader = new FileReader();
+          const dataUrlPromise = new Promise<string>((resolve) => {
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = () => resolve(payload.previewUrl);
+          });
+          reader.readAsDataURL(payload.file);
+          const dataUrl = await dataUrlPromise;
+          uploaded = {
+            url: dataUrl,
+            type: payload.mode === 'voice' ? 'AUDIO' : 'VIDEO',
+            fileName: payload.file.name,
+            mimeType: payload.file.type || (payload.mode === 'voice' ? 'audio/webm' : 'video/webm'),
+            size: payload.file.size,
+          };
+        } catch {
+          throw uploadErr;
+        }
+      }
+
       const outgoing: OutgoingAttachment = {
-        ...uploaded,
         type: payload.mode === 'voice' ? 'AUDIO' : 'VIDEO',
+        url: uploaded.url || payload.previewUrl,
         size: payload.file.size,
-        duration: payload.duration,
+        duration: Math.max(1, Math.round(payload.duration || 1)),
         waveform: payload.waveform,
         fileName: payload.file.name,
+        mimeType: payload.file.type || (payload.mode === 'voice' ? 'audio/webm' : 'video/webm'),
       };
 
       await actions.sendMessage('', replyingTo?.id, [outgoing]);
@@ -225,34 +251,68 @@ export default function MessageComposer({
   };
 
   const handleSend = async () => {
-    if (isSending || !hasContent) return;
+    if (!hasContent) return;
 
-    setIsSending(true);
+    const textToSend = text;
+    const filesToSend = [...stagedFiles];
+    const replyToSend = replyingTo;
+
+    // Immediately clear input fields & draft for responsive Telegram-style UX
+    setText('');
+    onClearFiles();
+    onCancelReply();
+    useChatDraftsStore.getState().clearDraft(conversationId);
+    actions.setTyping(false);
+    if (typingTimeout.current) clearTimeout(typingTimeout.current);
+    if (textareaRef.current) {
+      textareaRef.current.style.height = `${MIN_TEXTAREA_HEIGHT}px`;
+      textareaRef.current.focus();
+    }
+
     try {
+      setIsSending(true);
       let attachments: OutgoingAttachment[] | undefined;
 
-      if (stagedFiles.length > 0) {
+      if (filesToSend.length > 0) {
         attachments = await Promise.all(
-          stagedFiles.map(async (staged) => {
-            const uploaded = await actions.uploadAttachment(staged.file);
-            return {
-              ...uploaded,
-              isSpoiler: staged.isSpoiler,
-            };
+          filesToSend.map(async (staged) => {
+            try {
+              const uploaded = await actions.uploadAttachment(staged.file);
+              return {
+                ...uploaded,
+                isSpoiler: staged.isSpoiler,
+              };
+            } catch {
+              // Resilient data URL fallback if server upload endpoint encounters an issue
+              const reader = new FileReader();
+              const dataUrlPromise = new Promise<string>((resolve) => {
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = () => resolve(staged.previewUrl);
+              });
+              reader.readAsDataURL(staged.file);
+              const dataUrl = await dataUrlPromise;
+              return {
+                url: dataUrl,
+                type: staged.file.type.startsWith('image/')
+                  ? ('IMAGE' as const)
+                  : staged.file.type.startsWith('video/')
+                    ? ('VIDEO' as const)
+                    : staged.file.type.startsWith('audio/')
+                      ? ('AUDIO' as const)
+                      : ('FILE' as const),
+                fileName: staged.file.name,
+                mimeType: staged.file.type,
+                size: staged.file.size,
+                isSpoiler: staged.isSpoiler,
+              };
+            }
           }),
         );
       }
 
-      await actions.sendMessage(text, replyingTo?.id, attachments);
-
-      onClearFiles();
-      setText('');
-      useChatDraftsStore.getState().clearDraft(conversationId);
-      onCancelReply();
-      actions.setTyping(false);
-      if (typingTimeout.current) clearTimeout(typingTimeout.current);
-    } catch {
-      // Attachment or send error
+      await actions.sendMessage(textToSend, replyToSend?.id, attachments);
+    } catch (err) {
+      console.error('Failed to send message:', err);
     } finally {
       setIsSending(false);
     }
@@ -261,7 +321,7 @@ export default function MessageComposer({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (hasContent && !isSending) {
+      if (hasContent) {
         handleSend();
       }
     }
@@ -301,11 +361,30 @@ export default function MessageComposer({
           stream={recorder.stream}
           previewPayload={recorder.previewPayload}
           dragOffset={recorder.dragOffset}
+          availableCameras={recorder.availableCameras}
+          activeCameraId={recorder.activeCameraId}
+          cameraToast={recorder.cameraToast}
           onToggleFacing={recorder.toggleFacingMode}
+          onSelectCamera={recorder.switchCamera}
           onDiscard={recorder.discardRecording}
           onPausePreview={recorder.stopToPreview}
           onSend={recorder.stopAndSend}
         />
+      )}
+
+      {/* 1-Second Center Chat Screen Dissolving Mode Toast */}
+      {recorder.modeToast && (
+        <div className="fixed inset-0 pointer-events-none flex items-center justify-center z-50">
+          <div
+            className={`px-4 py-2.5 rounded-2xl bg-[#14151f]/90 border border-white/10 backdrop-blur-2xl text-white text-[13px] sm:text-sm font-medium shadow-[0_12px_40px_rgba(0,0,0,0.7)] select-none transition-all duration-300 ease-out ${
+              recorder.modeToast.isFading
+                ? 'opacity-0 scale-95'
+                : 'opacity-100 scale-100 animate-popIn'
+            }`}
+          >
+            {recorder.modeToast.text}
+          </div>
+        </div>
       )}
 
       {stagedFilesError && (
@@ -461,6 +540,7 @@ export default function MessageComposer({
               isOpen={openPopover === 'emoji'}
               onToggle={() => togglePopover('emoji')}
               onEmojiSelect={handleEmojiSelect}
+              usePortal={true}
             />
 
             <AddGifButton
@@ -469,6 +549,7 @@ export default function MessageComposer({
               title={canSendMedia ? 'Add GIF' : 'This action is restricted in this chat'}
               onToggle={() => togglePopover('gif')}
               onGifSelect={handleGifSelect}
+              usePortal={true}
             />
 
             {slowModeSecondsRemaining > 0 ? (

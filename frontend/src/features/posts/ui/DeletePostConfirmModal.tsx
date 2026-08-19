@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Trash2 } from 'lucide-react';
 
 interface DeletePostConfirmModalProps {
@@ -14,12 +15,29 @@ export function DeletePostConfirmModal({
   onClose,
   onConfirm,
 }: DeletePostConfirmModalProps) {
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isDeleting) onClose();
+    };
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, isDeleting, onClose]);
+
   if (!isOpen) return null;
 
-  return (
+  const modalContent = (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-fadeIn"
-      onClick={onClose}
+      className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fadeIn"
+      onClick={isDeleting ? undefined : onClose}
     >
       <div
         className="bg-[#1c1c20] border border-white/10 rounded-3xl w-full max-w-sm p-6 shadow-2xl animate-scaleIn text-center"
@@ -55,6 +73,8 @@ export function DeletePostConfirmModal({
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : null;
 }
 
 export default DeletePostConfirmModal;

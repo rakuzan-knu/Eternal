@@ -230,7 +230,7 @@ export default function MessageBubble({
       id={`msg-${message.id}`}
       className={`group relative flex items-center gap-2 px-3 sm:px-4 py-0 ${verticalSpacingClass} ${
         isOwnMessage ? 'justify-end' : 'justify-start'
-      }`}
+      } ${showHoverBar ? 'z-20' : 'z-0'}`}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -295,63 +295,6 @@ export default function MessageBubble({
           </div>
         )}
 
-        {/* Absolute Floating Hover Action Bar (Zero-Jitter, No DOM Flow displacement) */}
-        {showHoverBar && (
-          <div
-            className={`absolute -top-3.5 ${
-              isOwnMessage ? 'right-2' : 'left-2 sm:left-4'
-            } z-30 flex items-center gap-0.5 bg-[#14151f]/95 backdrop-blur-xl border border-white/[0.14] rounded-full px-1.5 py-0.5 shadow-2xl animate-popIn`}
-          >
-            <button
-              type="button"
-              onClick={() => setPickerOpen((v) => !v)}
-              className="w-6 h-6 flex items-center justify-center rounded-full text-gray-300 hover:text-white hover:bg-white/10 transition-colors"
-              title="React"
-            >
-              <Smile size={14} />
-            </button>
-            <button
-              type="button"
-              onClick={() => onReply(message)}
-              className="w-6 h-6 flex items-center justify-center rounded-full text-gray-300 hover:text-white hover:bg-white/10 transition-colors"
-              title="Reply"
-            >
-              <Reply size={14} />
-            </button>
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setMenuOpen((v) => !v)}
-                className="w-6 h-6 flex items-center justify-center rounded-full text-gray-300 hover:text-white hover:bg-white/10 transition-colors"
-                title="More actions"
-              >
-                <MoreHorizontal size={14} />
-              </button>
-              {isMenuOpen && (
-                <MessageContextMenu
-                  message={message}
-                  isOwnMessage={isOwnMessage}
-                  align={isOwnMessage ? 'right' : 'left'}
-                  onClose={() => setMenuOpen(false)}
-                  onEdit={() => onEdit(message)}
-                  onDelete={() => setDeleteModalOpen(true)}
-                  onForward={() => onForward(message)}
-                  onTogglePin={() => onTogglePin(message)}
-                  onReport={() => onReport(message)}
-                  onSelectMessage={() => onToggleSelect?.(message.id, false)}
-                />
-              )}
-            </div>
-            {isPickerOpen && (
-              <MessageReactionPicker
-                align={isOwnMessage ? 'right' : 'left'}
-                onPick={(emoji) => handleReactionClick(emoji)}
-                onClose={() => setPickerOpen(false)}
-              />
-            )}
-          </div>
-        )}
-
         <div
           className="max-w-[84%] sm:max-w-[74%] flex flex-col"
           style={{ alignItems: isOwnMessage ? 'flex-end' : 'flex-start' }}
@@ -369,124 +312,237 @@ export default function MessageBubble({
             </p>
           )}
 
-          {pollData ? (
-            <div className="flex flex-col">
-              <ChatPollCard messageId={message.id} poll={pollData} isOwnMessage={isOwnMessage} />
-              <span className="inline-flex items-center gap-1 self-end mt-1 px-2 py-0.5 rounded-full bg-black/40 text-[10px] text-gray-400 select-none">
-                {formatMessageTime(message.createdAt)}
-                {isOwnMessage && statusIcon}
-              </span>
-            </div>
-          ) : isSoloEmoji ? (
-            /* Solo Emoji Large Transparent Display */
-            <div className="relative p-1 select-text">
-              <span className="text-4xl sm:text-5xl leading-tight inline-block filter drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] select-text">
-                {message.body!.trim()}
-              </span>
-              <span className="inline-flex items-center gap-1 ml-2 align-bottom px-1.5 py-0.5 rounded-full bg-black/50 backdrop-blur-md text-[10px] text-white/70 select-none">
-                {formatMessageTime(message.createdAt)}
-                {isOwnMessage && statusIcon}
-              </span>
-            </div>
-          ) : (
-            /* Dark Liquid Glass Bubble */
-            <div
-              className={`relative px-3.5 py-2 transition-all ${roundingClass} ${
-                isOwnMessage
-                  ? 'bg-gradient-to-br from-purple-600/30 to-purple-800/20 backdrop-blur-xl border border-purple-500/30 text-white shadow-[0_4px_20px_rgba(147,51,234,0.15)]'
-                  : 'bg-[#12131b]/80 backdrop-blur-xl border border-white/[0.08] text-white/90 shadow-[0_4px_16px_rgba(0,0,0,0.4)]'
-              }`}
-            >
-              {/* Interactive Quoted Message */}
-              {message.replyTo && (
-                <div
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onJumpToMessage?.(message.replyTo!.id);
-                  }}
-                  className={`mb-1.5 px-2.5 py-1 rounded-lg max-w-full text-left cursor-pointer transition-opacity hover:opacity-85 active:scale-[0.99] ${
-                    isOwnMessage
-                      ? 'border-l-[3px] border-purple-400 bg-purple-500/10 text-gray-200'
-                      : 'border-l-[3px] border-sky-400 bg-sky-500/10 text-gray-200'
-                  }`}
-                  title="Jump to original message"
-                >
-                  <p
-                    className={`text-[11px] font-bold ${
-                      isOwnMessage ? 'text-purple-300' : 'text-sky-400'
-                    }`}
-                  >
-                    {message.replyTo.sender.displayName ?? message.replyTo.sender.username}
-                  </p>
-                  <p className="text-[11px] truncate text-gray-300">
-                    {message.replyTo.body || 'Attachment'}
-                  </p>
-                </div>
-              )}
-
-              {message.attachments && message.attachments.length > 0 && (
-                <div className="relative mb-1">
-                  <MessageAttachments
-                    attachments={message.attachments}
-                    isOwnMessage={isOwnMessage}
-                    senderName={
-                      isOwnMessage ? 'You' : message.sender.displayName || message.sender.username
-                    }
-                    sentAt={formatMessageTime(message.createdAt)}
-                    conversationId={message.conversationId}
-                  />
-                  {!message.body && (
-                    <div
-                      className="absolute bottom-1.5 right-1.5 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-white select-none"
-                      title={statusLabel}
-                    >
-                      <span className="text-[10px] font-normal tracking-tight">
-                        {formatMessageTime(message.createdAt)}
-                      </span>
-                      {isOwnMessage && statusIcon}
+          <div className="relative max-w-full">
+            {/* Absolute Floating Hover Action Bar (Instagram style: left of own messages, right of others, vertically centered) */}
+            {showHoverBar && (
+              <div
+                className={`absolute top-1/2 -translate-y-1/2 ${
+                  isOwnMessage ? 'right-[calc(100%+8px)]' : 'left-[calc(100%+8px)]'
+                } z-30 flex items-center gap-0.5 bg-[#14151f]/95 backdrop-blur-xl border border-white/[0.14] rounded-full px-1.5 py-0.5 shadow-2xl animate-popIn whitespace-nowrap select-none`}
+              >
+                {isOwnMessage ? (
+                  <>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setMenuOpen((v) => !v)}
+                        className="w-6 h-6 flex items-center justify-center rounded-full text-gray-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                        title="More actions"
+                      >
+                        <MoreHorizontal size={14} />
+                      </button>
+                      {isMenuOpen && (
+                        <MessageContextMenu
+                          message={message}
+                          isOwnMessage={isOwnMessage}
+                          align="right"
+                          onClose={() => setMenuOpen(false)}
+                          onEdit={() => onEdit(message)}
+                          onDelete={() => setDeleteModalOpen(true)}
+                          onForward={() => onForward(message)}
+                          onTogglePin={() => onTogglePin(message)}
+                          onReport={() => onReport(message)}
+                          onSelectMessage={() => onToggleSelect?.(message.id, false)}
+                        />
+                      )}
                     </div>
-                  )}
-                </div>
-              )}
-
-              {message.body && (
-                <div className="relative text-[14.5px] leading-[1.38] break-words">
-                  {displayText && (
-                    <span className="font-normal text-white">
-                      <TextWithSpoilers text={displayText} />
-                    </span>
-                  )}
-
-                  {embeddedPostId && (
-                    <PostEmbedCard postId={embeddedPostId} isOwnMessage={isOwnMessage} />
-                  )}
-
-                  {firstExternalUrl && <LinkPreviewCard url={firstExternalUrl} />}
-
-                  <span className="inline-flex items-center gap-1 align-baseline float-right ml-2 mt-1 select-none whitespace-nowrap text-gray-400">
-                    {message.isEdited && (
-                      <span className="text-[10px] opacity-75 font-normal">edited</span>
+                    <button
+                      type="button"
+                      onClick={() => onReply(message)}
+                      className="w-6 h-6 flex items-center justify-center rounded-full text-gray-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                      title="Reply"
+                    >
+                      <Reply size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPickerOpen((v) => !v)}
+                      className="w-6 h-6 flex items-center justify-center rounded-full text-gray-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                      title="React"
+                    >
+                      <Smile size={14} />
+                    </button>
+                    {isPickerOpen && (
+                      <MessageReactionPicker
+                        align="right"
+                        onPick={(emoji) => handleReactionClick(emoji)}
+                        onClose={() => setPickerOpen(false)}
+                      />
                     )}
-                    <span className="text-[11px] font-normal tracking-tight">
-                      {formatMessageTime(message.createdAt)}
-                    </span>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setPickerOpen((v) => !v)}
+                      className="w-6 h-6 flex items-center justify-center rounded-full text-gray-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                      title="React"
+                    >
+                      <Smile size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onReply(message)}
+                      className="w-6 h-6 flex items-center justify-center rounded-full text-gray-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                      title="Reply"
+                    >
+                      <Reply size={14} />
+                    </button>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setMenuOpen((v) => !v)}
+                        className="w-6 h-6 flex items-center justify-center rounded-full text-gray-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                        title="More actions"
+                      >
+                        <MoreHorizontal size={14} />
+                      </button>
+                      {isMenuOpen && (
+                        <MessageContextMenu
+                          message={message}
+                          isOwnMessage={isOwnMessage}
+                          align="left"
+                          onClose={() => setMenuOpen(false)}
+                          onEdit={() => onEdit(message)}
+                          onDelete={() => setDeleteModalOpen(true)}
+                          onForward={() => onForward(message)}
+                          onTogglePin={() => onTogglePin(message)}
+                          onReport={() => onReport(message)}
+                          onSelectMessage={() => onToggleSelect?.(message.id, false)}
+                        />
+                      )}
+                    </div>
+                    {isPickerOpen && (
+                      <MessageReactionPicker
+                        align="left"
+                        onPick={(emoji) => handleReactionClick(emoji)}
+                        onClose={() => setPickerOpen(false)}
+                      />
+                    )}
+                  </>
+                )}
+              </div>
+            )}
 
-                    {isOwnMessage && (
-                      <span
-                        className="relative group/status inline-flex items-center cursor-default"
+            {pollData ? (
+              <div className="flex flex-col">
+                <ChatPollCard messageId={message.id} poll={pollData} isOwnMessage={isOwnMessage} />
+                <span className="inline-flex items-center gap-1 self-end mt-1 px-2 py-0.5 rounded-full bg-black/40 text-[10px] text-gray-400 select-none">
+                  {formatMessageTime(message.createdAt)}
+                  {isOwnMessage && statusIcon}
+                </span>
+              </div>
+            ) : isSoloEmoji ? (
+              /* Solo Emoji Large Transparent Display */
+              <div className="relative p-1 select-text">
+                <span className="text-4xl sm:text-5xl leading-tight inline-block filter drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] select-text">
+                  {message.body!.trim()}
+                </span>
+                <span className="inline-flex items-center gap-1 ml-2 align-bottom px-1.5 py-0.5 rounded-full bg-black/50 backdrop-blur-md text-[10px] text-white/70 select-none">
+                  {formatMessageTime(message.createdAt)}
+                  {isOwnMessage && statusIcon}
+                </span>
+              </div>
+            ) : (
+              /* Dark Liquid Glass Bubble */
+              <div
+                className={`relative px-3.5 py-2 transition-all ${roundingClass} ${
+                  isOwnMessage
+                    ? 'bg-gradient-to-br from-purple-600/30 to-purple-800/20 backdrop-blur-xl border border-purple-500/30 text-white shadow-[0_4px_20px_rgba(147,51,234,0.15)]'
+                    : 'bg-[#12131b]/80 backdrop-blur-xl border border-white/[0.08] text-white/90 shadow-[0_4px_16px_rgba(0,0,0,0.4)]'
+                }`}
+              >
+                {/* Interactive Quoted Message */}
+                {message.replyTo && (
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onJumpToMessage?.(message.replyTo!.id);
+                    }}
+                    className={`mb-1.5 px-2.5 py-1 rounded-lg max-w-full text-left cursor-pointer transition-opacity hover:opacity-85 active:scale-[0.99] ${
+                      isOwnMessage
+                        ? 'border-l-[3px] border-purple-400 bg-purple-500/10 text-gray-200'
+                        : 'border-l-[3px] border-sky-400 bg-sky-500/10 text-gray-200'
+                    }`}
+                    title="Jump to original message"
+                  >
+                    <p
+                      className={`text-[11px] font-bold ${
+                        isOwnMessage ? 'text-purple-300' : 'text-sky-400'
+                      }`}
+                    >
+                      {message.replyTo.sender.displayName ?? message.replyTo.sender.username}
+                    </p>
+                    <p className="text-[11px] truncate text-gray-300">
+                      {message.replyTo.body || 'Attachment'}
+                    </p>
+                  </div>
+                )}
+
+                {message.attachments && message.attachments.length > 0 && (
+                  <div className="relative mb-1">
+                    <MessageAttachments
+                      attachments={message.attachments}
+                      isOwnMessage={isOwnMessage}
+                      senderName={
+                        isOwnMessage ? 'You' : message.sender.displayName || message.sender.username
+                      }
+                      sentAt={formatMessageTime(message.createdAt)}
+                      conversationId={message.conversationId}
+                    />
+                    {!message.body && (
+                      <div
+                        className="absolute bottom-1.5 right-1.5 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-white select-none"
                         title={statusLabel}
                       >
-                        {statusIcon}
-                        <span className="absolute bottom-full mb-1.5 right-1/2 translate-x-1/2 hidden group-hover/status:flex items-center px-2 py-0.5 rounded-md bg-black/90 text-white text-[10px] font-medium whitespace-nowrap shadow-lg border border-white/10 z-30 pointer-events-none animate-fadeIn">
-                          {statusLabel}
+                        <span className="text-[10px] font-normal tracking-tight">
+                          {formatMessageTime(message.createdAt)}
                         </span>
+                        {isOwnMessage && statusIcon}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {message.body && (
+                  <div className="relative text-[14.5px] leading-[1.38] break-words">
+                    {displayText && (
+                      <span className="font-normal text-white">
+                        <TextWithSpoilers text={displayText} />
                       </span>
                     )}
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
+
+                    {embeddedPostId && (
+                      <PostEmbedCard postId={embeddedPostId} isOwnMessage={isOwnMessage} />
+                    )}
+
+                    {firstExternalUrl && <LinkPreviewCard url={firstExternalUrl} />}
+
+                    <span className="inline-flex items-center gap-1 align-baseline float-right ml-2 mt-1 select-none whitespace-nowrap text-gray-400">
+                      {message.isEdited && (
+                        <span className="text-[10px] opacity-75 font-normal">edited</span>
+                      )}
+                      <span className="text-[11px] font-normal tracking-tight">
+                        {formatMessageTime(message.createdAt)}
+                      </span>
+
+                      {isOwnMessage && (
+                        <span
+                          className="relative group/status inline-flex items-center cursor-default"
+                          title={statusLabel}
+                        >
+                          {statusIcon}
+                          <span className="absolute bottom-full mb-1.5 right-1/2 translate-x-1/2 hidden group-hover/status:flex items-center px-2 py-0.5 rounded-md bg-black/90 text-white text-[10px] font-medium whitespace-nowrap shadow-lg border border-white/10 z-30 pointer-events-none animate-fadeIn">
+                            {statusLabel}
+                          </span>
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {message.reactions.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-1 px-1">
