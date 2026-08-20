@@ -66,5 +66,42 @@ describe('getConversationDisplay', () => {
         },
       } as unknown as ConversationView),
     ).toBe('Hey there!');
+
+    expect(
+      getMessagePreview({
+        type: 'DIRECT',
+        lastMessage: {
+          isDeleted: false,
+          body: null,
+          attachments: [{ type: 'AUDIO', duration: 15 }],
+        },
+      } as unknown as ConversationView),
+    ).toBe('Voice message (0:15)');
+
+    expect(
+      getMessagePreview({
+        type: 'DIRECT',
+        lastMessage: {
+          isDeleted: false,
+          body: null,
+          attachments: [{ type: 'VIDEO', fileName: 'video_note_123.webm', duration: 20 }],
+        },
+      } as unknown as ConversationView),
+    ).toBe('Video message (0:20)');
+
+    expect(
+      getMessagePreview(
+        {
+          type: 'DIRECT',
+          lastMessage: {
+            sender: { id: 'my-id' },
+            isDeleted: false,
+            body: null,
+            attachments: [{ type: 'AUDIO', duration: 45 }],
+          },
+        } as unknown as ConversationView,
+        'my-id',
+      ),
+    ).toBe('You: Voice message (0:45)');
   });
 });

@@ -4,6 +4,7 @@ import { useUIStore } from '../../../shared/model/useUIStore';
 
 interface DeleteChatHistoryModalProps {
   conversationName: string;
+  isGroup?: boolean;
   onClose: () => void;
   onConfirm: () => void;
   isLoading?: boolean;
@@ -11,6 +12,7 @@ interface DeleteChatHistoryModalProps {
 
 export default function DeleteChatHistoryModal({
   conversationName,
+  isGroup = false,
   onClose,
   onConfirm,
   isLoading = false,
@@ -26,12 +28,25 @@ export default function DeleteChatHistoryModal({
     <Modal onClose={onClose} className="w-full max-w-sm">
       {() => (
         <div className="bg-[#151922]/95 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 shadow-2xl text-left">
-          <p className="text-[15px] font-medium text-gray-100 leading-snug mb-3">
-            Are you sure you want to delete all message history with{' '}
-            <span className="font-semibold text-white">{conversationName}</span>?
+          <p className="text-[15px] font-medium text-gray-100 leading-snug mb-2">
+            {isGroup ? (
+              <>
+                Are you sure you want to delete all message history in{' '}
+                <span className="font-semibold text-white">{conversationName}</span>?
+              </>
+            ) : (
+              <>
+                Are you sure you want to delete all message history with{' '}
+                <span className="font-semibold text-white">{conversationName}</span>?
+              </>
+            )}
           </p>
 
-          <p className="text-[13px] text-gray-400 mb-6">This action cannot be undone.</p>
+          <p className="text-[13px] text-gray-400 mb-5">
+            {isGroup
+              ? 'This will delete messages in this group for you only. You will have 5 seconds to cancel.'
+              : 'This will delete all messages from all users in this chat. You will have 5 seconds to cancel.'}
+          </p>
 
           <div className="mb-6">
             <button

@@ -206,6 +206,15 @@ export default function ChatListPanel({
     setFolderModalOpen(true);
   };
 
+  React.useEffect(() => {
+    const handler = () => {
+      setEditingFolder(null);
+      setFolderModalOpen(true);
+    };
+    window.addEventListener('open-create-folder', handler);
+    return () => window.removeEventListener('open-create-folder', handler);
+  }, []);
+
   const handleEditFolder = (folder: ChatFolder) => {
     setEditingFolder(folder);
     setFolderModalOpen(true);

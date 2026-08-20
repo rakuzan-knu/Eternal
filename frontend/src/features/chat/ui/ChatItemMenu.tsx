@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Mail,
   MailOpen,
@@ -17,11 +18,12 @@ import {
   FolderPlus,
   Eraser,
   AppWindow,
-  Check,
 } from 'lucide-react';
 import DropdownMenu, { DropdownMenuItem } from '../../../shared/ui/DropdownMenu';
 import { ConversationView } from '../../../entities/chat/model/types';
 import {
+  CONVERSATIONS_KEY,
+  CONVERSATION_MESSAGES_KEY,
   useArchiveConversation,
   useClearChatHistory,
   useDeleteConversation,
@@ -29,6 +31,7 @@ import {
   useMuteConversation,
 } from '../../../features/chat/model/useConversationMutations';
 import { useChatFoldersStore } from '../../../features/chat/model/useChatFoldersStore';
+import { useClearHistoryUndoStore } from '../../../features/chat/model/useClearHistoryUndoStore';
 import MuteOptionsModal from './MuteOptionsModal';
 import SelectToneModal from './SelectToneModal';
 import DeleteChatHistoryModal from './DeleteChatHistoryModal';
@@ -68,14 +71,17 @@ export default function ChatItemMenu({
   onCreateFolder,
 }: ChatItemMenuProps) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const muteConversation = useMuteConversation();
   const archiveConversation = useArchiveConversation();
   const markRead = useMarkConversationRead();
   const deleteConversation = useDeleteConversation();
   const clearChatHistory = useClearChatHistory();
+  const startUndo = useClearHistoryUndoStore((s) => s.startUndo);
 
   const { folders, toggleConversationInFolder } = useChatFoldersStore();
 
+  const [isDropdownVisible, setIsDropdownVisible] = useState(true);
   const [activeModal, setActiveModal] = useState<
     'muteOptions' | 'selectTone' | 'clearHistory' | 'deleteChat' | null
   >(null);
@@ -98,6 +104,16 @@ export default function ChatItemMenu({
     }
   };
 
+  const openModal = (modal: 'muteOptions' | 'selectTone' | 'clearHistory' | 'deleteChat') => {
+    setActiveModal(modal);
+    setIsDropdownVisible(false);
+  };
+
+  const closeModal = () => {
+    setActiveModal(null);
+    onClose();
+  };
+
   // Build folder submenu items
   const folderSubmenuItems: DropdownMenuItem[] = [
     ...folders.map((folder) => {
@@ -117,19 +133,20 @@ export default function ChatItemMenu({
         },
       };
     }),
-    ...(onCreateFolder
-      ? [
-          {
-            key: 'new-folder',
-            label: 'New folder...',
-            icon: <FolderPlus size={16} />,
-            divider: folders.length > 0,
-            onClick: () => {
-              onCreateFolder();
-            },
-          },
-        ]
-      : []),
+    {
+      key: 'create-folder',
+      label: 'Create folder',
+      icon: <FolderPlus size={16} />,
+      divider: folders.length > 0,
+      onClick: () => {
+        if (onCreateFolder) {
+          onCreateFolder();
+        } else {
+          window.dispatchEvent(new CustomEvent('open-create-folder'));
+        }
+        closeModal();
+      },
+    },
   ];
 
   // Build mute submenu items
@@ -138,23 +155,25 @@ export default function ChatItemMenu({
       key: 'select-tone',
       label: 'Select tone',
       icon: <SlidersHorizontal size={16} />,
-      onClick: () => setActiveModal('selectTone'),
+      onClick: () => openModal('selectTone'),
     },
     {
       key: 'disable-sound',
       label: 'Disable sound',
       icon: <VolumeX size={16} />,
-      onClick: () =>
+      onClick: () => {
         muteConversation.mutate({
           conversationId: conversation.id,
           muteLevel: 'MESSAGES',
-        }),
+        });
+        closeModal();
+      },
     },
     {
       key: 'mute-for',
       label: 'Mute for...',
       icon: <Clock size={16} />,
-      onClick: () => setActiveModal('muteOptions'),
+      onClick: () => openModal('muteOptions'),
     },
     {
       key: 'mute-forever',
@@ -162,11 +181,13 @@ export default function ChatItemMenu({
       icon: isMuted ? <Bell size={16} /> : <BellOff size={16} />,
       danger: !isMuted,
       divider: true,
-      onClick: () =>
+      onClick: () => {
         muteConversation.mutate({
           conversationId: conversation.id,
           muteLevel: isMuted ? 'NONE' : 'MESSAGES_AND_CALLS',
-        }),
+        });
+        closeModal();
+      },
     },
   ];
 
@@ -241,61 +262,91 @@ export default function ChatItemMenu({
       label: 'Clear history',
       icon: <Eraser size={18} />,
       divider: true,
-      onClick: () => setActiveModal('clearHistory'),
+      onClick: () => openModal('clearHistory'),
     },
     {
       key: 'delete-chat',
       label: 'Delete chat',
       icon: <Trash2 size={18} />,
       danger: true,
-      onClick: () => setActiveModal('deleteChat'),
+      onClick: () => openModal('deleteChat'),
     },
   ];
 
+  const handleConfirmClearHistory = () => {
+    const forAll = !isGroup;
+
+    // Snapshot current query cache state
+    const prevMessages = queryClient.getQueryData([CONVERSATION_MESSAGES_KEY, conversation.id]);
+    const prevConversations = queryClient.getQueryData<ConversationView[]>([CONVERSATIONS_KEY]);
+
+    // Optimistically clear messages and lastMessage
+    queryClient.setQueryData([CONVERSATION_MESSAGES_KEY, conversation.id], {
+      pages: [{ data: [], hasMore: false, nextCursor: null }],
+      pageParams: [undefined],
+    });
+    queryClient.setQueryData<ConversationView[]>([CONVERSATIONS_KEY], (prev) =>
+      prev?.map((c) =>
+        c.id === conversation.id ? { ...c, lastMessage: null, unreadCount: 0 } : c,
+      ),
+    );
+
+    startUndo({
+      conversationId: conversation.id,
+      conversationTitle,
+      forAll,
+      rollback: () => {
+        if (prevMessages !== undefined) {
+          queryClient.setQueryData([CONVERSATION_MESSAGES_KEY, conversation.id], prevMessages);
+        }
+        if (prevConversations !== undefined) {
+          queryClient.setQueryData([CONVERSATIONS_KEY], prevConversations);
+        }
+      },
+      execute: () => {
+        clearChatHistory.mutate({ conversationId: conversation.id, forAll });
+      },
+    });
+
+    closeModal();
+  };
+
+  const handleConfirmDeleteChat = (forAll: boolean) => {
+    deleteConversation.mutate({
+      conversationId: conversation.id,
+      forAll: isGroup ? false : forAll,
+    });
+    closeModal();
+  };
+
   return (
     <>
-      <DropdownMenu items={items} onClose={onClose} align="right" />
+      {isDropdownVisible && <DropdownMenu items={items} onClose={onClose} align="right" />}
 
       {activeModal === 'muteOptions' && (
         <MuteOptionsModal
-          onClose={() => {
-            setActiveModal(null);
-            onClose();
-          }}
+          onClose={closeModal}
           onConfirm={(muteLevel, mutedUntil) => {
             muteConversation.mutate({
               conversationId: conversation.id,
               muteLevel,
               mutedUntil,
             });
-            setActiveModal(null);
-            onClose();
+            closeModal();
           }}
         />
       )}
 
       {activeModal === 'selectTone' && (
-        <SelectToneModal
-          conversationId={conversation.id}
-          onClose={() => {
-            setActiveModal(null);
-            onClose();
-          }}
-        />
+        <SelectToneModal conversationId={conversation.id} onClose={closeModal} />
       )}
 
       {activeModal === 'clearHistory' && (
         <DeleteChatHistoryModal
           conversationName={conversationTitle}
-          onClose={() => {
-            setActiveModal(null);
-            onClose();
-          }}
-          onConfirm={() => {
-            clearChatHistory.mutate({ conversationId: conversation.id, forAll: false });
-            setActiveModal(null);
-            onClose();
-          }}
+          isGroup={isGroup}
+          onClose={closeModal}
+          onConfirm={handleConfirmClearHistory}
           isLoading={clearChatHistory.isPending}
         />
       )}
@@ -307,15 +358,8 @@ export default function ChatItemMenu({
           isGroup={isGroup}
           memberAvatars={memberAvatars}
           otherUserName={otherUsername ?? conversationTitle}
-          onClose={() => {
-            setActiveModal(null);
-            onClose();
-          }}
-          onConfirm={(forAll) => {
-            deleteConversation.mutate({ conversationId: conversation.id, forAll });
-            setActiveModal(null);
-            onClose();
-          }}
+          onClose={closeModal}
+          onConfirm={handleConfirmDeleteChat}
           isLoading={deleteConversation.isPending}
         />
       )}

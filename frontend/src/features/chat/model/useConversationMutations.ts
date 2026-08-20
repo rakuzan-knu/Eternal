@@ -5,6 +5,8 @@ import {
   CONVERSATION_MESSAGES_KEY,
   BLOCKED_USERS_KEY,
 } from '@/shared/api/queryKeys';
+
+export { CONVERSATIONS_KEY, CONVERSATION_MESSAGES_KEY, BLOCKED_USERS_KEY };
 import { ConversationView, MuteLevel } from '../../../entities/chat/model/types';
 
 function useOptimisticConversationUpdate() {

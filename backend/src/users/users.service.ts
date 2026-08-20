@@ -5,11 +5,17 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  Optional,
   UnauthorizedException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import * as argon2 from 'argon2';
 import * as geoip from 'geoip-lite';
-import { FollowStatus, PrivacyDimension, Prisma, User } from '@prisma/client';
+import { FollowStatus, NotificationType, PrivacyDimension, Prisma, User } from '@prisma/client';
+import {
+  CreateNotificationEvent,
+  NOTIFICATION_EVENTS,
+} from '../notifications/events/notification.events';
 import {
   CreateUserDto,
   FollowStatusView,
@@ -59,6 +65,8 @@ export class UsersService {
     private readonly redis: RedisService,
     private readonly visibility: VisibilityResolver,
     private readonly prisma: PrismaService,
+    @Optional()
+    private readonly eventEmitter?: EventEmitter2,
   ) {}
 
   private userKey(id: string): string {
@@ -240,6 +248,29 @@ export class UsersService {
       where: { id: userId },
       data: { primaryBadge: targetBadgeId },
     });
+
+    await this.redis.del(this.userKey(userId));
+    return this.getProfileFor(userId, userId);
+  }
+
+  async setVerified(userId: string, isVerified: boolean): Promise<UserProfileDto> {
+    const user = await this.usersRepository.findById(userId);
+    if (!user) throw new NotFoundException('User not found');
+
+    const wasVerified = user.isVerified;
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { isVerified },
+    });
+
+    if (!wasVerified && isVerified && this.eventEmitter) {
+      this.eventEmitter.emit(
+        NOTIFICATION_EVENTS.CREATE,
+        new CreateNotificationEvent(userId, NotificationType.SYSTEM_VERIFIED, {
+          text: 'Your account has been verified. A verified badge is now visible on your profile.',
+        }),
+      );
+    }
 
     await this.redis.del(this.userKey(userId));
     return this.getProfileFor(userId, userId);

@@ -3,7 +3,6 @@ import { Virtuoso } from 'react-virtuoso';
 import CreatePost from '../../features/posts/ui/CreatePost';
 import { PostCard } from '@/widgets/post/ui/PostCard';
 import { SkeletonFeed } from '../../entities/post/ui/SkeletonPostCard';
-import { CommentModal } from '@/features/comment/ui/CommentModal';
 import { useHiddenPostsStore } from '@/shared/model/useHiddenPostsStore';
 import { usePostsFeed } from '@/entities/post/model/usePostsFeed';
 import { useCreatePost } from '@/features/posts/model/useCreatePost';
@@ -63,7 +62,6 @@ export default function FeedPage() {
         }
         isPending={createPost.isPending}
       />
-      <CommentModal />
 
       {isLoading ? (
         <SkeletonFeed count={10} />

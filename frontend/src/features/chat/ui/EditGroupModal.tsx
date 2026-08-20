@@ -26,6 +26,7 @@ export default function EditGroupModal({
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(conversation.avatar ?? null);
   const [isSaving, setIsSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const lastObjectUrlRef = useRef<string | null>(null);
 
@@ -65,11 +66,13 @@ export default function EditGroupModal({
     lastObjectUrlRef.current = newUrl;
     setAvatarFile(file);
     setAvatarPreview(newUrl);
+    setErrorMsg(null);
   };
 
   const handleSave = async (requestClose: () => void) => {
     try {
       setIsSaving(true);
+      setErrorMsg(null);
       const trimmed = name.trim();
 
       if (avatarFile) {
@@ -82,8 +85,9 @@ export default function EditGroupModal({
 
       queryClient.invalidateQueries({ queryKey: [CONVERSATIONS_KEY] });
       requestClose();
-    } catch {
+    } catch (err: any) {
       setIsSaving(false);
+      setErrorMsg(err?.response?.data?.message || err?.message || 'Failed to update group');
     }
   };
 
@@ -175,6 +179,13 @@ export default function EditGroupModal({
               <span className="text-sm text-gray-500">{memberCount}</span>
             </button>
           </div>
+
+          {/* Error message */}
+          {errorMsg && (
+            <div className="px-5 pb-2">
+              <p className="text-xs text-red-400 font-medium">{errorMsg}</p>
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex items-center gap-3 px-5 py-4 border-t border-white/10">

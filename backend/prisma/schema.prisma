@@ -57,6 +57,9 @@ model User {
   aliasesTargeted          UserAlias[]               @relation("AliasTarget")
   commentLikes             CommentLike[]
   commentsRepliedTo        Comment[]                 @relation("CommentReplyToUser")
+  notificationsReceived    Notification[]            @relation("UserNotifications")
+  notificationsTriggered   Notification[]            @relation("ActorNotifications")
+  notificationSettings     UserNotificationSettings?
 }
 
 model UserBadge {
@@ -85,8 +88,9 @@ model Post {
   comments   Comment[]
   reposts    Repost[]
   savedPosts SavedPost[]
-  reports    Report[]
-  poll       Poll?
+  reports       Report[]
+  poll          Poll?
+  notifications Notification[]
 
   @@index([authorId])
 }
@@ -184,8 +188,9 @@ model Comment {
   user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   parent      Comment?      @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies     Comment[]     @relation("CommentReplies")
-  replyToUser User?         @relation("CommentReplyToUser", fields: [replyToUserId], references: [id], onDelete: SetNull)
-  likes       CommentLike[]
+  replyToUser   User?          @relation("CommentReplyToUser", fields: [replyToUserId], references: [id], onDelete: SetNull)
+  likes         CommentLike[]
+  notifications Notification[]
 
   @@index([postId, parentId, createdAt])
   @@index([postId, rootParentId, createdAt])
@@ -579,3 +584,71 @@ model UserAlias {
   @@index([ownerId])
   @@map("user_aliases")
 }
+
+model Notification {
+  id         String           @id @default(cuid())
+  userId     String           @map("user_id")
+  actorId    String?          @map("actor_id")
+  type       NotificationType
+  postId     String?          @map("post_id")
+  commentId  String?          @map("comment_id")
+  text       String?          @db.Text
+  extraCount Int              @default(0) @map("extra_count")
+  isRead     Boolean          @default(false) @map("is_read")
+  createdAt  DateTime         @default(now()) @map("created_at")
+  updatedAt  DateTime         @updatedAt @map("updated_at")
+
+  user    User     @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  actor   User?    @relation("ActorNotifications", fields: [actorId], references: [id], onDelete: SetNull)
+  post    Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@index([userId, type])
+  @@index([userId, isRead, createdAt])
+  @@index([userId, type, postId])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  LIKE_POST
+  LIKE_COMMENT
+  COMMENT
+  FOLLOW
+  REPOST
+  MENTION
+  SYSTEM_VERIFIED
+  SYSTEM_VIEW
+  SYSTEM
+}
+
+model UserNotificationSettings {
+  id                  String   @id @default(uuid())
+  userId              String   @unique @map("user_id")
+  enableNotifications Boolean  @default(true) @map("enable_notifications")
+  allowSound          Boolean  @default(true) @map("allow_sound")
+  volume              Int      @default(100)
+  showName            Boolean  @default(true) @map("show_name")
+  showText            Boolean  @default(true) @map("show_text")
+  privateChats        Boolean  @default(true) @map("private_chats")
+  groups              Boolean  @default(true)
+  reactions           Boolean  @default(true)
+  likes               Boolean  @default(true)
+  comments            Boolean  @default(true)
+  reposts             Boolean  @default(true)
+  followers           Boolean  @default(true)
+  mentions            Boolean  @default(true)
+  system              Boolean  @default(true)
+  toastPosition       String    @default("bottom-right") @map("toast_position")
+  maxToasts           Int       @default(3) @map("max_toasts")
+  dndUntil            DateTime? @map("dnd_until")
+  mutedActorIds       String[]  @default([]) @map("muted_actor_ids")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_notification_settings")
+}
+

@@ -145,7 +145,15 @@ const BirthdayFields: React.FC<{ control: Control<RegisterFields> }> = ({ contro
   );
 };
 
-export const RegisterForm: React.FC = () => {
+interface RegisterFormProps {
+  onSuccess?: (data: AuthResponse) => void;
+  redirectOnSuccess?: boolean;
+}
+
+export const RegisterForm: React.FC<RegisterFormProps> = ({
+  onSuccess,
+  redirectOnSuccess = true,
+}) => {
   const { registerMutation } = useAuthMutations();
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -216,7 +224,10 @@ export const RegisterForm: React.FC = () => {
           accessToken: responseData.accessToken,
           refreshToken: responseData.refreshToken,
         });
-        navigate('/feed');
+        onSuccess?.(responseData);
+        if (redirectOnSuccess) {
+          navigate('/feed');
+        }
       },
       onError: (error) => {
         if (axios.isAxiosError(error)) {

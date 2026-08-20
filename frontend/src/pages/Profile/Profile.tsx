@@ -12,7 +12,6 @@ import ProfileHeader from '@/widgets/profile/ui/ProfileHeader';
 import ProfileTabs, { ProfileTabType } from '../../shared/ui/ProfileTabs';
 import CreatePost from '../../features/posts/ui/CreatePost';
 import { PostCard } from '@/widgets/post/ui/PostCard';
-import { CommentModal } from '../../features/comment/ui/CommentModal';
 import { SkeletonFeed } from '../../entities/post/ui/SkeletonPostCard';
 import { SavedPostsView } from '@/features/profile/ui/saved/SavedPostsView';
 import { RESERVED_USERNAMES } from '@/features/profile/model/profileSchema';
@@ -229,7 +228,6 @@ export default function ProfilePage() {
           </p>
         </div>
       )}
-      <CommentModal />
     </div>
   );
 }

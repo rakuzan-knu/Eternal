@@ -17,3 +17,5 @@ export const SAVED_POSTS_KEY = 'saved-posts';
 export const FRIENDS_KEY = 'friends';
 export const COMMENTS_KEY = 'comments';
 export const COMMENT_REPLIES_KEY = 'comment-replies';
+export const NOTIFICATIONS_KEY = 'notifications';
+export const UNREAD_NOTIFICATIONS_COUNT_KEY = 'unread-notifications-count';

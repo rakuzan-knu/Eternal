@@ -48,6 +48,16 @@ export default defineConfig({
             ) {
               return 'vendor-react';
             }
+            if (
+              normalizedId.includes('/react-hook-form/') ||
+              normalizedId.includes('/zod/') ||
+              normalizedId.includes('/@hookform/')
+            ) {
+              return 'vendor-forms';
+            }
+            if (normalizedId.includes('/react-virtuoso/')) {
+              return 'vendor-virtuoso';
+            }
             return 'vendor-libs';
           }
         },

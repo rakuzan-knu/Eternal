@@ -8,6 +8,7 @@ import Avatar from '../../../shared/ui/Avatar';
 import OnlineStatusIndicator from '../../../shared/ui/OnlineStatusIndicator';
 import { useQueryOnlineStatus } from '@/features/chat/model/usePresence';
 import { useUnreadMessagesCount } from '@/features/chat/model/useUnreadMessagesCount';
+import { useUnreadNotificationsCount } from '@/entities/notification';
 
 const menuItems = [
   { to: '/', icon: <Home size={24} />, label: 'Home' },
@@ -34,6 +35,9 @@ export default function Sidebar() {
     showPushNotifications,
   });
   const unreadMessagesLabel = unreadMessagesCount > 99 ? '99+' : String(unreadMessagesCount);
+  const unreadNotificationsCount = useUnreadNotificationsCount();
+  const unreadNotificationsLabel =
+    unreadNotificationsCount > 99 ? '99+' : String(unreadNotificationsCount);
   useQueryOnlineStatus(currentUser?.id ? [currentUser.id] : []);
 
   return (
@@ -88,6 +92,13 @@ export default function Sidebar() {
                       {unreadMessagesLabel}
                     </span>
                   )}
+                  {!isSidebarExpanded &&
+                    item.to === '/notifications' &&
+                    unreadNotificationsCount > 0 && (
+                      <span className="absolute left-[18px] top-1/2 -translate-y-1/2 min-w-[18px] h-[18px] px-1 rounded-full bg-purple-500 text-white border-2 border-[#16161a] text-[10px] font-bold leading-none flex items-center justify-center">
+                        {unreadNotificationsLabel}
+                      </span>
+                    )}
                 </span>
               </div>
               <span
@@ -104,6 +115,13 @@ export default function Sidebar() {
                   {unreadMessagesLabel}
                 </span>
               )}
+              {isSidebarExpanded &&
+                item.to === '/notifications' &&
+                unreadNotificationsCount > 0 && (
+                  <span className="ml-auto min-w-[20px] h-5 px-1.5 rounded-full bg-purple-500 text-white text-[11px] font-bold leading-none flex items-center justify-center">
+                    {unreadNotificationsLabel}
+                  </span>
+                )}
             </NavLink>
           ))}
         </nav>

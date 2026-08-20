@@ -40,6 +40,8 @@ export const WS_EVENTS = {
 
   NEW_FOLLOWER: 'newFollower',
   SOCIAL_NOTIFICATION: 'socialNotification',
+  NOTIFICATION_NEW: 'notification:new',
+  NOTIFICATION_READ: 'notification:read',
 
   GATEWAY_READY: 'gatewayReady',
   GATEWAY_RESUME: 'gatewayResume',

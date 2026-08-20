@@ -1,16 +1,43 @@
 import { z } from 'zod';
 import type { Comment } from '@prisma/client';
 
+function toSafeIsoString(val: unknown): string {
+  if (!val) return new Date().toISOString();
+  if (typeof val === 'string') return val;
+  if (val instanceof Date) return val.toISOString();
+  if (
+    typeof val === 'object' &&
+    'toISOString' in val &&
+    typeof (val as { toISOString: () => string }).toISOString === 'function'
+  ) {
+    return (val as { toISOString: () => string }).toISOString();
+  }
+  const parsed = new Date(val as string | number);
+  return isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
+}
+
 export const createCommentSchema = z.object({
   text: z
     .string()
     .min(1)
     .max(1000)
     .transform((val) => val.trim()),
-  parentId: z.string().optional(),
-  replyToUserId: z.string().optional(),
-  mediaUrl: z.string().optional().or(z.string().length(0)),
-  clientMutationId: z.string().optional(),
+  parentId: z.string().nullable().optional(),
+  replyToUserId: z.string().nullable().optional(),
+  mediaUrl: z
+    .string()
+    .nullable()
+    .optional()
+    .refine(
+      (val) =>
+        !val ||
+        val === '' ||
+        val.startsWith('http://') ||
+        val.startsWith('https://') ||
+        val.startsWith('data:image/'),
+      { message: 'mediaUrl must be a valid HTTP(S) URL or data:image/ URI' },
+    ),
+  clientMutationId: z.string().nullable().optional(),
 });
 export type CreateCommentDto = z.infer<typeof createCommentSchema>;
 
@@ -77,7 +104,7 @@ export class CommentResponseDto {
     const displayName = comment.user?.displayName || comment.user?.username || 'User';
     const handle = comment.user?.username || 'user';
     const avatar = comment.user?.avatar || null;
-    const isVerified = comment.user?.isVerified ?? false;
+    const isVerified = Boolean(comment.user?.isVerified);
     const primaryBadge = comment.user?.primaryBadge ?? null;
 
     const likesCount =
@@ -90,12 +117,20 @@ export class CommentResponseDto {
     const isLiked =
       comment.isLiked !== undefined
         ? comment.isLiked
-        : Boolean(viewerId && comment.likes?.some((l) => l.userId === viewerId));
+        : Boolean(
+            viewerId &&
+            Array.isArray(comment.likes) &&
+            comment.likes.some((l) => l.userId === viewerId),
+          );
 
     const isLikedByAuthor =
       comment.isLikedByAuthor !== undefined
         ? comment.isLikedByAuthor
-        : Boolean(postAuthorId && comment.likes?.some((l) => l.userId === postAuthorId));
+        : Boolean(
+            postAuthorId &&
+            Array.isArray(comment.likes) &&
+            comment.likes.some((l) => l.userId === postAuthorId),
+          );
 
     return {
       id: comment.id,
@@ -122,15 +157,9 @@ export class CommentResponseDto {
       replyCount,
       isLiked,
       isLikedByAuthor,
-      isPinned: comment.isPinned ?? false,
-      isDeleted: comment.isDeleted ?? false,
-      createdAt: comment.createdAt
-        ? typeof comment.createdAt === 'string'
-          ? comment.createdAt
-          : comment.createdAt instanceof Date
-            ? comment.createdAt.toISOString()
-            : new Date(comment.createdAt).toISOString()
-        : new Date().toISOString(),
+      isPinned: Boolean(comment.isPinned),
+      isDeleted: Boolean(comment.isDeleted),
+      createdAt: toSafeIsoString(comment.createdAt),
     };
   }
 }

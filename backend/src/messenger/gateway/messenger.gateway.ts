@@ -374,14 +374,23 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
     @MessageBody() payload: DeleteMessageDto,
     callback?: (res: { status: string; deletedForAll: boolean; error?: string }) => void,
   ): Promise<void> {
-    const result = await this.messagesService.delete(payload.messageId, client.userId, payload);
-
     const msg = await this.messagesService['messagesRepo'].findOne(
       payload.messageId,
       client.userId,
     );
+
+    const result = await this.messagesService.delete(payload.messageId, client.userId, payload);
+
     if (msg) {
-      this.emitMessageDeleted(msg.conversationId, result.messageId, result.deletedForAll);
+      if (result.deletedForAll) {
+        this.emitMessageDeleted(msg.conversationId, result.messageId, true);
+      } else {
+        this.emitToUser(client.userId, WS_EVENTS.MESSAGE_DELETED, {
+          conversationId: msg.conversationId,
+          messageId: result.messageId,
+          deletedForAll: false,
+        });
+      }
     }
 
     callback?.({ status: 'ok', deletedForAll: result.deletedForAll });
@@ -413,13 +422,17 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
     @MessageBody() payload: ReactToMessageDto,
     callback?: (res: { status: string; message?: unknown; error?: string }) => void,
   ): Promise<void> {
-    const updated = await this.messagesService.addReaction(
-      payload.messageId,
-      client.userId,
-      payload,
-    );
-    this.emitReactionAdded(updated.conversationId, updated);
-    callback?.({ status: 'ok', message: updated });
+    try {
+      const updated = await this.messagesService.addReaction(
+        payload.messageId,
+        client.userId,
+        payload,
+      );
+      this.emitReactionAdded(updated.conversationId, updated);
+      callback?.({ status: 'ok', message: updated });
+    } catch (err: any) {
+      callback?.({ status: 'error', error: err?.message || 'Failed to add reaction' });
+    }
   }
 
   @SubscribeMessage(WS_EVENTS.REMOVE_REACTION)
@@ -428,13 +441,17 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
     @MessageBody() payload: ReactToMessageDto,
     callback?: (res: { status: string; message?: unknown; error?: string }) => void,
   ): Promise<void> {
-    const updated = await this.messagesService.removeReaction(
-      payload.messageId,
-      client.userId,
-      payload.emoji,
-    );
-    this.emitReactionRemoved(updated.conversationId, updated);
-    callback?.({ status: 'ok', message: updated });
+    try {
+      const updated = await this.messagesService.removeReaction(
+        payload.messageId,
+        client.userId,
+        payload.emoji,
+      );
+      this.emitReactionRemoved(updated.conversationId, updated);
+      callback?.({ status: 'ok', message: updated });
+    } catch (err: any) {
+      callback?.({ status: 'error', error: err?.message || 'Failed to remove reaction' });
+    }
   }
 
   @SubscribeMessage(WS_EVENTS.PIN_MESSAGE)
@@ -443,9 +460,17 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
     @MessageBody() payload: TogglePinMessageDto,
     callback?: (res: { status: string; error?: string }) => void,
   ): Promise<void> {
-    await this.messagesService.pinMessage(payload.conversationId, payload.messageId, client.userId);
-    this.emitMessagePinned(payload.conversationId, payload.messageId);
-    callback?.({ status: 'ok' });
+    try {
+      await this.messagesService.pinMessage(
+        payload.conversationId,
+        payload.messageId,
+        client.userId,
+      );
+      this.emitMessagePinned(payload.conversationId, payload.messageId);
+      callback?.({ status: 'ok' });
+    } catch (err: any) {
+      callback?.({ status: 'error', error: err?.message || 'Failed to pin message' });
+    }
   }
 
   @SubscribeMessage(WS_EVENTS.UNPIN_MESSAGE)
@@ -454,13 +479,17 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
     @MessageBody() payload: TogglePinMessageDto,
     callback?: (res: { status: string; error?: string }) => void,
   ): Promise<void> {
-    await this.messagesService.unpinMessage(
-      payload.conversationId,
-      payload.messageId,
-      client.userId,
-    );
-    this.emitMessageUnpinned(payload.conversationId, payload.messageId);
-    callback?.({ status: 'ok' });
+    try {
+      await this.messagesService.unpinMessage(
+        payload.conversationId,
+        payload.messageId,
+        client.userId,
+      );
+      this.emitMessageUnpinned(payload.conversationId, payload.messageId);
+      callback?.({ status: 'ok' });
+    } catch (err: any) {
+      callback?.({ status: 'error', error: err?.message || 'Failed to unpin message' });
+    }
   }
 
   private async emitToConversationExceptBlocked(

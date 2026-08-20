@@ -35,6 +35,8 @@ import type {
 } from '@common/contracts';
 import { MessengerMapper } from '../messenger.mapper';
 import type { ReportCategory } from '@prisma/client';
+import { WS_EVENTS } from '../events/ws-events';
+import { messageInclude } from '../interfaces/types';
 
 @Injectable()
 export class ConversationsService {
@@ -177,24 +179,31 @@ export class ConversationsService {
     if (!conv) throw new NotFoundException('Conversation not found');
     if (conv.type !== 'GROUP') throw new BadRequestException('Not a group conversation');
 
-    const p = conv.participants.find((p) => p.userId === userId);
-    if (!p || (p.role !== 'ADMIN' && p.role !== 'OWNER')) {
-      throw new ForbiddenException('Only admins can update the group');
-    }
+    await this.assertMember(conversationId, userId);
 
     await this.convsRepo.updateGroup(conversationId, dto);
 
     if (dto.name && dto.name !== conv.name) {
       const user = await this.prisma.user.findUnique({ where: { id: userId } });
       const userName = user?.displayName || user?.username || 'User';
-      await this.prisma.message.create({
+      const sysMsg = await this.prisma.message.create({
         data: {
           conversationId,
           senderId: userId,
           messageType: 'SYSTEM',
           body: `Пользователь ${userName} сменил название группы на ${dto.name}`,
         },
+        include: messageInclude,
       });
+
+      const participantIds = await this.convsRepo.findParticipantIds(conversationId);
+      const mapped = this.mapper.mapMessage(sysMsg, userId, new Set());
+      for (const pid of participantIds) {
+        this.gateway?.emitToUser(pid, WS_EVENTS.NEW_MESSAGE, {
+          conversationId,
+          message: mapped,
+        });
+      }
     }
 
     return this.getConversation(conversationId, userId);
@@ -209,10 +218,7 @@ export class ConversationsService {
     if (!conv) throw new NotFoundException('Conversation not found');
     if (conv.type !== 'GROUP') throw new BadRequestException('Not a group');
 
-    const p = conv.participants.find((p) => p.userId === userId);
-    if (!p || (p.role !== 'ADMIN' && p.role !== 'OWNER')) {
-      throw new ForbiddenException('Only admins can add members');
-    }
+    await this.assertMember(conversationId, userId);
 
     const existingUsersCount = await this.prisma.user.count({
       where: { id: { in: dto.memberIds } },
@@ -306,13 +312,40 @@ export class ConversationsService {
     }
 
     const p = conv.participants.find((p) => p.userId === userId);
-    if (!p) throw new NotFoundException('Not a member');
+    if (!p || p.leftAt) throw new NotFoundException('Not a member');
 
     if (p.role === 'OWNER') {
-      throw new ForbiddenException('Owner must transfer ownership before leaving');
+      const remaining = conv.participants.filter((item) => item.userId !== userId && !item.leftAt);
+      if (remaining.length > 0) {
+        const nextOwner = remaining.find((item) => item.role === 'ADMIN') || remaining[0];
+        await this.convsRepo.updateParticipant(conversationId, nextOwner.userId, { role: 'OWNER' });
+      }
     }
 
     await this.convsRepo.removeParticipant(conversationId, userId);
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    const userName = user?.displayName || user?.username || 'User';
+    const sysMsg = await this.prisma.message.create({
+      data: {
+        conversationId,
+        senderId: userId,
+        messageType: 'SYSTEM',
+        body: `${userName} left the group`,
+      },
+      include: messageInclude,
+    });
+
+    const participantIds = await this.convsRepo.findParticipantIds(conversationId);
+    const remainingParticipantIds = participantIds.filter((id) => id !== userId);
+    const mapped = this.mapper.mapMessage(sysMsg, userId, new Set());
+    for (const remId of remainingParticipantIds) {
+      this.gateway?.emitToUser(remId, WS_EVENTS.NEW_MESSAGE, {
+        conversationId,
+        message: mapped,
+      });
+    }
+    this.gateway?.emitConversationDeleted(conversationId, [userId]);
   }
 
   async transferOwnership(
@@ -493,7 +526,7 @@ export class ConversationsService {
 
   async assertMember(conversationId: string, userId: string): Promise<void> {
     const p = await this.convsRepo.findParticipant(conversationId, userId);
-    if (!p) throw new ForbiddenException('Not a member of this conversation');
+    if (!p || p.leftAt) throw new ForbiddenException('Not a member of this conversation');
   }
 
   async touchUpdatedAt(conversationId: string): Promise<void> {
@@ -525,6 +558,18 @@ export class ConversationsService {
       });
       this.gateway?.emitConversationDeleted(conversationId, participantIds);
     } else {
+      if (conv.type === 'GROUP') {
+        if (participant.role === 'OWNER') {
+          const remaining = conv.participants.filter((p) => p.userId !== userId && !p.leftAt);
+          if (remaining.length > 0) {
+            const nextOwner = remaining.find((p) => p.role === 'ADMIN') || remaining[0];
+            await this.convsRepo.updateParticipant(conversationId, nextOwner.userId, {
+              role: 'OWNER',
+            });
+          }
+        }
+      }
+
       await this.convsRepo.updateParticipant(conversationId, userId, {
         leftAt: new Date(),
       });
@@ -537,6 +582,31 @@ export class ConversationsService {
           data: messages.map((m) => ({ messageId: m.id, userId })),
           skipDuplicates: true,
         });
+      }
+
+      this.gateway?.emitConversationDeleted(conversationId, [userId]);
+
+      if (conv.type === 'GROUP') {
+        const user = await this.prisma.user.findUnique({ where: { id: userId } });
+        const userName = user?.displayName || user?.username || 'User';
+        const sysMsg = await this.prisma.message.create({
+          data: {
+            conversationId,
+            senderId: userId,
+            messageType: 'SYSTEM',
+            body: `${userName} left the group`,
+          },
+          include: messageInclude,
+        });
+
+        const remainingParticipantIds = participantIds.filter((id) => id !== userId);
+        const mapped = this.mapper.mapMessage(sysMsg, userId, new Set());
+        for (const remId of remainingParticipantIds) {
+          this.gateway?.emitToUser(remId, WS_EVENTS.NEW_MESSAGE, {
+            conversationId,
+            message: mapped,
+          });
+        }
       }
     }
   }
@@ -616,7 +686,7 @@ export class ConversationsService {
     if (!conv) throw new NotFoundException('Conversation not found');
     if (conv.type !== 'GROUP') throw new BadRequestException('Not a group conversation');
 
-    await this.assertGroupAdmin(conversationId, userId);
+    await this.assertMember(conversationId, userId);
 
     if (!file || !Buffer.isBuffer(file.buffer)) {
       throw new BadRequestException('Invalid avatar file');
@@ -642,20 +712,30 @@ export class ConversationsService {
 
     await this.prisma.conversation.update({
       where: { id: conversationId },
-      data: { avatar: avatarUrl },
+      data: { avatar: avatarUrl, updatedAt: new Date() },
     });
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     const userName = user?.displayName || user?.username || 'User';
 
-    await this.prisma.message.create({
+    const sysMsg = await this.prisma.message.create({
       data: {
         conversationId,
         senderId: userId,
         messageType: 'SYSTEM',
         body: `Пользователь ${userName} сменил значок группы`,
       },
+      include: messageInclude,
     });
+
+    const participantIds = await this.convsRepo.findParticipantIds(conversationId);
+    const mapped = this.mapper.mapMessage(sysMsg, userId, new Set());
+    for (const pid of participantIds) {
+      this.gateway?.emitToUser(pid, WS_EVENTS.NEW_MESSAGE, {
+        conversationId,
+        message: mapped,
+      });
+    }
 
     return { avatarUrl };
   }

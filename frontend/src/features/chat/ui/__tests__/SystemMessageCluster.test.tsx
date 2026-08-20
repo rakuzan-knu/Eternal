@@ -112,4 +112,18 @@ describe('SystemMessageCluster', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Пользователь Alice присоединился к группе')).toBeInTheDocument();
   });
+
+  it('renders leave group message as centered plain gray text without background', () => {
+    const leaveMessage: MessageView = {
+      ...mockSingleMessage,
+      id: 'sys-leave-1',
+      body: 'Ayate left the group',
+    };
+
+    render(<SystemMessageCluster messages={[leaveMessage]} />);
+
+    const leaveText = screen.getByText('Ayate left the group');
+    expect(leaveText).toBeInTheDocument();
+    expect(screen.queryByText('Редактировать группу')).not.toBeInTheDocument();
+  });
 });

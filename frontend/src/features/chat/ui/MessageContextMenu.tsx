@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pencil, Trash2, Forward, Pin, PinOff, Flag, CheckSquare } from 'lucide-react';
+import { Pencil, Trash2, Forward, Pin, PinOff, Flag, CheckSquare, Copy } from 'lucide-react';
 import DropdownMenu, { DropdownMenuItem } from '../../../shared/ui/DropdownMenu';
 import { MessageView } from '../../../entities/chat/model/types';
 
@@ -28,6 +28,12 @@ export default function MessageContextMenu({
   onSelectMessage,
   align = 'left',
 }: MessageContextMenuProps) {
+  const handleCopyText = () => {
+    if (message.body) {
+      navigator.clipboard?.writeText(message.body);
+    }
+  };
+
   const items: DropdownMenuItem[] = [
     ...(onSelectMessage
       ? [
@@ -39,7 +45,8 @@ export default function MessageContextMenu({
           } satisfies DropdownMenuItem,
         ]
       : []),
-    ...(isOwnMessage
+    ...(isOwnMessage &&
+    Boolean(message.body && (!message.attachments || message.attachments.length === 0))
       ? [
           {
             key: 'edit',
@@ -50,11 +57,10 @@ export default function MessageContextMenu({
         ]
       : []),
     {
-      key: 'delete',
-      label: 'Delete',
-      icon: <Trash2 size={16} />,
-      danger: true,
-      onClick: onDelete,
+      key: 'pin',
+      label: message.isPinned ? 'Unpin' : 'Pin',
+      icon: message.isPinned ? <PinOff size={16} /> : <Pin size={16} />,
+      onClick: onTogglePin,
     },
     {
       key: 'forward',
@@ -62,11 +68,22 @@ export default function MessageContextMenu({
       icon: <Forward size={16} />,
       onClick: onForward,
     },
+    ...(message.body
+      ? [
+          {
+            key: 'copy',
+            label: 'Copy message text',
+            icon: <Copy size={16} />,
+            onClick: handleCopyText,
+          } satisfies DropdownMenuItem,
+        ]
+      : []),
     {
-      key: 'pin',
-      label: message.isPinned ? 'Unpin' : 'Pin',
-      icon: message.isPinned ? <PinOff size={16} /> : <Pin size={16} />,
-      onClick: onTogglePin,
+      key: 'delete',
+      label: 'Delete',
+      icon: <Trash2 size={16} />,
+      danger: true,
+      onClick: onDelete,
     },
     ...(!isOwnMessage
       ? [

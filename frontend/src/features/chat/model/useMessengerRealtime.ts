@@ -2,7 +2,14 @@ import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useChatSocket } from './useChatSocket';
 import { useChatSocketEvent } from './useChatSocketEvent';
-import { CONVERSATIONS_KEY, CONVERSATION_MESSAGES_KEY } from '@/shared/api/queryKeys';
+import {
+  CONVERSATIONS_KEY,
+  CONVERSATION_MESSAGES_KEY,
+  COMMENTS_KEY,
+  FEED_KEY,
+  USER_POSTS_KEY,
+  SAVED_POSTS_KEY,
+} from '@/shared/api/queryKeys';
 import { ConversationView, MessageView } from '../../../entities/chat/model/types';
 import { useAuthStore } from '@/shared/model/useAuthStore';
 import {
@@ -354,6 +361,13 @@ export function useMessengerRealtime(
       isGroup: false,
       linkUrl: `/${targetProfile}#post-${postId}`,
     });
+
+    if (type === 'COMMENT') {
+      queryClient.invalidateQueries({ queryKey: [COMMENTS_KEY, postId] });
+      queryClient.invalidateQueries({ queryKey: [FEED_KEY] });
+      queryClient.invalidateQueries({ queryKey: [USER_POSTS_KEY] });
+      queryClient.invalidateQueries({ queryKey: [SAVED_POSTS_KEY] });
+    }
   };
 
   const handleGlobalTyping = (payload: {

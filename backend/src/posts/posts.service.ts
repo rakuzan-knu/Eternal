@@ -4,8 +4,10 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  Optional,
   forwardRef,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { type CreatePostDto, type EditPostDto, PostResponseDto } from '@common/contracts';
 import { POSTS_REPOSITORY } from './interfaces/posts-repository.interface';
 import type { IPostRepository } from './interfaces/posts-repository.interface';
@@ -16,7 +18,11 @@ import { PostsMediaService, type ProcessedMedia } from './posts-media.service';
 import { PrismaService } from '@common/prisma';
 import { MessengerGateway } from '../messenger/gateway/messenger.gateway';
 import { WS_EVENTS } from '../messenger/events/ws-events';
-import { MediaType, type ReportCategory } from '@prisma/client';
+import { MediaType, NotificationType, type ReportCategory } from '@prisma/client';
+import {
+  CreateNotificationEvent,
+  NOTIFICATION_EVENTS,
+} from '../notifications/events/notification.events';
 
 @Injectable()
 export class PostsService {
@@ -30,7 +36,10 @@ export class PostsService {
     private readonly redis: RedisService,
     private readonly prisma: PrismaService,
     @Inject(forwardRef(() => MessengerGateway))
-    private readonly gateway: MessengerGateway,
+    @Optional()
+    private readonly gateway?: MessengerGateway,
+    @Optional()
+    private readonly eventEmitter?: EventEmitter2,
   ) {}
 
   private getPostKey(id: string): string {
@@ -218,28 +227,43 @@ export class PostsService {
           );
 
           if (uniqueTargets.length > 0) {
-            const actor = await this.prisma.user.findUnique({
-              where: { id: authorId },
-              select: { id: true, username: true, displayName: true, avatar: true },
-            });
-
-            if (actor) {
-              const preview = contentText;
-              const postBody = preview.length > 60 ? `${preview.slice(0, 60)}...` : preview;
+            if (this.eventEmitter) {
               for (const target of uniqueTargets) {
                 if (target.id !== authorId) {
-                  this.gateway.emitToUser(target.id, WS_EVENTS.SOCIAL_NOTIFICATION, {
-                    type: 'MENTION',
-                    actor: {
-                      id: actor.id,
-                      username: actor.username,
-                      displayName: actor.displayName || actor.username,
-                      avatar: actor.avatar,
-                    },
-                    postId: post.id,
-                    authorUsername: actor.username,
-                    message: `mentioned you in a post: "${postBody}"`,
-                  });
+                  this.eventEmitter.emit(
+                    NOTIFICATION_EVENTS.CREATE,
+                    new CreateNotificationEvent(target.id, NotificationType.MENTION, {
+                      actorId: authorId,
+                      postId: post.id,
+                      text: contentText,
+                    }),
+                  );
+                }
+              }
+            }
+            if (this.gateway) {
+              const actor = await this.prisma.user.findUnique({
+                where: { id: authorId },
+                select: { id: true, username: true, displayName: true, avatar: true },
+              });
+              if (actor) {
+                const preview = contentText;
+                const postBody = preview.length > 60 ? `${preview.slice(0, 60)}...` : preview;
+                for (const target of uniqueTargets) {
+                  if (target.id !== authorId) {
+                    this.gateway.emitToUser(target.id, WS_EVENTS.SOCIAL_NOTIFICATION, {
+                      type: 'MENTION',
+                      actor: {
+                        id: actor.id,
+                        username: actor.username,
+                        displayName: actor.displayName || actor.username,
+                        avatar: actor.avatar,
+                      },
+                      postId: post.id,
+                      authorUsername: actor.username,
+                      message: `mentioned you in a post: "${postBody}"`,
+                    });
+                  }
                 }
               }
             }
@@ -247,7 +271,7 @@ export class PostsService {
         }
       }
     } catch {
-      // Non-blocking notification
+      // Non-blocking notification emission
     }
 
     await this.invalidateFeedAndPost();
@@ -351,36 +375,47 @@ export class PostsService {
     await this.postsRepository.repost(postId, userId);
     await this.invalidateFeedAndPost(postId);
 
-    // Emit real-time notification to post author
-    try {
-      if (post.authorId !== userId) {
-        const [actor, author] = await Promise.all([
-          this.prisma.user.findUnique({
-            where: { id: userId },
-            select: { id: true, username: true, displayName: true, avatar: true },
-          }),
-          this.prisma.user.findUnique({
-            where: { id: post.authorId },
-            select: { username: true },
-          }),
-        ]);
-        if (actor) {
-          this.gateway.emitToUser(post.authorId, WS_EVENTS.SOCIAL_NOTIFICATION, {
-            type: 'REPOST',
-            actor: {
-              id: actor.id,
-              username: actor.username,
-              displayName: actor.displayName || actor.username,
-              avatar: actor.avatar,
-            },
+    // Emit asynchronous notification event to post author
+    if (post.authorId !== userId) {
+      if (this.eventEmitter) {
+        this.eventEmitter.emit(
+          NOTIFICATION_EVENTS.CREATE,
+          new CreateNotificationEvent(post.authorId, NotificationType.REPOST, {
+            actorId: userId,
             postId: post.id,
-            authorUsername: author?.username || '',
-            message: 'reposted your post',
-          });
+          }),
+        );
+      }
+      if (this.gateway) {
+        try {
+          const [actor, author] = await Promise.all([
+            this.prisma.user.findUnique({
+              where: { id: userId },
+              select: { id: true, username: true, displayName: true, avatar: true },
+            }),
+            this.prisma.user.findUnique({
+              where: { id: post.authorId },
+              select: { username: true },
+            }),
+          ]);
+          if (actor) {
+            this.gateway.emitToUser(post.authorId, WS_EVENTS.SOCIAL_NOTIFICATION, {
+              type: 'REPOST',
+              actor: {
+                id: actor.id,
+                username: actor.username,
+                displayName: actor.displayName || actor.username,
+                avatar: actor.avatar,
+              },
+              postId: post.id,
+              authorUsername: author?.username || '',
+              message: 'reposted your post',
+            });
+          }
+        } catch {
+          // Non-blocking
         }
       }
-    } catch {
-      // Non-blocking notification
     }
 
     return { success: true };

@@ -22,7 +22,6 @@ import { apiClient as api } from '@/shared/api/httpClient';
 import { postsApi } from '@/entities/post/api/postsApi';
 import { PostType, PostMedia } from '@/entities/post/model/types';
 import { useUIStore } from '@/shared/model/useUIStore';
-import { CommentModal } from '@/features/comment/ui/CommentModal';
 import { PostCard } from '@/widgets/post/ui/PostCard';
 import { FollowButton } from '@/features/follow/ui/FollowButton';
 import { VerifiedCheckmark } from '@/entities/profile/ui/VerifiedCheckmark';
@@ -1097,9 +1096,6 @@ export default function SearchPage() {
           </div>
         </div>
       )}
-
-      {/* Global Post Comment Modal */}
-      <CommentModal />
     </div>
   );
 }

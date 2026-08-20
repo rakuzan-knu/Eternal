@@ -21,9 +21,11 @@ import { BannersModule } from './banners/banners.module';
 import { MessengerModule } from './messenger/messenger.module';
 import { SessionsModule } from './sessions/sessions.module';
 import { MetricsModule } from './metrics/metrics.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { PollModule } from './poll/poll.module';
 import { GithubModule } from './github/github.module';
 import { OpenGraphModule } from './opengraph/opengraph.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 import { MetricsMiddleware } from './metrics/metrics.middleware';
@@ -54,10 +56,12 @@ import type { MiddlewareConsumer, NestModule } from '@nestjs/common';
     AvatarsModule,
     BannersModule,
     MessengerModule,
+    EventEmitterModule.forRoot(),
     SessionsModule,
     PollModule,
     GithubModule,
     OpenGraphModule,
+    NotificationsModule,
   ],
   controllers: [],
   providers: [

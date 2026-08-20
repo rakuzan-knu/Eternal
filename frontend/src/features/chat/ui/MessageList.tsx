@@ -100,6 +100,26 @@ function buildRows(messages: MessageView[]): Row[] {
     };
 
     group.messages.forEach((message, index) => {
+      const isLeave =
+        message.messageType === 'SYSTEM' &&
+        Boolean(
+          message.body?.includes('left the group') ||
+          message.body?.includes('left the conversation') ||
+          message.body?.includes('покинул(а) группу') ||
+          message.body?.includes('покинул группу') ||
+          message.body?.includes('вышел из группы'),
+        );
+
+      if (isLeave) {
+        flushSystemCluster();
+        rows.push({
+          type: 'system_cluster',
+          key: `sys-leave-${message.id}`,
+          messages: [message],
+        });
+        return;
+      }
+
       const isSystem =
         message.messageType === 'SYSTEM' || (message.messageType as string) === 'SYSTEM_ACTION';
 

@@ -29,19 +29,24 @@ export function useMediaSessionSync() {
     }
 
     // Set Track Metadata
-    const typeLabel = mediaType === 'video' ? 'Video Note' : 'Voice Message';
-    const artworkList: MediaImage[] = senderAvatar
-      ? [{ src: senderAvatar, sizes: '512x512', type: 'image/png' }]
-      : [{ src: '/vite.svg', sizes: '192x192', type: 'image/svg+xml' }];
+    try {
+      if (typeof MediaMetadata !== 'undefined') {
+        const typeLabel = mediaType === 'video' ? 'Video Note' : 'Voice Message';
+        const artworkList: MediaImage[] = senderAvatar
+          ? [{ src: senderAvatar, sizes: '512x512', type: 'image/png' }]
+          : [{ src: '/vite.svg', sizes: '192x192', type: 'image/svg+xml' }];
 
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: senderName ? `${senderName} (${typeLabel})` : typeLabel,
-      artist: conversationTitle || 'Eternal Messenger',
-      album: 'Eternal Chat Audio',
-      artwork: artworkList,
-    });
-
-    navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: senderName ? `${senderName} (${typeLabel})` : typeLabel,
+          artist: conversationTitle || 'Eternal Messenger',
+          album: 'Eternal Chat Audio',
+          artwork: artworkList,
+        });
+      }
+      navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+    } catch {
+      // Ignored if unsupported
+    }
 
     // Set Action Handlers for OS & Hardware media keys
     const setAction = (action: MediaSessionAction, handler: MediaSessionActionHandler | null) => {

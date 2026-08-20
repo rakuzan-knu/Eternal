@@ -4,9 +4,15 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  Optional,
   forwardRef,
 } from '@nestjs/common';
-import { FollowStatus, Prisma } from '@prisma/client';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { FollowStatus, NotificationType, Prisma } from '@prisma/client';
+import {
+  CreateNotificationEvent,
+  NOTIFICATION_EVENTS,
+} from '../notifications/events/notification.events';
 import { FOLLOWERS_REPOSITORY } from './interfaces/followers-repository.interface';
 import type { IFollowersRepository } from './interfaces/followers-repository.interface';
 import type {
@@ -30,7 +36,10 @@ export class FollowersService {
     private readonly redis: RedisService,
     private readonly prisma: PrismaService,
     @Inject(forwardRef(() => MessengerGateway))
-    private readonly gateway: MessengerGateway,
+    @Optional()
+    private readonly gateway?: MessengerGateway,
+    @Optional()
+    private readonly eventEmitter?: EventEmitter2,
   ) {}
 
   async getFollowers(
@@ -204,27 +213,41 @@ export class FollowersService {
       );
       await this.invalidateFollowCaches(followerId, followingId);
 
-      // Emit real-time notification to the followed user
-      try {
-        const follower = await this.prisma.user.findUnique({
-          where: { id: followerId },
-          select: { id: true, username: true, displayName: true, avatar: true },
-        });
-        if (follower) {
-          this.gateway.emitToUser(followingId, WS_EVENTS.NEW_FOLLOWER, {
-            follower: {
-              id: follower.id,
-              username: follower.username,
-              displayName: follower.displayName || follower.username,
-              avatar: follower.avatar,
-            },
-            status,
-            message:
-              status === FollowStatus.PENDING ? 'sent you a follow request' : 'subscribed to you',
-          });
+      // Emit asynchronous notification event to the followed user
+      if (followerId !== followingId) {
+        if (this.eventEmitter) {
+          this.eventEmitter.emit(
+            NOTIFICATION_EVENTS.CREATE,
+            new CreateNotificationEvent(followingId, NotificationType.FOLLOW, {
+              actorId: followerId,
+            }),
+          );
         }
-      } catch {
-        // Non-blocking notification emission
+        if (this.gateway) {
+          try {
+            const follower = await this.prisma.user.findUnique({
+              where: { id: followerId },
+              select: { id: true, username: true, displayName: true, avatar: true },
+            });
+            if (follower) {
+              this.gateway?.emitToUser(followingId, WS_EVENTS.NEW_FOLLOWER, {
+                follower: {
+                  id: follower.id,
+                  username: follower.username,
+                  displayName: follower.displayName || follower.username,
+                  avatar: follower.avatar,
+                },
+                status,
+                message:
+                  status === FollowStatus.PENDING
+                    ? 'sent you a follow request'
+                    : 'subscribed to you',
+              });
+            }
+          } catch {
+            // Non-blocking
+          }
+        }
       }
 
       return { status };
@@ -286,7 +309,7 @@ export class FollowersService {
         select: { id: true, username: true, displayName: true, avatar: true },
       });
       if (owner) {
-        this.gateway.emitToUser(followerId, WS_EVENTS.NEW_FOLLOWER, {
+        this.gateway?.emitToUser(followerId, WS_EVENTS.NEW_FOLLOWER, {
           follower: {
             id: owner.id,
             username: owner.username,

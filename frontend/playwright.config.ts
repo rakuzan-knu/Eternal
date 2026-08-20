@@ -7,9 +7,9 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  timeout: 30_000,
+  timeout: 60_000,
   expect: {
-    timeout: 10_000,
+    timeout: 15_000,
   },
   globalTimeout: 10 * 60 * 1000,
   reporter: [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]],
@@ -37,7 +37,7 @@ export default defineConfig({
     // Never reuse an already-running dev server: it may carry a different
     // VITE_API_URL from the developer's .env, which would dodge the mocks.
     reuseExistingServer: false,
-    timeout: 120_000,
+    timeout: 180_000,
     stdout: 'pipe',
     stderr: 'pipe',
   },

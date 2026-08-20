@@ -39,11 +39,83 @@ export function getConversationDisplay(
   };
 }
 
-export function getMessagePreview(conversation: ConversationView): string {
+function formatDurationSec(seconds?: number | null): string {
+  if (!seconds || isNaN(seconds) || seconds <= 0) return '';
+  const s = Math.round(seconds);
+  const m = Math.floor(s / 60);
+  const remSec = s % 60;
+  return `${m}:${remSec.toString().padStart(2, '0')}`;
+}
+
+export function getMessagePreview(
+  conversation: ConversationView,
+  currentUserId?: string | null,
+): string {
   const msg = conversation.lastMessage;
   if (!msg) return 'No messages yet';
   if (msg.isDeleted) return 'This message was deleted';
-  if (msg.attachments.length > 0)
-    return `${msg.sender.displayName ?? msg.sender.username} sent an attachment`;
-  return msg.body ?? '';
+
+  const isOwn = Boolean(currentUserId && msg.sender?.id === currentUserId);
+  const senderPrefix =
+    conversation.type === 'GROUP'
+      ? isOwn
+        ? 'You: '
+        : `${msg.sender?.displayName || msg.sender?.username || 'User'}: `
+      : isOwn
+        ? 'You: '
+        : '';
+
+  const firstAttachment = msg.attachments?.[0];
+  if (firstAttachment) {
+    const isVideoNote =
+      firstAttachment.type === 'VIDEO' &&
+      (firstAttachment.fileName?.includes('video_note') ||
+        firstAttachment.mimeType?.includes('video_note') ||
+        (firstAttachment.width &&
+          firstAttachment.height &&
+          firstAttachment.width === firstAttachment.height));
+
+    if (isVideoNote) {
+      const dur = formatDurationSec(firstAttachment.duration);
+      return `${senderPrefix}Video message${dur ? ` (${dur})` : ''}`;
+    }
+
+    if (firstAttachment.type === 'AUDIO') {
+      const dur = formatDurationSec(firstAttachment.duration);
+      return `${senderPrefix}Voice message${dur ? ` (${dur})` : ''}`;
+    }
+
+    if (firstAttachment.type === 'IMAGE') {
+      return `${senderPrefix}Photo`;
+    }
+
+    if (firstAttachment.type === 'VIDEO') {
+      const dur = formatDurationSec(firstAttachment.duration);
+      return `${senderPrefix}Video${dur ? ` (${dur})` : ''}`;
+    }
+
+    if (firstAttachment.type === 'GIF') {
+      return `${senderPrefix}GIF`;
+    }
+
+    if (firstAttachment.type === 'FILE') {
+      return `${senderPrefix}File: ${firstAttachment.fileName || 'Attachment'}`;
+    }
+
+    return `${senderPrefix}Attachment`;
+  }
+
+  if (msg.messageType === 'AUDIO') {
+    return `${senderPrefix}Voice message`;
+  }
+
+  if (msg.messageType === 'VIDEO') {
+    return `${senderPrefix}Video message`;
+  }
+
+  if (msg.body && msg.body.trim()) {
+    return `${senderPrefix}${msg.body.trim()}`;
+  }
+
+  return 'No messages yet';
 }

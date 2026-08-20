@@ -126,7 +126,7 @@ export default function MessageComposer({
         type: payload.mode === 'voice' ? 'AUDIO' : 'VIDEO',
         url: uploaded.url || payload.previewUrl,
         size: payload.file.size,
-        duration: Math.max(1, Math.round(payload.duration || 1)),
+        duration: payload.duration ? Math.round(payload.duration) : 0,
         waveform: payload.waveform,
         fileName: payload.file.name,
         mimeType: payload.file.type || (payload.mode === 'voice' ? 'audio/webm' : 'video/webm'),

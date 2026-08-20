@@ -37,6 +37,7 @@
     "@nestjs/common": "^11.1.29",
     "@nestjs/config": "4.0.4",
     "@nestjs/core": "^11.1.29",
+    "@nestjs/event-emitter": "^3.1.0",
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.1.28",
@@ -101,6 +102,7 @@
     "@types/passport-jwt": "^4.0.1",
     "@types/sanitize-html": "^2.14.0",
     "@types/supertest": "^7.2.1",
+    "@typescript/native": "npm:typescript@^7.0.2",
     "eslint": "^9.39.5",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",
@@ -127,7 +129,6 @@
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "tsx": "^4.23.12",
-    "@typescript/native": "npm:typescript@^7.0.2",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
     "typescript-eslint": "^8.67.0"
   },

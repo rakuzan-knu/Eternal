@@ -166,6 +166,31 @@ export type PostWithRelations = {
   };
 };
 
+function toSafeIsoString(val: unknown): string {
+  if (!val) return new Date().toISOString();
+  if (typeof val === 'string') return val;
+  if (val instanceof Date) return val.toISOString();
+  if (
+    typeof val === 'object' &&
+    'toISOString' in val &&
+    typeof (val as { toISOString: () => string }).toISOString === 'function'
+  ) {
+    return (val as { toISOString: () => string }).toISOString();
+  }
+  const parsed = new Date(val as string | number);
+  return isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
+}
+
+function toSafeDate(val: unknown): Date | null {
+  if (!val) return null;
+  if (val instanceof Date) return val;
+  if (typeof val === 'string' || typeof val === 'number') {
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  return null;
+}
+
 export class PostResponseDto {
   id!: string;
   content!: string;
@@ -200,7 +225,7 @@ export class PostResponseDto {
     const displayName = post.author?.displayName || post.author?.username || 'User';
     const handle = post.author?.username || 'user';
     const avatar = post.author?.avatar || null;
-    const isVerified = post.author?.isVerified ?? false;
+    const isVerified = Boolean(post.author?.isVerified);
     const primaryBadge = post.author?.primaryBadge ?? null;
 
     let pollDto: PostPollDto | null = null;
@@ -223,24 +248,21 @@ export class PostResponseDto {
       };
     }
 
+    const createdDate = toSafeDate(post.createdAt);
+    const updatedDate = toSafeDate(post.updatedAt);
+
     const isEdited =
       post.editedAt != null
-        ? typeof post.editedAt === 'string'
-          ? post.editedAt
-          : post.editedAt.toISOString()
-        : post.updatedAt &&
-            post.createdAt &&
-            post.updatedAt.getTime() > post.createdAt.getTime() + 1000
-          ? post.updatedAt.toISOString()
+        ? toSafeIsoString(post.editedAt)
+        : updatedDate && createdDate && updatedDate.getTime() > createdDate.getTime() + 1000
+          ? toSafeIsoString(updatedDate)
           : null;
 
-    const isPinned = post.isPinned ?? false;
+    const isPinned = Boolean(post.isPinned);
     const pinnedAt = post.pinnedAt
-      ? typeof post.pinnedAt === 'string'
-        ? post.pinnedAt
-        : post.pinnedAt.toISOString()
+      ? toSafeIsoString(post.pinnedAt)
       : isPinned
-        ? post.createdAt.toISOString()
+        ? toSafeIsoString(post.createdAt)
         : null;
 
     return {
@@ -254,16 +276,16 @@ export class PostResponseDto {
       avatar,
       isVerified,
       primaryBadge,
-      createdAt: post.createdAt.toISOString(),
-      updatedAt: post.updatedAt.toISOString(),
+      createdAt: toSafeIsoString(post.createdAt),
+      updatedAt: toSafeIsoString(post.updatedAt),
       editedAt: isEdited,
       isPinned,
       pinnedAt,
-      isFollowing: post.isFollowing ?? false,
-      isSaved: post.isSaved ?? false,
-      isReposted: post.isReposted ?? false,
-      isLiked: post.isLiked ?? false,
-      isOwner: post.isOwner ?? false,
+      isFollowing: Boolean(post.isFollowing),
+      isSaved: Boolean(post.isSaved),
+      isReposted: Boolean(post.isReposted),
+      isLiked: Boolean(post.isLiked),
+      isOwner: Boolean(post.isOwner),
       likesCount: post._count?.likes ?? 0,
       likes: post._count?.likes ?? 0,
       repostsCount: post._count?.reposts ?? 0,

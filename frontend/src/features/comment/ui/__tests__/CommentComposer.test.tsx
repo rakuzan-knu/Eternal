@@ -55,4 +55,36 @@ describe('CommentComposer', () => {
     fireEvent.click(cancelBtn);
     expect(onCancelReply).toHaveBeenCalled();
   });
+
+  it('submits on regular Enter key and does not submit on Shift+Enter', () => {
+    const onSubmit = vi.fn();
+    const onCancelReply = vi.fn();
+
+    render(
+      <MemoryRouter>
+        <CommentComposer
+          currentUserHandle="alex"
+          replyingTo={null}
+          onCancelReply={onCancelReply}
+          onSubmit={onSubmit}
+        />
+      </MemoryRouter>,
+    );
+
+    const textarea = screen.getByPlaceholderText(/Comment as @alex.../i);
+    fireEvent.change(textarea, { target: { value: 'Awesome comment!' } });
+
+    // Press Shift+Enter -> should NOT submit
+    fireEvent.keyDown(textarea, { key: 'Enter', shiftKey: true });
+    expect(onSubmit).not.toHaveBeenCalled();
+
+    // Press regular Enter -> should submit
+    fireEvent.keyDown(textarea, { key: 'Enter', shiftKey: false });
+    expect(onSubmit).toHaveBeenCalledWith(
+      'Awesome comment!',
+      undefined,
+      undefined,
+      expect.any(String),
+    );
+  });
 });

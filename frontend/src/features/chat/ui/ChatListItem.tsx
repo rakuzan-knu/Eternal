@@ -140,7 +140,7 @@ export default function ChatListItem({
               hasUnread ? 'text-gray-200' : isMuted ? 'text-gray-500' : 'text-gray-400'
             }`}
           >
-            {getMessagePreview(conversation)}
+            {getMessagePreview(conversation, currentUserId)}
           </p>
         )}
       </div>

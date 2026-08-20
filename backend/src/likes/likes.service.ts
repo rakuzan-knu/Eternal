@@ -3,8 +3,10 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  Optional,
   forwardRef,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { LIKES_REPOSITORY } from './interfaces/likes-repository.interface';
 import type { ILikesRepository } from './interfaces/likes-repository.interface';
 import { POSTS_REPOSITORY } from '../posts/interfaces/posts-repository.interface';
@@ -12,7 +14,11 @@ import type { IPostRepository } from '../posts/interfaces/posts-repository.inter
 import { PrismaService } from '@common/prisma';
 import { MessengerGateway } from '../messenger/gateway/messenger.gateway';
 import { WS_EVENTS } from '../messenger/events/ws-events';
-import { Like, Prisma } from '@prisma/client';
+import { Like, NotificationType, Prisma } from '@prisma/client';
+import {
+  CreateNotificationEvent,
+  NOTIFICATION_EVENTS,
+} from '../notifications/events/notification.events';
 
 @Injectable()
 export class LikesService {
@@ -23,7 +29,10 @@ export class LikesService {
     private readonly postsRepository: IPostRepository,
     private readonly prisma: PrismaService,
     @Inject(forwardRef(() => MessengerGateway))
-    private readonly gateway: MessengerGateway,
+    @Optional()
+    private readonly gateway?: MessengerGateway,
+    @Optional()
+    private readonly eventEmitter?: EventEmitter2,
   ) {}
 
   async likePost(postId: string, userId: string): Promise<Like> {
@@ -34,36 +43,47 @@ export class LikesService {
     try {
       const like = await this.likesRepository.createLike(postId, userId);
 
-      // Emit real-time notification to post author
-      try {
-        if (post.authorId !== userId) {
-          const [actor, author] = await Promise.all([
-            this.prisma.user.findUnique({
-              where: { id: userId },
-              select: { id: true, username: true, displayName: true, avatar: true },
-            }),
-            this.prisma.user.findUnique({
-              where: { id: post.authorId },
-              select: { username: true },
-            }),
-          ]);
-          if (actor) {
-            this.gateway.emitToUser(post.authorId, WS_EVENTS.SOCIAL_NOTIFICATION, {
-              type: 'LIKE',
-              actor: {
-                id: actor.id,
-                username: actor.username,
-                displayName: actor.displayName || actor.username,
-                avatar: actor.avatar,
-              },
+      // Emit asynchronous notification event to post author
+      if (post.authorId !== userId) {
+        if (this.eventEmitter) {
+          this.eventEmitter.emit(
+            NOTIFICATION_EVENTS.CREATE,
+            new CreateNotificationEvent(post.authorId, NotificationType.LIKE_POST, {
+              actorId: userId,
               postId: post.id,
-              authorUsername: author?.username || '',
-              message: 'liked your post',
-            });
+            }),
+          );
+        }
+        if (this.gateway) {
+          try {
+            const [actor, author] = await Promise.all([
+              this.prisma.user.findUnique({
+                where: { id: userId },
+                select: { id: true, username: true, displayName: true, avatar: true },
+              }),
+              this.prisma.user.findUnique({
+                where: { id: post.authorId },
+                select: { username: true },
+              }),
+            ]);
+            if (actor) {
+              this.gateway.emitToUser(post.authorId, WS_EVENTS.SOCIAL_NOTIFICATION, {
+                type: 'LIKE',
+                actor: {
+                  id: actor.id,
+                  username: actor.username,
+                  displayName: actor.displayName || actor.username,
+                  avatar: actor.avatar,
+                },
+                postId: post.id,
+                authorUsername: author?.username || '',
+                message: 'liked your post',
+              });
+            }
+          } catch {
+            // Non-blocking
           }
         }
-      } catch {
-        // Non-blocking notification
       }
 
       return like;

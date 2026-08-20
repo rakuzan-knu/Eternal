@@ -70,7 +70,6 @@ export default function ChatFolderRail({
     const rail = railRef.current;
     if (!rail || Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
     rail.scrollLeft += event.deltaY;
-    event.preventDefault();
   };
 
   const clearLongPress = useCallback(() => {

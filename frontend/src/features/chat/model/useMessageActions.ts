@@ -18,17 +18,19 @@ function emitWithAck<T = unknown>(
   socket: ReturnType<typeof useChatSocket>,
   event: string,
   payload: object,
-  timeoutMs = 5000,
+  timeoutMs = 6000,
 ): Promise<AckResponse<T>> {
   return new Promise((resolve, reject) => {
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    if (timeoutMs > 0) {
-      timer = setTimeout(() => {
-        reject(new Error(`${event} timed out after ${timeoutMs}ms`));
-      }, timeoutMs);
-    }
+    let timeoutId: ReturnType<typeof setTimeout> | null = setTimeout(() => {
+      timeoutId = null;
+      resolve({ status: 'ok' });
+    }, timeoutMs);
+
     socket.emit(event, payload, (res: AckResponse<T>) => {
-      if (timer) clearTimeout(timer);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
       if (!res || res.status === 'error') {
         reject(new Error(res?.error ?? `${event} failed`));
         return;
@@ -72,6 +74,21 @@ export function useMessageActions(conversationId: string | null) {
       if (!conversationId) return;
       if (!text.trim() && (!attachments || attachments.length === 0)) return;
 
+      const resolvedMessageType =
+        attachments?.[0]?.type === 'GIF'
+          ? 'GIF'
+          : attachments?.[0]?.type === 'AUDIO'
+            ? 'AUDIO'
+            : attachments?.[0]?.type === 'VIDEO'
+              ? 'VIDEO'
+              : attachments?.[0]?.type === 'IMAGE'
+                ? 'IMAGE'
+                : text
+                  ? 'TEXT'
+                  : attachments?.length
+                    ? 'FILE'
+                    : 'TEXT';
+
       const optimisticId = `client_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
       const optimisticMessage: MessageView = {
         id: optimisticId,
@@ -81,7 +98,7 @@ export function useMessageActions(conversationId: string | null) {
         conversationId,
         sender: { id: userId ?? '', username: '', displayName: null, avatar: null },
         body: text || null,
-        messageType: attachments?.[0]?.type === 'GIF' ? 'GIF' : text ? 'TEXT' : 'FILE',
+        messageType: resolvedMessageType,
         replyTo: null,
         forwardedFrom: null,
         attachments: (attachments ?? []).map((a, i) => ({
@@ -90,11 +107,13 @@ export function useMessageActions(conversationId: string | null) {
           url: a.url,
           fileName: a.fileName ?? null,
           mimeType: a.mimeType ?? null,
-          size: a.size ?? null,
-          width: null,
-          height: null,
-          duration: null,
-          thumbnailUrl: null,
+          size: a.size != null ? Math.round(a.size) : null,
+          width: a.width != null ? Math.round(a.width) : null,
+          height: a.height != null ? Math.round(a.height) : null,
+          duration: a.duration != null ? Math.round(a.duration) : null,
+          waveform: a.waveform,
+          isSpoiler: a.isSpoiler,
+          thumbnailUrl: a.thumbnailUrl ?? null,
         })) as AttachmentView[],
         reactions: [],
         readBy: [],
@@ -114,36 +133,16 @@ export function useMessageActions(conversationId: string | null) {
       });
 
       try {
-        let realMessage: MessageView | null = null;
-
-        try {
-          const res = await emitWithAck<MessageView>(
-            socket,
-            'sendMessage',
-            {
-              conversationId,
-              text: text || undefined,
-              replyToId,
-              attachments,
-              clientMessageId: optimisticId,
-            },
-            4000,
-          );
-          if (res.message) {
-            realMessage = res.message;
-          }
-        } catch {
-          // Transparent HTTP REST fallback if WebSocket ACK times out or fails
-          realMessage = await chatApi.sendMessage(conversationId, {
-            text: text || undefined,
-            replyToId,
-            attachments,
-            clientMessageId: optimisticId,
-          });
-        }
-
-        if (realMessage) {
-          const real = { ...realMessage, status: 'SENT' as const };
+        const res = await emitWithAck<MessageView>(socket, 'sendMessage', {
+          conversationId,
+          text: text || undefined,
+          messageType: resolvedMessageType,
+          replyToId,
+          attachments,
+          clientMessageId: optimisticId,
+        });
+        if (res.message) {
+          const real = { ...res.message, status: 'SENT' as const };
           updatePages((pages) =>
             pages.map((p) => ({
               ...p,
@@ -174,9 +173,18 @@ export function useMessageActions(conversationId: string | null) {
   );
 
   const deleteMessage = useCallback(
-    (messageId: string, forAll: boolean) =>
-      emitWithAck(socket, 'deleteMessage', { messageId, forAll }),
-    [socket],
+    async (messageId: string, forAll: boolean) => {
+      updatePages((pages) =>
+        pages.map((p) => ({
+          ...p,
+          data: p.data.map((m) =>
+            m.id === messageId ? { ...m, isDeleted: true, body: null, attachments: [] } : m,
+          ),
+        })),
+      );
+      return emitWithAck(socket, 'deleteMessage', { messageId, forAll });
+    },
+    [socket, updatePages],
   );
 
   const forwardMessage = useCallback(

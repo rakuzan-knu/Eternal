@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Bell,
@@ -12,12 +12,23 @@ import {
   MessageSquare,
   Repeat,
   UserPlus,
+  AtSign,
+  Award,
+  Moon,
+  BellOff,
+  ChevronDown,
+  ChevronUp,
+  UserX,
+  Play,
 } from 'lucide-react';
 import {
   NotificationPosition,
   useNotificationSettingsStore,
 } from '@/shared/model/useNotificationSettingsStore';
 import { playPreviewNotificationSound } from '@/shared/lib/messageNotificationSound';
+import { requestPushNotificationPermission } from '@/shared/lib/browserPushNotifications';
+import { fetchNotificationSettings } from '@/entities/notification/api/notificationApi';
+import Avatar from '@/shared/ui/Avatar';
 import ScreenLocationMonitor from './ScreenLocationMonitor';
 
 const Toggle = ({ checked, onChange }: { checked: boolean; onChange: () => void }) => (
@@ -50,6 +61,11 @@ export default function NotificationsTab() {
     comments,
     reposts,
     followers,
+    mentions,
+    system,
+    dndUntil,
+    mutedActors,
+    mutedActorIds,
     maxToasts,
     setEnableNotifications,
     setAllowSound,
@@ -63,32 +79,58 @@ export default function NotificationsTab() {
     setComments,
     setReposts,
     setFollowers,
+    setMentions,
+    setSystem,
+    setDoNotDisturb,
+    unmuteAuthor,
+    setAllSettings,
   } = useNotificationSettingsStore();
 
   const [hoveredCorner, setHoveredCorner] = useState<NotificationPosition | null>(null);
+  const [isMutedAccordionOpen, setIsMutedAccordionOpen] = useState(false);
   const isDebouncingSoundRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    fetchNotificationSettings()
+      .then((data) => {
+        if (data && typeof data === 'object') {
+          setAllSettings(data);
+        }
+      })
+      .catch(() => {});
+  }, [setAllSettings]);
+
+  const handleToggleEnableNotifications = async () => {
+    const nextVal = !enableNotifications;
+    setEnableNotifications(nextVal);
+    if (nextVal) {
+      await requestPushNotificationPermission();
+    }
+  };
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = Number(e.target.value);
     setVolume(val);
 
+    if (!allowSound) return;
+
     if (isDebouncingSoundRef.current) {
       clearTimeout(isDebouncingSoundRef.current);
     }
     isDebouncingSoundRef.current = setTimeout(() => {
-      if (allowSound) {
-        playPreviewNotificationSound(val);
-      }
+      playPreviewNotificationSound(val);
     }, 150);
   };
 
-  const previewAvatar = showName ? (
-    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white font-bold text-lg shadow-md">
-      🐰
-    </div>
-  ) : (
-    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white font-black text-lg shadow-md tracking-wider">
-      E
+  const isDndActive = Boolean(dndUntil && new Date(dndUntil).getTime() > Date.now());
+  const formatDndTime = (iso: string) => {
+    const d = new Date(iso);
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const previewAvatar = (
+    <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-tr from-sky-400 to-indigo-500 font-semibold text-white shadow-md">
+      CB
     </div>
   );
 
@@ -101,6 +143,84 @@ export default function NotificationsTab() {
 
   return (
     <div className="animate-fadeIn flex flex-col gap-6 text-white pb-6">
+      {/* Do Not Disturb (Quick Pause) */}
+      <section>
+        <div className="flex items-center justify-between px-1 mb-2">
+          <h3 className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+            Do Not Disturb (Snooze)
+          </h3>
+          {isDndActive && (
+            <span className="text-[11px] font-semibold text-purple-400 flex items-center gap-1">
+              <Moon size={12} />
+              <span>Paused until {formatDndTime(dndUntil!)}</span>
+            </span>
+          )}
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <span
+                className={`w-9 h-9 flex items-center justify-center rounded-xl border transition-colors ${
+                  isDndActive
+                    ? 'bg-purple-600/20 border-purple-500/40 text-purple-300'
+                    : 'bg-white/5 border-white/10 text-gray-400'
+                }`}
+              >
+                <Moon size={17} />
+              </span>
+              <div>
+                <h4 className="text-sm font-medium text-gray-200">Quick pause alerts</h4>
+                <p className="text-xs text-gray-500">
+                  {isDndActive
+                    ? `Muted until ${formatDndTime(dndUntil!)}. All sounds and toasts paused.`
+                    : 'Temporarily silence all push notifications and sound alerts'}
+                </p>
+              </div>
+            </div>
+
+            {isDndActive && (
+              <button
+                type="button"
+                onClick={() => setDoNotDisturb('off')}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white transition-all shadow-[0_0_12px_rgba(168,85,247,0.3)]"
+              >
+                <Play size={12} fill="currentColor" />
+                <span>Resume</span>
+              </button>
+            )}
+          </div>
+
+          {/* DND Presets */}
+          <div className="grid grid-cols-4 gap-2 pt-1">
+            {[
+              { key: 'off', label: 'Off' },
+              { key: '1h', label: '1 hour' },
+              { key: '8h', label: '8 hours' },
+              { key: 'tomorrow', label: 'Tomorrow' },
+            ].map(({ key, label }) => {
+              const isActive = (key === 'off' && !isDndActive) || (key !== 'off' && isDndActive);
+
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setDoNotDisturb(key as any)}
+                  className={`py-2 px-2 text-center rounded-xl text-xs font-medium border transition-all duration-200 ${
+                    key === 'off' && !isDndActive
+                      ? 'bg-white/10 text-white border-white/20 shadow-sm'
+                      : key !== 'off' && isDndActive
+                        ? 'bg-purple-600/20 text-purple-200 border-purple-500/30 hover:bg-purple-600/30'
+                        : 'bg-white/5 text-gray-400 border-white/5 hover:bg-white/10 hover:text-white'
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
       {/* Global Settings */}
       <section>
         <h3 className="px-1 mb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
@@ -117,10 +237,7 @@ export default function NotificationsTab() {
                 <p className="text-xs text-gray-500">Receive push notifications on site</p>
               </div>
             </div>
-            <Toggle
-              checked={enableNotifications}
-              onChange={() => setEnableNotifications(!enableNotifications)}
-            />
+            <Toggle checked={enableNotifications} onChange={handleToggleEnableNotifications} />
           </div>
 
           <div className="flex items-center justify-between px-4 py-3.5">
@@ -346,6 +463,116 @@ export default function NotificationsTab() {
             </div>
             <Toggle checked={followers} onChange={() => setFollowers(!followers)} />
           </div>
+
+          <div className="flex items-center justify-between px-4 py-3.5">
+            <div className="flex items-center gap-3">
+              <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-purple-400">
+                <AtSign size={17} />
+              </span>
+              <div>
+                <h4 className="text-sm font-medium text-gray-200">Mentions</h4>
+                <p className="text-xs text-gray-500">
+                  When someone mentions you in a post or comment
+                </p>
+              </div>
+            </div>
+            <Toggle checked={mentions} onChange={() => setMentions(!mentions)} />
+          </div>
+
+          <div className="flex items-center justify-between px-4 py-3.5">
+            <div className="flex items-center gap-3">
+              <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-amber-400">
+                <Award size={17} />
+              </span>
+              <div>
+                <h4 className="text-sm font-medium text-gray-200">System & Verified</h4>
+                <p className="text-xs text-gray-500">
+                  Verification badges, milestones, and system updates
+                </p>
+              </div>
+            </div>
+            <Toggle checked={system} onChange={() => setSystem(!system)} />
+          </div>
+        </div>
+      </section>
+
+      {/* Muted Accounts Accordion */}
+      <section>
+        <div className="rounded-2xl border border-white/10 bg-white/[0.02] overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setIsMutedAccordionOpen(!isMutedAccordionOpen)}
+            className="flex items-center justify-between w-full px-4 py-3.5 hover:bg-white/[0.02] transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-purple-400">
+                <BellOff size={17} />
+              </span>
+              <div className="text-left">
+                <h4 className="text-sm font-medium text-gray-200 flex items-center gap-2">
+                  <span>Muted Accounts</span>
+                  {mutedActorIds.length > 0 && (
+                    <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-purple-600/30 text-purple-200 border border-purple-500/40">
+                      {mutedActorIds.length}
+                    </span>
+                  )}
+                </h4>
+                <p className="text-xs text-gray-500">
+                  Manage accounts whose notifications you muted
+                </p>
+              </div>
+            </div>
+            <div className="text-gray-400">
+              {isMutedAccordionOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </div>
+          </button>
+
+          {isMutedAccordionOpen && (
+            <div className="border-t border-white/5 p-4 divide-y divide-white/5">
+              {mutedActors.length === 0 && mutedActorIds.length === 0 ? (
+                <div className="py-4 text-center text-xs text-gray-500">
+                  No muted accounts. When you mute notifications from an author, they will appear
+                  here.
+                </div>
+              ) : (
+                (mutedActors.length > 0
+                  ? mutedActors
+                  : mutedActorIds.map((id) => ({
+                      id,
+                      username: id,
+                      displayName: null as string | null,
+                      avatar: null as string | null,
+                    }))
+                ).map((actor) => (
+                  <div
+                    key={actor.id}
+                    className="flex items-center justify-between py-2.5 first:pt-0 last:pb-0"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Avatar
+                        size="sm"
+                        src={actor.avatar}
+                        name={actor.displayName || actor.username}
+                      />
+                      <div>
+                        <p className="text-xs font-semibold text-white">
+                          {actor.displayName || actor.username}
+                        </p>
+                        <p className="text-[11px] text-gray-400">@{actor.username}</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => unmuteAuthor(actor.id)}
+                      className="px-3 py-1 text-xs font-semibold rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 transition-colors"
+                    >
+                      Unmute
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
         </div>
       </section>
 

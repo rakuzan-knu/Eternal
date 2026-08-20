@@ -12,10 +12,12 @@ export const attachmentSchema = z.object({
   url: z.string().min(1),
   fileName: z.string().max(255).optional(),
   mimeType: z.string().optional(),
-  size: z.number().int().min(0).optional(),
-  width: z.number().int().min(0).optional(),
-  height: z.number().int().min(0).optional(),
+  size: z.coerce.number().min(0).optional(),
+  width: z.coerce.number().min(0).optional(),
+  height: z.coerce.number().min(0).optional(),
   duration: z.coerce.number().min(0).optional(),
+  waveform: z.array(z.number()).optional(),
+  isSpoiler: z.boolean().optional(),
   thumbnailUrl: z.string().optional(),
 });
 export type AttachmentDto = z.infer<typeof attachmentSchema>;

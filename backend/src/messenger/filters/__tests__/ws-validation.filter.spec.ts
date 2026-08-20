@@ -1,4 +1,5 @@
 import { WsException } from '@nestjs/websockets';
+import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import type { ArgumentsHost } from '@nestjs/common';
 import { WsValidationFilter } from '../ws-validation.filter';
 
@@ -57,6 +58,32 @@ describe('WsValidationFilter', () => {
       error: 'Unauthorized action',
     });
     expect(mockEmit).not.toHaveBeenCalled();
+  });
+
+  it('formats HttpException into ack callback properly', () => {
+    const mockAckCallback = jest.fn();
+    const host = createMockWsHost([{ payload: 'data' }, mockAckCallback]);
+    const exception = new NotFoundException('Message not found');
+
+    filter.catch(exception, host);
+
+    expect(mockAckCallback).toHaveBeenCalledWith({
+      status: 'error',
+      error: 'Message not found',
+    });
+  });
+
+  it('formats general Error into ack callback properly', () => {
+    const mockAckCallback = jest.fn();
+    const host = createMockWsHost([{ payload: 'data' }, mockAckCallback]);
+    const exception = new Error('Database connection lost');
+
+    filter.catch(exception, host);
+
+    expect(mockAckCallback).toHaveBeenCalledWith({
+      status: 'error',
+      error: 'Database connection lost',
+    });
   });
 
   it('formats object exception data containing message property', () => {

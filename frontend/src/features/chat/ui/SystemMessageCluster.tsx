@@ -31,6 +31,18 @@ function formatMessageTime(isoString: string): string {
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
+function isLeaveSystemMessage(msg: MessageView): boolean {
+  if (msg.messageType !== 'SYSTEM') return false;
+  const body = msg.body || '';
+  return (
+    body.includes('left the group') ||
+    body.includes('left the conversation') ||
+    body.includes('покинул(а) группу') ||
+    body.includes('покинул группу') ||
+    body.includes('вышел из группы')
+  );
+}
+
 export default function SystemMessageCluster({
   messages,
   onOpenEditGroup,
@@ -39,9 +51,20 @@ export default function SystemMessageCluster({
 
   if (messages.length === 0) return null;
 
-  // Single system message does not need to be clustered
+  // Single system message
   if (messages.length === 1) {
     const msg = messages[0];
+
+    if (isLeaveSystemMessage(msg)) {
+      return (
+        <div className="flex justify-center my-2.5 px-4 select-none">
+          <span className="text-center text-xs text-gray-400 font-normal leading-relaxed">
+            {msg.body}
+          </span>
+        </div>
+      );
+    }
+
     return (
       <div className="flex justify-center my-2 select-none">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#181926]/90 border border-white/10 shadow-lg backdrop-blur-md text-xs text-purple-200">

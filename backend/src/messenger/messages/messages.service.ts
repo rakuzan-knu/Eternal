@@ -146,24 +146,38 @@ export class MessagesService {
     await this.assertNotBlockedDirect(conversationId, senderId);
 
     let finalMessageType = dto.messageType || MessageType.TEXT;
-    if (!dto.messageType && dto.attachments && dto.attachments.length > 0) {
+    if (
+      (!dto.messageType || dto.messageType === MessageType.TEXT) &&
+      dto.attachments &&
+      dto.attachments.length > 0 &&
+      (!dto.text || !dto.text.trim())
+    ) {
       finalMessageType = dto.attachments[0].type as unknown as MessageType;
     }
 
-    // Backend validation against circle spoofing & duration limits
+    // Backend validation against circle spoofing & duration limits (max 60s for video circles, max 60m for audio/video)
     if (dto.attachments && dto.attachments.length > 0) {
       for (const att of dto.attachments) {
-        if (
-          (att.type === AttachmentType.AUDIO ||
-            att.type === AttachmentType.VIDEO ||
-            att.fileName?.includes('note')) &&
-          att.duration &&
-          att.duration > 65
-        ) {
-          throw new BadRequestException('Voice and Video notes cannot exceed 65 seconds');
+        const isVideoNote =
+          att.type === AttachmentType.VIDEO &&
+          (att.fileName?.includes('video_note') ||
+            att.mimeType?.includes('video_note') ||
+            (att.width && att.height && att.width === att.height));
+
+        if (isVideoNote && att.duration && att.duration > 65) {
+          throw new BadRequestException('Video notes (circles) cannot exceed 60 seconds');
         }
-        if (att.size && att.size > 25 * 1024 * 1024) {
-          throw new BadRequestException('Attachment size cannot exceed 25 MB');
+
+        if (
+          (att.type === AttachmentType.AUDIO || att.type === AttachmentType.VIDEO) &&
+          att.duration &&
+          att.duration > 3660
+        ) {
+          throw new BadRequestException('Audio and video messages cannot exceed 60 minutes');
+        }
+
+        if (att.size && att.size > 50 * 1024 * 1024) {
+          throw new BadRequestException('Attachment size cannot exceed 50 MB');
         }
       }
     }
@@ -184,10 +198,10 @@ export class MessagesService {
                   url: att.url,
                   fileName: att.fileName || null,
                   mimeType: att.mimeType || null,
-                  size: att.size || null,
-                  width: att.width || null,
-                  height: att.height || null,
-                  duration: att.duration || null,
+                  size: att.size != null ? Math.round(att.size) : null,
+                  width: att.width != null ? Math.round(att.width) : null,
+                  height: att.height != null ? Math.round(att.height) : null,
+                  duration: att.duration != null ? Math.round(att.duration) : null,
                   thumbnailUrl: att.thumbnailUrl || null,
                 })),
               }

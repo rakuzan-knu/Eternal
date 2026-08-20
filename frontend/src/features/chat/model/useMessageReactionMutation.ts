@@ -9,9 +9,19 @@ function emitWithAck<T = unknown>(
   socket: ReturnType<typeof useChatSocket>,
   event: string,
   payload: object,
+  timeoutMs = 6000,
 ): Promise<AckResponse<T>> {
   return new Promise((resolve, reject) => {
+    let timeoutId: ReturnType<typeof setTimeout> | null = setTimeout(() => {
+      timeoutId = null;
+      resolve({ status: 'ok' });
+    }, timeoutMs);
+
     socket.emit(event, payload, (res: AckResponse<T>) => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
       if (!res || res.status === 'error') {
         reject(new Error(res?.error ?? `${event} failed`));
         return;

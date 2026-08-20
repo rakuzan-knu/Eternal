@@ -1,25 +1,38 @@
-import { Catch, ArgumentsHost, ExceptionFilter, Logger } from '@nestjs/common';
+import { Catch, ArgumentsHost, ExceptionFilter, Logger, HttpException } from '@nestjs/common';
 import { WsException } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
 
-@Catch(WsException)
+@Catch()
 export class WsValidationFilter implements ExceptionFilter {
   private readonly logger = new Logger(WsValidationFilter.name);
 
-  catch(exception: WsException, host: ArgumentsHost) {
+  catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToWs();
     const client = ctx.getClient<Socket>();
 
-    const errorData: unknown = exception.getError();
+    let errorMessage = 'Internal server error';
 
-    const errorMessage: string =
-      typeof errorData === 'object' && errorData !== null && 'message' in errorData
-        ? String((errorData as Record<string, unknown>).message)
-        : typeof errorData === 'string'
-          ? errorData
-          : JSON.stringify(errorData);
+    if (exception instanceof WsException) {
+      const errorData: unknown = exception.getError();
+      errorMessage =
+        typeof errorData === 'object' && errorData !== null && 'message' in errorData
+          ? String((errorData as Record<string, unknown>).message)
+          : typeof errorData === 'string'
+            ? errorData
+            : JSON.stringify(errorData);
+    } else if (exception instanceof HttpException) {
+      const resp = exception.getResponse();
+      errorMessage =
+        typeof resp === 'object' && resp !== null && 'message' in resp
+          ? Array.isArray((resp as Record<string, unknown>).message)
+            ? (resp as { message: string[] }).message.join(', ')
+            : String((resp as Record<string, unknown>).message)
+          : exception.message;
+    } else if (exception instanceof Error) {
+      errorMessage = exception.message;
+    }
 
-    this.logger.warn(`WS Exception caught for client ${client.id}: ${errorMessage}`);
+    this.logger.warn(`WS Exception caught for client ${client?.id}: ${errorMessage}`);
 
     const args: unknown[] = host.getArgs();
 
@@ -29,7 +42,7 @@ export class WsValidationFilter implements ExceptionFilter {
 
     if (callback) {
       callback({ status: 'error', error: errorMessage });
-    } else {
+    } else if (client?.emit) {
       client.emit('error', { status: 'error', error: errorMessage });
     }
   }

@@ -17,6 +17,12 @@ import { PrismaService } from '@common/prisma';
 import { MessengerGateway } from '../messenger/gateway/messenger.gateway';
 import { WS_EVENTS } from '../messenger/events/ws-events';
 import { RedisService } from '../redis/redis.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { NotificationType } from '@prisma/client';
+import {
+  CreateNotificationEvent,
+  NOTIFICATION_EVENTS,
+} from '../notifications/events/notification.events';
 
 @Injectable()
 export class CommentsService {
@@ -25,8 +31,10 @@ export class CommentsService {
     private readonly commentsRepository: ICommentsRepository,
     private readonly prisma: PrismaService,
     @Inject(forwardRef(() => MessengerGateway))
-    private readonly gateway: MessengerGateway,
+    @Optional()
+    private readonly gateway?: MessengerGateway,
     @Optional() private readonly redis?: RedisService,
+    @Optional() private readonly eventEmitter?: EventEmitter2,
   ) {}
 
   async addComment(
@@ -38,8 +46,8 @@ export class CommentsService {
     if (dto.clientMutationId && this.redis) {
       const lockKey = `idempotency:comment:${userId}:${dto.clientMutationId}`;
       try {
-        const client = typeof this.redis.getClient === 'function' ? this.redis.getClient() : null;
-        if (client) {
+        const client = this.redis.getClient();
+        if (client && typeof client.set === 'function') {
           const acquired = await client.set(lockKey, 'locked', 'EX', 30, 'NX');
           if (!acquired) {
             throw new ConflictException(
@@ -54,16 +62,17 @@ export class CommentsService {
     }
 
     // 2. Anti-Spam: Mention Bombing Protection (Max 5 mentions)
-    const rawMatches: string[] = dto.text.match(/@([a-zA-Z0-9._]{1,32})/g) ?? [];
+    const rawMatches: string[] = dto.text ? (dto.text.match(/@([a-zA-Z0-9._]{1,32})/g) ?? []) : [];
     if (rawMatches.length > 5) {
       throw new BadRequestException('Maximum 5 mentions per comment allowed');
     }
 
-    // 3. Anti-Spam: Duplicate Comment Guard (Same text within 60s)
+    // 3. Anti-Spam: Duplicate Comment Guard (Same text on same post within 60s)
     const sixtySecondsAgo = new Date(Date.now() - 60 * 1000);
     const duplicate = await this.prisma.comment.findFirst({
       where: {
         userId,
+        postId,
         text: dto.text.trim(),
         createdAt: { gte: sixtySecondsAgo },
       },
@@ -111,34 +120,62 @@ export class CommentsService {
 
     const comment = await this.commentsRepository.addComment(postId, userId, dto);
 
-    // 5. Emit real-time notifications
+    // 5. Emit asynchronous notification events & real-time socket events
     try {
       if (post.authorId !== userId) {
-        const actor = await this.prisma.user.findUnique({
-          where: { id: userId },
-          select: { id: true, username: true, displayName: true, avatar: true },
-        });
-
-        if (actor) {
-          const preview = dto.text.trim();
-          const commentBody = preview.length > 50 ? `${preview.slice(0, 50)}...` : preview;
-
-          this.gateway.emitToUser(post.authorId, WS_EVENTS.SOCIAL_NOTIFICATION, {
-            type: 'COMMENT',
-            actor: {
-              id: actor.id,
-              username: actor.username,
-              displayName: actor.displayName || actor.username,
-              avatar: actor.avatar,
-            },
-            postId: post.id,
-            authorUsername: post.author.username,
-            commentText: dto.text,
-            message: dto.parentId
-              ? `replied to a comment on your post: "${commentBody}"`
-              : `commented: "${commentBody}"`,
-          });
+        if (this.eventEmitter) {
+          this.eventEmitter.emit(
+            NOTIFICATION_EVENTS.CREATE,
+            new CreateNotificationEvent(post.authorId, NotificationType.COMMENT, {
+              actorId: userId,
+              postId: post.id,
+              commentId: comment.id,
+              text: dto.text,
+            }),
+          );
         }
+        if (this.gateway) {
+          const actor = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { id: true, username: true, displayName: true, avatar: true },
+          });
+          if (actor) {
+            const preview = dto.text.trim();
+            const commentBody = preview.length > 50 ? `${preview.slice(0, 50)}...` : preview;
+            this.gateway.emitToUser(post.authorId, WS_EVENTS.SOCIAL_NOTIFICATION, {
+              type: 'COMMENT',
+              actor: {
+                id: actor.id,
+                username: actor.username,
+                displayName: actor.displayName || actor.username,
+                avatar: actor.avatar,
+              },
+              postId: post.id,
+              authorUsername: post.author?.username || 'user',
+              commentText: dto.text,
+              message: dto.parentId
+                ? `replied to a comment on your post: "${commentBody}"`
+                : `commented: "${commentBody}"`,
+            });
+          }
+        }
+      }
+
+      if (
+        dto.replyToUserId &&
+        dto.replyToUserId !== userId &&
+        dto.replyToUserId !== post.authorId &&
+        this.eventEmitter
+      ) {
+        this.eventEmitter.emit(
+          NOTIFICATION_EVENTS.CREATE,
+          new CreateNotificationEvent(dto.replyToUserId, NotificationType.COMMENT, {
+            actorId: userId,
+            postId: post.id,
+            commentId: comment.id,
+            text: dto.text,
+          }),
+        );
       }
 
       // Check mentions in comment text
@@ -175,36 +212,50 @@ export class CommentsService {
         const uniqueTargets = Array.from(new Map(mentionedUsers.map((u) => [u.id, u])).values());
 
         if (uniqueTargets.length > 0) {
-          const actor = await this.prisma.user.findUnique({
-            where: { id: userId },
-            select: { id: true, username: true, displayName: true, avatar: true },
-          });
-
-          if (actor) {
-            const preview = dto.text.trim();
-            const commentBody = preview.length > 50 ? `${preview.slice(0, 50)}...` : preview;
+          if (this.eventEmitter) {
             for (const target of uniqueTargets) {
-              if (target.id !== userId) {
-                this.gateway.emitToUser(target.id, WS_EVENTS.SOCIAL_NOTIFICATION, {
-                  type: 'MENTION',
-                  actor: {
-                    id: actor.id,
-                    username: actor.username,
-                    displayName: actor.displayName || actor.username,
-                    avatar: actor.avatar,
-                  },
-                  postId: postId,
-                  authorUsername: actor.username,
-                  commentText: dto.text,
-                  message: `mentioned you in a comment: "${commentBody}"`,
-                });
+              this.eventEmitter.emit(
+                NOTIFICATION_EVENTS.CREATE,
+                new CreateNotificationEvent(target.id, NotificationType.MENTION, {
+                  actorId: userId,
+                  postId: post.id,
+                  commentId: comment.id,
+                  text: dto.text,
+                }),
+              );
+            }
+          }
+          if (this.gateway) {
+            const actor = await this.prisma.user.findUnique({
+              where: { id: userId },
+              select: { id: true, username: true, displayName: true, avatar: true },
+            });
+            if (actor) {
+              const preview = dto.text.trim();
+              const commentBody = preview.length > 50 ? `${preview.slice(0, 50)}...` : preview;
+              for (const target of uniqueTargets) {
+                if (target.id !== userId) {
+                  this.gateway.emitToUser(target.id, WS_EVENTS.SOCIAL_NOTIFICATION, {
+                    type: 'MENTION',
+                    actor: {
+                      id: actor.id,
+                      username: actor.username,
+                      displayName: actor.displayName || actor.username,
+                      avatar: actor.avatar,
+                    },
+                    postId: postId,
+                    authorUsername: actor.username,
+                    commentText: dto.text,
+                    message: `mentioned you in a comment: "${commentBody}"`,
+                  });
+                }
               }
             }
           }
         }
       }
     } catch {
-      // Non-blocking notification
+      // Non-blocking notification emission
     }
 
     return CommentResponseDto.fromPrisma(comment, userId, post.authorId);
