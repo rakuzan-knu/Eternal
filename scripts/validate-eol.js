@@ -67,6 +67,7 @@ const IGNORED_FILES = new Set([
 ]);
 
 function isTextFile(filePath) {
+  if (!fs.existsSync(filePath)) return false;
   const basename = path.basename(filePath);
   const ext = path.extname(filePath).toLowerCase();
 

@@ -33,6 +33,16 @@ describe('SuggestedUsersCarousel', () => {
     } as unknown as ReturnType<typeof useSuggestedUsersModule.useDismissSuggestedUser>);
   });
 
+  it('renders loading skeleton when isLoading is true', () => {
+    vi.spyOn(useSuggestedUsersModule, 'useSuggestedUsers').mockReturnValue({
+      data: [],
+      isLoading: true,
+    } as unknown as ReturnType<typeof useSuggestedUsersModule.useSuggestedUsers>);
+
+    const { container } = render(<SuggestedUsersCarousel />);
+    expect(container.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0);
+  });
+
   it('renders suggested creator cards with avatars, mutual info, and follow buttons', () => {
     vi.spyOn(useSuggestedUsersModule, 'useSuggestedUsers').mockReturnValue({
       data: [
@@ -51,6 +61,18 @@ describe('SuggestedUsersCarousel', () => {
             totalMutualCount: 3,
           },
         },
+        {
+          id: 'user-2',
+          username: 'nearby_user',
+          displayName: 'Nearby User',
+          avatar: null,
+          isFollowing: false,
+          followsYou: false,
+          recommendationReason: {
+            type: 'NEARBY',
+            text: 'Near Kyiv',
+          },
+        },
       ],
       isLoading: false,
     } as unknown as ReturnType<typeof useSuggestedUsersModule.useSuggestedUsers>);
@@ -61,6 +83,7 @@ describe('SuggestedUsersCarousel', () => {
     expect(screen.getByText('Creator One')).toBeInTheDocument();
     expect(screen.getByText('@creator_one')).toBeInTheDocument();
     expect(screen.getByText('Followed by alice and 2 others')).toBeInTheDocument();
+    expect(screen.getByText('Near Kyiv')).toBeInTheDocument();
     expect(screen.getByTestId('follow-btn-user-1')).toBeInTheDocument();
   });
 

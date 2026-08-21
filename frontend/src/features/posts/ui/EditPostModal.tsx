@@ -127,7 +127,10 @@ export function EditPostModal({
               <Avatar src={post.avatar} size="sm" />
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-white truncate">
-                  {post.author || post.handle}
+                  {typeof post.author === 'string'
+                    ? post.author
+                    : ((post.author as unknown as { displayName?: string })?.displayName ??
+                      post.handle)}
                 </p>
                 <p className="text-xs text-gray-500 truncate">@{post.handle}</p>
               </div>

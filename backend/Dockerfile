@@ -1,5 +1,5 @@
-# Stage 1: Dependencies
-FROM node:24-alpine AS deps
+# Stage 1: Build Dependencies (Dev + Prod)
+FROM node:24-alpine AS build-deps
 
 RUN --mount=type=cache,target=/var/cache/apk \
     apk add --no-cache libc6-compat build-base python3 openssl
@@ -28,14 +28,37 @@ RUN corepack enable && corepack prepare pnpm@10.5.2 --activate
 
 WORKDIR /app
 
-COPY --from=deps /app ./
+COPY --from=build-deps /app ./
 COPY tsconfig.base.json* nx.json* ./
 COPY backend ./backend
 COPY frontend ./frontend
 
 RUN pnpm --filter backend build
 
-# Stage 3: Production
+# Stage 3: Production Dependencies Only
+FROM node:24-alpine AS prod-deps
+
+RUN --mount=type=cache,target=/var/cache/apk \
+    apk add --no-cache libc6-compat build-base python3 openssl
+
+RUN corepack enable && corepack prepare pnpm@10.5.2 --activate
+
+WORKDIR /app
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY backend/package.json ./backend/
+COPY frontend/package.json ./frontend/
+COPY backend/prisma ./backend/prisma/
+COPY scripts ./scripts/
+
+ENV CI=true
+
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile --prod
+
+RUN pnpm --filter backend exec prisma generate
+
+# Stage 4: Production Runtime
 FROM node:24-alpine AS production
 
 RUN --mount=type=cache,target=/var/cache/apk \
@@ -51,11 +74,11 @@ ENV NODE_ENV=production NODE_OPTIONS="--max-old-space-size=512"
 ENV PATH="/app/backend/node_modules/.bin:/app/node_modules/.bin:${PATH}"
 ENV NODE_PATH="/app/node_modules:/app/backend/node_modules"
 
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/backend/node_modules ./backend/node_modules
+COPY --from=prod-deps /app/node_modules ./node_modules
+COPY --from=prod-deps /app/backend/node_modules ./backend/node_modules
 RUN if [ -d ./backend/node_modules ]; then cp -rn ./backend/node_modules/* ./node_modules/ 2>/dev/null || true; fi
 COPY --from=builder /app/backend/dist ./backend/dist
-COPY --from=deps /app/backend/prisma ./backend/prisma
+COPY --from=prod-deps /app/backend/prisma ./backend/prisma
 COPY --from=builder /app/scripts/backup-db.sh ./scripts/backup-db.sh
 
 RUN chown -R nestjs:nodejs /app

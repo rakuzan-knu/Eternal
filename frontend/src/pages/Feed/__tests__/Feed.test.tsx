@@ -30,7 +30,7 @@ describe('FeedPage', () => {
   it('renders the create-post composer', async () => {
     renderWithProviders(<FeedPage />);
 
-    expect(screen.getByPlaceholderText("What's new?")).toBeInTheDocument();
+    expect(await screen.findByPlaceholderText("What's new?")).toBeInTheDocument();
   });
 
   it('renders the feed with posts', async () => {
@@ -49,10 +49,11 @@ describe('FeedPage', () => {
   });
 
   it('submits a new post and clears the composer', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderWithProviders(<FeedPage />);
 
-    await user.type(screen.getByPlaceholderText("What's new?"), 'Hello feed');
+    const composer = await screen.findByPlaceholderText("What's new?");
+    await user.type(composer, 'Hello feed');
     await user.click(screen.getByText('Publish'));
 
     await waitFor(() => {
@@ -63,7 +64,7 @@ describe('FeedPage', () => {
   it('does not publish an empty post', async () => {
     renderWithProviders(<FeedPage />);
 
-    const publishBtn = screen.getByText('Publish');
+    const publishBtn = await screen.findByText('Publish');
     expect(publishBtn).toBeDisabled();
   });
 });

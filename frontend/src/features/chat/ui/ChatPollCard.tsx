@@ -1,25 +1,7 @@
 import React, { useMemo } from 'react';
 import { BarChart2, Check } from 'lucide-react';
 import { useChatPollVotesStore } from '../model/useChatPollVotesStore';
-
-export interface ChatPollData {
-  type: 'POLL';
-  question: string;
-  options: { id: string; text: string; votes?: number }[];
-}
-
-export function parseChatPoll(body: string | null): ChatPollData | null {
-  if (!body) return null;
-  try {
-    const parsed = JSON.parse(body);
-    if (parsed && parsed.type === 'POLL' && parsed.question && Array.isArray(parsed.options)) {
-      return parsed as ChatPollData;
-    }
-  } catch {
-    // Not a JSON poll
-  }
-  return null;
-}
+import type { ChatPollData } from '../lib/chatPoll';
 
 interface ChatPollCardProps {
   messageId: string;

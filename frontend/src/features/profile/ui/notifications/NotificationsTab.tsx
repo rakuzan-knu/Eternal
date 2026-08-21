@@ -18,7 +18,6 @@ import {
   BellOff,
   ChevronDown,
   ChevronUp,
-  UserX,
   Play,
 } from 'lucide-react';
 import {
@@ -197,26 +196,22 @@ export default function NotificationsTab() {
               { key: '1h', label: '1 hour' },
               { key: '8h', label: '8 hours' },
               { key: 'tomorrow', label: 'Tomorrow' },
-            ].map(({ key, label }) => {
-              const isActive = (key === 'off' && !isDndActive) || (key !== 'off' && isDndActive);
-
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setDoNotDisturb(key as any)}
-                  className={`py-2 px-2 text-center rounded-xl text-xs font-medium border transition-all duration-200 ${
-                    key === 'off' && !isDndActive
-                      ? 'bg-white/10 text-white border-white/20 shadow-sm'
-                      : key !== 'off' && isDndActive
-                        ? 'bg-purple-600/20 text-purple-200 border-purple-500/30 hover:bg-purple-600/30'
-                        : 'bg-white/5 text-gray-400 border-white/5 hover:bg-white/10 hover:text-white'
-                  }`}
-                >
-                  {label}
-                </button>
-              );
-            })}
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setDoNotDisturb(key as any)}
+                className={`py-2 px-2 text-center rounded-xl text-xs font-medium border transition-all duration-200 ${
+                  key === 'off' && !isDndActive
+                    ? 'bg-white/10 text-white border-white/20 shadow-sm'
+                    : key !== 'off' && isDndActive
+                      ? 'bg-purple-600/20 text-purple-200 border-purple-500/30 hover:bg-purple-600/30'
+                      : 'bg-white/5 text-gray-400 border-white/5 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         </div>
       </section>

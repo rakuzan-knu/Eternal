@@ -10,6 +10,7 @@ describe('MetricsService', () => {
   });
 
   afterEach(() => {
+    service.onModuleDestroy();
     promClient.register.clear();
   });
 
@@ -27,5 +28,9 @@ describe('MetricsService', () => {
     expect(metrics).toContain('http_requests_total');
     expect(metrics).toContain('http_requests_errors_total');
     expect(metrics).toContain('database_query_duration_seconds');
+  });
+
+  it('cleans up uptime interval on onModuleDestroy', () => {
+    expect(() => service.onModuleDestroy()).not.toThrow();
   });
 });

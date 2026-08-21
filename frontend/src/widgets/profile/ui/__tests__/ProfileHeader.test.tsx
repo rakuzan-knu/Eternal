@@ -2,7 +2,10 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import React from 'react';
 import ProfileHeader from '../ProfileHeader';
+import { chatApi } from '@/features/chat/api/chatApi';
 
 vi.mock('@/features/follow/ui/UserListModal', () => ({
   UserListModal: ({ mode }: { mode: 'followers' | 'following' }) => (
@@ -14,6 +17,12 @@ vi.mock('@/features/follow/ui/FollowButton', () => ({
   FollowButton: () => <button>Follow</button>,
 }));
 
+vi.mock('@/features/chat/api/chatApi', () => ({
+  chatApi: {
+    createDirectConversation: vi.fn(),
+  },
+}));
+
 const defaultProps = {
   userId: 'user-1',
   username: 'ayate',
@@ -22,10 +31,16 @@ const defaultProps = {
 };
 
 function renderHeader(props = {}) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+
   return render(
-    <MemoryRouter>
-      <ProfileHeader {...defaultProps} {...props} />
-    </MemoryRouter>,
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <ProfileHeader {...defaultProps} {...props} />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
@@ -76,5 +91,18 @@ describe('ProfileHeader', () => {
     await user.click(screen.getByText(/followers/i));
 
     expect(onEditClick).not.toHaveBeenCalled();
+  });
+
+  it('initiates direct message chat when message button is clicked', async () => {
+    const user = userEvent.setup();
+    vi.mocked(chatApi.createDirectConversation).mockResolvedValueOnce({ id: 'conv-123' } as any);
+
+    renderHeader({ isOwnProfile: false, followsYou: true, badges: ['DEVELOPER'] });
+
+    expect(screen.getByText('Follows You')).toBeInTheDocument();
+    const messageBtn = screen.getByText('Message');
+    await user.click(messageBtn);
+
+    expect(chatApi.createDirectConversation).toHaveBeenCalledWith('user-1');
   });
 });

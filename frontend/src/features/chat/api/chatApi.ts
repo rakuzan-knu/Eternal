@@ -88,6 +88,7 @@ export const chatApi = {
     conversationId: string,
     dto: {
       text?: string;
+      messageType?: string;
       replyToId?: string;
       attachments?: OutgoingAttachment[];
       clientMessageId?: string;

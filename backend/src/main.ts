@@ -6,8 +6,7 @@ import { AppModule } from './app.module';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { type Request, type Response } from 'express';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const helmet = require('helmet');
+import helmet from 'helmet';
 
 const logger = new Logger('Bootstrap');
 

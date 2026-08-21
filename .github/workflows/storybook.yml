@@ -31,11 +31,22 @@ jobs:
           node-version-file: '.nvmrc'
           cache: 'pnpm'
 
-      - name: Install deps
-        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Cache Node Modules & Prisma
+        id: monorepo-cache
+        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
+        with:
+          path: |
+            node_modules
+            backend/node_modules
+            frontend/node_modules
+            ~/.cache/prisma
+          key: ${{ runner.os }}-monorepo-pnpm-${{ hashFiles('pnpm-lock.yaml', 'backend/prisma/schema.prisma') }}
 
-      - name: Generate Prisma Client
-        run: pnpm --filter backend exec prisma generate
+      - name: Install & Generate (On Cache Miss)
+        if: steps.monorepo-cache.outputs.cache-hit != 'true'
+        run: |
+          pnpm install --frozen-lockfile --ignore-scripts
+          pnpm --filter backend exec prisma generate
 
       - name: Build Storybook
         run: pnpm --filter frontend run build:storybook
@@ -69,7 +80,19 @@ jobs:
           node-version-file: '.nvmrc'
           cache: 'pnpm'
 
-      - name: Install deps
+      - name: Cache Node Modules & Prisma
+        id: monorepo-cache
+        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
+        with:
+          path: |
+            node_modules
+            backend/node_modules
+            frontend/node_modules
+            ~/.cache/prisma
+          key: ${{ runner.os }}-monorepo-pnpm-${{ hashFiles('pnpm-lock.yaml', 'backend/prisma/schema.prisma') }}
+
+      - name: Install (On Cache Miss)
+        if: steps.monorepo-cache.outputs.cache-hit != 'true'
         run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Download Storybook build
@@ -83,4 +106,4 @@ jobs:
         working-directory: frontend
         run: pnpm exec chromatic --storybook-build-dir=storybook-static --exit-once-uploaded
         env:
-          CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_TOKEN }}
+          CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { X, Layers, Pin } from 'lucide-react';
+import { X, Layers } from 'lucide-react';
+
 import { MessageView } from '../../../entities/chat/model/types';
 
 interface PinnedMessagesBarProps {

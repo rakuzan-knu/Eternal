@@ -1,11 +1,16 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { PostCard } from '../PostCard';
 import { useUIStore, PostType } from '@/shared/model/useUIStore';
 import { resetUIStore } from '@/test/resetUIStore';
+import * as useLikeMutationModule from '@/features/posts/model/useLikeMutation';
+import * as useRepostMutationModule from '@/features/posts/model/useRepostMutation';
+import * as useSavePostMutationModule from '@/features/posts/model/useSavePostMutation';
+import * as useDeletePostMutationModule from '@/features/posts/model/useDeletePostMutation';
+import * as usePinPostMutationModule from '@/features/posts/model/usePinPostMutation';
 
 vi.mock('@/entities/post/ui/PostMedia', () => ({
   PostMedia: ({ media }: { media: { url: string }[] }) =>
@@ -14,6 +19,18 @@ vi.mock('@/entities/post/ui/PostMedia', () => ({
 
 vi.mock('@/shared/lib/formatRelativeTime', () => ({
   formatRelativeTime: () => '3h',
+}));
+
+vi.mock('@/features/posts/ui/PollDisplay', () => ({
+  PollDisplay: () => <div data-testid="poll-display">PollDisplay</div>,
+}));
+
+vi.mock('@/entities/post/ui/PollVotersModal', () => ({
+  PollVotersModal: ({ onClose }: any) => (
+    <div data-testid="voters-modal">
+      <button onClick={onClose}>Close Voters</button>
+    </div>
+  ),
 }));
 
 const basePost: PostType = {
@@ -27,25 +44,60 @@ const basePost: PostType = {
   comments: 2,
   reposts: 1,
   likes: 5,
+  sharesCount: 3,
 };
 
-function renderPostCard(post: PostType = basePost) {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  });
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter>
-        <PostCard post={post} queryKey={['test']} />
-      </MemoryRouter>
-    </QueryClientProvider>,
-  );
-}
-
 describe('PostCard', () => {
+  const mockLikeMutate = vi.fn();
+  const mockRepostMutate = vi.fn();
+  const mockSaveMutate = vi.fn();
+  const mockDeleteMutate = vi.fn();
+  const mockPinMutate = vi.fn();
+
+  beforeEach(() => {
+    vi.spyOn(useLikeMutationModule, 'useLikeMutation').mockReturnValue({
+      mutate: mockLikeMutate,
+      isPending: false,
+    } as any);
+
+    vi.spyOn(useRepostMutationModule, 'useRepostMutation').mockReturnValue({
+      mutate: mockRepostMutate,
+      isPending: false,
+    } as any);
+
+    vi.spyOn(useSavePostMutationModule, 'useSavePostMutation').mockReturnValue({
+      mutate: mockSaveMutate,
+      isPending: false,
+    } as any);
+
+    vi.spyOn(useDeletePostMutationModule, 'useDeletePostMutation').mockReturnValue({
+      mutate: mockDeleteMutate,
+      isPending: false,
+    } as any);
+
+    vi.spyOn(usePinPostMutationModule, 'usePinPostMutation').mockReturnValue({
+      mutate: mockPinMutate,
+      isPending: false,
+    } as any);
+  });
+
   afterEach(() => {
     resetUIStore();
+    vi.clearAllMocks();
   });
+
+  function renderPostCard(post: PostType = basePost) {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    return render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <PostCard post={post} queryKey={['test']} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+  }
 
   it('renders author, handle, time, text and counters', () => {
     renderPostCard();
@@ -56,6 +108,7 @@ describe('PostCard', () => {
     expect(screen.getByText('2')).toBeInTheDocument();
     expect(screen.getByText('1')).toBeInTheDocument();
     expect(screen.getByText('5')).toBeInTheDocument();
+    expect(screen.getByText('3')).toBeInTheDocument();
   });
 
   it('does not render the repost banner for a regular post', () => {
@@ -83,10 +136,74 @@ describe('PostCard', () => {
     );
   });
 
-  it('does not render an image when post.image is absent', () => {
+  it('renders pinned badge when post.isPinned is true', () => {
+    renderPostCard({ ...basePost, isPinned: true });
+    expect(screen.getByText('Pinned post')).toBeInTheDocument();
+  });
+
+  it('handles like click', async () => {
+    const user = userEvent.setup();
     renderPostCard();
 
-    expect(screen.queryByAltText('Post Attachment')).not.toBeInTheDocument();
+    const likeButton = screen.getByTitle('Like');
+    await user.click(likeButton);
+
+    expect(mockLikeMutate).toHaveBeenCalled();
+  });
+
+  it('handles repost click', async () => {
+    const user = userEvent.setup();
+    renderPostCard();
+
+    const repostButton = screen.getByTitle('Repost');
+    await user.click(repostButton);
+
+    expect(mockRepostMutate).toHaveBeenCalled();
+  });
+
+  it('handles save click', async () => {
+    const user = userEvent.setup();
+    renderPostCard();
+
+    const saveButton = screen.getByTitle('Save post (Hold for collections)');
+    await user.click(saveButton);
+
+    expect(mockSaveMutate).toHaveBeenCalled();
+  });
+
+  it('opens share modal on share click', async () => {
+    const user = userEvent.setup();
+    renderPostCard();
+
+    const shareButton = screen.getByTitle('Share post');
+    await user.click(shareButton);
+
+    expect(useUIStore.getState().isShareModalOpen).toBe(true);
+  });
+
+  it('renders poll and allows opening voters modal for post owner', async () => {
+    const user = userEvent.setup();
+    const pollPost: PostType = {
+      ...basePost,
+      isOwner: true,
+      poll: {
+        id: 'poll-1',
+        options: [{ id: 'opt-1', text: 'Blue', votes: 2, votesCount: 2 }],
+        totalVotes: 2,
+        myVoteOptionId: null,
+      },
+    };
+
+    renderPostCard(pollPost);
+
+    expect(screen.getByTestId('poll-display')).toBeInTheDocument();
+    expect(screen.getByText('Who voted')).toBeInTheDocument();
+
+    await user.click(screen.getByText('Who voted'));
+    expect(screen.getByTestId('voters-modal')).toBeInTheDocument();
+
+    await user.click(screen.getByText('Close Voters'));
+    expect(screen.queryByTestId('voters-modal')).not.toBeInTheDocument();
   });
 
   it('opens the comment modal for this post when the comment button is clicked', async () => {
@@ -98,16 +215,5 @@ describe('PostCard', () => {
     const state = useUIStore.getState();
     expect(state.isCommentModalOpen).toBe(true);
     expect(state.activePostForComments).toEqual(basePost);
-  });
-
-  it('re-clicking the comment button keeps the modal open with the latest post', async () => {
-    const user = userEvent.setup();
-    renderPostCard();
-    const commentButton = screen.getByText('2').closest('button')!;
-
-    await user.click(commentButton);
-    await user.click(commentButton);
-
-    expect(useUIStore.getState().isCommentModalOpen).toBe(true);
   });
 });

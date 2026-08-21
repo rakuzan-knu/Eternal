@@ -21,6 +21,7 @@ export const RESERVED_USERNAMES = [
   'null',
   'undefined',
   'api',
+  'auth',
   'admin',
   'support',
   'system',

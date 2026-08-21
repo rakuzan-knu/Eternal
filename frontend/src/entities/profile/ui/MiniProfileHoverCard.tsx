@@ -72,7 +72,7 @@ export function MiniProfileHoverCard({
   const openCommentModal = useUIStore((s) => s.openCommentModal);
   const navigate = useNavigate();
 
-  const cleanUsername = username.replace(/^@+/, '').trim();
+  const cleanUsername = (username || '').replace(/^@+/, '').trim();
 
   // Dynamic viewport space calculation
   const updatePlacement = useCallback(() => {

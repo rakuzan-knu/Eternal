@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -16,11 +16,11 @@ function renderForgotPasswordPage() {
 }
 
 async function advanceToStep2(user: ReturnType<typeof userEvent.setup>) {
-  await user.type(screen.getByPlaceholderText('Email or number'), 'user@example.com');
-  await user.click(screen.getByText('Continue'));
-  await waitFor(() => expect(screen.getByText('Alex Kovalenko')).toBeInTheDocument(), {
-    timeout: 2000,
+  fireEvent.change(screen.getByPlaceholderText('Email or number'), {
+    target: { value: 'user@example.com' },
   });
+  await user.click(screen.getByText('Continue'));
+  expect(await screen.findByText('Alex Kovalenko')).toBeInTheDocument();
 }
 
 describe('ForgotPasswordPage', () => {
@@ -40,7 +40,7 @@ describe('ForgotPasswordPage', () => {
   });
 
   it('navigates to /login when the back button is clicked on step 1', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderForgotPasswordPage();
 
     await user.click(screen.getAllByRole('button')[0]);
@@ -49,7 +49,7 @@ describe('ForgotPasswordPage', () => {
   });
 
   it('advances to step 2 (reset method) once an account is found', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderForgotPasswordPage();
 
     await advanceToStep2(user);
@@ -58,7 +58,7 @@ describe('ForgotPasswordPage', () => {
   });
 
   it('goes back to step 1 (without navigating away) when the back button is clicked on step 2', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderForgotPasswordPage();
     await advanceToStep2(user);
 
@@ -69,7 +69,7 @@ describe('ForgotPasswordPage', () => {
   });
 
   it('returns to step 1 when ResetMethod reports "Isn\'t that you?"', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderForgotPasswordPage();
     await advanceToStep2(user);
 
@@ -79,7 +79,7 @@ describe('ForgotPasswordPage', () => {
   });
 
   it('renders the footer on both steps', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderForgotPasswordPage();
     expect(screen.getByText('Eternal © 2026')).toBeInTheDocument();
 

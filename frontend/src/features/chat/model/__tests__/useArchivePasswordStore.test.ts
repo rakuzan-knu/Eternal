@@ -25,4 +25,18 @@ describe('useArchivePasswordStore', () => {
     useArchivePasswordStore.getState().resetPassword();
     expect(useArchivePasswordStore.getState().passwordHash).toBeNull();
   });
+
+  it('migrates legacy v0 plaintext JSON verifier on rehydrate', async () => {
+    const legacy = {
+      salt: '0102030405060708090a0b0c0d0e0f10',
+      hash: 'testhash123',
+      algo: 'PBKDF2' as const,
+    };
+    localStorage.setItem('eternal-archive-password', JSON.stringify(legacy));
+
+    useArchivePasswordStore.getState().rehydrate();
+    expect(useArchivePasswordStore.getState().passwordHash).toEqual(legacy);
+    expect(localStorage.getItem('eternal-archive-password')).toBeNull();
+    expect(localStorage.getItem('eternal-archive-auth-v2')).not.toBeNull();
+  });
 });

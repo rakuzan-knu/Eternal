@@ -274,7 +274,6 @@ export function NotificationsPage() {
             {displayedItems.map((item) => {
               const badge = getNotificationBadge(item.type);
               const isFollowNotification = item.type === 'FOLLOW';
-              const actorUsername = item.actor?.username || 'user';
               const actorDisplayName = item.actor?.displayName || item.actor?.username || 'Someone';
 
               return (

@@ -37,7 +37,6 @@ export default function GlobalMediaPlaybackBar({ onNearQueueEnd }: GlobalMediaPl
     senderName,
     sentAt,
     currentTime,
-    duration,
     isPlaying,
     isMuted,
     volume,
@@ -79,10 +78,7 @@ export default function GlobalMediaPlaybackBar({ onNearQueueEnd }: GlobalMediaPl
       audio.src = url;
       audio.load();
       if (isPlaying) {
-        audio
-          .play()
-          .then(() => setIsPlaying(true))
-          .catch(() => {});
+        audio.play().catch(() => {});
       }
     }
   }, [url, mediaType, isPlaying, setIsPlaying]);
@@ -92,10 +88,7 @@ export default function GlobalMediaPlaybackBar({ onNearQueueEnd }: GlobalMediaPl
     if (!audio || mediaType === 'video') return;
 
     if (isPlaying && audio.paused) {
-      audio
-        .play()
-        .then(() => setIsPlaying(true))
-        .catch(() => {});
+      audio.play().catch(() => {});
     } else if (!isPlaying && !audio.paused) {
       audio.pause();
     }

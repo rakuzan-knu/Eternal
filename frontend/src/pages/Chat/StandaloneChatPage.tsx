@@ -89,16 +89,18 @@ export default function StandaloneChatPage() {
   const [forwardingMessage, setForwardingMessage] = useState<MessageView | null>(null);
   const [isMaximized, setIsMaximized] = useState(false);
 
+  const { markRead } = actions;
+
   useEffect(() => {
     if (conversationId) {
-      actions.markRead();
+      markRead();
       const draft = useChatDraftsStore.getState().getDraft(conversationId);
       if (draft) {
         setText(draft.text || '');
         if (draft.replyingTo) setReplyingTo(draft.replyingTo);
       }
     }
-  }, [conversationId]);
+  }, [conversationId, markRead]);
 
   useEffect(() => {
     if (!conversationId) return;

@@ -40,7 +40,7 @@ describe('CommentForm', () => {
   });
 
   it('enables the submit button once the user types some text', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<CommentForm currentUserHandle="@ayate" />);
     const submitButton = document.querySelector('button[type="submit"]') as HTMLButtonElement;
 
@@ -50,7 +50,7 @@ describe('CommentForm', () => {
   });
 
   it('clears the textarea after a successful submit', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<CommentForm currentUserHandle="@ayate" />);
     const submitButton = document.querySelector('button[type="submit"]') as HTMLButtonElement;
 
@@ -62,7 +62,7 @@ describe('CommentForm', () => {
   });
 
   it('submits on Enter without Shift and clears the text', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<CommentForm currentUserHandle="@ayate" />);
 
     await user.type(getTextarea(), 'Nice post!{Enter}');
@@ -71,7 +71,7 @@ describe('CommentForm', () => {
   });
 
   it('does not submit on Shift+Enter, allowing a newline instead', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<CommentForm currentUserHandle="@ayate" />);
 
     await user.type(getTextarea(), 'Line 1{Shift>}{Enter}{/Shift}Line 2');
@@ -80,7 +80,7 @@ describe('CommentForm', () => {
   });
 
   it('ignores a submit click when text is only whitespace and there are no images', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<CommentForm currentUserHandle="@ayate" />);
 
     await user.type(getTextarea(), '   ');
@@ -90,7 +90,7 @@ describe('CommentForm', () => {
   });
 
   it('inserts the picked emoji into the textarea', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<CommentForm currentUserHandle="@ayate" />);
 
     await user.click(screen.getByTitle('Add Emoji'));
@@ -100,7 +100,7 @@ describe('CommentForm', () => {
   });
 
   it('adds an image preview and removes it when its remove button is clicked', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<CommentForm currentUserHandle="@ayate" />);
     const file = new File(['content'], 'photo.png', { type: 'image/png' });
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
@@ -117,7 +117,7 @@ describe('CommentForm', () => {
   });
 
   it('clears image previews after a successful submit', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<CommentForm currentUserHandle="@ayate" />);
     const file = new File(['content'], 'photo.png', { type: 'image/png' });
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;

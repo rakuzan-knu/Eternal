@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { CommentComposer } from '../CommentComposer';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -8,22 +8,28 @@ describe('CommentComposer', () => {
     const onSubmit = vi.fn();
     const onCancelReply = vi.fn();
 
-    render(
-      <MemoryRouter>
-        <CommentComposer
-          currentUserHandle="alex"
-          replyingTo={null}
-          onCancelReply={onCancelReply}
-          onSubmit={onSubmit}
-        />
-      </MemoryRouter>,
-    );
+    act(() => {
+      render(
+        <MemoryRouter>
+          <CommentComposer
+            currentUserHandle="alex"
+            replyingTo={null}
+            onCancelReply={onCancelReply}
+            onSubmit={onSubmit}
+          />
+        </MemoryRouter>,
+      );
+    });
 
     const textarea = screen.getByPlaceholderText(/Comment as @alex.../i);
-    fireEvent.change(textarea, { target: { value: 'Great perspective!' } });
+    act(() => {
+      fireEvent.change(textarea, { target: { value: 'Great perspective!' } });
+    });
 
     const submitBtn = screen.getByTitle('Send comment');
-    fireEvent.click(submitBtn);
+    act(() => {
+      fireEvent.click(submitBtn);
+    });
 
     expect(onSubmit).toHaveBeenCalledWith(
       'Great perspective!',
@@ -37,22 +43,26 @@ describe('CommentComposer', () => {
     const onSubmit = vi.fn();
     const onCancelReply = vi.fn();
 
-    render(
-      <MemoryRouter>
-        <CommentComposer
-          currentUserHandle="alex"
-          replyingTo={{ commentId: 'c-99', username: 'sarah' }}
-          onCancelReply={onCancelReply}
-          onSubmit={onSubmit}
-        />
-      </MemoryRouter>,
-    );
+    act(() => {
+      render(
+        <MemoryRouter>
+          <CommentComposer
+            currentUserHandle="alex"
+            replyingTo={{ commentId: 'c-99', username: 'sarah' }}
+            onCancelReply={onCancelReply}
+            onSubmit={onSubmit}
+          />
+        </MemoryRouter>,
+      );
+    });
 
     expect(screen.getByText('Replying to')).toBeInTheDocument();
     expect(screen.getAllByText(/@sarah/)[0]).toBeInTheDocument();
 
     const cancelBtn = screen.getByTitle('Cancel reply (Esc)');
-    fireEvent.click(cancelBtn);
+    act(() => {
+      fireEvent.click(cancelBtn);
+    });
     expect(onCancelReply).toHaveBeenCalled();
   });
 

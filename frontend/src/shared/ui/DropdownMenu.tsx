@@ -129,7 +129,7 @@ export default function DropdownMenu({
         }
       }
     }
-  }, [mounted, items.length]);
+  }, [mounted, items.length, coords]);
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setMounted(true));

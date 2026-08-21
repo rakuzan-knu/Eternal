@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import * as promClient from 'prom-client';
 
 @Injectable()
-export class MetricsService {
+export class MetricsService implements OnModuleDestroy {
   private httpRequestDuration!: promClient.Histogram;
   private httpRequestTotal!: promClient.Counter;
   private httpRequestErrors!: promClient.Counter;
@@ -10,6 +10,7 @@ export class MetricsService {
   private databaseQueryDuration!: promClient.Histogram;
   private redisOperationDuration!: promClient.Histogram;
   private processUptime!: promClient.Gauge;
+  private uptimeInterval?: NodeJS.Timeout;
 
   constructor() {
     this.initializeMetrics();
@@ -76,9 +77,20 @@ export class MetricsService {
     });
 
     // Update uptime every 10 seconds
-    setInterval(() => {
+    this.uptimeInterval = setInterval(() => {
       this.processUptime.set(process.uptime());
     }, 10000);
+
+    if (this.uptimeInterval && typeof this.uptimeInterval.unref === 'function') {
+      this.uptimeInterval.unref();
+    }
+  }
+
+  onModuleDestroy() {
+    if (this.uptimeInterval) {
+      clearInterval(this.uptimeInterval);
+      this.uptimeInterval = undefined;
+    }
   }
 
   async getMetrics(): Promise<string> {

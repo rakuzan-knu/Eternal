@@ -2,12 +2,13 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { NotificationsController } from '../notifications.controller';
 import { NotificationsService } from '../notifications.service';
 import { type NotificationResponseDto, NotificationType } from '@common/contracts';
+import type { RequestUser } from '../../auth/interfaces/jwt-payload.interface';
 
 describe('NotificationsController', () => {
   let controller: NotificationsController;
-  let mockService: any;
+  let mockService: Record<keyof NotificationsService, jest.Mock>;
 
-  const mockUser: any = { id: 'user-1', email: 'user@example.com' };
+  const mockUser: RequestUser = { id: 'user-1', email: 'user@example.com', username: 'user1' };
 
   const mockDto: NotificationResponseDto = {
     id: 'notif-1',
@@ -133,6 +134,9 @@ describe('NotificationsController', () => {
           system: 0,
         },
       }),
+      handleNotificationCreated: jest.fn(),
+      createNotification: jest.fn(),
+      isNotificationPushAllowed: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({

@@ -57,7 +57,7 @@ describe('ResetMethod', () => {
   });
 
   it('alerts with the masked email when sending the code via email (default)', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<ResetMethod user={user1} onCancel={vi.fn()} />);
 
     await user.click(screen.getByText('Continue'));
@@ -66,7 +66,7 @@ describe('ResetMethod', () => {
   });
 
   it('alerts with the masked phone when sending the code via SMS', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<ResetMethod user={user1} onCancel={vi.fn()} />);
     await user.click(screen.getAllByRole('radio')[1]);
 
@@ -77,7 +77,7 @@ describe('ResetMethod', () => {
 
   it('calls onCancel when "Isn\'t that you?" is clicked', async () => {
     const onCancel = vi.fn();
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<ResetMethod user={user1} onCancel={onCancel} />);
 
     await user.click(screen.getByText("Isn't that you?"));

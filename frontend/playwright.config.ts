@@ -6,7 +6,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: process.env.CI ? 2 : undefined,
   timeout: 60_000,
   expect: {
     timeout: 15_000,
@@ -25,13 +25,14 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'pnpm dev --host 127.0.0.1 --port 5173',
+    command: 'pnpm exec vite --host 127.0.0.1 --port 5173',
     // Pin the API origin for the test dev server: a developer's .env may point
     // VITE_API_URL at a deployed backend, but e2e mocks must target a fixed
     // local origin (mirrored by the API_BASE default in e2e/fixtures.ts).
     env: {
       ...process.env,
       VITE_API_URL: 'http://127.0.0.1:3000',
+      NODE_ENV: 'test',
     },
     url: 'http://127.0.0.1:5173',
     // Never reuse an already-running dev server: it may carry a different

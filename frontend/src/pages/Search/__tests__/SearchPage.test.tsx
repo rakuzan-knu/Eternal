@@ -215,13 +215,51 @@ describe('SearchPage', () => {
     expect(localStorage.getItem('recent_searches')).toBeNull();
   });
 
-  it('renders segmented search tabs when a query is entered', async () => {
+  it('renders segmented search tabs when a query is entered and allows switching tabs', async () => {
     renderSearchPage(['/search?q=alex']);
 
-    expect(screen.getByRole('button', { name: /All/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /People/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Posts/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Hashtags/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Media/i })).toBeInTheDocument();
+    const peopleTab = screen.getByRole('button', { name: /People/i });
+    const postsTab = screen.getByRole('button', { name: /Posts/i });
+    const hashtagsTab = screen.getByRole('button', { name: /Hashtags/i });
+    const mediaTab = screen.getByRole('button', { name: /Media/i });
+
+    expect(peopleTab).toBeInTheDocument();
+    expect(postsTab).toBeInTheDocument();
+    expect(hashtagsTab).toBeInTheDocument();
+    expect(mediaTab).toBeInTheDocument();
+
+    fireEvent.click(peopleTab);
+    fireEvent.click(postsTab);
+    fireEvent.click(hashtagsTab);
+    fireEvent.click(mediaTab);
+  });
+
+  it('handles clicking trending hashtags to set search query', async () => {
+    renderSearchPage();
+
+    const input = screen.getByPlaceholderText(/Search users/i);
+    fireEvent.focus(input);
+
+    await waitFor(() => {
+      expect(screen.getByText('#webdev')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('#webdev'));
+    expect(input).toHaveValue('#webdev');
+  });
+
+  it('clears input with clear button and handles back button', async () => {
+    renderSearchPage();
+
+    const input = screen.getByPlaceholderText(/Search users/i) as HTMLInputElement;
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: 'some query' } });
+
+    expect(input.value).toBe('some query');
+
+    const backButton = screen.getByTitle('Go back');
+    fireEvent.click(backButton);
+
+    expect(input.value).toBe('');
   });
 });

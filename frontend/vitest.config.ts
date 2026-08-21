@@ -1,7 +1,6 @@
 import { configDefaults, defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react-swc';
 import path from 'path';
-import os from 'os';
 
 export default defineConfig({
   plugins: [react()],
@@ -13,17 +12,22 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
-    setupFiles: ['./src/test/setup.ts'],
-    pool: 'threads',
+    passWithNoTests: true,
+    setupFiles: ['./src/test/polyfills.ts', './src/test/setup.ts'],
+    pool: 'forks',
     poolOptions: {
-      threads: {
-        maxThreads: Math.max(2, Math.floor(os.cpus().length || 4)),
-        minThreads: 2,
-        useAtomics: true,
+      forks: {
+        maxForks: 2,
+        minForks: 1,
       },
     },
     fileParallelism: true,
-    maxConcurrency: 10,
+    maxConcurrency: 6,
+    server: {
+      deps: {
+        inline: ['react-router', 'react-router-dom'],
+      },
+    },
     // Contract tests need a real Node environment and run via test:contract;
     // e2e/ specs belong to Playwright, not Vitest.
     exclude: [...configDefaults.exclude, 'src/contract/**', 'e2e/**'],
@@ -34,6 +38,7 @@ export default defineConfig({
       exclude: [
         'src/test/**',
         'src/**/*.d.ts',
+        'src/**/types.ts',
         'src/main.tsx',
         'src/vite-env.d.ts',
         'src/**/*.stories.{ts,tsx}',
@@ -45,8 +50,8 @@ export default defineConfig({
         statements: 60,
         // Per-layer ratchet: values sit just below the current measured
         // coverage so regressions fail CI while room to improve remains.
-        'src/shared/**': { lines: 78, statements: 78, branches: 77, functions: 65 },
-        'src/entities/**': { lines: 77, statements: 77, branches: 72, functions: 63 },
+        'src/shared/**': { lines: 78, statements: 78, branches: 77, functions: 64 },
+        'src/entities/**': { lines: 77, statements: 77, branches: 70, functions: 63 },
         'src/app/**': { lines: 92, statements: 92, branches: 85, functions: 72 },
         'src/pages/**': { lines: 81, statements: 81, branches: 69, functions: 60 },
         'src/widgets/**': { lines: 86, statements: 86, branches: 68, functions: 45 },

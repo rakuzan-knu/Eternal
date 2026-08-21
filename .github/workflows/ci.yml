@@ -84,6 +84,7 @@ jobs:
     name: Commitlint
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    needs: [setup]
     if: github.event_name == 'pull_request'
     permissions:
       contents: read
@@ -99,8 +100,16 @@ jobs:
           node-version-file: '.nvmrc'
           cache: 'pnpm'
 
-      - name: Install root deps
-        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Restore Monorepo Dependencies
+        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
+        with:
+          path: |
+            node_modules
+            backend/node_modules
+            frontend/node_modules
+            ~/.cache/prisma
+          key: ${{ needs.setup.outputs.cache-key }}
+          fail-on-cache-miss: true
 
       - name: Validate PR commits
         run: |
@@ -191,11 +200,12 @@ jobs:
         run: |
           npx nx run-many -t lint typecheck build --affected --base=${{ needs.plan.outputs.base-sha }} --parallel=3
 
-  unit-tests:
-    name: Unit Tests — Affected (PR) / Full (trunk)
+  backend-unit-tests:
+    name: Backend — Unit Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     needs: [setup, plan]
+    if: needs.plan.outputs.backend-changed == 'true' || github.event_name != 'pull_request'
     permissions:
       contents: read
     steps:
@@ -219,22 +229,73 @@ jobs:
           key: ${{ needs.setup.outputs.cache-key }}
           fail-on-cache-miss: true
 
-      - name: Run affected unit tests
+      - name: Run backend unit tests
         if: github.event_name == 'pull_request'
-        run: npx nx run-many -t test --affected --base=${{ needs.plan.outputs.base-sha }} --parallel=2
+        working-directory: backend
+        run: pnpm test:ci
 
-      - name: Run full unit tests with coverage (trunk)
+      - name: Run backend unit tests with coverage (trunk)
         if: github.event_name != 'pull_request'
-        run: pnpm -r test:cov:ci
+        working-directory: backend
+        run: pnpm test:cov:ci
 
-      - name: Upload coverage
+      - name: Upload backend coverage
         if: always() && github.event_name != 'pull_request'
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
-          name: unit-test-coverage
+          name: backend-unit-test-coverage
+          path: backend/coverage/
+          retention-days: 7
+
+  frontend-unit-tests:
+    name: Frontend — Unit Tests (Shard ${{ matrix.shard }}/2)
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    needs: [setup, plan]
+    if: needs.plan.outputs.frontend-changed == 'true' || github.event_name != 'pull_request'
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5dd2 # v4.0.0
+
+      - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Restore Monorepo Dependencies
+        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
+        with:
           path: |
-            backend/coverage/
-            frontend/coverage/
+            node_modules
+            backend/node_modules
+            frontend/node_modules
+            ~/.cache/prisma
+          key: ${{ needs.setup.outputs.cache-key }}
+          fail-on-cache-miss: true
+
+      - name: Run frontend unit tests (Shard ${{ matrix.shard }}/2)
+        if: github.event_name == 'pull_request'
+        working-directory: frontend
+        run: pnpm test:ci -- --shard=${{ matrix.shard }}/2 --bail=1
+
+      - name: Run frontend unit tests with coverage (trunk) (Shard ${{ matrix.shard }}/2)
+        if: github.event_name != 'pull_request'
+        working-directory: frontend
+        run: pnpm test:cov:ci -- --shard=${{ matrix.shard }}/2
+
+      - name: Upload frontend coverage
+        if: always() && github.event_name != 'pull_request'
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: frontend-unit-test-coverage-${{ matrix.shard }}
+          path: frontend/coverage/
           retention-days: 7
 
   backend-e2e:
@@ -382,11 +443,9 @@ jobs:
           key: ${{ needs.setup.outputs.cache-key }}
           fail-on-cache-miss: true
 
-      - name: Run migrations & generate Prisma client
+      - name: Run migrations
         working-directory: backend
-        run: |
-          pnpm exec prisma migrate deploy
-          pnpm exec prisma generate
+        run: pnpm exec prisma migrate deploy
 
       - name: Build backend
         working-directory: backend
@@ -397,7 +456,12 @@ jobs:
         run: |
           pnpm start:prod &
           SERVER_PID=$!
-          npx wait-on http://localhost:3000/api/health/live --timeout 60000 --interval 1000
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:3000/api/health/live > /dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
           node ../scripts/verify-api-contract.cjs
           node ../scripts/verify-pact-contracts.cjs
           PACT_PROVIDER_URL=http://localhost:3000 pnpm test:pact:verify
@@ -406,13 +470,17 @@ jobs:
           NODE_ENV: test
 
   frontend-e2e:
-    name: Frontend — Playwright E2E
+    name: Frontend — Playwright E2E (Shard ${{ matrix.shard }}/2)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     needs: [setup, plan]
     if: needs.plan.outputs.frontend-changed == 'true'
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
@@ -444,15 +512,16 @@ jobs:
         working-directory: frontend
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Run Playwright E2E suite
+      - name: Run Playwright E2E suite (Shard ${{ matrix.shard }}/2)
         working-directory: frontend
-        run: pnpm test:e2e
+        run: pnpm test:e2e -- --shard=${{ matrix.shard }}/2
+        timeout-minutes: 15
 
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
-          name: frontend-playwright-report
+          name: frontend-playwright-report-${{ matrix.shard }}
           path: frontend/playwright-report/
           retention-days: 7
 
@@ -553,25 +622,16 @@ jobs:
           retry-on-snapshot-warnings: true
           retry-on-snapshot-warnings-timeout: 600
 
-  docker-build:
-    name: Docker — Build, Scan & Cosign (${{ matrix.service }})
+  docker-backend:
+    name: Docker — Build & Scan (Backend)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: [setup, plan]
-    if: needs.plan.outputs.backend-changed == 'true' || needs.plan.outputs.frontend-changed == 'true'
+    if: needs.plan.outputs.backend-changed == 'true' || github.event_name != 'pull_request'
     permissions:
       contents: read
       security-events: write
       id-token: write
-    strategy:
-      matrix:
-        include:
-          - service: backend
-            context: .
-            file: backend/Dockerfile
-          - service: frontend
-            context: .
-            file: frontend/Dockerfile
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
@@ -584,13 +644,13 @@ jobs:
       - name: Build image
         uses: docker/build-push-action@471d1dc4e07e5cdedd4c2171150001c434f0b7a4 # v6.15.0
         with:
-          context: ${{ matrix.context }}
-          file: ${{ matrix.file }}
+          context: .
+          file: backend/Dockerfile
           push: false
           load: true
-          tags: social-network-${{ matrix.service }}:ci-${{ github.sha }}
-          cache-from: type=gha,scope=${{ matrix.service }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+          tags: social-network-backend:ci-${{ github.sha }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
 
       - name: Install Trivy CLI
         run: |
@@ -598,34 +658,99 @@ jobs:
 
       - name: Generate CycloneDX SBOM
         run: |
-          trivy image --format cyclonedx --output sbom-${{ matrix.service }}.cdx.json social-network-${{ matrix.service }}:ci-${{ github.sha }}
+          trivy image --format cyclonedx --output sbom-backend.cdx.json social-network-backend:ci-${{ github.sha }}
 
       - name: Sign SBOM & Provenance with Cosign
         run: |
           if [ -n "$ACTIONS_ID_TOKEN_REQUEST_URL" ]; then
-            cosign sign-blob --yes --bundle cosign-${{ matrix.service }}-sbom.bundle sbom-${{ matrix.service }}.cdx.json || true
+            cosign sign-blob --yes --bundle cosign-backend-sbom.bundle sbom-backend.cdx.json || true
           fi
 
       - name: Upload SBOM and Cosign Signature Artifacts
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
-          name: sbom-${{ matrix.service }}-provenance
+          name: sbom-backend-provenance
           path: |
-            sbom-${{ matrix.service }}.cdx.json
-            cosign-${{ matrix.service }}-sbom.bundle
+            sbom-backend.cdx.json
+            cosign-backend-sbom.bundle
           retention-days: 14
 
       - name: Run Trivy vulnerability scanner
         id: trivy_scanner
         run: |
-          trivy image social-network-${{ matrix.service }}:ci-${{ github.sha }} --severity CRITICAL,HIGH --format sarif -o trivy-${{ matrix.service }}.sarif --exit-code 0
+          trivy image social-network-backend:ci-${{ github.sha }} --severity CRITICAL,HIGH --format sarif -o trivy-backend.sarif --exit-code 0
 
       - name: Upload Trivy SARIF report
         if: always() && steps.trivy_scanner.outcome == 'success'
         uses: github/codeql-action/upload-sarif@6bb031afdd8eb862ea3fc1848194185e076637e5 # v3.28.11
         with:
-          sarif_file: trivy-${{ matrix.service }}.sarif
-          category: trivy-${{ matrix.service }}-image
+          sarif_file: trivy-backend.sarif
+          category: trivy-backend-image
+
+  docker-frontend:
+    name: Docker — Build & Scan (Frontend)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [setup, plan]
+    if: needs.plan.outputs.frontend-changed == 'true' || github.event_name != 'pull_request'
+    permissions:
+      contents: read
+      security-events: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@d7d6bc7722e3daa8354c50bcb52f4837da5e9b6a # v3.8.1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
+
+      - name: Build image
+        uses: docker/build-push-action@471d1dc4e07e5cdedd4c2171150001c434f0b7a4 # v6.15.0
+        with:
+          context: .
+          file: frontend/Dockerfile
+          push: false
+          load: true
+          tags: social-network-frontend:ci-${{ github.sha }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+
+      - name: Install Trivy CLI
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Generate CycloneDX SBOM
+        run: |
+          trivy image --format cyclonedx --output sbom-frontend.cdx.json social-network-frontend:ci-${{ github.sha }}
+
+      - name: Sign SBOM & Provenance with Cosign
+        run: |
+          if [ -n "$ACTIONS_ID_TOKEN_REQUEST_URL" ]; then
+            cosign sign-blob --yes --bundle cosign-frontend-sbom.bundle sbom-frontend.cdx.json || true
+          fi
+
+      - name: Upload SBOM and Cosign Signature Artifacts
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: sbom-frontend-provenance
+          path: |
+            sbom-frontend.cdx.json
+            cosign-frontend-sbom.bundle
+          retention-days: 14
+
+      - name: Run Trivy vulnerability scanner
+        id: trivy_scanner
+        run: |
+          trivy image social-network-frontend:ci-${{ github.sha }} --severity CRITICAL,HIGH --format sarif -o trivy-frontend.sarif --exit-code 0
+
+      - name: Upload Trivy SARIF report
+        if: always() && steps.trivy_scanner.outcome == 'success'
+        uses: github/codeql-action/upload-sarif@6bb031afdd8eb862ea3fc1848194185e076637e5 # v3.28.11
+        with:
+          sarif_file: trivy-frontend.sarif
+          category: trivy-frontend-image
 
   ci-success:
     name: CI — All checks passed
@@ -637,14 +762,16 @@ jobs:
       - setup
       - plan
       - nx-affected
-      - unit-tests
+      - backend-unit-tests
+      - frontend-unit-tests
       - backend-e2e
       - backend-contract-test
       - dependency-review
       - frontend-e2e
       - frontend-contract
       - frontend-prod-assessment
-      - docker-build
+      - docker-backend
+      - docker-frontend
     if: always()
     permissions:
       contents: read

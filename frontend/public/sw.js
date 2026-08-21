@@ -1,4 +1,3 @@
-/* eslint-disable no-restricted-globals */
 // Service Worker for Browser Web Push & Notifications
 
 self.addEventListener('install', (event) => {

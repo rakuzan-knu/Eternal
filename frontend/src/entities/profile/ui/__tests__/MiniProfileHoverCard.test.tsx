@@ -1,49 +1,69 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { MiniProfileHoverCard } from '../MiniProfileHoverCard';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import React from 'react';
+import { MiniProfileHoverCard } from '../MiniProfileHoverCard';
 import { apiClient } from '@/shared/api/httpClient';
 
-describe('MiniProfileHoverCard', () => {
+vi.mock('@/shared/api/httpClient', () => ({
+  apiClient: {
+    get: vi.fn(),
+  },
+}));
+
+function renderWithWrapper(ui: React.ReactElement) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>{ui}</MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
 
-  it('renders trigger children and opens hover card on mouse enter', async () => {
-    vi.spyOn(apiClient, 'get').mockResolvedValue({
+describe('MiniProfileHoverCard', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('renders trigger element and opens card on mouse enter', async () => {
+    vi.mocked(apiClient.get).mockResolvedValueOnce({
       data: {
-        id: 'usr-1',
+        id: 'u1',
         username: 'alice',
-        displayName: 'Alice Smith',
-        avatar: null,
-        bio: 'Tech enthusiast',
+        displayName: 'Alice Wonderland',
+        bio: 'Building cool things',
+        avatar: 'https://avatar.png',
+        banner: 'https://banner.png',
         followersCount: 150,
         followingCount: 75,
-        isFollowing: false,
+        postsCount: 20,
+        isVerified: true,
+        primaryBadge: 'MODERATOR',
       },
     });
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter>
-          <MiniProfileHoverCard username="alice">
-            <span>@alice</span>
-          </MiniProfileHoverCard>
-        </MemoryRouter>
-      </QueryClientProvider>,
+    renderWithWrapper(
+      <MiniProfileHoverCard username="alice">
+        <span>@alice</span>
+      </MiniProfileHoverCard>,
     );
 
     const trigger = screen.getByText('@alice');
-    expect(trigger).toBeInTheDocument();
+    act(() => {
+      fireEvent.mouseEnter(trigger);
+    });
 
-    fireEvent.mouseEnter(trigger);
+    await waitFor(() => {
+      expect(screen.getByText('Alice Wonderland')).toBeInTheDocument();
+      expect(screen.getByText('Building cool things')).toBeInTheDocument();
+      expect(screen.getByText('150')).toBeInTheDocument();
+    });
 
-    await waitFor(
-      () => {
-        expect(screen.getByText('Alice Smith')).toBeInTheDocument();
-      },
-      { timeout: 1000 },
-    );
+    act(() => {
+      fireEvent.mouseLeave(trigger);
+    });
   });
 });

@@ -1,6 +1,3 @@
-// @vitest-environment jsdom
-// The default test environment is happy-dom, but this suite's userEvent typing
-// into the masked username input does not register under it; jsdom is exact.
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -83,7 +80,7 @@ describe('EditProfileModal', () => {
   });
 
   it('switches to the privacy tab content when its menu item is clicked', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     await openAndWaitForProfile();
 
     await user.click(screen.getByText('Privacy'));
@@ -93,7 +90,7 @@ describe('EditProfileModal', () => {
   });
 
   it('calls closeEditProfile when the close (X) button is clicked', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     await openAndWaitForProfile();
 
     await user.click(screen.getAllByRole('button')[0]);
@@ -102,7 +99,7 @@ describe('EditProfileModal', () => {
   });
 
   it('shows a validation error and keeps the modal open when the username is too short', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     await openAndWaitForProfile();
     const usernameInput = getUsernameInput();
     await user.clear(usernameInput);
@@ -115,7 +112,7 @@ describe('EditProfileModal', () => {
   });
 
   it('submits successfully and closes the modal when all fields are valid', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     await openAndWaitForProfile();
     await fillValidNameAndUsername(user);
 
@@ -125,7 +122,7 @@ describe('EditProfileModal', () => {
   });
 
   it('does not submit twice when the save button is double-clicked with valid data', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     await openAndWaitForProfile();
     await fillValidNameAndUsername(user);
 
@@ -135,7 +132,7 @@ describe('EditProfileModal', () => {
   });
 
   it('toggles the notification switches on the notifications tab', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     await openAndWaitForProfile();
     await user.click(screen.getByText('Notifications'));
     const toggles = screen
@@ -153,7 +150,7 @@ describe('EditProfileModal', () => {
   });
 
   it('shows an avatar preview after uploading a file', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     await openAndWaitForProfile();
     const avatarInput = document.querySelectorAll('input[type="file"]')[0] as HTMLInputElement;
     const file = new File(['content'], 'avatar.png', { type: 'image/png' });
@@ -164,7 +161,7 @@ describe('EditProfileModal', () => {
   });
 
   it('shows a banner preview after uploading a file and repositions it when dragged', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     await openAndWaitForProfile();
     const bannerInput = document.querySelectorAll('input[type="file"]')[1] as HTMLInputElement;
     const file = new File(['content'], 'banner.png', { type: 'image/png' });
@@ -183,7 +180,7 @@ describe('EditProfileModal', () => {
   });
 
   it('repositions the banner via touch drag events as well as mouse events', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     await openAndWaitForProfile();
     const bannerInput = document.querySelectorAll('input[type="file"]')[1] as HTMLInputElement;
     const file = new File(['content'], 'banner.png', { type: 'image/png' });
@@ -208,7 +205,7 @@ describe('EditProfileModal', () => {
   });
 
   it('switches between settings tabs when tab buttons are clicked', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     await openAndWaitForProfile();
 
     const securityTab = screen.getByRole('button', { name: /security/i });

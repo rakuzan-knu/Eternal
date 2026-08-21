@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import ChatPollCard, { ChatPollData } from '../ChatPollCard';
+import ChatPollCard from '../ChatPollCard';
+import type { ChatPollData } from '../../lib/chatPoll';
 import { useChatPollVotesStore } from '../../model/useChatPollVotesStore';
 
 describe('ChatPollCard', () => {

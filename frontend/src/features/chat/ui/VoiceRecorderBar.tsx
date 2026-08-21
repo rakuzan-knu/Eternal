@@ -33,9 +33,10 @@ export default function VoiceRecorderBar({
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
+    const audio = audioRef.current;
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
+      if (audio) {
+        audio.pause();
       }
     };
   }, []);

@@ -66,7 +66,7 @@ describe('LoginForm', () => {
 
   it('shows validation errors when submitting empty fields', async () => {
     setupMutations();
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderLoginForm();
 
     await user.click(screen.getByRole('button', { name: 'Log in' }));
@@ -80,7 +80,7 @@ describe('LoginForm', () => {
 
   it('toggles password visibility when the eye icon is clicked', async () => {
     setupMutations();
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderLoginForm();
     const passwordInput = screen.getByPlaceholderText('Password');
     expect(passwordInput).toHaveAttribute('type', 'password');
@@ -92,7 +92,7 @@ describe('LoginForm', () => {
 
   it('submits valid credentials and navigates to /feed on success', async () => {
     const mutateAsync = setupMutations();
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderLoginForm();
 
     await user.type(screen.getByPlaceholderText('Email address or phone number'), 'user@test.com');
@@ -115,7 +115,7 @@ describe('LoginForm', () => {
           response: { status: 404, data: { message: 'USER_NOT_FOUND' } },
         }),
     });
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderLoginForm();
 
     await user.type(screen.getByPlaceholderText('Email address or phone number'), 'user@test.com');
@@ -137,7 +137,7 @@ describe('LoginForm', () => {
           response: { status: 401, data: { message: 'INVALID_PASSWORD' } },
         }),
     });
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderLoginForm();
 
     await user.type(screen.getByPlaceholderText('Email address or phone number'), 'user@test.com');
@@ -153,7 +153,7 @@ describe('LoginForm', () => {
     setupMutations({
       mutateAsyncImpl: () => Promise.reject(new Error('network down')),
     });
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderLoginForm();
 
     await user.type(screen.getByPlaceholderText('Email address or phone number'), 'user@test.com');
@@ -177,7 +177,7 @@ describe('LoginForm', () => {
 
   it('links "Forgot password?" to the forgot-password page', async () => {
     setupMutations();
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderLoginForm();
 
     await user.click(screen.getByText('Forgot password?'));

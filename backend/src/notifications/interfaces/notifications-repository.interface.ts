@@ -1,4 +1,5 @@
 import type { NotificationType, NotificationWithRelations } from '@common/contracts';
+import type { Prisma, UserNotificationSettings } from '@prisma/client';
 
 export const NOTIFICATIONS_REPOSITORY = Symbol('NOTIFICATIONS_REPOSITORY');
 
@@ -21,7 +22,7 @@ export interface INotificationsRepository {
     commentId?: string | null;
     withinSeconds?: number;
   }): Promise<NotificationWithRelations | null>;
-  update(id: string, data: Record<string, any>): Promise<NotificationWithRelations>;
+  update(id: string, data: Prisma.NotificationUpdateInput): Promise<NotificationWithRelations>;
   findById(id: string): Promise<NotificationWithRelations | null>;
   findMany(params: {
     userId: string;
@@ -51,6 +52,9 @@ export interface INotificationsRepository {
       primaryBadge?: string | null;
     }>
   >;
-  getSettings(userId: string): Promise<Record<string, any> | null>;
-  upsertSettings(userId: string, data: Record<string, any>): Promise<Record<string, any>>;
+  getSettings(userId: string): Promise<UserNotificationSettings | null>;
+  upsertSettings(
+    userId: string,
+    data: Prisma.UserNotificationSettingsUpdateInput,
+  ): Promise<UserNotificationSettings>;
 }

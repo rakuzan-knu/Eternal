@@ -151,14 +151,19 @@ export default function MessageComposer({
     },
   });
 
+  const onSetReplyingToRef = useRef(onSetReplyingTo);
+  onSetReplyingToRef.current = onSetReplyingTo;
+  const replyingToRef = useRef(replyingTo);
+  replyingToRef.current = replyingTo;
+
   // Restore draft when switching conversation
   useEffect(() => {
     if (!conversationId) return;
     const draft = useChatDraftsStore.getState().getDraft(conversationId);
     if (draft) {
       setText(draft.text || '');
-      if (draft.replyingTo && !replyingTo) {
-        onSetReplyingTo?.(draft.replyingTo);
+      if (draft.replyingTo && !replyingToRef.current) {
+        onSetReplyingToRef.current?.(draft.replyingTo);
       }
     } else {
       setText('');

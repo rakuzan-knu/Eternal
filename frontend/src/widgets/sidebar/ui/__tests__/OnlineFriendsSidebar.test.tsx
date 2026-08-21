@@ -7,6 +7,7 @@ import * as useSuggestedUsersModule from '@/entities/user/model/useSuggestedUser
 import * as useConversationsModule from '@/features/chat/model/useConversations';
 import { usePresenceStore } from '@/shared/model/usePresenceStore';
 import { useAuthStore } from '@/shared/model/useAuthStore';
+import { chatApi } from '@/features/chat/api/chatApi';
 
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', () => ({
@@ -35,6 +36,8 @@ vi.mock('@/features/follow/ui/FollowButton', () => ({
 }));
 
 describe('OnlineFriendsSidebar', () => {
+  const mockDismissMutate = vi.fn();
+
   beforeEach(() => {
     vi.clearAllMocks();
     useAuthStore.setState({ userId: 'me' });
@@ -44,7 +47,7 @@ describe('OnlineFriendsSidebar', () => {
       isLoading: false,
     } as unknown as ReturnType<typeof useConversationsModule.useConversations>);
     vi.spyOn(useSuggestedUsersModule, 'useDismissSuggestedUser').mockReturnValue({
-      mutate: vi.fn(),
+      mutate: mockDismissMutate,
       isPending: false,
     } as unknown as ReturnType<typeof useSuggestedUsersModule.useDismissSuggestedUser>);
   });
@@ -76,8 +79,9 @@ describe('OnlineFriendsSidebar', () => {
     expect(screen.getByText(/No friends yet/i)).toBeInTheDocument();
   });
 
-  it('renders online and offline sections sorted A-Z and suggested block above them when user has friends', () => {
+  it('renders online and offline sections sorted A-Z and handles clicking a friend to start chat or navigate', async () => {
     usePresenceStore.setState({ onlineUserIds: new Set(['user-2']) });
+    vi.mocked(chatApi.createDirectConversation).mockResolvedValueOnce({ id: 'conv-99' } as any);
 
     vi.spyOn(useSuggestedUsersModule, 'useSuggestedUsers').mockReturnValue({
       data: [
@@ -124,6 +128,13 @@ describe('OnlineFriendsSidebar', () => {
     expect(screen.getByText('Offline — 1')).toBeInTheDocument();
     expect(screen.getByText('Alice Smith')).toBeInTheDocument();
     expect(screen.getByText('Zack Walker')).toBeInTheDocument();
+
+    const msgBtn = screen.getByTitle('Message @alice');
+    fireEvent.click(msgBtn);
+    expect(chatApi.createDirectConversation).toHaveBeenCalledWith('user-2');
+
+    fireEvent.click(screen.getByText('Zack Walker'));
+    expect(mockNavigate).toHaveBeenCalledWith('/profile/zack');
   });
 
   it('filters friends list using search input in Friends block', () => {

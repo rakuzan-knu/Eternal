@@ -58,6 +58,13 @@ const mockReposts = [
 ];
 
 export const postsHandlers = [
+  http.get('*/posts/explore', () =>
+    HttpResponse.json({
+      posts: mockPosts,
+      nextCursor: null,
+    }),
+  ),
+
   http.get('*/posts', () =>
     HttpResponse.json({
       posts: mockPosts,
@@ -102,4 +109,18 @@ export const postsHandlers = [
   http.post('*/posts/:id/repost', () => HttpResponse.json({ success: true })),
   http.post('*/posts/:id/poll/vote', () => HttpResponse.json({ success: true })),
   http.get('*/posts/:id/poll/voters', () => HttpResponse.json([])),
+  http.get('*/og-preview', () =>
+    HttpResponse.json({
+      title: 'Preview',
+      description: 'Preview description',
+      image: null,
+      siteName: 'Example',
+    }),
+  ),
+  http.get('*/posts/:id', ({ params }) =>
+    HttpResponse.json({
+      ...mockPosts[0],
+      id: params.id,
+    }),
+  ),
 ];

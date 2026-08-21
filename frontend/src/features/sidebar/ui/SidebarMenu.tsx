@@ -44,7 +44,6 @@ export function ProfileMenu({ isSidebarExpanded }: ProfileMenuProps) {
   const openEditProfile = useUIStore((s) => s.openEditProfile);
 
   const { data: currentUser } = useCurrentUser();
-  const accounts = useAccountsStore((s) => s.accounts);
   const upsertAccount = useAccountsStore((s) => s.upsertAccount);
   const switchAccountInStore = useAccountsStore((s) => s.switchAccount);
 
@@ -62,13 +61,7 @@ export function ProfileMenu({ isSidebarExpanded }: ProfileMenuProps) {
       accessToken,
       refreshToken,
     });
-  }, [
-    currentUser?.id,
-    currentUser?.avatar,
-    currentUser?.username,
-    currentUser?.displayName,
-    upsertAccount,
-  ]);
+  }, [currentUser, upsertAccount]);
 
   const openModal = (modal: ActiveModal) => {
     setIsOpen(false);

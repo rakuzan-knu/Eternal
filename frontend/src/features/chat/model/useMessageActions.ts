@@ -153,6 +153,29 @@ export function useMessageActions(conversationId: string | null) {
           );
         }
       } catch (err) {
+        try {
+          const fallbackRes = await chatApi.sendMessage(conversationId, {
+            text: text || undefined,
+            messageType: resolvedMessageType,
+            replyToId,
+            attachments,
+            clientMessageId: optimisticId,
+          });
+          if (fallbackRes) {
+            const real = { ...(fallbackRes as MessageView), status: 'SENT' as const };
+            updatePages((pages) =>
+              pages.map((p) => ({
+                ...p,
+                data: p.data.map((m) =>
+                  m.id === optimisticId || m.tempId === optimisticId ? real : m,
+                ),
+              })),
+            );
+            return;
+          }
+        } catch {
+          // both socket and http failed
+        }
         updatePages((pages) =>
           pages.map((p) => ({
             ...p,

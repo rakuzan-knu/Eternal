@@ -1,5 +1,5 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { renderWithProviders } from '../../../../test/renderWithProviders';
 import { ProfileMenu } from '../SidebarMenu';
 import { useAuthStore } from '@/shared/model/useAuthStore';

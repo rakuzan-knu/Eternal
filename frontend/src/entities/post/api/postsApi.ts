@@ -18,31 +18,34 @@ export function normalizePost(raw: Record<string, unknown> | null | undefined): 
     };
   }
 
-  const authorObj = raw.author as Record<string, unknown> | undefined;
+  const authorObj =
+    typeof raw.author === 'object' && raw.author !== null
+      ? (raw.author as Record<string, unknown>)
+      : undefined;
 
   const authorName =
-    (raw.author as string | undefined) ??
-    (raw.authorName as string | undefined) ??
     (authorObj?.displayName as string | undefined) ??
     (authorObj?.username as string | undefined) ??
+    (typeof raw.author === 'string' ? raw.author : undefined) ??
+    (raw.authorName as string | undefined) ??
     'User';
 
   const handle =
-    (raw.handle as string | undefined) ??
     (authorObj?.username as string | undefined) ??
-    (raw.username as string | undefined) ??
+    (typeof raw.handle === 'string' ? raw.handle : undefined) ??
+    (typeof raw.username === 'string' ? raw.username : undefined) ??
     'user';
   const avatar =
-    (raw.avatar as string | null | undefined) ??
     (authorObj?.avatar as string | null | undefined) ??
+    (raw.avatar as string | null | undefined) ??
     null;
   const isVerified =
-    (raw.isVerified as boolean | undefined) ??
     (authorObj?.isVerified as boolean | undefined) ??
+    (raw.isVerified as boolean | undefined) ??
     false;
   const primaryBadge =
-    (raw.primaryBadge as string | null | undefined) ??
     (authorObj?.primaryBadge as string | null | undefined) ??
+    (raw.primaryBadge as string | null | undefined) ??
     null;
   const text = (raw.text as string | undefined) ?? (raw.content as string | undefined) ?? '';
 
@@ -78,7 +81,7 @@ export function normalizePost(raw: Record<string, unknown> | null | undefined): 
     isPinned: Boolean(raw.isPinned),
     pinnedAt:
       (raw.pinnedAt as string | undefined) ??
-      (raw.isPinned ? (raw.createdAt as string) : undefined),
+      (raw.isPinned ? ((raw.createdAt as string) ?? new Date().toISOString()) : undefined),
     isVerified,
     primaryBadge,
     type: raw.type as PostType['type'],

@@ -10,6 +10,7 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { NOTIFICATIONS_REPOSITORY } from './interfaces/notifications-repository.interface';
 import type { INotificationsRepository } from './interfaces/notifications-repository.interface';
 import { PrismaService } from '@common/prisma';
+import type { Prisma } from '@prisma/client';
 import { RedisService } from '../redis/redis.service';
 import { MessengerGateway } from '../messenger/gateway/messenger.gateway';
 import { WS_EVENTS } from '../messenger/events/ws-events';
@@ -407,7 +408,7 @@ export class NotificationsService {
     userId: string,
     dto: UpdateNotificationSettingsDto,
   ): Promise<NotificationSettingsDto> {
-    const prismaUpdateData: any = { ...dto };
+    const prismaUpdateData: Prisma.UserNotificationSettingsUpdateInput = { ...dto };
     if (dto.dndUntil !== undefined) {
       prismaUpdateData.dndUntil = dto.dndUntil ? new Date(dto.dndUntil) : null;
     }

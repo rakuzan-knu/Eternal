@@ -177,3 +177,5 @@ graphify-out/
 .turbo/
 apps/*/dist/
 apps/*/coverage/
+
+codeql-alerts.json

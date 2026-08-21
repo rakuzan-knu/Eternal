@@ -56,7 +56,6 @@ interface ChatItemMenuProps {
 
 export default function ChatItemMenu({
   conversation,
-  otherUserId,
   otherUsername,
   conversationTitle = 'Chat',
   avatarUrl = null,

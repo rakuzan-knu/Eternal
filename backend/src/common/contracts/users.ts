@@ -141,7 +141,7 @@ export const userProfileSchema = z.object({
   avatar: z.string().nullable(),
   banner: z.string().nullable().optional(),
   bannerPosition: z.number().optional(),
-  bio: z.string().nullable(),
+  bio: z.string().nullable().optional(),
   birthDate: z.string().nullable().optional(),
   isPrivate: z.boolean(),
   isVerified: z.boolean(),

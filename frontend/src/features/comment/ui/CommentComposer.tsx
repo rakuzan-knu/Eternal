@@ -51,9 +51,7 @@ export function CommentComposer({
       textareaRef.current.focus();
       // If text doesn't have @username mention yet, auto-prefix it
       const mention = `@${replyingTo.username} `;
-      if (!text.startsWith(mention)) {
-        setText((prev) => mention + prev);
-      }
+      setText((prev) => (prev.startsWith(mention) ? prev : mention + prev));
     }
   }, [replyingTo]);
 

@@ -39,9 +39,37 @@ export const profileHandlers = [
 
   http.get('*/users/me/privacy', () => HttpResponse.json(privacy)),
 
+  http.get('*/users/me/privacy/exceptions', () => HttpResponse.json({ allow: [], deny: [] })),
+
+  http.post('*/users/me/privacy/exceptions', () =>
+    HttpResponse.json({ id: 'exc-1', targetId: 'usr-2', mode: 'ALLOW' }),
+  ),
+
+  http.delete('*/users/me/privacy/exceptions/:dimension/:targetId', () =>
+    HttpResponse.json({ success: true }),
+  ),
+
   http.get('*/users/me/follow-requests/count', () => HttpResponse.json({ count: 0 })),
 
   http.get('*/users/me/follow-requests', () =>
+    HttpResponse.json({ data: [], meta: { nextCursor: null, hasNextPage: false } }),
+  ),
+
+  http.get('*/users/me/friends', () => HttpResponse.json([])),
+
+  http.get('*/users/me/saved-posts', () =>
+    HttpResponse.json({ data: [], meta: { nextCursor: null, hasNextPage: false } }),
+  ),
+
+  http.get('*/users/:id/saved-posts', () =>
+    HttpResponse.json({ data: [], meta: { nextCursor: null, hasNextPage: false } }),
+  ),
+
+  http.get('*/users/:id/followers', () =>
+    HttpResponse.json({ data: [], meta: { nextCursor: null, hasNextPage: false } }),
+  ),
+
+  http.get('*/users/:id/following', () =>
     HttpResponse.json({ data: [], meta: { nextCursor: null, hasNextPage: false } }),
   ),
 

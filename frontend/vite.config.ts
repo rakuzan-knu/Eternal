@@ -6,6 +6,14 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  esbuild: {
+    target: 'es2022',
+  },
+  optimizeDeps: {
+    esbuildOptions: {
+      target: 'es2022',
+    },
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -13,7 +21,8 @@ export default defineConfig({
     },
   },
   build: {
-    chunkSizeWarningLimit: 1000,
+    target: 'es2022',
+    chunkSizeWarningLimit: 600,
     sourcemap: false,
     rollupOptions: {
       output: {
@@ -67,7 +76,8 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
-    setupFiles: ['./src/test/setup.ts'],
+    pool: 'forks',
+    setupFiles: ['./src/test/polyfills.ts', './src/test/setup.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov', 'html'],

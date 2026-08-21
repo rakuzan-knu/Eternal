@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { CommentModal } from '../CommentModal';
 import { useUIStore } from '@/shared/model/useUIStore';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -61,13 +61,15 @@ describe('CommentModal', () => {
   });
 
   it('renders active post content and fetched comments', async () => {
-    render(
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter>
-          <CommentModal />
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
+    act(() => {
+      render(
+        <QueryClientProvider client={queryClient}>
+          <MemoryRouter>
+            <CommentModal />
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+    });
 
     expect(screen.getAllByText('This is my awesome post!').length).toBeGreaterThanOrEqual(1);
     await waitFor(() => {
@@ -76,16 +78,20 @@ describe('CommentModal', () => {
   });
 
   it('closes modal when close button is clicked', async () => {
-    render(
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter>
-          <CommentModal />
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
+    act(() => {
+      render(
+        <QueryClientProvider client={queryClient}>
+          <MemoryRouter>
+            <CommentModal />
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+    });
 
     const closeBtn = screen.getAllByTitle(/Close/i)[0];
-    fireEvent.click(closeBtn);
+    act(() => {
+      fireEvent.click(closeBtn);
+    });
 
     expect(useUIStore.getState().isCommentModalOpen).toBe(false);
   });
@@ -103,19 +109,25 @@ describe('CommentModal', () => {
       replyCount: 0,
     });
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter>
-          <CommentModal />
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
+    act(() => {
+      render(
+        <QueryClientProvider client={queryClient}>
+          <MemoryRouter>
+            <CommentModal />
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+    });
 
     const textarea = screen.getByPlaceholderText(/Comment as @/i);
-    fireEvent.change(textarea, { target: { value: 'Awesome commentary!' } });
+    act(() => {
+      fireEvent.change(textarea, { target: { value: 'Awesome commentary!' } });
+    });
 
     const submitBtn = screen.getByTitle('Send comment');
-    fireEvent.click(submitBtn);
+    act(() => {
+      fireEvent.click(submitBtn);
+    });
 
     await waitFor(() => {
       expect(commentsApi.addComment).toHaveBeenCalledWith(
@@ -144,13 +156,15 @@ describe('CommentModal', () => {
       replyCount: 0,
     });
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter>
-          <CommentModal />
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
+    act(() => {
+      render(
+        <QueryClientProvider client={queryClient}>
+          <MemoryRouter>
+            <CommentModal />
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+    });
 
     await waitFor(() => {
       expect(screen.getByText('Great post!')).toBeInTheDocument();

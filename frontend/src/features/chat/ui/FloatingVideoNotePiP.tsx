@@ -18,7 +18,6 @@ export default function FloatingVideoNotePiP() {
     activeMediaId,
     mediaType,
     url,
-    senderName,
     currentTime,
     duration,
     isPlaying,

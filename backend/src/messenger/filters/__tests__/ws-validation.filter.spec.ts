@@ -1,5 +1,5 @@
 import { WsException } from '@nestjs/websockets';
-import { NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Logger, NotFoundException } from '@nestjs/common';
 import type { ArgumentsHost } from '@nestjs/common';
 import { WsValidationFilter } from '../ws-validation.filter';
 
@@ -8,6 +8,7 @@ describe('WsValidationFilter', () => {
   let mockEmit: jest.Mock;
 
   beforeEach(() => {
+    jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
     mockEmit = jest.fn();
     filter = new WsValidationFilter();
   });

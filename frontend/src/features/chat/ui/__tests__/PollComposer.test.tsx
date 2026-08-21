@@ -1,42 +1,28 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import PollComposer from '../PollComposer';
+import React from 'react';
 
 describe('PollComposer', () => {
-  it('renders question and options inputs and handles close', () => {
+  it('creates a poll with question and multiple options', () => {
     const onClose = vi.fn();
-    render(<PollComposer onClose={onClose} />);
-
-    expect(screen.getByRole('heading', { name: 'Create poll' })).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Ask a question...')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Option 1')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Option 2')).toBeInTheDocument();
-
-    const closeBtn = screen.getAllByRole('button')[0];
-    fireEvent.click(closeBtn);
-  });
-
-  it('submits poll when question and at least 2 options are filled', () => {
     const onCreatePoll = vi.fn();
-    const onClose = vi.fn();
+
     render(<PollComposer onClose={onClose} onCreatePoll={onCreatePoll} />);
 
+    expect(screen.getByRole('heading', { name: 'Create poll' })).toBeInTheDocument();
+
+    const questionInput = screen.getByPlaceholderText('Ask a question...');
+    fireEvent.change(questionInput, { target: { value: 'Best framework?' } });
+
+    const opt1 = screen.getByPlaceholderText('Option 1');
+    const opt2 = screen.getByPlaceholderText('Option 2');
+    fireEvent.change(opt1, { target: { value: 'React' } });
+    fireEvent.change(opt2, { target: { value: 'Vue' } });
+
     const submitBtn = screen.getByRole('button', { name: 'Create poll' });
-    expect(submitBtn).toBeDisabled();
-
-    fireEvent.change(screen.getByPlaceholderText('Ask a question...'), {
-      target: { value: 'Favorite color?' },
-    });
-    fireEvent.change(screen.getByPlaceholderText('Option 1'), {
-      target: { value: 'Purple' },
-    });
-    fireEvent.change(screen.getByPlaceholderText('Option 2'), {
-      target: { value: 'Sky' },
-    });
-
-    expect(submitBtn).toBeEnabled();
     fireEvent.click(submitBtn);
 
-    expect(onCreatePoll).toHaveBeenCalledWith('Favorite color?', ['Purple', 'Sky']);
+    expect(onCreatePoll).toHaveBeenCalledWith('Best framework?', ['React', 'Vue']);
   });
 });

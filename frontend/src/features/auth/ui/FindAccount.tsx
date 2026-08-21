@@ -42,7 +42,6 @@ export const FindAccount: React.FC<FindAccountProps> = ({ onSuccess }) => {
     try {
       setError(null);
       const realUserData = await findAccountMutation.mutateAsync(target);
-      await new Promise((resolve) => setTimeout(resolve, 800));
       onSuccess(realUserData);
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 404) {

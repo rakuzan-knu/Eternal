@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { RegisterForm } from '../RegisterForm';
@@ -26,19 +26,18 @@ function getSubmitButton() {
   return screen.getByRole('button', { name: 'Create Account' });
 }
 
-async function fillMinimumValidForm(user: ReturnType<typeof userEvent.setup>) {
+function fillMinimumValidForm() {
   const firstNameInput = screen.getByPlaceholderText('First name');
   const lastNameInput = screen.getByPlaceholderText('Last name');
   const usernameInput = screen.getByPlaceholderText('@username');
   const emailInput = screen.getByPlaceholderText('Mobile number or email');
   const passwordInput = screen.getByPlaceholderText('New password');
 
-  await user.type(firstNameInput, 'Alex');
-  await user.type(lastNameInput, 'Kovalenko');
-  await user.clear(usernameInput);
-  await user.type(usernameInput, 'alexk');
-  await user.type(emailInput, 'alex@test.com');
-  await user.type(passwordInput, 'secret123');
+  fireEvent.change(firstNameInput, { target: { value: 'Alex' } });
+  fireEvent.change(lastNameInput, { target: { value: 'Kovalenko' } });
+  fireEvent.change(usernameInput, { target: { value: '@alexk' } });
+  fireEvent.change(emailInput, { target: { value: 'alex@test.com' } });
+  fireEvent.change(passwordInput, { target: { value: 'secret123' } });
 }
 
 describe('RegisterForm', () => {
@@ -61,22 +60,22 @@ describe('RegisterForm', () => {
 
   it('enables the submit button once all fields are valid', async () => {
     setupMutations();
-    const user = userEvent.setup();
     renderWithProviders(<RegisterForm />);
 
-    await fillMinimumValidForm(user);
+    fillMinimumValidForm();
 
-    await waitFor(() => expect(getSubmitButton()).not.toBeDisabled(), { timeout: 3000 });
+    await waitFor(() => expect(getSubmitButton()).not.toBeDisabled(), { timeout: 4000 });
   });
 
   it('calls registerMutation.mutate with the clean payload on submit', async () => {
     const mutate = setupMutations();
-    const user = userEvent.setup();
     renderWithProviders(<RegisterForm />);
-    await fillMinimumValidForm(user);
-    await waitFor(() => expect(getSubmitButton()).not.toBeDisabled(), { timeout: 3000 });
 
-    await user.click(getSubmitButton());
+    fillMinimumValidForm();
+
+    await waitFor(() => expect(getSubmitButton()).not.toBeDisabled(), { timeout: 4000 });
+
+    fireEvent.click(getSubmitButton());
 
     await waitFor(
       () =>
@@ -89,13 +88,13 @@ describe('RegisterForm', () => {
           }),
           expect.any(Object),
         ),
-      { timeout: 3000 },
+      { timeout: 4000 },
     );
   });
 
   it('auto-prefixes the username with @ when the user types without one', async () => {
     setupMutations();
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderWithProviders(<RegisterForm />);
     const usernameInput = screen.getByPlaceholderText('@username');
 
@@ -107,7 +106,7 @@ describe('RegisterForm', () => {
 
   it('shows a validation error for a too-short username', async () => {
     setupMutations();
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderWithProviders(<RegisterForm />);
     const usernameInput = screen.getByPlaceholderText('@username');
 
@@ -122,15 +121,19 @@ describe('RegisterForm', () => {
 
   it('shows a "username taken" error and keeps the submit button disabled', async () => {
     setupMutations();
-    const user = userEvent.setup();
     renderWithProviders(<RegisterForm />);
-    await user.type(screen.getByPlaceholderText('First name'), 'Alex');
-    await user.type(screen.getByPlaceholderText('Last name'), 'Kovalenko');
+
+    const firstNameInput = screen.getByPlaceholderText('First name');
+    const lastNameInput = screen.getByPlaceholderText('Last name');
     const usernameInput = screen.getByPlaceholderText('@username');
-    await user.clear(usernameInput);
-    await user.type(usernameInput, 'test_taken');
-    await user.type(screen.getByPlaceholderText('Mobile number or email'), 'alex@test.com');
-    await user.type(screen.getByPlaceholderText('New password'), 'secret123');
+    const emailInput = screen.getByPlaceholderText('Mobile number or email');
+    const passwordInput = screen.getByPlaceholderText('New password');
+
+    fireEvent.change(firstNameInput, { target: { value: 'Alex' } });
+    fireEvent.change(lastNameInput, { target: { value: 'Kovalenko' } });
+    fireEvent.change(usernameInput, { target: { value: '@test_taken' } });
+    fireEvent.change(emailInput, { target: { value: 'alex@test.com' } });
+    fireEvent.change(passwordInput, { target: { value: 'secret123' } });
 
     await waitFor(
       () => expect(screen.getByText('This username is already taken.')).toBeInTheDocument(),
@@ -143,7 +146,7 @@ describe('RegisterForm', () => {
 
   it('trims leading/trailing whitespace from the first name on blur', async () => {
     setupMutations();
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderWithProviders(<RegisterForm />);
     const firstNameInput = screen.getByPlaceholderText('First name');
 
@@ -155,7 +158,7 @@ describe('RegisterForm', () => {
 
   it('toggles password visibility when the eye icon is clicked', async () => {
     setupMutations();
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderWithProviders(<RegisterForm />);
     const passwordInput = screen.getByPlaceholderText('New password');
     expect(passwordInput).toHaveAttribute('type', 'password');

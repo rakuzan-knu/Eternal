@@ -62,7 +62,7 @@ describe('ProfilePage', () => {
   });
 
   it('shows the reposts tab content after switching tabs', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderProfile();
 
     const repostsTab = await screen.findByText('Reposts');
@@ -73,7 +73,7 @@ describe('ProfilePage', () => {
   });
 
   it('hides the create-post composer on the reposts tab', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderProfile();
 
     expect(await screen.findByPlaceholderText("What's new?")).toBeInTheDocument();
@@ -85,7 +85,7 @@ describe('ProfilePage', () => {
   });
 
   it('calls openEditProfile when the edit button is clicked', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderProfile();
 
     const editBtn = await screen.findByText('Edit');
@@ -95,7 +95,7 @@ describe('ProfilePage', () => {
   });
 
   it('submits a new post from the profile composer and clears the input', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderProfile();
 
     const composer = await screen.findByPlaceholderText("What's new?");
@@ -108,7 +108,7 @@ describe('ProfilePage', () => {
   });
 
   it('opens the comment modal with the clicked post', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderProfile();
 
     await screen.findByText('Thats fire!');

@@ -108,12 +108,12 @@ export default function ConversationDetailsPanel({
     setTimeout(onClose, 180);
   };
 
-  const otherUsername = conversation.participants.find((p) => p.userId === otherUserId)?.user
-    .username;
-  const myParticipant = conversation.participants.find((p) => p.userId === currentUserId);
+  const otherUsername = conversation.participants?.find((p) => p.userId === otherUserId)?.user
+    ?.username;
+  const myParticipant = conversation.participants?.find((p) => p.userId === currentUserId);
 
   const isMuted = conversation.myMuteLevel !== 'NONE';
-  const pinnedCount = conversation.pinnedMessages.length;
+  const pinnedCount = conversation.pinnedMessages?.length ?? 0;
 
   const { mediaCount, fileCount, linkCount } = useMemo(() => {
     let media = 0;

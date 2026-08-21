@@ -26,16 +26,30 @@ export function getConversationDisplay(
     };
   }
 
-  const other = conversation.participants.find((p) => p.userId !== currentUserId);
+  const other = (conversation.participants ?? []).find(
+    (p) => (p.userId ?? (p as unknown as { id?: string }).id) !== currentUserId,
+  );
 
   return {
-    title: other?.nickname ?? other?.user.displayName ?? other?.user.username ?? 'Unknown user',
-    avatar: other?.user.avatar ?? null,
+    title:
+      other?.nickname ??
+      other?.user?.displayName ??
+      other?.user?.username ??
+      (other as unknown as { displayName?: string })?.displayName ??
+      (other as unknown as { username?: string })?.username ??
+      'Unknown user',
+    avatar: other?.user?.avatar ?? (other as unknown as { avatar?: string | null })?.avatar ?? null,
     isGroup: false,
-    otherUserId: other?.userId ?? null,
-    otherUsername: other?.user.username ?? null,
-    isVerified: Boolean(other?.user.isVerified),
-    primaryBadge: other?.user.primaryBadge ?? null,
+    otherUserId: other?.userId ?? (other as unknown as { id?: string })?.id ?? null,
+    otherUsername:
+      other?.user?.username ?? (other as unknown as { username?: string })?.username ?? null,
+    isVerified: Boolean(
+      other?.user?.isVerified ?? (other as unknown as { isVerified?: boolean })?.isVerified,
+    ),
+    primaryBadge:
+      other?.user?.primaryBadge ??
+      (other as unknown as { primaryBadge?: string | null })?.primaryBadge ??
+      null,
   };
 }
 

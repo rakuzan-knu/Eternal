@@ -1,23 +1,126 @@
 import { create } from 'zustand';
 import {
-  derivePassword,
-  verifyPassword,
+  derivePasswordVerifier,
+  verifyPasswordVerifier,
   type DerivedPassword,
 } from '@/shared/lib/derivePasswordHash';
 
-const STORAGE_KEY = 'eternal-device-auth-v1';
-const LEGACY_STORAGE_KEY = 'eternal-device-password';
+const STORAGE_KEY = 'eternal-device-auth-v2';
+const LEGACY_V1_KEY = 'eternal-device-auth-v1';
+const LEGACY_V0_KEY = 'eternal-device-password';
+const ENCRYPTED_PREFIX = 'enc:';
 
-function encryptStorageToken(data: DerivedPassword): string {
-  const json = JSON.stringify(data);
-  const bytes = new TextEncoder().encode(json);
-  const hex = Array.from(bytes)
-    .map((b, i) => (b ^ (0x5c ^ (i % 11))).toString(16).padStart(2, '0'))
-    .join('');
-  return btoa(hex);
+function isDerivedPassword(value: unknown): value is DerivedPassword {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as Partial<DerivedPassword>;
+  return (
+    typeof candidate.salt === 'string' &&
+    typeof candidate.hash === 'string' &&
+    typeof candidate.algo === 'string'
+  );
 }
 
-function decryptStorageToken(raw: string): DerivedPassword | null {
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 1) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+function base64ToBytes(base64: string): Uint8Array {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
+async function getDeviceCryptoKey(): Promise<CryptoKey | null> {
+  if (typeof window === 'undefined' || !window.crypto?.subtle) return null;
+  try {
+    const material = 'eternal-device-auth-storage-key';
+    const keyData = await window.crypto.subtle.digest(
+      'SHA-256',
+      new TextEncoder().encode(material),
+    );
+    return window.crypto.subtle.importKey('raw', keyData, { name: 'AES-GCM' }, false, [
+      'encrypt',
+      'decrypt',
+    ]);
+  } catch {
+    return null;
+  }
+}
+
+async function encryptStoredValue(value: DerivedPassword): Promise<string> {
+  try {
+    const key = await getDeviceCryptoKey();
+    if (!key || typeof window === 'undefined') {
+      return `${ENCRYPTED_PREFIX}${bytesToBase64(new TextEncoder().encode(JSON.stringify(value)))}`;
+    }
+    const iv = window.crypto.getRandomValues(new Uint8Array(12));
+    const plaintext = new TextEncoder().encode(JSON.stringify(value));
+    const ciphertext = new Uint8Array(
+      await window.crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plaintext),
+    );
+    return `${ENCRYPTED_PREFIX}${bytesToBase64(iv)}.${bytesToBase64(ciphertext)}`;
+  } catch {
+    return `${ENCRYPTED_PREFIX}${bytesToBase64(new TextEncoder().encode(JSON.stringify(value)))}`;
+  }
+}
+
+function decryptStoredValueSync(raw: string): DerivedPassword | null {
+  try {
+    if (!raw.startsWith(ENCRYPTED_PREFIX)) {
+      const parsed = JSON.parse(raw) as unknown;
+      return isDerivedPassword(parsed) ? parsed : null;
+    }
+    const payload = raw.slice(ENCRYPTED_PREFIX.length);
+    if (!payload.includes('.')) {
+      const json = new TextDecoder().decode(base64ToBytes(payload));
+      const parsed = JSON.parse(json) as unknown;
+      return isDerivedPassword(parsed) ? parsed : null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+async function decryptStoredValue(raw: string): Promise<DerivedPassword | null> {
+  try {
+    if (!raw.startsWith(ENCRYPTED_PREFIX)) {
+      const parsed = JSON.parse(raw) as unknown;
+      return isDerivedPassword(parsed) ? parsed : null;
+    }
+    const payload = raw.slice(ENCRYPTED_PREFIX.length);
+    const [ivB64, cipherB64] = payload.split('.');
+    if (!ivB64 || !cipherB64) {
+      const json = new TextDecoder().decode(base64ToBytes(payload));
+      const parsed = JSON.parse(json) as unknown;
+      return isDerivedPassword(parsed) ? parsed : null;
+    }
+    const key = await getDeviceCryptoKey();
+    if (!key) return null;
+    const iv = base64ToBytes(ivB64);
+    const ciphertext = base64ToBytes(cipherB64);
+    const plaintext = new Uint8Array(
+      await window.crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv: iv as BufferSource },
+        key,
+        ciphertext as BufferSource,
+      ),
+    );
+    const parsed = JSON.parse(new TextDecoder().decode(plaintext)) as unknown;
+    return isDerivedPassword(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function parseLegacyV1Token(raw: string): DerivedPassword | null {
   try {
     const hex = atob(raw);
     const bytes = new Uint8Array(hex.length / 2);
@@ -25,8 +128,8 @@ function decryptStorageToken(raw: string): DerivedPassword | null {
       bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16) ^ (0x5c ^ (i % 11));
     }
     const json = new TextDecoder().decode(bytes);
-    const parsed = JSON.parse(json) as DerivedPassword;
-    if (parsed?.salt && parsed?.hash && parsed?.algo) return parsed;
+    const parsed = JSON.parse(json) as unknown;
+    if (isDerivedPassword(parsed)) return parsed;
     return null;
   } catch {
     return null;
@@ -36,18 +139,38 @@ function decryptStorageToken(raw: string): DerivedPassword | null {
 function loadStored(): DerivedPassword | null {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const decoded = decryptStorageToken(raw);
-      if (decoded) return decoded;
+    const current = localStorage.getItem(STORAGE_KEY);
+    if (current) {
+      const syncParsed = decryptStoredValueSync(current);
+      if (syncParsed) return syncParsed;
+
+      void decryptStoredValue(current)
+        .then((parsed) => {
+          if (parsed) {
+            useDevicePasswordStore.setState({ stored: parsed });
+          }
+        })
+        .catch(() => {});
     }
-    // Migration check for legacy unencrypted key
-    const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
-    if (legacy) {
-      const parsed = JSON.parse(legacy) as DerivedPassword;
-      if (parsed?.salt && parsed?.hash && parsed?.algo) {
+
+    // Migration from v1 obfuscated token format
+    const legacyV1 = localStorage.getItem(LEGACY_V1_KEY);
+    if (legacyV1) {
+      const decoded = parseLegacyV1Token(legacyV1);
+      if (decoded) {
+        saveStored(decoded);
+        localStorage.removeItem(LEGACY_V1_KEY);
+        return decoded;
+      }
+    }
+
+    // Migration from legacy unencrypted key format
+    const legacyV0 = localStorage.getItem(LEGACY_V0_KEY);
+    if (legacyV0) {
+      const parsed = JSON.parse(legacyV0) as unknown;
+      if (isDerivedPassword(parsed)) {
         saveStored(parsed);
-        localStorage.removeItem(LEGACY_STORAGE_KEY);
+        localStorage.removeItem(LEGACY_V0_KEY);
         return parsed;
       }
     }
@@ -62,10 +185,18 @@ function saveStored(value: DerivedPassword | null) {
   try {
     if (value === null) {
       localStorage.removeItem(STORAGE_KEY);
-      localStorage.removeItem(LEGACY_STORAGE_KEY);
+      localStorage.removeItem(LEGACY_V1_KEY);
+      localStorage.removeItem(LEGACY_V0_KEY);
     } else {
-      const encryptedToken = encryptStorageToken(value);
-      localStorage.setItem(STORAGE_KEY, encryptedToken);
+      localStorage.removeItem(LEGACY_V1_KEY);
+      localStorage.removeItem(LEGACY_V0_KEY);
+      const encoded = `${ENCRYPTED_PREFIX}${bytesToBase64(new TextEncoder().encode(JSON.stringify(value)))}`;
+      localStorage.setItem(STORAGE_KEY, encoded);
+      void encryptStoredValue(value)
+        .then((encrypted) => {
+          localStorage.setItem(STORAGE_KEY, encrypted);
+        })
+        .catch(() => {});
     }
   } catch {
     // ignore write failures (private mode, quota, etc.)
@@ -80,6 +211,7 @@ interface DevicePasswordState {
   verify: (plain: string) => Promise<boolean>;
   unlock: () => void;
   disable: () => void;
+  rehydrate: () => void;
 }
 
 export const useDevicePasswordStore = create<DevicePasswordState>((set, get) => ({
@@ -87,14 +219,14 @@ export const useDevicePasswordStore = create<DevicePasswordState>((set, get) => 
   unlocked: false,
   isEnabled: () => get().stored !== null,
   setPassword: async (plain) => {
-    const stored = await derivePassword(plain);
+    const stored = await derivePasswordVerifier(plain);
     saveStored(stored);
     set({ stored, unlocked: true });
   },
   verify: async (plain) => {
     const { stored } = get();
     if (!stored) return false;
-    const ok = await verifyPassword(plain, stored);
+    const ok = await verifyPasswordVerifier(plain, stored);
     if (ok) set({ unlocked: true });
     return ok;
   },
@@ -102,5 +234,8 @@ export const useDevicePasswordStore = create<DevicePasswordState>((set, get) => 
   disable: () => {
     saveStored(null);
     set({ stored: null, unlocked: false });
+  },
+  rehydrate: () => {
+    set({ stored: loadStored() });
   },
 }));

@@ -421,7 +421,7 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
           <ForwardMessageModal
             messageCount={1}
             onClose={() => setForwardingMessage(null)}
-            onForward={(conversationIds, hideAuthor) => {
+            onForward={(conversationIds, _hideAuthor) => {
               actions.forwardMessage(forwardingMessage.id, conversationIds).catch(() => {});
               setForwardingMessage(null);
             }}

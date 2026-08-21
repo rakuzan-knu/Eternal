@@ -1,35 +1,44 @@
-import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
-import { UserBadgeIcon } from '../UserBadgeIcon';
+import { describe, it, expect } from 'vitest';
+import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { UserBadgeIcon } from '../UserBadgeIcon';
+
+function renderBadge(ui: React.ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+}
 
 describe('UserBadgeIcon', () => {
-  const queryClient = new QueryClient();
-
-  it('renders null when no badgeId is provided or unknown', () => {
-    const { container } = render(
-      <QueryClientProvider client={queryClient}>
-        <UserBadgeIcon badgeId={null} />
-      </QueryClientProvider>,
-    );
+  it('renders nothing when badgeId is null or unknown', () => {
+    const { container } = renderBadge(<UserBadgeIcon badgeId={null} />);
     expect(container.firstChild).toBeNull();
   });
 
-  it('renders developer badge icon when badgeId is DEVELOPER', () => {
-    const { container } = render(
-      <QueryClientProvider client={queryClient}>
-        <UserBadgeIcon badgeId="DEVELOPER" />
-      </QueryClientProvider>,
+  it('renders developer badge correctly', () => {
+    const { container } = renderBadge(
+      <UserBadgeIcon badgeId="DEVELOPER" size="sm" showTooltip={true} />,
     );
     expect(container.querySelector('svg')).toBeInTheDocument();
   });
 
-  it('renders premium tier badge when badgeId is PREMIUM', () => {
-    const { container } = render(
-      <QueryClientProvider client={queryClient}>
-        <UserBadgeIcon badgeId="PREMIUM" subscriptionMonths={12} />
-      </QueryClientProvider>,
+  it('renders partner and moderator badges', () => {
+    const { container: c1 } = renderBadge(<UserBadgeIcon badgeId="PARTNER" />);
+    expect(c1.querySelector('svg')).toBeInTheDocument();
+
+    const { container: c2 } = renderBadge(<UserBadgeIcon badgeId="MODERATOR" />);
+    expect(c2.querySelector('svg')).toBeInTheDocument();
+  });
+
+  it('renders premium and contributor badges', () => {
+    const { container: c1 } = renderBadge(
+      <UserBadgeIcon badgeId="PREMIUM" subscriptionMonths={3} />,
     );
-    expect(container.querySelector('svg')).toBeInTheDocument();
+    expect(c1.querySelector('svg')).toBeInTheDocument();
+
+    const { container: c2 } = renderBadge(<UserBadgeIcon badgeId="CONTRIBUTOR" prCount={5} />);
+    expect(c2.querySelector('svg')).toBeInTheDocument();
   });
 });

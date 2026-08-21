@@ -19,7 +19,7 @@ describe('Select', () => {
   });
 
   it('opens the option list when the trigger is clicked', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<Select value="Beta" onChange={vi.fn()} options={OPTIONS} />);
 
     await user.click(screen.getByRole('combobox'));
@@ -30,7 +30,7 @@ describe('Select', () => {
 
   it('calls onChange and closes the list when an option is clicked', async () => {
     const onChange = vi.fn();
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<Select value="Beta" onChange={onChange} options={OPTIONS} />);
     await user.click(screen.getByRole('combobox'));
 
@@ -41,7 +41,7 @@ describe('Select', () => {
   });
 
   it('marks the currently selected option with aria-selected', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<Select value="Beta" onChange={vi.fn()} options={OPTIONS} />);
 
     await user.click(screen.getByRole('combobox'));
@@ -53,7 +53,7 @@ describe('Select', () => {
 
   it('closes the list and calls onBlur when clicking outside', async () => {
     const onBlur = vi.fn();
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(
       <div>
         <Select value="Beta" onChange={vi.fn()} options={OPTIONS} onBlur={onBlur} />
@@ -78,7 +78,7 @@ describe('Select', () => {
 
   it('selects the highlighted option on Enter', async () => {
     const onChange = vi.fn();
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<Select value="Beta" onChange={onChange} options={OPTIONS} />);
     const combobox = screen.getByRole('combobox');
     await user.click(combobox);
@@ -92,7 +92,7 @@ describe('Select', () => {
 
   it('wraps to the first option when ArrowDown is pressed on the last option', async () => {
     const onChange = vi.fn();
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<Select value="Gamma" onChange={onChange} options={OPTIONS} />);
     const combobox = screen.getByRole('combobox');
     await user.click(combobox);
@@ -105,7 +105,7 @@ describe('Select', () => {
 
   it('wraps to the last option when ArrowUp is pressed on the first option', async () => {
     const onChange = vi.fn();
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<Select value="Alpha" onChange={onChange} options={OPTIONS} />);
     const combobox = screen.getByRole('combobox');
     await user.click(combobox);
@@ -118,7 +118,7 @@ describe('Select', () => {
 
   it('closes without selecting on Escape', async () => {
     const onChange = vi.fn();
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<Select value="Beta" onChange={onChange} options={OPTIONS} />);
     const combobox = screen.getByRole('combobox');
     await user.click(combobox);
@@ -131,7 +131,7 @@ describe('Select', () => {
 
   it('closes and calls onBlur on Tab', async () => {
     const onBlur = vi.fn();
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<Select value="Beta" onChange={vi.fn()} options={OPTIONS} onBlur={onBlur} />);
     const combobox = screen.getByRole('combobox');
     await user.click(combobox);

@@ -3,6 +3,7 @@ import {
   HttpException,
   HttpStatus,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import type { ArgumentsHost } from '@nestjs/common';
@@ -22,6 +23,9 @@ describe('AllExceptionsFilter', () => {
   let mockResponse: Partial<Response>;
 
   beforeEach(() => {
+    jest.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
+    jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
+
     mockHttpAdapter = {
       getRequestUrl: jest.fn<string, [Request]>().mockReturnValue('/api/test-path'),
       reply: jest.fn<void, [Response, unknown, number]>(),

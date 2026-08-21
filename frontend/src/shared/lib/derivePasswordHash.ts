@@ -90,11 +90,13 @@ async function pickAlgoAndDerive(
   }
 }
 
-export async function derivePassword(password: string): Promise<DerivedPassword> {
+export async function derivePasswordVerifier(passphrase: string): Promise<DerivedPassword> {
   const salt = randomSalt();
-  const { hash, algo } = await pickAlgoAndDerive(password, salt);
+  const { hash, algo } = await pickAlgoAndDerive(passphrase, salt);
   return { salt: toHex(salt), hash, algo };
 }
+
+export const derivePassword = derivePasswordVerifier;
 
 function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
@@ -105,8 +107,13 @@ function timingSafeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
-export async function verifyPassword(password: string, stored: DerivedPassword): Promise<boolean> {
+export async function verifyPasswordVerifier(
+  passphrase: string,
+  stored: DerivedPassword,
+): Promise<boolean> {
   const salt = fromHex(stored.salt);
-  const hash = await deriveHex(password, salt, stored.algo);
+  const hash = await deriveHex(passphrase, salt, stored.algo);
   return timingSafeEqual(hash, stored.hash);
 }
+
+export const verifyPassword = verifyPasswordVerifier;

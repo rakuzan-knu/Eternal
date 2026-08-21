@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { FindAccount } from '../FindAccount';
@@ -62,7 +62,7 @@ describe('FindAccount', () => {
 
   it('shows a required-field error when submitting an empty input', async () => {
     setupMutations();
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<FindAccount onSuccess={vi.fn()} />);
 
     await user.click(getSubmitButton());
@@ -74,10 +74,10 @@ describe('FindAccount', () => {
 
   it('shows a format error for an input that is neither an email nor a phone number', async () => {
     setupMutations();
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<FindAccount onSuccess={vi.fn()} />);
 
-    await user.type(getInput(), 'not-a-valid-identifier');
+    fireEvent.change(getInput(), { target: { value: 'not-a-valid-identifier' } });
     await user.click(getSubmitButton());
 
     expect(
@@ -87,14 +87,14 @@ describe('FindAccount', () => {
 
   it('clears a previous error as soon as the user edits the input again', async () => {
     setupMutations();
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<FindAccount onSuccess={vi.fn()} />);
     await user.click(getSubmitButton());
     expect(
       screen.getByText('Please enter your email address or phone number.'),
     ).toBeInTheDocument();
 
-    await user.type(getInput(), 'a');
+    fireEvent.change(getInput(), { target: { value: 'a' } });
 
     expect(
       screen.queryByText('Please enter your email address or phone number.'),
@@ -113,9 +113,9 @@ describe('FindAccount', () => {
   it('calls onSuccess with the mocked user payload for a valid email', async () => {
     setupMutations();
     const onSuccess = vi.fn();
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<FindAccount onSuccess={onSuccess} />);
-    await user.type(getInput(), 'user@example.com');
+    fireEvent.change(getInput(), { target: { value: 'user@example.com' } });
 
     await user.click(getSubmitButton());
 
@@ -128,9 +128,9 @@ describe('FindAccount', () => {
   it('calls onSuccess for a valid phone number', async () => {
     setupMutations();
     const onSuccess = vi.fn();
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<FindAccount onSuccess={onSuccess} />);
-    await user.type(getInput(), '0991234567');
+    fireEvent.change(getInput(), { target: { value: '0991234567' } });
 
     await user.click(getSubmitButton());
 
@@ -146,9 +146,9 @@ describe('FindAccount', () => {
         }),
     });
     const onSuccess = vi.fn();
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<FindAccount onSuccess={onSuccess} />);
-    await user.type(getInput(), 'error@test.com');
+    fireEvent.change(getInput(), { target: { value: 'error@test.com' } });
 
     await user.click(getSubmitButton());
 
@@ -170,9 +170,9 @@ describe('FindAccount', () => {
           response: { status: 404, data: {} },
         }),
     });
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<FindAccount onSuccess={vi.fn()} />);
-    await user.type(getInput(), 'error@test.com');
+    fireEvent.change(getInput(), { target: { value: 'error@test.com' } });
     await user.click(getSubmitButton());
     await waitFor(
       () =>
@@ -187,9 +187,9 @@ describe('FindAccount', () => {
 
   it('clears the input value when the clear (X) button is clicked', async () => {
     setupMutations();
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<FindAccount onSuccess={vi.fn()} />);
-    await user.type(getInput(), 'user@example.com');
+    fireEvent.change(getInput(), { target: { value: 'user@example.com' } });
     const clearButton = getInput().parentElement!.querySelector('button')!;
 
     await user.click(clearButton);

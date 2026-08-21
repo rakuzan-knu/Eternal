@@ -1,19 +1,23 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { NotificationsService } from '../notifications.service';
-import { NOTIFICATIONS_REPOSITORY } from '../interfaces/notifications-repository.interface';
+import {
+  NOTIFICATIONS_REPOSITORY,
+  type INotificationsRepository,
+} from '../interfaces/notifications-repository.interface';
 import { PrismaService } from '@common/prisma';
 import { RedisService } from '../../redis/redis.service';
 import { MessengerGateway } from '../../messenger/gateway/messenger.gateway';
 import { NotificationType } from '@common/contracts';
+import type { Prisma } from '@prisma/client';
 import { NotFoundException } from '@nestjs/common';
 import { WS_EVENTS } from '../../messenger/events/ws-events';
 
 describe('NotificationsService', () => {
   let service: NotificationsService;
-  let mockRepo: any;
-  let mockPrisma: any;
-  let mockRedis: any;
-  let mockGateway: any;
+  let mockRepo: Record<keyof INotificationsRepository, jest.Mock>;
+  let mockPrisma: { userBlock: { findFirst: jest.Mock } };
+  let mockRedis: { getClient: jest.Mock };
+  let mockGateway: { emitToUser: jest.Mock };
 
   const mockNotification = {
     id: 'notif-1',
@@ -61,7 +65,10 @@ describe('NotificationsService', () => {
         reposts: 0,
         system: 0,
       }),
-      delete: jest.fn().mockResolvedValue(undefined),
+      delete: jest.fn().mockResolvedValue(true),
+      getUsersByIds: jest.fn().mockResolvedValue([]),
+      getSettings: jest.fn().mockResolvedValue(null),
+      upsertSettings: jest.fn().mockResolvedValue({}),
     };
 
     mockPrisma = {
@@ -119,7 +126,7 @@ describe('NotificationsService', () => {
         'user-1',
         WS_EVENTS.NOTIFICATION_NEW,
         expect.objectContaining({
-          notification: expect.objectContaining({ id: 'notif-1' }),
+          notification: expect.objectContaining({ id: 'notif-1' }) as unknown,
         }),
       );
     });
@@ -356,10 +363,14 @@ describe('NotificationsService', () => {
         enableNotifications: true,
         mutedActorIds: [],
       });
-      mockRepo.upsertSettings = jest.fn().mockImplementation((userId, data) => ({
-        enableNotifications: true,
-        mutedActorIds: data.mutedActorIds,
-      }));
+      mockRepo.upsertSettings = jest
+        .fn()
+        .mockImplementation(
+          (_userId: string, data: Prisma.UserNotificationSettingsUpdateInput) => ({
+            enableNotifications: true,
+            mutedActorIds: Array.isArray(data.mutedActorIds) ? data.mutedActorIds : [],
+          }),
+        );
 
       const muteRes = await service.muteAuthor('user-1', 'user-2');
       expect(muteRes.mutedActorIds).toContain('user-2');

@@ -10,7 +10,7 @@ interface ReportConversationModalProps {
   onClose: () => void;
 }
 
-export const REPORT_REASONS = [
+const REPORT_REASONS = [
   'I just don’t like it.',
   'Harassment or unwanted contact',
   'Suicide, self-harm, or eating disorders',
@@ -26,7 +26,7 @@ export default function ReportConversationModal({
   conversationId,
   onClose,
 }: ReportConversationModalProps) {
-  const handleSelectReason = async (reason: string) => {
+  const handleSelectReason = async (_reason: string) => {
     try {
       await chatApi.reportUser(userId, 'OTHER', conversationId);
     } catch {

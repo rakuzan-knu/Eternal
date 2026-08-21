@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Users, ShieldCheck, Camera, Loader2 } from 'lucide-react';
-import Avatar from '../../../shared/ui/Avatar';
 import GroupAvatarCollage from '../../../shared/ui/GroupAvatarCollage';
 import Modal from '../../../shared/ui/Modal';
+
 import { ConversationView } from '../../../entities/chat/model/types';
 import { useUpdateGroup } from '../model/useConversationMutations';
 import { chatApi } from '../api/chatApi';

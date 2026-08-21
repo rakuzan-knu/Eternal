@@ -430,8 +430,11 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
       );
       this.emitReactionAdded(updated.conversationId, updated);
       callback?.({ status: 'ok', message: updated });
-    } catch (err: any) {
-      callback?.({ status: 'error', error: err?.message || 'Failed to add reaction' });
+    } catch (err: unknown) {
+      callback?.({
+        status: 'error',
+        error: err instanceof Error ? err.message : 'Failed to add reaction',
+      });
     }
   }
 
@@ -449,8 +452,11 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
       );
       this.emitReactionRemoved(updated.conversationId, updated);
       callback?.({ status: 'ok', message: updated });
-    } catch (err: any) {
-      callback?.({ status: 'error', error: err?.message || 'Failed to remove reaction' });
+    } catch (err: unknown) {
+      callback?.({
+        status: 'error',
+        error: err instanceof Error ? err.message : 'Failed to remove reaction',
+      });
     }
   }
 
@@ -468,8 +474,11 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
       );
       this.emitMessagePinned(payload.conversationId, payload.messageId);
       callback?.({ status: 'ok' });
-    } catch (err: any) {
-      callback?.({ status: 'error', error: err?.message || 'Failed to pin message' });
+    } catch (err: unknown) {
+      callback?.({
+        status: 'error',
+        error: err instanceof Error ? err.message : 'Failed to pin message',
+      });
     }
   }
 
@@ -487,8 +496,11 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
       );
       this.emitMessageUnpinned(payload.conversationId, payload.messageId);
       callback?.({ status: 'ok' });
-    } catch (err: any) {
-      callback?.({ status: 'error', error: err?.message || 'Failed to unpin message' });
+    } catch (err: unknown) {
+      callback?.({
+        status: 'error',
+        error: err instanceof Error ? err.message : 'Failed to unpin message',
+      });
     }
   }
 
