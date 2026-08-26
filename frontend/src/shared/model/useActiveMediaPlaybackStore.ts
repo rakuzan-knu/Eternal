@@ -24,6 +24,7 @@ interface ActiveMediaPlaybackState {
   currentTime: number;
   duration: number;
   isPlaying: boolean;
+  isLoading: boolean;
   isMuted: boolean;
   volume: number; // 0.0 - 1.0
   playbackRate: number; // 0.5, 1.0, 1.2, 1.5, 1.7, 2.0
@@ -45,6 +46,7 @@ interface ActiveMediaPlaybackState {
   playNext: () => boolean;
   playPrev: () => boolean;
   setIsPlaying: (playing: boolean) => void;
+  setIsLoading: (loading: boolean) => void;
   setCurrentTime: (time: number) => void;
   setDuration: (duration: number) => void;
   setVolume: (volume: number) => void;
@@ -72,6 +74,7 @@ export const useActiveMediaPlaybackStore = create<ActiveMediaPlaybackState>((set
   currentTime: 0,
   duration: 0,
   isPlaying: false,
+  isLoading: false,
   isMuted: false,
   volume: 1,
   playbackRate: 1,
@@ -109,6 +112,7 @@ export const useActiveMediaPlaybackStore = create<ActiveMediaPlaybackState>((set
       sentAt: info.sentAt ?? null,
       duration: info.duration ?? 0,
       isPlaying: true,
+      isLoading: true,
       isMuted: false,
       currentTime: 0,
       seekTarget: null,
@@ -122,6 +126,7 @@ export const useActiveMediaPlaybackStore = create<ActiveMediaPlaybackState>((set
       set({
         activeMediaId: null,
         isPlaying: false,
+        isLoading: false,
         currentTime: 0,
         seekTarget: null,
         isPiPVisible: false,
@@ -178,6 +183,7 @@ export const useActiveMediaPlaybackStore = create<ActiveMediaPlaybackState>((set
   },
 
   setIsPlaying: (isPlaying) => set({ isPlaying }),
+  setIsLoading: (isLoading) => set({ isLoading }),
   setCurrentTime: (currentTime) => set({ currentTime }),
   setDuration: (duration) => set({ duration }),
 
@@ -226,6 +232,7 @@ export const useActiveMediaPlaybackStore = create<ActiveMediaPlaybackState>((set
       sentAt: null,
       currentTime: 0,
       isPlaying: false,
+      isLoading: false,
       seekTarget: null,
       playlist: [],
       currentIndex: -1,

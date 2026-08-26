@@ -23,6 +23,7 @@ const privacy = {
   birthday: 'NOBODY',
   bio: 'EVERYBODY',
   groupInvites: 'EVERYBODY',
+  themeProposals: 'EVERYBODY',
   isPrivate: false,
   autoDeletePeriod: 'OFF',
 };

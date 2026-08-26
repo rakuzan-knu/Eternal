@@ -20,15 +20,44 @@ export async function fetchNotifications(
   if (params.cursor) queryParams.cursor = params.cursor;
   if (params.type && params.type !== 'all') queryParams.type = params.type;
 
-  const { data } = await api.get<PaginatedNotificationsResponse>('/notifications', {
-    params: queryParams,
-  });
-  return data;
+  try {
+    const { data } = await api.get<PaginatedNotificationsResponse>('/notifications', {
+      params: queryParams,
+    });
+    return data;
+  } catch {
+    return {
+      items: [],
+      nextCursor: null,
+      hasMore: false,
+      unreadCounts: {
+        total: 0,
+        likes: 0,
+        comments: 0,
+        follows: 0,
+        mentions: 0,
+        reposts: 0,
+        system: 0,
+      },
+    };
+  }
 }
 
 export async function fetchUnreadNotificationCounts(): Promise<NotificationUnreadCounts> {
-  const { data } = await api.get<NotificationUnreadCounts>('/notifications/unread-count');
-  return data;
+  try {
+    const { data } = await api.get<NotificationUnreadCounts>('/notifications/unread-count');
+    return data;
+  } catch {
+    return {
+      total: 0,
+      likes: 0,
+      comments: 0,
+      follows: 0,
+      mentions: 0,
+      reposts: 0,
+      system: 0,
+    };
+  }
 }
 
 export async function markNotificationAsRead(id: string): Promise<NotificationItem> {

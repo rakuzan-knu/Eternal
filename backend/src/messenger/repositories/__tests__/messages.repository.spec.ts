@@ -23,6 +23,7 @@ describe('MessagesRepository', () => {
     conversationParticipant: {
       update: jest.Mock;
     };
+    $transaction: jest.Mock;
   };
 
   const sampleMsg = {
@@ -35,6 +36,9 @@ describe('MessagesRepository', () => {
 
   beforeEach(() => {
     mockPrisma = {
+      $transaction: jest.fn(async (cb) =>
+        typeof cb === 'function' ? cb(mockPrisma) : Promise.all(cb),
+      ),
       message: {
         create: jest.fn(),
         findMany: jest.fn().mockResolvedValue([]),

@@ -27,6 +27,8 @@ import {
   type CreateGroupConversationDto,
   type MuteConversationDto,
   type ReportDto,
+  type ProposeThemeDto,
+  type RespondThemeProposalDto,
   type SetNicknameDto,
   type SetThemeDto,
   type TransferOwnershipDto,
@@ -35,7 +37,9 @@ import {
   createDirectConversationSchema,
   createGroupConversationSchema,
   muteConversationSchema,
+  proposeThemeSchema,
   reportSchema,
+  respondThemeProposalSchema,
   setNicknameSchema,
   setThemeSchema,
   transferOwnershipSchema,
@@ -263,6 +267,33 @@ export class ConversationsController {
     @CurrentUser() user: RequestUser,
   ) {
     return this.service.setTheme(id, user.id, dto);
+  }
+
+  @Post(':id/theme/propose')
+  @ApiOperation({ summary: 'Propose a shared theme to conversation partner' })
+  proposeTheme(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(proposeThemeSchema)) dto: ProposeThemeDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.service.proposeTheme(id, user.id, dto.theme);
+  }
+
+  @Post(':id/theme/proposal/:messageId/respond')
+  @ApiOperation({ summary: 'Accept, decline or cancel a shared theme proposal' })
+  respondThemeProposal(
+    @Param('id') id: string,
+    @Param('messageId') messageId: string,
+    @Body(new ZodValidationPipe(respondThemeProposalSchema)) dto: RespondThemeProposalDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.service.respondThemeProposal(id, messageId, user.id, dto.action);
+  }
+
+  @Delete(':id/theme/shared')
+  @ApiOperation({ summary: 'Unlink shared conversation theme' })
+  unlinkSharedTheme(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    return this.service.unlinkSharedTheme(id, user.id);
   }
 
   @Patch(':id/mute')

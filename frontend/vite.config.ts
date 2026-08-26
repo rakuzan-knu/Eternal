@@ -67,6 +67,31 @@ export default defineConfig({
             if (normalizedId.includes('/react-virtuoso/')) {
               return 'vendor-virtuoso';
             }
+            if (normalizedId.includes('/katex/')) {
+              return 'vendor-katex';
+            }
+            if (
+              normalizedId.includes('/react-markdown/') ||
+              normalizedId.includes('/remark-') ||
+              normalizedId.includes('/rehype-') ||
+              normalizedId.includes('/micromark') ||
+              normalizedId.includes('/unified') ||
+              normalizedId.includes('/unist-') ||
+              normalizedId.includes('/vfile') ||
+              normalizedId.includes('/mdast-') ||
+              normalizedId.includes('/hast-')
+            ) {
+              return 'vendor-markdown';
+            }
+            if (normalizedId.includes('/wavesurfer.js/')) {
+              return 'vendor-wavesurfer';
+            }
+            if (normalizedId.includes('/@radix-ui/')) {
+              return 'vendor-radix';
+            }
+            if (normalizedId.includes('/framer-motion/') || normalizedId.includes('/motion/')) {
+              return 'vendor-motion';
+            }
             return 'vendor-libs';
           }
         },

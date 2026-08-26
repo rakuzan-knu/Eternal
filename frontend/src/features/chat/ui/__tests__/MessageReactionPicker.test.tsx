@@ -1,18 +1,66 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import MessageReactionPicker from '../MessageReactionPicker';
+import { DEFAULT_RECENT_REACTIONS } from '../../model/useRecentReactions';
 
 describe('MessageReactionPicker', () => {
-  it('renders quick reactions and handles click', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('renders the 6 recent reactions and responds to pick', () => {
     const onPick = vi.fn();
     const onClose = vi.fn();
 
     render(<MessageReactionPicker onPick={onPick} onClose={onClose} />);
 
-    expect(screen.getByText('❤️')).toBeInTheDocument();
-    expect(screen.getByText('🔥')).toBeInTheDocument();
+    DEFAULT_RECENT_REACTIONS.slice(0, 6).forEach((emoji) => {
+      expect(screen.getByText(emoji)).toBeInTheDocument();
+    });
 
-    fireEvent.click(screen.getByText('🔥'));
-    expect(onPick).toBeDefined();
+    const fireButton = screen.getByTitle('React with 🔥');
+    fireEvent.click(fireButton);
+
+    expect(onPick).toHaveBeenCalledWith('🔥', expect.any(Object));
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('updates transform on mouse move for dock magnification', () => {
+    const onPick = vi.fn();
+    const onClose = vi.fn();
+
+    const { container } = render(<MessageReactionPicker onPick={onPick} onClose={onClose} />);
+
+    const bar = container.querySelector('.relative.flex.items-center');
+    expect(bar).toBeInTheDocument();
+
+    fireEvent.mouseMove(bar!, { clientX: 50, clientY: 50 });
+    const heartBtn = screen.getByTitle('React with ❤️');
+    expect(heartBtn.style.transform).toBeDefined();
+
+    fireEvent.mouseLeave(bar!);
+    expect(heartBtn.style.transform).toContain('scale(1)');
+  });
+
+  it('opens ExpandedReactionPicker when clicking chevron down button', () => {
+    const onPick = vi.fn();
+    const onClose = vi.fn();
+
+    render(<MessageReactionPicker onPick={onPick} onClose={onClose} />);
+
+    const chevronButton = screen.getByTitle('All reactions');
+    expect(chevronButton).toBeInTheDocument();
+
+    fireEvent.click(chevronButton);
+
+    // Should now display the search input and category tabs of ExpandedReactionPicker
+    expect(screen.getByPlaceholderText('Search emoji...')).toBeInTheDocument();
+    expect(screen.getByText('Popular')).toBeInTheDocument();
+
+    // Pick an emoji from expanded picker (e.g. 😈)
+    const devilButton = screen.getByTitle('React with 😈');
+    fireEvent.click(devilButton);
+
+    expect(onPick).toHaveBeenCalledWith('😈', expect.any(Object));
   });
 });

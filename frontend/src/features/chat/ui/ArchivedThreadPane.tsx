@@ -65,10 +65,14 @@ export default function ArchivedThreadPane({
         <div className="flex min-w-0 items-center gap-3">
           <div className="relative">
             {isGroup ? (
-              <GroupAvatarCollage
-                avatars={conversation.participants.map((p) => p.user.avatar)}
-                size={36}
-              />
+              display.avatar ? (
+                <Avatar size="sm" src={display.avatar} />
+              ) : (
+                <GroupAvatarCollage
+                  avatars={conversation.participants.map((p) => p.user.avatar)}
+                  size={36}
+                />
+              )
             ) : (
               <>
                 <Avatar size="sm" src={display.avatar} />

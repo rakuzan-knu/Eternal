@@ -110,53 +110,69 @@ export class NotificationsRepository implements INotificationsRepository {
     limit: number;
     cursor?: string;
   }): Promise<NotificationWithRelations[]> {
-    const where: Prisma.NotificationWhereInput = {
-      userId: params.userId,
-      ...(params.types && params.types.length > 0 ? { type: { in: params.types } } : {}),
-    };
+    try {
+      const where: Prisma.NotificationWhereInput = {
+        userId: params.userId,
+        ...(params.types && params.types.length > 0 ? { type: { in: params.types } } : {}),
+      };
 
-    const items = await this.prisma.notification.findMany({
-      where,
-      take: params.limit + 1,
-      skip: params.cursor ? 1 : 0,
-      cursor: params.cursor ? { id: params.cursor } : undefined,
-      orderBy: { createdAt: 'desc' },
-      include: NOTIFICATION_INCLUDE,
-    });
-    return items;
+      const items = await this.prisma.notification.findMany({
+        where,
+        take: params.limit + 1,
+        skip: params.cursor ? 1 : 0,
+        cursor: params.cursor ? { id: params.cursor } : undefined,
+        orderBy: { createdAt: 'desc' },
+        include: NOTIFICATION_INCLUDE,
+      });
+      return items;
+    } catch {
+      return [];
+    }
   }
 
   async markAsRead(id: string, userId: string): Promise<NotificationWithRelations | null> {
-    const notif = await this.prisma.notification.findUnique({ where: { id } });
-    if (!notif || notif.userId !== userId) return null;
+    try {
+      const notif = await this.prisma.notification.findUnique({ where: { id } });
+      if (!notif || notif.userId !== userId) return null;
 
-    const updated = await this.prisma.notification.update({
-      where: { id },
-      data: { isRead: true },
-      include: NOTIFICATION_INCLUDE,
-    });
-    return updated;
+      const updated = await this.prisma.notification.update({
+        where: { id },
+        data: { isRead: true },
+        include: NOTIFICATION_INCLUDE,
+      });
+      return updated;
+    } catch {
+      return null;
+    }
   }
 
   async markAllAsRead(userId: string, types?: NotificationType[]): Promise<number> {
-    const where: Prisma.NotificationWhereInput = {
-      userId,
-      isRead: false,
-      ...(types && types.length > 0 ? { type: { in: types } } : {}),
-    };
+    try {
+      const where: Prisma.NotificationWhereInput = {
+        userId,
+        isRead: false,
+        ...(types && types.length > 0 ? { type: { in: types } } : {}),
+      };
 
-    const res = await this.prisma.notification.updateMany({
-      where,
-      data: { isRead: true },
-    });
+      const res = await this.prisma.notification.updateMany({
+        where,
+        data: { isRead: true },
+      });
 
-    return res.count;
+      return res.count;
+    } catch {
+      return 0;
+    }
   }
 
   async countUnread(userId: string): Promise<number> {
-    return await this.prisma.notification.count({
-      where: { userId, isRead: false },
-    });
+    try {
+      return await this.prisma.notification.count({
+        where: { userId, isRead: false },
+      });
+    } catch {
+      return 0;
+    }
   }
 
   async countUnreadByCategory(userId: string): Promise<{
@@ -167,65 +183,52 @@ export class NotificationsRepository implements INotificationsRepository {
     reposts: number;
     system: number;
   }> {
-    const [likes, comments, follows, mentions, reposts, system] = await Promise.all([
-      this.prisma.notification.count({
+    try {
+      const grouped = await this.prisma.notification.groupBy({
+        by: ['type'],
         where: {
           userId,
           isRead: false,
-          type: { in: [NotificationType.LIKE_POST, NotificationType.LIKE_COMMENT] },
         },
-      }),
-      this.prisma.notification.count({
-        where: {
-          userId,
-          isRead: false,
-          type: NotificationType.COMMENT,
+        _count: {
+          _all: true,
         },
-      }),
-      this.prisma.notification.count({
-        where: {
-          userId,
-          isRead: false,
-          type: NotificationType.FOLLOW,
-        },
-      }),
-      this.prisma.notification.count({
-        where: {
-          userId,
-          isRead: false,
-          type: NotificationType.MENTION,
-        },
-      }),
-      this.prisma.notification.count({
-        where: {
-          userId,
-          isRead: false,
-          type: NotificationType.REPOST,
-        },
-      }),
-      this.prisma.notification.count({
-        where: {
-          userId,
-          isRead: false,
-          type: {
-            in: [
-              NotificationType.SYSTEM_VERIFIED,
-              NotificationType.SYSTEM_VIEW,
-              NotificationType.SYSTEM,
-            ],
-          },
-        },
-      }),
-    ]);
+      });
 
-    return {
-      likes,
-      comments,
-      follows,
-      mentions,
-      reposts,
-      system,
-    };
+      const map = new Map<string, number>();
+      for (const item of grouped) {
+        map.set(item.type, item._count._all);
+      }
+
+      const likes =
+        (map.get(NotificationType.LIKE_POST) || 0) + (map.get(NotificationType.LIKE_COMMENT) || 0);
+      const comments = map.get(NotificationType.COMMENT) || 0;
+      const follows = map.get(NotificationType.FOLLOW) || 0;
+      const mentions = map.get(NotificationType.MENTION) || 0;
+      const reposts = map.get(NotificationType.REPOST) || 0;
+      const system =
+        (map.get(NotificationType.SYSTEM_VERIFIED) || 0) +
+        (map.get(NotificationType.SYSTEM_VIEW) || 0) +
+        (map.get(NotificationType.SYSTEM) || 0);
+
+      return {
+        likes,
+        comments,
+        follows,
+        mentions,
+        reposts,
+        system,
+      };
+    } catch {
+      return {
+        likes: 0,
+        comments: 0,
+        follows: 0,
+        mentions: 0,
+        reposts: 0,
+        system: 0,
+      };
+    }
   }
 
   async delete(id: string, userId?: string): Promise<boolean> {

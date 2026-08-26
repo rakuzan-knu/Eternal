@@ -16,6 +16,7 @@ describe('PrivacyDimensionRow', () => {
       birthday: 'EVERYBODY' as const,
       bio: 'EVERYBODY' as const,
       groupInvites: 'EVERYBODY' as const,
+      themeProposals: 'EVERYBODY' as const,
       isPrivate: false,
       autoDeletePeriod: 'OFF' as const,
     };

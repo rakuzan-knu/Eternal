@@ -17,7 +17,7 @@ describe('SystemMessageCluster', () => {
     },
     messageType: 'SYSTEM',
     type: 'SYSTEM',
-    body: 'Пользователь Ayate сменил значок группы',
+    body: 'User Ayate updated the group icon',
     attachments: [],
     reactions: [],
     replyTo: null,
@@ -45,7 +45,7 @@ describe('SystemMessageCluster', () => {
       },
       messageType: 'SYSTEM',
       type: 'SYSTEM',
-      body: 'Пользователь Ayate сменил название группы на Rakuzan',
+      body: 'User Ayate changed the group name to "Rakuzan"',
       attachments: [],
       reactions: [],
       replyTo: null,
@@ -70,7 +70,7 @@ describe('SystemMessageCluster', () => {
       },
       messageType: 'SYSTEM',
       type: 'SYSTEM',
-      body: 'Пользователь Alice присоединился к группе',
+      body: 'User Alice joined the group',
       attachments: [],
       reactions: [],
       replyTo: null,
@@ -88,8 +88,8 @@ describe('SystemMessageCluster', () => {
     const handleEdit = vi.fn();
     render(<SystemMessageCluster messages={[mockSingleMessage]} onOpenEditGroup={handleEdit} />);
 
-    expect(screen.getByText('Пользователь Ayate сменил значок группы')).toBeInTheDocument();
-    const editBtn = screen.getByText('Редактировать группу');
+    expect(screen.getByText('User Ayate updated the group icon')).toBeInTheDocument();
+    const editBtn = screen.getByText('Edit group');
     expect(editBtn).toBeInTheDocument();
 
     fireEvent.click(editBtn);
@@ -99,18 +99,16 @@ describe('SystemMessageCluster', () => {
   it('renders collapsed cluster capsule with accurate pluralization and expands on click', () => {
     render(<SystemMessageCluster messages={mockClusterMessages} />);
 
-    // 3 events -> "3 изменения в группе"
-    expect(screen.getByText('3 изменения в группе')).toBeInTheDocument();
+    // 3 events -> "3 group changes"
+    expect(screen.getByText('3 group changes')).toBeInTheDocument();
 
     const toggle = screen.getByTestId('system-message-cluster-toggle');
     fireEvent.click(toggle);
 
     // After expansion, individual events are shown
-    expect(screen.getByText('Пользователь Ayate сменил значок группы')).toBeInTheDocument();
-    expect(
-      screen.getByText('Пользователь Ayate сменил название группы на Rakuzan'),
-    ).toBeInTheDocument();
-    expect(screen.getByText('Пользователь Alice присоединился к группе')).toBeInTheDocument();
+    expect(screen.getByText('User Ayate updated the group icon')).toBeInTheDocument();
+    expect(screen.getByText('User Ayate changed the group name to "Rakuzan"')).toBeInTheDocument();
+    expect(screen.getByText('User Alice joined the group')).toBeInTheDocument();
   });
 
   it('renders leave group message as centered plain gray text without background', () => {
@@ -124,6 +122,6 @@ describe('SystemMessageCluster', () => {
 
     const leaveText = screen.getByText('Ayate left the group');
     expect(leaveText).toBeInTheDocument();
-    expect(screen.queryByText('Редактировать группу')).not.toBeInTheDocument();
+    expect(screen.queryByText('Edit group')).not.toBeInTheDocument();
   });
 });

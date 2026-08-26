@@ -23,7 +23,8 @@ export function useUnreadMessagesCount(
     () =>
       conversations?.reduce((total: number, conversation: ConversationView) => {
         if (conversation.id === activeConversationId) return total;
-        return total + conversation.unreadCount;
+        if (conversation.isArchived) return total;
+        return total + Math.max(0, conversation.unreadCount || 0);
       }, 0) ?? 0,
     [activeConversationId, conversations],
   );

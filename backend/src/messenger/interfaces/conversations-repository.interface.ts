@@ -47,7 +47,7 @@ export interface IConversationsRepository {
     userId: string,
     data: Partial<{
       nickname: string | null;
-      theme: string;
+      theme: string | null;
       muteLevel: MuteLevel;
       mutedUntil: Date | null;
       role: ParticipantRole;
@@ -58,6 +58,13 @@ export interface IConversationsRepository {
     }>,
   ): Promise<ConversationParticipant>;
 
+  setUserDefaultChatTheme(userId: string, theme: string | null): Promise<void>;
+
+  updateAllParticipantsForUser(
+    userId: string,
+    data: Partial<{ theme: string | null }>,
+  ): Promise<void>;
+
   touchUpdatedAt(conversationId: string): Promise<void>;
 
   countUnread(conversationId: string, userId: string, hiddenUserIds?: string[]): Promise<number>;
@@ -67,4 +74,6 @@ export interface IConversationsRepository {
   pinMessage(conversationId: string, messageId: string, pinnedByUserId: string): Promise<void>;
 
   unpinMessage(conversationId: string, messageId: string): Promise<void>;
+
+  updateSharedTheme(conversationId: string, theme: string | null): Promise<Conversation>;
 }

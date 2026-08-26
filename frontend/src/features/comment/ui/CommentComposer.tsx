@@ -2,10 +2,24 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Image as ImageIcon, X, Loader2 } from 'lucide-react';
 import { AddEmojiButton } from '../../../shared/ui/AddEmojiButton';
 import { MentionAutocomplete } from '../../posts/ui/MentionAutocomplete';
-import { commentsApi } from '../api/commentsApi';
+import SmartCodePasteBanner from '@/features/chat/ui/SmartCodePasteBanner';
+import FloatingSelectionToolbar, {
+  SelectionFormatType,
+} from '@/features/chat/ui/FloatingSelectionToolbar';
+import { detectCodeSnippet, DetectedCodeSnippet } from '@/features/chat/lib/smartCodeDetection';
 
 const MAX_COMMENT_LENGTH = 1000;
 const MAX_TEXTAREA_HEIGHT = 115; // Allows ~4 to 4.5 lines of text comfortably
+
+const WRAP_PAIRS: Record<string, [string, string]> = {
+  '"': ['"', '"'],
+  "'": ["'", "'"],
+  '`': ['`', '`'],
+  '(': ['(', ')'],
+  '[': ['[', ']'],
+  '{': ['{', '}'],
+  '<': ['<', '>'],
+};
 
 interface CommentComposerProps {
   currentUserHandle: string;
@@ -32,6 +46,11 @@ export function CommentComposer({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isEmojiOpen, setIsEmojiOpen] = useState(false);
+  const [detectedSnippet, setDetectedSnippet] = useState<DetectedCodeSnippet | null>(null);
+  const [floatingToolbarPos, setFloatingToolbarPos] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -71,6 +90,113 @@ export function CommentComposer({
     setCursorPos(e.target.selectionStart || 0);
   };
 
+  const updateSelectionToolbar = () => {
+    const el = textareaRef.current;
+    if (!el) {
+      setFloatingToolbarPos(null);
+      return;
+    }
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    if (
+      start !== null &&
+      end !== null &&
+      start !== end &&
+      el.value.slice(start, end).trim().length > 0
+    ) {
+      const rect = el.getBoundingClientRect();
+      setFloatingToolbarPos({
+        top: rect.top - 46,
+        left: rect.left + rect.width / 2,
+      });
+    } else {
+      setFloatingToolbarPos(null);
+    }
+  };
+
+  const handleFormattingHotkey = (prefix: string, suffix: string, defaultPlaceholder = '') => {
+    const el = textareaRef.current;
+    if (!el) return;
+
+    const start = el.selectionStart ?? 0;
+    const end = el.selectionEnd ?? 0;
+    const selected = text.slice(start, end);
+    const textToWrap = selected || defaultPlaceholder;
+    const replacement = `${prefix}${textToWrap}${suffix}`;
+    const nextText = text.slice(0, start) + replacement + text.slice(end);
+
+    setText(nextText);
+    setCursorPos(start + replacement.length);
+
+    requestAnimationFrame(() => {
+      el.focus();
+      if (selected) {
+        el.setSelectionRange(start + prefix.length, start + prefix.length + textToWrap.length);
+      } else {
+        el.setSelectionRange(
+          start + prefix.length,
+          start + prefix.length + defaultPlaceholder.length,
+        );
+      }
+    });
+  };
+
+  const handleSelectionFormat = (type: SelectionFormatType, linkUrl?: string) => {
+    switch (type) {
+      case 'bold':
+        handleFormattingHotkey('**', '**', 'bold');
+        break;
+      case 'italic':
+        handleFormattingHotkey('*', '*', 'italic');
+        break;
+      case 'underline':
+        handleFormattingHotkey('__', '__', 'underline');
+        break;
+      case 'strike':
+        handleFormattingHotkey('~~', '~~', 'strikethrough');
+        break;
+      case 'spoiler':
+        handleFormattingHotkey('||', '||', 'spoiler');
+        break;
+      case 'quote':
+        handleFormattingHotkey('> ', '', 'quote');
+        break;
+      case 'code':
+        handleFormattingHotkey('`', '`', 'code');
+        break;
+      case 'link':
+        if (linkUrl) {
+          handleFormattingHotkey('[', `](${linkUrl})`, 'link');
+        }
+        break;
+    }
+    setFloatingToolbarPos(null);
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const pastedText = e.clipboardData.getData('text');
+    if (pastedText) {
+      const snippet = detectCodeSnippet(pastedText);
+      if (snippet.isCode) {
+        setDetectedSnippet(snippet);
+      }
+    }
+  };
+
+  const handleFormatSnippetAsMarkdown = () => {
+    if (!detectedSnippet) return;
+    const lang = detectedSnippet.language || '';
+    const formatted = `\`\`\`${lang}\n${detectedSnippet.rawCode}\n\`\`\``;
+
+    if (text.includes(detectedSnippet.rawCode)) {
+      setText((prev) => prev.replace(detectedSnippet.rawCode, formatted));
+    } else {
+      setText((prev) => (prev ? `${prev}\n${formatted}` : formatted));
+    }
+    setDetectedSnippet(null);
+    requestAnimationFrame(() => textareaRef.current?.focus());
+  };
+
   const handleMentionSelect = (newText: string, newPos: number) => {
     setText(newText);
     setCursorPos(newPos);
@@ -98,16 +224,8 @@ export function CommentComposer({
           setImagePreview(reader.result as string);
         };
         reader.readAsDataURL(file);
-
-        // Attempt server-side image optimization & upload
-        try {
-          const res = await commentsApi.uploadMedia(file);
-          if (res?.url) {
-            setUploadedMediaUrl(res.url);
-          }
-        } catch {
-          // If server upload endpoint is unreachable, fallback to inline preview
-        }
+      } catch (err) {
+        console.error('File read error:', err);
       } finally {
         setIsUploadingImage(false);
       }
@@ -115,7 +233,7 @@ export function CommentComposer({
   };
 
   const handleSubmit = async (e?: React.FormEvent) => {
-    e?.preventDefault();
+    if (e) e.preventDefault();
     if (
       (!text.trim() && !imagePreview) ||
       text.length > MAX_COMMENT_LENGTH ||
@@ -136,11 +254,73 @@ export function CommentComposer({
     setText('');
     setImagePreview(null);
     setUploadedMediaUrl(null);
+    setDetectedSnippet(null);
+    setFloatingToolbarPos(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
     onCancelReply();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const el = textareaRef.current;
+
+    // Auto-Wrap Brackets & Quotes on selection
+    if (
+      el &&
+      el.selectionStart !== null &&
+      el.selectionEnd !== null &&
+      el.selectionStart !== el.selectionEnd
+    ) {
+      const pair = WRAP_PAIRS[e.key];
+      if (pair && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        handleFormattingHotkey(pair[0], pair[1]);
+        return;
+      }
+    }
+
+    const isCmdOrCtrl = e.ctrlKey || e.metaKey;
+
+    if (isCmdOrCtrl) {
+      const key = e.key.toLowerCase();
+      if (key === 'b' && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        handleFormattingHotkey('**', '**', 'bold');
+        return;
+      }
+      if (key === 'i' && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        handleFormattingHotkey('*', '*', 'italic');
+        return;
+      }
+      if (key === 'u' && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        handleFormattingHotkey('__', '__', 'underline');
+        return;
+      }
+      if (e.shiftKey && key === 'x') {
+        e.preventDefault();
+        handleFormattingHotkey('~~', '~~', 'strikethrough');
+        return;
+      }
+      if ((e.shiftKey && key === 'c') || (e.altKey && key === 'c')) {
+        e.preventDefault();
+        handleFormattingHotkey('```\n', '\n```', 'code');
+        return;
+      }
+      if (key === 'k' && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        const start = el?.selectionStart ?? 0;
+        const end = el?.selectionEnd ?? 0;
+        const selected = text.slice(start, end);
+        if (selected.startsWith('http://') || selected.startsWith('https://')) {
+          handleFormattingHotkey('[link](', ')', '');
+        } else {
+          handleFormattingHotkey('[', '](https://)', selected ? '' : 'text');
+        }
+        return;
+      }
+    }
+
     if (e.key === 'Enter') {
       if (e.shiftKey) {
         // Shift+Enter creates a new line (default behavior)
@@ -182,6 +362,19 @@ export function CommentComposer({
         </div>
       )}
 
+      {detectedSnippet && (
+        <div className="mb-2">
+          <SmartCodePasteBanner
+            snippet={detectedSnippet}
+            onFormatMarkdown={handleFormatSnippetAsMarkdown}
+            onAttachAsFile={() => {
+              handleFormatSnippetAsMarkdown();
+            }}
+            onDismiss={() => setDetectedSnippet(null)}
+          />
+        </div>
+      )}
+
       {/* Inline Matte Media Preview with Delete Cross & Spinner */}
       {imagePreview && (
         <div className="relative inline-block mb-2.5 rounded-xl overflow-hidden border border-white/[0.12] bg-black/60 shadow-lg">
@@ -215,8 +408,14 @@ export function CommentComposer({
             rows={1}
             value={text}
             onChange={handleTextChange}
-            onSelect={(e) => setCursorPos((e.target as HTMLTextAreaElement).selectionStart || 0)}
+            onSelect={(e) => {
+              setCursorPos((e.target as HTMLTextAreaElement).selectionStart || 0);
+              updateSelectionToolbar();
+            }}
+            onKeyUp={updateSelectionToolbar}
+            onMouseUp={updateSelectionToolbar}
             onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
             placeholder={
               replyingTo
                 ? `Reply to @${replyingTo.username}...`
@@ -301,6 +500,14 @@ export function CommentComposer({
           )}
         </button>
       </form>
+
+      {floatingToolbarPos && (
+        <FloatingSelectionToolbar
+          position={floatingToolbarPos}
+          onFormat={handleSelectionFormat}
+          onClose={() => setFloatingToolbarPos(null)}
+        />
+      )}
     </div>
   );
 }

@@ -132,8 +132,17 @@ export function useConversationRealtime(conversationId: string | null) {
 
   const handleReaction = (payload: { conversationId: string; message: MessageView }) => {
     if (payload.conversationId !== conversationId) return;
+    const syncedMessage: MessageView = {
+      ...payload.message,
+      reactions: (payload.message.reactions || []).map((r) => ({
+        ...r,
+        selfReacted: userId
+          ? r.users?.some((u) => u.id === userId) || r.selfReacted
+          : r.selfReacted,
+      })),
+    };
     updatePages((pages) =>
-      mapMessages(pages, (m) => (m.id === payload.message.id ? payload.message : m)),
+      mapMessages(pages, (m) => (m.id === syncedMessage.id ? syncedMessage : m)),
     );
   };
 
@@ -229,6 +238,46 @@ export function useConversationRealtime(conversationId: string | null) {
       }
     },
   );
+
+  useChatSocketEvent<{
+    conversationId: string;
+    sharedTheme: string;
+    sharedThemeUpdatedAt: string;
+  }>('conversationSharedThemeUpdated', (payload) => {
+    if (payload.conversationId !== conversationId) return;
+    queryClient.setQueryData<ConversationView[]>(
+      [CONVERSATIONS_KEY],
+      (prev: ConversationView[] | undefined) =>
+        prev?.map((c: ConversationView) =>
+          c.id === conversationId
+            ? {
+                ...c,
+                sharedTheme: payload.sharedTheme,
+                sharedThemeUpdatedAt: payload.sharedThemeUpdatedAt,
+              }
+            : c,
+        ),
+    );
+  });
+
+  useChatSocketEvent<{
+    conversationId: string;
+  }>('conversationSharedThemeUnlinked', (payload) => {
+    if (payload.conversationId !== conversationId) return;
+    queryClient.setQueryData<ConversationView[]>(
+      [CONVERSATIONS_KEY],
+      (prev: ConversationView[] | undefined) =>
+        prev?.map((c: ConversationView) =>
+          c.id === conversationId
+            ? {
+                ...c,
+                sharedTheme: null,
+                sharedThemeUpdatedAt: null,
+              }
+            : c,
+        ),
+    );
+  });
 
   return { typingUserIds };
 }

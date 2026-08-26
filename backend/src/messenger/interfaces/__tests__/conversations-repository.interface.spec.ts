@@ -28,6 +28,9 @@ describe('conversations-repository.interface', () => {
       findPinnedMessages: jest.fn().mockResolvedValue(['msg-1']),
       pinMessage: jest.fn().mockResolvedValue(undefined),
       unpinMessage: jest.fn().mockResolvedValue(undefined),
+      setUserDefaultChatTheme: jest.fn().mockResolvedValue(undefined),
+      updateAllParticipantsForUser: jest.fn().mockResolvedValue(undefined),
+      updateSharedTheme: jest.fn().mockResolvedValue(undefined),
     };
 
     expect(await mockRepo.findParticipantIds('conv-1')).toEqual(['usr-1', 'usr-2']);

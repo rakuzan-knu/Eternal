@@ -20,6 +20,8 @@ jobs:
           cache: 'pnpm'
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Initialize MSW
+        run: pnpm -r --filter frontend exec msw init public
       - name: Build Storybook
         run: pnpm -r --filter frontend run build:storybook
       - name: Publish to Chromatic

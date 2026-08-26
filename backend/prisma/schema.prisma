@@ -26,8 +26,10 @@ model User {
   githubUsername   String?          @map("github_username")
   mergedPrsCount   Int              @default(0) @map("merged_prs_count")
   birthDate        DateTime?
+  gender           String?
   lastSeenAt       DateTime?
   autoDeletePeriod AutoDeletePeriod @default(OFF)
+  defaultChatTheme String?          @map("default_chat_theme")
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 
@@ -60,6 +62,13 @@ model User {
   notificationsReceived    Notification[]            @relation("UserNotifications")
   notificationsTriggered   Notification[]            @relation("ActorNotifications")
   notificationSettings     UserNotificationSettings?
+  showcase                 ProfileShowcase?
+  stories                  Story[]
+  storyViews               StoryView[]
+  storyReactions           StoryReaction[]
+  storyPollVotes           StoryPollVote[]
+  closeFriends             CloseFriend[]             @relation("CloseFriendsOwner")
+  closeFriendOf            CloseFriend[]             @relation("CloseFriendsTarget")
 }
 
 model UserBadge {
@@ -220,6 +229,9 @@ model Conversation {
   name        String? // group display name
   avatar      String? // group avatar URL
   description String?
+  /// Shared agreed chat theme (1-on-1 Instagram/Messenger style)
+  sharedTheme          String?
+  sharedThemeUpdatedAt DateTime?
   /// Who created this conversation (group admin baseline)
   createdById String?
   createdAt   DateTime         @default(now())
@@ -315,6 +327,8 @@ enum MessageType {
   CALL_LOG // missed / answered call record
   SYSTEM // "X joined", "theme changed", etc.
   DELETED // tombstone after hard-delete for all
+  THEME_PROPOSAL // Shared theme proposal in chat (Instagram style)
+  STORY_REPLY // Direct Message reply with rich story frame embed
 }
 
 model MessageAttachment {
@@ -453,6 +467,7 @@ enum PrivacyDimension {
   BIRTHDAY
   BIO
   GROUP_INVITES
+  THEME_PROPOSALS
 }
 
 enum ExceptionMode {
@@ -480,6 +495,7 @@ model UserPrivacy {
   birthday      Visibility @default(NOBODY)
   bio           Visibility @default(EVERYBODY)
   groupInvites  Visibility @default(EVERYBODY)
+  themeProposals Visibility @default(EVERYBODY)
   allowNearbyRecommendations Boolean @default(true)
   updatedAt     DateTime   @updatedAt
 
@@ -651,4 +667,171 @@ model UserNotificationSettings {
 
   @@map("user_notification_settings")
 }
+
+enum ShowcasePrivacy {
+  PUBLIC
+  FOLLOWERS
+  PRIVATE
+}
+
+enum ShowcaseMediaType {
+  ANIME
+  GAME
+  MOVIE
+  SERIES
+}
+
+model ProfileShowcase {
+  id                String            @id @default(cuid())
+  userId            String            @unique @map("user_id")
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Privacy Settings (PUBLIC | FOLLOWERS | PRIVATE)
+  privacyMeta       ShowcasePrivacy   @default(PUBLIC) @map("privacy_meta")
+  privacyActivity   ShowcasePrivacy   @default(PUBLIC) @map("privacy_activity")
+  privacyShowcase   ShowcasePrivacy   @default(PUBLIC) @map("privacy_showcase")
+  privacyLinks      ShowcasePrivacy   @default(PUBLIC) @map("privacy_links")
+
+  // Meta Widget Flags & Overrides
+  showAge           Boolean           @default(false) @map("show_age")
+  showBirthdate     Boolean           @default(true) @map("show_birthdate")
+  showGender        Boolean           @default(true) @map("show_gender")
+  showTimezone      Boolean           @default(true) @map("show_timezone")
+  pronouns          String?           @db.VarChar(20)
+  timezone          String?           @default("UTC")
+
+  // Customizations
+  accentColor       String?           @default("#6366f1") @map("accent_color")
+  connectedAccounts Json?             @map("connected_accounts")
+  activityStatus    Json?             @map("activity_status")
+  spotlightMedia    Json?             @map("spotlight_media")
+  anthemTrack       Json?             @map("anthem_track")
+
+  // Media items (Top 5 per category for Board and Wishlist)
+  mediaItems        ShowcaseMedia[]
+
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  @@map("profile_showcases")
+}
+
+model ShowcaseMedia {
+  id          String            @id @default(cuid())
+  showcaseId  String            @map("showcase_id")
+  showcase    ProfileShowcase   @relation(fields: [showcaseId], references: [id], onDelete: Cascade)
+  type        ShowcaseMediaType
+  isWishlist  Boolean           @default(false) @map("is_wishlist")
+  title       String
+  posterUrl   String            @map("poster_url")
+  externalId  String?           @map("external_id")
+  externalUrl String?           @map("external_url")
+  rating      Float?
+  userComment String?           @map("user_comment") @db.VarChar(120)
+  tags        String[]          @default([])
+  releaseYear Int?              @map("release_year")
+  position    Int               @default(0)
+
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  @@unique([showcaseId, type, isWishlist, position])
+  @@index([showcaseId, type, isWishlist])
+  @@index([externalId])
+  @@map("showcase_media")
+}
+
+enum StoryMediaType {
+  IMAGE
+  VIDEO
+  VOICE
+}
+
+enum StoryPrivacy {
+  ALL_FOLLOWERS
+  CLOSE_FRIENDS
+}
+
+model Story {
+  id        String         @id @default(uuid())
+  authorId  String         @map("author_id")
+  mediaUrl  String         @map("media_url")
+  mediaType StoryMediaType @default(IMAGE) @map("media_type")
+  caption   String?        @db.Text
+  overlays  Json?
+  privacy   StoryPrivacy   @default(ALL_FOLLOWERS)
+  createdAt DateTime       @default(now()) @map("created_at")
+  expiresAt DateTime       @map("expires_at")
+
+  author    User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  views     StoryView[]
+  reactions StoryReaction[]
+  pollVotes StoryPollVote[]
+
+  @@index([authorId, expiresAt])
+  @@index([expiresAt])
+  @@index([createdAt])
+  @@map("stories")
+}
+
+model StoryView {
+  id       String   @id @default(uuid())
+  storyId  String   @map("story_id")
+  viewerId String   @map("viewer_id")
+  viewedAt DateTime @default(now()) @map("viewed_at")
+
+  story  Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  viewer User  @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+
+  @@unique([storyId, viewerId])
+  @@index([storyId])
+  @@index([viewerId])
+  @@map("story_views")
+}
+
+model StoryReaction {
+  id        String   @id @default(uuid())
+  storyId   String   @map("story_id")
+  userId    String   @map("user_id")
+  emoji     String   @db.VarChar(32)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([storyId])
+  @@index([userId])
+  @@map("story_reactions")
+}
+
+model StoryPollVote {
+  id          String   @id @default(uuid())
+  storyId     String   @map("story_id")
+  userId      String   @map("user_id")
+  optionIndex Int      @map("option_index")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([storyId, userId])
+  @@index([storyId])
+  @@map("story_poll_votes")
+}
+
+model CloseFriend {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  friendId  String   @map("friend_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user   User @relation("CloseFriendsOwner", fields: [userId], references: [id], onDelete: Cascade)
+  friend User @relation("CloseFriendsTarget", fields: [friendId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, friendId])
+  @@index([userId])
+  @@index([friendId])
+  @@map("close_friends")
+}
+
 

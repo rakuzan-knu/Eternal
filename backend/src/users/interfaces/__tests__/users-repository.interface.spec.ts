@@ -26,8 +26,10 @@ describe('users-repository.interface', () => {
       githubUsername: null,
       mergedPrsCount: 0,
       birthDate: null,
+      gender: null,
       lastSeenAt: null,
       autoDeletePeriod: 'OFF',
+      defaultChatTheme: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

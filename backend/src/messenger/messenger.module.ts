@@ -19,9 +19,18 @@ import { MessengerMapper } from './messenger.mapper';
 import { AutoDeleteService } from './auto-delete/auto-delete.service';
 import { autoDeleteS3Provider } from './auto-delete/s3-provider';
 
+import { OpenGraphModule } from '../opengraph/opengraph.module';
+import { MessengerLinkPreviewController } from './link-preview.controller';
+
 @Module({
-  imports: [PrismaModule, forwardRef(() => UsersModule), ConfigModule, JwtModule.register({})],
-  controllers: [ConversationsController, MessagesController],
+  imports: [
+    PrismaModule,
+    forwardRef(() => UsersModule),
+    ConfigModule,
+    JwtModule.register({}),
+    OpenGraphModule,
+  ],
+  controllers: [ConversationsController, MessagesController, MessengerLinkPreviewController],
   providers: [
     {
       provide: CONVERSATIONS_REPOSITORY,

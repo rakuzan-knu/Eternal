@@ -50,7 +50,9 @@ export default function EditGroupModal({
     avatarPreview &&
     (avatarPreview.startsWith('blob:') ||
       avatarPreview.startsWith('https://') ||
-      avatarPreview.startsWith('http://'))
+      avatarPreview.startsWith('http://') ||
+      avatarPreview.startsWith('/') ||
+      avatarPreview.startsWith('data:'))
       ? avatarPreview
       : null;
 
@@ -84,6 +86,7 @@ export default function EditGroupModal({
       }
 
       queryClient.invalidateQueries({ queryKey: [CONVERSATIONS_KEY] });
+      queryClient.invalidateQueries({ queryKey: ['conversation', conversation.id] });
       requestClose();
     } catch (err: any) {
       setIsSaving(false);

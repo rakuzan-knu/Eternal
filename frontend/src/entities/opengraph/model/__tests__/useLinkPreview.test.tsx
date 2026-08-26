@@ -30,9 +30,10 @@ describe('useLinkPreview', () => {
     expect(result.current.isLoading).toBe(false);
   });
 
-  it('fetches og-preview data for a valid url', async () => {
+  it('fetches link-preview data for a valid url via messenger endpoint', async () => {
     const mockData = {
       url: 'https://example.com',
+      type: 'generic',
       siteName: 'Example',
       title: 'Example Title',
       description: 'Example Description',
@@ -51,13 +52,43 @@ describe('useLinkPreview', () => {
     });
 
     expect(result.current.data).toEqual(mockData);
+    expect(apiClient.get).toHaveBeenCalledWith('/messenger/link-preview', {
+      params: { url: 'https://example.com' },
+    });
+  });
+
+  it('falls back to og-preview if messenger link-preview fails', async () => {
+    const mockData = {
+      url: 'https://example.com',
+      type: 'generic',
+      title: 'Fallback Title',
+      description: null,
+      siteName: 'Fallback',
+      image: null,
+      favicon: null,
+    };
+
+    // First call fails, second succeeds
+    vi.mocked(apiClient.get)
+      .mockRejectedValueOnce(new Error('Endpoint not found'))
+      .mockResolvedValueOnce({ data: mockData });
+
+    const { result } = renderHook(() => useLinkPreview('https://example.com'), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(result.current.data).toEqual(mockData);
     expect(apiClient.get).toHaveBeenCalledWith('/og-preview', {
       params: { url: 'https://example.com' },
     });
   });
 
   it('handles error gracefully and returns null', async () => {
-    vi.mocked(apiClient.get).mockRejectedValueOnce(new Error('Network error'));
+    vi.mocked(apiClient.get).mockRejectedValue(new Error('Network error'));
 
     const { result } = renderHook(() => useLinkPreview('https://badurl.com'), {
       wrapper: createWrapper(),

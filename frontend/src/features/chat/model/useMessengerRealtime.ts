@@ -35,6 +35,9 @@ export function useMessengerRealtime(
   const {
     enableNotifications,
     allowSound,
+    volume,
+    dndUntil,
+    mutedActorIds,
     privateChats,
     groups,
     reactions,
@@ -45,6 +48,8 @@ export function useMessengerRealtime(
     showName,
     showText,
   } = useNotificationSettingsStore();
+
+  const isDndActive = Boolean(dndUntil && new Date(dndUntil).getTime() > Date.now());
 
   const joinedRef = useRef<Set<string>>(new Set());
   const playedMessageIdsRef = useRef<Set<string>>(new Set());
@@ -136,6 +141,7 @@ export function useMessengerRealtime(
     const conversation = conversations?.find((c) => c.id === message.conversationId);
     const isGroup = conversation?.type === 'GROUP';
     const isMessengerPage = window.location.pathname.startsWith('/messages');
+    const isSenderMuted = Boolean(mutedActorIds?.includes(message.sender.id));
 
     if (isGroup && !groups) return;
     if (!isGroup && !privateChats) return;
@@ -145,6 +151,8 @@ export function useMessengerRealtime(
       message.conversationId !== activeConversationId &&
       conversation?.myMuteLevel !== 'MESSAGES' &&
       conversation?.myMuteLevel !== 'MESSAGES_AND_CALLS' &&
+      !isSenderMuted &&
+      !isDndActive &&
       !playedMessageIdsRef.current.has(message.id);
 
     queryClient.setQueryData<ConversationView[]>(
@@ -174,8 +182,8 @@ export function useMessengerRealtime(
 
     if (shouldNotify) {
       playedMessageIdsRef.current.add(message.id);
-      if (allowSound) {
-        playMessageNotificationSound();
+      if (enableNotifications && allowSound) {
+        playMessageNotificationSound(volume);
       }
 
       // If user is on the Messenger page, audio plays for other chats, but push toast is suppressed
@@ -215,7 +223,7 @@ export function useMessengerRealtime(
     conversationId: string;
     message: MessageView;
   }) => {
-    if (!reactions) return;
+    if (!reactions || isDndActive) return;
     const conversations = queryClient.getQueryData<ConversationView[]>([CONVERSATIONS_KEY]);
     const conversation = conversations?.find((c) => c.id === conversationId);
     const isMessengerPage = window.location.pathname.startsWith('/messages');
@@ -224,15 +232,15 @@ export function useMessengerRealtime(
     if (!latestReaction) return;
 
     const reactor = latestReaction.users?.[latestReaction.users.length - 1];
-    if (!reactor || reactor.id === userId) return;
+    if (!reactor || reactor.id === userId || mutedActorIds?.includes(reactor.id)) return;
 
     if (
       conversationId !== activeConversationId &&
       conversation?.myMuteLevel !== 'MESSAGES' &&
       conversation?.myMuteLevel !== 'MESSAGES_AND_CALLS'
     ) {
-      if (allowSound) {
-        playMessageNotificationSound();
+      if (enableNotifications && allowSound) {
+        playMessageNotificationSound(volume);
       }
 
       if (!isMessengerPage && showPushNotifications && enableNotifications) {
@@ -264,6 +272,10 @@ export function useMessengerRealtime(
       (prev: ConversationView[] | undefined) =>
         prev?.map((c: ConversationView) => (c.id === updated.id ? { ...c, ...updated } : c)),
     );
+    queryClient.setQueryData<ConversationView>(
+      ['conversation', updated.id],
+      (prev: ConversationView | undefined) => (prev ? { ...prev, ...updated } : prev),
+    );
   };
 
   const handleNewFollower = ({
@@ -275,9 +287,10 @@ export function useMessengerRealtime(
     status: 'ACCEPTED' | 'PENDING';
     message?: string;
   }) => {
-    if (!enableNotifications || !followers) return;
+    if (!enableNotifications || !followers || isDndActive || mutedActorIds?.includes(follower.id))
+      return;
     if (allowSound) {
-      playMessageNotificationSound();
+      playMessageNotificationSound(volume);
     }
     const title = showName ? follower.displayName || `@${follower.username}` : 'Eternal';
     const body =
@@ -309,13 +322,13 @@ export function useMessengerRealtime(
     authorUsername: string;
     message: string;
   }) => {
-    if (!enableNotifications) return;
+    if (!enableNotifications || isDndActive || mutedActorIds?.includes(actor.id)) return;
     if (type === 'LIKE' && !likes) return;
     if (type === 'COMMENT' && !comments) return;
     if (type === 'REPOST' && !reposts) return;
 
     if (allowSound) {
-      playMessageNotificationSound();
+      playMessageNotificationSound(volume);
     }
 
     const targetProfile = authorUsername || actor.username;

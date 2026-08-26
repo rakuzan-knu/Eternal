@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { MessageSquare, Repeat, Heart, Share, Bookmark, ChevronDown, Pin } from 'lucide-react';
 
 import Avatar from '@/shared/ui/Avatar';
+import StoryAvatar from '@/shared/ui/StoryAvatar';
 import { ExpandableText } from '@/shared/ui/ExpandableText';
 import { PostMenu } from '@/features/posts/ui/PostMenu';
 import { FollowButton } from '@/features/follow/ui/FollowButton';
@@ -152,7 +153,12 @@ export function PostCard({ post, queryKey }: PostCardProps) {
       <div className="flex gap-4 items-start">
         <MiniProfileHoverCard username={post.handle}>
           <Link to={`/profile/${post.handle}`}>
-            <Avatar size="md" src={post.avatar} />
+            <StoryAvatar
+              size="md"
+              src={post.avatar}
+              userId={post.authorId}
+              username={post.handle}
+            />
           </Link>
         </MiniProfileHoverCard>
         <div className="flex flex-col flex-1 gap-1 min-w-0">

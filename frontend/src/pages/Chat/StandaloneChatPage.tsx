@@ -185,10 +185,14 @@ export default function StandaloneChatPage() {
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <div className="relative flex-shrink-0">
             {display.isGroup ? (
-              <GroupAvatarCollage
-                avatars={conversation.participants.map((p) => p.user.avatar)}
-                size={34}
-              />
+              display.avatar ? (
+                <Avatar size="sm" src={display.avatar} />
+              ) : (
+                <GroupAvatarCollage
+                  avatars={conversation.participants.map((p) => p.user.avatar)}
+                  size={34}
+                />
+              )
             ) : (
               <>
                 <Avatar size="sm" src={display.avatar} />

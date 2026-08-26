@@ -33,6 +33,7 @@ describe('MessengerMapper', () => {
         username: 'sender_user',
         displayName: 'Sender User',
         avatar: null,
+        defaultChatTheme: null,
       },
       reactions: [
         {
@@ -45,6 +46,7 @@ describe('MessengerMapper', () => {
             username: 'sender_user',
             displayName: 'Sender User',
             avatar: null,
+            defaultChatTheme: null,
           },
         },
       ],
@@ -120,6 +122,7 @@ describe('MessengerMapper', () => {
             username: 'original_user',
             displayName: 'Original User',
             avatar: null,
+            defaultChatTheme: null,
           },
         },
       };
@@ -154,6 +157,7 @@ describe('MessengerMapper', () => {
           username: 'user_1',
           displayName: 'User One',
           avatar: null,
+          defaultChatTheme: null,
         },
       };
 
@@ -173,6 +177,8 @@ describe('MessengerMapper', () => {
       name: null,
       avatar: null,
       description: null,
+      sharedTheme: null,
+      sharedThemeUpdatedAt: null,
       createdById: null,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -192,7 +198,13 @@ describe('MessengerMapper', () => {
           archivedAt: new Date(),
           pinnedAt: new Date(),
           leftAt: null,
-          user: { id: 'usr-viewer', username: 'viewer', displayName: 'Viewer', avatar: null },
+          user: {
+            id: 'usr-viewer',
+            username: 'viewer',
+            displayName: 'Viewer',
+            avatar: null,
+            defaultChatTheme: null,
+          },
         },
         {
           id: 'p-2',
@@ -209,7 +221,13 @@ describe('MessengerMapper', () => {
           archivedAt: null,
           pinnedAt: null,
           leftAt: null,
-          user: { id: 'usr-other', username: 'other', displayName: 'Other', avatar: null },
+          user: {
+            id: 'usr-other',
+            username: 'other',
+            displayName: 'Other',
+            avatar: null,
+            defaultChatTheme: null,
+          },
         },
       ],
       messages: [],

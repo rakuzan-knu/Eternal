@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Calendar, Edit3, MessageSquare } from 'lucide-react';
 import Avatar from '../../../shared/ui/Avatar';
 import Banner from '../../../shared/ui/Banner';
+import FormattedText from '@/shared/ui/FormattedText';
 import { FollowButton } from '@/features/follow/ui/FollowButton';
 import { UserListModal } from '@/features/follow/ui/UserListModal';
 import { UserNameWithBadges } from '@/entities/profile/ui/UserNameWithBadges';
@@ -154,10 +155,16 @@ export default function ProfileHeader({
         </div>
 
         {(bio || isOwnProfile) && (
-          <p className="text-sm text-gray-300 mt-3 leading-relaxed whitespace-pre-wrap">
-            {bio ||
-              'There is no bio yet. You can add a bio to your profile to let others know more about you.'}
-          </p>
+          <div className="text-sm text-gray-300 mt-3 leading-relaxed">
+            {bio ? (
+              <FormattedText text={bio} />
+            ) : (
+              <p className="text-gray-400 italic">
+                There is no bio yet. You can add a bio to your profile to let others know more about
+                you.
+              </p>
+            )}
+          </div>
         )}
 
         <div className="flex items-center gap-2 text-xs text-gray-400 mt-4 font-medium">

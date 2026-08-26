@@ -114,7 +114,7 @@ describe('PostCard', () => {
   it('does not render the repost banner for a regular post', () => {
     renderPostCard();
 
-    expect(screen.queryByText(/репостнули|Ви репостнули/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/reposted|You reposted/i)).not.toBeInTheDocument();
   });
 
   it('renders the repost banner with the reposter name for a repost', () => {

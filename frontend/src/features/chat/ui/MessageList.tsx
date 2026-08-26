@@ -7,8 +7,10 @@ import MessageBubble from './MessageBubble';
 import TypingIndicatorBubble from '@/shared/ui/TypingIndicatorBubble';
 import Avatar from '@/shared/ui/Avatar';
 import { OlderMessagesSkeleton, MessageThreadSkeleton } from './MessageListSkeletons';
+import { ChatThemeConfig } from '../model/chatTheme';
 
 import SystemMessageCluster from './SystemMessageCluster';
+import { ThemeProposalMessage } from './ThemeProposalMessage';
 
 export type ClusterPosition = 'single' | 'first' | 'middle' | 'last';
 
@@ -16,6 +18,8 @@ interface MessageListProps {
   messages: MessageView[];
   currentUserId: string | null;
   otherParticipantId: string | null;
+  conversationId?: string;
+  onThemeAccepted?: (themeString: string) => void;
   otherParticipant?: {
     userId: string;
     nickname?: string | null;
@@ -33,6 +37,7 @@ interface MessageListProps {
   isGroup: boolean;
   isSelectionMode?: boolean;
   selectedMessageIds?: Set<string>;
+  chatTheme?: ChatThemeConfig;
   onToggleSelectMessage?: (messageId: string, isShift: boolean) => void;
   onLoadMore: () => void;
   onReply: (message: MessageView) => void;
@@ -48,10 +53,16 @@ interface MessageListProps {
   onHighlightHandled?: () => void;
   onJumpToMessage?: (messageId: string) => void;
   onLoadAround?: (messageId: string) => Promise<unknown>;
+  onOpenDatePicker?: (initialDate?: Date, anchorRect?: DOMRect) => void;
+  highlightDateLabel?: string | null;
+  isAnchoredInHistory?: boolean;
+  onResetToLive?: () => void;
+  onLoadOlder?: () => void;
+  onLoadNewer?: () => void;
 }
 
 type Row =
-  | { type: 'separator'; key: string; label: string }
+  | { type: 'separator'; key: string; label: string; date?: Date }
   | {
       type: 'message';
       key: string;
@@ -84,7 +95,12 @@ function buildRows(messages: MessageView[]): Row[] {
   const groups = groupMessagesByDate(messages);
   const rows: Row[] = [];
   groups.forEach((group, groupIndex) => {
-    rows.push({ type: 'separator', key: `sep-${groupIndex}-${group.label}`, label: group.label });
+    rows.push({
+      type: 'separator',
+      key: `sep-${groupIndex}-${group.label}`,
+      label: group.label,
+      date: group.date,
+    });
 
     let currentSystemCluster: MessageView[] = [];
 
@@ -104,10 +120,7 @@ function buildRows(messages: MessageView[]): Row[] {
         message.messageType === 'SYSTEM' &&
         Boolean(
           message.body?.includes('left the group') ||
-          message.body?.includes('left the conversation') ||
-          message.body?.includes('покинул(а) группу') ||
-          message.body?.includes('покинул группу') ||
-          message.body?.includes('вышел из группы'),
+          message.body?.includes('left the conversation'),
         );
 
       if (isLeave) {
@@ -181,6 +194,8 @@ export default function MessageList({
   messages,
   currentUserId,
   otherParticipantId,
+  conversationId,
+  onThemeAccepted,
   otherParticipant,
   display,
   hasMore,
@@ -190,6 +205,7 @@ export default function MessageList({
   isGroup,
   isSelectionMode = false,
   selectedMessageIds,
+  chatTheme,
   onToggleSelectMessage,
   onLoadMore,
   onReply,
@@ -205,6 +221,12 @@ export default function MessageList({
   onHighlightHandled,
   onJumpToMessage,
   onLoadAround,
+  onOpenDatePicker,
+  highlightDateLabel,
+  isAnchoredInHistory = false,
+  onResetToLive,
+  onLoadOlder,
+  onLoadNewer,
 }: MessageListProps) {
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const scrollerElementRef = useRef<HTMLElement | null>(null);
@@ -218,13 +240,13 @@ export default function MessageList({
     const el = scrollerElementRef.current;
     if (!el) return;
     const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    // Only appear when the user scrolls up by at least the height of the chat screen (el.clientHeight)
+    // Only appear when the user scrolls up by at least the height of the chat screen (el.clientHeight) or is in history anchor mode
     const isOneScreenUp = el.clientHeight > 0 && distanceFromBottom >= el.clientHeight;
-    setShowScrollBottom(isOneScreenUp);
-    if (distanceFromBottom <= 20) {
+    setShowScrollBottom(isOneScreenUp || isAnchoredInHistory);
+    if (distanceFromBottom <= 20 && !isAnchoredInHistory) {
       setUnreadBelowCount(0);
     }
-  }, []);
+  }, [isAnchoredInHistory]);
 
   useEffect(() => {
     const el = scrollerElementRef.current;
@@ -266,8 +288,18 @@ export default function MessageList({
   }, [highlightMessageId, rows, firstItemIndex, onHighlightHandled, onLoadAround]);
 
   const handleStartReached = () => {
+    if (isAnchoredInHistory && onLoadOlder) {
+      onLoadOlder();
+      return;
+    }
     if (!hasMore || isFetchingMore) return;
     onLoadMore();
+  };
+
+  const handleEndReached = () => {
+    if (isAnchoredInHistory && onLoadNewer) {
+      onLoadNewer();
+    }
   };
 
   if (isLoading) {
@@ -325,15 +357,16 @@ export default function MessageList({
         initialTopMostItemIndex={Math.max(0, rows.length - 1)}
         data={rows}
         startReached={handleStartReached}
+        endReached={handleEndReached}
         atBottomStateChange={(atBottom) => {
-          if (atBottom) {
+          if (atBottom && !isAnchoredInHistory) {
             setShowScrollBottom(false);
             setUnreadBelowCount(0);
           } else {
             checkScrollPosition();
           }
         }}
-        followOutput="smooth"
+        followOutput={isAnchoredInHistory ? false : 'smooth'}
         className="flex-1 custom-scrollbar py-2"
         style={{ overflowAnchor: 'auto' }}
         rangeChanged={(range) => {
@@ -356,65 +389,110 @@ export default function MessageList({
           setUnreadBelowCount(belowCount);
         }}
         components={{
-          Header: () => (isFetchingMore ? <OlderMessagesSkeleton /> : null),
-          Footer: () => <TypingIndicatorBubble typists={typingParticipants} isGroup={isGroup} />,
+          Header: () =>
+            isFetchingMore ? (
+              <div className="w-full max-w-[960px] mx-auto px-2 sm:px-4">
+                <OlderMessagesSkeleton />
+              </div>
+            ) : null,
+          Footer: () => (
+            <div className="w-full max-w-[960px] mx-auto px-2 sm:px-4">
+              <TypingIndicatorBubble typists={typingParticipants} isGroup={isGroup} />
+            </div>
+          ),
         }}
         itemContent={(_index: number, row: Row) => {
           if (row.type === 'separator') {
+            const isHighlighted = highlightDateLabel === row.label;
             return (
-              <div className="sticky top-2 z-20 flex justify-center my-3 pointer-events-none">
-                <div className="px-3.5 py-1 rounded-full bg-[#18181b]/80 border border-white/10 backdrop-blur-md shadow-md text-[11px] font-medium text-gray-300 pointer-events-auto select-none transition-all">
-                  {row.label}
-                </div>
+              <div className="w-full max-w-[960px] mx-auto px-2 sm:px-4 sticky top-2 z-20 flex justify-center my-3 pointer-events-none">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    onOpenDatePicker?.(row.date, rect);
+                  }}
+                  className={`px-3.5 py-1 rounded-full bg-[#18181b]/85 border border-white/10 backdrop-blur-md shadow-md text-[11px] font-medium text-gray-300 pointer-events-auto select-none transition-all duration-300 cursor-pointer hover:bg-[#252530] hover:border-purple-400/50 hover:text-purple-300 hover:shadow-[0_0_15px_rgba(168,85,247,0.35)] active:scale-95 group ${
+                    isHighlighted ? 'animate-dateJumpPulse ring-2 ring-purple-500/80' : ''
+                  }`}
+                  title="Click to open calendar date picker"
+                >
+                  <span>{row.label}</span>
+                </button>
               </div>
             );
           }
 
           if (row.type === 'system_cluster') {
-            return <SystemMessageCluster key={row.key} messages={row.messages} />;
+            return (
+              <div className="w-full max-w-[960px] mx-auto px-2 sm:px-4">
+                <SystemMessageCluster key={row.key} messages={row.messages} />
+              </div>
+            );
           }
 
           const { message, showAvatar, clusterPosition } = row;
+
+          if (message.messageType === 'THEME_PROPOSAL') {
+            return (
+              <div className="w-full max-w-[960px] mx-auto px-2 sm:px-4">
+                <ThemeProposalMessage
+                  key={message.id}
+                  message={message}
+                  currentUserId={currentUserId || ''}
+                  conversationId={conversationId || message.conversationId}
+                  onThemeAccepted={onThemeAccepted}
+                />
+              </div>
+            );
+          }
+
           const isOwnMessage = message.sender.id === currentUserId;
           const isReadByOther = otherParticipantId
             ? message.readBy.includes(otherParticipantId)
             : false;
 
           return (
-            <div
-              className={`rounded-2xl transition-all ${
-                highlightMessageId === message.id ? 'animate-jumpHighlight' : ''
-              }`}
-            >
-              <MessageBubble
-                message={message}
-                isOwnMessage={isOwnMessage}
-                showAvatar={showAvatar}
-                isReadByOther={isReadByOther}
-                clusterPosition={clusterPosition}
-                currentUserId={currentUserId}
-                isSelectionMode={isSelectionMode}
-                isSelected={selectedMessageIds?.has(message.id)}
-                onToggleSelect={onToggleSelectMessage}
-                onReply={onReply}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                onForward={onForward}
-                onTogglePin={onTogglePin}
-                onReport={onReport}
-                onReact={onReact}
-                onUnreact={onUnreact}
-                onJumpToMessage={onJumpToMessage}
-              />
+            <div className="w-full max-w-[960px] mx-auto px-2 sm:px-4">
+              <div
+                className={`rounded-2xl transition-all ${
+                  highlightMessageId === message.id ? 'animate-jumpHighlight' : ''
+                }`}
+              >
+                <MessageBubble
+                  message={message}
+                  isOwnMessage={isOwnMessage}
+                  showAvatar={showAvatar}
+                  isReadByOther={isReadByOther}
+                  clusterPosition={clusterPosition}
+                  currentUserId={currentUserId}
+                  isSelectionMode={isSelectionMode}
+                  isSelected={selectedMessageIds?.has(message.id)}
+                  chatTheme={chatTheme}
+                  onToggleSelect={onToggleSelectMessage}
+                  onReply={onReply}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                  onForward={onForward}
+                  onTogglePin={onTogglePin}
+                  onReport={onReport}
+                  onReact={onReact}
+                  onUnreact={onUnreact}
+                  onJumpToMessage={onJumpToMessage}
+                />
+              </div>
             </div>
           );
         }}
       />
 
-      {showScrollBottom && (
+      {(showScrollBottom || isAnchoredInHistory) && (
         <button
           type="button"
           onClick={() => {
+            if (isAnchoredInHistory) {
+              onResetToLive?.();
+            }
             virtuosoRef.current?.scrollToIndex({
               index: firstItemIndex + rows.length - 1,
               align: 'end',
@@ -424,7 +502,7 @@ export default function MessageList({
             setUnreadBelowCount(0);
           }}
           className="group absolute bottom-4 right-4 sm:right-6 z-30 w-10 h-10 rounded-full bg-[#181926]/90 border border-white/15 backdrop-blur-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] flex items-center justify-center text-gray-300 hover:text-white hover:bg-purple-600/30 hover:border-purple-400/50 hover:shadow-[0_0_15px_rgba(168,85,247,0.4)] transition-all duration-200 active:scale-95 animate-popIn cursor-pointer"
-          title="Scroll to bottom"
+          title={isAnchoredInHistory ? 'Jump to live messages' : 'Scroll to bottom'}
         >
           <ChevronDown size={20} className="group-hover:translate-y-0.5 transition-transform" />
 

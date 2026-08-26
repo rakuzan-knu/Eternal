@@ -30,12 +30,16 @@ import {
   type ReactToMessageDto,
   type SearchMessagesQueryDto,
   type SendMessageDto,
+  type GetChatActivityQueryDto,
+  type GetMessagesAroundDateQueryDto,
   deleteMessageSchema,
   batchDeleteMessagesSchema,
   editMessageSchema,
   forwardMessageSchema,
   forwardMultipleMessagesSchema,
   getMessagesQuerySchema,
+  getChatActivityQuerySchema,
+  getMessagesAroundDateQuerySchema,
   reactToMessageSchema,
   searchMessagesQuerySchema,
   sendMessageSchema,
@@ -48,6 +52,33 @@ import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 @Controller('conversations/:conversationId/messages')
 export class MessagesController {
   constructor(private readonly service: MessagesService) {}
+
+  @Get('activity')
+  @ApiOperation({ summary: 'Get monthly message activity map for chat calendar date picker' })
+  getActivity(
+    @Param('conversationId') conversationId: string,
+    @Query(new ZodValidationPipe(getChatActivityQuerySchema)) query: GetChatActivityQueryDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.service.getActivityMap(
+      conversationId,
+      query.year,
+      query.month,
+      query.timezone,
+      user.id,
+    );
+  }
+
+  @Get('around-date')
+  @ApiOperation({ summary: 'Get messages context window centered on a target date' })
+  getAroundDate(
+    @Param('conversationId') conversationId: string,
+    @Query(new ZodValidationPipe(getMessagesAroundDateQuerySchema))
+    query: GetMessagesAroundDateQueryDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.service.getAroundDate(conversationId, query.date, user.id, query.limit);
+  }
 
   @Get('around/:messageId')
   @ApiOperation({ summary: 'Get messages context window centered on target message ID' })

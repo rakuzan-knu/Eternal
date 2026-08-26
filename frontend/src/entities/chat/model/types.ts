@@ -97,3 +97,23 @@ export interface InfiniteMessagesData {
   pages: PaginatedMessages[];
   pageParams: unknown[];
 }
+
+export interface DayActivityItem {
+  messageCount: number;
+  previewMediaUrl?: string;
+  firstMessageSnippet?: string;
+  firstMessageId?: string;
+  mediaCount?: number;
+}
+
+export type ChatActivityMap = Record<string, DayActivityItem>;
+
+export interface ThemeProposalData {
+  proposedTheme: string;
+  status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED';
+  proposedByUserId: string;
+  proposedByUsername?: string;
+  respondedByUserId?: string;
+  createdAt: string;
+  expiresAt: string;
+}

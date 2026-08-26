@@ -57,7 +57,7 @@ export default function MessageToastViewport() {
         <button
           type="button"
           onClick={dismissAll}
-          className="pointer-events-auto h-11 rounded-2xl border border-white/10 bg-[#171b22]/92 text-sm font-medium text-sky-300 shadow-[0_12px_34px_rgba(0,0,0,0.35)] backdrop-blur-2xl transition-all duration-300 hover:bg-[#1d232c] hover:text-sky-200"
+          className="pointer-events-auto h-9 px-4 rounded-2xl border border-white/[0.12] bg-[#12141e]/75 text-xs font-semibold text-white/80 shadow-[0_10px_25px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-2xl transition-all duration-200 hover:bg-[#181a28]/85 hover:text-white hover:border-white/20 active:scale-95 mx-auto"
         >
           Dismiss all
         </button>
@@ -75,7 +75,7 @@ export default function MessageToastViewport() {
               openToast(toast);
             }
           }}
-          className="pointer-events-auto group relative flex min-h-[82px] items-center gap-3 rounded-[22px] border border-white/10 bg-[#171b22]/88 px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,0.45)] backdrop-blur-2xl transition-all duration-300 ease-out animate-slideInRight hover:bg-[#1d232c]/92"
+          className="pointer-events-auto group relative flex min-h-[76px] items-center gap-3.5 rounded-[22px] border border-white/[0.14] bg-[#12141e]/72 px-4 py-3 shadow-[0_16px_42px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.16)] backdrop-blur-2xl transition-all duration-300 ease-out animate-slideInRight hover:bg-[#181a28]/82 hover:border-white/[0.22] hover:shadow-[0_20px_48px_rgba(0,0,0,0.62),inset_0_1px_0_rgba(255,255,255,0.22)] cursor-pointer"
         >
           <div className="flex-shrink-0">
             {toast.isGroup ? (
@@ -97,30 +97,35 @@ export default function MessageToastViewport() {
             )}
           </div>
 
-          <div className="min-w-0 flex-1 pr-2">
-            <p className="truncate text-sm font-semibold text-white">{toast.title}</p>
-            <p className="truncate text-[13px] leading-5 text-gray-300">{toast.body}</p>
+          <div className="min-w-0 flex-1 pr-6">
+            <p className="truncate text-[13.5px] font-semibold text-white/95 tracking-tight">
+              {toast.title}
+            </p>
+            <p className="line-clamp-2 text-[12.5px] leading-snug text-white/70 mt-0.5">
+              {toast.body}
+            </p>
           </div>
 
-          {toast.linkUrl ? (
-            <span className="flex-shrink-0 text-xs font-semibold text-sky-400 group-hover:underline pr-4">
-              View saved posts
+          {toast.linkUrl && (
+            <span className="flex-shrink-0 text-[11px] font-semibold text-sky-400 group-hover:underline pr-4">
+              View
             </span>
-          ) : (
-            <span className="flex-shrink-0 self-end pb-1 text-[13px] text-gray-500">...</span>
           )}
 
-          <button
-            type="button"
-            aria-label="Close notification"
-            onClick={(e) => {
-              e.stopPropagation();
-              removeToast(toast.id);
-            }}
-            className="absolute right-2.5 top-2.5 flex h-7 w-7 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-white/10 hover:text-white"
-          >
-            <X size={15} />
-          </button>
+          <div className="absolute right-3.5 top-3 flex items-center gap-1.5">
+            <span className="text-[10px] font-medium text-white/40 select-none">now</span>
+            <button
+              type="button"
+              aria-label="Close notification"
+              onClick={(e) => {
+                e.stopPropagation();
+                removeToast(toast.id);
+              }}
+              className="flex h-5 w-5 items-center justify-center rounded-full text-white/40 transition-colors hover:bg-white/15 hover:text-white"
+            >
+              <X size={13} />
+            </button>
+          </div>
         </div>
       ))}
     </div>

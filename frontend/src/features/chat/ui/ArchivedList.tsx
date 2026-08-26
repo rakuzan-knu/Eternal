@@ -1,6 +1,7 @@
 import React from 'react';
-import { ArchiveRestore, Users } from 'lucide-react';
+import { ArchiveRestore } from 'lucide-react';
 import Avatar from '@/shared/ui/Avatar';
+import GroupAvatarCollage from '@/shared/ui/GroupAvatarCollage';
 import OnlineStatusIndicator from '@/shared/ui/OnlineStatusIndicator';
 import { ConversationView } from '../../../entities/chat/model/types';
 import { useArchiveConversation } from '../model/useConversationMutations';
@@ -39,9 +40,14 @@ export default function ArchivedList({
           >
             <div className="relative flex-shrink-0">
               {display.isGroup ? (
-                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/5 bg-white/5 text-gray-400">
-                  <Users size={18} />
-                </div>
+                display.avatar ? (
+                  <Avatar size="md" src={display.avatar} />
+                ) : (
+                  <GroupAvatarCollage
+                    avatars={c.participants.map((p) => p.user.avatar)}
+                    size={40}
+                  />
+                )
               ) : (
                 <>
                   <Avatar size="md" src={display.avatar} />

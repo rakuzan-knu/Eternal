@@ -98,12 +98,18 @@ export class MessengerMapper {
   }
 
   mapParticipant(p: ParticipantWithUser): ParticipantView {
+    const effectiveTheme =
+      p.theme && p.theme !== 'default' && p.theme.trim() !== ''
+        ? p.theme
+        : ((p.user as unknown as { defaultChatTheme?: string | null })?.defaultChatTheme ??
+          'default');
+
     return {
       userId: p.userId,
       user: p.user,
       nickname: p.nickname ?? null,
       role: p.role,
-      theme: p.theme ?? 'default',
+      theme: effectiveTheme,
       muteLevel: p.muteLevel,
       mutedUntil: p.mutedUntil ?? null,
       joinedAt: p.joinedAt,
@@ -117,6 +123,14 @@ export class MessengerMapper {
     blockCtx?: { blockedByMe: Set<string>; blockingMe: Set<string> },
   ): ConversationView {
     const myParticipant = conv.participants.find((p) => p.userId === requestingUserId);
+    const myUser =
+      myParticipant?.user ?? conv.participants.find((p) => p.userId === requestingUserId)?.user;
+    const participantTheme = myParticipant?.theme;
+    const effectiveTheme =
+      participantTheme && participantTheme !== 'default' && participantTheme.trim() !== ''
+        ? participantTheme
+        : ((myUser as unknown as { defaultChatTheme?: string | null })?.defaultChatTheme ??
+          'default');
 
     const pinnedMessageIds = new Set((conv.pinnedMessages ?? []).map((pm) => pm.messageId));
 
@@ -155,7 +169,7 @@ export class MessengerMapper {
       participants: conv.participants.map((p) => this.mapParticipant(p)),
       lastMessage,
       unreadCount,
-      myTheme: myParticipant?.theme ?? 'default',
+      myTheme: effectiveTheme,
       myMuteLevel: effectiveMuteLevel,
       myMutedUntil: isMuteExpired ? null : (myParticipant?.mutedUntil ?? null),
       myNickname: myParticipant?.nickname ?? null,
@@ -165,6 +179,8 @@ export class MessengerMapper {
       blockingMe: theyBlockedMe,
       isBlocked: iBlockedThem || theyBlockedMe,
       pinnedMessages,
+      sharedTheme: conv.sharedTheme ?? null,
+      sharedThemeUpdatedAt: conv.sharedThemeUpdatedAt ?? null,
       createdAt: conv.createdAt,
       updatedAt: conv.updatedAt,
     };

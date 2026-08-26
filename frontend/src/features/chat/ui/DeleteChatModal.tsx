@@ -34,7 +34,11 @@ export default function DeleteChatModal({
           <div className="flex items-center gap-3 mb-4">
             <div className="relative flex-shrink-0">
               {isGroup ? (
-                <GroupAvatarCollage avatars={memberAvatars} size={36} />
+                avatarUrl ? (
+                  <Avatar size="sm" src={avatarUrl} />
+                ) : (
+                  <GroupAvatarCollage avatars={memberAvatars} size={36} />
+                )
               ) : (
                 <Avatar size="sm" src={avatarUrl} />
               )}

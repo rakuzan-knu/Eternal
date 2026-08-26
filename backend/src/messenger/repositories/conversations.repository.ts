@@ -145,7 +145,7 @@ export class ConversationsRepository implements IConversationsRepository {
     userId: string,
     data: Partial<{
       nickname: string | null;
-      theme: string;
+      theme: string | null;
       muteLevel: MuteLevel;
       mutedUntil: Date | null;
       role: ParticipantRole;
@@ -157,6 +157,23 @@ export class ConversationsRepository implements IConversationsRepository {
   ): Promise<ConversationParticipant> {
     return this.prisma.conversationParticipant.update({
       where: { conversationId_userId: { conversationId, userId } },
+      data,
+    });
+  }
+
+  async setUserDefaultChatTheme(userId: string, theme: string | null): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { defaultChatTheme: theme },
+    });
+  }
+
+  async updateAllParticipantsForUser(
+    userId: string,
+    data: Partial<{ theme: string | null }>,
+  ): Promise<void> {
+    await this.prisma.conversationParticipant.updateMany({
+      where: { userId },
       data,
     });
   }
@@ -220,6 +237,16 @@ export class ConversationsRepository implements IConversationsRepository {
   async unpinMessage(conversationId: string, messageId: string): Promise<void> {
     await this.prisma.pinnedMessage.delete({
       where: { conversationId_messageId: { conversationId, messageId } },
+    });
+  }
+
+  async updateSharedTheme(conversationId: string, theme: string | null): Promise<Conversation> {
+    return this.prisma.conversation.update({
+      where: { id: conversationId },
+      data: {
+        sharedTheme: theme,
+        sharedThemeUpdatedAt: theme ? new Date() : null,
+      },
     });
   }
 }

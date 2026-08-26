@@ -117,6 +117,14 @@ export const postsHandlers = [
       siteName: 'Example',
     }),
   ),
+  http.get('*/messenger/link-preview', () =>
+    HttpResponse.json({
+      title: 'Preview',
+      description: 'Preview description',
+      image: null,
+      siteName: 'Example',
+    }),
+  ),
   http.get('*/posts/:id', ({ params }) =>
     HttpResponse.json({
       ...mockPosts[0],

@@ -10,6 +10,7 @@ import {
   WsException,
 } from '@nestjs/websockets';
 import { Logger, UseFilters, forwardRef, Inject } from '@nestjs/common';
+import { OnEvent } from '@nestjs/event-emitter';
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -638,6 +639,102 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
     if (exists) return true;
     await this.redisService.set(key, '1', 4);
     return false;
+  }
+
+  @SubscribeMessage('subscribeShowcase')
+  handleSubscribeShowcase(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { targetUserId: string },
+  ) {
+    if (data?.targetUserId) {
+      void client.join(`showcase:${data.targetUserId}`);
+    }
+  }
+
+  @SubscribeMessage('unsubscribeShowcase')
+  handleUnsubscribeShowcase(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { targetUserId: string },
+  ) {
+    if (data?.targetUserId) {
+      void client.leave(`showcase:${data.targetUserId}`);
+    }
+  }
+
+  @OnEvent('showcase.presence.updated')
+  handleShowcasePresenceUpdated(payload: { userId: string; activityStatus: unknown }) {
+    if (payload?.userId) {
+      this.server.to(`showcase:${payload.userId}`).emit('showcase:presence:update', payload);
+    }
+  }
+
+  @SubscribeMessage('subscribeStory')
+  handleSubscribeStory(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { storyId: string },
+  ) {
+    if (data?.storyId) {
+      void client.join(`story:${data.storyId}`);
+    }
+  }
+
+  @SubscribeMessage('unsubscribeStory')
+  handleUnsubscribeStory(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { storyId: string },
+  ) {
+    if (data?.storyId) {
+      void client.leave(`story:${data.storyId}`);
+    }
+  }
+
+  @OnEvent('story.created')
+  handleStoryCreated(payload: { authorId: string; story: any }) {
+    if (payload?.authorId) {
+      // Broadcast new story event so follower clients instantly light up glowing StoryAvatar rings
+      this.server.emit('story:new', payload);
+    }
+  }
+
+  @OnEvent('story.viewed')
+  handleStoryViewed(payload: {
+    storyId: string;
+    authorId: string;
+    viewerId: string;
+    viewer: any;
+    viewedAt: string;
+  }) {
+    if (payload?.storyId) {
+      // Broadcast to room of active viewers/author for this story
+      this.server.to(`story:${payload.storyId}`).emit('story:viewed', payload);
+    }
+  }
+
+  @OnEvent('story.reacted')
+  handleStoryReacted(payload: {
+    storyId: string;
+    authorId: string;
+    userId: string;
+    user: any;
+    emoji: string;
+    createdAt: string;
+  }) {
+    if (payload?.storyId) {
+      this.server.to(`story:${payload.storyId}`).emit('story:reacted', payload);
+    }
+  }
+
+  @OnEvent('story.poll_voted')
+  handleStoryPollVoted(payload: {
+    storyId: string;
+    authorId: string;
+    userId: string;
+    pollResult: any;
+    optionIndex: number;
+  }) {
+    if (payload?.storyId) {
+      this.server.to(`story:${payload.storyId}`).emit('story:poll_voted', payload);
+    }
   }
 
   private extractToken(client: Socket): string | null {

@@ -1,6 +1,31 @@
 import { z } from 'zod';
-import { MediaType, ReportCategory, type PostMedia } from '@prisma/client';
-export { MediaType, ReportCategory };
+export const MediaType = {
+  IMAGE: 'IMAGE',
+  VIDEO: 'VIDEO',
+} as const;
+export type MediaType = (typeof MediaType)[keyof typeof MediaType];
+
+export interface PostMedia {
+  id: string;
+  type: MediaType;
+  url: string;
+  poster: string | null;
+  order: number;
+  postId: string;
+  createdAt?: Date | string;
+}
+
+export const ReportCategory = {
+  SPAM: 'SPAM',
+  SUICIDE_SELF_HARM: 'SUICIDE_SELF_HARM',
+  IMPERSONATION: 'IMPERSONATION',
+  VIOLENCE_DANGEROUS_ORGS: 'VIOLENCE_DANGEROUS_ORGS',
+  NUDITY_SEXUAL: 'NUDITY_SEXUAL',
+  RESTRICTED_GOODS: 'RESTRICTED_GOODS',
+  FRAUD: 'FRAUD',
+  OTHER: 'OTHER',
+} as const;
+export type ReportCategory = (typeof ReportCategory)[keyof typeof ReportCategory];
 
 export const mediaSchema = z.object({
   type: z.nativeEnum(MediaType),

@@ -6,6 +6,7 @@ describe('OpenGraphController', () => {
   let controller: OpenGraphController;
   let mockOgService: {
     extractMetadata: jest.Mock;
+    sanitizeUrl: jest.Mock;
   };
 
   const sampleMeta: OpenGraphMetadata = {
@@ -13,6 +14,7 @@ describe('OpenGraphController', () => {
     description: 'Test Description',
     image: 'https://cdn.com/test.png',
     url: 'https://example.com',
+    type: 'generic',
     siteName: 'Example Site',
     favicon: 'https://example.com/favicon.ico',
   };
@@ -20,6 +22,7 @@ describe('OpenGraphController', () => {
   beforeEach(() => {
     mockOgService = {
       extractMetadata: jest.fn(),
+      sanitizeUrl: jest.fn((url) => url),
     };
 
     controller = new OpenGraphController(mockOgService as unknown as OpenGraphService);

@@ -4,6 +4,7 @@ import { CONVERSATION_MESSAGES_KEY } from '@/shared/api/queryKeys';
 import { InfiniteMessagesData, PaginatedMessages } from '../../../entities/chat/model/types';
 import { useChatSocket } from './useChatSocket';
 import { AckResponse } from './chatSocketTypes';
+import { useAuthStore } from '@/shared/model/useAuthStore';
 
 function emitWithAck<T = unknown>(
   socket: ReturnType<typeof useChatSocket>,
@@ -50,6 +51,7 @@ export function useMessageReactionMutation(conversationId: string | null) {
   const toggleReaction = useCallback(
     async (messageId: string, emoji: string, currentSelfReacted: boolean) => {
       if (!conversationId) return;
+      const currentUserId = useAuthStore.getState().userId;
 
       // 1. Instant optimistic update
       updatePages((pages) =>
@@ -57,40 +59,72 @@ export function useMessageReactionMutation(conversationId: string | null) {
           ...p,
           data: p.data.map((m) => {
             if (m.id !== messageId) return m;
-            const existingIdx = m.reactions.findIndex((r) => r.emoji === emoji);
-            let nextReactions = [...m.reactions];
 
             if (currentSelfReacted) {
               // Remove reaction
-              if (existingIdx !== -1) {
-                const prev = nextReactions[existingIdx];
-                if (prev.count <= 1) {
-                  nextReactions = nextReactions.filter((r) => r.emoji !== emoji);
-                } else {
-                  nextReactions[existingIdx] = {
-                    ...prev,
-                    count: prev.count - 1,
-                    selfReacted: false,
-                    users: prev.users || [],
-                  };
-                }
+              const existingIdx = m.reactions.findIndex((r) => r.emoji === emoji);
+              if (existingIdx === -1) return m;
+              let nextReactions = [...m.reactions];
+              const prev = nextReactions[existingIdx];
+              if (prev.count <= 1) {
+                nextReactions = nextReactions.filter((r) => r.emoji !== emoji);
+              } else {
+                nextReactions[existingIdx] = {
+                  ...prev,
+                  count: prev.count - 1,
+                  selfReacted: false,
+                  users: currentUserId
+                    ? (prev.users || []).filter((u) => u.id !== currentUserId)
+                    : prev.users || [],
+                };
               }
+              return { ...m, reactions: nextReactions };
             } else {
-              // Add reaction
+              // Add reaction -> Replace any previous self reaction with the new one
+              const nextReactions = m.reactions
+                .map((r) => {
+                  if (r.selfReacted && r.emoji !== emoji) {
+                    return {
+                      ...r,
+                      count: Math.max(0, r.count - 1),
+                      selfReacted: false,
+                      users: currentUserId
+                        ? (r.users || []).filter((u) => u.id !== currentUserId)
+                        : r.users || [],
+                    };
+                  }
+                  return r;
+                })
+                .filter((r) => r.count > 0);
+
+              const existingIdx = nextReactions.findIndex((r) => r.emoji === emoji);
               if (existingIdx !== -1) {
                 const prev = nextReactions[existingIdx];
                 nextReactions[existingIdx] = {
                   ...prev,
                   count: prev.selfReacted ? prev.count : prev.count + 1,
                   selfReacted: true,
-                  users: prev.users || [],
+                  users:
+                    currentUserId && !(prev.users || []).some((u) => u.id === currentUserId)
+                      ? [
+                          ...(prev.users || []),
+                          { id: currentUserId, username: '', displayName: null, avatar: null },
+                        ]
+                      : prev.users || [],
                 };
               } else {
-                nextReactions.push({ emoji, count: 1, selfReacted: true, users: [] });
+                nextReactions.push({
+                  emoji,
+                  count: 1,
+                  selfReacted: true,
+                  users: currentUserId
+                    ? [{ id: currentUserId, username: '', displayName: null, avatar: null }]
+                    : [],
+                });
               }
-            }
 
-            return { ...m, reactions: nextReactions };
+              return { ...m, reactions: nextReactions };
+            }
           }),
         })),
       );

@@ -21,7 +21,7 @@ describe('GlobalMediaPlaybackBar', () => {
       id: 'media-123',
       mediaType: 'voice',
       url: 'https://example.com/audio.webm',
-      senderName: 'Артем Донський',
+      senderName: 'Artem Donskyi',
       sentAt: 'July 16 at 18:12',
       duration: 35,
     });
@@ -29,7 +29,7 @@ describe('GlobalMediaPlaybackBar', () => {
     render(<GlobalMediaPlaybackBar />);
 
     expect(screen.getByTestId('global-media-playback-bar')).toBeInTheDocument();
-    expect(screen.getByText('Артем Донський')).toBeInTheDocument();
+    expect(screen.getByText('Artem Donskyi')).toBeInTheDocument();
     expect(screen.getByText('July 16 at 18:12')).toBeInTheDocument();
     expect(screen.getByTitle('Previous track')).toBeInTheDocument();
     expect(screen.getByTitle('Next track')).toBeInTheDocument();

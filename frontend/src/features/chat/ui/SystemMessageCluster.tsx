@@ -9,20 +9,7 @@ interface SystemMessageClusterProps {
 }
 
 function getClusterTitle(count: number): string {
-  // Russian/Slavic pluralization rules:
-  // 1 -> 1 событие / 1 изменение в группе
-  // 2, 3, 4 -> 2-4 изменения в группе
-  // 5..20, 0 -> 5+ изменений в группе
-  const mod10 = count % 10;
-  const mod100 = count % 100;
-
-  if (mod10 === 1 && mod100 !== 11) {
-    return `${count} изменение в группе`;
-  }
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) {
-    return `${count} изменения в группе`;
-  }
-  return `${count} изменений в группе`;
+  return count === 1 ? '1 group change' : `${count} group changes`;
 }
 
 function formatMessageTime(isoString: string): string {
@@ -34,13 +21,7 @@ function formatMessageTime(isoString: string): string {
 function isLeaveSystemMessage(msg: MessageView): boolean {
   if (msg.messageType !== 'SYSTEM') return false;
   const body = msg.body || '';
-  return (
-    body.includes('left the group') ||
-    body.includes('left the conversation') ||
-    body.includes('покинул(а) группу') ||
-    body.includes('покинул группу') ||
-    body.includes('вышел из группы')
-  );
+  return body.includes('left the group') || body.includes('left the conversation');
 }
 
 export default function SystemMessageCluster({
@@ -78,7 +59,7 @@ export default function SystemMessageCluster({
             }}
             className="text-purple-400 hover:text-purple-300 font-semibold hover:underline transition ml-1 cursor-pointer"
           >
-            Редактировать группу
+            Edit group
           </button>
           <span className="text-[10px] text-gray-400 ml-1.5 font-mono">
             {formatMessageTime(msg.createdAt)}
@@ -169,7 +150,7 @@ export default function SystemMessageCluster({
                   }}
                   className="text-purple-400 hover:text-purple-300 font-semibold hover:underline transition cursor-pointer"
                 >
-                  Редактировать
+                  Edit
                 </button>
                 <span className="text-[10px] text-gray-400 font-mono">
                   {formatMessageTime(msg.createdAt)}

@@ -13,7 +13,10 @@ import {
   Trash2,
   Users,
   LogOut,
+  Link2Off,
+  Sparkles,
 } from 'lucide-react';
+import { chatApi } from '../api/chatApi';
 import Avatar from '../../../shared/ui/Avatar';
 import GroupAvatarCollage from '../../../shared/ui/GroupAvatarCollage';
 import OnlineStatusIndicator from '../../../shared/ui/OnlineStatusIndicator';
@@ -205,10 +208,14 @@ export default function ConversationDetailsPanel({
         <div className="flex flex-col items-center text-center mb-4">
           <div className="relative mb-3">
             {isGroup ? (
-              <GroupAvatarCollage
-                avatars={conversation.participants.map((p) => p.user.avatar)}
-                size={80}
-              />
+              display.avatar ? (
+                <Avatar size="xl" src={display.avatar} />
+              ) : (
+                <GroupAvatarCollage
+                  avatars={conversation.participants.map((p) => p.user.avatar)}
+                  size={80}
+                />
+              )
             ) : (
               <>
                 <Avatar size="xl" src={display.avatar} />
@@ -314,6 +321,32 @@ export default function ConversationDetailsPanel({
           </span>
           <ChevronRight size={16} className="text-gray-500" />
         </button>
+
+        {conversation.sharedTheme && (
+          <div className="mx-1 my-1 px-3 py-2.5 rounded-xl bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-indigo-500/10 border border-purple-500/20 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-xs font-medium text-purple-200">
+              <Sparkles className="w-4 h-4 text-purple-400 animate-pulse" />
+              <span>Парная тема активна</span>
+            </div>
+            <button
+              type="button"
+              onClick={async () => {
+                if (window.confirm('Отвязать парную тему и вернуть свою персональную тему?')) {
+                  try {
+                    await chatApi.unlinkSharedTheme(conversation.id);
+                  } catch (err) {
+                    console.error('Failed to unlink shared theme:', err);
+                  }
+                }
+              }}
+              className="px-2.5 py-1 rounded-lg text-xs font-medium bg-white/10 hover:bg-rose-500/20 text-white/70 hover:text-rose-300 border border-white/10 hover:border-rose-500/30 transition-all flex items-center gap-1 cursor-pointer"
+              title="Отвязать парную тему"
+            >
+              <Link2Off size={13} />
+              <span>Отвязать</span>
+            </button>
+          </div>
+        )}
 
         {isGroup ? (
           <button

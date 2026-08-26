@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { X, Loader2, AlertCircle } from 'lucide-react';
+import { X, Loader2, AlertCircle, Eye, Edit3 } from 'lucide-react';
 import Avatar from '../../../shared/ui/Avatar';
 import { PollCreator } from './PollCreator';
 import { AddFileButton } from './AddFileButton';
@@ -11,6 +11,12 @@ import { useCurrentUser } from '@/entities/profile/model/useCurrentUser';
 import { PollOptionDraft, MediaDraft } from '../model/types';
 import { compressMediaFiles } from '@/shared/lib/compressImage';
 import { PostType, PostMedia } from '@/entities/post/model/types';
+import MarkdownContent from '@/shared/ui/MarkdownContent';
+import SmartCodePasteBanner from '@/features/chat/ui/SmartCodePasteBanner';
+import FloatingSelectionToolbar, {
+  SelectionFormatType,
+} from '@/features/chat/ui/FloatingSelectionToolbar';
+import { detectCodeSnippet, DetectedCodeSnippet } from '@/features/chat/lib/smartCodeDetection';
 
 const MAX_MEDIA = 5;
 
@@ -18,6 +24,16 @@ const emptyPollOptions = (): PollOptionDraft[] => [
   { id: crypto.randomUUID(), text: '' },
   { id: crypto.randomUUID(), text: '' },
 ];
+
+const WRAP_PAIRS: Record<string, [string, string]> = {
+  '"': ['"', '"'],
+  "'": ["'", "'"],
+  '`': ['`', '`'],
+  '(': ['(', ')'],
+  '[': ['[', ']'],
+  '{': ['{', '}'],
+  '<': ['<', '>'],
+};
 
 interface CreatePostProps {
   onSubmitFormData: (fd: FormData, optimisticPost?: Partial<PostType>) => void | Promise<unknown>;
@@ -30,10 +46,16 @@ export default function CreatePost({ onSubmitFormData, isPending = false }: Crea
   const [cursorPos, setCursorPos] = useState(0);
   const [media, setMedia] = useState<MediaDraft[]>([]);
   const [activeMenu, setActiveMenu] = useState<'emoji' | 'gif' | null>(null);
+  const [activeTab, setActiveTab] = useState<'write' | 'preview'>('write');
   const [showPoll, setShowPoll] = useState(false);
   const [pollOptions, setPollOptions] = useState<PollOptionDraft[]>(emptyPollOptions());
   const [isCompressing, setIsCompressing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [detectedSnippet, setDetectedSnippet] = useState<DetectedCodeSnippet | null>(null);
+  const [floatingToolbarPos, setFloatingToolbarPos] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const canAddMore = media.length < MAX_MEDIA;
@@ -81,6 +103,193 @@ export default function CreatePost({ onSubmitFormData, isPending = false }: Crea
   const handleCursorMove = (e: React.SyntheticEvent<HTMLTextAreaElement>) => {
     const target = e.target as HTMLTextAreaElement;
     setCursorPos(target.selectionStart || 0);
+    updateSelectionToolbar();
+  };
+
+  const updateSelectionToolbar = () => {
+    const el = textareaRef.current;
+    if (!el) {
+      setFloatingToolbarPos(null);
+      return;
+    }
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    if (
+      start !== null &&
+      end !== null &&
+      start !== end &&
+      el.value.slice(start, end).trim().length > 0
+    ) {
+      const rect = el.getBoundingClientRect();
+      setFloatingToolbarPos({
+        top: rect.top - 46,
+        left: rect.left + rect.width / 2,
+      });
+    } else {
+      setFloatingToolbarPos(null);
+    }
+  };
+
+  const handleFormattingHotkey = (prefix: string, suffix: string, defaultPlaceholder = '') => {
+    const el = textareaRef.current;
+    if (!el) return;
+
+    const start = el.selectionStart ?? 0;
+    const end = el.selectionEnd ?? 0;
+    const selected = text.slice(start, end);
+    const content = selected || defaultPlaceholder;
+    const replacement = `${prefix}${content}${suffix}`;
+    const nextText = text.slice(0, start) + replacement + text.slice(end);
+
+    setText(nextText);
+    setCursorPos(start + replacement.length);
+
+    requestAnimationFrame(() => {
+      el.focus();
+      if (selected) {
+        el.setSelectionRange(start + prefix.length, start + prefix.length + content.length);
+      } else {
+        el.setSelectionRange(
+          start + prefix.length,
+          start + prefix.length + defaultPlaceholder.length,
+        );
+      }
+    });
+  };
+
+  const handleSelectionFormat = (type: SelectionFormatType, linkUrl?: string) => {
+    switch (type) {
+      case 'bold':
+        handleFormattingHotkey('**', '**', 'bold');
+        break;
+      case 'italic':
+        handleFormattingHotkey('*', '*', 'italic');
+        break;
+      case 'underline':
+        handleFormattingHotkey('__', '__', 'underline');
+        break;
+      case 'strike':
+        handleFormattingHotkey('~~', '~~', 'strikethrough');
+        break;
+      case 'spoiler':
+        handleFormattingHotkey('||', '||', 'spoiler');
+        break;
+      case 'quote':
+        handleFormattingHotkey('> ', '', 'quote');
+        break;
+      case 'code':
+        handleFormattingHotkey('`', '`', 'code');
+        break;
+      case 'link':
+        if (linkUrl) {
+          handleFormattingHotkey('[', `](${linkUrl})`, 'link');
+        }
+        break;
+    }
+    setFloatingToolbarPos(null);
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const pastedText = e.clipboardData.getData('text');
+    if (pastedText) {
+      const snippet = detectCodeSnippet(pastedText);
+      if (snippet.isCode) {
+        setDetectedSnippet(snippet);
+      }
+    }
+  };
+
+  const handleFormatSnippetAsMarkdown = () => {
+    if (!detectedSnippet) return;
+    const lang = detectedSnippet.language || '';
+    const formatted = `\`\`\`${lang}\n${detectedSnippet.rawCode}\n\`\`\``;
+
+    if (text.includes(detectedSnippet.rawCode)) {
+      setText((prev) => prev.replace(detectedSnippet.rawCode, formatted));
+    } else {
+      setText((prev) => (prev ? `${prev}\n${formatted}` : formatted));
+    }
+    setDetectedSnippet(null);
+    requestAnimationFrame(() => textareaRef.current?.focus());
+  };
+
+  const handleAttachSnippetAsFile = () => {
+    if (!detectedSnippet) return;
+    const extension = detectedSnippet.extension || 'txt';
+    const file = new File([detectedSnippet.rawCode], `snippet.${extension}`, {
+      type: 'text/plain;charset=utf-8',
+    });
+    handleFilesSelect([file]);
+
+    if (text.includes(detectedSnippet.rawCode)) {
+      setText((prev) => prev.replace(detectedSnippet.rawCode, '').trim());
+    } else if (text.trim() === detectedSnippet.rawCode.trim()) {
+      setText('');
+    }
+    setDetectedSnippet(null);
+    requestAnimationFrame(() => textareaRef.current?.focus());
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const el = textareaRef.current;
+
+    // Auto-Wrap Brackets & Quotes on selection
+    if (
+      el &&
+      el.selectionStart !== null &&
+      el.selectionEnd !== null &&
+      el.selectionStart !== el.selectionEnd
+    ) {
+      const pair = WRAP_PAIRS[e.key];
+      if (pair && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        handleFormattingHotkey(pair[0], pair[1]);
+        return;
+      }
+    }
+
+    const isCmdOrCtrl = e.ctrlKey || e.metaKey;
+
+    if (isCmdOrCtrl) {
+      const key = e.key.toLowerCase();
+      if (key === 'b' && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        handleFormattingHotkey('**', '**', 'bold');
+        return;
+      }
+      if (key === 'i' && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        handleFormattingHotkey('*', '*', 'italic');
+        return;
+      }
+      if (key === 'u' && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        handleFormattingHotkey('__', '__', 'underline');
+        return;
+      }
+      if (e.shiftKey && key === 'x') {
+        e.preventDefault();
+        handleFormattingHotkey('~~', '~~', 'strikethrough');
+        return;
+      }
+      if ((e.shiftKey && key === 'c') || (e.altKey && key === 'c')) {
+        e.preventDefault();
+        handleFormattingHotkey('```\n', '\n```', 'code');
+        return;
+      }
+      if (key === 'k' && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        const start = el?.selectionStart ?? 0;
+        const end = el?.selectionEnd ?? 0;
+        const selected = text.slice(start, end);
+        if (selected.startsWith('http://') || selected.startsWith('https://')) {
+          handleFormattingHotkey('[link](', ')', '');
+        } else {
+          handleFormattingHotkey('[', '](https://)', selected ? '' : 'text');
+        }
+        return;
+      }
+    }
   };
 
   const handleMentionSelect = (newText: string, newPos: number) => {
@@ -129,9 +338,9 @@ export default function CreatePost({ onSubmitFormData, isPending = false }: Crea
         id: `poll-temp-${Date.now()}`,
         totalVotes: 0,
         myVoteOptionId: null,
-        options: validOptions.map((text, i) => ({
+        options: validOptions.map((optText, i) => ({
           id: `opt-${i}`,
-          text,
+          text: optText,
           votes: 0,
         })),
       };
@@ -148,6 +357,7 @@ export default function CreatePost({ onSubmitFormData, isPending = false }: Crea
       setShowPoll(false);
       setActiveMenu(null);
       setPollOptions(emptyPollOptions());
+      setActiveTab('write');
     } catch {
       setErrorMessage('Failed to publish post. Please check your connection and try again.');
     }
@@ -170,21 +380,87 @@ export default function CreatePost({ onSubmitFormData, isPending = false }: Crea
         </div>
       )}
 
+      {/* Write vs Preview Toggle Bar */}
+      <div className="flex items-center justify-between pb-1 border-b border-white/5">
+        <div className="flex items-center gap-1 bg-white/5 p-0.5 rounded-xl border border-white/5">
+          <button
+            type="button"
+            onClick={() => setActiveTab('write')}
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+              activeTab === 'write'
+                ? 'bg-purple-600/70 text-white shadow-sm'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <Edit3 size={12} />
+            <span>Write</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('preview')}
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+              activeTab === 'preview'
+                ? 'bg-purple-600/70 text-white shadow-sm'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <Eye size={12} />
+            <span>Preview</span>
+          </button>
+        </div>
+
+        {activeTab === 'preview' && (
+          <span className="text-[11px] font-mono text-purple-300/70">
+            Markdown & Math Live Preview
+          </span>
+        )}
+      </div>
+
+      {detectedSnippet && (
+        <SmartCodePasteBanner
+          snippet={detectedSnippet}
+          onFormatMarkdown={handleFormatSnippetAsMarkdown}
+          onAttachAsFile={handleAttachSnippetAsFile}
+          onDismiss={() => setDetectedSnippet(null)}
+        />
+      )}
+
       <div className="flex gap-4 items-start">
         <Avatar size="md" src={currentUser?.avatar} />
-        <div className="flex-1 flex flex-col gap-3 relative">
-          <textarea
-            ref={textareaRef}
-            value={text}
-            onChange={handleTextChange}
-            onKeyUp={handleCursorMove}
-            onClick={handleCursorMove}
-            placeholder="What's new?"
-            disabled={isBusy}
-            className="w-full bg-transparent resize-none text-white placeholder-gray-500 focus:outline-none text-[15px] min-h-[50px] pt-2 disabled:opacity-60"
-          />
-
-          <MentionAutocomplete text={text} cursorPos={cursorPos} onSelect={handleMentionSelect} />
+        <div className="flex-1 flex flex-col gap-3 relative min-w-0">
+          {activeTab === 'write' ? (
+            <>
+              <textarea
+                id="create-post-textarea"
+                ref={textareaRef}
+                value={text}
+                onChange={handleTextChange}
+                onKeyDown={handleKeyDown}
+                onPaste={handlePaste}
+                onSelect={updateSelectionToolbar}
+                onKeyUp={handleCursorMove}
+                onClick={handleCursorMove}
+                placeholder="What's new?"
+                disabled={isBusy}
+                className="w-full bg-transparent resize-none text-white placeholder-gray-500 focus:outline-none text-[15px] min-h-[65px] pt-2 disabled:opacity-60 leading-relaxed"
+              />
+              <MentionAutocomplete
+                text={text}
+                cursorPos={cursorPos}
+                onSelect={handleMentionSelect}
+              />
+            </>
+          ) : (
+            <div className="min-h-[65px] p-3 rounded-2xl bg-white/[0.02] border border-white/5 text-gray-200 text-[15px] leading-relaxed">
+              {text.trim() ? (
+                <MarkdownContent content={text} />
+              ) : (
+                <p className="text-gray-500 italic text-sm">
+                  Nothing to preview yet. Start typing markdown...
+                </p>
+              )}
+            </div>
+          )}
 
           {media.length > 0 && (
             <div className="grid grid-cols-3 gap-2">
@@ -258,6 +534,14 @@ export default function CreatePost({ onSubmitFormData, isPending = false }: Crea
           {isBusy ? 'Publishing...' : 'Publish'}
         </button>
       </div>
+
+      {floatingToolbarPos && activeTab === 'write' && (
+        <FloatingSelectionToolbar
+          position={floatingToolbarPos}
+          onFormat={handleSelectionFormat}
+          onClose={() => setFloatingToolbarPos(null)}
+        />
+      )}
     </div>
   );
 }

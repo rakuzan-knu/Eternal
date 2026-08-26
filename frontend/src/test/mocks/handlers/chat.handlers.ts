@@ -16,7 +16,11 @@ const mockConversation = {
 export const chatHandlers = [
   http.get('*/conversations/users/blocked', () => HttpResponse.json([])),
 
-  http.get('*/conversations/:id/messages/search', () => HttpResponse.json([])),
+  http.get('*/conversations/:id/messages/activity', () => HttpResponse.json({})),
+
+  http.get('*/conversations/:id/messages/around-date', () =>
+    HttpResponse.json({ messages: [], data: [], nextCursor: null, hasMore: false }),
+  ),
 
   http.get('*/conversations/:id/messages/around/:messageId', () =>
     HttpResponse.json({ messages: [], data: [], meta: { nextCursor: null, hasNextPage: false } }),

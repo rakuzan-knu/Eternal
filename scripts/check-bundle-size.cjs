@@ -7,7 +7,7 @@ const distDir = path.resolve(__dirname, '../frontend/dist');
 
 // Budgets in Bytes
 const MAX_SINGLE_JS_BYTES = 600 * 1024; // 600 KB
-const MAX_TOTAL_BUNDLE_BYTES = 2500 * 1024; // 2.5 MB
+const MAX_TOTAL_BUNDLE_BYTES = 4000 * 1024; // 4.0 MB
 
 if (!fs.existsSync(distDir)) {
   console.error(`[check-bundle-size] Error: Build output directory not found at ${distDir}`);

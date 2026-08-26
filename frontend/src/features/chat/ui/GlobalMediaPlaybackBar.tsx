@@ -49,6 +49,7 @@ export default function GlobalMediaPlaybackBar({ onNearQueueEnd }: GlobalMediaPl
     playPrev,
     togglePlay,
     setIsPlaying,
+    setIsLoading,
     setCurrentTime,
     setDuration,
     setVolume,
@@ -149,7 +150,13 @@ export default function GlobalMediaPlaybackBar({ onNearQueueEnd }: GlobalMediaPl
       <audio
         ref={masterAudioRef}
         preload="auto"
+        onLoadStart={() => setIsLoading(true)}
+        onWaiting={() => setIsLoading(true)}
+        onCanPlay={() => setIsLoading(false)}
+        onPlaying={() => setIsLoading(false)}
+        onError={() => setIsLoading(false)}
         onLoadedMetadata={(e) => {
+          setIsLoading(false);
           const d = e.currentTarget.duration;
           if (d && !isNaN(d) && isFinite(d)) {
             setDuration(d);
@@ -163,6 +170,7 @@ export default function GlobalMediaPlaybackBar({ onNearQueueEnd }: GlobalMediaPl
           const hasNext = playNext();
           if (!hasNext) {
             setIsPlaying(false);
+            setIsLoading(false);
             setCurrentTime(0);
           }
         }}

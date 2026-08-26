@@ -19,3 +19,6 @@ export const COMMENTS_KEY = 'comments';
 export const COMMENT_REPLIES_KEY = 'comment-replies';
 export const NOTIFICATIONS_KEY = 'notifications';
 export const UNREAD_NOTIFICATIONS_COUNT_KEY = 'unread-notifications-count';
+export const STORIES_FEED_KEY = 'stories-feed';
+export const USER_STORIES_KEY = 'user-stories';
+export const CLOSE_FRIENDS_KEY = 'close-friends';

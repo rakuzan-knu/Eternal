@@ -2,6 +2,7 @@ import { MessageView } from '../../../entities/chat/model/types';
 
 export interface MessageGroup {
   label: string;
+  date: Date;
   messages: MessageView[];
 }
 
@@ -21,13 +22,14 @@ export function groupMessagesByDate(messages: MessageView[]): MessageGroup[] {
   const groups: MessageGroup[] = [];
 
   for (const message of messages) {
-    const label = dayLabel(new Date(message.createdAt));
+    const msgDate = new Date(message.createdAt);
+    const label = dayLabel(msgDate);
     const lastGroup = groups[groups.length - 1];
 
     if (lastGroup && lastGroup.label === label) {
       lastGroup.messages.push(message);
     } else {
-      groups.push({ label, messages: [message] });
+      groups.push({ label, date: msgDate, messages: [message] });
     }
   }
 

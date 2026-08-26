@@ -1,9 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { Edit3, Eye } from 'lucide-react';
 import { PostType } from '@/entities/post/model/types';
 import Avatar from '@/shared/ui/Avatar';
 import { AddEmojiButton } from '@/shared/ui/AddEmojiButton';
 import { PostMedia } from '@/entities/post/ui/PostMedia';
+import MarkdownContent from '@/shared/ui/MarkdownContent';
+import SmartCodePasteBanner from '@/features/chat/ui/SmartCodePasteBanner';
+import FloatingSelectionToolbar, {
+  SelectionFormatType,
+} from '@/features/chat/ui/FloatingSelectionToolbar';
+import { detectCodeSnippet, DetectedCodeSnippet } from '@/features/chat/lib/smartCodeDetection';
 
 interface EditPostModalProps {
   post: PostType;
@@ -15,6 +22,16 @@ interface EditPostModalProps {
 
 const MAX_CHARS = 1000;
 
+const WRAP_PAIRS: Record<string, [string, string]> = {
+  '"': ['"', '"'],
+  "'": ["'", "'"],
+  '`': ['`', '`'],
+  '(': ['(', ')'],
+  '[': ['[', ']'],
+  '{': ['{', '}'],
+  '<': ['<', '>'],
+};
+
 export function EditPostModal({
   post,
   isOpen,
@@ -24,11 +41,21 @@ export function EditPostModal({
 }: EditPostModalProps) {
   const [content, setContent] = useState(post.text || '');
   const [isEmojiOpen, setIsEmojiOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'write' | 'preview'>('write');
+  const [detectedSnippet, setDetectedSnippet] = useState<DetectedCodeSnippet | null>(null);
+  const [floatingToolbarPos, setFloatingToolbarPos] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (isOpen) {
       setContent(post.text || '');
       setIsEmojiOpen(false);
+      setActiveTab('write');
+      setDetectedSnippet(null);
+      setFloatingToolbarPos(null);
 
       const handleKeyDown = (e: KeyboardEvent) => {
         if (e.key === 'Escape' && !isSaving) {
@@ -69,6 +96,177 @@ export function EditPostModal({
     }
   };
 
+  const updateSelectionToolbar = () => {
+    const el = textareaRef.current;
+    if (!el) {
+      setFloatingToolbarPos(null);
+      return;
+    }
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    if (
+      start !== null &&
+      end !== null &&
+      start !== end &&
+      el.value.slice(start, end).trim().length > 0
+    ) {
+      const rect = el.getBoundingClientRect();
+      setFloatingToolbarPos({
+        top: rect.top - 46,
+        left: rect.left + rect.width / 2,
+      });
+    } else {
+      setFloatingToolbarPos(null);
+    }
+  };
+
+  const handleFormattingHotkey = (prefix: string, suffix: string, defaultPlaceholder = '') => {
+    const el = textareaRef.current;
+    if (!el) return;
+
+    const start = el.selectionStart ?? 0;
+    const end = el.selectionEnd ?? 0;
+    const selected = content.slice(start, end);
+    const textToWrap = selected || defaultPlaceholder;
+    const replacement = `${prefix}${textToWrap}${suffix}`;
+    const nextText = (content.slice(0, start) + replacement + content.slice(end)).slice(
+      0,
+      MAX_CHARS,
+    );
+
+    setContent(nextText);
+
+    requestAnimationFrame(() => {
+      el.focus();
+      if (selected) {
+        el.setSelectionRange(start + prefix.length, start + prefix.length + textToWrap.length);
+      } else {
+        el.setSelectionRange(
+          start + prefix.length,
+          start + prefix.length + defaultPlaceholder.length,
+        );
+      }
+    });
+  };
+
+  const handleSelectionFormat = (type: SelectionFormatType, linkUrl?: string) => {
+    switch (type) {
+      case 'bold':
+        handleFormattingHotkey('**', '**', 'bold');
+        break;
+      case 'italic':
+        handleFormattingHotkey('*', '*', 'italic');
+        break;
+      case 'underline':
+        handleFormattingHotkey('__', '__', 'underline');
+        break;
+      case 'strike':
+        handleFormattingHotkey('~~', '~~', 'strikethrough');
+        break;
+      case 'spoiler':
+        handleFormattingHotkey('||', '||', 'spoiler');
+        break;
+      case 'quote':
+        handleFormattingHotkey('> ', '', 'quote');
+        break;
+      case 'code':
+        handleFormattingHotkey('`', '`', 'code');
+        break;
+      case 'link':
+        if (linkUrl) {
+          handleFormattingHotkey('[', `](${linkUrl})`, 'link');
+        }
+        break;
+    }
+    setFloatingToolbarPos(null);
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const pastedText = e.clipboardData.getData('text');
+    if (pastedText) {
+      const snippet = detectCodeSnippet(pastedText);
+      if (snippet.isCode) {
+        setDetectedSnippet(snippet);
+      }
+    }
+  };
+
+  const handleFormatSnippetAsMarkdown = () => {
+    if (!detectedSnippet) return;
+    const lang = detectedSnippet.language || '';
+    const formatted = `\`\`\`${lang}\n${detectedSnippet.rawCode}\n\`\`\``;
+
+    if (content.includes(detectedSnippet.rawCode)) {
+      setContent((prev) => prev.replace(detectedSnippet.rawCode, formatted).slice(0, MAX_CHARS));
+    } else {
+      setContent((prev) => (prev ? `${prev}\n${formatted}` : formatted).slice(0, MAX_CHARS));
+    }
+    setDetectedSnippet(null);
+    requestAnimationFrame(() => textareaRef.current?.focus());
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const el = textareaRef.current;
+
+    // Auto-Wrap Brackets & Quotes on selection
+    if (
+      el &&
+      el.selectionStart !== null &&
+      el.selectionEnd !== null &&
+      el.selectionStart !== el.selectionEnd
+    ) {
+      const pair = WRAP_PAIRS[e.key];
+      if (pair && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        handleFormattingHotkey(pair[0], pair[1]);
+        return;
+      }
+    }
+
+    const isCmdOrCtrl = e.ctrlKey || e.metaKey;
+
+    if (isCmdOrCtrl) {
+      const key = e.key.toLowerCase();
+      if (key === 'b' && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        handleFormattingHotkey('**', '**', 'bold');
+        return;
+      }
+      if (key === 'i' && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        handleFormattingHotkey('*', '*', 'italic');
+        return;
+      }
+      if (key === 'u' && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        handleFormattingHotkey('__', '__', 'underline');
+        return;
+      }
+      if (e.shiftKey && key === 'x') {
+        e.preventDefault();
+        handleFormattingHotkey('~~', '~~', 'strikethrough');
+        return;
+      }
+      if ((e.shiftKey && key === 'c') || (e.altKey && key === 'c')) {
+        e.preventDefault();
+        handleFormattingHotkey('```\n', '\n```', 'code');
+        return;
+      }
+      if (key === 'k' && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        const start = el?.selectionStart ?? 0;
+        const end = el?.selectionEnd ?? 0;
+        const selected = content.slice(start, end);
+        if (selected.startsWith('http://') || selected.startsWith('https://')) {
+          handleFormattingHotkey('[link](', ')', '');
+        } else {
+          handleFormattingHotkey('[', '](https://)', selected ? '' : 'text');
+        }
+        return;
+      }
+    }
+  };
+
   const modalContent = (
     <div
       className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fadeIn"
@@ -96,7 +294,35 @@ export function EditPostModal({
           >
             Cancel
           </button>
-          <h3 className="text-base font-bold text-white">Edit information</h3>
+          <div className="flex items-center gap-3">
+            <h3 className="text-base font-bold text-white">Edit information</h3>
+            <div className="flex items-center gap-0.5 bg-white/5 p-0.5 rounded-lg border border-white/10">
+              <button
+                type="button"
+                onClick={() => setActiveTab('write')}
+                className={`flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+                  activeTab === 'write'
+                    ? 'bg-purple-600/70 text-white shadow-sm'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <Edit3 size={11} />
+                <span>Write</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('preview')}
+                className={`flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+                  activeTab === 'preview'
+                    ? 'bg-purple-600/70 text-white shadow-sm'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <Eye size={11} />
+                <span>Preview</span>
+              </button>
+            </div>
+          </div>
           <button
             type="button"
             disabled={isSaving}
@@ -106,6 +332,19 @@ export function EditPostModal({
             {isSaving ? 'Saving...' : 'Done'}
           </button>
         </div>
+
+        {detectedSnippet && activeTab === 'write' && (
+          <div className="pt-2 px-4">
+            <SmartCodePasteBanner
+              snippet={detectedSnippet}
+              onFormatMarkdown={handleFormatSnippetAsMarkdown}
+              onAttachAsFile={() => {
+                handleFormatSnippetAsMarkdown();
+              }}
+              onDismiss={() => setDetectedSnippet(null)}
+            />
+          </div>
+        )}
 
         {/* Body */}
         <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
@@ -136,17 +375,33 @@ export function EditPostModal({
               </div>
             </div>
 
-            {/* Text input area */}
+            {/* Text input / Preview area */}
             <div className="flex-1 flex flex-col min-h-[160px]">
-              <textarea
-                value={content}
-                onChange={(e) => setContent(e.target.value.slice(0, MAX_CHARS))}
-                placeholder="Write a caption..."
-                maxLength={MAX_CHARS}
-                rows={6}
-                className="w-full flex-1 bg-transparent text-gray-100 placeholder-gray-500 text-sm focus:outline-none resize-none leading-relaxed"
-                autoFocus
-              />
+              {activeTab === 'write' ? (
+                <textarea
+                  ref={textareaRef}
+                  value={content}
+                  onChange={(e) => setContent(e.target.value.slice(0, MAX_CHARS))}
+                  onKeyDown={handleKeyDown}
+                  onPaste={handlePaste}
+                  onSelect={updateSelectionToolbar}
+                  onKeyUp={updateSelectionToolbar}
+                  onMouseUp={updateSelectionToolbar}
+                  placeholder="Write a caption... (Markdown, LaTeX & Code supported)"
+                  maxLength={MAX_CHARS}
+                  rows={6}
+                  className="w-full flex-1 bg-transparent text-gray-100 placeholder-gray-500 text-sm focus:outline-none resize-none leading-relaxed"
+                  autoFocus
+                />
+              ) : (
+                <div className="flex-1 p-3 rounded-2xl bg-white/[0.02] border border-white/5 text-gray-200 text-sm leading-relaxed overflow-y-auto custom-scrollbar">
+                  {content.trim() ? (
+                    <MarkdownContent content={content} />
+                  ) : (
+                    <p className="text-gray-500 italic text-sm">Nothing to preview.</p>
+                  )}
+                </div>
+              )}
 
               {/* Bottom footer inside editor */}
               <div className="flex items-center justify-between pt-3 border-t border-white/5 mt-2">
@@ -172,6 +427,14 @@ export function EditPostModal({
           </div>
         </div>
       </div>
+
+      {floatingToolbarPos && activeTab === 'write' && (
+        <FloatingSelectionToolbar
+          position={floatingToolbarPos}
+          onFormat={handleSelectionFormat}
+          onClose={() => setFloatingToolbarPos(null)}
+        />
+      )}
     </div>
   );
 

@@ -12,6 +12,7 @@ import { useAuthStore } from '@/shared/model/useAuthStore';
 import { MiniProfileHoverCard } from '@/entities/profile/ui/MiniProfileHoverCard';
 import { FollowButton } from '@/features/follow/ui/FollowButton';
 import Avatar from '@/shared/ui/Avatar';
+import StoryAvatar from '@/shared/ui/StoryAvatar';
 import { VerifiedCheckmark } from '@/entities/profile/ui/VerifiedCheckmark';
 import { chatApi } from '@/features/chat/api/chatApi';
 import type { ParticipantView } from '@/entities/chat/model/types';
@@ -120,11 +121,17 @@ export function OnlineFriendsSidebar() {
           }`}
         >
           <div className="flex items-center gap-2.5 min-w-0">
-            {/* Avatar with Status Dot */}
+            {/* Story Avatar with Status Dot */}
             <div className="relative shrink-0">
-              <Avatar src={friend.avatar} alt={displayName} size="sm" />
+              <StoryAvatar
+                src={friend.avatar}
+                alt={displayName}
+                userId={friend.id}
+                username={friend.username}
+                size="sm"
+              />
               <span
-                className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full ring-2 ring-[#070709] ${
+                className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full ring-2 ring-[#070709] pointer-events-none ${
                   isOnline ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)]' : 'bg-gray-500'
                 }`}
               />

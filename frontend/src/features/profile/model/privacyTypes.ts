@@ -24,6 +24,7 @@ export interface PrivacyVisibilitySettings {
   birthday: Visibility;
   bio: Visibility;
   groupInvites: Visibility;
+  themeProposals: Visibility;
 }
 
 export interface PrivacySettings extends PrivacyVisibilitySettings {
@@ -61,4 +62,5 @@ export const DIMENSION_TO_KEY: Record<PrivacyDimension, keyof PrivacyVisibilityS
   BIRTHDAY: 'birthday',
   BIO: 'bio',
   GROUP_INVITES: 'groupInvites',
+  THEME_PROPOSALS: 'themeProposals',
 };

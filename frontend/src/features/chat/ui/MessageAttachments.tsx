@@ -12,6 +12,7 @@ interface MessageAttachmentsProps {
   senderName?: string;
   sentAt?: string;
   conversationId?: string;
+  statusIcon?: React.ReactNode;
 }
 
 export default function MessageAttachments({
@@ -20,6 +21,7 @@ export default function MessageAttachments({
   senderName,
   sentAt,
   conversationId,
+  statusIcon,
 }: MessageAttachmentsProps) {
   if (attachments.length === 0) return null;
 
@@ -74,6 +76,7 @@ export default function MessageAttachments({
           senderName={senderName}
           sentAt={sentAt}
           conversationId={conversationId}
+          statusIcon={statusIcon}
         />
       ))}
 

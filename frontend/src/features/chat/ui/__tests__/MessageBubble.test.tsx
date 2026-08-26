@@ -135,4 +135,100 @@ describe('MessageBubble', () => {
     const messageContainer = screen.getByText('Hello from the other side').closest('.group');
     expect(messageContainer).toBeTruthy();
   });
+
+  it('renders reaction badges and toggles reaction on click', () => {
+    const onReact = vi.fn();
+    const onUnreact = vi.fn();
+
+    const reactedMessage: MessageView = {
+      ...mockMessage,
+      id: 'msg-with-reactions',
+      reactions: [
+        {
+          emoji: '🔥',
+          count: 3,
+          selfReacted: false,
+          users: [{ id: 'usr-2', username: 'bob', displayName: 'Bob', avatar: null }],
+        },
+      ],
+    };
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MessageBubble
+          message={reactedMessage}
+          isOwnMessage={false}
+          showAvatar={true}
+          isReadByOther={true}
+          currentUserId="me"
+          onReply={vi.fn()}
+          onEdit={vi.fn()}
+          onDelete={vi.fn()}
+          onForward={vi.fn()}
+          onTogglePin={vi.fn()}
+          onReport={vi.fn()}
+          onReact={onReact}
+          onUnreact={onUnreact}
+        />
+      </QueryClientProvider>,
+    );
+
+    expect(screen.getByText('🔥')).toBeInTheDocument();
+    expect(screen.getByText('3')).toBeInTheDocument();
+
+    const badgeButton = screen.getByText('🔥').closest('button')!;
+    badgeButton.click();
+
+    expect(onReact).toHaveBeenCalledWith('msg-with-reactions', '🔥');
+  });
+
+  it('renders quoted reply message preview with sender name and jump handler', () => {
+    const onJumpToMessage = vi.fn();
+    const replyMessage: MessageView = {
+      ...mockMessage,
+      id: 'msg-reply',
+      body: 'yoyoyo',
+      replyTo: {
+        ...mockMessage,
+        id: 'msg-original',
+        body: 'Original message text',
+        sender: {
+          id: 'usr-orig',
+          username: 'doxer',
+          displayName: 'Misha Doxer',
+          avatar: null,
+        },
+      },
+    };
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MessageBubble
+          message={replyMessage}
+          isOwnMessage={true}
+          showAvatar={false}
+          isReadByOther={true}
+          currentUserId="usr-1"
+          onReply={vi.fn()}
+          onEdit={vi.fn()}
+          onDelete={vi.fn()}
+          onForward={vi.fn()}
+          onTogglePin={vi.fn()}
+          onReport={vi.fn()}
+          onReact={vi.fn()}
+          onUnreact={vi.fn()}
+          onJumpToMessage={onJumpToMessage}
+        />
+      </QueryClientProvider>,
+    );
+
+    expect(screen.getByText('Misha Doxer')).toBeInTheDocument();
+    expect(screen.getByText('Original message text')).toBeInTheDocument();
+    expect(screen.getByText('yoyoyo')).toBeInTheDocument();
+
+    const replyBox = screen.getByText('Misha Doxer').closest('.group\\/reply');
+    expect(replyBox).toBeInTheDocument();
+    replyBox?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(onJumpToMessage).toHaveBeenCalledWith('msg-original');
+  });
 });

@@ -5,6 +5,7 @@ export const userSnapshot = {
   username: true,
   displayName: true,
   avatar: true,
+  defaultChatTheme: true,
 } satisfies Prisma.UserSelect;
 
 export const attachmentFields = {

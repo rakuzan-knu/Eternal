@@ -297,10 +297,14 @@ export default function ChatFolderModal({
                           className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors hover:bg-white/[0.06]"
                         >
                           {conversation.type === 'GROUP' ? (
-                            <GroupAvatarCollage
-                              avatars={conversation.participants.map((p) => p.user.avatar)}
-                              size={40}
-                            />
+                            display.avatar ? (
+                              <Avatar size="md" src={display.avatar} />
+                            ) : (
+                              <GroupAvatarCollage
+                                avatars={conversation.participants.map((p) => p.user.avatar)}
+                                size={40}
+                              />
+                            )
                           ) : (
                             <Avatar size="md" src={display.avatar} />
                           )}

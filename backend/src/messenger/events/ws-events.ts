@@ -34,6 +34,10 @@ export const WS_EVENTS = {
 
   CONVERSATION_UPDATED: 'conversationUpdated',
   CONVERSATION_DELETED: 'conversationDeleted',
+  CONVERSATION_SHARED_THEME_UPDATED: 'conversationSharedThemeUpdated',
+  CONVERSATION_SHARED_THEME_UNLINKED: 'conversationSharedThemeUnlinked',
+  THEME_PROPOSAL_CREATED: 'themeProposalCreated',
+  THEME_PROPOSAL_RESPONDED: 'themeProposalResponded',
   MESSAGES_CLEARED: 'messagesCleared',
   PARTICIPANT_ADDED: 'participantAdded',
   PARTICIPANT_LEFT: 'participantLeft',

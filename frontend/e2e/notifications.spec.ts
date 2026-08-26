@@ -4,7 +4,7 @@ test.describe('Notifications (authenticated, mocked API)', () => {
   test('renders the notifications page', async ({ authenticatedPage: page }) => {
     await page.goto('/notifications');
 
-    await expect(page.getByRole('heading', { name: /notifications/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Notifications', exact: true })).toBeVisible();
     await expect(page).toHaveURL(/\/notifications$/);
   });
 
@@ -16,7 +16,7 @@ test.describe('Notifications (authenticated, mocked API)', () => {
     await page.getByRole('link', { name: 'Notifications', exact: true }).first().click();
 
     await expect(page).toHaveURL(/\/notifications$/);
-    await expect(page.getByRole('heading', { name: /notifications/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Notifications', exact: true })).toBeVisible();
   });
 
   test('keeps the sidebar notifications link in sync with the current route', async ({

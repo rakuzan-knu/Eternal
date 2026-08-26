@@ -15,6 +15,12 @@ import { useChatDraftsStore } from '../model/useChatDraftsStore';
 import { useMediaRecorderGesture, RecordedPayload } from '../model/useMediaRecorderGesture';
 import VoiceRecorderBar from './VoiceRecorderBar';
 import VideoNoteRecorderCircle from './VideoNoteRecorderCircle';
+import SmartCodePasteBanner from './SmartCodePasteBanner';
+import FloatingSelectionToolbar, { SelectionFormatType } from './FloatingSelectionToolbar';
+import { detectCodeSnippet, DetectedCodeSnippet } from '../lib/smartCodeDetection';
+import { extractFirstUrl } from '@/shared/lib/urlUtils';
+import { useLinkPreview } from '@/entities/opengraph/model/useLinkPreview';
+import { LinkPreviewBanner } from './LinkPreviewBanner';
 
 export interface ChatPermissions {
   canSendMedia?: boolean;
@@ -76,8 +82,34 @@ export default function MessageComposer({
   const [recordingError, setRecordingError] = useState<string | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [slowModeSecondsRemaining, setSlowModeSecondsRemaining] = useState<number>(0);
+  const [debouncedUrl, setDebouncedUrl] = useState<string | null>(null);
+  const [dismissedUrls, setDismissedUrls] = useState<Set<string>>(() => new Set());
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const firstUrl = extractFirstUrl(text);
+    const handler = setTimeout(() => {
+      setDebouncedUrl(firstUrl);
+    }, 500);
+
+    return () => clearTimeout(handler);
+  }, [text]);
+
+  const isEmbedDismissed = Boolean(
+    (debouncedUrl && dismissedUrls.has(debouncedUrl)) ||
+    (extractFirstUrl(text) && dismissedUrls.has(extractFirstUrl(text)!)),
+  );
+  const activePreviewUrl = !isEmbedDismissed ? debouncedUrl : null;
+  const { data: linkPreviewData } = useLinkPreview(activePreviewUrl);
+
+  const handleDismissLinkPreview = () => {
+    const currentUrl = extractFirstUrl(text);
+    const target = debouncedUrl || currentUrl;
+    if (target) {
+      setDismissedUrls((prev) => new Set([...prev, target]));
+    }
+  };
 
   useEffect(() => {
     if (slowModeSecondsRemaining <= 0) return;
@@ -323,7 +355,212 @@ export default function MessageComposer({
     }
   };
 
+  const [detectedSnippet, setDetectedSnippet] = useState<DetectedCodeSnippet | null>(null);
+  const [floatingToolbarPos, setFloatingToolbarPos] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
+
+  const updateSelectionToolbar = () => {
+    const el = textareaRef.current;
+    if (!el) {
+      setFloatingToolbarPos(null);
+      return;
+    }
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    if (
+      start !== null &&
+      end !== null &&
+      start !== end &&
+      el.value.slice(start, end).trim().length > 0
+    ) {
+      const rect = el.getBoundingClientRect();
+      setFloatingToolbarPos({
+        top: rect.top - 46,
+        left: rect.left + rect.width / 2,
+      });
+    } else {
+      setFloatingToolbarPos(null);
+    }
+  };
+
+  const handleSelectionFormat = (type: SelectionFormatType, linkUrl?: string) => {
+    switch (type) {
+      case 'bold':
+        handleFormattingHotkey('**', '**', 'bold');
+        break;
+      case 'italic':
+        handleFormattingHotkey('*', '*', 'italic');
+        break;
+      case 'underline':
+        handleFormattingHotkey('__', '__', 'underline');
+        break;
+      case 'strike':
+        handleFormattingHotkey('~~', '~~', 'strikethrough');
+        break;
+      case 'spoiler':
+        handleFormattingHotkey('||', '||', 'spoiler');
+        break;
+      case 'quote':
+        handleFormattingHotkey('> ', '', 'quote');
+        break;
+      case 'code':
+        handleFormattingHotkey('`', '`', 'code');
+        break;
+      case 'link':
+        if (linkUrl) {
+          handleFormattingHotkey('[', `](${linkUrl})`, 'link');
+        }
+        break;
+    }
+    setFloatingToolbarPos(null);
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const pastedText = e.clipboardData.getData('text');
+    if (pastedText) {
+      const snippet = detectCodeSnippet(pastedText);
+      if (snippet.isCode) {
+        setDetectedSnippet(snippet);
+      }
+    }
+  };
+
+  const handleFormatSnippetAsMarkdown = () => {
+    if (!detectedSnippet) return;
+    const lang = detectedSnippet.language || '';
+    const formatted = `\`\`\`${lang}\n${detectedSnippet.rawCode}\n\`\`\``;
+
+    if (text.includes(detectedSnippet.rawCode)) {
+      handleTextChange(text.replace(detectedSnippet.rawCode, formatted));
+    } else {
+      handleTextChange(text ? `${text}\n${formatted}` : formatted);
+    }
+    setDetectedSnippet(null);
+    requestAnimationFrame(() => textareaRef.current?.focus());
+  };
+
+  const handleAttachSnippetAsFile = () => {
+    if (!detectedSnippet) return;
+    const extension = detectedSnippet.extension || 'txt';
+    const file = new File([detectedSnippet.rawCode], `snippet.${extension}`, {
+      type: 'text/plain;charset=utf-8',
+    });
+    onAddFiles([file]);
+
+    if (text.includes(detectedSnippet.rawCode)) {
+      handleTextChange(text.replace(detectedSnippet.rawCode, '').trim());
+    } else if (text.trim() === detectedSnippet.rawCode.trim()) {
+      handleTextChange('');
+    }
+    setDetectedSnippet(null);
+    requestAnimationFrame(() => textareaRef.current?.focus());
+  };
+
+  const handleFormattingHotkey = (prefix: string, suffix: string, defaultPlaceholder = '') => {
+    const el = textareaRef.current;
+    if (!el) return;
+
+    const start = el.selectionStart ?? 0;
+    const end = el.selectionEnd ?? 0;
+    const selected = text.slice(start, end);
+    const content = selected || defaultPlaceholder;
+    const replacement = `${prefix}${content}${suffix}`;
+    const nextText = text.slice(0, start) + replacement + text.slice(end);
+
+    handleTextChange(nextText);
+
+    requestAnimationFrame(() => {
+      el.focus();
+      if (selected) {
+        el.setSelectionRange(start + prefix.length, start + prefix.length + content.length);
+      } else {
+        el.setSelectionRange(
+          start + prefix.length,
+          start + prefix.length + defaultPlaceholder.length,
+        );
+      }
+    });
+  };
+
+  const WRAP_PAIRS: Record<string, [string, string]> = {
+    '"': ['"', '"'],
+    "'": ["'", "'"],
+    '`': ['`', '`'],
+    '(': ['(', ')'],
+    '[': ['[', ']'],
+    '{': ['{', '}'],
+    '<': ['<', '>'],
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const el = textareaRef.current;
+
+    // Auto-Wrap Brackets & Quotes on selection
+    if (
+      el &&
+      el.selectionStart !== null &&
+      el.selectionEnd !== null &&
+      el.selectionStart !== el.selectionEnd
+    ) {
+      const pair = WRAP_PAIRS[e.key];
+      if (pair && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        handleFormattingHotkey(pair[0], pair[1]);
+        return;
+      }
+    }
+
+    const isCmdOrCtrl = e.ctrlKey || e.metaKey;
+
+    if (isCmdOrCtrl) {
+      const key = e.key.toLowerCase();
+      // Ctrl+B / Cmd+B -> Bold
+      if (key === 'b' && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        handleFormattingHotkey('**', '**', 'bold');
+        return;
+      }
+      // Ctrl+I / Cmd+I -> Italic
+      if (key === 'i' && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        handleFormattingHotkey('*', '*', 'italic');
+        return;
+      }
+      // Ctrl+U / Cmd+U -> Underline
+      if (key === 'u' && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        handleFormattingHotkey('__', '__', 'underline');
+        return;
+      }
+      // Ctrl+Shift+X / Cmd+Shift+X -> Strikethrough
+      if (e.shiftKey && key === 'x') {
+        e.preventDefault();
+        handleFormattingHotkey('~~', '~~', 'strikethrough');
+        return;
+      }
+      // Ctrl+Shift+C / Ctrl+Alt+C / Cmd+Shift+C -> Code Block
+      if ((e.shiftKey && key === 'c') || (e.altKey && key === 'c')) {
+        e.preventDefault();
+        handleFormattingHotkey('```\n', '\n```', 'code');
+        return;
+      }
+      // Ctrl+K / Cmd+K -> Link [text](url)
+      if (key === 'k' && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        const start = el?.selectionStart ?? 0;
+        const end = el?.selectionEnd ?? 0;
+        const selected = text.slice(start, end);
+        if (selected.startsWith('http://') || selected.startsWith('https://')) {
+          handleFormattingHotkey('[link](', ')', '');
+        } else {
+          handleFormattingHotkey('[', '](https://)', selected ? '' : 'text');
+        }
+        return;
+      }
+    }
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (hasContent) {
@@ -396,6 +633,21 @@ export default function MessageComposer({
         <div className="mx-4 mb-2 px-3 py-2 rounded-xl bg-red-500/10 border border-red-400/20 text-xs text-red-300 animate-fadeIn">
           {stagedFilesError}
         </div>
+      )}
+
+      {/* Live Link Preview Banner (Dismissable with X) */}
+      {linkPreviewData && !isEmbedDismissed && (
+        <LinkPreviewBanner data={linkPreviewData} onDismiss={handleDismissLinkPreview} />
+      )}
+
+      {/* Smart Code Snippet Paste Detection Banner */}
+      {detectedSnippet && (
+        <SmartCodePasteBanner
+          snippet={detectedSnippet}
+          onFormatMarkdown={handleFormatSnippetAsMarkdown}
+          onAttachAsFile={handleAttachSnippetAsFile}
+          onDismiss={() => setDetectedSnippet(null)}
+        />
       )}
 
       {/* Compact Attachment Preview Bar */}
@@ -479,6 +731,10 @@ export default function MessageComposer({
             value={text}
             onChange={(e) => handleTextChange(e.target.value)}
             onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
+            onSelect={updateSelectionToolbar}
+            onKeyUp={updateSelectionToolbar}
+            onMouseUp={updateSelectionToolbar}
             placeholder={
               slowModeSecondsRemaining > 0
                 ? `Slow mode is active (${slowModeSecondsRemaining}s)`
@@ -646,6 +902,14 @@ export default function MessageComposer({
             onReplaceFile(editingIndex, editedFile, isSpoiler);
             setEditingIndex(null);
           }}
+        />
+      )}
+
+      {floatingToolbarPos && (
+        <FloatingSelectionToolbar
+          position={floatingToolbarPos}
+          onFormat={handleSelectionFormat}
+          onClose={() => setFloatingToolbarPos(null)}
         />
       )}
     </div>

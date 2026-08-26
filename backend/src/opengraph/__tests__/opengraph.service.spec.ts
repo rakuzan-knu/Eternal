@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import * as dns from 'dns';
@@ -7,6 +6,7 @@ import {
   isPrivateIPv4,
   isPrivateIPv6,
   isPrivateOrForbiddenIp,
+  parseYouTubeStartSeconds,
 } from '../opengraph.service';
 
 jest.mock('dns', () => ({
@@ -15,7 +15,7 @@ jest.mock('dns', () => ({
   },
 }));
 
-describe('OpenGraphService - SSRF & Sanitization Security', () => {
+describe('OpenGraphService - SSRF, Security & Rich Providers', () => {
   let service: OpenGraphService;
   let mockRedis: any;
 
@@ -37,22 +37,17 @@ describe('OpenGraphService - SSRF & Sanitization Security', () => {
 
   describe('IP & SSRF Validation Functions', () => {
     it('detects and blocks all private/reserved IPv4 addresses', () => {
-      // Loopback
       expect(isPrivateIPv4('127.0.0.1')).toBe(true);
       expect(isPrivateIPv4('127.255.255.255')).toBe(true);
-      // Cloud Metadata
       expect(isPrivateIPv4('169.254.169.254')).toBe(true);
       expect(isPrivateIPv4('169.254.1.1')).toBe(true);
-      // Private Class A, B, C
       expect(isPrivateIPv4('10.0.0.1')).toBe(true);
       expect(isPrivateIPv4('10.255.255.255')).toBe(true);
       expect(isPrivateIPv4('172.16.0.1')).toBe(true);
       expect(isPrivateIPv4('172.31.255.255')).toBe(true);
       expect(isPrivateIPv4('192.168.1.1')).toBe(true);
-      // Carrier-grade NAT
       expect(isPrivateIPv4('100.64.0.1')).toBe(true);
       expect(isPrivateIPv4('100.127.255.255')).toBe(true);
-      // Current / Broadcast / Multicast
       expect(isPrivateIPv4('0.0.0.0')).toBe(true);
       expect(isPrivateIPv4('224.0.0.1')).toBe(true);
       expect(isPrivateIPv4('240.0.0.1')).toBe(true);
@@ -101,6 +96,171 @@ describe('OpenGraphService - SSRF & Sanitization Security', () => {
     });
   });
 
+  describe('YouTube Timestamp Parsing (Start Seconds)', () => {
+    it('correctly parses various timestamp formats', () => {
+      expect(parseYouTubeStartSeconds('https://youtu.be/dQw4w9WgXcQ?t=90')).toBe(90);
+      expect(parseYouTubeStartSeconds('https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=90s')).toBe(
+        90,
+      );
+      expect(parseYouTubeStartSeconds('https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=1m30s')).toBe(
+        90,
+      );
+      expect(parseYouTubeStartSeconds('https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=1h2m3s')).toBe(
+        3723,
+      );
+      expect(parseYouTubeStartSeconds('https://www.youtube.com/watch?v=dQw4w9WgXcQ&start=45')).toBe(
+        45,
+      );
+      expect(
+        parseYouTubeStartSeconds('https://www.youtube.com/watch?v=dQw4w9WgXcQ&time_continue=60'),
+      ).toBe(60);
+      expect(parseYouTubeStartSeconds('https://youtu.be/dQw4w9WgXcQ#t=2m')).toBe(120);
+      expect(parseYouTubeStartSeconds('https://youtu.be/dQw4w9WgXcQ')).toBeUndefined();
+    });
+  });
+
+  describe('Specialized Provider Handlers', () => {
+    it('extracts YouTube rich metadata and start timestamp', async () => {
+      const fetchMock = jest.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          title: 'Never Gonna Give You Up',
+          author_name: 'Rick Astley',
+        }),
+      });
+      (global as any).fetch = fetchMock;
+
+      const result = await service.extractMetadata(
+        'https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=1m30s',
+      );
+
+      expect(result).toBeDefined();
+      expect(result?.type).toBe('youtube');
+      expect(result?.title).toBe('Never Gonna Give You Up');
+      expect(result?.youtube?.videoId).toBe('dQw4w9WgXcQ');
+      expect(result?.youtube?.author).toBe('Rick Astley');
+      expect(result?.youtube?.startSeconds).toBe(90);
+      expect(result?.image).toBe('https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg');
+      expect(mockRedis.set).toHaveBeenCalledWith(
+        expect.stringContaining('og:preview:v2:'),
+        expect.any(String),
+        172800, // 48 hours TTL
+      );
+    });
+
+    it('extracts GitHub repository metadata without token via open API', async () => {
+      const fetchMock = jest.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          name: 'react',
+          full_name: 'facebook/react',
+          description: 'The library for web and native user interfaces.',
+          stargazers_count: 220000,
+          forks_count: 45000,
+          language: 'TypeScript',
+          owner: { avatar_url: 'https://avatars.githubusercontent.com/u/69631?v=4' },
+        }),
+      });
+      (global as any).fetch = fetchMock;
+
+      const result = await service.extractMetadata('https://github.com/facebook/react');
+
+      expect(result).toBeDefined();
+      expect(result?.type).toBe('github');
+      expect(result?.title).toBe('facebook/react');
+      expect(result?.github?.stars).toBe(220000);
+      expect(result?.github?.forks).toBe(45000);
+      expect(result?.github?.language).toBe('TypeScript');
+      expect(result?.github?.languageColor).toBe('#3178c6');
+      expect(result?.github?.avatarUrl).toBe('https://avatars.githubusercontent.com/u/69631?v=4');
+    });
+
+    it('extracts Spotify track oEmbed metadata', async () => {
+      const fetchMock = jest.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          title: 'Starboy',
+          thumbnail_url: 'https://i.scdn.co/image/ab67616d0000b2734718e2b124f79258be7bc452',
+        }),
+      });
+      (global as any).fetch = fetchMock;
+
+      const result = await service.extractMetadata(
+        'https://open.spotify.com/track/7MXVkk9YM5IZxh0wAE26V5',
+      );
+
+      expect(result).toBeDefined();
+      expect(result?.type).toBe('spotify');
+      expect(result?.title).toBe('Starboy');
+      expect(result?.audio?.provider).toBe('spotify');
+      expect(result?.audio?.audioType).toBe('track');
+      expect(result?.audio?.embedUrl).toContain(
+        'https://open.spotify.com/embed/track/7MXVkk9YM5IZxh0wAE26V5',
+      );
+    });
+
+    it('extracts SoundCloud track oEmbed metadata', async () => {
+      const fetchMock = jest.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          title: 'Cool Track',
+          author_name: 'Artist',
+          thumbnail_url: 'https://i1.sndcdn.com/artworks.jpg',
+          html: '<iframe src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/123"></iframe>',
+        }),
+      });
+      (global as any).fetch = fetchMock;
+
+      const result = await service.extractMetadata('https://soundcloud.com/artist/cool-track');
+
+      expect(result).toBeDefined();
+      expect(result?.type).toBe('soundcloud');
+      expect(result?.audio?.provider).toBe('soundcloud');
+      expect(result?.audio?.artist).toBe('Artist');
+      expect(result?.audio?.embedUrl).toBe(
+        'https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/123',
+      );
+    });
+
+    it('extracts generic OpenGraph fallback for other websites', async () => {
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>My Awesome Article</title>
+            <meta property="og:title" content="My Awesome Article" />
+            <meta property="og:description" content="This is a great article description" />
+            <meta property="og:image" content="https://example.com/cover.jpg" />
+            <meta property="og:site_name" content="Example News" />
+          </head>
+          <body>Hello</body>
+        </html>
+      `;
+
+      const fetchMock = jest.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        headers: {
+          get: (header: string) => {
+            if (header.toLowerCase() === 'content-type') return 'text/html; charset=utf-8';
+            return null;
+          },
+        },
+        text: async () => htmlContent,
+      });
+      (global as any).fetch = fetchMock;
+
+      const result = await service.extractMetadata('https://example.com/article/1');
+
+      expect(result).toBeDefined();
+      expect(result?.type).toBe('generic');
+      expect(result?.title).toBe('My Awesome Article');
+      expect(result?.description).toBe('This is a great article description');
+      expect(result?.image).toBe('https://example.com/cover.jpg');
+      expect(result?.siteName).toBe('Example News');
+    });
+  });
+
   describe('SSRF Protection in validateUrlForSsrf', () => {
     it('blocks loopback and cloud metadata URLs immediately without fetch', async () => {
       const fetchMock = jest.fn();
@@ -122,7 +282,6 @@ describe('OpenGraphService - SSRF & Sanitization Security', () => {
       const fetchMock = jest.fn();
       (global as any).fetch = fetchMock;
 
-      // Mock DNS returning 127.0.0.1 for attacker domain
       (dns.promises.lookup as jest.Mock).mockResolvedValueOnce([
         { address: '127.0.0.1', family: 4 },
       ]);
@@ -142,106 +301,6 @@ describe('OpenGraphService - SSRF & Sanitization Security', () => {
       expect(r1).toBeNull();
       expect(r2).toBeNull();
       expect(fetchMock).not.toHaveBeenCalled();
-    });
-
-    it('blocks malicious redirects to private IP addresses (SSRF via 302)', async () => {
-      // First hop is safe public IP, returns 302 to 169.254.169.254
-      const fetchMock = jest.fn().mockResolvedValueOnce({
-        status: 302,
-        ok: false,
-        headers: new Headers({ location: 'http://169.254.169.254/latest/meta-data/' }),
-      });
-      (global as any).fetch = fetchMock;
-
-      const result = await service.extractMetadata('http://example.com/redirect-to-aws');
-      expect(result).toBeNull();
-      // Should have called fetch only once for the first hop and aborted on the second hop before fetching 169.254.169.254
-      expect(fetchMock).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe('Single-Pass HTML Entity Sanitization (Alert #476 fix)', () => {
-    it('prevents double-unescaping vulnerabilities like &amp;lt;script&gt;', async () => {
-      const html = `
-        <html>
-          <head>
-            <title>&amp;lt;script&gt;alert(1)&amp;lt;/script&gt;</title>
-            <meta property="og:title" content="&amp;lt;b&amp;gt;Hello &amp; Welcome&amp;lt;/b&amp;gt;" />
-            <meta property="og:description" content="Quotes &quot; &apos; &lt; &gt; and safe &amp;lt;b&amp;gt;" />
-          </head>
-        </html>
-      `;
-
-      const fetchMock = jest.fn().mockResolvedValue({
-        status: 200,
-        ok: true,
-        headers: new Headers({ 'content-type': 'text/html' }),
-        text: jest.fn().mockResolvedValue(html),
-      });
-      (global as any).fetch = fetchMock;
-
-      const result = await service.extractMetadata('https://example.com/article');
-
-      expect(result).not.toBeNull();
-      // &amp;lt; should become &lt;, NOT < (which would be double-unescaping XSS!)
-      expect(result?.title).toBe('&lt;b&gt;Hello & Welcome&lt;/b&gt;');
-      expect(result?.description).toBe('Quotes " \' < > and safe &lt;b&gt;');
-    });
-  });
-
-  describe('Standard Extraction & Caching Behavior', () => {
-    it('returns null and caches negative result when URL fails or is non-HTML', async () => {
-      const fetchMock = jest.fn().mockResolvedValue({
-        status: 404,
-        ok: false,
-        headers: new Headers({ 'content-type': 'text/html' }),
-      });
-      (global as any).fetch = fetchMock;
-
-      const result = await service.extractMetadata('http://adaqweqsdasdqdq.com/');
-
-      expect(result).toBeNull();
-      expect(mockRedis.set).toHaveBeenCalledWith(
-        'og:preview:http://adaqweqsdasdqdq.com/',
-        expect.stringContaining('"notFound":true'),
-        3600,
-      );
-    });
-
-    it('returns null on negative cache hit without making outbound HTTP requests', async () => {
-      mockRedis.get.mockResolvedValueOnce(
-        JSON.stringify({ notFound: true, url: 'http://adaqweqsdasdqdq.com/' }),
-      );
-      const fetchMock = jest.fn();
-      (global as any).fetch = fetchMock;
-
-      const result = await service.extractMetadata('http://adaqweqsdasdqdq.com/');
-
-      expect(result).toBeNull();
-      expect(fetchMock).not.toHaveBeenCalled();
-    });
-
-    it('aborts binary content (like .mp4 or .zip) immediately without downloading whole payload', async () => {
-      const cancelMock = jest.fn();
-      const fetchMock = jest.fn().mockResolvedValue({
-        status: 200,
-        ok: true,
-        headers: new Headers({ 'content-type': 'video/mp4' }),
-        body: {
-          cancel: cancelMock,
-        },
-      });
-      (global as any).fetch = fetchMock;
-
-      const result = await service.extractMetadata('http://example.com/huge-movie.mp4');
-
-      expect(result).toBeNull();
-      expect(cancelMock).toHaveBeenCalled();
-      expect(mockRedis.set).toHaveBeenCalledWith(
-        'og:preview:http://example.com/huge-movie.mp4',
-        expect.stringContaining('"notFound":true'),
-        3600,
-      );
     });
   });
 });

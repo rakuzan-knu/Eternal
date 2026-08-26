@@ -4,9 +4,14 @@ import ChatDropzoneOverlay from '../../features/chat/ui/ChatDropzoneOverlay';
 interface AttachmentDropZoneProps {
   onFilesDropped: (files: File[]) => void;
   children: React.ReactNode;
+  className?: string;
 }
 
-export default function AttachmentDropZone({ onFilesDropped, children }: AttachmentDropZoneProps) {
+export default function AttachmentDropZone({
+  onFilesDropped,
+  children,
+  className = 'relative flex-1 flex flex-col min-h-0',
+}: AttachmentDropZoneProps) {
   const [isDragging, setIsDragging] = useState(false);
   const dragCounter = useRef(0);
 
@@ -38,7 +43,7 @@ export default function AttachmentDropZone({ onFilesDropped, children }: Attachm
 
   return (
     <div
-      className="relative flex-1 flex flex-col min-h-0"
+      className={className}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDragOver={handleDragOver}

@@ -30,6 +30,34 @@ export interface IMessagesRepository {
     hiddenUserIds?: string[];
   }): Promise<MessageWithDetails[]>;
 
+  findAroundDate(params: {
+    conversationId: string;
+    targetDate: Date;
+    requestingUserId: string;
+    limit: number;
+    hiddenUserIds?: string[];
+  }): Promise<MessageWithDetails[]>;
+
+  getActivityMap(params: {
+    conversationId: string;
+    year: number;
+    month: number;
+    timezone?: string;
+    requestingUserId: string;
+    hiddenUserIds?: string[];
+  }): Promise<
+    Record<
+      string,
+      {
+        messageCount: number;
+        previewMediaUrl?: string;
+        firstMessageSnippet?: string;
+        firstMessageId?: string;
+        mediaCount?: number;
+      }
+    >
+  >;
+
   findOne(messageId: string, requestingUserId: string): Promise<MessageWithDetails | null>;
 
   edit(messageId: string, body: string): Promise<MessageWithDetails>;

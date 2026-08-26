@@ -10,6 +10,8 @@ describe('messages-repository.interface', () => {
       create: jest.fn().mockResolvedValue({ id: 'msg-1' }),
       findMany: jest.fn().mockResolvedValue([]),
       findAround: jest.fn().mockResolvedValue([]),
+      findAroundDate: jest.fn().mockResolvedValue([]),
+      getActivityMap: jest.fn().mockResolvedValue({}),
       findOne: jest.fn().mockResolvedValue(null),
       edit: jest.fn().mockResolvedValue({ id: 'msg-1', body: 'edited' }),
       deleteForAll: jest.fn().mockResolvedValue(undefined),

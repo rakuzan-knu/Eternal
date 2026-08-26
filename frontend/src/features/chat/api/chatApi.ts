@@ -1,5 +1,6 @@
 import { apiClient as api } from '@/shared/api/httpClient';
 import {
+  ChatActivityMap,
   ConversationView,
   MessageView,
   MuteLevel,
@@ -55,10 +56,10 @@ export const chatApi = {
       .post(`/conversations/${conversationId}/transfer-ownership`, { newOwnerId })
       .then((r) => r.data),
 
-  getMessages: (conversationId: string, before?: string, limit = 20) =>
+  getMessages: (conversationId: string, before?: string, limit = 20, after?: string) =>
     api
       .get<PaginatedMessages>(`/conversations/${conversationId}/messages`, {
-        params: { before, limit },
+        params: { before, after, limit },
       })
       .then((r) => r.data),
 
@@ -66,6 +67,24 @@ export const chatApi = {
     api
       .get<PaginatedMessages>(`/conversations/${conversationId}/messages/around/${messageId}`, {
         params: { limit },
+      })
+      .then((r) => r.data),
+
+  getMessagesAroundDate: (conversationId: string, date: string, limit = 50) =>
+    api
+      .get<PaginatedMessages>(`/conversations/${conversationId}/messages/around-date`, {
+        params: { date, limit },
+      })
+      .then((r) => r.data),
+
+  getChatActivity: (conversationId: string, year: number, month: number, timezone?: string) =>
+    api
+      .get<ChatActivityMap>(`/conversations/${conversationId}/messages/activity`, {
+        params: {
+          year,
+          month,
+          timezone: timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+        },
       })
       .then((r) => r.data),
 
@@ -185,9 +204,24 @@ export const chatApi = {
       .patch(`/conversations/${conversationId}/members/${userId}/permissions`, permissions)
       .then((r) => r.data),
 
-  setTheme: (conversationId: string, theme: string) =>
-    api.patch(`/conversations/${conversationId}/theme`, { theme }).then((r) => r.data),
+  setTheme: (conversationId: string, theme: string | null, applyToAll?: boolean) =>
+    api.patch(`/conversations/${conversationId}/theme`, { theme, applyToAll }).then((r) => r.data),
 
   restrictAccount: (userId: string) =>
     api.post(`/conversations/users/${userId}/restrict`).then((r) => r.data),
+
+  proposeTheme: (conversationId: string, theme: string) =>
+    api.post(`/conversations/${conversationId}/theme/propose`, { theme }).then((r) => r.data),
+
+  respondThemeProposal: (
+    conversationId: string,
+    messageId: string,
+    action: 'ACCEPT' | 'DECLINE' | 'CANCEL',
+  ) =>
+    api
+      .post(`/conversations/${conversationId}/theme/proposal/${messageId}/respond`, { action })
+      .then((r) => r.data),
+
+  unlinkSharedTheme: (conversationId: string) =>
+    api.delete(`/conversations/${conversationId}/theme/shared`).then((r) => r.data),
 };

@@ -171,34 +171,52 @@ export class NotificationsService {
     userId: string,
     query: GetNotificationsQueryDto,
   ): Promise<PaginatedNotificationsResponseDto> {
-    const limit = query.limit || 20;
-    const types = this.mapFilterToTypes(query.type);
+    try {
+      const limit = query.limit || 20;
+      const types = this.mapFilterToTypes(query.type);
 
-    const rows = await this.repo.findMany({
-      userId,
-      types,
-      limit,
-      cursor: query.cursor,
-    });
+      const rows = await this.repo.findMany({
+        userId,
+        types,
+        limit,
+        cursor: query.cursor,
+      });
 
-    const hasMore = rows.length > limit;
-    const items = hasMore ? rows.slice(0, limit) : rows;
-    const nextCursor = hasMore && items.length > 0 ? items[items.length - 1].id : null;
+      const hasMore = rows.length > limit;
+      const items = hasMore ? rows.slice(0, limit) : rows;
+      const nextCursor = hasMore && items.length > 0 ? items[items.length - 1].id : null;
 
-    const [categoryCounts, totalUnread] = await Promise.all([
-      this.repo.countUnreadByCategory(userId),
-      this.repo.countUnread(userId),
-    ]);
+      const [categoryCounts, totalUnread] = await Promise.all([
+        this.repo.countUnreadByCategory(userId),
+        this.repo.countUnread(userId),
+      ]);
 
-    return {
-      items: items.map((r) => NotificationResponseDto.fromPrisma(r)),
-      nextCursor,
-      hasMore,
-      unreadCounts: {
-        total: totalUnread,
-        ...categoryCounts,
-      },
-    };
+      return {
+        items: items.map((r) => NotificationResponseDto.fromPrisma(r)),
+        nextCursor,
+        hasMore,
+        unreadCounts: {
+          total: totalUnread,
+          ...categoryCounts,
+        },
+      };
+    } catch (err) {
+      this.logger.error(`Failed to get notifications: ${(err as Error).message}`);
+      return {
+        items: [],
+        nextCursor: null,
+        hasMore: false,
+        unreadCounts: {
+          total: 0,
+          likes: 0,
+          comments: 0,
+          follows: 0,
+          mentions: 0,
+          reposts: 0,
+          system: 0,
+        },
+      };
+    }
   }
 
   async markAsRead(id: string, userId: string): Promise<NotificationResponseDto> {
@@ -301,15 +319,28 @@ export class NotificationsService {
   }
 
   async getUnreadCounts(userId: string): Promise<NotificationUnreadCountsDto> {
-    const [categoryCounts, total] = await Promise.all([
-      this.repo.countUnreadByCategory(userId),
-      this.repo.countUnread(userId),
-    ]);
+    try {
+      const [categoryCounts, total] = await Promise.all([
+        this.repo.countUnreadByCategory(userId),
+        this.repo.countUnread(userId),
+      ]);
 
-    return {
-      total,
-      ...categoryCounts,
-    };
+      return {
+        total,
+        ...categoryCounts,
+      };
+    } catch (err) {
+      this.logger.error(`Failed to get unread counts: ${(err as Error).message}`);
+      return {
+        total: 0,
+        likes: 0,
+        comments: 0,
+        follows: 0,
+        mentions: 0,
+        reposts: 0,
+        system: 0,
+      };
+    }
   }
 
   async getSettings(userId: string): Promise<NotificationSettingsDto> {

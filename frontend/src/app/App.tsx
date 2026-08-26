@@ -7,6 +7,7 @@ import { UndoClearHistorySnackbar } from '../features/chat/ui/UndoClearHistorySn
 import DeviceLockGate from '../features/profile/ui/security/DeviceLockGate';
 import MessageToastViewport from '../features/chat/ui/MessageToastViewport';
 import FloatingVideoNotePiP from '../features/chat/ui/FloatingVideoNotePiP';
+import ReactionBurstCanvas from '../features/chat/ui/ReactionBurstCanvas';
 
 import { useUIStore } from '../shared/model/useUIStore';
 import { useAuthStore } from '../shared/model/useAuthStore';
@@ -17,6 +18,12 @@ const ShareModal = lazy(() =>
 );
 const CommentModal = lazy(() =>
   import('../features/comment/ui/CommentModal').then((m) => ({ default: m.CommentModal })),
+);
+const StoryViewerModal = lazy(() =>
+  import('../features/stories/ui/StoryViewerModal').then((m) => ({ default: m.StoryViewerModal })),
+);
+const StoryEditorModal = lazy(() =>
+  import('../features/stories/ui/StoryEditorModal').then((m) => ({ default: m.StoryEditorModal })),
 );
 
 const FeedPage = lazy(() => import('../pages/Feed/Feed'));
@@ -44,6 +51,8 @@ const ForgotPasswordPage = lazy(() =>
 import { OnlineFriendsSidebar } from '../widgets/sidebar/ui/OnlineFriendsSidebar';
 import { usePresenceSync } from '../features/chat/model/usePresence';
 import { useDynamicTabBadge } from '../shared/lib/useDynamicTabBadge';
+import { useNotificationRealtime } from '@/entities/notification';
+import { useStoriesRealtime } from '../features/stories/model/useStoriesRealtime';
 
 function PageFallback() {
   return (
@@ -59,6 +68,10 @@ function CenteredPage({ children }: { children: React.ReactNode }) {
       <div className="w-full max-w-2xl px-4">{children}</div>
     </div>
   );
+}
+
+function ProfileLayout({ children }: { children: React.ReactNode }) {
+  return <div className="flex w-full justify-center py-8 px-4">{children}</div>;
 }
 
 function FeedLayout({ children }: { children: React.ReactNode }) {
@@ -77,6 +90,8 @@ export default function App() {
 
   usePresenceSync();
   useDynamicTabBadge();
+  useNotificationRealtime();
+  useStoriesRealtime();
 
   if (!isAuthenticated) {
     return (
@@ -104,10 +119,13 @@ export default function App() {
           <EditProfileModal />
           <ShareModal />
           <CommentModal />
+          <StoryViewerModal />
+          <StoryEditorModal />
         </Suspense>
         <UndoHideSnackbar />
         <UndoClearHistorySnackbar />
         <FloatingVideoNotePiP />
+        <ReactionBurstCanvas />
         {!isMessengerRoute && <MessageToastViewport />}
 
         <main
@@ -141,30 +159,22 @@ export default function App() {
               <Route
                 path="/profile"
                 element={
-                  <CenteredPage>
+                  <ProfileLayout>
                     <ProfilePage />
-                  </CenteredPage>
+                  </ProfileLayout>
                 }
               />
               <Route
                 path="/profile/:username"
                 element={
-                  <CenteredPage>
+                  <ProfileLayout>
                     <ProfilePage />
-                  </CenteredPage>
+                  </ProfileLayout>
                 }
               />
 
               <Route
                 path="/search"
-                element={
-                  <CenteredPage>
-                    <SearchPage />
-                  </CenteredPage>
-                }
-              />
-              <Route
-                path="/explore"
                 element={
                   <CenteredPage>
                     <SearchPage />
@@ -221,9 +231,9 @@ export default function App() {
               <Route
                 path="/:username"
                 element={
-                  <CenteredPage>
+                  <ProfileLayout>
                     <ProfilePage />
-                  </CenteredPage>
+                  </ProfileLayout>
                 }
               />
 

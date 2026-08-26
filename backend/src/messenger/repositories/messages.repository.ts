@@ -115,6 +115,182 @@ export class MessagesRepository implements IMessagesRepository {
     );
   }
 
+  async findAroundDate(params: {
+    conversationId: string;
+    targetDate: Date;
+    requestingUserId: string;
+    limit: number;
+    hiddenUserIds?: string[];
+  }): Promise<MessageWithDetails[]> {
+    const { conversationId, targetDate, requestingUserId, limit, hiddenUserIds } = params;
+
+    let anchor = await this.prisma.message.findFirst({
+      where: {
+        conversationId,
+        deletedForAll: false,
+        deletedFor: { none: { userId: requestingUserId } },
+        createdAt: { gte: targetDate },
+        ...(hiddenUserIds && hiddenUserIds.length > 0
+          ? { senderId: { notIn: hiddenUserIds } }
+          : {}),
+      },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true },
+    });
+
+    if (!anchor) {
+      anchor = await this.prisma.message.findFirst({
+        where: {
+          conversationId,
+          deletedForAll: false,
+          deletedFor: { none: { userId: requestingUserId } },
+          createdAt: { lte: targetDate },
+          ...(hiddenUserIds && hiddenUserIds.length > 0
+            ? { senderId: { notIn: hiddenUserIds } }
+            : {}),
+        },
+        orderBy: { createdAt: 'desc' },
+        select: { id: true },
+      });
+    }
+
+    if (!anchor) return [];
+
+    return this.findAround({
+      conversationId,
+      targetMessageId: anchor.id,
+      requestingUserId,
+      limit,
+      hiddenUserIds,
+    });
+  }
+
+  async getActivityMap(params: {
+    conversationId: string;
+    year: number;
+    month: number;
+    timezone?: string;
+    requestingUserId: string;
+    hiddenUserIds?: string[];
+  }): Promise<
+    Record<
+      string,
+      {
+        messageCount: number;
+        previewMediaUrl?: string;
+        firstMessageSnippet?: string;
+        firstMessageId?: string;
+        mediaCount?: number;
+      }
+    >
+  > {
+    const {
+      conversationId,
+      year,
+      month,
+      timezone = 'UTC',
+      requestingUserId,
+      hiddenUserIds,
+    } = params;
+
+    const startDateUtc = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
+    const endDateUtc = new Date(Date.UTC(year, month, 1, 0, 0, 0));
+    const windowStart = new Date(startDateUtc.getTime() - 36 * 3600 * 1000);
+    const windowEnd = new Date(endDateUtc.getTime() + 36 * 3600 * 1000);
+
+    const messages = await this.prisma.message.findMany({
+      where: {
+        conversationId,
+        deletedForAll: false,
+        deletedFor: { none: { userId: requestingUserId } },
+        createdAt: {
+          gte: windowStart,
+          lt: windowEnd,
+        },
+        ...(hiddenUserIds && hiddenUserIds.length > 0
+          ? { senderId: { notIn: hiddenUserIds } }
+          : {}),
+      },
+      orderBy: { createdAt: 'asc' },
+      include: {
+        attachments: true,
+      },
+    });
+
+    let formatter: Intl.DateTimeFormat;
+    try {
+      formatter = new Intl.DateTimeFormat('en-CA', {
+        timeZone: timezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      });
+    } catch {
+      formatter = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'UTC',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      });
+    }
+
+    const targetMonthPrefix = `${year}-${String(month).padStart(2, '0')}`;
+    const activityMap: Record<
+      string,
+      {
+        messageCount: number;
+        previewMediaUrl?: string;
+        firstMessageSnippet?: string;
+        firstMessageId?: string;
+        mediaCount?: number;
+      }
+    > = {};
+
+    for (const msg of messages) {
+      const dayKey = formatter.format(new Date(msg.createdAt));
+      if (!dayKey.startsWith(targetMonthPrefix)) {
+        continue;
+      }
+
+      if (!activityMap[dayKey]) {
+        let snippet: string | undefined = undefined;
+        if (msg.body) {
+          snippet = msg.body.slice(0, 80);
+        } else if (msg.attachments && msg.attachments.length > 0) {
+          const firstAtt = msg.attachments[0];
+          if (firstAtt.type === 'IMAGE') snippet = '📷 Photo';
+          else if (firstAtt.type === 'VIDEO') snippet = '🎥 Video';
+          else if (firstAtt.type === 'AUDIO') snippet = '🎤 Voice message';
+          else snippet = '📎 Attachment';
+        } else if (msg.messageType === 'STICKER') {
+          snippet = '🎭 Sticker';
+        }
+
+        activityMap[dayKey] = {
+          messageCount: 1,
+          firstMessageSnippet: snippet,
+          firstMessageId: msg.id,
+          mediaCount: 0,
+        };
+      } else {
+        activityMap[dayKey].messageCount += 1;
+      }
+
+      if (msg.attachments && msg.attachments.length > 0) {
+        for (const att of msg.attachments) {
+          if (att.type === 'IMAGE' || att.type === 'VIDEO') {
+            activityMap[dayKey].mediaCount = (activityMap[dayKey].mediaCount || 0) + 1;
+            if (!activityMap[dayKey].previewMediaUrl) {
+              activityMap[dayKey].previewMediaUrl = att.thumbnailUrl || att.url;
+            }
+          }
+        }
+      }
+    }
+
+    return activityMap;
+  }
+
   findOne(messageId: string, _requestingUserId: string): Promise<MessageWithDetails | null> {
     void _requestingUserId;
 
@@ -174,10 +350,15 @@ export class MessagesRepository implements IMessagesRepository {
   }
 
   async addReaction(messageId: string, userId: string, emoji: string): Promise<MessageReaction> {
-    return this.prisma.messageReaction.upsert({
-      where: { messageId_userId_emoji: { messageId, userId, emoji } },
-      update: { createdAt: new Date() },
-      create: { messageId, userId, emoji },
+    return this.prisma.$transaction(async (tx) => {
+      await tx.messageReaction.deleteMany({
+        where: { messageId, userId, emoji: { not: emoji } },
+      });
+      return tx.messageReaction.upsert({
+        where: { messageId_userId_emoji: { messageId, userId, emoji } },
+        update: { createdAt: new Date() },
+        create: { messageId, userId, emoji },
+      });
     });
   }
 

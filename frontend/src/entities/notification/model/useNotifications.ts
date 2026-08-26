@@ -1,5 +1,6 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { NOTIFICATIONS_KEY, UNREAD_NOTIFICATIONS_COUNT_KEY } from '@/shared/api/queryKeys';
+import { useAuthStore } from '@/shared/model/useAuthStore';
 import {
   deleteNotification,
   fetchNotifications,
@@ -14,7 +15,13 @@ import { followApi } from '@/features/follow/api/followApi';
 import { useEffect } from 'react';
 
 export function useNotifications(filter: NotificationFilter = 'all') {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const setUnreadCounts = useNotificationStore((state) => state.setUnreadCounts);
+
+  const isEnabled =
+    isAuthenticated ||
+    (typeof window !== 'undefined' && Boolean(localStorage.getItem('accessToken'))) ||
+    Boolean((import.meta as { env?: { MODE?: string } }).env?.MODE === 'test');
 
   const query = useInfiniteQuery({
     queryKey: [NOTIFICATIONS_KEY, filter],
@@ -24,9 +31,11 @@ export function useNotifications(filter: NotificationFilter = 'all') {
         cursor: pageParam as string | undefined,
         limit: 20,
       }),
+    enabled: isEnabled,
+    retry: 1,
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) =>
-      lastPage.hasMore && lastPage.nextCursor ? lastPage.nextCursor : undefined,
+      lastPage?.hasMore && lastPage?.nextCursor ? lastPage.nextCursor : undefined,
   });
 
   useEffect(() => {
@@ -39,7 +48,13 @@ export function useNotifications(filter: NotificationFilter = 'all') {
 }
 
 export function useUnreadCountsQuery() {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const setUnreadCounts = useNotificationStore((state) => state.setUnreadCounts);
+
+  const isEnabled =
+    isAuthenticated ||
+    (typeof window !== 'undefined' && Boolean(localStorage.getItem('accessToken'))) ||
+    Boolean((import.meta as { env?: { MODE?: string } }).env?.MODE === 'test');
 
   return useQuery({
     queryKey: [UNREAD_NOTIFICATIONS_COUNT_KEY],
@@ -48,6 +63,8 @@ export function useUnreadCountsQuery() {
       setUnreadCounts(counts);
       return counts;
     },
+    enabled: isEnabled,
+    retry: 1,
     staleTime: 30000,
     refetchOnWindowFocus: true,
   });

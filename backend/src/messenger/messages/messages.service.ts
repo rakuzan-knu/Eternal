@@ -28,6 +28,7 @@ import type {
   SendMessageDto,
   MessageView,
   PaginatedMessages,
+  ChatActivityMap,
 } from '@common/contracts';
 
 @Injectable()
@@ -307,6 +308,56 @@ export class MessagesService {
       hasMore: false,
       nextCursor: null,
     };
+  }
+
+  async getAroundDate(
+    conversationId: string,
+    dateIso: string,
+    userId: string,
+    limit = 50,
+  ): Promise<PaginatedMessages> {
+    await this.assertMember(conversationId, userId);
+
+    const hiddenUserIds = await this.getHiddenUserIds(userId);
+    const parsedDate = new Date(dateIso);
+    const validDate = isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
+
+    const messages = await this.messagesRepo.findAroundDate({
+      conversationId,
+      targetDate: validDate,
+      requestingUserId: userId,
+      limit,
+      hiddenUserIds,
+    });
+
+    const pinnedIds = await this.convsRepo.findPinnedMessages(conversationId);
+    const pinnedSet = new Set(pinnedIds);
+
+    return {
+      data: messages.map((m) => this.mapper.mapMessage(m, userId, pinnedSet)),
+      hasMore: false,
+      nextCursor: null,
+    };
+  }
+
+  async getActivityMap(
+    conversationId: string,
+    year: number,
+    month: number,
+    timezone: string | undefined,
+    userId: string,
+  ): Promise<ChatActivityMap> {
+    await this.assertMember(conversationId, userId);
+
+    const hiddenUserIds = await this.getHiddenUserIds(userId);
+    return this.messagesRepo.getActivityMap({
+      conversationId,
+      year,
+      month,
+      timezone,
+      requestingUserId: userId,
+      hiddenUserIds,
+    });
   }
 
   async edit(messageId: string, userId: string, dto: EditMessageDto): Promise<MessageView> {

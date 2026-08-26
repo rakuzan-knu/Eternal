@@ -32,7 +32,11 @@ export default function ChatThreadHeader({
       <div className="flex items-center gap-3 min-w-0">
         <div className="relative">
           {isGroup ? (
-            <GroupAvatarCollage avatars={memberAvatars} size={36} />
+            display.avatar ? (
+              <Avatar size="sm" src={display.avatar} />
+            ) : (
+              <GroupAvatarCollage avatars={memberAvatars} size={36} />
+            )
           ) : (
             <>
               <Avatar size="sm" src={display.avatar} />

@@ -11,6 +11,6 @@
     "node_modules/(?!(\\.pnpm/)?(sanitize-html|htmlparser2|domutils|domhandler|dom-serializer|entities|domelementtype))"
   ],
   "transform": {
-    "^.+\\.(t|j)sx?$": ["ts-jest", { "isolatedModules": true }]
+    "^.+\\.(t|j)sx?$": "ts-jest"
   }
 }

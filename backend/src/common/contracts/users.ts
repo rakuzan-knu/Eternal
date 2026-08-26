@@ -1,5 +1,40 @@
 import { z } from 'zod';
-import { AutoDeletePeriod, ExceptionMode, PrivacyDimension, Visibility } from '@prisma/client';
+export const Visibility = {
+  EVERYBODY: 'EVERYBODY',
+  CONTACTS: 'CONTACTS',
+  NOBODY: 'NOBODY',
+} as const;
+export type Visibility = (typeof Visibility)[keyof typeof Visibility];
+
+export const AutoDeletePeriod = {
+  OFF: 'OFF',
+  DAY: 'DAY',
+  WEEK: 'WEEK',
+  MONTH: 'MONTH',
+  QUARTER: 'QUARTER',
+} as const;
+export type AutoDeletePeriod = (typeof AutoDeletePeriod)[keyof typeof AutoDeletePeriod];
+
+export const PrivacyDimension = {
+  LAST_SEEN: 'LAST_SEEN',
+  AVATAR: 'AVATAR',
+  BANNER: 'BANNER',
+  FORWARD_LINK: 'FORWARD_LINK',
+  CALLS: 'CALLS',
+  VOICE_MESSAGES: 'VOICE_MESSAGES',
+  MESSAGES: 'MESSAGES',
+  BIRTHDAY: 'BIRTHDAY',
+  BIO: 'BIO',
+  GROUP_INVITES: 'GROUP_INVITES',
+  THEME_PROPOSALS: 'THEME_PROPOSALS',
+} as const;
+export type PrivacyDimension = (typeof PrivacyDimension)[keyof typeof PrivacyDimension];
+
+export const ExceptionMode = {
+  ALLOW: 'ALLOW',
+  DENY: 'DENY',
+} as const;
+export type ExceptionMode = (typeof ExceptionMode)[keyof typeof ExceptionMode];
 import sanitizeHtmlLib from 'sanitize-html';
 import { HARDENED_USERNAME_REGEX, RESERVED_USERNAMES } from './auth';
 
@@ -89,6 +124,7 @@ export const privacySettingsSchema = z.object({
   birthday: z.nativeEnum(Visibility),
   bio: z.nativeEnum(Visibility),
   groupInvites: z.nativeEnum(Visibility),
+  themeProposals: z.nativeEnum(Visibility).optional(),
   isPrivate: z.boolean(),
   autoDeletePeriod: z.nativeEnum(AutoDeletePeriod),
   allowNearbyRecommendations: z.boolean().optional(),
@@ -106,6 +142,7 @@ export const updatePrivacySchema = z.object({
   birthday: z.nativeEnum(Visibility).optional(),
   bio: z.nativeEnum(Visibility).optional(),
   groupInvites: z.nativeEnum(Visibility).optional(),
+  themeProposals: z.nativeEnum(Visibility).optional(),
   isPrivate: z.boolean().optional(),
   autoDeletePeriod: z.nativeEnum(AutoDeletePeriod).optional(),
   allowNearbyRecommendations: z.boolean().optional(),
@@ -194,8 +231,6 @@ export class CreateUserDto {
     this.birthDate = props.birthDate;
   }
 }
-
-export { AutoDeletePeriod, ExceptionMode, PrivacyDimension, Visibility };
 
 export class PrivacyExceptionUserDto {
   id!: string;

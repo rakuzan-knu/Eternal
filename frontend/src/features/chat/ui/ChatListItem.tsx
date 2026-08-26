@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { MoreHorizontal, Pin, Users, BellOff } from 'lucide-react';
+import { MoreHorizontal, Pin, BellOff } from 'lucide-react';
 import Avatar from '../../../shared/ui/Avatar';
+import GroupAvatarCollage from '../../../shared/ui/GroupAvatarCollage';
 import { ConversationView } from '../../../entities/chat/model/types';
 import {
   getConversationDisplay,
@@ -84,9 +85,14 @@ export default function ChatListItem({
     >
       <div className="relative flex-shrink-0">
         {display.isGroup ? (
-          <div className="w-10 h-10 rounded-full bg-white/5 border border-white/5 flex items-center justify-center text-gray-400">
-            <Users size={18} />
-          </div>
+          display.avatar ? (
+            <Avatar size="md" src={display.avatar} />
+          ) : (
+            <GroupAvatarCollage
+              avatars={conversation.participants.map((p) => p.user.avatar)}
+              size={40}
+            />
+          )
         ) : (
           <>
             <Avatar size="md" src={display.avatar} />

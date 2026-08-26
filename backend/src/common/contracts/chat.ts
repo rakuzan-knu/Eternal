@@ -1,6 +1,38 @@
 import { z } from 'zod';
-import { AttachmentType, MessageType, MuteLevel } from '@prisma/client';
-export { AttachmentType, MessageType, MuteLevel };
+export const AttachmentType = {
+  IMAGE: 'IMAGE',
+  VIDEO: 'VIDEO',
+  AUDIO: 'AUDIO',
+  FILE: 'FILE',
+  LINK: 'LINK',
+  GIF: 'GIF',
+} as const;
+export type AttachmentType = (typeof AttachmentType)[keyof typeof AttachmentType];
+
+export const MessageType = {
+  TEXT: 'TEXT',
+  IMAGE: 'IMAGE',
+  VIDEO: 'VIDEO',
+  AUDIO: 'AUDIO',
+  FILE: 'FILE',
+  GIF: 'GIF',
+  STICKER: 'STICKER',
+  LOCATION: 'LOCATION',
+  CALL_LOG: 'CALL_LOG',
+  SYSTEM: 'SYSTEM',
+  DELETED: 'DELETED',
+  THEME_PROPOSAL: 'THEME_PROPOSAL',
+  STORY_REPLY: 'STORY_REPLY',
+} as const;
+export type MessageType = (typeof MessageType)[keyof typeof MessageType];
+
+export const MuteLevel = {
+  NONE: 'NONE',
+  MESSAGES: 'MESSAGES',
+  CALLS: 'CALLS',
+  MESSAGES_AND_CALLS: 'MESSAGES_AND_CALLS',
+} as const;
+export type MuteLevel = (typeof MuteLevel)[keyof typeof MuteLevel];
 
 export const conversationIdSchema = z.object({
   conversationId: z.string().uuid(),
@@ -115,6 +147,29 @@ export const getMessagesQuerySchema = z.object({
 });
 export type GetMessagesQueryDto = z.infer<typeof getMessagesQuerySchema>;
 
+export const getChatActivityQuerySchema = z.object({
+  year: z.coerce.number().int().min(2000).max(2100),
+  month: z.coerce.number().int().min(1).max(12),
+  timezone: z.string().max(64).optional(),
+});
+export type GetChatActivityQueryDto = z.infer<typeof getChatActivityQuerySchema>;
+
+export const getMessagesAroundDateQuerySchema = z.object({
+  date: z.string().min(1),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+});
+export type GetMessagesAroundDateQueryDto = z.infer<typeof getMessagesAroundDateQuerySchema>;
+
+export interface DayActivityItem {
+  messageCount: number;
+  previewMediaUrl?: string;
+  firstMessageSnippet?: string;
+  firstMessageId?: string;
+  mediaCount?: number;
+}
+
+export type ChatActivityMap = Record<string, DayActivityItem>;
+
 export const searchMessagesQuerySchema = z.object({
   q: z.string().min(1).max(256),
   limit: z.coerce.number().int().min(1).max(100).default(30),
@@ -153,7 +208,8 @@ export const setNicknameSchema = z.object({
 export type SetNicknameDto = z.infer<typeof setNicknameSchema>;
 
 export const setThemeSchema = z.object({
-  theme: z.string().min(1),
+  theme: z.string().nullable().optional(),
+  applyToAll: z.coerce.boolean().optional(),
 });
 export type SetThemeDto = z.infer<typeof setThemeSchema>;
 
@@ -183,6 +239,7 @@ export interface UserSnapshot {
   username: string;
   displayName: string | null;
   avatar: string | null;
+  defaultChatTheme?: string | null;
 }
 
 export interface AttachmentView {
@@ -256,6 +313,8 @@ export interface ConversationView {
   blockingMe: boolean;
   isBlocked: boolean;
   pinnedMessages: MessageView[];
+  sharedTheme?: string | null;
+  sharedThemeUpdatedAt?: Date | string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -264,4 +323,24 @@ export interface PaginatedMessages {
   data: MessageView[];
   hasMore: boolean;
   nextCursor: string | null;
+}
+
+export const proposeThemeSchema = z.object({
+  theme: z.string().min(1).max(8192),
+});
+export type ProposeThemeDto = z.infer<typeof proposeThemeSchema>;
+
+export const respondThemeProposalSchema = z.object({
+  action: z.enum(['ACCEPT', 'DECLINE', 'CANCEL']),
+});
+export type RespondThemeProposalDto = z.infer<typeof respondThemeProposalSchema>;
+
+export interface ThemeProposalData {
+  proposedTheme: string;
+  status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED';
+  proposedByUserId: string;
+  proposedByUsername?: string;
+  respondedByUserId?: string;
+  createdAt: string;
+  expiresAt: string;
 }

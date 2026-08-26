@@ -6,6 +6,8 @@ describe('MessagesController', () => {
   let controller: MessagesController;
   let mockMessagesService: {
     getMessages: jest.Mock;
+    getActivityMap: jest.Mock;
+    getAroundDate: jest.Mock;
     uploadAttachment: jest.Mock;
     search: jest.Mock;
     send: jest.Mock;
@@ -25,6 +27,8 @@ describe('MessagesController', () => {
   beforeEach(() => {
     mockMessagesService = {
       getMessages: jest.fn().mockResolvedValue({ data: [], nextCursor: null }),
+      getActivityMap: jest.fn().mockResolvedValue({ '2026-08-21': { messageCount: 5 } }),
+      getAroundDate: jest.fn().mockResolvedValue({ data: [], nextCursor: null }),
       uploadAttachment: jest.fn().mockResolvedValue({ url: 'https://cdn.com/f.png' }),
       search: jest.fn().mockResolvedValue([]),
       send: jest.fn().mockResolvedValue({ id: 'msg-1' }),
@@ -35,6 +39,33 @@ describe('MessagesController', () => {
     };
 
     controller = new MessagesController(mockMessagesService as unknown as MessagesService);
+  });
+
+  it('getActivity and getAroundDate delegate to MessagesService', async () => {
+    await controller.getActivity(
+      'conv-1',
+      { year: 2026, month: 8, timezone: 'Europe/Moscow' },
+      mockUser,
+    );
+    expect(mockMessagesService.getActivityMap).toHaveBeenCalledWith(
+      'conv-1',
+      2026,
+      8,
+      'Europe/Moscow',
+      'usr-1',
+    );
+
+    await controller.getAroundDate(
+      'conv-1',
+      { date: '2026-08-21T10:00:00.000Z', limit: 50 },
+      mockUser,
+    );
+    expect(mockMessagesService.getAroundDate).toHaveBeenCalledWith(
+      'conv-1',
+      '2026-08-21T10:00:00.000Z',
+      'usr-1',
+      50,
+    );
   });
 
   it('getMessages and search delegate to MessagesService', async () => {

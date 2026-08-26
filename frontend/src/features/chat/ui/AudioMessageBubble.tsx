@@ -1,32 +1,33 @@
-import React, { useMemo } from 'react';
-import { Play, Pause } from 'lucide-react';
+import React, { useMemo, useState, useCallback } from 'react';
+import { Play, Pause, Loader2 } from 'lucide-react';
 import { AttachmentView } from '../../../entities/chat/model/types';
 import { useActiveMediaPlaybackStore } from '@/shared/model/useActiveMediaPlaybackStore';
+import { samplePeaks, formatVoiceDuration, formatVoiceTime } from '../lib/waveformUtils';
+import { WaveformRenderer } from './WaveformRenderer';
 
-interface AudioMessageBubbleProps {
-  attachment: AttachmentView & { waveform?: number[] };
+export interface AudioMessageBubbleProps {
+  attachment: (AttachmentView | (Partial<AttachmentView> & { id: string; url: string })) & {
+    waveform?: number[];
+  };
   isOwnMessage?: boolean;
   senderName?: string;
   sentAt?: string;
   conversationId?: string;
-}
-
-function formatDuration(sec: number): string {
-  if (isNaN(sec) || sec < 0) return '0:00';
-  const m = Math.floor(sec / 60);
-  const s = Math.floor(sec % 60);
-  return `${m}:${s.toString().padStart(2, '0')}`;
+  statusIcon?: React.ReactNode;
 }
 
 export function AudioMessageBubble({
   attachment,
+  isOwnMessage = false,
   senderName = 'Voice Message',
   sentAt,
   conversationId,
+  statusIcon,
 }: AudioMessageBubbleProps) {
   const {
     activeMediaId,
     isPlaying: storeIsPlaying,
+    isLoading: storeIsLoading,
     currentTime: storeCurrentTime,
     duration: storeDuration,
     playbackRate: storePlaybackRate,
@@ -36,32 +37,24 @@ export function AudioMessageBubble({
     setPlaybackRate,
   } = useActiveMediaPlaybackStore();
 
+  const [hoverFraction, setHoverFraction] = useState<number | null>(null);
+
   const isCurrentActive = activeMediaId === attachment.id;
   const isPlaying = isCurrentActive && storeIsPlaying;
+  const isLoading = isCurrentActive && storeIsLoading;
+
   const totalDuration =
     (isCurrentActive && storeDuration > 0 ? storeDuration : attachment.duration) || 0;
   const currentTime = isCurrentActive ? storeCurrentTime : 0;
 
-  // Parse or default 32-bar waveform
-  const waveform = useMemo(() => {
-    if (
-      attachment.waveform &&
-      Array.isArray(attachment.waveform) &&
-      attachment.waveform.length > 0
-    ) {
-      return attachment.waveform;
-    }
-    const hash = attachment.id || 'voice-note';
-    const bars: number[] = [];
-    for (let i = 0; i < 32; i++) {
-      const code = (hash.charCodeAt(i % hash.length) * (i + 13)) % 100;
-      bars.push(Math.max(0.12, (code / 100) * 0.9));
-    }
-    return bars;
-  }, [attachment]);
+  // Fixed 45-bar sampled and normalized waveform
+  const peaks = useMemo(() => {
+    return samplePeaks(attachment.waveform, 45, attachment.id || 'voice-msg');
+  }, [attachment.waveform, attachment.id]);
 
   // Handle Play/Pause Click
-  const handleTogglePlay = () => {
+  const handleTogglePlay = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (isCurrentActive) {
       togglePlay();
     } else {
@@ -77,29 +70,41 @@ export function AudioMessageBubble({
     }
   };
 
-  // Handle Seek on Bar Click
-  const handleSeek = (index: number) => {
-    const seekFraction = index / waveform.length;
-    const targetTime = seekFraction * totalDuration;
+  // Handle Seek on Bar / Waveform Interaction
+  const handleSeek = useCallback(
+    (fraction: number) => {
+      const targetTime = Math.max(0, Math.min(totalDuration, fraction * totalDuration));
 
-    if (isCurrentActive) {
-      seek(targetTime);
-    } else {
-      setActiveMedia({
-        id: attachment.id,
-        mediaType: 'voice',
-        url: attachment.url,
-        senderName,
-        sentAt,
-        conversationId,
-        duration: totalDuration,
-      });
-      setTimeout(() => seek(targetTime), 10);
-    }
-  };
+      if (isCurrentActive) {
+        seek(targetTime);
+      } else {
+        setActiveMedia({
+          id: attachment.id,
+          mediaType: 'voice',
+          url: attachment.url,
+          senderName,
+          sentAt,
+          conversationId,
+          duration: totalDuration,
+        });
+        setTimeout(() => seek(targetTime), 20);
+      }
+    },
+    [
+      attachment,
+      conversationId,
+      isCurrentActive,
+      seek,
+      senderName,
+      sentAt,
+      totalDuration,
+      setActiveMedia,
+    ],
+  );
 
-  // Cycle Speed
-  const handleCycleSpeed = () => {
+  // Cycle Speed (1x -> 1.5x -> 2x -> 0.5x -> 1x)
+  const handleCycleSpeed = (e: React.MouseEvent) => {
+    e.stopPropagation();
     const nextSpeed =
       storePlaybackRate === 1
         ? 1.5
@@ -111,66 +116,77 @@ export function AudioMessageBubble({
     setPlaybackRate(nextSpeed);
   };
 
-  const progressFraction = totalDuration > 0 ? currentTime / totalDuration : 0;
+  const progressFraction = totalDuration > 0 ? Math.min(1, currentTime / totalDuration) : 0;
+
+  const displayTimecode = useMemo(() => {
+    if (hoverFraction !== null && totalDuration > 0) {
+      return `${formatVoiceTime(hoverFraction * totalDuration)} / ${formatVoiceTime(totalDuration)}`;
+    }
+    return formatVoiceDuration(currentTime, totalDuration, isPlaying);
+  }, [hoverFraction, totalDuration, currentTime, isPlaying]);
 
   return (
     <div
       data-testid="audio-message-bubble"
-      className="flex items-center gap-3 p-2 min-w-[240px] sm:min-w-[280px] max-w-[340px] select-none"
+      className="flex items-center gap-3 py-1 pl-1 pr-3 sm:pr-4 w-[245px] sm:w-[275px] max-w-full overflow-hidden select-none"
     >
-      {/* Play / Pause Circular Button */}
+      {/* Play / Pause / Buffering Circular Button */}
       <button
         type="button"
         onClick={handleTogglePlay}
-        className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-full bg-gradient-to-tr from-purple-600 to-indigo-500 hover:from-purple-500 hover:to-indigo-400 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)] transition-all active:scale-95 cursor-pointer"
-        title={isPlaying ? 'Pause' : 'Play voice message'}
+        className={`w-9 h-9 sm:w-10 sm:h-10 flex-shrink-0 flex items-center justify-center rounded-full text-white shadow-md transition-all active:scale-95 cursor-pointer ${
+          isOwnMessage
+            ? 'bg-gradient-to-tr from-purple-600 to-indigo-500 hover:from-purple-500 hover:to-indigo-400 shadow-[0_0_12px_rgba(168,85,247,0.4)]'
+            : 'bg-gradient-to-tr from-sky-600 to-blue-500 hover:from-sky-500 hover:to-blue-400 shadow-[0_0_12px_rgba(14,165,233,0.4)]'
+        }`}
+        title={isLoading ? 'Buffering audio...' : isPlaying ? 'Pause' : 'Play voice message'}
       >
-        {isPlaying ? <Pause size={16} /> : <Play size={16} className="ml-0.5" />}
+        {isLoading ? (
+          <Loader2 size={16} className="animate-spin text-white" />
+        ) : isPlaying ? (
+          <Pause size={15} className="fill-current" />
+        ) : (
+          <Play size={15} className="fill-current ml-0.5" />
+        )}
       </button>
 
-      {/* Waveform & Duration */}
-      <div className="flex-1 flex flex-col justify-center gap-1.5 min-w-0">
-        {/* 32-Bar Waveform */}
-        <div className="flex items-center gap-[3px] h-6 cursor-pointer group py-0.5">
-          {waveform.map((bar, idx) => {
-            const isPlayed = idx / waveform.length <= progressFraction;
-            return (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => handleSeek(idx)}
-                className="flex-1 flex items-center h-full py-0.5 group-hover:opacity-90 transition-opacity cursor-pointer border-0 bg-transparent p-0"
-                title={`Seek to ${formatDuration((idx / waveform.length) * totalDuration)}`}
-              >
-                <span
-                  className={`w-full rounded-full transition-colors ${
-                    isPlayed
-                      ? 'bg-purple-300 shadow-[0_0_6px_rgba(192,132,252,0.6)]'
-                      : 'bg-white/20 group-hover:bg-white/30'
-                  }`}
-                  style={{
-                    height: `${Math.max(4, bar * 22)}px`,
-                  }}
-                />
-              </button>
-            );
-          })}
-        </div>
+      {/* Waveform & Duration Container */}
+      <div className="flex-1 flex flex-col justify-center gap-1 min-w-0 overflow-hidden pr-1">
+        {/* 45-Bar Waveform with Hover & Scrub */}
+        <WaveformRenderer
+          peaks={peaks}
+          progressFraction={progressFraction}
+          totalDuration={totalDuration}
+          onSeek={handleSeek}
+          onHoverFractionChange={setHoverFraction}
+          isOwnMessage={isOwnMessage}
+        />
 
-        {/* Timers and Speed Toggle */}
-        <div className="flex items-center justify-between text-[10px] text-gray-400 font-mono tracking-tight">
-          <span>{formatDuration(isPlaying ? currentTime : totalDuration)}</span>
+        {/* Timers, Speed Toggle and Message Status */}
+        <div className="flex items-center justify-between w-full text-[10.5px] text-gray-300/80 font-mono tracking-tight leading-none px-0.5 mt-1">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="truncate">{displayTimecode}</span>
 
-          <button
-            type="button"
-            onClick={handleCycleSpeed}
-            className="px-1.5 py-0.5 rounded-full bg-white/10 hover:bg-white/15 text-purple-300 text-[10px] font-bold transition-colors cursor-pointer"
-            title="Toggle playback speed"
-          >
-            {storePlaybackRate}x
-          </button>
+            <button
+              type="button"
+              onClick={handleCycleSpeed}
+              className="px-1.5 py-0.5 rounded-full bg-white/10 hover:bg-white/20 text-purple-200 text-[9px] font-bold transition-colors cursor-pointer shrink-0"
+              title="Toggle playback speed"
+            >
+              {storePlaybackRate}x
+            </button>
+          </div>
+
+          {sentAt && (
+            <div className="flex items-center gap-1 text-[10px] text-gray-400 shrink-0 ml-auto pl-2 select-none font-sans">
+              <span>{sentAt}</span>
+              {statusIcon}
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 }
+
+export const VoiceMessagePlayer = AudioMessageBubble;

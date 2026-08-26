@@ -7,7 +7,18 @@ import '../src/index.css';
 import { worker } from '../src/mocks/browser';
 
 // Start MSW browser worker (non-blocking; stories render after it's ready)
-worker.start({ onUnhandledRequest: 'bypass' });
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+  worker
+    .start({
+      onUnhandledRequest: 'bypass',
+      serviceWorker: {
+        url: './mockServiceWorker.js',
+      },
+    })
+    .catch((err) => {
+      console.warn('[MSW] Mock service worker start skipped:', err);
+    });
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {

@@ -23,7 +23,11 @@ import BatchDeleteModal from './BatchDeleteModal';
 import AttachmentDropZone from '@/shared/ui/AttachmentDropZone';
 import ConversationDetailsPanel from './ConversationDetailsPanel';
 import MessageSearchPanel from './MessageSearchPanel';
+import ChatDatePicker from './ChatDatePicker';
 import { formatMessageTime } from '../lib/groupMessagesByDate';
+import { useChatTheme } from '../model/useChatTheme';
+import { getChatBackgroundStyle, updateMetaThemeColor, parseChatTheme } from '../lib/themeUtils';
+import ProceduralChatBackground from './ProceduralChatBackground';
 
 interface ChatThreadProps {
   conversation: ConversationView;
@@ -43,6 +47,18 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
 
   useQueryOnlineStatus(otherParticipant ? [otherParticipant.userId] : []);
 
+  const { theme: chatTheme, applyTheme } = useChatTheme(
+    conversation.id,
+    conversation.myTheme,
+    conversation.sharedTheme,
+  );
+  const bgStyle = getChatBackgroundStyle(chatTheme);
+
+  // Synchronize browser status bar / mobile meta theme-color with active chat theme
+  useEffect(() => {
+    updateMetaThemeColor(chatTheme);
+  }, [chatTheme]);
+
   const {
     messages,
     hasNextPage,
@@ -59,6 +75,13 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
   const [isBatchDeleteOpen, setIsBatchDeleteOpen] = useState(false);
   const [isPinnedModalOpen, setIsPinnedModalOpen] = useState(false);
   const [copyToast, setCopyToast] = useState<string | null>(null);
+
+  // Date picker state
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [datePickerInitialDate, setDatePickerInitialDate] = useState<Date | null>(null);
+  const [datePickerAnchorRect, setDatePickerAnchorRect] = useState<DOMRect | null>(null);
+  const [highlightDateLabel, setHighlightDateLabel] = useState<string | null>(null);
+  const [isAnchoredInHistory, setIsAnchoredInHistory] = useState(false);
 
   // Multi-selection state
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -174,6 +197,59 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
   const handleJumpToMessage = (messageId: string) => {
     setRightPanel(null);
     setHighlightMessageId(messageId);
+  };
+
+  const handleOpenDatePicker = (initialDate?: Date, anchorRect?: DOMRect) => {
+    setDatePickerInitialDate(initialDate || null);
+    setDatePickerAnchorRect(anchorRect || null);
+    setIsDatePickerOpen(true);
+  };
+
+  const handleJumpToDate = async (targetDate: Date) => {
+    setIsDatePickerOpen(false);
+
+    const targetY = targetDate.getFullYear();
+    const targetM = targetDate.getMonth();
+    const targetD = targetDate.getDate();
+
+    const matchingMsg = messages.find((m) => {
+      const d = new Date(m.createdAt);
+      return d.getFullYear() === targetY && d.getMonth() === targetM && d.getDate() === targetD;
+    });
+
+    const label = targetDate.toLocaleDateString([], {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+    const now = new Date();
+    const isToday =
+      now.getFullYear() === targetY && now.getMonth() === targetM && now.getDate() === targetD;
+    const isYesterday =
+      new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1).toDateString() ===
+      targetDate.toDateString();
+    const resolvedLabel = isToday ? 'Today' : isYesterday ? 'Yesterday' : label;
+
+    if (matchingMsg) {
+      setHighlightMessageId(matchingMsg.id);
+      setHighlightDateLabel(resolvedLabel);
+      setTimeout(() => setHighlightDateLabel(null), 1600);
+      return;
+    }
+
+    const res = await actions.loadAroundDate(targetDate.toISOString());
+    setIsAnchoredInHistory(true);
+    if (res && res.data && res.data.length > 0) {
+      const firstOnDate =
+        res.data.find((m) => {
+          const d = new Date(m.createdAt);
+          return d.getFullYear() === targetY && d.getMonth() === targetM && d.getDate() === targetD;
+        }) || res.data[0];
+
+      setHighlightMessageId(firstOnDate.id);
+      setHighlightDateLabel(resolvedLabel);
+      setTimeout(() => setHighlightDateLabel(null), 1600);
+    }
   };
 
   const handleDelete = (messageId: string, forAll: boolean) => {
@@ -293,128 +369,177 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
           onOpenAllPinned={() => setIsPinnedModalOpen(true)}
         />
 
-        <AttachmentDropZone onFilesDropped={staged.addFiles}>
-          <MessageList
-            messages={messages}
-            currentUserId={userId}
-            otherParticipantId={otherParticipant?.userId ?? null}
-            otherParticipant={otherParticipant}
-            display={display}
-            hasMore={!!hasNextPage}
-            isLoading={isLoadingMessages}
-            isFetchingMore={isFetchingNextPage}
-            typingParticipants={typingParticipants}
-            isGroup={conversation.type === 'GROUP'}
-            isSelectionMode={isSelectionMode}
-            selectedMessageIds={selectedMessageIds}
-            onToggleSelectMessage={handleToggleSelectMessage}
-            onLoadMore={fetchNextPage}
-            onReply={setReplyingTo}
-            onEdit={(message) => {
-              const nextBody = window.prompt('Edit message', message.body ?? '');
-              if (nextBody && nextBody !== message.body)
-                actions.editMessage(message.id, nextBody).catch(() => {});
-            }}
-            onDelete={handleDelete}
-            onForward={setForwardingMessage}
-            onTogglePin={handleTogglePin}
-            onReport={handleReport}
-            onReact={actions.addReaction}
-            onUnreact={actions.removeReaction}
-            onMarkRead={actions.markRead}
-            highlightMessageId={highlightMessageId}
-            onHighlightHandled={() => setHighlightMessageId(null)}
-            onJumpToMessage={handleJumpToMessage}
-            onLoadAround={actions.loadAroundMessages}
-          />
+        <div className="relative flex-1 flex flex-col min-h-0 overflow-hidden">
+          {/* Isolated Hardware-Accelerated Background Layer */}
+          <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none" style={bgStyle}>
+            {chatTheme.backgroundType === 'shader' && (
+              <ProceduralChatBackground
+                shaderId={chatTheme.shaderPresetId || 'neon-smoke'}
+                audioReactive={chatTheme.audioReactive ?? true}
+                parallax3d={chatTheme.parallax3d ?? true}
+              />
+            )}
+            {chatTheme.backgroundType === 'image' && chatTheme.bgImageUrl && (
+              <div
+                className="absolute inset-0"
+                style={{
+                  backgroundColor: `rgba(0, 0, 0, ${1 - (chatTheme.bgBrightness ?? 0.8)})`,
+                  backdropFilter: chatTheme.bgBlur ? `blur(${chatTheme.bgBlur}px)` : undefined,
+                  WebkitBackdropFilter: chatTheme.bgBlur
+                    ? `blur(${chatTheme.bgBlur}px)`
+                    : undefined,
+                }}
+              />
+            )}
+          </div>
 
-          {/* Copy Toast Feedback */}
-          {copyToast && (
-            <div className="mx-auto my-1 px-4 py-1.5 rounded-full bg-black/80 border border-sky-400/40 text-xs text-sky-300 backdrop-blur-xl shadow-lg animate-fadeIn select-none">
-              {copyToast}
-            </div>
-          )}
-
-          {/* Batch Actions Bar */}
-          {isSelectionMode && (
-            <div className="mx-3 sm:mx-4 mb-2 p-2.5 rounded-2xl bg-[#181a22]/95 border border-white/15 backdrop-blur-2xl shadow-2xl flex items-center justify-between gap-2 animate-popIn z-20">
-              <div className="flex items-center gap-2 pl-2">
-                <CheckSquare size={16} className="text-sky-400" />
-                <span className="text-xs font-semibold text-white">
-                  {selectedMessageIds.size} selected
-                </span>
-              </div>
-
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={handleCopyFormatted}
-                  disabled={selectedMessageIds.size === 0}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-200 hover:text-white text-xs font-medium transition disabled:opacity-40"
-                  title="Copy formatted messages"
-                >
-                  <Copy size={13} />
-                  <span>Copy</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setIsBatchForwardOpen(true)}
-                  disabled={selectedMessageIds.size === 0}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 text-xs font-medium border border-sky-400/30 transition disabled:opacity-40"
-                  title="Forward selected"
-                >
-                  <Forward size={13} />
-                  <span>Forward</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setIsBatchDeleteOpen(true)}
-                  disabled={selectedMessageIds.size === 0}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs font-medium border border-red-500/30 transition disabled:opacity-40"
-                  title="Delete selected"
-                >
-                  <Trash2 size={13} />
-                  <span>Delete</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleCancelSelection}
-                  className="w-7 h-7 flex items-center justify-center rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition ml-1"
-                  title="Cancel selection"
-                >
-                  <X size={15} />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {isBlocked && otherParticipant ? (
-            <BlockedComposerBanner
-              otherUserId={otherParticipant.userId}
-              blockedByMe={conversation.blockedByMe}
-              blockingMe={conversation.blockingMe}
-            />
-          ) : (
-            <MessageComposer
+          <AttachmentDropZone
+            onFilesDropped={staged.addFiles}
+            className="relative z-10 flex-1 flex flex-col min-h-0 bg-transparent"
+          >
+            <MessageList
+              messages={messages}
+              currentUserId={userId}
+              otherParticipantId={otherParticipant?.userId ?? null}
               conversationId={conversation.id}
-              actions={actions}
-              replyingTo={replyingTo}
-              onCancelReply={() => setReplyingTo(null)}
-              onSetReplyingTo={setReplyingTo}
-              stagedFiles={staged.files}
-              stagedFilesError={staged.error}
-              onAddFiles={staged.addFiles}
-              onRemoveFile={staged.removeFile}
-              onReplaceFile={staged.replaceFile}
-              onClearFiles={staged.clear}
-              onDismissFilesError={staged.dismissError}
+              onThemeAccepted={(themeStr) => applyTheme(parseChatTheme(themeStr))}
+              otherParticipant={otherParticipant}
+              display={display}
+              hasMore={!!hasNextPage}
+              isLoading={isLoadingMessages}
+              isFetchingMore={isFetchingNextPage}
+              typingParticipants={typingParticipants}
               isGroup={conversation.type === 'GROUP'}
+              isSelectionMode={isSelectionMode}
+              selectedMessageIds={selectedMessageIds}
+              chatTheme={chatTheme}
+              onToggleSelectMessage={handleToggleSelectMessage}
+              onLoadMore={fetchNextPage}
+              onReply={setReplyingTo}
+              onEdit={(message) => {
+                const nextBody = window.prompt('Edit message', message.body ?? '');
+                if (nextBody && nextBody !== message.body)
+                  actions.editMessage(message.id, nextBody).catch(() => {});
+              }}
+              onDelete={handleDelete}
+              onForward={setForwardingMessage}
+              onTogglePin={handleTogglePin}
+              onReport={handleReport}
+              onReact={actions.addReaction}
+              onUnreact={actions.removeReaction}
+              onMarkRead={actions.markRead}
+              highlightMessageId={highlightMessageId}
+              onHighlightHandled={() => setHighlightMessageId(null)}
+              onJumpToMessage={handleJumpToMessage}
+              onLoadAround={actions.loadAroundMessages}
+              onOpenDatePicker={handleOpenDatePicker}
+              highlightDateLabel={highlightDateLabel}
+              isAnchoredInHistory={isAnchoredInHistory}
+              onResetToLive={async () => {
+                setIsAnchoredInHistory(false);
+                await actions.resetToLive();
+              }}
+              onLoadOlder={() => {
+                if (messages.length > 0) actions.loadOlderMessages(messages[0].id);
+              }}
+              onLoadNewer={() => {
+                if (messages.length > 0)
+                  actions.loadNewerMessages(messages[messages.length - 1].id);
+              }}
             />
-          )}
-        </AttachmentDropZone>
+
+            {/* Copy Toast Feedback */}
+            {copyToast && (
+              <div className="mx-auto my-1 px-4 py-1.5 rounded-full bg-black/80 border border-sky-400/40 text-xs text-sky-300 backdrop-blur-xl shadow-lg animate-fadeIn select-none">
+                {copyToast}
+              </div>
+            )}
+
+            {/* Batch Actions Bar */}
+            {isSelectionMode && (
+              <div className="mx-3 sm:mx-4 mb-2 p-2.5 rounded-2xl bg-[#181a22]/95 border border-white/15 backdrop-blur-2xl shadow-2xl flex items-center justify-between gap-2 animate-popIn z-20">
+                <div className="flex items-center gap-2 pl-2">
+                  <CheckSquare size={16} className="text-sky-400" />
+                  <span className="text-xs font-semibold text-white">
+                    {selectedMessageIds.size} selected
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={handleCopyFormatted}
+                    disabled={selectedMessageIds.size === 0}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-200 hover:text-white text-xs font-medium transition disabled:opacity-40"
+                    title="Copy formatted messages"
+                  >
+                    <Copy size={13} />
+                    <span>Copy</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsBatchForwardOpen(true)}
+                    disabled={selectedMessageIds.size === 0}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 text-xs font-medium border border-sky-400/30 transition disabled:opacity-40"
+                    title="Forward selected"
+                  >
+                    <Forward size={13} />
+                    <span>Forward</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsBatchDeleteOpen(true)}
+                    disabled={selectedMessageIds.size === 0}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs font-medium border border-red-500/30 transition disabled:opacity-40"
+                    title="Delete selected"
+                  >
+                    <Trash2 size={13} />
+                    <span>Delete</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleCancelSelection}
+                    className="w-7 h-7 flex items-center justify-center rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition ml-1"
+                    title="Cancel selection"
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {isBlocked && otherParticipant ? (
+              <div className="w-full max-w-[960px] mx-auto px-2 sm:px-4">
+                <BlockedComposerBanner
+                  otherUserId={otherParticipant.userId}
+                  blockedByMe={conversation.blockedByMe}
+                  blockingMe={conversation.blockingMe}
+                />
+              </div>
+            ) : (
+              <div className="w-full max-w-[960px] mx-auto px-2 sm:px-4 pb-2">
+                <MessageComposer
+                  conversationId={conversation.id}
+                  actions={actions}
+                  replyingTo={replyingTo}
+                  onCancelReply={() => setReplyingTo(null)}
+                  onSetReplyingTo={setReplyingTo}
+                  stagedFiles={staged.files}
+                  stagedFilesError={staged.error}
+                  onAddFiles={staged.addFiles}
+                  onRemoveFile={staged.removeFile}
+                  onReplaceFile={staged.replaceFile}
+                  onClearFiles={staged.clear}
+                  onDismissFilesError={staged.dismissError}
+                  isGroup={conversation.type === 'GROUP'}
+                />
+              </div>
+            )}
+          </AttachmentDropZone>
+        </div>
 
         {/* Single Forward Modal */}
         {forwardingMessage && (
@@ -477,8 +602,19 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
           conversationId={conversation.id}
           onClose={() => setRightPanel(null)}
           onJumpToMessage={handleJumpToMessage}
+          onOpenDatePicker={(rect) => handleOpenDatePicker(undefined, rect)}
         />
       )}
+
+      {/* Telegram-style Chat Date Picker Modal / Popover */}
+      <ChatDatePicker
+        conversationId={conversation.id}
+        isOpen={isDatePickerOpen}
+        onClose={() => setIsDatePickerOpen(false)}
+        onSelectDate={handleJumpToDate}
+        initialDate={datePickerInitialDate}
+        anchorRect={datePickerAnchorRect}
+      />
     </div>
   );
 }

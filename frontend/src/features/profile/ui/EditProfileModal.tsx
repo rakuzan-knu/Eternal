@@ -49,7 +49,11 @@ import SecurityTab from './security/SecurityTab';
 import PrivacyTab from './privacy/PrivacyTab';
 import NotificationsTab from './notifications/NotificationsTab';
 import BadgeSettingsSection from './BadgeSettingsSection';
+import { ProfileShowcaseSettingsSection } from './ProfileShowcaseSettingsSection';
 import { compressImage } from '@/shared/lib/compressImage';
+import FloatingSelectionToolbar, {
+  SelectionFormatType,
+} from '@/features/chat/ui/FloatingSelectionToolbar';
 
 function addProfileToast(title: string, body: string) {
   useMessageToastStore.getState().addToast({
@@ -82,6 +86,7 @@ const TABS_CONFIG: MainTab[] = [
     subsections: [
       { id: 'sec-account-info', label: 'Account Information' },
       { id: 'sec-badges', label: 'Profile Badges' },
+      { id: 'sec-showcase', label: 'Profile Showcase' },
       { id: 'sec-integrations', label: 'Integrations' },
       { id: 'sec-reputation', label: 'Account Reputation' },
       { id: 'sec-family', label: 'Family Center' },
@@ -198,6 +203,8 @@ export default function EditProfileModal() {
     handleSubmit,
     control,
     reset,
+    setValue,
+    getValues,
     formState: { errors },
   } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -239,6 +246,112 @@ export default function EditProfileModal() {
 
   const isUsernameTaken = !isUsernameUnchanged && usernameStatus?.isAvailable === false;
   const bioValue = useWatch({ control, name: 'bio' });
+
+  const bioRef = useRef<HTMLTextAreaElement | null>(null);
+  const { ref: registerBioRef, ...bioRest } = register('bio');
+  const [bioToolbarPos, setBioToolbarPos] = useState<{ top: number; left: number } | null>(null);
+
+  const handleBioSelect = () => {
+    const el = bioRef.current;
+    if (!el) return;
+    const start = el.selectionStart ?? 0;
+    const end = el.selectionEnd ?? 0;
+    if (start !== end && el.value.slice(start, end).trim().length > 0) {
+      const rect = el.getBoundingClientRect();
+      setBioToolbarPos({
+        top: rect.top - 46,
+        left: rect.left + rect.width / 2,
+      });
+    } else {
+      setBioToolbarPos(null);
+    }
+  };
+
+  const handleBioFormatting = (prefix: string, suffix: string, defaultPlaceholder = '') => {
+    const el = bioRef.current;
+    if (!el) return;
+    const start = el.selectionStart ?? 0;
+    const end = el.selectionEnd ?? 0;
+    const currentVal = getValues('bio') || '';
+    const selected = currentVal.slice(start, end);
+    const content = selected || defaultPlaceholder;
+    const replacement = `${prefix}${content}${suffix}`;
+    const nextVal = (currentVal.slice(0, start) + replacement + currentVal.slice(end)).slice(
+      0,
+      200,
+    );
+    setValue('bio', nextVal, { shouldValidate: true, shouldDirty: true });
+    requestAnimationFrame(() => {
+      el.focus();
+      if (selected) {
+        el.setSelectionRange(start + prefix.length, start + prefix.length + content.length);
+      } else {
+        el.setSelectionRange(
+          start + prefix.length,
+          start + prefix.length + defaultPlaceholder.length,
+        );
+      }
+    });
+  };
+
+  const handleBioFormat = (type: SelectionFormatType, linkUrl?: string) => {
+    switch (type) {
+      case 'bold':
+        handleBioFormatting('**', '**', 'bold');
+        break;
+      case 'italic':
+        handleBioFormatting('*', '*', 'italic');
+        break;
+      case 'underline':
+        handleBioFormatting('__', '__', 'underline');
+        break;
+      case 'strike':
+        handleBioFormatting('~~', '~~', 'strikethrough');
+        break;
+      case 'spoiler':
+        handleBioFormatting('||', '||', 'spoiler');
+        break;
+      case 'quote':
+        handleBioFormatting('> ', '', 'quote');
+        break;
+      case 'code':
+        handleBioFormatting('`', '`', 'code');
+        break;
+      case 'link':
+        if (linkUrl) {
+          handleBioFormatting('[', `](${linkUrl})`, 'link');
+        }
+        break;
+    }
+    setBioToolbarPos(null);
+  };
+
+  const handleBioKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const isCmdOrCtrl = e.ctrlKey || e.metaKey;
+    if (isCmdOrCtrl) {
+      const key = e.key.toLowerCase();
+      if (key === 'b' && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        handleBioFormatting('**', '**', 'bold');
+        return;
+      }
+      if (key === 'i' && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        handleBioFormatting('*', '*', 'italic');
+        return;
+      }
+      if (key === 'u' && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        handleBioFormatting('__', '__', 'underline');
+        return;
+      }
+      if (e.shiftKey && key === 'x') {
+        e.preventDefault();
+        handleBioFormatting('~~', '~~', 'strikethrough');
+        return;
+      }
+    }
+  };
 
   const updateIndicatorPosition = useCallback(() => {
     const activeEl = itemRefs.current[activeSection];
@@ -920,10 +1033,25 @@ export default function EditProfileModal() {
                         <textarea
                           rows={3}
                           maxLength={200}
-                          {...register('bio')}
+                          {...bioRest}
+                          ref={(e) => {
+                            registerBioRef(e);
+                            bioRef.current = e;
+                          }}
+                          onSelect={handleBioSelect}
+                          onKeyUp={handleBioSelect}
+                          onMouseUp={handleBioSelect}
+                          onKeyDown={handleBioKeyDown}
                           placeholder={currentUser?.bio || 'Tell us about yourself...'}
                           className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-white/30 transition resize-none"
                         />
+                        {bioToolbarPos && (
+                          <FloatingSelectionToolbar
+                            position={bioToolbarPos}
+                            onFormat={handleBioFormat}
+                            onClose={() => setBioToolbarPos(null)}
+                          />
+                        )}
                         {errors.bio && (
                           <p className="text-xs text-red-500 font-medium mt-1">
                             {errors.bio.message}
@@ -963,6 +1091,10 @@ export default function EditProfileModal() {
                       bannerPreview={bannerPreview}
                       bannerPos={bannerPos}
                     />
+                  </div>
+
+                  <div id="sec-showcase" className="pt-6 border-t border-white/[0.06]">
+                    <ProfileShowcaseSettingsSection />
                   </div>
 
                   <div

@@ -218,24 +218,57 @@ export function useMessageActions(conversationId: string | null) {
 
   const addReaction = useCallback(
     async (messageId: string, emoji: string) => {
+      const currentUserId = useAuthStore.getState().userId;
       updatePages((pages) =>
         pages.map((p) => ({
           ...p,
           data: p.data.map((m) => {
             if (m.id !== messageId) return m;
-            const existingIdx = m.reactions.findIndex((r) => r.emoji === emoji);
-            const nextReactions = [...m.reactions];
+
+            // 1. Remove/decrement previous self reaction if different emoji
+            const nextReactions = m.reactions
+              .map((r) => {
+                if (r.selfReacted && r.emoji !== emoji) {
+                  return {
+                    ...r,
+                    count: Math.max(0, r.count - 1),
+                    selfReacted: false,
+                    users: currentUserId
+                      ? (r.users || []).filter((u) => u.id !== currentUserId)
+                      : r.users || [],
+                  };
+                }
+                return r;
+              })
+              .filter((r) => r.count > 0);
+
+            // 2. Add or increment new reaction
+            const existingIdx = nextReactions.findIndex((r) => r.emoji === emoji);
             if (existingIdx !== -1) {
               const prev = nextReactions[existingIdx];
               nextReactions[existingIdx] = {
                 ...prev,
                 count: prev.selfReacted ? prev.count : prev.count + 1,
                 selfReacted: true,
-                users: prev.users || [],
+                users:
+                  currentUserId && !(prev.users || []).some((u) => u.id === currentUserId)
+                    ? [
+                        ...(prev.users || []),
+                        { id: currentUserId, username: '', displayName: null, avatar: null },
+                      ]
+                    : prev.users || [],
               };
             } else {
-              nextReactions.push({ emoji, count: 1, selfReacted: true, users: [] });
+              nextReactions.push({
+                emoji,
+                count: 1,
+                selfReacted: true,
+                users: currentUserId
+                  ? [{ id: currentUserId, username: '', displayName: null, avatar: null }]
+                  : [],
+              });
             }
+
             return { ...m, reactions: nextReactions };
           }),
         })),
@@ -252,6 +285,7 @@ export function useMessageActions(conversationId: string | null) {
 
   const removeReaction = useCallback(
     async (messageId: string, emoji: string) => {
+      const currentUserId = useAuthStore.getState().userId;
       updatePages((pages) =>
         pages.map((p) => ({
           ...p,
@@ -268,7 +302,9 @@ export function useMessageActions(conversationId: string | null) {
                 ...prev,
                 count: prev.selfReacted ? prev.count - 1 : prev.count,
                 selfReacted: false,
-                users: prev.users || [],
+                users: currentUserId
+                  ? (prev.users || []).filter((u) => u.id !== currentUserId)
+                  : prev.users || [],
               };
             }
             return { ...m, reactions: nextReactions };
@@ -343,6 +379,7 @@ export function useMessageActions(conversationId: string | null) {
             ),
         );
         socket.emit('markRead', { conversationId, messageId: lastReadMessageId });
+        chatApi.markRead(conversationId).catch(() => {});
       }, 350);
     },
     [socket, conversationId, queryClient],
@@ -397,6 +434,77 @@ export function useMessageActions(conversationId: string | null) {
     [conversationId, updatePages],
   );
 
+  const loadAroundDate = useCallback(
+    async (dateIso: string) => {
+      if (!conversationId) return;
+      const res = await chatApi.getMessagesAroundDate(conversationId, dateIso);
+      if (res && res.data) {
+        updatePages((pages) => {
+          if (pages.length === 0) return [res];
+          const existingIds = new Set(pages.flatMap((p) => p.data.map((m) => m.id)));
+          const newMessages = res.data.filter((m) => !existingIds.has(m.id));
+          if (newMessages.length === 0) return pages;
+          const merged = [...pages[0].data, ...newMessages].sort(
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+          );
+          return [{ ...pages[0], data: merged }, ...pages.slice(1)];
+        });
+      }
+      return res;
+    },
+    [conversationId, updatePages],
+  );
+
+  const loadOlderMessages = useCallback(
+    async (beforeMessageId: string) => {
+      if (!conversationId) return;
+      const res = await chatApi.getMessages(conversationId, beforeMessageId, 50);
+      if (res && res.data && res.data.length > 0) {
+        updatePages((pages) => {
+          const existingIds = new Set(pages.flatMap((p) => p.data.map((m) => m.id)));
+          const newMessages = res.data.filter((m) => !existingIds.has(m.id));
+          if (newMessages.length === 0) return pages;
+          const merged = [...pages[0].data, ...newMessages].sort(
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+          );
+          return [
+            { ...pages[0], data: merged, hasMore: res.hasMore, nextCursor: res.nextCursor },
+            ...pages.slice(1),
+          ];
+        });
+      }
+      return res;
+    },
+    [conversationId, updatePages],
+  );
+
+  const loadNewerMessages = useCallback(
+    async (afterMessageId: string) => {
+      if (!conversationId) return;
+      const res = await chatApi.getMessages(conversationId, undefined, 50, afterMessageId);
+      if (res && res.data && res.data.length > 0) {
+        updatePages((pages) => {
+          const existingIds = new Set(pages.flatMap((p) => p.data.map((m) => m.id)));
+          const newMessages = res.data.filter((m) => !existingIds.has(m.id));
+          if (newMessages.length === 0) return pages;
+          const merged = [...pages[0].data, ...newMessages].sort(
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+          );
+          return [{ ...pages[0], data: merged }, ...pages.slice(1)];
+        });
+      }
+      return res;
+    },
+    [conversationId, updatePages],
+  );
+
+  const resetToLive = useCallback(async () => {
+    if (!conversationId) return;
+    await queryClient.invalidateQueries({
+      queryKey: [CONVERSATION_MESSAGES_KEY, conversationId],
+    });
+  }, [conversationId, queryClient]);
+
   return {
     sendMessage,
     editMessage,
@@ -405,6 +513,10 @@ export function useMessageActions(conversationId: string | null) {
     forwardMessage,
     batchForwardMessages,
     loadAroundMessages,
+    loadAroundDate,
+    loadOlderMessages,
+    loadNewerMessages,
+    resetToLive,
     addReaction,
     removeReaction,
     pinMessage,

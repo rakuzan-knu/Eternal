@@ -30,6 +30,8 @@ import type {
   AddMembersDto,
   TransferOwnershipDto,
   ConversationView,
+  MessageView,
+  ThemeProposalData,
   UserSnapshot,
   ReportDto,
 } from '@common/contracts';
@@ -183,6 +185,8 @@ export class ConversationsService {
 
     await this.convsRepo.updateGroup(conversationId, dto);
 
+    const participantIds = await this.convsRepo.findParticipantIds(conversationId);
+
     if (dto.name && dto.name !== conv.name) {
       const user = await this.prisma.user.findUnique({ where: { id: userId } });
       const userName = user?.displayName || user?.username || 'User';
@@ -191,12 +195,11 @@ export class ConversationsService {
           conversationId,
           senderId: userId,
           messageType: 'SYSTEM',
-          body: `Пользователь ${userName} сменил название группы на ${dto.name}`,
+          body: `User ${userName} changed the group name to "${dto.name}"`,
         },
         include: messageInclude,
       });
 
-      const participantIds = await this.convsRepo.findParticipantIds(conversationId);
       const mapped = this.mapper.mapMessage(sysMsg, userId, new Set());
       for (const pid of participantIds) {
         this.gateway?.emitToUser(pid, WS_EVENTS.NEW_MESSAGE, {
@@ -204,6 +207,14 @@ export class ConversationsService {
           message: mapped,
         });
       }
+    }
+
+    for (const pid of participantIds) {
+      this.gateway?.emitToUser(pid, WS_EVENTS.CONVERSATION_UPDATED, {
+        id: conversationId,
+        ...(dto.name ? { name: dto.name } : {}),
+        ...(dto.description !== undefined ? { description: dto.description } : {}),
+      });
     }
 
     return this.getConversation(conversationId, userId);
@@ -419,7 +430,16 @@ export class ConversationsService {
   async setTheme(conversationId: string, userId: string, dto: SetThemeDto): Promise<void> {
     const conv = await this.convsRepo.findOneForUser(conversationId, userId);
     if (!conv) throw new NotFoundException('Conversation not found');
-    await this.convsRepo.updateParticipant(conversationId, userId, { theme: dto.theme });
+
+    const resolvedTheme =
+      dto.theme === 'default' || !dto.theme || dto.theme.trim() === '' ? null : dto.theme;
+
+    if (dto.applyToAll) {
+      await this.convsRepo.setUserDefaultChatTheme(userId, resolvedTheme);
+      await this.convsRepo.updateAllParticipantsForUser(userId, { theme: resolvedTheme });
+    } else {
+      await this.convsRepo.updateParticipant(conversationId, userId, { theme: resolvedTheme });
+    }
   }
 
   async muteConversation(
@@ -723,7 +743,7 @@ export class ConversationsService {
         conversationId,
         senderId: userId,
         messageType: 'SYSTEM',
-        body: `Пользователь ${userName} сменил значок группы`,
+        body: `User ${userName} updated the group icon`,
       },
       include: messageInclude,
     });
@@ -735,8 +755,196 @@ export class ConversationsService {
         conversationId,
         message: mapped,
       });
+      this.gateway?.emitToUser(pid, WS_EVENTS.CONVERSATION_UPDATED, {
+        id: conversationId,
+        avatar: avatarUrl,
+      });
     }
 
     return { avatarUrl };
+  }
+
+  async proposeTheme(conversationId: string, userId: string, theme: string): Promise<MessageView> {
+    const conv = await this.convsRepo.findOneForUser(conversationId, userId);
+    if (!conv) throw new NotFoundException('Conversation not found');
+    if (conv.type !== 'DIRECT') {
+      throw new BadRequestException('Shared themes can only be proposed in direct conversations');
+    }
+
+    const recipient = conv.participants.find((p) => p.userId !== userId);
+    if (!recipient) {
+      throw new BadRequestException('Direct conversation must have a recipient');
+    }
+
+    const [recipientPrivacy, isFollower] = await Promise.all([
+      this.prisma.userPrivacy.findUnique({ where: { userId: recipient.userId } }),
+      this.prisma.follow.findFirst({
+        where: { followerId: userId, followingId: recipient.userId },
+      }),
+    ]);
+
+    const setting = recipientPrivacy?.themeProposals ?? 'EVERYBODY';
+    if (setting === 'NOBODY') {
+      throw new ForbiddenException('This user does not accept theme proposals');
+    }
+    if (setting === 'CONTACTS' && !isFollower) {
+      throw new ForbiddenException('This user only accepts theme proposals from followers/friends');
+    }
+
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const existingPending = await this.prisma.message.findFirst({
+      where: {
+        conversationId,
+        messageType: 'THEME_PROPOSAL',
+        createdAt: { gte: twentyFourHoursAgo },
+        body: { contains: '"status":"PENDING"' },
+      },
+    });
+    if (existingPending) {
+      throw new BadRequestException(
+        'There is already an active theme proposal in this conversation. Please wait for response.',
+      );
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    const proposalData: ThemeProposalData = {
+      proposedTheme: theme,
+      status: 'PENDING',
+      proposedByUserId: userId,
+      proposedByUsername: user?.displayName || user?.username || 'User',
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    };
+
+    const message = await this.prisma.message.create({
+      data: {
+        conversationId,
+        senderId: userId,
+        messageType: 'THEME_PROPOSAL',
+        body: JSON.stringify(proposalData),
+      },
+      include: messageInclude,
+    });
+
+    await this.convsRepo.touchUpdatedAt(conversationId);
+
+    const participantIds = await this.convsRepo.findParticipantIds(conversationId);
+    for (const pid of participantIds) {
+      const mapped = this.mapper.mapMessage(message, pid, new Set());
+      this.gateway?.emitToUser(pid, WS_EVENTS.NEW_MESSAGE, {
+        conversationId,
+        message: mapped,
+      });
+      this.gateway?.emitToUser(pid, WS_EVENTS.THEME_PROPOSAL_CREATED, {
+        conversationId,
+        message: mapped,
+      });
+    }
+
+    return this.mapper.mapMessage(message, userId, new Set());
+  }
+
+  async respondThemeProposal(
+    conversationId: string,
+    messageId: string,
+    userId: string,
+    action: 'ACCEPT' | 'DECLINE' | 'CANCEL',
+  ): Promise<MessageView> {
+    const conv = await this.convsRepo.findOneForUser(conversationId, userId);
+    if (!conv) throw new NotFoundException('Conversation not found');
+
+    const msg = await this.prisma.message.findUnique({
+      where: { id: messageId },
+      include: messageInclude,
+    });
+    if (!msg || msg.conversationId !== conversationId) {
+      throw new NotFoundException('Theme proposal message not found');
+    }
+    if (msg.messageType !== 'THEME_PROPOSAL' || !msg.body) {
+      throw new BadRequestException('Message is not a theme proposal');
+    }
+
+    let proposalData: ThemeProposalData;
+    try {
+      proposalData = JSON.parse(msg.body);
+    } catch {
+      throw new BadRequestException('Corrupted theme proposal payload');
+    }
+
+    if (proposalData.status !== 'PENDING') {
+      throw new BadRequestException(
+        `Theme proposal is already ${proposalData.status.toLowerCase()}`,
+      );
+    }
+
+    if (new Date(proposalData.expiresAt).getTime() < Date.now()) {
+      throw new BadRequestException('Theme proposal has expired');
+    }
+
+    if (action === 'CANCEL') {
+      if (proposalData.proposedByUserId !== userId) {
+        throw new ForbiddenException('Only the proposal author can cancel it');
+      }
+      proposalData.status = 'CANCELLED';
+    } else {
+      if (proposalData.proposedByUserId === userId) {
+        throw new BadRequestException('You cannot accept or decline your own theme proposal');
+      }
+      proposalData.status = action === 'ACCEPT' ? 'ACCEPTED' : 'DECLINED';
+      proposalData.respondedByUserId = userId;
+    }
+
+    const updatedMsg = await this.prisma.message.update({
+      where: { id: messageId },
+      data: {
+        body: JSON.stringify(proposalData),
+        editedAt: new Date(),
+      },
+      include: messageInclude,
+    });
+
+    if (action === 'ACCEPT') {
+      await this.convsRepo.updateSharedTheme(conversationId, proposalData.proposedTheme);
+      const participantIds = await this.convsRepo.findParticipantIds(conversationId);
+      for (const pid of participantIds) {
+        this.gateway?.emitToUser(pid, WS_EVENTS.CONVERSATION_SHARED_THEME_UPDATED, {
+          conversationId,
+          sharedTheme: proposalData.proposedTheme,
+          sharedThemeUpdatedAt: new Date().toISOString(),
+        });
+      }
+    }
+
+    const participantIds = await this.convsRepo.findParticipantIds(conversationId);
+    for (const pid of participantIds) {
+      const mapped = this.mapper.mapMessage(updatedMsg, pid, new Set());
+      this.gateway?.emitToUser(pid, WS_EVENTS.MESSAGE_EDITED, {
+        conversationId,
+        message: mapped,
+      });
+      this.gateway?.emitToUser(pid, WS_EVENTS.THEME_PROPOSAL_RESPONDED, {
+        conversationId,
+        message: mapped,
+        action,
+      });
+    }
+
+    return this.mapper.mapMessage(updatedMsg, userId, new Set());
+  }
+
+  async unlinkSharedTheme(conversationId: string, userId: string): Promise<{ success: boolean }> {
+    const conv = await this.convsRepo.findOneForUser(conversationId, userId);
+    if (!conv) throw new NotFoundException('Conversation not found');
+
+    await this.convsRepo.updateSharedTheme(conversationId, null);
+
+    const participantIds = await this.convsRepo.findParticipantIds(conversationId);
+    for (const pid of participantIds) {
+      this.gateway?.emitToUser(pid, WS_EVENTS.CONVERSATION_SHARED_THEME_UNLINKED, {
+        conversationId,
+      });
+    }
+
+    return { success: true };
   }
 }

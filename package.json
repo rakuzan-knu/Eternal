@@ -75,5 +75,10 @@
   "engines": {
     "node": ">=24.11.0",
     "pnpm": ">=10.0.0"
+  },
+  "msw": {
+    "workerDirectory": [
+      "frontend/public"
+    ]
   }
 }

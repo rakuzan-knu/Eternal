@@ -85,6 +85,9 @@ global.IntersectionObserver = class IntersectionObserver {
   }
 } as unknown as typeof IntersectionObserver;
 
+window.HTMLMediaElement.prototype.play = vi.fn().mockResolvedValue(undefined);
+window.HTMLMediaElement.prototype.pause = vi.fn();
+
 vi.mock('socket.io-client', () => ({
   io: vi.fn(() => ({
     on: vi.fn(),

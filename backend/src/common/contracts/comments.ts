@@ -1,5 +1,18 @@
 import { z } from 'zod';
-import type { Comment } from '@prisma/client';
+
+export interface Comment {
+  id: string;
+  text: string;
+  postId: string;
+  userId: string;
+  parentId: string | null;
+  rootParentId: string | null;
+  replyToUserId: string | null;
+  mediaUrl: string | null;
+  isPinned: boolean;
+  isDeleted: boolean;
+  createdAt: Date;
+}
 
 function toSafeIsoString(val: unknown): string {
   if (!val) return new Date().toISOString();

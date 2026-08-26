@@ -27,6 +27,7 @@ const DIMENSION_DEFAULT: Record<PrivacyDimension, Visibility> = {
   BIRTHDAY: Visibility.NOBODY,
   BIO: Visibility.EVERYBODY,
   GROUP_INVITES: Visibility.EVERYBODY,
+  THEME_PROPOSALS: Visibility.EVERYBODY,
 };
 
 const PRIVACY_COLUMN: Record<PrivacyDimension, keyof UserPrivacyRow> = {
@@ -40,6 +41,7 @@ const PRIVACY_COLUMN: Record<PrivacyDimension, keyof UserPrivacyRow> = {
   BIRTHDAY: 'birthday',
   BIO: 'bio',
   GROUP_INVITES: 'groupInvites',
+  THEME_PROPOSALS: 'themeProposals',
 };
 
 type UserPrivacyRow = {
@@ -54,6 +56,7 @@ type UserPrivacyRow = {
   birthday: Visibility;
   bio: Visibility;
   groupInvites: Visibility;
+  themeProposals: Visibility;
 };
 
 const ALL_DIMENSIONS = Object.keys(DIMENSION_DEFAULT) as PrivacyDimension[];
