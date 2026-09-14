@@ -5,6 +5,7 @@ import { postsHandlers } from './handlers/posts.handlers';
 import { chatHandlers } from './handlers/chat.handlers';
 import { notificationsHandlers } from './handlers/notifications.handlers';
 import { storiesHandlers } from './handlers/stories.handlers';
+import { musicHandlers } from './handlers/music.handlers';
 
 export const server = setupServer(
   ...authHandlers,
@@ -13,4 +14,5 @@ export const server = setupServer(
   ...chatHandlers,
   ...notificationsHandlers,
   ...storiesHandlers,
+  ...musicHandlers,
 );

@@ -11,6 +11,7 @@ import { ChatThemeConfig } from '../model/chatTheme';
 
 import SystemMessageCluster from './SystemMessageCluster';
 import { ThemeProposalMessage } from './ThemeProposalMessage';
+import { useSpotifyDockOffset } from '@/shared/model/useSpotifyDockOffset';
 
 export type ClusterPosition = 'single' | 'first' | 'middle' | 'last';
 
@@ -54,6 +55,8 @@ interface MessageListProps {
   onJumpToMessage?: (messageId: string) => void;
   onLoadAround?: (messageId: string) => Promise<unknown>;
   onOpenDatePicker?: (initialDate?: Date, anchorRect?: DOMRect) => void;
+  contentMaxWidth?: number;
+  horizontalShift?: number;
   highlightDateLabel?: string | null;
   isAnchoredInHistory?: boolean;
   onResetToLive?: () => void;
@@ -80,6 +83,19 @@ const START_INDEX = 100000;
 
 function isSameSenderAndMinute(msg1: MessageView, msg2: MessageView): boolean {
   if (msg1.sender.id !== msg2.sender.id) return false;
+
+  // Circular video notes and voice notes must always stand alone with full breathing room, never clustered tightly!
+  const isStandaloneMedia = (m: MessageView) =>
+    m.attachments?.some(
+      (a) =>
+        a.type === 'AUDIO' ||
+        (a.type === 'VIDEO' &&
+          (a.fileName?.includes('video_note') ||
+            a.mimeType?.includes('video_note') ||
+            (a.width && a.height && a.width === a.height))),
+    );
+  if (isStandaloneMedia(msg1) || isStandaloneMedia(msg2)) return false;
+
   const d1 = new Date(msg1.createdAt);
   const d2 = new Date(msg2.createdAt);
   return (
@@ -222,6 +238,8 @@ export default function MessageList({
   onJumpToMessage,
   onLoadAround,
   onOpenDatePicker,
+  contentMaxWidth,
+  horizontalShift = 0,
   highlightDateLabel,
   isAnchoredInHistory = false,
   onResetToLive,
@@ -256,6 +274,23 @@ export default function MessageList({
   }, [checkScrollPosition]);
 
   const rows = useMemo(() => buildRows(messages), [messages]);
+
+  const { dockOffset } = useSpotifyDockOffset();
+
+  useEffect(() => {
+    // When dock offset changes (dock opens, minimizes, or closes),
+    // if the user is reading live messages at the bottom, maintain smooth pinning to bottom.
+    if (!isAnchoredInHistory && !showScrollBottom && rows.length > 0) {
+      const timer = setTimeout(() => {
+        virtuosoRef.current?.scrollToIndex({
+          index: firstItemIndex + rows.length - 1,
+          align: 'end',
+          behavior: 'smooth',
+        });
+      }, 60);
+      return () => clearTimeout(timer);
+    }
+  }, [dockOffset, firstItemIndex, isAnchoredInHistory, rows.length, showScrollBottom]);
 
   useLayoutEffect(() => {
     const prevRows = prevRowsRef.current;
@@ -344,9 +379,10 @@ export default function MessageList({
   }
 
   return (
-    <div className="relative flex-1 flex flex-col min-h-0">
+    <div className="relative flex-1 flex flex-col min-h-0 overflow-x-hidden">
       <Virtuoso
         ref={virtuosoRef}
+        context={{ contentMaxWidth }}
         scrollerRef={(ref) => {
           if (ref instanceof HTMLElement) {
             scrollerElementRef.current = ref;
@@ -356,6 +392,7 @@ export default function MessageList({
         firstItemIndex={firstItemIndex}
         initialTopMostItemIndex={Math.max(0, rows.length - 1)}
         data={rows}
+        increaseViewportBy={{ top: 300, bottom: 300 }}
         startReached={handleStartReached}
         endReached={handleEndReached}
         atBottomStateChange={(atBottom) => {
@@ -366,9 +403,9 @@ export default function MessageList({
             checkScrollPosition();
           }
         }}
-        followOutput={isAnchoredInHistory ? false : 'smooth'}
-        className="flex-1 custom-scrollbar py-2"
-        style={{ overflowAnchor: 'auto' }}
+        followOutput={(isAtBottom) => (isAtBottom && !isAnchoredInHistory ? 'smooth' : false)}
+        className="flex-1 custom-scrollbar py-2 overflow-x-hidden"
+        style={{ overflowAnchor: 'none', overflowX: 'hidden' }}
         rangeChanged={(range) => {
           checkScrollPosition();
           const visibleRows = rows.slice(
@@ -391,21 +428,40 @@ export default function MessageList({
         components={{
           Header: () =>
             isFetchingMore ? (
-              <div className="w-full max-w-[960px] mx-auto px-2 sm:px-4">
+              <div
+                className="w-full mx-auto px-1 sm:px-2.5 transition-[max-width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+                style={{
+                  maxWidth: contentMaxWidth ? `${contentMaxWidth}px` : '880px',
+                }}
+              >
                 <OlderMessagesSkeleton />
               </div>
             ) : null,
           Footer: () => (
-            <div className="w-full max-w-[960px] mx-auto px-2 sm:px-4">
+            <div
+              className="w-full mx-auto px-1 sm:px-2.5 transition-[max-width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+              style={{
+                maxWidth: contentMaxWidth ? `${contentMaxWidth}px` : '880px',
+              }}
+            >
               <TypingIndicatorBubble typists={typingParticipants} isGroup={isGroup} />
             </div>
           ),
         }}
         itemContent={(_index: number, row: Row) => {
+          const rowWrapperClass =
+            'w-full mx-auto px-1 sm:px-2.5 transition-[max-width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]';
+          const rowWrapperStyle: React.CSSProperties = {
+            maxWidth: contentMaxWidth ? `${contentMaxWidth}px` : '880px',
+          };
+
           if (row.type === 'separator') {
             const isHighlighted = highlightDateLabel === row.label;
             return (
-              <div className="w-full max-w-[960px] mx-auto px-2 sm:px-4 sticky top-2 z-20 flex justify-center my-3 pointer-events-none">
+              <div
+                className={`${rowWrapperClass} sticky top-2 z-20 flex justify-center py-2 pointer-events-none`}
+                style={rowWrapperStyle}
+              >
                 <button
                   type="button"
                   onClick={(e) => {
@@ -425,7 +481,7 @@ export default function MessageList({
 
           if (row.type === 'system_cluster') {
             return (
-              <div className="w-full max-w-[960px] mx-auto px-2 sm:px-4">
+              <div className={rowWrapperClass} style={rowWrapperStyle}>
                 <SystemMessageCluster key={row.key} messages={row.messages} />
               </div>
             );
@@ -435,7 +491,7 @@ export default function MessageList({
 
           if (message.messageType === 'THEME_PROPOSAL') {
             return (
-              <div className="w-full max-w-[960px] mx-auto px-2 sm:px-4">
+              <div className={rowWrapperClass} style={rowWrapperStyle}>
                 <ThemeProposalMessage
                   key={message.id}
                   message={message}
@@ -453,7 +509,7 @@ export default function MessageList({
             : false;
 
           return (
-            <div className="w-full max-w-[960px] mx-auto px-2 sm:px-4">
+            <div className={rowWrapperClass} style={rowWrapperStyle}>
               <div
                 className={`rounded-2xl transition-all ${
                   highlightMessageId === message.id ? 'animate-jumpHighlight' : ''
@@ -487,31 +543,38 @@ export default function MessageList({
       />
 
       {(showScrollBottom || isAnchoredInHistory) && (
-        <button
-          type="button"
-          onClick={() => {
-            if (isAnchoredInHistory) {
-              onResetToLive?.();
-            }
-            virtuosoRef.current?.scrollToIndex({
-              index: firstItemIndex + rows.length - 1,
-              align: 'end',
-              behavior: 'smooth',
-            });
-            setShowScrollBottom(false);
-            setUnreadBelowCount(0);
+        <div
+          className="pointer-events-none absolute bottom-4 inset-x-0 mx-auto px-4 z-30 transition-[max-width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] flex justify-end"
+          style={{
+            maxWidth: contentMaxWidth ? `${contentMaxWidth}px` : '880px',
           }}
-          className="group absolute bottom-4 right-4 sm:right-6 z-30 w-10 h-10 rounded-full bg-[#181926]/90 border border-white/15 backdrop-blur-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] flex items-center justify-center text-gray-300 hover:text-white hover:bg-purple-600/30 hover:border-purple-400/50 hover:shadow-[0_0_15px_rgba(168,85,247,0.4)] transition-all duration-200 active:scale-95 animate-popIn cursor-pointer"
-          title={isAnchoredInHistory ? 'Jump to live messages' : 'Scroll to bottom'}
         >
-          <ChevronDown size={20} className="group-hover:translate-y-0.5 transition-transform" />
+          <button
+            type="button"
+            onClick={() => {
+              if (isAnchoredInHistory) {
+                onResetToLive?.();
+              }
+              virtuosoRef.current?.scrollToIndex({
+                index: firstItemIndex + rows.length - 1,
+                align: 'end',
+                behavior: 'smooth',
+              });
+              setShowScrollBottom(false);
+              setUnreadBelowCount(0);
+            }}
+            className="pointer-events-auto group w-10 h-10 rounded-full bg-[#181926]/90 border border-white/15 backdrop-blur-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] flex items-center justify-center text-gray-300 hover:text-white hover:bg-purple-600/30 hover:border-purple-400/50 hover:shadow-[0_0_15px_rgba(168,85,247,0.4)] transition-all duration-200 active:scale-95 animate-popIn cursor-pointer mr-1 sm:mr-2"
+            title={isAnchoredInHistory ? 'Jump to live messages' : 'Scroll to bottom'}
+          >
+            <ChevronDown size={20} className="group-hover:translate-y-0.5 transition-transform" />
 
-          {unreadBelowCount > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 rounded-full bg-gradient-to-r from-purple-500 to-indigo-500 text-[10.5px] font-bold text-white flex items-center justify-center border-2 border-[#181926] shadow-[0_0_10px_rgba(168,85,247,0.7)] animate-popIn tabular-nums">
-              {unreadBelowCount > 99 ? '+99' : `+${unreadBelowCount}`}
-            </span>
-          )}
-        </button>
+            {unreadBelowCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 rounded-full bg-gradient-to-r from-purple-500 to-indigo-500 text-[10.5px] font-bold text-white flex items-center justify-center border-2 border-[#181926] shadow-[0_0_10px_rgba(168,85,247,0.7)] animate-popIn tabular-nums">
+                {unreadBelowCount > 99 ? '+99' : `+${unreadBelowCount}`}
+              </span>
+            )}
+          </button>
+        </div>
       )}
     </div>
   );

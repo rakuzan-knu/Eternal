@@ -84,11 +84,20 @@ export function useUpdateShowcase() {
                 position: item.position ?? idx,
               })),
             }),
+            ...(newDto.widgetOrder !== undefined && {
+              widgetOrder: newDto.widgetOrder,
+            }),
           };
         });
       }
 
       return { previousShowcase, queryKey };
+    },
+    onSuccess: (updatedShowcase) => {
+      const myUsername = currentUser?.username;
+      if (myUsername && updatedShowcase) {
+        queryClient.setQueryData([SHOWCASE_QUERY_KEY, myUsername], updatedShowcase);
+      }
     },
     onError: (_err, _newDto, context) => {
       if (context?.queryKey && context?.previousShowcase) {
@@ -100,6 +109,7 @@ export function useUpdateShowcase() {
       if (myUsername) {
         void queryClient.invalidateQueries({ queryKey: [SHOWCASE_QUERY_KEY, myUsername] });
       }
+      void queryClient.invalidateQueries({ queryKey: [SHOWCASE_QUERY_KEY] });
     },
   });
 }
@@ -115,10 +125,9 @@ export function useMediaSearch(query: string, type: ShowcaseMediaType) {
 
 export function useTrackSearch(query: string) {
   return useQuery({
-    queryKey: [TRACK_SEARCH_QUERY_KEY, query],
-    queryFn: () => showcaseApi.searchTracks(query),
+    queryKey: [TRACK_SEARCH_QUERY_KEY, query.trim()],
+    queryFn: () => showcaseApi.searchTracks(query.trim()),
     staleTime: 1000 * 60 * 30, // 30 minutes
-    placeholderData: (previousData) => previousData,
   });
 }
 
@@ -131,7 +140,11 @@ export function useShowcasePresenceSync(targetUserId?: string, targetUsername?: 
 
     socket.emit('subscribeShowcase', { targetUserId });
 
-    const handlePresenceUpdate = (payload: { userId: string; activityStatus: unknown }) => {
+    const handlePresenceUpdate = (payload: {
+      userId: string;
+      activityStatus: unknown;
+      connectedAccounts?: any;
+    }) => {
       if (payload.userId === targetUserId) {
         queryClient.setQueryData<ProfileShowcaseDto>(
           [SHOWCASE_QUERY_KEY, targetUsername],
@@ -140,6 +153,9 @@ export function useShowcasePresenceSync(targetUserId?: string, targetUsername?: 
             return {
               ...old,
               activityStatus: payload.activityStatus as any,
+              connectedAccounts: payload.connectedAccounts
+                ? { ...old.connectedAccounts, ...payload.connectedAccounts }
+                : old.connectedAccounts,
             };
           },
         );

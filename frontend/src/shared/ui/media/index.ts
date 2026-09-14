@@ -1,0 +1,1 @@
+export { MediaDetailModal } from './MediaDetailModal';

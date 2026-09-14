@@ -1,80 +1,36 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Play, Pause, ExternalLink, Music2, Edit3 } from 'lucide-react';
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { Play, Pause, ExternalLink, Music2, Edit3, Cloud, Radio } from 'lucide-react';
 import type { ProfileAnthemDto } from '@backend/common/contracts';
-import { SpotifyBrandIcon } from '@/shared/ui/BrandIcons';
-import { audioCoordinator } from '@/shared/lib/audioCoordinator';
+import { SpotifyBrandIcon, SoundCloudBrandIcon } from '@/shared/ui/BrandIcons';
+import { useSpotifyPlayerStore } from '@/shared/model/useSpotifyPlayerStore';
+import { useJamSession } from '@/features/music/model/useJamSession';
+import {
+  getSafeSpotifyTrackUrl,
+  extractSpotifyTrackId,
+  unescapeHtml,
+  isSoundCloudUrl,
+  sanitizeImageUrl,
+  sanitizeExternalUrl,
+  sanitizePlatformUrl,
+} from '@/shared/lib/spotifyUrl';
 
 interface ProfileAnthemCardProps {
   anthem?: ProfileAnthemDto | null;
   isOwner: boolean;
   onEditClick?: () => void;
+  targetUserId?: string;
 }
 
 export const ProfileAnthemCard: React.FC<ProfileAnthemCardProps> = ({
   anthem,
   isOwner,
   onEditClick,
+  targetUserId,
 }) => {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const anthemId = `anthem-${anthem?.title}-${anthem?.artist}`;
-
-  // Initialize and synchronize audio lifecycle (STRICT ZERO-AUTOPLAY)
-  useEffect(() => {
-    if (anthem?.previewUrl) {
-      const audio = new Audio(anthem.previewUrl);
-      audio.preload = 'none';
-
-      audio.onended = () => {
-        setIsPlaying(false);
-        audioCoordinator.stop(anthemId);
-      };
-
-      audio.onerror = () => {
-        setIsPlaying(false);
-        audioCoordinator.stop(anthemId);
-      };
-
-      audioRef.current = audio;
-    } else {
-      audioRef.current = null;
-    }
-
-    const handleGlobalPlay = (e: Event) => {
-      const customEvent = e as CustomEvent<{ id: string }>;
-      if (customEvent.detail.id !== anthemId) {
-        if (audioRef.current) {
-          audioRef.current.pause();
-          audioRef.current.currentTime = 0;
-        }
-        setIsPlaying(false);
-      }
-    };
-
-    const handleGlobalStop = (e: Event) => {
-      const customEvent = e as CustomEvent<{ id?: string }>;
-      if (!customEvent.detail.id || customEvent.detail.id === anthemId) {
-        if (audioRef.current) {
-          audioRef.current.pause();
-        }
-        setIsPlaying(false);
-      }
-    };
-
-    window.addEventListener('app:audio-play', handleGlobalPlay);
-    window.addEventListener('app:audio-stop', handleGlobalStop);
-
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = '';
-        audioRef.current = null;
-      }
-      setIsPlaying(false);
-      window.removeEventListener('app:audio-play', handleGlobalPlay);
-      window.removeEventListener('app:audio-stop', handleGlobalStop);
-    };
-  }, [anthem?.previewUrl, anthemId]);
+  const globalTrack = useSpotifyPlayerStore((s) => s.currentTrack);
+  const isGlobalPlaying = useSpotifyPlayerStore((s) => s.isPlaying);
+  const { joinJam, createJam } = useJamSession();
 
   if (!anthem) {
     if (!isOwner) return null;
@@ -106,128 +62,247 @@ export const ProfileAnthemCard: React.FC<ProfileAnthemCardProps> = ({
     );
   }
 
+  const isSoundCloud = Boolean(
+    (anthem as any)?.source === 'soundcloud' ||
+    (anthem as any)?.id?.startsWith('sc-') ||
+    (anthem as any)?.trackId?.startsWith('sc-') ||
+    (anthem as any)?.trackId?.startsWith('soundcloud-') ||
+    isSoundCloudUrl(anthem?.spotifyUrl),
+  );
+
+  const isPlatformTrack = Boolean(
+    (anthem as any)?.isPlatformTrack ||
+    (anthem as any)?.source === 'platform' ||
+    anthem?.spotifyUrl?.includes('/music/track/') ||
+    anthem?.id?.startsWith('trk-') ||
+    anthem?.id?.startsWith('track-'),
+  );
+
+  const safeTrackId = isSoundCloud
+    ? (anthem as any)?.id || (anthem as any)?.trackId
+    : extractSpotifyTrackId({
+        id: (anthem as any)?.trackId || (anthem as any)?.id,
+        trackId: (anthem as any)?.trackId,
+        spotifyUrl: anthem?.spotifyUrl,
+      }) ||
+      (anthem as any)?.trackId ||
+      (anthem as any)?.id;
+
+  const isThisAnthemTrack = Boolean(
+    anthem &&
+    globalTrack &&
+    ((safeTrackId && globalTrack.id === safeTrackId) ||
+      (globalTrack.spotifyUrl &&
+        anthem.spotifyUrl &&
+        globalTrack.spotifyUrl === anthem.spotifyUrl) ||
+      (globalTrack.title.toLowerCase() === unescapeHtml(anthem.title).toLowerCase() &&
+        globalTrack.artist.toLowerCase() === unescapeHtml(anthem.artist).toLowerCase())),
+  );
+
+  // Exact 1:1 synchronization with Spotify Liquid Dock
+  const isPlayingNow = isGlobalPlaying && isThisAnthemTrack;
+
   const togglePlay = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!audioRef.current || !anthem.previewUrl) return;
+    if (!anthem) return;
 
-    if (isPlaying) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-      audioCoordinator.stop(anthemId);
+    if (isPlayingNow) {
+      useSpotifyPlayerStore.getState().pause();
+    } else if (isThisAnthemTrack && !isGlobalPlaying) {
+      useSpotifyPlayerStore.getState().resume();
     } else {
-      audioCoordinator.play(audioRef.current, anthemId);
-      audioRef.current.play().catch(() => {
-        setIsPlaying(false);
-        audioCoordinator.stop(anthemId);
+      useSpotifyPlayerStore.getState().playTrack({
+        id: safeTrackId || `track-${Date.now()}`,
+        title: unescapeHtml(anthem.title),
+        artist: unescapeHtml(anthem.artist),
+        albumArt: anthem.albumArt,
+        durationMs: (anthem as any).durationMs || 180000,
+        previewUrl: anthem.previewUrl || null,
+        spotifyUrl:
+          anthem.spotifyUrl ||
+          (isSoundCloud ? 'https://soundcloud.com' : getSafeSpotifyTrackUrl(anthem)),
+        contextName: 'Profile Anthem',
+        source: isSoundCloud ? 'soundcloud' : isPlatformTrack ? 'platform' : 'spotify',
+        streamUrl: (anthem as any).streamUrl,
       });
-      setIsPlaying(true);
     }
   };
 
+  const handleListenTogether = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const jamId = (anthem as any)?.jamRoomId || (targetUserId ? `jam_${targetUserId}` : null);
+    if (jamId) {
+      joinJam(jamId);
+    } else if (isOwner) {
+      createJam('dj_only');
+    } else {
+      togglePlay(e);
+    }
+  };
+
+  const trackLink = isSoundCloud
+    ? sanitizePlatformUrl((anthem as any).spotifyUrl, ['soundcloud.com']) ||
+      'https://soundcloud.com'
+    : getSafeSpotifyTrackUrl({
+        spotifyUrl: anthem.spotifyUrl,
+        id: (anthem as any).trackId || (anthem as any).id,
+        trackId: (anthem as any).trackId,
+        title: anthem.title,
+        artist: anthem.artist,
+      });
+
   return (
-    <div className="group relative overflow-hidden rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 hover:border-white/20 p-3 mb-4 shadow-xl transition-all animate-fadeIn">
+    <div className="group relative overflow-hidden rounded-2xl bg-[#121216]/90 border border-white/10 hover:border-white/20 p-3 mb-4 shadow-xl transition-all animate-fadeIn">
       {/* Ambient Album Glow under art when playing */}
-      {isPlaying && (
+      {isPlayingNow && (
         <div
-          className="absolute -left-4 -top-4 w-28 h-28 rounded-full opacity-40 blur-2xl pointer-events-none transition-opacity animate-pulse"
-          style={{ backgroundColor: '#1DB954' }}
+          className="absolute -left-2 -top-2 w-28 h-28 rounded-full opacity-35 blur-2xl pointer-events-none transition-opacity duration-700"
+          style={{
+            backgroundColor: isPlatformTrack ? '#a855f7' : isSoundCloud ? '#FF5500' : '#1DB954',
+          }}
         />
       )}
 
       <div className="relative flex items-center justify-between gap-3 z-10">
-        {/* Left: Album Art with Play/Pause Button overlay */}
+        {/* Left: Album Art with synchronized Play/Pause Button overlay */}
         <div className="relative w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-white/10 shadow-lg group/cover">
-          <img src={anthem.albumArt} alt={anthem.title} className="w-full h-full object-cover" />
+          <img
+            src={sanitizeImageUrl(anthem.albumArt)}
+            alt={anthem.title}
+            className="w-full h-full object-cover"
+          />
 
-          {anthem.previewUrl ? (
-            <button
-              type="button"
-              onClick={togglePlay}
-              aria-label={isPlaying ? 'Pause Anthem' : 'Play Anthem Preview'}
-              className={`absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-xs transition-opacity cursor-pointer ${
-                isPlaying ? 'opacity-100' : 'opacity-0 group-hover/cover:opacity-100'
-              }`}
-            >
-              {isPlaying ? (
-                <Pause size={18} className="text-white fill-white" />
-              ) : (
-                <Play size={18} className="text-white fill-white ml-0.5" />
-              )}
-            </button>
-          ) : (
-            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-              <Music2 size={16} className="text-white/70" />
-            </div>
-          )}
+          {/* Synchronized Play/Pause overlay button on album cover */}
+          <button
+            type="button"
+            onClick={togglePlay}
+            onPointerEnter={() => {
+              if (!isSoundCloud && !isPlatformTrack && !isPlayingNow) {
+                useSpotifyPlayerStore.getState().initSpotifySDK();
+              }
+            }}
+            aria-label={isPlayingNow ? 'Pause Anthem' : 'Play Anthem Preview'}
+            className={`absolute inset-0 flex items-center justify-center bg-black/60 transition-opacity cursor-pointer ${
+              isPlayingNow ? 'opacity-100' : 'opacity-0 group-hover/cover:opacity-100'
+            }`}
+            title={isPlayingNow ? 'Pause' : 'Listen in Liquid Dock'}
+          >
+            {isPlayingNow ? (
+              <Pause size={18} className="text-white fill-white" />
+            ) : (
+              <Play size={18} className="text-white fill-white ml-0.5" />
+            )}
+          </button>
         </div>
 
         {/* Center: Track Title & Artist */}
         <div className="flex flex-col min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <span className="text-xs font-bold text-white truncate tracking-wide">
-              {anthem.title}
-            </span>
+            {isPlatformTrack ? (
+              <Link
+                to={`/music/track/${safeTrackId}`}
+                className="text-xs font-bold text-white truncate tracking-wide hover:underline hover:text-purple-400 transition-colors"
+                title={unescapeHtml(anthem.title)}
+              >
+                {unescapeHtml(anthem.title)}
+              </Link>
+            ) : (
+              <a
+                href={sanitizeExternalUrl(trackLink, '#')}
+                target="_blank"
+                rel="noreferrer"
+                className={`text-xs font-bold text-white truncate tracking-wide hover:underline transition-colors ${
+                  isSoundCloud ? 'hover:text-[#FF5500]' : 'hover:text-[#1DB954]'
+                }`}
+                title={unescapeHtml(anthem.title)}
+              >
+                {unescapeHtml(anthem.title)}
+              </a>
+            )}
           </div>
           <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="text-[11px] text-gray-400 font-medium truncate">{anthem.artist}</span>
-            <SpotifyBrandIcon size={12} />
+            <span className="text-[11px] text-gray-400 font-medium truncate">
+              {unescapeHtml(anthem.artist)}
+            </span>
+            {isPlatformTrack ? (
+              <Radio size={11} className="text-purple-400" />
+            ) : isSoundCloud ? (
+              <SoundCloudBrandIcon size={12} />
+            ) : (
+              <SpotifyBrandIcon size={12} />
+            )}
           </div>
         </div>
 
-        {/* Right: Equalizer or External Spotify Link & Edit */}
+        {/* Right: Live Equalizer (synchronized when playing) + Action Button */}
         <div className="flex items-center gap-2 shrink-0">
-          {anthem.previewUrl ? (
-            <div className="flex items-end gap-0.5 h-4 w-4 justify-center" aria-hidden="true">
+          {isPlayingNow && (
+            <div
+              className="flex items-end gap-0.5 h-4 w-4 justify-center mr-0.5"
+              aria-hidden="true"
+              title="Playing in Liquid Dock"
+            >
               <span
-                className={`w-0.5 bg-[#1DB954] rounded-full transition-transform ${
-                  isPlaying ? 'h-full animate-equalizerBar' : 'h-1.5'
+                className={`w-0.5 rounded-full h-full animate-equalizerBar ${
+                  isPlatformTrack ? 'bg-purple-400' : isSoundCloud ? 'bg-[#FF5500]' : 'bg-[#1DB954]'
                 }`}
-                style={{
-                  transformOrigin: 'bottom',
-                  animationDelay: '0s',
-                }}
+                style={{ transformOrigin: 'bottom', animationDelay: '0s' }}
               />
               <span
-                className={`w-0.5 bg-[#1DB954] rounded-full transition-transform ${
-                  isPlaying ? 'h-full animate-equalizerBar' : 'h-3'
+                className={`w-0.5 rounded-full h-full animate-equalizerBar ${
+                  isPlatformTrack ? 'bg-purple-400' : isSoundCloud ? 'bg-[#FF5500]' : 'bg-[#1DB954]'
                 }`}
-                style={{
-                  transformOrigin: 'bottom',
-                  animationDelay: '-0.3s',
-                }}
+                style={{ transformOrigin: 'bottom', animationDelay: '-0.3s' }}
               />
               <span
-                className={`w-0.5 bg-[#1DB954] rounded-full transition-transform ${
-                  isPlaying ? 'h-full animate-equalizerBar' : 'h-2'
+                className={`w-0.5 rounded-full h-full animate-equalizerBar ${
+                  isPlatformTrack ? 'bg-purple-400' : isSoundCloud ? 'bg-[#FF5500]' : 'bg-[#1DB954]'
                 }`}
-                style={{
-                  transformOrigin: 'bottom',
-                  animationDelay: '-0.15s',
-                }}
+                style={{ transformOrigin: 'bottom', animationDelay: '-0.15s' }}
               />
               <span
-                className={`w-0.5 bg-[#1DB954] rounded-full transition-transform ${
-                  isPlaying ? 'h-full animate-equalizerBar' : 'h-1'
+                className={`w-0.5 rounded-full h-full animate-equalizerBar ${
+                  isPlatformTrack ? 'bg-purple-400' : isSoundCloud ? 'bg-[#FF5500]' : 'bg-[#1DB954]'
                 }`}
-                style={{
-                  transformOrigin: 'bottom',
-                  animationDelay: '-0.45s',
-                }}
+                style={{ transformOrigin: 'bottom', animationDelay: '-0.45s' }}
               />
             </div>
+          )}
+
+          {isPlatformTrack ? (
+            <button
+              type="button"
+              onClick={handleListenTogether}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 text-[10px] font-bold border border-purple-500/35 transition-all cursor-pointer shadow-xs active:scale-95"
+              title="Listen together with user"
+            >
+              <Radio size={12} className="animate-pulse" />
+              <span>Listen Together</span>
+            </button>
+          ) : isSoundCloud ? (
+            <a
+              href={sanitizePlatformUrl(trackLink, ['soundcloud.com'], 'https://soundcloud.com')}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#FF5500]/15 hover:bg-[#FF5500]/25 text-[#FF5500] text-[10px] font-bold border border-[#FF5500]/30 transition-all cursor-pointer shadow-xs"
+              title="Listen on SoundCloud"
+            >
+              <SoundCloudBrandIcon size={12} />
+              <span>Listen on SoundCloud</span>
+              <ExternalLink size={10} />
+            </a>
           ) : (
-            anthem.spotifyUrl && (
-              <a
-                href={anthem.spotifyUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-[#1DB954] text-[10px] font-bold border border-emerald-500/30 transition-all cursor-pointer"
-                title="Listen full track on Spotify"
-              >
-                <span>Spotify</span>
-                <ExternalLink size={10} />
-              </a>
-            )
+            <a
+              href={sanitizePlatformUrl(trackLink, ['spotify.com'], 'https://open.spotify.com')}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#1DB954]/15 hover:bg-[#1DB954]/25 text-[#1DB954] text-[10px] font-bold border border-[#1DB954]/30 transition-all cursor-pointer shadow-xs"
+              title="Listen on Spotify"
+            >
+              <SpotifyBrandIcon size={11} />
+              <span>Listen on Spotify</span>
+              <ExternalLink size={10} />
+            </a>
           )}
 
           {isOwner && onEditClick && (

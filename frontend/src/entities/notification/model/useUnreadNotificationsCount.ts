@@ -1,7 +1,21 @@
+import { useMemo } from 'react';
 import { useNotificationStore } from './useNotificationStore';
 import { useUnreadCountsQuery } from './useNotifications';
+import { useMusicHubStore } from '@/features/music/model/useMusicHubStore';
+import { useAuthStore } from '@/shared/model/useAuthStore';
 
 export function useUnreadNotificationsCount(): number {
   useUnreadCountsQuery();
-  return useNotificationStore((state) => state.unreadCounts.total);
+  const backendTotal = useNotificationStore((state) => state.unreadCounts.total);
+  const currentUserId = useAuthStore((state) => state.userId);
+  const playlistInvites = useMusicHubStore((state) => state.playlistInvites || []);
+
+  const pendingInvitesCount = useMemo(() => {
+    if (!currentUserId) return 0;
+    return playlistInvites.filter(
+      (inv) => inv.status === 'pending' && inv.inviteeId === currentUserId,
+    ).length;
+  }, [playlistInvites, currentUserId]);
+
+  return backendTotal + pendingInvitesCount;
 }

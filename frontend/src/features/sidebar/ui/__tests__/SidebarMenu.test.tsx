@@ -42,6 +42,9 @@ describe('ProfileMenu', () => {
 
     expect(screen.getByText('Settings')).toBeInTheDocument();
     expect(screen.getByText('Saved')).toBeInTheDocument();
+    expect(screen.getByText('Help & Safety')).toBeInTheDocument();
+    expect(screen.getByText('Terms of use')).toBeInTheDocument();
+    expect(screen.getByText('Privacy Policy')).toBeInTheDocument();
     expect(screen.getByText('Problem report')).toBeInTheDocument();
     expect(screen.getByText('Log out')).toBeInTheDocument();
 

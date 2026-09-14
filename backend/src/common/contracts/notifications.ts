@@ -122,6 +122,7 @@ export class NotificationResponseDto {
   isRead!: boolean;
   createdAt!: string;
   post!: NotificationPostPreviewDto | null;
+  story?: { id: string; mediaUrl?: string | null; mediaType?: string | null } | null;
   actionText!: string;
   deepLink!: string;
 
@@ -163,14 +164,43 @@ export class NotificationResponseDto {
       dto.post = null;
     }
 
+    // Parse Story Payload if present in text
+    let storyData: {
+      storyId: string;
+      mediaUrl?: string;
+      mediaType?: string;
+      authorUsername?: string;
+      kind?: string;
+      emoji?: string;
+    } | null = null;
+
+    if (n.text && n.text.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(n.text);
+        if (parsed && (parsed.kind === 'story_like' || parsed.kind === 'story_mention')) {
+          storyData = parsed;
+          dto.story = {
+            id: parsed.storyId,
+            mediaUrl: parsed.mediaUrl ?? null,
+            mediaType: parsed.mediaType ?? null,
+          };
+        }
+      } catch {}
+    }
+
     // Smart Action Text generation
     const actorName = dto.actor?.displayName || dto.actor?.username || 'Someone';
     const extra = dto.extraCount > 0 ? ` and ${dto.extraCount} others` : '';
 
     switch (dto.type) {
       case 'LIKE_POST':
-        dto.actionText = `${actorName}${extra} liked your post`;
-        dto.deepLink = dto.postId ? `/post/${dto.postId}` : '/notifications';
+        if (storyData?.kind === 'story_like') {
+          dto.actionText = `${actorName}${extra} liked your story`;
+          dto.deepLink = `/profile/${storyData.authorUsername || actorName}?story=${storyData.storyId}`;
+        } else {
+          dto.actionText = `${actorName}${extra} liked your post`;
+          dto.deepLink = dto.postId ? `/post/${dto.postId}` : '/notifications';
+        }
         break;
       case 'LIKE_COMMENT':
         dto.actionText = `${actorName}${extra} liked your comment`;
@@ -199,12 +229,17 @@ export class NotificationResponseDto {
         dto.deepLink = dto.postId ? `/post/${dto.postId}` : '/notifications';
         break;
       case 'MENTION':
-        dto.actionText = `${actorName} mentioned you in a ${dto.commentId ? 'comment' : 'post'}`;
-        dto.deepLink = dto.postId
-          ? dto.commentId
-            ? `/post/${dto.postId}?commentId=${dto.commentId}`
-            : `/post/${dto.postId}`
-          : '/notifications';
+        if (storyData?.kind === 'story_mention') {
+          dto.actionText = `${actorName} mentioned you in their story`;
+          dto.deepLink = `/profile/${storyData.authorUsername || actorName}?story=${storyData.storyId}`;
+        } else {
+          dto.actionText = `${actorName} mentioned you in a ${dto.commentId ? 'comment' : 'post'}`;
+          dto.deepLink = dto.postId
+            ? dto.commentId
+              ? `/post/${dto.postId}?commentId=${dto.commentId}`
+              : `/post/${dto.postId}`
+            : '/notifications';
+        }
         break;
       case 'SYSTEM_VERIFIED':
         dto.actionText = 'Your account has been verified';

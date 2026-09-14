@@ -1,9 +1,11 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { toPng, toBlob } from 'html-to-image';
 import { X, Copy, Download, Check, Loader2, Share2, Sparkles, Flame, Star } from 'lucide-react';
 import type { ProfileShowcaseDto } from '@backend/common/contracts';
 import { useMessageToastStore } from '@/shared/model/useMessageToastStore';
 import Avatar from '@/shared/ui/Avatar';
+import { sanitizeImageUrl } from '@/shared/lib/urlSecurity';
 
 interface ExportShowcaseModalProps {
   isOpen: boolean;
@@ -120,8 +122,10 @@ export const ExportShowcaseModal: React.FC<ExportShowcaseModalProps> = ({
   const bannerSource =
     showcase.spotlightMedia?.customBannerUrl || showcase.spotlightMedia?.posterUrl || '';
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+  if (!isOpen) return null;
+
+  const modalContent = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
       <div
         className="relative w-full max-w-xl max-h-[95vh] bg-[#0d0d10] border border-white/10 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 text-white overflow-hidden"
         style={{
@@ -189,14 +193,14 @@ export const ExportShowcaseModal: React.FC<ExportShowcaseModalProps> = ({
             <div className="relative rounded-2xl overflow-hidden bg-white/[0.03] border border-white/[0.08] p-3 flex items-center gap-3.5 backdrop-blur-xl">
               {user.banner && (
                 <img
-                  src={user.banner}
+                  src={sanitizeImageUrl(user.banner)}
                   alt="Banner"
                   crossOrigin="anonymous"
                   className="absolute inset-0 w-full h-full object-cover opacity-20 blur-xs pointer-events-none"
                 />
               )}
               <Avatar
-                src={user.avatar}
+                src={sanitizeImageUrl(user.avatar)}
                 alt={user.displayName}
                 size="md"
                 className="w-13 h-13 rounded-2xl border-2 border-white/20 shrink-0"
@@ -217,12 +221,12 @@ export const ExportShowcaseModal: React.FC<ExportShowcaseModalProps> = ({
               <div className="relative rounded-2xl overflow-hidden bg-white/[0.04] border border-white/[0.08] p-3 flex flex-col gap-2 backdrop-blur-xl">
                 <div className="flex items-center gap-1.5 text-amber-400 text-[11px] font-bold uppercase tracking-wider">
                   <Flame size={13} />
-                  <span>Spotlight Title</span>
+                  <span>Favorite</span>
                 </div>
 
                 <div className="relative rounded-xl overflow-hidden aspect-[16/9] border border-white/10 bg-black/40">
                   <img
-                    src={bannerSource}
+                    src={sanitizeImageUrl(bannerSource)}
                     alt={showcase.spotlightMedia.title}
                     crossOrigin="anonymous"
                     className="w-full h-full object-cover"
@@ -278,7 +282,7 @@ export const ExportShowcaseModal: React.FC<ExportShowcaseModalProps> = ({
                       className="aspect-[2/3] rounded-xl overflow-hidden border border-white/10 bg-black/40 relative"
                     >
                       <img
-                        src={m.posterUrl}
+                        src={sanitizeImageUrl(m.posterUrl)}
                         alt={m.title}
                         crossOrigin="anonymous"
                         className="w-full h-full object-cover"
@@ -338,4 +342,6 @@ export const ExportShowcaseModal: React.FC<ExportShowcaseModalProps> = ({
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : null;
 };

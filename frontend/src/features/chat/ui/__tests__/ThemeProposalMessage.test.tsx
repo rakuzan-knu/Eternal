@@ -54,10 +54,10 @@ describe('ThemeProposalMessage', () => {
       />,
     );
 
-    expect(screen.getByText(/Alice предлагает парную тему/i)).toBeInTheDocument();
-    expect(screen.getByText('Принять тему')).toBeInTheDocument();
-    expect(screen.getByText('Отклонить')).toBeInTheDocument();
-    expect(screen.getByText('Ожидание')).toBeInTheDocument();
+    expect(screen.getByText(/Alice proposed a paired theme/i)).toBeInTheDocument();
+    expect(screen.getByText('Accept Theme')).toBeInTheDocument();
+    expect(screen.getByText('Decline')).toBeInTheDocument();
+    expect(screen.getByText('Pending')).toBeInTheDocument();
   });
 
   it('renders pending theme proposal for sender with cancel button', () => {
@@ -69,9 +69,9 @@ describe('ThemeProposalMessage', () => {
       />,
     );
 
-    expect(screen.getByText(/Вы предложили парную тему/i)).toBeInTheDocument();
-    expect(screen.getByText('Отменить предложение')).toBeInTheDocument();
-    expect(screen.queryByText('Принять тему')).not.toBeInTheDocument();
+    expect(screen.getByText(/You proposed a paired theme/i)).toBeInTheDocument();
+    expect(screen.getByText('Cancel Proposal')).toBeInTheDocument();
+    expect(screen.queryByText('Accept Theme')).not.toBeInTheDocument();
   });
 
   it('handles accepting the proposal and triggers onThemeAccepted callback', async () => {
@@ -96,7 +96,7 @@ describe('ThemeProposalMessage', () => {
       />,
     );
 
-    const acceptBtn = screen.getByText('Принять тему');
+    const acceptBtn = screen.getByText('Accept Theme');
     fireEvent.click(acceptBtn);
 
     await waitFor(() => {
@@ -125,7 +125,7 @@ describe('ThemeProposalMessage', () => {
       />,
     );
 
-    expect(screen.getByText('Принята')).toBeInTheDocument();
-    expect(screen.queryByText('Принять тему')).not.toBeInTheDocument();
+    expect(screen.getByText('Accepted')).toBeInTheDocument();
+    expect(screen.queryByText('Accept Theme')).not.toBeInTheDocument();
   });
 });

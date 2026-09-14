@@ -14,6 +14,8 @@ describe('messenger Prisma projection selectors and includes', () => {
       username: true,
       displayName: true,
       avatar: true,
+      isVerified: true,
+      primaryBadge: true,
       defaultChatTheme: true,
     });
   });

@@ -14,8 +14,17 @@ import CreatePost from '../../features/posts/ui/CreatePost';
 import { PostCard } from '@/widgets/post/ui/PostCard';
 import { SkeletonFeed } from '../../entities/post/ui/SkeletonPostCard';
 import { SavedPostsView } from '@/features/profile/ui/saved/SavedPostsView';
+import { isReservedUsername } from '@/features/profile/model/profileSchema';
+import { SEOHead } from '@/shared/seo';
 import { RESERVED_USERNAMES } from '@/features/profile/model/profileSchema';
-import { ProfileShowcaseSidebar } from '@/widgets/profile/showcase/ProfileShowcaseSidebar';
+import { storiesApi } from '@/features/stories/api/storiesApi';
+import { useStoryViewerStore } from '@/features/stories/model/useStoryViewerStore';
+
+const ProfileShowcaseSidebar = React.lazy(() =>
+  import('@/widgets/profile/showcase/ProfileShowcaseSidebar').then((m) => ({
+    default: m.ProfileShowcaseSidebar,
+  })),
+);
 
 function SkeletonProfileHeader() {
   return (
@@ -39,7 +48,7 @@ export default function ProfilePage() {
   const { userId: myUserId } = useAuthStore();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const isReserved = !!rawUsername && RESERVED_USERNAMES.includes(rawUsername.toLowerCase());
+  const isReserved = !!rawUsername && isReservedUsername(rawUsername);
 
   const effectiveUsername = isReserved
     ? '__reserved__'
@@ -100,6 +109,38 @@ export default function ProfilePage() {
     }
   }, [postsQuery.isLoading]);
 
+  const storyParam = searchParams.get('story');
+  useEffect(() => {
+    if (!storyParam || !user?.id) return;
+
+    let isMounted = true;
+    (async () => {
+      try {
+        const userGroup = await storiesApi.getUserStories(user.id);
+        if (!isMounted) return;
+        if (userGroup && userGroup.stories.length > 0) {
+          const storyIdx = userGroup.stories.findIndex((s) => s.id === storyParam);
+          useStoryViewerStore.getState().openViewer([userGroup], 0, storyIdx !== -1 ? storyIdx : 0);
+          return;
+        }
+
+        const feed = await storiesApi.getFeed();
+        if (!isMounted) return;
+        const gIdx = feed.findIndex((g) => g.stories.some((s) => s.id === storyParam));
+        if (gIdx !== -1) {
+          const sIdx = feed[gIdx].stories.findIndex((s) => s.id === storyParam);
+          useStoryViewerStore.getState().openViewer(feed, gIdx, sIdx !== -1 ? sIdx : 0);
+        }
+      } catch (err) {
+        console.error('Failed to open story from URL param', err);
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [storyParam, user?.id]);
+
   if (isReserved) {
     return (
       <div className="w-full min-h-[450px] flex flex-col items-center justify-center bg-white/[0.02] backdrop-blur-2xl border border-white/[0.05] rounded-[2.5rem] p-8 text-center shadow-[0_12px_40px_rgba(0,0,0,0.6)] animate-fadeIn">
@@ -132,6 +173,11 @@ export default function ProfilePage() {
   if (error || !user) {
     return (
       <div className="w-full min-h-[450px] flex flex-col items-center justify-center bg-white/[0.02] backdrop-blur-2xl border border-white/[0.05] rounded-[2.5rem] p-8 text-center shadow-[0_12px_40px_rgba(0,0,0,0.6)] animate-fadeIn">
+        <SEOHead
+          title="Profile Not Found • Eternal"
+          description="The requested user profile does not exist or has been removed."
+          noindex={true}
+        />
         <div className="relative mb-6 flex items-center justify-center">
           <div className="absolute inset-0 rounded-full bg-red-500/20 blur-xl animate-pulse w-24 h-24" />
           <div className="relative w-20 h-20 flex items-center justify-center bg-[#0b0b0c] border border-red-500/30 rounded-2xl animate-bounce shadow-2xl">
@@ -174,10 +220,30 @@ export default function ProfilePage() {
   const feedQueryKey =
     activeTab === 'posts' ? [USER_POSTS_KEY, user.id] : [USER_REPOSTS_KEY, user.id];
 
+  const profileName = user.displayName || user.username;
+  const profileDescription =
+    user.bio ||
+    `Check out ${profileName} (@${user.username}) on Eternal. Follow to see their photos, videos and updates.`;
+
   return (
     <div className="w-full flex justify-center gap-6 xl:gap-8 animate-fadeIn">
       {/* Central Profile & Feed Column (Smoothly centered) */}
       <div className="w-full max-w-2xl flex flex-col transition-all duration-300 ease-in-out">
+        <SEOHead
+          title={`${profileName} (@${user.username}) • Eternal Profile`}
+          description={profileDescription}
+          image={user.avatar || undefined}
+          canonical={`/@${user.username}`}
+          type="profile"
+          structuredData={{
+            type: 'ProfilePage',
+            name: profileName,
+            username: user.username,
+            bio: user.bio || undefined,
+            avatar: user.avatar || undefined,
+            breadcrumbs: [{ name: profileName, url: `/@${user.username}` }],
+          }}
+        />
         <div className="bg-white/[0.02] backdrop-blur-2xl border border-white/[0.05] rounded-[2.5rem] overflow-hidden shadow-[0_12px_40px_rgba(0,0,0,0.6)] mb-6">
           <ProfileHeader
             userId={user.id}
@@ -194,19 +260,25 @@ export default function ProfilePage() {
             isVerified={user.isVerified}
             primaryBadge={user.primaryBadge}
             badges={user.badges}
+            mergedPrsCount={user.mergedPrsCount}
+            reportCount={user.reportCount}
+            subscriptionMonths={user.subscriptionMonths}
+            subscriptionDate={user.subscriptionDate}
             followersCount={user.followersCount}
             followingCount={user.followingCount}
             onEditClick={() => openEditProfile('account')}
           />
 
           {/* Mobile Showcase View (< 1024px) */}
-          <div className="px-6 pt-2 xl:hidden">
-            <ProfileShowcaseSidebar
-              username={user.username}
-              userId={user.id}
-              isOwner={isOwnProfile}
-              variant="mobile"
-            />
+          <div className="px-6 pt-2 lg:hidden relative z-20">
+            <React.Suspense fallback={null}>
+              <ProfileShowcaseSidebar
+                username={user.username}
+                userId={user.id}
+                isOwner={isOwnProfile}
+                variant="mobile"
+              />
+            </React.Suspense>
           </div>
 
           <ProfileTabs
@@ -247,12 +319,14 @@ export default function ProfilePage() {
       </div>
 
       {/* Desktop Sticky Profile Showcase Sidebar (>= 1024px) */}
-      <ProfileShowcaseSidebar
-        username={user.username}
-        userId={user.id}
-        isOwner={isOwnProfile}
-        variant="desktop"
-      />
+      <React.Suspense fallback={null}>
+        <ProfileShowcaseSidebar
+          username={user.username}
+          userId={user.id}
+          isOwner={isOwnProfile}
+          variant="desktop"
+        />
+      </React.Suspense>
     </div>
   );
 }

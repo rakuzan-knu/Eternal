@@ -9,7 +9,7 @@ interface VerifiedCheckmarkProps {
 }
 
 export function VerifiedCheckmark({
-  isVerified = true,
+  isVerified = false,
   primaryBadge,
   size = 'md',
   className = '',

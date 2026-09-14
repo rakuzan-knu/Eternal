@@ -9,6 +9,8 @@ interface AttachMenuProps {
   onPickMedia: (files: File[]) => void;
   onPickFile: (files: File[]) => void;
   onTogglePoll: () => void;
+  buttonClassName?: string;
+  iconSize?: number;
 }
 
 type AttachItemKey = 'media' | 'file' | 'poll';
@@ -21,6 +23,8 @@ export default function AttachMenu({
   onPickMedia,
   onPickFile,
   onTogglePoll,
+  buttonClassName,
+  iconSize = 18,
 }: AttachMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -80,13 +84,15 @@ export default function AttachMenu({
         onClick={() => setIsOpen((v) => !v)}
         disabled={disabled}
         title="Attach"
-        className={`w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-full transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed ${
+        className={`flex-shrink-0 flex items-center justify-center rounded-full transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed ${
+          buttonClassName || 'w-10 h-10'
+        } ${
           isOpen
             ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white rotate-45 shadow-lg shadow-purple-500/30'
             : 'text-purple-400 hover:text-purple-300 hover:bg-white/5'
         }`}
       >
-        <Plus size={20} />
+        <Plus size={iconSize} />
       </button>
 
       {isOpen && (

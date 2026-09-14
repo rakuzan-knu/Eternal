@@ -179,3 +179,5 @@ apps/*/dist/
 apps/*/coverage/
 
 codeql-alerts.json
+scratch/
+**/scratch/

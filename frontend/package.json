@@ -8,7 +8,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --force",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && node ./scripts/prerender-static-seo.js",
     "preview": "vite preview",
     "lint": "eslint . --ignore-pattern \"storybook-static\" --ignore-pattern \"coverage\" --cache --cache-location .eslintcache",
     "lint:fix": "eslint . --ignore-pattern \"storybook-static\" --ignore-pattern \"coverage\" --fix",
@@ -37,6 +37,7 @@
     "axios": "^1.18.1",
     "emoji-picker-react": "^4.19.1",
     "framer-motion": "^13.1.1",
+    "hls.js": "^1.7.2",
     "html-to-image": "^1.11.13",
     "katex": "^0.18.4",
     "lucide-react": "^1.33.0",

@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Search,
@@ -389,8 +390,8 @@ export function ShareModal() {
   const hasSelectedUsers = selectedUserIds.length > 0;
   const isLoadingUsers = isFollowingLoading || isFollowersLoading;
 
-  return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+  const modalContent = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/80 backdrop-blur-md animate-fadeIn"
@@ -403,7 +404,12 @@ export function ShareModal() {
         <div className="relative flex items-center justify-center px-5 py-4 border-b border-white/[0.08]">
           <button
             type="button"
-            onClick={closeShareModal}
+            onClick={() => {
+              closeShareModal();
+              useUIStore.setState({ isShareModalOpen: false, activePostForShare: null });
+            }}
+            aria-label="Close"
+            data-testid="close-button"
             className="absolute left-4 p-1.5 text-gray-400 hover:text-white rounded-full hover:bg-white/10 transition-colors"
           >
             <X size={20} />
@@ -568,6 +574,8 @@ export function ShareModal() {
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : null;
 }
 
 export default ShareModal;

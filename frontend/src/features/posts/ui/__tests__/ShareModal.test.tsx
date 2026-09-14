@@ -34,7 +34,13 @@ describe('ShareModal', () => {
     expect(screen.getByText('Spread')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Search')).toBeInTheDocument();
 
-    const closeBtn = container.querySelector('button');
+    const closeBtn =
+      screen.queryByRole('button', { name: /close/i }) ||
+      screen.queryByTestId('close-button') ||
+      container.querySelector('[data-testid="close-button"]') ||
+      container.querySelector('button[aria-label="Close"]') ||
+      container.querySelector('button');
+
     if (closeBtn) fireEvent.click(closeBtn);
 
     expect(useUIStore.getState().isShareModalOpen).toBe(false);

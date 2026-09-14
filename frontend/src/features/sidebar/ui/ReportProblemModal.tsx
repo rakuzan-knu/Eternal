@@ -29,7 +29,7 @@ export function ReportProblemModal({ onClose, onContinue }: ReportProblemModalPr
             <p>
               Need help? Check out our{' '}
               <Link
-                to="/faq"
+                to="/safety"
                 onClick={close}
                 className="text-purple-400 hover:underline font-medium"
               >

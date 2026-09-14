@@ -9,11 +9,51 @@ export interface TextOverlay {
   yPercent: number; // 0 to 100
   scale?: number;
   rotation?: number;
+  zIndex?: number;
   color?: string;
-  fontFamily?: 'sans' | 'neon' | 'cyberpunk' | 'serif' | 'typewriter';
-  backgroundStyle?: 'none' | 'solid' | 'neon' | 'glass';
+  fontFamily?:
+    | 'modern'
+    | 'classic'
+    | 'signature'
+    | 'neon'
+    | 'typewriter'
+    | 'cyberpunk'
+    | 'poster'
+    | 'sans'
+    | 'serif';
+  backgroundStyle?: 'none' | 'solid' | 'neon' | 'glass' | 'highlight';
+  backgroundColor?: string;
   fontSize?: number;
+  fontSizeCqw?: number;
   textAlign?: 'left' | 'center' | 'right';
+  animation?: 'none' | 'typewriter' | 'float' | 'bounce' | 'glow' | 'wave';
+  fontStyle?: 'normal' | 'italic';
+}
+
+export interface ImageOverlay {
+  id: string;
+  type: 'image';
+  url?: string;
+  isMainMedia?: boolean;
+  xPercent: number;
+  yPercent: number;
+  scale?: number;
+  rotation?: number;
+  zIndex?: number;
+  aspectRatio?: number;
+  borderRadius?: number;
+  backgroundColor?: string;
+}
+
+export interface CaptionOverlay {
+  id: string;
+  type: 'caption';
+  text: string;
+  xPercent: number;
+  yPercent: number;
+  scale?: number;
+  rotation?: number;
+  zIndex?: number;
 }
 
 export interface PollOption {
@@ -29,6 +69,7 @@ export interface PollOverlay {
   yPercent: number;
   scale?: number;
   rotation?: number;
+  zIndex?: number;
 }
 
 export interface LinkOverlay {
@@ -40,6 +81,7 @@ export interface LinkOverlay {
   yPercent: number;
   scale?: number;
   rotation?: number;
+  zIndex?: number;
 }
 
 export interface MentionOverlay {
@@ -51,22 +93,59 @@ export interface MentionOverlay {
   yPercent: number;
   scale?: number;
   rotation?: number;
+  zIndex?: number;
 }
 
 export interface AudioOverlay {
   id: string;
   type: 'audio';
   title?: string;
+  artist?: string;
+  albumArt?: string;
   audioUrl?: string;
+  spotifyUrl?: string;
   duration?: number;
   waveform?: number[];
+  videoVolume?: number;
+  musicVolume?: number;
+  musicStyle?: 'none' | 'card' | 'cover' | 'vinyl';
+  stickerColor?: string;
+  startTimeMs?: number;
+  clipDurationSeconds?: number;
   xPercent: number;
   yPercent: number;
   scale?: number;
   rotation?: number;
+  zIndex?: number;
 }
 
-export type StoryOverlay = TextOverlay | PollOverlay | LinkOverlay | MentionOverlay | AudioOverlay;
+export interface DrawingStroke {
+  tool: 'pencil' | 'marker' | 'eraser';
+  color: string;
+  size: number;
+  points: Array<{ x: number; y: number }>;
+}
+
+export interface DrawingOverlay {
+  id: string;
+  type: 'drawing';
+  strokes: DrawingStroke[];
+  xPercent: number;
+  yPercent: number;
+  scale?: number;
+  rotation?: number;
+  zIndex?: number;
+}
+
+export type StoryOverlay =
+  | TextOverlay
+  | ImageOverlay
+  | CaptionOverlay
+  | PollOverlay
+  | LinkOverlay
+  | MentionOverlay
+  | AudioOverlay
+  | DrawingOverlay;
 
 export interface StoryViewerUser {
   id: string;
@@ -105,6 +184,7 @@ export interface StoryViewResponse {
   reactionsCount: Record<string, number>;
   pollResult: StoryPollResult | null;
   author: StoryViewerUser;
+  filter?: string | null;
 }
 
 export interface UserStoriesGroup {
@@ -132,4 +212,5 @@ export interface CreateStoryPayload {
   overlays?: StoryOverlay[];
   privacy?: StoryPrivacy;
   backgroundColor?: string;
+  filter?: string;
 }

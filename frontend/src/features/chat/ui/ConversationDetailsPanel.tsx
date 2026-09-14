@@ -15,11 +15,14 @@ import {
   LogOut,
   Link2Off,
   Sparkles,
+  Music,
 } from 'lucide-react';
 import { chatApi } from '../api/chatApi';
 import Avatar from '../../../shared/ui/Avatar';
 import GroupAvatarCollage from '../../../shared/ui/GroupAvatarCollage';
 import OnlineStatusIndicator from '../../../shared/ui/OnlineStatusIndicator';
+import { DiscordGamepadIcon } from '@/shared/ui/BrandIcons';
+import { useQueryOnlineStatus } from '../model/usePresence';
 import { usePresenceStore } from '@/shared/model/usePresenceStore';
 import { useAuthStore } from '@/shared/model/useAuthStore';
 import { ConversationView, MessageView, MuteLevel } from '../../../entities/chat/model/types';
@@ -35,6 +38,7 @@ import AddMembersModal from './AddMembersModal';
 import GroupMemberDetailView from './GroupMemberDetailView';
 import GroupMembersSection from './details/GroupMembersSection';
 import ChatInfoSection from './details/ChatInfoSection';
+import { extractMediaItems, extractFileItems, extractLinkItems } from '../lib/extractChatMedia';
 import PrivacySupportSection from './details/PrivacySupportSection';
 import { SectionButton } from './details/SectionButton';
 import SelectThemeModal from './SelectThemeModal';
@@ -88,8 +92,29 @@ export default function ConversationDetailsPanel({
   const { userId: currentUserId } = useAuthStore();
   const isGroup = conversation.type === 'GROUP';
 
+  useQueryOnlineStatus(otherUserId ? [otherUserId] : []);
+
   const isOnline = usePresenceStore((s) =>
     otherUserId ? s.onlineUserIds.has(otherUserId) : false,
+  );
+  const otherActivity = usePresenceStore((s) =>
+    otherUserId ? s.userActivities[otherUserId] : null,
+  );
+  const isOtherGaming = Boolean(
+    !isGroup &&
+    otherUserId &&
+    otherActivity &&
+    (otherActivity.type === 'gaming' ||
+      otherActivity.type === 'game' ||
+      otherActivity.isSteam ||
+      (otherActivity.title && otherActivity.type !== 'spotify')),
+  );
+  const isOtherListening = Boolean(
+    !isGroup &&
+    !isOtherGaming &&
+    otherUserId &&
+    otherActivity &&
+    (otherActivity.type === 'spotify' || Boolean(otherActivity.trackId)),
   );
   const muteConversation = useMuteConversation();
   const archiveConversation = useArchiveConversation();
@@ -118,19 +143,9 @@ export default function ConversationDetailsPanel({
   const isMuted = conversation.myMuteLevel !== 'NONE';
   const pinnedCount = conversation.pinnedMessages?.length ?? 0;
 
-  const { mediaCount, fileCount, linkCount } = useMemo(() => {
-    let media = 0;
-    let files = 0;
-    let links = 0;
-    for (const m of messages) {
-      for (const a of m.attachments) {
-        if (a.type === 'IMAGE' || a.type === 'VIDEO' || a.type === 'GIF') media += 1;
-        else if (a.type === 'FILE' || a.type === 'AUDIO') files += 1;
-        else if (a.type === 'LINK') links += 1;
-      }
-    }
-    return { mediaCount: media, fileCount: files, linkCount: links };
-  }, [messages]);
+  const mediaCount = useMemo(() => extractMediaItems(messages).length, [messages]);
+  const fileCount = useMemo(() => extractFileItems(messages).length, [messages]);
+  const linkCount = useMemo(() => extractLinkItems(messages).length, [messages]);
 
   const handleToggleMute = () => {
     if (isMuted) {
@@ -227,12 +242,43 @@ export default function ConversationDetailsPanel({
           </div>
           <div className="flex items-center justify-center gap-1.5 min-w-0">
             <p className="text-lg font-bold text-white truncate">{display.title}</p>
-            {display.isVerified && <VerifiedCheckmark size="md" />}
+            <VerifiedCheckmark
+              isVerified={display.isVerified}
+              primaryBadge={display.primaryBadge}
+              size="md"
+            />
           </div>
           {isGroup ? (
             <p className="text-sm mt-0.5 text-gray-500">
               {conversation.participants.length} members
             </p>
+          ) : isOtherGaming ? (
+            <div className="inline-flex items-center justify-center gap-1.5 text-sm mt-0.5 text-gray-300 font-medium">
+              <DiscordGamepadIcon
+                size={14}
+                className="text-[#23a55a] shrink-0 drop-shadow-[0_0_5px_rgba(35,165,90,0.8)]"
+              />
+              <span>
+                Playing <span className="text-white font-semibold">{otherActivity?.title}</span>
+              </span>
+            </div>
+          ) : isOtherListening ? (
+            <div className="inline-flex items-center justify-center gap-1.5 text-sm mt-0.5 text-gray-300 font-medium">
+              <Music
+                size={14}
+                className="text-[#1DB954] shrink-0 drop-shadow-[0_0_5px_rgba(29,185,84,0.8)]"
+              />
+              <span>
+                Listening to{' '}
+                <span className="text-white font-semibold">{otherActivity?.title}</span>
+                {otherActivity?.subtitle || otherActivity?.artist ? (
+                  <span className="text-gray-400 font-normal">
+                    {' '}
+                    — {otherActivity.subtitle || otherActivity.artist}
+                  </span>
+                ) : null}
+              </span>
+            </div>
           ) : (
             <p
               className={`inline-flex items-center gap-1.5 text-sm mt-0.5 ${isOnline ? 'text-emerald-400' : 'text-gray-500'}`}
@@ -326,12 +372,12 @@ export default function ConversationDetailsPanel({
           <div className="mx-1 my-1 px-3 py-2.5 rounded-xl bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-indigo-500/10 border border-purple-500/20 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 text-xs font-medium text-purple-200">
               <Sparkles className="w-4 h-4 text-purple-400 animate-pulse" />
-              <span>Парная тема активна</span>
+              <span>Paired theme active</span>
             </div>
             <button
               type="button"
               onClick={async () => {
-                if (window.confirm('Отвязать парную тему и вернуть свою персональную тему?')) {
+                if (window.confirm('Unlink paired theme and return to your personal theme?')) {
                   try {
                     await chatApi.unlinkSharedTheme(conversation.id);
                   } catch (err) {
@@ -340,10 +386,10 @@ export default function ConversationDetailsPanel({
                 }
               }}
               className="px-2.5 py-1 rounded-lg text-xs font-medium bg-white/10 hover:bg-rose-500/20 text-white/70 hover:text-rose-300 border border-white/10 hover:border-rose-500/30 transition-all flex items-center gap-1 cursor-pointer"
-              title="Отвязать парную тему"
+              title="Unlink paired theme"
             >
               <Link2Off size={13} />
-              <span>Отвязать</span>
+              <span>Unlink</span>
             </button>
           </div>
         )}
@@ -481,6 +527,7 @@ export default function ConversationDetailsPanel({
         <SelectThemeModal
           conversationId={conversation.id}
           currentTheme={conversation.myTheme}
+          sharedTheme={conversation.sharedTheme}
           onClose={() => setActiveModal(null)}
         />
       )}

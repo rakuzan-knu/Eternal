@@ -1,8 +1,17 @@
 paths-ignore:
   - '**/*.spec.ts'
+  - '**/*.spec.tsx'
+  - '**/*.test.ts'
+  - '**/*.test.tsx'
   - '**/*.e2e-spec.ts'
+  - '**/__tests__/**'
   - 'backend/test/**'
   - 'frontend/src/test/**'
+  - 'frontend/e2e/**'
   - '**/dist/**'
   - '**/node_modules/**'
   - 'backend/prisma/migrations/**'
+
+query-filters:
+  - exclude:
+      id: js/client-side-unvalidated-url-redirection

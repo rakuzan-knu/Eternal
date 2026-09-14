@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -43,6 +44,7 @@ import { userApi } from '@/entities/profile/api/userApi';
 import { apiClient } from '@/shared/api/httpClient';
 import { useDebounce } from '@/shared/lib/useDebounce';
 import { useMessageToastStore } from '../../../shared/model/useMessageToastStore';
+import { isTrustedMessageOrigin } from '@/shared/lib/urlSecurity';
 import Avatar from '../../../shared/ui/Avatar';
 import { SettingsPanelHost } from '@/shared/ui/SettingsPanelHost';
 import SecurityTab from './security/SecurityTab';
@@ -51,6 +53,15 @@ import NotificationsTab from './notifications/NotificationsTab';
 import BadgeSettingsSection from './BadgeSettingsSection';
 import { ProfileShowcaseSettingsSection } from './ProfileShowcaseSettingsSection';
 import { compressImage } from '@/shared/lib/compressImage';
+import { useShowcase } from '@/entities/showcase/model/useShowcase';
+import {
+  ConfigureIntegrationModal,
+  PLATFORMS_LIST,
+  PlatformConfig,
+} from './integrations/ConfigureIntegrationModal';
+import { UnlinkConfirmationModal } from './integrations/UnlinkConfirmationModal';
+import { integrationsApi } from '@/entities/showcase/api/integrationsApi';
+import { MarqueeText } from '@/shared/ui/MarqueeText';
 import FloatingSelectionToolbar, {
   SelectionFormatType,
 } from '@/features/chat/ui/FloatingSelectionToolbar';
@@ -145,6 +156,40 @@ export default function EditProfileModal() {
 
   useEffect(() => {
     if (isEditProfileOpen) {
+      if (
+        editProfileInitialTab === 'family' ||
+        editProfileInitialTab === 'family-center' ||
+        editProfileInitialTab === 'sec-family'
+      ) {
+        setActiveTab('account');
+        setExpandedTabs((prev) => ({ ...prev, account: true }));
+        setActiveSection('sec-family');
+        setTimeout(() => {
+          const el = document.getElementById('sec-family');
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 150);
+        return;
+      }
+
+      if (
+        editProfileInitialTab === 'integrations' ||
+        editProfileInitialTab === 'sec-integrations' ||
+        editProfileInitialTab === 'connections'
+      ) {
+        setActiveTab('account');
+        setExpandedTabs((prev) => ({ ...prev, account: true }));
+        setActiveSection('sec-integrations');
+        setTimeout(() => {
+          const el = document.getElementById('sec-integrations');
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 150);
+        return;
+      }
+
       const validTab =
         typeof editProfileInitialTab === 'string' &&
         TABS_CONFIG.some((t) => t.id === editProfileInitialTab)
@@ -159,6 +204,17 @@ export default function EditProfileModal() {
       }
     }
   }, [isEditProfileOpen, editProfileInitialTab]);
+
+  // Lock body scroll when EditProfileModal is open
+  useEffect(() => {
+    if (isEditProfileOpen) {
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = prevOverflow;
+      };
+    }
+  }, [isEditProfileOpen]);
 
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
@@ -477,16 +533,51 @@ export default function EditProfileModal() {
     }
   };
 
-  const handleUnlinkGitHub = async () => {
-    if (!currentUser?.id) return;
+  const { data: userShowcase } = useShowcase(currentUser?.username);
+  const [activePlatformModal, setActivePlatformModal] = useState<PlatformConfig | null>(null);
+  const [isPlatformModalOpen, setIsPlatformModalOpen] = useState(false);
+  const [unlinkTarget, setUnlinkTarget] = useState<{ id: string; name: string } | null>(null);
+
+  const handleOpenPlatformModal = (platform: PlatformConfig) => {
+    setActivePlatformModal(platform);
+    setIsPlatformModalOpen(true);
+  };
+
+  const handleUnlinkPlatform = async (platformId: string) => {
     try {
-      await userApi.unlinkGithub();
+      if (platformId === 'github' && currentUser?.githubUsername) {
+        await userApi.unlinkGithub();
+      }
+      await integrationsApi.unlink(platformId);
       queryClient.invalidateQueries({ queryKey: [USER_KEY] });
-      addProfileToast('GitHub Unlinked', 'Your GitHub account has been disconnected.');
+      queryClient.invalidateQueries({ queryKey: ['showcase'] });
+      addProfileToast('Integration Disconnected', `${platformId.toUpperCase()} has been unlinked.`);
     } catch (err: unknown) {
-      console.error('Unlink error:', err);
+      console.error('Unlink platform error:', err);
     }
   };
+
+  const handlePlatformSaveSuccess = (_platformId: string, _data: Record<string, any>) => {
+    queryClient.invalidateQueries({ queryKey: [USER_KEY] });
+    queryClient.invalidateQueries({ queryKey: ['showcase'] });
+    addProfileToast('Integration Saved', 'Your profile integration has been synced.');
+  };
+
+  // Real-time OAuth popup completion listener
+  useEffect(() => {
+    const handleAuthMessage = (event: MessageEvent) => {
+      if (!isTrustedMessageOrigin(event.origin)) return;
+      if (event.data?.type === 'INTEGRATION_AUTH_SUCCESS') {
+        queryClient.invalidateQueries({ queryKey: [USER_KEY] });
+        queryClient.invalidateQueries({ queryKey: ['showcase'] });
+        queryClient.invalidateQueries({ queryKey: ['user'] });
+        queryClient.invalidateQueries({ queryKey: ['profile'] });
+      }
+    };
+
+    window.addEventListener('message', handleAuthMessage);
+    return () => window.removeEventListener('message', handleAuthMessage);
+  }, [queryClient]);
 
   if (!isEditProfileOpen) return null;
 
@@ -665,11 +756,11 @@ export default function EditProfileModal() {
       tab.label.toLowerCase().includes(searchQuery.toLowerCase()) || tab.subsections.length > 0,
   );
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/75 backdrop-blur-md animate-fadeIn">
+  const modalContent = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6 bg-black/75 backdrop-blur-md animate-fadeIn overscroll-contain">
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="relative flex flex-col sm:flex-row w-full max-w-[920px] h-[92vh] max-h-[720px] bg-[#0c0c0e]/95 backdrop-blur-2xl rounded-3xl shadow-[0_30px_100px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden border border-white/[0.08]"
+        className="relative flex flex-col sm:flex-row w-full max-w-[920px] h-[92vh] max-h-[720px] bg-[#0c0c0e]/95 backdrop-blur-2xl rounded-3xl shadow-[0_30px_100px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden border border-white/[0.08] overscroll-contain"
       >
         <button
           type="button"
@@ -807,17 +898,19 @@ export default function EditProfileModal() {
               <div className="flex flex-col gap-1.5 px-3 pt-1 text-[11px] text-gray-500 leading-tight">
                 <div className="flex items-center gap-1.5 font-medium text-gray-400">
                   <a
-                    href="#privacy"
-                    onClick={(e) => e.preventDefault()}
-                    className="hover:text-blue-400 transition-colors"
+                    href="/privacy"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-purple-400 transition-colors"
                   >
                     Privacy Policy
                   </a>
                   <span>•</span>
                   <a
-                    href="#terms"
-                    onClick={(e) => e.preventDefault()}
-                    className="hover:text-blue-400 transition-colors"
+                    href="/terms"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-purple-400 transition-colors"
                   >
                     Terms of Service
                   </a>
@@ -834,27 +927,33 @@ export default function EditProfileModal() {
 
                   {isMoreMenuOpen && (
                     <div className="absolute bottom-full left-0 mb-2 w-44 bg-[#161619] border border-white/[0.1] rounded-2xl p-1.5 shadow-2xl flex flex-col gap-0.5 z-50 backdrop-blur-xl animate-fadeIn">
-                      <button
-                        type="button"
+                      <a
+                        href="/blog"
+                        target="_blank"
+                        rel="noopener noreferrer"
                         onClick={() => setIsMoreMenuOpen(false)}
-                        className="w-full text-left px-3 py-2 rounded-xl text-xs text-gray-200 hover:text-white hover:bg-white/[0.08] transition-colors font-medium"
+                        className="w-full text-left px-3 py-2 rounded-xl text-xs text-gray-200 hover:text-white hover:bg-white/[0.08] transition-colors font-medium block"
                       >
                         What's New
-                      </button>
-                      <button
-                        type="button"
+                      </a>
+                      <a
+                        href="/acknowledgements"
+                        target="_blank"
+                        rel="noopener noreferrer"
                         onClick={() => setIsMoreMenuOpen(false)}
-                        className="w-full text-left px-3 py-2 rounded-xl text-xs text-gray-200 hover:text-white hover:bg-white/[0.08] transition-colors font-medium"
+                        className="w-full text-left px-3 py-2 rounded-xl text-xs text-gray-200 hover:text-white hover:bg-white/[0.08] transition-colors font-medium block"
                       >
                         Acknowledgements
-                      </button>
-                      <button
-                        type="button"
+                      </a>
+                      <a
+                        href="/safety"
+                        target="_blank"
+                        rel="noopener noreferrer"
                         onClick={() => setIsMoreMenuOpen(false)}
-                        className="w-full text-left px-3 py-2 rounded-xl text-xs text-gray-200 hover:text-white hover:bg-white/[0.08] transition-colors font-medium"
+                        className="w-full text-left px-3 py-2 rounded-xl text-xs text-gray-200 hover:text-white hover:bg-white/[0.08] transition-colors font-medium block"
                       >
                         Support
-                      </button>
+                      </a>
                     </div>
                   )}
                 </div>
@@ -1102,73 +1201,137 @@ export default function EditProfileModal() {
                     className="pt-6 border-t border-white/[0.06] flex flex-col gap-5"
                   >
                     <div>
-                      <h3 className="text-xl font-bold flex items-center gap-2">
+                      <h3 className="text-xl font-bold flex items-center gap-2 text-white">
                         <LinkIcon size={20} className="text-emerald-400" />
-                        Integrations
+                        Connected Accounts & Integrations
                       </h3>
                       <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-                        Connect third-party accounts (such as GitHub) to track Pull Requests in our
-                        repository and sync activity badges.
+                        Connect and authenticate your gaming, media, and social platforms. Showcase
+                        real-time game ranks, stats, pinned repositories, and playlists in your
+                        profile.
                       </p>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                      <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.08] flex items-center justify-between gap-3 overflow-hidden">
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white shrink-0">
-                            <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
-                              <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
-                            </svg>
-                          </div>
-                          <div className="flex flex-col min-w-0">
-                            <span className="text-white font-bold text-sm truncate">GitHub</span>
-                            {currentUser?.githubUsername ? (
-                              <div className="flex flex-col min-w-0">
-                                <span className="text-emerald-400 text-xs font-semibold flex items-center gap-1 truncate">
-                                  <Check size={13} /> @{currentUser.githubUsername}
-                                </span>
-                                <span className="text-[11px] text-gray-400 truncate">
-                                  {currentUser.mergedPrsCount ?? 0} PRs merged
-                                </span>
-                              </div>
-                            ) : (
-                              <span className="text-xs text-gray-500 truncate">Not connected</span>
-                            )}
-                          </div>
-                        </div>
+                      {PLATFORMS_LIST.map((p) => {
+                        const connectedAccountsMap =
+                          (userShowcase?.connectedAccounts as Record<string, any> | undefined) ||
+                          {};
+                        const isConnected =
+                          (p.id === 'github' && Boolean(currentUser?.githubUsername)) ||
+                          Boolean(connectedAccountsMap[p.id]);
+                        const connectedData =
+                          p.id === 'github' && currentUser?.githubUsername
+                            ? {
+                                username: currentUser.githubUsername,
+                                mergedPrsCount: currentUser.mergedPrsCount,
+                                ...(connectedAccountsMap.github || {}),
+                              }
+                            : connectedAccountsMap[p.id];
 
-                        {currentUser?.githubUsername ? (
-                          <div className="flex items-center gap-2 shrink-0">
-                            <button
-                              type="button"
-                              onClick={handleSyncGitHub}
-                              disabled={isSyncing}
-                              className="bg-white/[0.06] hover:bg-white/[0.12] text-white px-3 py-1.5 rounded-xl border border-white/[0.08] transition text-xs font-semibold flex items-center gap-1.5 disabled:opacity-40"
-                              title="Sync PR Count"
-                            >
-                              <RefreshCw size={13} className={isSyncing ? 'animate-spin' : ''} />
-                              Sync
-                            </button>
-                            <button
-                              type="button"
-                              onClick={handleUnlinkGitHub}
-                              className="bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/30 px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 whitespace-nowrap shadow-sm"
-                            >
-                              <Unlink size={13} /> Unlink
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={handleConnectGithubOAuth}
-                            className="bg-[#2da44e] hover:bg-[#2c974b] text-white font-bold px-4 py-1.5 rounded-xl text-xs transition shrink-0 whitespace-nowrap shadow-md flex items-center gap-1.5"
+                        return (
+                          <div
+                            key={p.id}
+                            className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.08] hover:border-white/[0.14] transition-all flex items-center justify-between gap-3 overflow-hidden group"
                           >
-                            Connect
-                          </button>
-                        )}
-                      </div>
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              <div className="w-11 h-11 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105">
+                                {p.icon}
+                              </div>
+                              <div className="flex flex-col min-w-0 flex-1 justify-center">
+                                <span className="text-white font-bold text-sm truncate leading-tight">
+                                  {p.name}
+                                </span>
+                                {isConnected ? (
+                                  <div className="flex items-center gap-1.5 min-w-0 mt-0.5">
+                                    <Check
+                                      size={13}
+                                      className="text-emerald-400 shrink-0 stroke-[2.5]"
+                                    />
+                                    <span className="text-emerald-400 text-xs font-medium truncate">
+                                      {connectedData?.username ||
+                                        connectedData?.handle ||
+                                        connectedData?.riotId ||
+                                        connectedData?.channel ||
+                                        connectedData?.battleTag ||
+                                        'Connected'}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-gray-500 truncate mt-0.5">
+                                    Not connected
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              {isConnected ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenPlatformModal(p)}
+                                    className="bg-white/[0.06] hover:bg-white/[0.12] text-white px-3 py-1.5 rounded-xl border border-white/[0.08] transition text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-sm"
+                                  >
+                                    Configure
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setUnlinkTarget({ id: p.id, name: p.name })}
+                                    className="bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/30 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 shrink-0 whitespace-nowrap cursor-pointer shadow-sm"
+                                    title="Disconnect platform"
+                                  >
+                                    <Unlink size={12} />
+                                  </button>
+                                </>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenPlatformModal(p)}
+                                  className="px-4 py-1.5 rounded-xl text-xs font-bold text-white transition-all cursor-pointer shadow-[0_4px_16px_rgba(88,101,242,0.35)] flex items-center gap-1.5 bg-[#5865F2] hover:bg-[#4752C4] active:scale-95"
+                                >
+                                  Connect
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
+
+                  <ConfigureIntegrationModal
+                    isOpen={isPlatformModalOpen}
+                    onClose={() => setIsPlatformModalOpen(false)}
+                    platform={activePlatformModal}
+                    initialData={
+                      activePlatformModal
+                        ? activePlatformModal.id === 'github' && currentUser?.githubUsername
+                          ? {
+                              username: currentUser.githubUsername,
+                              mergedPrsCount: currentUser.mergedPrsCount,
+                              ...(((userShowcase?.connectedAccounts as Record<string, any>) || {})
+                                .github || {}),
+                            }
+                          : ((userShowcase?.connectedAccounts as Record<string, any>) || {})[
+                              activePlatformModal.id
+                            ]
+                        : null
+                    }
+                    onSaveSuccess={handlePlatformSaveSuccess}
+                  />
+
+                  <UnlinkConfirmationModal
+                    isOpen={Boolean(unlinkTarget)}
+                    platformName={unlinkTarget?.name || ''}
+                    onConfirm={() => {
+                      if (unlinkTarget) {
+                        handleUnlinkPlatform(unlinkTarget.id);
+                        setUnlinkTarget(null);
+                      }
+                    }}
+                    onCancel={() => setUnlinkTarget(null)}
+                  />
 
                   <div id="sec-reputation" className="pt-6 border-t border-white/[0.06]">
                     <h3 className="text-xl font-bold border-b border-white/[0.06] pb-3 flex items-center gap-2">
@@ -1326,4 +1489,6 @@ export default function EditProfileModal() {
       )}
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : null;
 }

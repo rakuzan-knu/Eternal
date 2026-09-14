@@ -705,27 +705,38 @@ export default function MessageComposer({
         </div>
       )}
 
-      <div className="flex items-end gap-2 px-4 pb-4">
-        <div className="relative pb-0.5 flex-shrink-0">
-          <AttachMenu
-            isGroup={isGroup}
-            disabled={isSending || stagedFiles.length >= MAX_ATTACHMENTS_PER_MESSAGE}
-            canSendMedia={canSendMedia}
-            canSendPolls={canSendPolls}
-            onPickMedia={onAddFiles}
-            onPickFile={onAddFiles}
-            onTogglePoll={() => togglePopover('poll')}
-          />
-          {openPopover === 'poll' && (
-            <PollComposer onClose={() => setOpenPopover(null)} onCreatePoll={handleCreatePoll} />
-          )}
-        </div>
-
+      <div className="w-full">
         <div
-          className={`flex-1 flex items-end gap-2 bg-white/5 border border-white/5 rounded-3xl pl-4 pr-2 py-1 min-h-[44px] transition-transform ${
+          className={`relative w-full flex items-center gap-1.5 sm:gap-2 rounded-2xl sm:rounded-[26px] p-1.5 sm:px-3 sm:py-1.5 min-h-[46px] border border-white/15 focus-within:border-white/30 shadow-[0_16px_40px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.15)] backdrop-blur-3xl transition-all duration-200 ${
             isShaking ? 'animate-shake' : ''
           }`}
+          style={{
+            background:
+              'linear-gradient(135deg, rgba(20, 21, 30, 0.85) 0%, rgba(12, 13, 18, 0.92) 50%, rgba(18, 19, 27, 0.88) 100%)',
+            backdropFilter: 'blur(40px) saturate(210%) brightness(105%)',
+            WebkitBackdropFilter: 'blur(40px) saturate(210%) brightness(105%)',
+          }}
         >
+          {/* Specular Liquid Glass Top Reflection Sweep */}
+          <div className="absolute inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none rounded-t-full" />
+
+          <div className="relative flex-shrink-0 flex items-center">
+            <AttachMenu
+              isGroup={isGroup}
+              disabled={isSending || stagedFiles.length >= MAX_ATTACHMENTS_PER_MESSAGE}
+              canSendMedia={canSendMedia}
+              canSendPolls={canSendPolls}
+              onPickMedia={onAddFiles}
+              onPickFile={onAddFiles}
+              onTogglePoll={() => togglePopover('poll')}
+              buttonClassName="w-8 h-8 rounded-full text-purple-400 hover:text-purple-300 hover:bg-white/10"
+              iconSize={18}
+            />
+            {openPopover === 'poll' && (
+              <PollComposer onClose={() => setOpenPopover(null)} onCreatePoll={handleCreatePoll} />
+            )}
+          </div>
+
           <textarea
             ref={textareaRef}
             value={text}
@@ -744,10 +755,10 @@ export default function MessageComposer({
             rows={1}
             maxLength={MAX_MESSAGE_LENGTH}
             style={{ maxHeight: MAX_TEXTAREA_HEIGHT }}
-            className="flex-1 bg-transparent text-sm text-white placeholder:text-gray-500 focus:outline-none resize-none py-2 custom-scrollbar leading-normal"
+            className="flex-1 bg-transparent text-sm text-white placeholder:text-gray-400 focus:outline-none resize-none py-1.5 px-1 custom-scrollbar leading-5 self-center min-h-[32px]"
           />
 
-          <div className="flex items-center gap-1 pb-1 flex-shrink-0">
+          <div className="flex items-center gap-1 flex-shrink-0">
             {/* Twitter-Style Progress Ring Limit Indicator */}
             {text.length >= WARN_THRESHOLD && (
               <div

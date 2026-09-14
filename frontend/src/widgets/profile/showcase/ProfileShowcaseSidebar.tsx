@@ -1,7 +1,13 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Share2, LayoutGrid, Radio, Bookmark } from 'lucide-react';
-import { useShowcase, useShowcasePresenceSync } from '@/entities/showcase/model/useShowcase';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence, Reorder } from 'framer-motion';
+import { Share2, LayoutGrid, Radio, Bookmark, Music, Pause } from 'lucide-react';
+import { DiscordGamepadIcon } from '@/shared/ui/BrandIcons';
+import { usePresenceStore } from '@/shared/model/usePresenceStore';
+import {
+  useShowcase,
+  useShowcasePresenceSync,
+  useUpdateShowcase,
+} from '@/entities/showcase/model/useShowcase';
 import { useUserByUsername } from '@/entities/profile/model/useUserByUsername';
 import { PersonalMetaWidget } from './PersonalMetaWidget';
 import { LivePresenceWidget } from './LivePresenceWidget';
@@ -9,10 +15,18 @@ import { SpotlightMediaWidget } from './SpotlightMediaWidget';
 import { MediaShowcaseWidget } from './MediaShowcaseWidget';
 import { ShowcaseWishlistWidget } from './ShowcaseWishlistWidget';
 import { ProfileAnthemCard } from './ProfileAnthemCard';
-import { ShowcaseQuickEditor } from './ShowcaseQuickEditor';
 import { TasteMatchBanner } from './TasteMatchBanner';
-import { ExportShowcaseModal } from './ExportShowcaseModal';
-import { ShowcaseMediaType } from '@backend/common/contracts';
+import { MediaDetailModal } from '@/shared/ui/media';
+import { ShowcaseWidgetWrapper } from './ShowcaseWidgetWrapper';
+import { UnsavedChangesBar } from './UnsavedChangesBar';
+import { ShowcaseMediaType, type ShowcaseMediaItemDto } from '@backend/common/contracts';
+
+const ShowcaseQuickEditor = React.lazy(() =>
+  import('./ShowcaseQuickEditor').then((m) => ({ default: m.ShowcaseQuickEditor })),
+);
+const ExportShowcaseModal = React.lazy(() =>
+  import('./ExportShowcaseModal').then((m) => ({ default: m.ExportShowcaseModal })),
+);
 
 interface ProfileShowcaseSidebarProps {
   username: string;
@@ -22,6 +36,8 @@ interface ProfileShowcaseSidebarProps {
 }
 
 type ShowcaseNavTab = 'board' | 'activity' | 'wishlist';
+
+const DEFAULT_BOARD_WIDGET_ORDER = ['spotlight', 'media', 'meta'];
 
 export function ShowcaseSidebarSkeleton() {
   return (
@@ -41,6 +57,7 @@ export const ProfileShowcaseSidebar: React.FC<ProfileShowcaseSidebarProps> = ({
 }) => {
   const { data: showcase, isLoading } = useShowcase(username);
   const { data: userData } = useUserByUsername(username);
+  const updateShowcaseMutation = useUpdateShowcase();
 
   const [activeTab, setActiveTab] = useState<ShowcaseNavTab>('board');
   const [isEditorOpen, setIsEditorOpen] = useState(false);
@@ -52,8 +69,73 @@ export const ProfileShowcaseSidebar: React.FC<ProfileShowcaseSidebarProps> = ({
     ShowcaseMediaType.GAME,
   );
 
+  // Widget Order & Media Order Management
+  const serverWidgetOrder =
+    showcase?.widgetOrder && showcase.widgetOrder.length > 0
+      ? showcase.widgetOrder
+      : DEFAULT_BOARD_WIDGET_ORDER;
+
+  const serverMediaItems = showcase?.mediaItems || [];
+
+  const [localWidgetOrder, setLocalWidgetOrder] = useState<string[]>(serverWidgetOrder);
+  const [localMediaItems, setLocalMediaItems] = useState<ShowcaseMediaItemDto[]>(serverMediaItems);
+
+  useEffect(() => {
+    if (showcase?.widgetOrder && showcase.widgetOrder.length > 0) {
+      setLocalWidgetOrder(showcase.widgetOrder);
+    } else {
+      setLocalWidgetOrder(DEFAULT_BOARD_WIDGET_ORDER);
+    }
+  }, [showcase?.widgetOrder]);
+
+  useEffect(() => {
+    setLocalMediaItems(showcase?.mediaItems || []);
+  }, [showcase?.mediaItems]);
+
+  const hasUnsavedOrderChanges =
+    JSON.stringify(localWidgetOrder) !== JSON.stringify(serverWidgetOrder);
+  const hasUnsavedMediaChanges =
+    JSON.stringify(localMediaItems) !== JSON.stringify(serverMediaItems);
+
+  const hasUnsavedChanges = hasUnsavedOrderChanges || hasUnsavedMediaChanges;
+
+  const handleReorder = (newOrder: string[]) => {
+    setLocalWidgetOrder(newOrder);
+  };
+
+  const handleMediaReorder = (newItems: ShowcaseMediaItemDto[]) => {
+    setLocalMediaItems(newItems);
+  };
+
+  const handleDeleteWidget = (widgetId: string) => {
+    setLocalWidgetOrder((prev) => prev.filter((id) => id !== widgetId));
+  };
+
+  const handleResetOrder = () => {
+    setLocalWidgetOrder(serverWidgetOrder);
+    setLocalMediaItems(serverMediaItems);
+  };
+
+  const handleSaveOrder = async () => {
+    try {
+      await updateShowcaseMutation.mutateAsync({
+        ...(hasUnsavedOrderChanges && { widgetOrder: localWidgetOrder }),
+        ...(hasUnsavedMediaChanges && { mediaItems: localMediaItems }),
+      });
+    } catch (err) {
+      console.error('Failed to save showcase changes', err);
+    }
+  };
+
   // Sync real-time WebSocket live activity presence
   useShowcasePresenceSync(userId || showcase?.userId, username);
+
+  const targetProfileId = userData?.id || userId || showcase?.userId;
+  useEffect(() => {
+    if (targetProfileId && showcase?.activityStatus !== undefined) {
+      usePresenceStore.getState().setUserActivity(targetProfileId, showcase.activityStatus);
+    }
+  }, [targetProfileId, showcase?.activityStatus]);
 
   if (isLoading) {
     if (isOwner) {
@@ -61,8 +143,8 @@ export const ProfileShowcaseSidebar: React.FC<ProfileShowcaseSidebarProps> = ({
         <aside
           className={
             variant === 'desktop'
-              ? 'w-[360px] shrink-0 hidden xl:flex flex-col gap-4 sticky top-6 self-start'
-              : 'w-full flex flex-col gap-4 mb-6 xl:hidden'
+              ? 'w-[320px] xl:w-[360px] shrink-0 hidden lg:flex flex-col gap-4 sticky top-6 self-start'
+              : 'w-full flex flex-col gap-4 mb-6 lg:hidden'
           }
         >
           <ShowcaseSidebarSkeleton />
@@ -76,15 +158,67 @@ export const ProfileShowcaseSidebar: React.FC<ProfileShowcaseSidebarProps> = ({
     return null;
   }
 
-  // Strict Zero-State Handler: If guest and no public widgets are configured/visible, do not render anything
-  if (!isOwner && !showcase.hasVisibleWidgets) {
-    return null;
-  }
+  // Check active content per tab for visitors
+  const pInfo = showcase.personalInfo;
+  const pToggles = (pInfo?.toggles as Record<string, boolean | undefined>) || {};
+  const hasMetaData = Boolean(
+    (pToggles.showRelationship === true && pInfo?.relationshipStatus) ||
+    (pToggles.showLivesIn === true && pInfo?.livesIn) ||
+    (pToggles.showHometown === true && pInfo?.hometown) ||
+    (pToggles.showWorkplace === true && pInfo?.workplace) ||
+    (pToggles.showEducation === true && pInfo?.education) ||
+    (pToggles.showLanguages === true &&
+      (Array.isArray(pInfo?.languages) ? pInfo.languages.length > 0 : pInfo?.languages)) ||
+    (pToggles.showFamily === true &&
+      ((Array.isArray(pInfo?.familyMembers) && pInfo.familyMembers.length > 0) || pInfo?.family)) ||
+    (pToggles.showPronouns === true && showcase.pronouns) ||
+    (showcase.showGender === true && (pInfo?.gender || showcase.gender)) ||
+    (showcase.showBirthdate === true && showcase.birthDate) ||
+    (showcase.showAge === true && showcase.age !== null && showcase.age !== undefined) ||
+    ((showcase.showZodiac === true || pToggles.showZodiac === true) && showcase.zodiacSign) ||
+    showcase.showTimezone === true,
+  );
+
+  const hasBoardContent = Boolean(
+    showcase.spotlightMedia || localMediaItems.some((m) => !m.isWishlist) || hasMetaData,
+  );
+
+  const connectedAccounts = showcase.connectedAccounts as Record<string, any> | null;
+  const visibleAccounts = connectedAccounts
+    ? Object.entries(connectedAccounts).filter(
+        ([_, val]) => val && (typeof val !== 'object' || (val as any).displayOnProfile !== false),
+      )
+    : [];
+  const hasActivityContent = Boolean(
+    showcase.activityStatus?.type === 'gaming' ||
+    showcase.activityStatus?.isSteam ||
+    showcase.activityStatus?.type === 'spotify' ||
+    (connectedAccounts?.steam as any)?.currentActivity ||
+    (connectedAccounts?.spotify as any)?.currentActivity ||
+    visibleAccounts.length > 0,
+  );
+
+  const hasWishlistContent = localMediaItems.some((m) => m.isWishlist === true);
+  const hasAnyShowcaseContent = hasBoardContent || hasActivityContent || hasWishlistContent;
 
   const openEditor = (
     tab: 'media' | 'spotlight' | 'meta' | 'activity' | 'privacy' | 'anthem' | 'wishlist' = 'media',
     mediaType: ShowcaseMediaType = ShowcaseMediaType.GAME,
   ) => {
+    // Auto-restore widget to local order if user is configuring a previously deleted widget
+    const widgetKey =
+      tab === 'spotlight'
+        ? 'spotlight'
+        : tab === 'media'
+          ? 'media'
+          : tab === 'meta'
+            ? 'meta'
+            : null;
+
+    if (widgetKey && !localWidgetOrder.includes(widgetKey)) {
+      setLocalWidgetOrder((prev) => [...prev, widgetKey]);
+    }
+
     setEditorInitialTab(tab);
     setEditorInitialMediaType(mediaType);
     setIsEditorOpen(true);
@@ -100,11 +234,99 @@ export const ProfileShowcaseSidebar: React.FC<ProfileShowcaseSidebarProps> = ({
     primaryBadge: userData?.primaryBadge,
   };
 
+  const isGamingActive = Boolean(
+    showcase?.activityStatus &&
+    (showcase.activityStatus.type === 'gaming' ||
+      showcase.activityStatus.isSteam ||
+      (showcase.activityStatus.title && showcase.activityStatus.type !== 'spotify')),
+  );
+
+  const isSpotifyActive = Boolean(
+    showcase?.activityStatus &&
+    !isGamingActive &&
+    (showcase.activityStatus.type === 'spotify' || Boolean(showcase.activityStatus.trackId)),
+  );
+
   const tabs: Array<{ id: ShowcaseNavTab; label: string; icon: React.ReactNode }> = [
     { id: 'board', label: 'Board', icon: <LayoutGrid size={13} /> },
-    { id: 'activity', label: 'Activity', icon: <Radio size={13} /> },
+    {
+      id: 'activity',
+      label: 'Activity',
+      icon: isGamingActive ? (
+        <DiscordGamepadIcon
+          size={14}
+          className="text-[#23a55a] drop-shadow-[0_0_5px_rgba(35,165,90,0.8)]"
+        />
+      ) : isSpotifyActive ? (
+        (showcase?.activityStatus as any)?.isPaused ? (
+          <Pause
+            size={13}
+            className="text-amber-400 drop-shadow-[0_0_5px_rgba(245,158,11,0.8)] fill-amber-400/40"
+          />
+        ) : (
+          <Music size={13} className="text-[#1DB954] drop-shadow-[0_0_5px_rgba(29,185,84,0.8)]" />
+        )
+      ) : (
+        <Radio size={13} />
+      ),
+    },
     { id: 'wishlist', label: 'Wishlist', icon: <Bookmark size={13} /> },
   ];
+
+  const renderBoardWidget = (widgetId: string) => {
+    switch (widgetId) {
+      case 'spotlight':
+        return (
+          <ShowcaseWidgetWrapper
+            key="spotlight"
+            widgetId="spotlight"
+            isOwner={isOwner}
+            onDelete={() => handleDeleteWidget('spotlight')}
+          >
+            <SpotlightMediaWidget
+              showcase={showcase}
+              isOwner={isOwner}
+              onEditClick={() => openEditor('spotlight')}
+            />
+          </ShowcaseWidgetWrapper>
+        );
+      case 'media':
+        return (
+          <ShowcaseWidgetWrapper
+            key="media"
+            widgetId="media"
+            isOwner={isOwner}
+            onDelete={() => handleDeleteWidget('media')}
+          >
+            <MediaShowcaseWidget
+              showcase={showcase}
+              isOwner={isOwner}
+              mediaItems={localMediaItems}
+              onMediaReorder={handleMediaReorder}
+              onAddMediaClick={(type: ShowcaseMediaType) => openEditor('media', type)}
+              onEditClick={(category) => openEditor('media', category || ShowcaseMediaType.GAME)}
+            />
+          </ShowcaseWidgetWrapper>
+        );
+      case 'meta':
+        return (
+          <ShowcaseWidgetWrapper
+            key="meta"
+            widgetId="meta"
+            isOwner={isOwner}
+            onDelete={() => handleDeleteWidget('meta')}
+          >
+            <PersonalMetaWidget
+              showcase={showcase}
+              isOwner={isOwner}
+              onEditClick={() => openEditor('meta')}
+            />
+          </ShowcaseWidgetWrapper>
+        );
+      default:
+        return null;
+    }
+  };
 
   const content = (
     <>
@@ -135,7 +357,7 @@ export const ProfileShowcaseSidebar: React.FC<ProfileShowcaseSidebarProps> = ({
                 <motion.div
                   layoutId="activeShowcaseTab"
                   transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-                  className="absolute inset-0 rounded-xl bg-white/[0.12] border border-white/20 shadow-md backdrop-blur-md"
+                  className="absolute inset-0 rounded-xl bg-white/[0.14] border border-white/20 shadow-md"
                 />
               )}
               <span className="relative z-10">{tab.icon}</span>
@@ -162,7 +384,7 @@ export const ProfileShowcaseSidebar: React.FC<ProfileShowcaseSidebarProps> = ({
         </div>
       )}
 
-      {/* 4. Tab Contents with AnimatePresence */}
+      {/* 4. Tab Contents with AnimatePresence & Reorderable List */}
       <AnimatePresence mode="wait">
         {activeTab === 'board' && (
           <motion.div
@@ -173,27 +395,27 @@ export const ProfileShowcaseSidebar: React.FC<ProfileShowcaseSidebarProps> = ({
             transition={{ duration: 0.2 }}
             className="flex flex-col gap-4"
           >
-            {/* Spotlight Hero */}
-            <SpotlightMediaWidget
-              showcase={showcase}
-              isOwner={isOwner}
-              onEditClick={() => openEditor('spotlight')}
-            />
-
-            {/* Top 5 Showcase Grid */}
-            <MediaShowcaseWidget
-              showcase={showcase}
-              isOwner={isOwner}
-              onAddMediaClick={(type) => openEditor('media', type)}
-              onEditClick={() => openEditor('media')}
-            />
-
-            {/* Personal Meta */}
-            <PersonalMetaWidget
-              showcase={showcase}
-              isOwner={isOwner}
-              onEditClick={() => openEditor('meta')}
-            />
+            {isOwner ? (
+              <Reorder.Group
+                axis="y"
+                values={localWidgetOrder}
+                onReorder={handleReorder}
+                className="flex flex-col gap-4"
+              >
+                {localWidgetOrder.map((widgetId) => renderBoardWidget(widgetId))}
+              </Reorder.Group>
+            ) : hasBoardContent ? (
+              <div className="flex flex-col gap-4">
+                {serverWidgetOrder.map((widgetId) => renderBoardWidget(widgetId))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 px-4 text-center rounded-3xl bg-white/[0.02] border border-white/[0.06] shadow-sm">
+                <div className="w-10 h-10 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-gray-400 mb-2.5">
+                  <LayoutGrid size={18} className="opacity-50 text-gray-400" />
+                </div>
+                <p className="text-xs font-medium text-gray-400">There is nothing here yet...</p>
+              </div>
+            )}
           </motion.div>
         )}
 
@@ -206,12 +428,20 @@ export const ProfileShowcaseSidebar: React.FC<ProfileShowcaseSidebarProps> = ({
             transition={{ duration: 0.2 }}
             className="flex flex-col gap-4"
           >
-            {/* Live Presence & Connected Accounts */}
-            <LivePresenceWidget
-              showcase={showcase}
-              isOwner={isOwner}
-              onEditClick={() => openEditor('activity')}
-            />
+            {isOwner || hasActivityContent ? (
+              <LivePresenceWidget
+                showcase={showcase}
+                isOwner={isOwner}
+                onEditClick={() => openEditor('activity')}
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 px-4 text-center rounded-3xl bg-white/[0.02] border border-white/[0.06] shadow-sm">
+                <div className="w-10 h-10 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-gray-400 mb-2.5">
+                  <Radio size={18} className="opacity-50 text-gray-400" />
+                </div>
+                <p className="text-xs font-medium text-gray-400">There is nothing here yet...</p>
+              </div>
+            )}
           </motion.div>
         )}
 
@@ -224,60 +454,94 @@ export const ProfileShowcaseSidebar: React.FC<ProfileShowcaseSidebarProps> = ({
             transition={{ duration: 0.2 }}
             className="flex flex-col gap-4"
           >
-            {/* Wishlist Backlog Hub with Recommendation Radar */}
-            <ShowcaseWishlistWidget
-              showcase={showcase}
-              isOwner={isOwner}
-              onAddMediaClick={(type) => openEditor('wishlist', type)}
-              onEditClick={() => openEditor('wishlist')}
-            />
+            {isOwner || hasWishlistContent ? (
+              <ShowcaseWishlistWidget
+                showcase={showcase}
+                isOwner={isOwner}
+                mediaItems={localMediaItems}
+                onMediaReorder={handleMediaReorder}
+                onAddMediaClick={(type) => openEditor('wishlist', type)}
+                onEditClick={(category) =>
+                  openEditor('wishlist', category || ShowcaseMediaType.GAME)
+                }
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 px-4 text-center rounded-3xl bg-white/[0.02] border border-white/[0.06] shadow-sm">
+                <div className="w-10 h-10 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-gray-400 mb-2.5">
+                  <Bookmark size={18} className="opacity-50 text-gray-400" />
+                </div>
+                <p className="text-xs font-medium text-gray-400">There is nothing here yet...</p>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* 5. Export Showcase Button */}
-      <button
-        type="button"
-        onClick={() => setIsExportOpen(true)}
-        className="w-full py-2.5 rounded-2xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.08] text-xs font-semibold text-gray-300 hover:text-white flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm hover:border-white/20 mt-1"
-      >
-        <Share2 size={13} className="text-indigo-400" />
-        <span>Share Showcase Card</span>
-      </button>
+      {/* 5. Export Showcase Button (Only shown if owner or if showcase has visible content) */}
+      {(isOwner || hasAnyShowcaseContent) && (
+        <button
+          type="button"
+          onClick={() => setIsExportOpen(true)}
+          className="w-full py-2.5 rounded-2xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.08] text-xs font-semibold text-gray-300 hover:text-white flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm hover:border-white/20 mt-1"
+        >
+          <Share2 size={13} className="text-indigo-400" />
+          <span>Share Showcase Card</span>
+        </button>
+      )}
+
+      {/* Discord-style Floating Bottom Unsaved Changes Bar */}
+      <UnsavedChangesBar
+        isVisible={isOwner && hasUnsavedChanges}
+        onReset={handleResetOrder}
+        onSave={handleSaveOrder}
+        isSaving={updateShowcaseMutation.isPending}
+      />
 
       {/* In-Place Quick Editor Modal */}
-      {isOwner && isEditorOpen && (
-        <ShowcaseQuickEditor
-          isOpen={isEditorOpen}
-          onClose={() => setIsEditorOpen(false)}
-          showcase={showcase}
-          initialTab={editorInitialTab}
-          initialMediaType={editorInitialMediaType}
-        />
+      {isOwner && isEditorOpen && showcase && (
+        <React.Suspense fallback={null}>
+          <ShowcaseQuickEditor
+            isOpen={isEditorOpen}
+            onClose={() => setIsEditorOpen(false)}
+            showcase={{
+              ...showcase,
+              mediaItems: localMediaItems.length > 0 ? localMediaItems : showcase.mediaItems || [],
+            }}
+            initialTab={editorInitialTab}
+            initialMediaType={editorInitialMediaType}
+          />
+        </React.Suspense>
       )}
 
       {/* Export Showcase Card Modal */}
       {isExportOpen && (
-        <ExportShowcaseModal
-          isOpen={isExportOpen}
-          onClose={() => setIsExportOpen(false)}
-          showcase={showcase}
-          user={userProfile}
-        />
+        <React.Suspense fallback={null}>
+          <ExportShowcaseModal
+            isOpen={isExportOpen}
+            onClose={() => setIsExportOpen(false)}
+            showcase={showcase}
+            user={userProfile}
+          />
+        </React.Suspense>
       )}
+
+      {/* 1-to-1 Media Detail Modal (Shared UI for Games, Anime, Movies) */}
+      <MediaDetailModal />
     </>
   );
 
   // Mobile horizontal container
   if (variant === 'mobile') {
     return (
-      <div className="w-full flex flex-col gap-4 mb-6 xl:hidden animate-fadeIn">{content}</div>
+      <div className="w-full flex flex-col gap-4 mb-6 lg:hidden animate-fadeIn relative z-20">
+        {content}
+      </div>
     );
   }
 
   // Desktop sticky sidebar container
   return (
-    <aside className="w-[360px] shrink-0 hidden xl:flex flex-col gap-4 sticky top-6 self-start animate-fadeIn select-none">
+    <aside className="w-[320px] xl:w-[360px] shrink-0 hidden lg:flex flex-col gap-4 sticky top-6 z-20 self-start animate-fadeIn select-none">
       {content}
     </aside>
   );

@@ -3,6 +3,7 @@ import { Play, ExternalLink } from 'lucide-react';
 import { YoutubeIcon } from './EmbedIcons';
 import type { LinkEmbedData } from '@/entities/opengraph/model/types';
 import { useActiveMediaPlaybackStore } from '@/shared/model/useActiveMediaPlaybackStore';
+import { sanitizeExternalUrl } from '@/shared/lib/urlSecurity';
 
 interface YouTubeEmbedCardProps {
   data: LinkEmbedData;
@@ -18,7 +19,9 @@ export const YouTubeEmbedCard: React.FC<YouTubeEmbedCardProps> = ({ data, classN
     (() => {
       try {
         const parsed = new URL(data.url);
-        if (parsed.hostname.includes('youtu.be')) return parsed.pathname.slice(1);
+        if (parsed.hostname === 'youtu.be' || parsed.hostname.endsWith('.youtu.be')) {
+          return parsed.pathname.slice(1);
+        }
         return parsed.searchParams.get('v') || null;
       } catch {
         return null;
@@ -107,7 +110,7 @@ export const YouTubeEmbedCard: React.FC<YouTubeEmbedCardProps> = ({ data, classN
             </div>
 
             <a
-              href={data.url}
+              href={sanitizeExternalUrl(data.url, '#')}
               target="_blank"
               rel="noopener noreferrer"
               onClick={handleExternalClick}

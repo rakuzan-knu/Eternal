@@ -12,7 +12,7 @@ class AudioCoordinator {
     if (this.activeAudio && this.activeAudio !== audio) {
       try {
         this.activeAudio.pause();
-        this.activeAudio.currentTime = 0;
+        // Do not reset currentTime of other audio elements so their position is preserved
       } catch {
         // Ignore aborts on already paused audio
       }
@@ -25,12 +25,14 @@ class AudioCoordinator {
     window.dispatchEvent(new CustomEvent('app:audio-play', { detail: { id } }));
   }
 
-  public stop(id?: string): void {
+  public stop(id?: string, resetTime: boolean = false): void {
     if (!id || this.activeId === id) {
       if (this.activeAudio) {
         try {
           this.activeAudio.pause();
-          this.activeAudio.currentTime = 0;
+          if (resetTime) {
+            this.activeAudio.currentTime = 0;
+          }
         } catch {
           // Ignore
         }
@@ -40,6 +42,10 @@ class AudioCoordinator {
 
       window.dispatchEvent(new CustomEvent('app:audio-stop', { detail: { id } }));
     }
+  }
+
+  public pause(id?: string): void {
+    this.stop(id, false);
   }
 
   public getActiveId(): string | null {

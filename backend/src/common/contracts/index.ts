@@ -11,3 +11,4 @@ export * from './notifications';
 export * from './opengraph';
 export * from './showcase';
 export * from './stories';
+export * from './sanitize';

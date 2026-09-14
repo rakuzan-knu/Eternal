@@ -47,9 +47,9 @@ fi
 
 log_info "Running lint-staged..."
 if [ -f "./node_modules/.bin/lint-staged" ]; then
-  ./node_modules/.bin/lint-staged --concurrent false
+  ./node_modules/.bin/lint-staged --concurrent false --relative --max-arg-length 4000
 else
-  npx --no-install lint-staged --concurrent false
+  npx --no-install lint-staged --concurrent false --relative --max-arg-length 4000
 fi
 
 log_bold_success "All pre-commit checks passed successfully!"

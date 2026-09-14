@@ -78,7 +78,11 @@ export default function GroupParticipantsModal({
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 min-w-0">
                           <p className="text-sm font-semibold text-white truncate">{name}</p>
-                          {p.user.isVerified && <VerifiedCheckmark size="sm" />}
+                          <VerifiedCheckmark
+                            isVerified={p.user.isVerified}
+                            primaryBadge={p.user.primaryBadge}
+                            size="sm"
+                          />
                           {isSelf && (
                             <span className="text-gray-500 font-normal shrink-0"> (you)</span>
                           )}

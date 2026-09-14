@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useForm, Controller, Control, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 
 import { Input } from '../../../shared/ui/Input';
@@ -363,10 +363,13 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
       <p className="text-xs text-neutral-500 leading-relaxed mt-1">
         By tapping Submit, you agree to our{' '}
-        <span className="text-purple-400 font-medium cursor-pointer hover:underline">Terms</span>,{' '}
-        <span className="text-purple-400 font-medium cursor-pointer hover:underline">
+        <Link to="/terms" target="_blank" className="text-purple-400 font-medium hover:underline">
+          Terms
+        </Link>
+        ,{' '}
+        <Link to="/privacy" target="_blank" className="text-purple-400 font-medium hover:underline">
           Privacy Policy
-        </span>{' '}
+        </Link>{' '}
         and{' '}
         <span className="text-purple-400 font-medium cursor-pointer hover:underline">
           Cookies Policy

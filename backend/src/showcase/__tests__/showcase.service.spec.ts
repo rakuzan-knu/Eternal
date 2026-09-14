@@ -30,6 +30,7 @@ describe('ShowcaseService', () => {
       showBirthdate: true,
       showGender: true,
       showTimezone: true,
+      showZodiac: true,
       pronouns: 'he/him',
       timezone: 'UTC',
       accentColor: '#6366f1',
@@ -72,20 +73,26 @@ describe('ShowcaseService', () => {
     prisma = {
       user: {
         findUnique: jest.fn().mockResolvedValue(mockUser),
+        findMany: jest.fn().mockResolvedValue([]),
       },
       follow: {
         findUnique: jest.fn(),
       },
       profileShowcase: {
+        findUnique: jest.fn().mockResolvedValue(mockUser.showcase),
         upsert: jest.fn(),
       },
       $transaction: jest.fn((cb) =>
         cb({
           profileShowcase: {
+            findUnique: jest.fn().mockResolvedValue(mockUser.showcase),
             upsert: jest.fn().mockResolvedValue({
               id: 'showcase-1',
               userId: 'user-1',
             }),
+          },
+          user: {
+            update: jest.fn().mockResolvedValue(mockUser),
           },
           showcaseMedia: {
             deleteMany: jest.fn().mockResolvedValue({ count: 1 }),

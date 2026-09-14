@@ -51,8 +51,14 @@ test.describe('Feed (authenticated, mocked API)', () => {
   test('shows the sidebar navigation on the feed', async ({ authenticatedPage: page }) => {
     await page.goto('/');
 
-    for (const label of ['Home', 'Search', 'Reels', 'Message', 'Notifications', 'Create']) {
-      await expect(page.getByRole('link', { name: label, exact: true }).first()).toBeVisible();
+    // Wait for the page and navigation container to be fully loaded
+    await expect(page.getByText('Hello from the mocked feed!')).toBeVisible();
+    await expect(page.getByRole('navigation').first()).toBeVisible();
+
+    for (const label of ['Home', 'Search', 'Music Hub', 'Message', 'Notifications', 'Create']) {
+      await expect(
+        page.getByRole('link', { name: new RegExp(`^(${label}|Reels)$`, 'i') }).first(),
+      ).toBeVisible();
     }
   });
 

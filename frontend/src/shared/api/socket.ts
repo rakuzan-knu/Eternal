@@ -1,4 +1,5 @@
 import { io, Socket } from 'socket.io-client';
+import { getValidAccessToken, isTokenExpired } from './httpClient';
 
 let socket: Socket | null = null;
 
@@ -19,7 +20,28 @@ export function getSocket(): Socket {
     reconnectionDelay: 1000,
     reconnectionDelayMax: 5000,
     randomizationFactor: 0.5,
-    auth: (cb) => cb({ token: localStorage.getItem('accessToken') }),
+    auth: (cb) => {
+      const token = localStorage.getItem('accessToken');
+      if (token && isTokenExpired(token) && localStorage.getItem('refreshToken')) {
+        void getValidAccessToken();
+      }
+      cb({ token });
+    },
+  });
+
+  socket.on('connect_error', (err) => {
+    if (
+      err?.message?.includes('token') ||
+      err?.message?.includes('jwt') ||
+      err?.message?.includes('auth') ||
+      err?.message?.includes('unauthorized')
+    ) {
+      void getValidAccessToken().then((newToken) => {
+        if (newToken && socket) {
+          socket.connect();
+        }
+      });
+    }
   });
 
   return socket;

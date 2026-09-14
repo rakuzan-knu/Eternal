@@ -579,7 +579,7 @@ export default function NotificationsTab() {
         typeof document !== 'undefined' &&
         createPortal(
           <div
-            className={`fixed z-[400] flex flex-col gap-2 w-[min(380px,calc(100vw-2.5rem))] pointer-events-none transition-all duration-300 animate-fadeIn ${
+            className={`fixed z-[100000] flex flex-col gap-2 w-[min(380px,calc(100vw-2.5rem))] pointer-events-none transition-all duration-300 animate-fadeIn ${
               hoveredCorner === 'top-left'
                 ? 'top-5 left-5'
                 : hoveredCorner === 'top-right'

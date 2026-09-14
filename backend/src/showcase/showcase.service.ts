@@ -20,8 +20,11 @@ import {
   type ProfileAnthemDto,
   type LiveActivityStatusDto,
   type ConnectedAccountsDto,
+  type PersonalInfoDto,
+  type PersonalInfoTogglesDto,
 } from '@common/contracts';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { IntegrationsService } from '../integrations/integrations.service';
 
 function getZodiacSign(date: Date): string {
   const day = date.getUTCDate();
@@ -85,6 +88,9 @@ export class ShowcaseService {
     private readonly redis: RedisService,
     @Optional()
     private readonly eventEmitter?: EventEmitter2,
+    @Optional()
+    @Inject(forwardRef(() => IntegrationsService))
+    private readonly integrationsService?: IntegrationsService,
   ) {}
 
   private showcaseKey(userId: string): string {
@@ -146,9 +152,9 @@ export class ShowcaseService {
           privacyShowcase: ShowcasePrivacy.PUBLIC,
           privacyLinks: ShowcasePrivacy.PUBLIC,
           showAge: false,
-          showBirthdate: true,
-          showGender: true,
-          showTimezone: true,
+          showBirthdate: false,
+          showGender: false,
+          showTimezone: false,
           timezone: 'UTC',
           accentColor: '#6366f1',
         },
@@ -166,6 +172,16 @@ export class ShowcaseService {
     const showcaseAllowed = canView(rawShowcase.privacyShowcase, relationship);
     const linksAllowed = canView(rawShowcase.privacyLinks, relationship);
 
+    const rawConnected = (rawShowcase.connectedAccounts as Record<string, any> | null) || {};
+    let personalInfo: PersonalInfoDto | null = metaAllowed
+      ? (rawConnected._personalInfo as PersonalInfoDto) || null
+      : null;
+
+    const toggles = (personalInfo?.toggles as PersonalInfoTogglesDto) || {};
+    const isZodiacEnabled = Boolean(
+      (rawShowcase as any).showZodiac === true || toggles.showZodiac === true,
+    );
+
     let birthDateStr: string | null = null;
     let ageVal: number | null = null;
     let zodiacVal: string | null = null;
@@ -173,31 +189,186 @@ export class ShowcaseService {
     let localTimeVal: string | null = null;
 
     if (metaAllowed) {
-      if (user.birthDate && rawShowcase.showBirthdate) {
+      if (user.birthDate && rawShowcase.showBirthdate === true) {
         birthDateStr = user.birthDate.toISOString().split('T')[0];
+      }
+      if (user.birthDate && isZodiacEnabled) {
         zodiacVal = getZodiacSign(user.birthDate);
       }
-      if (user.birthDate && rawShowcase.showAge) {
+      if (user.birthDate && rawShowcase.showAge === true) {
         ageVal = calculateAge(user.birthDate);
       }
-      if (rawShowcase.showGender && user.gender) {
-        genderVal = user.gender;
+      const effectiveGender = (personalInfo?.gender as string) || user.gender || null;
+      if (rawShowcase.showGender === true && effectiveGender) {
+        genderVal = effectiveGender;
       }
-      if (rawShowcase.showTimezone) {
+      if (rawShowcase.showTimezone === true) {
         localTimeVal = formatLocalTime(rawShowcase.timezone || 'UTC');
+      }
+    }
+
+    // Hydrate normalized family members and partner with live data from User model
+    if (personalInfo) {
+      const relativeUserIds: string[] = [];
+      if (Array.isArray(personalInfo.familyMembers)) {
+        for (const m of personalInfo.familyMembers) {
+          if (m.userId) relativeUserIds.push(m.userId);
+        }
+      }
+      if (personalInfo.partnerUserId) {
+        relativeUserIds.push(personalInfo.partnerUserId);
+      }
+
+      if (relativeUserIds.length > 0) {
+        const relativeUsers = await this.prisma.user.findMany({
+          where: { id: { in: relativeUserIds } },
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            avatar: true,
+          },
+        });
+        const relativeMap = new Map(relativeUsers.map((u) => [u.id, u]));
+
+        if (personalInfo.familyMembers) {
+          personalInfo.familyMembers = personalInfo.familyMembers.map((m) => {
+            if (m.userId && relativeMap.has(m.userId)) {
+              const u = relativeMap.get(m.userId)!;
+              return {
+                ...m,
+                name: u.displayName || u.username,
+                username: u.username,
+                avatarUrl: u.avatar,
+              };
+            }
+            return {
+              ...m,
+              name: m.customName || m.name || 'Family member',
+              username: m.username || null,
+              avatarUrl: m.avatarUrl || null,
+            };
+          });
+        }
+
+        if (personalInfo.partnerUserId && relativeMap.has(personalInfo.partnerUserId)) {
+          const partnerUser = relativeMap.get(personalInfo.partnerUserId)!;
+          personalInfo.partner = partnerUser.displayName || `@${partnerUser.username}`;
+        }
+      }
+    }
+
+    // Backend Privacy Filtering: Scrub any fields where user toggled visibility OFF for non-owners
+    if (relationship !== 'SELF') {
+      if (rawShowcase.showBirthdate !== true) {
+        birthDateStr = null;
+      }
+      if (rawShowcase.showAge !== true) {
+        ageVal = null;
+      }
+      if (rawShowcase.showGender !== true) {
+        genderVal = null;
+      }
+      if (!isZodiacEnabled) {
+        zodiacVal = null;
+      }
+      if (rawShowcase.showTimezone !== true) {
+        localTimeVal = null;
+      }
+
+      if (personalInfo) {
+        personalInfo = {
+          ...personalInfo,
+          relationshipStatus:
+            toggles.showRelationship === true ? personalInfo.relationshipStatus : null,
+          partner: toggles.showRelationship === true ? personalInfo.partner : null,
+          partnerUserId: toggles.showRelationship === true ? personalInfo.partnerUserId : null,
+          relationshipSince:
+            toggles.showRelationship === true ? personalInfo.relationshipSince : null,
+          livesIn: toggles.showLivesIn === true ? personalInfo.livesIn : null,
+          hometown: toggles.showHometown === true ? personalInfo.hometown : null,
+          workplace: toggles.showWorkplace === true ? personalInfo.workplace : null,
+          workplaceRole: toggles.showWorkplace === true ? personalInfo.workplaceRole : null,
+          workplaceStatus: toggles.showWorkplace === true ? personalInfo.workplaceStatus : null,
+          education: toggles.showEducation === true ? personalInfo.education : null,
+          educationStatus: toggles.showEducation === true ? personalInfo.educationStatus : null,
+          languages: toggles.showLanguages === true ? personalInfo.languages : null,
+          family: toggles.showFamily === true ? personalInfo.family : null,
+          familyMembers: toggles.showFamily === true ? personalInfo.familyMembers : null,
+          gender: rawShowcase.showGender === true ? personalInfo.gender : null,
+        };
+      }
+    }
+
+    const { _personalInfo, ...cleanConnected } = rawConnected;
+
+    if (
+      cleanConnected.twitch &&
+      typeof cleanConnected.twitch === 'object' &&
+      this.integrationsService
+    ) {
+      try {
+        const liveInfo = await this.integrationsService.getTwitchLiveStatus(cleanConnected.twitch);
+        if (liveInfo) {
+          cleanConnected.twitch = {
+            ...cleanConnected.twitch,
+            ...liveInfo,
+          };
+        }
+      } catch (e) {
+        this.logger.warn(`Failed to refresh Twitch live status in getShowcase: ${e}`);
+      }
+    }
+
+    if (
+      cleanConnected.roblox &&
+      typeof cleanConnected.roblox === 'object' &&
+      this.integrationsService
+    ) {
+      const robloxData = cleanConnected.roblox;
+      const hasMockData =
+        robloxData.items?.some((it: any) => it.iconUrl?.includes('unsplash')) ||
+        robloxData.places?.some((p: any) => p.iconUrl?.includes('unsplash'));
+      if (hasMockData && (robloxData.username || robloxData.userId)) {
+        try {
+          const freshRoblox = await this.integrationsService.fetchPlatformData(
+            'roblox',
+            robloxData.username || robloxData.userId,
+          );
+          if (
+            freshRoblox &&
+            !freshRoblox.items?.some((it: any) => it.iconUrl?.includes('unsplash'))
+          ) {
+            cleanConnected.roblox = {
+              ...robloxData,
+              ...freshRoblox,
+            };
+            this.prisma.profileShowcase
+              .update({
+                where: { userId: user.id },
+                data: {
+                  connectedAccounts: {
+                    ...rawConnected,
+                    roblox: cleanConnected.roblox,
+                  },
+                },
+              })
+              .catch(() => {});
+          }
+        } catch (e) {
+          this.logger.warn(`Failed to auto-refresh Roblox data in getShowcase: ${e}`);
+        }
       }
     }
 
     const connectedAccounts: ConnectedAccountsDto | null = linksAllowed
       ? {
-          github:
-            user.githubUsername ||
-            (rawShowcase.connectedAccounts as ConnectedAccountsDto | null)?.github ||
-            null,
-          steam: (rawShowcase.connectedAccounts as ConnectedAccountsDto | null)?.steam || null,
-          spotify: (rawShowcase.connectedAccounts as ConnectedAccountsDto | null)?.spotify || null,
-          discord: (rawShowcase.connectedAccounts as ConnectedAccountsDto | null)?.discord || null,
-          twitch: (rawShowcase.connectedAccounts as ConnectedAccountsDto | null)?.twitch || null,
+          ...cleanConnected,
+          github: user.githubUsername
+            ? typeof cleanConnected.github === 'object' && cleanConnected.github !== null
+              ? { ...cleanConnected.github, username: user.githubUsername }
+              : user.githubUsername
+            : cleanConnected.github || null,
         }
       : null;
 
@@ -231,9 +402,30 @@ export class ShowcaseService {
       : [];
 
     // Check if at least 1 widget is visible and configured
+    const hasPersonalInfoValues = Boolean(
+      personalInfo &&
+      (personalInfo.relationshipStatus ||
+        personalInfo.livesIn ||
+        personalInfo.hometown ||
+        personalInfo.workplace ||
+        personalInfo.education ||
+        (Array.isArray(personalInfo.languages)
+          ? personalInfo.languages.length > 0
+          : personalInfo.languages) ||
+        (Array.isArray(personalInfo.familyMembers)
+          ? personalInfo.familyMembers.length > 0
+          : personalInfo.family)),
+    );
     const hasMeta =
       metaAllowed &&
-      Boolean(birthDateStr || ageVal !== null || genderVal || rawShowcase.pronouns || localTimeVal);
+      Boolean(
+        birthDateStr ||
+        ageVal !== null ||
+        genderVal ||
+        rawShowcase.pronouns ||
+        localTimeVal ||
+        hasPersonalInfoValues,
+      );
     const hasActivity = Boolean(activityStatus);
     const hasLinks = Boolean(
       connectedAccounts && Object.values(connectedAccounts).some((v) => Boolean(v)),
@@ -256,7 +448,11 @@ export class ShowcaseService {
       showBirthdate: rawShowcase.showBirthdate,
       showGender: rawShowcase.showGender,
       showTimezone: rawShowcase.showTimezone,
-      pronouns: metaAllowed ? rawShowcase.pronouns : null,
+      showZodiac: isZodiacEnabled,
+      pronouns:
+        metaAllowed && (relationship === 'SELF' || toggles.showPronouns !== false)
+          ? rawShowcase.pronouns
+          : null,
       timezone: metaAllowed ? rawShowcase.timezone : null,
       birthDate: birthDateStr,
       age: ageVal,
@@ -268,6 +464,10 @@ export class ShowcaseService {
       spotlightMedia,
       anthemTrack,
       mediaItems,
+      widgetOrder: Array.isArray((rawShowcase as any).widgetOrder)
+        ? ((rawShowcase as any).widgetOrder as string[])
+        : ['spotlight', 'media', 'meta'],
+      personalInfo,
     };
   }
 
@@ -296,6 +496,46 @@ export class ShowcaseService {
     }
 
     const updated = await this.prisma.$transaction(async (tx) => {
+      const existingShowcase = await tx.profileShowcase.findUnique({ where: { userId } });
+      const existingConnected =
+        (existingShowcase?.connectedAccounts as Record<string, any> | null) || {};
+      const newConnectedAccounts =
+        dto.connectedAccounts !== undefined
+          ? {
+              ...(dto.connectedAccounts as any),
+              ...(dto.personalInfo !== undefined
+                ? { _personalInfo: dto.personalInfo }
+                : existingConnected._personalInfo
+                  ? { _personalInfo: existingConnected._personalInfo }
+                  : {}),
+            }
+          : dto.personalInfo !== undefined || dto.showZodiac !== undefined
+            ? {
+                ...existingConnected,
+                ...(dto.personalInfo !== undefined
+                  ? { _personalInfo: dto.personalInfo }
+                  : existingConnected._personalInfo
+                    ? { _personalInfo: existingConnected._personalInfo }
+                    : {}),
+              }
+            : undefined;
+
+      if (dto.showZodiac !== undefined && newConnectedAccounts) {
+        const pInfo = (newConnectedAccounts._personalInfo as Record<string, any>) || {};
+        pInfo.toggles = {
+          ...(pInfo.toggles || {}),
+          showZodiac: dto.showZodiac,
+        };
+        newConnectedAccounts._personalInfo = pInfo;
+      }
+
+      if (dto.personalInfo?.gender !== undefined && dto.personalInfo.gender !== null) {
+        await tx.user.update({
+          where: { id: userId },
+          data: { gender: dto.personalInfo.gender },
+        });
+      }
+
       const showcase = await tx.profileShowcase.upsert({
         where: { userId },
         create: {
@@ -312,13 +552,18 @@ export class ShowcaseService {
           timezone: dto.timezone || 'UTC',
           accentColor: dto.accentColor || '#6366f1',
           connectedAccounts:
-            dto.connectedAccounts !== undefined ? (dto.connectedAccounts as any) : undefined,
+            newConnectedAccounts !== undefined
+              ? newConnectedAccounts
+              : dto.connectedAccounts !== undefined
+                ? (dto.connectedAccounts as any)
+                : undefined,
           activityStatus:
             dto.activityStatus !== undefined ? (dto.activityStatus as any) : undefined,
           spotlightMedia:
             dto.spotlightMedia !== undefined ? (dto.spotlightMedia as any) : undefined,
           anthemTrack: dto.anthemTrack !== undefined ? (dto.anthemTrack as any) : undefined,
-        },
+          ...(dto.widgetOrder !== undefined ? { widgetOrder: dto.widgetOrder as any } : {}),
+        } as any,
         update: {
           ...(dto.privacyMeta !== undefined && { privacyMeta: dto.privacyMeta }),
           ...(dto.privacyActivity !== undefined && { privacyActivity: dto.privacyActivity }),
@@ -331,12 +576,13 @@ export class ShowcaseService {
           ...(dto.pronouns !== undefined && { pronouns: dto.pronouns }),
           ...(dto.timezone !== undefined && { timezone: dto.timezone }),
           ...(dto.accentColor !== undefined && { accentColor: dto.accentColor }),
-          ...(dto.connectedAccounts !== undefined && {
-            connectedAccounts: dto.connectedAccounts as any,
+          ...(newConnectedAccounts !== undefined && {
+            connectedAccounts: newConnectedAccounts,
           }),
           ...(dto.activityStatus !== undefined && { activityStatus: dto.activityStatus as any }),
           ...(dto.spotlightMedia !== undefined && { spotlightMedia: dto.spotlightMedia as any }),
           ...(dto.anthemTrack !== undefined && { anthemTrack: dto.anthemTrack as any }),
+          ...(dto.widgetOrder !== undefined && { widgetOrder: dto.widgetOrder as any }),
         },
       });
 
@@ -364,7 +610,7 @@ export class ShowcaseService {
                 userComment: item.userComment || null,
                 tags: item.tags || [],
                 releaseYear: item.releaseYear ?? null,
-                position: item.position !== undefined ? item.position : currentPos,
+                position: currentPos,
               };
             }),
           });

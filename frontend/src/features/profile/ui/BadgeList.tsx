@@ -5,9 +5,19 @@ import UserBadgeIcon from '@/entities/profile/ui/UserBadgeIcon';
 
 interface BadgeListProps {
   badges: Badge[];
+  prCount?: number;
+  reportCount?: number;
+  subscriptionMonths?: number;
+  subscriptionDate?: string;
 }
 
-export default function BadgeList({ badges }: BadgeListProps) {
+export default function BadgeList({
+  badges,
+  prCount,
+  reportCount,
+  subscriptionMonths,
+  subscriptionDate,
+}: BadgeListProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   if (!badges || badges.length === 0) return null;
@@ -25,7 +35,15 @@ export default function BadgeList({ badges }: BadgeListProps) {
             key={badge.id}
             className={`flex items-center justify-center ${blockSize} rounded-lg hover:bg-white/[0.08] transition-all duration-200 cursor-pointer border border-transparent hover:border-white/[0.1]`}
           >
-            <UserBadgeIcon badgeId={badge.id} size="md" showTooltip={true} />
+            <UserBadgeIcon
+              badgeId={badge.id}
+              size="md"
+              showTooltip={true}
+              prCount={prCount}
+              reportCount={reportCount}
+              subscriptionMonths={subscriptionMonths}
+              subscriptionDate={subscriptionDate}
+            />
           </div>
         ))}
 

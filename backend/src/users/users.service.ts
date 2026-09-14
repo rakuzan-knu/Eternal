@@ -227,9 +227,49 @@ export class UsersService {
   }
 
   async updatePrimaryBadge(userId: string, badgeId?: string | null): Promise<UserProfileDto> {
-    const targetBadgeId = badgeId && badgeId.trim() !== '' ? badgeId.trim() : null;
+    let targetBadgeId = badgeId && badgeId.trim() !== '' ? badgeId.trim() : null;
 
     if (targetBadgeId !== null) {
+      if (targetBadgeId.toUpperCase() === 'CONTRIBUTOR') {
+        const userBadges = await this.prisma.userBadge.findMany({
+          where: { userId },
+          select: { badgeId: true },
+        });
+        const badgeIds = userBadges.map((b) => b.badgeId.toUpperCase());
+        const contributorTiers = [
+          'CONTRIBUTOR_OPAL',
+          'CONTRIBUTOR_RUBY',
+          'CONTRIBUTOR_DIAMOND',
+          'CONTRIBUTOR_PLATINUM',
+          'CONTRIBUTOR_GOLD',
+          'CONTRIBUTOR_SILVER',
+          'CONTRIBUTOR_BRONZE',
+        ];
+        const highestTier = contributorTiers.find((tier) => badgeIds.includes(tier));
+        if (highestTier) {
+          targetBadgeId = highestTier;
+        }
+      } else if (targetBadgeId.toUpperCase() === 'PREMIUM') {
+        const userBadges = await this.prisma.userBadge.findMany({
+          where: { userId },
+          select: { badgeId: true },
+        });
+        const badgeIds = userBadges.map((b) => b.badgeId.toUpperCase());
+        const premiumTiers = [
+          'PREMIUM_OPAL',
+          'PREMIUM_RUBY',
+          'PREMIUM_DIAMOND',
+          'PREMIUM_PLATINUM',
+          'PREMIUM_GOLD',
+          'PREMIUM_SILVER',
+          'PREMIUM_BRONZE',
+        ];
+        const highestTier = premiumTiers.find((tier) => badgeIds.includes(tier));
+        if (highestTier) {
+          targetBadgeId = highestTier;
+        }
+      }
+
       const ownership = await this.prisma.userBadge.findUnique({
         where: {
           userId_badgeId: {

@@ -50,4 +50,38 @@ describe('extractChatMedia utilities', () => {
     const color = colorForHostname('github.com');
     expect(color).toBeDefined();
   });
+
+  it('excludes story replies and color attachments from media and files gallery', () => {
+    const mixedMessages = [
+      ...messages,
+      {
+        id: 'm2',
+        conversationId: 'c1',
+        senderId: 'u2',
+        sender: { id: 'u2', username: 'u2', displayName: 'User Two', avatar: null },
+        body: 'Yoo',
+        messageType: 'STORY_REPLY',
+        createdAt: '2026-01-02T12:00:00Z',
+        reactions: [],
+        attachments: [
+          {
+            id: 'a3',
+            type: 'IMAGE',
+            url: 'color:#09090b',
+            fileName: 'story_reply_abc-123',
+            size: 0,
+          },
+        ],
+      } as unknown as MessageView,
+    ];
+
+    const media = extractMediaItems(mixedMessages);
+    const files = extractFileItems(mixedMessages);
+
+    // Should still only have the 1 real image and 1 real file
+    expect(media).toHaveLength(1);
+    expect(media[0].attachment.id).toBe('a1');
+    expect(files).toHaveLength(1);
+    expect(files[0].attachment.id).toBe('a2');
+  });
 });

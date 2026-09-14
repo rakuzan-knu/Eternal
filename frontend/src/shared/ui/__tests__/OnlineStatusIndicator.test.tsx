@@ -44,4 +44,30 @@ describe('OnlineStatusIndicator', () => {
     rerender(<OnlineStatusIndicator userId="user-offline" variant="text" />);
     expect(screen.getByText('Offline')).toBeInTheDocument();
   });
+
+  it('renders green gamepad icon when user is online and playing a game', () => {
+    usePresenceStore.setState({
+      onlineUserIds: new Set(['gamer-1']),
+      userActivities: {
+        'gamer-1': { type: 'gaming', title: 'Dota 2', isSteam: true },
+      },
+    });
+
+    render(<OnlineStatusIndicator userId="gamer-1" variant="dot" />);
+    const gamepad = screen.getByLabelText('Playing a game');
+    expect(gamepad).toBeInTheDocument();
+    expect(gamepad).toHaveAttribute('title', 'Playing Dota 2');
+  });
+
+  it('renders text variant with "Playing [game]" when playing a game', () => {
+    usePresenceStore.setState({
+      onlineUserIds: new Set(['gamer-1']),
+      userActivities: {
+        'gamer-1': { type: 'gaming', title: 'Counter-Strike 2', isSteam: true },
+      },
+    });
+
+    render(<OnlineStatusIndicator userId="gamer-1" variant="text" />);
+    expect(screen.getByText('Playing Counter-Strike 2')).toBeInTheDocument();
+  });
 });

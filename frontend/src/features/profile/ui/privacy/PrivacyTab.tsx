@@ -9,6 +9,7 @@ import NearbyRecommendationsToggle from './NearbyRecommendationsToggle';
 import PrivacyDimensionRow from './PrivacyDimensionRow';
 import PrivacySettingPanel from './PrivacySettingPanel';
 import FollowRequestsPanel from './FollowRequestsPanel';
+import { RequestDataPackageModal } from './RequestDataPackageModal';
 
 const DIMENSIONS: { dimension: PrivacyDimension; title: string }[] = [
   { dimension: 'LAST_SEEN', title: 'Last Seen' },
@@ -32,6 +33,7 @@ export default function PrivacyTab() {
     title: string;
   } | null>(null);
   const [requestsOpen, setRequestsOpen] = useState(false);
+  const [isDataModalOpen, setIsDataModalOpen] = useState(false);
 
   const isPrivate = privacy?.isPrivate ?? false;
 
@@ -95,6 +97,23 @@ export default function PrivacyTab() {
         </div>
       </section>
 
+      {/* Request Data Package Section */}
+      <section className="p-4 rounded-2xl border border-purple-500/20 bg-purple-950/[0.15] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="space-y-0.5">
+          <p className="text-sm font-bold text-white">Request All of My Data</p>
+          <p className="text-xs text-neutral-300">
+            Request an encrypted ZIP package with your account records, messages, and activity.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setIsDataModalOpen(true)}
+          className="px-4 py-2 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white shadow-[0_0_12px_rgba(168,85,247,0.35)] transition-all shrink-0"
+        >
+          Request Data
+        </button>
+      </section>
+
       {openDimension && (
         <PrivacySettingPanel
           dimension={openDimension.dimension}
@@ -103,6 +122,7 @@ export default function PrivacyTab() {
         />
       )}
       {requestsOpen && <FollowRequestsPanel onClose={() => setRequestsOpen(false)} />}
+      <RequestDataPackageModal isOpen={isDataModalOpen} onClose={() => setIsDataModalOpen(false)} />
     </div>
   );
 }

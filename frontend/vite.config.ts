@@ -27,8 +27,25 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
+          const normalizedId = id.replace(/\\/g, '/');
+
+          if (normalizedId.includes('curatedMediaCatalogPart1')) {
+            return 'showcase-catalog-1';
+          }
+          if (normalizedId.includes('curatedMediaCatalogPart2')) {
+            return 'showcase-catalog-2';
+          }
+          if (
+            normalizedId.includes('/entities/profile/ui/') &&
+            (normalizedId.includes('Badge') || normalizedId.includes('Tier'))
+          ) {
+            return 'profile-badges';
+          }
+          if (normalizedId.includes('/features/music/model/useMusicHubStore')) {
+            return 'music-store';
+          }
+
           if (id.includes('node_modules')) {
-            const normalizedId = id.replace(/\\/g, '/');
             if (normalizedId.includes('/emoji-picker-react/')) {
               return 'vendor-emoji';
             }
@@ -79,7 +96,18 @@ export default defineConfig({
               normalizedId.includes('/unist-') ||
               normalizedId.includes('/vfile') ||
               normalizedId.includes('/mdast-') ||
-              normalizedId.includes('/hast-')
+              normalizedId.includes('/hast-') ||
+              normalizedId.includes('/property-information') ||
+              normalizedId.includes('/comma-separated-tokens') ||
+              normalizedId.includes('/space-separated-tokens') ||
+              normalizedId.includes('/decode-named-character-reference') ||
+              normalizedId.includes('/trim-lines') ||
+              normalizedId.includes('/trough') ||
+              normalizedId.includes('/bail') ||
+              normalizedId.includes('/longest-streak') ||
+              normalizedId.includes('/ccount') ||
+              normalizedId.includes('/markdown-table') ||
+              normalizedId.includes('/devlop')
             ) {
               return 'vendor-markdown';
             }
@@ -91,6 +119,21 @@ export default defineConfig({
             }
             if (normalizedId.includes('/framer-motion/') || normalizedId.includes('/motion/')) {
               return 'vendor-motion';
+            }
+            if (normalizedId.includes('/hls.js/')) {
+              return 'vendor-hls';
+            }
+            if (
+              normalizedId.includes('/prism-react-renderer/') ||
+              normalizedId.includes('/prismjs/')
+            ) {
+              return 'vendor-prism';
+            }
+            if (normalizedId.includes('/html-to-image/')) {
+              return 'vendor-html-to-image';
+            }
+            if (normalizedId.includes('/axios/')) {
+              return 'vendor-http';
             }
             return 'vendor-libs';
           }

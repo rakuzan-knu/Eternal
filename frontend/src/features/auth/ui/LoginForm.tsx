@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Input } from '../../../shared/ui/Input';
 import { Button } from '../../../shared/ui/Button';
 import { useAuthMutations } from '../api/useAuth';
@@ -9,6 +9,7 @@ import type { AuthResponse } from '../api/authApi';
 import { loginSchema, type LoginFields } from '../model/loginSchema';
 import { useAccountsStore } from '@/shared/model/useAccountsStore';
 import { useAuthStore } from '@/shared/model/useAuthStore';
+import { useUIStore } from '@/shared/model/useUIStore';
 import { Eye, EyeOff, AlertCircle } from 'lucide-react';
 import axios from 'axios';
 
@@ -26,6 +27,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, redirectOnSucce
 
   const { loginMutation } = useAuthMutations();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const {
     register,
@@ -35,6 +37,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, redirectOnSucce
 
   const onSubmit = async (data: LoginFields) => {
     try {
+      setUserNotFoundError(false);
       setUserNotFoundError(false);
       setWrongPasswordError(false);
       setGlobalError(false);
@@ -63,7 +66,17 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, redirectOnSucce
       });
 
       onSuccess?.(responseData);
-      if (redirectOnSuccess) navigate('/feed');
+      if (redirectOnSuccess) {
+        const state = location.state as { from?: string; targetModal?: string } | undefined;
+        if (state?.targetModal === 'family-center') {
+          useUIStore.getState().openEditProfile('sec-family');
+          navigate('/');
+        } else if (state?.from) {
+          navigate(state.from);
+        } else {
+          navigate('/feed');
+        }
+      }
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
         const serverMessage = error.response.data?.message;

@@ -162,7 +162,7 @@ export default function ProceduralChatBackground({
       ctx.translate(parallaxX, parallaxY);
 
       // ----------------------------------------------------
-      // 1. Shader: Liquid Neon Smoke (Шейдер жидкого неонового дыма)
+      // 1. Shader: Liquid Neon Smoke
       // ----------------------------------------------------
       if (shaderId === 'neon-smoke') {
         // Deep background gradient
@@ -216,7 +216,7 @@ export default function ProceduralChatBackground({
       }
 
       // ----------------------------------------------------
-      // 2. Shader: Cosmic Aurora Borealis (Северное сияние)
+      // 2. Shader: Cosmic Aurora Borealis
       // ----------------------------------------------------
       else if (shaderId === 'cosmic-aurora') {
         const bgGrad = ctx.createLinearGradient(0, 0, 0, height);
@@ -283,7 +283,7 @@ export default function ProceduralChatBackground({
       }
 
       // ----------------------------------------------------
-      // 3. Shader: Retro Synthwave Grid (Сетка Synthwave)
+      // 3. Shader: Retro Synthwave Grid
       // ----------------------------------------------------
       else if (shaderId === 'synthwave-grid') {
         const skyGrad = ctx.createLinearGradient(0, 0, 0, height * 0.6);
@@ -347,7 +347,7 @@ export default function ProceduralChatBackground({
       }
 
       // ----------------------------------------------------
-      // 4. Shader: Starlight Hyperspace Drift (Звездный дрейф)
+      // 4. Shader: Starlight Hyperspace Drift
       // ----------------------------------------------------
       else if (shaderId === 'starlight-drift') {
         ctx.fillStyle = '#020617';
@@ -401,7 +401,7 @@ export default function ProceduralChatBackground({
       }
 
       // ----------------------------------------------------
-      // 5. Shader: Cyber Matrix Hologram (Кибер-матрица)
+      // 5. Shader: Cyber Matrix Hologram
       // ----------------------------------------------------
       else {
         ctx.fillStyle = '#021810';

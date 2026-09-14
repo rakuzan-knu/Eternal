@@ -74,7 +74,7 @@ describe('Sidebar', () => {
 
     expect(screen.getByText('Home').closest('a')).toHaveAttribute('href', '/');
     expect(screen.getByText('Search').closest('a')).toHaveAttribute('href', '/search');
-    expect(screen.getByText('Reels').closest('a')).toHaveAttribute('href', '/reels');
+    expect(screen.getByText('Music Hub').closest('a')).toHaveAttribute('href', '/music');
     expect(screen.getByText('Message').closest('a')).toHaveAttribute('href', '/messages');
     expect(screen.getByText('Notifications').closest('a')).toHaveAttribute(
       'href',
@@ -100,5 +100,42 @@ describe('Sidebar', () => {
     });
 
     expect(screen.getByText('Profile').closest('a')).toHaveAttribute('href', '/');
+  });
+
+  it('opens and closes the Create popup menu when clicking Create', () => {
+    act(() => {
+      useUIStore.getState().setSidebarExpanded(true);
+      renderWithProviders(<Sidebar />);
+    });
+
+    const createLink = screen.getByText('Create').closest('a')!;
+    act(() => {
+      fireEvent.click(createLink);
+    });
+
+    expect(screen.getByText('Create Post')).toBeInTheDocument();
+    expect(screen.getByText('Create Story')).toBeInTheDocument();
+
+    act(() => {
+      fireEvent.click(createLink);
+    });
+    expect(screen.queryByText('Create Post')).not.toBeInTheDocument();
+  });
+
+  it('opens More menu with full settings and options on click', () => {
+    act(() => {
+      useUIStore.getState().setSidebarExpanded(true);
+      renderWithProviders(<Sidebar />);
+    });
+
+    const moreBtn = screen.getByRole('button', { name: /more/i });
+    act(() => {
+      fireEvent.click(moreBtn);
+    });
+
+    expect(screen.getByText('Settings')).toBeInTheDocument();
+    expect(screen.getByText('Saved')).toBeInTheDocument();
+    expect(screen.getByText('Change appearance')).toBeInTheDocument();
+    expect(screen.getByText('Log out')).toBeInTheDocument();
   });
 });

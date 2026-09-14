@@ -10,13 +10,17 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { uid } from 'uid';
-import { StoryMediaType, StoryPrivacy } from '@prisma/client';
+import { StoryMediaType, StoryPrivacy, NotificationType } from '@prisma/client';
 import { PrismaService } from '@common/prisma';
 import { RedisService } from '../redis/redis.service';
 import { StoriesRepository } from './stories.repository';
 import { ConversationsService } from '../messenger/conversations/conversations.service';
 import { MessagesService } from '../messenger/messages/messages.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import {
+  CreateNotificationEvent,
+  NOTIFICATION_EVENTS,
+} from '../notifications/events/notification.events';
 import {
   CreateStoryDto,
   PollOverlay,
@@ -193,7 +197,16 @@ export class StoriesService {
     }
 
     let pollResult: StoryPollResult | null = null;
-    const overlays = Array.isArray(story.overlays) ? (story.overlays as StoryOverlay[]) : [];
+    const rawOverlays = Array.isArray(story.overlays) ? (story.overlays as StoryOverlay[]) : [];
+    const overlays = rawOverlays.map((o: any) => {
+      if (o.type === 'image' && (o.isMainMedia || !o.url || String(o.url).startsWith('blob:'))) {
+        return {
+          ...o,
+          url: story.mediaUrl,
+        };
+      }
+      return o;
+    });
 
     const pollOverlay = overlays.find((o) => o.type === 'poll');
     if (pollOverlay && pollOverlay.options) {
@@ -211,7 +224,7 @@ export class StoriesService {
         }
       }
 
-      const options = pollOverlay.options.map((opt, idx) => ({
+      const options = pollOverlay.options.map((opt: { text: string }, idx: number) => ({
         text: opt.text,
         voteCount: voteCounts[idx],
         percentage: totalVotes > 0 ? Math.round((voteCounts[idx] / totalVotes) * 100) : 0,
@@ -272,12 +285,25 @@ export class StoriesService {
 
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours TTL
 
+    let finalOverlays = dto.overlays || [];
+    if (file && Array.isArray(finalOverlays)) {
+      finalOverlays = finalOverlays.map((o: any) => {
+        if (o.type === 'image' && (o.isMainMedia || !o.url || String(o.url).startsWith('blob:'))) {
+          return {
+            ...o,
+            url: mediaUrl,
+          };
+        }
+        return o;
+      });
+    }
+
     const story = await this.storiesRepo.createStory({
       authorId: userId,
       mediaUrl,
       mediaType,
       caption: dto.caption || null,
-      overlays: dto.overlays || [],
+      overlays: finalOverlays,
       privacy: dto.privacy || StoryPrivacy.ALL_FOLLOWERS,
       expiresAt,
     });
@@ -299,6 +325,90 @@ export class StoriesService {
       authorId: userId,
       story: response,
     });
+
+    // Notify mentioned users in real-time
+    const mentions = (finalOverlays || []).filter((o: any) => o.type === 'mention' && o.username);
+    if (mentions.length > 0) {
+      const usernames = Array.from(
+        new Set(mentions.map((m: any) => String(m.username).toLowerCase().replace(/^@/, ''))),
+      );
+      void this.prisma.user
+        .findMany({
+          where: { username: { in: usernames, mode: 'insensitive' } },
+          select: { id: true, username: true },
+        })
+        .then(async (targets) => {
+          const author = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { id: true, username: true, displayName: true, avatar: true },
+          });
+
+          for (const target of targets) {
+            if (target.id !== userId) {
+              // 1. Notification on /notifications
+              this.eventEmitter.emit(
+                NOTIFICATION_EVENTS.CREATE,
+                new CreateNotificationEvent(target.id, NotificationType.MENTION, {
+                  actorId: userId,
+                  text: JSON.stringify({
+                    storyId: story.id,
+                    mediaUrl: story.mediaUrl,
+                    mediaType: story.mediaType,
+                    authorUsername: author?.username || '',
+                    kind: 'story_mention',
+                  }),
+                }),
+              );
+
+              // 2. Direct Message in Chat with Story preview card
+              try {
+                const conv = await this.conversationsService.createDirect(userId, {
+                  participantId: target.id,
+                });
+
+                const overlays = Array.isArray(story.overlays) ? (story.overlays as any[]) : [];
+                const audioOverlay = overlays.find((o) => o?.type === 'audio');
+                const imageOverlay = overlays.find((o) => o?.type === 'image');
+                let storyMediaPreview = story.mediaUrl;
+                let storyThumbnail = author?.avatar || undefined;
+
+                if (!storyMediaPreview || storyMediaPreview.startsWith('color:')) {
+                  if (audioOverlay?.trackCover) {
+                    storyMediaPreview = audioOverlay.trackCover;
+                    storyThumbnail = audioOverlay.trackCover;
+                  } else if (imageOverlay?.url) {
+                    storyMediaPreview = imageOverlay.url;
+                    storyThumbnail = imageOverlay.url;
+                  } else {
+                    storyMediaPreview = story.mediaUrl || 'color:#09090b';
+                  }
+                }
+
+                await this.messagesService.send(conv.id, userId, {
+                  conversationId: conv.id,
+                  text: 'Mentioned you in their story',
+                  messageType: 'STORY_REPLY',
+                  attachments: [
+                    {
+                      type: story.mediaType === StoryMediaType.VIDEO ? 'VIDEO' : 'IMAGE',
+                      url: storyMediaPreview,
+                      fileName: `story_reply_${story.id}`,
+                      thumbnailUrl: storyThumbnail,
+                    },
+                  ],
+                });
+              } catch (dmErr) {
+                this.logger.warn(
+                  `Failed to send story mention DM to ${target.id}: ${String(dmErr)}`,
+                );
+              }
+            }
+          }
+        })
+        .catch((err) => {
+          this.logger.warn(`Failed to notify mentioned users: ${String(err)}`);
+        });
+    }
 
     return response;
   }
@@ -458,6 +568,29 @@ export class StoriesService {
       createdAt: reaction.createdAt.toISOString(),
     });
 
+    // Notify story author on notifications page if someone else reacted
+    if (story.authorId !== userId && dto.emoji) {
+      const storyAuthor = await this.prisma.user.findUnique({
+        where: { id: story.authorId },
+        select: { id: true, username: true },
+      });
+
+      this.eventEmitter.emit(
+        NOTIFICATION_EVENTS.CREATE,
+        new CreateNotificationEvent(story.authorId, NotificationType.LIKE_POST, {
+          actorId: userId,
+          text: JSON.stringify({
+            storyId: story.id,
+            mediaUrl: story.mediaUrl,
+            mediaType: story.mediaType,
+            authorUsername: storyAuthor?.username || '',
+            kind: 'story_like',
+            emoji: dto.emoji,
+          }),
+        }),
+      );
+    }
+
     return {
       storyId,
       emoji: reaction.emoji,
@@ -518,12 +651,24 @@ export class StoriesService {
     });
 
     // 2. Prepare rich message text with story embed preview
-    const storyMediaPreview =
-      story.mediaType === StoryMediaType.IMAGE
-        ? story.mediaUrl
-        : story.mediaType === StoryMediaType.VIDEO
-          ? story.mediaUrl
-          : undefined;
+    const overlays = Array.isArray(story.overlays) ? (story.overlays as StoryOverlay[]) : [];
+    const audioOverlay = overlays.find((o) => o.type === 'audio') as any;
+    const imageOverlay = overlays.find((o) => o.type === 'image') as any;
+
+    let storyMediaPreview = story.mediaUrl;
+    let storyThumbnail = (story.author as any)?.avatar;
+
+    if (!storyMediaPreview || storyMediaPreview.startsWith('color:')) {
+      if (audioOverlay?.trackCover) {
+        storyMediaPreview = audioOverlay.trackCover;
+        storyThumbnail = audioOverlay.trackCover;
+      } else if (imageOverlay?.url) {
+        storyMediaPreview = imageOverlay.url;
+        storyThumbnail = imageOverlay.url;
+      } else {
+        storyMediaPreview = story.mediaUrl || 'color:#09090b';
+      }
+    }
 
     const messageText = dto.text.trim();
 
@@ -532,15 +677,14 @@ export class StoriesService {
       conversationId: conv.id,
       text: messageText,
       messageType: 'STORY_REPLY',
-      attachments: storyMediaPreview
-        ? [
-            {
-              type: story.mediaType === StoryMediaType.VIDEO ? 'VIDEO' : 'IMAGE',
-              url: storyMediaPreview,
-              fileName: `story_reply_${story.id}`,
-            },
-          ]
-        : undefined,
+      attachments: [
+        {
+          type: story.mediaType === StoryMediaType.VIDEO ? 'VIDEO' : 'IMAGE',
+          url: storyMediaPreview,
+          fileName: `story_reply_${story.id}`,
+          thumbnailUrl: storyThumbnail,
+        },
+      ],
     });
 
     return {
@@ -588,6 +732,8 @@ export class StoriesService {
 
     await this.storiesRepo.deleteStory(storyId, authorId);
     await this.redis.delByPattern('stories:feed:*');
+
+    this.eventEmitter.emit('story.deleted', { storyId, authorId });
 
     return true;
   }

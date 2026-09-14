@@ -5,6 +5,7 @@ export function toUserProfileDto(
   user: PublicUserEntity | PublicUserSummary,
   isFollowing: boolean = false,
   followsYou: boolean = false,
+  activityStatus?: any,
 ): UserProfileDto {
   const badgeList = Array.isArray(user.badges)
     ? user.badges.map((b: { badgeId: string } | string) => (typeof b === 'string' ? b : b.badgeId))
@@ -27,5 +28,9 @@ export function toUserProfileDto(
     isFollowing,
     followsYou,
     isFriend: Boolean(isFollowing && followsYou),
+    activityStatus:
+      activityStatus !== undefined
+        ? activityStatus
+        : ((user as any).showcase?.activityStatus ?? null),
   };
 }

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { FOLLOW_REQUESTS_KEY, USER_KEY } from '@/shared/api/queryKeys';
 import { useAuthStore } from '@/shared/model/useAuthStore';
+import { useSpotifyPlayerStore } from '@/shared/model/useSpotifyPlayerStore';
 import { followRequestsApi } from '../api/followRequestsApi';
 
 import type { FollowRequestUser } from '../model/privacyTypes';
@@ -12,22 +13,24 @@ export interface FollowRequestsResponse {
 
 export function useFollowRequests(enabled = true) {
   const { isAuthenticated } = useAuthStore();
+  const isGameModeOpen = useSpotifyPlayerStore((s) => s.isGameModeOpen);
   return useQuery<FollowRequestsResponse>({
     queryKey: [FOLLOW_REQUESTS_KEY, 'list'],
     queryFn: () => followRequestsApi.list(),
-    enabled: isAuthenticated && enabled,
+    enabled: isAuthenticated && enabled && !isGameModeOpen,
     staleTime: 1000 * 15,
   });
 }
 
 export function useFollowRequestsCount() {
   const { isAuthenticated } = useAuthStore();
+  const isGameModeOpen = useSpotifyPlayerStore((s) => s.isGameModeOpen);
   return useQuery({
     queryKey: [FOLLOW_REQUESTS_KEY, 'count'],
     queryFn: () => followRequestsApi.count(),
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && !isGameModeOpen,
     staleTime: 1000 * 30,
-    refetchInterval: 1000 * 60,
+    refetchInterval: isGameModeOpen ? false : 1000 * 60,
   });
 }
 

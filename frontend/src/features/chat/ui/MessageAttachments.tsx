@@ -5,6 +5,8 @@ import { formatFileSize } from '@/shared/lib/attachmentLimits';
 import { MediaAttachment } from './MessageAttachmentPreviews';
 import { AudioMessageBubble } from './AudioMessageBubble';
 import { VideoNoteBubble } from './VideoNoteBubble';
+import type { ChatThemeConfig } from '../model/chatTheme';
+import type { ContrastTheme } from '../lib/themeUtils';
 
 interface MessageAttachmentsProps {
   attachments: AttachmentView[];
@@ -13,6 +15,8 @@ interface MessageAttachmentsProps {
   sentAt?: string;
   conversationId?: string;
   statusIcon?: React.ReactNode;
+  chatTheme?: ChatThemeConfig | null;
+  contrast?: ContrastTheme | null;
 }
 
 export default function MessageAttachments({
@@ -22,6 +26,8 @@ export default function MessageAttachments({
   sentAt,
   conversationId,
   statusIcon,
+  chatTheme,
+  contrast,
 }: MessageAttachmentsProps) {
   if (attachments.length === 0) return null;
 
@@ -77,6 +83,8 @@ export default function MessageAttachments({
           sentAt={sentAt}
           conversationId={conversationId}
           statusIcon={statusIcon}
+          chatTheme={chatTheme}
+          contrast={contrast}
         />
       ))}
 

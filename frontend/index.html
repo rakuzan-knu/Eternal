@@ -2,33 +2,212 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!-- Global Error Shield: Suppresses crashes from third-party extensions (e.g. Web Vitals, React DevTools, MetaMask) -->
+    <script>
+      (function () {
+        function shouldSuppress(msg, src, err) {
+          var m = String(msg || (err && err.message) || '');
+          var s = String(src || (err && err.stack) || '');
+          // 1. Suppress Web Vitals extension bug (reportAllChanges reading 'startTime')
+          if (m.indexOf("reading 'startTime'") !== -1 || m.indexOf('reportAllChanges') !== -1) {
+            return true;
+          }
+          // 2. Suppress Chrome / Firefox extension script injections
+          if (s.indexOf('chrome-extension://') !== -1 || s.indexOf('moz-extension://') !== -1) {
+            return true;
+          }
+          // 3. Suppress anonymous VM script errors from extensions
+          if (
+            m.indexOf('Cannot read properties of undefined') !== -1 &&
+            s.indexOf('VM') !== -1 &&
+            s.indexOf('/src/') === -1
+          ) {
+            return true;
+          }
+          return false;
+        }
+
+        window.addEventListener(
+          'error',
+          function (e) {
+            if (shouldSuppress(e.message, e.filename, e.error)) {
+              e.preventDefault();
+              if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+              return true;
+            }
+          },
+          true,
+        );
+
+        window.addEventListener(
+          'unhandledrejection',
+          function (e) {
+            if (shouldSuppress('', '', e.reason)) {
+              e.preventDefault();
+              if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+              return true;
+            }
+          },
+          true,
+        );
+      })();
+    </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="96x96" href="/icons/icon-96.png" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/icons/icon-48.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <link
+      rel="search"
+      type="application/opensearchdescription+xml"
+      title="Eternal"
+      href="/opensearch.xml"
+    />
+    <link rel="dns-prefetch" href="https://sdk.scdn.co" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#070709" />
+    <meta
+      name="robots"
+      content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+    />
+
+    <title>Eternal — Next-Gen Social Network &amp; Community Platform</title>
     <meta
       name="description"
-      content="Eternal Social Network & Messenger — Connect, share posts, stories, and chat in real-time."
+      content="Eternal is the next-generation social network and messenger. Connect, share posts, stories, and chat in real-time with ultra-sleek design and uncompromising privacy."
     />
+    <meta
+      name="keywords"
+      content="Eternal, Eternal Social Network, Eternal Messenger, Social Network, Real-time Chat, Communities, Social Media App, Private Messenger"
+    />
+    <link rel="canonical" href="https://eternalnet.vercel.app/" />
 
-    <!-- OpenGraph Meta Tags for Rich Embeds (Discord, Telegram, Twitter) -->
+    <!-- OpenGraph Meta Tags for Rich Embeds (Discord, Telegram, Instagram, X) -->
     <meta property="og:site_name" content="Eternal" />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Eternal Social Network & Messenger" />
+    <meta
+      property="og:title"
+      content="Eternal — Next-Gen Social Network &amp; Community Platform"
+    />
     <meta
       property="og:description"
-      content="Connect, share posts, stories, and chat in real-time with ultra-sleek design."
+      content="Connect, share posts, stories, and chat in real-time with ultra-sleek design and uncompromising privacy."
     />
-    <meta property="og:image" content="/favicon.svg" />
+    <meta
+      property="og:image"
+      content="https://eternalnet.vercel.app/images/shared/EternalBanner.png"
+    />
+    <meta
+      property="og:image:secure_url"
+      content="https://eternalnet.vercel.app/images/shared/EternalBanner.png"
+    />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Eternal — Next-Gen Social Network &amp; Messenger" />
+    <meta property="og:url" content="https://eternalnet.vercel.app/" />
+    <meta property="og:locale" content="en_US" />
 
-    <!-- Twitter Meta Tags -->
+    <!-- Twitter / X Meta Tags (Discord Large Preview Standard) -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Eternal Social Network & Messenger" />
+    <meta
+      name="twitter:title"
+      content="Eternal — Next-Gen Social Network &amp; Community Platform"
+    />
     <meta
       name="twitter:description"
-      content="Connect, share posts, stories, and chat in real-time with ultra-sleek design."
+      content="Connect, share posts, stories, and chat in real-time with ultra-sleek design and uncompromising privacy."
     />
-    <meta name="twitter:image" content="/favicon.svg" />
+    <meta
+      name="twitter:image"
+      content="https://eternalnet.vercel.app/images/shared/EternalBanner.png"
+    />
+    <meta name="twitter:image:alt" content="Eternal — Next-Gen Social Network &amp; Messenger" />
+    <meta name="twitter:site" content="@theeternalnet" />
+    <meta name="twitter:creator" content="@theeternalnet" />
 
-    <title>Eternal</title>
+    <!-- Schema.org JSON-LD (Entity Knowledge Graph & WebSite) -->
+    <script type="application/ld+json" id="eternal-structured-data">
+      [
+        {
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          "@id": "https://eternalnet.vercel.app/#organization",
+          "name": "Eternal",
+          "alternateName": [
+            "Eternal Social Network",
+            "Eternal Social Media",
+            "Eternal Net",
+            "Eternal App",
+            "Eternal Messenger"
+          ],
+          "url": "https://eternalnet.vercel.app",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://eternalnet.vercel.app/favicon.svg",
+            "width": 512,
+            "height": 512
+          },
+          "sameAs": [
+            "https://www.wikidata.org/wiki/Q141248972",
+            "https://www.wikidata.org/wiki/Special:EntityPage/Q141248972",
+            "https://www.crunchbase.com/organization/eternal-94af",
+            "https://www.youtube.com/@eternalapp",
+            "https://x.com/theeternalnet",
+            "https://twitter.com/theeternalnet",
+            "https://www.facebook.com/profile.php?id=61594079787704",
+            "https://www.tiktok.com/@eternalsocial",
+            "https://github.com/rakuzan-knu",
+            "https://www.linkedin.com/company/eternal-social",
+            "https://apps.apple.com/app/eternal-social",
+            "https://play.google.com/store/apps/details?id=net.eternal.app"
+          ],
+          "description": "Eternal is the next-generation social network and messenger. Connect, share posts, and chat in real-time.",
+          "disambiguatingDescription": "Eternal is an online social networking and real-time messaging platform, distinct from dictionary definitions, fictional concepts, or apparel brands.",
+          "slogan": "One place. All connections.",
+          "foundingDate": "2026",
+          "knowsAbout": [
+            "Social Networking Platform",
+            "Real-Time Messaging",
+            "Online Communities",
+            "Privacy by Design",
+            "Digital Wellbeing"
+          ],
+          "email": "support@eternal.net"
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          "@id": "https://eternalnet.vercel.app/#website",
+          "url": "https://eternalnet.vercel.app",
+          "name": "Eternal",
+          "alternateName": ["Eternal Social", "Eternal Network", "Eternal App"],
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": {
+              "@type": "EntryPoint",
+              "urlTemplate": "https://eternalnet.vercel.app/search?q={search_term_string}"
+            },
+            "query-input": "required name=search_term_string"
+          }
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          "@id": "https://eternalnet.vercel.app/#software",
+          "name": "Eternal",
+          "operatingSystem": "Web, Windows, macOS, Linux, iOS, Android",
+          "applicationCategory": "SocialNetworkingApplication",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+          },
+          "description": "Next-gen social network and real-time messenger."
+        }
+      ]
+    </script>
   </head>
 
   <body>

@@ -32,6 +32,26 @@ function fileIconColor(fileName: string | null): string {
   return '#6b7280';
 }
 
+function MediaThumbnailImage({ url, alt }: { url: string; alt?: string }) {
+  const [hasError, setHasError] = useState(false);
+  if (hasError || !url || url.startsWith('color:') || url.startsWith('#')) {
+    return (
+      <div className="w-full h-full bg-white/5 flex items-center justify-center text-gray-500">
+        <ImageIcon size={20} className="opacity-40" />
+      </div>
+    );
+  }
+  return (
+    <img
+      src={url}
+      alt={alt ?? ''}
+      onError={() => setHasError(true)}
+      className="w-full h-full object-cover"
+      loading="lazy"
+    />
+  );
+}
+
 export default function MediaFilesLinksModal({
   messages,
   initialTab,
@@ -130,10 +150,9 @@ export default function MediaFilesLinksModal({
                                   </span>
                                 </>
                               ) : (
-                                <img
-                                  src={item.attachment.url}
-                                  alt=""
-                                  className="w-full h-full object-cover"
+                                <MediaThumbnailImage
+                                  url={item.attachment.url}
+                                  alt={item.attachment.fileName ?? ''}
                                 />
                               )}
                             </button>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- Static Hubs, Legal, Safety, Company & Product Pages -->
+  <sitemap>
+    <loc>https://eternalnet.vercel.app/sitemap-static.xml</loc>
+    <lastmod>2026-09-01T12:00:00+00:00</lastmod>
+  </sitemap>
+
+  <!-- Dynamic Public User Profiles -->
+  <sitemap>
+    <loc>https://eternalnet.vercel.app/api/sitemaps/profiles.xml</loc>
+    <lastmod>2026-09-01T12:00:00+00:00</lastmod>
+  </sitemap>
+
+  <!-- Dynamic Public Posts & Content -->
+  <sitemap>
+    <loc>https://eternalnet.vercel.app/api/sitemaps/posts.xml</loc>
+    <lastmod>2026-09-01T12:00:00+00:00</lastmod>
+  </sitemap>
+</sitemapindex>

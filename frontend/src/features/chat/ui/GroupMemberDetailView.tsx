@@ -72,7 +72,11 @@ export default function GroupMemberDetailView({
           </div>
           <div className="flex items-center justify-center gap-1.5 min-w-0">
             <p className="text-lg font-bold text-white truncate">{name}</p>
-            {participant.user.isVerified && <VerifiedCheckmark size="md" />}
+            <VerifiedCheckmark
+              isVerified={participant.user.isVerified}
+              primaryBadge={participant.user.primaryBadge}
+              size="md"
+            />
           </div>
           <OnlineStatusIndicator
             userId={participant.userId}

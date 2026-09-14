@@ -93,6 +93,7 @@ export const followApi = {
       isFriend: true,
       isVerified: Boolean(u.isVerified),
       primaryBadge: (u.primaryBadge as string | null | undefined) ?? null,
+      activityStatus: (u.activityStatus as any) ?? null,
     }));
   },
   removeFollower: (followerId: string) =>

@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useLayoutEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
   Heart,
@@ -18,9 +19,12 @@ import {
   MoreHorizontal,
   Trash2,
   BellOff,
+  Play,
+  Music2,
 } from 'lucide-react';
 import { useUIStore } from '@/shared/model/useUIStore';
 import Avatar from '@/shared/ui/Avatar';
+import { VerifiedCheckmark } from '@/entities/profile/ui/VerifiedCheckmark';
 import {
   NotificationFilter,
   NotificationItem,
@@ -36,6 +40,9 @@ import {
 } from '@/entities/notification/model/useNotifications';
 import { useNotificationStore } from '@/entities/notification/model/useNotificationStore';
 import { useNotificationRealtime } from '@/entities/notification/model/useNotificationRealtime';
+import { useCurrentUser } from '@/entities/profile/model/useCurrentUser';
+import { useMusicHubStore } from '@/features/music/model/useMusicHubStore';
+import { SEOHead } from '@/shared/seo';
 
 function formatRelativeTime(dateString: string): string {
   const date = new Date(dateString);
@@ -71,6 +78,11 @@ function getNotificationBadge(type: NotificationType) {
         icon: <UserPlus size={10} className="text-white" />,
         bg: 'bg-purple-500',
       };
+    case 'COLLABORATE_PLAYLIST':
+      return {
+        icon: <UserPlus size={10} className="text-white" />,
+        bg: 'bg-purple-600',
+      };
     case 'REPOST':
       return {
         icon: <Repeat2 size={10} className="text-white" />,
@@ -96,6 +108,168 @@ function getNotificationBadge(type: NotificationType) {
   }
 }
 
+interface NotificationRowMenuProps {
+  itemId: string;
+  isOpen: boolean;
+  onOpen: () => void;
+  onClose: () => void;
+  actorId?: string | null;
+  onDelete: () => void;
+  onMuteAuthor?: () => void;
+}
+
+function NotificationRowMenu({
+  isOpen,
+  onOpen,
+  onClose,
+  actorId,
+  onDelete,
+  onMuteAuthor,
+}: NotificationRowMenuProps) {
+  const [coords, setCoords] = useState<{ top?: number; bottom?: number; right: number } | null>(
+    null,
+  );
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const updateCoords = useCallback(() => {
+    if (!buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    const menuHeight = actorId ? 90 : 48;
+    const gap = 6;
+    const spaceBelow = window.innerHeight - rect.bottom - gap;
+    const spaceAbove = rect.top - gap;
+
+    let nextCoords: { top?: number; bottom?: number; right: number };
+
+    if (spaceBelow < menuHeight && spaceAbove >= spaceBelow) {
+      nextCoords = {
+        bottom: Math.max(12, window.innerHeight - rect.top + gap),
+        right: Math.max(12, Math.min(window.innerWidth - 12, window.innerWidth - rect.right)),
+      };
+    } else {
+      nextCoords = {
+        top: Math.max(12, Math.min(rect.bottom + gap, window.innerHeight - menuHeight - 12)),
+        right: Math.max(12, Math.min(window.innerWidth - 12, window.innerWidth - rect.right)),
+      };
+    }
+    setCoords(nextCoords);
+  }, [actorId]);
+
+  useLayoutEffect(() => {
+    if (isOpen) {
+      updateCoords();
+      const rafId = requestAnimationFrame(() => {
+        updateCoords();
+      });
+      return () => cancelAnimationFrame(rafId);
+    }
+  }, [isOpen, updateCoords]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handlePointerDown = (e: MouseEvent) => {
+      if (
+        buttonRef.current &&
+        !buttonRef.current.contains(e.target as Node) &&
+        menuRef.current &&
+        !menuRef.current.contains(e.target as Node)
+      ) {
+        onClose();
+      }
+    };
+
+    const handleScrollOrResize = () => {
+      updateCoords();
+    };
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleEscape);
+    window.addEventListener('scroll', handleScrollOrResize, true);
+    window.addEventListener('resize', handleScrollOrResize);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleEscape);
+      window.removeEventListener('scroll', handleScrollOrResize, true);
+      window.removeEventListener('resize', handleScrollOrResize);
+    };
+  }, [isOpen, onClose, updateCoords]);
+
+  return (
+    <div className="relative">
+      <button
+        ref={buttonRef}
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          if (isOpen) {
+            onClose();
+          } else {
+            onOpen();
+          }
+        }}
+        className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-150 cursor-pointer"
+        title="Options"
+      >
+        <MoreHorizontal size={17} />
+      </button>
+
+      {isOpen &&
+        coords &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            ref={menuRef}
+            style={{
+              position: 'fixed',
+              top: coords.top !== undefined ? `${coords.top}px` : undefined,
+              bottom: coords.bottom !== undefined ? `${coords.bottom}px` : undefined,
+              right: `${coords.right}px`,
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className={`z-[99999] w-60 bg-[#171b22]/95 border border-white/10 rounded-2xl shadow-2xl p-1.5 backdrop-blur-xl divide-y divide-white/5 animate-fadeIn ${
+              coords.bottom !== undefined ? 'origin-bottom-right' : 'origin-top-right'
+            }`}
+          >
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+                onDelete();
+              }}
+              className="flex items-center gap-2.5 w-full px-3 py-2 text-xs font-medium text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors cursor-pointer"
+            >
+              <Trash2 size={15} />
+              <span>Delete this notification</span>
+            </button>
+            {actorId && onMuteAuthor && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClose();
+                  onMuteAuthor();
+                }}
+                className="flex items-center gap-2.5 w-full px-3 py-2 text-xs font-medium text-purple-300 hover:bg-purple-500/10 rounded-xl transition-colors cursor-pointer"
+              >
+                <BellOff size={15} />
+                <span>Do not send notifications from this author</span>
+              </button>
+            )}
+          </div>,
+          document.body,
+        )}
+    </div>
+  );
+}
+
 export function NotificationsPage() {
   const navigate = useNavigate();
   useNotificationRealtime();
@@ -106,6 +280,8 @@ export function NotificationsPage() {
 
   const unreadCounts = useNotificationStore((state) => state.unreadCounts);
   const openEditProfile = useUIStore((state) => state.openEditProfile);
+  const { data: currentUser } = useCurrentUser();
+  const playlistInvites = useMusicHubStore((s) => s.playlistInvites || []);
 
   const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
     useNotifications(activeFilter);
@@ -123,15 +299,49 @@ export function NotificationsPage() {
   }, []);
 
   const allItems: NotificationItem[] = useMemo(() => {
-    if (!data?.pages) return [];
     const list: NotificationItem[] = [];
-    for (const page of data.pages) {
-      if (page.items) {
-        list.push(...page.items);
+    if (data?.pages) {
+      for (const page of data.pages) {
+        if (page.items) {
+          list.push(...page.items);
+        }
       }
     }
+
+    if (currentUser) {
+      const pendingInvites = playlistInvites.filter(
+        (inv) =>
+          inv.status === 'pending' &&
+          (inv.inviteeId === currentUser.id || inv.inviteeUsername === currentUser.username),
+      );
+
+      for (const inv of pendingInvites) {
+        list.unshift({
+          id: inv.id,
+          userId: currentUser.id,
+          actorId: inv.inviterId,
+          type: 'COLLABORATE_PLAYLIST' as NotificationType,
+          text: `invited you to collaborate on playlist "${inv.playlistTitle}"`,
+          isRead: false,
+          createdAt: inv.createdAt,
+          deepLink: `/music/playlist/${inv.playlistId}`,
+          actor: {
+            id: inv.inviterId,
+            username: inv.inviterUsername,
+            displayName: inv.inviterDisplayName || inv.inviterUsername,
+            avatar: inv.inviterAvatar,
+          },
+          metadata: {
+            playlistId: inv.playlistId,
+            playlistTitle: inv.playlistTitle,
+            playlistCover: inv.playlistCover,
+          },
+        } as any);
+      }
+    }
+
     return list;
-  }, [data]);
+  }, [data, currentUser, playlistInvites]);
 
   const displayedItems = useMemo(() => {
     if (isExpanded) return allItems;
@@ -167,6 +377,11 @@ export function NotificationsPage() {
 
   return (
     <div className="w-full max-w-2xl mx-auto space-y-5 animate-fadeIn pb-12">
+      <SEOHead
+        title="Notifications • Eternal"
+        description="Stay updated with your latest mentions, likes, comments, and community interactions on Eternal."
+        noindex={true}
+      />
       {/* Header */}
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-3">
@@ -279,7 +494,7 @@ export function NotificationsPage() {
               return (
                 <div
                   key={item.id}
-                  className={`group relative flex items-center justify-between p-4 gap-3.5 transition-colors duration-150 cursor-pointer ${
+                  className={`group relative flex items-center justify-between p-3 sm:p-4 gap-2.5 sm:gap-3.5 transition-colors duration-150 cursor-pointer ${
                     item.isRead
                       ? 'hover:bg-white/[0.03]'
                       : 'bg-purple-950/10 hover:bg-purple-950/20'
@@ -287,7 +502,7 @@ export function NotificationsPage() {
                 >
                   {/* Left Indicator & Avatar */}
                   <div
-                    className="flex items-center gap-3 min-w-0 flex-grow"
+                    className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1"
                     onClick={() => handleRowClick(item)}
                   >
                     {/* Unread Blue/Purple Glow Dot */}
@@ -320,15 +535,22 @@ export function NotificationsPage() {
 
                     {/* Middle Text / Action description */}
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs text-gray-300 leading-snug break-words">
-                        <span
-                          className="font-semibold text-white hover:underline cursor-pointer"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (item.actor?.username) navigate(`/${item.actor.username}`);
-                          }}
-                        >
-                          {actorDisplayName}
+                      <div className="text-xs text-gray-300 leading-snug break-normal sm:break-words">
+                        <span className="inline-flex items-center gap-1.5 align-middle">
+                          <span
+                            className="font-semibold text-white hover:underline cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (item.actor?.username) navigate(`/${item.actor.username}`);
+                            }}
+                          >
+                            {actorDisplayName}
+                          </span>
+                          <VerifiedCheckmark
+                            isVerified={Boolean(item.actor?.isVerified)}
+                            primaryBadge={item.actor?.primaryBadge}
+                            size="xs"
+                          />
                         </span>{' '}
                         {item.extraCount > 0 && (
                           <span className="text-gray-400 font-medium">
@@ -336,17 +558,29 @@ export function NotificationsPage() {
                           </span>
                         )}
                         <span className="text-gray-400">
-                          {item.type === 'LIKE_POST' && 'liked your post'}
-                          {item.type === 'LIKE_COMMENT' && 'liked your comment'}
-                          {item.type === 'COMMENT' && 'commented on your post'}
-                          {item.type === 'FOLLOW' && 'started following you'}
-                          {item.type === 'REPOST' && 'reposted your post'}
-                          {item.type === 'MENTION' && 'mentioned you'}
-                          {item.type === 'SYSTEM_VERIFIED' && 'Your account has been verified.'}
-                          {item.type === 'SYSTEM_VIEW' && 'viewed your profile'}
-                          {item.type === 'SYSTEM' && (item.text || 'System notification')}
+                          {item.story ? (
+                            item.type === 'MENTION' ? (
+                              'mentioned you in their story'
+                            ) : (
+                              'liked your story'
+                            )
+                          ) : (
+                            <>
+                              {item.type === 'COLLABORATE_PLAYLIST' &&
+                                `invited you to collaborate on playlist "${(item as any).metadata?.playlistTitle || 'Playlist'}"`}
+                              {item.type === 'LIKE_POST' && 'liked your post'}
+                              {item.type === 'LIKE_COMMENT' && 'liked your comment'}
+                              {item.type === 'COMMENT' && 'commented on your post'}
+                              {item.type === 'FOLLOW' && 'started following you'}
+                              {item.type === 'REPOST' && 'reposted your post'}
+                              {item.type === 'MENTION' && 'mentioned you'}
+                              {item.type === 'SYSTEM_VERIFIED' && 'Your account has been verified.'}
+                              {item.type === 'SYSTEM_VIEW' && 'viewed your profile'}
+                              {item.type === 'SYSTEM' && (item.text || 'System notification')}
+                            </>
+                          )}
                         </span>
-                      </p>
+                      </div>
 
                       {/* Comment Quote Snippet */}
                       {item.comment?.text && (
@@ -355,10 +589,15 @@ export function NotificationsPage() {
                         </p>
                       )}
 
-                      {/* Post Content Snippet (if no comment) */}
-                      {!item.comment?.text && item.text && item.type !== 'SYSTEM_VERIFIED' && (
-                        <p className="mt-1 text-xs text-gray-400 line-clamp-1">{item.text}</p>
-                      )}
+                      {/* Post Content Snippet (if no comment, not story notification, and not collaborate invite) */}
+                      {!item.story &&
+                        !item.comment?.text &&
+                        item.text &&
+                        item.type !== 'SYSTEM_VERIFIED' &&
+                        item.type !== 'COLLABORATE_PLAYLIST' &&
+                        !item.text.startsWith('{') && (
+                          <p className="mt-1 text-xs text-gray-400 line-clamp-1">{item.text}</p>
+                        )}
 
                       <span className="text-[11px] text-gray-500 font-medium mt-0.5 inline-block">
                         {formatRelativeTime(item.createdAt)}
@@ -367,7 +606,7 @@ export function NotificationsPage() {
                   </div>
 
                   {/* Right Action / Preview */}
-                  <div className="flex-shrink-0 flex items-center gap-2 pl-2">
+                  <div className="flex-shrink-0 flex items-center gap-1.5 sm:gap-2 pl-1 sm:pl-2">
                     {/* Follow Back Button */}
                     {isFollowNotification && item.actorId && (
                       <button
@@ -377,7 +616,7 @@ export function NotificationsPage() {
                           toggleFollow(item.actorId!, false);
                         }}
                         disabled={isFollowLoading(item.actorId)}
-                        className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 ${
+                        className={`px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-semibold whitespace-nowrap transition-all duration-200 ${
                           isFollowing(item.actorId)
                             ? 'bg-white/10 text-gray-300 border border-white/10 hover:bg-white/15'
                             : 'bg-purple-600 hover:bg-purple-500 text-white shadow-[0_0_12px_rgba(168,85,247,0.3)]'
@@ -387,8 +626,87 @@ export function NotificationsPage() {
                       </button>
                     )}
 
+                    {/* Playlist Cover Preview for Collaboration Invites */}
+                    {item.type === 'COLLABORATE_PLAYLIST' && (
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!item.isRead) markAsReadMutation.mutate(item.id);
+                          navigate(
+                            item.deepLink ||
+                              `/music/playlist/${(item as any).metadata?.playlistId}`,
+                          );
+                        }}
+                        className="w-11 h-11 rounded-lg overflow-hidden border border-white/10 bg-[#282828] flex items-center justify-center shrink-0 cursor-pointer hover:border-purple-500/50 transition-colors shadow-sm"
+                        title="Go to playlist"
+                      >
+                        {(item as any).metadata?.playlistCover ? (
+                          <img
+                            src={(item as any).metadata.playlistCover}
+                            alt="Playlist"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <Music2 size={18} className="text-gray-400" />
+                        )}
+                      </div>
+                    )}
+
+                    {/* Story Thumbnail Preview */}
+                    {item.story && !isFollowNotification && (
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!item.isRead) markAsReadMutation.mutate(item.id);
+                          if (item.deepLink) {
+                            navigate(item.deepLink);
+                          } else if (item.actor?.username) {
+                            navigate(`/${item.actor.username}?story=${item.story?.id}`);
+                          }
+                        }}
+                        className="w-10 h-14 rounded-lg overflow-hidden border border-purple-500/30 bg-zinc-900 flex items-center justify-center cursor-pointer shadow-md hover:scale-105 transition-all duration-200 relative group/story flex-shrink-0"
+                        title="View story"
+                      >
+                        {item.story.mediaUrl?.startsWith('color:') ? (
+                          <div
+                            className="w-full h-full flex items-center justify-center p-1"
+                            style={{ background: item.story.mediaUrl.replace('color:', '') }}
+                          >
+                            <span className="text-[9px] font-bold text-white drop-shadow">
+                              Story
+                            </span>
+                          </div>
+                        ) : item.story.mediaType === 'VIDEO' ? (
+                          <div className="w-full h-full relative flex items-center justify-center bg-black">
+                            {item.story.mediaUrl && (
+                              <video
+                                src={item.story.mediaUrl}
+                                className="w-full h-full object-cover"
+                                muted
+                                playsInline
+                              />
+                            )}
+                            <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                              <Play className="w-3.5 h-3.5 text-white fill-white" />
+                            </div>
+                          </div>
+                        ) : item.story.mediaUrl ? (
+                          <img
+                            src={item.story.mediaUrl}
+                            alt="Story"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-purple-600 to-indigo-800 flex items-center justify-center">
+                            <span className="text-[9px] font-bold text-white">Story</span>
+                          </div>
+                        )}
+                        <div className="absolute inset-0 ring-1 ring-inset ring-white/10 rounded-lg pointer-events-none" />
+                      </div>
+                    )}
+
                     {/* Post Thumbnail Preview */}
-                    {item.post && !isFollowNotification && (
+                    {item.post && !item.story && !isFollowNotification && (
                       <div
                         onClick={(e) => {
                           e.stopPropagation();
@@ -412,52 +730,17 @@ export function NotificationsPage() {
                     )}
 
                     {/* Context Menu */}
-                    <div className="relative">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActiveMenuId(activeMenuId === item.id ? null : item.id);
-                        }}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-150"
-                        title="Options"
-                      >
-                        <MoreHorizontal size={17} />
-                      </button>
-                      {activeMenuId === item.id && (
-                        <div
-                          onClick={(e) => e.stopPropagation()}
-                          className="absolute right-0 top-full mt-1.5 z-30 w-60 bg-[#171b22]/95 border border-white/10 rounded-2xl shadow-2xl p-1.5 backdrop-blur-xl divide-y divide-white/5 animate-fadeIn"
-                        >
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setActiveMenuId(null);
-                              deleteMutation.mutate(item.id);
-                            }}
-                            className="flex items-center gap-2.5 w-full px-3 py-2 text-xs font-medium text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors"
-                          >
-                            <Trash2 size={15} />
-                            <span>Delete this notification</span>
-                          </button>
-                          {item.actorId && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setActiveMenuId(null);
-                                muteAuthorMutation.mutate(item.actorId!);
-                              }}
-                              className="flex items-center gap-2.5 w-full px-3 py-2 text-xs font-medium text-purple-300 hover:bg-purple-500/10 rounded-xl transition-colors"
-                            >
-                              <BellOff size={15} />
-                              <span>Do not send notifications from this author</span>
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                    <NotificationRowMenu
+                      itemId={item.id}
+                      isOpen={activeMenuId === item.id}
+                      onOpen={() => setActiveMenuId(item.id)}
+                      onClose={() => setActiveMenuId(null)}
+                      actorId={item.actorId}
+                      onDelete={() => deleteMutation.mutate(item.id)}
+                      onMuteAuthor={
+                        item.actorId ? () => muteAuthorMutation.mutate(item.actorId!) : undefined
+                      }
+                    />
                   </div>
                 </div>
               );

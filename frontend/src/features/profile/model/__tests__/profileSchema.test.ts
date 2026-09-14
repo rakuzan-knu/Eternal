@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { profileSchema } from '../profileSchema';
+import { profileSchema, isReservedUsername } from '../profileSchema';
 
 describe('profileSchema', () => {
   it('validates a valid profile payload', () => {
@@ -17,20 +17,30 @@ describe('profileSchema', () => {
   });
 
   it('rejects usernames that are reserved words', () => {
-    const data = {
-      displayName: 'Admin User',
-      username: 'admin',
-      bio: '',
-      onlineStatus: true,
-      notifMain: true,
-      notifSound: true,
-    };
+    for (const reserved of ['admin', 'faq', 'safety', 'support']) {
+      const data = {
+        displayName: 'Test User',
+        username: reserved,
+        bio: '',
+        onlineStatus: true,
+        notifMain: true,
+        notifSound: true,
+      };
 
-    const result = profileSchema.safeParse(data);
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues[0].message).toContain('reserved');
+      const result = profileSchema.safeParse(data);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].message).toContain('reserved');
+      }
     }
+  });
+
+  it('verifies isReservedUsername identifies all reserved system words including hyphenated routes', () => {
+    expect(isReservedUsername('faq')).toBe(true);
+    expect(isReservedUsername('help-center')).toBe(true);
+    expect(isReservedUsername('safety')).toBe(true);
+    expect(isReservedUsername('admin')).toBe(true);
+    expect(isReservedUsername('regular_user')).toBe(false);
   });
 
   it('rejects usernames with consecutive special characters or starting/ending with dot/underscore', () => {

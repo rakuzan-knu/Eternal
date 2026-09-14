@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { OnlineFriendsSidebar } from '../OnlineFriendsSidebar';
 import * as useFriendsModule from '@/features/follow/model/useFriends';
 import * as useSuggestedUsersModule from '@/entities/user/model/useSuggestedUsers';
@@ -34,6 +35,17 @@ vi.mock('@/features/follow/ui/FollowButton', () => ({
     <button data-testid={`follow-btn-${authorId}`}>Follow</button>
   ),
 }));
+
+const renderSidebar = () => {
+  const qc = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={qc}>
+      <OnlineFriendsSidebar />
+    </QueryClientProvider>,
+  );
+};
 
 describe('OnlineFriendsSidebar', () => {
   const mockDismissMutate = vi.fn();
@@ -72,7 +84,7 @@ describe('OnlineFriendsSidebar', () => {
       isLoading: false,
     } as unknown as ReturnType<typeof useSuggestedUsersModule.useSuggestedUsers>);
 
-    render(<OnlineFriendsSidebar />);
+    renderSidebar();
     expect(screen.getByText('Suggested for you')).toBeInTheDocument();
     expect(screen.getByText('Creator One')).toBeInTheDocument();
     expect(screen.getByText('Friends')).toBeInTheDocument();
@@ -121,7 +133,7 @@ describe('OnlineFriendsSidebar', () => {
       isLoading: false,
     } as unknown as ReturnType<typeof useFriendsModule.useFriends>);
 
-    render(<OnlineFriendsSidebar />);
+    renderSidebar();
 
     expect(screen.getByText('Suggested for you')).toBeInTheDocument();
     expect(screen.getByText('Online — 1')).toBeInTheDocument();
@@ -167,7 +179,7 @@ describe('OnlineFriendsSidebar', () => {
       isLoading: false,
     } as unknown as ReturnType<typeof useFriendsModule.useFriends>);
 
-    render(<OnlineFriendsSidebar />);
+    renderSidebar();
 
     // Open search
     const searchBtn = screen.getByTitle('Search friends');
@@ -201,7 +213,7 @@ describe('OnlineFriendsSidebar', () => {
       isLoading: false,
     } as unknown as ReturnType<typeof useFriendsModule.useFriends>);
 
-    render(<OnlineFriendsSidebar />);
+    renderSidebar();
 
     expect(screen.getByText('Show all (8)')).toBeInTheDocument();
 
@@ -242,7 +254,7 @@ describe('OnlineFriendsSidebar', () => {
       isLoading: false,
     } as unknown as ReturnType<typeof useConversationsModule.useConversations>);
 
-    render(<OnlineFriendsSidebar />);
+    renderSidebar();
     expect(screen.getByText('3')).toBeInTheDocument();
   });
 
@@ -287,8 +299,66 @@ describe('OnlineFriendsSidebar', () => {
       isLoading: false,
     } as unknown as ReturnType<typeof useSuggestedUsersModule.useSuggestedUsers>);
 
-    render(<OnlineFriendsSidebar />);
+    renderSidebar();
     expect(screen.getByText('Followed by benjamin_edm and 2 others')).toBeInTheDocument();
     expect(screen.getByText('Near you')).toBeInTheDocument();
+  });
+
+  it('renders Discord-style game presence and aggregator when friends are playing', () => {
+    usePresenceStore.setState({ onlineUserIds: new Set(['user-1', 'user-2']) });
+
+    vi.spyOn(useSuggestedUsersModule, 'useSuggestedUsers').mockReturnValue({
+      data: [],
+      isLoading: false,
+    } as unknown as ReturnType<typeof useSuggestedUsersModule.useSuggestedUsers>);
+
+    vi.spyOn(useFriendsModule, 'useFriends').mockReturnValue({
+      data: [
+        {
+          id: 'user-1',
+          username: 'forser',
+          displayName: 'Forser_all',
+          avatar: null,
+          isFollowing: true,
+          followsYou: true,
+          isFriend: true,
+          activityStatus: {
+            type: 'gaming',
+            title: 'Dota 2',
+            subtitle: 'Playing on Steam',
+            imageUrl: '/icons/brands/dota2.png',
+            startedAt: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
+            isSteam: true,
+          },
+        },
+        {
+          id: 'user-2',
+          username: 'alice',
+          displayName: 'Alice Smith',
+          avatar: null,
+          isFollowing: true,
+          followsYou: true,
+          isFriend: true,
+          activityStatus: {
+            type: 'gaming',
+            title: 'Dota 2',
+            subtitle: 'Playing on Steam',
+            imageUrl: '/icons/brands/dota2.png',
+            startedAt: new Date(Date.now() - 1800000).toISOString(), // 30 min ago
+            isSteam: true,
+          },
+        },
+      ],
+      isLoading: false,
+    } as unknown as ReturnType<typeof useFriendsModule.useFriends>);
+
+    renderSidebar();
+
+    // Verify game title appears in friend status
+    expect(screen.getByText(/Forser_all/i)).toBeInTheDocument();
+    expect(screen.getByText(/Alice Smith/i)).toBeInTheDocument();
+
+    // Verify 2+ friends playing Dota 2 triggers the Discord aggregator card
+    expect(screen.getByText('2 friends')).toBeInTheDocument();
   });
 });

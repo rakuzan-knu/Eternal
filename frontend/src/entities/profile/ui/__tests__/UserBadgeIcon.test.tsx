@@ -41,4 +41,19 @@ describe('UserBadgeIcon', () => {
     const { container: c2 } = renderBadge(<UserBadgeIcon badgeId="CONTRIBUTOR" prCount={5} />);
     expect(c2.querySelector('svg')).toBeInTheDocument();
   });
+
+  it('renders Platinum tier for Contributor with 11 merged PRs', () => {
+    const { getByText } = renderBadge(
+      <UserBadgeIcon badgeId="CONTRIBUTOR" prCount={11} showTooltip={true} />,
+    );
+    expect(getByText(/Platinum Contributor/i)).toBeInTheDocument();
+    expect(getByText(/11 Merged PRs & Reports/i)).toBeInTheDocument();
+  });
+
+  it('renders tiered CONTRIBUTOR_PLATINUM badge correctly', () => {
+    const { getByText } = renderBadge(
+      <UserBadgeIcon badgeId="CONTRIBUTOR_PLATINUM" showTooltip={true} />,
+    );
+    expect(getByText(/Platinum Contributor/i)).toBeInTheDocument();
+  });
 });

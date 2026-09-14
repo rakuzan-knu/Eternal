@@ -32,4 +32,11 @@ export const showcaseApi = {
     });
     return response.data;
   },
+
+  async getMediaDetails(title: string, type: ShowcaseMediaType): Promise<any> {
+    const response = await apiClient.get<any>('/users/showcase/media-details', {
+      params: { title, type },
+    });
+    return response.data;
+  },
 };

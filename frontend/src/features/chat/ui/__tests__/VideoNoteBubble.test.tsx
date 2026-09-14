@@ -47,4 +47,23 @@ describe('VideoNoteBubble', () => {
     expect(window.HTMLMediaElement.prototype.play).toHaveBeenCalled();
     expect(useActiveMediaPlaybackStore.getState().activeMediaId).toBe('att-video-1');
   });
+
+  it('does not have loop attribute on video element', () => {
+    const { container } = render(<VideoNoteBubble attachment={mockAttachment} />);
+    const video = container.querySelector('video');
+    expect(video).toBeInTheDocument();
+    expect(video).not.toHaveAttribute('loop');
+  });
+
+  it('pauses and resets on video end (onEnded)', () => {
+    const { container } = render(<VideoNoteBubble attachment={mockAttachment} />);
+    const video = container.querySelector('video');
+    expect(video).toBeInTheDocument();
+
+    // Trigger onEnded
+    fireEvent.ended(video!);
+
+    // Play button overlay should be visible
+    expect(container.querySelector('svg.ml-0\\.5')).toBeInTheDocument();
+  });
 });

@@ -47,6 +47,7 @@ services:
       start_period: 10s
     networks:
       - internal
+      - public
     logging: *default-logging
     deploy:
       resources:

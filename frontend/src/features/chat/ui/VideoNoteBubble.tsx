@@ -91,7 +91,34 @@ export function VideoNoteBubble({
     }
   }, [isCurrentActive, seekTarget]);
 
-  // Autoplay muted on loop when in viewport
+  const isCurrentActiveRef = useRef(isCurrentActive);
+  isCurrentActiveRef.current = isCurrentActive;
+
+  const hasUserPausedRef = useRef(false);
+  const hasUserUnmutedRef = useRef(false);
+  const hasAutoPlayedOnceRef = useRef(false);
+
+  // Guarantee DOM element video.muted stays strictly in sync with state
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.muted = isMuted;
+    }
+  }, [isMuted]);
+
+  const handleEnded = () => {
+    hasAutoPlayedOnceRef.current = true;
+    setIsPlaying(false);
+    setCurrentTime(0);
+    if (videoRef.current) {
+      videoRef.current.currentTime = 0;
+    }
+    if (isCurrentActive) {
+      useActiveMediaPlaybackStore.getState().setIsPlaying(false);
+      useActiveMediaPlaybackStore.getState().setCurrentTime(0);
+    }
+  };
+
+  // Autoplay muted once when in viewport upon entering chat (only when not actively paused by user)
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -103,13 +130,30 @@ export function VideoNoteBubble({
         if (!video) return;
 
         if (entry.isIntersecting) {
+          // If the user manually paused playback, do NOT auto-resume on scroll!
+          if (hasUserPausedRef.current) return;
+
+          // Autoplay must play only 1 time from entering the chat (Telegram behavior)
+          if (hasAutoPlayedOnceRef.current) return;
+          hasAutoPlayedOnceRef.current = true;
+
+          // Autoplay must ALWAYS be silent (muted) unless user explicitly unmuted to listen
+          if (!hasUserUnmutedRef.current) {
+            video.muted = true;
+            setIsMuted(true);
+          }
+
           video
             .play()
             .then(() => setIsPlaying(true))
             .catch(() => {});
         } else {
-          video.pause();
-          setIsPlaying(false);
+          // If this video note is currently active in the top player bar with audio,
+          // keep playing and do not interrupt or flap states while scrolling.
+          if (!isCurrentActiveRef.current) {
+            video.pause();
+            setIsPlaying(false);
+          }
         }
       },
       { threshold: 0.5 },
@@ -121,7 +165,7 @@ export function VideoNoteBubble({
 
   // Handle tap / click on the video circle:
   // 1st click: un-mutes and activates the global top player bar
-  // 2nd click: pauses / unpauses
+  // Subsequent clicks: pauses / unpauses
   const handleCircleClick = () => {
     const video = videoRef.current;
     if (!video) return;
@@ -131,6 +175,8 @@ export function VideoNoteBubble({
       const nextMuted = false;
       video.muted = nextMuted;
       setIsMuted(nextMuted);
+      hasUserUnmutedRef.current = true;
+      hasUserPausedRef.current = false;
 
       setActiveMedia({
         id: attachment.id,
@@ -151,6 +197,7 @@ export function VideoNoteBubble({
     } else {
       // Sound is already on: toggle pause/play
       if (video.paused) {
+        hasUserPausedRef.current = false;
         video
           .play()
           .then(() => setIsPlaying(true))
@@ -159,6 +206,7 @@ export function VideoNoteBubble({
           useActiveMediaPlaybackStore.getState().setIsPlaying(true);
         }
       } else {
+        hasUserPausedRef.current = true;
         video.pause();
         setIsPlaying(false);
         if (isCurrentActive) {
@@ -168,12 +216,39 @@ export function VideoNoteBubble({
     }
   };
 
+  const handleToggleMute = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const video = videoRef.current;
+    if (!video) return;
+
+    const nextMuted = !isMuted;
+    video.muted = nextMuted;
+    setIsMuted(nextMuted);
+
+    if (!nextMuted) {
+      hasUserUnmutedRef.current = true;
+      setActiveMedia({
+        id: attachment.id,
+        mediaType: 'video',
+        url: attachment.url,
+        senderName,
+        sentAt,
+        conversationId,
+        duration: totalDuration || video.duration || 0,
+      });
+    }
+  };
+
   const size = 240;
   const strokeWidth = 3.5;
   const radius = (size - strokeWidth * 2) / 2;
   const circumference = 2 * Math.PI * radius;
-  const progressFraction = totalDuration > 0 ? currentTime / totalDuration : 0;
-  const strokeDashoffset = circumference * (1 - progressFraction);
+  const progressFraction =
+    totalDuration > 0 ? Math.min(1, Math.max(0, currentTime / totalDuration)) : 0;
+  const strokeDashoffset = Math.max(
+    0,
+    Math.min(circumference, circumference * (1 - progressFraction)),
+  );
 
   return (
     <div
@@ -187,7 +262,6 @@ export function VideoNoteBubble({
         ref={videoRef}
         src={attachment.url}
         playsInline
-        loop
         muted={isMuted}
         preload="metadata"
         onLoadedMetadata={(e) => {
@@ -202,6 +276,7 @@ export function VideoNoteBubble({
           setCurrentTime(t);
           if (isCurrentActive) setStoreCurrentTime(t);
         }}
+        onEnded={handleEnded}
         className="w-full h-full object-cover pointer-events-none"
       />
 
@@ -225,22 +300,31 @@ export function VideoNoteBubble({
           fill="none"
           stroke="#a855f7"
           strokeWidth={strokeWidth}
-          strokeDasharray={circumference}
+          strokeDasharray={`${circumference} ${circumference}`}
           strokeDashoffset={strokeDashoffset}
           strokeLinecap="round"
-          className="transition-all duration-150"
+          className={
+            isPlaying && currentTime > 0
+              ? 'transition-[stroke-dashoffset] duration-100 ease-linear'
+              : 'transition-none'
+          }
         />
       </svg>
 
       {/* Top Status Icon: Mute / Sound indicator */}
-      <div className="absolute top-2.5 inset-x-0 flex justify-center pointer-events-none">
-        <div className="w-7 h-7 rounded-full bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center text-white shadow-md">
+      <div className="absolute top-2.5 inset-x-0 flex justify-center z-10 pointer-events-auto">
+        <button
+          type="button"
+          onClick={handleToggleMute}
+          className="w-7 h-7 rounded-full bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center text-white shadow-md hover:bg-black/80 hover:scale-105 transition active:scale-95 cursor-pointer"
+          title={isMuted ? 'Turn sound on' : 'Mute'}
+        >
           {isMuted ? (
             <VolumeX size={13} className="text-gray-300" />
           ) : (
             <Volume2 size={13} className="text-purple-400 animate-pulse" />
           )}
-        </div>
+        </button>
       </div>
 
       {/* Play Icon Overlay if paused */}

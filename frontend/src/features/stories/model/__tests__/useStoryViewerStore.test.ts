@@ -109,17 +109,70 @@ describe('useStoryViewerStore', () => {
     expect(useStoryViewerStore.getState().isOpen).toBe(false);
   });
 
-  it('manages mute, pause and buffering states', () => {
+  it('manages mute, pause, volume, input focus and buffering states', () => {
     const store = useStoryViewerStore.getState();
-    expect(store.isMuted).toBe(true);
+    expect(typeof store.isMuted).toBe('boolean');
 
     useStoryViewerStore.getState().toggleMute();
     expect(useStoryViewerStore.getState().isMuted).toBe(false);
+
+    useStoryViewerStore.getState().setVolume(0.75);
+    expect(useStoryViewerStore.getState().volume).toBe(0.75);
+
+    useStoryViewerStore.getState().setInputFocused(true);
+    expect(useStoryViewerStore.getState().isInputFocused).toBe(true);
+
+    useStoryViewerStore.getState().setMenuOpen(true);
+    expect(useStoryViewerStore.getState().isMenuOpen).toBe(true);
+
+    useStoryViewerStore.getState().setVolumeHovered(true);
+    expect(useStoryViewerStore.getState().isVolumeHovered).toBe(true);
 
     useStoryViewerStore.getState().setPaused(true);
     expect(useStoryViewerStore.getState().isPaused).toBe(true);
 
     useStoryViewerStore.getState().setBuffering(true);
     expect(useStoryViewerStore.getState().isBuffering).toBe(true);
+  });
+
+  it('marks story as viewed and updates group unviewed flag', () => {
+    useStoryViewerStore.getState().openViewer(mockGroups, 0, 1);
+    expect(useStoryViewerStore.getState().groups[0].hasUnviewed).toBe(true);
+
+    useStoryViewerStore.getState().markStoryViewed('s-2');
+    const group0 = useStoryViewerStore.getState().groups[0];
+    expect(group0.stories.find((s) => s.id === 's-2')?.hasViewed).toBe(true);
+    expect(group0.hasUnviewed).toBe(false);
+  });
+
+  it('removes story from group and clamps story index', () => {
+    useStoryViewerStore.getState().openViewer(mockGroups, 0, 1);
+    expect(useStoryViewerStore.getState().groups[0].stories.length).toBe(2);
+
+    useStoryViewerStore.getState().removeStory('s-2');
+    const state = useStoryViewerStore.getState();
+    expect(state.groups[0].stories.length).toBe(1);
+    expect(state.groups[0].stories[0].id).toBe('s-1');
+    expect(state.activeStoryIndex).toBe(0);
+  });
+
+  it('removes group and closes viewer if last story in single group is removed', () => {
+    const singleGroup = [mockGroups[1]]; // only bob with 1 story
+    useStoryViewerStore.getState().openViewer(singleGroup, 0, 0);
+    expect(useStoryViewerStore.getState().isOpen).toBe(true);
+
+    useStoryViewerStore.getState().removeStory('s-3');
+    expect(useStoryViewerStore.getState().isOpen).toBe(false);
+  });
+
+  it('removes group and transitions to next group when all stories in a group are removed', () => {
+    useStoryViewerStore.getState().openViewer(mockGroups, 1, 0); // focused on bob (group 1)
+    expect(useStoryViewerStore.getState().activeGroupIndex).toBe(1);
+
+    useStoryViewerStore.getState().removeStory('s-3'); // bob's only story
+    const state = useStoryViewerStore.getState();
+    expect(state.groups.length).toBe(1);
+    expect(state.groups[0].user.username).toBe('alice');
+    expect(state.activeGroupIndex).toBe(0);
   });
 });

@@ -18,7 +18,7 @@ describe('StoryReplyEmbed', () => {
       />,
     );
 
-    expect(screen.getByText('Ответ на историю')).toBeInTheDocument();
+    expect(screen.getByText('Reply to story')).toBeInTheDocument();
     expect(screen.getByAltText('Story Preview')).toBeInTheDocument();
     expect(screen.getByAltText('Story Preview')).toHaveAttribute(
       'src',
@@ -43,7 +43,7 @@ describe('StoryReplyEmbed', () => {
     const img = screen.getByAltText('Story Preview');
     fireEvent.error(img);
 
-    expect(screen.getByText('История недоступна или срок её действия истек')).toBeInTheDocument();
+    expect(screen.getByText('Story is unavailable or has expired')).toBeInTheDocument();
   });
 
   it('renders fallback banner when story is older than 24 hours', () => {
@@ -61,6 +61,6 @@ describe('StoryReplyEmbed', () => {
       />,
     );
 
-    expect(screen.getByText('История недоступна или срок её действия истек')).toBeInTheDocument();
+    expect(screen.getByText('Story is unavailable or has expired')).toBeInTheDocument();
   });
 });

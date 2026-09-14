@@ -40,7 +40,7 @@ describe('RailwaySidebar (MessengerSidebar)', () => {
     expect(screen.getByText('Eternal')).toBeInTheDocument();
     expect(screen.getByText('Home')).toBeInTheDocument();
     expect(screen.getByText('Search')).toBeInTheDocument();
-    expect(screen.getByText('Reels')).toBeInTheDocument();
+    expect(screen.getByText('Music Hub')).toBeInTheDocument();
     expect(screen.getByText('Message')).toBeInTheDocument();
     expect(screen.getByText('Notifications')).toBeInTheDocument();
     expect(screen.getByText('Create')).toBeInTheDocument();

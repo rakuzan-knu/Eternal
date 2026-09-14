@@ -11,6 +11,7 @@ import { usePresenceSync } from '../../features/chat/model/usePresence';
 import { chatApi } from '../../features/chat/api/chatApi';
 
 import type { ConversationView } from '../../entities/chat/model/types';
+import { SEOHead } from '../../shared/seo';
 
 export default function MessengerPage() {
   const { conversationId } = useParams<{ conversationId?: string }>();
@@ -38,10 +39,15 @@ export default function MessengerPage() {
 
   return (
     <div className="fixed inset-0 flex bg-[#0b0b0c] overflow-hidden">
+      <SEOHead
+        title="Messages • Direct Chats on Eternal"
+        description="Direct and group messaging on Eternal."
+        noindex={true}
+      />
       <MessengerSidebar />
 
       <div
-        className={`flex flex-1 transition-all duration-300 ease-in-out ${
+        className={`flex flex-1 min-w-0 overflow-hidden transition-all duration-300 ease-in-out ${
           isSidebarExpanded ? 'ml-[200px]' : 'ml-16'
         }`}
       >

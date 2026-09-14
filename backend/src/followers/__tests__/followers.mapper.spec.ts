@@ -38,6 +38,7 @@ describe('followers.mapper', () => {
       isFollowing: false,
       followsYou: false,
       isFriend: false,
+      activityStatus: null,
     });
   });
 

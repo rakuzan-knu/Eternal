@@ -2,31 +2,34 @@ import React from 'react';
 import { z } from 'zod';
 import {
   BUILT_IN_PRESETS,
+  BubbleShapeType,
+  CHAT_FONTS,
   ChatThemeConfig,
   DEFAULT_DARK_THEME_CONFIG,
   PresetTheme,
 } from '../model/chatTheme';
+export type { ChatThemeConfig, PresetTheme, BubbleShapeType };
 import { idbGet, idbSet, idbDelete } from '../../../shared/lib/indexedDbStorage';
+import { loadThemeFont } from './fontLoader';
 
-// Safe URL validator for theme image / background URLs to protect against XSS (e.g. javascript:, vbscript:, data:)
+// Safe URL validator for theme image / background URLs to protect against XSS (e.g. javascript:, vbscript:)
 const safeUrlSchema = z
   .string()
-  .max(4096)
+  .max(10_000_000)
   .refine(
     (url) => {
       if (!url) return true;
       const lower = url.trim().toLowerCase();
-      if (
-        lower.startsWith('javascript:') ||
-        lower.startsWith('vbscript:') ||
-        lower.startsWith('data:')
-      ) {
-        if (lower.startsWith('data:')) {
-          return /^data:image\/(?:png|jpeg|jpg|webp|gif|avif);base64,[a-z0-9+/=]+$/i.test(
-            url.trim(),
-          );
-        }
+      if (lower.startsWith('javascript:') || lower.startsWith('vbscript:')) {
         return false;
+      }
+      if (lower.startsWith('blob:')) {
+        return true;
+      }
+      if (lower.startsWith('data:')) {
+        return /^data:image\/(?:png|jpeg|jpg|webp|gif|avif|svg\+xml)(?:;[a-z0-9-]+=[a-z0-9-]+)*;base64,[a-z0-9+/=\s]+$/i.test(
+          url.trim(),
+        );
       }
       return true;
     },
@@ -50,16 +53,51 @@ export const chatThemeSchema = z.object({
   shaderPresetId: z.string().max(50).optional(),
   audioReactive: z.boolean().default(true),
   parallax3d: z.boolean().default(true),
+  bubbleShape: z
+    .enum([
+      'default',
+      'ios-classic',
+      'telegram-modern',
+      'cyber-glass',
+      'retro-pixel',
+      'gummy',
+      'prisma',
+      'capybara',
+      'frog',
+      'cat-dog',
+      'doge',
+      'dino',
+      'heart-pepe',
+      'liquid-neon',
+      'star-bubble',
+      'pink-cream',
+      'sheetbook-note',
+      'moon-bubble',
+      'cloudy-bubble',
+      'evil-bubble',
+      'halo-bubble',
+      'system-bubble',
+    ])
+    .default('telegram-modern'),
   bubbleType: z.enum(['solid', 'gradient', 'preset']).default('gradient'),
   bubbleColor: z.string().max(50).default('#9333ea'),
   bubbleGradientColors: z.array(z.string().max(50)).max(10).default(['#9333ea', '#6366f1']),
   bubbleGradientAngle: z.number().min(0).max(360).default(135),
   bubbleContinuousGradient: z.boolean().default(false),
+  bubbleTextColor: z.string().max(50).default('auto'),
   bubbleOpacity: z.number().min(0.05).max(1).default(0.95),
   bubbleBlur: z.number().min(0).max(50).default(16),
+  incomingBubbleType: z.enum(['solid', 'gradient', 'preset']).optional(),
   incomingBubbleColor: z.string().max(50).optional(),
+  incomingBubbleGradientColors: z.array(z.string().max(50)).max(10).optional(),
+  incomingBubbleGradientAngle: z.number().min(0).max(360).optional(),
+  incomingBubbleTextColor: z.string().max(50).optional(),
   incomingBubbleOpacity: z.number().min(0.05).max(1).default(0.85),
   incomingBubbleBlur: z.number().min(0).max(50).default(16),
+  textFont: z.string().max(50).default('default'),
+  textEffect: z.string().max(50).default('minimal'),
+  textColor: z.string().max(50).default('auto'),
+  textApplyToAll: z.boolean().default(false),
 });
 
 /**
@@ -146,6 +184,16 @@ export function getBubbleContrastTheme(
   config: ChatThemeConfig,
   isOwnMessage: boolean,
 ): ContrastTheme {
+  // If the bubble shape explicitly overrides background to white (e.g. sheetbook-note)
+  if (config.bubbleShape === 'sheetbook-note') {
+    const customTextColor = isOwnMessage ? config.bubbleTextColor : config.incomingBubbleTextColor;
+    if (customTextColor && customTextColor !== 'auto') {
+      const isCustomLightText = getLuminance(customTextColor) > 0.5;
+      return createContrastTheme(!isCustomLightText, customTextColor);
+    }
+    return createContrastTheme(true);
+  }
+
   let avgLuminance = 0.1;
 
   if (isOwnMessage) {
@@ -222,10 +270,12 @@ export function getChatBackgroundStyle(config: ChatThemeConfig): React.CSSProper
   if (config.backgroundType === 'image' && config.bgImageUrl) {
     return {
       ...baseStyle,
+      backgroundColor: 'transparent',
       backgroundImage: `url(${config.bgImageUrl})`,
       backgroundSize: 'cover',
       backgroundPosition: 'center',
       backgroundRepeat: 'no-repeat',
+      backgroundAttachment: 'initial',
     };
   }
 
@@ -237,7 +287,12 @@ export function getChatBackgroundStyle(config: ChatThemeConfig): React.CSSProper
         : ['#0b0b0c', '#14151b'];
     return {
       ...baseStyle,
-      background: `linear-gradient(${angle}deg, ${colors.join(', ')})`,
+      backgroundColor: 'transparent',
+      backgroundImage: `linear-gradient(${angle}deg, ${colors.join(', ')})`,
+      backgroundSize: 'auto',
+      backgroundPosition: 'initial',
+      backgroundRepeat: 'repeat',
+      backgroundAttachment: 'initial',
     };
   }
 
@@ -245,6 +300,11 @@ export function getChatBackgroundStyle(config: ChatThemeConfig): React.CSSProper
   return {
     ...baseStyle,
     backgroundColor: config.backgroundColor || '#0b0b0c',
+    backgroundImage: 'none',
+    backgroundSize: 'auto',
+    backgroundPosition: 'initial',
+    backgroundRepeat: 'repeat',
+    backgroundAttachment: 'initial',
   };
 }
 
@@ -255,6 +315,126 @@ export function hexToRgba(hex: string, alpha = 1): string {
   const [r, g, b] = hexToRgb(hex);
   const clampedAlpha = Math.max(0, Math.min(1, alpha));
   return `rgba(${r}, ${g}, ${b}, ${clampedAlpha})`;
+}
+
+/**
+ * Computes CSS styles and classes for custom typography and Discord-style text effects.
+ * Supports on-demand font loading, font scaling/line-height normalization,
+ * contrast-aware text color resolution, and toggle scope (own vs all messages).
+ */
+export function getThemeTextStyle(
+  config?: ChatThemeConfig | null,
+  isOwnMessage = true,
+  baseTextColor?: string,
+): {
+  style: React.CSSProperties;
+  className: string;
+} {
+  if (!config) {
+    return { style: {}, className: '' };
+  }
+
+  // If textApplyToAll is false, custom text styling applies ONLY to user's own bubbles
+  const shouldApply = config.textApplyToAll || isOwnMessage;
+  if (!shouldApply) {
+    return { style: {}, className: '' };
+  }
+
+  const fontId = config.textFont || 'default';
+  const effectId = config.textEffect || 'minimal';
+  const rawColor = config.textColor || 'auto';
+
+  const fontMeta = CHAT_FONTS.find((f) => f.id === fontId);
+
+  // Trigger on-demand lazy loading of the font stylesheet
+  if (fontMeta && fontMeta.googleFontName) {
+    loadThemeFont(fontMeta.fontFamily, fontMeta.googleFontName);
+  }
+
+  const style: React.CSSProperties = {};
+  const classNames: string[] = [];
+
+  // 1. Font Family & x-height scale / line-height / letter-spacing normalization
+  if (fontMeta && fontId !== 'default') {
+    style.fontFamily = fontMeta.fontFamily;
+    if (fontMeta.scale && fontMeta.scale !== 1) {
+      style.fontSize = `${fontMeta.scale}em`;
+    }
+    if (fontMeta.lineHeight) {
+      style.lineHeight = fontMeta.lineHeight;
+    }
+    if (fontMeta.letterSpacing) {
+      style.letterSpacing = fontMeta.letterSpacing;
+    }
+  }
+
+  // 2. Text Color Resolution (Auto mode resolves to high-contrast base color)
+  let effectiveColor: string | undefined = undefined;
+  if (rawColor && rawColor !== 'auto') {
+    effectiveColor = rawColor;
+  } else if (baseTextColor) {
+    effectiveColor = baseTextColor;
+  }
+
+  // 3. Text Effect application
+  switch (effectId) {
+    case 'gradient': {
+      classNames.push('msg-effect-gradient');
+      if (effectiveColor && rawColor !== 'auto') {
+        style.backgroundImage = `linear-gradient(135deg, ${effectiveColor} 0%, #a855f7 50%, #38bdf8 100%)`;
+      }
+      break;
+    }
+    case 'neon': {
+      classNames.push('msg-effect-neon');
+      if (effectiveColor) {
+        style.color = effectiveColor;
+        style.textShadow = `0 0 5px ${effectiveColor}, 0 0 12px ${effectiveColor}, 0 0 22px rgba(168, 85, 247, 0.8)`;
+      }
+      break;
+    }
+    case 'cartoon': {
+      classNames.push('msg-effect-cartoon');
+      if (effectiveColor) {
+        style.color = effectiveColor;
+      }
+      break;
+    }
+    case 'highlight': {
+      classNames.push('msg-effect-highlight');
+      if (effectiveColor && rawColor !== 'auto') {
+        style.color = effectiveColor;
+        style.textShadow = `0 0 8px ${effectiveColor}b3, 0 2px 0 rgba(0,0,0,0.5)`;
+      }
+      break;
+    }
+    case 'gummy': {
+      classNames.push('msg-effect-gummy');
+      if (effectiveColor && rawColor !== 'auto') {
+        style.color = effectiveColor;
+      }
+      break;
+    }
+    case 'prism': {
+      classNames.push('msg-effect-prism');
+      if (effectiveColor) {
+        style.color = effectiveColor;
+      }
+      break;
+    }
+    case 'minimal':
+    default: {
+      if (effectiveColor) {
+        style.color = effectiveColor;
+      }
+      break;
+    }
+  }
+
+  return {
+    style,
+    className: classNames.join(' '),
+  };
 }
 
 /**
@@ -501,6 +681,462 @@ export function decodeThemeCode(rawCode: string): ChatThemeConfig | null {
 }
 
 /**
+ * Computes bubble shapes, rounding classes, borders and tail visibility based on selected BubbleShapeType.
+ */
+export function getBubbleShapeStyles(
+  shape: BubbleShapeType = 'telegram-modern',
+  isOwnMessage: boolean,
+  position: 'single' | 'first' | 'middle' | 'last' = 'single',
+): {
+  roundingClass: string;
+  extraClass: string;
+  extraStyle: React.CSSProperties;
+  showTail: boolean;
+  tailType: 'ios' | 'telegram' | null;
+} {
+  switch (shape) {
+    case 'ios-classic': {
+      let roundingClass = '';
+      if (isOwnMessage) {
+        switch (position) {
+          case 'first':
+            roundingClass = 'rounded-[20px] rounded-br-[8px]';
+            break;
+          case 'middle':
+            roundingClass = 'rounded-l-[20px] rounded-r-[8px]';
+            break;
+          case 'last':
+          case 'single':
+          default:
+            roundingClass = 'rounded-[20px] rounded-br-[6px]';
+            break;
+        }
+      } else {
+        switch (position) {
+          case 'first':
+            roundingClass = 'rounded-[20px] rounded-bl-[8px]';
+            break;
+          case 'middle':
+            roundingClass = 'rounded-r-[20px] rounded-l-[8px]';
+            break;
+          case 'last':
+          case 'single':
+          default:
+            roundingClass = 'rounded-[20px] rounded-bl-[6px]';
+            break;
+        }
+      }
+      return {
+        roundingClass,
+        extraClass: '',
+        extraStyle: {},
+        showTail: position === 'single' || position === 'last',
+        tailType: 'ios',
+      };
+    }
+
+    case 'telegram-modern': {
+      let roundingClass = '';
+      if (isOwnMessage) {
+        switch (position) {
+          case 'first':
+            roundingClass = 'rounded-[18px] rounded-br-[8px]';
+            break;
+          case 'middle':
+            roundingClass = 'rounded-l-[18px] rounded-r-[6px]';
+            break;
+          case 'last':
+            roundingClass = 'rounded-l-[18px] rounded-tr-[18px] rounded-br-[3px]';
+            break;
+          case 'single':
+          default:
+            roundingClass = 'rounded-[18px] rounded-br-[3px]';
+            break;
+        }
+      } else {
+        switch (position) {
+          case 'first':
+            roundingClass = 'rounded-[18px] rounded-bl-[8px]';
+            break;
+          case 'middle':
+            roundingClass = 'rounded-r-[18px] rounded-l-[6px]';
+            break;
+          case 'last':
+            roundingClass = 'rounded-r-[18px] rounded-tl-[18px] rounded-bl-[3px]';
+            break;
+          case 'single':
+          default:
+            roundingClass = 'rounded-[18px] rounded-bl-[3px]';
+            break;
+        }
+      }
+      return {
+        roundingClass,
+        extraClass: '',
+        extraStyle: {},
+        showTail: position === 'single' || position === 'last',
+        tailType: 'telegram',
+      };
+    }
+
+    case 'cyber-glass': {
+      return {
+        roundingClass: 'rounded-2xl',
+        extraClass: isOwnMessage
+          ? 'border border-cyan-400/80 shadow-[0_0_16px_rgba(6,182,212,0.45),inset_0_0_12px_rgba(147,51,234,0.25)] ring-1 ring-cyan-300/40'
+          : 'border border-purple-400/70 shadow-[0_0_16px_rgba(168,85,247,0.35),inset_0_0_12px_rgba(6,182,212,0.2)] ring-1 ring-purple-300/30',
+        extraStyle: {
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+        },
+        showTail: false,
+        tailType: null,
+      };
+    }
+
+    case 'retro-pixel': {
+      return {
+        roundingClass: 'rounded-none',
+        extraClass: 'border-2 border-black shadow-[3px_3px_0px_#000000]',
+        extraStyle: {
+          imageRendering: 'pixelated',
+        },
+        showTail: false,
+        tailType: null,
+      };
+    }
+
+    case 'gummy': {
+      return {
+        roundingClass: 'rounded-[24px]',
+        extraClass:
+          'animate-gummy-squish border border-white/45 shadow-[0_8px_25px_rgba(244,114,182,0.4),inset_0_2px_4px_rgba(255,255,255,0.6)]',
+        extraStyle: {
+          backgroundImage:
+            'linear-gradient(135deg, rgba(244,114,182,0.95) 0%, rgba(192,132,252,0.95) 50%, rgba(56,189,248,0.95) 100%)',
+          color: '#ffffff',
+          textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+        },
+        showTail: false,
+        tailType: null,
+      };
+    }
+
+    case 'prisma': {
+      return {
+        roundingClass: 'rounded-[22px]',
+        extraClass:
+          'animate-prisma-flow border border-white/50 shadow-[0_4px_20px_rgba(59,130,246,0.35)]',
+        extraStyle: {
+          backgroundImage:
+            'linear-gradient(90deg, #f59e0b, #10b981, #06b6d4, #3b82f6, #8b5cf6, #ec4899, #f97316, #f59e0b)',
+          backgroundSize: '200% 100%',
+          color: '#ffffff',
+          textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+        },
+        showTail: false,
+        tailType: null,
+      };
+    }
+
+    case 'capybara': {
+      return {
+        roundingClass: isOwnMessage
+          ? 'rounded-[22px] rounded-br-[6px]'
+          : 'rounded-[22px] rounded-bl-[6px]',
+        extraClass: 'border-2 border-[#78350f] shadow-[0_4px_16px_rgba(120,53,15,0.3)]',
+        extraStyle: {
+          backgroundColor: isOwnMessage ? '#b5804c' : '#a06a38',
+          backgroundImage: isOwnMessage
+            ? 'linear-gradient(180deg, #c58f59 0%, #a8733f 100%)'
+            : 'linear-gradient(180deg, #b07a46 0%, #8c5828 100%)',
+          color: '#ffffff',
+        },
+        showTail: false,
+        tailType: null,
+      };
+    }
+
+    case 'frog': {
+      return {
+        roundingClass: isOwnMessage
+          ? 'rounded-[20px] rounded-br-[6px]'
+          : 'rounded-[20px] rounded-bl-[6px]',
+        extraClass: 'border-2 border-[#065f46] shadow-[0_4px_16px_rgba(16,185,129,0.3)]',
+        extraStyle: {
+          backgroundColor: isOwnMessage ? '#10b981' : '#059669',
+          backgroundImage: isOwnMessage
+            ? 'linear-gradient(180deg, #10b981 0%, #059669 100%)'
+            : 'linear-gradient(180deg, #059669 0%, #047857 100%)',
+          color: '#ffffff',
+        },
+        showTail: false,
+        tailType: null,
+      };
+    }
+
+    case 'cat-dog': {
+      return {
+        roundingClass: isOwnMessage
+          ? 'rounded-[22px] rounded-br-[6px]'
+          : 'rounded-[22px] rounded-bl-[6px]',
+        extraClass: 'border-2 border-[#b45309]/60 shadow-[0_4px_16px_rgba(217,119,6,0.2)]',
+        extraStyle: {
+          backgroundColor: isOwnMessage ? '#fef3c7' : '#fde68a',
+          backgroundImage: isOwnMessage
+            ? 'linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%)'
+            : 'linear-gradient(180deg, #fef3c7 0%, #fde68a 100%)',
+          color: '#78350f',
+        },
+        showTail: false,
+        tailType: null,
+      };
+    }
+
+    case 'doge': {
+      return {
+        roundingClass: isOwnMessage
+          ? 'rounded-[22px] rounded-br-[6px]'
+          : 'rounded-[22px] rounded-bl-[6px]',
+        extraClass: 'border-2 border-[#b45309] shadow-[0_4px_16px_rgba(245,158,11,0.25)]',
+        extraStyle: {
+          backgroundColor: isOwnMessage ? '#fbbf24' : '#f59e0b',
+          backgroundImage: isOwnMessage
+            ? 'linear-gradient(180deg, #fcd34d 0%, #f59e0b 100%)'
+            : 'linear-gradient(180deg, #f59e0b 0%, #d97706 100%)',
+          color: '#451a03',
+        },
+        showTail: false,
+        tailType: null,
+      };
+    }
+
+    case 'dino': {
+      return {
+        roundingClass: isOwnMessage
+          ? 'rounded-[20px] rounded-br-[6px]'
+          : 'rounded-[20px] rounded-bl-[6px]',
+        extraClass: 'border-2 border-[#0f766e] shadow-[0_4px_16px_rgba(20,184,166,0.3)]',
+        extraStyle: {
+          backgroundColor: isOwnMessage ? '#14b8a6' : '#0d9488',
+          backgroundImage: isOwnMessage
+            ? 'linear-gradient(180deg, #2dd4bf 0%, #0f766e 100%)'
+            : 'linear-gradient(180deg, #14b8a6 0%, #115e59 100%)',
+          color: '#ffffff',
+        },
+        showTail: false,
+        tailType: null,
+      };
+    }
+
+    case 'heart-pepe': {
+      return {
+        roundingClass: isOwnMessage
+          ? 'rounded-[22px] rounded-br-[6px]'
+          : 'rounded-[22px] rounded-bl-[6px]',
+        extraClass: 'border-2 border-[#db2777]/60 shadow-[0_4px_16px_rgba(244,114,182,0.3)]',
+        extraStyle: {
+          backgroundColor: isOwnMessage ? '#fbcfe8' : '#f472b6',
+          backgroundImage: isOwnMessage
+            ? 'linear-gradient(180deg, #fdf2f8 0%, #fbcfe8 100%)'
+            : 'linear-gradient(180deg, #fce7f3 0%, #f472b6 100%)',
+          color: '#831843',
+        },
+        showTail: false,
+        tailType: null,
+      };
+    }
+
+    case 'liquid-neon': {
+      return {
+        roundingClass: 'rounded-[22px]',
+        extraClass:
+          'border border-purple-500/30 shadow-[0_0_22px_rgba(168,85,247,0.35),inset_0_0_15px_rgba(192,132,252,0.12)]',
+        extraStyle: {
+          backgroundColor: isOwnMessage ? 'rgba(18, 12, 36, 0.88)' : 'rgba(13, 9, 26, 0.88)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          color: '#ffffff',
+        },
+        showTail: false,
+        tailType: null,
+      };
+    }
+
+    case 'star-bubble': {
+      return {
+        roundingClass: isOwnMessage
+          ? 'rounded-[20px] rounded-br-[6px]'
+          : 'rounded-[20px] rounded-bl-[6px]',
+        extraClass: 'border border-amber-600/30 shadow-[0_4px_16px_rgba(245,158,11,0.4)]',
+        extraStyle: {
+          backgroundColor: '#f59e0b',
+          backgroundImage: isOwnMessage
+            ? 'linear-gradient(180deg, #fbbf24 0%, #f59e0b 60%, #d97706 100%)'
+            : 'linear-gradient(180deg, #fcd34d 0%, #f59e0b 60%, #b45309 100%)',
+          color: '#451a03',
+        },
+        showTail: true,
+        tailType: 'telegram',
+      };
+    }
+
+    case 'pink-cream': {
+      return {
+        roundingClass: 'rounded-t-[22px] rounded-b-[6px]',
+        extraClass: 'pb-3.5 border border-pink-300/40 shadow-[0_6px_20px_rgba(244,114,182,0.4)]',
+        extraStyle: {
+          backgroundColor: '#f472b6',
+          backgroundImage: isOwnMessage
+            ? 'linear-gradient(180deg, #fbcfe8 0%, #f472b6 60%, #e11d48 130%)'
+            : 'linear-gradient(180deg, #fce7f3 0%, #fb7185 60%, #be123c 130%)',
+          color: '#831843',
+        },
+        showTail: false,
+        tailType: null,
+      };
+    }
+
+    case 'sheetbook-note': {
+      return {
+        roundingClass: 'rounded-[16px]',
+        extraClass: 'border border-slate-300 shadow-[0_4px_16px_rgba(0,0,0,0.18)]',
+        extraStyle: {
+          backgroundColor: '#ffffff',
+          backgroundImage:
+            'linear-gradient(to right, rgba(59, 130, 246, 0.15) 1px, transparent 1px), linear-gradient(to bottom, rgba(59, 130, 246, 0.15) 1px, transparent 1px)',
+          backgroundSize: '13px 13px',
+          color: '#0f172a',
+        },
+        showTail: false,
+        tailType: null,
+      };
+    }
+
+    case 'moon-bubble': {
+      return {
+        roundingClass: 'rounded-[22px]',
+        extraClass: 'border border-purple-500/25 shadow-[0_0_20px_rgba(147,51,234,0.3)]',
+        extraStyle: {
+          backgroundColor: '#181135',
+          backgroundImage: 'linear-gradient(135deg, #181135 0%, #29154e 50%, #120c2b 100%)',
+          color: '#ffffff',
+        },
+        showTail: false,
+        tailType: null,
+      };
+    }
+
+    case 'cloudy-bubble': {
+      return {
+        roundingClass: 'rounded-t-[22px] rounded-b-[4px]',
+        extraClass: 'pb-4 border border-blue-400/30 shadow-[0_4px_20px_rgba(37,99,235,0.4)]',
+        extraStyle: {
+          backgroundColor: '#3b82f6',
+          backgroundImage: isOwnMessage
+            ? 'linear-gradient(180deg, #60a5fa 0%, #3b82f6 60%, #1d4ed8 100%)'
+            : 'linear-gradient(180deg, #3b82f6 0%, #2563eb 60%, #1e40af 100%)',
+          color: '#ffffff',
+        },
+        showTail: false,
+        tailType: null,
+      };
+    }
+
+    case 'evil-bubble': {
+      return {
+        roundingClass: 'rounded-[22px]',
+        extraClass:
+          'border border-red-500/70 shadow-[0_0_20px_rgba(239,68,68,0.45),inset_0_0_12px_rgba(220,38,38,0.3)]',
+        extraStyle: {
+          backgroundColor: isOwnMessage ? 'rgba(38, 10, 18, 0.88)' : 'rgba(26, 6, 13, 0.88)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          color: '#ffe4e6',
+        },
+        showTail: false,
+        tailType: null,
+      };
+    }
+
+    case 'halo-bubble': {
+      return {
+        roundingClass: 'rounded-[20px]',
+        extraClass: 'border-2 border-amber-400 shadow-[0_0_16px_rgba(245,158,11,0.35)]',
+        extraStyle: {
+          backgroundColor: '#ffffff',
+          color: '#1f2937',
+        },
+        showTail: false,
+        tailType: null,
+      };
+    }
+
+    case 'system-bubble': {
+      return {
+        roundingClass: 'rounded-[14px]',
+        extraClass:
+          'pt-4 pl-3.5 pr-3.5 pb-2 border border-emerald-500/80 shadow-[0_0_14px_rgba(34,197,94,0.35),inset_0_0_8px_rgba(34,197,94,0.2)] font-mono',
+        extraStyle: {
+          backgroundColor: '#050805',
+          color: '#4ade80',
+          textShadow: '0 0 4px rgba(74,222,128,0.4)',
+          fontFamily:
+            'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+        },
+        showTail: false,
+        tailType: null,
+      };
+    }
+
+    case 'default':
+    default: {
+      let roundingClass = '';
+      if (isOwnMessage) {
+        switch (position) {
+          case 'first':
+            roundingClass = 'rounded-[20px] rounded-br-md';
+            break;
+          case 'middle':
+            roundingClass = 'rounded-l-[20px] rounded-r-md';
+            break;
+          case 'last':
+            roundingClass = 'rounded-l-[20px] rounded-tr-md rounded-br-[4px]';
+            break;
+          case 'single':
+          default:
+            roundingClass = 'rounded-[20px] rounded-br-[4px]';
+            break;
+        }
+      } else {
+        switch (position) {
+          case 'first':
+            roundingClass = 'rounded-[20px] rounded-bl-md';
+            break;
+          case 'middle':
+            roundingClass = 'rounded-r-[20px] rounded-l-md';
+            break;
+          case 'last':
+            roundingClass = 'rounded-r-[20px] rounded-tl-md rounded-bl-[4px]';
+            break;
+          case 'single':
+          default:
+            roundingClass = 'rounded-[20px] rounded-bl-[4px]';
+            break;
+        }
+      }
+      return {
+        roundingClass,
+        extraClass: '',
+        extraStyle: {},
+        showTail: false,
+        tailType: null,
+      };
+    }
+  }
+}
+
+/**
  * Returns CSS properties for message bubbles (including continuous fixed screen gradient & frosted glassmorphism).
  */
 export function getBubbleStyle(
@@ -528,6 +1164,10 @@ export function getBubbleStyle(
         style: {
           ...glassStyle,
           backgroundColor: bg,
+          backgroundImage: 'none',
+          backgroundAttachment: 'initial',
+          backgroundSize: 'auto',
+          backgroundPosition: 'initial',
           borderColor: 'rgba(255, 255, 255, 0.12)',
         },
         className: 'shadow-md border',
@@ -537,6 +1177,11 @@ export function getBubbleStyle(
       style: {
         ...glassStyle,
         backgroundColor: `rgba(18, 19, 27, ${opacity})`,
+        backgroundImage: 'none',
+        backgroundAttachment: 'initial',
+        backgroundSize: 'auto',
+        backgroundPosition: 'initial',
+        borderColor: 'rgba(255, 255, 255, 0.08)',
       },
       className: 'backdrop-blur-xl border border-white/[0.08] shadow-[0_4px_16px_rgba(0,0,0,0.4)]',
     };
@@ -554,7 +1199,8 @@ export function getBubbleStyle(
     return {
       style: {
         ...glassStyle,
-        background: `linear-gradient(${angle}deg, ${rgbaColors.join(', ')})`,
+        backgroundColor: 'transparent',
+        backgroundImage: `linear-gradient(${angle}deg, ${rgbaColors.join(', ')})`,
         backgroundAttachment: 'fixed',
         backgroundSize: '100vw 100vh',
         backgroundPosition: 'center',
@@ -573,6 +1219,10 @@ export function getBubbleStyle(
       style: {
         ...glassStyle,
         backgroundColor: bg,
+        backgroundImage: 'none',
+        backgroundAttachment: 'initial',
+        backgroundSize: 'auto',
+        backgroundPosition: 'initial',
         borderColor: 'rgba(255, 255, 255, 0.2)',
       },
       className: 'shadow-lg border',
@@ -590,7 +1240,11 @@ export function getBubbleStyle(
   return {
     style: {
       ...glassStyle,
-      background: `linear-gradient(${angle}deg, ${rgbaColors.join(', ')})`,
+      backgroundColor: 'transparent',
+      backgroundImage: `linear-gradient(${angle}deg, ${rgbaColors.join(', ')})`,
+      backgroundAttachment: 'initial',
+      backgroundSize: 'auto',
+      backgroundPosition: 'initial',
       borderColor: 'rgba(255, 255, 255, 0.2)',
     },
     className: 'shadow-lg shadow-purple-500/20 border',
@@ -687,18 +1341,38 @@ export function parseChatTheme(raw: unknown): ChatThemeConfig {
 export function serializeChatTheme(config: ChatThemeConfig): string {
   if (!config) return 'default';
   if (config.id && config.id !== 'custom' && config.id !== 'default') {
-    if (config.backgroundType === 'shader' && config.shaderPresetId) {
-      return `shader:${config.shaderPresetId}`;
-    }
     const preset = BUILT_IN_PRESETS.find((p) => p.id === config.id);
     if (preset && JSON.stringify(preset.config) === JSON.stringify(config)) {
       return preset.id;
     }
-    return preset ? preset.id : `preset:${config.id}`;
   }
+
+  // Check if it is a pure shader preset with default bubbles & typography
   if (config.backgroundType === 'shader' && config.shaderPresetId) {
-    return `shader:${config.shaderPresetId}`;
+    const isDefaultBubbles =
+      config.bubbleType === DEFAULT_DARK_THEME_CONFIG.bubbleType &&
+      config.bubbleColor === DEFAULT_DARK_THEME_CONFIG.bubbleColor &&
+      config.bubbleGradientAngle === DEFAULT_DARK_THEME_CONFIG.bubbleGradientAngle &&
+      config.bubbleContinuousGradient === DEFAULT_DARK_THEME_CONFIG.bubbleContinuousGradient &&
+      config.bubbleOpacity === DEFAULT_DARK_THEME_CONFIG.bubbleOpacity &&
+      config.bubbleBlur === DEFAULT_DARK_THEME_CONFIG.bubbleBlur &&
+      (config.bubbleShape || 'telegram-modern') === DEFAULT_DARK_THEME_CONFIG.bubbleShape &&
+      (config.bubbleTextColor || 'auto') === DEFAULT_DARK_THEME_CONFIG.bubbleTextColor &&
+      config.incomingBubbleColor === DEFAULT_DARK_THEME_CONFIG.incomingBubbleColor &&
+      (config.incomingBubbleTextColor || 'auto') ===
+        DEFAULT_DARK_THEME_CONFIG.incomingBubbleTextColor &&
+      (config.textFont || 'default') === DEFAULT_DARK_THEME_CONFIG.textFont &&
+      (config.textEffect || 'minimal') === DEFAULT_DARK_THEME_CONFIG.textEffect &&
+      (config.textColor || 'auto') === DEFAULT_DARK_THEME_CONFIG.textColor &&
+      Boolean(config.textApplyToAll) === DEFAULT_DARK_THEME_CONFIG.textApplyToAll &&
+      JSON.stringify(config.bubbleGradientColors) ===
+        JSON.stringify(DEFAULT_DARK_THEME_CONFIG.bubbleGradientColors);
+
+    if (isDefaultBubbles) {
+      return `shader:${config.shaderPresetId}`;
+    }
   }
+
   return encodeThemeCode(config);
 }
 
@@ -1009,11 +1683,20 @@ export async function addRecentWallpaper(
 export async function deleteRecentWallpaper(id: string): Promise<RecentWallpaperItem[]> {
   const current = await getRecentWallpapers();
   const next = current.filter((wp) => wp.id !== id);
-  await idbSet(RECENT_WALLPAPERS_KEY, next);
-  try {
-    localStorage.setItem(RECENT_WALLPAPERS_KEY, JSON.stringify(next));
-  } catch {
-    // Ignore
+  if (next.length === 0) {
+    await idbDelete(RECENT_WALLPAPERS_KEY);
+    try {
+      localStorage.removeItem(RECENT_WALLPAPERS_KEY);
+    } catch {
+      // Ignore
+    }
+  } else {
+    await idbSet(RECENT_WALLPAPERS_KEY, next);
+    try {
+      localStorage.setItem(RECENT_WALLPAPERS_KEY, JSON.stringify(next));
+    } catch {
+      // Ignore
+    }
   }
   return next;
 }

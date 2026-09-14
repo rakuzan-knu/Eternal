@@ -9,7 +9,7 @@ import {
   WebSocketServer,
   WsException,
 } from '@nestjs/websockets';
-import { Logger, UseFilters, forwardRef, Inject } from '@nestjs/common';
+import { Logger, UseFilters, forwardRef, Inject, Optional } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
@@ -20,8 +20,10 @@ import { ConversationsService } from '../conversations/conversations.service';
 import { RedisService } from '../../redis/redis.service';
 import { UsersService } from '../../users/users.service';
 import { VisibilityResolver } from '../../users/privacy/visibility.resolver';
-import { PrivacyDimension } from '@prisma/client';
+import { PrivacyDimension, Prisma } from '@prisma/client';
+import { PrismaService } from '@common/prisma';
 import { WsValidationFilter } from '../filters/ws-validation.filter';
+import { JamService } from '../../integrations/jam.service';
 import {
   type SendMessageDto,
   type EditMessageDto,
@@ -72,6 +74,7 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
 
   private readonly logger = new Logger(MessengerGateway.name);
   private readonly onlineUsers = new Map<string, Set<string>>();
+  private readonly hostSyncRateMap = new Map<string, number[]>();
 
   private readonly RATE_LIMIT = 20;
   private readonly RATE_WINDOW_MS = 10_000;
@@ -86,6 +89,10 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
     private readonly usersService: UsersService,
     @Inject(forwardRef(() => VisibilityResolver))
     private readonly visibility: VisibilityResolver,
+    @Optional()
+    private readonly prisma?: PrismaService,
+    @Optional()
+    private readonly jamService?: JamService,
   ) {}
 
   afterInit() {
@@ -122,6 +129,21 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
       const currentSeq = Number(seqRaw || '0');
       client.emit(WS_EVENTS.GATEWAY_READY, { sessionId: client.id, seq: currentSeq });
 
+      // Jam Session reconnect handling & Grace Period cancellation
+      if (this.jamService) {
+        this.jamService.cancelDisconnectGrace(`jam_${userId}`);
+        this.jamService.cancelDisconnectGrace(`listener_${userId}`);
+        void this.jamService.getRoomByUser(userId).then((room) => {
+          if (room) {
+            void client.join(`jam:${room.roomId}`);
+            if (room.status === 'reconnecting' && room.hostUserId === userId) {
+              room.status = 'active';
+              this.server.to(`jam:${room.roomId}`).emit('jam:state_update', room);
+            }
+          }
+        });
+      }
+
       this.logger.log(`Client connected: ${client.id} (user: ${userId})`);
     } catch (err) {
       this.logger.warn(`Rejected connection: ${(err as Error).message}`);
@@ -130,6 +152,7 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
   }
 
   async handleDisconnect(client: Socket): Promise<void> {
+    this.hostSyncRateMap.delete(client.id);
     const userId = (client as AuthenticatedSocket).userId;
     if (!userId) return;
 
@@ -147,6 +170,38 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
       await this.redisService.del(`user:presence:${userId}`).catch(() => {});
       void this.usersService.touchLastSeen(userId).catch(() => {});
       void this.emitPresenceExceptBlocked(userId, WS_EVENTS.USER_OFFLINE, { userId });
+
+      // Handle 15s Grace Period for Jam Host / Listeners
+      if (this.jamService) {
+        void this.jamService.getRoomByUser(userId).then((room) => {
+          if (room && room.hostUserId === userId) {
+            this.server.to(`jam:${room.roomId}`).emit('jam:state_update', {
+              ...room,
+              status: 'reconnecting',
+            });
+          }
+        });
+
+        this.jamService.scheduleDisconnectGrace(userId, (roomId, closed, newHost) => {
+          if (closed) {
+            this.server.to(`jam:${roomId}`).emit('jam:room_closed', { roomId });
+            this.server.in(`jam:${roomId}`).socketsLeave(`jam:${roomId}`);
+          } else if (newHost) {
+            this.server.to(`jam:${roomId}`).emit('jam:listener_left', {
+              userId,
+              newHost,
+            });
+            void this.jamService?.getRoom(roomId).then((r) => {
+              if (r) this.server.to(`jam:${roomId}`).emit('jam:state_update', r);
+            });
+          } else {
+            this.server.to(`jam:${roomId}`).emit('jam:listener_left', { userId });
+            void this.jamService?.getRoom(roomId).then((r) => {
+              if (r) this.server.to(`jam:${roomId}`).emit('jam:state_update', r);
+            });
+          }
+        });
+      }
     }
     this.logger.log(`Client disconnected: ${client.id}`);
   }
@@ -155,11 +210,18 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
   async handleGetOnlineStatus(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() payload: GetOnlineStatusDto,
-    callback?: (res: { status: string; online?: string[]; error?: string }) => void,
+    callback?: (res: {
+      status: string;
+      online?: string[];
+      activities?: Record<string, any>;
+      error?: string;
+    }) => void,
   ): Promise<void> {
-    const onlineSubjects = payload.userIds.filter((userId) => this.onlineUsers.has(userId));
+    const onlineSubjects = payload.userIds.filter(
+      (userId) => this.onlineUsers.has(userId) || (client.userId && userId === client.userId),
+    );
     if (onlineSubjects.length === 0) {
-      callback?.({ status: 'ok', online: [] });
+      callback?.({ status: 'ok', online: [], activities: {} });
       return;
     }
 
@@ -168,7 +230,36 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
     const online = onlineSubjects.filter((userId) =>
       this.visibility.resolve(PrivacyDimension.LAST_SEEN, userId, ctx),
     );
-    callback?.({ status: 'ok', online });
+
+    const activities: Record<string, any> = {};
+    if (online.length > 0 && this.prisma) {
+      try {
+        const showcases = await this.prisma.profileShowcase.findMany({
+          where: {
+            userId: { in: online },
+            activityStatus: { not: Prisma.DbNull },
+          },
+          select: {
+            userId: true,
+            activityStatus: true,
+            privacyActivity: true,
+          },
+        });
+
+        for (const sc of showcases) {
+          if (
+            sc.activityStatus &&
+            (sc.privacyActivity !== 'PRIVATE' || sc.userId === client.userId)
+          ) {
+            activities[sc.userId] = sc.activityStatus;
+          }
+        }
+      } catch (err) {
+        this.logger.warn(`Failed to fetch activities in handleGetOnlineStatus: ${err}`);
+      }
+    }
+
+    callback?.({ status: 'ok', online, activities });
   }
 
   @SubscribeMessage(WS_EVENTS.JOIN_CONVERSATION)
@@ -661,10 +752,41 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
     }
   }
 
+  getOnlineUserIds(): string[] {
+    return Array.from(this.onlineUsers.keys());
+  }
+
   @OnEvent('showcase.presence.updated')
-  handleShowcasePresenceUpdated(payload: { userId: string; activityStatus: unknown }) {
+  handleShowcasePresenceUpdated(payload: {
+    userId: string;
+    activityStatus: unknown;
+    connectedAccounts?: unknown;
+    isPrivate?: boolean;
+  }) {
     if (payload?.userId) {
       this.server.to(`showcase:${payload.userId}`).emit('showcase:presence:update', payload);
+
+      if (!payload.isPrivate) {
+        this.emitToUser(payload.userId, 'user:activity:changed', {
+          userId: payload.userId,
+          activityStatus: payload.activityStatus,
+          connectedAccounts: payload.connectedAccounts,
+        });
+        void this.emitPresenceExceptBlocked(payload.userId, 'user:activity:changed', {
+          userId: payload.userId,
+          activityStatus: payload.activityStatus,
+          connectedAccounts: payload.connectedAccounts,
+        });
+      } else {
+        this.emitToUser(payload.userId, 'user:activity:changed', {
+          userId: payload.userId,
+          activityStatus: null,
+        });
+        void this.emitPresenceExceptBlocked(payload.userId, 'user:activity:changed', {
+          userId: payload.userId,
+          activityStatus: null,
+        });
+      }
     }
   }
 
@@ -734,6 +856,313 @@ export class MessengerGateway implements OnGatewayInit, OnGatewayConnection, OnG
   }) {
     if (payload?.storyId) {
       this.server.to(`story:${payload.storyId}`).emit('story:poll_voted', payload);
+    }
+  }
+
+  @OnEvent('story.deleted')
+  handleStoryDeleted(payload: { storyId: string; authorId: string }) {
+    if (payload?.storyId) {
+      this.server.emit('story:deleted', payload);
+      this.server.to(`story:${payload.storyId}`).emit('story:deleted', payload);
+    }
+  }
+
+  // =========================================================================
+  // JAM / LISTEN ALONG WEBSOCKET HANDLERS
+  // =========================================================================
+
+  /**
+   * Cristian's Algorithm: RTT Ping-Pong for high-precision server time synchronization
+   */
+  @SubscribeMessage('jam:ping')
+  handleJamPing(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { t0: number },
+  ) {
+    client.emit('jam:pong', {
+      t0: payload?.t0,
+      serverTime: Date.now(),
+    });
+  }
+
+  /**
+   * Host creates a new Jam room
+   */
+  @SubscribeMessage('jam:create')
+  async handleJamCreate(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { initialTrack?: any; queuePolicy?: 'dj_only' | 'open_queue' },
+  ) {
+    const userId = client.userId;
+    if (!userId || !this.jamService) return;
+
+    this.jamService.cancelDisconnectGrace(`jam_${userId}`);
+    const user = await this.usersService.findById(userId).catch(() => null);
+    const hostProfile = {
+      username: user?.username || 'User',
+      avatar: user?.avatar || undefined,
+    };
+
+    const room = await this.jamService.createRoom(
+      userId,
+      hostProfile,
+      payload?.initialTrack || null,
+      payload?.queuePolicy || 'dj_only',
+    );
+
+    void client.join(`jam:${room.roomId}`);
+    this.server.to(`jam:${room.roomId}`).emit('jam:state_update', room);
+
+    // Synchronize host real-time activity presence across network
+    if (payload?.initialTrack) {
+      await this.broadcastPlatformMusicActivity(userId, payload.initialTrack, true, 0, room.roomId);
+    }
+  }
+
+  /**
+   * Listener joins an existing Jam room
+   */
+  @SubscribeMessage('jam:join')
+  async handleJamJoin(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { roomId: string },
+  ) {
+    const userId = client.userId;
+    if (!userId || !payload?.roomId || !this.jamService) return;
+
+    const user = await this.usersService.findById(userId).catch(() => null);
+    const listenerProfile = {
+      username: user?.username || 'User',
+      avatar: user?.avatar || undefined,
+    };
+
+    const res = await this.jamService.joinRoom(payload.roomId, userId, listenerProfile);
+    if (!res) {
+      client.emit('jam:error', { message: 'Listening room not found' });
+      return;
+    }
+
+    void client.join(`jam:${payload.roomId}`);
+    client.emit('jam:state_update', res.room);
+    this.server.to(`jam:${payload.roomId}`).emit('jam:listener_joined', {
+      listener: {
+        id: userId,
+        username: listenerProfile.username,
+        avatar: listenerProfile.avatar,
+      },
+      room: res.room,
+    });
+  }
+
+  /**
+   * Listener or Host leaves the room
+   */
+  @SubscribeMessage('jam:leave')
+  async handleJamLeave(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { roomId: string },
+  ) {
+    const userId = client.userId;
+    if (!userId || !payload?.roomId || !this.jamService) return;
+
+    void client.leave(`jam:${payload.roomId}`);
+    const res = await this.jamService.leaveRoom(payload.roomId, userId);
+
+    if (res.closed) {
+      this.server.to(`jam:${payload.roomId}`).emit('jam:room_closed', { roomId: payload.roomId });
+    } else if (res.room) {
+      this.server.to(`jam:${payload.roomId}`).emit('jam:listener_left', {
+        userId,
+        newHost: res.newHost,
+      });
+      this.server.to(`jam:${payload.roomId}`).emit('jam:state_update', res.room);
+    }
+  }
+
+  /**
+   * Host Authority Sync Heartbeat & Seek/Play/Pause Broadcast
+   * Protected with 3 events/sec rate limiter per socket
+   */
+  @SubscribeMessage('jam:host_sync')
+  async handleJamHostSync(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody()
+    payload: {
+      roomId: string;
+      trackId?: string;
+      positionMs: number;
+      isPlaying: boolean;
+      timestamp: number;
+      currentTrack?: any;
+    },
+  ) {
+    const userId = client.userId;
+    if (!userId || !payload?.roomId || !this.jamService) return;
+
+    // Rate-limiting guard: maximum 3 sync events per second per socket
+    const now = Date.now();
+    const timestamps = (this.hostSyncRateMap.get(client.id) || []).filter((t) => now - t < 1000);
+    if (timestamps.length >= 3) {
+      return;
+    }
+    timestamps.push(now);
+    this.hostSyncRateMap.set(client.id, timestamps);
+
+    const syncResult = await this.jamService.hostSync(payload.roomId, userId, payload);
+    if (syncResult) {
+      client.to(`jam:${payload.roomId}`).emit('jam:sync_event', syncResult);
+    }
+  }
+
+  /**
+   * Pre-buffering / Gapless playback signal for upcoming track
+   */
+  @SubscribeMessage('jam:preload_next')
+  async handleJamPreloadNext(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { roomId: string; trackId: string; streamUrl?: string },
+  ) {
+    const userId = client.userId;
+    if (!userId || !payload?.roomId || !payload?.trackId || !this.jamService) return;
+
+    const recorded = await this.jamService.recordPreload(payload.roomId, userId, payload.trackId);
+    if (recorded) {
+      client.to(`jam:${payload.roomId}`).emit('jam:preload_next', {
+        trackId: payload.trackId,
+        streamUrl: payload.streamUrl,
+      });
+    }
+  }
+
+  /**
+   * Add track to room queue (enforces dj_only vs open_queue & Spotify Premium)
+   */
+  @SubscribeMessage('jam:queue_add')
+  async handleJamQueueAdd(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { roomId: string; track: any },
+  ) {
+    const userId = client.userId;
+    if (!userId || !payload?.roomId || !payload?.track || !this.jamService) return;
+
+    const res = await this.jamService.queueAdd(payload.roomId, userId, payload.track);
+    if (res.success && res.room) {
+      this.server.to(`jam:${payload.roomId}`).emit('jam:state_update', res.room);
+    } else {
+      client.emit('jam:error', { message: res.error || 'Failed to add track to queue' });
+    }
+  }
+
+  /**
+   * Host updates queue policy ('dj_only' vs 'open_queue')
+   */
+  @SubscribeMessage('jam:update_policy')
+  async handleJamUpdatePolicy(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { roomId: string; queuePolicy: 'dj_only' | 'open_queue' },
+  ) {
+    const userId = client.userId;
+    if (!userId || !payload?.roomId || !payload?.queuePolicy || !this.jamService) return;
+
+    const updated = await this.jamService.updatePolicy(payload.roomId, userId, payload.queuePolicy);
+    if (updated) {
+      this.server.to(`jam:${payload.roomId}`).emit('jam:state_update', updated);
+    }
+  }
+
+  /**
+   * Real-time platform music playback activity update from web player
+   */
+  @SubscribeMessage('user:activity:platform_music')
+  async handlePlatformMusicActivity(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody()
+    payload: {
+      track: any;
+      isPlaying: boolean;
+      progressMs: number;
+      durationMs: number;
+      jamRoomId?: string;
+    },
+  ) {
+    const userId = client.userId;
+    if (!userId) return;
+
+    await this.broadcastPlatformMusicActivity(
+      userId,
+      payload.track,
+      payload.isPlaying,
+      payload.progressMs,
+      payload.jamRoomId,
+    );
+  }
+
+  /**
+   * Helper to persist and broadcast platform music activity
+   */
+  private async broadcastPlatformMusicActivity(
+    userId: string,
+    track: any | null,
+    isPlaying: boolean,
+    progressMs: number = 0,
+    jamRoomId?: string,
+  ) {
+    if (!this.prisma) return;
+
+    try {
+      const showcase = await this.prisma.profileShowcase.findUnique({
+        where: { userId },
+      });
+      if (!showcase) return;
+
+      const isPrivate = showcase.privacyActivity === 'PRIVATE';
+
+      if (!track) {
+        await this.prisma.profileShowcase.update({
+          where: { userId },
+          data: { activityStatus: Prisma.DbNull },
+        });
+        this.handleShowcasePresenceUpdated({
+          userId,
+          activityStatus: null,
+          connectedAccounts: showcase.connectedAccounts,
+          isPrivate,
+        });
+        return;
+      }
+
+      const activityStatus = {
+        type: 'spotify',
+        title: track.title,
+        subtitle: track.artist || 'Music Hub',
+        artist: track.artist,
+        imageUrl: track.albumArt || null,
+        externalUrl: track.spotifyUrl || null,
+        trackId: track.id,
+        progressMs,
+        durationMs: track.durationMs || 180000,
+        startedAt: new Date(Date.now() - progressMs).toISOString(),
+        updatedAt: Date.now(),
+        isPaused: !isPlaying,
+        pausedAt: !isPlaying ? Date.now() : null,
+        jamRoomId: jamRoomId || null,
+        isPlatformTrack: true,
+        source: track.source || (track.id?.startsWith('sc-') ? 'soundcloud' : 'platform'),
+      };
+
+      await this.prisma.profileShowcase.update({
+        where: { userId },
+        data: { activityStatus: activityStatus as any },
+      });
+
+      this.handleShowcasePresenceUpdated({
+        userId,
+        activityStatus,
+        connectedAccounts: showcase.connectedAccounts,
+        isPrivate,
+      });
+    } catch (err) {
+      this.logger.warn(`Failed to broadcast platform music activity: ${(err as Error).message}`);
     }
   }
 

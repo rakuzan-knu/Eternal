@@ -60,6 +60,24 @@ export class ShowcaseController {
     return this.mediaProxyService.searchTracks(query || '');
   }
 
+  @Get('showcase/media-details')
+  @UseGuards(OptionalJwtAuthGuard)
+  @Throttle({ default: { limit: 60, ttl: 60000 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Get official screenshots, trailer, and detailed metadata for media item',
+  })
+  @ApiResponse({ status: 200, description: 'Media details retrieved' })
+  getMediaDetails(
+    @Query('title') title: string = '',
+    @Query('type') typeStr: string = 'GAME',
+  ): Promise<any> {
+    const mediaType = (
+      typeStr.toUpperCase() in ShowcaseMediaType ? typeStr.toUpperCase() : ShowcaseMediaType.GAME
+    ) as ShowcaseMediaType;
+    return this.mediaProxyService.getMediaDetails(title || '', mediaType);
+  }
+
   @Get(':username/showcase')
   @UseGuards(OptionalJwtAuthGuard)
   @HttpCode(HttpStatus.OK)

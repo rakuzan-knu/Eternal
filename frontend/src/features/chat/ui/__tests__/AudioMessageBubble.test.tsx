@@ -204,4 +204,99 @@ describe('AudioMessageBubble / VoiceMessagePlayer', () => {
     fireEvent.click(speedBtn);
     expect(useActiveMediaPlaybackStore.getState().playbackRate).toBe(1);
   });
+
+  it('renders dark waveform and controls when bubble background is light', () => {
+    const attachment: AttachmentView & { waveform?: number[] } = {
+      id: 'att-voice-light',
+      url: 'https://example.com/voice.ogg',
+      type: 'AUDIO' as const,
+      fileName: 'voice.ogg',
+      mimeType: 'audio/ogg',
+      size: 1000,
+      duration: 30,
+      width: null,
+      height: null,
+      thumbnailUrl: null,
+      waveform: [0.3, 0.6, 0.9],
+    };
+
+    render(
+      <AudioMessageBubble
+        attachment={attachment}
+        senderName="Alice"
+        conversationId="c1"
+        contrast={{
+          isLight: true,
+          textColor: '#0f172a',
+          subtextColor: 'rgba(15, 23, 42, 0.75)',
+          timeColor: 'rgba(15, 23, 42, 0.65)',
+          statusColor: '#0f172a',
+          quoteBg: 'rgba(0, 0, 0, 0.08)',
+          quoteBorder: '#0f172a',
+          quoteAuthorColor: '#1e293b',
+          quoteSnippetColor: '#334155',
+          linkBg: 'rgba(0, 0, 0, 0.06)',
+          linkBorder: 'rgba(0, 0, 0, 0.12)',
+        }}
+      />,
+    );
+
+    // Unplayed bar should use dark class
+    const firstBar = screen.getByTestId('waveform-bar-0').querySelector('span');
+    expect(firstBar?.className).toContain('bg-black/20');
+
+    // Simulate play: activeColor should be black (#000000)
+    const playBtn = screen.getByTitle('Play voice message');
+    fireEvent.click(playBtn);
+    act(() => {
+      useActiveMediaPlaybackStore.getState().setCurrentTime(5);
+      useActiveMediaPlaybackStore.getState().setIsLoading(false);
+    });
+
+    const playedBar = screen.getByTestId('waveform-bar-0').querySelector('span');
+    expect(playedBar?.style.backgroundColor).toBe('rgb(0, 0, 0)');
+  });
+
+  it('applies custom bubble text color to audio track', () => {
+    const attachment: AttachmentView & { waveform?: number[] } = {
+      id: 'att-voice-color',
+      url: 'https://example.com/voice.ogg',
+      type: 'AUDIO' as const,
+      fileName: 'voice.ogg',
+      mimeType: 'audio/ogg',
+      size: 1000,
+      duration: 30,
+      width: null,
+      height: null,
+      thumbnailUrl: null,
+      waveform: [0.4, 0.8],
+    };
+
+    render(
+      <AudioMessageBubble
+        attachment={attachment}
+        senderName="Alice"
+        conversationId="c1"
+        isOwnMessage={true}
+        chatTheme={
+          {
+            id: 'custom-theme',
+            name: 'Custom',
+            textColor: '#10b981',
+            textApplyToAll: false,
+          } as any
+        }
+      />,
+    );
+
+    const playBtn = screen.getByTitle('Play voice message');
+    fireEvent.click(playBtn);
+    act(() => {
+      useActiveMediaPlaybackStore.getState().setCurrentTime(5);
+      useActiveMediaPlaybackStore.getState().setIsLoading(false);
+    });
+
+    const playedBar = screen.getByTestId('waveform-bar-0').querySelector('span');
+    expect(playedBar?.style.backgroundColor).toBe('rgb(16, 185, 129)');
+  });
 });

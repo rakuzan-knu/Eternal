@@ -22,15 +22,29 @@ export const apiClient = axios.create({
   withCredentials: true,
 });
 
-apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('accessToken');
-  if (token && config.headers) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
+export function isTokenExpired(token: string | null): boolean {
+  if (!token) return true;
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return false;
+    const base64Url = parts[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join(''),
+    );
+    const payload = JSON.parse(jsonPayload);
+    return typeof payload.exp === 'number' && payload.exp * 1000 < Date.now() + 15000;
+  } catch {
+    return false;
+  }
+}
 
 let refreshPromise: Promise<string> | null = null;
 
-async function requestTokenRefresh(): Promise<string> {
+export async function requestTokenRefresh(): Promise<string> {
   const refreshToken = localStorage.getItem('refreshToken');
   if (!refreshToken) throw new Error('No refresh token available');
 
@@ -57,6 +71,43 @@ async function requestTokenRefresh(): Promise<string> {
 
   return accessToken;
 }
+
+export async function getValidAccessToken(): Promise<string | null> {
+  const token = localStorage.getItem('accessToken');
+  if (token && !isTokenExpired(token)) {
+    return token;
+  }
+  const refreshToken = localStorage.getItem('refreshToken');
+  if (!refreshToken) return null;
+
+  try {
+    if (!refreshPromise) {
+      refreshPromise = requestTokenRefresh().finally(() => {
+        refreshPromise = null;
+      });
+    }
+    return await refreshPromise;
+  } catch {
+    return null;
+  }
+}
+
+apiClient.interceptors.request.use(async (config) => {
+  if (config.url?.includes('/auth/refresh')) {
+    return config;
+  }
+
+  let token = localStorage.getItem('accessToken');
+  if (token && isTokenExpired(token) && localStorage.getItem('refreshToken')) {
+    const freshToken = await getValidAccessToken();
+    if (freshToken) {
+      token = freshToken;
+    }
+  }
+
+  if (token && config.headers) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
 
 apiClient.interceptors.response.use(
   (response) => response,

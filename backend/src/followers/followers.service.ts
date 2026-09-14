@@ -182,12 +182,30 @@ export class FollowersService {
               mergedPrsCount: true,
               createdAt: true,
               updatedAt: true,
+              showcase: {
+                select: {
+                  activityStatus: true,
+                  connectedAccounts: true,
+                  privacyActivity: true,
+                },
+              },
             },
           },
         },
       });
 
-      return mutualFollows.map((mf) => toUserProfileDto(mf.follower, true, true));
+      return mutualFollows.map((mf) => {
+        const showcase = (mf.follower as any).showcase;
+        let activityStatus = null;
+        if (showcase) {
+          const isPrivate = showcase.privacyActivity === 'PRIVATE';
+          const steamDisplayOff = showcase.connectedAccounts?.steam?.displayOnProfile === false;
+          if (!isPrivate && !steamDisplayOff) {
+            activityStatus = showcase.activityStatus ?? null;
+          }
+        }
+        return toUserProfileDto(mf.follower, true, true, activityStatus);
+      });
     });
   }
 

@@ -239,6 +239,8 @@ export interface UserSnapshot {
   username: string;
   displayName: string | null;
   avatar: string | null;
+  isVerified?: boolean;
+  primaryBadge?: string | null;
   defaultChatTheme?: string | null;
 }
 

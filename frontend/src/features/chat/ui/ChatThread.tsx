@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Copy, Forward, Trash2, X, CheckSquare } from 'lucide-react';
 import { useAuthStore } from '@/shared/model/useAuthStore';
+import { useUIStore } from '@/shared/model/useUIStore';
 import { ConversationView, MessageView } from '../../../entities/chat/model/types';
 import { getConversationDisplay } from '../lib/getConversationDisplay';
 import { useMessages } from '../model/useMessages';
@@ -28,6 +29,7 @@ import { formatMessageTime } from '../lib/groupMessagesByDate';
 import { useChatTheme } from '../model/useChatTheme';
 import { getChatBackgroundStyle, updateMetaThemeColor, parseChatTheme } from '../lib/themeUtils';
 import ProceduralChatBackground from './ProceduralChatBackground';
+import { useSpotifyDockOffset } from '@/shared/model/useSpotifyDockOffset';
 
 interface ChatThreadProps {
   conversation: ConversationView;
@@ -98,6 +100,65 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
     .map((p) => p.user);
 
   const isBlocked = conversation.type !== 'GROUP' && conversation.isBlocked;
+  const { composerPaddingBottom } = useSpotifyDockOffset(8);
+  const isChatListExpanded = useUIStore((s) => s.isChatListExpanded);
+  const isSidebarExpanded = useUIStore((s) => s.isSidebarExpanded);
+
+  const [windowWidth, setWindowWidth] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth : 1440,
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const chatPaneRef = useRef<HTMLDivElement | null>(null);
+  const [paneWidth, setPaneWidth] = useState<number>(0);
+
+  useEffect(() => {
+    const el = chatPaneRef.current;
+    if (!el) return;
+    setPaneWidth(el.clientWidth);
+
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentRect) {
+          setPaneWidth(entry.contentRect.width);
+        }
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const isExpandedChat = !isChatListExpanded && !rightPanel;
+  // Adaptive Telegram-style column width that extends almost to the edges ("near the edges of available space")
+  // and stays straight, symmetrical and perfectly centered inside the active chat thread pane without transforms.
+  const composerMaxWidth = useMemo(() => {
+    const effectiveWidth =
+      paneWidth ||
+      (typeof window !== 'undefined'
+        ? window.innerWidth < 1024
+          ? window.innerWidth - 64
+          : window.innerWidth - 384
+        : 880);
+
+    // Mobile (<640px): 6px padding on left & right
+    if (effectiveWidth < 640) {
+      return Math.max(280, effectiveWidth - 12);
+    }
+    // Tablet / compact desktop (<1024px): 12px padding on left & right ("near the edges of available space")
+    if (effectiveWidth < 1024) {
+      return Math.max(280, effectiveWidth - 24);
+    }
+    // Wide desktop: clean Telegram column (920px to 1000px if expanded)
+    return Math.min(effectiveWidth - 32, isExpandedChat ? 1000 : 920);
+  }, [paneWidth, isExpandedChat]);
+
+  const horizontalShift = 0;
 
   const actionsRef = useRef(actions);
   useEffect(() => {
@@ -346,7 +407,7 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
 
   return (
     <div className="flex-1 flex h-full min-w-0">
-      <div className="flex-1 flex flex-col h-full min-w-0">
+      <div ref={chatPaneRef} className="flex-1 flex flex-col h-full min-w-0">
         <ChatThreadHeader
           display={display}
           otherUserId={otherParticipant?.userId ?? null}
@@ -402,6 +463,8 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
               currentUserId={userId}
               otherParticipantId={otherParticipant?.userId ?? null}
               conversationId={conversation.id}
+              contentMaxWidth={composerMaxWidth}
+              horizontalShift={horizontalShift}
               onThemeAccepted={(themeStr) => applyTheme(parseChatTheme(themeStr))}
               otherParticipant={otherParticipant}
               display={display}
@@ -457,70 +520,82 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
 
             {/* Batch Actions Bar */}
             {isSelectionMode && (
-              <div className="mx-3 sm:mx-4 mb-2 p-2.5 rounded-2xl bg-[#181a22]/95 border border-white/15 backdrop-blur-2xl shadow-2xl flex items-center justify-between gap-2 animate-popIn z-20">
-                <div className="flex items-center gap-2 pl-2">
-                  <CheckSquare size={16} className="text-sky-400" />
-                  <span className="text-xs font-semibold text-white">
-                    {selectedMessageIds.size} selected
-                  </span>
-                </div>
+              <div
+                className="w-full mx-auto px-1 sm:px-2 mb-2 transition-[max-width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] z-20"
+                style={{
+                  maxWidth: `${composerMaxWidth}px`,
+                }}
+              >
+                <div className="p-2.5 rounded-2xl bg-[#181a22]/95 border border-white/15 backdrop-blur-2xl shadow-2xl flex items-center justify-between gap-2 animate-popIn">
+                  <div className="flex items-center gap-2 pl-2">
+                    <CheckSquare size={16} className="text-sky-400" />
+                    <span className="text-xs font-semibold text-white">
+                      {selectedMessageIds.size} selected
+                    </span>
+                  </div>
 
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={handleCopyFormatted}
-                    disabled={selectedMessageIds.size === 0}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-200 hover:text-white text-xs font-medium transition disabled:opacity-40"
-                    title="Copy formatted messages"
-                  >
-                    <Copy size={13} />
-                    <span>Copy</span>
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={handleCopyFormatted}
+                      disabled={selectedMessageIds.size === 0}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-200 hover:text-white text-xs font-medium transition disabled:opacity-40"
+                      title="Copy formatted messages"
+                    >
+                      <Copy size={13} />
+                      <span>Copy</span>
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setIsBatchForwardOpen(true)}
-                    disabled={selectedMessageIds.size === 0}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 text-xs font-medium border border-sky-400/30 transition disabled:opacity-40"
-                    title="Forward selected"
-                  >
-                    <Forward size={13} />
-                    <span>Forward</span>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsBatchForwardOpen(true)}
+                      disabled={selectedMessageIds.size === 0}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 text-xs font-medium border border-sky-400/30 transition disabled:opacity-40"
+                      title="Forward selected"
+                    >
+                      <Forward size={13} />
+                      <span>Forward</span>
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setIsBatchDeleteOpen(true)}
-                    disabled={selectedMessageIds.size === 0}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs font-medium border border-red-500/30 transition disabled:opacity-40"
-                    title="Delete selected"
-                  >
-                    <Trash2 size={13} />
-                    <span>Delete</span>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsBatchDeleteOpen(true)}
+                      disabled={selectedMessageIds.size === 0}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs font-medium border border-red-500/30 transition disabled:opacity-40"
+                      title="Delete selected"
+                    >
+                      <Trash2 size={13} />
+                      <span>Delete</span>
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={handleCancelSelection}
-                    className="w-7 h-7 flex items-center justify-center rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition ml-1"
-                    title="Cancel selection"
-                  >
-                    <X size={15} />
-                  </button>
+                    <button
+                      type="button"
+                      onClick={handleCancelSelection}
+                      className="w-7 h-7 flex items-center justify-center rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition ml-1"
+                      title="Cancel selection"
+                    >
+                      <X size={15} />
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
 
-            {isBlocked && otherParticipant ? (
-              <div className="w-full max-w-[960px] mx-auto px-2 sm:px-4">
+            <div
+              data-testid="composer-outer-wrapper"
+              className="w-full mx-auto px-1 sm:px-2 transition-[padding-bottom,max-width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+              style={{
+                maxWidth: `${composerMaxWidth}px`,
+                paddingBottom: `${composerPaddingBottom}px`,
+              }}
+            >
+              {isBlocked && otherParticipant ? (
                 <BlockedComposerBanner
                   otherUserId={otherParticipant.userId}
                   blockedByMe={conversation.blockedByMe}
                   blockingMe={conversation.blockingMe}
                 />
-              </div>
-            ) : (
-              <div className="w-full max-w-[960px] mx-auto px-2 sm:px-4 pb-2">
+              ) : (
                 <MessageComposer
                   conversationId={conversation.id}
                   actions={actions}
@@ -536,8 +611,8 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
                   onDismissFilesError={staged.dismissError}
                   isGroup={conversation.type === 'GROUP'}
                 />
-              </div>
-            )}
+              )}
+            </div>
           </AttachmentDropZone>
         </div>
 

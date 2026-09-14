@@ -69,6 +69,9 @@ model User {
   storyPollVotes           StoryPollVote[]
   closeFriends             CloseFriend[]             @relation("CloseFriendsOwner")
   closeFriendOf            CloseFriend[]             @relation("CloseFriendsTarget")
+  likedTracks              UserLikedTrack[]
+  musicFolders             UserMusicFolder[]
+  musicPlaylists           UserPlaylist[]
 }
 
 model UserBadge {
@@ -694,9 +697,9 @@ model ProfileShowcase {
 
   // Meta Widget Flags & Overrides
   showAge           Boolean           @default(false) @map("show_age")
-  showBirthdate     Boolean           @default(true) @map("show_birthdate")
-  showGender        Boolean           @default(true) @map("show_gender")
-  showTimezone      Boolean           @default(true) @map("show_timezone")
+  showBirthdate     Boolean           @default(false) @map("show_birthdate")
+  showGender        Boolean           @default(false) @map("show_gender")
+  showTimezone      Boolean           @default(false) @map("show_timezone")
   pronouns          String?           @db.VarChar(20)
   timezone          String?           @default("UTC")
 
@@ -706,6 +709,7 @@ model ProfileShowcase {
   activityStatus    Json?             @map("activity_status")
   spotlightMedia    Json?             @map("spotlight_media")
   anthemTrack       Json?             @map("anthem_track")
+  widgetOrder       Json?             @map("widget_order")
 
   // Media items (Top 5 per category for Board and Wishlist)
   mediaItems        ShowcaseMedia[]
@@ -834,4 +838,81 @@ model CloseFriend {
   @@map("close_friends")
 }
 
+model UserLikedTrack {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  trackId    String   @map("track_id")
+  title      String
+  artist     String
+  album      String?
+  albumArt   String?  @map("album_art")
+  durationMs Int      @default(180000) @map("duration_ms")
+  previewUrl String?  @map("preview_url")
+  streamUrl  String?  @map("stream_url")
+  spotifyUrl String?  @map("spotify_url")
+  source     String   @default("soundcloud")
+  addedAt    DateTime @default(now()) @map("added_at")
 
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, trackId])
+  @@index([userId, addedAt(sort: Desc)])
+  @@map("user_liked_tracks")
+}
+
+model UserMusicFolder {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  playlists UserPlaylist[]
+
+  @@index([userId, createdAt(sort: Asc)])
+  @@map("user_music_folders")
+}
+
+model UserPlaylist {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  folderId    String?  @map("folder_id")
+  title       String
+  description String?
+  coverUrl    String?  @map("cover_url")
+  isPublic    Boolean  @default(true) @map("is_public")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user   User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folder UserMusicFolder?    @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  tracks UserPlaylistTrack[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([folderId])
+  @@map("user_playlists")
+}
+
+model UserPlaylistTrack {
+  id         String   @id @default(uuid())
+  playlistId String   @map("playlist_id")
+  trackId    String   @map("track_id")
+  title      String
+  artist     String
+  album      String?
+  albumArt   String?  @map("album_art")
+  durationMs Int      @default(180000) @map("duration_ms")
+  previewUrl String?  @map("preview_url")
+  streamUrl  String?  @map("stream_url")
+  spotifyUrl String?  @map("spotify_url")
+  source     String   @default("soundcloud")
+  position   Int      @default(0)
+  addedAt    DateTime @default(now()) @map("added_at")
+
+  playlist UserPlaylist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+
+  @@unique([playlistId, trackId])
+  @@index([playlistId, position(sort: Asc)])
+  @@map("user_playlist_tracks")
+}

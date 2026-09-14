@@ -54,14 +54,63 @@ export function BadgeSettingsSection({
 
   const userOwnedBadgeIds: string[] = currentUser?.badges || [];
 
-  const ownedBadges: Badge[] = userOwnedBadgeIds
+  const contributorTierOrder = [
+    'CONTRIBUTOR_OPAL',
+    'CONTRIBUTOR_RUBY',
+    'CONTRIBUTOR_DIAMOND',
+    'CONTRIBUTOR_PLATINUM',
+    'CONTRIBUTOR_GOLD',
+    'CONTRIBUTOR_SILVER',
+    'CONTRIBUTOR_BRONZE',
+  ];
+  const premiumTierOrder = [
+    'PREMIUM_OPAL',
+    'PREMIUM_RUBY',
+    'PREMIUM_DIAMOND',
+    'PREMIUM_PLATINUM',
+    'PREMIUM_GOLD',
+    'PREMIUM_SILVER',
+    'PREMIUM_BRONZE',
+  ];
+
+  const highestContributorBadge = contributorTierOrder.find((tier) =>
+    userOwnedBadgeIds.map((b) => b.toUpperCase()).includes(tier),
+  );
+  const highestPremiumBadge = premiumTierOrder.find((tier) =>
+    userOwnedBadgeIds.map((b) => b.toUpperCase()).includes(tier),
+  );
+
+  const dedupedBadgeIds: string[] = [];
+  let contributorAdded = false;
+  let premiumAdded = false;
+
+  for (const bId of userOwnedBadgeIds) {
+    const upper = bId.toUpperCase();
+    if (upper.startsWith('CONTRIBUTOR')) {
+      if (!contributorAdded) {
+        dedupedBadgeIds.push(highestContributorBadge || 'CONTRIBUTOR');
+        contributorAdded = true;
+      }
+    } else if (upper.startsWith('PREMIUM')) {
+      if (!premiumAdded) {
+        dedupedBadgeIds.push(highestPremiumBadge || 'PREMIUM');
+        premiumAdded = true;
+      }
+    } else {
+      dedupedBadgeIds.push(bId);
+    }
+  }
+
+  const ownedBadges: Badge[] = dedupedBadgeIds
     .map((id: string) => getBadgeById(id))
     .filter(Boolean) as Badge[];
 
   const isChanged = draftPrimaryBadge !== (currentUser?.primaryBadge ?? null);
 
   const subMonths = currentUser?.subscriptionMonths ?? 0;
-  const totalContribs = (currentUser?.prCount ?? 0) + (currentUser?.reportCount ?? 0);
+  const totalContribs =
+    ((currentUser as any)?.mergedPrsCount ?? (currentUser as any)?.prCount ?? 0) +
+    ((currentUser as any)?.reportCount ?? 0);
   const premTier = getPremiumTierByMonths(subMonths);
   const contribTier = getContributorTierByCount(totalContribs);
 
@@ -147,6 +196,8 @@ export function BadgeSettingsSection({
               username={currentUser?.username || 'user'}
               isVerified={currentUser?.isVerified}
               primaryBadge={draftPrimaryBadge}
+              prCount={totalContribs}
+              subscriptionMonths={subMonths}
               size="lg"
             />
             <span className="text-xs text-gray-400 font-medium mt-0.5">
@@ -181,9 +232,13 @@ export function BadgeSettingsSection({
         {ownedBadges.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[340px] overflow-y-auto pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full">
             {ownedBadges.map((badge) => {
-              const isSelected = draftPrimaryBadge === badge.id;
-              const isPremium = badge.id.toUpperCase() === 'PREMIUM';
-              const isContributor = badge.id.toUpperCase() === 'CONTRIBUTOR';
+              const isPremium = badge.id.toUpperCase().startsWith('PREMIUM');
+              const isContributor = badge.id.toUpperCase().startsWith('CONTRIBUTOR');
+              const isSelected =
+                draftPrimaryBadge === badge.id ||
+                (Boolean(draftPrimaryBadge?.toUpperCase().startsWith('CONTRIBUTOR')) &&
+                  isContributor) ||
+                (Boolean(draftPrimaryBadge?.toUpperCase().startsWith('PREMIUM')) && isPremium);
 
               let dynamicDesc = badge.description;
               if (isPremium)

@@ -4,6 +4,8 @@ import { AttachmentView } from '../../../entities/chat/model/types';
 import { useActiveMediaPlaybackStore } from '@/shared/model/useActiveMediaPlaybackStore';
 import { samplePeaks, formatVoiceDuration, formatVoiceTime } from '../lib/waveformUtils';
 import { WaveformRenderer } from './WaveformRenderer';
+import type { ChatThemeConfig } from '../model/chatTheme';
+import type { ContrastTheme } from '../lib/themeUtils';
 
 export interface AudioMessageBubbleProps {
   attachment: (AttachmentView | (Partial<AttachmentView> & { id: string; url: string })) & {
@@ -14,6 +16,8 @@ export interface AudioMessageBubbleProps {
   sentAt?: string;
   conversationId?: string;
   statusIcon?: React.ReactNode;
+  chatTheme?: ChatThemeConfig | null;
+  contrast?: ContrastTheme | null;
 }
 
 export function AudioMessageBubble({
@@ -23,6 +27,8 @@ export function AudioMessageBubble({
   sentAt,
   conversationId,
   statusIcon,
+  chatTheme,
+  contrast,
 }: AudioMessageBubbleProps) {
   const {
     activeMediaId,
@@ -125,10 +131,38 @@ export function AudioMessageBubble({
     return formatVoiceDuration(currentTime, totalDuration, isPlaying);
   }, [hoverFraction, totalDuration, currentTime, isPlaying]);
 
+  const isLightBg = Boolean(contrast?.isLight);
+
+  // Determine activeColor from custom text color or fallback contrast
+  const customTextColor = useMemo(() => {
+    if (!chatTheme) return undefined;
+    const shouldApply = chatTheme.textApplyToAll || isOwnMessage;
+    if (shouldApply && chatTheme.textColor && chatTheme.textColor !== 'auto') {
+      return chatTheme.textColor;
+    }
+    if (isOwnMessage && chatTheme.bubbleTextColor && chatTheme.bubbleTextColor !== 'auto') {
+      return chatTheme.bubbleTextColor;
+    }
+    if (
+      !isOwnMessage &&
+      chatTheme.incomingBubbleTextColor &&
+      chatTheme.incomingBubbleTextColor !== 'auto'
+    ) {
+      return chatTheme.incomingBubbleTextColor;
+    }
+    return undefined;
+  }, [chatTheme, isOwnMessage]);
+
+  const activeColor = useMemo(() => {
+    if (customTextColor) return customTextColor;
+    if (isLightBg) return '#000000';
+    return undefined;
+  }, [customTextColor, isLightBg]);
+
   return (
     <div
       data-testid="audio-message-bubble"
-      className="flex items-center gap-3 py-1 pl-1 pr-3 sm:pr-4 w-[245px] sm:w-[275px] max-w-full overflow-hidden select-none"
+      className="flex items-center gap-3 py-1 pl-1 pr-3 sm:pr-4 w-[280px] sm:w-[330px] max-w-full overflow-hidden select-none"
     >
       {/* Play / Pause / Buffering Circular Button */}
       <button
@@ -160,17 +194,32 @@ export function AudioMessageBubble({
           onSeek={handleSeek}
           onHoverFractionChange={setHoverFraction}
           isOwnMessage={isOwnMessage}
+          isLightBg={isLightBg}
+          activeColor={activeColor}
         />
 
         {/* Timers, Speed Toggle and Message Status */}
-        <div className="flex items-center justify-between w-full text-[10.5px] text-gray-300/80 font-mono tracking-tight leading-none px-0.5 mt-1">
+        <div className="flex items-center justify-between w-full text-[10.5px] font-mono tracking-tight leading-none px-0.5 mt-1">
           <div className="flex items-center gap-1.5 min-w-0">
-            <span className="truncate">{displayTimecode}</span>
+            <span
+              className="truncate"
+              style={{
+                color: isLightBg
+                  ? contrast?.timeColor || 'rgba(15, 23, 42, 0.75)'
+                  : contrast?.timeColor || 'rgba(255, 255, 255, 0.8)',
+              }}
+            >
+              {displayTimecode}
+            </span>
 
             <button
               type="button"
               onClick={handleCycleSpeed}
-              className="px-1.5 py-0.5 rounded-full bg-white/10 hover:bg-white/20 text-purple-200 text-[9px] font-bold transition-colors cursor-pointer shrink-0"
+              className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold transition-colors cursor-pointer shrink-0 ${
+                isLightBg
+                  ? 'bg-black/10 hover:bg-black/20 text-slate-900'
+                  : 'bg-white/10 hover:bg-white/20 text-purple-200'
+              }`}
               title="Toggle playback speed"
             >
               {storePlaybackRate}x
@@ -178,7 +227,14 @@ export function AudioMessageBubble({
           </div>
 
           {sentAt && (
-            <div className="flex items-center gap-1 text-[10px] text-gray-400 shrink-0 ml-auto pl-2 select-none font-sans">
+            <div
+              className="flex items-center gap-1 text-[10px] shrink-0 ml-auto pl-2 select-none font-sans"
+              style={{
+                color: isLightBg
+                  ? contrast?.timeColor || 'rgba(15, 23, 42, 0.65)'
+                  : contrast?.timeColor || 'rgba(156, 163, 175, 1)',
+              }}
+            >
               <span>{sentAt}</span>
               {statusIcon}
             </div>

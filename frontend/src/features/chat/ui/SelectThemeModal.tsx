@@ -35,14 +35,28 @@ import {
   Film,
   ShieldCheck,
   Radio,
+  Pencil,
+  Shapes,
+  Type,
+  RotateCcw,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Modal from '../../../shared/ui/Modal';
+import { BubbleTail } from './BubbleTail';
+import { BubbleDecoration } from './BubbleDecoration';
 import {
+  BUBBLE_SHAPE_PRESETS,
   BUILT_IN_BUBBLE_PRESETS,
   BUILT_IN_PRESETS,
+  BubbleShapePreset,
+  BubbleShapeType,
+  CHAT_FONTS,
+  CHAT_TEXT_EFFECTS,
+  ChatFontMeta,
+  ChatTextEffectOption,
   ChatThemeConfig,
   DEFAULT_DARK_THEME_CONFIG,
+  DISCORD_TEXT_COLORS,
   PROCEDURAL_SHADER_PRESETS,
   PresetBubble,
   PresetTheme,
@@ -59,9 +73,11 @@ import {
   generateHarmonicGradient,
   getBubbleContrastTheme,
   getBubbleStyle,
+  getBubbleShapeStyles,
   getChatBackgroundStyle,
   getCustomPresets,
   getRecentWallpapers,
+  getThemeTextStyle,
   parseChatTheme,
   sanitizeAndValidateSvg,
   saveCustomPreset,
@@ -69,19 +85,22 @@ import {
   triggerHapticFeedback,
   updateMetaThemeColor,
 } from '../lib/themeUtils';
+import { preloadTextTabFonts } from '../lib/fontLoader';
 import { useChatTheme } from '../model/useChatTheme';
 import { chatApi } from '../api/chatApi';
 import { useRecentReactions } from '../model/useRecentReactions';
 import { triggerReactionBurst } from '../lib/reactionBurstEngine';
+import { idbDelete } from '../../../shared/lib/indexedDbStorage';
 import ProceduralChatBackground from './ProceduralChatBackground';
 
 interface SelectThemeModalProps {
   conversationId: string;
   currentTheme?: string;
+  sharedTheme?: string | null;
   onClose: () => void;
 }
 
-type TabType = 'background' | 'bubbles' | 'presets' | 'custom_presets';
+type TabType = 'background' | 'bubbles' | 'text' | 'presets' | 'custom_presets';
 type BackgroundSubMode = 'solid' | 'gradient' | 'shader' | 'image';
 
 const SOLID_PALETTE = [
@@ -104,6 +123,7 @@ const TABS: {
 }[] = [
   { id: 'background', label: 'Chat Background', icon: Palette },
   { id: 'bubbles', label: 'Message Bubbles', icon: MessageSquare },
+  { id: 'text', label: 'Text', icon: Type },
   { id: 'presets', label: 'Presets', icon: Sparkles },
   { id: 'custom_presets', label: 'My Themes', icon: Bookmark },
 ];
@@ -117,25 +137,57 @@ interface TestMessage {
   reactions: { [emoji: string]: number };
 }
 
+function RecentWallpaperThumb({ item }: { item: RecentWallpaperItem }) {
+  const [hasError, setHasError] = useState(false);
+
+  if (item.type === 'shader') {
+    return <div className="w-full h-full" style={{ background: item.previewBg || '#1e0533' }} />;
+  }
+
+  if (item.url && !hasError) {
+    return (
+      <img
+        src={item.url}
+        alt={item.name}
+        className="w-full h-full object-cover"
+        onError={() => setHasError(true)}
+      />
+    );
+  }
+
+  return <ImageIcon size={18} className="text-gray-400" />;
+}
+
 export default function SelectThemeModal({
   conversationId,
   currentTheme = 'default',
+  sharedTheme,
   onClose,
 }: SelectThemeModalProps) {
-  const { applyTheme, revertTheme } = useChatTheme(conversationId, currentTheme);
+  const { theme, isLoading, applyTheme, revertTheme } = useChatTheme(
+    conversationId,
+    currentTheme,
+    sharedTheme,
+  );
   const { dockReactions } = useRecentReactions();
 
-  // Store initial original theme for Hold-to-Compare
-  const initialThemeRef = useRef<ChatThemeConfig>(parseChatTheme(currentTheme));
-  const [isComparing, setIsComparing] = useState(false);
+  // Store initial original theme for comparison (deep clone so no edits mutate it)
+  const initialThemeRef = useRef<ChatThemeConfig>(
+    JSON.parse(JSON.stringify(parseChatTheme(currentTheme))),
+  );
+  // Preview comparison mode: 'draft' (new changes) | 'initial' (before changes) | 'default' (clean dark default)
+  const [previewMode, setPreviewMode] = useState<'draft' | 'initial' | 'default'>('draft');
+  const isInitialThemeLoadedRef = useRef(false);
 
   const [activeTab, setActiveTab] = useState<TabType>('background');
   const [bgSubMode, setBgSubMode] = useState<BackgroundSubMode>('solid');
+  const [bubbleSubTab, setBubbleSubTab] = useState<'gradient' | 'solid' | 'custom'>('custom');
+  const [customCategoryFilter, setCustomCategoryFilter] = useState<'all' | 'animals' | 'fx'>('all');
   const [mobileViewMode, setMobileViewMode] = useState<'editor' | 'preview'>('editor');
 
   // Working theme state inside editor
   const [draftTheme, setDraftTheme] = useState<ChatThemeConfig>(() => {
-    return parseChatTheme(currentTheme);
+    return JSON.parse(JSON.stringify(initialThemeRef.current));
   });
 
   // Toggles
@@ -146,7 +198,19 @@ export default function SelectThemeModal({
   const [customPresets, setCustomPresets] = useState<PresetTheme[]>([]);
   const [customPresetName, setCustomPresetName] = useState('');
   const [isSavingPreset, setIsSavingPreset] = useState(false);
+  const [editingPresetId, setEditingPresetId] = useState<string | null>(null);
+  const [editingPresetName, setEditingPresetName] = useState('');
   const [recentWallpapers, setRecentWallpapers] = useState<RecentWallpaperItem[]>([]);
+
+  // Sync initial loaded theme from hook once loaded from IDB / server
+  useEffect(() => {
+    if (!isLoading && theme && !isInitialThemeLoadedRef.current) {
+      const cloned = JSON.parse(JSON.stringify(theme)) as ChatThemeConfig;
+      initialThemeRef.current = cloned;
+      setDraftTheme(cloned);
+      isInitialThemeLoadedRef.current = true;
+    }
+  }, [isLoading, theme]);
 
   // Smart Helpers: Magic Color Match & Randomizer feedback
   const [magicPalette, setMagicPalette] = useState<string[]>([]);
@@ -186,7 +250,16 @@ export default function SelectThemeModal({
   const [isApplying, setIsApplying] = useState(false);
   const [isProposing, setIsProposing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const textColorInputRef = useRef<HTMLInputElement | null>(null);
+  const [hoveredFont, setHoveredFont] = useState<string | null>(null);
   const previewScrollRef = useRef<HTMLDivElement | null>(null);
+
+  // Preload fonts on-demand when user opens the Text tab
+  useEffect(() => {
+    if (activeTab === 'text') {
+      preloadTextTabFonts();
+    }
+  }, [activeTab]);
 
   // Check browser EyeDropper support
   useEffect(() => {
@@ -264,7 +337,7 @@ export default function SelectThemeModal({
       bubbleGradientColors: bubbleColors,
       bubbleGradientAngle: 135,
     }));
-    setCopyToast('✨ Цвета баблов подобраны под фон!');
+    setCopyToast('✨ Bubble colors matched to background!');
     setTimeout(() => setCopyToast(null), 2500);
   };
 
@@ -365,39 +438,117 @@ export default function SelectThemeModal({
     }
   };
 
-  // Delete a Recent Wallpaper
+  // Delete a Recent Wallpaper & purge from storage if orphaned
   const handleDeleteRecentWallpaper = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     triggerHapticFeedback(8);
+
+    const itemToDelete = recentWallpapers.find((w) => w.id === id);
     const updated = await deleteRecentWallpaper(id);
     setRecentWallpapers(updated);
+
+    if (itemToDelete?.url) {
+      const deletedUrl = itemToDelete.url;
+      const isUsedInActiveTheme = theme?.bgImageUrl === deletedUrl;
+      const isUsedInSavedPresets = customPresets.some((p) => p.config.bgImageUrl === deletedUrl);
+      const isUsedInRemainingRecents = updated.some((w) => w.url === deletedUrl);
+
+      // If it is NOT active on the chat background, NOT in saved presets, and NOT in remaining recents:
+      if (!isUsedInActiveTheme && !isUsedInSavedPresets && !isUsedInRemainingRecents) {
+        // 1. Reset draftTheme if currently previewing this deleted image
+        if (draftTheme.bgImageUrl === deletedUrl) {
+          setDraftTheme((prev) => ({
+            ...prev,
+            backgroundType:
+              theme?.backgroundType && theme.backgroundType !== 'image'
+                ? theme.backgroundType
+                : 'solid',
+            bgImageUrl: undefined,
+            backgroundColor: theme?.backgroundColor || '#0b0b0c',
+          }));
+          if (bgSubMode === 'image') {
+            setBgSubMode('solid');
+          }
+        }
+
+        // 2. Revoke blob URL from memory if it's a blob
+        if (deletedUrl.startsWith('blob:')) {
+          try {
+            URL.revokeObjectURL(deletedUrl);
+          } catch {}
+        }
+
+        // 3. Clear from IndexedDB storage
+        try {
+          await idbDelete(deletedUrl);
+        } catch {}
+      }
+    }
   };
 
-  // Theme code copy
-  const handleCopyThemeCode = () => {
+  // Theme code copy (ensures custom image, bubbles, and text customizations are fully exported)
+  const handleCopyThemeCode = async () => {
     triggerHapticFeedback(8);
-    const code = encodeThemeCode(draftTheme);
+    const themeToExport = { ...draftTheme };
+
+    // If background image is a local blob URL, convert it to a portable data URL so it can be shared!
+    if (themeToExport.bgImageUrl?.startsWith('blob:')) {
+      try {
+        const resp = await fetch(themeToExport.bgImageUrl);
+        const blob = await resp.blob();
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+        themeToExport.bgImageUrl = dataUrl;
+      } catch (err) {
+        console.warn('[SelectThemeModal] Failed to convert blob URL for export:', err);
+      }
+    }
+
+    const code = encodeThemeCode(themeToExport);
     navigator.clipboard.writeText(code).then(() => {
-      setCopyToast('📋 Код темы скопирован в буфер!');
+      setCopyToast('📋 Theme code copied to clipboard!');
       setTimeout(() => setCopyToast(null), 2500);
     });
   };
 
-  // Theme code import
-  const handleImportThemeCode = () => {
+  // Theme code import (restores background image, bubble, and text customizations)
+  const handleImportThemeCode = async () => {
     if (!importCodeInput.trim()) return;
     const decoded = decodeThemeCode(importCodeInput);
     if (!decoded) {
       triggerHapticFeedback([10, 40, 10]);
-      setImportError('Неверный или небезопасный код темы');
+      setImportError('Invalid or unsafe theme code');
       return;
     }
     triggerHapticFeedback(12);
     setDraftTheme(decoded);
+
+    // If imported theme has a background image (custom or CDN), add it to recent wallpapers so user can re-use it!
+    if (decoded.backgroundType === 'image' && decoded.bgImageUrl) {
+      const updatedRecents = await addRecentWallpaper({
+        type: decoded.bgImageUrl.toLowerCase().endsWith('.gif') ? 'gif' : 'image',
+        url: decoded.bgImageUrl,
+        name: decoded.name ? `${decoded.name} BG` : 'Imported Background',
+        thumbnailUrl: decoded.bgImageUrl,
+      });
+      setRecentWallpapers(updatedRecents);
+      setBgSubMode('image');
+    } else if (decoded.backgroundType === 'shader' && decoded.shaderPresetId) {
+      setBgSubMode('shader');
+    } else if (decoded.backgroundType === 'gradient') {
+      setBgSubMode('gradient');
+    } else {
+      setBgSubMode('solid');
+    }
+
     setIsImportModalOpen(false);
     setImportCodeInput('');
     setImportError(null);
-    setCopyToast('📥 Тема успешно импортирована!');
+    setCopyToast('📥 Theme imported successfully!');
     setTimeout(() => setCopyToast(null), 2500);
   };
 
@@ -454,6 +605,13 @@ export default function SelectThemeModal({
     }));
   };
 
+  const handleIncomingBubbleColorChange = (color: string) => {
+    setDraftTheme((prev) => ({
+      ...prev,
+      incomingBubbleColor: color,
+    }));
+  };
+
   const handleBubbleGradientColorChange = (index: number, color: string) => {
     setDraftTheme((prev) => {
       const colors = [...(prev.bubbleGradientColors || ['#9333ea', '#6366f1'])];
@@ -498,30 +656,48 @@ export default function SelectThemeModal({
       triggerHapticFeedback(10);
 
       let finalUrl = '';
+      let durableUrl = '';
+
+      const readFileAsDataUrl = (f: File): Promise<string> =>
+        new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(f);
+        });
 
       // Check if SVG format -> validate & sanitize
       if (file.type === 'image/svg+xml' || file.name.toLowerCase().endsWith('.svg')) {
         const text = await file.text();
         const sanitizeResult = sanitizeAndValidateSvg(text);
         if (!sanitizeResult.isValid || !sanitizeResult.sanitizedSvg) {
-          alert('Внимание: загруженный SVG содержит неподдерживаемые или небезопасные скрипты.');
+          alert('Warning: The uploaded SVG contains unsupported or unsafe scripts.');
           return;
         }
-        const blob = new Blob([sanitizeResult.sanitizedSvg], { type: 'image/svg+xml' });
-        finalUrl = URL.createObjectURL(blob);
+        const base64Svg = btoa(unescape(encodeURIComponent(sanitizeResult.sanitizedSvg)));
+        durableUrl = `data:image/svg+xml;base64,${base64Svg}`;
+        finalUrl = durableUrl;
       } else {
-        finalUrl = URL.createObjectURL(file);
+        try {
+          durableUrl = await readFileAsDataUrl(file);
+          finalUrl = durableUrl;
+        } catch {
+          finalUrl = URL.createObjectURL(file);
+        }
       }
 
-      // If syncDevices is enabled, upload to server CDN
+      // If syncDevices is enabled and conversationId is available, upload to server CDN
       if (syncDevices && conversationId) {
         try {
           const uploadRes = await chatApi.uploadAttachment(conversationId, file);
           if (uploadRes?.url) {
             finalUrl = uploadRes.url;
           }
-        } catch {
-          // Fallback to local url
+        } catch (uploadErr) {
+          console.warn(
+            '[SelectThemeModal] Server upload failed, using local durable URL:',
+            uploadErr,
+          );
         }
       }
 
@@ -600,6 +776,30 @@ export default function SelectThemeModal({
     setCustomPresets(updated);
   };
 
+  // Rename custom preset
+  const handleSaveRename = async (presetId: string) => {
+    const trimmed = editingPresetName.trim();
+    if (!trimmed) {
+      setEditingPresetId(null);
+      return;
+    }
+    const target = customPresets.find((p) => p.id === presetId);
+    if (!target) return;
+    triggerHapticFeedback(8);
+    const updatedPreset: PresetTheme = {
+      ...target,
+      name: trimmed,
+      config: {
+        ...target.config,
+        name: trimmed,
+      },
+    };
+    const updatedList = await saveCustomPreset(updatedPreset);
+    setCustomPresets(updatedList);
+    setEditingPresetId(null);
+    setEditingPresetName('');
+  };
+
   // Interactive Live Preview: Send test message
   const handleSendTestMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -669,6 +869,9 @@ export default function SelectThemeModal({
     setIsApplying(true);
     triggerHapticFeedback(10);
     try {
+      setDraftTheme({ ...DEFAULT_DARK_THEME_CONFIG });
+      initialThemeRef.current = { ...DEFAULT_DARK_THEME_CONFIG };
+      setPreviewMode('draft');
       await revertTheme({ applyToAll, syncDevices });
       onClose();
     } finally {
@@ -682,9 +885,28 @@ export default function SelectThemeModal({
     setIsProposing(true);
     triggerHapticFeedback(12);
     try {
-      const serialized = serializeChatTheme(draftTheme);
+      const themeToPropose = { ...draftTheme };
+
+      // Convert local blob URL to durable portable format if needed so partner receives the image
+      if (themeToPropose.bgImageUrl?.startsWith('blob:')) {
+        try {
+          const resp = await fetch(themeToPropose.bgImageUrl);
+          const blob = await resp.blob();
+          const dataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+          themeToPropose.bgImageUrl = dataUrl;
+        } catch (err) {
+          console.warn('[SelectThemeModal] Failed to convert blob URL for proposal:', err);
+        }
+      }
+
+      const serialized = serializeChatTheme(themeToPropose);
       await chatApi.proposeTheme(conversationId, serialized);
-      setCopyToast('✨ Предложение парной темы отправлено в чат!');
+      setCopyToast('✨ Paired theme proposal sent to chat!');
       setTimeout(() => {
         setCopyToast(null);
         onClose();
@@ -692,7 +914,7 @@ export default function SelectThemeModal({
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Не удалось отправить предложение темы';
+        'Failed to send theme proposal';
       setCopyToast(`⚠️ ${msg}`);
       setTimeout(() => setCopyToast(null), 3500);
     } finally {
@@ -700,8 +922,13 @@ export default function SelectThemeModal({
     }
   };
 
-  // Active theme for Live Preview rendering (Hold-to-Compare toggles to initialTheme)
-  const displayTheme = isComparing ? initialThemeRef.current : draftTheme;
+  // Active theme for Live Preview rendering (supports Draft, Initial before edits, and Default dark)
+  const displayTheme =
+    previewMode === 'initial'
+      ? initialThemeRef.current
+      : previewMode === 'default'
+        ? DEFAULT_DARK_THEME_CONFIG
+        : draftTheme;
 
   const bgStyle = getChatBackgroundStyle(displayTheme);
   const outgoingBubble = getBubbleStyle(displayTheme, true);
@@ -722,13 +949,7 @@ export default function SelectThemeModal({
               <div>
                 <h2 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
                   <span>Chat Theme Customizer</span>
-                  <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-400/30">
-                    Pro
-                  </span>
                 </h2>
-                <p className="text-xs text-gray-400">
-                  Telegram + Discord + Instagram Hybrid Theme Engine
-                </p>
               </div>
             </div>
 
@@ -738,7 +959,7 @@ export default function SelectThemeModal({
                 type="button"
                 onClick={handleCopyThemeCode}
                 className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-gray-300 hover:text-white transition active:scale-95"
-                title="Скопировать код темы для отправки друзьям"
+                title="Copy theme code to share with friends"
               >
                 <Share2 size={13} />
                 <span>Share Code</span>
@@ -749,7 +970,7 @@ export default function SelectThemeModal({
                 type="button"
                 onClick={() => setIsImportModalOpen(true)}
                 className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 border border-purple-400/30 text-xs font-semibold text-purple-300 hover:text-purple-200 transition active:scale-95"
-                title="Импортировать тему по коду"
+                title="Import theme by code"
               >
                 <Download size={13} />
                 <span>Import</span>
@@ -930,10 +1151,10 @@ export default function SelectThemeModal({
                               type="button"
                               onClick={() => handleEyeDrop((hex) => handleSolidBgChange(hex))}
                               className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-[11px] text-gray-300 hover:text-white border border-white/10 transition"
-                              title="Пипетка: захватить цвет с экрана"
+                              title="Eyedropper: pick color from screen"
                             >
                               <Pipette size={12} className="text-purple-400" />
-                              <span>Пипетка</span>
+                              <span>Eyedropper</span>
                             </button>
                           )}
                           <label className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 transition">
@@ -993,7 +1214,7 @@ export default function SelectThemeModal({
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                            Gradient Stops (2 or 3 Colors)
+                            Gradients
                           </span>
                           {randomSchemeNotice && (
                             <span className="text-[11px] text-purple-300 font-semibold animate-pulse">
@@ -1007,10 +1228,10 @@ export default function SelectThemeModal({
                             type="button"
                             onClick={handleRandomizeBackgroundGradient}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 hover:text-purple-200 border border-purple-400/30 text-xs font-semibold transition active:scale-95 shadow-sm"
-                            title="Сгенерировать гармоничный градиент по кругу Иттена"
+                            title="Generate harmonious gradient using color wheel"
                           >
                             <Dices size={14} className="animate-spin-once" />
-                            <span>🎲 Случайный градиент</span>
+                            <span>🎲 Random Gradient</span>
                           </button>
 
                           {draftTheme.gradientColors.length < 3 && (
@@ -1047,7 +1268,7 @@ export default function SelectThemeModal({
                               </label>
                               <div className="min-w-0">
                                 <p className="text-[10px] text-gray-400 font-bold uppercase">
-                                  Stop {index + 1}
+                                  Color {index + 1}
                                 </p>
                                 <p className="text-xs font-mono text-gray-200 truncate">
                                   {color.toUpperCase()}
@@ -1063,7 +1284,7 @@ export default function SelectThemeModal({
                                     handleEyeDrop((hex) => handleGradientColorChange(index, hex))
                                   }
                                   className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-purple-300 hover:bg-white/10 transition"
-                                  title="Пипетка"
+                                  title="Eyedropper"
                                 >
                                   <Pipette size={13} />
                                 </button>
@@ -1135,7 +1356,7 @@ export default function SelectThemeModal({
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
                           <Zap size={14} className="text-purple-400" />
-                          <span>Процедурные GPU шейдеры (0 КБ трафика, 120 FPS)</span>
+                          <span>Animated wallpapers</span>
                         </span>
                       </div>
 
@@ -1197,10 +1418,10 @@ export default function SelectThemeModal({
                             </div>
                             <div>
                               <p className="text-xs font-bold text-white leading-tight">
-                                Аудио-реактивный фон
+                                Audio-Reactive Background
                               </p>
                               <p className="text-[10px] text-gray-400">
-                                Пульсирует в такт голосу и музыке
+                                Pulses to the beat of voice and music
                               </p>
                             </div>
                           </div>
@@ -1233,10 +1454,10 @@ export default function SelectThemeModal({
                             </div>
                             <div>
                               <p className="text-xs font-bold text-white leading-tight">
-                                3D-параллакс глубины
+                                3D Depth Parallax
                               </p>
                               <p className="text-[10px] text-gray-400">
-                                Наклон гироскопа на смартфонах
+                                Gyroscope tilt on mobile devices
                               </p>
                             </div>
                           </div>
@@ -1264,45 +1485,32 @@ export default function SelectThemeModal({
                   {/* Mode D: Image / Animated GIF / SVG Upload */}
                   {bgSubMode === 'image' && (
                     <div className="space-y-5">
-                      {/* Upload & GIF Cards Row (matching the design in screenshot) */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {/* Card 1: Upload Image */}
-                        <div
-                          onClick={() => fileInputRef.current?.click()}
-                          className="p-5 rounded-3xl border border-white/10 hover:border-purple-500/50 bg-[#161722]/80 hover:bg-[#1a1b2a] transition flex flex-col items-center justify-center text-center cursor-pointer group min-h-[140px] shadow-lg"
-                        >
-                          <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*,.gif,.webp,.svg"
-                            onChange={handleFileSelected}
-                            className="hidden"
-                          />
-                          <div className="w-11 h-11 rounded-2xl bg-white/5 border border-white/10 text-gray-300 group-hover:text-purple-300 group-hover:scale-110 flex items-center justify-center mb-2.5 transition">
+                      {/* Unified Upload Image or GIF Card */}
+                      <div
+                        onClick={() => fileInputRef.current?.click()}
+                        className="p-6 rounded-3xl border border-dashed border-white/15 hover:border-purple-500/60 bg-[#161722]/80 hover:bg-[#1a1b2a] transition flex flex-col items-center justify-center text-center cursor-pointer group min-h-[140px] shadow-lg relative overflow-hidden"
+                      >
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*,.gif,.webp,.svg"
+                          onChange={handleFileSelected}
+                          className="hidden"
+                        />
+                        <div className="flex items-center gap-2 mb-2.5">
+                          <div className="w-11 h-11 rounded-2xl bg-white/5 border border-white/10 text-gray-300 group-hover:text-purple-300 group-hover:scale-110 flex items-center justify-center transition">
                             <Upload size={20} />
                           </div>
-                          <p className="text-xs font-bold text-white mb-0.5">
-                            {isUploading ? 'Загрузка...' : 'Загрузить изображение'}
-                          </p>
-                          <p className="text-[10.5px] text-gray-400">PNG, JPG, WebP, SVG, GIF</p>
-                        </div>
-
-                        {/* Card 2: Select GIF / Animated Montage */}
-                        <div
-                          onClick={() => fileInputRef.current?.click()}
-                          className="p-5 rounded-3xl border border-white/10 hover:border-purple-500/50 bg-[#161722]/80 hover:bg-[#1a1b2a] transition flex flex-col items-center justify-center text-center cursor-pointer group min-h-[140px] relative overflow-hidden shadow-lg"
-                        >
-                          <div className="w-11 h-11 rounded-2xl bg-purple-600/20 text-purple-300 border border-purple-400/30 group-hover:scale-110 flex items-center justify-center mb-2.5 transition">
+                          <div className="w-11 h-11 rounded-2xl bg-purple-600/20 text-purple-300 border border-purple-400/30 group-hover:scale-110 flex items-center justify-center transition">
                             <Film size={20} />
                           </div>
-                          <p className="text-xs font-bold text-white mb-0.5 flex items-center gap-1">
-                            <span>Выбрать GIF</span>
-                            <span className="px-1.5 py-0.2 rounded bg-purple-500/30 text-purple-300 text-[9px] font-bold">
-                              GIF
-                            </span>
-                          </p>
-                          <p className="text-[10.5px] text-gray-400">Анимированные живые обои</p>
                         </div>
+                        <p className="text-sm font-bold text-white mb-1">
+                          {isUploading ? 'Uploading...' : 'Upload Image or GIF'}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          Supports PNG, JPG, WebP, SVG, and animated GIFs
+                        </p>
                       </div>
 
                       {/* Magic Color Match Banner */}
@@ -1317,7 +1525,7 @@ export default function SelectThemeModal({
                                 Magic Color Match
                               </p>
                               <p className="text-[10px] text-purple-200/80 truncate">
-                                Цвета баблов под палитру фото
+                                Bubble colors from photo palette
                               </p>
                             </div>
                           </div>
@@ -1336,7 +1544,7 @@ export default function SelectThemeModal({
                               onClick={handleApplyMagicPalette}
                               className="px-3 py-1.5 rounded-xl bg-purple-500 hover:bg-purple-400 text-white text-[11px] font-bold shadow-md transition flex items-center gap-1 active:scale-95"
                             >
-                              <span>🪄 Подобрать в 1 клик</span>
+                              <span>🪄 Match in 1 Click</span>
                             </button>
                           </div>
                         </div>
@@ -1400,15 +1608,15 @@ export default function SelectThemeModal({
                     </div>
                   )}
 
-                  {/* Section: «Недавние фоны» (Recent Wallpapers - до 5 штук) */}
+                  {/* Section: Recent Wallpapers */}
                   {recentWallpapers.length > 0 && (
                     <div className="pt-2 border-t border-white/5 space-y-2.5">
                       <div>
                         <h4 className="text-xs font-bold text-white tracking-wide">
-                          Недавние фоны
+                          Recent Wallpapers
                         </h4>
                         <p className="text-[11px] text-gray-400">
-                          Просмотрите до 5 ваших последних загруженных фонов и тем.
+                          Browse up to 5 of your recently uploaded wallpapers and themes.
                         </p>
                       </div>
 
@@ -1421,20 +1629,7 @@ export default function SelectThemeModal({
                             title={item.name}
                           >
                             <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/20 group-hover:border-purple-400 group-hover:scale-105 transition-all shadow-md flex items-center justify-center bg-black/40">
-                              {item.type === 'shader' ? (
-                                <div
-                                  className="w-full h-full"
-                                  style={{ background: item.previewBg || '#1e0533' }}
-                                />
-                              ) : item.url ? (
-                                <img
-                                  src={item.url}
-                                  alt={item.name}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <ImageIcon size={18} className="text-gray-400" />
-                              )}
+                              <RecentWallpaperThumb item={item} />
                             </div>
 
                             {/* Delete button on hover */}
@@ -1442,7 +1637,7 @@ export default function SelectThemeModal({
                               type="button"
                               onClick={(e) => handleDeleteRecentWallpaper(item.id, e)}
                               className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-600 text-white flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition shadow-sm hover:scale-110"
-                              title="Удалить из недавних"
+                              title="Remove from recents"
                             >
                               ×
                             </button>
@@ -1457,40 +1652,367 @@ export default function SelectThemeModal({
               {/* Tab 2: Message Bubbles Customization */}
               {activeTab === 'bubbles' && (
                 <div className="space-y-6">
-                  {/* Bubble Mode Switcher */}
-                  <div className="grid grid-cols-2 gap-2 p-1 bg-white/5 border border-white/10 rounded-2xl">
+                  {/* Bubble Sub-Mode Switcher: Bubble Gradient | Solid Bubble | Custom Bubbles */}
+                  <div className="grid grid-cols-3 gap-2 p-1 bg-white/5 border border-white/10 rounded-2xl">
                     <button
                       type="button"
                       onClick={() => {
                         triggerHapticFeedback(6);
+                        setBubbleSubTab('gradient');
                         setDraftTheme((p) => ({ ...p, bubbleType: 'gradient' }));
                       }}
-                      className={`py-2 rounded-xl text-xs font-semibold transition ${
-                        draftTheme.bubbleType === 'gradient'
+                      className={`py-2 rounded-xl text-xs font-semibold transition truncate flex items-center justify-center gap-1.5 ${
+                        bubbleSubTab === 'gradient'
                           ? 'bg-white/15 text-white shadow-sm'
                           : 'text-gray-400 hover:text-white'
                       }`}
                     >
-                      Bubble Gradient
+                      <Sliders size={12} className="text-purple-400" />
+                      <span>Bubble Gradient</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => {
                         triggerHapticFeedback(6);
+                        setBubbleSubTab('solid');
                         setDraftTheme((p) => ({ ...p, bubbleType: 'solid' }));
                       }}
-                      className={`py-2 rounded-xl text-xs font-semibold transition ${
-                        draftTheme.bubbleType === 'solid'
+                      className={`py-2 rounded-xl text-xs font-semibold transition truncate flex items-center justify-center gap-1.5 ${
+                        bubbleSubTab === 'solid'
                           ? 'bg-white/15 text-white shadow-sm'
                           : 'text-gray-400 hover:text-white'
                       }`}
                     >
-                      Solid Bubble
+                      <Palette size={12} className="text-purple-400" />
+                      <span>Solid Bubble</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHapticFeedback(6);
+                        setBubbleSubTab('custom');
+                      }}
+                      className={`py-2 rounded-xl text-xs font-semibold transition truncate flex items-center justify-center gap-1.5 ${
+                        bubbleSubTab === 'custom'
+                          ? 'bg-white/15 text-white shadow-sm ring-1 ring-purple-400/40'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      <Sparkles size={12} className="text-pink-400 animate-pulse" />
+                      <span>Custom Bubbles</span>
                     </button>
                   </div>
 
-                  {/* Bubble Colors */}
-                  {draftTheme.bubbleType === 'solid' ? (
+                  {/* Sub-tab 3: Custom Bubbles Gallery */}
+                  {bubbleSubTab === 'custom' && (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
+                          <Shapes size={14} className="text-purple-400" />
+                          <span>Bubble Shapes & Borders</span>
+                        </span>
+                      </div>
+
+                      {/* Category Filter Pills */}
+                      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar">
+                        {[
+                          { id: 'all', label: 'All' },
+                          { id: 'animals', label: '🐾 TikTok Animals' },
+                          { id: 'fx', label: '✨ Animated' },
+                        ].map((cat) => (
+                          <button
+                            key={cat.id}
+                            type="button"
+                            onClick={() => {
+                              triggerHapticFeedback(6);
+                              setCustomCategoryFilter(cat.id as any);
+                            }}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+                              customCategoryFilter === cat.id
+                                ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
+                                : 'bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/10'
+                            }`}
+                          >
+                            {cat.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Presets Cards Grid */}
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                        {BUBBLE_SHAPE_PRESETS.filter(
+                          (p) =>
+                            customCategoryFilter === 'all' || p.category === customCategoryFilter,
+                        ).map((preset) => {
+                          const isSelected = draftTheme.bubbleShape === preset.id;
+                          return (
+                            <div
+                              key={preset.id}
+                              onClick={() => {
+                                triggerHapticFeedback(8);
+                                setDraftTheme((prev) => {
+                                  const next = {
+                                    ...prev,
+                                    bubbleShape: preset.id,
+                                  };
+                                  if (
+                                    preset.recommendedType === 'gradient' &&
+                                    preset.gradientColors
+                                  ) {
+                                    next.bubbleType = 'gradient';
+                                    next.bubbleGradientColors = [...preset.gradientColors];
+                                  } else if (
+                                    preset.recommendedType === 'solid' &&
+                                    preset.bubbleColor
+                                  ) {
+                                    next.bubbleType = 'solid';
+                                    next.bubbleColor = preset.bubbleColor;
+                                    if (preset.incomingBubbleColor) {
+                                      next.incomingBubbleColor = preset.incomingBubbleColor;
+                                    }
+                                  }
+                                  return next;
+                                });
+                              }}
+                              className={`group relative p-3 rounded-2xl border cursor-pointer transition-all duration-200 flex flex-col justify-between select-none ${
+                                isSelected
+                                  ? 'bg-purple-600/15 border-purple-400 ring-2 ring-purple-400/40 shadow-lg shadow-purple-500/20 scale-[1.01]'
+                                  : 'bg-[#161722]/80 border-white/10 hover:border-white/20 hover:bg-[#1a1b2a] hover:scale-[1.01]'
+                              }`}
+                            >
+                              {/* Visual Preview Box */}
+                              <div className="h-16 rounded-xl bg-black/40 border border-white/5 flex items-center justify-center relative overflow-visible mb-2 px-2">
+                                {preset.id === 'capybara' && (
+                                  <div className="relative">
+                                    <BubbleDecoration shape="capybara" isOwnMessage={false} />
+                                    <div className="px-3.5 py-1 rounded-[14px] rounded-bl-[4px] border-2 border-[#78350f] bg-gradient-to-b from-[#c58f59] to-[#a8733f] text-[10.5px] font-bold text-white shadow-md">
+                                      Capybara
+                                    </div>
+                                  </div>
+                                )}
+
+                                {preset.id === 'frog' && (
+                                  <div className="relative">
+                                    <BubbleDecoration shape="frog" isOwnMessage={false} />
+                                    <div className="px-3.5 py-1 rounded-[14px] border-2 border-[#065f46] bg-gradient-to-b from-emerald-500 to-emerald-600 text-[10.5px] font-bold text-white shadow-md">
+                                      Frog
+                                    </div>
+                                  </div>
+                                )}
+
+                                {preset.id === 'cat-dog' && (
+                                  <div className="relative">
+                                    <BubbleDecoration shape="cat-dog" isOwnMessage={false} />
+                                    <div className="px-3.5 py-1 rounded-[14px] border-2 border-[#b45309]/50 bg-gradient-to-b from-[#fffbeb] to-[#fef3c7] text-[10.5px] font-bold text-[#78350f] shadow-md">
+                                      Cat & Dog
+                                    </div>
+                                  </div>
+                                )}
+
+                                {preset.id === 'doge' && (
+                                  <div className="relative">
+                                    <BubbleDecoration shape="doge" isOwnMessage={false} />
+                                    <div className="px-3.5 py-1 rounded-[14px] border-2 border-[#b45309] bg-gradient-to-b from-amber-300 to-amber-500 text-[10.5px] font-bold text-[#451a03] shadow-md">
+                                      Doge
+                                    </div>
+                                  </div>
+                                )}
+
+                                {preset.id === 'dino' && (
+                                  <div className="relative">
+                                    <BubbleDecoration shape="dino" isOwnMessage={false} />
+                                    <div className="px-3.5 py-1 rounded-[14px] border-2 border-[#0f766e] bg-gradient-to-b from-teal-400 to-teal-600 text-[10.5px] font-bold text-white shadow-md">
+                                      Dino
+                                    </div>
+                                  </div>
+                                )}
+
+                                {preset.id === 'heart-pepe' && (
+                                  <div className="relative">
+                                    <BubbleDecoration shape="heart-pepe" isOwnMessage={false} />
+                                    <div className="px-3.5 py-1 rounded-[14px] border-2 border-pink-400/60 bg-gradient-to-b from-pink-200 to-pink-300 text-[10.5px] font-bold text-pink-900 shadow-md">
+                                      Pepe
+                                    </div>
+                                  </div>
+                                )}
+
+                                {preset.id === 'gummy' && (
+                                  <div className="relative animate-gummy-squish">
+                                    <BubbleDecoration shape="gummy" isOwnMessage={false} />
+                                    <div className="px-3.5 py-1 rounded-[16px] border border-white/50 bg-gradient-to-br from-pink-400 via-purple-400 to-sky-400 text-[11px] font-bold text-white shadow-md shadow-pink-500/25 flex items-center gap-1">
+                                      <span className="text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]">
+                                        Gummy
+                                      </span>
+                                      <span className="text-[10px]">🍬</span>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {preset.id === 'prisma' && (
+                                  <div
+                                    className="relative animate-prisma-flow rounded-[14px] border border-white/50 px-3.5 py-1 text-[11px] font-bold text-white shadow-md shadow-blue-500/25 flex items-center gap-1"
+                                    style={{
+                                      backgroundImage:
+                                        'linear-gradient(90deg, #f59e0b, #10b981, #06b6d4, #3b82f6, #8b5cf6, #ec4899, #f97316, #f59e0b)',
+                                      backgroundSize: '200% 100%',
+                                    }}
+                                  >
+                                    <span className="text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+                                      Prisma
+                                    </span>
+                                    <span className="text-[10px]">🌈</span>
+                                  </div>
+                                )}
+
+                                {preset.id === 'cyber-glass' && (
+                                  <div className="px-3 py-1 rounded-xl bg-cyan-950/80 border border-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.6),inset_0_0_8px_rgba(147,51,234,0.3)] ring-1 ring-cyan-300/40 text-[10px] font-mono text-cyan-200 tracking-wider flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                                    <span>CYBER</span>
+                                  </div>
+                                )}
+
+                                {preset.id === 'retro-pixel' && (
+                                  <div className="relative px-3 py-0.5 rounded-none border-2 border-black bg-purple-600 shadow-[2px_2px_0px_#000] text-[10px] font-mono text-white tracking-tight">
+                                    <BubbleDecoration shape="retro-pixel" isOwnMessage={false} />
+                                    <span>8-BIT</span>
+                                  </div>
+                                )}
+
+                                {preset.id === 'liquid-neon' && (
+                                  <div className="relative px-3.5 py-1 rounded-[16px] bg-[#0f0b1e] border border-purple-500/40 shadow-[0_0_12px_rgba(168,85,247,0.4)] flex items-center justify-center">
+                                    <BubbleDecoration shape="liquid-neon" isOwnMessage={false} />
+                                    <span className="text-[10px] font-bold text-white tracking-wide">
+                                      Neon ✨
+                                    </span>
+                                  </div>
+                                )}
+
+                                {preset.id === 'star-bubble' && (
+                                  <div className="relative">
+                                    <BubbleDecoration shape="star-bubble" isOwnMessage={false} />
+                                    <div className="px-3.5 py-1 rounded-[14px] rounded-bl-[4px] border border-amber-600/40 bg-gradient-to-b from-[#fbbf24] to-[#f59e0b] text-[10.5px] font-bold text-[#451a03] shadow-md">
+                                      Star ☀️
+                                    </div>
+                                  </div>
+                                )}
+
+                                {preset.id === 'pink-cream' && (
+                                  <div className="relative pb-2">
+                                    <BubbleDecoration shape="pink-cream" isOwnMessage={false} />
+                                    <div className="px-3.5 py-1 rounded-t-[14px] rounded-b-[4px] border border-pink-300/40 bg-gradient-to-b from-[#fbcfe8] via-[#f472b6] to-[#fb7185] text-[10.5px] font-bold text-[#831843] shadow-md">
+                                      Cream 🍧
+                                    </div>
+                                  </div>
+                                )}
+
+                                {preset.id === 'sheetbook-note' && (
+                                  <div className="relative">
+                                    <BubbleDecoration shape="sheetbook-note" isOwnMessage={false} />
+                                    <div
+                                      className="px-3.5 py-1 rounded-[12px] border border-slate-300 bg-white text-[10.5px] font-bold text-[#1e293b] shadow-sm"
+                                      style={{
+                                        backgroundImage:
+                                          'linear-gradient(to right, rgba(59, 130, 246, 0.15) 1px, transparent 1px), linear-gradient(to bottom, rgba(59, 130, 246, 0.15) 1px, transparent 1px)',
+                                        backgroundSize: '10px 10px',
+                                      }}
+                                    >
+                                      Note 📝
+                                    </div>
+                                  </div>
+                                )}
+
+                                {preset.id === 'moon-bubble' && (
+                                  <div className="relative">
+                                    <BubbleDecoration shape="moon-bubble" isOwnMessage={false} />
+                                    <div className="px-3.5 py-1 rounded-[14px] border border-purple-500/30 bg-gradient-to-br from-[#181135] via-[#29154e] to-[#120c2b] text-[10.5px] font-bold text-white shadow-md">
+                                      Moon 🪐
+                                    </div>
+                                  </div>
+                                )}
+
+                                {preset.id === 'cloudy-bubble' && (
+                                  <div className="relative pb-2">
+                                    <BubbleDecoration shape="cloudy-bubble" isOwnMessage={false} />
+                                    <div className="px-3.5 py-1 rounded-t-[14px] rounded-b-[4px] border border-blue-400/30 bg-gradient-to-b from-[#60a5fa] to-[#2563eb] text-[10.5px] font-bold text-white shadow-md">
+                                      Cloud ☁️
+                                    </div>
+                                  </div>
+                                )}
+
+                                {preset.id === 'evil-bubble' && (
+                                  <div className="relative">
+                                    <BubbleDecoration shape="evil-bubble" isOwnMessage={false} />
+                                    <div className="px-3.5 py-1 rounded-[14px] border border-red-500/70 bg-[#260a12] text-[10.5px] font-bold text-[#ffe4e6] shadow-[0_0_12px_rgba(239,68,68,0.4)]">
+                                      Evil 😈
+                                    </div>
+                                  </div>
+                                )}
+
+                                {preset.id === 'halo-bubble' && (
+                                  <div className="relative">
+                                    <BubbleDecoration shape="halo-bubble" isOwnMessage={false} />
+                                    <div className="px-3.5 py-1 rounded-[14px] border-2 border-amber-400 bg-white text-[10.5px] font-bold text-[#1f2937] shadow-[0_0_12px_rgba(245,158,11,0.3)]">
+                                      Halo 😇
+                                    </div>
+                                  </div>
+                                )}
+
+                                {preset.id === 'system-bubble' && (
+                                  <div className="relative px-3 py-1 rounded-lg bg-[#050805] border border-emerald-500 shadow-[0_0_10px_rgba(34,197,94,0.35)] font-mono text-[10px] text-[#4ade80] flex items-center gap-1">
+                                    <BubbleDecoration shape="system-bubble" isOwnMessage={false} />
+                                    <span className="pl-3">SYSTEM_</span>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Info */}
+                              <div>
+                                <div className="flex items-center justify-between mb-0.5">
+                                  {preset.id === 'gummy' ? (
+                                    <h4 className="text-xs font-bold text-white group-hover:text-purple-300 transition truncate flex items-center gap-1">
+                                      <span>
+                                        <span className="text-[#f472b6]">G</span>
+                                        <span className="text-[#38bdf8]">u</span>
+                                        <span className="text-[#c084fc]">m</span>
+                                        <span className="text-[#34d399]">m</span>
+                                        <span className="text-[#f472b6]">y</span>
+                                      </span>
+                                    </h4>
+                                  ) : preset.id === 'prisma' ? (
+                                    <h4 className="text-xs font-bold text-white group-hover:text-purple-300 transition truncate flex items-center gap-1">
+                                      <span>
+                                        <span className="text-[#eab308]">P</span>
+                                        <span className="text-[#22c55e]">r</span>
+                                        <span className="text-[#eab308]">i</span>
+                                        <span className="text-[#ec4899]">s</span>
+                                        <span className="text-[#3b82f6]">m</span>
+                                        <span className="text-[#f97316]">a</span>
+                                      </span>
+                                    </h4>
+                                  ) : (
+                                    <h4 className="text-xs font-bold text-white group-hover:text-purple-300 transition truncate">
+                                      {preset.name}
+                                    </h4>
+                                  )}
+                                  {isSelected && (
+                                    <div className="w-4 h-4 rounded-full bg-purple-600 text-white flex items-center justify-center flex-shrink-0 ml-1">
+                                      <Check size={10} strokeWidth={3} />
+                                    </div>
+                                  )}
+                                </div>
+                                <p className="text-[10px] text-gray-400 line-clamp-1 leading-tight">
+                                  {preset.subtitle}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Sub-tab 1: Solid Bubble Colors */}
+                  {bubbleSubTab === 'solid' && (
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
@@ -1502,10 +2024,10 @@ export default function SelectThemeModal({
                               type="button"
                               onClick={() => handleEyeDrop((hex) => handleBubbleColorChange(hex))}
                               className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-[11px] text-gray-300 hover:text-white border border-white/10 transition"
-                              title="Пипетка: захватить цвет с экрана"
+                              title="Eyedropper: pick color from screen"
                             >
                               <Pipette size={12} className="text-purple-400" />
-                              <span>Пипетка</span>
+                              <span>Eyedropper</span>
                             </button>
                           )}
                           <label className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 transition">
@@ -1554,49 +2076,99 @@ export default function SelectThemeModal({
                           />
                         ))}
                       </div>
+
+                      {/* Incoming Bubble Solid Color */}
+                      <div className="pt-2 border-t border-white/5 flex items-center justify-between">
+                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                          Incoming Bubble Color
+                        </span>
+                        <div className="flex items-center gap-2">
+                          {isEyeDropperSupported && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleEyeDrop((hex) => handleIncomingBubbleColorChange(hex))
+                              }
+                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-[11px] text-gray-300 hover:text-white border border-white/10 transition"
+                              title="Eyedropper"
+                            >
+                              <Pipette size={12} className="text-purple-400" />
+                              <span>Eyedropper</span>
+                            </button>
+                          )}
+                          <label className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 transition">
+                            <span
+                              className="w-4 h-4 rounded-full border border-white/20 shadow-inner"
+                              style={{
+                                backgroundColor: draftTheme.incomingBubbleColor || '#12131b',
+                              }}
+                            />
+                            <span className="text-xs font-mono text-gray-300">
+                              {(draftTheme.incomingBubbleColor || '#12131B').toUpperCase()}
+                            </span>
+                            <input
+                              type="color"
+                              value={draftTheme.incomingBubbleColor || '#12131b'}
+                              onChange={(e) => handleIncomingBubbleColorChange(e.target.value)}
+                              className="opacity-0 w-0 h-0 absolute pointer-events-none"
+                            />
+                          </label>
+                        </div>
+                      </div>
                     </div>
-                  ) : (
+                  )}
+
+                  {/* Sub-tab 2: Bubble Gradients */}
+                  {bubbleSubTab === 'gradient' && (
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                          Bubble Gradient Stops
+                          Bubble Gradients
                         </span>
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
                             onClick={handleRandomizeBubbleGradient}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 hover:text-purple-200 border border-purple-400/30 text-xs font-semibold transition active:scale-95 shadow-sm"
-                            title="Сгенерировать случайный красивый градиент бабла"
+                            title="Generate beautiful random bubble gradient"
                           >
                             <Dices size={14} />
-                            <span>🎲 Рандом</span>
+                            <span>🎲 Random</span>
                           </button>
 
                           {(draftTheme.bubbleGradientColors || []).length < 3 && (
                             <button
                               type="button"
                               onClick={handleAddBubbleGradientColor}
-                              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-semibold text-gray-300 hover:text-white border border-white/10 transition"
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 text-xs font-semibold transition active:scale-95"
                             >
-                              <Plus size={13} />
+                              <Plus size={14} />
                               <span>Add Color</span>
                             </button>
                           )}
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {/* Gradient Color Stops */}
+                      <div className="space-y-2">
                         {(draftTheme.bubbleGradientColors || ['#9333ea', '#6366f1']).map(
                           (color, index) => (
                             <div
                               key={index}
-                              className="p-3 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between gap-2"
+                              className="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/5"
                             >
-                              <div className="flex items-center gap-2 min-w-0">
-                                <label
-                                  className="relative w-8 h-8 rounded-xl border border-white/20 shadow-md cursor-pointer flex-shrink-0 flex items-center justify-center overflow-hidden"
-                                  style={{ backgroundColor: color }}
-                                >
+                              <span className="text-xs text-gray-400 font-medium">
+                                Stop {index + 1}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <label className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-black/40 border border-white/10 cursor-pointer hover:bg-black/60 transition">
+                                  <span
+                                    className="w-3.5 h-3.5 rounded-full border border-white/20 shadow-inner"
+                                    style={{ backgroundColor: color }}
+                                  />
+                                  <span className="text-xs font-mono text-gray-300">
+                                    {color.toUpperCase()}
+                                  </span>
                                   <input
                                     type="color"
                                     value={color}
@@ -1606,17 +2178,7 @@ export default function SelectThemeModal({
                                     className="opacity-0 w-0 h-0 absolute pointer-events-none"
                                   />
                                 </label>
-                                <div className="min-w-0">
-                                  <p className="text-[10px] text-gray-400 font-bold uppercase">
-                                    Stop {index + 1}
-                                  </p>
-                                  <p className="text-xs font-mono text-gray-200 truncate">
-                                    {color.toUpperCase()}
-                                  </p>
-                                </div>
-                              </div>
 
-                              <div className="flex items-center gap-1">
                                 {isEyeDropperSupported && (
                                   <button
                                     type="button"
@@ -1626,7 +2188,7 @@ export default function SelectThemeModal({
                                       )
                                     }
                                     className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-purple-300 hover:bg-white/10 transition"
-                                    title="Пипетка"
+                                    title="Eyedropper"
                                   >
                                     <Pipette size={13} />
                                   </button>
@@ -1697,13 +2259,13 @@ export default function SelectThemeModal({
                   <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-4">
                     <span className="text-xs font-bold text-gray-300 flex items-center gap-1.5">
                       <Layers size={14} className="text-purple-400" />
-                      <span>Glassmorphism & Frosted Glass (iOS / VisionOS Style)</span>
+                      <span>Glassmorphism & Frosted Glass</span>
                     </span>
 
                     {/* Bubble Opacity Slider */}
                     <div className="space-y-1.5">
                       <div className="flex justify-between text-xs">
-                        <span className="text-gray-400">Прозрачность бабла (Bubble Opacity)</span>
+                        <span className="text-gray-400">Bubble Opacity</span>
                         <span className="text-gray-200 font-mono font-semibold">
                           {Math.round((draftTheme.bubbleOpacity ?? 0.95) * 100)}%
                         </span>
@@ -1727,7 +2289,7 @@ export default function SelectThemeModal({
                     {/* Backdrop Blur Slider */}
                     <div className="space-y-1.5">
                       <div className="flex justify-between text-xs">
-                        <span className="text-gray-400">Матовое размытие фона (Backdrop Blur)</span>
+                        <span className="text-gray-400">Backdrop Blur</span>
                         <span className="text-gray-200 font-mono font-semibold">
                           {draftTheme.bubbleBlur ?? 16}px
                         </span>
@@ -1754,7 +2316,7 @@ export default function SelectThemeModal({
                     <div>
                       <p className="text-xs font-bold text-white flex items-center gap-1.5">
                         <Sparkles size={14} className="text-purple-400" />
-                        <span>Continuous Screen Gradient (Instagram & Telegram)</span>
+                        <span>Continuous Screen Gradient</span>
                       </p>
                       <p className="text-[11px] text-gray-400 mt-0.5">
                         One smooth gradient stretches across the entire screen height as messages
@@ -1807,19 +2369,291 @@ export default function SelectThemeModal({
                       ))}
                     </div>
                   </div>
+                </div>
+              )}
 
-                  {/* WCAG Contrast Status Pill */}
-                  <div className="p-3 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between text-xs">
-                    <span className="text-gray-400">WCAG Smart Text Contrast:</span>
-                    <span
-                      className={`font-semibold px-2.5 py-0.5 rounded-full border ${
-                        outgoingContrast.isLight
-                          ? 'bg-amber-500/20 text-amber-300 border-amber-400/30'
-                          : 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30'
+              {/* Tab: Text (Discord-Style Custom Typography & Effects) */}
+              {activeTab === 'text' && (
+                <div className="space-y-6">
+                  {/* 1. Font Selection */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
+                        Font Selection
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          triggerHapticFeedback(6);
+                          setDraftTheme((p) => ({ ...p, textFont: 'default' }));
+                        }}
+                        title="Reset font to default"
+                        className="p-1.5 text-gray-400 hover:text-white rounded-lg transition hover:bg-white/10 flex items-center gap-1 text-xs"
+                      >
+                        <RotateCcw size={13} />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-4 gap-2.5">
+                      {CHAT_FONTS.map((font) => {
+                        const isSelected = (draftTheme.textFont || 'default') === font.id;
+                        const isHovered = hoveredFont === font.id;
+                        return (
+                          <div key={font.id} className="relative">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                triggerHapticFeedback(6);
+                                setDraftTheme((p) => ({ ...p, textFont: font.id }));
+                              }}
+                              onMouseEnter={() => setHoveredFont(font.id)}
+                              onMouseLeave={() => setHoveredFont(null)}
+                              className={`w-full aspect-[1.15/1] rounded-2xl flex items-center justify-center transition-all duration-150 relative ${
+                                isSelected
+                                  ? 'bg-[#1e1f29] border-2 border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.35)] ring-1 ring-indigo-500/50'
+                                  : 'bg-[#181922] hover:bg-[#20222e] border border-white/5 hover:border-white/10'
+                              }`}
+                              title={font.name}
+                            >
+                              {/* Selection indicator dot matching screenshot */}
+                              {isSelected && (
+                                <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-indigo-400 shadow-[0_0_6px_#818cf8]" />
+                              )}
+
+                              <span
+                                style={{
+                                  fontFamily: font.fontFamily,
+                                  fontSize: font.scale ? `${font.scale * 1.55}rem` : '1.55rem',
+                                  lineHeight: 1,
+                                }}
+                                className="text-white font-bold select-none tracking-tight"
+                              >
+                                {font.sampleText || 'Gg'}
+                              </span>
+                            </button>
+
+                            {/* Discord-style Tooltip on Hover */}
+                            <AnimatePresence>
+                              {isHovered && (
+                                <motion.div
+                                  initial={{ opacity: 0, y: 4, scale: 0.95 }}
+                                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                                  exit={{ opacity: 0, y: 2, scale: 0.95 }}
+                                  transition={{ duration: 0.12 }}
+                                  className="absolute z-30 bottom-full mb-1.5 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-md bg-[#111216] border border-white/10 text-white text-[11px] font-medium whitespace-nowrap shadow-xl pointer-events-none"
+                                >
+                                  {font.name}
+                                  <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#111216]" />
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 2. Effect Selection */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
+                        Effect Selection
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          triggerHapticFeedback(6);
+                          setDraftTheme((p) => ({ ...p, textEffect: 'minimal' }));
+                        }}
+                        title="Reset text effect"
+                        className="p-1.5 text-gray-400 hover:text-white rounded-lg transition hover:bg-white/10 flex items-center gap-1 text-xs"
+                      >
+                        <RotateCcw size={13} />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-4 gap-2.5">
+                      {CHAT_TEXT_EFFECTS.map((effect) => {
+                        const isSelected = (draftTheme.textEffect || 'minimal') === effect.id;
+                        return (
+                          <button
+                            key={effect.id}
+                            type="button"
+                            onClick={() => {
+                              triggerHapticFeedback(6);
+                              setDraftTheme((p) => ({ ...p, textEffect: effect.id }));
+                            }}
+                            className={`h-14 rounded-2xl flex items-center justify-center px-2 py-1 transition-all duration-150 text-center ${
+                              isSelected
+                                ? 'bg-[#1e1f29] border-2 border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.35)] ring-1 ring-indigo-500/50'
+                                : 'bg-[#181922] hover:bg-[#20222e] border border-white/5 hover:border-white/10'
+                            }`}
+                            title={effect.name}
+                          >
+                            <span
+                              className={`text-xs font-bold truncate max-w-full select-none ${
+                                effect.id === 'gradient'
+                                  ? 'msg-effect-gradient font-extrabold'
+                                  : effect.id === 'neon'
+                                    ? 'msg-effect-neon font-extrabold text-purple-300'
+                                    : effect.id === 'cartoon'
+                                      ? 'msg-effect-cartoon text-pink-400 font-extrabold'
+                                      : effect.id === 'highlight'
+                                        ? 'msg-effect-highlight text-emerald-400 font-bold'
+                                        : effect.id === 'gummy'
+                                          ? 'msg-effect-gummy text-pink-300 font-extrabold'
+                                          : effect.id === 'prism'
+                                            ? 'msg-effect-prism text-white font-bold'
+                                            : 'text-gray-200'
+                              }`}
+                            >
+                              {effect.label}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 3. Color Selection */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
+                        Color Selection
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          triggerHapticFeedback(6);
+                          setDraftTheme((p) => ({ ...p, textColor: 'auto' }));
+                        }}
+                        title="Reset color (Auto)"
+                        className="p-1.5 text-gray-400 hover:text-white rounded-lg transition hover:bg-white/10 flex items-center gap-1 text-xs"
+                      >
+                        <RotateCcw size={13} />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      {/* Active Color Preview Block */}
+                      <div
+                        className="w-14 h-14 rounded-2xl flex-shrink-0 flex items-center justify-center shadow-lg border border-white/10 relative overflow-hidden"
+                        style={{
+                          backgroundColor:
+                            draftTheme.textColor && draftTheme.textColor !== 'auto'
+                              ? draftTheme.textColor
+                              : '#ec4899',
+                        }}
+                      >
+                        {(!draftTheme.textColor || draftTheme.textColor === 'auto') && (
+                          <div className="absolute inset-0 bg-gradient-to-tr from-[#111216] to-white/40 flex items-center justify-center">
+                            <span className="text-[10px] font-bold text-white uppercase tracking-wider drop-shadow">
+                              Auto
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Custom Color Picker Button (Red / custom square with pen icon matching screenshot) */}
+                      <div className="relative flex-shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            triggerHapticFeedback(8);
+                            textColorInputRef.current?.click();
+                          }}
+                          className="w-14 h-14 rounded-2xl bg-red-600 hover:bg-red-500 text-white flex items-center justify-center shadow-lg border border-red-400/40 transition active:scale-95"
+                          title="Choose custom color"
+                        >
+                          <Pencil size={20} className="stroke-[2.5]" />
+                        </button>
+                        <input
+                          ref={textColorInputRef}
+                          type="color"
+                          value={
+                            draftTheme.textColor && draftTheme.textColor !== 'auto'
+                              ? draftTheme.textColor
+                              : '#ec4899'
+                          }
+                          onChange={(e) => {
+                            triggerHapticFeedback(6);
+                            setDraftTheme((p) => ({ ...p, textColor: e.target.value }));
+                          }}
+                          className="sr-only"
+                        />
+                      </div>
+
+                      {/* 14 Preset Color Dots (2 rows of 7 dots) */}
+                      <div className="grid grid-rows-2 grid-flow-col gap-2 flex-1 justify-start">
+                        {DISCORD_TEXT_COLORS.map((item) => {
+                          const isSelected = (draftTheme.textColor || 'auto') === item.color;
+                          const isAuto = item.color === 'auto';
+                          return (
+                            <button
+                              key={item.name}
+                              type="button"
+                              onClick={() => {
+                                triggerHapticFeedback(6);
+                                setDraftTheme((p) => ({ ...p, textColor: item.color }));
+                              }}
+                              className={`w-6 h-6 rounded-full transition-transform active:scale-90 relative ${
+                                isSelected
+                                  ? 'ring-2 ring-white ring-offset-2 ring-offset-[#0b0b0c] scale-110 shadow-md'
+                                  : 'hover:scale-105 opacity-90 hover:opacity-100'
+                              }`}
+                              style={{
+                                backgroundColor: isAuto ? '#22232b' : item.color,
+                                border: isAuto ? '1px dashed rgba(255,255,255,0.4)' : 'none',
+                              }}
+                              title={`${item.name} ${isAuto ? '(High-contrast Auto)' : ''}`}
+                            >
+                              {isAuto && (
+                                <span className="text-[7px] font-bold text-gray-300 block text-center leading-none">
+                                  A
+                                </span>
+                              )}
+                              {isSelected && !isAuto && (
+                                <Check
+                                  size={12}
+                                  className="absolute inset-0 m-auto text-white drop-shadow stroke-[3]"
+                                />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 4. Apply to All Messages Toggle Card */}
+                  <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between gap-4 transition hover:bg-white/[0.07]">
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-semibold text-white">Apply to All Messages</p>
+                      <p className="text-[11px] text-gray-400 leading-relaxed">
+                        Without this, styles only apply to your messages; with it, incoming messages
+                        match too
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={draftTheme.textApplyToAll ?? false}
+                      onClick={() => {
+                        triggerHapticFeedback(6);
+                        setDraftTheme((p) => ({ ...p, textApplyToAll: !p.textApplyToAll }));
+                      }}
+                      className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                        draftTheme.textApplyToAll
+                          ? 'bg-purple-600 shadow-lg shadow-purple-500/30'
+                          : 'bg-white/20'
                       }`}
                     >
-                      {outgoingContrast.isLight ? 'Dark Text Active' : 'White Text Active'}
-                    </span>
+                      <span
+                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                          draftTheme.textApplyToAll ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
                   </div>
                 </div>
               )}
@@ -1896,33 +2730,98 @@ export default function SelectThemeModal({
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {customPresets.map((cp) => (
-                        <div
-                          key={cp.id}
-                          onClick={() => handleSelectPreset(cp)}
-                          className="p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-between cursor-pointer group transition"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div
-                              className="w-10 h-10 rounded-xl border border-white/20 shadow-inner flex-shrink-0"
-                              style={{ background: cp.previewBg }}
-                            />
-                            <div>
-                              <p className="text-sm font-bold text-white">{cp.name}</p>
-                              <p className="text-xs text-gray-400">Custom theme</p>
+                      {customPresets.map((cp) => {
+                        const isEditing = editingPresetId === cp.id;
+                        return (
+                          <div
+                            key={cp.id}
+                            onClick={() => !isEditing && handleSelectPreset(cp)}
+                            className="p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-between cursor-pointer group transition"
+                          >
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              <div
+                                className="w-10 h-10 rounded-xl border border-white/20 shadow-inner flex-shrink-0"
+                                style={{ background: cp.previewBg }}
+                              />
+                              <div className="min-w-0 flex-1 mr-2">
+                                {isEditing ? (
+                                  <input
+                                    type="text"
+                                    value={editingPresetName}
+                                    onChange={(e) => setEditingPresetName(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') handleSaveRename(cp.id);
+                                      if (e.key === 'Escape') setEditingPresetId(null);
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    autoFocus
+                                    className="w-full px-2.5 py-1 rounded-lg bg-black/60 border border-purple-500 text-sm font-bold text-white focus:outline-none focus:ring-1 focus:ring-purple-400"
+                                  />
+                                ) : (
+                                  <>
+                                    <p className="text-sm font-bold text-white truncate">
+                                      {cp.name}
+                                    </p>
+                                    <p className="text-xs text-gray-400">Custom theme</p>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              {isEditing ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleSaveRename(cp.id);
+                                    }}
+                                    className="w-8 h-8 rounded-lg flex items-center justify-center text-emerald-400 hover:bg-emerald-500/20 transition"
+                                    title="Save name"
+                                  >
+                                    <Check size={15} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingPresetId(null);
+                                    }}
+                                    className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-white/10 transition"
+                                    title="Cancel"
+                                  >
+                                    <X size={15} />
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingPresetId(cp.id);
+                                      setEditingPresetName(cp.name);
+                                    }}
+                                    className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-purple-300 hover:bg-purple-500/20 transition"
+                                    title="Edit theme name"
+                                  >
+                                    <Pencil size={14} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => handleDeleteCustomPreset(cp.id, e)}
+                                    className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:text-red-400 hover:bg-red-500/20 transition"
+                                    title="Delete theme"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </>
+                              )}
                             </div>
                           </div>
-
-                          <button
-                            type="button"
-                            onClick={(e) => handleDeleteCustomPreset(cp.id, e)}
-                            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:text-red-400 hover:bg-red-500/20 transition"
-                            title="Delete preset"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -1937,51 +2836,68 @@ export default function SelectThemeModal({
             >
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <Eye size={14} className="text-purple-400" />
                   <span>Interactive Live Preview</span>
                 </span>
 
-                <div className="flex items-center gap-2">
-                  {/* Hold-to-Compare Button (До / После) */}
-                  <button
-                    type="button"
-                    onMouseDown={() => {
-                      setIsComparing(true);
-                      triggerHapticFeedback(10);
-                    }}
-                    onMouseUp={() => setIsComparing(false)}
-                    onMouseLeave={() => setIsComparing(false)}
-                    onTouchStart={() => {
-                      setIsComparing(true);
-                      triggerHapticFeedback(10);
-                    }}
-                    onTouchEnd={() => setIsComparing(false)}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold border transition select-none cursor-pointer active:scale-95 ${
-                      isComparing
-                        ? 'bg-purple-600 text-white border-purple-400 shadow-md ring-2 ring-purple-400/40'
-                        : 'bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border-white/10'
-                    }`}
-                    title="Зажмите и удерживайте, чтобы посмотреть исходный вид чата"
-                  >
-                    <Eye
-                      size={13}
-                      className={isComparing ? 'text-white animate-pulse' : 'text-purple-400'}
-                    />
-                    <span>{isComparing ? 'Исходная' : 'До / После'}</span>
-                  </button>
+                <div className="flex items-center gap-1.5">
+                  {/* Segmented Comparison Bar */}
+                  <div className="flex items-center p-1 rounded-2xl bg-[#161722]/90 border border-white/10 shadow-inner">
+                    {/* Option 1: Draft (New custom changes) */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHapticFeedback(6);
+                        setPreviewMode('draft');
+                      }}
+                      className={`px-3.5 py-1.5 min-h-[34px] rounded-xl text-xs transition-all flex items-center justify-center font-medium ${
+                        previewMode === 'draft'
+                          ? 'bg-purple-600 text-white shadow-md font-bold'
+                          : 'text-gray-400 hover:text-white hover:bg-white/5'
+                      }`}
+                      title="Current theme with your new changes"
+                    >
+                      New
+                    </button>
+
+                    {/* Option 2: Initial (Theme before edits) */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHapticFeedback(6);
+                        setPreviewMode('initial');
+                      }}
+                      className={`flex items-center gap-1.5 px-3.5 py-1.5 min-h-[34px] rounded-xl text-xs transition-all cursor-pointer font-medium ${
+                        previewMode === 'initial'
+                          ? 'bg-purple-600 text-white shadow-md ring-2 ring-purple-400/30 font-bold'
+                          : 'text-gray-400 hover:text-white hover:bg-white/5'
+                      }`}
+                      title="Original chat theme before changes"
+                    >
+                      <span>Before changes</span>
+                    </button>
+
+                    {/* Option 3: Default (Clean dark default theme) */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHapticFeedback(6);
+                        setPreviewMode('default');
+                      }}
+                      className={`px-3.5 py-1.5 min-h-[34px] rounded-xl text-xs transition-all flex items-center justify-center font-medium ${
+                        previewMode === 'default'
+                          ? 'bg-indigo-600 text-white shadow-md font-bold'
+                          : 'text-gray-400 hover:text-white hover:bg-white/5'
+                      }`}
+                      title="Show standard default theme"
+                    >
+                      Default
+                    </button>
+                  </div>
                 </div>
               </div>
 
               {/* Chat Frame Mockup */}
               <div className="relative flex-1 rounded-3xl overflow-hidden border border-white/15 shadow-2xl flex flex-col min-h-[380px]">
-                {/* Hold-to-Compare Floating Notice Badge */}
-                {isComparing && (
-                  <div className="absolute top-14 left-1/2 -translate-x-1/2 z-30 px-3 py-1 rounded-full bg-black/80 backdrop-blur-xl border border-purple-500/50 text-white text-[11px] font-bold shadow-2xl flex items-center gap-1.5 animate-bounce pointer-events-none">
-                    <Eye size={12} className="text-purple-400" />
-                    <span>Оригинальный вид (удерживайте)</span>
-                  </div>
-                )}
-
                 {/* Background Layer with Filters & Hardware Acceleration */}
                 <div
                   className="absolute inset-0 z-0 overflow-hidden pointer-events-none"
@@ -2010,22 +2926,32 @@ export default function SelectThemeModal({
                   )}
                 </div>
 
-                {/* Mock Chat Header */}
+                {/* Mock Chat Header (Liquid Glass) */}
                 <div
-                  className="relative z-10 px-4 py-3 bg-[#12131b]/80 border-b border-white/10 flex items-center gap-3"
+                  className="relative z-10 px-4 py-3 bg-white/[0.05] backdrop-blur-2xl border-b border-white/10 flex items-center justify-between rounded-t-[23px] shadow-[0_4px_20px_rgba(0,0,0,0.15)]"
                   style={{
-                    backdropFilter: 'blur(16px)',
-                    WebkitBackdropFilter: 'blur(16px)',
+                    background:
+                      'linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%)',
                   }}
                 >
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 flex items-center justify-center text-xs font-bold text-white shadow-md">
-                    EA
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 flex items-center justify-center text-xs font-bold text-white shadow-md shadow-purple-500/20 ring-1 ring-white/20">
+                      EA
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-white leading-tight">
+                        Eternal Messenger
+                      </p>
+                      <p className="text-[10px] text-emerald-400 font-medium leading-tight flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        <span>Online</span>
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs font-bold text-white leading-tight">Eternal Messenger</p>
-                    <p className="text-[10px] text-emerald-400 font-medium leading-tight">
-                      Interactive Preview
-                    </p>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-gray-300 font-medium">
+                      Preview
+                    </span>
                   </div>
                 </div>
 
@@ -2038,6 +2964,26 @@ export default function SelectThemeModal({
                     const isMe = msg.sender === 'me';
                     const bubble = isMe ? outgoingBubble : incomingBubble;
                     const contrast = isMe ? outgoingContrast : incomingContrast;
+                    const shapeStyles = getBubbleShapeStyles(
+                      displayTheme.bubbleShape || 'telegram-modern',
+                      isMe,
+                      'single',
+                    );
+                    const themeTextStyle = getThemeTextStyle(
+                      displayTheme,
+                      isMe,
+                      contrast.textColor,
+                    );
+                    const tailColor = isMe
+                      ? displayTheme.bubbleType === 'solid'
+                        ? displayTheme.bubbleColor || '#9333ea'
+                        : displayTheme.bubbleGradientColors &&
+                            displayTheme.bubbleGradientColors.length > 0
+                          ? displayTheme.bubbleGradientColors[
+                              displayTheme.bubbleGradientColors.length - 1
+                            ]
+                          : '#6366f1'
+                      : displayTheme.incomingBubbleColor || '#12131b';
 
                     return (
                       <div
@@ -2048,54 +2994,73 @@ export default function SelectThemeModal({
                             : 'items-start self-start max-w-[85%]'
                         }`}
                       >
-                        <div
-                          className={`relative px-3.5 py-2 rounded-[18px] transition-all duration-150 ${
-                            isMe ? 'rounded-br-sm' : 'rounded-bl-sm'
-                          } ${bubble.className}`}
-                          style={{
-                            ...bubble.style,
-                            color: contrast.textColor,
-                          }}
-                        >
-                          {/* Quoted Reply Box */}
-                          {msg.replySnippet && (
-                            <div
-                              className="px-2 py-1 rounded-lg mb-1.5 flex items-center gap-2 border-l-2 text-left select-none text-[10.5px]"
+                        <div className="relative inline-block max-w-full">
+                          <BubbleDecoration shape={displayTheme.bubbleShape} isOwnMessage={isMe} />
+                          <div
+                            className={`relative px-3.5 py-2 transition-all duration-150 ${shapeStyles.roundingClass} ${bubble.className} ${shapeStyles.extraClass}`}
+                            style={{
+                              ...bubble.style,
+                              color: contrast.textColor,
+                              ...shapeStyles.extraStyle,
+                            }}
+                          >
+                            {/* Quoted Reply Box */}
+                            {msg.replySnippet && (
+                              <div
+                                className="px-2 py-1 rounded-lg mb-1.5 flex items-center gap-2 border-l-2 text-left select-none text-[10.5px]"
+                                style={{
+                                  backgroundColor: contrast.quoteBg,
+                                  borderLeftColor: contrast.quoteBorder,
+                                }}
+                              >
+                                <div>
+                                  <p
+                                    className="font-bold leading-tight"
+                                    style={{ color: contrast.quoteAuthorColor }}
+                                  >
+                                    Alex
+                                  </p>
+                                  <p
+                                    className="leading-tight truncate opacity-85"
+                                    style={{ color: contrast.quoteSnippetColor }}
+                                  >
+                                    {msg.replySnippet}
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+
+                            <p
+                              className={`text-xs leading-relaxed font-normal ${themeTextStyle.className}`}
                               style={{
-                                backgroundColor: contrast.quoteBg,
-                                borderLeftColor: contrast.quoteBorder,
+                                color: contrast.textColor,
+                                ...themeTextStyle.style,
                               }}
                             >
-                              <div>
-                                <p
-                                  className="font-bold leading-tight"
-                                  style={{ color: contrast.quoteAuthorColor }}
-                                >
-                                  Миша
-                                </p>
-                                <p
-                                  className="leading-tight truncate opacity-85"
-                                  style={{ color: contrast.quoteSnippetColor }}
-                                >
-                                  {msg.replySnippet}
-                                </p>
-                              </div>
+                              {msg.text}
+                            </p>
+
+                            <div className="flex items-center justify-end gap-1 mt-1 select-none">
+                              <span
+                                className="text-[9px] font-mono"
+                                style={{ color: contrast.timeColor }}
+                              >
+                                {msg.time}
+                              </span>
+                              {isMe && (
+                                <CheckCheck size={12} style={{ color: contrast.statusColor }} />
+                              )}
                             </div>
-                          )}
-
-                          <p className="text-xs leading-relaxed font-normal">{msg.text}</p>
-
-                          <div className="flex items-center justify-end gap-1 mt-1 select-none">
-                            <span
-                              className="text-[9px] font-mono"
-                              style={{ color: contrast.timeColor }}
-                            >
-                              {msg.time}
-                            </span>
-                            {isMe && (
-                              <CheckCheck size={12} style={{ color: contrast.statusColor }} />
-                            )}
                           </div>
+
+                          {/* Bubble Tail for iOS / Telegram */}
+                          {shapeStyles.showTail && (
+                            <BubbleTail
+                              tailType={shapeStyles.tailType!}
+                              isOwnMessage={isMe}
+                              color={tailColor}
+                            />
+                          )}
                         </div>
 
                         {/* Reaction Badges Container */}
@@ -2134,7 +3099,7 @@ export default function SelectThemeModal({
                               type="button"
                               onClick={(e) => handlePreviewReaction(msg.id, emoji, e)}
                               className="w-5 h-5 rounded-full flex items-center justify-center text-xs hover:scale-125 transition-transform"
-                              title={`Реакция ${emoji}`}
+                              title={`Reaction ${emoji}`}
                             >
                               {emoji}
                             </button>
@@ -2145,21 +3110,21 @@ export default function SelectThemeModal({
                   })}
                 </div>
 
-                {/* Interactive Test Composer Input */}
+                {/* Interactive Test Composer Input (Liquid Glass) */}
                 <form
                   onSubmit={handleSendTestMessage}
-                  className="relative z-10 p-2.5 bg-[#12131b]/90 border-t border-white/10 flex items-center gap-2"
+                  className="relative z-10 p-2.5 bg-white/[0.04] backdrop-blur-2xl border-t border-white/10 flex items-center gap-2 rounded-b-[23px]"
                   style={{
-                    backdropFilter: 'blur(16px)',
-                    WebkitBackdropFilter: 'blur(16px)',
+                    background:
+                      'linear-gradient(0deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%)',
                   }}
                 >
                   <input
                     type="text"
                     value={testInput}
                     onChange={(e) => setTestInput(e.target.value)}
-                    placeholder="Напишите тестовое сообщение..."
-                    className="flex-1 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition"
+                    placeholder="Write a test message..."
+                    className="flex-1 px-3 py-1.5 rounded-xl bg-black/40 border border-white/10 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition"
                   />
                   <button
                     type="submit"
@@ -2246,10 +3211,10 @@ export default function SelectThemeModal({
                   onClick={handleProposeSharedTheme}
                   disabled={isApplying || isProposing}
                   className="px-4 py-2 rounded-full text-xs font-bold bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 hover:text-purple-200 border border-purple-400/30 shadow-md transition active:scale-95 disabled:opacity-50 flex items-center gap-1.5"
-                  title="Предложить эту тему собеседнику как общую парную тему (Instagram/Messenger)"
+                  title="Propose this theme to partner as a shared paired theme"
                 >
                   <Sparkles size={13} />
-                  <span>{isProposing ? 'Отправка...' : '✨ Предложить как парную'}</span>
+                  <span>{isProposing ? 'Sending...' : 'Propose Paired Theme'}</span>
                 </button>
               )}
 

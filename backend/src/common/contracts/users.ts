@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { liveActivityStatusSchema } from './showcase';
 export const Visibility = {
   EVERYBODY: 'EVERYBODY',
   CONTACTS: 'CONTACTS',
@@ -35,16 +36,8 @@ export const ExceptionMode = {
   DENY: 'DENY',
 } as const;
 export type ExceptionMode = (typeof ExceptionMode)[keyof typeof ExceptionMode];
-import sanitizeHtmlLib from 'sanitize-html';
+import { sanitizeHtml } from './sanitize';
 import { HARDENED_USERNAME_REGEX, RESERVED_USERNAMES } from './auth';
-
-function sanitizeHtml(value: unknown): unknown {
-  if (typeof value !== 'string') return value;
-  return sanitizeHtmlLib(value, {
-    allowedTags: [],
-    allowedAttributes: {},
-  }).trim();
-}
 
 export const LastSeenGranularity = {
   RECENTLY: 'RECENTLY',
@@ -207,6 +200,7 @@ export const userProfileSchema = z.object({
   followingCount: z.number().optional(),
   alias: z.string().nullable().optional(),
   recommendationReason: recommendationReasonSchema.optional(),
+  activityStatus: liveActivityStatusSchema.nullable().optional(),
 });
 export type UserProfileDto = z.infer<typeof userProfileSchema>;
 

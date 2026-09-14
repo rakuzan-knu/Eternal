@@ -31,14 +31,18 @@ type ActiveModal =
 
 interface ProfileMenuProps {
   isSidebarExpanded: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function ProfileMenu({ isSidebarExpanded }: ProfileMenuProps) {
+export function ProfileMenu({ isSidebarExpanded, onOpenChange }: ProfileMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeModal, setActiveModal] = useState<ActiveModal>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  useClickOutside(containerRef, () => setIsOpen(false));
+  useClickOutside(containerRef, () => {
+    setIsOpen(false);
+    onOpenChange?.(false);
+  });
 
   const navigate = useNavigate();
   const openEditProfile = useUIStore((s) => s.openEditProfile);
@@ -65,11 +69,13 @@ export function ProfileMenu({ isSidebarExpanded }: ProfileMenuProps) {
 
   const openModal = (modal: ActiveModal) => {
     setIsOpen(false);
+    onOpenChange?.(false);
     setActiveModal(modal);
   };
 
   const closeAll = () => {
     setIsOpen(false);
+    onOpenChange?.(false);
     setActiveModal(null);
   };
 
@@ -103,7 +109,11 @@ export function ProfileMenu({ isSidebarExpanded }: ProfileMenuProps) {
     <div className="relative w-full" ref={containerRef}>
       <button
         type="button"
-        onClick={() => setIsOpen((v) => !v)}
+        onClick={() => {
+          const next = !isOpen;
+          setIsOpen(next);
+          onOpenChange?.(next);
+        }}
         aria-haspopup="menu"
         aria-expanded={isOpen}
         className={`flex items-center rounded-2xl transition-all duration-200 group relative h-12 ${
@@ -127,7 +137,7 @@ export function ProfileMenu({ isSidebarExpanded }: ProfileMenuProps) {
       {isOpen && (
         <div
           role="menu"
-          className="absolute bottom-full left-0 mb-2 w-72 bg-[#16161a]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl p-2 z-[60] animate-menuIn origin-bottom-left"
+          className="absolute bottom-full left-0 mb-3 w-72 bg-[#16161a]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] p-2 z-[70] animate-menuIn origin-bottom-left"
         >
           <MenuItem
             icon={Settings}
@@ -160,9 +170,9 @@ export function ProfileMenu({ isSidebarExpanded }: ProfileMenuProps) {
 
           <MenuItem
             icon={HelpCircle}
-            label="FAQ"
+            label="Help & Safety"
             onClick={() => {
-              navigate('/faq');
+              navigate('/safety');
               setIsOpen(false);
             }}
           />

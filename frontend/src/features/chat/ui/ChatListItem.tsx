@@ -116,7 +116,11 @@ export default function ChatListItem({
           >
             {display.title}
           </span>
-          {display.isVerified && <VerifiedCheckmark size="sm" />}
+          <VerifiedCheckmark
+            isVerified={display.isVerified}
+            primaryBadge={display.primaryBadge}
+            size="sm"
+          />
           {isMuted && <BellOff size={13} className="text-gray-400 flex-shrink-0" />}
           {isPinnedLocally && <Pin size={12} className="text-gray-400 flex-shrink-0" />}
         </div>

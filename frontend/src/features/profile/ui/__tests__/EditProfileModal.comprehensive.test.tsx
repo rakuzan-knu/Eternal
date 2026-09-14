@@ -69,7 +69,7 @@ describe('EditProfileModal (Comprehensive Suite)', () => {
     await user.clear(nameInput);
     await user.type(nameInput, 'Sir Alan Turing');
 
-    const submitBtn = container.querySelector('button[type="submit"]') as HTMLButtonElement;
+    const submitBtn = document.querySelector('form button[type="submit"]') as HTMLButtonElement;
     await user.click(submitBtn);
 
     await waitFor(() => {

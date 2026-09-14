@@ -100,14 +100,43 @@ export function useStoriesRealtime() {
       });
     };
 
+    // 4. When a story is deleted by author
+    const handleStoryDeleted = (payload: { storyId: string; authorId?: string }) => {
+      if (!payload?.storyId) return;
+
+      queryClient.setQueryData<UserStoriesGroup[]>([STORIES_FEED_KEY], (oldGroups) => {
+        if (!oldGroups) return oldGroups;
+        return oldGroups
+          .map((group) => {
+            if (payload.authorId && group.user.id !== payload.authorId) return group;
+            const remainingStories = group.stories.filter((s) => s.id !== payload.storyId);
+            return {
+              ...group,
+              stories: remainingStories,
+              hasUnviewed: remainingStories.some((s) => !s.hasViewed),
+            };
+          })
+          .filter((group) => group.stories.length > 0);
+      });
+
+      void queryClient.invalidateQueries({ queryKey: [STORIES_FEED_KEY] });
+      if (payload.authorId) {
+        void queryClient.invalidateQueries({ queryKey: [USER_STORIES_KEY, payload.authorId] });
+      }
+
+      useStoryViewerStore.getState().removeStory(payload.storyId);
+    };
+
     socket.on('story:new', handleNewStory);
     socket.on('story:viewed', handleStoryViewed);
     socket.on('story:poll_voted', handleStoryPollVoted);
+    socket.on('story:deleted', handleStoryDeleted);
 
     return () => {
       socket.off('story:new', handleNewStory);
       socket.off('story:viewed', handleStoryViewed);
       socket.off('story:poll_voted', handleStoryPollVoted);
+      socket.off('story:deleted', handleStoryDeleted);
     };
   }, [queryClient]);
 }

@@ -1,13 +1,5 @@
 import { z } from 'zod';
-import sanitizeHtmlLib from 'sanitize-html';
-
-function sanitizeHtml(value: unknown): unknown {
-  if (typeof value !== 'string') return value;
-  return sanitizeHtmlLib(value, {
-    allowedTags: [],
-    allowedAttributes: {},
-  }).trim();
-}
+import { sanitizeHtml } from './sanitize';
 
 export const ShowcasePrivacy = {
   PUBLIC: 'PUBLIC',
@@ -44,9 +36,9 @@ export const showcaseMediaItemSchema = z.object({
     .min(1)
     .max(120)
     .transform((val) => sanitizeHtml(val) as string),
-  posterUrl: z.string().url(),
+  posterUrl: z.string().min(1).max(1000),
   externalId: z.string().max(100).optional().nullable(),
-  externalUrl: z.string().url().optional().nullable(),
+  externalUrl: z.string().max(1000).optional().nullable(),
   rating: z.number().min(0).max(10).optional().nullable(),
   userComment: z
     .string()
@@ -56,11 +48,13 @@ export const showcaseMediaItemSchema = z.object({
     .nullable(),
   tags: showcaseTagListSchema,
   releaseYear: z.number().int().min(1900).max(2100).optional().nullable(),
-  position: z.number().int().min(0).max(4).default(0),
+  position: z.number().int().min(0).optional().default(0),
 });
 export type ShowcaseMediaItemDto = z.infer<typeof showcaseMediaItemSchema>;
 
 export const profileAnthemSchema = z.object({
+  id: z.string().optional().nullable(),
+  trackId: z.string().optional().nullable(),
   title: z
     .string()
     .min(1)
@@ -100,7 +94,7 @@ export const spotlightMediaSchema = z.object({
 export type SpotlightMediaDto = z.infer<typeof spotlightMediaSchema>;
 
 export const liveActivityStatusSchema = z.object({
-  type: z.enum(['spotify', 'gaming', 'custom']),
+  type: z.enum(['spotify', 'gaming', 'custom', 'platform_music']),
   title: z
     .string()
     .max(100)
@@ -117,22 +111,103 @@ export const liveActivityStatusSchema = z.object({
     .transform((val) => sanitizeHtml(val) as string)
     .optional()
     .nullable(),
-  imageUrl: z.string().url().optional().nullable(),
-  previewUrl: z.string().url().optional().nullable(),
-  externalUrl: z.string().url().optional().nullable(),
+  imageUrl: z.string().optional().nullable(),
+  headerUrl: z.string().optional().nullable(),
+  gameId: z.string().optional().nullable(),
+  previewUrl: z.string().optional().nullable(),
+  externalUrl: z.string().optional().nullable(),
   startedAt: z.string().optional().nullable(),
   playtimeHours: z.number().min(0).optional().nullable(),
+  isSteam: z.boolean().optional().nullable(),
+  progressMs: z.number().min(0).optional().nullable(),
+  durationMs: z.number().min(0).optional().nullable(),
+  artist: z.string().optional().nullable(),
+  trackId: z.string().optional().nullable(),
+  updatedAt: z.number().optional().nullable(),
+  isPaused: z.boolean().optional().nullable(),
+  pausedAt: z.number().optional().nullable(),
+  jamRoomId: z.string().optional().nullable(),
+  isPlatformTrack: z.boolean().optional().nullable(),
+  source: z.string().optional().nullable(),
 });
 export type LiveActivityStatusDto = z.infer<typeof liveActivityStatusSchema>;
 
 export const connectedAccountsSchema = z.object({
-  github: z.string().max(50).optional().nullable(),
-  steam: z.string().max(50).optional().nullable(),
-  spotify: z.string().max(50).optional().nullable(),
-  discord: z.string().max(50).optional().nullable(),
-  twitch: z.string().max(50).optional().nullable(),
+  github: z.any().optional().nullable(),
+  steam: z.any().optional().nullable(),
+  riot: z.any().optional().nullable(),
+  battlenet: z.any().optional().nullable(),
+  spotify: z.any().optional().nullable(),
+  soundcloud: z.any().optional().nullable(),
+  youtube: z.any().optional().nullable(),
+  twitch: z.any().optional().nullable(),
+  roblox: z.any().optional().nullable(),
+  x: z.any().optional().nullable(),
+  facebook: z.any().optional().nullable(),
+  epicgames: z.any().optional().nullable(),
+  discord: z.any().optional().nullable(),
 });
-export type ConnectedAccountsDto = z.infer<typeof connectedAccountsSchema>;
+export type ConnectedAccountsDto = Record<string, any>;
+
+export const familyMemberSchema = z.object({
+  id: z.string(),
+  userId: z.string().optional().nullable(),
+  customName: z.string().max(100).optional().nullable(),
+  role: z.string().max(50),
+  isConfirmed: z.boolean().optional().default(false),
+  // Hydrated fields (returned by getShowcase)
+  name: z.string().optional(),
+  username: z.string().optional().nullable(),
+  avatarUrl: z.string().optional().nullable(),
+});
+export type FamilyMemberDto = z.infer<typeof familyMemberSchema>;
+
+export const personalInfoTogglesSchema = z.object({
+  showRelationship: z.boolean().optional(),
+  showLivesIn: z.boolean().optional(),
+  showHometown: z.boolean().optional(),
+  showWorkplace: z.boolean().optional(),
+  showEducation: z.boolean().optional(),
+  showLanguages: z.boolean().optional(),
+  showFamily: z.boolean().optional(),
+  showZodiac: z.boolean().optional(),
+  showPronouns: z.boolean().optional(),
+});
+export type PersonalInfoTogglesDto = z.infer<typeof personalInfoTogglesSchema>;
+
+export const personalInfoSchema = z.object({
+  relationshipStatus: z.string().max(50).optional().nullable(),
+  partner: z.string().max(100).optional().nullable(),
+  partnerUserId: z.string().optional().nullable(),
+  relationshipSince: z
+    .string()
+    .optional()
+    .nullable()
+    .refine(
+      (val) => {
+        if (!val) return true;
+        const d = new Date(val);
+        return !isNaN(d.getTime()) && d.getTime() <= Date.now() + 86400000;
+      },
+      { message: 'Anniversary date cannot be in the future' },
+    ),
+  livesIn: z.string().max(100).optional().nullable(),
+  hometown: z.string().max(100).optional().nullable(),
+  workplace: z.string().max(100).optional().nullable(),
+  workplaceRole: z.string().max(100).optional().nullable(),
+  workplaceStatus: z.string().max(50).optional().nullable(),
+  education: z.string().max(100).optional().nullable(),
+  educationStatus: z.string().max(50).optional().nullable(),
+  languages: z
+    .union([z.string(), z.array(z.string().max(50)).max(10)])
+    .optional()
+    .nullable(),
+  family: z.string().max(100).optional().nullable(),
+  familyMembers: z.array(familyMemberSchema).max(20).optional().nullable(),
+  gender: z.string().max(50).optional().nullable(),
+  toggles: personalInfoTogglesSchema.optional().nullable(),
+});
+export type PersonalInfoDto = z.infer<typeof personalInfoSchema>;
 
 export const updateShowcaseSchema = z.object({
   privacyMeta: showcasePrivacySchema.optional(),
@@ -143,6 +218,7 @@ export const updateShowcaseSchema = z.object({
   showBirthdate: z.boolean().optional(),
   showGender: z.boolean().optional(),
   showTimezone: z.boolean().optional(),
+  showZodiac: z.boolean().optional(),
   pronouns: z
     .string()
     .max(20)
@@ -164,6 +240,8 @@ export const updateShowcaseSchema = z.object({
   spotlightMedia: spotlightMediaSchema.optional().nullable(),
   anthemTrack: profileAnthemSchema.optional().nullable(),
   mediaItems: z.array(showcaseMediaItemSchema).max(40).optional(),
+  widgetOrder: z.array(z.string().max(50)).max(20).optional().nullable(),
+  personalInfo: personalInfoSchema.optional().nullable(),
 });
 export type UpdateShowcaseDto = z.infer<typeof updateShowcaseSchema>;
 
@@ -192,6 +270,7 @@ export const profileShowcaseSchema = z.object({
   showBirthdate: z.boolean(),
   showGender: z.boolean(),
   showTimezone: z.boolean(),
+  showZodiac: z.boolean().optional(),
   pronouns: z.string().nullable().optional(),
   timezone: z.string().nullable().optional(),
   birthDate: z.string().nullable().optional(),
@@ -204,5 +283,33 @@ export const profileShowcaseSchema = z.object({
   spotlightMedia: spotlightMediaSchema.nullable().optional(),
   anthemTrack: profileAnthemSchema.nullable().optional(),
   mediaItems: z.array(showcaseMediaItemSchema),
+  widgetOrder: z.array(z.string()).optional().nullable(),
+  personalInfo: personalInfoSchema.optional().nullable(),
 });
 export type ProfileShowcaseDto = z.infer<typeof profileShowcaseSchema>;
+
+export interface MediaDetailsResponseDto {
+  title: string;
+  subtitle?: string;
+  description?: string;
+  videoUrl?: string;
+  videoThumbnail?: string;
+  videoDuration?: string;
+  screenshots: string[];
+  bannerUrl?: string;
+  genres?: string;
+  publisher?: string;
+  developer?: string;
+  releaseDate?: string;
+  metacritic?: number;
+  openCriticScore?: number;
+  externalUrl?: string;
+  similarItems?: Array<{
+    title: string;
+    posterUrl: string;
+    type: ShowcaseMediaType;
+    rating?: number;
+    releaseYear?: number;
+    subtitle?: string;
+  }>;
+}

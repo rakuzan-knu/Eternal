@@ -6,6 +6,7 @@ import { useTypingStore } from '@/features/chat/model/useTypingStore';
 import { useHiddenPostsStore } from '@/shared/model/useHiddenPostsStore';
 import { useUIStore } from '@/shared/model/useUIStore';
 import { useDevicePasswordStore } from '@/features/profile/model/useDevicePasswordStore';
+import { useMusicHubStore } from '@/features/music/model/useMusicHubStore';
 
 /**
  * Resets all in-memory client stores and caches upon logout,
@@ -45,6 +46,7 @@ export function resetSessionStores() {
       activePostForShare: null,
     });
     useDevicePasswordStore.setState({ unlocked: false });
+    useMusicHubStore.getState().resetForLogout();
   } catch {
     // Ignore in tests
   }

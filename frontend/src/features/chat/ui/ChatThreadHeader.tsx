@@ -1,10 +1,12 @@
 import React from 'react';
-import { Phone, Video, Info } from 'lucide-react';
+import { Phone, Video, Info, Music } from 'lucide-react';
 import Avatar from '../../../shared/ui/Avatar';
 import GroupAvatarCollage from '../../../shared/ui/GroupAvatarCollage';
 import OnlineStatusIndicator from '../../../shared/ui/OnlineStatusIndicator';
 import { ConversationDisplay } from '../lib/getConversationDisplay';
 import { VerifiedCheckmark } from '@/entities/profile/ui/VerifiedCheckmark';
+import { usePresenceStore } from '@/shared/model/usePresenceStore';
+import { DiscordGamepadIcon } from '@/shared/ui/BrandIcons';
 
 interface ChatThreadHeaderProps {
   display: ConversationDisplay;
@@ -27,6 +29,27 @@ export default function ChatThreadHeader({
   memberAvatars = [],
   memberCount = 0,
 }: ChatThreadHeaderProps) {
+  const otherActivity = usePresenceStore((s) =>
+    otherUserId ? s.userActivities[otherUserId] : null,
+  );
+  const isOtherGaming = Boolean(
+    !isGroup &&
+    otherUserId &&
+    otherActivity &&
+    (otherActivity.type === 'gaming' ||
+      otherActivity.type === 'game' ||
+      otherActivity.isSteam ||
+      (otherActivity.title && otherActivity.type !== 'spotify')),
+  );
+
+  const isOtherListening = Boolean(
+    !isGroup &&
+    !isOtherGaming &&
+    otherUserId &&
+    otherActivity &&
+    (otherActivity.type === 'spotify' || Boolean(otherActivity.trackId)),
+  );
+
   return (
     <div className="flex items-center justify-between px-5 h-16 border-b border-white/5 flex-shrink-0">
       <div className="flex items-center gap-3 min-w-0">
@@ -47,12 +70,43 @@ export default function ChatThreadHeader({
         <div className="min-w-0">
           <div className="flex items-center gap-1.5 min-w-0">
             <p className="text-sm font-semibold text-white truncate">{display.title}</p>
-            {display.isVerified && <VerifiedCheckmark size="sm" />}
+            <VerifiedCheckmark
+              isVerified={display.isVerified}
+              primaryBadge={display.primaryBadge}
+              size="sm"
+            />
           </div>
           {isOtherTyping ? (
             <p className="text-[12px] truncate text-blue-400">Typing…</p>
           ) : isGroup ? (
             <p className="text-[12px] truncate text-gray-500">{memberCount} members</p>
+          ) : isOtherGaming ? (
+            <div className="flex items-center gap-1.5 min-w-0 text-[12px] text-gray-300 font-medium">
+              <DiscordGamepadIcon
+                size={13}
+                className="text-[#23a55a] shrink-0 drop-shadow-[0_0_4px_rgba(35,165,90,0.6)]"
+              />
+              <span className="truncate">
+                Playing <span className="text-white font-semibold">{otherActivity?.title}</span>
+              </span>
+            </div>
+          ) : isOtherListening ? (
+            <div className="flex items-center gap-1.5 min-w-0 text-[12px] text-gray-300 font-medium">
+              <Music
+                size={13}
+                className="text-[#1DB954] shrink-0 drop-shadow-[0_0_4px_rgba(29,185,84,0.6)]"
+              />
+              <span className="truncate">
+                Listening to{' '}
+                <span className="text-white font-semibold">{otherActivity?.title}</span>
+                {otherActivity?.subtitle || otherActivity?.artist ? (
+                  <span className="text-gray-400 font-normal">
+                    {' '}
+                    — {otherActivity.subtitle || otherActivity.artist}
+                  </span>
+                ) : null}
+              </span>
+            </div>
           ) : (
             otherUserId && (
               <span className="flex items-center gap-1.5 min-w-0">

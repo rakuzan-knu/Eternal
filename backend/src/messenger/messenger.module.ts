@@ -21,6 +21,7 @@ import { autoDeleteS3Provider } from './auto-delete/s3-provider';
 
 import { OpenGraphModule } from '../opengraph/opengraph.module';
 import { MessengerLinkPreviewController } from './link-preview.controller';
+import { JamService } from '../integrations/jam.service';
 
 @Module({
   imports: [
@@ -44,9 +45,10 @@ import { MessengerLinkPreviewController } from './link-preview.controller';
     MessagesService,
     MessengerMapper,
     MessengerGateway,
+    JamService,
     AutoDeleteService,
     autoDeleteS3Provider,
   ],
-  exports: [ConversationsService, MessagesService, MessengerGateway],
+  exports: [ConversationsService, MessagesService, MessengerGateway, JamService],
 })
 export class MessengerModule {}

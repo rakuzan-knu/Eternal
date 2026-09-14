@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Globe, ExternalLink } from 'lucide-react';
 import type { LinkEmbedData } from '@/entities/opengraph/model/types';
+import { sanitizeExternalUrl, sanitizeImageUrl } from '@/shared/lib/urlSecurity';
 
 interface GenericOpenGraphCardProps {
   data: LinkEmbedData;
@@ -28,7 +29,7 @@ export const GenericOpenGraphCard: React.FC<GenericOpenGraphCardProps> = ({
 
   return (
     <a
-      href={data.url}
+      href={sanitizeExternalUrl(data.url, '#')}
       target="_blank"
       rel="noopener noreferrer"
       data-testid="generic-opengraph-card"
@@ -39,7 +40,7 @@ export const GenericOpenGraphCard: React.FC<GenericOpenGraphCardProps> = ({
       <div className="flex items-center gap-1.5 mb-1 text-[11px] text-gray-400 font-medium">
         {data.favicon ? (
           <img
-            src={data.favicon}
+            src={sanitizeImageUrl(data.favicon)}
             alt=""
             className="w-3.5 h-3.5 rounded-xs object-contain shrink-0"
             onError={(e) => {
@@ -74,7 +75,7 @@ export const GenericOpenGraphCard: React.FC<GenericOpenGraphCardProps> = ({
         <div className="relative mt-2 aspect-[1.91/1] max-h-40 rounded-lg overflow-hidden bg-white/5 border border-white/5 w-full shrink-0">
           {!imageLoaded && <div className="absolute inset-0 bg-white/5 animate-pulse" />}
           <img
-            src={data.image!}
+            src={sanitizeImageUrl(data.image!)}
             alt={title || 'Link preview'}
             loading="lazy"
             onLoad={() => setImageLoaded(true)}

@@ -268,6 +268,16 @@ export class UsersController {
     return this.usersService.updatePrimaryBadge(user.id, dto.badgeId);
   }
 
+  @Get('me')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get current authenticated user profile' })
+  @ApiResponse({ status: 200, description: 'Current user profile retrieved' })
+  getMe(@CurrentUser() user: RequestUser): Promise<UserProfileDto> {
+    return this.usersService.getProfileFor(user.id, user.id);
+  }
+
   @Get(':id')
   @UseGuards(OptionalAuthGuard)
   @ApiBearerAuth()

@@ -275,9 +275,8 @@ export function useMediaRecorderGesture({ onSend, onError }: UseMediaRecorderGes
         } else {
           const selectedId = targetDeviceId ?? activeCameraId;
           const videoConstraints: MediaTrackConstraints = {
-            aspectRatio: 1,
-            width: { ideal: 480 },
-            height: { ideal: 480 },
+            width: { ideal: 640, max: 1280 },
+            height: { ideal: 480, max: 720 },
           };
           if (selectedId) {
             videoConstraints.deviceId = { exact: selectedId };
@@ -299,6 +298,7 @@ export function useMediaRecorderGesture({ onSend, onError }: UseMediaRecorderGes
         // Bind video element if preview element exists
         if (previewVideoRef.current && currentMode === 'video') {
           previewVideoRef.current.srcObject = stream;
+          previewVideoRef.current.play().catch(() => {});
         }
 
         const mimeType =
@@ -350,15 +350,24 @@ export function useMediaRecorderGesture({ onSend, onError }: UseMediaRecorderGes
     const activeMode = mode;
 
     recorder.onstop = () => {
-      const mime =
+      const recorderMime =
         activeMode === 'voice'
           ? getSupportedAudioMimeType() || 'audio/webm'
           : getSupportedVideoMimeType() || 'video/webm';
 
-      const extension = mime.includes('mp4') ? 'mp4' : 'webm';
-      const blob = new Blob(recordedChunksRef.current, { type: mime });
+      const extension = recorderMime.includes('mp4') ? 'mp4' : 'webm';
+      const cleanMime =
+        activeMode === 'voice'
+          ? extension === 'mp4'
+            ? 'audio/mp4'
+            : 'audio/webm'
+          : extension === 'mp4'
+            ? 'video/mp4'
+            : 'video/webm';
+
+      const blob = new Blob(recordedChunksRef.current, { type: cleanMime });
       const file = new File([blob], `${activeMode}_note_${Date.now()}.${extension}`, {
-        type: mime,
+        type: cleanMime,
       });
       const previewUrl = URL.createObjectURL(blob);
 
@@ -389,15 +398,24 @@ export function useMediaRecorderGesture({ onSend, onError }: UseMediaRecorderGes
     const activeMode = mode;
 
     recorder.onstop = () => {
-      const mime =
+      const recorderMime =
         activeMode === 'voice'
           ? getSupportedAudioMimeType() || 'audio/webm'
           : getSupportedVideoMimeType() || 'video/webm';
 
-      const extension = mime.includes('mp4') ? 'mp4' : 'webm';
-      const blob = new Blob(recordedChunksRef.current, { type: mime });
+      const extension = recorderMime.includes('mp4') ? 'mp4' : 'webm';
+      const cleanMime =
+        activeMode === 'voice'
+          ? extension === 'mp4'
+            ? 'audio/mp4'
+            : 'audio/webm'
+          : extension === 'mp4'
+            ? 'video/mp4'
+            : 'video/webm';
+
+      const blob = new Blob(recordedChunksRef.current, { type: cleanMime });
       const file = new File([blob], `${activeMode}_note_${Date.now()}.${extension}`, {
-        type: mime,
+        type: cleanMime,
       });
       const previewUrl = URL.createObjectURL(blob);
 

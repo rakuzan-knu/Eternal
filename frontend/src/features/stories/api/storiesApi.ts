@@ -39,6 +39,9 @@ export const storiesApi = {
     if (payload.backgroundColor) {
       formData.append('backgroundColor', payload.backgroundColor);
     }
+    if (payload.filter) {
+      formData.append('filter', payload.filter);
+    }
 
     const res = await apiClient.post<StoryViewResponse>('/stories', formData, {
       headers: {

@@ -68,7 +68,45 @@ export const BADGE_DICTIONARY: Badge[] = [
   },
 ];
 
+import { CONTRIBUTOR_TIERS, PREMIUM_TIERS } from './badgeTiers';
+import ContributorTierBadge from '../ui/ContributorTierBadge';
+import PremiumTierBadge from '../ui/PremiumTierBadge';
+
 export function getBadgeById(id?: string | null): Badge | undefined {
   if (!id) return undefined;
-  return BADGE_DICTIONARY.find((b) => b.id.toUpperCase() === id.toUpperCase());
+  const upper = id.toUpperCase();
+  const direct = BADGE_DICTIONARY.find((b) => b.id.toUpperCase() === upper);
+  if (direct) return direct;
+
+  if (upper.startsWith('CONTRIBUTOR')) {
+    const tierName = upper.replace('CONTRIBUTOR_', '');
+    const tier = CONTRIBUTOR_TIERS.find((t) => t.id === tierName);
+    return {
+      id: id as BadgeId,
+      name: tier ? `${tier.name} Contributor` : 'Contributor',
+      description: 'Made significant contributions to the platform',
+      icon: tier ? (
+        <ContributorTierBadge level={tier.level} size="100%" />
+      ) : (
+        <ContributorBadge className="w-6 h-6" />
+      ),
+    };
+  }
+
+  if (upper.startsWith('PREMIUM')) {
+    const tierName = upper.replace('PREMIUM_', '');
+    const tier = PREMIUM_TIERS.find((t) => t.id === tierName);
+    return {
+      id: id as BadgeId,
+      name: tier ? `${tier.name} Premium` : 'Premium',
+      description: 'Active Premium Subscription',
+      icon: tier ? (
+        <PremiumTierBadge level={tier.level} size="100%" />
+      ) : (
+        <PremiumBadge className="w-6 h-6" />
+      ),
+    };
+  }
+
+  return undefined;
 }

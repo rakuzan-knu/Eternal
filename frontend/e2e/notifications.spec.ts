@@ -13,6 +13,10 @@ test.describe('Notifications (authenticated, mocked API)', () => {
   }) => {
     await page.goto('/');
 
+    await page
+      .getByRole('link', { name: 'Notifications', exact: true })
+      .first()
+      .waitFor({ state: 'visible' });
     await page.getByRole('link', { name: 'Notifications', exact: true }).first().click();
 
     await expect(page).toHaveURL(/\/notifications$/);
@@ -23,6 +27,10 @@ test.describe('Notifications (authenticated, mocked API)', () => {
     authenticatedPage: page,
   }) => {
     await page.goto('/search');
+    await page
+      .getByRole('link', { name: 'Notifications', exact: true })
+      .first()
+      .waitFor({ state: 'visible' });
     await page.getByRole('link', { name: 'Notifications', exact: true }).first().click();
     await page.goBack();
 

@@ -215,26 +215,23 @@ function SuggestedCreatorCard({
   const reason = user.recommendationReason;
 
   return (
-    <MiniProfileHoverCard username={user.username} side="top">
-      <div className="w-44 shrink-0 flex flex-col items-center justify-between p-4 rounded-3xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.08] hover:border-white/[0.2] backdrop-blur-2xl transition-all duration-300 group/card relative text-center shadow-lg hover:shadow-[0_12px_32px_rgba(0,0,0,0.5)]">
-        {/* Dismiss Button ✕ */}
-        <button
-          type="button"
-          onClick={onDismiss}
-          title="Hide recommendation"
-          aria-label={`Hide recommendation for ${user.username}`}
-          className="absolute top-3 right-3 p-1 rounded-full text-gray-500 hover:text-white hover:bg-white/10 active:scale-90 transition-all z-10"
-        >
-          <X className="w-3.5 h-3.5" />
-        </button>
+    <div className="w-44 shrink-0 flex flex-col items-center justify-between p-4 rounded-3xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.08] hover:border-white/[0.2] backdrop-blur-2xl transition-all duration-300 group/card relative text-center shadow-lg hover:shadow-[0_12px_32px_rgba(0,0,0,0.5)]">
+      {/* Dismiss Button ✕ */}
+      <button
+        type="button"
+        onClick={onDismiss}
+        title="Hide recommendation"
+        aria-label={`Hide recommendation for ${user.username}`}
+        className="absolute top-3 right-3 p-1 rounded-full text-gray-500 hover:text-white hover:bg-white/10 active:scale-90 transition-all z-10"
+      >
+        <X className="w-3.5 h-3.5" />
+      </button>
 
-        {/* Creator Info Link */}
-        <Link
-          to={`/profile/${user.username}`}
-          className="flex flex-col items-center w-full min-w-0"
-        >
-          {/* Avatar */}
-          <div className="relative mb-2.5 mt-1">
+      {/* Creator Info Link */}
+      <div className="flex flex-col items-center w-full min-w-0">
+        {/* Avatar */}
+        <MiniProfileHoverCard username={user.username} side="top">
+          <Link to={`/profile/${user.username}`} className="relative mb-2.5 mt-1 block">
             <div className="p-0.5 rounded-full bg-gradient-to-tr from-purple-500/30 to-blue-500/30">
               <Avatar src={user.avatar} alt={displayName} size="lg" />
             </div>
@@ -243,70 +240,78 @@ function SuggestedCreatorCard({
                 <VerifiedCheckmark isVerified size="xs" />
               </span>
             )}
-          </div>
+          </Link>
+        </MiniProfileHoverCard>
 
-          {/* Name & Handle */}
-          <div className="w-full flex flex-col items-center min-w-0">
-            <div className="flex items-center justify-center gap-1 max-w-full">
-              <span className="text-xs font-bold text-gray-100 truncate group-hover/card:text-white transition-colors">
+        {/* Name & Handle */}
+        <div className="w-full flex flex-col items-center min-w-0">
+          <div className="flex items-center justify-center gap-1 max-w-full">
+            <MiniProfileHoverCard username={user.username} side="top">
+              <Link
+                to={`/profile/${user.username}`}
+                className="text-xs font-bold text-gray-100 truncate group-hover/card:text-white hover:underline transition-colors block"
+              >
                 {displayName}
+              </Link>
+            </MiniProfileHoverCard>
+            <VerifiedCheckmark
+              isVerified={user.isVerified}
+              primaryBadge={user.primaryBadge}
+              size="xs"
+            />
+          </div>
+          <Link
+            to={`/profile/${user.username}`}
+            className="text-[11px] text-gray-500 truncate w-full text-center hover:text-gray-400 block"
+          >
+            @{user.username}
+          </Link>
+        </div>
+
+        {/* Recommendation Reason Context */}
+        <div className="h-9 w-full flex items-center justify-center mt-2 px-1">
+          {reason?.type === 'MUTUAL_FRIENDS' &&
+          reason.mutualFriends &&
+          reason.mutualFriends.length > 0 ? (
+            <div className="flex items-center gap-1.5 min-w-0 max-w-full justify-center">
+              <div className="flex -space-x-1.5 shrink-0">
+                {reason.mutualFriends.map((m, idx) => (
+                  <Avatar
+                    key={m.id || idx}
+                    src={m.avatar}
+                    alt={m.username}
+                    size="2xs"
+                    className="w-3.5 h-3.5 ring-1 ring-[#070709] border-0 shrink-0"
+                  />
+                ))}
+              </div>
+              <span className="text-[10px] text-gray-400 truncate leading-tight text-left">
+                {reason.text}
               </span>
-              <VerifiedCheckmark
-                isVerified={user.isVerified}
-                primaryBadge={user.primaryBadge}
-                size="xs"
-              />
             </div>
-            <span className="text-[11px] text-gray-500 truncate w-full text-center">
-              @{user.username}
+          ) : reason?.type === 'NEARBY' || reason?.type === 'SAME_CITY' ? (
+            <div className="flex items-center gap-1 text-blue-400 text-[10px] justify-center truncate">
+              <MapPin className="w-3 h-3 shrink-0" />
+              <span className="truncate">{reason.text}</span>
+            </div>
+          ) : (
+            <span className="text-[10px] text-gray-500 truncate">
+              {reason?.text || 'Suggested for you'}
             </span>
-          </div>
-
-          {/* Recommendation Reason Context */}
-          <div className="h-9 w-full flex items-center justify-center mt-2 px-1">
-            {reason?.type === 'MUTUAL_FRIENDS' &&
-            reason.mutualFriends &&
-            reason.mutualFriends.length > 0 ? (
-              <div className="flex items-center gap-1.5 min-w-0 max-w-full justify-center">
-                <div className="flex -space-x-1.5 shrink-0">
-                  {reason.mutualFriends.map((m, idx) => (
-                    <Avatar
-                      key={m.id || idx}
-                      src={m.avatar}
-                      alt={m.username}
-                      size="2xs"
-                      className="w-3.5 h-3.5 ring-1 ring-[#070709] border-0 shrink-0"
-                    />
-                  ))}
-                </div>
-                <span className="text-[10px] text-gray-400 truncate leading-tight text-left">
-                  {reason.text}
-                </span>
-              </div>
-            ) : reason?.type === 'NEARBY' || reason?.type === 'SAME_CITY' ? (
-              <div className="flex items-center gap-1 text-blue-400 text-[10px] justify-center truncate">
-                <MapPin className="w-3 h-3 shrink-0" />
-                <span className="truncate">{reason.text}</span>
-              </div>
-            ) : (
-              <span className="text-[10px] text-gray-500 truncate">
-                {reason?.text || 'Suggested for you'}
-              </span>
-            )}
-          </div>
-        </Link>
-
-        {/* Follow Button */}
-        <div className="w-full mt-3">
-          <FollowButton
-            authorId={user.id}
-            isFollowing={user.isFollowing}
-            isFriend={user.isFriend}
-            followsYou={user.followsYou}
-            className="w-full py-1.5 text-xs font-semibold rounded-full justify-center"
-          />
+          )}
         </div>
       </div>
-    </MiniProfileHoverCard>
+
+      {/* Follow Button */}
+      <div className="w-full mt-3">
+        <FollowButton
+          authorId={user.id}
+          isFollowing={user.isFollowing}
+          isFriend={user.isFriend}
+          followsYou={user.followsYou}
+          className="w-full py-1.5 text-xs font-semibold rounded-full justify-center"
+        />
+      </div>
+    </div>
   );
 }

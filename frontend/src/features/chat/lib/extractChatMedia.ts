@@ -10,7 +10,18 @@ function monthLabel(iso: string | Date): string {
 export function extractMediaItems(messages: MessageView[]): MediaItem[] {
   const items: MediaItem[] = [];
   for (const message of messages) {
+    if (message.messageType === 'STORY_REPLY' || (message as any).type === 'STORY_REPLY') {
+      continue;
+    }
     for (const attachment of message.attachments) {
+      if (attachment.fileName?.startsWith('story_reply_')) continue;
+      if (
+        attachment.url?.startsWith('color:') ||
+        attachment.url?.startsWith('#') ||
+        attachment.url?.startsWith('linear-gradient')
+      ) {
+        continue;
+      }
       if (attachment.type === 'IMAGE' || attachment.type === 'VIDEO' || attachment.type === 'GIF') {
         items.push({ message, attachment });
       }
@@ -24,7 +35,11 @@ export function extractMediaItems(messages: MessageView[]): MediaItem[] {
 export function extractFileItems(messages: MessageView[]): MediaItem[] {
   const items: MediaItem[] = [];
   for (const message of messages) {
+    if (message.messageType === 'STORY_REPLY' || (message as any).type === 'STORY_REPLY') {
+      continue;
+    }
     for (const attachment of message.attachments) {
+      if (attachment.fileName?.startsWith('story_reply_')) continue;
       if (attachment.type === 'FILE' || attachment.type === 'AUDIO') {
         items.push({ message, attachment });
       }

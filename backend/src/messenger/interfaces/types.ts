@@ -5,6 +5,8 @@ export const userSnapshot = {
   username: true,
   displayName: true,
   avatar: true,
+  isVerified: true,
+  primaryBadge: true,
   defaultChatTheme: true,
 } satisfies Prisma.UserSelect;
 

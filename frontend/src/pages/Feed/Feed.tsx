@@ -10,6 +10,7 @@ import { useCreatePost } from '@/features/posts/model/useCreatePost';
 import { FEED_KEY } from '@/shared/api/queryKeys';
 import { AllCaughtUpBanner } from '@/widgets/feed/ui/AllCaughtUpBanner';
 import { SuggestedUsersCarousel } from '@/widgets/feed/ui/SuggestedUsersCarousel';
+import { SEOHead } from '@/shared/seo';
 
 export default function FeedPage() {
   const { data, isLoading, hasNextPage, isFetchingNextPage, fetchNextPage } = usePostsFeed();
@@ -57,6 +58,14 @@ export default function FeedPage() {
 
   return (
     <div className="w-full flex flex-col gap-6 animate-fadeIn">
+      <SEOHead
+        title="Home • Eternal Social Network"
+        description="Connect, discover inspiring stories, share real-time moments, and build meaningful communities on Eternal."
+        canonical="/"
+        structuredData={{
+          type: 'WebSite',
+        }}
+      />
       {/* Stories Bar */}
       <StoriesBar />
 

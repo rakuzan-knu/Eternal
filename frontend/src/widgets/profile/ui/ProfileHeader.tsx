@@ -27,6 +27,10 @@ interface ProfileHeaderProps {
   isVerified?: boolean;
   primaryBadge?: string | null;
   badges?: string[];
+  mergedPrsCount?: number;
+  reportCount?: number;
+  subscriptionMonths?: number;
+  subscriptionDate?: string;
   followersCount?: number;
   followingCount?: number;
   onEditClick: () => void;
@@ -62,6 +66,10 @@ export default function ProfileHeader({
   isVerified = false,
   primaryBadge = null,
   badges = [],
+  mergedPrsCount = 0,
+  reportCount = 0,
+  subscriptionMonths = 0,
+  subscriptionDate,
   followersCount = 0,
   followingCount = 0,
   onEditClick,
@@ -86,10 +94,48 @@ export default function ProfileHeader({
     }
   };
 
-  const mappedBadges: Badge[] =
-    badges && badges.length > 0
-      ? (badges.map((bId) => getBadgeById(bId)).filter(Boolean) as Badge[])
-      : [];
+  // Deduplicate: if user has multiple contributor or premium tier badges, collapse into single highest tier badge
+  const contributorTierOrder = [
+    'CONTRIBUTOR_OPAL',
+    'CONTRIBUTOR_RUBY',
+    'CONTRIBUTOR_DIAMOND',
+    'CONTRIBUTOR_PLATINUM',
+    'CONTRIBUTOR_GOLD',
+    'CONTRIBUTOR_SILVER',
+    'CONTRIBUTOR_BRONZE',
+  ];
+  const userBadgesUpper = (badges || []).map((b) => b.toUpperCase());
+  const bestContributorBadge =
+    contributorTierOrder.find((tier) => userBadgesUpper.includes(tier)) ||
+    (userBadgesUpper.includes('CONTRIBUTOR') ? 'CONTRIBUTOR' : null);
+
+  const premiumTierOrder = [
+    'PREMIUM_OPAL',
+    'PREMIUM_RUBY',
+    'PREMIUM_DIAMOND',
+    'PREMIUM_PLATINUM',
+    'PREMIUM_GOLD',
+    'PREMIUM_SILVER',
+    'PREMIUM_BRONZE',
+  ];
+  const bestPremiumBadge =
+    premiumTierOrder.find((tier) => userBadgesUpper.includes(tier)) ||
+    (userBadgesUpper.includes('PREMIUM') ? 'PREMIUM' : null);
+
+  const otherBadges = (badges || []).filter(
+    (bId) =>
+      !bId.toUpperCase().startsWith('CONTRIBUTOR') && !bId.toUpperCase().startsWith('PREMIUM'),
+  );
+
+  const finalBadgeIds = [
+    ...otherBadges,
+    ...(bestContributorBadge ? [bestContributorBadge] : []),
+    ...(bestPremiumBadge ? [bestPremiumBadge] : []),
+  ];
+
+  const mappedBadges: Badge[] = finalBadgeIds
+    .map((bId) => getBadgeById(bId))
+    .filter(Boolean) as Badge[];
 
   return (
     <div className="w-full relative">
@@ -141,6 +187,10 @@ export default function ProfileHeader({
             username={username}
             isVerified={isVerified}
             primaryBadge={primaryBadge}
+            prCount={mergedPrsCount}
+            reportCount={reportCount}
+            subscriptionMonths={subscriptionMonths}
+            subscriptionDate={subscriptionDate}
             size="lg"
           />
           <div className="flex items-center gap-2">
@@ -150,7 +200,15 @@ export default function ProfileHeader({
                 Follows You
               </span>
             )}
-            {mappedBadges.length > 0 && <BadgeList badges={mappedBadges} />}
+            {mappedBadges.length > 0 && (
+              <BadgeList
+                badges={mappedBadges}
+                prCount={mergedPrsCount}
+                reportCount={reportCount}
+                subscriptionMonths={subscriptionMonths}
+                subscriptionDate={subscriptionDate}
+              />
+            )}
           </div>
         </div>
 

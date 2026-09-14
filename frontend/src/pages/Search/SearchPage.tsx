@@ -27,6 +27,7 @@ import { FollowButton } from '@/features/follow/ui/FollowButton';
 import { VerifiedCheckmark } from '@/entities/profile/ui/VerifiedCheckmark';
 import { useAuthStore } from '@/shared/model/useAuthStore';
 import { userApi } from '@/entities/profile/api/userApi';
+import { SEOHead } from '@/shared/seo';
 
 interface SearchUserItem {
   id: string;
@@ -522,6 +523,12 @@ export default function SearchPage() {
 
   return (
     <div className="w-full flex flex-col gap-6 animate-fadeIn pb-16">
+      <SEOHead
+        title={searchTerm ? `Search "${searchTerm}" • Eternal` : 'Explore & Search • Eternal'}
+        description="Search creators, hashtags, stories, and popular community discussions across Eternal."
+        canonical="/search"
+        noindex={Boolean(searchTerm)}
+      />
       {/* 1. Search Header Bar */}
       <div className="flex items-center gap-3 w-full">
         {isFocused && (

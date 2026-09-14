@@ -56,6 +56,26 @@ async function bootstrap() {
   const port = process.env.PORT ?? 3000;
   await app.listen(port, '0.0.0.0');
   logger.log(`Server running on port ${port}`);
+
+  // Fallback forwarder on port 5000 in case legacy GitHub OAuth callback reaches port 5000
+  if (Number(port) !== 5000) {
+    try {
+      const httpModule = await import('http');
+      const forwarder = httpModule.createServer((req, res) => {
+        const targetUrl = `http://localhost:${port}${req.url || ''}`;
+        res.writeHead(302, { Location: targetUrl });
+        res.end();
+      });
+      forwarder.listen(5000, '0.0.0.0', () => {
+        logger.log(`OAuth fallback forwarder listening on port 5000 -> ${port}`);
+      });
+      forwarder.on('error', (err: any) => {
+        logger.warn(`Port 5000 forwarder skipped: ${err.message}`);
+      });
+    } catch (err) {
+      logger.warn(`Port 5000 forwarder setup failed: ${err}`);
+    }
+  }
 }
 
 if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {

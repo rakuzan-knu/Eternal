@@ -10,6 +10,10 @@ interface UserNameWithBadgesProps {
   size?: 'sm' | 'md' | 'lg';
   className?: string;
   nameClassName?: string;
+  prCount?: number;
+  reportCount?: number;
+  subscriptionMonths?: number;
+  subscriptionDate?: string;
 }
 
 export function UserNameWithBadges({
@@ -20,6 +24,10 @@ export function UserNameWithBadges({
   size = 'md',
   className = '',
   nameClassName = '',
+  prCount,
+  reportCount,
+  subscriptionMonths,
+  subscriptionDate,
 }: UserNameWithBadgesProps) {
   const nameToDisplay = displayName || username;
 
@@ -44,7 +52,16 @@ export function UserNameWithBadges({
       </span>
 
       {isVerified && <VerifiedCheckmark size={badgeSizes[size]} />}
-      {primaryBadge && <UserBadgeIcon badgeId={primaryBadge} size={badgeSizes[size]} />}
+      {primaryBadge && (
+        <UserBadgeIcon
+          badgeId={primaryBadge}
+          size={badgeSizes[size]}
+          prCount={prCount}
+          reportCount={reportCount}
+          subscriptionMonths={subscriptionMonths}
+          subscriptionDate={subscriptionDate}
+        />
+      )}
     </div>
   );
 }

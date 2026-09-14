@@ -6,14 +6,18 @@ import {
   CLOSE_FRIENDS_KEY,
   CONVERSATIONS_KEY,
 } from '@/shared/api/queryKeys';
+import { useSpotifyPlayerStore } from '@/shared/model/useSpotifyPlayerStore';
 import type { CreateStoryPayload, StoryPollResult, UserStoriesGroup } from './types';
+import { useStoryViewerStore } from './useStoryViewerStore';
 
 export function useStoriesFeed() {
+  const isGameModeOpen = useSpotifyPlayerStore((s) => s.isGameModeOpen);
   return useQuery({
     queryKey: [STORIES_FEED_KEY],
     queryFn: () => storiesApi.getFeed(),
     staleTime: 30 * 1000,
-    refetchInterval: 60 * 1000,
+    refetchInterval: isGameModeOpen ? false : 60 * 1000,
+    enabled: !isGameModeOpen,
   });
 }
 
@@ -99,9 +103,39 @@ export function useDeleteStory() {
 
   return useMutation({
     mutationFn: (storyId: string) => storiesApi.deleteStory(storyId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [STORIES_FEED_KEY] });
-      queryClient.invalidateQueries({ queryKey: [USER_STORIES_KEY] });
+    onMutate: async (storyId: string) => {
+      // 1. Instantly remove from active Story Viewer store
+      useStoryViewerStore.getState().removeStory(storyId);
+
+      // 2. Snapshot current feed for rollback
+      await queryClient.cancelQueries({ queryKey: [STORIES_FEED_KEY] });
+      const previousFeed = queryClient.getQueryData<UserStoriesGroup[]>([STORIES_FEED_KEY]);
+
+      // 3. Optimistically update stories feed cache
+      queryClient.setQueryData<UserStoriesGroup[]>([STORIES_FEED_KEY], (oldGroups) => {
+        if (!oldGroups) return oldGroups;
+        return oldGroups
+          .map((group) => {
+            const remainingStories = group.stories.filter((s) => s.id !== storyId);
+            return {
+              ...group,
+              stories: remainingStories,
+              hasUnviewed: remainingStories.some((s) => !s.hasViewed),
+            };
+          })
+          .filter((group) => group.stories.length > 0);
+      });
+
+      return { previousFeed };
+    },
+    onError: (_err, _storyId, context) => {
+      if (context?.previousFeed) {
+        queryClient.setQueryData([STORIES_FEED_KEY], context.previousFeed);
+      }
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: [STORIES_FEED_KEY] });
+      void queryClient.invalidateQueries({ queryKey: [USER_STORIES_KEY] });
     },
   });
 }

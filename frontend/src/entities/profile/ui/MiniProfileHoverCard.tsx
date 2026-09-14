@@ -325,16 +325,14 @@ export function MiniProfileHoverCard({
                         className="flex items-center gap-1.5 group/name"
                       >
                         <span className="font-bold text-base text-white group-hover/name:underline truncate">
-                          {profile.username}
+                          {profile.displayName || profile.username}
                         </span>
-                        {profile.isVerified && <VerifiedCheckmark size="sm" />}
+                        <VerifiedCheckmark
+                          isVerified={profile.isVerified}
+                          primaryBadge={profile.primaryBadge}
+                          size="sm"
+                        />
                       </Link>
-
-                      {profile.displayName && (
-                        <span className="text-xs text-gray-400 truncate">
-                          {profile.displayName}
-                        </span>
-                      )}
 
                       {/* Threads / Handle pill */}
                       <div className="mt-1">

@@ -16,7 +16,9 @@ describe('ReportProblemModal', () => {
     );
 
     expect(screen.getByText('Problem report')).toBeInTheDocument();
-    expect(screen.getByText('Help Center')).toBeInTheDocument();
+    const helpCenterLink = screen.getByText('Help Center');
+    expect(helpCenterLink).toBeInTheDocument();
+    expect(helpCenterLink).toHaveAttribute('href', '/safety');
 
     const continueBtn = screen.getByRole('button', { name: 'Continue to report' });
     fireEvent.click(continueBtn);

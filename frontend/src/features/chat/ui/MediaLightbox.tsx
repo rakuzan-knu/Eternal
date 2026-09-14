@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, ChevronLeft, ChevronRight, Download, MessageSquare } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Download, MessageSquare, ImageOff } from 'lucide-react';
 import { MediaItem } from '../model/chatMediaTypes';
 
 interface MediaLightboxProps {
@@ -21,6 +21,11 @@ export default function MediaLightbox({
 }: MediaLightboxProps) {
   const current = items[index];
   const [isClosing, setIsClosing] = useState(false);
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    setHasError(false);
+  }, [current?.attachment?.id]);
 
   const requestClose = () => {
     if (isClosing) return;
@@ -113,13 +118,25 @@ export default function MediaLightbox({
             src={current.attachment.url}
             controls
             autoPlay
+            onError={() => setHasError(true)}
             className="max-w-full max-h-[80vh] rounded-lg shadow-[0_20px_60px_rgba(0,0,0,0.6)] animate-modalPop"
           />
+        ) : hasError || current.attachment.url?.startsWith('color:') ? (
+          <div className="flex flex-col items-center justify-center p-8 text-center bg-white/5 border border-white/10 rounded-2xl max-w-sm animate-modalPop">
+            <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center mb-3">
+              <ImageOff size={28} className="text-gray-400" />
+            </div>
+            <p className="text-sm font-semibold text-white">Image unavailable</p>
+            <p className="text-xs text-gray-400 mt-1 max-w-[220px] truncate">
+              {current.attachment.fileName || 'Media file not found'}
+            </p>
+          </div>
         ) : (
           <img
             key={current.attachment.id}
             src={current.attachment.url}
             alt={current.attachment.fileName ?? 'media'}
+            onError={() => setHasError(true)}
             className="max-w-full max-h-[80vh] rounded-lg shadow-[0_20px_60px_rgba(0,0,0,0.6)] object-contain animate-modalPop"
           />
         )}
@@ -149,7 +166,14 @@ export default function MediaLightbox({
                   VID
                 </div>
               ) : (
-                <img src={item.attachment.url} alt="" className="w-full h-full object-cover" />
+                <img
+                  src={item.attachment.url}
+                  alt=""
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLElement).style.display = 'none';
+                  }}
+                />
               )}
             </button>
           ))}

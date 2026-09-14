@@ -11,17 +11,20 @@ import {
 } from '../api/notificationApi';
 import { NotificationFilter, PaginatedNotificationsResponse } from './types';
 import { useNotificationStore } from './useNotificationStore';
+import { useSpotifyPlayerStore } from '@/shared/model/useSpotifyPlayerStore';
 import { followApi } from '@/features/follow/api/followApi';
 import { useEffect } from 'react';
 
 export function useNotifications(filter: NotificationFilter = 'all') {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const setUnreadCounts = useNotificationStore((state) => state.setUnreadCounts);
+  const isGameModeOpen = useSpotifyPlayerStore((state) => state.isGameModeOpen);
 
   const isEnabled =
-    isAuthenticated ||
-    (typeof window !== 'undefined' && Boolean(localStorage.getItem('accessToken'))) ||
-    Boolean((import.meta as { env?: { MODE?: string } }).env?.MODE === 'test');
+    (isAuthenticated ||
+      (typeof window !== 'undefined' && Boolean(localStorage.getItem('accessToken'))) ||
+      Boolean((import.meta as { env?: { MODE?: string } }).env?.MODE === 'test')) &&
+    !isGameModeOpen;
 
   const query = useInfiniteQuery({
     queryKey: [NOTIFICATIONS_KEY, filter],
@@ -50,11 +53,12 @@ export function useNotifications(filter: NotificationFilter = 'all') {
 export function useUnreadCountsQuery() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const setUnreadCounts = useNotificationStore((state) => state.setUnreadCounts);
+  const isGameModeOpen = useSpotifyPlayerStore((state) => state.isGameModeOpen);
 
   const isEnabled =
-    isAuthenticated ||
-    (typeof window !== 'undefined' && Boolean(localStorage.getItem('accessToken'))) ||
-    Boolean((import.meta as { env?: { MODE?: string } }).env?.MODE === 'test');
+    (isAuthenticated ||
+      Boolean((import.meta as { env?: { MODE?: string } }).env?.MODE === 'test')) &&
+    !isGameModeOpen;
 
   return useQuery({
     queryKey: [UNREAD_NOTIFICATIONS_COUNT_KEY],
@@ -66,7 +70,7 @@ export function useUnreadCountsQuery() {
     enabled: isEnabled,
     retry: 1,
     staleTime: 30000,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: !isGameModeOpen,
   });
 }
 

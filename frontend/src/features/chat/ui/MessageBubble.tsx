@@ -19,7 +19,14 @@ import { ClusterPosition } from './MessageList';
 import { VideoNoteBubble } from './VideoNoteBubble';
 import { StoryReplyEmbed } from './StoryReplyEmbed';
 import { ChatThemeConfig } from '../model/chatTheme';
-import { getBubbleContrastTheme, getBubbleStyle } from '../lib/themeUtils';
+import { BubbleTail } from './BubbleTail';
+import { BubbleDecoration } from './BubbleDecoration';
+import {
+  getBubbleContrastTheme,
+  getBubbleStyle,
+  getBubbleShapeStyles,
+  getThemeTextStyle,
+} from '../lib/themeUtils';
 
 interface MessageBubbleProps {
   message: MessageView;
@@ -85,6 +92,23 @@ function extractPostInfo(body: string): { displayText: string; postId: string | 
   return { displayText: body, postId: null };
 }
 
+function isLegitimateSpotifyUrl(url: string | null): boolean {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url);
+    const isSpotifyHost =
+      parsed.hostname === 'spotify.com' ||
+      parsed.hostname === 'open.spotify.com' ||
+      parsed.hostname.endsWith('.spotify.com');
+    return (
+      isSpotifyHost &&
+      /^\/(track|album|playlist|episode|show)\/([a-zA-Z0-9]+)/i.test(parsed.pathname)
+    );
+  } catch {
+    return false;
+  }
+}
+
 export default function MessageBubble({
   message,
   isOwnMessage,
@@ -115,6 +139,8 @@ export default function MessageBubble({
 
   const { displayText, postId: embeddedPostId } = extractPostInfo(message.body || '');
   const firstExternalUrl = !embeddedPostId ? extractFirstUrl(message.body) : null;
+  const isSpotifyUrl = isLegitimateSpotifyUrl(firstExternalUrl);
+  const hasLinkPreview = Boolean(firstExternalUrl);
 
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
@@ -268,9 +294,22 @@ export default function MessageBubble({
     />
   );
 
-  const roundingClass = getBubbleRounding(isOwnMessage, clusterPosition);
+  const bubbleShape = chatTheme?.bubbleShape || 'telegram-modern';
+  const shapeStyles = getBubbleShapeStyles(bubbleShape, isOwnMessage, clusterPosition);
+  const roundingClass = shapeStyles.roundingClass;
   const isClusterEnd = clusterPosition === 'last' || clusterPosition === 'single';
-  const verticalSpacingClass = isClusterEnd ? 'mb-1.5' : 'mb-0.5';
+
+  const themeTextStyle = chatTheme
+    ? getThemeTextStyle(chatTheme, isOwnMessage, contrast?.textColor)
+    : { style: {}, className: '' };
+
+  const tailColor = isOwnMessage
+    ? chatTheme?.bubbleType === 'solid'
+      ? chatTheme.bubbleColor || '#9333ea'
+      : chatTheme?.bubbleGradientColors && chatTheme.bubbleGradientColors.length > 0
+        ? chatTheme.bubbleGradientColors[chatTheme.bubbleGradientColors.length - 1]
+        : '#6366f1'
+    : chatTheme?.incomingBubbleColor || '#12131b';
 
   // Solo Emoji Detection
   const isSoloEmoji =
@@ -295,6 +334,12 @@ export default function MessageBubble({
       (message.attachments[0].width &&
         message.attachments[0].height &&
         message.attachments[0].width === message.attachments[0].height));
+
+  const verticalSpacingClass = isSingleVideoNote
+    ? 'py-1 sm:py-1.5'
+    : isClusterEnd
+      ? 'pb-1.5 pt-0.5'
+      : 'py-0.5';
 
   const showHoverBar = (isHovered || isPickerOpen || isMenuOpen) && !isSelectionMode;
 
@@ -332,7 +377,7 @@ export default function MessageBubble({
   return (
     <div
       id={`msg-${message.id}`}
-      className={`group relative flex items-center gap-2 px-3 sm:px-4 py-0 ${verticalSpacingClass} ${
+      className={`group relative w-full flex items-center gap-2 px-1 sm:px-1.5 ${verticalSpacingClass} ${
         isOwnMessage ? 'justify-end' : 'justify-start'
       } ${showHoverBar ? 'z-20' : 'z-0'}`}
       onTouchStart={handleTouchStart}
@@ -382,9 +427,9 @@ export default function MessageBubble({
       )}
 
       <div
-        className={`flex items-end gap-2 max-w-full relative ${isOwnMessage ? 'justify-end' : 'justify-start'} ${
-          isSwiping ? '' : 'transition-transform duration-200 ease-out'
-        }`}
+        className={`flex items-end gap-2 max-w-full relative ${
+          isOwnMessage ? 'justify-end ml-auto' : 'justify-start mr-auto'
+        } ${isSwiping ? '' : 'transition-transform duration-200 ease-out'}`}
         style={{
           transform: swipeOffset > 0 ? `translateX(${swipeOffset}px)` : undefined,
         }}
@@ -401,10 +446,9 @@ export default function MessageBubble({
 
         {/* Bubble Body with Multi-Selection Click Handling */}
         <div
-          className={`relative max-w-[85%] sm:max-w-[70%] md:max-w-[60%] select-text transition-all ${
+          className={`relative w-fit max-w-full select-text transition-all ${
             isSelectionMode ? 'cursor-pointer' : ''
-          }`}
-          style={{ alignItems: isOwnMessage ? 'flex-end' : 'flex-start' }}
+          } ${isOwnMessage ? 'ml-auto' : 'mr-auto'}`}
           onClick={(e) => {
             if (isSelectionMode) {
               e.stopPropagation();
@@ -533,171 +577,209 @@ export default function MessageBubble({
             </div>
           ) : (
             /* Liquid Glass Bubble with Custom Chat Theme */
-            <div
-              ref={bubbleContainerRef}
-              style={{
-                ...bubbleStyles.style,
-                color: contrast ? contrast.textColor : undefined,
-              }}
-              className={`relative px-3.5 py-2 transition-all ${
-                message.replyTo ? 'min-w-[210px] sm:min-w-[240px]' : 'min-w-[75px] sm:min-w-[85px]'
-              } ${roundingClass} ${bubbleStyles.className}`}
-            >
-              {/* Interactive Quoted Message */}
-              {message.replyTo && (
-                <div
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onJumpToMessage?.(message.replyTo!.id);
-                  }}
-                  style={{
-                    backgroundColor: contrast ? contrast.quoteBg : undefined,
-                    borderLeftColor: contrast ? contrast.quoteBorder : undefined,
-                  }}
-                  className={`group/reply relative flex items-center mb-1.5 px-2.5 py-1.5 rounded-lg text-left cursor-pointer transition-all duration-150 select-none overflow-hidden min-w-[190px] sm:min-w-[220px] max-w-full ${
-                    !contrast
-                      ? isOwnMessage
-                        ? 'bg-black/20 hover:bg-black/35 border border-purple-400/25'
-                        : 'bg-black/25 hover:bg-black/40 border border-white/[0.08]'
-                      : 'border-l-2'
-                  }`}
-                  title="Jump to original message"
-                >
-                  {/* Left colored vertical bar */}
-                  {!contrast && (
-                    <div
-                      className={`w-[3px] self-stretch rounded-full mr-2.5 flex-shrink-0 ${
-                        isOwnMessage ? 'bg-purple-300' : 'bg-sky-400'
-                      }`}
-                    />
-                  )}
+            <div className="relative inline-block max-w-full">
+              <BubbleDecoration shape={bubbleShape} isOwnMessage={isOwnMessage} />
+              <div
+                ref={bubbleContainerRef}
+                style={{
+                  ...bubbleStyles.style,
+                  color: contrast ? contrast.textColor : undefined,
+                  ...shapeStyles.extraStyle,
+                }}
+                className={`relative px-3.5 py-2 transition-all overflow-hidden ${
+                  isOwnMessage
+                    ? hasLinkPreview
+                      ? 'w-full max-w-[460px] sm:max-w-[500px] min-w-[260px]'
+                      : message.replyTo
+                        ? 'w-fit min-w-[210px] sm:min-w-[240px] max-w-[88%] sm:max-w-[520px]'
+                        : 'w-fit min-w-[75px] sm:min-w-[85px] max-w-[88%] sm:max-w-[520px]'
+                    : hasLinkPreview
+                      ? 'w-full max-w-[420px] sm:max-w-[460px] min-w-[260px]'
+                      : message.replyTo
+                        ? 'w-fit min-w-[210px] sm:min-w-[240px] max-w-[82%] sm:max-w-[440px]'
+                        : 'w-fit min-w-[75px] sm:min-w-[85px] max-w-[82%] sm:max-w-[440px]'
+                } ${roundingClass} ${bubbleStyles.className} ${shapeStyles.extraClass}`}
+              >
+                {/* Interactive Quoted Message */}
+                {message.replyTo && (
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onJumpToMessage?.(message.replyTo!.id);
+                    }}
+                    style={{
+                      backgroundColor: contrast ? contrast.quoteBg : undefined,
+                      borderLeftColor: contrast ? contrast.quoteBorder : undefined,
+                    }}
+                    className={`group/reply relative flex items-center mb-1.5 px-2.5 py-1.5 rounded-lg text-left cursor-pointer transition-all duration-150 select-none overflow-hidden min-w-[190px] sm:min-w-[220px] max-w-full ${
+                      !contrast
+                        ? isOwnMessage
+                          ? 'bg-black/20 hover:bg-black/35 border border-purple-400/25'
+                          : 'bg-black/25 hover:bg-black/40 border border-white/[0.08]'
+                        : 'border-l-2'
+                    }`}
+                    title="Jump to original message"
+                  >
+                    {/* Left colored vertical bar */}
+                    {!contrast && (
+                      <div
+                        className={`w-[3px] self-stretch rounded-full mr-2.5 flex-shrink-0 ${
+                          isOwnMessage ? 'bg-purple-300' : 'bg-sky-400'
+                        }`}
+                      />
+                    )}
 
-                  {/* Media Thumbnail (if image, video or sticker) */}
-                  {isReplyMedia && (
-                    <img
-                      src={replyThumbnail}
-                      alt="Attachment preview"
-                      className="w-9 h-9 rounded-md object-cover flex-shrink-0 mr-2.5 bg-black/40 border border-white/10"
-                      onError={(e) => {
-                        (e.currentTarget as HTMLElement).style.display = 'none';
-                      }}
-                    />
-                  )}
+                    {/* Media Thumbnail (if image, video or sticker) */}
+                    {isReplyMedia && (
+                      <img
+                        src={replyThumbnail}
+                        alt="Attachment preview"
+                        className="w-9 h-9 rounded-md object-cover flex-shrink-0 mr-2.5 bg-black/40 border border-white/10"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                    )}
 
-                  {/* Text Details (Author name + snippet) */}
-                  <div className="min-w-0 flex-1 flex flex-col justify-center py-0.5">
-                    <p
-                      style={{ color: contrast ? contrast.quoteAuthorColor : undefined }}
-                      className={`text-[12.5px] font-semibold leading-tight truncate ${
-                        !contrast ? (isOwnMessage ? 'text-purple-300' : 'text-sky-400') : ''
-                      }`}
-                    >
-                      {replySenderName}
-                    </p>
-                    <p
-                      style={{ color: contrast ? contrast.quoteSnippetColor : undefined }}
-                      className={`text-[11.5px] leading-tight truncate mt-0.5 whitespace-nowrap ${
-                        !contrast ? 'text-white/80' : ''
-                      }`}
-                    >
-                      {getReplySnippet()}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Story Reply Rich Frame Header */}
-              {((message as any).type === 'STORY_REPLY' ||
-                (message as any).messageType === 'STORY_REPLY') && (
-                <StoryReplyEmbed
-                  attachment={message.attachments?.[0]}
-                  createdAt={message.createdAt}
-                  isOwnMessage={isOwnMessage}
-                />
-              )}
-
-              {message.attachments &&
-                message.attachments.length > 0 &&
-                (message as any).type !== 'STORY_REPLY' &&
-                (message as any).messageType !== 'STORY_REPLY' && (
-                  <div className="relative mb-0.5">
-                    <MessageAttachments
-                      attachments={message.attachments}
-                      isOwnMessage={isOwnMessage}
-                      senderName={
-                        isOwnMessage ? 'You' : message.sender.displayName || message.sender.username
-                      }
-                      sentAt={formatMessageTime(message.createdAt)}
-                      conversationId={message.conversationId}
-                      statusIcon={isOwnMessage ? statusIcon : null}
-                    />
-                    {!message.body &&
-                      !message.attachments.every((a) => a.type === 'AUDIO') &&
-                      !message.attachments.every((a) => a.type === 'FILE') && (
-                        <div
-                          className="absolute bottom-1.5 right-1.5 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-white select-none"
-                          title={statusLabel}
-                        >
-                          <span className="text-[10px] font-normal tracking-tight">
-                            {formatMessageTime(message.createdAt)}
-                          </span>
-                          {isOwnMessage && statusIcon}
-                        </div>
-                      )}
-                    {!message.body &&
-                      !message.attachments.every((a) => a.type === 'AUDIO') &&
-                      message.attachments.every((a) => a.type === 'FILE') && (
-                        <div className="flex items-center justify-end gap-1 mt-1 px-1 select-none text-gray-400">
-                          <span className="text-[10px] font-normal tracking-tight">
-                            {formatMessageTime(message.createdAt)}
-                          </span>
-                          {isOwnMessage && statusIcon}
-                        </div>
-                      )}
+                    {/* Text Details (Author name + snippet) */}
+                    <div className="min-w-0 flex-1 flex flex-col justify-center py-0.5">
+                      <p
+                        style={{ color: contrast ? contrast.quoteAuthorColor : undefined }}
+                        className={`text-[12.5px] font-semibold leading-tight truncate ${
+                          !contrast ? (isOwnMessage ? 'text-purple-300' : 'text-sky-400') : ''
+                        }`}
+                      >
+                        {replySenderName}
+                      </p>
+                      <p
+                        style={{ color: contrast ? contrast.quoteSnippetColor : undefined }}
+                        className={`text-[11.5px] leading-tight truncate mt-0.5 whitespace-nowrap ${
+                          !contrast ? 'text-white/80' : ''
+                        }`}
+                      >
+                        {getReplySnippet()}
+                      </p>
+                    </div>
                   </div>
                 )}
 
-              {message.body && (
-                <div className="relative text-[14.5px] leading-[1.38] break-words [overflow-wrap:anywhere]">
-                  {displayText && (
-                    <div
-                      className="font-normal"
-                      style={{ color: contrast ? contrast.textColor : undefined }}
-                    >
-                      <MarkdownContent content={displayText} />
+                {/* Story Reply Rich Frame Header */}
+                {((message as any).type === 'STORY_REPLY' ||
+                  (message as any).messageType === 'STORY_REPLY') && (
+                  <StoryReplyEmbed
+                    attachment={message.attachments?.[0]}
+                    createdAt={message.createdAt}
+                    isOwnMessage={isOwnMessage}
+                  />
+                )}
+
+                {message.attachments &&
+                  message.attachments.length > 0 &&
+                  (message as any).type !== 'STORY_REPLY' &&
+                  (message as any).messageType !== 'STORY_REPLY' && (
+                    <div className="relative mb-0.5">
+                      <MessageAttachments
+                        attachments={message.attachments}
+                        isOwnMessage={isOwnMessage}
+                        senderName={
+                          isOwnMessage
+                            ? 'You'
+                            : message.sender.displayName || message.sender.username
+                        }
+                        sentAt={formatMessageTime(message.createdAt)}
+                        conversationId={message.conversationId}
+                        statusIcon={isOwnMessage ? statusIcon : null}
+                        chatTheme={chatTheme}
+                        contrast={contrast}
+                      />
+                      {!message.body &&
+                        !message.attachments.every((a) => a.type === 'AUDIO') &&
+                        !message.attachments.every((a) => a.type === 'FILE') && (
+                          <div
+                            className="absolute bottom-1.5 right-1.5 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-white select-none"
+                            title={statusLabel}
+                          >
+                            <span className="text-[10px] font-normal tracking-tight">
+                              {formatMessageTime(message.createdAt)}
+                            </span>
+                            {isOwnMessage && statusIcon}
+                          </div>
+                        )}
+                      {!message.body &&
+                        !message.attachments.every((a) => a.type === 'AUDIO') &&
+                        message.attachments.every((a) => a.type === 'FILE') && (
+                          <div className="flex items-center justify-end gap-1 mt-1 px-1 select-none text-gray-400">
+                            <span className="text-[10px] font-normal tracking-tight">
+                              {formatMessageTime(message.createdAt)}
+                            </span>
+                            {isOwnMessage && statusIcon}
+                          </div>
+                        )}
                     </div>
                   )}
 
-                  {embeddedPostId && (
-                    <PostEmbedCard postId={embeddedPostId} isOwnMessage={isOwnMessage} />
-                  )}
-
-                  {firstExternalUrl && <LinkPreviewCard url={firstExternalUrl} />}
-
-                  <span
-                    className="float-right inline-flex items-center gap-1 ml-2.5 mt-0.5 select-none whitespace-nowrap text-[11px] leading-none"
-                    style={{ color: contrast ? contrast.timeColor : undefined }}
-                  >
-                    {message.isEdited && (
-                      <span className="text-[10px] opacity-75 font-normal">edited</span>
-                    )}
-                    <span className="text-[11px] font-normal tracking-tight">
-                      {formatMessageTime(message.createdAt)}
-                    </span>
-
-                    {isOwnMessage && (
-                      <span
-                        className="relative group/status inline-flex items-center cursor-default"
-                        title={statusLabel}
+                {message.body && (
+                  <div className="relative text-[14.5px] leading-[1.38] break-words [overflow-wrap:anywhere] w-full">
+                    {displayText && (
+                      <div
+                        className={`font-normal ${themeTextStyle.className}`}
+                        style={{
+                          color: contrast ? contrast.textColor : undefined,
+                          ...themeTextStyle.style,
+                        }}
                       >
-                        {statusIcon}
-                        <span className="absolute bottom-full mb-1.5 right-1/2 translate-x-1/2 hidden group-hover/status:flex items-center px-2 py-0.5 rounded-md bg-black/90 text-white text-[10px] font-medium whitespace-nowrap shadow-lg border border-white/10 z-30 pointer-events-none animate-fadeIn">
-                          {statusLabel}
-                        </span>
-                      </span>
+                        <MarkdownContent content={displayText} />
+                      </div>
                     )}
-                  </span>
-                </div>
+
+                    {embeddedPostId && (
+                      <PostEmbedCard postId={embeddedPostId} isOwnMessage={isOwnMessage} />
+                    )}
+
+                    {firstExternalUrl && (
+                      <LinkPreviewCard
+                        url={firstExternalUrl}
+                        autoExpandAudio={true}
+                        className="w-full max-w-full mt-1.5"
+                      />
+                    )}
+
+                    <span
+                      className={`float-right inline-flex items-center gap-1 ml-2.5 select-none whitespace-nowrap text-[11px] leading-none ${
+                        hasLinkPreview ? 'mt-1.5' : 'mt-0.5'
+                      }`}
+                      style={{ color: contrast ? contrast.timeColor : undefined }}
+                    >
+                      {message.isEdited && (
+                        <span className="text-[10px] opacity-75 font-normal">edited</span>
+                      )}
+                      <span className="text-[11px] font-normal tracking-tight">
+                        {formatMessageTime(message.createdAt)}
+                      </span>
+
+                      {isOwnMessage && (
+                        <span
+                          className="relative group/status inline-flex items-center cursor-default"
+                          title={statusLabel}
+                        >
+                          {statusIcon}
+                          <span className="absolute bottom-full mb-1.5 right-1/2 translate-x-1/2 hidden group-hover/status:flex items-center px-2 py-0.5 rounded-md bg-black/90 text-white text-[10px] font-medium whitespace-nowrap shadow-lg border border-white/10 z-30 pointer-events-none animate-fadeIn">
+                            {statusLabel}
+                          </span>
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Bubble Tail for iOS / Telegram */}
+              {shapeStyles.showTail && (
+                <BubbleTail
+                  tailType={shapeStyles.tailType!}
+                  isOwnMessage={isOwnMessage}
+                  color={tailColor}
+                />
               )}
             </div>
           )}

@@ -37,6 +37,17 @@ describe('auth.contract', () => {
       expect(RESERVED_USERNAMES).toContain('settings');
       expect(RESERVED_USERNAMES).toContain('messages');
       expect(RESERVED_USERNAMES).toContain('explore');
+      expect(RESERVED_USERNAMES).toContain('about');
+      expect(RESERVED_USERNAMES).toContain('safety');
+      expect(RESERVED_USERNAMES).toContain('faq');
+      expect(RESERVED_USERNAMES).toContain('help-center');
+      expect(RESERVED_USERNAMES).toContain('download');
+      expect(RESERVED_USERNAMES).toContain('privacy');
+      expect(RESERVED_USERNAMES).toContain('terms');
+      expect(RESERVED_USERNAMES).toContain('blog');
+      expect(RESERVED_USERNAMES).toContain('creators');
+      expect(RESERVED_USERNAMES).toContain('sitemap');
+      expect(RESERVED_USERNAMES).toContain('eternal');
     });
   });
 

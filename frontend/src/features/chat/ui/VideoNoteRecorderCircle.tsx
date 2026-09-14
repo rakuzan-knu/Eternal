@@ -48,6 +48,7 @@ export default function VideoNoteRecorderCircle({
   useEffect(() => {
     if (videoRef.current && stream && recordState !== 'preview') {
       videoRef.current.srcObject = stream;
+      videoRef.current.play().catch(() => {});
     }
   }, [stream, recordState]);
 

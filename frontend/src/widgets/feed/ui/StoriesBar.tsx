@@ -15,9 +15,7 @@ export function StoriesBar() {
 
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
 
   // Check if current user has active stories in feed
   const ownGroup = currentUser ? feed.find((g) => g.user.id === currentUser.id) : null;
@@ -39,19 +37,6 @@ export function StoriesBar() {
     return () => window.removeEventListener('resize', checkScroll);
   }, [feed]);
 
-  // Click outside listener for own story dropdown
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setIsMenuOpen(false);
-      }
-    };
-    if (isMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isMenuOpen]);
-
   const handleScroll = (direction: 'left' | 'right') => {
     const el = scrollContainerRef.current;
     if (!el) return;
@@ -64,7 +49,10 @@ export function StoriesBar() {
 
   const handleOwnAvatarClick = () => {
     if (hasOwnStories) {
-      setIsMenuOpen((v) => !v);
+      const ownGroupIndex = feed.findIndex((g) => g.user.id === currentUser?.id);
+      if (ownGroupIndex !== -1) {
+        openViewer(feed, ownGroupIndex);
+      }
     } else {
       openEditor();
     }
@@ -131,7 +119,7 @@ export function StoriesBar() {
         className="flex items-center gap-4 overflow-x-auto no-scrollbar py-0.5 px-1 scroll-smooth"
       >
         {/* Current User Item */}
-        <div className="relative flex flex-col items-center gap-1.5 shrink-0" ref={menuRef}>
+        <div className="relative flex flex-col items-center gap-1.5 shrink-0">
           <button
             type="button"
             onClick={handleOwnAvatarClick}
@@ -155,12 +143,26 @@ export function StoriesBar() {
               />
             </div>
 
-            {/* Bottom-right Plus Icon Badge */}
+            {/* Bottom-right Plus Icon Badge (Click directly creates story) */}
             <div
-              className={`absolute bottom-0 right-0 w-5 h-5 rounded-full flex items-center justify-center border-2 border-[#121216] shadow-md transition-transform duration-200 group-hover:scale-110 ${
+              role="button"
+              tabIndex={0}
+              onClick={(e) => {
+                e.stopPropagation();
+                openEditor();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.stopPropagation();
+                  openEditor();
+                }
+              }}
+              aria-label="Create story"
+              title="Create story"
+              className={`absolute bottom-0 right-0 w-5 h-5 rounded-full flex items-center justify-center border-2 border-[#121216] shadow-md transition-all duration-200 hover:scale-115 active:scale-90 cursor-pointer z-10 ${
                 hasOwnStories
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-gradient-to-tr from-purple-600 to-indigo-500 text-white'
+                  ? 'bg-purple-600 text-white hover:bg-purple-500'
+                  : 'bg-gradient-to-tr from-purple-600 to-indigo-500 text-white hover:brightness-110'
               }`}
             >
               <Plus size={12} className="stroke-[3]" />
@@ -168,37 +170,8 @@ export function StoriesBar() {
           </button>
 
           <span className="text-[11px] font-medium text-gray-300 truncate max-w-[70px] text-center">
-            {hasOwnStories ? 'Ваша история' : 'Добавить'}
+            {hasOwnStories ? 'Your story' : 'Add'}
           </span>
-
-          {/* Own Story Dropdown Context Menu */}
-          {isMenuOpen && hasOwnStories && (
-            <div className="absolute top-full mt-2 left-0 z-50 min-w-[170px] bg-[#18181f]/95 backdrop-blur-xl border border-white/10 rounded-2xl p-1.5 shadow-2xl animate-popIn">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsMenuOpen(false);
-                  const groupIndex = feed.findIndex((g) => g.user.id === currentUser?.id);
-                  if (groupIndex !== -1) openViewer(feed, groupIndex);
-                }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-gray-200 hover:text-white hover:bg-white/10 rounded-xl transition-colors text-left cursor-pointer"
-              >
-                <Eye size={15} className="text-purple-400" />
-                <span>Посмотреть</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsMenuOpen(false);
-                  openEditor();
-                }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-gray-200 hover:text-white hover:bg-white/10 rounded-xl transition-colors text-left cursor-pointer"
-              >
-                <Sparkles size={15} className="text-pink-400" />
-                <span>Новая история</span>
-              </button>
-            </div>
-          )}
         </div>
 
         {/* Followed Users' Active Stories */}

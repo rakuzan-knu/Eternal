@@ -52,14 +52,14 @@ describe('StoriesBar', () => {
   it('renders current user add story button and followed users', () => {
     render(<StoriesBar />, { wrapper: createWrapper() });
 
-    expect(screen.getByText('Добавить')).toBeDefined();
+    expect(screen.getByText('Add')).toBeDefined();
     expect(screen.getByText('Bob')).toBeDefined();
   });
 
   it('opens story editor modal when clicking on own add story button', () => {
     render(<StoriesBar />, { wrapper: createWrapper() });
 
-    const ownButton = screen.getByText('Добавить').parentElement;
+    const ownButton = screen.getByText('Add').parentElement;
     if (ownButton) {
       fireEvent.click(ownButton.querySelector('button')!);
     }

@@ -14,6 +14,7 @@ import { getConversationDisplay } from '../lib/getConversationDisplay';
 import MessageList from './MessageList';
 import MessageComposer from './MessageComposer';
 import ForwardMessageModal from './ForwardMessageModal';
+import { useSpotifyDockOffset } from '@/shared/model/useSpotifyDockOffset';
 
 interface ArchivedThreadPaneProps {
   conversation: ConversationView;
@@ -41,6 +42,7 @@ export default function ArchivedThreadPane({
   const actions = useMessageActions(conversation.id);
   const archiveConversation = useArchiveConversation();
   const staged = useStagedAttachments();
+  const { composerPaddingBottom } = useSpotifyDockOffset(8);
 
   const [replyingTo, setReplyingTo] = useState<MessageView | null>(null);
   const [forwardingMessage, setForwardingMessage] = useState<MessageView | null>(null);
@@ -125,20 +127,25 @@ export default function ArchivedThreadPane({
           onUnreact={actions.removeReaction}
         />
 
-        <MessageComposer
-          conversationId={conversation.id}
-          actions={actions}
-          replyingTo={replyingTo}
-          onCancelReply={() => setReplyingTo(null)}
-          stagedFiles={staged.files}
-          stagedFilesError={staged.error}
-          onAddFiles={staged.addFiles}
-          onRemoveFile={staged.removeFile}
-          onReplaceFile={staged.replaceFile}
-          onClearFiles={staged.clear}
-          onDismissFilesError={staged.dismissError}
-          isGroup={isGroup}
-        />
+        <div
+          className="w-full max-w-[960px] mx-auto px-2 sm:px-4 transition-[padding-bottom] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+          style={{ paddingBottom: `${composerPaddingBottom}px` }}
+        >
+          <MessageComposer
+            conversationId={conversation.id}
+            actions={actions}
+            replyingTo={replyingTo}
+            onCancelReply={() => setReplyingTo(null)}
+            stagedFiles={staged.files}
+            stagedFilesError={staged.error}
+            onAddFiles={staged.addFiles}
+            onRemoveFile={staged.removeFile}
+            onReplaceFile={staged.replaceFile}
+            onClearFiles={staged.clear}
+            onDismissFilesError={staged.dismissError}
+            isGroup={isGroup}
+          />
+        </div>
       </AttachmentDropZone>
 
       {forwardingMessage && (

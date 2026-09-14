@@ -1,6 +1,7 @@
 import React from 'react';
 import { ExternalLink, Star, GitFork, GitBranch } from 'lucide-react';
 import type { LinkEmbedData } from '@/entities/opengraph/model/types';
+import { sanitizeExternalUrl, sanitizeImageUrl } from '@/shared/lib/urlSecurity';
 
 interface GitHubEmbedCardProps {
   data: LinkEmbedData;
@@ -26,7 +27,7 @@ export const GitHubEmbedCard: React.FC<GitHubEmbedCardProps> = ({ data, classNam
 
   return (
     <a
-      href={data.url}
+      href={sanitizeExternalUrl(data.url, '#')}
       target="_blank"
       rel="noopener noreferrer"
       data-testid="github-embed-card"
@@ -37,7 +38,7 @@ export const GitHubEmbedCard: React.FC<GitHubEmbedCardProps> = ({ data, classNam
       <div className="flex items-center gap-2 mb-1.5 min-w-0">
         {avatar ? (
           <img
-            src={avatar}
+            src={sanitizeImageUrl(avatar)}
             alt={gh?.owner || 'GitHub'}
             className="w-5 h-5 rounded-md object-cover bg-white/10 border border-white/10 shrink-0"
             onError={(e) => {

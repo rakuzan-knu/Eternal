@@ -14,25 +14,25 @@ describe('AuthFooter', () => {
     expect(screen.getByText('Eternal © 2026')).toBeInTheDocument();
   });
 
-  it('renders all footer links', () => {
+  it('renders all footer links with correct routes', () => {
     render(
       <MemoryRouter>
         <AuthFooter />
       </MemoryRouter>,
     );
 
-    ['Privacy Policy', 'Terms of Service', 'Cookies', 'About', 'Help'].forEach((label) => {
-      expect(screen.getByText(label)).toBeInTheDocument();
+    const expectedLinks = [
+      { label: 'Privacy Policy', path: '/privacy' },
+      { label: 'Terms of Service', path: '/terms' },
+      { label: 'Cookies', path: '/terms/cookie-policy' },
+      { label: 'About', path: '/company' },
+      { label: 'Help', path: '/safety' },
+    ];
+
+    expectedLinks.forEach(({ label, path }) => {
+      const el = screen.getByText(label);
+      expect(el).toBeInTheDocument();
+      expect(el.closest('a')).toHaveAttribute('href', path);
     });
-  });
-
-  it('renders footer links as anchors', () => {
-    render(
-      <MemoryRouter>
-        <AuthFooter />
-      </MemoryRouter>,
-    );
-
-    expect(screen.getByText('Privacy Policy').closest('a')).toHaveAttribute('href', '/');
   });
 });

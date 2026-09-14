@@ -44,7 +44,7 @@ export const TasteMatchBanner: React.FC<TasteMatchBannerProps> = ({ targetShowca
   const wordEnding = count === 1 ? 'title' : 'titles';
 
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-indigo-950/50 via-purple-950/40 to-pink-950/40 backdrop-blur-2xl border border-indigo-500/30 p-3.5 shadow-xl transition-all duration-300 hover:border-indigo-400/50 group animate-fadeIn">
+    <div className="relative overflow-hidden rounded-3xl bg-[#121216]/90 bg-gradient-to-r from-indigo-950/50 via-purple-950/40 to-pink-950/40 border border-indigo-500/30 p-3.5 shadow-xl transition-all duration-300 hover:border-indigo-400/50 group animate-fadeIn">
       {/* Background Accent Neon Glow */}
       <div className="absolute -top-10 -right-10 w-28 h-28 rounded-full bg-indigo-500/25 blur-2xl pointer-events-none transition-opacity group-hover:opacity-40" />
 

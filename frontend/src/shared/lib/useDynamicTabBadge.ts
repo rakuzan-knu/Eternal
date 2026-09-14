@@ -9,12 +9,10 @@ export function useDynamicTabBadge() {
   useEffect(() => {
     if (typeof window === 'undefined' || typeof document === 'undefined') return;
 
-    // Cache original title without existing (N) badge
+    // Clean current title without existing (N) badge
     const currentTitle = document.title;
-    const cleanTitle = currentTitle.replace(/^\(\d+\)\s*/, '') || 'EternalNet';
-    if (!originalTitleRef.current) {
-      originalTitleRef.current = cleanTitle;
-    }
+    const cleanTitle = currentTitle.replace(/^\(\d+\)\s*/, '') || 'Eternal';
+    originalTitleRef.current = cleanTitle;
 
     // 1. Dynamic Tab Title Update
     if (totalUnread > 0) {

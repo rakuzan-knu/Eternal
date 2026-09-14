@@ -1,0 +1,121 @@
+# ==============================================================================
+# Eternal Social Network & Messenger — Robots.txt
+# https://eternalnet.vercel.app
+# ==============================================================================
+
+# 1. Standard Search Engine Crawlers
+User-agent: Googlebot
+User-agent: Googlebot-Image
+User-agent: Bingbot
+User-agent: Yandex
+User-agent: YandexBot
+User-agent: Applebot
+User-agent: DuckDuckBot
+User-agent: Baiduspider
+User-agent: Slurp
+Allow: /
+Allow: /about
+Allow: /company
+Allow: /privacy
+Allow: /terms
+Allow: /safety
+Allow: /download
+Allow: /blog
+Allow: /newsroom
+Allow: /brand
+Allow: /careers
+Allow: /guidelines
+Allow: /acknowledgements
+Allow: /licenses
+Allow: /explore
+Allow: /@*
+Allow: /api/sitemaps/
+Allow: /api/og-preview
+Allow: /llms.txt
+Allow: /llms-full.txt
+Allow: /.well-known/security.txt
+Disallow: /messages/
+Disallow: /notifications/
+Disallow: /settings/
+Disallow: /reels/
+Disallow: /create
+Disallow: /api/
+
+# 2. AI & Large Language Model (LLM) Crawlers
+User-agent: GPTBot
+User-agent: ChatGPT-User
+User-agent: ClaudeBot
+User-agent: Claude-Web
+User-agent: PerplexityBot
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+User-agent: Bytespider
+User-agent: CCBot
+User-agent: FacebookBot
+User-agent: Amazonbot
+Allow: /
+Allow: /about
+Allow: /privacy
+Allow: /terms
+Allow: /safety
+Allow: /download
+Allow: /blog
+Allow: /newsroom
+Allow: /brand
+Allow: /guidelines
+Allow: /llms.txt
+Allow: /llms-full.txt
+Allow: /sitemap.xml
+Allow: /sitemap-static.xml
+Disallow: /messages/
+Disallow: /notifications/
+Disallow: /settings/
+Disallow: /api/
+
+# 3. Social Media Link Preview Bots (Discord, Telegram, Twitter, WhatsApp)
+User-agent: Twitterbot
+User-agent: facebookexternalhit
+User-agent: Facebot
+User-agent: TelegramBot
+User-agent: Discordbot
+User-agent: WhatsApp
+User-agent: LinkedInBot
+User-agent: Slackbot
+User-agent: SkypeUriPreview
+Allow: /
+Allow: /@*
+Allow: /about
+Allow: /privacy
+Allow: /terms
+Allow: /safety
+Allow: /download
+Allow: /blog
+Allow: /newsroom
+Disallow: /messages/
+Disallow: /notifications/
+Disallow: /settings/
+
+# 4. Default Rule for All Other Bots
+User-agent: *
+Allow: /
+Allow: /about
+Allow: /privacy
+Allow: /terms
+Allow: /safety
+Allow: /download
+Allow: /blog
+Allow: /newsroom
+Allow: /explore
+Allow: /@*
+Allow: /api/sitemaps/
+Allow: /llms.txt
+Allow: /llms-full.txt
+Allow: /sitemap.xml
+Allow: /sitemap-static.xml
+Disallow: /messages/
+Disallow: /notifications/
+Disallow: /settings/
+Disallow: /api/
+
+# Master Sitemap Index
+Sitemap: https://eternalnet.vercel.app/sitemap.xml

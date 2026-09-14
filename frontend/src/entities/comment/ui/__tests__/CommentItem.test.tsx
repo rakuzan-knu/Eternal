@@ -171,7 +171,11 @@ describe('CommentItem', () => {
     const img = screen.getByAltText('attachment');
     fireEvent.click(img);
 
-    expect(windowOpenSpy).toHaveBeenCalledWith('https://media.png', '_blank');
+    expect(windowOpenSpy).toHaveBeenCalledWith(
+      'https://media.png',
+      '_blank',
+      'noopener,noreferrer',
+    );
     windowOpenSpy.mockRestore();
   });
 });

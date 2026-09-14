@@ -8,6 +8,8 @@ export interface WaveformRendererProps {
   onSeek: (fraction: number) => void;
   onHoverFractionChange?: (fraction: number | null) => void;
   isOwnMessage?: boolean;
+  isLightBg?: boolean;
+  activeColor?: string;
 }
 
 export const WaveformRenderer = React.memo(function WaveformRenderer({
@@ -17,6 +19,8 @@ export const WaveformRenderer = React.memo(function WaveformRenderer({
   onSeek,
   onHoverFractionChange,
   isOwnMessage = false,
+  isLightBg = false,
+  activeColor,
 }: WaveformRendererProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isHovered, setIsHovered] = useState(false);
@@ -124,7 +128,11 @@ export const WaveformRenderer = React.memo(function WaveformRenderer({
       {tooltipTime !== null && totalDuration > 0 && (
         <div
           data-testid="waveform-tooltip"
-          className="absolute -top-6 -translate-x-1/2 z-30 pointer-events-none px-1.5 py-0.5 rounded-md bg-[#10121a]/95 border border-purple-400/30 text-[10px] font-mono font-medium text-purple-200 shadow-xl backdrop-blur-md whitespace-nowrap animate-fadeIn"
+          className={`absolute -top-6 -translate-x-1/2 z-30 pointer-events-none px-1.5 py-0.5 rounded-md text-[10px] font-mono font-medium shadow-xl backdrop-blur-md whitespace-nowrap animate-fadeIn ${
+            isLightBg
+              ? 'bg-white/95 border border-slate-300 text-slate-900 shadow-md'
+              : 'bg-[#10121a]/95 border border-purple-400/30 text-purple-200'
+          }`}
           style={{
             left: `${Math.max(8, Math.min(92, (hoverFraction ?? 0) * 100))}%`,
           }}
@@ -149,13 +157,39 @@ export const WaveformRenderer = React.memo(function WaveformRenderer({
         // Height between 4px and 22px
         const barHeight = Math.max(4, Math.min(22, Math.round(peak * 22)));
 
-        let barColorClass = 'bg-white/25 group-hover:bg-white/35';
+        let barColorClass = isLightBg
+          ? 'bg-black/20 group-hover:bg-black/35'
+          : 'bg-white/25 group-hover:bg-white/35';
+        const barStyle: React.CSSProperties = {
+          height: `${barHeight}px`,
+        };
+
         if (isPlayed) {
-          barColorClass = isOwnMessage
-            ? 'bg-purple-300 shadow-[0_0_6px_rgba(216,180,254,0.6)]'
-            : 'bg-sky-300 shadow-[0_0_6px_rgba(125,211,252,0.6)]';
+          if (activeColor) {
+            barStyle.backgroundColor = activeColor;
+            barColorClass = '';
+            if (!isLightBg) {
+              barStyle.boxShadow = `0 0 6px ${activeColor}99`;
+            }
+          } else if (isLightBg) {
+            barStyle.backgroundColor = '#000000';
+            barColorClass = '';
+          } else {
+            barColorClass = isOwnMessage
+              ? 'bg-purple-300 shadow-[0_0_6px_rgba(216,180,254,0.6)]'
+              : 'bg-sky-300 shadow-[0_0_6px_rgba(125,211,252,0.6)]';
+          }
         } else if (isHoverPreview) {
-          barColorClass = isOwnMessage ? 'bg-purple-400/70' : 'bg-sky-400/70';
+          if (activeColor) {
+            barStyle.backgroundColor = activeColor;
+            barStyle.opacity = isLightBg ? 0.6 : 0.7;
+            barColorClass = '';
+          } else if (isLightBg) {
+            barStyle.backgroundColor = 'rgba(0, 0, 0, 0.6)';
+            barColorClass = '';
+          } else {
+            barColorClass = isOwnMessage ? 'bg-purple-400/70' : 'bg-sky-400/70';
+          }
         }
 
         return (
@@ -166,9 +200,7 @@ export const WaveformRenderer = React.memo(function WaveformRenderer({
           >
             <span
               className={`w-full rounded-full transition-colors duration-75 ${barColorClass}`}
-              style={{
-                height: `${barHeight}px`,
-              }}
+              style={barStyle}
             />
           </div>
         );

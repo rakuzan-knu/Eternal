@@ -5,6 +5,7 @@ export type NotificationType =
   | 'FOLLOW'
   | 'REPOST'
   | 'MENTION'
+  | 'COLLABORATE_PLAYLIST'
   | 'SYSTEM_VERIFIED'
   | 'SYSTEM_VIEW'
   | 'SYSTEM';
@@ -33,6 +34,12 @@ export interface NotificationCommentPreview {
   text: string;
 }
 
+export interface NotificationStoryPreview {
+  id: string;
+  mediaUrl?: string | null;
+  mediaType?: string | null;
+}
+
 export interface NotificationItem {
   id: string;
   userId: string;
@@ -47,6 +54,7 @@ export interface NotificationItem {
   createdAt: string;
   post?: NotificationPostPreview | null;
   comment?: NotificationCommentPreview | null;
+  story?: NotificationStoryPreview | null;
   actionText: string;
   deepLink?: string | null;
 }

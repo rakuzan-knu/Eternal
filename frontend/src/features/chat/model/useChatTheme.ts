@@ -3,6 +3,9 @@ import { ChatThemeConfig, DEFAULT_DARK_THEME_CONFIG } from './chatTheme';
 import { parseChatTheme, serializeChatTheme, dispatchThemeSync } from '../lib/themeUtils';
 import { idbGet, idbSet, idbDelete } from '../../../shared/lib/indexedDbStorage';
 import { chatApi } from '../api/chatApi';
+import { queryClient } from '@/shared/api/queryClient';
+import { CONVERSATIONS_KEY } from '@/shared/api/queryKeys';
+import type { ConversationView } from '../../../entities/chat/model/types';
 
 const LOCAL_CHAT_PREFIX = 'eternal_chat_theme_';
 const LOCAL_GLOBAL_KEY = 'eternal_chat_theme_global';
@@ -127,6 +130,11 @@ export function useChatTheme(
         payload.conversationId === conversationId ||
         payload.conversationId === 'global'
       ) {
+        if (payload.theme) {
+          setThemeState(payload.theme);
+          setIsLoading(false);
+          return;
+        }
         resolveAndApplyTheme();
       }
     };
@@ -168,45 +176,51 @@ export function useChatTheme(
 
       setThemeState(newConfig);
 
-      if (syncDevices) {
-        // 1. Clear any local device-only overrides so server theme takes precedence
-        if (conversationId) {
-          await idbDelete(`${LOCAL_CHAT_PREFIX}${conversationId}`);
-          localStorage.removeItem(`${LOCAL_CHAT_PREFIX}${conversationId}`);
+      // 1. Always persist to local device storage (IndexedDB + localStorage) for instant zero-latency caching
+      if (applyToAll) {
+        await idbSet(LOCAL_GLOBAL_KEY, newConfig);
+        try {
+          localStorage.setItem(LOCAL_GLOBAL_KEY, JSON.stringify(newConfig));
+        } catch {
+          // Handled safely by IndexedDB
         }
-        if (applyToAll) {
-          await idbDelete(LOCAL_GLOBAL_KEY);
-          localStorage.removeItem(LOCAL_GLOBAL_KEY);
-        }
-
-        // 2. Persist to backend database
-        const serialized = serializeChatTheme(newConfig);
-        if (conversationId) {
-          await chatApi.setTheme(conversationId, serialized, applyToAll);
-        }
-      } else {
-        // Local device-only storage (IndexedDB to prevent QuotaExceededError on heavy GIFs)
-        if (applyToAll) {
-          await idbSet(LOCAL_GLOBAL_KEY, newConfig);
-          try {
-            localStorage.setItem(LOCAL_GLOBAL_KEY, JSON.stringify(newConfig));
-          } catch {
-            // Handled safely by IndexedDB
-          }
-        } else if (conversationId) {
-          await idbSet(`${LOCAL_CHAT_PREFIX}${conversationId}`, newConfig);
-          try {
-            localStorage.setItem(
-              `${LOCAL_CHAT_PREFIX}${conversationId}`,
-              JSON.stringify(newConfig),
-            );
-          } catch {
-            // Handled safely by IndexedDB
-          }
+      } else if (conversationId) {
+        await idbSet(`${LOCAL_CHAT_PREFIX}${conversationId}`, newConfig);
+        try {
+          localStorage.setItem(`${LOCAL_CHAT_PREFIX}${conversationId}`, JSON.stringify(newConfig));
+        } catch {
+          // Handled safely by IndexedDB
         }
       }
 
-      // Notify other open tabs & windows
+      // 2. If syncDevices is enabled, persist to backend database
+      if (syncDevices && conversationId) {
+        try {
+          const serialized = serializeChatTheme(newConfig);
+          await chatApi.setTheme(conversationId, serialized, applyToAll);
+        } catch (err) {
+          console.warn('[useChatTheme] Failed to sync theme to backend:', err);
+        }
+      }
+
+      // 3. Update React Query conversations cache so conversation.myTheme stays in sync
+      try {
+        const serialized = serializeChatTheme(newConfig);
+        queryClient.setQueryData<ConversationView[]>([CONVERSATIONS_KEY], (old) => {
+          if (!old) return old;
+          return old.map((conv) => {
+            if (applyToAll || conv.id === conversationId) {
+              return { ...conv, myTheme: serialized };
+            }
+            return conv;
+          });
+        });
+        queryClient.invalidateQueries({ queryKey: [CONVERSATIONS_KEY] });
+      } catch {
+        // Safe fallback
+      }
+
+      // 4. Notify other open tabs & windows (and active chat thread)
       dispatchThemeSync(applyToAll ? 'global' : conversationId || 'global', newConfig);
     },
     [conversationId],
@@ -225,11 +239,51 @@ export function useChatTheme(
       if (applyToAll) {
         await idbDelete(LOCAL_GLOBAL_KEY);
         localStorage.removeItem(LOCAL_GLOBAL_KEY);
+      } else if (conversationId) {
+        // Explicitly set default config for this conversation so it doesn't fall back to a leftover global theme
+        await idbSet(`${LOCAL_CHAT_PREFIX}${conversationId}`, DEFAULT_DARK_THEME_CONFIG);
+        try {
+          localStorage.setItem(
+            `${LOCAL_CHAT_PREFIX}${conversationId}`,
+            JSON.stringify(DEFAULT_DARK_THEME_CONFIG),
+          );
+        } catch {
+          // Handled safely by IndexedDB
+        }
       }
 
-      // 2. Reset on backend if synced
+      // 2. Unlink shared theme if any
+      if (conversationId) {
+        try {
+          await chatApi.unlinkSharedTheme(conversationId);
+        } catch {
+          // Safe if no shared theme
+        }
+      }
+
+      // 3. Reset on backend if synced
       if (syncDevices && conversationId) {
-        await chatApi.setTheme(conversationId, 'default', applyToAll);
+        try {
+          await chatApi.setTheme(conversationId, 'default', applyToAll);
+        } catch (err) {
+          console.warn('[useChatTheme] Failed to reset theme on backend:', err);
+        }
+      }
+
+      // 4. Update React Query conversations cache
+      try {
+        queryClient.setQueryData<ConversationView[]>([CONVERSATIONS_KEY], (old) => {
+          if (!old) return old;
+          return old.map((conv) => {
+            if (applyToAll || conv.id === conversationId) {
+              return { ...conv, myTheme: 'default', sharedTheme: null };
+            }
+            return conv;
+          });
+        });
+        queryClient.invalidateQueries({ queryKey: [CONVERSATIONS_KEY] });
+      } catch {
+        // Safe fallback
       }
 
       setThemeState(DEFAULT_DARK_THEME_CONFIG);
