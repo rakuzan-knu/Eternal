@@ -1,8 +1,15 @@
-# CI/CD Pipeline Documentation
+# 🤖 Continuous Integration & Automation Pipelines
 
-## Overview
+The monorepo uses GitHub Actions with a staged pipeline architecture engineered for fast feedback, strict security isolation, and deterministic release gates.
 
-The CI/CD pipeline uses GitHub Actions with a staged architecture for fast feedback and clear failure isolation.
+---
+
+## 📑 CI Documentation Index
+
+- **[CI/CD Pipeline Architecture](README.md)**: Staged execution graph, jobs reference, timeouts, and security gates.
+- **[Developer Tooling & Quality Gates](tooling.md)**: Local-to-production Docker parity, root scripts, EOL validator, and Lighthouse CI thresholds.
+
+---
 
 ## Workflow Architecture
 
@@ -66,7 +73,7 @@ The CI/CD pipeline uses GitHub Actions with a staged architecture for fast feedb
 ### validate-eol
 
 - **Purpose**: Check all tracked files for CRLF line endings
-- **Script**: `scripts/validate-eol.js`
+- **Script**: `scripts/ci/validate-eol.js`
 - **Timeout**: 5 min
 
 ### format-check

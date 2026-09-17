@@ -10,6 +10,8 @@ paths = [
   '''coverage''',
   '''backend/test/.*''',
   '''\.env\.example''',
+  '''benchmarks/k6/tokens\.json''',
+  '''benchmarks/reports/.*''',
 ]
 regexes = [
   '''ci_test_access_secret_key_32_bytes_min''',

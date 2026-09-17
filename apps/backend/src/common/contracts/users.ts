@@ -1,0 +1,269 @@
+import { z } from 'zod';
+import { liveActivityStatusSchema } from './showcase';
+export const Visibility = {
+  EVERYBODY: 'EVERYBODY',
+  CONTACTS: 'CONTACTS',
+  NOBODY: 'NOBODY',
+} as const;
+export type Visibility = (typeof Visibility)[keyof typeof Visibility];
+
+export const AutoDeletePeriod = {
+  OFF: 'OFF',
+  DAY: 'DAY',
+  WEEK: 'WEEK',
+  MONTH: 'MONTH',
+  QUARTER: 'QUARTER',
+} as const;
+export type AutoDeletePeriod = (typeof AutoDeletePeriod)[keyof typeof AutoDeletePeriod];
+
+export const PrivacyDimension = {
+  LAST_SEEN: 'LAST_SEEN',
+  AVATAR: 'AVATAR',
+  BANNER: 'BANNER',
+  FORWARD_LINK: 'FORWARD_LINK',
+  CALLS: 'CALLS',
+  VOICE_MESSAGES: 'VOICE_MESSAGES',
+  MESSAGES: 'MESSAGES',
+  BIRTHDAY: 'BIRTHDAY',
+  BIO: 'BIO',
+  GROUP_INVITES: 'GROUP_INVITES',
+  THEME_PROPOSALS: 'THEME_PROPOSALS',
+} as const;
+export type PrivacyDimension = (typeof PrivacyDimension)[keyof typeof PrivacyDimension];
+
+export const ExceptionMode = {
+  ALLOW: 'ALLOW',
+  DENY: 'DENY',
+} as const;
+export type ExceptionMode = (typeof ExceptionMode)[keyof typeof ExceptionMode];
+import { sanitizeHtml } from './sanitize';
+import { HARDENED_USERNAME_REGEX, RESERVED_USERNAMES } from './auth';
+export const LastSeenGranularity = {
+  RECENTLY: 'RECENTLY',
+  WITHIN_WEEK: 'WITHIN_WEEK',
+  WITHIN_MONTH: 'WITHIN_MONTH',
+  LONG_AGO: 'LONG_AGO',
+} as const;
+export type LastSeenGranularity = (typeof LastSeenGranularity)[keyof typeof LastSeenGranularity];
+
+export const FollowStatusView = {
+  NONE: 'none',
+  PENDING: 'pending',
+  FOLLOWING: 'following',
+} as const;
+export type FollowStatusView = (typeof FollowStatusView)[keyof typeof FollowStatusView];
+
+export const updateUserSchema = z.object({
+  email: z
+    .string()
+    .email()
+    .transform((val) => val.trim().toLowerCase())
+    .optional(),
+  username: z
+    .string()
+    .min(2)
+    .max(32)
+    .regex(
+      HARDENED_USERNAME_REGEX,
+      'Username must be 2-32 characters, cannot start/end with . or _, and cannot contain consecutive dots or underscores.',
+    )
+    .refine(
+      (val) =>
+        !RESERVED_USERNAMES.includes(val.toLowerCase() as (typeof RESERVED_USERNAMES)[number]),
+      {
+        message: 'This username is reserved and cannot be used.',
+      },
+    )
+    .transform((val) => sanitizeHtml(val.toLowerCase()) as string)
+    .optional(),
+  displayName: z
+    .string()
+    .max(32)
+    .transform((val) => sanitizeHtml(val) as string)
+    .optional(),
+  bio: z
+    .string()
+    .max(200)
+    .transform((val) => sanitizeHtml(val) as string)
+    .optional(),
+  bannerPosition: z.coerce.number().min(0).max(100).optional(),
+});
+export type UpdateUserDto = z.infer<typeof updateUserSchema>;
+
+export const searchUsersQuerySchema = z.object({
+  q: z.string().max(100).default(''),
+});
+export type SearchUsersQueryDto = z.infer<typeof searchUsersQuerySchema>;
+
+export const getTopUsersQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(50).default(5),
+});
+export type GetTopUsersQueryDto = z.infer<typeof getTopUsersQuerySchema>;
+
+export const getSuggestedUsersQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(50).default(5),
+});
+export type GetSuggestedUsersQueryDto = z.infer<typeof getSuggestedUsersQuerySchema>;
+
+export const searchHashtagsQuerySchema = z.object({
+  q: z.string().max(100).default(''),
+});
+export type SearchHashtagsQueryDto = z.infer<typeof searchHashtagsQuerySchema>;
+
+export const getTrendingHashtagsQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(50).default(6),
+});
+export type GetTrendingHashtagsQueryDto = z.infer<typeof getTrendingHashtagsQuerySchema>;
+
+export const deleteAccountSchema = z.object({
+  password: z.string().min(1).max(128),
+});
+export type DeleteAccountDto = z.infer<typeof deleteAccountSchema>;
+
+export const setUserAliasSchema = z.object({
+  alias: z.string().min(1).max(64),
+});
+export type SetUserAliasDto = z.infer<typeof setUserAliasSchema>;
+
+export const updatePrimaryBadgeSchema = z.object({
+  badgeId: z.string().max(64).nullable().optional(),
+});
+export type UpdatePrimaryBadgeDto = z.infer<typeof updatePrimaryBadgeSchema>;
+
+export const privacySettingsSchema = z.object({
+  lastSeen: z.nativeEnum(Visibility),
+  avatar: z.nativeEnum(Visibility),
+  banner: z.nativeEnum(Visibility),
+  forwardLink: z.nativeEnum(Visibility),
+  calls: z.nativeEnum(Visibility),
+  voiceMessages: z.nativeEnum(Visibility),
+  messages: z.nativeEnum(Visibility),
+  birthday: z.nativeEnum(Visibility),
+  bio: z.nativeEnum(Visibility),
+  groupInvites: z.nativeEnum(Visibility),
+  themeProposals: z.nativeEnum(Visibility).optional(),
+  isPrivate: z.boolean(),
+  autoDeletePeriod: z.nativeEnum(AutoDeletePeriod),
+  allowNearbyRecommendations: z.boolean().optional(),
+});
+export type PrivacySettingsDto = z.infer<typeof privacySettingsSchema>;
+
+export const updatePrivacySchema = z.object({
+  lastSeen: z.nativeEnum(Visibility).optional(),
+  avatar: z.nativeEnum(Visibility).optional(),
+  banner: z.nativeEnum(Visibility).optional(),
+  forwardLink: z.nativeEnum(Visibility).optional(),
+  calls: z.nativeEnum(Visibility).optional(),
+  voiceMessages: z.nativeEnum(Visibility).optional(),
+  messages: z.nativeEnum(Visibility).optional(),
+  birthday: z.nativeEnum(Visibility).optional(),
+  bio: z.nativeEnum(Visibility).optional(),
+  groupInvites: z.nativeEnum(Visibility).optional(),
+  themeProposals: z.nativeEnum(Visibility).optional(),
+  isPrivate: z.boolean().optional(),
+  autoDeletePeriod: z.nativeEnum(AutoDeletePeriod).optional(),
+  allowNearbyRecommendations: z.boolean().optional(),
+});
+export type UpdatePrivacyDto = z.infer<typeof updatePrivacySchema>;
+
+export const addPrivacyExceptionSchema = z.object({
+  dimension: z.nativeEnum(PrivacyDimension),
+  targetId: z.string().min(1).max(128),
+  mode: z.nativeEnum(ExceptionMode),
+});
+export type AddPrivacyExceptionDto = z.infer<typeof addPrivacyExceptionSchema>;
+
+export const listExceptionsQuerySchema = z.object({
+  dimension: z.nativeEnum(PrivacyDimension),
+});
+export type ListExceptionsQueryDto = z.infer<typeof listExceptionsQuerySchema>;
+
+export const recommendationMutualFriendSchema = z.object({
+  id: z.string().max(128),
+  username: z.string().max(64),
+  avatar: z.string().max(2048).nullable(),
+});
+export type RecommendationMutualFriendDto = z.infer<typeof recommendationMutualFriendSchema>;
+
+export const recommendationReasonSchema = z.object({
+  type: z.enum(['MUTUAL_FRIENDS', 'NEARBY', 'SAME_CITY', 'POPULAR']),
+  text: z.string().max(255),
+  mutualFriends: z.array(recommendationMutualFriendSchema).max(10).optional(),
+  totalMutualCount: z.number().int().min(0).optional(),
+});
+export type RecommendationReasonDto = z.infer<typeof recommendationReasonSchema>;
+
+export const userProfileSchema = z.object({
+  id: z.string(),
+  username: z.string(),
+  displayName: z.string().nullable(),
+  avatar: z.string().nullable(),
+  banner: z.string().nullable().optional(),
+  bannerPosition: z.number().optional(),
+  bio: z.string().nullable().optional(),
+  birthDate: z.string().nullable().optional(),
+  isPrivate: z.boolean(),
+  isVerified: z.boolean(),
+  primaryBadge: z.string().nullable().optional(),
+  badges: z.array(z.string()).optional(),
+  githubUsername: z.string().nullable().optional(),
+  mergedPrsCount: z.number().optional(),
+  lastSeen: z
+    .union([z.string(), z.nativeEnum(LastSeenGranularity)])
+    .nullable()
+    .optional(),
+  lastSeenAt: z
+    .union([z.string(), z.nativeEnum(LastSeenGranularity)])
+    .nullable()
+    .optional(),
+  isOnline: z.boolean().optional(),
+  followStatus: z.nativeEnum(FollowStatusView).optional(),
+  autoDeletePeriod: z.nativeEnum(AutoDeletePeriod).optional(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+  isFollowing: z.boolean().optional(),
+  followsYou: z.boolean().optional(),
+  isFriend: z.boolean().optional(),
+  followersCount: z.number().optional(),
+  postsCount: z.number().optional(),
+  followingCount: z.number().optional(),
+  alias: z.string().nullable().optional(),
+  flags: z.number().optional(),
+  recommendationReason: recommendationReasonSchema.optional(),
+  activityStatus: liveActivityStatusSchema.nullable().optional(),
+});
+export type UserProfileDto = z.infer<typeof userProfileSchema>;
+
+export class CreateUserDto {
+  readonly email: string;
+  readonly username: string;
+  readonly passwordHash: string;
+  readonly displayName?: string | undefined;
+  readonly birthDate?: Date | null | undefined;
+
+  constructor(props: {
+    email: string;
+    username: string;
+    passwordHash: string;
+    displayName?: string | undefined;
+    birthDate?: Date | null | undefined;
+  }) {
+    this.email = props.email;
+    this.username = props.username;
+    this.passwordHash = props.passwordHash;
+    this.displayName = props.displayName;
+    this.birthDate = props.birthDate;
+  }
+}
+
+export class PrivacyExceptionUserDto {
+  id!: string;
+  username!: string;
+  displayName!: string | null;
+  avatar!: string | null;
+}
+
+export class DimensionExceptionsDto {
+  allow!: PrivacyExceptionUserDto[];
+  deny!: PrivacyExceptionUserDto[];
+}

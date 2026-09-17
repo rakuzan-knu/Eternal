@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "note": "Producer vectors. Floats rounded to 1e-6 (compare with 1e-6 tolerance).",
+  "vocabulary": [
+    {
+      "name": "top-dim-ties",
+      "counts": {
+        "#b": 5,
+        "#a": 5,
+        "#c": 2,
+        "#dup": 3,
+        "#DUP": 3
+      },
+      "dim": 3,
+      "expected": ["dup", "a", "b"]
+    }
+  ],
+  "vectors": [
+    {
+      "name": "counts-normalized",
+      "contents": ["I love #a and #b #a", "nothing here", "#b #c #a"],
+      "vocabulary": ["a", "b", "c", "zzz"],
+      "expected": [0.801784, 0.534522, 0.267261, 0]
+    },
+    {
+      "name": "empty-no-match",
+      "contents": ["no tags at all"],
+      "vocabulary": ["a", "b"],
+      "expected": [0, 0]
+    },
+    {
+      "name": "case-insensitive",
+      "contents": ["#TypeScript #TYPESCRIPT"],
+      "vocabulary": ["typescript"],
+      "expected": [1]
+    }
+  ]
+}

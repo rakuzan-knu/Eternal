@@ -4,6 +4,9 @@ on:
   pull_request:
     branches: [main, develop]
     paths:
+      - 'apps/web/src/**'
+      - 'apps/web/.storybook/**'
+      - 'apps/web/package*.json'
       - 'frontend/src/**'
       - 'frontend/.storybook/**'
       - 'frontend/package*.json'
@@ -37,10 +40,13 @@ jobs:
         with:
           path: |
             node_modules
-            backend/node_modules
-            frontend/node_modules
+            apps/*/node_modules
+            apps/backend/node_modules
+            apps/web/node_modules
+            packages/*/dist
+            packages/*/node_modules
             ~/.cache/prisma
-          key: ${{ runner.os }}-monorepo-pnpm-${{ hashFiles('pnpm-lock.yaml', 'backend/prisma/schema.prisma') }}
+          key: ${{ runner.os }}-monorepo-pnpm-${{ hashFiles('pnpm-lock.yaml', 'apps/backend/prisma/schema.prisma') }}
 
       - name: Install & Generate (On Cache Miss)
         if: steps.monorepo-cache.outputs.cache-hit != 'true'
@@ -55,7 +61,7 @@ jobs:
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: storybook-build
-          path: frontend/storybook-static/
+          path: apps/web/storybook-static/
           retention-days: 3
 
   # Skipped until the CHROMATIC_TOKEN repository secret is configured; once
@@ -86,10 +92,13 @@ jobs:
         with:
           path: |
             node_modules
-            backend/node_modules
-            frontend/node_modules
+            apps/*/node_modules
+            apps/backend/node_modules
+            apps/web/node_modules
+            packages/*/dist
+            packages/*/node_modules
             ~/.cache/prisma
-          key: ${{ runner.os }}-monorepo-pnpm-${{ hashFiles('pnpm-lock.yaml', 'backend/prisma/schema.prisma') }}
+          key: ${{ runner.os }}-monorepo-pnpm-${{ hashFiles('pnpm-lock.yaml', 'apps/backend/prisma/schema.prisma') }}
 
       - name: Install (On Cache Miss)
         if: steps.monorepo-cache.outputs.cache-hit != 'true'
@@ -99,11 +108,11 @@ jobs:
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
           name: storybook-build
-          path: frontend/storybook-static
+          path: apps/web/storybook-static
 
       - name: Publish to Chromatic
         if: env.CHROMATIC_PROJECT_TOKEN != ''
-        working-directory: frontend
+        working-directory: apps/web
         run: pnpm exec chromatic --storybook-build-dir=storybook-static --exit-once-uploaded
         env:
           CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}

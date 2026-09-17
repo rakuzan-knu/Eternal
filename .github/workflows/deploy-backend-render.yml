@@ -1,12 +1,8 @@
-name: Deploy Backend to Render
+name: Deploy Backend to Render (Deprecated / Manual Only)
 
 on:
-  workflow_run:
-    workflows: ["Build & Push Docker Images"]
-    branches: [main]
-    types:
-      - completed
   workflow_dispatch:
+
 
 concurrency:
   group: deploy-backend-render-${{ github.ref }}
@@ -23,7 +19,7 @@ jobs:
     name: Verify Signature & Deploy Backend to Render
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    if: github.event_name == 'workflow_dispatch'
     permissions:
       contents: read
       packages: read
@@ -74,8 +70,8 @@ jobs:
           MINIO_BUCKET: ${{ secrets.MINIO_BUCKET || 'avatars' }}
           MINIO_PUBLIC_URL: ${{ secrets.MINIO_PUBLIC_URL }}
         run: |
-          chmod +x scripts/sync-render-secrets.sh
-          ./scripts/sync-render-secrets.sh
+          chmod +x scripts/secrets/sync-render-secrets.sh
+          ./scripts/secrets/sync-render-secrets.sh
 
       - name: Trigger Render Deployment
         if: env.RENDER_DEPLOY_HOOK_URL != ''
@@ -95,7 +91,7 @@ jobs:
           SMOKE_DELAY_MS: 10000
         run: |
           echo "🧪 Running post-deploy canary smoke test..."
-          node scripts/smoke-test-backend.js
+          node scripts/deploy/smoke-test-backend.js
 
       - name: Rollback Deployment on Failure
         if: failure() && env.RENDER_SERVICE_ID != '' && env.RENDER_API_KEY != ''

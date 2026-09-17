@@ -39,7 +39,7 @@ nginx.conf text
 .nvmrc text
 .env text
 .env.example text
-.env.*.text
+.env.* text
 
 # Scripts
 *.bash text eol=lf
@@ -55,7 +55,6 @@ nginx.conf text
 *.avif binary
 *.tiff binary
 *.bmp binary
-*.svg text
 
 # Fonts
 *.woff binary
@@ -115,3 +114,7 @@ pnpm-lock.yaml binary
 yarn.lock binary
 bun.lockb binary
 *.lock binary
+
+# Terraform
+*.tf text eol=lf
+*.hcl text eol=lf

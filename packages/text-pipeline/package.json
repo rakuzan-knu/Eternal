@@ -1,0 +1,36 @@
+{
+  "name": "@social-network/text-pipeline",
+  "version": "1.0.0",
+  "description": "Portable text pipeline v1: HTML sanitize, linkify, @mention/#hashtag extraction, spam scoring. Pure string scanning, zero dependencies, no Node APIs — web, React Native/Hermes, Electron, Node.",
+  "license": "AGPL-3.0-only",
+  "private": true,
+  "main": "./dist/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.esm.json && node -e \"require('fs').writeFileSync('dist/esm/package.json','{\\\"type\\\":\\\"module\\\"}')\"",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "npm run build && node --test tests/pipeline.test.cjs tests/similarity.test.cjs",
+    "bench": "npm run build && node benches/text-pipeline.bench.cjs"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "sanitize-html": "^2.14.0",
+    "typescript": "^5.9.3"
+  }
+}

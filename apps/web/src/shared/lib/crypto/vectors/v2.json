@@ -1,0 +1,55 @@
+{
+  "version": 2,
+  "generatedBy": "gen-e2ee-vectors-v2.mjs (node:crypto, verified by independent deciphers)",
+  "note": "Single-side enforcement (browser WebCrypto has no Rust counterpart). Re-derive, never hand-edit.",
+  "v2Bound": {
+    "sender": {
+      "deviceId": "dev-a",
+      "pubUncompressedHex": "0481da485ef81dd268783853d9ba41b3ad5fd0c6f2ed0f542fdbae6e36c1a7aaf78cdfd8832c733f644a4014345d3451efd7f5057a5e1111dec94f983f80ed2c25",
+      "privHex": "be6ba07fd62ee2a93dcd918b6a065c07f3582ac8ceeb845abf72d7e2cb316a7f"
+    },
+    "recipient": {
+      "deviceId": "dev-b1",
+      "pubUncompressedHex": "04814f3b976d6a38f77f45bca1688beca2e95c3cb3a1c59f70da9505a02b160c86a37db85b069b00466726d206f82a5d3864df753ef7306e740bfa88e9b9476796",
+      "privHex": "ebaf240cb8b9c3a03418e1b0db634f96689f84d559d46cf0fba8bfc4949419b7"
+    },
+    "aad": {
+      "conversationId": "conv-vector-2",
+      "senderId": "alice",
+      "senderDevice": "dev-a",
+      "seq": 7
+    },
+    "ivHex": "0a0b0c0d0e0f101112131415",
+    "plaintext": "v2 dialog-bound golden message",
+    "envelope": "{\"e2ee\":true,\"v\":2,\"iv\":\"CgsMDQ4PEBESExQV\",\"ct\":\"defFlmFhqv2KgC3H7enZQuH/CthhqRGPgY17Z6CdBKF9ymcr1o7CtqWut1rlCQ==\",\"from\":\"dev-a\",\"aad\":{\"conversationId\":\"conv-vector-2\",\"senderId\":\"alice\",\"senderDevice\":\"dev-a\",\"seq\":7}}"
+  },
+  "v3Hybrid": {
+    "sender": {
+      "deviceId": "dev-a",
+      "pubUncompressedHex": "0481da485ef81dd268783853d9ba41b3ad5fd0c6f2ed0f542fdbae6e36c1a7aaf78cdfd8832c733f644a4014345d3451efd7f5057a5e1111dec94f983f80ed2c25",
+      "privHex": "be6ba07fd62ee2a93dcd918b6a065c07f3582ac8ceeb845abf72d7e2cb316a7f"
+    },
+    "recipients": [
+      {
+        "deviceId": "dev-b1",
+        "pubUncompressedHex": "04814f3b976d6a38f77f45bca1688beca2e95c3cb3a1c59f70da9505a02b160c86a37db85b069b00466726d206f82a5d3864df753ef7306e740bfa88e9b9476796",
+        "privHex": "ebaf240cb8b9c3a03418e1b0db634f96689f84d559d46cf0fba8bfc4949419b7"
+      },
+      {
+        "deviceId": "dev-b2",
+        "pubUncompressedHex": "04aaa0677eeabf3341d1e7f070c3c0cbe8639702cf7ae568ec80a3d950ae414edede1d026c6bceab6d9a90d0d4ae9b244677383daa776ec46108184cb26ab354b2",
+        "privHex": "47b199b16dedcc6eaa4847603f2513aea88950dd5d16bbe16d2f9b9ad251bcf6"
+      }
+    ],
+    "contentKeyHex": "1f2d3a4b5c6d7e8f90a0b1c2d3e4f5061728394a5b6c7d8e9f0a1b2c3d4e5f60",
+    "aad": {
+      "conversationId": "conv-vector-3",
+      "senderId": "alice",
+      "senderDevice": "dev-a",
+      "seq": 3
+    },
+    "ivHex": "aaabacadaeafb0b1b2b3b4b5",
+    "plaintext": "v3 hybrid multi-device golden message",
+    "envelope": "{\"e2ee\":true,\"v\":3,\"iv\":\"qqusra6vsLGys7S1\",\"ct\":\"m2UB3Af24G6rbUJ0JMtJXpDghOWLMMv+rfMLXb8rC1MRrN70HEjpPI2gh8qpfqwoa1hXT78=\",\"from\":\"dev-a\",\"keys\":{\"dev-a\":{\"iv\":\"wMHCw8TFxsfIycrL\",\"k\":\"iuLkyeZpHQU6cF10Ag6G1TNE+eX7juq9WE7lIH4UZPAB17Jewg5iOniq38PCPapX\"},\"dev-b1\":{\"iv\":\"0NHS09TV1tfY2drb\",\"k\":\"EL8BvCyCe191Vu39Tv0aVJ3JA9JrjuXfMa7ZCvO8216GMydmHBtGZwQkv0QY5x0R\"},\"dev-b2\":{\"iv\":\"4OHi4+Tl5ufo6err\",\"k\":\"0UjTOi/t/eyit0Iy/IRS+jarW50CaTvX2pWL1Tu2/7413ODBkFdLlvxaHxCowZMe\"}},\"aad\":{\"conversationId\":\"conv-vector-3\",\"senderId\":\"alice\",\"senderDevice\":\"dev-a\",\"seq\":3}}"
+  }
+}

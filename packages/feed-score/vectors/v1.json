@@ -1,0 +1,543 @@
+{
+  "version": 1,
+  "note": "Shared feed-score v1 contract. Scores rounded to 1e-6; compare floats with 1e-9 tolerance, order/reasons exactly.",
+  "vectors": [
+    {
+      "name": "legacy-mixed-pool",
+      "options": {},
+      "candidates": [
+        {
+          "id": "u-geo",
+          "distKm": 5,
+          "allowNearby": true,
+          "city": null,
+          "mutuals": [],
+          "mutualCount": 0,
+          "followersCount": 99,
+          "lastActiveAtMs": null
+        },
+        {
+          "id": "u-social",
+          "distKm": null,
+          "allowNearby": true,
+          "city": null,
+          "mutuals": [
+            {
+              "id": "m1",
+              "username": "anna",
+              "avatar": null
+            },
+            {
+              "id": "m2",
+              "username": "bob",
+              "avatar": null
+            },
+            {
+              "id": "m3",
+              "username": "cid",
+              "avatar": null
+            }
+          ],
+          "mutualCount": 3,
+          "followersCount": 9,
+          "lastActiveAtMs": null
+        },
+        {
+          "id": "u-pop",
+          "distKm": 500,
+          "allowNearby": true,
+          "city": "Lviv",
+          "mutuals": [],
+          "mutualCount": 0,
+          "followersCount": 9999,
+          "lastActiveAtMs": null
+        },
+        {
+          "id": "u-zero",
+          "distKm": null,
+          "allowNearby": false,
+          "city": null,
+          "mutuals": [],
+          "mutualCount": 0,
+          "followersCount": 0,
+          "lastActiveAtMs": null
+        }
+      ],
+      "expected": [
+        {
+          "id": "u-geo",
+          "score": 0.48,
+          "parts": {
+            "proximity": 0.95,
+            "mutual": 0,
+            "popularity": 0.5,
+            "recency": 0,
+            "affinity": 0
+          },
+          "reason": {
+            "type": "NEARBY",
+            "text": "Near you"
+          }
+        },
+        {
+          "id": "u-social",
+          "score": 0.29,
+          "parts": {
+            "proximity": 0,
+            "mutual": 0.6,
+            "popularity": 0.25,
+            "recency": 0,
+            "affinity": 0
+          },
+          "reason": {
+            "type": "MUTUAL_FRIENDS",
+            "text": "Followed by anna and 2 others",
+            "mutualFriends": [
+              {
+                "id": "m1",
+                "username": "anna",
+                "avatar": null
+              },
+              {
+                "id": "m2",
+                "username": "bob",
+                "avatar": null
+              }
+            ],
+            "totalMutualCount": 3
+          }
+        },
+        {
+          "id": "u-pop",
+          "score": 0.2,
+          "parts": {
+            "proximity": 0,
+            "mutual": 0,
+            "popularity": 1,
+            "recency": 0,
+            "affinity": 0
+          },
+          "reason": {
+            "type": "POPULAR",
+            "text": "Suggested for you"
+          }
+        },
+        {
+          "id": "u-zero",
+          "score": 0,
+          "parts": {
+            "proximity": 0,
+            "mutual": 0,
+            "popularity": 0,
+            "recency": 0,
+            "affinity": 0
+          },
+          "reason": {
+            "type": "POPULAR",
+            "text": "Suggested for you"
+          }
+        }
+      ]
+    },
+    {
+      "name": "reason-cards",
+      "options": {},
+      "candidates": [
+        {
+          "id": "u-one-mutual",
+          "distKm": 3,
+          "allowNearby": true,
+          "city": null,
+          "mutuals": [
+            {
+              "id": "m1",
+              "username": "anna",
+              "avatar": null
+            }
+          ],
+          "mutualCount": 1,
+          "followersCount": 0,
+          "lastActiveAtMs": null
+        },
+        {
+          "id": "u-city",
+          "distKm": 40,
+          "allowNearby": true,
+          "city": "Kyiv",
+          "mutuals": [],
+          "mutualCount": 0,
+          "followersCount": 3,
+          "lastActiveAtMs": null
+        },
+        {
+          "id": "u-near-non-city",
+          "distKm": 40,
+          "allowNearby": true,
+          "city": null,
+          "mutuals": [],
+          "mutualCount": 0,
+          "followersCount": 3,
+          "lastActiveAtMs": null
+        }
+      ],
+      "expected": [
+        {
+          "id": "u-one-mutual",
+          "score": 0.468,
+          "parts": {
+            "proximity": 0.97,
+            "mutual": 0.2,
+            "popularity": 0,
+            "recency": 0,
+            "affinity": 0
+          },
+          "reason": {
+            "type": "MUTUAL_FRIENDS",
+            "text": "Followed by anna",
+            "mutualFriends": [
+              {
+                "id": "m1",
+                "username": "anna",
+                "avatar": null
+              }
+            ],
+            "totalMutualCount": 1
+          }
+        },
+        {
+          "id": "u-city",
+          "score": 0.270103,
+          "parts": {
+            "proximity": 0.6,
+            "mutual": 0,
+            "popularity": 0.1505149978319906,
+            "recency": 0,
+            "affinity": 0
+          },
+          "reason": {
+            "type": "SAME_CITY",
+            "text": "From your city (Kyiv)"
+          }
+        },
+        {
+          "id": "u-near-non-city",
+          "score": 0.270103,
+          "parts": {
+            "proximity": 0.6,
+            "mutual": 0,
+            "popularity": 0.1505149978319906,
+            "recency": 0,
+            "affinity": 0
+          },
+          "reason": {
+            "type": "NEARBY",
+            "text": "Near you"
+          }
+        }
+      ]
+    },
+    {
+      "name": "tie-stability",
+      "options": {},
+      "candidates": [
+        {
+          "id": "u-c",
+          "distKm": null,
+          "allowNearby": true,
+          "city": null,
+          "mutuals": [],
+          "mutualCount": 0,
+          "followersCount": 0,
+          "lastActiveAtMs": null
+        },
+        {
+          "id": "u-a",
+          "distKm": null,
+          "allowNearby": true,
+          "city": null,
+          "mutuals": [],
+          "mutualCount": 0,
+          "followersCount": 0,
+          "lastActiveAtMs": null
+        },
+        {
+          "id": "u-b",
+          "distKm": null,
+          "allowNearby": true,
+          "city": null,
+          "mutuals": [],
+          "mutualCount": 0,
+          "followersCount": 0,
+          "lastActiveAtMs": null
+        }
+      ],
+      "expected": [
+        {
+          "id": "u-c",
+          "score": 0,
+          "parts": {
+            "proximity": 0,
+            "mutual": 0,
+            "popularity": 0,
+            "recency": 0,
+            "affinity": 0
+          },
+          "reason": {
+            "type": "POPULAR",
+            "text": "Suggested for you"
+          }
+        },
+        {
+          "id": "u-a",
+          "score": 0,
+          "parts": {
+            "proximity": 0,
+            "mutual": 0,
+            "popularity": 0,
+            "recency": 0,
+            "affinity": 0
+          },
+          "reason": {
+            "type": "POPULAR",
+            "text": "Suggested for you"
+          }
+        },
+        {
+          "id": "u-b",
+          "score": 0,
+          "parts": {
+            "proximity": 0,
+            "mutual": 0,
+            "popularity": 0,
+            "recency": 0,
+            "affinity": 0
+          },
+          "reason": {
+            "type": "POPULAR",
+            "text": "Suggested for you"
+          }
+        }
+      ]
+    },
+    {
+      "name": "recency-decay",
+      "options": {
+        "weights": {
+          "proximity": 0,
+          "mutual": 0,
+          "popularity": 0,
+          "recency": 1,
+          "affinity": 0
+        },
+        "nowMs": 1725800000000,
+        "recencyHalfLifeHours": 24
+      },
+      "candidates": [
+        {
+          "id": "u-fresh",
+          "distKm": null,
+          "allowNearby": true,
+          "city": null,
+          "mutuals": [],
+          "mutualCount": 0,
+          "followersCount": 0,
+          "lastActiveAtMs": 1725713600000
+        },
+        {
+          "id": "u-old",
+          "distKm": null,
+          "allowNearby": true,
+          "city": null,
+          "mutuals": [],
+          "mutualCount": 0,
+          "followersCount": 0,
+          "lastActiveAtMs": 1724936000000
+        },
+        {
+          "id": "u-unknown",
+          "distKm": null,
+          "allowNearby": true,
+          "city": null,
+          "mutuals": [],
+          "mutualCount": 0,
+          "followersCount": 0,
+          "lastActiveAtMs": null
+        }
+      ],
+      "expected": [
+        {
+          "id": "u-fresh",
+          "score": 0.5,
+          "parts": {
+            "proximity": 0,
+            "mutual": 0,
+            "popularity": 0,
+            "recency": 0.5,
+            "affinity": 0
+          },
+          "reason": {
+            "type": "POPULAR",
+            "text": "Suggested for you"
+          }
+        },
+        {
+          "id": "u-old",
+          "score": 0.000977,
+          "parts": {
+            "proximity": 0,
+            "mutual": 0,
+            "popularity": 0,
+            "recency": 0.0009765625,
+            "affinity": 0
+          },
+          "reason": {
+            "type": "POPULAR",
+            "text": "Suggested for you"
+          }
+        },
+        {
+          "id": "u-unknown",
+          "score": 0,
+          "parts": {
+            "proximity": 0,
+            "mutual": 0,
+            "popularity": 0,
+            "recency": 0,
+            "affinity": 0
+          },
+          "reason": {
+            "type": "POPULAR",
+            "text": "Suggested for you"
+          }
+        }
+      ]
+    },
+    {
+      "name": "affinity-cosine",
+      "options": {
+        "weights": {
+          "proximity": 0,
+          "mutual": 0,
+          "popularity": 0,
+          "recency": 0,
+          "affinity": 1
+        },
+        "viewerInterests": [1, 0, 1, 0]
+      },
+      "candidates": [
+        {
+          "id": "u-aligned",
+          "distKm": null,
+          "allowNearby": true,
+          "city": null,
+          "mutuals": [],
+          "mutualCount": 0,
+          "followersCount": 0,
+          "lastActiveAtMs": null,
+          "interests": [1, 0, 1, 0]
+        },
+        {
+          "id": "u-ortho",
+          "distKm": null,
+          "allowNearby": true,
+          "city": null,
+          "mutuals": [],
+          "mutualCount": 0,
+          "followersCount": 0,
+          "lastActiveAtMs": null,
+          "interests": [0, 1, 0, 1]
+        },
+        {
+          "id": "u-zero-vec",
+          "distKm": null,
+          "allowNearby": true,
+          "city": null,
+          "mutuals": [],
+          "mutualCount": 0,
+          "followersCount": 0,
+          "lastActiveAtMs": null,
+          "interests": [0, 0, 0, 0]
+        },
+        {
+          "id": "u-dim-mismatch",
+          "distKm": null,
+          "allowNearby": true,
+          "city": null,
+          "mutuals": [],
+          "mutualCount": 0,
+          "followersCount": 0,
+          "lastActiveAtMs": null,
+          "interests": [1, 0]
+        }
+      ],
+      "expected": [
+        {
+          "id": "u-aligned",
+          "score": 1,
+          "parts": {
+            "proximity": 0,
+            "mutual": 0,
+            "popularity": 0,
+            "recency": 0,
+            "affinity": 1
+          },
+          "reason": {
+            "type": "POPULAR",
+            "text": "Suggested for you"
+          }
+        },
+        {
+          "id": "u-ortho",
+          "score": 0,
+          "parts": {
+            "proximity": 0,
+            "mutual": 0,
+            "popularity": 0,
+            "recency": 0,
+            "affinity": 0
+          },
+          "reason": {
+            "type": "POPULAR",
+            "text": "Suggested for you"
+          }
+        },
+        {
+          "id": "u-zero-vec",
+          "score": 0,
+          "parts": {
+            "proximity": 0,
+            "mutual": 0,
+            "popularity": 0,
+            "recency": 0,
+            "affinity": 0
+          },
+          "reason": {
+            "type": "POPULAR",
+            "text": "Suggested for you"
+          }
+        },
+        {
+          "id": "u-dim-mismatch",
+          "score": 0,
+          "parts": {
+            "proximity": 0,
+            "mutual": 0,
+            "popularity": 0,
+            "recency": 0,
+            "affinity": 0
+          },
+          "reason": {
+            "type": "POPULAR",
+            "text": "Suggested for you"
+          }
+        }
+      ]
+    },
+    {
+      "name": "empty-pool",
+      "options": {},
+      "candidates": [],
+      "expected": []
+    }
+  ]
+}

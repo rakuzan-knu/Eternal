@@ -4,6 +4,10 @@ on:
   push:
     branches: [main]
     paths:
+      - 'apps/web/src/**'
+      - 'apps/web/package*.json'
+      - 'apps/web/vite.config.ts'
+      - 'apps/web/public/**'
       - 'frontend/src/**'
       - 'frontend/package*.json'
       - 'frontend/vite.config.ts'
@@ -63,7 +67,7 @@ jobs:
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: |
           echo "🧪 Running synthetic smoke test against preview deployment: ${VERCEL_PREVIEW_URL}"
-          node scripts/smoke-test-frontend.js
+          node scripts/deploy/smoke-test-frontend.js
 
       - name: Promote Deployment to Production Apex
         if: env.VERCEL_TOKEN != ''

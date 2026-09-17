@@ -13,20 +13,20 @@
 
 ### Prometheus
 
-- ✅ `monitoring/prometheus.yml` - Prometheus config
-- ✅ `monitoring/alerts.yml` - Alert rules (20+ rules)
-- ✅ `monitoring/alertmanager.yml` - AlertManager config
+- ✅ `infrastructure/monitoring/prometheus.yml` - Prometheus config
+- ✅ `infrastructure/monitoring/alerts.yml` - Alert rules (20+ rules)
+- ✅ `infrastructure/monitoring/alertmanager.yml` - AlertManager config
 
 ### Grafana
 
-- ✅ `monitoring/grafana-dashboard.json` - Pre-built dashboard
-- ✅ `monitoring/grafana-datasources.yml` - Datasource config
-- ✅ `monitoring/grafana-dashboards.yml` - Dashboard provisioning
+- ✅ `infrastructure/monitoring/grafana-dashboard.json` - Pre-built dashboard
+- ✅ `infrastructure/monitoring/grafana-datasources.yml` - Datasource config
+- ✅ `infrastructure/monitoring/grafana-dashboards.yml` - Dashboard provisioning
 
 ### Backups
 
-- ✅ `scripts/backup-db.sh` - Daily backup script
-- ✅ `scripts/backup-exporter.sh` - Backup metrics exporter
+- ✅ `scripts/db/backup-db.sh` - Daily backup script
+- ✅ `scripts/db/backup-exporter.sh` - Backup metrics exporter
 
 ### Documentation
 

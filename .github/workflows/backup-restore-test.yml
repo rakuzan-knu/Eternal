@@ -7,9 +7,9 @@ on:
   push:
     branches: [main]
     paths:
-      - 'scripts/backup-db.sh'
-      - 'scripts/verify-backup.sh'
-      - 'scripts/backup-exporter.sh'
+      - 'scripts/db/backup-db.sh'
+      - 'scripts/db/verify-backup.sh'
+      - 'scripts/db/backup-exporter.sh'
       - '.github/workflows/backup-restore-test.yml'
 
 concurrency:
@@ -72,8 +72,8 @@ jobs:
           BACKUP_DIR: ./test-backups
           BACKUP_ENCRYPTION_KEY: ci_restore_drill_encryption_key_32bytes
         run: |
-          chmod +x scripts/backup-db.sh
-          ./scripts/backup-db.sh
+          chmod +x scripts/db/backup-db.sh
+          ./scripts/db/backup-db.sh
 
       - name: Verify Encrypted File Exists & Ciphertext Integrity
         run: |
@@ -102,5 +102,5 @@ jobs:
           BACKUP_DIR: ./test-backups
           BACKUP_ENCRYPTION_KEY: ci_restore_drill_encryption_key_32bytes
         run: |
-          chmod +x scripts/verify-backup.sh
-          ./scripts/verify-backup.sh
+          chmod +x scripts/db/verify-backup.sh
+          ./scripts/db/verify-backup.sh

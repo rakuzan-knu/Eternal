@@ -1,0 +1,377 @@
+import {
+  Body,
+  Controller,
+  Delete,
+  ForbiddenException,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
+import { AuthGuard } from '../auth/guards/jwt-auth.guard';
+import { OptionalAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
+import {
+  type DeleteAccountDto,
+  type GetPostsQueryDto,
+  type GetSuggestedUsersQueryDto,
+  type GetTopUsersQueryDto,
+  type GetTrendingHashtagsQueryDto,
+  type SearchHashtagsQueryDto,
+  type SearchUsersQueryDto,
+  type SetUserAliasDto,
+  type UpdatePrimaryBadgeDto,
+  type UpdateUserDto,
+  type UserProfileDto,
+  deleteAccountSchema,
+  getPostsQuerySchema,
+  getSuggestedUsersQuerySchema,
+  getTopUsersQuerySchema,
+  getTrendingHashtagsQuerySchema,
+  searchHashtagsQuerySchema,
+  searchUsersQuerySchema,
+  setUserAliasSchema,
+  updatePrimaryBadgeSchema,
+  updateUserSchema,
+} from '@common/contracts';
+import { LowPriority } from '../common/resilience/request-priority.decorator';
+import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
+import { DeprecatedEndpoint } from '../common/versioning';
+import { UsersService } from './users.service';
+import { PostsService } from '../posts/posts.service';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { RequestUser } from '../auth/interfaces/jwt-payload.interface';
+import type { Request } from 'express';
+import { ConditionalHttpCache } from '../common/cache/etag.interceptor';
+
+@ApiTags('Users')
+@Controller('users')
+export class UsersController {
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly postsService: PostsService,
+  ) {}
+
+  @Get('legacy/lookup')
+  @DeprecatedEndpoint({
+    sunsetDate: '2026-12-31T23:59:59Z',
+    deprecationDate: true,
+    successor: '/v1/users/search',
+    docUrl: 'https://api.socialnetwork.com/docs/deprecations#legacy-lookup',
+    message: 'users/legacy/lookup is deprecated. Migrate to /v1/users/search immediately.',
+    alertOnMobile: true,
+    minSupportedClientVersion: '2.0.0',
+  })
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Deprecated legacy user lookup endpoint (RFC 8594)' })
+  @ApiResponse({ status: 200, description: 'Matching users retrieved' })
+  legacyLookup(
+    @Query(new ZodValidationPipe(searchUsersQuerySchema)) query: SearchUsersQueryDto,
+    @CurrentUser() viewer?: RequestUser,
+  ): Promise<UserProfileDto[]> {
+    const safeQuery = typeof query.q === 'string' ? query.q : '';
+    return this.usersService.searchUsers(safeQuery, viewer?.id ?? null);
+  }
+
+  @Get('search')
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Search users by username or display name' })
+  @ApiResponse({ status: 200, description: 'Matching users retrieved' })
+  searchUsers(
+    @Query(new ZodValidationPipe(searchUsersQuerySchema)) query: SearchUsersQueryDto,
+    @CurrentUser() viewer?: RequestUser,
+  ): Promise<UserProfileDto[]> {
+    const safeQuery = typeof query.q === 'string' ? query.q : '';
+    return this.usersService.searchUsers(safeQuery, viewer?.id ?? null);
+  }
+
+  @Get('mention-suggestions')
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Get smart mention suggestions prioritized by mutuals, follows and chats',
+  })
+  @ApiResponse({ status: 200, description: 'Matching users retrieved' })
+  searchMentionSuggestions(
+    @Query(new ZodValidationPipe(searchUsersQuerySchema)) query: SearchUsersQueryDto,
+    @CurrentUser() viewer?: RequestUser,
+  ): Promise<UserProfileDto[]> {
+    const safeQuery = typeof query.q === 'string' ? query.q : '';
+    return this.usersService.searchMentionSuggestions(safeQuery, viewer?.id ?? null);
+  }
+
+  @Get('top')
+  @ConditionalHttpCache()
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get top creators sorted by follower count' })
+  @ApiResponse({ status: 200, description: 'Top users retrieved' })
+  getTopUsers(
+    @Query(new ZodValidationPipe(getTopUsersQuerySchema)) query: GetTopUsersQueryDto,
+    @CurrentUser() viewer?: RequestUser,
+  ): Promise<UserProfileDto[]> {
+    return this.usersService.getTopFollowedUsers(query.limit ?? 5, viewer?.id ?? null);
+  }
+
+  @Get('suggested')
+  @LowPriority()
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get suggested users for viewer' })
+  @ApiResponse({ status: 200, description: 'Suggested users retrieved' })
+  getSuggestedUsers(
+    @Query(new ZodValidationPipe(getSuggestedUsersQuerySchema)) query: GetSuggestedUsersQueryDto,
+    @CurrentUser() viewer?: RequestUser,
+    @Req() req?: Request,
+  ): Promise<UserProfileDto[]> {
+    const clientIp = req?.ip ?? null;
+    return this.usersService.getSuggestedUsers(
+      viewer?.id ?? null,
+      query.limit ?? 5,
+      clientIp,
+      req?.headers,
+    );
+  }
+
+  @Post('suggested/:targetId/dismiss')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Dismiss a suggested user recommendation (negative feedback)' })
+  @ApiResponse({ status: 200, description: 'User recommendation dismissed' })
+  async dismissSuggestedUser(
+    @Param('targetId') targetId: string,
+    @CurrentUser() viewer: RequestUser,
+  ): Promise<{ success: boolean }> {
+    await this.usersService.dismissSuggestedUser(viewer.id, targetId);
+    return { success: true };
+  }
+
+  @Get('hashtags')
+  @LowPriority()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Search hashtags' })
+  @ApiResponse({ status: 200, description: 'Matching hashtags with post counts' })
+  searchHashtags(
+    @Query(new ZodValidationPipe(searchHashtagsQuerySchema)) query: SearchHashtagsQueryDto,
+  ): Promise<{ tag: string; count: number }[]> {
+    return this.usersService.searchHashtags(query.q || '');
+  }
+
+  @Get('trending-hashtags')
+  @ConditionalHttpCache()
+  @LowPriority()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get trending hashtags from recent posts' })
+  @ApiResponse({ status: 200, description: 'Trending hashtags retrieved' })
+  getTrendingHashtags(
+    @Query(new ZodValidationPipe(getTrendingHashtagsQuerySchema))
+    query: GetTrendingHashtagsQueryDto,
+  ): Promise<{ tag: string; count: number }[]> {
+    return this.usersService.getTrendingHashtags(query.limit ?? 6);
+  }
+
+  @Get('by-username/:username')
+  @ConditionalHttpCache()
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get user profile by username' })
+  @ApiResponse({ status: 200, description: 'Profile retrieved' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  getProfileByUsername(
+    @Param('username') username: string,
+    @CurrentUser() viewer?: RequestUser,
+  ): Promise<UserProfileDto> {
+    return this.usersService.getProfileByUsername(username, viewer?.id ?? null);
+  }
+
+  @Get('me')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get current authenticated user profile' })
+  @ApiResponse({ status: 200, description: 'Current user profile retrieved' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  getMe(@CurrentUser() user: RequestUser): Promise<UserProfileDto> {
+    return this.usersService.getMe(user.id);
+  }
+
+  @Get('me/saved-posts')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get my saved/bookmarked posts feed' })
+  @ApiResponse({ status: 200, description: 'Saved posts retrieved successfully' })
+  getSavedPosts(
+    @Query(new ZodValidationPipe(getPostsQuerySchema)) query: GetPostsQueryDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.postsService.getSavedPosts(user.id, query.limit, query.after);
+  }
+
+  @Get(':id/posts')
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get paginated posts created by a specific user' })
+  @ApiResponse({ status: 200, description: 'User posts retrieved successfully' })
+  getUserPosts(
+    @Param('id') id: string,
+    @Query(new ZodValidationPipe(getPostsQuerySchema)) query: GetPostsQueryDto,
+    @CurrentUser() viewer?: RequestUser,
+  ) {
+    return this.postsService.getUserPosts(id, query.limit, query.after, viewer?.id);
+  }
+
+  @Get(':id/reposts')
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get paginated posts reposted by a specific user' })
+  @ApiResponse({ status: 200, description: 'User reposts retrieved successfully' })
+  getUserReposts(
+    @Param('id') id: string,
+    @Query(new ZodValidationPipe(getPostsQuerySchema)) query: GetPostsQueryDto,
+    @CurrentUser() viewer?: RequestUser,
+  ) {
+    return this.postsService.getUserReposts(id, query.limit, query.after, viewer?.id);
+  }
+
+  @Post(':id/block')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Block a user' })
+  @ApiResponse({ status: 200, description: 'User blocked successfully' })
+  @ApiResponse({ status: 400, description: "Can't block yourself" })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  blockUser(@Param('id') targetId: string, @CurrentUser() user: RequestUser) {
+    return this.usersService.blockUser(user.id, targetId);
+  }
+
+  @Delete(':id/block')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Unblock a user' })
+  @ApiResponse({ status: 200, description: 'User unblocked successfully' })
+  unblockUser(@Param('id') targetId: string, @CurrentUser() user: RequestUser) {
+    return this.usersService.unblockUser(user.id, targetId);
+  }
+
+  @Post(':id/alias')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Set private custom alias for a user' })
+  @ApiResponse({ status: 200, description: 'Alias set successfully' })
+  setUserAlias(
+    @Param('id') targetId: string,
+    @Body(new ZodValidationPipe(setUserAliasSchema)) dto: SetUserAliasDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.usersService.setUserAlias(user.id, targetId, dto.alias);
+  }
+
+  @Delete(':id/alias')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete private custom alias for a user' })
+  @ApiResponse({ status: 200, description: 'Alias deleted successfully' })
+  deleteUserAlias(@Param('id') targetId: string, @CurrentUser() user: RequestUser) {
+    return this.usersService.deleteUserAlias(user.id, targetId);
+  }
+
+  @Patch('primary-badge')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Update primary badge with DB ownership verification' })
+  @ApiResponse({ status: 200, description: 'Primary badge updated' })
+  @ApiResponse({ status: 403, description: 'User does not own the requested badge' })
+  updatePrimaryBadge(
+    @CurrentUser() user: RequestUser,
+    @Body(new ZodValidationPipe(updatePrimaryBadgeSchema)) dto: UpdatePrimaryBadgeDto,
+  ): Promise<UserProfileDto> {
+    return this.usersService.updatePrimaryBadge(user.id, dto.badgeId);
+  }
+
+  @Patch('/profile/primary-badge')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  updatePrimaryBadgeProfileAlias(
+    @CurrentUser() user: RequestUser,
+    @Body(new ZodValidationPipe(updatePrimaryBadgeSchema)) dto: UpdatePrimaryBadgeDto,
+  ): Promise<UserProfileDto> {
+    return this.usersService.updatePrimaryBadge(user.id, dto.badgeId);
+  }
+
+  @Get(':id')
+  @ConditionalHttpCache()
+  @UseGuards(OptionalAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get public user profile by ID (privacy-aware)' })
+  @ApiResponse({ status: 200, description: 'Profile retrieved' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  getProfile(
+    @Param('id') id: string,
+    @CurrentUser() viewer: RequestUser | null,
+  ): Promise<UserProfileDto> {
+    return this.usersService.getProfileFor(id, viewer?.id ?? null);
+  }
+
+  @Patch(':id')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Update own profile' })
+  @ApiResponse({ status: 200, description: 'Profile updated' })
+  @ApiResponse({ status: 400, description: 'No fields provided or validation error' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({ status: 409, description: 'Email or username already taken' })
+  updateUser(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(updateUserSchema)) dto: UpdateUserDto,
+    @CurrentUser() user: RequestUser,
+  ): Promise<UserProfileDto> {
+    if (user.id !== id) throw new ForbiddenException('You can only update your own profile');
+    return this.usersService.updateUser(id, dto);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete user account permanently' })
+  @ApiResponse({ status: 200, description: 'Account deleted successfully' })
+  @ApiResponse({ status: 401, description: 'Incorrect password' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  async deleteUser(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(deleteAccountSchema)) dto: DeleteAccountDto,
+    @CurrentUser() user: RequestUser,
+  ): Promise<{ success: true }> {
+    if (user.id !== id) throw new ForbiddenException('You can only delete your own account');
+    await this.usersService.deleteAccount(id, dto.password);
+    return { success: true };
+  }
+}

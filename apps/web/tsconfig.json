@@ -1,0 +1,36 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2023",
+    "useDefineForClassFields": true,
+    "lib": ["DOM", "DOM.Iterable", "ES2023"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "paths": {
+      "@/*": ["./src/*"],
+      "@backend/common/contracts": ["../../packages/shared/contracts/src/index.ts"],
+      "@backend/common/contracts/*": ["../../packages/shared/contracts/src/*"],
+      "@backend/messenger/events/ws-events": ["../../packages/shared/socket/src/events.ts"],
+      "@backend/*": ["../backend/src/*"],
+      "@common/contracts": [
+        "../../packages/shared/contracts/src/index.ts",
+        "../backend/src/common/contracts/index.ts"
+      ],
+      "@common/*": ["../../packages/shared/contracts/src/*", "../backend/src/common/*"],
+      "@common/prisma": ["../backend/src/common/prisma/index.ts"],
+      "@shared/*": ["../../packages/shared/*/src/index.ts"],
+      "@shared/contracts": ["../../packages/shared/contracts/src/index.ts"],
+      "@social-network/*": ["../../packages/*/src/index.ts", "../../packages/shared/*/src/index.ts"]
+    },
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "exactOptionalPropertyTypes": false,
+    "types": ["node", "vite/client"]
+  },
+  "include": ["src/**/*", ".storybook/**/*", "vite.config.ts", "playwright.config.ts", "e2e/**/*"],
+  "exclude": ["node_modules", "dist", "coverage", ".nx"]
+}

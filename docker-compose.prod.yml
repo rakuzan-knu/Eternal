@@ -191,8 +191,8 @@ services:
 
   frontend:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: frontend/Dockerfile
     image: ${DOCKER_REGISTRY:-docker.io/subvincdebian}/social-network-frontend:${IMAGE_TAG:-latest}
     restart: unless-stopped
     ports:
@@ -229,8 +229,8 @@ services:
       - '--storage.tsdb.path=/prometheus'
       - '--storage.tsdb.retention.time=30d'
     volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./monitoring/alerts.yml:/etc/prometheus/rules/alerts.yml:ro
+      - ./infrastructure/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infrastructure/monitoring/alerts.yml:/etc/prometheus/rules/alerts.yml:ro
       - prometheus_data:/prometheus
     ports:
       - '9090:9090'
@@ -253,9 +253,9 @@ services:
       GF_INSTALL_PLUGINS: ''
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./monitoring/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
-      - ./monitoring/grafana-dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
-      - ./monitoring/grafana-dashboard.json:/etc/grafana/provisioning/dashboards/social-network.json:ro
+      - ./infrastructure/monitoring/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - ./infrastructure/monitoring/grafana-dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
+      - ./infrastructure/monitoring/grafana-dashboard.json:/etc/grafana/provisioning/dashboards/social-network.json:ro
     ports:
       - '3001:3000'
     networks:
@@ -330,7 +330,7 @@ services:
       - '--config.file=/etc/alertmanager/alertmanager.yml'
       - '--storage.path=/alertmanager'
     volumes:
-      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./infrastructure/monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
     ports:
       - '9093:9093'
     networks:
@@ -385,7 +385,7 @@ services:
     restart: unless-stopped
     command: ['--config=/etc/otel-collector-config.yaml']
     volumes:
-      - ./monitoring/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+      - ./infrastructure/monitoring/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
     ports:
       - '4318:4318'
       - '8889:8889'
@@ -417,7 +417,7 @@ services:
       POSTGRES_PORT: '5432'
       BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-7}
     volumes:
-      - ./scripts/backup-db.sh:/scripts/backup-db.sh:ro
+      - ./scripts/db/backup-db.sh:/scripts/backup-db.sh:ro
       - backup_data:/backups
     depends_on:
       postgres:
@@ -439,7 +439,7 @@ services:
       sh -c 'apk add --no-cache bash curl && 
       /bin/bash /scripts/backup-exporter.sh'
     volumes:
-      - ./scripts/backup-exporter.sh:/scripts/backup-exporter.sh:ro
+      - ./scripts/db/backup-exporter.sh:/scripts/backup-exporter.sh:ro
       - backup_data:/backups:ro
     ports:
       - '9114:9114'

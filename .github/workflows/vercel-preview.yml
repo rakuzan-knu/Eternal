@@ -5,6 +5,10 @@ on:
     branches: [main, develop]
     types: [opened, synchronize, reopened]
     paths:
+      - 'apps/web/src/**'
+      - 'apps/web/package*.json'
+      - 'apps/web/vite.config.ts'
+      - 'apps/web/public/**'
       - 'frontend/src/**'
       - 'frontend/package*.json'
       - 'frontend/vite.config.ts'

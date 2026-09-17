@@ -1,0 +1,420 @@
+{
+  "version": 1,
+  "note": "Shared text-pipeline v1 conformance contract. Spans are UTF-16 code-unit offsets.",
+  "vectors": [
+    {
+      "name": "plain-mentions",
+      "input": "Hello @alex and @sam!",
+      "options": {},
+      "implementations": ["ts", "rust"],
+      "expected": {
+        "text": "Hello @alex and @sam!",
+        "html": "Hello @alex and @sam!",
+        "mentions": ["alex", "sam"],
+        "mentionSpans": [
+          {
+            "value": "alex",
+            "start": 7,
+            "end": 11
+          },
+          {
+            "value": "sam",
+            "start": 17,
+            "end": 20
+          }
+        ],
+        "hashtags": [],
+        "hashtagSpans": [],
+        "links": [],
+        "spam": {
+          "score": 0,
+          "reasons": []
+        },
+        "capped": false,
+        "truncated": false
+      }
+    },
+    {
+      "name": "hashtags-mixed",
+      "input": "loving #TypeScript and #nestjs everyday #привет",
+      "options": {},
+      "implementations": ["ts", "rust"],
+      "expected": {
+        "text": "loving #TypeScript and #nestjs everyday #привет",
+        "html": "loving #TypeScript and #nestjs everyday #привет",
+        "mentions": [],
+        "mentionSpans": [],
+        "hashtags": ["#TypeScript", "#nestjs", "#привет"],
+        "hashtagSpans": [
+          {
+            "value": "#TypeScript",
+            "start": 7,
+            "end": 18
+          },
+          {
+            "value": "#nestjs",
+            "start": 23,
+            "end": 30
+          },
+          {
+            "value": "#привет",
+            "start": 40,
+            "end": 47
+          }
+        ],
+        "links": [],
+        "spam": {
+          "score": 0,
+          "reasons": []
+        },
+        "capped": false,
+        "truncated": false
+      }
+    },
+    {
+      "name": "xss-text-mode",
+      "input": "<script>alert(1)</script>hi <b>bob</b> @bob",
+      "options": {
+        "mode": "text"
+      },
+      "implementations": ["ts", "rust"],
+      "expected": {
+        "text": "hi bob @bob",
+        "html": "hi bob @bob",
+        "mentions": ["bob"],
+        "mentionSpans": [
+          {
+            "value": "bob",
+            "start": 40,
+            "end": 43
+          }
+        ],
+        "hashtags": [],
+        "hashtagSpans": [],
+        "links": [],
+        "spam": {
+          "score": 0,
+          "reasons": []
+        },
+        "capped": false,
+        "truncated": false
+      }
+    },
+    {
+      "name": "xss-rich-anchors",
+      "input": "<p>Hello <a href=\"javascript:alert(1)\">click</a> <a href=\"https://example.com\">ok</a></p>",
+      "options": {
+        "mode": "rich"
+      },
+      "implementations": ["ts", "rust"],
+      "expected": {
+        "text": "Hello click ok",
+        "html": "<p>Hello click <a href=\"https://example.com\" rel=\"noopener noreferrer nofollow\">ok</a></p>",
+        "mentions": [],
+        "mentionSpans": [],
+        "hashtags": [],
+        "hashtagSpans": [],
+        "links": [],
+        "spam": {
+          "score": 0,
+          "reasons": []
+        },
+        "capped": false,
+        "truncated": false
+      }
+    },
+    {
+      "name": "linkify-rich",
+      "input": "visit https://example.com/a(b) and www.test.org, ok",
+      "options": {
+        "mode": "rich",
+        "linkify": true
+      },
+      "implementations": ["ts", "rust"],
+      "expected": {
+        "text": "visit https://example.com/a(b) and www.test.org, ok",
+        "html": "visit <a href=\"https://example.com/a(b)\" rel=\"noopener noreferrer nofollow\">https://example.com/a(b)</a> and <a href=\"https://www.test.org\" rel=\"noopener noreferrer nofollow\">www.test.org</a>, ok",
+        "mentions": [],
+        "mentionSpans": [],
+        "hashtags": [],
+        "hashtagSpans": [],
+        "links": [
+          {
+            "value": "https://example.com/a(b)",
+            "start": 6,
+            "end": 30,
+            "url": "https://example.com/a(b)"
+          },
+          {
+            "value": "www.test.org",
+            "start": 35,
+            "end": 47,
+            "url": "https://www.test.org"
+          }
+        ],
+        "spam": {
+          "score": 0,
+          "reasons": []
+        },
+        "capped": false,
+        "truncated": false
+      }
+    },
+    {
+      "name": "mention-bomb-spam",
+      "input": "@a @b @c @d @e @f @g BUY NOW click here!!!",
+      "options": {
+        "maxMentions": 5
+      },
+      "implementations": ["ts", "rust"],
+      "expected": {
+        "text": "@a @b @c @d @e @f @g BUY NOW click here!!!",
+        "html": "@a @b @c @d @e @f @g BUY NOW click here!!!",
+        "mentions": ["a", "b", "c", "d", "e", "f", "g"],
+        "mentionSpans": [
+          {
+            "value": "a",
+            "start": 1,
+            "end": 2
+          },
+          {
+            "value": "b",
+            "start": 4,
+            "end": 5
+          },
+          {
+            "value": "c",
+            "start": 7,
+            "end": 8
+          },
+          {
+            "value": "d",
+            "start": 10,
+            "end": 11
+          },
+          {
+            "value": "e",
+            "start": 13,
+            "end": 14
+          },
+          {
+            "value": "f",
+            "start": 16,
+            "end": 17
+          },
+          {
+            "value": "g",
+            "start": 19,
+            "end": 20
+          }
+        ],
+        "hashtags": [],
+        "hashtagSpans": [],
+        "links": [],
+        "spam": {
+          "score": 0.85,
+          "reasons": ["TOO_MANY_MENTIONS", "SUSPICIOUS_PHRASE"]
+        },
+        "capped": true,
+        "truncated": false
+      }
+    },
+    {
+      "name": "emoji-offsets",
+      "input": "hi @bob 🎉 #party",
+      "options": {},
+      "implementations": ["ts", "rust"],
+      "expected": {
+        "text": "hi @bob 🎉 #party",
+        "html": "hi @bob 🎉 #party",
+        "mentions": ["bob"],
+        "mentionSpans": [
+          {
+            "value": "bob",
+            "start": 4,
+            "end": 7
+          }
+        ],
+        "hashtags": ["#party"],
+        "hashtagSpans": [
+          {
+            "value": "#party",
+            "start": 11,
+            "end": 17
+          }
+        ],
+        "links": [],
+        "spam": {
+          "score": 0,
+          "reasons": []
+        },
+        "capped": false,
+        "truncated": false
+      }
+    },
+    {
+      "name": "empty",
+      "input": "",
+      "options": {},
+      "implementations": ["ts", "rust"],
+      "expected": {
+        "text": "",
+        "html": "",
+        "mentions": [],
+        "mentionSpans": [],
+        "hashtags": [],
+        "hashtagSpans": [],
+        "links": [],
+        "spam": {
+          "score": 0,
+          "reasons": []
+        },
+        "capped": false,
+        "truncated": false
+      }
+    },
+    {
+      "name": "shouting",
+      "input": "THIS IS A SHOUTING MESSAGE ABOUT NOTHING AT ALL",
+      "options": {},
+      "implementations": ["ts", "rust"],
+      "expected": {
+        "text": "THIS IS A SHOUTING MESSAGE ABOUT NOTHING AT ALL",
+        "html": "THIS IS A SHOUTING MESSAGE ABOUT NOTHING AT ALL",
+        "mentions": [],
+        "mentionSpans": [],
+        "hashtags": [],
+        "hashtagSpans": [],
+        "links": [],
+        "spam": {
+          "score": 0.25,
+          "reasons": ["EXCESSIVE_CAPS"]
+        },
+        "capped": false,
+        "truncated": false
+      }
+    },
+    {
+      "name": "entities",
+      "input": "fish &amp; chips &lt;3 @sam",
+      "options": {},
+      "implementations": ["ts", "rust"],
+      "expected": {
+        "text": "fish &amp; chips &lt;3 @sam",
+        "html": "fish &amp; chips &lt;3 @sam",
+        "mentions": ["sam"],
+        "mentionSpans": [
+          {
+            "value": "sam",
+            "start": 24,
+            "end": 27
+          }
+        ],
+        "hashtags": [],
+        "hashtagSpans": [],
+        "links": [],
+        "spam": {
+          "score": 0,
+          "reasons": []
+        },
+        "capped": false,
+        "truncated": false
+      }
+    },
+    {
+      "name": "entities-upper",
+      "input": "A &AMP; B &NBSP; C &#65;",
+      "options": {},
+      "implementations": ["ts", "rust"],
+      "expected": {
+        "text": "A &amp; B &amp;NBSP; C A",
+        "html": "A &amp; B &amp;NBSP; C A",
+        "mentions": [],
+        "mentionSpans": [],
+        "hashtags": ["#65"],
+        "hashtagSpans": [
+          {
+            "value": "#65",
+            "start": 20,
+            "end": 23
+          }
+        ],
+        "links": [],
+        "spam": {
+          "score": 0,
+          "reasons": []
+        },
+        "capped": false,
+        "truncated": false
+      }
+    },
+    {
+      "name": "ports-and-localhost",
+      "input": "dev at http://localhost:3000/x and http://example.com:8080/y",
+      "options": {
+        "linkify": true
+      },
+      "implementations": ["ts", "rust"],
+      "expected": {
+        "text": "dev at http://localhost:3000/x and http://example.com:8080/y",
+        "html": "dev at http://localhost:3000/x and http://example.com:8080/y",
+        "mentions": [],
+        "mentionSpans": [],
+        "hashtags": [],
+        "hashtagSpans": [],
+        "links": [
+          {
+            "value": "http://localhost:3000/x",
+            "start": 7,
+            "end": 30,
+            "url": "http://localhost:3000/x"
+          },
+          {
+            "value": "http://example.com:8080/y",
+            "start": 35,
+            "end": 60,
+            "url": "http://example.com:8080/y"
+          }
+        ],
+        "spam": {
+          "score": 0,
+          "reasons": []
+        },
+        "capped": false,
+        "truncated": false
+      }
+    },
+    {
+      "name": "hashtag-no-boundary",
+      "input": "email#tag and #ok",
+      "options": {},
+      "implementations": ["ts", "rust"],
+      "expected": {
+        "text": "email#tag and #ok",
+        "html": "email#tag and #ok",
+        "mentions": [],
+        "mentionSpans": [],
+        "hashtags": ["#tag", "#ok"],
+        "hashtagSpans": [
+          {
+            "value": "#tag",
+            "start": 5,
+            "end": 9
+          },
+          {
+            "value": "#ok",
+            "start": 14,
+            "end": 17
+          }
+        ],
+        "links": [],
+        "spam": {
+          "score": 0,
+          "reasons": []
+        },
+        "capped": false,
+        "truncated": false
+      }
+    }
+  ]
+}

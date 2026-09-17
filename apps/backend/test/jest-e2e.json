@@ -1,0 +1,23 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": "..",
+  "roots": ["<rootDir>/test"],
+  "testEnvironment": "node",
+  "testRegex": ".e2e-spec.ts$",
+  "testPathIgnorePatterns": ["/node_modules/", "/.stryker-tmp/", "/dist/"],
+  "moduleNameMapper": {
+    "^@common/(.*)$": "<rootDir>/src/common/$1",
+    "^@backend/(.*)$": "<rootDir>/src/$1",
+    "^@social-network/msg-codec$": "<rootDir>/../../packages/msg-codec/src/index.ts",
+    "^@social-network/text-pipeline$": "<rootDir>/../../packages/text-pipeline/src/index.ts",
+    "^@social-network/blinded-crypto$": "<rootDir>/../../packages/blinded-crypto/src/index.ts",
+    "^@social-network/feed-score$": "<rootDir>/../../packages/feed-score/src/index.ts",
+    "^@social-network/native$": "<rootDir>/../../packages/native/src/index.ts"
+  },
+  "transformIgnorePatterns": [
+    "node_modules/(?!(\\.pnpm/)?(sanitize-html|htmlparser2|domutils|domhandler|dom-serializer|entities|domelementtype))"
+  ],
+  "transform": {
+    "^.+\\.(t|j)sx?$": "ts-jest"
+  }
+}

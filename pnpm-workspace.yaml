@@ -1,10 +1,10 @@
 packages:
-  - 'backend'
-  - 'frontend'
+  - 'apps/*'
+  - 'packages/*'
+  - 'packages/shared/*'
 
 onlyBuiltDependencies:
   - '@prisma/client'
-  - '@prisma/engines'
   - '@swc/core'
   - 'argon2'
   - 'esbuild'
@@ -33,3 +33,6 @@ overrides:
   esbuild: '>=0.28.2'
   qs: '>=6.15.2'
   '@puppeteer/browsers': '>=3.2.1'
+  jest-mock: '>=30.5.1'
+  form-data: '>=2.5.4'
+  tar: '>=7.5.19'

@@ -2,7 +2,7 @@
 
 ## 1. Scope & Objective
 
-Restore PostgreSQL database from automated backups created by `scripts/backup-db.sh` or perform point-in-time recovery (PITR) with minimal downtime.
+Restore PostgreSQL database from automated backups created by `scripts/db/backup-db.sh` or perform point-in-time recovery (PITR) with minimal downtime.
 
 ---
 

@@ -1,312 +1,168 @@
-# 🤝 Contributing Guide
+# 🤝 Open-Source Contributing Guide
 
-Welcome to the team! This document describes the development workflow, coding standards, and Git rules for our **Social Network** project.
+Welcome to the **Social Network** open-source project! We are thrilled to have community contributors join us in building a fast, scalable, and private social platform.
 
-## 💡 Reporting Issues & Requests
-
-When reporting bugs or suggesting features, please use our standardized issue templates located in `/.github/ISSUE_TEMPLATE/`:
-
-- [🐛 Bug Report](/.github/ISSUE_TEMPLATE/bug_report.md)
-- [🚀 Feature Request](/.github/ISSUE_TEMPLATE/feature_request.md)
-
-Following these guidelines helps us:
-
-- Keep the codebase clean and maintainable
-- Reduce code review time
-- Minimize Git conflicts
-- Ensure consistent architecture across the project
-- Automatically generate releases, version tags, and changelogs via **semantic-release**
+> [!TIP]
+> **Essential Reading for Contributors:**
+>
+> - 🚀 **[Local Getting Started Guide](./docs/contributing/getting-started.md)**: 5-minute setup with Docker, pnpm, and Prisma.
+> - 🌿 **[Contribution & PR Workflow](./docs/contributing/workflow.md)**: Step-by-step guide to finding issues, branching, and PR lifecycle.
+> - 📐 **[Coding Standards & Architecture Invariants](./docs/contributing/coding-standards.md)**: 4-tier backend layering, React FSD, Zod contracts.
+> - 🧪 **[Testing Handbook](./docs/contributing/testing.md)**: How to run backend E2E, Vitest integration, and mutation tests.
+> - 🏛️ **[Full Architecture Documentation](./docs/README.md)**: System topology, C4 model, database schema, and security model.
 
 ---
 
-# 📋 1. Jira & Task Lifecycle
+## 💡 Reporting Issues & Feature Proposals
 
-Before writing a single line of code, you **must** have an assigned Jira task.
+We track all work transparently on GitHub:
 
-### Workflow
-
-1. Find your task.
-2. Move it to **In Progress**.
-3. Read the task carefully.
-4. Create a Pull Request (PR) once the code is ready.
-5. Move the task to **In Review**.
-6. Once the PR is merged, move the task to **Done**.
-
-### Requirements
-
-Before starting development, verify that the task contains:
-
-- ✅ Description
-- ✅ Acceptance Criteria (AC)
-- ✅ Story Point estimation
-
-> **If anything is unclear, contact the team in the Team Chat.**
+- [🐛 Bug Report](https://github.com/rakuzan-knu/social-network/issues/new?template=bug_report.md)
+- [🚀 Feature Request](https://github.com/rakuzan-knu/social-network/issues/new?template=feature_request.md)
+- [💬 Discussions](https://github.com/rakuzan-knu/social-network/discussions) for architecture questions and ideas.
 
 ---
 
-# 🌿 2. Git Workflow & Branching
+## 🌿 1. Git Workflow & Branching
 
-We use a **Feature Branch Workflow** integrated with automated release channels.
+We use a standard **Feature Branch Workflow**:
 
-- Standard feature branches are created from `main` or `develop`.
-- Direct pushes to `main` or `develop` are **strictly forbidden**.
-- All changes must pass through a **Pull Request**.
+- Branch off `main` (stable production) or `develop` (active development / beta).
+- Direct pushes to protected branches (`main`, `develop`) are forbidden.
+- All modifications arrive via **Pull Requests**.
 
-### Release Channels & Target Branches
-
-| Branch    | Release Channel     | Resulting Version Example |
-| :-------- | :------------------ | :------------------------ |
-| `main`    | Production (Stable) | `v1.2.0`                  |
-| `develop` | Beta (Pre-release)  | `v1.2.0-beta.1`           |
-
-## Branch Naming Standard
+### Branch Naming Convention
 
 ```text
-<type>/<jira-ticket-id>-<short-description>
+<type>/<issue-number>-<short-description>
 ```
 
-### Available Branch Types
+Or for minor tasks:
 
-| Type        | Description                                 |
-| :---------- | :------------------------------------------ |
-| `feat/`     | New features or architectural additions     |
-| `fix/`      | Bug fixes                                   |
-| `refactor/` | Code improvements without changing behavior |
-| `chore/`    | Dependencies, configs, tooling, maintenance |
-
-### Examples
-
-```bash
-feat/SOC-124-like-post-backend
-fix/SOC-89-auth-token-refresh
-chore/SOC-210-update-prisma-client
+```text
+<type>/<short-description>
 ```
+
+| Type        | Purpose                                   | Example                          |
+| :---------- | :---------------------------------------- | :------------------------------- |
+| `feat/`     | New features or capabilities              | `feat/124-like-post-realtime`    |
+| `fix/`      | Bug fixes and patches                     | `fix/89-auth-token-refresh`      |
+| `refactor/` | Code refactoring without behavior changes | `refactor/user-profile-widget`   |
+| `perf/`     | Performance optimizations                 | `perf/feed-composite-indices`    |
+| `docs/`     | Documentation additions or updates        | `docs/websocket-protocol-guide`  |
+| `chore/`    | Tooling, dependencies, or maintenance     | `chore/update-pnpm-dependencies` |
 
 ---
 
-# 💬 3. Commit Message Convention & Release Impact
+## 💬 2. Commit Message Convention
 
-We follow **Conventional Commits**, strictly enforced via `@commitlint` and processed by **Semantic Release**.
-
-## Commit Format
+We strictly adhere to **Conventional Commits**, enforced locally by Husky & Commitlint, and validated in CI:
 
 ```text
-<type>(<scope>): <short description> [<Jira-ID>]
+<type>(<scope>): <short description>
 ```
 
-## Constraints
+### Constraints:
 
-- **Subject Length:** Maximum **100 characters**.
-- **Body Line Length:** Maximum **200 characters** per line.
-- **Jira Suffix:** Mandatory suffix format for tasks: `[SOC-XXX]`.
-- **Ignored Commits:** Commits starting with `Merge` or `Revert` bypass linter rules automatically.
+- **Subject Length**: ≤ 100 characters.
+- **Body Line Length**: ≤ 200 characters per line.
+- **Imperative Mood**: e.g., "add", not "added" or "adds".
 
-### Allowed Types & Release Impact
+### Types & Release Impact:
 
-The type you choose dictates how **Semantic Release** bumps project versions and updates `CHANGELOG.md`:
+| Type       | Release Bump        | Changelog            | Description              |
+| :--------- | :------------------ | :------------------- | :----------------------- |
+| `feat`     | **Minor** (`x.X.0`) | Added to Features    | New functionality        |
+| `fix`      | **Patch** (`x.x.X`) | Added to Bug Fixes   | Bug fix                  |
+| `perf`     | **Patch** (`x.x.X`) | Added to Performance | Performance optimization |
+| `refactor` | None                | Added to Maintenance | Internal refactoring     |
+| `docs`     | None                | Added to Maintenance | Documentation only       |
+| `test`     | None                | Added to Maintenance | Adding/modifying tests   |
+| `chore`    | None                | Added to Maintenance | Tooling, dependencies    |
+| `ci`       | None                | Added to Maintenance | CI/CD configurations     |
 
-| Type           | Version Bump        | Listed in Changelog?      | Description                            |
-| :------------- | :------------------ | :------------------------ | :------------------------------------- |
-| **`feat`**     | **Minor** (`x.X.0`) | YES (Features)            | A new feature                          |
-| **`fix`**      | **Patch** (`x.x.X`) | YES (Bug Fixes)           | A bug fix                              |
-| **`perf`**     | **Patch** (`x.x.X`) | YES (Maintenance/Tooling) | Performance improvement                |
-| **`revert`**   | **Patch** (`x.x.X`) | YES (Maintenance/Tooling) | Reverts a previous commit              |
-| **`refactor`** | None                | YES (Refactoring)         | Code change with no logic modification |
-| **`chore`**    | None                | YES (Maintenance/Tooling) | Dependencies, configs, tooling         |
-| **`docs`**     | None                | YES (Maintenance/Tooling) | Documentation changes                  |
-| **`style`**    | None                | YES (Maintenance/Tooling) | Formatting, missing semi-colons, etc.  |
-| **`test`**     | None                | YES (Maintenance/Tooling) | Adding or fixing tests                 |
-| **`ci`**       | None                | YES (Maintenance/Tooling) | CI/CD changes                          |
+> 💥 **Breaking Changes**: Any commit containing `BREAKING CHANGE:` in the footer triggers a **Major** release (`X.0.0`).
 
-> 💥 **Breaking Changes:** Any commit containing `BREAKING CHANGE:` in its footer or body will automatically trigger a **Major version bump** (`X.0.0`), regardless of type.
+### Allowed Scopes:
 
-### Allowed Scopes
-
-Scope is optional. If provided, it must be one of:
 `auth`, `feed`, `chat`, `profile`, `user`, `post`, `follow`, `media`, `ws`, `infra`, `deps`, `security`, `backend`, `frontend`.
 
-### Examples
+---
 
-```text
-feat(feed): add like post vertical slice [SOC-124]
+## 🏗️ 3. Core Architecture Invariants
 
-fix(auth): fix jwt token expiration guard [SOC-89]
+### 🟦 Backend (NestJS 11 + Fastify)
 
-refactor(profile): move avatar component to entities layer [SOC-55]
+- **Strict 4-Tier Layering**: `Controller -> Service -> Repository -> PrismaService`.
+- Controllers and services **MUST NEVER** invoke `PrismaService` directly.
+- **Validation**: Enforced strictly via **Zod contracts** (`@common/contracts`) and `ZodValidationPipe`. Zero `class-validator` runtime reflection.
+- **Testing**: Backend tests are strictly End-to-End (`backend/test/` using Jest & Supertest). Do not introduce unit tests (`*.spec.ts`) in `backend/src/`.
+
+### 🟩 Frontend (React 19 + Vite 8 + FSD)
+
+- **Feature-Sliced Design (FSD)**: `app -> pages -> widgets -> features -> entities -> shared`.
+- Imports are strictly unidirectional: import only from lower layers.
+- Every slice must export strictly via its root `index.ts` (Public API). Deep internal imports are forbidden.
+- **State Partitioning**: Server state via **TanStack Query**; local UI state via **Zustand**.
+- All data components must explicitly handle `isLoading`, `isError`, and empty states.
+
+---
+
+## 🐳 4. Local Infrastructure (Docker)
+
+Before running development servers or E2E tests, boot local dependencies (PostgreSQL 16, Redis 7, MinIO):
+
+```bash
+# Start local containers in background
+pnpm docker:dev:up
+
+# Stream real-time logs from containers
+pnpm docker:dev:logs
+
+# Stop local development containers
+pnpm docker:dev:down
+
+# Reset containers and purge local data volumes
+pnpm docker:clean
 ```
 
 ---
 
-# 🏗️ 4. Coding Standards
+## 🧪 5. Local Verification Commands
 
-## Backend (NestJS)
+Before opening a pull request, run the verification suite:
 
-### Architecture
+```bash
+# 1. Typecheck the entire monorepo
+pnpm typecheck
 
-- Follow the standard NestJS modular architecture.
-- Organize code by feature modules (auth, users, posts, comments, etc.).
-- Keep controllers, services, DTOs, and repositories inside their corresponding module.
+# 2. Lint check
+pnpm lint
 
-### Prisma
+# 3. Code formatting
+pnpm format:check
 
-- Use `PrismaService` through Dependency Injection.
-- ❌ Do not execute raw SQL.
+# 4. Monorepo validation (EOL, env, actions, knip)
+pnpm validate
 
-### Validation
-
-Every request must use:
-
-- DTOs
-- `class-validator`
-
----
-
-## Frontend (React)
-
-### Architecture
-
-Strictly follow **Feature-Sliced Design (FSD)**.
-
-### State Management
-
-Use **TanStack Query** for all server state.
-
-Queries and mutations belong inside the `model/` segment of the corresponding slice.
-
-### UI Components
-
-Before creating a new component:
-
-1. Check `shared/ui/`.
-2. Reuse existing components whenever possible.
-
-> Don't reinvent buttons, inputs, modals, or other common UI elements.
+# 5. Full test suite
+pnpm test
+```
 
 ---
 
-## Testing Standards
+## 🔀 6. Pull Request Guidelines
 
-### Test Pyramid & Tooling
-
-| Layer                                            | Tool             | Command                                | Location                      |
-| ------------------------------------------------ | ---------------- | -------------------------------------- | ----------------------------- |
-| Backend unit                                     | Jest             | `pnpm --filter backend test`           | `src/**/*.spec.ts`            |
-| Backend integration (Testcontainers/GH services) | Jest + Supertest | `pnpm --filter backend test:e2e`       | `test/*.e2e-spec.ts`          |
-| Frontend unit                                    | Vitest + RTL     | `pnpm --filter frontend test`          | `src/**/*.test.{ts,tsx}`      |
-| Frontend E2E                                     | Playwright       | `pnpm --filter frontend test:e2e`      | `e2e/*.spec.ts`               |
-| Contract tests                                   | Pact             | `pnpm --filter frontend test:contract` | `src/contract/*.pact.test.ts` |
-| Mutation testing                                 | Stryker          | `pnpm --filter <pkg> test:mutation`    | `stryker.config.json`         |
-
-### Writing Tests
-
-- **Test behavior, not implementation.** Assert observable outcomes (rendered content, returned values, HTTP status), never that a dependency "was called".
-- **No coverage padding.** Forbidden patterns: `expect(x).toBeTruthy()`, assertions that only check `toBeDefined()`, snapshot-only tests, `test.skip`/`describe.skip`, empty `waitFor`.
-- **No type-safety bypasses.** `any`, `@ts-ignore`, and `eslint-disable` are rejected in review and by lint.
-- **Backend units:** mock at the boundary (Prisma, Redis, MinIO) with `jest.mock(..., requireActual)` when partial mocking is needed; keep business logic tests DB-free.
-- **Frontend units:** mock the API layer with MSW; test components through user-visible roles and labels (RTL queries), not CSS selectors.
-- **Playwright:** scope API mocks to the backend origin via `e2e/fixtures.ts` helpers (`mockApi`), never a bare `/api/` glob — loose globs hijack Vite dev-server asset URLs. The app uses `withCredentials`, so mocks must echo CORS headers (the helpers do this for you).
-- **Contracts:** when a frontend API call's request/response shape changes, update `src/contract/api.pact.test.ts` and commit the regenerated `backend/pacts/frontend-backend.json`.
-
-### Quality Gates (CI-enforced)
-
-- `pnpm run typecheck` and `pnpm run lint` must pass with zero errors/warnings.
-- All unit, integration, and E2E suites must pass on every PR.
-- Stryker mutation score must stay **≥ 85%** (`break` threshold in each `stryker.config.json`); full runs execute weekly and on demand via the _Mutation Testing_ workflow.
-- Playwright and Pact consumer suites run on every PR; provider verification runs via `pnpm --filter backend test:pact:verify` against a seeded environment.
+1. **Keep PRs Focused**: Aim for cohesive, reviewable pull requests.
+2. **PR Title**: Must follow Conventional Commits format (e.g. `feat(feed): implement story poll voting`).
+3. **Automated CI**: Every PR runs the full GitHub Actions matrix (`validate-eol`, `format-check`, `setup`, `backend-lint`, `frontend-lint`, `backend-test`, `backend-e2e`, `frontend-prod-assessment`, `docker-build`).
+4. **Merge Strategy**: We use **Squash and Merge**. Upon merging into `main` or `develop`, **Semantic Release** automatically tags releases and updates `CHANGELOG.md`.
 
 ---
 
-# 🔀 5. Pull Request Guidelines
+## 💡 Need Help?
 
-When your feature is complete, open a PR into `main` (for stable releases) or `develop` (for beta builds).
+- Check our [Documentation Portal](./docs/README.md).
+- Open an issue or join our community discussions on GitHub!
 
-## PR Title Guidelines
-
-PR Titles are validated in CI via GitHub Actions (`amannn/action-semantic-pull-request`).
-
-- **Format:** Must strictly follow Conventional Commits format (`<type>(<scope>): <description> [SOC-XXX]`).
-- **Subject Length:** Maximum **100 characters**.
-- **Scope:** Optional, but if specified, it must match allowed scopes.
-
-### Allowed PR Types
-
-`feat`, `fix`, `refactor`, `chore`, `docs`, `style`, `test`, `perf`, `ci`, `revert`
-
-### Allowed PR Scopes
-
-`auth`, `feed`, `chat`, `profile`, `user`, `post`, `follow`, `media`, `ws`, `infra`, `deps`
-
----
-
-## PR Description & Rules
-
-- **Content:** Detail what was implemented, how to test, and include a link to the Jira ticket.
-- **Keep PRs Small:** Aim for **less than 300 lines of code**.
-
----
-
-## Code Review Requirements
-
-Before merging:
-
-- ✅ At least **2 approvals** (including relevant Code Owners)
-- ✅ All CI checks must pass (`lint`, `typecheck`, `test`, `build`, `PR Title Lint`)
-- ✅ Build, linter, formatter, and tests succeed.
-
----
-
-## Merging & Automated Release
-
-After approval:
-
-- Use **Squash and Merge**.
-- The PR title becomes the squash commit message in `main`/`develop`, which directly triggers **Semantic Release**.
-- Move the Jira task to **Done**.
-
----
-
-# ⚙️ 6. Environment Setup (Required before the first commit)
-
-To ensure everyone gets an identical `lint`/`format`/`build` result regardless of OS:
-
-1. Use the Node version from `.nvmrc`:
-   ```bash
-   nvm use
-   ```
-   If the Node version doesn't match, `npm install` will fail (`engine-strict=true` in `.npmrc`).
-2. Run `npm install` in the repository root (workspaces will handle everything, including `prisma generate`).
-3. Do not change `end_of_line`/`indent_style` in your editor—they are fixed in `.editorconfig` and `.gitattributes`.
-4. Never commit with `--no-verify`—if a hook fails, ask in Team Chat.
-
----
-
-# 🔒 7. Why PRs Cannot Be Merged Manually
-
-Protected branch rules are enabled on `main` and `develop`:
-
-- Direct pushes are prohibited.
-- PRs cannot be merged until all mandatory CI checks pass.
-- Approvals from `.github/CODEOWNERS` are mandatory for `backend/`, `frontend/`, and `.github/`.
-- Only **Squash and Merge** is allowed—because the PR title becomes the single commit entry driving automatic releases.
-
----
-
-# 🚀 Getting Started
-
-1. Open Jira.
-2. Move your ticket to **In Progress**.
-3. Create a branch:
-   ```bash
-   git checkout -b feat/SOC-123-your-feature
-   ```
-4. Start coding.
-
----
-
-# 💡 Need Help?
-
-If you're blocked, remember the **1-hour rule** described in the main project README.
-
-Don't stay stuck for too long—ask the team for help when needed.
-
-Happy coding! 🎉
+Thank you for helping make Social Network better for everyone! 🎉

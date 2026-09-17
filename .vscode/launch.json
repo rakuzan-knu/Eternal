@@ -1,0 +1,235 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Backend: Dev Server (Debug)",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/backend",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["run", "start:debug"],
+      "autoAttachChildProcesses": true,
+      "restart": true,
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "presentation": {
+        "group": "1 - Backend",
+        "order": 1
+      },
+      "env": {
+        "NODE_ENV": "development"
+      }
+    },
+    {
+      "name": "Backend: Attach (Port 9229)",
+      "type": "node",
+      "request": "attach",
+      "port": 9229,
+      "restart": true,
+      "autoAttachChildProcesses": true,
+      "sourceMaps": true,
+      "localRoot": "${workspaceFolder}/backend",
+      "remoteRoot": "/app/backend",
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
+      "presentation": {
+        "group": "1 - Backend",
+        "order": 2
+      }
+    },
+    {
+      "name": "Backend: Debug Current Test (Jest)",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/backend",
+      "program": "${workspaceFolder}/backend/node_modules/jest/bin/jest.js",
+      "args": [
+        "--runInBand",
+        "--detectOpenHandles",
+        "--forceExit",
+        "--testTimeout=60000",
+        "${file}"
+      ],
+      "autoAttachChildProcesses": true,
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
+      "presentation": {
+        "group": "1 - Backend",
+        "order": 3
+      },
+      "env": {
+        "NODE_ENV": "test"
+      }
+    },
+    {
+      "name": "Backend: Debug Current E2E (Jest)",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/backend",
+      "program": "${workspaceFolder}/backend/node_modules/jest/bin/jest.js",
+      "args": [
+        "--config",
+        "./test/jest-e2e.json",
+        "--runInBand",
+        "--detectOpenHandles",
+        "--forceExit",
+        "--testTimeout=60000",
+        "${file}"
+      ],
+      "autoAttachChildProcesses": true,
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
+      "presentation": {
+        "group": "1 - Backend",
+        "order": 4
+      },
+      "env": {
+        "NODE_ENV": "test"
+      }
+    },
+    {
+      "name": "Backend: Debug All E2E Tests",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/backend",
+      "program": "${workspaceFolder}/backend/node_modules/jest/bin/jest.js",
+      "args": [
+        "--config",
+        "./test/jest-e2e.json",
+        "--runInBand",
+        "--detectOpenHandles",
+        "--forceExit",
+        "--testTimeout=60000"
+      ],
+      "autoAttachChildProcesses": true,
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
+      "presentation": {
+        "group": "1 - Backend",
+        "order": 5
+      },
+      "env": {
+        "NODE_ENV": "test"
+      }
+    },
+    {
+      "name": "Frontend: Launch Chrome (Debug UI)",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}/frontend",
+      "sourceMaps": true,
+      "sourceMapPathOverrides": {
+        "/@fs/*": "*",
+        "/*": "${workspaceFolder}/frontend/*"
+      },
+      "presentation": {
+        "group": "2 - Frontend",
+        "order": 1
+      }
+    },
+    {
+      "name": "Frontend: Launch Edge (Debug UI)",
+      "type": "msedge",
+      "request": "launch",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}/frontend",
+      "sourceMaps": true,
+      "sourceMapPathOverrides": {
+        "/@fs/*": "*",
+        "/*": "${workspaceFolder}/frontend/*"
+      },
+      "presentation": {
+        "group": "2 - Frontend",
+        "order": 2
+      }
+    },
+    {
+      "name": "Frontend: Debug Current Test (Vitest)",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/frontend",
+      "program": "${workspaceFolder}/frontend/node_modules/vitest/vitest.mjs",
+      "args": ["run", "--config", "vitest.config.ts", "${relativeFile}"],
+      "autoAttachChildProcesses": true,
+      "smartStep": true,
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
+      "presentation": {
+        "group": "2 - Frontend",
+        "order": 3
+      },
+      "env": {
+        "NODE_ENV": "test"
+      }
+    },
+    {
+      "name": "Frontend: Debug Playwright (Current File)",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/frontend",
+      "program": "${workspaceFolder}/frontend/node_modules/@playwright/test/cli.js",
+      "args": ["test", "${relativeFile}", "--headed", "--debug"],
+      "autoAttachChildProcesses": true,
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "presentation": {
+        "group": "2 - Frontend",
+        "order": 4
+      }
+    },
+    {
+      "name": "Script: Run Current File (Node.js)",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${file}",
+      "autoAttachChildProcesses": true,
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"],
+      "presentation": {
+        "group": "3 - Scripts & Utilities",
+        "order": 1
+      }
+    },
+    {
+      "name": "Script: Run Current File (TypeScript / tsx)",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${file}",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["exec", "tsx"],
+      "autoAttachChildProcesses": true,
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"],
+      "presentation": {
+        "group": "3 - Scripts & Utilities",
+        "order": 2
+      }
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Full Stack: Backend Dev + Frontend Chrome",
+      "configurations": [
+        "Backend: Dev Server (Debug)",
+        "Frontend: Launch Chrome (Debug UI)"
+      ],
+      "stopAll": true
+    },
+    {
+      "name": "Full Stack: Backend Attach + Frontend Chrome",
+      "configurations": [
+        "Backend: Attach (Port 9229)",
+        "Frontend: Launch Chrome (Debug UI)"
+      ],
+      "stopAll": true
+    }
+  ]
+}

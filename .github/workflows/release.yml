@@ -52,7 +52,7 @@ jobs:
         run: pnpm --filter backend exec prisma generate
 
       - name: Build frontend (with source maps)
-        working-directory: frontend
+        working-directory: apps/web
         run: pnpm build
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
@@ -63,7 +63,7 @@ jobs:
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: frontend-dist
-          path: frontend/dist/
+          path: apps/web/dist/
           retention-days: 1
 
       - name: Run Semantic Release
@@ -74,7 +74,7 @@ jobs:
           extra_plugins: |
             @semantic-release/changelog
             @semantic-release/git
-            conventional-changelog-conventionalcommits
+            conventional-changelog-conventionalcommits@^8.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_PAT || (steps.app-token.outputs.token != '' && steps.app-token.outputs.token || secrets.GITHUB_TOKEN) }}
 
@@ -139,7 +139,7 @@ jobs:
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
           name: frontend-dist
-          path: frontend/dist/
+          path: apps/web/dist/
 
       - name: Create Sentry release
         if: steps.check-sentry.outputs.configured == 'true'
@@ -147,7 +147,7 @@ jobs:
         with:
           environment: production
           release: ${{ env.SENTRY_VERSION }}
-          sourcemaps: frontend/dist/assets
+          sourcemaps: apps/web/dist/assets
           url_prefix: '~/assets'
           ignore_missing: true
           finalize: true

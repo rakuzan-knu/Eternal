@@ -32,4 +32,4 @@ jobs:
           node-version-file: '.nvmrc'
 
       - name: Run smoke tests
-        run: node scripts/smoke-deployed-backend.cjs "${{ github.event.inputs.target_url || 'https://social-network-backend.onrender.com' }}"
+        run: node scripts/deploy/smoke-deployed-backend.cjs "${{ github.event.inputs.target_url || 'https://social-network-backend-4h47.onrender.com' }}"

@@ -1,0 +1,77 @@
+{
+  "$schema": "https://unpkg.com/knip@latest/schema.json",
+  "rules": {
+    "files": "off",
+    "dependencies": "off",
+    "unlisted": "off",
+    "binaries": "off",
+    "unresolved": "error",
+    "exports": "off",
+    "types": "off",
+    "nsExports": "off",
+    "duplicates": "off"
+  },
+  "ignoreDependencies": [
+    "husky",
+    "@commitlint/types",
+    "conventional-changelog-conventionalcommits",
+    "k6",
+    "0x",
+    "@clinic/doctor",
+    "@clinic/flame",
+    "clinic",
+    "ioredis"
+  ],
+  "ignoreBinaries": ["msw", "chromatic"],
+  "workspaces": {
+    ".": {
+      "entry": [
+        "scripts/utils/log.js",
+        "scripts/db/validate-prisma-migrations.cjs",
+        "scripts/ci/verify-terraform.cjs",
+        "scripts/utils/self-healing-redis.cjs",
+        "benchmarks/k6/feed-stress.js",
+        "benchmarks/k6/real-user-simulation.js",
+        "benchmarks/k6/socket-stress.js"
+      ]
+    },
+    "backend": {
+      "entry": [
+        "src/main.ts",
+        "test/*.ts",
+        "src/common/bloom/index.ts",
+        "src/common/crdt/index.ts",
+        "src/common/v8/index.ts"
+      ],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/native": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/text-pipeline": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/blinded-crypto": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/feed-score": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/msg-codec": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "frontend": {
+      "entry": [
+        "index.html",
+        "vitest.contract.config.ts",
+        "public/mockServiceWorker.js",
+        "public/sw.js"
+      ]
+    }
+  }
+}

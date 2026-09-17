@@ -39,7 +39,7 @@ jobs:
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: backend-mutation-report
-          path: backend/reports/mutation/
+          path: apps/backend/reports/mutation/
           retention-days: 30
 
   frontend-mutation:
@@ -62,7 +62,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run Stryker
-        working-directory: frontend
+        working-directory: apps/web
         run: pnpm test:mutation
 
       - name: Upload mutation report
@@ -70,5 +70,5 @@ jobs:
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: frontend-mutation-report
-          path: frontend/reports/mutation/
+          path: apps/web/reports/mutation/
           retention-days: 30

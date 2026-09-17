@@ -1,0 +1,33 @@
+{
+  "name": "@social-network/mobile",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@social-network/shared-api-client": "workspace:*",
+    "@social-network/shared-contracts": "workspace:*",
+    "@social-network/shared-crypto": "workspace:*",
+    "@social-network/shared-socket": "workspace:*",
+    "@social-network/shared-stores": "workspace:*",
+    "@social-network/shared-ui-primitives": "workspace:*",
+    "@social-network/shared-utils": "workspace:*",
+    "@tanstack/react-query": "^5.67.1",
+    "expo": "~52.0.0",
+    "expo-status-bar": "~2.0.0",
+    "react": "18.3.1",
+    "react-native": "0.76.5",
+    "zustand": "^5.0.3"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.2",
+    "@types/react": "^19.2.17",
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "note": "Shared blinded-crypto v1 conformance contract. expectedSig must match byte-for-byte.",
+  "vectors": [
+    {
+      "name": "tiny-sign",
+      "n": "0ca1",
+      "e": "11",
+      "d": "0ac1",
+      "message": "41",
+      "expectedSig": "024c",
+      "valid": true
+    },
+    {
+      "name": "tiny-edge-zero",
+      "n": "0ca1",
+      "e": "11",
+      "d": "0ac1",
+      "message": "00",
+      "expectedSig": "00",
+      "valid": true
+    },
+    {
+      "name": "tiny-edge-one",
+      "n": "0ca1",
+      "e": "11",
+      "d": "0ac1",
+      "message": "01",
+      "expectedSig": "01",
+      "valid": true
+    },
+    {
+      "name": "tiny-edge-n-minus-1",
+      "n": "0ca1",
+      "e": "11",
+      "d": "0ac1",
+      "message": "0ca0",
+      "expectedSig": "0ca0",
+      "valid": true
+    },
+    {
+      "name": "rsa512-sign",
+      "n": "cc333d31df48ce8a13be7408bb8c1631eceb187f0daabcbf7ca9084fcee30e784e19a86146803292d6f37b41bc603949ff115d7e1b3ba45345ed9c34da0348eb",
+      "e": "010001",
+      "d": "13a05d225cfea773580077309bae14380a38726b4bc9fc483f5813c76ff01ce4c13f67e808beb476fe523a24b31e2f9fe238cfb0ca4ff45ddfa5de758130d591",
+      "message": "9f2c4a7e1b5d83f06a4c9e2b7d5f1a3c8e6b4d2f0a9c7e5b3d1f6a8c4e2b0d9f3a5c7e1b4d6f8a0c2e4b6d8f0a1c3e5b7d9f1a3c5e7b",
+      "expectedSig": "3bb521259c6c1b5036b1d1a388de89611cd06ab6ae062caf06526bee59fdee8a9d26e9758f609ecb822ad9390ef432ec1c4f877d341094ddd694c27a48a86e76",
+      "valid": true
+    },
+    {
+      "name": "tiny-verify-tampered",
+      "n": "0ca1",
+      "e": "11",
+      "message": "41",
+      "expectedSig": "024d",
+      "valid": false,
+      "verifyOnly": true
+    },
+    {
+      "name": "tiny-sign-out-of-range",
+      "n": "0ca1",
+      "e": "11",
+      "d": "0ac1",
+      "message": "0ca1",
+      "expectError": "INVALID_MESSAGE"
+    }
+  ]
+}

@@ -1,18 +1,18 @@
 {
   "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "strict": true,
     "noImplicitAny": true,
+    "strictNullChecks": true,
+    "exactOptionalPropertyTypes": true,
     "strictBindCallApply": true,
     "noFallthroughCasesInSwitch": true,
     "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true,
-    "moduleResolution": "Node16",
-    "paths": {
-      "@backend/*": ["backend/src/*", "apps/backend/src/*"],
-      "@frontend/*": ["frontend/src/*", "apps/frontend/src/*"],
-      "@common/*": ["backend/src/common/*", "backend/src/common/*/index.ts"],
-      "@common/prisma": ["backend/src/common/prisma/index.ts"],
-      "@common/contracts": ["backend/src/common/contracts/index.ts"]
-    }
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true
   }
 }

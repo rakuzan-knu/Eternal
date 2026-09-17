@@ -1,16 +1,16 @@
 #!/bin/sh
 set -e
 
-log_info()    { node scripts/log.js info "$1"; }
-log_success() { node scripts/log.js success "$1"; }
-log_error()   { node scripts/log.js error "$1"; }
-log_gray()    { node scripts/log.js gray "$1"; }
-log_bold_success() { node scripts/log.js bold-success "$1"; }
+log_info()    { node scripts/utils/log.js info "$1"; }
+log_success() { node scripts/utils/log.js success "$1"; }
+log_error()   { node scripts/utils/log.js error "$1"; }
+log_gray()    { node scripts/utils/log.js gray "$1"; }
+log_bold_success() { node scripts/utils/log.js bold-success "$1"; }
 
 log_info "Validating line endings..."
-node scripts/validate-eol.js >/dev/null 2>&1 || {
+node scripts/ci/validate-eol.js >/dev/null 2>&1 || {
   log_error "Line endings validation failed!"
-  node scripts/validate-eol.js
+  node scripts/ci/validate-eol.js
   exit 1
 }
 log_success "Line endings valid"

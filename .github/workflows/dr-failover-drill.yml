@@ -28,6 +28,6 @@ jobs:
           node-version-file: '.nvmrc'
 
       - name: Execute Automated Failover Drill
-        run: node scripts/execute-dr-failover.cjs --dry-run
+        run: node scripts/deploy/execute-dr-failover.cjs --dry-run
         env:
           DR_MODE: 'offline_verification'

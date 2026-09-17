@@ -1,5 +1,5 @@
 {
-  "**/*": ["npx prettier --write --ignore-unknown"],
-  "backend/src/**/*.ts": ["npx eslint --config backend/eslint.config.mjs --fix"],
-  "frontend/src/**/*.{ts,tsx}": ["npx eslint --config frontend/eslint.config.js --fix"]
+  "backend/**/*.{ts,js,mjs}": ["eslint --config backend/eslint.config.mjs --fix"],
+  "frontend/**/*.{ts,tsx,js}": ["eslint --config frontend/eslint.config.js --fix"],
+  "**/*": ["prettier --write --ignore-unknown"]
 }

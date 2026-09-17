@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main, develop]
     paths:
-      - 'infrastructure/**'
+      - 'infrastructure/terraform/**'
       - '.github/workflows/infracost.yml'
 
 concurrency:
@@ -37,7 +37,7 @@ jobs:
       - name: Generate Infracost JSON breakdown
         if: env.INFRACOST_API_KEY != ''
         run: |
-          infracost breakdown --path=infrastructure \
+          infracost breakdown --path=infrastructure/terraform \
                               --format=json \
                               --out-file=/tmp/infracost-base.json
 

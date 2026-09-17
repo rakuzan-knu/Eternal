@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "generatedBy": "gen-e2ee-vectors.mjs (node webcrypto)",
+  "note": "Single-side enforcement (browser WebCrypto has no Rust counterpart). Re-derive, never hand-edit.",
+  "aesGcm256CrossImpl": {
+    "source": "node:crypto (OpenSSL) AES-256-GCM output; WebCrypto must reproduce it byte-identically",
+    "keyHex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+    "ivHex": "202122232425262728292a2b",
+    "plaintext": "AES-GCM-256 cross-implementation anchor",
+    "ctHex": "937ff55d2bdb5723284974eea26a9b8aa36485f1f7ec0683099818733de3316755ef8b67e64a47",
+    "tagHex": "5aa48d9a1c0aa63436f1860d36e00af1"
+  },
+  "ecdhP256Agreement": {
+    "partyA": {
+      "privateJwk": {
+        "key_ops": ["deriveKey", "deriveBits"],
+        "ext": true,
+        "kty": "EC",
+        "x": "1dnIzidckOFPrY3930Ar3-VJOyRPei3MGq7QEcUORAM",
+        "y": "ztfV51Y40SQB45yH1zlVoxbjS_tEqHAQmkyL2J_V-UM",
+        "crv": "P-256",
+        "d": "KBHpC5HRJR-Op8ARUXuP4OCRzHKAJ-q_ndWkaoHyqhU"
+      },
+      "publicSpkiHex": "3059301306072a8648ce3d020106082a8648ce3d03010703420004d5d9c8ce275c90e14fad8dfddf402bdfe5493b244f7a2dcc1aaed011c50e4403ced7d5e75638d12401e39c87d73955a316e34bfb44a870109a4c8bd89fd5f943"
+    },
+    "partyB": {
+      "privateJwk": {
+        "key_ops": ["deriveKey", "deriveBits"],
+        "ext": true,
+        "kty": "EC",
+        "x": "_78mI20QBUSdymhcz388CbAiZte4kifo4FGQCEEJDZ8",
+        "y": "2-B-6qvYEkJ4JiggO3lH6IZCEuv2_KJz891hdHtLFnI",
+        "crv": "P-256",
+        "d": "8ZAFGeuP7EsUc9T0yfSSfyu_dozihieDH-B4C-v1pEg"
+      },
+      "publicSpkiHex": "3059301306072a8648ce3d020106082a8648ce3d03010703420004ffbf26236d1005449dca685ccf7f3c09b02266d7b89227e8e051900841090d9fdbe07eeaabd81242782628203b7947e8864212ebf6fca273f3dd61747b4b1672"
+    },
+    "sharedSecretHex": "51f9e94046c39b48f11d5bc494f783340a63920b4fe3de8af5b02c113a867149"
+  },
+  "envelopeV1": {
+    "sender": "A",
+    "recipient": "B",
+    "plaintext": "The quick brown fox jumps over the lazy dog",
+    "ivHex": "0102030405060708090a0b0c",
+    "envelope": "{\"e2ee\":true,\"v\":1,\"iv\":\"AQIDBAUGBwgJCgsM\",\"ct\":\"Q+TJydI4Sn59bslMnO3910lz2ZAVjLyKPZcRnjc64sjHahydbtjL+xN5rZM62UvaN1IQCA6DoCtrVhU=\"}"
+  }
+}

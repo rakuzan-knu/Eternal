@@ -1,366 +1,128 @@
-# Social Network (Antigravity) — Documentation
+# 🌐 Social Network — Documentation Portal
 
-## Table of Contents
-
-- [Overview](#overview)
-- [Architecture](#architecture)
-- [Project Structure](#project-structure)
-- [Development Setup](#development-setup)
-- [Docker](#docker)
-- [Scripts](#scripts)
-- [API Reference](api-reference.md)
-- [Real-time Events](real-time-events.md)
-- [Database Schema](database-schema.md)
-- [Deployment Guide](deployment-guide.md)
-- [Testing Guide](testing-guide.md)
-- [CI/CD Pipeline](ci/README.md)
-- [Code Quality](#code-quality)
-- [Conventions](#conventions)
-- [ADR](adr/README.md)
+Welcome to the technical documentation repository for the **Social Network** platform! This project is an open-source, full-stack monorepo application engineered for high-concurrency social feeds, real-time messaging, ephemeral stories, interactive polls, and privacy.
 
 ---
 
-## Overview
+## 🗺️ Unified Documentation Sitemap
 
-Social Network is a full-stack monorepo application built with:
-
-- **Backend**: NestJS 11 + Prisma 5 + PostgreSQL + Redis + MinIO
-- **Frontend**: React 19 + Vite 8 + TypeScript 6 + Tailwind CSS 4
-- **Real-time**: Socket.IO for chat/messaging
-- **Auth**: JWT access + refresh tokens (argon2 password hashing)
-- **Storage**: AWS S3-compatible (MinIO for local/dev, S3 for prod)
-- **Observability**: Sentry for error tracking
-
----
-
-## Documentation Index
-
-| Document                                          | Description                           |
-| ------------------------------------------------- | ------------------------------------- |
-| [API Reference](api-reference.md)                 | Complete HTTP endpoint documentation  |
-| [Real-time Events](real-time-events.md)           | Socket.IO events for chat/messaging   |
-| [Database Schema](database-schema.md)             | Prisma models, relations, enums       |
-| [Deployment Guide](deployment-guide.md)           | Docker, Vercel, environment variables |
-| [Testing Guide](testing-guide.md)                 | Unit tests, E2E tests, Lighthouse CI  |
-| [Monitoring Quickstart](monitoring/quickstart.md) | Prometheus & Grafana quick start      |
-| [Monitoring Setup](monitoring/setup.md)           | Full monitoring architecture & alerts |
-| [Docker Optimization](docker-optimization.md)     | Multi-stage Docker & security guide   |
-| [Optimization Summary](optimization-summary.md)   | System-wide performance overview      |
-| [CI/CD Pipeline](ci/README.md)                    | GitHub Actions workflows              |
-| [ADR](adr/README.md)                              | Architecture Decision Records         |
-
----
-
-## Architecture
-
-### Monorepo Structure
-
-The project uses **pnpm workspaces** with two packages:
-
-```
-social-network/
-├── backend/            # NestJS API server
-├── frontend/           # React SPA
-├── package.json        # Root workspace config
-├── pnpm-workspace.yaml # PNPM workspace config
-└── pnpm-lock.yaml      # PNPM lockfile
-```
-
-### Backend Architecture
-
-- **Framework**: NestJS 11 (modular architecture)
-- **ORM**: Prisma 5 with PostgreSQL
-- **Cache/Queue**: Redis (ioredis + BullMQ)
-- **Real-time**: Socket.IO (gateways for chat)
-- **Auth**: JWT (access 15m, refresh 7d) + Passport
-- **Validation**: class-validator + class-transformer
-- **Documentation**: Swagger (@nestjs/swagger)
-- **Logging**: Pino (nestjs-pino)
-- **File Storage**: @aws-sdk/client-s3 (MinIO-compatible)
-- **Image Processing**: Sharp
-
-### Frontend Architecture
-
-- **Framework**: React 19 with TypeScript 6
-- **Build Tool**: Vite 8 (Rolldown-based)
-- **Styling**: Tailwind CSS 4
-- **State Management**: Zustand
-- **Data Fetching**: TanStack Query (React Query)
-- **Routing**: React Router
-- **Forms**: React Hook Form + Zod
-- **UI**: Radix UI primitives + Lucide icons
-- **Real-time Client**: Socket.IO Client
-- **Build Optimization**: React Compiler (babel-plugin-react-compiler)
-
----
-
-## Project Structure
-
-```
-social-network/
-├── .github/
-│   ├── actions/           # Composite CI actions
-│   ├── codeql/            # CodeQL config
-│   ├── ISSUE_TEMPLATE/    # Issue templates (bug, feature)
-│   ├── workflows/         # CI/CD workflows
-│   ├── CODEOWNERS         # Code ownership rules
-│   ├── dependabot.yml     # Automated dependency updates
-│   ├── labels.yml         # Repository labels definition
-│   └── labeler.yml        # Auto-labeling rules
-├── .husky/                # Git hooks (pre-commit, pre-push, commit-msg)
-├── .agents/               # Agent rules/workflows
-├── backend/
-│   ├── prisma/            # Prisma schema + migrations
-│   ├── src/               # Backend source code
-│   │   ├── auth/          # Authentication module
-│   │   ├── post/          # Post module
-│   │   ├── user/          # User module
-│   │   ├── chat/          # Chat/messaging module
-│   │   ├── feed/          # Feed module
-│   │   └── shared/        # Shared utilities
-│   └── test/              # E2E tests
-├── docs/                  # Documentation (this folder)
-├── frontend/
-│   ├── .storybook/        # Storybook config
-│   ├── src/
-│   │   ├── features/      # Feature-based modules
-│   │   ├── shared/        # Shared components, hooks, utils
-│   │   └── assets/        # Static assets
-│   └── public/            # Public static files
-├── scripts/               # Utility scripts
-│   ├── postinstall.js     # Post-install (prisma generate)
-│   ├── validate-eol.js    # Line-ending validator
-│   ├── check-env.js       # Environment variable validator
-│   └── clean.js           # Monorepo cleanup
-├── docker-compose.dev.yml # Development services
-├── docker-compose.prod.yml # Production services
-├── package.json           # Root workspace config
-├── pnpm-workspace.yaml    # PNPM workspace definition
-├── pnpm-lock.yaml         # PNPM lockfile
-├── vercel.json            # Vercel deployment config
-└── commitlint.config.js   # Commit message linting rules
+```text
+docs/
+├── 🏛️ architecture/           # Core System & Software Architecture
+│   ├── README.md              # Monorepo topology, C4 model, tech stack & domain boundaries
+│   ├── backend.md             # NestJS 11 + Fastify, 4-tier layering & BullMQ
+│   ├── frontend.md            # React 19 + Vite 8 + FSD & state management
+│   ├── database.md            # PostgreSQL 16 Prisma schema & complete ERD diagram
+│   ├── realtime.md            # Socket.IO /messenger gateway & presence engine
+│   └── security.md            # Auth, Argon2id, AES-256-GCM E2EE & Cosign
+│
+├── 📡 api/                    # API Specifications & Protocol Contracts
+│   ├── README.md              # API portal, auth headers, status codes & Swagger UI
+│   ├── http-api.md            # Comprehensive REST API reference & endpoints
+│   ├── websocket.md           # Real-time Socket.IO event protocol & client reference
+│   └── contracts.md           # Single-source-of-truth Zod schemas & shared types
+│
+├── 🤝 contributing/           # Open-Source Contributor Guides
+│   ├── README.md              # Contributor hub, values & onboarding roadmap
+│   ├── getting-started.md     # 5-minute local environment setup
+│   ├── coding-standards.md    # Architectural invariants & Conventional Commits
+│   ├── workflow.md            # GitHub Issues, branch strategy & PR lifecycle
+│   └── testing.md             # Testing handbook (E2E, Vitest, Stryker, k6)
+│
+├── 🤖 ci/                     # Continuous Integration & Tooling
+│   ├── README.md              # GitHub Actions pipeline catalog & workflows
+│   └── tooling.md             # Developer tooling, quality gates & local parity
+│
+├── 🚀 deployment/             # Deployment & Cloud Operations
+│   ├── README.md              # Deployment topologies & environment variables matrix
+│   ├── docker.md              # Multi-stage non-root Docker builds & caching
+│   ├── cloud.md               # Vercel SPA + Render backend + UptimeRobot
+│   ├── gitops.md              # Terraform automation & AWS OIDC setup
+│   └── canary-blue-green.md   # Zero-downtime canary & blue-green rollouts
+│
+├── ⚙️ operations/             # SRE, Resilience & Performance
+│   ├── README.md              # SRE handbook, reliability philosophy & SLAs/SLOs
+│   ├── database-migrations.md # Zero-downtime Expand / Contract pattern
+│   ├── ha-dr.md               # Multi-region High Availability & DR strategy
+│   ├── backup-replication.md  # AES-256 encrypted backups & S3 replication
+│   └── performance-tuning.md  # Postgres memory tuning & stress benchmarks
+│
+├── 📊 monitoring/             # Telemetry & Observability
+│   ├── README.md              # Monitoring stack overview & quick launch
+│   ├── quickstart.md          # Local Prometheus & Grafana setup
+│   ├── setup.md               # Alerting rules & SLO metrics
+│   └── tracing.md             # Distributed tracing with OTEL & Tempo
+│
+├── 📖 runbooks/               # Standard Operating Procedures (SOPs)
+│   ├── README.md              # Runbook catalog & incident severity matrix
+│   ├── incident-response.md   # Live outage triage & coordination
+│   ├── dr-failover.md         # Multi-region emergency failover procedure
+│   ├── database-restore.md    # Emergency database restore drill
+│   ├── deployment-rollback.md # Release rollback procedure
+│   ├── redis-self-healing.md  # Redis OOM & memory mitigation
+│   └── secret-rotation.md     # Zero-downtime secret & token rotation
+│
+└── 📐 adr/                    # Architecture Decision Records
+    ├── README.md              # ADR registry, status table & decision criteria
+    ├── 001-monorepo-nx-and-zod-contracts.md
+    ├── 002-zero-packages-folder-and-path-aliases.md
+    ├── 003-supply-chain-security-and-cosign.md
+    └── 004-correlation-id-and-observability-architecture.md
 ```
 
 ---
 
-## Development Setup
+## ⚡ Quick Links for Contributors
 
-### Prerequisites
-
-- Node.js >= 24.11.0
-- pnpm >= 10.0.0
-- Docker + Docker Compose
-
-### Quick Start
-
-```bash
-# 1. Clone the repository
-git clone <repo-url>
-cd social-network
-
-# 2. Install dependencies
-pnpm install
-
-# 3. Set up environment variables
-cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env
-# Edit .env files with your values
-
-# 4. Start development databases (Postgres + Redis + MinIO)
-pnpm run docker:dev:up
-
-# 5. Run migrations
-pnpm --filter backend db:migrate
-
-# 6. Start development servers
-pnpm dev
-```
-
-### Environment Variables
-
-#### Backend (.env)
-
-| Variable           | Description                          | Required |
-| ------------------ | ------------------------------------ | -------- |
-| DATABASE_URL       | PostgreSQL connection string         | Yes      |
-| REDIS_URL          | Redis connection string              | Yes      |
-| JWT_ACCESS_SECRET  | JWT access token secret (32+ chars)  | Yes      |
-| JWT_REFRESH_SECRET | JWT refresh token secret (32+ chars) | Yes      |
-| PORT               | Server port (default: 3000)          | No       |
-| CORS_ORIGIN        | Allowed CORS origin                  | Yes      |
-| MINIO_ENDPOINT     | MinIO endpoint URL                   | Yes      |
-| MINIO_ACCESS_KEY   | MinIO access key                     | Yes      |
-| MINIO_SECRET_KEY   | MinIO secret key                     | Yes      |
-| MINIO_BUCKET       | MinIO bucket name                    | Yes      |
-| SENTRY_DSN         | Sentry DSN (optional)                | No       |
-
-#### Frontend (.env)
-
-| Variable        | Description           | Required |
-| --------------- | --------------------- | -------- |
-| VITE_API_URL    | Backend API URL       | Yes      |
-| VITE_SENTRY_DSN | Sentry DSN (optional) | No       |
+| What are you looking for?                               | Guide Link                                                                     |
+| :------------------------------------------------------ | :----------------------------------------------------------------------------- |
+| **I want to run the project locally**                   | [Getting Started Guide](contributing/getting-started.md)                       |
+| **I want to understand how the codebase is structured** | [System Architecture Overview](architecture/README.md)                         |
+| **I want to know the coding & Git commit rules**        | [Coding Standards](contributing/coding-standards.md)                           |
+| **I want to submit a Pull Request**                     | [Contribution & PR Workflow](contributing/workflow.md)                         |
+| **I want to see the REST API endpoints**                | [REST API Reference](api/http-api.md)                                          |
+| **I want to integrate real-time WebSockets**            | [WebSocket Protocol Specification](api/websocket.md)                           |
+| **I want to inspect the Database models**               | [Database Schema & ERD](architecture/database.md)                              |
+| **I want to run tests and benchmarks**                  | [Testing Guide](contributing/testing.md)                                       |
+| **I want to inspect developer tooling & scripts**       | [Developer Tooling & Quality Gates](ci/tooling.md)                             |
+| **I want to deploy to production**                      | [Cloud Deployment](deployment/cloud.md) / [Docker Guide](deployment/docker.md) |
+| **I want to view operational runbooks**                 | [Operational Runbooks](runbooks/README.md)                                     |
 
 ---
 
-## Docker
+## 🏛️ System Architecture at a Glance
 
-### Development Services
+```mermaid
+graph LR
+    subgraph Frontend["Frontend Client"]
+        SPA["React 19 SPA (Vite 8)<br/>- Feature-Sliced Design<br/>- TanStack Query + Zustand<br/>- Offline Outbox (IndexedDB)<br/>- Web Worker Image Compressor"]
+    end
 
-```bash
-# Start all dev services
-pnpm run docker:dev:up
+    subgraph Backend["API Server"]
+        API["NestJS 11 + Fastify<br/>- BFF Aggregator (/feed/compact)<br/>- Feature Flags Engine<br/>- ZodValidationPipe<br/>- Strict Controller->Service->Repo<br/>- Pino Logger + OTEL"]
+    end
 
-# Stop dev services
-pnpm run docker:dev:down
+    subgraph StateTier["Data & Queue Tier"]
+        PG[(PostgreSQL 16)]
+        Redis[(Redis 7 Cluster)]
+        S3[(MinIO / S3 Storage)]
+    end
 
-# View logs
-pnpm run docker:dev:logs
-
-# Rebuild services
-pnpm run docker:dev:build
-```
-
-Dev services include:
-
-- PostgreSQL 16 (port 5432)
-- Redis 7 (port 6379)
-- MinIO (ports 9000, 9001)
-
-### Production Services
-
-```bash
-# Start production stack
-pnpm run docker:prod:up
-
-# Stop production stack
-pnpm run docker:prod:down
-```
-
-Production stack includes all dev services plus:
-
-- Backend API (with Prisma migration runner)
-- Frontend (Nginx-served SPA)
-- Internal + public Docker networks
-
----
-
-## Scripts
-
-| Script                      | Description                                    |
-| --------------------------- | ---------------------------------------------- |
-| `pnpm dev`                  | Start backend + frontend in dev mode           |
-| `pnpm dev:backend`          | Start backend dev server only                  |
-| `pnpm dev:frontend`         | Start frontend dev server only                 |
-| `pnpm build`                | Build both workspaces                          |
-| `pnpm lint`                 | Lint both workspaces                           |
-| `pnpm lint:fix`             | Lint + auto-fix both workspaces                |
-| `pnpm test`                 | Run tests for both workspaces                  |
-| `pnpm test:cov`             | Run tests with coverage                        |
-| `pnpm test:e2e`             | Run backend E2E tests                          |
-| `pnpm typecheck`            | TypeScript type checking                       |
-| `pnpm format`               | Format code with Prettier                      |
-| `pnpm format:check`         | Check code formatting                          |
-| `pnpm validate`             | Run all validators (EOL, env, typecheck, lint) |
-| `pnpm validate:eol`         | Validate line endings (LF)                     |
-| `pnpm validate:env`         | Validate environment variables                 |
-| `pnpm clean`                | Clean build artifacts + node_modules           |
-| `pnpm clean:prune`          | Clean + Docker prune                           |
-| `pnpm lhci`                 | Run Lighthouse CI locally                      |
-| `pnpm run docker:dev:up`    | Start dev Docker services                      |
-| `pnpm run docker:dev:down`  | Stop dev Docker services                       |
-| `pnpm run docker:prod:up`   | Start production Docker stack                  |
-| `pnpm run docker:prod:down` | Stop production Docker stack                   |
-
----
-
-## CI/CD Pipeline
-
-See [CI Documentation](ci/README.md) for detailed workflow documentation.
-
-### Workflows
-
-| Workflow             | Trigger                  | Purpose                                    |
-| -------------------- | ------------------------ | ------------------------------------------ |
-| `ci.yml`             | push/PR to main, develop | Main CI pipeline (lint, test, build, scan) |
-| `release.yml`        | push to main, develop    | Semantic release + Sentry source maps      |
-| `security.yml`       | schedule, push/PR        | npm audit, Trivy scan, Gitleaks            |
-| `codeql.yml`         | schedule, push/PR        | CodeQL security analysis                   |
-| `pr-title.yml`       | PR opened/edited         | Validate PR title (conventional commits)   |
-| `storybook.yml`      | PR with stories          | Build Storybook                            |
-| `vercel-preview.yml` | PR (frontend paths)      | Deploy Vercel preview                      |
-| `labeler.yml`        | PR opened/sync           | Auto-label PRs by path                     |
-| `sync-labels.yml`    | push to main             | Sync repository labels                     |
-
-### CI Pipeline Stages
-
-```
-changes → validate-eol → format-check → setup
-                                            ↓
-                    ┌──→ backend-lint ──→ backend-test (3 shards) ──→ backend-e2e
-                    │
-                    └──→ frontend-lint ──→ frontend-test ──→ frontend-prod-assessment
-                                                                        ↓
-                                            docker-build ──────────→ ci-success
+    SPA -->|REST API + Contracts| API
+    SPA <-->|WSS Socket.IO + WebRTC Mesh| API
+    API --> PG
+    API --> Redis
+    API --> S3
 ```
 
 ---
 
-## Code Quality
+## 🤝 Contributing & Community
 
-### Linting
+We are an open-source project and enthusiastically welcome contributions of all kinds — whether you are fixing bugs, proposing features, writing documentation, or enhancing performance.
 
-- **Backend**: ESLint 9 + Prettier
-- **Frontend**: ESLint 10 + Prettier
-- **Config**: Flat config format (ESLint 9+)
-
-### Formatting
-
-- **Tool**: Prettier 3
-- **Config**: `.prettierrc.json`
-- **Settings**: single quotes, semicolons, trailing commas, LF line endings, 100 char width
-
-### Commit Messages
-
-- **Convention**: Conventional Commits
-- **Types**: feat, fix, refactor, chore, docs, style, test, perf, ci, revert, optimization
-- **Scopes**: auth, feed, chat, profile, user, post, follow, media, ws, infra, deps, security, backend, frontend
-
-### Git Hooks (Husky)
-
-| Hook       | Command                      |
-| ---------- | ---------------------------- |
-| pre-commit | Validate EOL → lint-staged   |
-| pre-push   | Typecheck backend + frontend |
-| commit-msg | commitlint                   |
-
-### Line Endings
-
-- **Policy**: LF everywhere
-- **Enforcement**: `.editorconfig`, `.gitattributes`, `scripts/validate-eol.js`
-- **CI**: `validate-eol` job checks all tracked files
-
----
-
-## Conventions
-
-### Branching
-
-- `main` — production releases
-- `develop` — beta/prerelease channel
-- `feat/*` — feature branches
-- `fix/*` — bug fix branches
-
-### Pull Requests
-
-1. Fill out the PR template
-2. Ensure CI passes (lint, typecheck, test, format)
-3. Required reviewers from CODEOWNERS
-4. Conventional commit title (validated by CI)
-
-### Code Review
-
-- Backend changes: @subvincdebian
-- Frontend changes: @chupikx228
-- Infrastructure: @subvincdebian
-- Database migrations: @subvincdebian + @chupikx228
+1. Review the [Code of Conduct](../CODE_OF_CONDUCT.md).
+2. Set up your local machine using the [Getting Started Guide](contributing/getting-started.md).
+3. Follow the [Coding Standards](contributing/coding-standards.md) and [Contribution Workflow](contributing/workflow.md).
+4. Run tests with the [Testing Guide](contributing/testing.md).
+5. Submit a Pull Request following Conventional Commits!

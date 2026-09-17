@@ -1,0 +1,122 @@
+{
+  "version": 1,
+  "note": "Shared similarity v1 contract. Distances exact; dice rounded to 1e-6 (compare with 1e-6 tolerance).",
+  "levenshtein": [
+    {
+      "a": "kitten",
+      "b": "sitting",
+      "maxDist": 10,
+      "expected": 3,
+      "got": 3
+    },
+    {
+      "a": "saturday",
+      "b": "sunday",
+      "maxDist": 10,
+      "expected": 3,
+      "got": 3
+    },
+    {
+      "a": "abc",
+      "b": "abc",
+      "maxDist": 2,
+      "expected": 0,
+      "got": 0
+    },
+    {
+      "a": "",
+      "b": "abc",
+      "maxDist": 5,
+      "expected": 3,
+      "got": 3
+    },
+    {
+      "a": "abc",
+      "b": "",
+      "maxDist": 5,
+      "expected": 3,
+      "got": 3
+    },
+    {
+      "a": "alex",
+      "b": "alexx",
+      "maxDist": 2,
+      "expected": 1,
+      "got": 1
+    },
+    {
+      "a": "abcdef",
+      "b": "XbcYef",
+      "maxDist": 2,
+      "expected": 2,
+      "got": 2
+    },
+    {
+      "a": "abcdef",
+      "b": "XbcYef",
+      "maxDist": 1,
+      "expected": 2,
+      "got": 2
+    },
+    {
+      "a": "short",
+      "b": "a completely different string",
+      "maxDist": 2,
+      "expected": 3,
+      "got": 3
+    },
+    {
+      "a": "привет",
+      "b": "привед",
+      "maxDist": 2,
+      "expected": 1,
+      "got": 1
+    },
+    {
+      "a": null,
+      "b": "x",
+      "maxDist": 2,
+      "expected": 1,
+      "got": 1
+    }
+  ],
+  "dice": [
+    {
+      "a": "alex",
+      "b": "alex",
+      "expected": 1
+    },
+    {
+      "a": "alex",
+      "b": "aleks",
+      "expected": 0.545455
+    },
+    {
+      "a": "abcdef",
+      "b": "XbcYef",
+      "expected": 0.142857
+    },
+    {
+      "a": "",
+      "b": "x",
+      "expected": 0
+    }
+  ],
+  "rankFuzzy": [
+    {
+      "term": "aleks",
+      "candidates": ["alex", "aleksandr", "bob", "alexey", "x"],
+      "options": {
+        "maxDist": 2,
+        "limit": 3
+      },
+      "expected": [
+        {
+          "value": "alex",
+          "dist": 2,
+          "trigram": 0.5454545454545454
+        }
+      ]
+    }
+  ]
+}

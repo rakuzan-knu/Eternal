@@ -31,4 +31,4 @@ jobs:
           node-version-file: '.nvmrc'
 
       - name: Run CI Performance Benchmarks
-        run: node scripts/verify-performance-benchmarks.cjs
+        run: node scripts/ci/verify-performance-benchmarks.cjs

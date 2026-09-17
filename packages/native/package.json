@@ -1,0 +1,37 @@
+{
+  "name": "@social-network/native",
+  "version": "1.0.0",
+  "description": "Node.js adapter for msg-codec v1: Buffer-typed facade, process metrics, optional Rust (napi-rs) accelerator. Runs inside the backend process — no separate server.",
+  "license": "AGPL-3.0-only",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "npm run build && node --test tests/facade.test.cjs",
+    "bench": "npm run build && node benches/msg-codec.bench.cjs"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "dependencies": {
+    "@social-network/blinded-crypto": "workspace:*",
+    "@social-network/msg-codec": "workspace:*",
+    "@social-network/text-pipeline": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "typescript": "^5.9.3"
+  }
+}

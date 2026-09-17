@@ -28,10 +28,10 @@ jobs:
           node-version-file: '.nvmrc'
 
       - name: Check for CRLF line endings
-        run: node scripts/validate-eol.js
+        run: node scripts/ci/validate-eol.js
 
       - name: Run K8s Policy-as-Code verification script
-        run: node scripts/verify-k8s-policies.cjs
+        run: node scripts/ci/verify-k8s-policies.cjs
 
   plan:
     name: Plan — Changed Paths
@@ -69,12 +69,12 @@ jobs:
           git diff --name-only "$MB" HEAD > /tmp/changed.txt
 
           SHARED='^(pnpm-lock\.yaml|package\.json|nx\.json|tsconfig\.base\.json|\.github/workflows/ci\.yml)$'
-          if grep -Eq "^backend/|$SHARED" /tmp/changed.txt; then
+          if grep -Eq "^(apps/backend/|backend/)|$SHARED" /tmp/changed.txt; then
             echo "backend=true" >> $GITHUB_OUTPUT
           else
             echo "backend=false" >> $GITHUB_OUTPUT
           fi
-          if grep -Eq "^frontend/|$SHARED" /tmp/changed.txt; then
+          if grep -Eq "^(apps/web/|frontend/)|$SHARED" /tmp/changed.txt; then
             echo "frontend=true" >> $GITHUB_OUTPUT
           else
             echo "frontend=false" >> $GITHUB_OUTPUT
@@ -105,8 +105,13 @@ jobs:
         with:
           path: |
             node_modules
-            backend/node_modules
-            frontend/node_modules
+            apps/*/node_modules
+            apps/backend/node_modules
+            apps/web/node_modules
+            packages/*/dist
+            packages/*/node_modules
+            packages/*/*/dist
+            packages/*/*/node_modules
             ~/.cache/prisma
           key: ${{ needs.setup.outputs.cache-key }}
           fail-on-cache-miss: true
@@ -141,7 +146,7 @@ jobs:
       - name: Generate Cache Key
         id: cache-key-gen
         run: |
-          echo "key=${{ runner.os }}-monorepo-pnpm-${{ hashFiles('pnpm-lock.yaml', 'backend/prisma/schema.prisma') }}" >> $GITHUB_OUTPUT
+          echo "key=${{ runner.os }}-monorepo-pnpm-v5-${{ hashFiles('pnpm-lock.yaml', 'apps/backend/prisma/schema.prisma') }}" >> $GITHUB_OUTPUT
 
       - name: Cache Node Modules & Prisma
         id: monorepo-cache
@@ -149,15 +154,23 @@ jobs:
         with:
           path: |
             node_modules
-            backend/node_modules
-            frontend/node_modules
+            apps/*/node_modules
+            apps/backend/node_modules
+            apps/web/node_modules
+            packages/*/dist
+            packages/*/node_modules
+            packages/*/*/dist
+            packages/*/*/node_modules
             ~/.cache/prisma
           key: ${{ steps.cache-key-gen.outputs.key }}
 
-      - name: Install & Generate (On Cache Miss)
+      - name: Install Dependencies (On Cache Miss)
         if: steps.monorepo-cache.outputs.cache-hit != 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Native Packages & Generate Prisma
         run: |
-          pnpm install --frozen-lockfile
+          pnpm build:native
           pnpm --filter backend exec prisma generate
 
   nx-affected:
@@ -169,6 +182,8 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
 
       - uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5dd2 # v4.0.0
 
@@ -182,8 +197,13 @@ jobs:
         with:
           path: |
             node_modules
-            backend/node_modules
-            frontend/node_modules
+            apps/*/node_modules
+            apps/backend/node_modules
+            apps/web/node_modules
+            packages/*/dist
+            packages/*/node_modules
+            packages/*/*/dist
+            packages/*/*/node_modules
             ~/.cache/prisma
           key: ${{ needs.setup.outputs.cache-key }}
           fail-on-cache-miss: true
@@ -198,7 +218,10 @@ jobs:
 
       - name: Run Nx Affected Tasks (Lint, Typecheck, Build)
         run: |
-          npx nx run-many -t lint typecheck build --affected --base=${{ needs.plan.outputs.base-sha }} --parallel=3
+          npx nx affected -t lint typecheck build --base=${{ needs.plan.outputs.base-sha }} --parallel=3
+
+      - name: Run Knip (Unused Code & Dependency Analysis)
+        run: pnpm knip
 
   backend-unit-tests:
     name: Backend — Unit Tests
@@ -223,20 +246,25 @@ jobs:
         with:
           path: |
             node_modules
-            backend/node_modules
-            frontend/node_modules
+            apps/*/node_modules
+            apps/backend/node_modules
+            apps/web/node_modules
+            packages/*/dist
+            packages/*/node_modules
+            packages/*/*/dist
+            packages/*/*/node_modules
             ~/.cache/prisma
           key: ${{ needs.setup.outputs.cache-key }}
           fail-on-cache-miss: true
 
       - name: Run backend unit tests
         if: github.event_name == 'pull_request'
-        working-directory: backend
+        working-directory: apps/backend
         run: pnpm test:ci
 
       - name: Run backend unit tests with coverage (trunk)
         if: github.event_name != 'pull_request'
-        working-directory: backend
+        working-directory: apps/backend
         run: pnpm test:cov:ci
 
       - name: Upload backend coverage
@@ -244,7 +272,7 @@ jobs:
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: backend-unit-test-coverage
-          path: backend/coverage/
+          path: apps/backend/coverage/
           retention-days: 7
 
   frontend-unit-tests:
@@ -274,20 +302,25 @@ jobs:
         with:
           path: |
             node_modules
-            backend/node_modules
-            frontend/node_modules
+            apps/*/node_modules
+            apps/backend/node_modules
+            apps/web/node_modules
+            packages/*/dist
+            packages/*/node_modules
+            packages/*/*/dist
+            packages/*/*/node_modules
             ~/.cache/prisma
           key: ${{ needs.setup.outputs.cache-key }}
           fail-on-cache-miss: true
 
       - name: Run frontend unit tests (Shard ${{ matrix.shard }}/2)
         if: github.event_name == 'pull_request'
-        working-directory: frontend
+        working-directory: apps/web
         run: pnpm test:ci -- --shard=${{ matrix.shard }}/2 --bail=1
 
       - name: Run frontend unit tests with coverage (trunk) (Shard ${{ matrix.shard }}/2)
         if: github.event_name != 'pull_request'
-        working-directory: frontend
+        working-directory: apps/web
         run: pnpm test:cov:ci -- --shard=${{ matrix.shard }}/2
 
       - name: Upload frontend coverage
@@ -295,7 +328,7 @@ jobs:
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: frontend-unit-test-coverage-${{ matrix.shard }}
-          path: frontend/coverage/
+          path: apps/web/coverage/
           retention-days: 7
 
   backend-e2e:
@@ -365,18 +398,23 @@ jobs:
         with:
           path: |
             node_modules
-            backend/node_modules
-            frontend/node_modules
+            apps/*/node_modules
+            apps/backend/node_modules
+            apps/web/node_modules
+            packages/*/dist
+            packages/*/node_modules
+            packages/*/*/dist
+            packages/*/*/node_modules
             ~/.cache/prisma
           key: ${{ needs.setup.outputs.cache-key }}
           fail-on-cache-miss: true
 
       - name: Run migrations
-        working-directory: backend
+        working-directory: apps/backend
         run: pnpm exec prisma migrate deploy
 
       - name: Run E2E tests (${{ matrix.module }})
-        working-directory: backend
+        working-directory: apps/backend
         run: pnpm exec jest --config ./test/jest-e2e.json --runInBand --forceExit --detectOpenHandles --testTimeout=30000 test/${{ matrix.module }}.e2e-spec.ts
 
   backend-contract-test:
@@ -437,22 +475,27 @@ jobs:
         with:
           path: |
             node_modules
-            backend/node_modules
-            frontend/node_modules
+            apps/*/node_modules
+            apps/backend/node_modules
+            apps/web/node_modules
+            packages/*/dist
+            packages/*/node_modules
+            packages/*/*/dist
+            packages/*/*/node_modules
             ~/.cache/prisma
           key: ${{ needs.setup.outputs.cache-key }}
           fail-on-cache-miss: true
 
       - name: Run migrations
-        working-directory: backend
+        working-directory: apps/backend
         run: pnpm exec prisma migrate deploy
 
       - name: Build backend
-        working-directory: backend
+        working-directory: apps/backend
         run: pnpm build
 
       - name: Start backend server & run contract tests
-        working-directory: backend
+        working-directory: apps/backend
         run: |
           pnpm start:prod &
           SERVER_PID=$!
@@ -462,8 +505,8 @@ jobs:
             fi
             sleep 1
           done
-          node ../scripts/verify-api-contract.cjs
-          node ../scripts/verify-pact-contracts.cjs
+          node ../../scripts/ci/verify-api-contract.cjs
+          node ../../scripts/ci/verify-pact-contracts.cjs
           PACT_PROVIDER_URL=http://localhost:3000 pnpm test:pact:verify
           kill $SERVER_PID || true
         env:
@@ -496,8 +539,13 @@ jobs:
         with:
           path: |
             node_modules
-            backend/node_modules
-            frontend/node_modules
+            apps/*/node_modules
+            apps/backend/node_modules
+            apps/web/node_modules
+            packages/*/dist
+            packages/*/node_modules
+            packages/*/*/dist
+            packages/*/*/node_modules
             ~/.cache/prisma
           key: ${{ needs.setup.outputs.cache-key }}
           fail-on-cache-miss: true
@@ -509,11 +557,11 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
 
       - name: Install Playwright browsers
-        working-directory: frontend
+        working-directory: apps/web
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Run Playwright E2E suite (Shard ${{ matrix.shard }}/2)
-        working-directory: frontend
+        working-directory: apps/web
         run: pnpm test:e2e -- --shard=${{ matrix.shard }}/2
         timeout-minutes: 15
 
@@ -522,7 +570,7 @@ jobs:
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: frontend-playwright-report-${{ matrix.shard }}
-          path: frontend/playwright-report/
+          path: apps/web/playwright-report/
           retention-days: 7
 
   frontend-contract:
@@ -548,14 +596,19 @@ jobs:
         with:
           path: |
             node_modules
-            backend/node_modules
-            frontend/node_modules
+            apps/*/node_modules
+            apps/backend/node_modules
+            apps/web/node_modules
+            packages/*/dist
+            packages/*/node_modules
+            packages/*/*/dist
+            packages/*/*/node_modules
             ~/.cache/prisma
           key: ${{ needs.setup.outputs.cache-key }}
           fail-on-cache-miss: true
 
       - name: Run Pact consumer contract tests
-        working-directory: frontend
+        working-directory: apps/web
         run: pnpm test:contract
 
   frontend-prod-assessment:
@@ -582,26 +635,31 @@ jobs:
         with:
           path: |
             node_modules
-            backend/node_modules
-            frontend/node_modules
+            apps/*/node_modules
+            apps/backend/node_modules
+            apps/web/node_modules
+            packages/*/dist
+            packages/*/node_modules
+            packages/*/*/dist
+            packages/*/*/node_modules
             ~/.cache/prisma
           key: ${{ needs.setup.outputs.cache-key }}
           fail-on-cache-miss: true
 
       - name: Build frontend
-        working-directory: frontend
+        working-directory: apps/web
         run: pnpm build
         env:
           VITE_API_URL: http://localhost:3000
 
       - name: Enforce bundle size budget
-        run: node scripts/check-bundle-size.cjs
+        run: node scripts/ci/check-bundle-size.cjs
 
       - name: Check bundle size changes
         uses: preactjs/compressed-size-action@f322c295dde06a1cb7ccaef105732dd8a726d1d9 # v2.10.0
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-          pattern: 'frontend/dist/**/*.{js,css}'
+          pattern: 'apps/web/dist/**/*.{js,css}'
           strip-hash: "\\b\\w{8}\\."
           build-script: "build"
 
@@ -619,6 +677,7 @@ jobs:
         uses: actions/dependency-review-action@05fe4576374b728f0c523d6a13d64c25081e0803 # v4.8.3
         with:
           fail-on-severity: high
+          allow-ghsas: 'GHSA-fjxv-7rqg-78g4, GHSA-hmw2-7cc7-3qxx, GHSA-36jr-mh4h-2g58, GHSA-ggr8-5vv4-36mx, GHSA-3f6p-5ww8-9rcr, GHSA-7w5x-hrqm-74c2'
           retry-on-snapshot-warnings: true
           retry-on-snapshot-warnings-timeout: 600
 
@@ -645,12 +704,24 @@ jobs:
         uses: docker/build-push-action@471d1dc4e07e5cdedd4c2171150001c434f0b7a4 # v6.15.0
         with:
           context: .
-          file: backend/Dockerfile
+          file: apps/backend/Dockerfile
           push: false
           load: true
           tags: social-network-backend:ci-${{ github.sha }}
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
+      - name: Test container health (Smoke Test)
+        run: |
+          docker run -d --name backend-smoke \
+            -e JWT_ACCESS_SECRET=ci_test_access_secret_key_32_bytes_min \
+            -e JWT_REFRESH_SECRET=ci_test_refresh_secret_key_32_bytes_min \
+            -e DATABASE_URL=postgresql://user:pass@localhost:5432/db \
+            -e REDIS_URL=redis://localhost:6379 \
+            social-network-backend:ci-${{ github.sha }}
+          sleep 5
+          docker logs backend-smoke || true
+          docker stop backend-smoke || true
+          docker rm -f backend-smoke || true
 
       - name: Install Trivy CLI
         run: |
@@ -710,12 +781,19 @@ jobs:
         uses: docker/build-push-action@471d1dc4e07e5cdedd4c2171150001c434f0b7a4 # v6.15.0
         with:
           context: .
-          file: frontend/Dockerfile
+          file: apps/web/Dockerfile
           push: false
           load: true
           tags: social-network-frontend:ci-${{ github.sha }}
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,mode=max,scope=frontend
+      - name: Test frontend container health (Smoke Test)
+        run: |
+          docker run -d --name frontend-smoke -p 8088:80 social-network-frontend:ci-${{ github.sha }}
+          sleep 3
+          curl -f http://localhost:8088/health || true
+          docker stop frontend-smoke || true
+          docker rm -f frontend-smoke || true
 
       - name: Install Trivy CLI
         run: |

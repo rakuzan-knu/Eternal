@@ -1,287 +1,39 @@
-# Architecture Decision Records
+# 📐 Architecture Decision Records (ADR)
 
-This document records significant architectural decisions made for this project.
-
----
-
-## ADR-001: Monorepo with pnpm Workspaces
-
-**Status**: Accepted
-
-**Date**: 2026-06 (Updated 2026-08)
-
-### Context
-
-We needed a way to manage both backend and frontend codebases in a single repository while maintaining strict dependency isolation and fast installation speeds.
-
-### Decision
-
-Use **pnpm workspaces** with two packages (`backend`, `frontend`), `pnpm-workspace.yaml`, and a single root `pnpm-lock.yaml`.
-
-### Consequences
-
-- **Positive**: Hard-linked content-addressable storage, strict dependency resolution, zero phantom dependencies, atomic commits across stack
-- **Negative**: Requires Corepack or pnpm CLI installed, strict peer dependency handling
-- **Rejected alternatives**: npm workspaces (slow installs, phantom dependencies), Yarn (pnpm offers better disk and build performance)
+Architecture Decision Records (ADRs) capture significant architectural decisions, their context, rationale, and consequences. They provide durable historical context for new contributors and team members.
 
 ---
 
-## ADR-002: NestJS for Backend Framework
+## 📋 ADR Registry
 
-**Status**: Accepted
-
-**Date**: 2026-06
-
-### Context
-
-Need a scalable, maintainable backend framework with strong TypeScript support and modular architecture.
-
-### Decision
-
-Use **NestJS** with its module-based architecture, dependency injection, and built-in support for WebSockets, Swagger, and microservices patterns.
-
-### Consequences
-
-- **Positive**: Modular architecture, decorators reduce boilerplate, excellent TypeScript support
-- **Negative**: Steeper learning curve, heavier than Express/Fastify
-- **Rejected alternatives**: Express.js (too minimal), Fastify (less ecosystem), Koa
+| ADR                                                                 | Title                                                             | Status       | Date    | Primary Driver                    |
+| :------------------------------------------------------------------ | :---------------------------------------------------------------- | :----------- | :------ | :-------------------------------- |
+| **[ADR 001](001-monorepo-nx-and-zod-contracts.md)**                 | Monorepo Hardening with Nx & Single-Source-of-Truth Zod Contracts | **Accepted** | 2026-08 | Performance & Type Safety         |
+| **[ADR 002](002-zero-packages-folder-and-path-aliases.md)**         | Zero-Package Monorepo Topology via Direct Path Aliases            | **Accepted** | 2026-08 | Developer Experience & Simplicity |
+| **[ADR 003](003-supply-chain-security-and-cosign.md)**              | Software Supply Chain Hardening with Cosign, SBOM, and Trivy      | **Accepted** | 2026-08 | Security & Compliance             |
+| **[ADR 004](004-correlation-id-and-observability-architecture.md)** | Unified Correlation ID and Observability Pipeline                 | **Accepted** | 2026-08 | Reliability & SRE                 |
 
 ---
 
-## ADR-003: Prisma as ORM
+## 🎯 ADR Lifecycle & Statuses
 
-**Status**: Accepted
-
-**Date**: 2026-06
-
-### Context
-
-Need type-safe database access with migration support and good PostgreSQL integration.
-
-### Decision
-
-Use **Prisma 5** as the ORM with PostgreSQL as the primary database.
-
-### Consequences
-
-- **Positive**: Type-safe queries, auto-generated types, migration system, Prisma Studio
-- **Negative**: Query performance limitations for complex queries, vendor lock-in
-- **Rejected alternatives**: TypeORM (less type-safe), Drizzle (newer, less mature), raw SQL (no type safety)
+- **Proposed**: Under community review and discussion in GitHub Discussions or a Pull Request.
+- **Accepted**: Approved by maintainers and actively implemented in the codebase.
+- **Superseded**: Replaced by a newer ADR (must include reciprocal link to the replacing ADR).
+- **Rejected**: Discussed and declined with recorded rationale.
 
 ---
 
-## ADR-004: React + Vite for Frontend
-
-**Status**: Accepted
-
-**Date**: 2026-06
-
-### Context
-
-Need a modern frontend framework with fast development experience and good TypeScript support.
-
-### Decision
-
-Use **React 19** with **Vite 8** (Rolldown-based build), **TypeScript 6**, and **Tailwind CSS 4**.
-
-### Consequences
-
-- **Positive**: Fast HMR, React Compiler optimization, Tailwind v4 performance
-- **Negative**: Vite 8 is bleeding-edge, potential plugin compatibility issues
-- **Rejected alternatives**: Next.js (overkill for SPA), Remix, SvelteKit
-
----
-
-## ADR-005: JWT Authentication with Refresh Tokens
-
-**Status**: Accepted
-
-**Date**: 2026-06
-
-### Context
-
-Need stateless authentication that works across web and potential mobile clients.
-
-### Decision
-
-Use **JWT** with short-lived access tokens (15 min) and long-lived refresh tokens (7 days), stored as httpOnly cookies. Passwords hashed with **argon2**.
-
-### Consequences
-
-- **Positive**: Stateless, scalable, works across domains
-- **Negative**: Token revocation requires additional infrastructure (blocklist)
-- **Rejected alternatives**: Session-based auth (stateful), OAuth-only (complexity)
-
----
-
-## ADR-006: Docker Compose Parity (Dev/Prod)
-
-**Status**: Accepted
-
-**Date**: 2026-08
-
-### Context
-
-Development and production Docker configurations had diverged, causing "works on my machine" issues.
-
-### Decision
-
-Align `docker-compose.dev.yml` with `docker-compose.prod.yml` patterns:
-
-- Both use `internal` + `public` networks
-- Both use json-file logging with rotation
-- Both define resource limits (deploy.resources)
-- Both use healthcheck `start_period`
-- Dev keeps hardcoded credentials; prod uses env vars
-
-### Consequences
-
-- **Positive**: Consistent networking, logging, and resource management
-- **Negative**: Slightly heavier dev containers
-
----
-
-## ADR-007: Conventional Commits + Semantic Release
-
-**Status**: Accepted
-
-**Date**: 2026-06
-
-### Context
-
-Need automated versioning and changelog generation based on commit history.
-
-### Decision
-
-Use **Conventional Commits** specification enforced by **commitlint** (local) and **action-semantic-pull-request** (CI). Releases automated via **semantic-release** with `@semantic-release/changelog` and `@semantic-release/git`.
-
-### Branch strategy:
-
-- `main` → stable releases
-- `develop` → beta prereleases
-
-### Consequences
-
-- **Positive**: Automated versioning, structured changelog, clear commit history
-- **Negative**: Requires discipline in commit message format
-
----
-
-## ADR-008: CI Pipeline Design
-
-**Status**: Accepted
-
-**Date**: 2026-08
-
-### Context
-
-Need a fast, reliable CI pipeline that catches issues before merge without being overly slow.
-
-### Decision
-
-Use a **staged pipeline** with `dorny/paths-filter` for change detection:
-
-1. **changes** — detect which parts changed
-2. **validate-eol** + **format-check** — fast static checks (parallel)
-3. **setup** — install deps + generate cache key
-4. **backend-lint** + **frontend-lint** + **backend-test** (3 shards) — parallel
-5. **backend-e2e** — after backend setup complete
-6. **frontend-prod-assessment** — Lighthouse + bundle size
-7. **docker-build** — Buildx + Trivy scan
-
-All jobs have explicit `timeouts` and `concurrency` groups. All use `permissions: read-all` as default.
-
-### Consequences
-
-- **Positive**: Fast feedback (~5-10 min for typical PR), clear failure isolation
-- **Negative**: Complex workflow file, requires maintenance
-
----
-
-## ADR-009: Line Ending Policy (LF Everywhere)
-
-**Status**: Accepted
-
-**Date**: 2026-08
-
-### Context
-
-Cross-platform development (Windows + macOS + Linux) caused CRLF/LF inconsistencies.
-
-### Decision
-
-Enforce **LF everywhere** via:
-
-1. `.editorconfig` — `end_of_line = lf`
-2. `.gitattributes` — `* text=auto eol=lf` + explicit binary declarations
-3. `scripts/validate-eol.js` — cross-platform validator using `git ls-files`
-4. `.husky/pre-commit` — runs validator before commit
-5. CI `validate-eol` job — blocks merge on violations
-
-### Consequences
-
-- **Positive**: Consistent diffs, no line-ending-only commits, works cross-platform
-- **Negative**: Requires `git add --renormalize .` one-time migration for existing files
-
----
-
-## ADR-010: Lighthouse CI Assertions
-
-**Status**: Accepted
-
-**Date**: 2026-08
-
-### Context
-
-Need automated performance/quality gates for frontend changes without blocking development on minor regressions.
-
-### Decision
-
-Use **lighthouse:recommended** preset with custom assertions:
-
-| Category          | Level | Threshold |
-| ----------------- | ----- | --------- |
-| performance       | error | ≥0.85     |
-| accessibility     | error | ≥0.95     |
-| best-practices    | error | ≥0.90     |
-| seo               | error | ≥0.85     |
-| errors-in-console | error | —         |
-| FCP               | warn  | ≤1800ms   |
-| LCP               | warn  | ≤2500ms   |
-| TBT               | warn  | ≤200ms    |
-| CLS               | warn  | ≤0.1      |
-
-Runs 3 times (median score) on `pull_request` with frontend changes.
-
-### Consequences
-
-- **Positive**: Catches real regressions, allows minor fluctuations
-- **Negative**: Requires tuning thresholds as app grows
-
----
-
-## ADR-011: Dependency Update Strategy
-
-**Status**: Accepted
-
-**Date**: 2026-08
-
-### Context
-
-Need automated dependency updates without overwhelming the team or introducing breaking changes.
-
-### Decision
-
-Use **Dependabot** with:
-
-- Root-only npm updates (single lockfile model)
-- Weekly schedule, 10 PR limit
-- Major version updates ignored (manual review required)
-- Grouped production + dev dependencies
-- Docker ecosystem monitoring
-- GitHub Actions updates (monthly)
-
-### Consequences
-
-- **Positive**: Automated, batched updates, clear review process
-- **Negative**: Requires initial PR volume when enabling
+## ✍️ How to Propose a New ADR
+
+1. Create a new file in `docs/adr/` named with sequential 3-digit numbering:
+   ```text
+   docs/adr/005-<kebab-case-title>.md
+   ```
+2. Follow our standard ADR template:
+   - **Title**: `# ADR XXX: <Concise Title>`
+   - **Status**: `Proposed`
+   - **Context**: The problem, constraints, and forces at play.
+   - **Decision**: The chosen technical approach and alternatives considered.
+   - **Consequences**: Positive benefits, negative trade-offs, and maintenance obligations.
+3. Open a Pull Request for community review.

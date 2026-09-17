@@ -1,0 +1,1201 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id               String           @id @default(uuid())
+  email            String           @unique
+  username         String           @unique
+  displayName      String?
+  passwordHash     String
+  avatar           String?
+  bio              String?
+  banner           String?
+  bannerPosition   Int              @default(50)
+  isPrivate        Boolean          @default(false)
+  isVerified       Boolean          @default(false) @map("is_verified")
+  flags            Int              @default(0)
+  primaryBadge     String?          @map("primary_badge")
+  githubId         String?          @unique @map("github_id")
+  githubUsername   String?          @map("github_username")
+  mergedPrsCount   Int              @default(0) @map("merged_prs_count")
+  birthDate        DateTime?
+  gender           String?
+  lastSeenAt       DateTime?
+  autoDeletePeriod AutoDeletePeriod @default(OFF)
+  defaultChatTheme String?          @map("default_chat_theme")
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  posts     Post[]
+  followers Follow[]  @relation("following")
+  following Follow[]  @relation("follower")
+  comments  Comment[]
+
+  conversationParticipants ConversationParticipant[]
+  sentMessages             Message[]                 @relation("SentMessages")
+  messageReactions         MessageReaction[]
+  blockedUsers             UserBlock[]               @relation("Blocker")
+  blockedByUsers           UserBlock[]               @relation("Blocked")
+  reportsFiled             Report[]                  @relation("Reporter")
+  reportsReceived          Report[]                  @relation("Reported")
+  deletedMessages          MessageDeletion[]
+  privacy                  UserPrivacy?
+  privacyExceptions        PrivacyException[]        @relation("PrivacyOwner")
+  privacyTargetedBy        PrivacyException[]        @relation("PrivacyTarget")
+  sessions                 Session[]
+  polls                    Poll[]                    @relation("CreatedPolls")
+  votes                    Vote[]
+  badges                   UserBadge[]
+  reposts                  Repost[]
+  savedPosts               SavedPost[]
+  aliasesCreated           UserAlias[]               @relation("AliasOwner")
+  aliasesTargeted          UserAlias[]               @relation("AliasTarget")
+  commentLikes             CommentLike[]
+  commentsRepliedTo        Comment[]                 @relation("CommentReplyToUser")
+  notificationsReceived    Notification[]            @relation("UserNotifications")
+  notificationsTriggered   Notification[]            @relation("ActorNotifications")
+  notificationSettings     UserNotificationSettings?
+  showcase                 ProfileShowcase?
+  stories                  Story[]
+  storyViews               StoryView[]
+  storyReactions           StoryReaction[]
+  storyPollVotes           StoryPollVote[]
+  closeFriends             CloseFriend[]             @relation("CloseFriendsOwner")
+  closeFriendOf            CloseFriend[]             @relation("CloseFriendsTarget")
+  callsInitiated           Call[]                    @relation("CallInitiator")
+  callParticipations       CallParticipant[]
+  callTelemetries          CallTelemetry[]
+  chatFolders              ChatFolder[]
+  prekeyBundle             UserPrekeyBundle?
+  reels                    Reel[]
+  reelLikes                ReelLike[]
+  reelComments             ReelComment[]
+  likedTracks              UserLikedTrack[]
+  musicFolders             UserMusicFolder[]
+  musicPlaylists           UserPlaylist[]
+}
+
+model UserBadge {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  badgeId   String   @map("badge_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+  @@map("user_badges")
+}
+
+model Post {
+  id          String      @id @default(uuid())
+  content     String
+  sharesCount Int         @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  author     User        @relation(fields: [authorId], references: [id])
+  authorId   String
+  media      PostMedia[]
+  likes      Like[]
+  comments   Comment[]
+  reposts    Repost[]
+  savedPosts SavedPost[]
+  reports       Report[]
+  poll          Poll?
+  notifications Notification[]
+
+  @@index([authorId])
+  @@index([createdAt, id])
+  @@index([authorId, createdAt, id])
+}
+
+model PostMedia {
+  id        String    @id @default(uuid())
+  postId    String
+  type      MediaType
+  url       String
+  poster    String?
+  blurhash  String?
+  thumbhash String?
+  hlsUrl    String?   @map("hls_url")
+  order     Int       @default(0)
+  createdAt DateTime  @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
+model Repost {
+  id        String   @id @default(uuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([userId])
+  @@index([postId])
+  @@index([userId, createdAt, id])
+}
+
+model SavedPost {
+  id        String   @id @default(uuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([userId])
+  @@index([postId])
+  @@index([userId, createdAt, id])
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([userId])
+}
+
+model Follow {
+  id          String       @id @default(cuid())
+  createdAt   DateTime     @default(now())
+  status      FollowStatus @default(ACCEPTED)
+  follower    User         @relation("follower", fields: [followerId], references: [id])
+  followerId  String
+  following   User         @relation("following", fields: [followingId], references: [id])
+  followingId String
+
+  @@unique([followerId, followingId])
+  @@index([followingId, status])
+  @@index([followerId, status])
+  @@index([followingId, status, createdAt, id])
+  @@index([followerId, status, createdAt, id])
+}
+
+enum FollowStatus {
+  PENDING
+  ACCEPTED
+}
+
+model Comment {
+  id            String   @id @default(cuid())
+  text          String
+  postId        String
+  userId        String
+  parentId      String?
+  rootParentId  String?
+  replyToUserId String?
+  mediaUrl      String?
+  isPinned      Boolean  @default(false)
+  isDeleted     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  post        Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent      Comment?      @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies     Comment[]     @relation("CommentReplies")
+  replyToUser   User?          @relation("CommentReplyToUser", fields: [replyToUserId], references: [id], onDelete: SetNull)
+  likes         CommentLike[]
+  notifications Notification[]
+
+  @@index([postId, parentId, createdAt])
+  @@index([postId, rootParentId, createdAt])
+  @@index([postId, parentId, isPinned, createdAt, id])
+  @@index([parentId, createdAt])
+  @@index([rootParentId, createdAt])
+  @@index([userId])
+}
+
+model CommentLike {
+  id        String   @id @default(cuid())
+  commentId String
+  userId    String
+  createdAt DateTime @default(now())
+
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId])
+  @@index([userId])
+  @@index([commentId])
+}
+
+model Conversation {
+  id          String           @id @default(uuid())
+  type        ConversationType @default(DIRECT)
+  /// Group-only fields
+  name        String? // group display name
+  avatar      String? // group avatar URL
+  description String?
+  /// Shared agreed chat theme (1-on-1 Instagram/Messenger style)
+  sharedTheme          String?
+  sharedThemeUpdatedAt DateTime?
+  /// Who created this conversation (group admin baseline)
+  createdById String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  participants   ConversationParticipant[]
+  messages       Message[]
+  pinnedMessages PinnedMessage[]
+  calls          Call[]
+
+  @@index([createdAt])
+  @@index([updatedAt, id])
+}
+
+enum ConversationType {
+  DIRECT
+  GROUP
+}
+
+model ConversationParticipant {
+  id             String          @id @default(uuid())
+  conversationId String
+  userId         String
+  nickname       String?
+  role           ParticipantRole @default(MEMBER)
+  permissions    Int             @default(0)
+  theme          String?         @default("default")
+  muteLevel      MuteLevel       @default(NONE)
+  mutedUntil     DateTime?
+  leftAt         DateTime?
+  archivedAt     DateTime?
+  pinnedAt       DateTime?
+  lastReadAt     DateTime        @default(now())
+  joinedAt       DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+  @@index([conversationId])
+  @@index([userId, leftAt])
+}
+
+enum ParticipantRole {
+  MEMBER
+  ADMIN
+  OWNER
+}
+
+enum MuteLevel {
+  NONE
+  MESSAGES
+  CALLS
+  MESSAGES_AND_CALLS
+}
+
+model Message {
+  id              String      @id @default(uuid())
+  conversationId  String
+  senderId        String
+  body            String?
+  clientSeq       Int?        @map("client_seq")
+  messageType     MessageType @default(TEXT)
+  replyToId       String?
+  forwardedFromId String?
+  deletedAt       DateTime?
+  deletedForAll   Boolean     @default(false)
+  editedAt        DateTime?
+  createdAt       DateTime    @default(now())
+
+  conversation  Conversation        @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender        User                @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  replyTo       Message?            @relation("Replies", fields: [replyToId], references: [id])
+  replies       Message[]           @relation("Replies")
+  forwardedFrom Message?            @relation("Forwards", fields: [forwardedFromId], references: [id])
+  forwards      Message[]           @relation("Forwards")
+  attachments   MessageAttachment[]
+  reactions     MessageReaction[]
+  deletedFor    MessageDeletion[]
+  pinnedIn      PinnedMessage[]
+
+  @@index([conversationId, createdAt])
+  @@index([conversationId, createdAt, id])
+  @@index([conversationId, createdAt, clientSeq])
+  @@index([conversationId, deletedForAll, createdAt, id])
+  @@index([senderId])
+  @@index([createdAt])
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  AUDIO
+  FILE
+  GIF
+  STICKER
+  LOCATION
+  CALL_LOG // missed / answered call record
+  SYSTEM // "X joined", "theme changed", etc.
+  DELETED // tombstone after hard-delete for all
+  THEME_PROPOSAL // Shared theme proposal in chat (Instagram style)
+  STORY_REPLY // Direct Message reply with rich story frame embed
+}
+
+model MessageAttachment {
+  id           String         @id @default(uuid())
+  messageId    String
+  type         AttachmentType
+  url          String // S3 / CDN URL
+  fileName     String? // original file name
+  mimeType     String?
+  size         Int? // bytes
+  width        Int? // images / videos
+  height       Int?
+  duration     Int? // audio / video seconds
+  waveform     Int[]          @default([])
+  thumbnailUrl String?
+
+  createdAt    DateTime       @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+}
+
+enum AttachmentType {
+  IMAGE
+  VIDEO
+  AUDIO
+  FILE
+  LINK // open-graph link preview
+  GIF
+}
+
+model MessageReaction {
+  id        String   @id @default(uuid())
+  messageId String
+  userId    String
+  emoji     String // unicode emoji
+  createdAt DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// One reaction type per user per message
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+}
+
+model PinnedMessage {
+  id             String   @id @default(uuid())
+  conversationId String
+  messageId      String
+  pinnedByUserId String
+  pinnedAt       DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  message      Message      @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, messageId])
+  @@index([conversationId])
+}
+
+model MessageDeletion {
+  messageId String
+  userId    String
+  deletedAt DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([messageId, userId])
+}
+
+model UserBlock {
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+
+  blocker User @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@id([blockerId, blockedId])
+  @@index([blockedId])
+}
+
+model Report {
+  id         String         @id @default(uuid())
+  reporterId String
+  reportedId String
+  /// Post, conversation or message context (optional)
+  postId     String?
+  messageId  String?
+  category   ReportCategory
+  details    String?
+  status     ReportStatus   @default(PENDING)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  reporter User  @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reported User  @relation("Reported", fields: [reportedId], references: [id], onDelete: Cascade)
+  post     Post? @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([reportedId])
+  @@index([postId])
+  @@index([status])
+}
+
+enum ReportCategory {
+  SPAM
+  SUICIDE_SELF_HARM
+  IMPERSONATION
+  VIOLENCE_DANGEROUS_ORGS
+  NUDITY_SEXUAL
+  RESTRICTED_GOODS
+  FRAUD
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  DISMISSED
+  ACTION_TAKEN
+}
+
+enum Visibility {
+  EVERYBODY // anyone
+  CONTACTS // followers (ACCEPTED)
+  NOBODY
+}
+
+enum PrivacyDimension {
+  LAST_SEEN
+  AVATAR
+  BANNER
+  FORWARD_LINK
+  CALLS
+  VOICE_MESSAGES
+  MESSAGES
+  BIRTHDAY
+  BIO
+  GROUP_INVITES
+  THEME_PROPOSALS
+}
+
+enum ExceptionMode {
+  ALLOW
+  DENY
+}
+
+enum AutoDeletePeriod {
+  OFF
+  DAY
+  WEEK
+  MONTH
+  QUARTER
+}
+
+model UserPrivacy {
+  userId        String     @id
+  lastSeen      Visibility @default(EVERYBODY)
+  avatar        Visibility @default(EVERYBODY)
+  banner        Visibility @default(EVERYBODY)
+  forwardLink   Visibility @default(EVERYBODY)
+  calls         Visibility @default(EVERYBODY)
+  voiceMessages Visibility @default(EVERYBODY)
+  messages      Visibility @default(EVERYBODY)
+  birthday      Visibility @default(NOBODY)
+  bio           Visibility @default(EVERYBODY)
+  groupInvites  Visibility @default(EVERYBODY)
+  themeProposals Visibility @default(EVERYBODY)
+  allowNearbyRecommendations Boolean @default(true)
+  updatedAt     DateTime   @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PrivacyException {
+  ownerId   String
+  targetId  String
+  dimension PrivacyDimension
+  mode      ExceptionMode
+  createdAt DateTime         @default(now())
+
+  owner  User @relation("PrivacyOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  target User @relation("PrivacyTarget", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@id([ownerId, dimension, targetId])
+  @@index([ownerId, dimension])
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  userId       String
+  jti          String   @unique
+  deviceName   String?
+  userAgent    String?
+  ip           String?
+  city         String?
+  country      String?
+  createdAt    DateTime @default(now())
+  lastActiveAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Poll {
+  id          String    @id @default(uuid())
+  title       String    @db.VarChar(255)
+  description String?   @db.Text
+  isMultiple  Boolean   @default(false) @map("is_multiple")
+  isActive    Boolean   @default(true) @map("is_active")
+  expiresAt   DateTime? @map("expires_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  options PollOption[]
+  votes   Vote[]
+
+  authorId String @map("author_id")
+  author   User   @relation("CreatedPolls", fields: [authorId], references: [id], onDelete: Cascade)
+
+  postId String @unique @map("post_id")
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([authorId])
+  @@map("polls")
+}
+
+model PollOption {
+  id         String @id @default(uuid())
+  pollId     String @map("poll_id")
+  optionText String @map("option_text") @db.VarChar(255)
+  votesCount Int    @default(0) @map("votes_count")
+  sortOrder  Int    @default(0) @map("sort_order")
+
+  poll  Poll   @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes Vote[]
+
+  @@index([pollId])
+  @@map("poll_options")
+}
+
+model Vote {
+  id        String   @id @default(uuid())
+  pollId    String   @map("poll_id")
+  optionId  String   @map("option_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  poll   Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  option PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([pollId, userId], name: "unique_user_vote_per_poll")
+  @@index([pollId, userId])
+  @@map("votes")
+}
+
+model UserAlias {
+  id        String   @id @default(uuid())
+  ownerId   String
+  targetId  String
+  alias     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner  User @relation("AliasOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  target User @relation("AliasTarget", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@unique([ownerId, targetId])
+  @@index([ownerId])
+  @@map("user_aliases")
+}
+
+model Notification {
+  id         String           @id @default(cuid())
+  userId     String           @map("user_id")
+  actorId    String?          @map("actor_id")
+  type       NotificationType
+  postId     String?          @map("post_id")
+  commentId  String?          @map("comment_id")
+  text       String?          @db.Text
+  extraCount Int              @default(0) @map("extra_count")
+  isRead     Boolean          @default(false) @map("is_read")
+  createdAt  DateTime         @default(now()) @map("created_at")
+  updatedAt  DateTime         @updatedAt @map("updated_at")
+
+  user    User     @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  actor   User?    @relation("ActorNotifications", fields: [actorId], references: [id], onDelete: SetNull)
+  post    Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@index([userId, createdAt, id])
+  @@index([userId, type])
+  @@index([userId, isRead, createdAt])
+  @@index([userId, type, postId])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  LIKE_POST
+  LIKE_COMMENT
+  COMMENT
+  FOLLOW
+  REPOST
+  MENTION
+  SYSTEM_VERIFIED
+  SYSTEM_VIEW
+  SYSTEM
+}
+
+model UserNotificationSettings {
+  id                  String   @id @default(uuid())
+  userId              String   @unique @map("user_id")
+  enableNotifications Boolean  @default(true) @map("enable_notifications")
+  allowSound          Boolean  @default(true) @map("allow_sound")
+  volume              Int      @default(100)
+  showName            Boolean  @default(true) @map("show_name")
+  showText            Boolean  @default(true) @map("show_text")
+  privateChats        Boolean  @default(true) @map("private_chats")
+  groups              Boolean  @default(true)
+  reactions           Boolean  @default(true)
+  likes               Boolean  @default(true)
+  comments            Boolean  @default(true)
+  reposts             Boolean  @default(true)
+  followers           Boolean  @default(true)
+  mentions            Boolean  @default(true)
+  system              Boolean  @default(true)
+  toastPosition       String    @default("bottom-right") @map("toast_position")
+  maxToasts           Int       @default(3) @map("max_toasts")
+  dndUntil            DateTime? @map("dnd_until")
+  mutedActorIds       String[]  @default([]) @map("muted_actor_ids")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_notification_settings")
+}
+
+enum ShowcasePrivacy {
+  PUBLIC
+  FOLLOWERS
+  PRIVATE
+}
+
+enum ShowcaseMediaType {
+  ANIME
+  GAME
+  MOVIE
+  SERIES
+}
+
+model ProfileShowcase {
+  id                String            @id @default(cuid())
+  userId            String            @unique @map("user_id")
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Privacy Settings (PUBLIC | FOLLOWERS | PRIVATE)
+  privacyMeta       ShowcasePrivacy   @default(PUBLIC) @map("privacy_meta")
+  privacyActivity   ShowcasePrivacy   @default(PUBLIC) @map("privacy_activity")
+  privacyShowcase   ShowcasePrivacy   @default(PUBLIC) @map("privacy_showcase")
+  privacyLinks      ShowcasePrivacy   @default(PUBLIC) @map("privacy_links")
+
+  // Meta Widget Flags & Overrides
+  showAge           Boolean           @default(false) @map("show_age")
+  showBirthdate     Boolean           @default(false) @map("show_birthdate")
+  showGender        Boolean           @default(false) @map("show_gender")
+  showTimezone      Boolean           @default(false) @map("show_timezone")
+  pronouns          String?           @db.VarChar(20)
+  timezone          String?           @default("UTC")
+
+  // Customizations
+  accentColor       String?           @default("#6366f1") @map("accent_color")
+  connectedAccounts Json?             @map("connected_accounts")
+  activityStatus    Json?             @map("activity_status")
+  spotlightMedia    Json?             @map("spotlight_media")
+  anthemTrack       Json?             @map("anthem_track")
+  widgetOrder       Json?             @map("widget_order")
+
+  // Media items (Top 5 per category for Board and Wishlist)
+  mediaItems        ShowcaseMedia[]
+
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  @@map("profile_showcases")
+}
+
+model ShowcaseMedia {
+  id          String            @id @default(cuid())
+  showcaseId  String            @map("showcase_id")
+  showcase    ProfileShowcase   @relation(fields: [showcaseId], references: [id], onDelete: Cascade)
+  type        ShowcaseMediaType
+  isWishlist  Boolean           @default(false) @map("is_wishlist")
+  title       String
+  posterUrl   String            @map("poster_url")
+  externalId  String?           @map("external_id")
+  externalUrl String?           @map("external_url")
+  rating      Float?
+  userComment String?           @map("user_comment") @db.VarChar(120)
+  tags        String[]          @default([])
+  releaseYear Int?              @map("release_year")
+  position    Int               @default(0)
+
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  @@unique([showcaseId, type, isWishlist, position])
+  @@index([showcaseId, type, isWishlist])
+  @@index([externalId])
+  @@map("showcase_media")
+}
+
+enum StoryMediaType {
+  IMAGE
+  VIDEO
+  VOICE
+}
+
+enum StoryPrivacy {
+  ALL_FOLLOWERS
+  CLOSE_FRIENDS
+}
+
+model Story {
+  id        String         @id @default(uuid())
+  authorId  String         @map("author_id")
+  mediaUrl  String         @map("media_url")
+  mediaType StoryMediaType @default(IMAGE) @map("media_type")
+  caption   String?        @db.Text
+  overlays  Json?
+  privacy   StoryPrivacy   @default(ALL_FOLLOWERS)
+  createdAt DateTime       @default(now()) @map("created_at")
+  expiresAt DateTime       @map("expires_at")
+
+  author    User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  views     StoryView[]
+  reactions StoryReaction[]
+  pollVotes StoryPollVote[]
+
+  @@index([authorId, expiresAt])
+  @@index([authorId, expiresAt, createdAt])
+  @@index([expiresAt])
+  @@index([createdAt])
+  @@map("stories")
+}
+
+model StoryView {
+  id       String   @id @default(uuid())
+  storyId  String   @map("story_id")
+  viewerId String   @map("viewer_id")
+  viewedAt DateTime @default(now()) @map("viewed_at")
+
+  story  Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  viewer User  @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+
+  @@unique([storyId, viewerId])
+  @@index([storyId])
+  @@index([viewerId])
+  @@map("story_views")
+}
+
+model StoryReaction {
+  id        String   @id @default(uuid())
+  storyId   String   @map("story_id")
+  userId    String   @map("user_id")
+  emoji     String   @db.VarChar(32)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([storyId])
+  @@index([userId])
+  @@map("story_reactions")
+}
+
+model StoryPollVote {
+  id          String   @id @default(uuid())
+  storyId     String   @map("story_id")
+  userId      String   @map("user_id")
+  optionIndex Int      @map("option_index")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([storyId, userId])
+  @@index([storyId])
+  @@map("story_poll_votes")
+}
+
+model CloseFriend {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  friendId  String   @map("friend_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user   User @relation("CloseFriendsOwner", fields: [userId], references: [id], onDelete: Cascade)
+  friend User @relation("CloseFriendsTarget", fields: [friendId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, friendId])
+  @@index([userId])
+  @@index([friendId])
+  @@map("close_friends")
+}
+
+enum OutboxStatus {
+  PENDING
+  PROCESSING
+  PUBLISHED
+  FAILED
+}
+
+model OutboxEvent {
+  id            String       @id @default(uuid())
+  aggregateType String       @map("aggregate_type")
+  aggregateId   String       @map("aggregate_id")
+  eventType     String       @map("event_type")
+  payload       Json
+  headers       Json?
+  status        OutboxStatus @default(PENDING)
+  retryCount    Int          @default(0) @map("retry_count")
+  lastError     String?      @map("last_error") @db.Text
+  processedAt   DateTime?    @map("processed_at")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  @@index([status, createdAt])
+  @@index([aggregateType, aggregateId])
+  @@map("outbox_events")
+}
+
+model Call {
+  id             String         @id @default(uuid())
+  conversationId String
+  type           CallType       @default(AUDIO)
+  status         CallStatus     @default(INITIATED)
+  initiatorId    String
+  startedAt      DateTime       @default(now())
+  endedAt        DateTime?
+  endedReason    CallEndReason?
+  durationMs     Int?
+  recordingUrl   String?
+  e2eeEnabled    Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  conversation Conversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  initiator    User              @relation("CallInitiator", fields: [initiatorId], references: [id], onDelete: Cascade)
+  participants CallParticipant[]
+  telemetries  CallTelemetry[]
+
+  @@index([conversationId, startedAt])
+  @@index([initiatorId, startedAt])
+  @@map("calls")
+}
+
+model CallParticipant {
+  id          String          @id @default(uuid())
+  callId      String
+  userId      String
+  joinedAt    DateTime?
+  leftAt      DateTime?
+  muteState   Boolean         @default(false)
+  videoState  Boolean         @default(true)
+  screenShare Boolean         @default(false)
+  role        ParticipantRole @default(MEMBER)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  call Call @relation(fields: [callId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([callId, userId])
+  @@index([userId])
+  @@map("call_participants")
+}
+
+model CallTelemetry {
+  id              String   @id @default(uuid())
+  callId          String   @map("call_id")
+  userId          String   @map("user_id")
+  avgRttMs        Float    @map("avg_rtt_ms")
+  maxRttMs        Float?   @map("max_rtt_ms")
+  packetLossRatio Float    @map("packet_loss_ratio")
+  jitterMs        Float?   @map("jitter_ms")
+  audioCodec      String?  @map("audio_codec")
+  videoCodec      String?  @map("video_codec")
+  durationMs      Int      @map("duration_ms")
+  endReason       String?  @map("end_reason")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  call Call @relation(fields: [callId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([callId])
+  @@map("call_telemetries")
+}
+
+enum CallType {
+  AUDIO
+  VIDEO
+  SCREEN_SHARE
+}
+
+enum CallStatus {
+  INITIATED
+  RINGING
+  CONNECTED
+  ENDED
+  MISSED
+  DECLINED
+  FAILED
+}
+
+enum CallEndReason {
+  ENDED_BY_USER
+  MISSED
+  DECLINED
+  NETWORK_ERROR
+  PARTICIPANT_LEFT
+  SYSTEM
+}
+
+model ChatFolder {
+  id         String           @id @default(uuid())
+  userId     String           @map("user_id")
+  name       String
+  icon       String?
+  emoji      String?
+  color      String           @default("#8b5cf6")
+  order      Int              @default(0)
+  filterType FolderFilterType @default(CUSTOM) @map("filter_type")
+  includeIds String[]         @default([]) @map("include_ids")
+  excludeIds String[]         @default([]) @map("exclude_ids")
+  createdAt  DateTime         @default(now()) @map("created_at")
+  updatedAt  DateTime         @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, order])
+  @@map("chat_folders")
+}
+
+enum FolderFilterType {
+  ALL
+  PERSONAL
+  WORK
+  GROUPS
+  CHANNELS
+  UNREAD
+  CUSTOM
+}
+
+model UserPrekeyBundle {
+  id               String   @id @default(uuid())
+  userId           String   @unique @map("user_id")
+  identityKeySpki  String   @map("identity_key_spki")
+  signedPrekeySpki String   @map("signed_prekey_spki")
+  signedPrekeySig  String   @map("signed_prekey_sig")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  oneTimePrekeys UserOneTimePrekey[]
+
+  @@map("user_prekey_bundles")
+}
+
+model UserOneTimePrekey {
+  id        String   @id @default(uuid())
+  bundleId  String   @map("bundle_id")
+  keyId     Int      @map("key_id")
+  keySpki   String   @map("key_spki")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  bundle UserPrekeyBundle @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+
+  @@unique([bundleId, keyId])
+  @@map("user_one_time_prekeys")
+}
+
+model Reel {
+  id           String        @id @default(uuid())
+  authorId     String        @map("author_id")
+  caption      String        @default("")
+  videoUrl     String        @map("video_url")
+  hlsUrl       String?       @map("hls_url")
+  thumbnailUrl String?       @map("thumbnail_url")
+  blurhash     String?
+  thumbhash    String?
+  duration     Float?
+  width        Int?
+  height       Int?
+  audioTitle   String?       @map("audio_title")
+  audioArtist  String?       @map("audio_artist")
+  audioUrl     String?       @map("audio_url")
+  viewsCount   Int           @default(0) @map("views_count")
+  likesCount   Int           @default(0) @map("likes_count")
+  commentsCount Int          @default(0) @map("comments_count")
+  sharesCount  Int           @default(0) @map("shares_count")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  author   User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  likes    ReelLike[]
+  comments ReelComment[]
+
+  @@index([authorId, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+  @@map("reels")
+}
+
+model ReelLike {
+  id        String   @id @default(uuid())
+  reelId    String   @map("reel_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  reel Reel @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([reelId, userId])
+  @@index([userId])
+  @@map("reel_likes")
+}
+
+model ReelComment {
+  id        String   @id @default(uuid())
+  reelId    String   @map("reel_id")
+  userId    String   @map("user_id")
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  reel Reel @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([reelId, createdAt(sort: Asc)])
+  @@map("reel_comments")
+}
+
+model UserLikedTrack {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  trackId    String   @map("track_id")
+  title      String
+  artist     String
+  album      String?
+  albumArt   String?  @map("album_art")
+  durationMs Int      @default(180000) @map("duration_ms")
+  previewUrl String?  @map("preview_url")
+  streamUrl  String?  @map("stream_url")
+  spotifyUrl String?  @map("spotify_url")
+  source     String   @default("soundcloud")
+  addedAt    DateTime @default(now()) @map("added_at")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, trackId])
+  @@index([userId, addedAt(sort: Desc)])
+  @@map("user_liked_tracks")
+}
+
+model UserMusicFolder {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  playlists UserPlaylist[]
+
+  @@index([userId, createdAt(sort: Asc)])
+  @@map("user_music_folders")
+}
+
+model UserPlaylist {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  folderId    String?  @map("folder_id")
+  title       String
+  description String?
+  coverUrl    String?  @map("cover_url")
+  isPublic    Boolean  @default(true) @map("is_public")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user   User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folder UserMusicFolder?    @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  tracks UserPlaylistTrack[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([folderId])
+  @@map("user_playlists")
+}
+
+model UserPlaylistTrack {
+  id         String   @id @default(uuid())
+  playlistId String   @map("playlist_id")
+  trackId    String   @map("track_id")
+  title      String
+  artist     String
+  album      String?
+  albumArt   String?  @map("album_art")
+  durationMs Int      @default(180000) @map("duration_ms")
+  previewUrl String?  @map("preview_url")
+  streamUrl  String?  @map("stream_url")
+  spotifyUrl String?  @map("spotify_url")
+  source     String   @default("soundcloud")
+  position   Int      @default(0)
+  addedAt    DateTime @default(now()) @map("added_at")
+
+  playlist UserPlaylist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+
+  @@unique([playlistId, trackId])
+  @@index([playlistId, position(sort: Asc)])
+  @@map("user_playlist_tracks")
+}
+
+model FeatureFlag {
+  id                String   @id @default(uuid())
+  key               String   @unique
+  description       String?
+  isEnabled         Boolean  @default(false) @map("is_enabled")
+  rolloutPercentage Int      @default(0) @map("rollout_percentage")
+  targetUserIds     String[] @default([]) @map("target_user_ids")
+  targetRoles       String[] @default([]) @map("target_roles")
+  variants          Json?
+  metadata          Json?
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@index([key, isEnabled])
+  @@map("feature_flags")
+}

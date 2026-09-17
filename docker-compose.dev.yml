@@ -95,7 +95,17 @@ services:
       /bin/sh -c "
       mc alias set local http://minio:9000 rootuser rootpassword;
       mc mb -p local/avatars;
+      mc mb -p local/banners;
+      mc mb -p local/posts;
+      mc mb -p local/reels;
+      mc mb -p local/stories;
+      mc mb -p local/social-network;
       mc anonymous set download local/avatars;
+      mc anonymous set download local/banners;
+      mc anonymous set download local/posts;
+      mc anonymous set download local/reels;
+      mc anonymous set download local/stories;
+      mc anonymous set download local/social-network;
       exit 0;
       "
     logging: *default-logging

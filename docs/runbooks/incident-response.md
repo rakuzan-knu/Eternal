@@ -50,4 +50,4 @@ Every SEV-1 and SEV-2 requires a blameless post-mortem within **48 hours**:
 - **Summary**: What happened, timeline of events (detection to resolution).
 - **Impact**: User count affected, duration of degradation.
 - **Root Cause**: Why did this occur (5 Whys analysis)?
-- **Action Items**: Preventative measures with assigned Jira tickets (`[SOC-XXX]`).
+- **Action Items**: Preventative measures tracked as GitHub Issues with milestones.

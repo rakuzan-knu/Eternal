@@ -1,0 +1,47 @@
+config:
+  target: 'ws://127.0.0.1:3000'
+  phases:
+    - name: 'Warmup'
+      duration: 30
+      arrivalRate: 20
+      rampTo: 100
+    - name: 'Ramping to 2,000 VUs'
+      duration: 60
+      arrivalRate: 100
+      rampTo: 500
+    - name: 'Reconnect Storm Peak (5,000 Concurrent VUs)'
+      duration: 120
+      arrivalRate: 500
+      rampTo: 1000
+    - name: 'Cool down'
+      duration: 30
+      arrivalRate: 100
+      rampTo: 10
+  ws:
+    subprotocols:
+      - 'websocket'
+  variables:
+    namespace: '/messenger'
+
+scenarios:
+  - name: 'Socket.io Reconnect Storm & WebRTC Signaling Flow'
+    engine: ws
+    flow:
+      # Step 1: Connect Engine.IO WebSocket transport
+      - send: '40/messenger'
+      - think: 0.2
+      # Step 2: Join User Room
+      - send: '42/messenger,["joinConversation",{"conversationId":"00000000-0000-0000-0000-000000000001"}]'
+      - think: 0.5
+      # Step 3: Emit Call Initiate
+      - send: '42/messenger,["call:initiate",{"targetUserId":"usr-target-stress","type":"video","e2eeFingerprint":"ARTILLERY_STORM_FINGERPRINT"}]'
+      - think: 0.3
+      # Step 4: Exchange WebRTC SDP Offer
+      - send: '42/messenger,["call:offer",{"callId":"call-artillery-1","targetUserId":"usr-target-stress","sdp":"v=0\\r\\no=- 123 2 IN IP4 127.0.0.1\\r\\ns=-\\r\\nt=0 0\\r\\n"}]'
+      - think: 0.5
+      # Step 5: Exchange WebRTC ICE Candidate
+      - send: '42/messenger,["call:ice-candidate",{"callId":"call-artillery-1","targetUserId":"usr-target-stress","candidate":{"candidate":"candidate:1 1 UDP 2130706431 127.0.0.1 50000 typ host","sdpMid":"0","sdpMLineIndex":0}}]'
+      - think: 3
+      # Step 6: End Call
+      - send: '42/messenger,["call:end",{"callId":"call-artillery-1","reason":"NORMAL_CLEARING"}]'
+      - think: 0.5

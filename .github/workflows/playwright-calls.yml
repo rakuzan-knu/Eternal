@@ -1,0 +1,95 @@
+name: Playwright WebRTC E2E Calls
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'frontend/src/features/chat/ui/Call/**'
+      - 'frontend/src/features/chat/model/useCall**'
+      - 'frontend/src/features/chat/model/useWebRTC.ts'
+      - 'frontend/src/features/chat/lib/webrtc/**'
+      - 'frontend/src/features/chat/lib/e2ee/**'
+      - 'frontend/e2e/calls.spec.ts'
+      - 'frontend/e2e/call-e2ee-handshake.spec.ts'
+      - 'frontend/e2e/message-e2ee.spec.ts'
+      - 'frontend/src/shared/lib/crypto/**'
+      - 'frontend/src/features/chat/lib/e2ee/messageE2ee.ts'
+      - 'frontend/src/features/chat/model/useMessageActions.ts'
+      - 'backend/src/common/contracts/chat.ts'
+      - '.github/workflows/playwright-calls.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'frontend/src/features/chat/ui/Call/**'
+      - 'frontend/src/features/chat/model/useCall**'
+      - 'frontend/src/features/chat/model/useWebRTC.ts'
+      - 'frontend/src/features/chat/lib/webrtc/**'
+      - 'frontend/src/features/chat/lib/e2ee/**'
+      - 'frontend/e2e/calls.spec.ts'
+      - 'frontend/e2e/call-e2ee-handshake.spec.ts'
+      - 'frontend/e2e/message-e2ee.spec.ts'
+      - 'frontend/src/shared/lib/crypto/**'
+      - 'frontend/src/features/chat/lib/e2ee/messageE2ee.ts'
+      - 'frontend/src/features/chat/model/useMessageActions.ts'
+      - 'backend/src/common/contracts/chat.ts'
+      - '.github/workflows/playwright-calls.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  playwright-webrtc:
+    name: Playwright Headless WebRTC Calls (Fake Media)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5dd2 # v4.0.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium with system dependencies
+        working-directory: apps/web
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run Playwright WebRTC Dual-Client Call E2E
+        run: pnpm --filter frontend exec playwright test e2e/calls.spec.ts --project=chromium
+        env:
+          CI: true
+          NODE_ENV: test
+
+      - name: Run Playwright E2EE Handshake (two browser realms, F1 proof)
+        run: pnpm --filter frontend exec playwright test e2e/call-e2ee-handshake.spec.ts --project=chromium
+        env:
+          CI: true
+          NODE_ENV: test
+
+      - name: Run Playwright Message E2EE (two browser realms, M1-M3 + P0-1 proof)
+        run: pnpm --filter frontend exec playwright test e2e/message-e2ee.spec.ts --project=chromium
+        env:
+          CI: true
+          NODE_ENV: test
+
+      - name: Upload Playwright Test Report on failure
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        if: failure()
+        with:
+          name: playwright-webrtc-report
+          path: apps/web/playwright-report/
+          retention-days: 7

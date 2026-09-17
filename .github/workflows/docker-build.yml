@@ -3,13 +3,14 @@ name: Build & Push Docker Images
 on:
   push:
     branches: [main, develop]
+    tags: ['v*']
     paths:
       - 'backend/**'
       - 'frontend/**'
+      - 'packages/**'
       - 'docker-compose*.yml'
       - '.github/workflows/docker-build.yml'
-  pull_request:
-    branches: [main, develop]
+  workflow_dispatch:
 
 concurrency:
   group: docker-${{ github.ref }}
@@ -32,10 +33,10 @@ jobs:
         include:
           - service: backend
             context: .
-            file: ./backend/Dockerfile
+            file: ./apps/backend/Dockerfile
           - service: frontend
             context: .
-            file: ./frontend/Dockerfile
+            file: ./apps/web/Dockerfile
       max-parallel: 2
     
     steps:
@@ -118,46 +119,6 @@ jobs:
             "${image}"
 
 
-  test:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: read
-    if: github.event_name == 'pull_request'
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
-
-      - name: Build backend for testing
-        uses: docker/build-push-action@471d1dc4e07e5cdedd4c2171150001c434f0b7a4 # v6.15.0
-        with:
-          context: .
-          file: ./backend/Dockerfile
-          load: true
-          tags: social-network-backend:test
-          cache-from: type=gha,scope=backend
-
-      - name: Test backend health
-        run: |
-          docker run -d --name backend-test \
-            -e JWT_ACCESS_SECRET=ci_test_access_secret_key_32_bytes_min \
-            -e JWT_REFRESH_SECRET=ci_test_refresh_secret_key_32_bytes_min \
-            -e DATABASE_URL=postgresql://user:pass@localhost:5432/db \
-            -e REDIS_URL=redis://localhost:6379 \
-            social-network-backend:test
-          sleep 5
-          docker logs backend-test || true
-          docker stop backend-test || true
-
-      - name: Cleanup
-        if: always()
-        run: docker rm -f backend-test || true
-
   security-scan:
     needs: build
     runs-on: ubuntu-latest
@@ -165,7 +126,6 @@ jobs:
     permissions:
       contents: read
       security-events: write
-    if: github.event_name != 'pull_request'
     
     strategy:
       matrix:

@@ -4,12 +4,12 @@ on:
   push:
     branches: [main]
     paths:
-      - 'infrastructure/**'
+      - 'infrastructure/terraform/**'
       - '.github/workflows/terraform.yml'
   pull_request:
     branches: [main, develop]
     paths:
-      - 'infrastructure/**'
+      - 'infrastructure/terraform/**'
       - '.github/workflows/terraform.yml'
   workflow_dispatch:
 
@@ -29,7 +29,7 @@ jobs:
     timeout-minutes: 20
     defaults:
       run:
-        working-directory: infrastructure
+        working-directory: infrastructure/terraform
 
     env:
       VERCEL_API_TOKEN: ${{ secrets.VERCEL_TOKEN || 'dummy_token' }}
@@ -48,7 +48,7 @@ jobs:
         run: terraform fmt -check
 
       - name: Run Infrastructure Unit Test Suite
-        run: node ../scripts/verify-terraform.cjs
+        run: node ../../scripts/ci/verify-terraform.cjs
 
       - name: Terraform Init
         run: terraform init

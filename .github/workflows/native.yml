@@ -1,0 +1,121 @@
+name: native
+
+on:
+  push:
+    branches: [main, master, develop]
+    paths:
+      - 'packages/native/**'
+      - 'packages/msg-codec/**'
+      - 'packages/text-pipeline/**'
+      - 'packages/blinded-crypto/**'
+      - 'packages/feed-score/**'
+      - 'backend/src/messenger/services/**'
+      - 'backend/src/common/text-pipeline/**'
+      - 'backend/src/messenger/gateway/blinded-sfu.service.ts'
+      - 'backend/src/users/users.service.ts'
+      - '.github/workflows/native.yml'
+  pull_request:
+    paths:
+      - 'packages/native/**'
+      - 'packages/msg-codec/**'
+      - 'packages/text-pipeline/**'
+      - 'packages/blinded-crypto/**'
+      - 'packages/feed-score/**'
+      - 'backend/src/messenger/services/**'
+      - 'backend/src/common/text-pipeline/**'
+      - 'backend/src/messenger/gateway/blinded-sfu.service.ts'
+      - 'backend/src/users/users.service.ts'
+      - '.github/workflows/native.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ts-conformance:
+    name: msg-codec TS conformance + bench
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5dd2 # v4.0.0
+        with:
+          version: 10.5.2
+      - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --prefer-offline --frozen-lockfile
+      - run: pnpm check:portable
+      - run: pnpm --filter @social-network/msg-codec typecheck
+      - run: pnpm --filter @social-network/msg-codec test
+      - run: pnpm --filter @social-network/text-pipeline typecheck
+      - run: pnpm --filter @social-network/text-pipeline test
+      - run: pnpm --filter @social-network/blinded-crypto typecheck
+      - run: pnpm --filter @social-network/blinded-crypto test
+      - run: pnpm --filter @social-network/feed-score typecheck
+      - run: pnpm --filter @social-network/feed-score test
+      - run: pnpm --filter @social-network/native typecheck
+      - run: pnpm --filter @social-network/native test
+      - name: Run msg-codec benchmark
+        run: pnpm --filter @social-network/native bench
+      - name: Upload bench report
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: msg-codec-bench-report
+          path: packages/native/benches/report.json
+          retention-days: 90
+
+  rust-tests:
+    name: msg-codec Rust unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+        with:
+          toolchain: stable
+      - name: Cache cargo
+        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            packages/native/rust/target
+            packages/text-pipeline/rust/target
+            packages/blinded-crypto/rust/target
+            packages/feed-score/rust/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('packages/*/rust/Cargo.lock', 'packages/*/rust/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+      - run: cargo test --manifest-path packages/native/rust/Cargo.toml
+      - run: cargo test --manifest-path packages/text-pipeline/rust/Cargo.toml
+      - run: cargo test --manifest-path packages/blinded-crypto/rust/Cargo.toml
+      - run: cargo test --manifest-path packages/feed-score/rust/Cargo.toml
+
+  perf-gates:
+    name: perf budget gates (micro-benchmarks vs baseline)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0 # check-perf-budget diffs against HEAD baselines
+      - uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5dd2 # v4.0.0
+        with:
+          version: 10.5.2
+      - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --prefer-offline --frozen-lockfile
+      - name: Run perf gates (budget x3 vs committed baselines)
+        run: pnpm perf:gates
+      - name: Upload bench reports
+        if: always()
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: perf-bench-reports
+          path: |
+            packages/native/benches/report.json
+            packages/text-pipeline/benches/report.json
+            packages/blinded-crypto/benches/report.json
+            packages/feed-score/benches/report.json
+          retention-days: 90

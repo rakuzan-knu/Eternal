@@ -3,13 +3,16 @@
 
 /backend/                   @subvincdebian @chupikx228
 /backend/prisma/            @subvincdebian @chupikx228
-/frontend/                  @chupikx228
+/frontend/                  @subvincdebian @chupikx228
 /.github/                   @subvincdebian
 /docker-compose.prod.yml    @subvincdebian
 /docker-compose.dev.yml     @subvincdebian
 /vercel.json                @subvincdebian
-/package.json               @subvincdebian @chupikx228
-/package-lock.json          @subvincdebian @chupikx228
+/render.yaml                @subvincdebian
+/package.json               @subvincdebian
+/pnpm-lock.yaml             @subvincdebian
+/pnpm-workspace.yaml        @subvincdebian
 /scripts/                   @subvincdebian
+/packages/                  @subvincdebian
 /.npmrc                     @subvincdebian
 /SECURITY.md                @subvincdebian
