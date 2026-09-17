@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0](https://github.com/rakuzan-knu/social-network/compare/v1.2.0...v1.3.0) (2026-09-17)
+
+### ✨ Features
+
+* **backend:** complete system hardening, resilience and performance optimization [SOC-57] ([#79](https://github.com/rakuzan-knu/social-network/issues/79)) ([a29bc22](https://github.com/rakuzan-knu/social-network/commit/a29bc22daa2790bd62eae9669933b0694fd247e4))
+* **frontend:** add comprehensive legal, privacy, safety and seo pages ([#78](https://github.com/rakuzan-knu/social-network/issues/78)) ([e090828](https://github.com/rakuzan-knu/social-network/commit/e090828ef50994c9ea7563eea5a1dae025f060d5))
+* **infra:** resolved all security errors ([#69](https://github.com/rakuzan-knu/social-network/issues/69)) ([1ef3d0c](https://github.com/rakuzan-knu/social-network/commit/1ef3d0c709e265e4f8f41e0673bc2d2c1185e451))
+
+### 🐛 Bug Fixes
+
+* **chat:** fix contextual menus, notifications system, dnd and tab ba… ([#70](https://github.com/rakuzan-knu/social-network/issues/70)) ([fb65ad8](https://github.com/rakuzan-knu/social-network/commit/fb65ad83b8881a12a41963b50950f1316bd005bc))
+* **chat:** improve group avatar, toasts and sidebar badge [SOC-89] ([#74](https://github.com/rakuzan-knu/social-network/issues/74)) ([df71dd7](https://github.com/rakuzan-knu/social-network/commit/df71dd73e4ce14be518a635b611c79e9aeb5199a))
+* **chat:** site design improvements, voice and video notes, and ui fixes ([#67](https://github.com/rakuzan-knu/social-network/issues/67)) ([8c69478](https://github.com/rakuzan-knu/social-network/commit/8c694786a8cc1f230a8dbc882d487d0fc10f4e32))
+* **frontend:** fix voice note uploads, comment modal ([#68](https://github.com/rakuzan-knu/social-network/issues/68)) ([e6f7c1a](https://github.com/rakuzan-knu/social-network/commit/e6f7c1a577253bafcbd1eb2782e05a51bfd0edc4))
+
 ## [1.2.0](https://github.com/rakuzan-knu/social-network/compare/v1.1.0...v1.2.0) (2026-08-18)
 
 ## [1.1.0](https://github.com/rakuzan-knu/social-network/compare/v1.0.4...v1.1.0) (2026-08-17)
