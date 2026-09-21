@@ -18,11 +18,11 @@
     "@social-network/shared-stores": "workspace:*",
     "@social-network/shared-ui-primitives": "workspace:*",
     "@social-network/shared-utils": "workspace:*",
-    "@tanstack/react-query": "^5.67.1",
+    "@tanstack/react-query": "^5.103.1",
     "expo": "~52.0.0",
     "expo-status-bar": "~2.0.0",
     "react": "18.3.1",
-    "react-native": "0.76.5",
+    "react-native": "0.87.1",
     "zustand": "^5.0.3"
   },
   "devDependencies": {
