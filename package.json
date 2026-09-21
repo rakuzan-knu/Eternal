@@ -87,8 +87,8 @@
     "autocannon": "^8.0.0",
     "clinic": "^13.0.0",
     "concurrently": "^10.0.5",
-    "conventional-changelog-conventionalcommits": "^8.0.0",
-    "eslint": "9.39.5",
+    "conventional-changelog-conventionalcommits": "^10.4.0",
+    "eslint": "10.10.0",
     "husky": "^9.1.7",
     "js-yaml": "^4.1.0",
     "knip": "^6.34.0",
@@ -96,8 +96,8 @@
     "nx": "^23.1.1",
     "prettier": "^3.5.3",
     "semantic-release": "^25.0.9",
-    "typescript": "^5.9.3",
-    "vitest": "^3.2.7"
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.1"
   },
   "allowScripts": {
     "esbuild": true,
