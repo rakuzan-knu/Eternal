@@ -8,13 +8,13 @@ export interface SubtitleCue {
 }
 
 export const SUBTITLE_LANGUAGES: { id: SubtitleLanguage; label: string; flag: string }[] = [
-  { id: 'off', label: 'Вимкнено', flag: '🚫' },
-  { id: 'uk', label: 'Українська', flag: '🇺🇦' },
+  { id: 'off', label: 'Off', flag: '🚫' },
+  { id: 'uk', label: 'Ukrainian', flag: '🇺🇦' },
   { id: 'en', label: 'English', flag: '🇬🇧' },
-  { id: 'de', label: 'Deutsch', flag: '🇩🇪' },
-  { id: 'es', label: 'Español', flag: '🇪🇸' },
-  { id: 'fr', label: 'Français', flag: '🇫🇷' },
-  { id: 'pl', label: 'Polski', flag: '🇵🇱' },
+  { id: 'de', label: 'German', flag: '🇩🇪' },
+  { id: 'es', label: 'Spanish', flag: '🇪🇸' },
+  { id: 'fr', label: 'French', flag: '🇫🇷' },
+  { id: 'pl', label: 'Polish', flag: '🇵🇱' },
 ];
 
 /**

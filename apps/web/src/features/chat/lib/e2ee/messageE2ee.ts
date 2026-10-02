@@ -69,7 +69,7 @@ interface DirectoryDeviceList {
 const LOCKED_LABEL = 'End-to-End Encrypted message';
 
 const deviceCache = new Map<string, { devices: PeerDevice[]; at: number }>();
-const PEER_KEY_TTL_MS = 5 * 60 * 1000;
+const PEER_KEY_TTL_MS = 15 * 1000;
 let registeredThisSession = false;
 
 // ---------------------------------------------------------------------------
@@ -178,6 +178,9 @@ function sanitizeDeviceRecord(raw: unknown): PeerDevice | null {
   if (typeof rec.deviceId !== 'string' || rec.deviceId.length === 0 || rec.deviceId.length > 128) {
     return null;
   }
+  if (rec.purpose && rec.purpose !== 'message') {
+    return null;
+  }
   const version =
     typeof rec.e2eeVersion === 'number' && Number.isInteger(rec.e2eeVersion) && rec.e2eeVersion >= 1
       ? rec.e2eeVersion
@@ -193,9 +196,16 @@ function sanitizeDeviceRecord(raw: unknown): PeerDevice | null {
 /** Raw directory read: modern /devices endpoint, null when unavailable (old backend). */
 async function fetchPeerDeviceRecords(userId: string): Promise<PeerDevice[] | null> {
   try {
-    const res = await apiClient.get<DirectoryDeviceList>(
-      `/e2ee/keys/${encodeURIComponent(userId)}/devices?purpose=message`,
-    );
+    let res: unknown;
+    try {
+      res = await apiClient.get<DirectoryDeviceList>(
+        `/e2ee/keys/${encodeURIComponent(userId)}/devices?purpose=message`,
+      );
+    } catch {
+      res = await apiClient.get<DirectoryDeviceList>(
+        `/e2ee/devices/${encodeURIComponent(userId)}?purpose=message`,
+      );
+    }
     const data =
       (res as { data?: DirectoryDeviceList }).data ?? (res as unknown as DirectoryDeviceList);
     if (!data || !Array.isArray(data.keys)) return null;
@@ -214,12 +224,16 @@ async function fetchLegacyPeerDevice(userId: string): Promise<PeerDevice | null>
     const res = await apiClient.get<DirectoryKey>(
       `/e2ee/keys/${encodeURIComponent(userId)}?purpose=message`,
     );
-    const data = (res as { data?: DirectoryKey }).data ?? (res as unknown as DirectoryKey);
+    const data =
+      (res as { data?: DirectoryKey & { purpose?: string } }).data ??
+      (res as unknown as DirectoryKey & { purpose?: string });
     if (!data || typeof data.publicKey !== 'string' || data.publicKey.length === 0) return null;
+    if (data.purpose && data.purpose !== 'message') return null;
     const clean = sanitizeDeviceRecord({
       deviceId: data.deviceId || 'legacy',
       publicKey: data.publicKey,
       e2eeVersion: 1,
+      purpose: data.purpose,
     });
     return clean;
   } catch {
@@ -361,6 +375,7 @@ export async function encryptMessageForPeer(
   if (!validEncryptContext(ctx)) throw new Error('E2EE encrypt context is incomplete');
   try {
     await e2eeManager.init();
+    await ensureMessageIdentityRegistered();
     const devices = await fetchPeerDevices(peerUserId);
     if (devices.length === 0) return null;
     const from = getDeviceId();
@@ -500,23 +515,24 @@ export async function decryptMessageForDisplay(
     await e2eeManager.init();
 
     if (parsed.v === 1) {
-      if (!ctx.peerUserId) return { status: 'locked', text: LOCKED_LABEL };
+      const effectivePeerId = ctx.peerUserId || ctx.senderId;
+      if (!effectivePeerId) return { status: 'locked', text: LOCKED_LABEL };
       if (
         ctHash &&
         isKnownDuplicate(
-          replayScope(ctx.conversationId ?? '', ctx.senderId ?? ctx.peerUserId, 'v1'),
+          replayScope(ctx.conversationId ?? '', ctx.senderId ?? effectivePeerId, 'v1'),
           ctHash,
         )
       ) {
         return { status: 'replay', text: LOCKED_LABEL };
       }
-      const peerSpki = await fetchPeerMessageKey(ctx.peerUserId);
+      const peerSpki = await fetchPeerMessageKey(effectivePeerId);
       if (!peerSpki) return { status: 'locked', text: LOCKED_LABEL };
       const sharedKey = await e2eeManager.getSharedKey(peerSpki);
       const text = await e2eeManager.decrypt(body, sharedKey);
       if (ctHash) {
         const freshness = await checkInboundFreshness({
-          scope: replayScope(ctx.conversationId ?? '', ctx.senderId ?? ctx.peerUserId, 'v1'),
+          scope: replayScope(ctx.conversationId ?? '', ctx.senderId ?? effectivePeerId, 'v1'),
           ctHash,
         });
         if (freshness.verdict === 'replay') {
@@ -545,14 +561,31 @@ export async function decryptMessageForDisplay(
     }
 
     const senderDevices = await fetchPeerDevices(senderId);
-    const fromDevice = senderDevices.find((d) => d.deviceId === parsed.from);
-    if (!fromDevice) return { status: 'locked', text: LOCKED_LABEL };
+    let fromDevice = senderDevices.find((d) => d.deviceId === parsed.from);
+    if (!fromDevice) {
+      const ownDeviceId = getDeviceId();
+      if (parsed.from === ownDeviceId) {
+        const { publicKeySpki: ownSpki } = await e2eeManager.init();
+        fromDevice = {
+          deviceId: ownDeviceId,
+          publicKey: ownSpki,
+          e2eeVersion: MESSAGE_E2EE_WRITE_VERSION,
+          updatedAt: new Date().toISOString(),
+        };
+        senderDevices.push(fromDevice);
+      } else {
+        return { status: 'locked', text: LOCKED_LABEL };
+      }
+    }
 
     let text: string;
     let seq: number;
     if (parsed.v === 2) {
       const { publicKeySpki: ownSpki } = await e2eeManager.init();
-      const senderIsSelf = fromDevice.publicKey.trim() === ownSpki.trim();
+      const ownDeviceId = getDeviceId();
+      const senderIsSelf =
+        parsed.from === ownDeviceId ||
+        (fromDevice && fromDevice.publicKey.trim() === ownSpki.trim());
       if (!senderIsSelf) {
         const sharedKey = await e2eeManager.getSharedKey(fromDevice.publicKey);
         const res = await e2eeManager.decryptV2(body, sharedKey, { conversationId, senderId });
@@ -562,8 +595,9 @@ export async function decryptMessageForDisplay(
         // Own v2 message (v2 has no self-wrap, unlike v3): re-derive against
         // the conversation peer's device key(s), newest first. Sending and
         // reading use the same agreement, so exactly one candidate opens it.
-        if (!ctx.peerUserId) return { status: 'locked', text: LOCKED_LABEL };
-        const peerDevices = await fetchPeerDevices(ctx.peerUserId);
+        const targetPeerId = ctx.peerUserId || ctx.senderId;
+        if (!targetPeerId) return { status: 'locked', text: LOCKED_LABEL };
+        const peerDevices = await fetchPeerDevices(targetPeerId);
         let lastErr: unknown = null;
         let unlocked: { text: string; seq: number } | null = null;
         for (const candidate of peerDevices.slice(0, 8)) {
@@ -605,6 +639,9 @@ export async function decryptMessageForDisplay(
     }
     return { status: 'decrypted', text };
   } catch (err) {
+    console.error('[e2ee] decrypt failed:', err);
+    if (ctx.peerUserId) evictPeerDeviceCache(ctx.peerUserId);
+    if (ctx.senderId) evictPeerDeviceCache(ctx.senderId);
     if (err instanceof E2eePinChangedError) {
       // Untrusted directory key: deliberate lock (not a malfunction), with
       // an explicit path back via acceptPeerDeviceKeyChange.

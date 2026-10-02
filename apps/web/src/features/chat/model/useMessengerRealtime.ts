@@ -257,7 +257,6 @@ export function useMessengerRealtime(
     );
     const conversation = conversations?.find((c) => c.id === message.conversationId);
     const isGroup = conversation?.type === 'GROUP';
-    const isMessengerPage = window.location.pathname.startsWith('/messages');
     const isSenderMuted = Boolean(message.sender?.id && mutedActorIds?.includes(message.sender.id));
 
     const shouldNotify =
@@ -303,15 +302,38 @@ export function useMessengerRealtime(
         playMessageNotificationSound(volume);
       }
 
-      // If user is on the Messenger page, audio plays for other chats, but push toast is suppressed
-      if (!isMessengerPage && showPushNotifications && enableNotifications && conversation) {
-        const display = getConversationDisplay(conversation, userId);
-        const toastTitle = showName ? display.title : 'Eternal';
-        const toastBody = showName
-          ? showText
-            ? getMessageToastPreview(message)
-            : 'You have a new message'
-          : 'You have a new message';
+      // Push notification toast (suppressed only in the active conversation)
+      if (showPushNotifications && enableNotifications) {
+        let toastTitle = 'Eternal';
+        let toastBody = 'You have a new message';
+        let toastAvatar: string | null = null;
+        let memberAvatars: (string | null)[] = [];
+        let isGroupDisplay = false;
+
+        if (conversation) {
+          const display = getConversationDisplay(conversation, userId);
+          toastTitle = showName ? display.title : 'Eternal';
+          toastBody = showName
+            ? showText
+              ? getMessageToastPreview(message)
+              : 'You have a new message'
+            : 'You have a new message';
+          toastAvatar = showName ? display.avatar : null;
+          memberAvatars = showName
+            ? conversation.participants.map((participant) => participant.user.avatar)
+            : [];
+          isGroupDisplay = showName ? display.isGroup : false;
+        } else {
+          toastTitle = showName
+            ? message.sender?.displayName || message.sender?.username || 'New message'
+            : 'Eternal';
+          toastBody = showName
+            ? showText
+              ? getMessageToastPreview(message)
+              : 'You have a new message'
+            : 'You have a new message';
+          toastAvatar = showName ? message.sender?.avatar || null : null;
+        }
 
         addToast({
           id: message.id,
@@ -319,11 +341,9 @@ export function useMessengerRealtime(
           messageId: message.id,
           title: toastTitle,
           body: toastBody,
-          avatar: showName ? display.avatar : null,
-          memberAvatars: showName
-            ? conversation.participants.map((participant) => participant.user.avatar)
-            : [],
-          isGroup: showName ? display.isGroup : false,
+          avatar: toastAvatar,
+          memberAvatars,
+          isGroup: isGroupDisplay,
         });
       }
     }
@@ -369,8 +389,6 @@ export function useMessengerRealtime(
       queryKeys.conversations.root,
     );
     const conversation = conversations?.find((c) => c.id === conversationId);
-    const isMessengerPage = window.location.pathname.startsWith('/messages');
-
     const latestReaction = message.reactions?.[message.reactions.length - 1];
     if (!latestReaction) return;
 
@@ -386,7 +404,7 @@ export function useMessengerRealtime(
         playMessageNotificationSound(volume);
       }
 
-      if (!isMessengerPage && showPushNotifications && enableNotifications) {
+      if (showPushNotifications && enableNotifications) {
         const reactorName = reactor.displayName || reactor.username;
         const toastTitle = showName && reactorName ? reactorName : 'Eternal';
         const toastBody = showName
@@ -407,6 +425,16 @@ export function useMessengerRealtime(
         });
       }
     }
+  };
+
+  const handleReactionRemoved = ({
+    conversationId,
+    message,
+  }: {
+    conversationId: string;
+    message: MessageView;
+  }) => {
+    applyReactionMessage(queryClient, conversationId, message, userId);
   };
 
   const handleConversationUpdated = (updated: Partial<ConversationView> & { id: string }) => {
@@ -553,6 +581,10 @@ export function useMessengerRealtime(
   useChatSocketEvent<{ conversationId: string; message: MessageView }>(
     'messageReactionAdded',
     handleReactionAdded,
+  );
+  useChatSocketEvent<{ conversationId: string; message: MessageView }>(
+    'messageReactionRemoved',
+    handleReactionRemoved,
   );
   useChatSocketEvent<Partial<ConversationView> & { id: string }>(
     'conversationUpdated',

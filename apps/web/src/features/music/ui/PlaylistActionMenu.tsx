@@ -383,7 +383,7 @@ export const PlaylistActionMenu: React.FC<PlaylistActionMenuProps> = ({
             ref={menuRef}
             data-menu-portal="true"
             style={{ top, left, width: menuWidth }}
-            className="fixed z-[9999] rounded-2xl bg-[#202025]/95 backdrop-blur-2xl border border-white/10 shadow-2xl p-1.5 text-white select-none animate-fadeIn flex flex-col gap-0.5"
+            className="fixed z-[9999] rounded-2xl glass-modal backdrop-blur-2xl border border-black/10 dark:border-white/15 shadow-2xl p-1.5 text-gray-900 dark:text-white select-none animate-fadeIn flex flex-col gap-0.5"
           >
             {/* Pin / Unpin playlist */}
             <div
@@ -391,45 +391,48 @@ export const PlaylistActionMenu: React.FC<PlaylistActionMenuProps> = ({
                 togglePinItem(playlist.id);
                 onClose();
               }}
-              className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/10 cursor-pointer transition-colors text-xs font-semibold text-gray-200 group"
+              className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer transition-colors text-xs font-semibold text-gray-700 dark:text-gray-200 group"
             >
               {isItemPinned(playlist.id) ? (
                 <>
-                  <PinOff size={16} className="text-gray-400 group-hover:text-white shrink-0" />
+                  <PinOff
+                    size={16}
+                    className="text-gray-500 dark:text-gray-400 group-hover:text-gray-950 dark:group-hover:text-white shrink-0"
+                  />
                   <span>Unpin playlist</span>
                 </>
               ) : (
                 <>
                   <Pin
                     size={16}
-                    className="text-gray-400 group-hover:text-white shrink-0 rotate-45"
+                    className="text-gray-500 dark:text-gray-400 group-hover:text-gray-950 dark:group-hover:text-white shrink-0 rotate-45"
                   />
                   <span>Pin playlist</span>
                 </>
               )}
             </div>
 
-            <div className="my-1 border-t border-white/5" />
+            <div className="my-1 border-t border-black/10 dark:border-white/5" />
 
             {/* 1. Add to queue */}
             <div
               onClick={handleAddToQueue}
-              className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/10 cursor-pointer transition-colors text-xs font-semibold text-gray-200"
+              className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer transition-colors text-xs font-semibold text-gray-700 dark:text-gray-200"
             >
-              <ListPlus size={16} className="text-gray-400 shrink-0" />
+              <ListPlus size={16} className="text-gray-500 dark:text-gray-400 shrink-0" />
               <span>Add to Queue</span>
             </div>
 
             {/* 2. Set as Profile Anthem */}
             <div
               onClick={handleAddToProfileAnthem}
-              className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/10 cursor-pointer transition-colors text-xs font-semibold text-gray-200"
+              className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer transition-colors text-xs font-semibold text-gray-700 dark:text-gray-200"
             >
-              <User size={16} className="text-gray-400 shrink-0" />
+              <User size={16} className="text-gray-500 dark:text-gray-400 shrink-0" />
               <span>Set as Profile Anthem</span>
             </div>
 
-            <div className="my-1 border-t border-white/5" />
+            <div className="my-1 border-t border-black/10 dark:border-white/5" />
 
             {/* Owner & Collaborator Controls (Spotify screenshot 2) */}
             {isOwner || isCollaborator ? (
@@ -439,9 +442,9 @@ export const PlaylistActionMenu: React.FC<PlaylistActionMenuProps> = ({
                   onClick={() => {
                     setIsEditModalOpen(true);
                   }}
-                  className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/10 cursor-pointer transition-colors text-xs font-semibold text-gray-200"
+                  className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer transition-colors text-xs font-semibold text-gray-700 dark:text-gray-200"
                 >
-                  <Edit3 size={16} className="text-gray-400 shrink-0" />
+                  <Edit3 size={16} className="text-gray-500 dark:text-gray-400 shrink-0" />
                   <span>Edit Details</span>
                 </div>
 
@@ -450,25 +453,25 @@ export const PlaylistActionMenu: React.FC<PlaylistActionMenuProps> = ({
                   onClick={() => {
                     setIsDeleteModalOpen(true);
                   }}
-                  className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/10 cursor-pointer transition-colors text-xs font-semibold text-gray-200"
+                  className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-red-500/10 cursor-pointer transition-colors text-xs font-semibold text-red-600 dark:text-red-400"
                 >
-                  <Trash2 size={16} className="text-gray-400 shrink-0" />
+                  <Trash2 size={16} className="text-red-600 dark:text-red-400 shrink-0" />
                   <span>{isCollaborator ? 'Leave Playlist' : 'Delete'}</span>
                 </div>
 
                 {/* Make private / public */}
                 <div
                   onClick={handleTogglePrivacy}
-                  className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/10 cursor-pointer transition-colors text-xs font-semibold text-gray-200"
+                  className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer transition-colors text-xs font-semibold text-gray-700 dark:text-gray-200"
                 >
                   {playlist.isPrivate ? (
                     <>
-                      <Globe size={16} className="text-gray-400 shrink-0" />
+                      <Globe size={16} className="text-gray-500 dark:text-gray-400 shrink-0" />
                       <span>Make Public</span>
                     </>
                   ) : (
                     <>
-                      <Lock size={16} className="text-gray-400 shrink-0" />
+                      <Lock size={16} className="text-gray-500 dark:text-gray-400 shrink-0" />
                       <span>Make Private</span>
                     </>
                   )}
@@ -480,9 +483,9 @@ export const PlaylistActionMenu: React.FC<PlaylistActionMenuProps> = ({
                     onClick={() => {
                       setIsCollabModalOpen(true);
                     }}
-                    className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/10 cursor-pointer transition-colors text-xs font-semibold text-gray-200"
+                    className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer transition-colors text-xs font-semibold text-gray-700 dark:text-gray-200"
                   >
-                    <UserPlus size={16} className="text-gray-400 shrink-0" />
+                    <UserPlus size={16} className="text-gray-500 dark:text-gray-400 shrink-0" />
                     <span>Invite Collaborators</span>
                   </div>
                 )}
@@ -493,9 +496,9 @@ export const PlaylistActionMenu: React.FC<PlaylistActionMenuProps> = ({
                 {isSaved ? (
                   <div
                     onClick={() => setIsDeleteModalOpen(true)}
-                    className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/10 cursor-pointer transition-colors text-xs font-semibold text-gray-200"
+                    className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-red-500/10 cursor-pointer transition-colors text-xs font-semibold text-red-600 dark:text-red-400"
                   >
-                    <Trash2 size={16} className="text-gray-400 shrink-0" />
+                    <Trash2 size={16} className="text-red-600 dark:text-red-400 shrink-0" />
                     <span>Remove from Library</span>
                   </div>
                 ) : (
@@ -508,9 +511,9 @@ export const PlaylistActionMenu: React.FC<PlaylistActionMenuProps> = ({
                       );
                       onClose();
                     }}
-                    className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/10 cursor-pointer transition-colors text-xs font-semibold text-gray-200"
+                    className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer transition-colors text-xs font-semibold text-gray-700 dark:text-gray-200"
                   >
-                    <Plus size={16} className="text-gray-400 shrink-0" />
+                    <Plus size={16} className="text-gray-500 dark:text-gray-400 shrink-0" />
                     <span>Add to Library</span>
                   </div>
                 )}
@@ -518,41 +521,47 @@ export const PlaylistActionMenu: React.FC<PlaylistActionMenuProps> = ({
                 {/* Report */}
                 <div
                   onClick={handleReport}
-                  className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/10 cursor-pointer transition-colors text-xs font-semibold text-gray-200"
+                  className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer transition-colors text-xs font-semibold text-gray-700 dark:text-gray-200"
                 >
-                  <AlertOctagon size={16} className="text-gray-400 shrink-0" />
+                  <AlertOctagon size={16} className="text-gray-500 dark:text-gray-400 shrink-0" />
                   <span className="flex-1">Report</span>
-                  <ExternalLink size={12} className="text-gray-500" />
+                  <ExternalLink size={12} className="text-gray-400" />
                 </div>
               </>
             )}
 
-            <div className="my-1 border-t border-white/5" />
+            <div className="my-1 border-t border-black/10 dark:border-white/5" />
 
             {/* Move to folder */}
             <div
               onMouseEnter={(e) => handleSubmenuEnter('folder', e)}
               onMouseLeave={handleSubmenuLeave}
-              className="relative flex items-center justify-between px-3 py-2 rounded-xl hover:bg-white/10 cursor-pointer transition-colors text-xs font-semibold text-gray-200 group"
+              className="relative flex items-center justify-between px-3 py-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer transition-colors text-xs font-semibold text-gray-700 dark:text-gray-200 group"
             >
               <div className="flex items-center gap-3">
-                <Folder size={16} className="text-gray-400 shrink-0" />
+                <Folder size={16} className="text-gray-500 dark:text-gray-400 shrink-0" />
                 <span>Move to Folder</span>
               </div>
-              <ChevronRight size={14} className="text-gray-500 group-hover:text-white" />
+              <ChevronRight
+                size={14}
+                className="text-gray-400 dark:text-gray-500 group-hover:text-gray-950 dark:group-hover:text-white"
+              />
             </div>
 
             {/* Share */}
             <div
               onMouseEnter={(e) => handleSubmenuEnter('share', e)}
               onMouseLeave={handleSubmenuLeave}
-              className="relative flex items-center justify-between px-3 py-2 rounded-xl hover:bg-white/10 cursor-pointer transition-colors text-xs font-semibold text-gray-200 group"
+              className="relative flex items-center justify-between px-3 py-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer transition-colors text-xs font-semibold text-gray-700 dark:text-gray-200 group"
             >
               <div className="flex items-center gap-3">
-                <Share2 size={16} className="text-gray-400 shrink-0" />
+                <Share2 size={16} className="text-gray-500 dark:text-gray-400 shrink-0" />
                 <span>Share</span>
               </div>
-              <ChevronRight size={14} className="text-gray-500 group-hover:text-white" />
+              <ChevronRight
+                size={14}
+                className="text-gray-400 dark:text-gray-500 group-hover:text-gray-950 dark:group-hover:text-white"
+              />
             </div>
           </div>,
           document.body,
@@ -571,17 +580,19 @@ export const PlaylistActionMenu: React.FC<PlaylistActionMenuProps> = ({
               left: folderSubmenuPos.left,
               width: 230,
             }}
-            className="fixed z-[10000] rounded-2xl bg-[#24242b]/95 backdrop-blur-2xl border border-white/10 shadow-2xl p-1.5 text-white select-none animate-fadeIn flex flex-col gap-0.5"
+            className="fixed z-[10000] rounded-2xl glass-modal backdrop-blur-2xl border border-black/10 dark:border-white/15 shadow-2xl p-1.5 text-gray-900 dark:text-white select-none animate-fadeIn flex flex-col gap-0.5"
           >
             <div
               onClick={handleCreateFolder}
-              className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 cursor-pointer text-xs font-semibold text-purple-400"
+              className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer text-xs font-semibold text-purple-600 dark:text-purple-400"
             >
               <FolderPlus size={15} />
               <span>+ Create New Folder</span>
             </div>
 
-            {musicFolders.length > 0 && <div className="my-1 border-t border-white/5" />}
+            {musicFolders.length > 0 && (
+              <div className="my-1 border-t border-black/10 dark:border-white/5" />
+            )}
 
             {musicFolders.map((folder) => {
               const isInFolder = folder.playlistIds.includes(playlist.id);
@@ -593,13 +604,13 @@ export const PlaylistActionMenu: React.FC<PlaylistActionMenuProps> = ({
                     showToast('Folders', `Playlist added to "${folder.name}".`);
                     onClose();
                   }}
-                  className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-white/10 cursor-pointer text-xs font-medium text-gray-200"
+                  className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer text-xs font-medium text-gray-700 dark:text-gray-200 hover:text-gray-950 dark:hover:text-white"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <Folder size={14} className="text-gray-400 shrink-0" />
                     <span className="truncate">{folder.name}</span>
                   </div>
-                  {isInFolder && <span className="w-2 h-2 rounded-full bg-purple-400 shrink-0" />}
+                  {isInFolder && <span className="w-2 h-2 rounded-full bg-purple-500 shrink-0" />}
                 </div>
               );
             })}
@@ -620,14 +631,14 @@ export const PlaylistActionMenu: React.FC<PlaylistActionMenuProps> = ({
               left: shareSubmenuPos.left,
               width: 230,
             }}
-            className="fixed z-[10000] rounded-2xl bg-[#24242b]/95 backdrop-blur-2xl border border-white/10 shadow-2xl p-1.5 text-white select-none animate-fadeIn flex flex-col gap-0.5"
+            className="fixed z-[10000] rounded-2xl glass-modal backdrop-blur-2xl border border-black/10 dark:border-white/15 shadow-2xl p-1.5 text-gray-900 dark:text-white select-none animate-fadeIn flex flex-col gap-0.5"
           >
             {/* Copy link */}
             <div
               onClick={handleCopyLink}
-              className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 cursor-pointer text-xs font-semibold text-gray-200"
+              className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer text-xs font-semibold text-gray-700 dark:text-gray-200 hover:text-gray-950 dark:hover:text-white"
             >
-              <Copy size={15} className="text-gray-400 shrink-0" />
+              <Copy size={15} className="text-gray-500 dark:text-gray-400 shrink-0" />
               <span>Copy Link</span>
             </div>
 
@@ -637,7 +648,7 @@ export const PlaylistActionMenu: React.FC<PlaylistActionMenuProps> = ({
                 setActiveSubmenu(null);
                 setIsShareModalOpen(true);
               }}
-              className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 cursor-pointer text-xs font-semibold text-purple-400"
+              className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer text-xs font-semibold text-purple-600 dark:text-purple-400"
             >
               <MessageCircle size={15} className="shrink-0" />
               <span>Share to Chat</span>

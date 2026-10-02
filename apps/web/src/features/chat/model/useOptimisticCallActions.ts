@@ -93,7 +93,7 @@ export class OptimisticReconciliationManager {
         console.warn(
           `[OptimisticUI] Action ${actionName} (${actionId}) timed out after ${timeoutMs}ms. Reverting...`,
         );
-        onRollback(currentValue, 'Ошибка сети. Действие отменено.');
+        onRollback(currentValue, 'Network error. Action cancelled.');
         this.pendingActions.delete(actionId);
       }
     }, timeoutMs);
@@ -130,7 +130,7 @@ export class OptimisticReconciliationManager {
   /**
    * Called when server/peer rejects the action explicitly
    */
-  public reconcileReject(actionId: string, reason = 'Ошибка сети.'): boolean {
+  public reconcileReject(actionId: string, reason = 'Network error.'): boolean {
     const entry = this.pendingActions.get(actionId);
     if (!entry) return false;
 

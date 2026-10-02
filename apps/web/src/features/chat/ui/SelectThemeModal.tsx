@@ -954,7 +954,7 @@ export default function SelectThemeModal({
   return (
     <Modal onClose={onClose} className="w-full max-w-5xl">
       {(close) => (
-        <div className="bg-[#12131b]/95 border border-white/10 rounded-3xl w-full shadow-2xl overflow-hidden backdrop-blur-2xl flex flex-col max-h-[94vh]">
+        <div className="glass-modal border border-white/10 rounded-3xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[94vh]">
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 shrink-0">
             <div className="flex items-center gap-3">

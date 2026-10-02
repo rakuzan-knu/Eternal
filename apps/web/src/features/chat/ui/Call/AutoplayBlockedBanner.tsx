@@ -16,16 +16,12 @@ export function AutoplayBlockedBanner({ onUnblock }: AutoplayBlockedBannerProps)
         <VolumeX size={20} className="text-black" />
       </div>
       <div className="flex-1 text-left min-w-0">
-        <div className="text-xs font-bold uppercase tracking-wider">
-          Звук заблокирован браузером
-        </div>
-        <p className="text-[11px] opacity-90 truncate">
-          Нажмите здесь, чтобы включить звук участников
-        </p>
+        <div className="text-xs font-bold uppercase tracking-wider">Audio Blocked by Browser</div>
+        <p className="text-[11px] opacity-90 truncate">Click here to enable participant audio</p>
       </div>
       <div className="px-3 py-1.5 rounded-xl bg-black text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shrink-0">
         <Play size={12} fill="currentColor" />
-        <span>Включить</span>
+        <span>Enable</span>
       </div>
     </div>
   );

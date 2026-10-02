@@ -17,6 +17,14 @@ function formatDuration(sec: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
+// Global coordinator for single active video note decoder (Telegram "One active decoder" rule)
+type VideoNoteListener = (activeId: string) => void;
+const activeVideoNoteListeners = new Set<VideoNoteListener>();
+
+export function notifyActiveVideoNote(id: string) {
+  activeVideoNoteListeners.forEach((fn) => fn(id));
+}
+
 export function VideoNoteBubble({
   attachment,
   senderName = 'Video Note',
@@ -25,6 +33,9 @@ export function VideoNoteBubble({
 }: VideoNoteBubbleProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const progressCircleRef = useRef<SVGCircleElement | null>(null);
+  const timeTextRef = useRef<HTMLSpanElement | null>(null);
+  const currentTimeRef = useRef(0);
 
   const [isMuted, setIsMuted] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -45,15 +56,35 @@ export function VideoNoteBubble({
 
   const isCurrentActive = activeMediaId === attachment.id;
 
-  // Global playback overlap coordinator: if another media activates, mute this one
+  // Global playback overlap coordinator: if another media or video note activates, pause this one
   useEffect(() => {
-    if (activeMediaId && activeMediaId !== attachment.id && !isMuted) {
-      if (videoRef.current) {
+    if (activeMediaId && activeMediaId !== attachment.id) {
+      if (videoRef.current && !videoRef.current.paused) {
+        videoRef.current.pause();
+        setIsPlaying(false);
+      }
+      if (!isMuted && videoRef.current) {
         videoRef.current.muted = true;
         setIsMuted(true);
       }
     }
   }, [activeMediaId, attachment.id, isMuted]);
+
+  // Telegram "One active decoder" coordinator across all video note circles
+  useEffect(() => {
+    const onAnotherNotePlaying: VideoNoteListener = (activeId) => {
+      if (activeId !== attachment.id) {
+        if (videoRef.current && !videoRef.current.paused) {
+          videoRef.current.pause();
+          setIsPlaying(false);
+        }
+      }
+    };
+    activeVideoNoteListeners.add(onAnotherNotePlaying);
+    return () => {
+      activeVideoNoteListeners.delete(onAnotherNotePlaying);
+    };
+  }, [attachment.id]);
 
   // Sync with global store when this video is active
   useEffect(() => {
@@ -145,7 +176,10 @@ export function VideoNoteBubble({
 
           video
             .play()
-            .then(() => setIsPlaying(true))
+            .then(() => {
+              setIsPlaying(true);
+              notifyActiveVideoNote(attachment.id);
+            })
             .catch(() => {});
         } else {
           // If this video note is currently active in the top player bar with audio,
@@ -191,7 +225,10 @@ export function VideoNoteBubble({
       if (video.paused) {
         video
           .play()
-          .then(() => setIsPlaying(true))
+          .then(() => {
+            setIsPlaying(true);
+            notifyActiveVideoNote(attachment.id);
+          })
           .catch(() => {});
       }
     } else {
@@ -200,7 +237,10 @@ export function VideoNoteBubble({
         hasUserPausedRef.current = false;
         video
           .play()
-          .then(() => setIsPlaying(true))
+          .then(() => {
+            setIsPlaying(true);
+            notifyActiveVideoNote(attachment.id);
+          })
           .catch(() => {});
         if (isCurrentActive) {
           useActiveMediaPlaybackStore.getState().setIsPlaying(true);
@@ -269,11 +309,21 @@ export function VideoNoteBubble({
           if (d && !isNaN(d) && isFinite(d)) {
             setTotalDuration(d);
             if (isCurrentActive) setStoreDuration(d);
+            if (timeTextRef.current && !isPlaying) {
+              timeTextRef.current.textContent = formatDuration(d);
+            }
           }
         }}
         onTimeUpdate={(e) => {
           const t = e.currentTarget.currentTime;
-          setCurrentTime(t);
+          currentTimeRef.current = t;
+          if (progressCircleRef.current && totalDuration > 0) {
+            const frac = Math.min(1, Math.max(0, t / totalDuration));
+            progressCircleRef.current.style.strokeDashoffset = `${circumference * (1 - frac)}`;
+          }
+          if (timeTextRef.current) {
+            timeTextRef.current.textContent = formatDuration(t);
+          }
           if (isCurrentActive) setStoreCurrentTime(t);
         }}
         onEnded={handleEnded}
@@ -294,6 +344,7 @@ export function VideoNoteBubble({
           strokeWidth={strokeWidth}
         />
         <circle
+          ref={progressCircleRef}
           cx={size / 2}
           cy={size / 2}
           r={radius}
@@ -303,11 +354,7 @@ export function VideoNoteBubble({
           strokeDasharray={`${circumference} ${circumference}`}
           strokeDashoffset={strokeDashoffset}
           strokeLinecap="round"
-          className={
-            isPlaying && currentTime > 0
-              ? 'transition-[stroke-dashoffset] duration-100 ease-linear'
-              : 'transition-none'
-          }
+          className="transition-none"
         />
       </svg>
 
@@ -316,7 +363,7 @@ export function VideoNoteBubble({
         <button
           type="button"
           onClick={handleToggleMute}
-          className="w-7 h-7 rounded-full bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center text-white shadow-md hover:bg-black/80 hover:scale-105 transition active:scale-95 cursor-pointer"
+          className="w-7 h-7 rounded-full bg-black/80 border border-white/15 flex items-center justify-center text-white shadow-md hover:bg-black/95 hover:scale-105 transition active:scale-95 cursor-pointer"
           title={isMuted ? 'Turn sound on' : 'Mute'}
         >
           {isMuted ? (
@@ -329,8 +376,8 @@ export function VideoNoteBubble({
 
       {/* Play Icon Overlay if paused */}
       {!isPlaying && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/35 backdrop-blur-[1px]">
-          <div className="w-12 h-12 rounded-full bg-purple-600/80 border border-purple-400/40 backdrop-blur-md flex items-center justify-center text-white shadow-[0_0_20px_rgba(168,85,247,0.5)]">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+          <div className="w-12 h-12 rounded-full bg-purple-600/90 border border-purple-400/50 flex items-center justify-center text-white shadow-[0_0_20px_rgba(168,85,247,0.5)]">
             <Play size={20} className="ml-0.5 fill-white" />
           </div>
         </div>
@@ -338,8 +385,8 @@ export function VideoNoteBubble({
 
       {/* Bottom Floating Glass Capsule: Current Time & Total Duration */}
       <div className="absolute bottom-2.5 inset-x-0 flex justify-center pointer-events-none">
-        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/70 border border-white/10 backdrop-blur-md text-[11px] font-mono font-bold text-white shadow-lg">
-          <span>{formatDuration(currentTime || totalDuration)}</span>
+        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/85 border border-white/15 text-[11px] font-mono font-bold text-white shadow-lg">
+          <span ref={timeTextRef}>{formatDuration(currentTime || totalDuration)}</span>
         </div>
       </div>
     </div>

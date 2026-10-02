@@ -67,7 +67,7 @@ export function StoriesBar() {
 
   if (isLoading && feed.length === 0) {
     return (
-      <div className="w-full bg-[#121216]/60 backdrop-blur-md border border-white/5 rounded-3xl p-3.5 flex items-center gap-4 overflow-hidden">
+      <div className="glass-card w-full border border-white/5 rounded-3xl p-3.5 flex items-center gap-4 overflow-hidden">
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="flex flex-col items-center gap-1.5 shrink-0 animate-pulse">
             <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10" />
@@ -79,7 +79,7 @@ export function StoriesBar() {
   }
 
   return (
-    <div className="relative w-full bg-[#121216]/60 backdrop-blur-md border border-white/5 rounded-3xl p-3.5 shadow-xl select-none group/bar">
+    <div className="glass-card relative w-full border border-white/5 rounded-3xl p-3.5 shadow-xl select-none group/bar transition-colors duration-200">
       {/* Scroll Left Button */}
       {canScrollLeft && (
         <button
@@ -169,7 +169,7 @@ export function StoriesBar() {
             </div>
           </button>
 
-          <span className="text-[11px] font-medium text-gray-300 truncate max-w-[70px] text-center">
+          <span className="text-[11px] font-medium text-gray-700 dark:text-gray-200 truncate max-w-[70px] text-center">
             {hasOwnStories ? 'Your story' : 'Add'}
           </span>
         </div>
@@ -225,7 +225,7 @@ export function StoriesBar() {
                 )}
               </div>
 
-              <span className="text-[11px] font-medium text-gray-300 group-hover:text-white transition-colors truncate max-w-[70px] text-center">
+              <span className="text-[11px] font-medium text-gray-700 dark:text-gray-200 group-hover:text-gray-950 dark:group-hover:text-white transition-colors truncate max-w-[70px] text-center">
                 {author.displayName || author.username}
               </span>
             </div>

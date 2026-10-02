@@ -247,14 +247,25 @@ export function applyReactionMessage(
   message: MessageView,
   currentUserId: string | null,
 ): void {
+  const cachedPages = queryClient.getQueryData<{ pages: PaginatedMessages[] }>(
+    queryKeys.conversations.messages(conversationId),
+  );
+  const prevMsg = cachedPages?.pages?.flatMap((p) => p.data)?.find((m) => m.id === message.id);
+
   const synced: MessageView = {
     ...message,
-    reactions: (message.reactions || []).map((r) => ({
-      ...r,
-      selfReacted: currentUserId
-        ? (r.users?.some((u) => u.id === currentUserId) ?? false) || r.selfReacted
-        : r.selfReacted,
-    })),
+    reactions: (message.reactions || []).map((r) => {
+      const prevReaction = prevMsg?.reactions?.find((pr) => pr.emoji === r.emoji);
+      const isUserInList = Boolean(currentUserId && r.users?.some((u) => u.id === currentUserId));
+      const wasSelfReacted = prevReaction?.selfReacted ?? false;
+      const isSelf = currentUserId
+        ? isUserInList || (wasSelfReacted && r.count > 0 && r.selfReacted)
+        : r.selfReacted;
+      return {
+        ...r,
+        selfReacted: isSelf,
+      };
+    }),
   };
   updateCachedPages(queryClient, conversationId, (pages) =>
     mapCachedMessages(pages, (m) => (m.id === synced.id ? synced : m)),

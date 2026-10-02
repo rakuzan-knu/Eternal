@@ -2458,6 +2458,10 @@ if (typeof window !== 'undefined') {
     }
   });
 
+  musicEventBridge.onPlayerClosed(() => {
+    useMusicHubStore.getState().setNowPlayingPanelOpen(false);
+  });
+
   // Listen for invite updates across tabs or custom events
   window.addEventListener('eternal_playlist_invite_updated', () => {
     useMusicHubStore.setState({ playlistInvites: loadGlobalInvites() });

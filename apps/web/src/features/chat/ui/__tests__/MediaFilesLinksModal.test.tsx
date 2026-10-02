@@ -55,13 +55,8 @@ describe('MediaFilesLinksModal', () => {
     expect(mediaImg).toBeInTheDocument();
     fireEvent.click(mediaImg);
 
-    // Lightbox controls
-    const goToMessageBtn = screen.getByTitle('Go to message');
-    fireEvent.click(goToMessageBtn);
-    expect(onJumpToMessage).toHaveBeenCalledWith('m1');
-
-    // Reopen and close lightbox
-    fireEvent.click(mediaImg);
+    // Lightbox controls: Go to message button removed per user request
+    expect(screen.queryByTitle('Go to message')).not.toBeInTheDocument();
     const closeLightboxBtn = screen.getByTitle('Close');
     fireEvent.click(closeLightboxBtn);
 

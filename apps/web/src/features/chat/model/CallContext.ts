@@ -24,6 +24,7 @@ export function useCall(): CallContextValue {
       unblockAutoplay: () => {},
       registerMediaElement: () => {},
       sendReaction: () => {},
+      broadcastSoundboard: () => {},
       configureSVC: () => {},
       switchSVCMode: () => {},
       setSVCLayers: () => {},

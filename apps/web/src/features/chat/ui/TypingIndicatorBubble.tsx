@@ -15,7 +15,7 @@ export default function TypingIndicatorBubble({ typists }: TypingIndicatorBubble
       data-testid="typing-indicator"
       className="flex items-center px-4 py-1.5 animate-fadeIn select-none"
     >
-      <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-[#181926]/90 border border-white/10 backdrop-blur-2xl shadow-[0_4px_20px_rgba(0,0,0,0.4)]">
+      <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-[#181926]/95 border border-white/10 shadow-[0_4px_20px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.06)]">
         {/* Micro-avatars */}
         <div className="flex items-center -space-x-2 flex-shrink-0">
           {typists.slice(0, 3).map((typist, idx) => (

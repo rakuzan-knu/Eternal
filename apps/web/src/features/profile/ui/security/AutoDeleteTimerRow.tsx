@@ -70,14 +70,16 @@ export default function AutoDeleteTimerRow() {
       {pendingPeriod && (
         <Modal onClose={() => setPendingPeriod(null)}>
           {(requestClose) => (
-            <div className="w-full max-w-sm rounded-3xl border border-white/10 bg-[#1a1a1a] shadow-2xl p-7 text-center">
-              <div className="w-14 h-14 mx-auto rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-4">
-                <AlertTriangle size={26} className="text-red-400" />
+            <div className="w-full max-w-sm rounded-3xl border border-black/10 dark:border-white/10 glass-modal shadow-2xl p-7 text-center text-gray-950 dark:text-white backdrop-blur-3xl">
+              <div className="w-14 h-14 mx-auto rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-4 text-red-500">
+                <AlertTriangle size={26} />
               </div>
-              <h2 className="text-lg font-bold text-white">Enable Auto-Delete Timer?</h2>
-              <p className="text-sm text-gray-400 mt-2 leading-relaxed">
+              <h2 className="text-lg font-bold text-gray-950 dark:text-white">
+                Enable Auto-Delete Timer?
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 leading-relaxed">
                 Your messages older than{' '}
-                <span className="text-gray-200 font-medium">
+                <span className="text-gray-950 dark:text-white font-semibold">
                   &laquo;{LABEL[pendingPeriod]}&raquo;
                 </span>{' '}
                 will be permanently deleted according to the schedule, along with attachments. This
@@ -87,14 +89,14 @@ export default function AutoDeleteTimerRow() {
                 <button
                   type="button"
                   onClick={requestClose}
-                  className="flex-1 h-11 rounded-full text-sm font-semibold bg-white/5 border border-white/10 text-white hover:bg-white/10 transition"
+                  className="flex-1 h-11 rounded-full text-sm font-semibold bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/10 text-gray-950 dark:text-white hover:bg-black/10 dark:hover:bg-white/15 transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={confirm}
-                  className="flex-1 h-11 rounded-full text-sm font-semibold bg-red-500 text-white hover:bg-red-600 transition"
+                  className="flex-1 h-11 rounded-full text-sm font-semibold bg-red-500 text-white hover:bg-red-600 transition cursor-pointer shadow-md"
                 >
                   Enable
                 </button>

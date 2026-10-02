@@ -3,7 +3,7 @@ import TypingIndicatorBubble from './TypingIndicatorBubble';
 import { ChevronDown } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { MessageView, UserSnapshot } from '../../../entities/chat/model/types';
+import { AttachmentView, MessageView, UserSnapshot } from '../../../entities/chat/model/types';
 import { groupMessagesByDate } from '../lib/groupMessagesByDate';
 import { ChatThemeConfig } from '../model/chatTheme';
 import MessageBubble from './MessageBubble';
@@ -64,6 +64,7 @@ interface MessageListProps {
   onLoadOlder?: () => void;
   onLoadNewer?: () => void;
   onRetry?: (messageId: string) => void;
+  onOpenMedia?: (attachment: AttachmentView, originRect?: DOMRect, message?: MessageView) => void;
 }
 
 type Row =
@@ -244,6 +245,7 @@ export default function MessageList({
   onLoadOlder,
   onLoadNewer,
   onRetry,
+  onOpenMedia,
 }: MessageListProps) {
   const scrollerElementRef = useRef<HTMLDivElement | null>(null);
   const rows = useMemo(() => buildRows(messages), [messages]);
@@ -410,7 +412,11 @@ export default function MessageList({
         ref={scrollerElementRef}
         onScroll={checkScrollPosition}
         className="flex-1 custom-scrollbar py-2 overflow-y-auto overflow-x-hidden"
-        style={{ overflowAnchor: 'none', overflowX: 'hidden' }}
+        style={{
+          overflowAnchor: 'none',
+          overflowX: 'hidden',
+          transform: 'translateZ(0)',
+        }}
       >
         {isFetchingMore && (
           <div
@@ -438,6 +444,9 @@ export default function MessageList({
               'w-full mx-auto px-1 sm:px-2.5 transition-[max-width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]';
             const rowWrapperStyle: React.CSSProperties = {
               maxWidth: contentMaxWidth ? `${contentMaxWidth}px` : '880px',
+              contain: 'layout paint',
+              contentVisibility: 'auto',
+              containIntrinsicSize: 'auto 60px',
             };
 
             let rowContent: React.ReactNode = null;
@@ -455,7 +464,7 @@ export default function MessageList({
                       const rect = e.currentTarget.getBoundingClientRect();
                       onOpenDatePicker?.(row.date, rect);
                     }}
-                    className={`px-3.5 py-1 rounded-full bg-[#18181b]/85 border border-white/10 backdrop-blur-md shadow-md text-[11px] font-medium text-gray-300 pointer-events-auto select-none transition-all duration-300 cursor-pointer hover:bg-[#252530] hover:border-purple-400/50 hover:text-purple-300 hover:shadow-[0_0_15px_rgba(168,85,247,0.35)] active:scale-95 group ${
+                    className={`px-3.5 py-1 rounded-full bg-[#161722]/95 border border-white/10 shadow-[0_2px_12px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.06)] text-[11px] font-medium text-gray-300 pointer-events-auto select-none transition-all duration-300 cursor-pointer hover:bg-[#252530] hover:border-purple-400/50 hover:text-purple-300 hover:shadow-[0_0_15px_rgba(168,85,247,0.35)] active:scale-95 group ${
                       isHighlighted ? 'animate-dateJumpPulse ring-2 ring-purple-500/80' : ''
                     }`}
                     title="Click to open calendar date picker"
@@ -531,7 +540,16 @@ export default function MessageList({
                         onUnreact={onUnreact}
                         onJumpToMessage={onJumpToMessage}
                         onRetry={onRetry}
+                        onOpenMedia={onOpenMedia}
                         e2eePeerUserId={isGroup ? null : otherParticipantId}
+                        peerName={
+                          isGroup
+                            ? null
+                            : otherParticipant?.nickname ||
+                              otherParticipant?.user.displayName ||
+                              otherParticipant?.user.username ||
+                              null
+                        }
                       />
                     </div>
                   </div>
@@ -588,7 +606,7 @@ export default function MessageList({
               setShowScrollBottom(false);
               setUnreadBelowCount(0);
             }}
-            className="pointer-events-auto group w-10 h-10 rounded-full bg-[#181926]/90 border border-white/15 backdrop-blur-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] flex items-center justify-center text-gray-300 hover:text-white hover:bg-purple-600/30 hover:border-purple-400/50 hover:shadow-[0_0_15px_rgba(168,85,247,0.4)] transition-all duration-200 active:scale-95 animate-popIn cursor-pointer mr-1 sm:mr-2"
+            className="pointer-events-auto group w-10 h-10 rounded-full bg-[#181926]/95 border border-white/15 shadow-[0_8px_24px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.1)] flex items-center justify-center text-gray-300 hover:text-white hover:bg-purple-600/30 hover:border-purple-400/50 hover:shadow-[0_0_15px_rgba(168,85,247,0.4)] transition-all duration-200 active:scale-95 animate-popIn cursor-pointer mr-1 sm:mr-2"
             title={isAnchoredInHistory ? 'Jump to live messages' : 'Scroll to bottom'}
           >
             <ChevronDown size={20} className="group-hover:translate-y-0.5 transition-transform" />

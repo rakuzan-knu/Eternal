@@ -18,6 +18,7 @@ import { useMusicHubStore, CATALOG_PLAYLISTS } from '../model/useMusicHubStore';
 import { integrationsApi } from '@/entities/showcase/api/integrationsApi';
 import { TrackActionMenu } from './TrackActionMenu';
 import { isSoundCloudUrl } from '@/shared/lib/urlSecurity';
+import { useThemeStore, isCurrentThemeLight } from '@/shared/model/useThemeStore';
 
 interface MusicTrackDetailViewProps {
   trackId: string;
@@ -25,6 +26,10 @@ interface MusicTrackDetailViewProps {
 
 export const MusicTrackDetailView: React.FC<MusicTrackDetailViewProps> = ({ trackId }) => {
   const navigate = useNavigate();
+  const isLight = useThemeStore(isCurrentThemeLight);
+  const wallpaper = useThemeStore((s) => s.wallpaper);
+  const isHeroGradientDisabled = isLight || Boolean(wallpaper?.url);
+
   const getTrackById = useMusicHubStore((s) => s.getTrackById);
   const cacheTrack = useMusicHubStore((s) => s.cacheTrack);
   const isTrackLiked = useMusicHubStore((s) => s.isTrackLiked);
@@ -533,17 +538,23 @@ export const MusicTrackDetailView: React.FC<MusicTrackDetailViewProps> = ({ trac
   return (
     <div
       onContextMenu={(e) => handleOpenContextMenu(e, track)}
-      className="flex-1 overflow-y-auto min-w-0 select-none pb-28 text-white relative"
+      className="flex-1 overflow-y-auto min-w-0 select-none pb-28 text-gray-900 dark:text-white relative"
     >
       {/* Ambient Hero Gradient */}
-      <div className="relative p-6 md:p-8 bg-gradient-to-b from-purple-950/60 via-purple-900/20 to-transparent border-b border-white/5">
+      <div
+        className={`relative p-6 md:p-8 border-b border-black/10 dark:border-white/5 ${
+          isHeroGradientDisabled
+            ? 'bg-transparent'
+            : 'bg-gradient-to-b from-purple-950/60 via-purple-900/20 to-transparent'
+        }`}
+      >
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-start md:items-end gap-6 md:gap-8">
           {/* Cover Art (Screenshot 3) */}
-          <div className="relative w-48 h-48 md:w-56 md:h-56 rounded-2xl overflow-hidden shadow-2xl border border-white/10 shrink-0 bg-black/40 group">
+          <div className="relative w-48 h-48 md:w-56 md:h-56 rounded-2xl overflow-hidden shadow-2xl border border-black/10 dark:border-white/10 shrink-0 bg-black/5 dark:bg-black/40 group">
             {track.albumArt ? (
               <img src={track.albumArt} alt={track.title} className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-gray-600">
+              <div className="w-full h-full flex items-center justify-center text-gray-500 dark:text-gray-400">
                 <Music size={56} />
               </div>
             )}
@@ -552,25 +563,25 @@ export const MusicTrackDetailView: React.FC<MusicTrackDetailViewProps> = ({ trac
 
           {/* Track Header Meta */}
           <div className="flex-1 min-w-0">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-purple-300/90 bg-purple-500/15 px-2.5 py-0.5 rounded-full border border-purple-500/20">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300 bg-purple-500/15 px-2.5 py-0.5 rounded-full border border-purple-500/25">
               Song
             </span>
 
-            <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-white tracking-tight mt-2.5 mb-3 line-clamp-2">
+            <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-gray-900 dark:text-white tracking-tight mt-2.5 mb-3 line-clamp-2">
               {track.title}
             </h1>
 
             {/* Subtitle metadata row */}
-            <div className="flex flex-wrap items-center gap-2 text-xs md:text-sm text-gray-300 font-medium">
+            <div className="flex flex-wrap items-center gap-2 text-xs md:text-sm text-gray-600 dark:text-gray-300 font-medium">
               {/* Artist Avatar & Name */}
               <div
                 onClick={(e) => {
                   e.stopPropagation();
                   window.open(artistProfileUrl, '_blank', 'noopener,noreferrer');
                 }}
-                className="flex items-center gap-2 cursor-pointer hover:text-white group/artist"
+                className="flex items-center gap-2 cursor-pointer hover:text-purple-600 dark:hover:text-white group/artist"
               >
-                <div className="w-6 h-6 rounded-full overflow-hidden bg-purple-500/20 border border-white/10 shrink-0">
+                <div className="w-6 h-6 rounded-full overflow-hidden bg-purple-500/20 border border-black/10 dark:border-white/10 shrink-0">
                   {track.artistAvatar || track.albumArt ? (
                     <img
                       src={track.artistAvatar || track.albumArt}
@@ -583,22 +594,24 @@ export const MusicTrackDetailView: React.FC<MusicTrackDetailViewProps> = ({ trac
                     </div>
                   )}
                 </div>
-                <span className="font-bold text-white group-hover/artist:underline">
+                <span className="font-bold text-gray-900 dark:text-white group-hover/artist:underline">
                   {track.artist}
                 </span>
               </div>
 
-              <span className="text-gray-500">•</span>
-              <span className="text-gray-300 truncate max-w-xs">{track.album || track.title}</span>
+              <span className="text-gray-400 dark:text-gray-500">•</span>
+              <span className="text-gray-600 dark:text-gray-300 truncate max-w-xs">
+                {track.album || track.title}
+              </span>
 
-              <span className="text-gray-500">•</span>
+              <span className="text-gray-400 dark:text-gray-500">•</span>
               <span>{releaseYear}</span>
 
-              <span className="text-gray-500">•</span>
+              <span className="text-gray-400 dark:text-gray-500">•</span>
               <span>{formatDuration(track.durationMs)}</span>
 
-              <span className="text-gray-500">•</span>
-              <span className="text-gray-400">{pseudoPlays} plays</span>
+              <span className="text-gray-400 dark:text-gray-500">•</span>
+              <span className="text-gray-500 dark:text-gray-400">{pseudoPlays} plays</span>
             </div>
           </div>
         </div>
@@ -610,7 +623,7 @@ export const MusicTrackDetailView: React.FC<MusicTrackDetailViewProps> = ({ trac
             type="button"
             onClick={handleHeroPlayToggle}
             aria-label={isCurrentPlaying ? 'Pause' : 'Play'}
-            className="w-14 h-14 rounded-full bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white flex items-center justify-center shadow-[0_8px_24px_rgba(139,92,246,0.4)] hover:scale-105 active:scale-95 transition-all duration-200"
+            className="w-14 h-14 rounded-full bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white flex items-center justify-center shadow-[0_8px_24px_rgba(139,92,246,0.4)] hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer"
           >
             {isCurrentPlaying ? (
               <Pause size={24} fill="currentColor" />
@@ -628,13 +641,13 @@ export const MusicTrackDetailView: React.FC<MusicTrackDetailViewProps> = ({ trac
             }}
             aria-label={isLiked ? 'Remove from Liked' : 'Add to Liked'}
             title={isLiked ? 'Remove from Liked' : 'Save to Liked'}
-            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer ${
               isLiked
-                ? 'text-purple-400 bg-purple-500/20 border border-purple-500/30'
-                : 'text-gray-400 hover:text-white hover:bg-white/10'
+                ? 'text-purple-600 dark:text-purple-400 bg-purple-500/20 border border-purple-500/30'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10'
             }`}
           >
-            <Heart size={20} className={isLiked ? 'fill-purple-400' : ''} />
+            <Heart size={20} className={isLiked ? 'fill-purple-500 dark:fill-purple-400' : ''} />
           </button>
 
           {/* 3 Dots Menu Button */}
@@ -645,7 +658,7 @@ export const MusicTrackDetailView: React.FC<MusicTrackDetailViewProps> = ({ trac
             onClick={(e) => handleOpenThreeDots(e, track, heroThreeDotsBtnRef)}
             aria-label={`More actions for ${track.title}`}
             title={`More actions for ${track.title}`}
-            className="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+            className="w-10 h-10 rounded-full flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
           >
             <MoreHorizontal size={20} />
           </button>
@@ -656,35 +669,35 @@ export const MusicTrackDetailView: React.FC<MusicTrackDetailViewProps> = ({ trac
       <div className="max-w-6xl mx-auto px-6 md:px-8 py-8 space-y-12">
         {/* SECTION 1: LYRICS */}
         <div>
-          <h2 className="text-xl font-bold text-white mb-3 flex items-center gap-2">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
             <span>Lyrics</span>
           </h2>
 
-          <div className="rounded-3xl bg-white/[0.03] backdrop-blur-xl border border-white/10 p-6 md:p-8 relative">
+          <div className="glass-panel rounded-3xl border border-black/10 dark:border-white/10 p-6 md:p-8 relative">
             {isLoadingLyrics ? (
-              <div className="py-8 flex items-center justify-center text-purple-400 gap-2 text-xs">
+              <div className="py-8 flex items-center justify-center text-purple-600 dark:text-purple-400 gap-2 text-xs">
                 <Loader2 size={16} className="animate-spin" />
                 <span>Loading lyrics...</span>
               </div>
             ) : lyricsLines.length === 0 ? (
               <div className="py-6 flex flex-col items-center justify-center text-center">
-                <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-purple-400 mb-3">
+                <div className="w-12 h-12 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 flex items-center justify-center text-purple-600 dark:text-purple-400 mb-3">
                   <Mic2 size={22} />
                 </div>
-                <p className="text-sm font-semibold text-white mb-1">
+                <p className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
                   Lyrics are not available for this track yet
                 </p>
-                <p className="text-xs text-gray-400 max-w-sm">
+                <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm">
                   Lyrics are automatically synchronized for verified catalog entries.
                 </p>
               </div>
             ) : (
               <div>
-                <div className="space-y-3 font-semibold text-sm md:text-base text-gray-300 leading-relaxed">
+                <div className="space-y-3 font-semibold text-sm md:text-base text-gray-700 dark:text-gray-300 leading-relaxed">
                   {(isLyricsExpanded ? lyricsLines : lyricsLines.slice(0, 6)).map((line, idx) => (
                     <p
                       key={idx}
-                      className="hover:text-white transition-colors cursor-default select-text"
+                      className="hover:text-gray-950 dark:hover:text-white transition-colors cursor-default select-text"
                     >
                       {line}
                     </p>
@@ -695,7 +708,7 @@ export const MusicTrackDetailView: React.FC<MusicTrackDetailViewProps> = ({ trac
                   <button
                     type="button"
                     onClick={() => setIsLyricsExpanded((prev) => !prev)}
-                    className="mt-6 inline-flex items-center gap-1.5 text-xs font-bold text-gray-400 hover:text-white transition-colors"
+                    className="mt-6 inline-flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-gray-950 dark:text-gray-400 dark:hover:text-white transition-colors cursor-pointer"
                   >
                     <span>{isLyricsExpanded ? 'Show less' : '...More'}</span>
                     {isLyricsExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -710,9 +723,9 @@ export const MusicTrackDetailView: React.FC<MusicTrackDetailViewProps> = ({ trac
         <div>
           <div
             onClick={() => window.open(artistProfileUrl, '_blank', 'noopener,noreferrer')}
-            className="flex items-center gap-5 p-4 rounded-3xl bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 transition-all cursor-pointer group max-w-xl"
+            className="flex items-center gap-5 p-4 rounded-3xl bg-black/[0.02] hover:bg-black/[0.05] border border-black/10 dark:bg-white/[0.02] dark:hover:bg-white/[0.05] dark:border-white/5 transition-all cursor-pointer group max-w-xl"
           >
-            <div className="relative w-20 h-20 rounded-full overflow-hidden bg-black/40 border border-white/10 shadow-lg shrink-0">
+            <div className="relative w-20 h-20 rounded-full overflow-hidden bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 shadow-lg shrink-0">
               {track.albumArt ? (
                 <img
                   src={track.albumArt}
@@ -720,22 +733,22 @@ export const MusicTrackDetailView: React.FC<MusicTrackDetailViewProps> = ({ trac
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-xl font-bold">
+                <div className="w-full h-full flex items-center justify-center text-xl font-bold text-gray-500">
                   {track.artist.charAt(0)}
                 </div>
               )}
             </div>
 
             <div className="flex-1 min-w-0">
-              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+              <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 Artist
               </span>
-              <h3 className="text-xl font-bold text-white truncate mt-0.5 group-hover:underline">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white truncate mt-0.5 group-hover:underline">
                 {track.artist}
               </h3>
             </div>
 
-            <div className="w-9 h-9 rounded-full bg-white/5 group-hover:bg-white/15 flex items-center justify-center text-gray-400 group-hover:text-white transition-colors">
+            <div className="w-9 h-9 rounded-full bg-black/5 group-hover:bg-black/10 dark:bg-white/5 dark:group-hover:bg-white/15 flex items-center justify-center text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
               <ExternalLink size={16} />
             </div>
           </div>
@@ -743,13 +756,13 @@ export const MusicTrackDetailView: React.FC<MusicTrackDetailViewProps> = ({ trac
 
         {/* SECTION 3: RECOMMENDATIONS */}
         <div>
-          <h2 className="text-xl font-bold text-white mb-1">Recommended</h2>
-          <p className="text-xs text-gray-400 mb-4">Based on this song</p>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">Recommended</h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">Based on this song</p>
 
           <div className="space-y-1">
             {isLoadingRecs ? (
               <div className="py-6 flex items-center justify-center text-xs text-gray-500 gap-2">
-                <Loader2 size={16} className="animate-spin text-purple-400" />
+                <Loader2 size={16} className="animate-spin text-purple-600 dark:text-purple-400" />
                 <span>Finding recommendations...</span>
               </div>
             ) : recommendations.length === 0 ? (
@@ -764,11 +777,11 @@ export const MusicTrackDetailView: React.FC<MusicTrackDetailViewProps> = ({ trac
                     key={`rec-${rec.id}-${idx}`}
                     onClick={() => playTrack(rec, recommendations, `Recommended: ${track.title}`)}
                     onContextMenu={(e) => handleOpenContextMenu(e, rec)}
-                    className="flex items-center justify-between p-2 rounded-2xl hover:bg-white/[0.06] transition-colors cursor-pointer group"
+                    className="flex items-center justify-between p-2 rounded-2xl hover:bg-black/5 dark:hover:bg-white/[0.06] transition-colors cursor-pointer group"
                   >
                     <div className="flex items-center gap-3.5 min-w-0 flex-1">
                       {/* Cover with Play Overlay */}
-                      <div className="relative w-11 h-11 rounded-xl overflow-hidden bg-black/40 border border-white/10 shrink-0">
+                      <div className="relative w-11 h-11 rounded-xl overflow-hidden bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 shrink-0">
                         {rec.albumArt ? (
                           <img
                             src={rec.albumArt}
@@ -776,7 +789,7 @@ export const MusicTrackDetailView: React.FC<MusicTrackDetailViewProps> = ({ trac
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-600">
+                          <div className="w-full h-full flex items-center justify-center text-gray-500">
                             <Music size={16} />
                           </div>
                         )}
@@ -798,17 +811,21 @@ export const MusicTrackDetailView: React.FC<MusicTrackDetailViewProps> = ({ trac
                         <p
                           onClick={(e) => handleNavigateToTrack(e, rec.id)}
                           className={`text-sm font-bold truncate hover:underline cursor-pointer ${
-                            isRecPlaying ? 'text-purple-400' : 'text-white'
+                            isRecPlaying
+                              ? 'text-purple-600 dark:text-purple-400'
+                              : 'text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-300'
                           }`}
                         >
                           {rec.title}
                         </p>
-                        <p className="text-xs text-gray-400 truncate mt-0.5">{rec.artist}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                          {rec.artist}
+                        </p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-4 text-xs text-gray-400 font-medium">
-                      <span className="hidden sm:inline-block text-gray-500 font-mono">
+                    <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 font-medium">
+                      <span className="hidden sm:inline-block font-mono">
                         {formatDuration(rec.durationMs)}
                       </span>
 
@@ -819,13 +836,16 @@ export const MusicTrackDetailView: React.FC<MusicTrackDetailViewProps> = ({ trac
                           e.stopPropagation();
                           toggleLikeTrack(rec);
                         }}
-                        className={`p-1 rounded-lg transition-transform hover:scale-110 ${
+                        className={`p-1 rounded-lg transition-transform hover:scale-110 cursor-pointer ${
                           recLiked
-                            ? 'text-purple-400'
-                            : 'opacity-0 group-hover:opacity-100 text-gray-400 hover:text-white'
+                            ? 'text-purple-600 dark:text-purple-400'
+                            : 'opacity-0 group-hover:opacity-100 text-gray-500 hover:text-gray-950 dark:text-gray-400 dark:hover:text-white'
                         }`}
                       >
-                        <Heart size={16} className={recLiked ? 'fill-purple-400' : ''} />
+                        <Heart
+                          size={16}
+                          className={recLiked ? 'fill-purple-600 dark:fill-purple-400' : ''}
+                        />
                       </button>
 
                       {/* 3 Dots button */}
@@ -833,7 +853,7 @@ export const MusicTrackDetailView: React.FC<MusicTrackDetailViewProps> = ({ trac
                         type="button"
                         data-menu-trigger="true"
                         onClick={(e) => handleOpenThreeDots(e, rec)}
-                        className="opacity-0 group-hover:opacity-100 p-1 rounded hover:text-white hover:bg-white/10 transition-opacity"
+                        className="opacity-0 group-hover:opacity-100 p-1 rounded text-gray-500 hover:text-gray-950 hover:bg-black/5 dark:text-gray-400 dark:hover:text-white dark:hover:bg-white/10 transition-colors cursor-pointer"
                       >
                         <MoreHorizontal size={16} />
                       </button>
@@ -848,16 +868,18 @@ export const MusicTrackDetailView: React.FC<MusicTrackDetailViewProps> = ({ trac
         {/* SECTION 4: MORE BY ARTIST */}
         <div>
           <div className="mb-4">
-            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+            <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
               Popular tracks:
             </span>
-            <h2 className="text-2xl font-black text-white mt-0.5">{track.artist}</h2>
+            <h2 className="text-2xl font-black text-gray-900 dark:text-white mt-0.5">
+              {track.artist}
+            </h2>
           </div>
 
           <div className="space-y-1">
             {isLoadingAuthorTracks ? (
               <div className="py-6 flex items-center justify-center text-xs text-gray-500 gap-2">
-                <Loader2 size={16} className="animate-spin text-purple-400" />
+                <Loader2 size={16} className="animate-spin text-purple-600 dark:text-purple-400" />
                 <span>Loading artist tracks...</span>
               </div>
             ) : authorTracks.length === 0 ? (
@@ -872,23 +894,23 @@ export const MusicTrackDetailView: React.FC<MusicTrackDetailViewProps> = ({ trac
                     key={`author-${item.id}-${idx}`}
                     onClick={() => playTrack(item, authorTracks, `Artist: ${track.artist}`)}
                     onContextMenu={(e) => handleOpenContextMenu(e, item)}
-                    className="flex items-center justify-between p-2 rounded-2xl hover:bg-white/[0.06] transition-colors cursor-pointer group"
+                    className="flex items-center justify-between p-2 rounded-2xl hover:bg-black/5 dark:hover:bg-white/[0.06] transition-colors cursor-pointer group"
                   >
                     <div className="flex items-center gap-3.5 min-w-0 flex-1">
                       {/* Rank / Play icon */}
-                      <div className="w-6 text-center font-mono text-xs text-gray-500 group-hover:hidden">
+                      <div className="w-6 text-center font-mono text-xs text-gray-500 dark:text-gray-400 group-hover:hidden">
                         {isItemPlaying ? (
                           <div className="w-2.5 h-2.5 rounded-full bg-purple-500 animate-pulse mx-auto" />
                         ) : (
                           idx + 1
                         )}
                       </div>
-                      <div className="w-6 hidden group-hover:flex items-center justify-center text-white">
+                      <div className="w-6 hidden group-hover:flex items-center justify-center text-gray-900 dark:text-white">
                         {isItemPlaying ? <Pause size={14} /> : <Play size={14} />}
                       </div>
 
                       {/* Cover */}
-                      <div className="relative w-10 h-10 rounded-xl overflow-hidden bg-black/40 border border-white/10 shrink-0">
+                      <div className="relative w-10 h-10 rounded-xl overflow-hidden bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 shrink-0">
                         {item.albumArt ? (
                           <img
                             src={item.albumArt}
@@ -896,7 +918,7 @@ export const MusicTrackDetailView: React.FC<MusicTrackDetailViewProps> = ({ trac
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-600">
+                          <div className="w-full h-full flex items-center justify-center text-gray-500">
                             <Music size={14} />
                           </div>
                         )}
@@ -907,17 +929,21 @@ export const MusicTrackDetailView: React.FC<MusicTrackDetailViewProps> = ({ trac
                         <p
                           onClick={(e) => handleNavigateToTrack(e, item.id)}
                           className={`text-sm font-bold truncate hover:underline cursor-pointer ${
-                            isItemPlaying ? 'text-purple-400' : 'text-white'
+                            isItemPlaying
+                              ? 'text-purple-600 dark:text-purple-400'
+                              : 'text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-300'
                           }`}
                         >
                           {item.title}
                         </p>
-                        <p className="text-xs text-gray-400 truncate mt-0.5">{item.artist}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                          {item.artist}
+                        </p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-4 text-xs text-gray-400 font-medium">
-                      <span className="hidden sm:inline-block text-gray-500 font-mono">
+                    <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 font-medium">
+                      <span className="hidden sm:inline-block font-mono">
                         {formatDuration(item.durationMs)}
                       </span>
 
@@ -928,13 +954,16 @@ export const MusicTrackDetailView: React.FC<MusicTrackDetailViewProps> = ({ trac
                           e.stopPropagation();
                           toggleLikeTrack(item);
                         }}
-                        className={`p-1 rounded-lg transition-transform hover:scale-110 ${
+                        className={`p-1 rounded-lg transition-transform hover:scale-110 cursor-pointer ${
                           itemLiked
-                            ? 'text-purple-400'
-                            : 'opacity-0 group-hover:opacity-100 text-gray-400 hover:text-white'
+                            ? 'text-purple-600 dark:text-purple-400'
+                            : 'opacity-0 group-hover:opacity-100 text-gray-500 hover:text-gray-950 dark:text-gray-400 dark:hover:text-white'
                         }`}
                       >
-                        <Heart size={16} className={itemLiked ? 'fill-purple-400' : ''} />
+                        <Heart
+                          size={16}
+                          className={itemLiked ? 'fill-purple-600 dark:fill-purple-400' : ''}
+                        />
                       </button>
 
                       {/* 3 Dots button */}
@@ -942,7 +971,7 @@ export const MusicTrackDetailView: React.FC<MusicTrackDetailViewProps> = ({ trac
                         type="button"
                         data-menu-trigger="true"
                         onClick={(e) => handleOpenThreeDots(e, item)}
-                        className="opacity-0 group-hover:opacity-100 p-1 rounded hover:text-white hover:bg-white/10 transition-opacity"
+                        className="opacity-0 group-hover:opacity-100 p-1 rounded text-gray-500 hover:text-gray-950 hover:bg-black/5 dark:text-gray-400 dark:hover:text-white dark:hover:bg-white/10 transition-colors cursor-pointer"
                       >
                         <MoreHorizontal size={16} />
                       </button>
@@ -957,7 +986,7 @@ export const MusicTrackDetailView: React.FC<MusicTrackDetailViewProps> = ({ trac
             <button
               type="button"
               onClick={() => setIsAuthorTracksExpanded((prev) => !prev)}
-              className="mt-4 px-4 py-1.5 rounded-full bg-white/5 hover:bg-white/10 text-xs font-bold text-gray-300 hover:text-white transition-colors"
+              className="mt-4 px-4 py-1.5 rounded-full bg-black/5 hover:bg-black/10 text-gray-900 border border-black/10 dark:bg-white/5 dark:hover:bg-white/10 dark:text-gray-200 dark:hover:text-white dark:border-white/10 text-xs font-bold transition-all cursor-pointer"
             >
               {isAuthorTracksExpanded ? 'Show less' : 'More'}
             </button>

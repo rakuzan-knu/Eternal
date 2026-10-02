@@ -216,7 +216,7 @@ export default function DropdownMenu({
             <div
               ref={menuRef}
               style={{ position: 'fixed', top: coords.top, left: coords.left, right: coords.right }}
-              className={`z-[1000] min-w-[240px] rounded-2xl bg-[#16181f]/95 backdrop-blur-2xl border border-white/10 shadow-[0_16px_50px_rgba(0,0,0,0.75)] py-1.5 origin-top transition-all duration-150 ${
+              className={`z-[1000] min-w-[240px] rounded-2xl glass-menu shadow-[0_16px_50px_rgba(0,0,0,0.5)] py-1.5 origin-top transition-all duration-150 ${
                 isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
               } ${className}`}
             >
@@ -228,7 +228,9 @@ export default function DropdownMenu({
 
                 return (
                   <React.Fragment key={item.key}>
-                    {item.divider && <div className="h-px bg-white/10 my-1.5 mx-2" />}
+                    {item.divider && (
+                      <div className="h-px bg-black/8 dark:bg-white/10 my-1.5 mx-2" />
+                    )}
                     <button
                       ref={(el) => {
                         if (el) itemRefs.current.set(item.key, el);
@@ -255,22 +257,22 @@ export default function DropdownMenu({
                           requestClose();
                         }
                       }}
-                      className={`w-[calc(100%-8px)] mx-1 flex items-center gap-3 px-3 py-2 text-[13.5px] font-medium rounded-xl transition-all duration-100 active:scale-[0.98] cursor-pointer ${
+                      className={`w-[calc(100%-8px)] mx-1 flex items-center gap-3 px-3 py-2 text-[13.5px] font-medium rounded-xl transition-all duration-100 active:scale-[0.98] cursor-pointer group ${
                         item.danger
-                          ? 'text-red-400 hover:bg-red-500/15 hover:text-red-300'
+                          ? 'text-rose-400 hover:bg-rose-500/15 hover:text-rose-300'
                           : isSubmenuActive
-                            ? 'bg-white/10 text-white'
-                            : 'text-gray-200 hover:bg-white/10 hover:text-white'
+                            ? 'bg-black/10 dark:bg-white/10 text-gray-950 dark:text-white font-semibold'
+                            : 'text-gray-800 dark:text-white/90 hover:bg-black/6 dark:hover:bg-white/10 hover:text-gray-950 dark:hover:text-white'
                       }`}
                     >
                       {item.icon && (
-                        <span className="flex-shrink-0 w-[18px] h-[18px] flex items-center justify-center text-gray-400 group-hover:text-white">
+                        <span className="flex-shrink-0 w-[18px] h-[18px] flex items-center justify-center text-gray-500 dark:text-white/70 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
                           {item.icon}
                         </span>
                       )}
                       <span className="flex-1 text-left truncate">{item.label}</span>
                       {item.badge !== undefined && (
-                        <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-white text-black text-[11px] font-bold">
+                        <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-primary-500 text-white dark:bg-white dark:text-black text-[11px] font-bold">
                           {item.badge}
                         </span>
                       )}
@@ -283,7 +285,9 @@ export default function DropdownMenu({
                         <ChevronRight
                           size={15}
                           className={`transition-transform duration-100 flex-shrink-0 ${
-                            isSubmenuActive ? 'text-white translate-x-0.5' : 'text-gray-400'
+                            isSubmenuActive
+                              ? 'text-gray-900 dark:text-white translate-x-0.5'
+                              : 'text-gray-400 dark:text-gray-500'
                           }`}
                         />
                       )}
@@ -305,25 +309,27 @@ export default function DropdownMenu({
                 }}
                 onMouseEnter={cancelSubmenuClose}
                 onMouseLeave={scheduleSubmenuClose}
-                className="z-[1010] min-w-[210px] rounded-2xl bg-[#16181f]/95 backdrop-blur-2xl border border-white/10 shadow-[0_16px_50px_rgba(0,0,0,0.8)] py-1.5 animate-fadeIn"
+                className="z-[1010] min-w-[210px] rounded-2xl glass-menu shadow-[0_16px_50px_rgba(0,0,0,0.5)] py-1.5 animate-fadeIn"
               >
                 {activeSubmenuItems.map((subItem) => (
                   <React.Fragment key={subItem.key}>
-                    {subItem.divider && <div className="h-px bg-white/10 my-1.5 mx-2" />}
+                    {subItem.divider && (
+                      <div className="h-px bg-black/8 dark:bg-white/10 my-1.5 mx-2" />
+                    )}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         subItem.onClick?.();
                         requestClose();
                       }}
-                      className={`w-[calc(100%-8px)] mx-1 flex items-center gap-2.5 px-3 py-2 text-[13px] font-medium rounded-xl transition-all duration-100 active:scale-[0.98] cursor-pointer ${
+                      className={`w-[calc(100%-8px)] mx-1 flex items-center gap-2.5 px-3 py-2 text-[13px] font-medium rounded-xl transition-all duration-100 active:scale-[0.98] cursor-pointer group ${
                         subItem.danger
-                          ? 'text-red-400 hover:bg-red-500/15 hover:text-red-300'
-                          : 'text-gray-200 hover:bg-white/10 hover:text-white'
+                          ? 'text-rose-400 hover:bg-rose-500/15 hover:text-rose-300'
+                          : 'text-gray-800 dark:text-white/90 hover:bg-black/6 dark:hover:bg-white/10 hover:text-gray-950 dark:hover:text-white'
                       }`}
                     >
                       {subItem.icon && (
-                        <span className="flex-shrink-0 w-[17px] h-[17px] flex items-center justify-center text-gray-400">
+                        <span className="flex-shrink-0 w-[17px] h-[17px] flex items-center justify-center text-gray-500 dark:text-white/70 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
                           {subItem.icon}
                         </span>
                       )}

@@ -496,6 +496,60 @@ export class CallsService {
     return this.mapToView(call);
   }
 
+  async checkCallActive(
+    callId: string,
+    userId: string,
+  ): Promise<{
+    active: boolean;
+    call?: CallSessionView;
+    activeParticipantsCount: number;
+    reason?: string;
+  }> {
+    const call = await this.callsRepo.findCallById(callId);
+    if (!call) {
+      return { active: false, activeParticipantsCount: 0, reason: 'NOT_FOUND' };
+    }
+
+    const isMember = call.participants.some((p) => p.userId === userId);
+    if (!isMember) {
+      return { active: false, activeParticipantsCount: 0, reason: 'FORBIDDEN' };
+    }
+
+    const isActiveStatus = (
+      [CallStatus.INITIATED, CallStatus.RINGING, CallStatus.CONNECTED] as CallStatus[]
+    ).includes(call.status);
+
+    if (!isActiveStatus) {
+      return { active: false, activeParticipantsCount: 0, reason: 'CALL_ENDED' };
+    }
+
+    const otherParticipants = call.participants.filter((p) => p.userId !== userId);
+    const activeOthers = otherParticipants.filter((p) => !p.leftAt);
+
+    if (activeOthers.length === 0) {
+      await this.callsRepo
+        .updateCallStatus(callId, CallStatus.ENDED, CallEndReason.ENDED_BY_USER)
+        .catch(() => {});
+      return { active: false, activeParticipantsCount: 0, reason: 'NO_ACTIVE_PARTICIPANTS' };
+    }
+
+    // Reconnection of this user: reset leftAt and update joinedAt
+    await this.callsRepo
+      .updateParticipantState(callId, userId, {
+        leftAt: null,
+        joinedAt: new Date(),
+      })
+      .catch(() => {});
+
+    const updatedCall = (await this.callsRepo.findCallById(callId)) || call;
+
+    return {
+      active: true,
+      call: this.mapToView(updatedCall),
+      activeParticipantsCount: activeOthers.length,
+    };
+  }
+
   private async createCallLogMessage(
     call: CallWithDetails,
     status: CallStatus,
@@ -633,7 +687,13 @@ export class CallsService {
   ): Promise<WebTransportSessionResponse> {
     const endpointUrl = process.env.WEBTRANSPORT_ENDPOINT_URL;
     if (!endpointUrl) {
-      throw new NotFoundException('WebTransport endpoint is not configured in this environment');
+      return {
+        endpointUrl: '',
+        sessionTicket: '',
+        maxDatagramSize: 1200,
+        quicSupported: false,
+        expiresInSec: 0,
+      };
     }
 
     const sessionTicket = `wt_${callId}_${userId}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
@@ -734,7 +794,7 @@ export class CallsService {
 
   <g transform="translate(80, 80)">
     <rect width="160" height="40" rx="20" fill="#27272A" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
-    <text x="80" y="25" fill="#E4E4E7" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="600" text-anchor="middle" letter-spacing="1">ANTIGRAVITY</text>
+    <text x="80" y="25" fill="#E4E4E7" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="600" text-anchor="middle" letter-spacing="1">Eternal</text>
 
     <g transform="translate(176, 0)">
       <rect width="${isLive ? 120 : 140}" height="40" rx="20" fill="${isLive ? 'rgba(16, 185, 129, 0.15)' : 'rgba(99, 102, 241, 0.15)'}" stroke="${isLive ? 'rgba(16, 185, 129, 0.3)' : 'rgba(99, 102, 241, 0.3)'}" stroke-width="1"/>

@@ -95,7 +95,15 @@ describe('EditProfileModal', () => {
 
     await user.click(screen.getAllByRole('button')[0]);
 
-    expect(useUIStore.getState().isEditProfileOpen).toBe(false);
+    await waitFor(() => expect(useUIStore.getState().isEditProfileOpen).toBe(false));
+  });
+
+  it('closes the modal with animation when Escape key is pressed', async () => {
+    await openAndWaitForProfile();
+
+    fireEvent.keyDown(window, { key: 'Escape', code: 'Escape' });
+
+    await waitFor(() => expect(useUIStore.getState().isEditProfileOpen).toBe(false));
   });
 
   it('shows a validation error and keeps the modal open when the username is too short', async () => {

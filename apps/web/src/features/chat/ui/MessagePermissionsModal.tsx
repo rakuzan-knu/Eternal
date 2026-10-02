@@ -68,7 +68,7 @@ export default function MessagePermissionsModal({
   return (
     <Modal onClose={onClose} className="w-full max-w-sm">
       {(close) => (
-        <div className="bg-[#181a22] border border-white/10 rounded-3xl w-full shadow-2xl overflow-hidden backdrop-blur-2xl p-5">
+        <div className="glass-modal border border-white/10 rounded-3xl w-full shadow-2xl overflow-hidden p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-purple-500/20 border border-purple-400/30 flex items-center justify-center text-purple-300">

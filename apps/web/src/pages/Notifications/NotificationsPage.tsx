@@ -387,7 +387,14 @@ export function NotificationsPage() {
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-bold text-white tracking-tight">Notifications</h1>
           {unreadCounts.total > 0 && (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/30">
+            <span
+              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border"
+              style={{
+                backgroundColor: 'color-mix(in srgb, var(--app-accent-color) 20%, transparent)',
+                color: 'var(--app-accent-color)',
+                borderColor: 'color-mix(in srgb, var(--app-accent-color) 35%, transparent)',
+              }}
+            >
               {unreadCounts.total} new
             </span>
           )}
@@ -398,17 +405,17 @@ export function NotificationsPage() {
             <button
               onClick={() => markAllMutation.mutate(activeFilter)}
               disabled={markAllMutation.isPending}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-medium text-gray-300 hover:text-white border border-white/5 transition-all duration-200"
+              className="glass-card flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-gray-300 hover:text-white border border-white/10 hover:border-white/20 transition-all duration-200 cursor-pointer"
               title="Mark all as read"
             >
-              <CheckCheck size={14} className="text-purple-400" />
+              <CheckCheck size={14} style={{ color: 'var(--app-accent-color)' }} />
               <span>Mark all read</span>
             </button>
           )}
 
           <button
             onClick={handleOpenSettings}
-            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border border-white/5 transition-all duration-200"
+            className="glass-card p-2 rounded-xl text-gray-400 hover:text-white border border-white/10 hover:border-white/20 transition-all duration-200 cursor-pointer"
             title="Notification Settings"
             aria-label="Notification Settings"
           >
@@ -428,19 +435,37 @@ export function NotificationsPage() {
                 setActiveFilter(tab.id);
                 setIsExpanded(false);
               }}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-all duration-200 border ${
+              style={
                 isActive
-                  ? 'bg-purple-600/30 text-purple-200 border-purple-500/50 shadow-[0_0_15px_rgba(168,85,247,0.25)] font-semibold'
-                  : 'bg-[#121216]/80 text-gray-400 border-white/5 hover:bg-white/5 hover:text-white'
+                  ? {
+                      backgroundColor:
+                        'color-mix(in srgb, var(--app-accent-color) 25%, transparent)',
+                      color: 'var(--app-text-primary, #ffffff)',
+                      borderColor: 'color-mix(in srgb, var(--app-accent-color) 50%, transparent)',
+                      boxShadow:
+                        '0 0 16px color-mix(in srgb, var(--app-accent-color) 30%, transparent)',
+                    }
+                  : undefined
+              }
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-all duration-200 border cursor-pointer ${
+                isActive
+                  ? 'font-semibold'
+                  : 'glass-card text-gray-400 border-white/10 hover:border-white/20 hover:text-white'
               }`}
             >
               <span>{tab.label}</span>
               {tab.count > 0 && (
                 <span
-                  className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold leading-none ${
+                  style={
                     isActive
-                      ? 'bg-purple-400 text-black'
-                      : 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                      ? {
+                          backgroundColor: 'var(--app-accent-color)',
+                          color: 'var(--text-on-accent, #ffffff)',
+                        }
+                      : undefined
+                  }
+                  className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold leading-none ${
+                    isActive ? '' : 'bg-white/10 text-gray-300 border border-white/10'
                   }`}
                 >
                   {tab.count > 99 ? '99+' : tab.count}
@@ -452,7 +477,7 @@ export function NotificationsPage() {
       </div>
 
       {/* Notifications Card Container */}
-      <div className="bg-[#121216]/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] overflow-hidden">
+      <div className="glass-card border border-white/10 rounded-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] overflow-hidden">
         {/* Card Header */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/5 bg-white/[0.02]">
           <div className="flex items-center gap-2">
@@ -468,14 +493,25 @@ export function NotificationsPage() {
         {/* Loading State */}
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-16 text-gray-400 gap-3">
-            <Loader2 size={24} className="animate-spin text-purple-400" />
+            <Loader2
+              size={24}
+              className="animate-spin"
+              style={{ color: 'var(--app-accent-color)' }}
+            />
             <span className="text-xs font-medium">Loading notifications...</span>
           </div>
         ) : allItems.length === 0 ? (
           /* Empty State */
           <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-            <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mb-3">
-              <Bell size={22} className="text-purple-400" />
+            <div
+              className="w-12 h-12 rounded-2xl border flex items-center justify-center mb-3"
+              style={{
+                backgroundColor: 'color-mix(in srgb, var(--app-accent-color) 12%, transparent)',
+                borderColor: 'color-mix(in srgb, var(--app-accent-color) 25%, transparent)',
+                color: 'var(--app-accent-color)',
+              }}
+            >
+              <Bell size={22} />
             </div>
             <h3 className="text-sm font-semibold text-white mb-1">No notifications yet</h3>
             <p className="text-xs text-gray-500 max-w-xs">
@@ -494,10 +530,16 @@ export function NotificationsPage() {
               return (
                 <div
                   key={item.id}
+                  style={
+                    !item.isRead
+                      ? {
+                          backgroundColor:
+                            'color-mix(in srgb, var(--app-accent-color) 9%, transparent)',
+                        }
+                      : undefined
+                  }
                   className={`group relative flex items-center justify-between p-3 sm:p-4 gap-2.5 sm:gap-3.5 transition-colors duration-150 cursor-pointer ${
-                    item.isRead
-                      ? 'hover:bg-white/[0.03]'
-                      : 'bg-purple-950/10 hover:bg-purple-950/20'
+                    item.isRead ? 'hover:bg-white/[0.03]' : 'hover:bg-white/[0.06]'
                   }`}
                 >
                   {/* Left Indicator & Avatar */}
@@ -505,10 +547,16 @@ export function NotificationsPage() {
                     className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1"
                     onClick={() => handleRowClick(item)}
                   >
-                    {/* Unread Blue/Purple Glow Dot */}
+                    {/* Unread Glow Dot */}
                     <div className="w-2 flex-shrink-0 flex items-center justify-center">
                       {!item.isRead && (
-                        <span className="w-2 h-2 rounded-full bg-purple-500 ring-4 ring-purple-500/20" />
+                        <span
+                          className="w-2 h-2 rounded-full"
+                          style={{
+                            backgroundColor: 'var(--app-accent-color)',
+                            boxShadow: '0 0 8px var(--app-accent-color)',
+                          }}
+                        />
                       )}
                     </div>
 
@@ -616,10 +664,20 @@ export function NotificationsPage() {
                           toggleFollow(item.actorId!, false);
                         }}
                         disabled={isFollowLoading(item.actorId)}
-                        className={`px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-semibold whitespace-nowrap transition-all duration-200 ${
+                        style={
+                          !isFollowing(item.actorId)
+                            ? {
+                                backgroundColor: 'var(--app-accent-color)',
+                                color: 'var(--text-on-accent, #ffffff)',
+                                boxShadow:
+                                  '0 0 14px color-mix(in srgb, var(--app-accent-color) 35%, transparent)',
+                              }
+                            : undefined
+                        }
+                        className={`px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-semibold whitespace-nowrap transition-all duration-200 cursor-pointer ${
                           isFollowing(item.actorId)
-                            ? 'bg-white/10 text-gray-300 border border-white/10 hover:bg-white/15'
-                            : 'bg-purple-600 hover:bg-purple-500 text-white shadow-[0_0_12px_rgba(168,85,247,0.3)]'
+                            ? 'glass-card text-gray-300 border border-white/10 hover:border-white/20'
+                            : 'hover:brightness-110 active:scale-95'
                         }`}
                       >
                         {isFollowing(item.actorId) ? 'Following' : 'Follow back'}

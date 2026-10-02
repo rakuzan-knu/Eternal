@@ -558,7 +558,7 @@ export default function SearchPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
             onFocus={() => setIsFocused(true)}
             placeholder="Search users, #hashtags, posts..."
-            className="w-full bg-[#111115] border border-white/[0.08] focus:border-purple-500/50 text-white placeholder-gray-500 rounded-full py-3 pl-12 pr-10 text-sm focus:outline-none transition-all shadow-inner"
+            className="w-full glass-card border border-white/10 focus:border-purple-500/50 text-white placeholder-gray-500 rounded-full py-3 pl-12 pr-10 text-sm focus:outline-none transition-all shadow-inner"
           />
           {searchTerm && (
             <button
@@ -605,7 +605,7 @@ export default function SearchPage() {
 
       {/* 3. Empty / Focused View: Recent Searches + Trending Hashtags + Suggested Creators */}
       {showDropdown && (
-        <div className="bg-[#111115]/95 backdrop-blur-2xl border border-white/[0.06] rounded-3xl p-5 md:p-6 shadow-2xl flex flex-col gap-6">
+        <div className="glass-card border border-white/10 rounded-3xl p-5 md:p-6 shadow-2xl flex flex-col gap-6">
           {/* Recent Searches */}
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
@@ -746,7 +746,7 @@ export default function SearchPage() {
             <>
               {/* Top by Followers Card */}
               {topUsers.length > 0 && (
-                <div className="bg-[#111115]/95 backdrop-blur-2xl border border-white/[0.06] rounded-3xl p-5 md:p-6 shadow-2xl flex flex-col gap-4">
+                <div className="glass-card border border-white/10 rounded-3xl p-5 md:p-6 shadow-2xl flex flex-col gap-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Sparkles size={16} className="text-purple-400" />
@@ -760,7 +760,7 @@ export default function SearchPage() {
                       <div
                         key={u.id}
                         onClick={() => handleUserClick(u)}
-                        className="bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.05] rounded-2xl p-3 flex flex-col items-center text-center gap-2 transition-all cursor-pointer group"
+                        className="glass-card hover:border-white/20 rounded-2xl p-3 flex flex-col items-center text-center gap-2 transition-all cursor-pointer group"
                       >
                         <Avatar src={u.avatar} size="lg" />
                         <div className="flex flex-col items-center min-w-0 w-full">
@@ -795,7 +795,7 @@ export default function SearchPage() {
                 {isLoadingExplore ? (
                   <GridMediaSkeleton count={9} />
                 ) : mediaPosts.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-14 text-center bg-[#111115]/95 border border-white/[0.06] rounded-3xl p-6">
+                  <div className="flex flex-col items-center justify-center py-14 text-center glass-card border border-white/10 rounded-3xl p-6">
                     <div className="w-12 h-12 rounded-full bg-white/[0.04] flex items-center justify-center text-gray-400 mb-3">
                       <Film size={22} />
                     </div>
@@ -827,7 +827,7 @@ export default function SearchPage() {
                 <div className="flex flex-col gap-8">
                   {/* Matching People Preview */}
                   {searchUsers.length > 0 && (
-                    <div className="bg-[#111115]/95 border border-white/[0.06] rounded-3xl p-5 shadow-2xl flex flex-col gap-3">
+                    <div className="glass-card border border-white/10 rounded-3xl p-5 shadow-2xl flex flex-col gap-3">
                       <div className="flex items-center justify-between">
                         <span className="text-white font-bold text-sm">People</span>
                         <button
@@ -886,7 +886,7 @@ export default function SearchPage() {
                             key={h.tag}
                             type="button"
                             onClick={() => handleHashtagClick(h.tag)}
-                            className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#111115] border border-white/[0.08] text-xs font-semibold text-sky-400 hover:text-sky-300 cursor-pointer"
+                            className="flex items-center gap-2 px-3.5 py-1.5 rounded-full glass-card border border-white/10 text-xs font-semibold text-sky-400 hover:text-sky-300 cursor-pointer"
                           >
                             <span>#{h.tag}</span>
                             <span className="text-gray-400 font-normal">
@@ -927,7 +927,7 @@ export default function SearchPage() {
                         {[1, 2].map((i) => (
                           <div
                             key={i}
-                            className="h-36 bg-[#111115] border border-white/[0.06] rounded-3xl animate-pulse"
+                            className="h-36 glass-card border border-white/10 rounded-3xl animate-pulse"
                           />
                         ))}
                       </div>
@@ -962,7 +962,7 @@ export default function SearchPage() {
 
               {/* Tab: PEOPLE */}
               {activeTab === 'People' && (
-                <div className="bg-[#111115]/95 border border-white/[0.06] rounded-3xl p-5 shadow-2xl flex flex-col gap-3">
+                <div className="glass-card border border-white/10 rounded-3xl p-5 shadow-2xl flex flex-col gap-3">
                   {searchUsers.length === 0 ? (
                     <div className="text-center py-12 text-gray-400 text-sm">
                       No users found matching "{debouncedTerm}"
@@ -1020,12 +1020,12 @@ export default function SearchPage() {
                       {[1, 2, 3].map((i) => (
                         <div
                           key={i}
-                          className="h-36 bg-[#111115] border border-white/[0.06] rounded-3xl animate-pulse"
+                          className="h-36 glass-card border border-white/10 rounded-3xl animate-pulse"
                         />
                       ))}
                     </div>
                   ) : matchingPosts.length === 0 ? (
-                    <div className="text-center py-12 text-gray-400 text-sm bg-[#111115]/95 border border-white/[0.06] rounded-3xl p-6">
+                    <div className="text-center py-12 text-gray-400 text-sm glass-card border border-white/10 rounded-3xl p-6">
                       No posts found matching "{debouncedTerm}"
                     </div>
                   ) : (
@@ -1042,7 +1042,7 @@ export default function SearchPage() {
 
               {/* Tab: HASHTAGS */}
               {activeTab === 'Hashtags' && (
-                <div className="bg-[#111115]/95 border border-white/[0.06] rounded-3xl p-5 shadow-2xl flex flex-col gap-2">
+                <div className="glass-card border border-white/10 rounded-3xl p-5 shadow-2xl flex flex-col gap-2">
                   {searchHashtags.length === 0 ? (
                     <div className="text-center py-12 text-gray-400 text-sm">
                       No hashtags found matching "#{cleanSearchTerm}"
@@ -1080,7 +1080,7 @@ export default function SearchPage() {
                 (isLoadingExplore ? (
                   <GridMediaSkeleton count={9} />
                 ) : mediaPosts.length === 0 ? (
-                  <div className="col-span-3 text-center py-12 text-gray-400 text-sm bg-[#111115]/95 border border-white/[0.06] rounded-3xl p-6">
+                  <div className="col-span-3 text-center py-12 text-gray-400 text-sm glass-card border border-white/10 rounded-3xl p-6">
                     No media found matching "{debouncedTerm}"
                   </div>
                 ) : (

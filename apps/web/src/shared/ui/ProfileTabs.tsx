@@ -15,18 +15,20 @@ export default function ProfileTabs({
   showSavedTab = false,
 }: ProfileTabsProps) {
   return (
-    <div className="flex border-t border-white/5">
+    <div className="flex border-t border-black/10 dark:border-white/5">
       <button
         type="button"
         onClick={() => setActiveTab('posts')}
         className={`flex-1 py-4 cursor-pointer text-center text-sm font-semibold relative flex items-center justify-center gap-2 transition-colors ${
-          activeTab === 'posts' ? 'text-white' : 'text-gray-500 hover:text-gray-300'
+          activeTab === 'posts'
+            ? 'text-gray-900 dark:text-white'
+            : 'text-gray-500 hover:text-gray-900 dark:hover:text-gray-300'
         }`}
       >
         <Grid size={15} />
         <span>Posts</span>
         {activeTab === 'posts' && (
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-0.75 bg-white rounded-full transition-all" />
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-0.75 bg-gray-900 dark:bg-white rounded-full transition-all" />
         )}
       </button>
 
@@ -34,13 +36,15 @@ export default function ProfileTabs({
         type="button"
         onClick={() => setActiveTab('reposts')}
         className={`flex-1 py-4 cursor-pointer text-center text-sm font-semibold relative flex items-center justify-center gap-2 transition-colors ${
-          activeTab === 'reposts' ? 'text-white' : 'text-gray-500 hover:text-gray-300'
+          activeTab === 'reposts'
+            ? 'text-gray-900 dark:text-white'
+            : 'text-gray-500 hover:text-gray-900 dark:hover:text-gray-300'
         }`}
       >
         <Repeat size={15} />
         <span>Reposts</span>
         {activeTab === 'reposts' && (
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-0.75 bg-white rounded-full transition-all" />
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-0.75 bg-gray-900 dark:bg-white rounded-full transition-all" />
         )}
       </button>
 
@@ -48,13 +52,15 @@ export default function ProfileTabs({
         type="button"
         onClick={() => setActiveTab('reels')}
         className={`flex-1 py-4 cursor-pointer text-center text-sm font-semibold relative flex items-center justify-center gap-2 transition-colors ${
-          activeTab === 'reels' ? 'text-white' : 'text-gray-500 hover:text-gray-300'
+          activeTab === 'reels'
+            ? 'text-gray-900 dark:text-white'
+            : 'text-gray-500 hover:text-gray-900 dark:hover:text-gray-300'
         }`}
       >
         <Film size={15} />
         <span>Reels</span>
         {activeTab === 'reels' && (
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-0.75 bg-white rounded-full transition-all" />
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-0.75 bg-gray-900 dark:bg-white rounded-full transition-all" />
         )}
       </button>
 
@@ -63,13 +69,18 @@ export default function ProfileTabs({
           type="button"
           onClick={() => setActiveTab('saved')}
           className={`flex-1 py-4 cursor-pointer text-center text-sm font-semibold relative flex items-center justify-center gap-2 transition-colors ${
-            activeTab === 'saved' ? 'text-white' : 'text-gray-500 hover:text-gray-300'
+            activeTab === 'saved'
+              ? 'text-gray-900 dark:text-white'
+              : 'text-gray-500 hover:text-gray-900 dark:hover:text-gray-300'
           }`}
         >
-          <Bookmark size={15} className={activeTab === 'saved' ? 'fill-white' : ''} />
+          <Bookmark
+            size={15}
+            className={activeTab === 'saved' ? 'fill-gray-900 dark:fill-white' : ''}
+          />
           <span>Saved</span>
           {activeTab === 'saved' && (
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-0.75 bg-white rounded-full transition-all" />
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-0.75 bg-gray-900 dark:bg-white rounded-full transition-all" />
           )}
         </button>
       )}

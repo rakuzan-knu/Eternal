@@ -23,6 +23,7 @@ export class DirectAudioVisualizer {
   private audioContext: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
   private sourceNode: MediaStreamAudioSourceNode | null = null;
+  private silentGainNode: GainNode | null = null;
   private dataArray: Uint8Array<ArrayBuffer> | null = null;
   private animId: number | null = null;
   private isDestroyed = false;
@@ -67,6 +68,15 @@ export class DirectAudioVisualizer {
 
       this.sourceNode = this.audioContext.createMediaStreamSource(stream);
       this.sourceNode.connect(this.analyser);
+
+      // Chromium pull-path fix for WebRTC tracks:
+      // AnalyserNode must terminate into destination to receive active audio buffers
+      if (typeof this.audioContext.createGain === 'function' && this.audioContext.destination) {
+        this.silentGainNode = this.audioContext.createGain();
+        this.silentGainNode.gain.value = 0;
+        this.analyser.connect(this.silentGainNode);
+        this.silentGainNode.connect(this.audioContext.destination);
+      }
 
       this.dataArray = new Uint8Array(new ArrayBuffer(this.analyser.frequencyBinCount));
       this.startLoop();
@@ -145,6 +155,7 @@ export class DirectAudioVisualizer {
     try {
       this.sourceNode?.disconnect();
       this.analyser?.disconnect();
+      this.silentGainNode?.disconnect();
       if (this.audioContext && this.audioContext.state !== 'closed') {
         void this.audioContext.close();
       }
@@ -154,6 +165,7 @@ export class DirectAudioVisualizer {
 
     this.sourceNode = null;
     this.analyser = null;
+    this.silentGainNode = null;
     this.audioContext = null;
     this.dataArray = null;
 

@@ -170,6 +170,8 @@ export interface GlobalSearchResult {
     id: string;
     messageId: string;
     conversationId: string;
+    senderId?: string;
+    senderName?: string;
     url: string;
     fileName: string | null;
     mimeType: string | null;

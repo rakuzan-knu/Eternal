@@ -37,7 +37,7 @@ export default function GroupParticipantsModal({
     <>
       <Modal onClose={onClose} className="w-full max-w-sm max-h-[70vh] flex flex-col">
         {(close) => (
-          <div className="bg-[#181926]/95 border border-white/10 rounded-3xl shadow-2xl flex flex-col max-h-[70vh] backdrop-blur-2xl">
+          <div className="glass-modal border border-white/10 rounded-3xl shadow-2xl flex flex-col max-h-[70vh]">
             <div className="flex items-center justify-between px-5 pt-5 pb-4 flex-shrink-0">
               <h2 className="text-lg font-bold text-white">
                 {roleFilter === 'ADMINS'

@@ -11,7 +11,6 @@ import { useArchiveConversation } from '../model/useConversationMutations';
 import { useMessages } from '../model/useMessages';
 import { useMessageActions } from '../model/useMessageActions';
 import { getConversationDisplay } from '../lib/getConversationDisplay';
-import { promptEditMessage } from '../lib/promptEditMessage';
 import MessageList from './MessageList';
 import MessageComposer from './MessageComposer';
 import ForwardMessageModal from './ForwardMessageModal';
@@ -46,6 +45,7 @@ export default function ArchivedThreadPane({
   const { composerPaddingBottom } = useSpotifyDockOffset(8);
 
   const [replyingTo, setReplyingTo] = useState<MessageView | null>(null);
+  const [editingMessage, setEditingMessage] = useState<MessageView | null>(null);
   const [forwardingMessage, setForwardingMessage] = useState<MessageView | null>(null);
 
   const handleUnarchive = () => {
@@ -120,9 +120,13 @@ export default function ArchivedThreadPane({
           typingParticipants={[]}
           isGroup={isGroup}
           onLoadMore={fetchNextPage}
-          onReply={setReplyingTo}
+          onReply={(message) => {
+            setEditingMessage(null);
+            setReplyingTo(message);
+          }}
           onEdit={(message) => {
-            void promptEditMessage(message, otherParticipant?.userId ?? null, actions.editMessage);
+            setReplyingTo(null);
+            setEditingMessage(message);
           }}
           onDelete={handleDelete}
           onForward={setForwardingMessage}
@@ -141,6 +145,8 @@ export default function ArchivedThreadPane({
             actions={actions}
             replyingTo={replyingTo}
             onCancelReply={() => setReplyingTo(null)}
+            editingMessage={editingMessage}
+            onCancelEdit={() => setEditingMessage(null)}
             stagedFiles={staged.files}
             stagedFilesError={staged.error}
             onAddFiles={staged.addFiles}
@@ -157,8 +163,10 @@ export default function ArchivedThreadPane({
       {forwardingMessage && (
         <ForwardMessageModal
           onClose={() => setForwardingMessage(null)}
-          onForward={(conversationIds) => {
-            actions.forwardMessage(forwardingMessage, conversationIds).catch(() => {});
+          onForward={(conversationIds, hideAuthor) => {
+            actions
+              .forwardMessage(forwardingMessage, conversationIds, { hideAuthor })
+              .catch(() => {});
             setForwardingMessage(null);
           }}
         />

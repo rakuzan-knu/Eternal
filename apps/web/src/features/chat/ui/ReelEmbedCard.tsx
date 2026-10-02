@@ -105,7 +105,7 @@ export const ReelEmbedCard: React.FC<ReelEmbedCardProps> = ({ reelId }) => {
       <div
         onClick={handleTogglePlay}
         className="absolute inset-0 flex items-center justify-center cursor-pointer"
-        aria-label={isPlaying ? 'Пауза' : 'Відтворити'}
+        aria-label={isPlaying ? 'Pause' : 'Play'}
       >
         <div
           className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${

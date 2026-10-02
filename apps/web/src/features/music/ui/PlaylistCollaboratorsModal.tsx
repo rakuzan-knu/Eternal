@@ -116,19 +116,21 @@ export const PlaylistCollaboratorsModal: React.FC<PlaylistCollaboratorsModalProp
   return (
     <Modal onClose={onClose} className="w-full max-w-md max-h-[80vh] flex flex-col">
       {(close) => (
-        <div className="bg-[#1c1c22]/95 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden text-white select-none">
+        <div className="glass-modal backdrop-blur-3xl border border-black/10 dark:border-white/10 rounded-3xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden text-gray-900 dark:text-white select-none">
           {/* Header */}
-          <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-white/5 shrink-0">
+          <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-black/10 dark:border-white/5 shrink-0">
             <div>
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <UserPlus size={20} className="text-purple-400" />
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <UserPlus size={20} className="text-purple-600 dark:text-purple-400" />
                 <span>Add collaborator</span>
               </h2>
-              <p className="text-xs text-gray-400 mt-0.5">Playlist "{playlist.title}»</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                Playlist "{playlist.title}"
+              </p>
             </div>
             <button
               onClick={close}
-              className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white transition-colors active:scale-90"
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-black/5 dark:bg-white/5 text-gray-500 hover:text-gray-900 hover:bg-black/10 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white transition-colors active:scale-90 cursor-pointer"
             >
               <X size={16} />
             </button>
@@ -146,13 +148,13 @@ export const PlaylistCollaboratorsModal: React.FC<PlaylistCollaboratorsModalProp
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search users by name or username..."
-                className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 transition-colors"
+                className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-black/5 border border-black/10 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-purple-500/50 dark:bg-white/5 dark:border-white/10 dark:text-white dark:placeholder-gray-500 transition-colors"
                 autoFocus
               />
               {isSearching && (
                 <Loader2
                   size={16}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 animate-spin text-purple-400"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 animate-spin text-purple-600 dark:text-purple-400"
                 />
               )}
             </div>
@@ -164,13 +166,19 @@ export const PlaylistCollaboratorsModal: React.FC<PlaylistCollaboratorsModalProp
               <div className="py-12 text-center text-gray-500">
                 {query.trim() ? (
                   <>
-                    <p className="text-sm font-semibold text-gray-400">No users found</p>
-                    <p className="text-xs mt-1">Try searching for a different username or name</p>
+                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-400">
+                      No users found
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Try searching for a different username or name
+                    </p>
                   </>
                 ) : (
                   <>
-                    <p className="text-sm font-semibold text-gray-400">Start searching</p>
-                    <p className="text-xs mt-1">
+                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-400">
+                      Start searching
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       Enter a username or display name to send an invite
                     </p>
                   </>
@@ -184,7 +192,7 @@ export const PlaylistCollaboratorsModal: React.FC<PlaylistCollaboratorsModalProp
                 return (
                   <div
                     key={user.id}
-                    className="flex items-center justify-between p-2.5 rounded-2xl hover:bg-white/5 transition-colors"
+                    className="flex items-center justify-between p-2.5 rounded-2xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       <Avatar
@@ -193,28 +201,30 @@ export const PlaylistCollaboratorsModal: React.FC<PlaylistCollaboratorsModalProp
                         name={user.displayName || user.username}
                       />
                       <div className="min-w-0 flex-1">
-                        <div className="text-sm font-semibold text-white truncate">
+                        <div className="text-sm font-semibold text-gray-900 dark:text-white truncate">
                           {user.displayName || user.username}
                         </div>
-                        <div className="text-xs text-gray-400 truncate">@{user.username}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                          @{user.username}
+                        </div>
                       </div>
                     </div>
 
                     <div className="shrink-0 pl-2">
                       {isCollaborator ? (
-                        <span className="flex items-center gap-1 text-xs font-semibold text-purple-400 px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20">
+                        <span className="flex items-center gap-1 text-xs font-semibold text-purple-600 dark:text-purple-400 px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20">
                           <Check size={13} />
                           <span>Collaborator</span>
                         </span>
                       ) : hasPending ? (
-                        <span className="text-xs font-semibold text-gray-400 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
+                        <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 px-3 py-1.5 rounded-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10">
                           Invite sent
                         </span>
                       ) : (
                         <button
                           type="button"
                           onClick={() => handleSendInvite(user)}
-                          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all hover:scale-105 active:scale-95 shadow-md shadow-purple-600/30"
+                          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all hover:scale-105 active:scale-95 shadow-md shadow-purple-600/30 cursor-pointer"
                         >
                           <UserPlus size={14} />
                           <span>Invite</span>

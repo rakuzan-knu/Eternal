@@ -268,8 +268,8 @@ export function ShareModal() {
     {
       id: 'copy',
       label: 'Copy link',
-      icon: <LinkIcon size={20} className="text-white" />,
-      bg: 'bg-white/10 hover:bg-white/20',
+      icon: <LinkIcon size={20} className="text-gray-800 dark:text-white" />,
+      bg: 'bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 border-black/10 dark:border-white/10',
       onClick: handleCopyLink,
     },
     {
@@ -280,7 +280,7 @@ export function ShareModal() {
           <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
         </svg>
       ),
-      bg: 'bg-[#1877F2]/15 hover:bg-[#1877F2]/25',
+      bg: 'bg-[#1877F2]/15 hover:bg-[#1877F2]/25 border-transparent',
       onClick: () => {
         trackShare();
         window.open(
@@ -298,7 +298,7 @@ export function ShareModal() {
           <path d="M12 0C5.373 0 0 4.974 0 11.111c0 3.498 1.744 6.614 4.469 8.654V24l4.088-2.242c1.092.302 2.247.464 3.443.464 6.627 0 12-4.975 12-11.111C24 4.974 18.627 0 12 0zm1.191 14.963l-3.056-3.259-5.963 3.259 6.559-6.963 3.13 3.259 5.89-3.259-6.56 6.963z" />
         </svg>
       ),
-      bg: 'bg-[#00B2FF]/15 hover:bg-[#00B2FF]/25',
+      bg: 'bg-[#00B2FF]/15 hover:bg-[#00B2FF]/25 border-transparent',
       onClick: () => {
         trackShare();
         window.open(
@@ -316,7 +316,7 @@ export function ShareModal() {
           <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z" />
         </svg>
       ),
-      bg: 'bg-[#25D366]/15 hover:bg-[#25D366]/25',
+      bg: 'bg-[#25D366]/15 hover:bg-[#25D366]/25 border-transparent',
       onClick: () => {
         trackShare();
         window.open(
@@ -329,8 +329,8 @@ export function ShareModal() {
     {
       id: 'email',
       label: 'Email',
-      icon: <Mail size={20} className="text-gray-200" />,
-      bg: 'bg-white/10 hover:bg-white/20',
+      icon: <Mail size={20} className="text-gray-800 dark:text-gray-200" />,
+      bg: 'bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 border-black/10 dark:border-white/10',
       onClick: () => {
         trackShare();
         window.location.href = `mailto:?subject=${encodeURIComponent(
@@ -341,8 +341,8 @@ export function ShareModal() {
     {
       id: 'threads',
       label: 'Threads',
-      icon: <span className="font-bold text-base text-white">@</span>,
-      bg: 'bg-white/10 hover:bg-white/20',
+      icon: <span className="font-bold text-base text-gray-800 dark:text-white">@</span>,
+      bg: 'bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 border-black/10 dark:border-white/10',
       onClick: () => {
         trackShare();
         window.open(
@@ -356,11 +356,11 @@ export function ShareModal() {
       id: 'x',
       label: 'X',
       icon: (
-        <svg className="w-4 h-4 fill-white" viewBox="0 0 24 24">
+        <svg className="w-4 h-4 fill-gray-800 dark:fill-white" viewBox="0 0 24 24">
           <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
         </svg>
       ),
-      bg: 'bg-white/10 hover:bg-white/20',
+      bg: 'bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 border-black/10 dark:border-white/10',
       onClick: () => {
         trackShare();
         window.open(
@@ -378,7 +378,7 @@ export function ShareModal() {
           <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
         </svg>
       ),
-      bg: 'bg-[#229ED9]/15 hover:bg-[#229ED9]/25',
+      bg: 'bg-[#229ED9]/15 hover:bg-[#229ED9]/25 border-transparent',
       onClick: () => {
         trackShare();
         window.open(
@@ -391,8 +391,8 @@ export function ShareModal() {
     {
       id: 'view_all',
       label: 'View all',
-      icon: <Share2 size={18} className="text-white" />,
-      bg: 'bg-white/10 hover:bg-white/20',
+      icon: <Share2 size={18} className="text-gray-800 dark:text-white" />,
+      bg: 'bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 border-black/10 dark:border-white/10',
       onClick: handleNativeShare,
     },
   ];
@@ -404,14 +404,14 @@ export function ShareModal() {
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/80 backdrop-blur-md animate-fadeIn"
+        className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-md animate-fadeIn"
         onClick={closeShareModal}
       />
 
       {/* Modal Card */}
-      <div className="relative w-full max-w-[460px] bg-[#141418]/95 border border-white/10 rounded-[2rem] shadow-[0_25px_80px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col z-10 animate-modalIn max-h-[90vh]">
+      <div className="relative w-full max-w-[460px] glass-modal border border-black/10 dark:border-white/10 rounded-[2rem] shadow-2xl backdrop-blur-2xl text-gray-900 dark:text-white overflow-hidden flex flex-col z-10 animate-modalIn max-h-[90vh]">
         {/* Header */}
-        <div className="relative flex items-center justify-center px-5 py-4 border-b border-white/[0.08]">
+        <div className="relative flex items-center justify-center px-5 py-4 border-b border-black/10 dark:border-white/[0.08]">
           <button
             type="button"
             onClick={() => {
@@ -420,23 +420,28 @@ export function ShareModal() {
             }}
             aria-label="Close"
             data-testid="close-button"
-            className="absolute left-4 p-1.5 text-gray-400 hover:text-white rounded-full hover:bg-white/10 transition-colors"
+            className="absolute left-4 p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-950 dark:hover:text-white rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
           >
             <X size={20} />
           </button>
-          <h2 className="text-base font-bold text-white tracking-wide">Spread</h2>
+          <h2 className="text-base font-bold text-gray-900 dark:text-white tracking-wide">
+            Spread
+          </h2>
         </div>
 
         {/* Search Bar */}
         <div className="px-5 pt-3.5 pb-2">
           <div className="relative flex items-center">
-            <Search size={16} className="absolute left-3.5 text-gray-500 pointer-events-none" />
+            <Search
+              size={16}
+              className="absolute left-3.5 text-gray-400 dark:text-gray-500 pointer-events-none"
+            />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search"
-              className="w-full bg-white/[0.04] border border-white/10 rounded-2xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 transition-colors"
+              className="w-full bg-black/5 dark:bg-white/[0.04] border border-black/10 dark:border-white/10 rounded-2xl pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 transition-colors"
             />
           </div>
         </div>
@@ -447,8 +452,8 @@ export function ShareModal() {
             <div className="grid grid-cols-4 gap-y-4 gap-x-2 py-4">
               {Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="flex flex-col items-center gap-1.5 animate-pulse">
-                  <div className="w-14 h-14 rounded-full bg-white/5 border border-white/5" />
-                  <div className="w-12 h-2.5 bg-white/5 rounded" />
+                  <div className="w-14 h-14 rounded-full bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5" />
+                  <div className="w-12 h-2.5 bg-black/5 dark:bg-white/5 rounded" />
                 </div>
               ))}
             </div>
@@ -468,7 +473,7 @@ export function ShareModal() {
                       <div
                         className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-200 ${
                           isSelected
-                            ? 'ring-2 ring-purple-500 ring-offset-2 ring-offset-[#141418]'
+                            ? 'ring-2 ring-purple-500 ring-offset-2 ring-offset-white dark:ring-offset-[#141418]'
                             : 'group-hover:scale-105'
                         }`}
                       >
@@ -477,13 +482,13 @@ export function ShareModal() {
 
                       {/* Selected Purple Checkmark Badge */}
                       {isSelected && (
-                        <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-purple-600 text-white flex items-center justify-center border-2 border-[#141418] shadow-md animate-popIn">
+                        <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-purple-600 text-white flex items-center justify-center border-2 border-white dark:border-[#141418] shadow-md animate-popIn">
                           <Check size={12} strokeWidth={3} />
                         </div>
                       )}
                     </div>
 
-                    <span className="text-[11px] text-gray-300 font-medium text-center truncate max-w-[72px] leading-tight">
+                    <span className="text-[11px] text-gray-700 dark:text-gray-300 font-medium text-center truncate max-w-[72px] leading-tight group-hover:text-gray-950 dark:group-hover:text-white transition-colors">
                       {u.displayName || u.username}
                     </span>
                   </button>
@@ -492,7 +497,7 @@ export function ShareModal() {
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-10 text-center">
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
                 {searchQuery ? 'No users found matching your search.' : 'No mutual friends found.'}
               </p>
             </div>
@@ -500,7 +505,7 @@ export function ShareModal() {
         </div>
 
         {/* Bottom Actions Section */}
-        <div className="p-4 border-t border-white/[0.08] bg-[#101014]">
+        <div className="p-4 border-t border-black/10 dark:border-white/[0.08] bg-black/[0.02] dark:bg-[#101014]/60 backdrop-blur-md">
           {hasSelectedUsers ? (
             <div className="flex flex-col gap-3 animate-fadeIn">
               <div className="relative">
@@ -516,10 +521,10 @@ export function ShareModal() {
                   rows={2}
                   maxLength={1000}
                   placeholder="Write a message..."
-                  className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 resize-none transition-colors max-h-32"
+                  className="w-full bg-black/5 dark:bg-white/[0.04] border border-black/10 dark:border-white/10 rounded-2xl px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 resize-none transition-colors max-h-32"
                 />
                 {messageText.length > 0 && (
-                  <div className="text-[10px] text-gray-500 text-right px-2">
+                  <div className="text-[10px] text-gray-500 dark:text-gray-400 text-right px-2">
                     {messageText.length}/1000
                   </div>
                 )}
@@ -541,7 +546,7 @@ export function ShareModal() {
               <button
                 type="button"
                 onClick={() => scrollCarousel('left')}
-                className="absolute left-0 z-10 p-2 rounded-full bg-[#1c1c22]/90 backdrop-blur-md border border-white/15 text-gray-300 hover:text-white shadow-xl transition-transform hover:scale-110 cursor-pointer"
+                className="absolute left-0 z-10 p-2 rounded-full bg-white/90 dark:bg-[#1c1c22]/90 backdrop-blur-md border border-black/10 dark:border-white/15 text-gray-700 dark:text-gray-300 hover:text-gray-950 dark:hover:text-white shadow-xl transition-transform hover:scale-110 cursor-pointer"
               >
                 <ChevronLeft size={16} />
               </button>
@@ -559,11 +564,11 @@ export function ShareModal() {
                     className="flex flex-col items-center gap-1.5 shrink-0 group cursor-pointer"
                   >
                     <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center border border-white/10 transition-all duration-200 group-hover:scale-110 shadow-md ${btn.bg}`}
+                      className={`w-12 h-12 rounded-full flex items-center justify-center border transition-all duration-200 group-hover:scale-110 shadow-md ${btn.bg}`}
                     >
                       {btn.icon}
                     </div>
-                    <span className="text-[11px] text-gray-400 group-hover:text-white transition-colors whitespace-nowrap">
+                    <span className="text-[11px] text-gray-600 dark:text-gray-400 group-hover:text-gray-950 dark:group-hover:text-white transition-colors whitespace-nowrap">
                       {btn.label}
                     </span>
                   </button>
@@ -574,7 +579,7 @@ export function ShareModal() {
               <button
                 type="button"
                 onClick={() => scrollCarousel('right')}
-                className="absolute right-0 z-10 p-2 rounded-full bg-[#1c1c22]/90 backdrop-blur-md border border-white/15 text-gray-300 hover:text-white shadow-xl transition-transform hover:scale-110 cursor-pointer"
+                className="absolute right-0 z-10 p-2 rounded-full bg-white/90 dark:bg-[#1c1c22]/90 backdrop-blur-md border border-black/10 dark:border-white/15 text-gray-700 dark:text-gray-300 hover:text-gray-950 dark:hover:text-white shadow-xl transition-transform hover:scale-110 cursor-pointer"
               >
                 <ChevronRight size={16} />
               </button>

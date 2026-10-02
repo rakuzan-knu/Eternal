@@ -15,6 +15,8 @@ import { PrismaService } from '@common/prisma';
 import { SnowflakeService } from '../../common/id/snowflake.service';
 import { uploadToStorageWithFallback } from '../../common/media/image-processor';
 import { isR2Endpoint } from '../../common/storage/storage-url.util';
+import { STORAGE_SERVICE } from '../../common/storage/storage.module';
+import type { IStorageService } from '../../common/storage/storage.interface';
 import { CONVERSATIONS_REPOSITORY } from '../interfaces/conversations-repository.interface';
 import type { IConversationsRepository } from '../interfaces/conversations-repository.interface';
 import { MESSAGES_REPOSITORY } from '../interfaces/messages-repository.interface';
@@ -40,10 +42,12 @@ import {
   DEFAULT_ADMIN_PERMISSIONS,
   DEFAULT_MEMBER_PERMISSIONS,
   DEFAULT_OWNER_PERMISSIONS,
+  getEffectivePermissions,
   isE2eeEnvelopeShape,
 } from '@common/contracts';
 
 import { FastPathChatService } from '../services/fast-path-chat.service';
+import { RedisService } from '../../redis/redis.service';
 
 @Injectable()
 export class MessagesService implements OnModuleDestroy {
@@ -65,6 +69,11 @@ export class MessagesService implements OnModuleDestroy {
     private readonly snowflake?: SnowflakeService,
     @Optional()
     private readonly fastPath?: FastPathChatService,
+    @Optional()
+    private readonly redisService?: RedisService,
+    @Optional()
+    @Inject(STORAGE_SERVICE)
+    private readonly storageService?: IStorageService,
   ) {
     const accountId = this.configService.get<string>('R2_ACCOUNT_ID');
     const endpoint =
@@ -188,13 +197,23 @@ export class MessagesService implements OnModuleDestroy {
       finalContentType = finalContentType.split(';')[0].trim();
     }
 
-    const url = await uploadToStorageWithFallback(this.s3, {
-      bucket,
-      key,
-      buffer: file.buffer,
-      contentType: finalContentType,
-      publicUrl,
-    });
+    let url: string;
+    if (this.storageService) {
+      url = await this.storageService.upload({
+        bucket,
+        key,
+        buffer: file.buffer,
+        contentType: finalContentType,
+      });
+    } else {
+      url = await uploadToStorageWithFallback(this.s3, {
+        bucket,
+        key,
+        buffer: file.buffer,
+        contentType: finalContentType,
+        publicUrl,
+      });
+    }
 
     return {
       type: attachmentType,
@@ -206,6 +225,16 @@ export class MessagesService implements OnModuleDestroy {
   }
 
   async send(conversationId: string, senderId: string, dto: SendMessageDto): Promise<MessageView> {
+    if (dto.clientMessageId && this.redisService) {
+      const idempKey = `idemp:msg:${senderId}:${dto.clientMessageId}`;
+      const cached = await this.redisService.get(idempKey).catch(() => null);
+      if (cached) {
+        try {
+          return JSON.parse(cached) as MessageView;
+        } catch {}
+      }
+    }
+
     const requiredPerm =
       dto.attachments && dto.attachments.length > 0
         ? Permission.CAN_SEND_MEDIA
@@ -362,6 +391,11 @@ export class MessagesService implements OnModuleDestroy {
       return { message, mappedMessage: mapped };
     });
 
+    if (dto.clientMessageId && this.redisService) {
+      const idempKey = `idemp:msg:${senderId}:${dto.clientMessageId}`;
+      await this.redisService.set(idempKey, JSON.stringify(mappedMessage), 120).catch(() => {});
+    }
+
     return mappedMessage;
   }
 
@@ -501,29 +535,29 @@ export class MessagesService implements OnModuleDestroy {
 
     if (forAll) {
       if (msg.senderId !== userId) {
-        const p = await this.convsRepo.findParticipant(msg.conversationId, userId);
-        const pFlags =
-          (p as unknown as { permissions?: number })?.permissions ??
-          (p?.role === 'OWNER'
-            ? DEFAULT_OWNER_PERMISSIONS
-            : p?.role === 'ADMIN'
-              ? DEFAULT_ADMIN_PERMISSIONS
-              : DEFAULT_MEMBER_PERMISSIONS);
+        const conv = await this.convsRepo.findOneForUser(msg.conversationId, userId);
+        if (conv?.type !== 'DIRECT') {
+          const p = await this.convsRepo.findParticipant(msg.conversationId, userId);
+          const pFlags = getEffectivePermissions(
+            p?.role,
+            (p as unknown as { permissions?: number })?.permissions,
+          );
 
-        if (!p || (p.role !== 'OWNER' && (pFlags & Permission.CAN_DELETE) === 0)) {
-          throw new ForbiddenException('Cannot delete message for everyone');
-        }
-
-        const senderParticipant = await this.convsRepo.findParticipant(
-          msg.conversationId,
-          msg.senderId,
-        );
-        if (senderParticipant) {
-          if (senderParticipant.role === 'OWNER') {
-            throw new ForbiddenException('Cannot delete messages from the group owner');
+          if (!p || (p.role !== 'OWNER' && (pFlags & Permission.CAN_DELETE) === 0)) {
+            throw new ForbiddenException('Cannot delete message for everyone');
           }
-          if (p.role === 'ADMIN' && senderParticipant.role === 'ADMIN') {
-            throw new ForbiddenException('Admins cannot delete messages from other admins');
+
+          const senderParticipant = await this.convsRepo.findParticipant(
+            msg.conversationId,
+            msg.senderId,
+          );
+          if (senderParticipant) {
+            if (senderParticipant.role === 'OWNER') {
+              throw new ForbiddenException('Cannot delete messages from the group owner');
+            }
+            if (p.role === 'ADMIN' && senderParticipant.role === 'ADMIN') {
+              throw new ForbiddenException('Admins cannot delete messages from other admins');
+            }
           }
         }
       }
@@ -561,17 +595,15 @@ export class MessagesService implements OnModuleDestroy {
     const forAll = dto.forAll ?? false;
 
     if (forAll) {
-      const pFlags =
-        (participant as unknown as { permissions?: number }).permissions ??
-        (participant.role === 'OWNER'
-          ? DEFAULT_OWNER_PERMISSIONS
-          : participant.role === 'ADMIN'
-            ? DEFAULT_ADMIN_PERMISSIONS
-            : DEFAULT_MEMBER_PERMISSIONS);
+      const pFlags = getEffectivePermissions(
+        participant.role,
+        (participant as unknown as { permissions?: number }).permissions,
+      );
 
       const isGroupAdminOrOwner =
         conv.type === 'GROUP' &&
         (participant.role === 'OWNER' || (pFlags & Permission.CAN_DELETE) !== 0);
+      const isDirectChat = conv.type === 'DIRECT';
 
       const messages = await this.prisma.message.findMany({
         where: {
@@ -581,7 +613,7 @@ export class MessagesService implements OnModuleDestroy {
         select: { id: true, senderId: true },
       });
 
-      if (!isGroupAdminOrOwner) {
+      if (!isGroupAdminOrOwner && !isDirectChat) {
         const unauthorized = messages.some((m) => m.senderId !== userId);
         if (unauthorized) {
           throw new ForbiddenException('Cannot delete other users messages for everyone');
@@ -637,6 +669,21 @@ export class MessagesService implements OnModuleDestroy {
         body: original.body ?? undefined,
         messageType: original.messageType,
         forwardedFromId: dto.hideAuthor ? undefined : messageId,
+        attachments:
+          original.attachments && original.attachments.length > 0
+            ? original.attachments.map((att) => ({
+                type: att.type,
+                url: att.url,
+                fileName: att.fileName,
+                mimeType: att.mimeType,
+                size: att.size,
+                width: att.width,
+                height: att.height,
+                duration: att.duration,
+                waveform: att.waveform,
+                thumbnailUrl: att.thumbnailUrl,
+              }))
+            : undefined,
       });
       await this.convsRepo.touchUpdatedAt(conversationId);
       const pinnedIds = await this.convsRepo.findPinnedMessages(conversationId);
@@ -685,6 +732,21 @@ export class MessagesService implements OnModuleDestroy {
           body: msg.body ?? undefined,
           messageType: msg.messageType,
           forwardedFromId: dto.hideAuthor ? undefined : msg.id,
+          attachments:
+            msg.attachments && msg.attachments.length > 0
+              ? msg.attachments.map((att) => ({
+                  type: att.type,
+                  url: att.url,
+                  fileName: att.fileName,
+                  mimeType: att.mimeType,
+                  size: att.size,
+                  width: att.width,
+                  height: att.height,
+                  duration: att.duration,
+                  waveform: att.waveform,
+                  thumbnailUrl: att.thumbnailUrl,
+                }))
+              : undefined,
         });
         results[resIndex++] = this.mapper.mapMessage(created, userId, pinnedSet);
       }
@@ -705,13 +767,10 @@ export class MessagesService implements OnModuleDestroy {
 
     const p = await this.convsRepo.findParticipant(msg.conversationId, userId);
     if (p) {
-      const pFlags =
-        (p as unknown as { permissions?: number }).permissions ??
-        (p.role === 'OWNER'
-          ? DEFAULT_OWNER_PERMISSIONS
-          : p.role === 'ADMIN'
-            ? DEFAULT_ADMIN_PERMISSIONS
-            : DEFAULT_MEMBER_PERMISSIONS);
+      const pFlags = getEffectivePermissions(
+        p.role,
+        (p as unknown as { permissions?: number }).permissions,
+      );
 
       if ((pFlags & Permission.CAN_ADD_REACTIONS) === 0) {
         throw new ForbiddenException('You do not have permission to react to messages');

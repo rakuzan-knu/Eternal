@@ -59,20 +59,20 @@ export function ManageAccountsModal({
   return (
     <Modal onClose={onClose} className="w-full max-w-sm">
       {(close) => (
-        <div className="bg-[#1c1c20] border border-white/10 rounded-3xl shadow-2xl p-5">
+        <div className="glass-modal border border-black/10 dark:border-white/10 rounded-3xl shadow-2xl backdrop-blur-2xl p-5 text-gray-950 dark:text-white">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-white">Account management</h2>
+            <h2 className="text-lg font-bold text-gray-950 dark:text-white">Account management</h2>
             <button
               type="button"
               onClick={close}
-              className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white transition-colors active:scale-90"
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-black/5 hover:bg-black/10 dark:bg-white/5 text-gray-600 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-white transition-colors active:scale-90"
               aria-label="Close"
             >
               <X size={16} />
             </button>
           </div>
 
-          <p className="text-sm text-gray-400 mb-4">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
             Change your account, log in or out as often as you need.
           </p>
 
@@ -86,7 +86,7 @@ export function ManageAccountsModal({
               return (
                 <div
                   key={account.id}
-                  className="relative flex items-center gap-2 px-2 py-2 rounded-xl hover:bg-white/5"
+                  className="relative flex items-center gap-2 px-2 py-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/5"
                 >
                   <button
                     type="button"
@@ -95,11 +95,13 @@ export function ManageAccountsModal({
                   >
                     <Avatar size="sm" src={avatarUrl} />
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-white truncate">
+                      <p className="text-sm font-semibold text-gray-950 dark:text-white truncate">
                         {account.displayName || account.username}
                       </p>
                       {account.id === activeAccountId && (
-                        <p className="text-xs text-green-400 font-medium">Active account</p>
+                        <p className="text-xs text-green-500 dark:text-green-400 font-medium">
+                          Active account
+                        </p>
                       )}
                     </div>
                   </button>
@@ -110,7 +112,7 @@ export function ManageAccountsModal({
                       e.stopPropagation();
                       setOpenMenuId(openMenuId === account.id ? null : account.id);
                     }}
-                    className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-white/10 transition-colors shrink-0"
+                    className="p-1.5 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors shrink-0"
                     aria-label="Account options"
                   >
                     <MoreHorizontal size={16} />
@@ -119,7 +121,7 @@ export function ManageAccountsModal({
                   {openMenuId === account.id && (
                     <div
                       onClick={(e) => e.stopPropagation()}
-                      className="absolute right-2 top-10 z-10 w-52 bg-[#1c1c20] border border-white/10 rounded-xl shadow-2xl py-1 animate-menuIn origin-top-right"
+                      className="absolute right-2 top-10 z-10 w-52 glass-modal border border-black/10 dark:border-white/10 rounded-xl shadow-2xl backdrop-blur-2xl py-1 animate-menuIn origin-top-right"
                     >
                       <button
                         type="button"

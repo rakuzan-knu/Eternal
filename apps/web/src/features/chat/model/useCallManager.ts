@@ -13,13 +13,23 @@ import {
   stopRingtone,
 } from '../lib/callRingtone';
 import { showBrowserPushNotification } from '@/shared/lib/browserPushNotifications';
-import type { UserSnapshot, ZkpCallProof, WebTransportSessionResponse } from '@common/contracts';
+import type {
+  UserSnapshot,
+  ZkpCallProof,
+  WebTransportSessionResponse,
+  CallSessionView,
+} from '@common/contracts';
 import { ZKPIdentityManager } from '../lib/webrtc/zkpIdentity';
 import { useAuthStore } from '@/shared/model/useAuthStore';
+import { useSpotifyPlayerStore } from '@/shared/model/useSpotifyPlayerStore';
+import { usePresenceStore } from '@/shared/model/usePresenceStore';
 import { apiClient } from '@/shared/api/httpClient';
 import { usePushToTalk } from './usePushToTalk';
 import { MultiTabCallCoordinator } from '../lib/webrtc/multiTabCallCoordinator';
 import { triggerHaptic, cancelHaptic } from '../lib/webrtc/hapticFeedback';
+import { playActionSound } from './useSoundSettingsStore';
+import { globalSpeakerMixerManager } from '../lib/webrtc/perSpeakerMixer';
+import { getCallSession, clearCallSession, saveCallSession } from '../lib/callSessionPersistence';
 
 export function useCallManager() {
   const socket = getSocket();
@@ -49,12 +59,29 @@ export function useCallManager() {
   const callStatus = useCallStore((s) => s.callStatus);
   useWakeLock(callStatus === 'connected' || callStatus === 'calling');
 
+  // Real-time speaking status broadcast via WebSocket (Discord Tier-2)
+  const localIsSpeaking = useCallStore((s) => s.localIsSpeaking);
+  useEffect(() => {
+    const currentCallId = useCallStore.getState().callId;
+    if (!currentCallId || !socket) return;
+    socket.emit(WS_EVENTS.CALL_SPEAKING, {
+      callId: currentCallId,
+      isSpeaking: localIsSpeaking,
+    });
+  }, [localIsSpeaking, socket]);
+
   // Auto ICE-Restart sender callback
   const handleSendIceRestart = useCallback(
     (offer: RTCSessionDescriptionInit) => {
       const currentCallId = useCallStore.getState().callId;
       const currentRemote = useCallStore.getState().remoteParticipant;
       if (!currentCallId || !socket) return;
+      if (useCallStore.getState().isScreenSharing) {
+        socket.emit(WS_EVENTS.CALL_SCREEN_SHARE_START, {
+          callId: currentCallId,
+          isSharing: true,
+        });
+      }
       socket.emit(WS_EVENTS.CALL_ICE_RESTART, {
         callId: currentCallId,
         sdpOffer: offer,
@@ -80,9 +107,20 @@ export function useCallManager() {
     resetCall();
   }, [socket, resetCall]);
 
+  const handleScreenShareStopped = useCallback(() => {
+    const currentCallId = useCallStore.getState().callId;
+    if (currentCallId && socket) {
+      socket.emit(WS_EVENTS.CALL_SCREEN_SHARE_STOP, {
+        callId: currentCallId,
+        isSharing: false,
+      });
+    }
+  }, [socket]);
+
   const webRTC = useWebRTC({
     onSendIceRestart: handleSendIceRestart,
     onConnectionFailed: handleConnectionFailed,
+    onScreenShareStopped: handleScreenShareStopped,
   });
 
   const webRTCRef = useRef(webRTC);
@@ -106,6 +144,84 @@ export function useCallManager() {
   const negotiateWebTransportRef = useRef(negotiateWebTransport);
   negotiateWebTransportRef.current = negotiateWebTransport;
   closeConnectionRef.current = webRTC.closeConnection;
+
+  // Real-time in-call activity sync (Music & Gaming)
+  const currentCallId = useCallStore((s) => s.callId);
+  const currentTrack = useSpotifyPlayerStore((s) => s.currentTrack);
+  const isMusicPlaying = useSpotifyPlayerStore((s) => s.isPlaying);
+  const localUserId = useAuthStore((s) => s.userId);
+  const localPresence = usePresenceStore((s) =>
+    localUserId ? s.userActivities[localUserId] : null,
+  );
+  const lastPublishedActivityKeyRef = useRef<string>('');
+
+  const publishCurrentActivity = useCallback(() => {
+    const activeCallId = useCallStore.getState().callId;
+    const activeCallStatus = useCallStore.getState().callStatus;
+    if (activeCallStatus !== 'connected' || !activeCallId || !socket?.connected) return;
+
+    const spotifyState = useSpotifyPlayerStore.getState();
+    const myId = useAuthStore.getState().userId;
+    const myPresence = myId ? usePresenceStore.getState().userActivities[myId] : null;
+
+    let activity: any = null;
+    if (spotifyState.isPlaying && spotifyState.currentTrack) {
+      activity = {
+        type: 'spotify',
+        title: spotifyState.currentTrack.title,
+        subtitle: spotifyState.currentTrack.artist,
+        artist: spotifyState.currentTrack.artist,
+        imageUrl: spotifyState.currentTrack.albumArt || null,
+        trackId: spotifyState.currentTrack.id,
+        isPlaying: true,
+      };
+    } else if (
+      myPresence &&
+      (myPresence.title || myPresence.type === 'gaming' || myPresence.isSteam)
+    ) {
+      const isPresenceMusic =
+        myPresence.type === 'spotify' ||
+        myPresence.type === 'music' ||
+        Boolean(myPresence.trackId) ||
+        Boolean(myPresence.artist);
+      activity = {
+        ...myPresence,
+        type: isPresenceMusic ? 'spotify' : myPresence.type,
+      };
+    }
+
+    const activityKey = activity
+      ? `${activity.type || ''}:${activity.title || ''}:${activity.trackId || ''}:${activity.artist || ''}`
+      : 'none';
+    if (lastPublishedActivityKeyRef.current === activityKey) {
+      return;
+    }
+    lastPublishedActivityKeyRef.current = activityKey;
+
+    socket.emit(WS_EVENTS.CALL_ACTIVITY, {
+      callId: activeCallId,
+      activity,
+    });
+    webRTCRef.current.sendCallActivity?.(activity);
+  }, [socket]);
+
+  useEffect(() => {
+    if (callStatus === 'connected' && currentCallId) {
+      publishCurrentActivity();
+    }
+  }, [
+    callStatus,
+    currentCallId,
+    isMusicPlaying,
+    currentTrack?.id,
+    currentTrack?.title,
+    currentTrack?.artist,
+    currentTrack?.albumArt,
+    localPresence?.title,
+    localPresence?.trackId,
+    localPresence?.type,
+    publishCurrentActivity,
+  ]);
 
   // Initialize Push-to-Talk (PTT) with software audio release tail
   const ptt = usePushToTalk({ toggleMuteTrack: webRTC.toggleMuteTrack });
@@ -152,6 +268,145 @@ export function useCallManager() {
       }
     };
   }, [callStatus, incrementDuration]);
+
+  // Auto-reconnect to ongoing active call after page reload (Discord-style)
+  useEffect(() => {
+    const saved = getCallSession();
+    if (!saved || !saved.callId) return;
+
+    let cancelled = false;
+
+    const attemptAutoReconnect = async () => {
+      try {
+        // 1. Verify with server if call is still active with at least 1 other user
+        const { data: checkRes } = await apiClient.get<{
+          active: boolean;
+          call?: CallSessionView;
+          activeParticipantsCount: number;
+        }>(`/calls/${saved.callId}/active-check`);
+
+        if (cancelled) return;
+
+        if (!checkRes?.active || !checkRes.call || checkRes.activeParticipantsCount <= 0) {
+          clearCallSession();
+          return;
+        }
+
+        const call = checkRes.call;
+        const currentUserId = useAuthStore.getState().userId;
+        const otherParticipants = (call.participants || []).filter(
+          (p) => p.userId !== currentUserId,
+        );
+        const remoteUser = saved.remoteParticipant || otherParticipants[0]?.user || null;
+
+        // Restore call state in store
+        const elapsedSec = Math.max(
+          0,
+          Math.floor((Date.now() - new Date(call.startedAt).getTime()) / 1000),
+        );
+
+        useCallStore.setState({
+          callId: call.id,
+          conversationId: call.conversationId,
+          callType: saved.callType,
+          remoteParticipant: remoteUser,
+          activeCall: call,
+          callStatus: 'connected',
+          isReconnecting: true,
+          reconnectCountdown: 15,
+          isMuted: saved.isMuted,
+          isVideoOff: saved.isVideoOff,
+          isDeafened: saved.isDeafened,
+          durationSec: elapsedSec,
+        });
+
+        // Initialize multi-tab coordinator for this call
+        if (!multiTabCoordinatorRef.current) {
+          multiTabCoordinatorRef.current = new MultiTabCallCoordinator({
+            onRemoteCommand: (command) => {
+              if (command === 'ACCEPT') void acceptCallRef.current?.();
+              else if (command === 'DECLINE') rejectCallRef.current?.('DECLINED');
+              else if (command === 'END') endCallRef.current?.();
+              else if (command === 'MUTE') toggleMuteRef.current?.();
+            },
+          });
+        }
+        void multiTabCoordinatorRef.current.coordinateCall(call.id, currentUserId || undefined);
+
+        // 2. Wait for socket to connect if not yet connected
+        const targetSocket = socket || getSocket();
+        if (!targetSocket.connected) {
+          await new Promise<void>((resolve) => {
+            const onConnect = () => {
+              targetSocket.off('connect', onConnect);
+              resolve();
+            };
+            targetSocket.on('connect', onConnect);
+            setTimeout(resolve, 4000);
+          });
+        }
+
+        if (cancelled) return;
+
+        // 3. Acquire local media (preserving user's mute/video settings)
+        globalSpeakerMixerManager.resumeAll();
+        webRTCRef.current.resumeAudioContext?.();
+        await webRTCRef.current.acquireLocalMedia(saved.callType);
+
+        if (saved.isMuted) {
+          webRTCRef.current.toggleMuteTrack(true);
+        }
+        if (saved.isVideoOff) {
+          void webRTCRef.current.toggleVideoTrack(true);
+        }
+
+        // 4. Create fresh offer and candidates
+        const targetUserId = remoteUser?.id || otherParticipants[0]?.userId;
+        const gatheredCandidates: RTCIceCandidateInit[] = [];
+
+        const offer = await webRTCRef.current.createOffer(
+          saved.callType,
+          (candidate) => {
+            targetSocket.emit(WS_EVENTS.CALL_ICE_CANDIDATE, {
+              callId: call.id,
+              candidate: candidate.toJSON(),
+              targetUserId,
+            });
+          },
+          targetUserId,
+        );
+
+        if (cancelled) return;
+
+        // 5. Emit CALL_RECONNECT with offer to notify peer
+        targetSocket.emit(
+          WS_EVENTS.CALL_RECONNECT,
+          {
+            callId: call.id,
+            sdpOffer: offer,
+            iceCandidates: gatheredCandidates,
+          },
+          (ack?: { status: string; active?: boolean }) => {
+            if (ack && ack.active === false) {
+              clearCallSession();
+              webRTCRef.current.closeConnection();
+              resetCall();
+            }
+          },
+        );
+      } catch (err) {
+        console.error('[useCallManager] auto-reconnect failed:', err);
+        clearCallSession();
+        resetCall();
+      }
+    };
+
+    void attemptAutoReconnect();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Socket event listeners
   useEffect(() => {
@@ -201,13 +456,22 @@ export function useCallManager() {
         void multiTabCoordinatorRef.current
           .coordinateCall(data.callId, currentUserId || undefined)
           .then(() => {
-            if (!multiTabCoordinatorRef.current?.shouldSuppressRingtone()) {
-              multiTabCoordinatorRef.current?.announceRinging();
-              playIncomingRingtone();
+            const currentIncoming = useCallStore.getState().incomingCall;
+            const currentStatus = useCallStore.getState().callStatus;
+            if (currentIncoming?.callId === data.callId && currentStatus === 'ringing') {
+              if (!multiTabCoordinatorRef.current?.shouldSuppressRingtone()) {
+                multiTabCoordinatorRef.current?.announceRinging();
+                playIncomingRingtone();
+              }
+            } else {
+              stopRingtone();
             }
           });
       } else {
-        playIncomingRingtone();
+        const currentStatus = useCallStore.getState().callStatus;
+        if (currentStatus === 'ringing') {
+          playIncomingRingtone();
+        }
       }
       triggerHaptic('incomingCall');
 
@@ -233,7 +497,13 @@ export function useCallManager() {
     }) => {
       cancelHaptic();
       stopRingtone();
+      playActionSound('user_join');
       setCallStatus('connected');
+      if (data.accepterId) {
+        useCallStore
+          .getState()
+          .setRemoteVideoOff(data.accepterId, useCallStore.getState().callType !== 'video');
+      }
       if (data.sdpAnswer) {
         await webRTCRef.current.handleAnswer(data.sdpAnswer);
       }
@@ -255,6 +525,7 @@ export function useCallManager() {
       if (data.callId) {
         void negotiateWebTransportRef.current(data.callId);
       }
+      publishCurrentActivity();
     };
 
     const handleIceCandidate = async (data: {
@@ -274,7 +545,10 @@ export function useCallManager() {
     }) => {
       if (data.callId !== useCallStore.getState().callId) return;
       try {
-        const answer = await webRTCRef.current.handleRemoteIceRestart(data.sdpOffer);
+        const answer = await webRTCRef.current.handleRemoteIceRestart(
+          data.sdpOffer,
+          data.senderUserId,
+        );
         socket.emit(WS_EVENTS.CALL_ICE_RESTART_ANSWER, {
           callId: data.callId,
           sdpAnswer: answer,
@@ -298,9 +572,10 @@ export function useCallManager() {
     };
 
     const handleEnded = (_data: { callId: string; reason?: string; durationMs?: number }) => {
+      clearCallSession();
       const convId = useCallStore.getState().conversationId;
       stopRingtone();
-      playCallEndSound();
+      playActionSound('user_leave');
       webRTCRef.current.closeConnection();
       multiTabCoordinatorRef.current?.stop();
       multiTabCoordinatorRef.current = null;
@@ -315,12 +590,64 @@ export function useCallManager() {
       resetCall();
     };
 
-    const handleMute = (_data: { callId: string; userId: string; isMuted: boolean }) => {
-      // Remote participant mute state updated
+    const handleMute = (data: {
+      callId: string;
+      userId: string;
+      isMuted: boolean;
+      isDeafened?: boolean;
+    }) => {
+      if (data?.userId) {
+        useCallStore.getState().setRemoteParticipantMuted(data.userId, Boolean(data.isMuted));
+        if (data.isDeafened !== undefined) {
+          useCallStore
+            .getState()
+            .setRemoteParticipantDeafened(data.userId, Boolean(data.isDeafened));
+        } else if (!data.isMuted) {
+          useCallStore.getState().setRemoteParticipantDeafened(data.userId, false);
+        }
+        if (data.isMuted) {
+          useCallStore.getState().setRemoteIsSpeaking(false);
+        }
+      }
     };
 
-    const handleVideoToggle = (_data: { callId: string; userId: string; isVideoOff: boolean }) => {
-      // Remote participant video state updated
+    const handleSpeaking = (data: { callId: string; userId: string; isSpeaking: boolean }) => {
+      const currentCallId = useCallStore.getState().callId;
+      if (!data?.callId || data.callId !== currentCallId) return;
+      useCallStore.getState().setRemoteIsSpeaking(Boolean(data.isSpeaking));
+    };
+
+    const handleVideoToggle = (data: { callId: string; userId: string; isVideoOff: boolean }) => {
+      const currentCallId = useCallStore.getState().callId;
+      if (!data?.callId || data.callId !== currentCallId) return;
+      useCallStore.getState().setRemoteVideoOff(data.userId, data.isVideoOff);
+      webRTCRef.current.ensureReceiverTracks(data.userId);
+    };
+
+    const handleCallActivity = (data: { callId: string; userId: string; activity: any }) => {
+      const activeCallId = useCallStore.getState().callId;
+      if (!data?.callId || data.callId !== activeCallId) return;
+      if (data.userId) {
+        const normalized = data.activity
+          ? {
+              ...data.activity,
+              type:
+                data.activity.type === 'music' || data.activity.trackId
+                  ? 'spotify'
+                  : data.activity.type,
+            }
+          : null;
+        useCallStore.getState().setParticipantActivity(data.userId, normalized);
+        if (normalized) {
+          usePresenceStore.getState().setUserActivity(data.userId, normalized);
+        }
+      }
+    };
+
+    const handleParticipantJoined = (data: { callId: string }) => {
+      const activeCallId = useCallStore.getState().callId;
+      if (!data?.callId || data.callId !== activeCallId) return;
+      publishCurrentActivity();
     };
 
     const handleRelayAssigned = (data: {
@@ -332,15 +659,130 @@ export function useCallManager() {
       useCallStore.getState().setIsPeerRelayActive(true, data.relaySessionId);
     };
 
+    const handleRemoteScreenShareStart = (data: { callId: string; userId: string }) => {
+      if (data.callId === useCallStore.getState().callId) {
+        useCallStore.getState().setIsRemoteScreenSharing(true, data.userId);
+        playActionSound('stream_start');
+        webRTCRef.current.ensureReceiverTracks(data.userId);
+      }
+    };
+
+    const handleRemoteScreenShareStop = (data: { callId: string; userId: string }) => {
+      if (data.callId === useCallStore.getState().callId) {
+        useCallStore.getState().setIsRemoteScreenSharing(false, null);
+        playActionSound('stream_stop');
+
+        // Clean up stopped screen video tracks from remote stream entries
+        // Note: Do not call track.stop() on remote receiver tracks! That permanently breaks WebRTC receivers.
+        const remoteStreams = useCallStore.getState().remoteStreams;
+        const targetStream = remoteStreams[data.userId];
+        if (targetStream) {
+          targetStream.getVideoTracks().forEach((track) => {
+            targetStream.removeTrack(track);
+          });
+          useCallStore
+            .getState()
+            .setRemoteStream(data.userId, new MediaStream(targetStream.getTracks()));
+        }
+        const genericStream = remoteStreams['remote'];
+        if (genericStream) {
+          genericStream.getVideoTracks().forEach((track) => {
+            genericStream.removeTrack(track);
+          });
+          useCallStore
+            .getState()
+            .setRemoteStream('remote', new MediaStream(genericStream.getTracks()));
+        }
+
+        webRTCRef.current.ensureReceiverTracks(data.userId);
+      }
+    };
+
+    const handleRemoteReconnect = async (data: {
+      callId: string;
+      userId: string;
+      sdpOffer?: RTCSessionDescriptionInit;
+      iceCandidates?: RTCIceCandidateInit[];
+    }) => {
+      const currentCallId = useCallStore.getState().callId;
+      if (!data?.callId || data.callId !== currentCallId) return;
+
+      playActionSound('user_join');
+
+      if (data.sdpOffer) {
+        try {
+          // Reset PeerConnection without destroying existing local media tracks
+          webRTCRef.current.resetPeerConnectionOnly();
+
+          const currentCallType = useCallStore.getState().callType;
+          const gatheredCandidates: RTCIceCandidateInit[] = [];
+
+          const answer = await webRTCRef.current.handleOffer(
+            data.sdpOffer,
+            currentCallType,
+            (candidate) => {
+              socket.emit(WS_EVENTS.CALL_ICE_CANDIDATE, {
+                callId: data.callId,
+                candidate: candidate.toJSON(),
+                targetUserId: data.userId,
+              });
+            },
+            data.userId,
+          );
+
+          if (data.iceCandidates && Array.isArray(data.iceCandidates)) {
+            for (const cand of data.iceCandidates) {
+              await webRTCRef.current.addIceCandidate(cand);
+            }
+          }
+
+          socket.emit(WS_EVENTS.CALL_RECONNECT_ANSWER, {
+            callId: data.callId,
+            sdpAnswer: answer,
+            targetUserId: data.userId,
+            iceCandidates: gatheredCandidates,
+          });
+        } catch (err) {
+          console.warn('[useCallManager] handleRemoteReconnect failed:', err);
+        }
+      }
+    };
+
+    const handleReconnectAnswer = async (data: {
+      callId: string;
+      sdpAnswer: RTCSessionDescriptionInit;
+      iceCandidates?: RTCIceCandidateInit[];
+    }) => {
+      if (data.callId !== useCallStore.getState().callId) return;
+      try {
+        await webRTCRef.current.handleAnswer(data.sdpAnswer);
+        if (data.iceCandidates && Array.isArray(data.iceCandidates)) {
+          for (const cand of data.iceCandidates) {
+            await webRTCRef.current.addIceCandidate(cand);
+          }
+        }
+      } catch (err) {
+        console.warn('[useCallManager] handleReconnectAnswer failed:', err);
+      }
+    };
+
     socket.on(WS_EVENTS.CALL_INCOMING, handleIncoming);
     socket.on(WS_EVENTS.CALL_ACCEPTED, handleAccepted);
     socket.on(WS_EVENTS.CALL_ICE_CANDIDATE, handleIceCandidate);
     socket.on(WS_EVENTS.CALL_ICE_RESTART, handleRemoteIceRestart);
     socket.on(WS_EVENTS.CALL_ICE_RESTART_ANSWER, handleIceRestartAnswer);
+    socket.on(WS_EVENTS.CALL_RECONNECT, handleRemoteReconnect);
+    socket.on(WS_EVENTS.CALL_RECONNECT_ANSWER, handleReconnectAnswer);
     socket.on(WS_EVENTS.CALL_ENDED, handleEnded);
     socket.on(WS_EVENTS.CALL_MUTE, handleMute);
+    socket.on(WS_EVENTS.CALL_UNMUTE, handleMute);
+    socket.on(WS_EVENTS.CALL_SPEAKING, handleSpeaking);
     socket.on(WS_EVENTS.CALL_VIDEO_TOGGLE, handleVideoToggle);
+    socket.on(WS_EVENTS.CALL_SCREEN_SHARE_START, handleRemoteScreenShareStart);
+    socket.on(WS_EVENTS.CALL_SCREEN_SHARE_STOP, handleRemoteScreenShareStop);
     socket.on(WS_EVENTS.CALL_RELAY_ASSIGNED, handleRelayAssigned);
+    socket.on(WS_EVENTS.CALL_ACTIVITY, handleCallActivity);
+    socket.on(WS_EVENTS.CALL_PARTICIPANT_JOINED, handleParticipantJoined);
 
     return () => {
       socket.off(WS_EVENTS.CALL_INCOMING, handleIncoming);
@@ -348,12 +790,20 @@ export function useCallManager() {
       socket.off(WS_EVENTS.CALL_ICE_CANDIDATE, handleIceCandidate);
       socket.off(WS_EVENTS.CALL_ICE_RESTART, handleRemoteIceRestart);
       socket.off(WS_EVENTS.CALL_ICE_RESTART_ANSWER, handleIceRestartAnswer);
+      socket.off(WS_EVENTS.CALL_RECONNECT, handleRemoteReconnect);
+      socket.off(WS_EVENTS.CALL_RECONNECT_ANSWER, handleReconnectAnswer);
       socket.off(WS_EVENTS.CALL_ENDED, handleEnded);
       socket.off(WS_EVENTS.CALL_MUTE, handleMute);
+      socket.off(WS_EVENTS.CALL_UNMUTE, handleMute);
+      socket.off(WS_EVENTS.CALL_SPEAKING, handleSpeaking);
       socket.off(WS_EVENTS.CALL_VIDEO_TOGGLE, handleVideoToggle);
+      socket.off(WS_EVENTS.CALL_SCREEN_SHARE_START, handleRemoteScreenShareStart);
+      socket.off(WS_EVENTS.CALL_SCREEN_SHARE_STOP, handleRemoteScreenShareStop);
       socket.off(WS_EVENTS.CALL_RELAY_ASSIGNED, handleRelayAssigned);
+      socket.off(WS_EVENTS.CALL_ACTIVITY, handleCallActivity);
+      socket.off(WS_EVENTS.CALL_PARTICIPANT_JOINED, handleParticipantJoined);
     };
-  }, [socket, setIncomingCall, setCallStatus, resetCall, queryClient]);
+  }, [socket, setIncomingCall, setCallStatus, resetCall, queryClient, publishCurrentActivity]);
 
   const initiateCall = useCallback(
     async (params: {
@@ -362,12 +812,18 @@ export function useCallManager() {
       remoteUser: UserSnapshot;
     }) => {
       try {
+        globalSpeakerMixerManager.resumeAll();
+        webRTCRef.current.resumeAudioContext?.();
         setDurationSec(0);
         setCallStatus('calling');
         useCallStore.setState({
           callType: params.callType,
           conversationId: params.conversationId,
           remoteParticipant: params.remoteUser,
+          isVideoOff: params.callType !== 'video',
+          remoteVideoOff: params.remoteUser?.id
+            ? { [params.remoteUser.id]: params.callType !== 'video' }
+            : {},
         });
 
         playOutgoingRingtone();
@@ -454,6 +910,9 @@ export function useCallManager() {
   );
 
   const acceptCall = useCallback(async () => {
+    stopRingtone();
+    globalSpeakerMixerManager.resumeAll();
+    webRTCRef.current.resumeAudioContext?.();
     if (multiTabCoordinatorRef.current && multiTabCoordinatorRef.current.shouldSuppressRingtone()) {
       multiTabCoordinatorRef.current.sendSlaveAction('ACCEPT');
       return;
@@ -473,6 +932,10 @@ export function useCallManager() {
       callType,
       remoteParticipant: currentIncoming.caller,
       callStatus: 'connected',
+      isVideoOff: callType !== 'video',
+      remoteVideoOff: currentIncoming.caller?.id
+        ? { [currentIncoming.caller.id]: callType !== 'video' }
+        : {},
     });
 
     try {
@@ -548,6 +1011,7 @@ export function useCallManager() {
       const conversationId =
         currentIncoming?.conversationId || useCallStore.getState().conversationId;
 
+      clearCallSession();
       stopRingtone();
       clearIncomingCall();
       if (currentIncoming) {
@@ -600,8 +1064,9 @@ export function useCallManager() {
     const conversationId = useCallStore.getState().conversationId;
     const durationSec = useCallStore.getState().durationSec;
 
+    clearCallSession();
     stopRingtone();
-    playCallEndSound();
+    playActionSound('disconnect');
     cancelHaptic();
     triggerHaptic('callEnded');
 
@@ -622,58 +1087,136 @@ export function useCallManager() {
     webRTC.closeConnection();
     multiTabCoordinatorRef.current?.stop();
     multiTabCoordinatorRef.current = null;
+    wasMutedBeforeDeafenRef.current = false;
     resetCall();
   }, [socket, webRTC, resetCall, queryClient]);
 
+  const wasMutedBeforeDeafenRef = useRef(false);
+
   const toggleMute = useCallback(() => {
     const currentCallId = useCallStore.getState().callId;
-    const newMuted = !useCallStore.getState().isMuted;
+    const currentMuted = useCallStore.getState().isMuted;
+    const currentDeafened = useCallStore.getState().isDeafened;
+
+    // Discord behavior: clicking mute while deafened un-deafens and un-mutes you
+    if (currentDeafened) {
+      setIsDeafened(false);
+      setIsMuted(false);
+      wasMutedBeforeDeafenRef.current = false;
+      useCallStore.getState().setLocalIsSpeaking(false);
+      webRTC.toggleMuteTrack(false);
+
+      const remoteStreams = useCallStore.getState().remoteStreams;
+      Object.values(remoteStreams).forEach((stream) => {
+        stream.getAudioTracks().forEach((track) => {
+          track.enabled = true;
+        });
+      });
+
+      playActionSound('undeafen');
+      triggerHaptic('unmute');
+
+      if (currentCallId) {
+        socket.emit(WS_EVENTS.CALL_UNMUTE, {
+          callId: currentCallId,
+          isMuted: false,
+          isDeafened: false,
+        });
+      }
+      return;
+    }
+
+    const newMuted = !currentMuted;
     setIsMuted(newMuted);
+    if (newMuted) {
+      useCallStore.getState().setLocalIsSpeaking(false);
+    }
     webRTC.toggleMuteTrack(newMuted);
+    playActionSound(newMuted ? 'mute' : 'unmute');
     triggerHaptic(newMuted ? 'mute' : 'unmute');
 
     if (currentCallId) {
       socket.emit(newMuted ? WS_EVENTS.CALL_MUTE : WS_EVENTS.CALL_UNMUTE, {
         callId: currentCallId,
         isMuted: newMuted,
+        isDeafened: false,
       });
     }
-  }, [socket, webRTC, setIsMuted]);
+  }, [socket, webRTC, setIsMuted, setIsDeafened]);
 
   const toggleDeafen = useCallback(() => {
     const currentCallId = useCallStore.getState().callId;
     const currentDeafened = useCallStore.getState().isDeafened;
+    const currentMuted = useCallStore.getState().isMuted;
     const nextDeafened = !currentDeafened;
-    setIsDeafened(nextDeafened);
 
     if (nextDeafened) {
+      // Entering deafen mode: remember current mute state, then mute both
+      wasMutedBeforeDeafenRef.current = currentMuted;
+      setIsDeafened(true);
       setIsMuted(true);
+      useCallStore.getState().setLocalIsSpeaking(false);
       webRTC.toggleMuteTrack(true);
-    }
 
-    const remoteStreams = useCallStore.getState().remoteStreams;
-    Object.values(remoteStreams).forEach((stream) => {
-      stream.getAudioTracks().forEach((track) => {
-        track.enabled = !nextDeafened;
+      const remoteStreams = useCallStore.getState().remoteStreams;
+      Object.values(remoteStreams).forEach((stream) => {
+        stream.getAudioTracks().forEach((track) => {
+          track.enabled = false;
+        });
       });
-    });
 
-    triggerHaptic(nextDeafened ? 'mute' : 'unmute');
+      triggerHaptic('mute');
+      playActionSound('deafen');
 
-    if (currentCallId) {
-      socket.emit(nextDeafened ? WS_EVENTS.CALL_MUTE : WS_EVENTS.CALL_UNMUTE, {
-        callId: currentCallId,
-        isMuted: true,
+      if (currentCallId) {
+        socket.emit(WS_EVENTS.CALL_MUTE, {
+          callId: currentCallId,
+          isMuted: true,
+          isDeafened: true,
+        });
+      }
+    } else {
+      // Exiting deafen mode (turning sound back on)
+      setIsDeafened(false);
+
+      const remoteStreams = useCallStore.getState().remoteStreams;
+      Object.values(remoteStreams).forEach((stream) => {
+        stream.getAudioTracks().forEach((track) => {
+          track.enabled = true;
+        });
       });
+
+      // Discord behavior: restore mute state before deafen
+      // If user was already muted before deafening, stay muted; otherwise unmute
+      const shouldBeMuted = wasMutedBeforeDeafenRef.current;
+      setIsMuted(shouldBeMuted);
+      webRTC.toggleMuteTrack(shouldBeMuted);
+
+      triggerHaptic(shouldBeMuted ? 'mute' : 'unmute');
+      playActionSound('undeafen');
+
+      if (currentCallId) {
+        socket.emit(shouldBeMuted ? WS_EVENTS.CALL_MUTE : WS_EVENTS.CALL_UNMUTE, {
+          callId: currentCallId,
+          isMuted: shouldBeMuted,
+          isDeafened: false,
+        });
+      }
     }
   }, [socket, webRTC, setIsDeafened, setIsMuted]);
 
-  const toggleVideo = useCallback(() => {
+  const toggleVideo = useCallback(async () => {
     const currentCallId = useCallStore.getState().callId;
     const newVideoOff = !useCallStore.getState().isVideoOff;
     setIsVideoOff(newVideoOff);
-    webRTC.toggleVideoTrack(newVideoOff);
+    playActionSound(newVideoOff ? 'camera_off' : 'camera_on');
     triggerHaptic('cameraToggle');
+
+    const success = await webRTC.toggleVideoTrack(newVideoOff);
+    if (!success && !newVideoOff) {
+      setIsVideoOff(true);
+      return;
+    }
 
     if (currentCallId) {
       socket.emit(WS_EVENTS.CALL_VIDEO_TOGGLE, {
@@ -688,6 +1231,7 @@ export function useCallManager() {
     const currentlySharing = useCallStore.getState().isScreenSharing;
     triggerHaptic('screenShare');
     if (currentlySharing) {
+      playActionSound('stream_stop');
       await webRTC.stopScreenShare();
       if (currentCallId) {
         socket.emit(WS_EVENTS.CALL_SCREEN_SHARE_STOP, {
@@ -698,14 +1242,15 @@ export function useCallManager() {
     } else {
       try {
         await webRTC.startScreenShare();
+        playActionSound('stream_start');
         if (currentCallId) {
           socket.emit(WS_EVENTS.CALL_SCREEN_SHARE_START, {
             callId: currentCallId,
             isSharing: true,
           });
         }
-      } catch {
-        // User cancelled screen share picker
+      } catch (err) {
+        console.warn('[ScreenShare] startScreenShare cancelled or failed:', err);
       }
     }
   }, [socket, webRTC]);
@@ -739,6 +1284,7 @@ export function useCallManager() {
       registerMediaElement: webRTC.registerMediaElement,
       reactionEngine: webRTC.reactionEngine,
       sendReaction: webRTC.sendReaction,
+      broadcastSoundboard: webRTC.broadcastSoundboard,
       ptt,
       multiTabCoordinator: multiTabCoordinatorRef.current,
       confirmE2eeSasMatch: webRTC.confirmE2eeSasMatch,
@@ -765,6 +1311,7 @@ export function useCallManager() {
       webRTC.unblockAutoplay,
       webRTC.registerMediaElement,
       webRTC.sendReaction,
+      webRTC.broadcastSoundboard,
       webRTC.configureSVC,
       webRTC.switchSVCMode,
       webRTC.setSVCLayers,

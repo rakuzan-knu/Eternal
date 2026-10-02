@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, UploadCloud, Film, Loader2, Music, Sparkles, Zap } from 'lucide-react';
+import { X, UploadCloud, Film, Loader2, Zap } from 'lucide-react';
 import { useCreateReel } from '../api/reelsApi';
 import { compressVideo } from '../lib/videoCompressor';
 import { sanitizeMediaUrl } from '@/shared/lib/urlSecurity';
@@ -13,8 +13,6 @@ export const CreateReelModal: React.FC<CreateReelModalProps> = ({ isOpen, onClos
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
-  const [audioTitle, setAudioTitle] = useState('');
-  const [audioArtist, setAudioArtist] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isCompressing, setIsCompressing] = useState(false);
   const [compressionPercent, setCompressionPercent] = useState(0);
@@ -32,24 +30,6 @@ export const CreateReelModal: React.FC<CreateReelModalProps> = ({ isOpen, onClos
       if (previewUrl) URL.revokeObjectURL(previewUrl);
     };
   }, [previewUrl]);
-
-  const handleLoadDemoVideo = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    try {
-      const response = await fetch('/videos/sample-reel.mp4');
-      const blob = await response.blob();
-      const demoFile = new File([blob], 'demo-sample-reel.mp4', { type: 'video/mp4' });
-      setFile(demoFile);
-      setPreviewUrl('/videos/sample-reel.mp4');
-      setCompressionStats(null);
-      if (!caption) setCaption('Атмосферний кінематографічний рілс 🎬');
-      if (!audioTitle) setAudioTitle('CapCut · Монтувати тепер легко');
-      if (!audioArtist) setAudioArtist('CapCut');
-      setError(null);
-    } catch {
-      setError('Не вдалося завантажити демо-відео');
-    }
-  };
 
   if (!isOpen) return null;
 
@@ -126,8 +106,6 @@ export const CreateReelModal: React.FC<CreateReelModalProps> = ({ isOpen, onClos
     if (width) formData.append('width', String(width));
     if (height) formData.append('height', String(height));
     if (caption.trim()) formData.append('caption', caption.trim());
-    if (audioTitle.trim()) formData.append('audioTitle', audioTitle.trim());
-    if (audioArtist.trim()) formData.append('audioArtist', audioArtist.trim());
 
     try {
       await createReelMutation.mutateAsync(formData);
@@ -136,8 +114,6 @@ export const CreateReelModal: React.FC<CreateReelModalProps> = ({ isOpen, onClos
       setFile(null);
       setPreviewUrl(null);
       setCaption('');
-      setAudioTitle('');
-      setAudioArtist('');
       setCompressionStats(null);
     } catch (err: unknown) {
       const msg =
@@ -149,31 +125,37 @@ export const CreateReelModal: React.FC<CreateReelModalProps> = ({ isOpen, onClos
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 backdrop-blur-sm p-2 sm:p-4 overflow-y-auto animate-in fade-in duration-200"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-2 sm:p-4 overflow-y-auto animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg max-h-[92dvh] bg-zinc-900 border border-zinc-800 rounded-2xl overflow-y-auto shadow-2xl flex flex-col my-auto"
+        className="w-full max-w-lg max-h-[92dvh] glass-modal border border-black/10 dark:border-white/10 rounded-2xl sm:rounded-3xl overflow-y-auto shadow-2xl flex flex-col my-auto text-gray-900 dark:text-white backdrop-blur-3xl animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 border-b border-zinc-800 shrink-0">
-          <div className="flex items-center gap-2">
-            <Film className="w-5 h-5 text-pink-500" />
-            <h2 className="text-base sm:text-lg font-bold text-white">Create New Reel</h2>
+        <div className="flex items-center justify-between px-4 py-3.5 sm:px-6 sm:py-4 border-b border-black/10 dark:border-white/10 shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-pink-500/10 flex items-center justify-center text-pink-500">
+              <Film className="w-4 h-4" />
+            </div>
+            <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
+              Create New Reel
+            </h2>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+            className="p-1.5 rounded-full text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
+            aria-label="Close"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Content */}
-        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-3 sm:space-y-4 overflow-y-auto">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto">
           {error && (
-            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-sm">
+            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-500 dark:text-red-400 text-sm">
               {error}
             </div>
           )}
@@ -182,28 +164,20 @@ export const CreateReelModal: React.FC<CreateReelModalProps> = ({ isOpen, onClos
           {!previewUrl ? (
             <div
               onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-zinc-700 hover:border-pink-500 rounded-2xl p-5 sm:p-8 flex flex-col items-center justify-center cursor-pointer transition-colors bg-zinc-950/50 group"
+              className="border-2 border-dashed border-black/15 dark:border-white/15 hover:border-pink-500 rounded-2xl p-6 sm:p-9 flex flex-col items-center justify-center cursor-pointer transition-all bg-black/[0.02] dark:bg-white/[0.03] hover:bg-pink-500/[0.03] group"
             >
-              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-pink-500/10 flex items-center justify-center mb-2 sm:mb-3 group-hover:scale-110 transition-transform">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-pink-500/10 flex items-center justify-center mb-2 sm:mb-3 group-hover:scale-110 transition-transform shadow-xs">
                 <UploadCloud className="w-6 h-6 sm:w-7 sm:h-7 text-pink-500" />
               </div>
-              <p className="font-semibold text-white text-xs sm:text-sm text-center">
+              <p className="font-semibold text-gray-900 dark:text-white text-xs sm:text-sm text-center">
                 Select vertical video to upload
               </p>
-              <p className="text-[11px] sm:text-xs text-zinc-500 mt-1 text-center">
+              <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1 text-center">
                 MP4, WebM up to 150MB (9:16 recommended)
               </p>
-              <button
-                type="button"
-                onClick={handleLoadDemoVideo}
-                className="mt-3.5 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-pink-500/20 text-pink-300 hover:bg-pink-500/30 text-xs font-semibold transition-colors cursor-pointer border border-pink-500/30"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-pink-400" />
-                Використати тестове відео (5с)
-              </button>
             </div>
           ) : (
-            <div className="relative rounded-2xl overflow-hidden bg-black aspect-9/16 max-h-[min(280px,35dvh)] mx-auto flex items-center justify-center">
+            <div className="relative rounded-2xl overflow-hidden bg-black aspect-9/16 max-h-[min(280px,35dvh)] mx-auto flex items-center justify-center shadow-lg border border-black/10 dark:border-white/10">
               <video
                 src={sanitizeMediaUrl(previewUrl) || undefined}
                 controls
@@ -215,7 +189,7 @@ export const CreateReelModal: React.FC<CreateReelModalProps> = ({ isOpen, onClos
                   setFile(null);
                   setPreviewUrl(null);
                 }}
-                className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-full hover:bg-black/80"
+                className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-full hover:bg-black/80 cursor-pointer shadow-md"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -231,56 +205,32 @@ export const CreateReelModal: React.FC<CreateReelModalProps> = ({ isOpen, onClos
           />
 
           {/* Form Fields */}
-          <div className="space-y-3 sm:space-y-4">
+          <div className="space-y-3">
             <div>
-              <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Caption</label>
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                Caption
+              </label>
               <textarea
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
                 placeholder="Write a catchy caption..."
-                rows={2}
-                className="w-full bg-zinc-900/80 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-pink-500 transition-colors resize-none placeholder:text-zinc-600"
+                rows={3}
+                className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:border-pink-500 transition-colors resize-none"
               />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="flex items-center gap-1.5 text-xs font-semibold text-zinc-400 mb-1.5">
-                  <Music className="w-3.5 h-3.5 text-pink-400" />
-                  Audio Title
-                </label>
-                <input
-                  type="text"
-                  value={audioTitle}
-                  onChange={(e) => setAudioTitle(e.target.value)}
-                  placeholder="Original Audio"
-                  className="w-full bg-zinc-900/80 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-pink-500 transition-colors placeholder:text-zinc-600"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Artist</label>
-                <input
-                  type="text"
-                  value={audioArtist}
-                  onChange={(e) => setAudioArtist(e.target.value)}
-                  placeholder="Artist name"
-                  className="w-full bg-zinc-900/80 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-pink-500 transition-colors placeholder:text-zinc-600"
-                />
-              </div>
             </div>
           </div>
 
           {/* Video Compression Progress & Savings Feedback */}
           {isCompressing && (
             <div className="p-3.5 bg-indigo-500/10 border border-indigo-500/25 rounded-xl space-y-2">
-              <div className="flex items-center justify-between text-xs font-semibold text-indigo-300">
+              <div className="flex items-center justify-between text-xs font-semibold text-indigo-500 dark:text-indigo-300">
                 <span className="flex items-center gap-1.5">
-                  <Zap className="w-3.5 h-3.5 text-pink-400 animate-pulse" />
-                  Оптимізація відео перед відправкою на Cloudflare...
+                  <Zap className="w-3.5 h-3.5 text-pink-500 animate-pulse" />
+                  Optimizing video before uploading to Cloudflare...
                 </span>
                 <span className="font-mono">{compressionPercent}%</span>
               </div>
-              <div className="w-full bg-zinc-800 rounded-full h-2 overflow-hidden">
+              <div className="w-full bg-black/10 dark:bg-zinc-800 rounded-full h-2 overflow-hidden">
                 <div
                   className="bg-linear-to-r from-pink-500 to-indigo-500 h-full transition-all duration-150 rounded-full"
                   style={{ width: `${compressionPercent}%` }}
@@ -290,10 +240,10 @@ export const CreateReelModal: React.FC<CreateReelModalProps> = ({ isOpen, onClos
           )}
 
           {compressionStats && !isCompressing && (
-            <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-between text-xs font-medium text-emerald-300">
+            <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-between text-xs font-medium text-emerald-600 dark:text-emerald-300">
               <span className="flex items-center gap-1.5">
-                <Zap className="w-3.5 h-3.5 text-emerald-400" />
-                Стиснено для швидкого стрімінгу:
+                <Zap className="w-3.5 h-3.5 text-emerald-500" />
+                Compressed for fast streaming:
               </span>
               <span className="font-mono font-bold">
                 {(compressionStats.originalSize / (1024 * 1024)).toFixed(1)}MB →{' '}
@@ -308,24 +258,24 @@ export const CreateReelModal: React.FC<CreateReelModalProps> = ({ isOpen, onClos
               type="button"
               onClick={onClose}
               disabled={isCompressing || createReelMutation.isPending}
-              className="px-4 py-2 rounded-xl text-sm font-semibold text-zinc-400 hover:text-white hover:bg-white/5 disabled:opacity-50 transition-colors"
+              className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50 transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!file || isCompressing || createReelMutation.isPending}
-              className="px-6 py-2 rounded-xl text-sm font-semibold bg-linear-to-r from-pink-600 to-indigo-600 text-white hover:from-pink-500 hover:to-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg flex items-center gap-2"
+              className="px-6 py-2 rounded-xl text-sm font-semibold bg-linear-to-r from-pink-600 to-indigo-600 text-white hover:opacity-90 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg flex items-center gap-2 cursor-pointer"
             >
               {isCompressing ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Стиснення ({compressionPercent}%)...
+                  Compressing ({compressionPercent}%)...
                 </>
               ) : createReelMutation.isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Відправка на Cloudflare...
+                  Uploading to Cloudflare...
                 </>
               ) : (
                 'Post Reel'

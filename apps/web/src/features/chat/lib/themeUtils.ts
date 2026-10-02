@@ -226,6 +226,38 @@ export function getBubbleContrastTheme(
   return createContrastTheme(isLight);
 }
 
+/**
+ * Calculates perceived background luminance of the chat area based on theme config.
+ */
+export function getChatBackgroundLuminance(theme?: ChatThemeConfig | null): number {
+  if (!theme) return 0.08;
+
+  if (theme.backgroundType === 'image' && theme.bgImageUrl) {
+    const brightness = typeof theme.bgBrightness === 'number' ? theme.bgBrightness : 0.8;
+    const baseLum = theme.backgroundColor ? getLuminance(theme.backgroundColor) : 0.1;
+    return baseLum * brightness;
+  }
+
+  if (theme.backgroundType === 'solid') {
+    return getLuminance(theme.backgroundColor || '#0b0b0c');
+  }
+
+  if (
+    theme.backgroundType === 'gradient' &&
+    theme.gradientColors &&
+    theme.gradientColors.length > 0
+  ) {
+    const sum = theme.gradientColors.reduce((acc, c) => acc + getLuminance(c), 0);
+    return sum / theme.gradientColors.length;
+  }
+
+  if (theme.backgroundColor) {
+    return getLuminance(theme.backgroundColor);
+  }
+
+  return 0.08;
+}
+
 function createContrastTheme(isLight: boolean, explicitTextColor?: string): ContrastTheme {
   if (isLight) {
     return {
@@ -269,6 +301,12 @@ export function getChatBackgroundStyle(config: ChatThemeConfig): React.CSSProper
   };
 
   if (config.backgroundType === 'image' && config.bgImageUrl) {
+    const isDynamicMedia =
+      config.bgImageUrl.toLowerCase().endsWith('.gif') ||
+      config.bgImageUrl.toLowerCase().includes('.gif') ||
+      config.bgImageUrl.toLowerCase().endsWith('.mp4') ||
+      config.bgImageUrl.toLowerCase().endsWith('.webm');
+
     return {
       ...baseStyle,
       backgroundColor: 'transparent',
@@ -277,6 +315,7 @@ export function getChatBackgroundStyle(config: ChatThemeConfig): React.CSSProper
       backgroundPosition: 'center',
       backgroundRepeat: 'no-repeat',
       backgroundAttachment: 'initial',
+      filter: config.bgBlur && !isDynamicMedia ? `blur(${config.bgBlur}px)` : undefined,
     };
   }
 
@@ -358,6 +397,7 @@ export function getThemeTextStyle(
   // 1. Font Family & x-height scale / line-height / letter-spacing normalization
   if (fontMeta && fontId !== 'default') {
     style.fontFamily = fontMeta.fontFamily;
+    (style as Record<string, unknown>)['--chat-font-family'] = fontMeta.fontFamily;
     if (fontMeta.scale && fontMeta.scale !== 1) {
       style.fontSize = `${fontMeta.scale}em`;
     }
@@ -547,10 +587,22 @@ export function generateHarmonicGradient(baseHueInput?: number): {
 /**
  * Extracts dominant vibrant colors from an image / GIF using offscreen Canvas.
  */
+// Bounded cache for extracted colors from images to avoid duplicate canvas operations & allocations
+const dominantColorsCache = new Map<string, string[]>();
+
 export async function extractDominantColorsFromImage(
   imageSrcOrUrl: string,
   count = 4,
 ): Promise<string[]> {
+  if (!imageSrcOrUrl) {
+    return ['#8b5cf6', '#ec4899', '#3b82f6', '#10b981'];
+  }
+
+  const cacheKey = `${imageSrcOrUrl}_${count}`;
+  if (dominantColorsCache.has(cacheKey)) {
+    return dominantColorsCache.get(cacheKey)!;
+  }
+
   return new Promise((resolve) => {
     if (typeof window === 'undefined' || typeof document === 'undefined') {
       resolve(['#8b5cf6', '#ec4899', '#3b82f6', '#10b981']);
@@ -558,14 +610,32 @@ export async function extractDominantColorsFromImage(
     }
 
     const img = new Image();
-    img.crossOrigin = 'anonymous';
+    // Do NOT set crossOrigin for blob: or data: URLs as it causes browser security/CORS failures
+    if (!imageSrcOrUrl.startsWith('blob:') && !imageSrcOrUrl.startsWith('data:')) {
+      img.crossOrigin = 'anonymous';
+    }
+
+    const finish = (result: string[]) => {
+      // Memory cleanup: release image backing store and DOM references
+      img.onload = null;
+      img.onerror = null;
+      img.src = '';
+
+      if (dominantColorsCache.size >= 50) {
+        const firstKey = dominantColorsCache.keys().next().value;
+        if (firstKey) dominantColorsCache.delete(firstKey);
+      }
+      dominantColorsCache.set(cacheKey, result);
+      resolve(result);
+    };
 
     img.onload = () => {
+      let canvas: HTMLCanvasElement | null = null;
       try {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
+        canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
         if (!ctx) {
-          resolve(['#8b5cf6', '#ec4899', '#3b82f6', '#10b981']);
+          finish(['#8b5cf6', '#ec4899', '#3b82f6', '#10b981']);
           return;
         }
 
@@ -611,18 +681,23 @@ export async function extractDominantColorsFromImage(
           .map(([hex]) => hex);
 
         if (sorted.length === 0) {
-          resolve(['#8b5cf6', '#ec4899', '#3b82f6', '#10b981']);
+          finish(['#8b5cf6', '#ec4899', '#3b82f6', '#10b981']);
         } else {
-          // Pick up to count distinctive colors
-          resolve(sorted.slice(0, count));
+          finish(sorted.slice(0, count));
         }
       } catch {
-        resolve(['#8b5cf6', '#ec4899', '#3b82f6', '#10b981']);
+        finish(['#8b5cf6', '#ec4899', '#3b82f6', '#10b981']);
+      } finally {
+        if (canvas) {
+          canvas.width = 0;
+          canvas.height = 0;
+          canvas = null;
+        }
       }
     };
 
     img.onerror = () => {
-      resolve(['#8b5cf6', '#ec4899', '#3b82f6', '#10b981']);
+      finish(['#8b5cf6', '#ec4899', '#3b82f6', '#10b981']);
     };
 
     img.src = imageSrcOrUrl;
@@ -1143,22 +1218,36 @@ export function getBubbleShapeStyles(
 export function getBubbleStyle(
   config: ChatThemeConfig,
   isOwnMessage: boolean,
+  forcePseudoGlass?: boolean,
 ): { style: React.CSSProperties; className: string } {
+  const isDynamicBg =
+    forcePseudoGlass ||
+    config.backgroundType === 'shader' ||
+    Boolean(config.bgImageUrl) ||
+    Boolean(config.audioReactive);
+
   const opacity = isOwnMessage
     ? (config.bubbleOpacity ?? 0.95)
     : (config.incomingBubbleOpacity ?? 0.85);
   const blur = isOwnMessage ? (config.bubbleBlur ?? 16) : (config.incomingBubbleBlur ?? 16);
 
-  const glassStyle: React.CSSProperties = {
-    backdropFilter: blur > 0 ? `blur(${blur}px)` : undefined,
-    WebkitBackdropFilter: blur > 0 ? `blur(${blur}px)` : undefined,
-  };
+  // Per Telegram architecture: On dynamic backgrounds or when pseudo-glass is requested,
+  // NEVER use live backdropFilter blur on repeating message bubbles.
+  // Live backdrop-filter forces GPU copy-and-blur on every frame (60-120fps), choking the compositor.
+  // Instead, pseudo-glass uses dense alpha colors + crisp border + subtle inset glow.
+  const glassStyle: React.CSSProperties =
+    blur > 0 && !isDynamicBg
+      ? {
+          backdropFilter: `blur(${blur}px)`,
+          WebkitBackdropFilter: `blur(${blur}px)`,
+        }
+      : {};
 
   if (!isOwnMessage) {
     if (config.incomingBubbleColor) {
       const bg =
         config.incomingBubbleColor.startsWith('#') && opacity < 1
-          ? hexToRgba(config.incomingBubbleColor, opacity)
+          ? hexToRgba(config.incomingBubbleColor, isDynamicBg ? Math.max(opacity, 0.88) : opacity)
           : config.incomingBubbleColor;
 
       return {
@@ -1170,6 +1259,9 @@ export function getBubbleStyle(
           backgroundSize: 'auto',
           backgroundPosition: 'initial',
           borderColor: 'rgba(255, 255, 255, 0.12)',
+          boxShadow: isDynamicBg
+            ? 'inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 4px 16px rgba(0, 0, 0, 0.35)'
+            : undefined,
         },
         className: 'shadow-md border',
       };
@@ -1177,14 +1269,19 @@ export function getBubbleStyle(
     return {
       style: {
         ...glassStyle,
-        backgroundColor: `rgba(18, 19, 27, ${opacity})`,
+        backgroundColor: `rgba(22, 23, 34, ${isDynamicBg ? Math.max(opacity, 0.9) : opacity})`,
         backgroundImage: 'none',
         backgroundAttachment: 'initial',
         backgroundSize: 'auto',
         backgroundPosition: 'initial',
         borderColor: 'rgba(255, 255, 255, 0.08)',
+        boxShadow: isDynamicBg
+          ? 'inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 4px 16px rgba(0, 0, 0, 0.4)'
+          : undefined,
       },
-      className: 'backdrop-blur-xl border border-white/[0.08] shadow-[0_4px_16px_rgba(0,0,0,0.4)]',
+      className: isDynamicBg
+        ? 'border border-white/[0.08] shadow-[0_4px_16px_rgba(0,0,0,0.4)]'
+        : 'backdrop-blur-xl border border-white/[0.08] shadow-[0_4px_16px_rgba(0,0,0,0.4)]',
     };
   }
 
@@ -1194,8 +1291,11 @@ export function getBubbleStyle(
         ? config.bubbleGradientColors
         : ['#9333ea', '#6366f1'];
     const angle = config.bubbleGradientAngle ?? 180;
+    const effectiveOpacity = isDynamicBg ? Math.max(opacity, 0.9) : opacity;
     const rgbaColors =
-      opacity < 1 ? colors.map((c) => (c.startsWith('#') ? hexToRgba(c, opacity) : c)) : colors;
+      effectiveOpacity < 1
+        ? colors.map((c) => (c.startsWith('#') ? hexToRgba(c, effectiveOpacity) : c))
+        : colors;
 
     return {
       style: {
@@ -1206,6 +1306,9 @@ export function getBubbleStyle(
         backgroundSize: '100vw 100vh',
         backgroundPosition: 'center',
         borderColor: 'rgba(255, 255, 255, 0.25)',
+        boxShadow: isDynamicBg
+          ? 'inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 4px 20px rgba(0, 0, 0, 0.35)'
+          : undefined,
       },
       className: 'shadow-lg shadow-purple-500/20 border text-white',
     };
@@ -1213,8 +1316,11 @@ export function getBubbleStyle(
 
   if (config.bubbleType === 'solid') {
     const solidColor = config.bubbleColor || '#9333ea';
+    const effectiveOpacity = isDynamicBg ? Math.max(opacity, 0.9) : opacity;
     const bg =
-      solidColor.startsWith('#') && opacity < 1 ? hexToRgba(solidColor, opacity) : solidColor;
+      solidColor.startsWith('#') && effectiveOpacity < 1
+        ? hexToRgba(solidColor, effectiveOpacity)
+        : solidColor;
 
     return {
       style: {
@@ -1225,6 +1331,9 @@ export function getBubbleStyle(
         backgroundSize: 'auto',
         backgroundPosition: 'initial',
         borderColor: 'rgba(255, 255, 255, 0.2)',
+        boxShadow: isDynamicBg
+          ? 'inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 4px 20px rgba(0, 0, 0, 0.3)'
+          : undefined,
       },
       className: 'shadow-lg border',
     };
@@ -1235,8 +1344,11 @@ export function getBubbleStyle(
       ? config.bubbleGradientColors
       : ['#9333ea', '#6366f1'];
   const angle = config.bubbleGradientAngle ?? 135;
+  const effectiveOpacity = isDynamicBg ? Math.max(opacity, 0.9) : opacity;
   const rgbaColors =
-    opacity < 1 ? colors.map((c) => (c.startsWith('#') ? hexToRgba(c, opacity) : c)) : colors;
+    effectiveOpacity < 1
+      ? colors.map((c) => (c.startsWith('#') ? hexToRgba(c, effectiveOpacity) : c))
+      : colors;
 
   return {
     style: {
@@ -1247,6 +1359,9 @@ export function getBubbleStyle(
       backgroundSize: 'auto',
       backgroundPosition: 'initial',
       borderColor: 'rgba(255, 255, 255, 0.2)',
+      boxShadow: isDynamicBg
+        ? 'inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 4px 20px rgba(0, 0, 0, 0.35)'
+        : undefined,
     },
     className: 'shadow-lg shadow-purple-500/20 border',
   };

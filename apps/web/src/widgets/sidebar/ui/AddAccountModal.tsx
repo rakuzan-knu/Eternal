@@ -26,23 +26,23 @@ export function AddAccountModal({ onClose, onBack }: AddAccountModalProps) {
   return (
     <Modal onClose={onClose} className="w-full max-w-sm">
       {(close) => (
-        <div className="bg-[#1c1c20] border border-white/10 rounded-3xl shadow-2xl p-5 max-h-[90vh] overflow-y-auto">
+        <div className="glass-modal border border-black/10 dark:border-white/10 rounded-3xl shadow-2xl backdrop-blur-2xl p-5 max-h-[90vh] overflow-y-auto text-gray-950 dark:text-white">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={onBack}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white transition-colors active:scale-90"
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-black/5 hover:bg-black/10 dark:bg-white/5 text-gray-600 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-white transition-colors active:scale-90"
                 aria-label="Go back"
               >
                 <ArrowLeft size={16} />
               </button>
-              <h2 className="text-lg font-bold text-white">Add account</h2>
+              <h2 className="text-lg font-bold text-gray-950 dark:text-white">Add account</h2>
             </div>
             <button
               type="button"
               onClick={close}
-              className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white transition-colors active:scale-90"
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-black/5 hover:bg-black/10 dark:bg-white/5 text-gray-600 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-white transition-colors active:scale-90"
               aria-label="Close"
             >
               <X size={16} />

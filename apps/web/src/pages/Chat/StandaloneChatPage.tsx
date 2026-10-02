@@ -15,6 +15,8 @@ import {
   Mic,
   Send,
   MessageSquare,
+  Check,
+  Pencil,
 } from 'lucide-react';
 import Avatar from '@/shared/ui/Avatar';
 import GroupAvatarCollage from '@/shared/ui/GroupAvatarCollage';
@@ -27,9 +29,12 @@ import { useConversationRealtime } from '@/features/chat/model/useConversationRe
 import { useChatGapFill } from '@/features/chat/model/useChatGapFill';
 import { useQueryOnlineStatus } from '@/features/chat/model/usePresence';
 import { getConversationDisplay } from '@/features/chat/lib/getConversationDisplay';
-import { promptEditMessage } from '@/features/chat/lib/promptEditMessage';
 import { useDecryptedMessageBody } from '@/features/chat/model/useDecryptedMessageBody';
-import { E2eePinChangedError } from '@/features/chat/lib/e2ee/messageE2ee';
+import {
+  E2eePinChangedError,
+  ensureMessageIdentityRegistered,
+  extractPlainPreview,
+} from '@/features/chat/lib/e2ee/messageE2ee';
 import { VerifiedCheckmark } from '@/entities/profile/ui/VerifiedCheckmark';
 import MessageList from '@/features/chat/ui/MessageList';
 import MessageSearchPanel from '@/features/chat/ui/MessageSearchPanel';
@@ -53,6 +58,7 @@ export default function StandaloneChatPage() {
 
   useEffect(() => {
     initCrossTabSync();
+    void ensureMessageIdentityRegistered();
   }, []);
 
   useEffect(() => {
@@ -90,11 +96,41 @@ export default function StandaloneChatPage() {
     return useChatDraftsStore.getState().getDraft(conversationId)?.text || '';
   });
   const [rightPanel, setRightPanel] = useState<'details' | 'search' | null>(null);
+  const [renderedPanel, setRenderedPanel] = useState<'details' | 'search' | null>(null);
+  const [isPanelClosing, setIsPanelClosing] = useState(false);
+  const panelCloseTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (rightPanel) {
+      if (panelCloseTimerRef.current) {
+        clearTimeout(panelCloseTimerRef.current);
+        panelCloseTimerRef.current = null;
+      }
+      setIsPanelClosing(false);
+      setRenderedPanel(rightPanel);
+    } else if (renderedPanel) {
+      setIsPanelClosing(true);
+      panelCloseTimerRef.current = setTimeout(() => {
+        setRenderedPanel(null);
+        setIsPanelClosing(false);
+        panelCloseTimerRef.current = null;
+      }, 300);
+    }
+  }, [rightPanel]);
+
+  useEffect(() => {
+    return () => {
+      if (panelCloseTimerRef.current) {
+        clearTimeout(panelCloseTimerRef.current);
+      }
+    };
+  }, []);
   const [highlightMessageId, setHighlightMessageId] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<MessageView | null>(() => {
     if (!conversationId) return null;
     return useChatDraftsStore.getState().getDraft(conversationId)?.replyingTo ?? null;
   });
+  const [editingMessage, setEditingMessage] = useState<MessageView | null>(null);
   const [forwardingMessage, setForwardingMessage] = useState<MessageView | null>(null);
   const [isMaximized, setIsMaximized] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
@@ -108,6 +144,22 @@ export default function StandaloneChatPage() {
   );
 
   const { markRead } = actions;
+
+  // Global Ctrl+F / Cmd+F shortcut to smoothly open/toggle search panel in chat
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isF = e.code === 'KeyF' || e.key?.toLowerCase() === 'f' || e.key?.toLowerCase() === 'а';
+      if ((e.ctrlKey || e.metaKey) && isF) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        setRightPanel((prev) => (prev === 'search' ? null : 'search'));
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
+  }, []);
 
   useEffect(() => {
     if (conversationId) {
@@ -144,10 +196,38 @@ export default function StandaloneChatPage() {
     setReplyingTo(null);
   };
 
+  const handleSaveEdit = () => {
+    if (!editingMessage || !text.trim() || !conversationId) return;
+    actions.editMessage(editingMessage.id, text.trim(), editingMessage.body).catch(() => {});
+    setEditingMessage(null);
+    setText('');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessage(null);
+    setText('');
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Escape') {
+      if (editingMessage) {
+        e.preventDefault();
+        handleCancelEdit();
+        return;
+      }
+      if (replyingTo) {
+        e.preventDefault();
+        setReplyingTo(null);
+        return;
+      }
+    }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSend();
+      if (editingMessage) {
+        handleSaveEdit();
+      } else {
+        handleSend();
+      }
     }
   };
 
@@ -365,13 +445,14 @@ export default function StandaloneChatPage() {
               typingParticipants={typingParticipants}
               isGroup={conversation.type === 'GROUP'}
               onLoadMore={fetchNextPage}
-              onReply={setReplyingTo}
+              onReply={(message) => {
+                setEditingMessage(null);
+                setReplyingTo(message);
+              }}
               onEdit={(message) => {
-                void promptEditMessage(
-                  message,
-                  otherParticipant?.userId ?? null,
-                  actions.editMessage,
-                );
+                setReplyingTo(null);
+                setEditingMessage(message);
+                setText(extractPlainPreview(message.body || ''));
               }}
               onDelete={(messageId, forAll) => {
                 actions.deleteMessage(messageId, forAll).catch(() => {});
@@ -394,8 +475,32 @@ export default function StandaloneChatPage() {
             />
           </div>
 
+          {/* Editing banner */}
+          {editingMessage && (
+            <div className="flex items-center justify-between px-4 py-2 bg-[#161a26]/95 border-t border-white/10 text-xs shrink-0 select-none">
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <Pencil size={16} className="text-purple-400 shrink-0" />
+                <div className="w-[3px] h-7 rounded-full shrink-0 bg-purple-500" />
+                <div className="min-w-0">
+                  <span className="text-purple-400 font-semibold block">Editing</span>
+                  <p className="text-gray-300 truncate">
+                    {extractPlainPreview(editingMessage.body || '')}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-white rounded-full cursor-pointer"
+                title="Cancel (Esc)"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
+
           {/* Replying banner */}
-          {replyingTo && (
+          {replyingTo && !editingMessage && (
             <div className="flex items-center justify-between px-4 py-2 bg-[#161a26]/95 border-t border-white/10 text-xs shrink-0">
               <div className="min-w-0">
                 <span className="text-sky-400 font-semibold">
@@ -406,7 +511,7 @@ export default function StandaloneChatPage() {
               <button
                 type="button"
                 onClick={() => setReplyingTo(null)}
-                className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-white rounded-full"
+                className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-white rounded-full cursor-pointer"
               >
                 <X size={14} />
               </button>
@@ -437,8 +542,8 @@ export default function StandaloneChatPage() {
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Write a message..."
-                className="w-full h-10 px-4 rounded-full bg-white/5 border border-white/10 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-sky-500/50 transition-colors"
+                placeholder={editingMessage ? 'Edit message...' : 'Write a message...'}
+                className="w-full h-10 px-4 rounded-full bg-white/5 border border-white/10 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-purple-500/50 transition-colors"
               />
             </div>
 
@@ -450,11 +555,20 @@ export default function StandaloneChatPage() {
               <Smile size={19} />
             </button>
 
-            {text.trim() ? (
+            {editingMessage ? (
+              <button
+                type="button"
+                onClick={handleSaveEdit}
+                className="w-9 h-9 flex items-center justify-center rounded-xl bg-purple-600 hover:bg-purple-500 text-white transition-colors shrink-0 cursor-pointer shadow-[0_0_12px_rgba(168,85,247,0.5)]"
+                title="Save changes (Enter)"
+              >
+                <Check size={18} strokeWidth={2.8} />
+              </button>
+            ) : text.trim() ? (
               <button
                 type="button"
                 onClick={handleSend}
-                className="w-9 h-9 flex items-center justify-center rounded-xl bg-sky-500 text-white hover:bg-sky-400 transition-colors shrink-0"
+                className="w-9 h-9 flex items-center justify-center rounded-xl bg-sky-500 text-white hover:bg-sky-400 transition-colors shrink-0 cursor-pointer"
                 title="Send message"
               >
                 <Send size={16} />
@@ -471,32 +585,47 @@ export default function StandaloneChatPage() {
           </div>
         </div>
 
-        {/* Side Panels */}
-        {rightPanel === 'details' && (
-          <ConversationDetailsPanel
-            conversation={conversation}
-            display={display}
-            otherUserId={otherParticipant?.userId ?? null}
-            messages={messages}
-            onClose={() => setRightPanel(null)}
-            onOpenSearch={() => setRightPanel('search')}
-            onJumpToMessage={(msgId) => {
-              setRightPanel(null);
-              setHighlightMessageId(msgId);
-            }}
-          />
-        )}
+        {/* Smooth Animated Right Drawer Container */}
+        <aside
+          aria-label="Chat side panel"
+          className={`h-full flex-shrink-0 overflow-hidden transition-[width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+            rightPanel && !isPanelClosing ? 'w-[340px]' : 'w-0'
+          }`}
+        >
+          <div
+            className={`w-[340px] h-full flex flex-col flex-shrink-0 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+              rightPanel && !isPanelClosing
+                ? 'opacity-100 translate-x-0'
+                : 'opacity-0 translate-x-4 pointer-events-none'
+            }`}
+          >
+            {renderedPanel === 'details' && (
+              <ConversationDetailsPanel
+                conversation={conversation}
+                display={display}
+                otherUserId={otherParticipant?.userId ?? null}
+                messages={messages}
+                onClose={() => setRightPanel(null)}
+                onOpenSearch={() => setRightPanel('search')}
+                onJumpToMessage={(msgId) => {
+                  setRightPanel(null);
+                  setHighlightMessageId(msgId);
+                }}
+              />
+            )}
 
-        {rightPanel === 'search' && (
-          <MessageSearchPanel
-            conversationId={conversation.id}
-            onClose={() => setRightPanel(null)}
-            onJumpToMessage={(msgId) => {
-              setRightPanel(null);
-              setHighlightMessageId(msgId);
-            }}
-          />
-        )}
+            {renderedPanel === 'search' && (
+              <MessageSearchPanel
+                conversationId={conversation.id}
+                onClose={() => setRightPanel(null)}
+                onJumpToMessage={(msgId) => {
+                  setRightPanel(null);
+                  setHighlightMessageId(msgId);
+                }}
+              />
+            )}
+          </div>
+        </aside>
       </div>
 
       {forwardingMessage && (

@@ -161,13 +161,13 @@ export const ReelSendFriendsModal: React.FC<ReelSendFriendsModalProps> = ({
       }
 
       onShowToast(
-        `Надіслано ${selectedUserIds.length} ${selectedUserIds.length === 1 ? 'другу' : 'друзям'}!`,
+        `Sent to ${selectedUserIds.length} ${selectedUserIds.length === 1 ? 'friend' : 'friends'}!`,
       );
       setSelectedUserIds([]);
       setMessageText('');
       onClose();
     } catch {
-      onShowToast('Не вдалося надіслати відео');
+      onShowToast('Failed to send video');
     } finally {
       setIsSending(false);
     }
@@ -175,29 +175,31 @@ export const ReelSendFriendsModal: React.FC<ReelSendFriendsModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-md bg-[#18181b] border border-white/10 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+        className="relative w-full max-w-md glass-modal border border-black/10 dark:border-white/15 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col backdrop-blur-2xl text-gray-900 dark:text-white"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header matching user's Image 1: Search button, Title "Поділитися", Close X */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+        {/* Header matching user's Image 1: Search button, Title "Share", Close X */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-black/10 dark:border-white/10">
           <button
             type="button"
             onClick={() => setIsSearchOpen((prev) => !prev)}
-            className="p-1.5 rounded-full text-zinc-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-            aria-label="Пошук"
+            className="p-1.5 rounded-full text-gray-600 dark:text-zinc-300 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
+            aria-label="Search"
           >
             <Search className="w-5 h-5" />
           </button>
-          <h2 className="text-white font-bold text-base sm:text-lg tracking-tight">Поділитися</h2>
+          <h2 className="text-gray-900 dark:text-white font-bold text-base sm:text-lg tracking-tight">
+            Share
+          </h2>
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-full text-zinc-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-            aria-label="Закрити"
+            className="p-1.5 rounded-full text-gray-600 dark:text-zinc-300 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
+            aria-label="Close"
           >
             <X className="w-5 h-5" />
           </button>
@@ -205,15 +207,15 @@ export const ReelSendFriendsModal: React.FC<ReelSendFriendsModalProps> = ({
 
         {/* Expandable Search input */}
         {isSearchOpen && (
-          <div className="px-5 pt-3 pb-1 border-b border-white/5 animate-in slide-in-from-top-2 duration-150">
+          <div className="px-5 pt-3 pb-1 border-b border-black/5 dark:border-white/5 animate-in slide-in-from-top-2 duration-150">
             <div className="relative">
-              <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-gray-400 dark:text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Пошук друзів..."
-                className="w-full pl-9 pr-3 py-1.5 bg-zinc-800/80 rounded-xl text-xs sm:text-sm text-white placeholder-zinc-400 focus:outline-hidden focus:ring-1 focus:ring-rose-500 border border-white/10"
+                placeholder="Search friends..."
+                className="w-full pl-9 pr-3 py-1.5 bg-black/5 dark:bg-zinc-800/80 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-zinc-400 focus:outline-hidden focus:ring-1 focus:ring-rose-500 border border-black/10 dark:border-white/10"
                 autoFocus
               />
             </div>
@@ -227,7 +229,9 @@ export const ReelSendFriendsModal: React.FC<ReelSendFriendsModalProps> = ({
               <div className="w-6 h-6 border-2 border-rose-500 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : filteredFriends.length === 0 ? (
-            <p className="text-zinc-500 text-xs text-center w-full py-4">Друзів не знайдено</p>
+            <p className="text-gray-500 dark:text-zinc-500 text-xs text-center w-full py-4">
+              No friends found
+            </p>
           ) : (
             filteredFriends.map((friend) => {
               const isSelected = selectedUserIds.includes(friend.id);
@@ -246,7 +250,7 @@ export const ReelSendFriendsModal: React.FC<ReelSendFriendsModalProps> = ({
                         className={`w-14 h-14 rounded-full object-cover transition-all ${
                           isSelected
                             ? 'ring-2 ring-rose-500 scale-105'
-                            : 'ring-1 ring-white/20 group-hover:ring-white/40'
+                            : 'ring-1 ring-black/10 dark:ring-white/20 group-hover:ring-rose-400'
                         }`}
                       />
                     ) : (
@@ -254,7 +258,7 @@ export const ReelSendFriendsModal: React.FC<ReelSendFriendsModalProps> = ({
                         className={`w-14 h-14 rounded-full bg-linear-to-tr from-pink-600 to-indigo-600 flex items-center justify-center font-bold text-white text-base transition-all ${
                           isSelected
                             ? 'ring-2 ring-rose-500 scale-105'
-                            : 'ring-1 ring-white/20 group-hover:ring-white/40'
+                            : 'ring-1 ring-black/10 dark:ring-white/20 group-hover:ring-rose-400'
                         }`}
                       >
                         {friend.username.slice(0, 2).toUpperCase()}
@@ -263,12 +267,12 @@ export const ReelSendFriendsModal: React.FC<ReelSendFriendsModalProps> = ({
 
                     {/* Red Check Badge matching user's Image 1 */}
                     {isSelected && (
-                      <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-[#fe2c55] border-2 border-[#18181b] flex items-center justify-center shadow-md animate-in zoom-in-75 duration-150">
+                      <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-[#fe2c55] border-2 border-white dark:border-[#18181b] flex items-center justify-center shadow-md animate-in zoom-in-75 duration-150">
                         <Check className="w-3 h-3 text-white stroke-[3.5]" />
                       </div>
                     )}
                   </div>
-                  <span className="text-xs text-zinc-300 font-medium truncate max-w-[70px] group-hover:text-white">
+                  <span className="text-xs text-gray-700 dark:text-zinc-300 font-medium truncate max-w-[70px] group-hover:text-gray-950 dark:group-hover:text-white">
                     {friend.displayName || friend.username}
                   </span>
                 </button>
@@ -278,16 +282,16 @@ export const ReelSendFriendsModal: React.FC<ReelSendFriendsModalProps> = ({
         </div>
 
         {/* Horizontal Divider Line matching user's Image 1 */}
-        <div className="border-t border-white/10 w-full" />
+        <div className="border-t border-black/10 dark:border-white/10 w-full" />
 
         {/* Message Input & Send Button Section matching user's Image 1 */}
         <div className="p-4 flex flex-col gap-3">
           <textarea
             value={messageText}
             onChange={(e) => setMessageText(e.target.value)}
-            placeholder="Напиши повідомлення..."
+            placeholder="Write a message..."
             rows={2}
-            className="w-full bg-transparent text-white text-sm placeholder-zinc-500 focus:outline-hidden resize-none px-1"
+            className="w-full bg-transparent text-gray-900 dark:text-white text-sm placeholder-gray-400 dark:placeholder-zinc-500 focus:outline-hidden resize-none px-1"
           />
 
           <div className="flex items-center justify-end">
@@ -298,16 +302,16 @@ export const ReelSendFriendsModal: React.FC<ReelSendFriendsModalProps> = ({
               className={`px-6 py-2 rounded-xl font-bold text-sm text-white transition-all shadow-lg flex items-center gap-1.5 cursor-pointer ${
                 selectedUserIds.length > 0 && !isSending
                   ? 'bg-[#fe2c55] hover:bg-[#e0264b] active:scale-95'
-                  : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
+                  : 'bg-black/10 dark:bg-zinc-800 text-gray-400 dark:text-zinc-500 cursor-not-allowed'
               }`}
             >
               {isSending ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Надсилання...</span>
+                  <span>Sending...</span>
                 </>
               ) : (
-                <span>Надіслати</span>
+                <span>Send</span>
               )}
             </button>
           </div>

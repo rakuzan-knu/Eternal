@@ -13,6 +13,7 @@ import { integrationsApi } from '@/entities/showcase/api/integrationsApi';
 import { PlaylistActionMenu } from './PlaylistActionMenu';
 import { TrackActionMenu } from './TrackActionMenu';
 import type { MusicPlaylist, MusicRecentlyPlayedItem } from '../model/types';
+import { isSameTrackId } from '@/shared/lib/spotifyUrl';
 
 interface TopGridItem {
   id: string;
@@ -239,7 +240,8 @@ export const MusicHomeOverview: React.FC = () => {
           title: pl.title,
           coverUrl: pl.coverUrl,
           isPlaying:
-            isPlaying && Boolean(currentTrack && pl.tracks.some((t) => t.id === currentTrack.id)),
+            isPlaying &&
+            Boolean(currentTrack && pl.tracks.some((t) => isSameTrackId(t.id, currentTrack.id))),
           playlist: pl,
         });
         seenIds.add(pl.id);
@@ -292,7 +294,7 @@ export const MusicHomeOverview: React.FC = () => {
       const pl = item.playlist;
       if (pl.tracks.length === 0) return;
       const isThisPlaying =
-        isPlaying && currentTrack && pl.tracks.some((t) => t.id === currentTrack.id);
+        isPlaying && currentTrack && pl.tracks.some((t) => isSameTrackId(t.id, currentTrack.id));
       if (isThisPlaying) {
         togglePlay();
       } else {
@@ -312,7 +314,7 @@ export const MusicHomeOverview: React.FC = () => {
     }
 
     if (item.type === 'track' && item.track) {
-      if (currentTrack?.id === item.track.id) {
+      if (currentTrack && isSameTrackId(currentTrack.id, item.track.id)) {
         togglePlay();
       } else {
         playTrack(item.track, undefined, item.track.title);
@@ -333,7 +335,7 @@ export const MusicHomeOverview: React.FC = () => {
     e.stopPropagation();
     if (pl.tracks.length === 0) return;
     const isThisPlaying =
-      isPlaying && currentTrack && pl.tracks.some((t) => t.id === currentTrack.id);
+      isPlaying && currentTrack && pl.tracks.some((t) => isSameTrackId(t.id, currentTrack.id));
     if (isThisPlaying) {
       togglePlay();
     } else {
@@ -357,7 +359,7 @@ export const MusicHomeOverview: React.FC = () => {
     queueList: SpotifyTrack[],
   ) => {
     e.stopPropagation();
-    if (currentTrack?.id === track.id) {
+    if (currentTrack && isSameTrackId(currentTrack.id, track.id)) {
       togglePlay();
     } else {
       const q = queueList.filter((t) => t.id !== track.id);
@@ -425,8 +427,8 @@ export const MusicHomeOverview: React.FC = () => {
           onClick={() => setHomeCategory('all')}
           className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
             homeCategory === 'all'
-              ? 'bg-white text-black shadow-md shadow-white/10'
-              : 'bg-white/5 hover:bg-white/10 text-gray-300'
+              ? 'bg-gray-900 text-white shadow-md shadow-black/10 dark:bg-white dark:text-black dark:shadow-white/10'
+              : 'bg-black/5 hover:bg-black/10 text-gray-700 hover:text-gray-950 dark:bg-white/5 dark:hover:bg-white/10 dark:text-gray-300 dark:hover:text-white'
           }`}
         >
           All
@@ -436,8 +438,8 @@ export const MusicHomeOverview: React.FC = () => {
           onClick={() => setHomeCategory('music')}
           className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
             homeCategory === 'music'
-              ? 'bg-white text-black shadow-md shadow-white/10'
-              : 'bg-white/5 hover:bg-white/10 text-gray-300'
+              ? 'bg-gray-900 text-white shadow-md shadow-black/10 dark:bg-white dark:text-black dark:shadow-white/10'
+              : 'bg-black/5 hover:bg-black/10 text-gray-700 hover:text-gray-950 dark:bg-white/5 dark:hover:bg-white/10 dark:text-gray-300 dark:hover:text-white'
           }`}
         >
           Music
@@ -447,8 +449,8 @@ export const MusicHomeOverview: React.FC = () => {
           onClick={() => setHomeCategory('podcasts')}
           className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
             homeCategory === 'podcasts'
-              ? 'bg-white text-black shadow-md shadow-white/10'
-              : 'bg-white/5 hover:bg-white/10 text-gray-300'
+              ? 'bg-gray-900 text-white shadow-md shadow-black/10 dark:bg-white dark:text-black dark:shadow-white/10'
+              : 'bg-black/5 hover:bg-black/10 text-gray-700 hover:text-gray-950 dark:bg-white/5 dark:hover:bg-white/10 dark:text-gray-300 dark:hover:text-white'
           }`}
         >
           Podcasts
@@ -458,11 +460,13 @@ export const MusicHomeOverview: React.FC = () => {
       {/* When Podcasts category selected */}
       {homeCategory === 'podcasts' && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="w-16 h-16 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-400 mb-4 border border-purple-500/20">
+          <div className="w-16 h-16 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-600 dark:text-purple-400 mb-4 border border-purple-500/20">
             <Mic2 size={32} />
           </div>
-          <h2 className="text-xl font-bold text-white mb-2">Podcasts Coming Soon</h2>
-          <p className="text-sm text-gray-400 max-w-sm">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+            Podcasts Coming Soon
+          </h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 max-w-sm">
             We're adding support for podcasts and audio shows. Return to the music section to listen
             to your favorite tracks.
           </p>
@@ -499,12 +503,12 @@ export const MusicHomeOverview: React.FC = () => {
                   className={`group relative flex items-center justify-between rounded-xl border overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl backdrop-blur-xl ${
                     isFirstPlayingSlot
                       ? 'bg-purple-950/40 border-purple-500/30 hover:bg-purple-900/40 hover:border-purple-500/50 shadow-lg shadow-purple-950/40'
-                      : 'bg-white/[0.04] hover:bg-white/[0.09] border-white/5 hover:border-white/15'
+                      : 'glass-card border-black/5 dark:border-white/10 hover:border-black/20 dark:hover:border-white/20'
                   }`}
                 >
                   <div className="flex items-center gap-3.5 min-w-0 pr-3">
                     {/* Artwork */}
-                    <div className="w-16 h-16 shrink-0 bg-black/40 overflow-hidden border-r border-white/5 flex items-center justify-center">
+                    <div className="w-16 h-16 shrink-0 bg-black/10 dark:bg-black/40 overflow-hidden border-r border-black/5 dark:border-white/5 flex items-center justify-center">
                       {item.type === 'liked-songs' ? (
                         <div className="w-full h-full bg-gradient-to-br from-[#450af5] to-[#8e8ee5] flex items-center justify-center shadow-lg shadow-indigo-500/20">
                           <Heart size={24} className="text-white fill-white" />
@@ -524,11 +528,13 @@ export const MusicHomeOverview: React.FC = () => {
 
                     {/* Title & Subtitle */}
                     <div className="min-w-0">
-                      <span className="text-sm font-bold text-white group-hover:text-purple-300 group-hover:underline transition-colors line-clamp-2 leading-tight">
+                      <span className="text-sm font-bold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-300 group-hover:underline transition-colors line-clamp-2 leading-tight">
                         {item.title}
                       </span>
                       {item.subtitle && (
-                        <p className="text-xs text-gray-400 truncate mt-0.5">{item.subtitle}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                          {item.subtitle}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -536,7 +542,10 @@ export const MusicHomeOverview: React.FC = () => {
                   {/* Right side: Animated Equalizer if Playing & Floating Play Button */}
                   <div className="pr-3 flex items-center gap-2 shrink-0">
                     {item.isPlaying && (
-                      <Volume2 size={18} className="text-purple-400 animate-pulse shrink-0" />
+                      <Volume2
+                        size={18}
+                        className="text-purple-600 dark:text-purple-400 animate-pulse shrink-0"
+                      />
                     )}
                     <button
                       type="button"
@@ -560,11 +569,13 @@ export const MusicHomeOverview: React.FC = () => {
           {recentItems.length > 0 && (
             <div className="mb-10">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-white tracking-tight">Recently Played</h2>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
+                  Recently Played
+                </h2>
                 <button
                   type="button"
                   onClick={() => navigate('/music/section/0JQ5DAnM3wGh0gz1MXnukz')}
-                  className="text-xs font-bold text-gray-400 hover:text-white transition-colors"
+                  className="text-xs font-bold text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
                 >
                   Show all
                 </button>
@@ -572,10 +583,20 @@ export const MusicHomeOverview: React.FC = () => {
 
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                 {recentItems.slice(0, 6).map((item, idx) => {
-                  const isThisPlaying =
-                    isPlaying &&
-                    currentTrack &&
-                    (item.id === currentTrack.id || item.playlistId === currentTrack.contextName);
+                  const isTrackItem = item.type === 'track' || Boolean(item.track);
+                  let isThisPlaying = false;
+                  if (isPlaying && currentTrack) {
+                    if (isTrackItem) {
+                      isThisPlaying =
+                        isSameTrackId(item.id, currentTrack.id) ||
+                        (item.track ? isSameTrackId(item.track.id, currentTrack.id) : false);
+                    } else if (item.type === 'playlist') {
+                      isThisPlaying = Boolean(
+                        (currentTrack.contextName && currentTrack.contextName === item.title) ||
+                        (item.playlistId && currentTrack.contextName === item.playlistId),
+                      );
+                    }
+                  }
 
                   return (
                     <div
@@ -608,9 +629,9 @@ export const MusicHomeOverview: React.FC = () => {
                           handleTrackContextMenu(e, tr);
                         }
                       }}
-                      className="group relative p-3 rounded-2xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/5 hover:border-white/10 cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col"
+                      className="group relative p-3 rounded-2xl glass-card border border-black/5 dark:border-white/5 hover:border-black/15 dark:hover:border-white/15 cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col"
                     >
-                      <div className="relative w-full aspect-square rounded-xl overflow-hidden mb-3 bg-black/40 shadow-lg">
+                      <div className="relative w-full aspect-square rounded-xl overflow-hidden mb-3 bg-black/10 dark:bg-black/40 shadow-lg">
                         {item.coverUrl ? (
                           <img
                             src={item.coverUrl}
@@ -628,17 +649,36 @@ export const MusicHomeOverview: React.FC = () => {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (item.track) {
+                              if (isThisPlaying) {
+                                togglePlay();
+                              } else if (item.track) {
                                 handlePlayTrackCard(e, item.track, recommendedTracks);
-                              } else {
+                              } else if (item.type === 'playlist') {
                                 const pl =
                                   catalogPlaylists.find((p) => p.id === item.id) ||
                                   playlists.find((p) => p.id === item.id);
                                 if (pl) handlePlayPlaylistCard(e, pl);
+                              } else {
+                                const tr: SpotifyTrack = {
+                                  id: item.id,
+                                  title: item.title,
+                                  artist: item.artist || item.subtitle || 'Unknown Artist',
+                                  album: item.title,
+                                  albumArt: item.coverUrl || '',
+                                  durationMs: 180000,
+                                  previewUrl: null,
+                                  spotifyUrl: 'https://soundcloud.com',
+                                  source: 'soundcloud',
+                                };
+                                handlePlayTrackCard(e, tr, recommendedTracks);
                               }
                             }}
-                            aria-label={`Play ${item.title}`}
-                            className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-xl shadow-purple-600/40 flex items-center justify-center opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-200 hover:scale-105 active:scale-95"
+                            aria-label={`${isThisPlaying ? 'Pause' : 'Play'} ${item.title}`}
+                            className={`w-10 h-10 rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-xl shadow-purple-600/40 flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 ${
+                              isThisPlaying
+                                ? 'opacity-100 translate-y-0'
+                                : 'opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0'
+                            }`}
                           >
                             {isThisPlaying ? (
                               <Pause size={18} className="fill-white" />
@@ -649,11 +689,11 @@ export const MusicHomeOverview: React.FC = () => {
                         </div>
                       </div>
 
-                      <h3 className="text-sm font-bold text-white truncate group-hover:text-purple-300 group-hover:underline transition-colors">
+                      <h3 className="text-sm font-bold text-gray-900 dark:text-white truncate group-hover:text-purple-600 dark:group-hover:text-purple-300 group-hover:underline transition-colors">
                         {item.title}
                       </h3>
 
-                      <span className="text-xs text-gray-400 truncate mt-1">
+                      <span className="text-xs text-gray-500 dark:text-gray-400 truncate mt-1">
                         {item.type === 'playlist'
                           ? item.subtitle ||
                             (item.artist ? `Playlist • ${item.artist}` : 'Playlist')
@@ -669,27 +709,27 @@ export const MusicHomeOverview: React.FC = () => {
           {/* Section 2: Adaptive Recommendations */}
           <div className="mb-10">
             <div className="mb-4">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-purple-400 flex items-center gap-1.5">
-                <Sparkles size={13} className="text-purple-400" />
+              <span className="text-[11px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400 flex items-center gap-1.5">
+                <Sparkles size={13} className="text-purple-600 dark:text-purple-400" />
                 {recsSupertitle}
               </span>
-              <h2 className="text-xl font-bold text-white tracking-tight mt-0.5">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight mt-0.5">
                 Recommendations for Today
               </h2>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {recommendedTracks.slice(0, 6).map((tr, idx) => {
-                const isThisPlaying = isPlaying && currentTrack?.id === tr.id;
+                const isThisPlaying = isPlaying && isSameTrackId(currentTrack?.id, tr.id);
 
                 return (
                   <div
                     key={`home-rec-${tr.id}-${idx}`}
                     onClick={() => handleOpenTrack(tr.id)}
                     onContextMenu={(e) => handleTrackContextMenu(e, tr)}
-                    className="group relative p-3 rounded-2xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/5 hover:border-white/10 cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col"
+                    className="group relative p-3 rounded-2xl glass-card border border-black/5 dark:border-white/5 hover:border-black/15 dark:hover:border-white/15 cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col"
                   >
-                    <div className="relative w-full aspect-square rounded-xl overflow-hidden mb-3 bg-black/40 shadow-lg">
+                    <div className="relative w-full aspect-square rounded-xl overflow-hidden mb-3 bg-black/10 dark:bg-black/40 shadow-lg">
                       {tr.albumArt ? (
                         <img
                           src={tr.albumArt}
@@ -705,9 +745,20 @@ export const MusicHomeOverview: React.FC = () => {
                       <div className="absolute right-2 bottom-2">
                         <button
                           type="button"
-                          onClick={(e) => handlePlayTrackCard(e, tr, recommendedTracks)}
-                          aria-label={`Play ${tr.title}`}
-                          className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-xl shadow-purple-600/40 flex items-center justify-center opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-200 hover:scale-105 active:scale-95"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (isThisPlaying) {
+                              togglePlay();
+                            } else {
+                              handlePlayTrackCard(e, tr, recommendedTracks);
+                            }
+                          }}
+                          aria-label={`${isThisPlaying ? 'Pause' : 'Play'} ${tr.title}`}
+                          className={`w-10 h-10 rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-xl shadow-purple-600/40 flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 ${
+                            isThisPlaying
+                              ? 'opacity-100 translate-y-0'
+                              : 'opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0'
+                          }`}
                         >
                           {isThisPlaying ? (
                             <Pause size={18} className="fill-white" />
@@ -718,10 +769,12 @@ export const MusicHomeOverview: React.FC = () => {
                       </div>
                     </div>
 
-                    <h3 className="text-sm font-bold text-white truncate group-hover:text-purple-300 group-hover:underline transition-colors">
+                    <h3 className="text-sm font-bold text-gray-900 dark:text-white truncate group-hover:text-purple-600 dark:group-hover:text-purple-300 group-hover:underline transition-colors">
                       {tr.title}
                     </h3>
-                    <p className="text-xs text-gray-400 truncate mt-1">{tr.artist}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-1">
+                      {tr.artist}
+                    </p>
                   </div>
                 );
               })}
@@ -731,23 +784,27 @@ export const MusicHomeOverview: React.FC = () => {
           {/* Section 3: Popular Playlists */}
           <div className="mb-8">
             <div className="flex items-center gap-2 mb-4">
-              <Flame size={18} className="text-purple-400" />
-              <h2 className="text-xl font-bold text-white tracking-tight">Popular Playlists</h2>
+              <Flame size={18} className="text-purple-600 dark:text-purple-400" />
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
+                Popular Playlists
+              </h2>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {catalogPlaylists.slice(0, 6).map((pl, idx) => {
                 const isThisPlaying =
-                  isPlaying && currentTrack && pl.tracks.some((t) => t.id === currentTrack.id);
+                  isPlaying &&
+                  currentTrack &&
+                  pl.tracks.some((t) => isSameTrackId(t.id, currentTrack.id));
 
                 return (
                   <div
                     key={`home-pl-${pl.id}-${idx}`}
                     onClick={() => handleOpenPlaylist(pl.id)}
                     onContextMenu={(e) => handlePlaylistContextMenu(e, pl)}
-                    className="group relative p-3 rounded-2xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/5 hover:border-white/10 cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col"
+                    className="group relative p-3 rounded-2xl glass-card border border-black/5 dark:border-white/5 hover:border-black/15 dark:hover:border-white/15 cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col"
                   >
-                    <div className="relative w-full aspect-square rounded-xl overflow-hidden mb-3 bg-black/40 shadow-lg">
+                    <div className="relative w-full aspect-square rounded-xl overflow-hidden mb-3 bg-black/10 dark:bg-black/40 shadow-lg">
                       {pl.coverUrl ? (
                         <img
                           src={pl.coverUrl}
@@ -765,7 +822,11 @@ export const MusicHomeOverview: React.FC = () => {
                           type="button"
                           onClick={(e) => handlePlayPlaylistCard(e, pl)}
                           aria-label={`Play ${pl.title}`}
-                          className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-xl shadow-purple-600/40 flex items-center justify-center opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-200 hover:scale-105 active:scale-95"
+                          className={`w-10 h-10 rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-xl shadow-purple-600/40 flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 ${
+                            isThisPlaying
+                              ? 'opacity-100 translate-y-0'
+                              : 'opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0'
+                          }`}
                         >
                           {isThisPlaying ? (
                             <Pause size={18} className="fill-white" />
@@ -776,10 +837,10 @@ export const MusicHomeOverview: React.FC = () => {
                       </div>
                     </div>
 
-                    <h3 className="text-sm font-bold text-white truncate group-hover:text-purple-300 group-hover:underline transition-colors">
+                    <h3 className="text-sm font-bold text-gray-900 dark:text-white truncate group-hover:text-purple-600 dark:group-hover:text-purple-300 group-hover:underline transition-colors">
                       {pl.title}
                     </h3>
-                    <p className="text-xs text-gray-400 line-clamp-2 mt-1 leading-snug">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-1 leading-snug">
                       {pl.description || `Playlist by ${pl.creator}`}
                     </p>
                   </div>

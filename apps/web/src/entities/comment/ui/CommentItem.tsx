@@ -174,7 +174,7 @@ export function CommentItem({
                 <Link
                   to={`/profile/${comment.handle}`}
                   onClick={(e) => e.stopPropagation()}
-                  className="hover:underline inline-flex items-center text-xs font-semibold text-white truncate"
+                  className="hover:underline inline-flex items-center text-xs font-semibold text-gray-900 dark:text-white truncate"
                 >
                   {comment.author || comment.handle}
                 </Link>,
@@ -183,7 +183,7 @@ export function CommentItem({
               <Link
                 to={`/profile/${comment.handle}`}
                 onClick={(e) => e.stopPropagation()}
-                className="hover:underline inline-flex items-center text-xs font-semibold text-white truncate"
+                className="hover:underline inline-flex items-center text-xs font-semibold text-gray-900 dark:text-white truncate"
               >
                 {comment.author || comment.handle}
               </Link>
@@ -202,20 +202,20 @@ export function CommentItem({
 
             {/* Author Pill Badge */}
             {isAuthor && (
-              <span className="bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] px-1.5 py-0.2 rounded-full font-medium select-none">
+              <span className="bg-purple-500/20 text-purple-600 dark:text-purple-300 border border-purple-500/30 text-[10px] px-1.5 py-0.2 rounded-full font-medium select-none">
                 Author
               </span>
             )}
 
             {/* Pinned Badge */}
             {comment.isPinned && (
-              <span className="bg-purple-500/20 text-purple-300 border border-purple-500/40 text-[10px] px-1.5 py-0.2 rounded-full font-semibold flex items-center gap-1 shadow-[0_0_10px_rgba(168,85,247,0.3)]">
+              <span className="bg-purple-500/20 text-purple-600 dark:text-purple-300 border border-purple-500/40 text-[10px] px-1.5 py-0.2 rounded-full font-semibold flex items-center gap-1 shadow-[0_0_10px_rgba(168,85,247,0.3)]">
                 <Pin size={10} className="fill-purple-400 text-purple-400" />
                 Pinned
               </span>
             )}
 
-            <span className="text-[11px] text-gray-500 font-normal">
+            <span className="text-[11px] text-gray-500 dark:text-gray-400 font-normal">
               @{comment.handle} • {comment.time}
             </span>
           </div>
@@ -229,7 +229,7 @@ export function CommentItem({
                   e.stopPropagation();
                   setIsMenuOpen((prev) => !prev);
                 }}
-                className="opacity-0 group-hover:opacity-100 p-1 text-gray-500 hover:text-white hover:bg-white/10 rounded-lg transition-all cursor-pointer"
+                className="opacity-0 group-hover:opacity-100 p-1 text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-all cursor-pointer"
                 title="Options"
               >
                 <MoreHorizontal size={15} />
@@ -237,15 +237,19 @@ export function CommentItem({
 
               {isMenuOpen && (
                 <div
-                  className="absolute right-0 top-full mt-1 w-36 bg-[#161619] border border-white/10 rounded-2xl p-1 shadow-2xl flex flex-col gap-0.5 z-40 backdrop-blur-xl animate-fadeIn"
+                  className="absolute right-0 top-full mt-1 w-36 glass-modal bg-white dark:bg-[#161619] border border-black/10 dark:border-white/10 rounded-2xl p-1 shadow-2xl flex flex-col gap-0.5 z-40 backdrop-blur-xl animate-fadeIn text-gray-900 dark:text-white"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <button
                     type="button"
                     onClick={handleCopyText}
-                    className="flex items-center gap-2 w-full text-left px-2.5 py-1.5 rounded-xl text-xs text-gray-200 hover:text-white hover:bg-white/8 transition-colors cursor-pointer"
+                    className="flex items-center gap-2 w-full text-left px-2.5 py-1.5 rounded-xl text-xs text-gray-800 dark:text-gray-200 hover:text-gray-950 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/8 transition-colors cursor-pointer"
                   >
-                    {isCopied ? <Check size={13} className="text-green-400" /> : <Copy size={13} />}
+                    {isCopied ? (
+                      <Check size={13} className="text-green-500 dark:text-green-400" />
+                    ) : (
+                      <Copy size={13} />
+                    )}
                     <span>{isCopied ? 'Copied' : 'Copy text'}</span>
                   </button>
 
@@ -256,9 +260,9 @@ export function CommentItem({
                         setIsMenuOpen(false);
                         onPin(comment.id);
                       }}
-                      className="flex items-center gap-2 w-full text-left px-2.5 py-1.5 rounded-xl text-xs text-gray-200 hover:text-white hover:bg-white/8 transition-colors cursor-pointer"
+                      className="flex items-center gap-2 w-full text-left px-2.5 py-1.5 rounded-xl text-xs text-gray-800 dark:text-gray-200 hover:text-gray-950 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/8 transition-colors cursor-pointer"
                     >
-                      <Pin size={13} className="text-purple-400" />
+                      <Pin size={13} className="text-purple-500 dark:text-purple-400" />
                       <span>{comment.isPinned ? 'Unpin' : 'Pin to top'}</span>
                     </button>
                   )}
@@ -299,7 +303,7 @@ export function CommentItem({
         {/* Comment Text with Break Words Protection */}
         <div
           className={`text-sm mt-1 leading-relaxed wrap-break-word max-w-full ${
-            comment.isDeleted ? 'text-gray-500 italic' : 'text-gray-200'
+            comment.isDeleted ? 'text-gray-500 italic' : 'text-gray-800 dark:text-gray-200'
           }`}
         >
           <FormattedText text={comment.isDeleted ? '[Comment deleted]' : comment.text} />
@@ -310,7 +314,7 @@ export function CommentItem({
           const safeMedia = sanitizeImageUrl(comment.mediaUrl);
           if (!safeMedia || comment.isDeleted) return null;
           return (
-            <div className="mt-2 max-w-sm rounded-xl overflow-hidden border border-white/8 bg-black/40">
+            <div className="mt-2 max-w-sm rounded-xl overflow-hidden border border-black/10 dark:border-white/8 bg-black/40">
               <img
                 src={safeMedia}
                 alt="attachment"
@@ -335,7 +339,7 @@ export function CommentItem({
                   e.stopPropagation();
                   onReply(comment);
                 }}
-                className="text-gray-400 hover:text-purple-400 font-semibold transition-colors cursor-pointer"
+                className="text-gray-500 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400 font-semibold transition-colors cursor-pointer"
               >
                 Reply
               </button>
@@ -343,7 +347,7 @@ export function CommentItem({
 
             {/* Liked by author pill */}
             {comment.isLikedByAuthor && (
-              <span className="flex items-center gap-1 text-[11px] text-purple-400/90 font-medium">
+              <span className="flex items-center gap-1 text-[11px] text-purple-600 dark:text-purple-400 font-medium">
                 <Heart size={11} className="fill-purple-400 text-purple-400" />
                 Liked by author
               </span>
@@ -355,7 +359,9 @@ export function CommentItem({
               disabled={isLikePending}
               onClick={handleLikeClick}
               className={`flex items-center gap-1.5 font-medium transition-all duration-200 cursor-pointer ml-auto disabled:opacity-50 ${
-                optimisticLike.isLiked ? 'text-[#ec4899]' : 'text-gray-500 hover:text-gray-300'
+                optimisticLike.isLiked
+                  ? 'text-[#ec4899]'
+                  : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-300'
               }`}
               title={optimisticLike.isLiked ? 'Unlike' : 'Like'}
             >

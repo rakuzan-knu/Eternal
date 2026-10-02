@@ -90,9 +90,10 @@ describe('Sidebar', () => {
       '/notifications',
     );
     expect(screen.getByText('Create').closest('a')).toHaveAttribute('href', '/create');
+    expect(screen.getByText('Shop').closest('a')).toHaveAttribute('href', '/shop');
   });
 
-  it('opens Create menu and clicks Создать пост, Опубликовать историю, and Создать рилс', () => {
+  it('opens Create menu and clicks Create Post, Create Story, and Create Reel', () => {
     act(() => {
       renderWithProviders(<Sidebar />);
     });
@@ -126,8 +127,8 @@ describe('Sidebar', () => {
       renderWithProviders(<Sidebar />, { initialEntries: ['/search'] });
     });
 
-    expect(screen.getByText('Search').closest('a')).toHaveClass('bg-white/10');
-    expect(screen.getByText('Home').closest('a')).not.toHaveClass('bg-white/10');
+    expect(screen.getByText('Search').closest('a')).toHaveClass('dark:bg-white/10');
+    expect(screen.getByText('Home').closest('a')).not.toHaveClass('dark:bg-white/10');
   });
 
   it('falls back to a generic profile link when no user is authenticated', () => {

@@ -55,15 +55,45 @@ export function useQueryOnlineStatus(userIds: string[]) {
   useEffect(() => {
     if (!key) return;
     const requestedIds = key.split(',');
-    socket.emit(
-      'getOnlineStatus',
-      { userIds: requestedIds },
-      (res: { status: string; online?: string[]; activities?: Record<string, any> }) => {
-        if (res?.status === 'ok') {
-          if (res.online) setKnownStatuses(requestedIds, res.online);
-          if (res.activities) setUserActivities(res.activities);
-        }
-      },
-    );
+
+    const query = () => {
+      socket.emit(
+        'getOnlineStatus',
+        { userIds: requestedIds },
+        (res: { status: string; online?: string[]; activities?: Record<string, any> }) => {
+          if (res?.status === 'ok') {
+            if (res.online) setKnownStatuses(requestedIds, res.online);
+            if (res.activities) setUserActivities(res.activities);
+          }
+        },
+      );
+    };
+
+    // 1. Initial query
+    query();
+
+    // 2. Query when socket connects / reconnects
+    socket.on('connect', query);
+
+    // 3. Periodic refresh to reconcile any missed transitions (every 10s)
+    const interval = setInterval(() => {
+      if (socket.connected) {
+        query();
+      }
+    }, 10_000);
+
+    // 4. Query when user focuses tab
+    const handleFocus = () => {
+      if (socket.connected) {
+        query();
+      }
+    };
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      socket.off('connect', query);
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, [key, socket, setKnownStatuses, setUserActivities]);
 }

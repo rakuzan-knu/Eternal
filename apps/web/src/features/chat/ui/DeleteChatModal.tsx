@@ -30,7 +30,7 @@ export default function DeleteChatModal({
   return (
     <Modal onClose={onClose} className="w-full max-w-sm">
       {() => (
-        <div className="bg-[#151922]/95 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 shadow-2xl text-left">
+        <div className="glass-modal border border-white/10 rounded-3xl p-6 shadow-2xl text-left">
           <div className="flex items-center gap-3 mb-4">
             <div className="relative flex-shrink-0">
               {isGroup ? (

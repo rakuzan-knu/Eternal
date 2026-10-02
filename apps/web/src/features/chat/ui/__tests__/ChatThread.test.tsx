@@ -16,6 +16,15 @@ vi.mock('../../api/chatApi', () => ({
   },
 }));
 
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
+
 describe('ChatThread', () => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -233,5 +242,37 @@ describe('ChatThread', () => {
       </QueryClientProvider>,
     );
     expect(screen.getByTestId('composer-outer-wrapper')).toHaveStyle({ paddingBottom: '8px' });
+  });
+
+  it('closes right panel on Esc, and closes chat navigating to /messages when pressing Esc while idle', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <ChatThread conversation={mockConv} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    // 1. Toggle search panel
+    const searchBtn = screen.getByTitle('Search messages (Ctrl+F)');
+    fireEvent.click(searchBtn);
+    expect(screen.getByText('Search')).toBeInTheDocument();
+
+    // 2. Press Escape -> closes search panel
+    fireEvent.keyDown(window, { key: 'Escape' });
+    act(() => {
+      vi.advanceTimersByTime(350);
+    });
+    expect(screen.queryByText('Search')).not.toBeInTheDocument();
+
+    // 3. Press Escape while idle in chat -> triggers smooth exit and navigates to /messages
+    mockNavigate.mockClear();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+    expect(mockNavigate).toHaveBeenCalledWith('/messages');
+    vi.useRealTimers();
   });
 });

@@ -5,14 +5,18 @@ interface ModalProps {
   onClose: () => void;
   children: (requestClose: () => void) => React.ReactNode;
   className?: string;
+  zIndex?: string;
   exitDurationMs?: number;
+  closeOnInputEscape?: boolean;
 }
 
 export default function Modal({
   onClose,
   children,
   className = '',
+  zIndex = 'z-[100000]',
   exitDurationMs = 180,
+  closeOnInputEscape = false,
 }: ModalProps) {
   const [isClosing, setIsClosing] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -33,17 +37,34 @@ export default function Modal({
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') requestClose();
+      if (e.key === 'Escape') {
+        const target = e.target as HTMLElement | null;
+        if (
+          !closeOnInputEscape &&
+          target &&
+          (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')
+        ) {
+          return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        requestClose();
+      }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [requestClose]);
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
+  }, [requestClose, closeOnInputEscape]);
 
   return createPortal(
     <div
+      role="dialog"
+      aria-modal="true"
+      data-modal-open="true"
+      data-submodal-open="true"
       onClick={requestClose}
-      className={`fixed inset-0 z-[300] flex items-center justify-center transition-colors duration-200 ${
-        isClosing ? 'bg-black/0' : 'bg-black/60'
+      className={`fixed inset-0 ${zIndex} flex items-center justify-center transition-colors duration-200 ${
+        isClosing ? 'bg-black/0' : 'bg-black/60 backdrop-blur-xs'
       }`}
     >
       <div

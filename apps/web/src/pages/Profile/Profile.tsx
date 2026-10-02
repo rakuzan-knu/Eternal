@@ -293,7 +293,7 @@ export default function ProfilePage() {
             breadcrumbs: [{ name: profileName, url: `/@${user.username}` }],
           }}
         />
-        <div className="bg-white/2 backdrop-blur-2xl border border-white/5 rounded-[2.5rem] overflow-hidden shadow-[0_12px_40px_rgba(0,0,0,0.6)] mb-6">
+        <div className="glass-card border border-white/5 rounded-[2.5rem] overflow-hidden shadow-[0_12px_40px_rgba(0,0,0,0.6)] mb-6 transition-colors duration-200">
           <ProfileHeader
             userId={user.id}
             displayName={user.displayName}

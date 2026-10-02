@@ -1,12 +1,20 @@
 import { create } from 'zustand';
 import { registerSessionResetHandler } from '@/shared/model/resetSession';
 import type { CallSessionView, UserSnapshot, ZkpCallProof } from '@common/contracts';
+import type { UserActivityStatus } from '@/shared/model/usePresenceStore';
 import type { FileTransferItem } from '../lib/webrtc/p2pFileTransfer';
 import type { VoiceFXMode } from '../lib/webrtc/voiceFX';
 import type { VideoCodecPreference } from '../lib/webrtc/sdpMunger';
 import type { LiveConnectionStats } from '../lib/webrtc/statsCollector';
 import type { SuperResMode } from '../lib/webrtc/customVideoPipeline';
 import { type ChaosConfig, type ChaosPreset, CHAOS_PRESETS } from '../lib/webrtc/chaosEngine';
+import type { VirtualBackgroundMode } from '../lib/webrtc/virtualBackground';
+import { useWatchTogetherStore } from './useWatchTogetherStore';
+import {
+  saveCallSession,
+  clearCallSession,
+  updateCallSession,
+} from '../lib/callSessionPersistence';
 
 export interface IncomingCallData {
   callId: string;
@@ -59,7 +67,13 @@ export interface CallStoreState {
   isMuted: boolean;
   isDeafened: boolean;
   isVideoOff: boolean;
+  remoteVideoOff: Record<string, boolean>;
+  remoteMutedUsers: Record<string, boolean>;
+  remoteDeafenedUsers: Record<string, boolean>;
+  participantActivities: Record<string, UserActivityStatus | null>;
   isScreenSharing: boolean;
+  isRemoteScreenSharing: boolean;
+  remoteScreenSharerId: string | null;
   isPiP: boolean;
   isSettingsOpen: boolean;
   connectionQuality: ConnectionQuality;
@@ -75,11 +89,12 @@ export interface CallStoreState {
   sasEmojis: string | null;
 
   // Virtual Background & Blur
-  virtualBackground: 'none' | 'blur' | 'office' | 'cyber' | 'nature';
+  virtualBackground: VirtualBackgroundMode;
 
   // Voice Activity Detection & Noise Gate (Discord style)
   isVADEnabled: boolean;
   noiseGateThreshold: number; // dB, e.g. -45
+  inputVolume: number; // 0-100%
   localIsSpeaking: boolean;
   remoteIsSpeaking: boolean;
   currentAudioLevel: number; // 0-100
@@ -87,6 +102,7 @@ export interface CallStoreState {
   // Screen Share with Audio & Sidechain Ducking
   isScreenAudioSharing: boolean;
   isSidechainDuckingEnabled: boolean;
+  showStreamPreview: boolean;
 
   // Spatial Audio / 3D-Sound (Disabled by default)
   isSpatialAudioEnabled: boolean;
@@ -154,8 +170,14 @@ export interface CallStoreState {
   // Push-to-Talk (PTT) with Audio Release Tail & Radio Chirps
   isPTTEnabled: boolean;
   isPTTActive: boolean;
+  pttKey: string;
   pttReleaseTailMs: number;
   isPTTSoundEnabled: boolean;
+
+  // Video Mirror & Audio Warnings
+  isMirrorVideo: boolean;
+  warnNoAudioInput: boolean;
+  warnMutedSpeaking: boolean;
 
   // Traveler / Eco-Mode (Battery & Data Saver)
   isTravelerModeEnabled: boolean;
@@ -194,6 +216,16 @@ export interface CallStoreState {
   isSoundboardOpen: boolean;
   setIsSoundboardOpen: (open: boolean) => void;
   toggleSoundboard: () => void;
+  soundboardActiveEvents: Record<
+    string,
+    { soundId: string; name: string; emoji: string; senderUserId: string; timestamp: number }
+  >;
+  triggerSoundboardEvent: (event: {
+    soundId: string;
+    name: string;
+    emoji: string;
+    senderUserId: string;
+  }) => void;
 
   // AI Live Summary («What did I miss?»)
   isLiveSummaryOpen: boolean;
@@ -228,9 +260,15 @@ export interface CallStoreState {
   removeRemoteStream: (userId: string) => void;
   setScreenShareStream: (stream: MediaStream | null) => void;
   setIsMuted: (isMuted: boolean) => void;
+  setRemoteParticipantMuted: (userId: string, isMuted: boolean) => void;
+  setRemoteParticipantDeafened: (userId: string, isDeafened: boolean) => void;
+  setParticipantActivity: (userId: string, activity: UserActivityStatus | null) => void;
+  resetParticipantActivities: () => void;
   setIsDeafened: (isDeafened: boolean) => void;
   setIsVideoOff: (isVideoOff: boolean) => void;
+  setRemoteVideoOff: (userId: string, isVideoOff: boolean) => void;
   setIsScreenSharing: (isScreenSharing: boolean) => void;
+  setIsRemoteScreenSharing: (isSharing: boolean, sharerId?: string | null) => void;
   setIsPiP: (isPiP: boolean) => void;
   setIsSettingsOpen: (isOpen: boolean) => void;
   setConnectionQuality: (quality: ConnectionQuality) => void;
@@ -244,7 +282,7 @@ export interface CallStoreState {
     sasEmojis?: string | null,
   ) => void;
   setSasEmojis: (emojis: string | null) => void;
-  setVirtualBackground: (bg: 'none' | 'blur' | 'office' | 'cyber' | 'nature') => void;
+  setVirtualBackground: (bg: VirtualBackgroundMode) => void;
   setIsVADEnabled: (enabled: boolean) => void;
   setNoiseGateThreshold: (threshold: number) => void;
   setLocalIsSpeaking: (isSpeaking: boolean) => void;
@@ -252,6 +290,7 @@ export interface CallStoreState {
   setCurrentAudioLevel: (level: number) => void;
   setIsScreenAudioSharing: (isSharing: boolean) => void;
   setIsSidechainDuckingEnabled: (enabled: boolean) => void;
+  setShowStreamPreview: (show: boolean) => void;
   setIsSpatialAudioEnabled: (enabled: boolean) => void;
   setVoiceFX: (mode: VoiceFXMode) => void;
   setIsReconnecting: (isReconnecting: boolean) => void;
@@ -291,10 +330,15 @@ export interface CallStoreState {
   setChaosPreset: (preset: ChaosPreset) => void;
   setIsSatelliteModeEnabled: (enabled: boolean) => void;
   setIsVisualRingingEnabled: (enabled: boolean) => void;
+  setInputVolume: (vol: number) => void;
   setIsPTTEnabled: (enabled: boolean) => void;
   setIsPTTActive: (active: boolean) => void;
+  setPttKey: (key: string) => void;
   setPttReleaseTailMs: (ms: number) => void;
   setIsPTTSoundEnabled: (enabled: boolean) => void;
+  setIsMirrorVideo: (enabled: boolean) => void;
+  setWarnNoAudioInput: (enabled: boolean) => void;
+  setWarnMutedSpeaking: (enabled: boolean) => void;
   setIsTravelerModeEnabled: (enabled: boolean) => void;
   setIsTabHidden: (hidden: boolean) => void;
   setIsSynestheticVisualizerEnabled: (enabled: boolean) => void;
@@ -325,8 +369,13 @@ export const useCallStore = create<CallStoreState>((set) => ({
 
   isMuted: false,
   isDeafened: false,
-  isVideoOff: false,
+  isVideoOff: true,
+  remoteVideoOff: {},
+  remoteMutedUsers: {},
+  remoteDeafenedUsers: {},
   isScreenSharing: false,
+  isRemoteScreenSharing: false,
+  remoteScreenSharerId: null,
   isPiP: false,
   isSettingsOpen: false,
   connectionQuality: 'excellent',
@@ -343,11 +392,13 @@ export const useCallStore = create<CallStoreState>((set) => ({
 
   isVADEnabled: true,
   noiseGateThreshold: -45,
+  inputVolume: 100,
   localIsSpeaking: false,
   remoteIsSpeaking: false,
   currentAudioLevel: 0,
   isScreenAudioSharing: false,
   isSidechainDuckingEnabled: true,
+  showStreamPreview: false,
   isSpatialAudioEnabled: false,
   voiceFX: 'none',
   isReconnecting: false,
@@ -356,7 +407,7 @@ export const useCallStore = create<CallStoreState>((set) => ({
   fileTransfers: {},
   isFileTransferOpen: false,
 
-  preferredVideoCodec: 'av1',
+  preferredVideoCodec: 'h264',
   isStatsHUDOpen: false,
   liveStats: null,
   isSyncPlayOpen: false,
@@ -365,7 +416,7 @@ export const useCallStore = create<CallStoreState>((set) => ({
   isWhiteboardOpen: false,
   isWhiteboardOverlay: false,
 
-  webGpuSuperResMode: 'cas',
+  webGpuSuperResMode: 'off',
   isWebCodecsEnabled: false,
   isGhostMode: false,
   zkpProof: null,
@@ -391,8 +442,12 @@ export const useCallStore = create<CallStoreState>((set) => ({
   isVisualRingingEnabled: true,
   isPTTEnabled: false,
   isPTTActive: false,
+  pttKey: 'KeyV',
   pttReleaseTailMs: 250,
   isPTTSoundEnabled: true,
+  isMirrorVideo: true,
+  warnNoAudioInput: true,
+  warnMutedSpeaking: true,
   isTravelerModeEnabled: false,
   isTabHidden: false,
   isSynestheticVisualizerEnabled: false,
@@ -408,6 +463,8 @@ export const useCallStore = create<CallStoreState>((set) => ({
   screenAnnotationColor: '#ef4444',
 
   isSoundboardOpen: false,
+  soundboardActiveEvents: {},
+  participantActivities: {},
   isLiveSummaryOpen: false,
   isDualCameraOpen: false,
   isHolographicCallOpen: false,
@@ -423,59 +480,187 @@ export const useCallStore = create<CallStoreState>((set) => ({
   selectedVideoInput: '',
   selectedAudioOutput: '',
 
-  setCallStatus: (callStatus) => set({ callStatus }),
+  setCallStatus: (callStatus) =>
+    set((state) => {
+      if (callStatus === 'connected' && state.callId && state.conversationId) {
+        saveCallSession({
+          callId: state.callId,
+          conversationId: state.conversationId,
+          callType: state.callType,
+          remoteParticipant: state.remoteParticipant,
+          isVideoOff: state.isVideoOff,
+          isMuted: state.isMuted,
+          isDeafened: state.isDeafened,
+          startedAt: Date.now(),
+        });
+      } else if (callStatus === 'idle' || callStatus === 'ended') {
+        clearCallSession();
+      }
+      return { callStatus };
+    }),
   setIncomingCall: (incomingCall) => set({ incomingCall }),
   clearIncomingCall: () => set({ incomingCall: null }),
   setActiveCall: (activeCall, remoteParticipant) =>
-    set((state) => ({
-      activeCall,
-      callId: activeCall?.id ?? state.callId,
-      conversationId: activeCall?.conversationId ?? state.conversationId,
-      callType: (activeCall?.type?.toLowerCase() as 'audio' | 'video') || state.callType,
-      remoteParticipant:
-        remoteParticipant !== undefined ? remoteParticipant : state.remoteParticipant,
-    })),
+    set((state) => {
+      const nextCallId = activeCall?.id ?? state.callId;
+      const nextConversationId = activeCall?.conversationId ?? state.conversationId;
+      const nextCallType = (activeCall?.type?.toLowerCase() as 'audio' | 'video') || state.callType;
+      const nextRemoteParticipant =
+        remoteParticipant !== undefined ? remoteParticipant : state.remoteParticipant;
+
+      if (state.callStatus === 'connected' && nextCallId && nextConversationId) {
+        saveCallSession({
+          callId: nextCallId,
+          conversationId: nextConversationId,
+          callType: nextCallType,
+          remoteParticipant: nextRemoteParticipant,
+          isVideoOff: state.isVideoOff,
+          isMuted: state.isMuted,
+          isDeafened: state.isDeafened,
+          startedAt: Date.now(),
+        });
+      }
+
+      return {
+        activeCall,
+        callId: nextCallId,
+        conversationId: nextConversationId,
+        callType: nextCallType,
+        remoteParticipant: nextRemoteParticipant,
+      };
+    }),
   setLocalStream: (localStream) => set({ localStream }),
   setRemoteStream: (userId, stream) =>
-    set((state) => ({
-      remoteStreams: { ...state.remoteStreams, [userId]: stream },
-    })),
+    set((state) => {
+      if (state.remoteStreams[userId] === stream) return state;
+      return {
+        remoteStreams: { ...state.remoteStreams, [userId]: stream },
+      };
+    }),
   removeRemoteStream: (userId) =>
     set((state) => {
+      if (!state.remoteStreams[userId]) return state;
       const copy = { ...state.remoteStreams };
       delete copy[userId];
       return { remoteStreams: copy };
     }),
   setScreenShareStream: (screenShareStream) => set({ screenShareStream }),
-  setIsMuted: (isMuted) => set({ isMuted }),
-  setIsDeafened: (isDeafened) => set({ isDeafened }),
-  setIsVideoOff: (isVideoOff) => set({ isVideoOff }),
-  setIsScreenSharing: (isScreenSharing) => set({ isScreenSharing }),
-  setIsPiP: (isPiP) => set({ isPiP }),
-  setIsSettingsOpen: (isSettingsOpen) => set({ isSettingsOpen }),
-  setConnectionQuality: (connectionQuality) => set({ connectionQuality }),
-  setDurationSec: (durationSec) => set({ durationSec }),
-  incrementDuration: () => set((state) => ({ durationSec: state.durationSec + 1 })),
-  setIsNoiseSuppressionEnabled: (isNoiseSuppressionEnabled) => set({ isNoiseSuppressionEnabled }),
-  setE2EEInfo: (e2eeStatus, e2eeFingerprint, sasCode, sasEmojis) =>
+  setIsMuted: (isMuted) =>
+    set((state) => {
+      if (state.isMuted === isMuted) return state;
+      updateCallSession({ isMuted });
+      return {
+        isMuted,
+        localIsSpeaking: isMuted || state.inputVolume === 0 ? false : state.localIsSpeaking,
+      };
+    }),
+  setRemoteParticipantMuted: (userId, isMuted) =>
+    set((state) =>
+      state.remoteMutedUsers[userId] === isMuted
+        ? state
+        : {
+            remoteMutedUsers: { ...state.remoteMutedUsers, [userId]: isMuted },
+            remoteIsSpeaking: isMuted ? false : state.remoteIsSpeaking,
+          },
+    ),
+  setRemoteParticipantDeafened: (userId, isDeafened) =>
+    set((state) =>
+      state.remoteDeafenedUsers[userId] === isDeafened
+        ? state
+        : {
+            remoteDeafenedUsers: { ...state.remoteDeafenedUsers, [userId]: isDeafened },
+          },
+    ),
+  setParticipantActivity: (userId, activity) =>
     set((state) => ({
-      e2eeStatus,
-      e2eeFingerprint,
-      sasCode,
-      sasEmojis: sasEmojis !== undefined ? sasEmojis : state.sasEmojis,
+      participantActivities: {
+        ...state.participantActivities,
+        [userId]: activity,
+      },
     })),
-  setSasEmojis: (sasEmojis) => set({ sasEmojis }),
+  resetParticipantActivities: () => set({ participantActivities: {} }),
+  setIsDeafened: (isDeafened) =>
+    set((state) => {
+      if (state.isDeafened === isDeafened) return state;
+      updateCallSession({ isDeafened });
+      return { isDeafened };
+    }),
+  setIsVideoOff: (isVideoOff) =>
+    set((state) => {
+      if (state.isVideoOff === isVideoOff) return state;
+      updateCallSession({ isVideoOff });
+      return { isVideoOff };
+    }),
+  setRemoteVideoOff: (userId, isVideoOff) =>
+    set((state) => ({
+      remoteVideoOff: {
+        ...state.remoteVideoOff,
+        [userId]: isVideoOff,
+      },
+    })),
+  setIsScreenSharing: (isScreenSharing) =>
+    set((state) => (state.isScreenSharing === isScreenSharing ? state : { isScreenSharing })),
+  setIsRemoteScreenSharing: (isRemoteScreenSharing, remoteScreenSharerId = null) =>
+    set({
+      isRemoteScreenSharing,
+      remoteScreenSharerId: isRemoteScreenSharing ? remoteScreenSharerId : null,
+    }),
+  setIsPiP: (isPiP) => set((state) => (state.isPiP === isPiP ? state : { isPiP })),
+  setIsSettingsOpen: (isSettingsOpen) =>
+    set((state) => (state.isSettingsOpen === isSettingsOpen ? state : { isSettingsOpen })),
+  setConnectionQuality: (connectionQuality) =>
+    set((state) => (state.connectionQuality === connectionQuality ? state : { connectionQuality })),
+  setDurationSec: (durationSec) =>
+    set((state) => (state.durationSec === durationSec ? state : { durationSec })),
+  incrementDuration: () => set((state) => ({ durationSec: state.durationSec + 1 })),
+  setIsNoiseSuppressionEnabled: (isNoiseSuppressionEnabled) =>
+    set((state) =>
+      state.isNoiseSuppressionEnabled === isNoiseSuppressionEnabled
+        ? state
+        : { isNoiseSuppressionEnabled },
+    ),
+  setE2EEInfo: (e2eeStatus, e2eeFingerprint, sasCode, sasEmojis) =>
+    set((state) => {
+      if (
+        state.e2eeStatus === e2eeStatus &&
+        state.e2eeFingerprint === e2eeFingerprint &&
+        state.sasCode === sasCode &&
+        (sasEmojis === undefined || state.sasEmojis === sasEmojis)
+      ) {
+        return state;
+      }
+      return {
+        e2eeStatus,
+        e2eeFingerprint,
+        sasCode,
+        sasEmojis: sasEmojis !== undefined ? sasEmojis : state.sasEmojis,
+      };
+    }),
+  setSasEmojis: (sasEmojis) =>
+    set((state) => (state.sasEmojis === sasEmojis ? state : { sasEmojis })),
   setVirtualBackground: (virtualBackground) => set({ virtualBackground }),
   setIsVADEnabled: (isVADEnabled) => set({ isVADEnabled }),
   setNoiseGateThreshold: (noiseGateThreshold) => set({ noiseGateThreshold }),
-  setLocalIsSpeaking: (localIsSpeaking) => set({ localIsSpeaking }),
-  setRemoteIsSpeaking: (remoteIsSpeaking) => set({ remoteIsSpeaking }),
+  setLocalIsSpeaking: (localIsSpeaking) =>
+    set((state) => {
+      const resolved = state.isMuted || state.inputVolume === 0 ? false : localIsSpeaking;
+      return state.localIsSpeaking === resolved ? state : { localIsSpeaking: resolved };
+    }),
+  setRemoteIsSpeaking: (remoteIsSpeaking) =>
+    set((state) => {
+      const isRemoteMuted = state.remoteParticipant?.id
+        ? Boolean(state.remoteMutedUsers[state.remoteParticipant.id])
+        : false;
+      const resolved = isRemoteMuted ? false : remoteIsSpeaking;
+      return state.remoteIsSpeaking === resolved ? state : { remoteIsSpeaking: resolved };
+    }),
   setCurrentAudioLevel: (currentAudioLevel) =>
     set((state) =>
       Math.abs(state.currentAudioLevel - currentAudioLevel) < 5 ? state : { currentAudioLevel },
     ),
   setIsScreenAudioSharing: (isScreenAudioSharing) => set({ isScreenAudioSharing }),
   setIsSidechainDuckingEnabled: (isSidechainDuckingEnabled) => set({ isSidechainDuckingEnabled }),
+  setShowStreamPreview: (showStreamPreview) => set({ showStreamPreview }),
   setIsSpatialAudioEnabled: (isSpatialAudioEnabled) => set({ isSpatialAudioEnabled }),
   setVoiceFX: (voiceFX) => set({ voiceFX }),
   setIsReconnecting: (isReconnecting) => set({ isReconnecting }),
@@ -517,7 +702,8 @@ export const useCallStore = create<CallStoreState>((set) => ({
   setHeadAngles: (headAngles) => set({ headAngles }),
   setTransportProtocol: (transportProtocol) => set({ transportProtocol }),
   setQuicStats: (quicStats) => set({ quicStats }),
-  setIsAutoplayBlocked: (isAutoplayBlocked) => set({ isAutoplayBlocked }),
+  setIsAutoplayBlocked: (isAutoplayBlocked) =>
+    set((state) => (state.isAutoplayBlocked === isAutoplayBlocked ? state : { isAutoplayBlocked })),
   setChaosConfig: (updates) =>
     set((state) => ({
       chaosConfig: {
@@ -539,10 +725,19 @@ export const useCallStore = create<CallStoreState>((set) => ({
     }),
   setIsSatelliteModeEnabled: (isSatelliteModeEnabled) => set({ isSatelliteModeEnabled }),
   setIsVisualRingingEnabled: (isVisualRingingEnabled) => set({ isVisualRingingEnabled }),
+  setInputVolume: (inputVolume) =>
+    set((state) => ({
+      inputVolume,
+      localIsSpeaking: inputVolume === 0 ? false : state.localIsSpeaking,
+    })),
   setIsPTTEnabled: (isPTTEnabled) => set({ isPTTEnabled }),
   setIsPTTActive: (isPTTActive) => set({ isPTTActive }),
+  setPttKey: (pttKey) => set({ pttKey }),
   setPttReleaseTailMs: (pttReleaseTailMs) => set({ pttReleaseTailMs }),
   setIsPTTSoundEnabled: (isPTTSoundEnabled) => set({ isPTTSoundEnabled }),
+  setIsMirrorVideo: (isMirrorVideo) => set({ isMirrorVideo }),
+  setWarnNoAudioInput: (warnNoAudioInput) => set({ warnNoAudioInput }),
+  setWarnMutedSpeaking: (warnMutedSpeaking) => set({ warnMutedSpeaking }),
   setIsTravelerModeEnabled: (isTravelerModeEnabled) => set({ isTravelerModeEnabled }),
   setIsTabHidden: (isTabHidden) => set({ isTabHidden }),
   setIsSynestheticVisualizerEnabled: (isSynestheticVisualizerEnabled) =>
@@ -561,6 +756,25 @@ export const useCallStore = create<CallStoreState>((set) => ({
 
   setIsSoundboardOpen: (isSoundboardOpen) => set({ isSoundboardOpen }),
   toggleSoundboard: () => set((state) => ({ isSoundboardOpen: !state.isSoundboardOpen })),
+  triggerSoundboardEvent: (event) => {
+    const fullEvent = { ...event, timestamp: Date.now() };
+    set((state) => ({
+      soundboardActiveEvents: {
+        ...state.soundboardActiveEvents,
+        [event.senderUserId]: fullEvent,
+      },
+    }));
+    setTimeout(() => {
+      set((state) => {
+        if (state.soundboardActiveEvents[event.senderUserId]?.timestamp === fullEvent.timestamp) {
+          const next = { ...state.soundboardActiveEvents };
+          delete next[event.senderUserId];
+          return { soundboardActiveEvents: next };
+        }
+        return state;
+      });
+    }, 2500);
+  },
 
   setIsLiveSummaryOpen: (isLiveSummaryOpen) => set({ isLiveSummaryOpen }),
   toggleLiveSummary: () => set((state) => ({ isLiveSummaryOpen: !state.isLiveSummaryOpen })),
@@ -572,8 +786,9 @@ export const useCallStore = create<CallStoreState>((set) => ({
   toggleHolographicCall: () =>
     set((state) => ({ isHolographicCallOpen: !state.isHolographicCallOpen })),
 
-  resetCall: () =>
-    set((state) => {
+  resetCall: () => {
+    clearCallSession();
+    return set((state) => {
       // Stop all tracks on streams
       state.localStream?.getTracks().forEach((t) => t.stop());
       state.screenShareStream?.getTracks().forEach((t) => t.stop());
@@ -588,11 +803,16 @@ export const useCallStore = create<CallStoreState>((set) => ({
         remoteParticipant: null,
         localStream: null,
         remoteStreams: {},
+        remoteMutedUsers: {},
+        remoteDeafenedUsers: {},
         screenShareStream: null,
         isMuted: false,
         isDeafened: false,
-        isVideoOff: false,
+        isVideoOff: true,
+        remoteVideoOff: {},
         isScreenSharing: false,
+        isRemoteScreenSharing: false,
+        remoteScreenSharerId: null,
         isPiP: false,
         isSettingsOpen: false,
         connectionQuality: 'excellent',
@@ -629,12 +849,26 @@ export const useCallStore = create<CallStoreState>((set) => ({
         isDocumentPiP: false,
         isScreenAnnotationActive: false,
         isSoundboardOpen: false,
+        soundboardActiveEvents: {},
+        participantActivities: {},
         isLiveSummaryOpen: false,
         isDualCameraOpen: false,
         isHolographicCallOpen: false,
       };
-    }),
+    });
+  },
 }));
+
+// Clean up Watch Together session whenever a call ends
+useCallStore.subscribe((state, prevState) => {
+  if (prevState.callStatus !== 'idle' && state.callStatus === 'idle') {
+    try {
+      useWatchTogetherStore.getState().resetAll();
+    } catch {
+      // ignore
+    }
+  }
+});
 
 if (typeof window !== 'undefined') {
   (window as unknown as { __CALL_STORE__?: typeof useCallStore }).__CALL_STORE__ = useCallStore;

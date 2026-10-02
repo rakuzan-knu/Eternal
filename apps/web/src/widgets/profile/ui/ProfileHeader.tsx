@@ -147,7 +147,7 @@ export default function ProfileHeader({
 
       <div className="px-6 pb-6 relative">
         <div className="absolute -top-16 left-6">
-          <div className="p-1 bg-[#0b0b0c] rounded-full shadow-2xl">
+          <div className="p-1 bg-white dark:bg-[#0b0b0c] dark:bg-[var(--app-surface-card,#0b0b0c)] rounded-full shadow-2xl transition-colors">
             <Avatar src={avatar} size="xl" />
           </div>
         </div>
@@ -157,7 +157,7 @@ export default function ProfileHeader({
             <button
               type="button"
               onClick={() => onEditClick?.()}
-              className="flex items-center gap-2 bg-white/[0.07] hover:bg-white/[0.14] hover:border-white/20 active:scale-[0.98] border border-white/[0.08] text-white font-medium text-xs px-4 py-2 rounded-xl transition-all duration-200 cursor-pointer shadow-sm"
+              className="flex items-center gap-2 bg-black/5 hover:bg-black/10 dark:bg-white/[0.07] dark:hover:bg-white/[0.14] border border-black/10 dark:border-white/[0.08] text-gray-900 dark:text-white font-medium text-xs px-4 py-2 rounded-xl transition-all duration-200 cursor-pointer shadow-sm active:scale-[0.98]"
             >
               <Edit3 size={14} />
               <span>Edit</span>
@@ -168,7 +168,7 @@ export default function ProfileHeader({
                 type="button"
                 onClick={handleStartChat}
                 disabled={isStartingChat}
-                className="flex items-center gap-1.5 bg-white/[0.07] hover:bg-white/[0.14] hover:border-white/20 active:scale-[0.98] border border-white/[0.08] text-white font-semibold text-xs px-4 py-2 rounded-xl transition-all duration-200 cursor-pointer disabled:opacity-50 shadow-sm"
+                className="flex items-center gap-1.5 bg-black/5 hover:bg-black/10 dark:bg-white/[0.07] dark:hover:bg-white/[0.14] border border-black/10 dark:border-white/[0.08] text-gray-900 dark:text-white font-semibold text-xs px-4 py-2 rounded-xl transition-all duration-200 cursor-pointer disabled:opacity-50 shadow-sm active:scale-[0.98]"
               >
                 <MessageSquare size={14} />
                 <span>Message</span>
@@ -197,9 +197,9 @@ export default function ProfileHeader({
             size="lg"
           />
           <div className="flex items-center gap-2">
-            <p className="text-sm text-gray-400 font-medium">@{username}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">@{username}</p>
             {!isOwnProfile && followsYou && (
-              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-white/10 text-gray-300 border border-white/5 tracking-tight">
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-black/5 dark:bg-white/10 text-gray-700 dark:text-gray-300 border border-black/10 dark:border-white/5 tracking-tight">
                 Follows You
               </span>
             )}
@@ -216,11 +216,11 @@ export default function ProfileHeader({
         </div>
 
         {(bio || isOwnProfile) && (
-          <div className="text-sm text-gray-300 mt-3 leading-relaxed">
+          <div className="text-sm text-gray-700 dark:text-gray-300 mt-3 leading-relaxed">
             {bio ? (
               <FormattedText text={bio} />
             ) : (
-              <p className="text-gray-400 italic">
+              <p className="text-gray-500 dark:text-gray-400 italic">
                 There is no bio yet. You can add a bio to your profile to let others know more about
                 you.
               </p>
@@ -228,8 +228,8 @@ export default function ProfileHeader({
           </div>
         )}
 
-        <div className="flex items-center gap-2 text-xs text-gray-400 mt-4 font-medium">
-          <Calendar size={14} className="text-gray-500" />
+        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mt-4 font-medium">
+          <Calendar size={14} className="text-gray-400 dark:text-gray-500" />
           <span>Joined {formatJoinedDate(createdAt)}</span>
         </div>
 
@@ -239,10 +239,10 @@ export default function ProfileHeader({
             onClick={() => setOpenList('followers')}
             className="group flex items-center gap-1.5 cursor-pointer transition-all duration-200"
           >
-            <span className="text-white font-bold text-sm sm:text-base tracking-tight group-hover:text-blue-400 transition-colors">
+            <span className="text-gray-900 dark:text-white font-bold text-sm sm:text-base tracking-tight group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors">
               {followersCount}
             </span>
-            <span className="text-gray-400 group-hover:text-gray-200 text-xs sm:text-sm font-medium transition-colors">
+            <span className="text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200 text-xs sm:text-sm font-medium transition-colors">
               Followers
             </span>
           </button>
@@ -252,10 +252,10 @@ export default function ProfileHeader({
             onClick={() => setOpenList('following')}
             className="group flex items-center gap-1.5 cursor-pointer transition-all duration-200"
           >
-            <span className="text-white font-bold text-sm sm:text-base tracking-tight group-hover:text-blue-400 transition-colors">
+            <span className="text-gray-900 dark:text-white font-bold text-sm sm:text-base tracking-tight group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors">
               {followingCount}
             </span>
-            <span className="text-gray-400 group-hover:text-gray-200 text-xs sm:text-sm font-medium transition-colors">
+            <span className="text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200 text-xs sm:text-sm font-medium transition-colors">
               Following
             </span>
           </button>

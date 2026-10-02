@@ -28,7 +28,7 @@ describe('ThermalPowerGovernor', () => {
 
     const metrics = governor.getMetrics();
     expect(metrics.state).toBe('throttled');
-    expect(metrics.reason).toContain('Низкий заряд');
+    expect(metrics.reason).toContain('Low battery');
   });
 
   it('does NOT throttle if battery is 12% but actively charging', () => {

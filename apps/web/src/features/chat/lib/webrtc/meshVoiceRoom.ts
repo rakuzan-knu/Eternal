@@ -32,6 +32,9 @@ const DEFAULT_ICE_SERVERS: RTCIceServer[] = [
   { urls: 'stun:stun1.l.google.com:19302' },
 ];
 
+import { useVoiceVideoSettingsStore } from '../../model/useVoiceVideoSettingsStore';
+import { playActionSound } from '../../model/useSoundSettingsStore';
+
 export class MeshVoiceRoomManager {
   private localStream: MediaStream | null = null;
   private peers = new Map<string, VoiceMeshPeer>();
@@ -67,6 +70,60 @@ export class MeshVoiceRoomManager {
     return this.isDeafened;
   }
 
+  public async switchMicrophone(deviceId: string): Promise<void> {
+    const settings = useVoiceVideoSettingsStore.getState();
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          deviceId: deviceId ? { exact: deviceId } : undefined,
+          echoCancellation: settings.echoCancellation,
+          noiseSuppression: settings.noiseSuppression !== 'off',
+          autoGainControl: settings.autoGainControl,
+        },
+        video: false,
+      });
+
+      const newTrack = stream.getAudioTracks()[0];
+      if (newTrack && this.localStream) {
+        const oldTrack = this.localStream.getAudioTracks()[0];
+        if (oldTrack) {
+          oldTrack.stop();
+          this.localStream.removeTrack(oldTrack);
+        }
+        this.localStream.addTrack(newTrack);
+
+        this.peers.forEach((peer) => {
+          const sender = peer.pc.getSenders().find((s) => s.track?.kind === 'audio');
+          if (sender) {
+            void sender.replaceTrack(newTrack);
+          }
+        });
+      }
+    } catch (err) {
+      console.warn('[MeshVoiceRoom] switchMicrophone failed:', err);
+    }
+  }
+
+  public async switchAudioOutput(deviceId: string): Promise<void> {
+    this.peers.forEach((peer) => {
+      if (
+        typeof (peer.audioElement as unknown as { setSinkId?: (id: string) => Promise<void> })
+          .setSinkId === 'function'
+      ) {
+        void (peer.audioElement as unknown as { setSinkId: (id: string) => Promise<void> })
+          .setSinkId(deviceId)
+          .catch(() => {});
+      }
+    });
+  }
+
+  public setOutputVolume(volume: number): void {
+    const norm = Math.max(0, Math.min(1, volume / 100));
+    this.peers.forEach((peer) => {
+      peer.audioElement.volume = norm;
+    });
+  }
+
   /**
    * Joins the P2P Mesh Voice Room for a conversation / room.
    */
@@ -75,12 +132,16 @@ export class MeshVoiceRoomManager {
     this.currentRoomId = roomId;
 
     try {
-      // 1. Acquire local microphone stream with high-fidelity Opus settings
+      // 1. Acquire local microphone stream with high-fidelity Opus & user settings
+      const settings = useVoiceVideoSettingsStore.getState();
       this.localStream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
+          deviceId: settings.selectedAudioInput
+            ? { exact: settings.selectedAudioInput }
+            : undefined,
+          echoCancellation: settings.echoCancellation,
+          noiseSuppression: settings.noiseSuppression !== 'off',
+          autoGainControl: settings.autoGainControl,
         },
         video: false,
       });
@@ -111,6 +172,7 @@ export class MeshVoiceRoomManager {
    */
   public async handlePeerJoined(peerId: string): Promise<void> {
     if (peerId === this.currentUserId || this.peers.has(peerId)) return;
+    playActionSound('user_join');
     // New peer waits for offer from joining initiator, or we initiate connection
     await this.connectToPeer(peerId, false);
   }
@@ -132,6 +194,7 @@ export class MeshVoiceRoomManager {
     }
 
     this.peers.delete(peerId);
+    playActionSound('user_leave');
     this.events.onPeersChange?.(this.getConnectedPeerIds());
   }
 
@@ -175,6 +238,7 @@ export class MeshVoiceRoomManager {
         track.enabled = !this.isMuted;
       });
     }
+    playActionSound(this.isMuted ? 'mute' : 'unmute');
     return this.isMuted;
   }
 
@@ -186,6 +250,7 @@ export class MeshVoiceRoomManager {
     this.peers.forEach((peer) => {
       peer.audioElement.muted = this.isDeafened;
     });
+    playActionSound(this.isDeafened ? 'deafen' : 'undeafen');
     return this.isDeafened;
   }
 
@@ -194,6 +259,7 @@ export class MeshVoiceRoomManager {
    */
   public leave(): void {
     if (this.currentRoomId) {
+      playActionSound('disconnect');
       this.socketEmit('voice:mesh-leave', { roomId: this.currentRoomId });
       this.currentRoomId = null;
     }
@@ -249,6 +315,20 @@ export class MeshVoiceRoomManager {
     const audioEl = document.createElement('audio');
     audioEl.autoplay = true;
     audioEl.muted = this.isDeafened;
+
+    const currentSettings = useVoiceVideoSettingsStore.getState();
+    audioEl.volume = Math.max(0, Math.min(1, currentSettings.outputVolume / 100));
+
+    if (
+      currentSettings.selectedAudioOutput &&
+      typeof (audioEl as unknown as { setSinkId?: (id: string) => Promise<void> }).setSinkId ===
+        'function'
+    ) {
+      void (audioEl as unknown as { setSinkId: (id: string) => Promise<void> })
+        .setSinkId(currentSettings.selectedAudioOutput)
+        .catch(() => {});
+    }
+
     try {
       audioEl.srcObject = remoteStream;
     } catch {

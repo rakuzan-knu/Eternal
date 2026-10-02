@@ -46,7 +46,7 @@ export default function AddMembersModal({
         };
 
         return (
-          <div className="bg-[#1c1c20] border border-white/10 rounded-3xl shadow-2xl flex flex-col max-h-[75vh]">
+          <div className="glass-modal border border-white/10 rounded-3xl shadow-2xl flex flex-col max-h-[75vh]">
             <div className="flex items-center justify-between px-5 pt-5 pb-4 flex-shrink-0">
               <h2 className="text-lg font-bold text-white">Add members</h2>
               <button

@@ -118,8 +118,8 @@ export function ProfileMenu({ isSidebarExpanded, onOpenChange }: ProfileMenuProp
         aria-expanded={isOpen}
         className={`flex items-center rounded-2xl transition-all duration-200 group relative h-12 ${
           isOpen
-            ? 'bg-white/10 text-white font-semibold shadow-md'
-            : 'text-gray-400 hover:bg-white/5 hover:text-white'
+            ? 'bg-black/10 dark:bg-white/10 text-gray-900 dark:text-white font-semibold shadow-md'
+            : 'text-gray-500 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white'
         } ${isSidebarExpanded ? 'w-full px-4 gap-4 justify-start' : 'w-12 justify-center mx-auto'}`}
       >
         <div className="shrink-0 flex items-center justify-center transition-transform duration-200 group-hover:scale-105">
@@ -137,7 +137,7 @@ export function ProfileMenu({ isSidebarExpanded, onOpenChange }: ProfileMenuProp
       {isOpen && (
         <div
           role="menu"
-          className="absolute bottom-full left-0 mb-3 w-72 max-h-[calc(100vh-100px)] overflow-y-auto bg-[#16161a]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] p-2 z-70 animate-menuIn origin-bottom-left"
+          className="absolute bottom-full left-0 mb-3 w-72 glass-menu border border-black/10 dark:border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.8)] backdrop-blur-2xl p-2 z-70 animate-menuIn origin-bottom-left overflow-visible"
         >
           <MenuItem
             icon={Settings}
@@ -159,10 +159,6 @@ export function ProfileMenu({ isSidebarExpanded, onOpenChange }: ProfileMenuProp
               }
             }}
           />
-          <AccountSwitcherMenuItem
-            onSwitchAccount={handleSwitchAccount}
-            onOpenManageAccounts={() => openModal('manageAccounts')}
-          />
           <ThemeMenuItem />
           <MenuItem
             icon={AlertTriangle}
@@ -170,7 +166,7 @@ export function ProfileMenu({ isSidebarExpanded, onOpenChange }: ProfileMenuProp
             onClick={() => openModal('reportStep1')}
           />
 
-          <div className="h-px bg-white/10 my-2" />
+          <div className="h-px bg-black/10 dark:bg-white/10 my-2" />
 
           <MenuItem
             icon={HelpCircle}
@@ -197,7 +193,14 @@ export function ProfileMenu({ isSidebarExpanded, onOpenChange }: ProfileMenuProp
             }}
           />
 
-          <div className="h-px bg-white/10 my-2" />
+          <div className="h-px bg-black/10 dark:bg-white/10 my-2" />
+
+          <AccountSwitcherMenuItem
+            onSwitchAccount={handleSwitchAccount}
+            onOpenManageAccounts={() => openModal('manageAccounts')}
+          />
+
+          <div className="h-px bg-black/10 dark:bg-white/10 my-2" />
 
           <MenuItem
             icon={LogOut}
@@ -227,7 +230,7 @@ export function ProfileMenu({ isSidebarExpanded, onOpenChange }: ProfileMenuProp
       {activeModal === 'logoutConfirm' && (
         <Modal onClose={closeAll} className="w-full max-w-sm">
           {(close) => (
-            <div className="bg-[#1c1c20] border border-white/10 rounded-3xl shadow-2xl p-6 flex flex-col gap-4 text-white">
+            <div className="glass-modal border border-black/10 dark:border-white/10 rounded-3xl shadow-2xl backdrop-blur-2xl p-6 flex flex-col gap-4 text-gray-950 dark:text-white">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400">

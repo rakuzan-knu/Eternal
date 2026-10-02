@@ -9,7 +9,7 @@ export class SearchRepository implements ISearchRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async searchGlobal(userId: string, dto: GlobalSearchDto): Promise<GlobalSearchResult> {
-    const q = dto.q.trim();
+    const q = dto.q ? dto.q.trim() : '';
     const type = dto.type ?? 'all';
     const limit = dto.limit ?? 20;
     const offset = dto.offset ?? 0;
@@ -37,8 +37,8 @@ export class SearchRepository implements ISearchRepository {
     let searchMedia: GlobalSearchResult['media'] = [];
     let searchPeople: GlobalSearchResult['people'] = [];
 
-    // Search Messages
-    if (type === 'all' || type === 'messages') {
+    // Search Messages (only when a search term is provided)
+    if ((type === 'all' || type === 'messages') && q.length > 0) {
       const messages = await this.prisma.message.findMany({
         where: {
           conversationId: { in: targetConvIds },
@@ -116,13 +116,8 @@ export class SearchRepository implements ISearchRepository {
     // Search Media & Files
     if (type === 'all' || type === 'media' || type === 'files' || type === 'links') {
       const typeFilter: AttachmentType[] = [];
-      if (type === 'media') {
-        typeFilter.push(
-          AttachmentType.IMAGE,
-          AttachmentType.VIDEO,
-          AttachmentType.AUDIO,
-          AttachmentType.GIF,
-        );
+      if (type === 'media' || type === 'all') {
+        typeFilter.push(AttachmentType.IMAGE, AttachmentType.VIDEO, AttachmentType.GIF);
       } else if (type === 'files') {
         typeFilter.push(AttachmentType.FILE);
       } else if (type === 'links') {
@@ -151,7 +146,15 @@ export class SearchRepository implements ISearchRepository {
         orderBy: { createdAt: 'desc' },
         include: {
           message: {
-            select: { id: true, conversationId: true, createdAt: true },
+            select: {
+              id: true,
+              conversationId: true,
+              senderId: true,
+              createdAt: true,
+              sender: {
+                select: { id: true, username: true, displayName: true },
+              },
+            },
           },
         },
       });
@@ -160,6 +163,8 @@ export class SearchRepository implements ISearchRepository {
         id: a.id,
         messageId: a.message.id,
         conversationId: a.message.conversationId,
+        senderId: a.message.senderId,
+        senderName: a.message.sender?.displayName || a.message.sender?.username,
         url: a.url,
         fileName: a.fileName,
         mimeType: a.mimeType,
@@ -169,8 +174,8 @@ export class SearchRepository implements ISearchRepository {
       }));
     }
 
-    // Search People
-    if ((type === 'all' || type === 'people') && !dto.conversationId) {
+    // Search People (only when a search term is provided)
+    if ((type === 'all' || type === 'people') && !dto.conversationId && q.length > 0) {
       const people = await this.prisma.user.findMany({
         where: {
           OR: [

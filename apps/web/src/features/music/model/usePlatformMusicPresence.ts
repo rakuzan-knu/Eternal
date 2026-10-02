@@ -28,8 +28,8 @@ export function usePlatformMusicPresence() {
     const socket = getSocket();
     if (!socket || !socket.connected) return;
 
-    if (!isDockVisible || !currentTrack) {
-      // Clear activity if player was closed
+    if (!currentTrack || !isPlaying) {
+      // Clear activity if player was stopped or paused
       if (lastEmittedRef.current.trackId) {
         socket.emit('user:activity:platform_music', {
           track: null,
@@ -53,19 +53,20 @@ export function usePlatformMusicPresence() {
         timestamp: Date.now(),
       };
 
+      const playerState = useSpotifyPlayerStore.getState();
       socket.emit('user:activity:platform_music', {
         track: currentTrack,
         isPlaying,
-        progressMs,
-        durationMs,
+        progressMs: playerState.progressMs,
+        durationMs: playerState.durationMs,
         jamRoomId: jamRoomId || undefined,
       });
     }
-  }, [currentUserId, currentTrack, isPlaying, isDockVisible, progressMs, durationMs, jamRoomId]);
+  }, [currentUserId, currentTrack?.id, isPlaying, jamRoomId]);
 
   // Periodic heartbeat every 15s to keep active timeline synced for profile visitors
   useEffect(() => {
-    if (!currentUserId || !isDockVisible || !currentTrack || !isPlaying) return;
+    if (!currentUserId || !currentTrack || !isPlaying) return;
     const socket = getSocket();
     if (!socket || !socket.connected) return;
 
@@ -83,5 +84,5 @@ export function usePlatformMusicPresence() {
     }, 15_000);
 
     return () => clearInterval(interval);
-  }, [currentUserId, isDockVisible, currentTrack, isPlaying]);
+  }, [currentUserId, currentTrack, isPlaying]);
 }

@@ -1765,7 +1765,7 @@ export class SpotifyService {
         }
 
         const res = await fetch(url.toString(), {
-          headers: { 'User-Agent': 'AntigravitySocialMedia/1.0' },
+          headers: { 'User-Agent': 'SocialMedia/1.0' },
         });
 
         if (res.ok) {
@@ -1804,7 +1804,7 @@ export class SpotifyService {
       try {
         const searchRes = await fetch(
           `https://lrclib.net/api/search?q=${encodeURIComponent(query)}`,
-          { headers: { 'User-Agent': 'AntigravitySocialMedia/1.0' } },
+          { headers: { 'User-Agent': 'SocialMedia/1.0' } },
         );
         if (searchRes.ok) {
           const items = (await searchRes.json()) as LrclibLyricsResponse[];
@@ -1889,7 +1889,7 @@ export class SpotifyService {
       try {
         const res = await fetch(
           `https://api.lyrics.ovh/v1/${encodeURIComponent(artistName)}/${encodeURIComponent(trackName)}`,
-          { headers: { 'User-Agent': 'AntigravitySocialMedia/1.0' } },
+          { headers: { 'User-Agent': 'SocialMedia/1.0' } },
         );
         if (res.ok) {
           const data = (await res.json()) as LyricsOvhResponse;
