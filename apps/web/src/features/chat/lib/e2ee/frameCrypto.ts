@@ -28,6 +28,7 @@ export interface CallKeyInfo {
 }
 
 export const SAS_EMOJI_TABLE = [
+  // Animals (20)
   '🦊',
   '🐱',
   '🐶',
@@ -41,57 +42,65 @@ export const SAS_EMOJI_TABLE = [
   '🦋',
   '🦄',
   '🐝',
-  '🐬',
   '🦉',
-  '🦅',
-  '🚀',
+  '🐧',
+  '🦔',
+  '🦇',
+  '🐵',
+  '🦜',
+  '🦩',
+
+  // Nature, Space & Elements (12)
+  '🌈',
   '⚡',
   '🔥',
-  '🌟',
-  '💎',
-  '🛡️',
-  '🎯',
-  '⚓',
-  '🔮',
-  '🎸',
-  '🎨',
-  '🍕',
-  '🍉',
-  '🍒',
-  '🥑',
-  '🪐',
-  '🌈',
-  '🏔️',
-  '🏖️',
-  '🏝️',
-  '⛵',
-  '🛸',
-  '🧭',
-  '🗝️',
-  '🔔',
-  '👑',
-  '🕊️',
-  '🌺',
-  '🍀',
-  '🍎',
-  '🍓',
-  '🏀',
-  '⚽',
-  '🏆',
-  '🎁',
-  '🎈',
-  '☀️',
-  '🌙',
   '⭐',
-  '🌊',
-  '💡',
-  '⏰',
-  '🎧',
-  '📷',
-  '🧩',
-  '⚡',
+  '🌟',
+  '☀️',
+  '🌞',
+  '🌙',
+  '🌕',
+  '❄️',
+  '🍀',
+  '🌺',
+
+  // Activities, Magic & Celebration (12)
   '🔮',
-  '✨',
+  '🪄',
+  '🎈',
+  '🎉',
+  '🎊',
+  '🎆',
+  '🧨',
+  '🏆',
+  '🥇',
+  '🎨',
+  '🎭',
+  '🎮',
+
+  // Objects, Keys & Treasures (12)
+  '💎',
+  '👑',
+  '🗝️',
+  '🔑',
+  '💡',
+  '💣',
+  '🚀',
+  '🧭',
+  '🎵',
+  '🎶',
+  '💰',
+  '⏳',
+
+  // Food & Delights (8)
+  '🍓',
+  '🍕',
+  '🍔',
+  '🍟',
+  '🍿',
+  '🍩',
+  '🍪',
+  '🎂',
 ] as const;
 
 const E2EE_MAGIC_TAG = 0xe2;
@@ -154,15 +163,15 @@ async function encryptFrame(
 async function decryptFrame(
   frame: RTCEncodedAudioFrame | RTCEncodedVideoFrame,
   key: CryptoKey,
-): Promise<void> {
+): Promise<boolean> {
   const data = new Uint8Array(frame.data);
-  if (data.length <= UNENCRYPTED_HEADER_BYTES + IV_LENGTH + 1) return;
+  if (data.length <= UNENCRYPTED_HEADER_BYTES + IV_LENGTH + 1) return true;
 
   // Check magic tag: current 0xe2, plus legacy worker 0x7e for mixed-version calls.
   const tag = data[data.length - 1];
   if (tag !== E2EE_MAGIC_TAG && tag !== E2EE_MAGIC_TAG_LEGACY) {
     // Unencrypted or incompatible frame
-    return;
+    return true;
   }
 
   const header = data.slice(0, UNENCRYPTED_HEADER_BYTES);
@@ -182,8 +191,10 @@ async function decryptFrame(
     result.set(new Uint8Array(decrypted), UNENCRYPTED_HEADER_BYTES);
 
     frame.data = result.buffer;
+    return true;
   } catch {
-    // Decryption failure (drop corrupted frame)
+    // Decryption failure (drop corrupted frame, never emit ciphertext)
+    return false;
   }
 }
 
@@ -236,8 +247,9 @@ export function attachReceiverDecryption(receiver: RTCRtpReceiver, key: CryptoKe
       RTCEncodedAudioFrame | RTCEncodedVideoFrame
     >({
       async transform(frame, controller) {
-        await decryptFrame(frame, key);
-        controller.enqueue(frame);
+        if (await decryptFrame(frame, key)) {
+          controller.enqueue(frame);
+        }
       },
     });
 

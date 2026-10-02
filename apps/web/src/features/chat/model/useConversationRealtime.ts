@@ -16,6 +16,7 @@ import {
 } from './chatCacheSync';
 import type { ConversationView, MessageView } from '../../../entities/chat/model/types';
 import { useAuthStore } from '@/shared/model/useAuthStore';
+import { ensureMessageIdentityRegistered } from '../lib/e2ee/messageE2ee';
 
 /**
  * Per-conversation realtime binding (Socket.io → TanStack Query cache).
@@ -33,6 +34,11 @@ export function useConversationRealtime(conversationId: string | null) {
   const userId = useAuthStore((s) => s.userId);
   const [typingUserIds, setTypingUserIds] = useState<Set<string>>(new Set());
   const typingTimerRef = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+
+  // Bootstrap E2EE message identity on mount
+  useEffect(() => {
+    void ensureMessageIdentityRegistered();
+  }, []);
 
   // Reset typing indicators when switching conversations (effect, not render).
   useEffect(() => {
@@ -125,7 +131,7 @@ export function useConversationRealtime(conversationId: string | null) {
     if (payload.conversationId !== conversationId || !conversationId) return;
     updateCachedPages(queryClient, conversationId, (pages) =>
       mapCachedMessages(pages, (m) =>
-        m.id === payload.messageId ? { ...m, isDeleted: true, body: null } : m,
+        m.id === payload.messageId ? { ...m, isDeleted: true, body: null, attachments: [] } : m,
       ),
     );
   });

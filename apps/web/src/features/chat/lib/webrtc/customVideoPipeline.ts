@@ -94,7 +94,7 @@ export class WebGPUSuperResEngine {
     source: CanvasImageSource | HTMLVideoElement | HTMLCanvasElement,
     targetCanvas: HTMLCanvasElement,
   ): void {
-    if (this.mode === 'off') {
+    if (this.mode === 'off' || !this.device) {
       const ctx = targetCanvas.getContext('2d');
       if (ctx) {
         ctx.drawImage(source, 0, 0, targetCanvas.width, targetCanvas.height);
@@ -107,11 +107,6 @@ export class WebGPUSuperResEngine {
 
     // Draw source scaled
     targetCtx.drawImage(source, 0, 0, targetCanvas.width, targetCanvas.height);
-
-    // Apply Contrast-Adaptive Sharpening (CAS) filter
-    if (this.mode === 'cas' || this.mode === 'fsr_2x' || this.mode === 'neural_4k') {
-      this.applyContrastAdaptiveSharpening(targetCtx, targetCanvas.width, targetCanvas.height);
-    }
   }
 
   /**

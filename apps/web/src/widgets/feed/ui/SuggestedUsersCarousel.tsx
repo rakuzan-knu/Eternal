@@ -130,11 +130,13 @@ export function SuggestedUsersCarousel({
       <div className="flex items-center justify-between px-2">
         <div className="flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-purple-400" />
-          <span className="text-xs font-bold text-gray-200 uppercase tracking-wider">{title}</span>
+          <span className="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider">
+            {title}
+          </span>
         </div>
         <Link
           to="/search"
-          className="text-xs text-gray-400 hover:text-white flex items-center gap-1 transition-colors"
+          className="text-xs text-gray-600 hover:text-gray-950 dark:text-gray-400 dark:hover:text-white flex items-center gap-1 transition-colors"
         >
           <Compass className="w-3.5 h-3.5 text-purple-400" />
           <span>See all</span>
@@ -149,7 +151,7 @@ export function SuggestedUsersCarousel({
             type="button"
             onClick={() => scrollByAmount(-220)}
             aria-label="Scroll left"
-            className="absolute -left-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-[#111115]/90 hover:bg-black/95 border border-white/15 backdrop-blur-xl text-white flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all"
+            className="absolute -left-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/90 hover:bg-white dark:bg-[#111115]/90 dark:hover:bg-black/95 border border-black/10 dark:border-white/15 backdrop-blur-xl text-gray-800 dark:text-white flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
@@ -161,7 +163,7 @@ export function SuggestedUsersCarousel({
             type="button"
             onClick={() => scrollByAmount(220)}
             aria-label="Scroll right"
-            className="absolute -right-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-[#111115]/90 hover:bg-black/95 border border-white/15 backdrop-blur-xl text-white flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all"
+            className="absolute -right-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/90 hover:bg-white dark:bg-[#111115]/90 dark:hover:bg-black/95 border border-black/10 dark:border-white/15 backdrop-blur-xl text-gray-800 dark:text-white flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
@@ -169,14 +171,14 @@ export function SuggestedUsersCarousel({
 
         {/* Left Soft Fade Gradient Mask */}
         <div
-          className={`pointer-events-none absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[#070709] to-transparent z-10 transition-opacity duration-300 ${
+          className={`pointer-events-none absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white/80 dark:from-[#070709] to-transparent z-10 transition-opacity duration-300 ${
             canScrollLeft ? 'opacity-100' : 'opacity-0'
           }`}
         />
 
         {/* Right Soft Fade Gradient Mask */}
         <div
-          className={`pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#070709] to-transparent z-10 transition-opacity duration-300 ${
+          className={`pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white/80 dark:from-[#070709] to-transparent z-10 transition-opacity duration-300 ${
             canScrollRight ? 'opacity-100' : 'opacity-0'
           }`}
         />
@@ -215,14 +217,14 @@ function SuggestedCreatorCard({
   const reason = user.recommendationReason;
 
   return (
-    <div className="w-44 shrink-0 flex flex-col items-center justify-between p-4 rounded-3xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.08] hover:border-white/[0.2] backdrop-blur-2xl transition-all duration-300 group/card relative text-center shadow-lg hover:shadow-[0_12px_32px_rgba(0,0,0,0.5)]">
+    <div className="w-44 shrink-0 flex flex-col items-center justify-between p-4 rounded-3xl glass-card border border-black/10 dark:border-white/[0.08] hover:border-black/20 dark:hover:border-white/[0.2] backdrop-blur-2xl transition-all duration-300 group/card relative text-center shadow-md hover:shadow-xl">
       {/* Dismiss Button ✕ */}
       <button
         type="button"
         onClick={onDismiss}
         title="Hide recommendation"
         aria-label={`Hide recommendation for ${user.username}`}
-        className="absolute top-3 right-3 p-1 rounded-full text-gray-500 hover:text-white hover:bg-white/10 active:scale-90 transition-all z-10"
+        className="absolute top-3 right-3 p-1 rounded-full text-gray-400 hover:text-gray-900 dark:text-gray-500 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 active:scale-90 transition-all z-10"
       >
         <X className="w-3.5 h-3.5" />
       </button>
@@ -249,7 +251,7 @@ function SuggestedCreatorCard({
             <MiniProfileHoverCard username={user.username} side="top">
               <Link
                 to={`/profile/${user.username}`}
-                className="text-xs font-bold text-gray-100 truncate group-hover/card:text-white hover:underline transition-colors block"
+                className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate group-hover/card:text-blue-600 dark:group-hover/card:text-white hover:underline transition-colors block"
               >
                 {displayName}
               </Link>
@@ -262,7 +264,7 @@ function SuggestedCreatorCard({
           </div>
           <Link
             to={`/profile/${user.username}`}
-            className="text-[11px] text-gray-500 truncate w-full text-center hover:text-gray-400 block"
+            className="text-[11px] text-gray-600 dark:text-gray-400 truncate w-full text-center hover:text-gray-900 dark:hover:text-gray-300 block"
           >
             @{user.username}
           </Link>
@@ -285,17 +287,17 @@ function SuggestedCreatorCard({
                   />
                 ))}
               </div>
-              <span className="text-[10px] text-gray-400 truncate leading-tight text-left">
+              <span className="text-[10px] text-gray-600 dark:text-gray-400 truncate leading-tight text-left">
                 {reason.text}
               </span>
             </div>
           ) : reason?.type === 'NEARBY' || reason?.type === 'SAME_CITY' ? (
-            <div className="flex items-center gap-1 text-blue-400 text-[10px] justify-center truncate">
+            <div className="flex items-center gap-1 text-blue-500 dark:text-blue-400 text-[10px] justify-center truncate">
               <MapPin className="w-3 h-3 shrink-0" />
               <span className="truncate">{reason.text}</span>
             </div>
           ) : (
-            <span className="text-[10px] text-gray-500 truncate">
+            <span className="text-[10px] text-gray-600 dark:text-gray-400 truncate">
               {reason?.text || 'Suggested for you'}
             </span>
           )}

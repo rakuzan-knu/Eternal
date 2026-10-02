@@ -29,7 +29,9 @@ import {
   Languages,
   Calendar,
   UserCheck,
+  Pipette,
 } from 'lucide-react';
+import { CustomPrivacySelect } from '@/features/profile/ui/ProfileShowcaseSettingsSection';
 import {
   ShowcaseMediaType,
   ShowcasePrivacy,
@@ -152,7 +154,7 @@ const DiscordToggle: React.FC<DiscordToggleProps> = ({
   return (
     <div
       onClick={() => !disabled && onChange(!checked)}
-      className={`flex items-center justify-between p-3 rounded-2xl bg-[#1e1f22]/70 hover:bg-[#1e1f22] border border-white/[0.06] transition-all cursor-pointer select-none group ${
+      className={`flex items-center justify-between p-3 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] backdrop-blur-md transition-all cursor-pointer select-none group ${
         disabled ? 'opacity-50 cursor-not-allowed' : ''
       }`}
     >
@@ -224,6 +226,16 @@ export const ShowcaseQuickEditor: React.FC<ShowcaseQuickEditorProps> = ({
     showcase.privacyShowcase || ShowcasePrivacy.PUBLIC,
   );
   const [privacyLinks, setPrivacyLinks] = useState(showcase.privacyLinks || ShowcasePrivacy.PUBLIC);
+
+  useEffect(() => {
+    if (isOpen && showcase) {
+      if (showcase.accentColor) setAccentColor(showcase.accentColor);
+      if (showcase.privacyMeta) setPrivacyMeta(showcase.privacyMeta);
+      if (showcase.privacyActivity) setPrivacyActivity(showcase.privacyActivity);
+      if (showcase.privacyShowcase) setPrivacyShowcase(showcase.privacyShowcase);
+      if (showcase.privacyLinks) setPrivacyLinks(showcase.privacyLinks);
+    }
+  }, [isOpen, showcase]);
 
   const [showAge, setShowAge] = useState(showcase.showAge === true);
   const [showBirthdate, setShowBirthdate] = useState(showcase.showBirthdate === true);
@@ -901,9 +913,9 @@ export const ShowcaseQuickEditor: React.FC<ShowcaseQuickEditorProps> = ({
   if (!isOpen) return null;
 
   const modalContent = (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn overscroll-contain">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/45 backdrop-blur-sm animate-fadeIn overscroll-contain">
       <div
-        className="relative w-full max-w-5xl h-[88vh] max-h-[860px] bg-[#111214] border border-white/[0.08] rounded-3xl p-5 sm:p-6 shadow-2xl flex flex-col gap-4 text-white overflow-hidden overscroll-contain"
+        className="relative w-full max-w-5xl h-[88vh] max-h-[860px] glass-modal border border-black/10 dark:border-white/10 rounded-3xl p-5 sm:p-6 shadow-2xl flex flex-col gap-4 text-white overflow-hidden overscroll-contain backdrop-blur-2xl"
         style={{
           boxShadow: `0 0 50px -10px ${accentColor}40`,
         }}
@@ -1490,7 +1502,7 @@ export const ShowcaseQuickEditor: React.FC<ShowcaseQuickEditorProps> = ({
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder={`Search ${selectedMediaType.toLowerCase()} to add to wishlist...`}
-                      className="w-full bg-[#111214] border border-white/[0.08] focus:border-indigo-500 rounded-xl pl-9 pr-9 py-2.5 text-xs text-white placeholder-gray-500 outline-none transition-colors"
+                      className="w-full bg-black/[0.04] dark:bg-white/[0.05] border border-black/10 dark:border-white/[0.08] focus:border-indigo-500 rounded-xl pl-9 pr-9 py-2.5 text-xs text-white placeholder-gray-500 outline-none transition-colors"
                     />
                     {searchQuery && (
                       <button
@@ -1509,7 +1521,7 @@ export const ShowcaseQuickEditor: React.FC<ShowcaseQuickEditorProps> = ({
                         <div
                           key={item.id || item.title}
                           onClick={() => handleAddMediaToCategory(item, true)}
-                          className="flex items-center gap-2.5 p-2 rounded-xl bg-[#2b2d31]/70 hover:bg-[#2b2d31] border border-white/[0.06] hover:border-indigo-500/40 cursor-pointer transition-colors group"
+                          className="flex items-center gap-2.5 p-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.10] border border-white/[0.08] hover:border-indigo-500/40 cursor-pointer transition-colors group"
                         >
                           <img
                             src={sanitizeImageUrl(item.posterUrl)}
@@ -1546,7 +1558,7 @@ export const ShowcaseQuickEditor: React.FC<ShowcaseQuickEditorProps> = ({
           {activeTab === 'media' && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1 min-h-0">
               {/* LEFT PANEL: 5 Slots Showcase Board (lg:col-span-5) */}
-              <div className="lg:col-span-5 flex flex-col p-4 rounded-2xl bg-[#1e1f22]/70 border border-white/[0.08] shadow-inner gap-3">
+              <div className="lg:col-span-5 flex flex-col p-4 rounded-2xl bg-black/[0.03] dark:bg-white/[0.04] border border-black/10 dark:border-white/[0.08] backdrop-blur-xl shadow-inner gap-3">
                 {/* Header with Slot count & Progress */}
                 <div className="flex flex-col gap-2 pb-2.5 border-b border-white/[0.06]">
                   <div className="flex items-center justify-between">
@@ -1596,7 +1608,7 @@ export const ShowcaseQuickEditor: React.FC<ShowcaseQuickEditorProps> = ({
                       return (
                         <div
                           key={item.id || item.title || slotIdx}
-                          className="flex items-center justify-between gap-2.5 p-2 rounded-xl bg-[#2b2d31]/80 hover:bg-[#2b2d31] border border-white/[0.06] transition-all group/item shadow-xs"
+                          className="flex items-center justify-between gap-2.5 p-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.10] border border-white/[0.08] transition-all group/item shadow-xs"
                         >
                           <div className="flex items-center gap-2.5 min-w-0 flex-1">
                             <div className="relative w-9 h-12 rounded-lg overflow-hidden bg-black/40 shrink-0 border border-white/[0.08]">
@@ -1726,12 +1738,12 @@ export const ShowcaseQuickEditor: React.FC<ShowcaseQuickEditorProps> = ({
               </div>
 
               {/* RIGHT PANEL: Search & Catalog Library (lg:col-span-7) */}
-              <div className="lg:col-span-7 flex flex-col p-4 rounded-2xl bg-[#1e1f22]/70 border border-white/[0.08] shadow-inner gap-3">
+              <div className="lg:col-span-7 flex flex-col p-4 rounded-2xl bg-black/[0.03] dark:bg-white/[0.04] border border-black/10 dark:border-white/[0.08] backdrop-blur-xl shadow-inner gap-3">
                 {/* Header with Category switcher */}
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <span className="text-xs font-bold text-gray-300">Browse & Add Titles</span>
 
-                  <div className="flex items-center gap-1 p-1 rounded-xl bg-[#111214] border border-white/[0.06]">
+                  <div className="flex items-center gap-1 p-1 rounded-xl bg-black/[0.04] dark:bg-white/[0.05] border border-black/10 dark:border-white/[0.08]">
                     {(
                       [
                         ShowcaseMediaType.GAME,
@@ -1797,7 +1809,7 @@ export const ShowcaseQuickEditor: React.FC<ShowcaseQuickEditorProps> = ({
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder={`Search ${selectedMediaType.toLowerCase()} titles (e.g. Naruto, Bleach, Dark Souls)...`}
-                    className="w-full bg-[#111214] border border-white/[0.08] focus:border-indigo-500 rounded-xl pl-9 pr-9 py-2.5 text-xs text-white placeholder-gray-500 outline-none transition-all shadow-inner"
+                    className="w-full bg-black/[0.04] dark:bg-white/[0.05] border border-black/10 dark:border-white/[0.08] focus:border-indigo-500 rounded-xl pl-9 pr-9 py-2.5 text-xs text-white placeholder-gray-500 outline-none transition-all shadow-inner"
                   />
                   {searchQuery && (
                     <button
@@ -1821,7 +1833,7 @@ export const ShowcaseQuickEditor: React.FC<ShowcaseQuickEditorProps> = ({
                           <div
                             key={item.id || item.title}
                             onClick={() => !isFull && handleAddMediaToCategory(item)}
-                            className={`group relative flex flex-col p-2 rounded-xl bg-[#2b2d31]/60 hover:bg-[#2b2d31] border border-white/[0.06] hover:border-indigo-500/40 transition-all duration-200 shadow-xs ${
+                            className={`group relative flex flex-col p-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.10] border border-white/[0.08] hover:border-indigo-500/40 transition-all duration-200 shadow-xs ${
                               isFull
                                 ? 'opacity-50 cursor-not-allowed'
                                 : 'cursor-pointer hover:shadow-lg hover:-translate-y-0.5'
@@ -2939,22 +2951,73 @@ export const ShowcaseQuickEditor: React.FC<ShowcaseQuickEditorProps> = ({
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-bold text-gray-300">Accent Glow Theme Color:</label>
-                <div className="flex items-center gap-2">
-                  {ACCENT_COLORS.map((color) => (
-                    <button
-                      key={color}
-                      type="button"
-                      onClick={() => setAccentColor(color)}
-                      className="w-7 h-7 rounded-full transition-transform hover:scale-110 flex items-center justify-center cursor-pointer"
-                      style={{
-                        backgroundColor: color,
-                        boxShadow: accentColor === color ? `0 0 12px ${color}` : 'none',
-                        border: accentColor === color ? '2px solid white' : 'none',
-                      }}
-                    >
-                      {accentColor === color && <Check size={14} className="text-white" />}
-                    </button>
-                  ))}
+                <div className="flex items-center gap-2 flex-wrap">
+                  {ACCENT_COLORS.map((color) => {
+                    const isSelected = accentColor.toLowerCase() === color.toLowerCase();
+                    return (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => setAccentColor(color)}
+                        className="w-7 h-7 rounded-full transition-all hover:scale-110 flex items-center justify-center cursor-pointer shadow-md"
+                        style={{
+                          backgroundColor: color,
+                          boxShadow: isSelected ? `0 0 12px ${color}` : 'none',
+                          border: isSelected
+                            ? '2px solid white'
+                            : '1px solid rgba(255,255,255,0.1)',
+                        }}
+                        title={`Preset: ${color}`}
+                      >
+                        {isSelected && <Check size={13} className="text-white drop-shadow" />}
+                      </button>
+                    );
+                  })}
+
+                  {/* Discord-style Custom RGB Color Swatch */}
+                  {(() => {
+                    const isCustom = !ACCENT_COLORS.some(
+                      (c) => c.toLowerCase() === accentColor.toLowerCase(),
+                    );
+                    return (
+                      <div className="relative group">
+                        <label
+                          title={
+                            isCustom ? `Custom Color: ${accentColor}` : 'Pick custom RGB color'
+                          }
+                          className="relative w-7 h-7 rounded-full transition-all hover:scale-110 flex items-center justify-center cursor-pointer shadow-md overflow-hidden"
+                          style={{
+                            background: isCustom
+                              ? accentColor
+                              : 'conic-gradient(from 180deg at 50% 50%, #ff4b4b, #ffb020, #00d26a, #00d4ff, #5865f2, #eb459e, #ff4b4b)',
+                            boxShadow: isCustom ? `0 0 12px ${accentColor}` : 'none',
+                            border: isCustom
+                              ? '2px solid white'
+                              : '1.5px solid rgba(255,255,255,0.25)',
+                          }}
+                        >
+                          <input
+                            type="color"
+                            value={accentColor}
+                            onChange={(e) => setAccentColor(e.target.value)}
+                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full p-0 border-0"
+                            aria-label="Custom RGB color picker"
+                          />
+                          {isCustom ? (
+                            <Check
+                              size={13}
+                              className="text-white drop-shadow pointer-events-none"
+                            />
+                          ) : (
+                            <Pipette
+                              size={12}
+                              className="text-white drop-shadow opacity-90 group-hover:opacity-100 pointer-events-none"
+                            />
+                          )}
+                        </label>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
 
@@ -2964,56 +3027,40 @@ export const ShowcaseQuickEditor: React.FC<ShowcaseQuickEditorProps> = ({
                   Granular Privacy Tiers:
                 </span>
 
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-white/10 transition-colors">
                   <span className="text-xs text-gray-200">Personal Information Visibility</span>
-                  <select
+                  <CustomPrivacySelect
                     value={privacyMeta}
-                    onChange={(e) => setPrivacyMeta(e.target.value as ShowcasePrivacy)}
-                    className="bg-[#18181b] border border-white/[0.1] rounded-lg px-2.5 py-1 text-xs text-white outline-none cursor-pointer"
-                  >
-                    <option value={ShowcasePrivacy.PUBLIC}>Public (Everyone)</option>
-                    <option value={ShowcasePrivacy.FOLLOWERS}>Followers Only</option>
-                    <option value={ShowcasePrivacy.PRIVATE}>Only Me</option>
-                  </select>
+                    onChange={setPrivacyMeta}
+                    id="modal-privacy-meta"
+                  />
                 </div>
 
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-white/10 transition-colors">
                   <span className="text-xs text-gray-200">Activity & Live Presence</span>
-                  <select
+                  <CustomPrivacySelect
                     value={privacyActivity}
-                    onChange={(e) => setPrivacyActivity(e.target.value as ShowcasePrivacy)}
-                    className="bg-[#18181b] border border-white/[0.1] rounded-lg px-2.5 py-1 text-xs text-white outline-none cursor-pointer"
-                  >
-                    <option value={ShowcasePrivacy.PUBLIC}>Public (Everyone)</option>
-                    <option value={ShowcasePrivacy.FOLLOWERS}>Followers Only</option>
-                    <option value={ShowcasePrivacy.PRIVATE}>Only Me</option>
-                  </select>
+                    onChange={setPrivacyActivity}
+                    id="modal-privacy-activity"
+                  />
                 </div>
 
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-white/10 transition-colors">
                   <span className="text-xs text-gray-200">Showcase & Spotlight Grid</span>
-                  <select
+                  <CustomPrivacySelect
                     value={privacyShowcase}
-                    onChange={(e) => setPrivacyShowcase(e.target.value as ShowcasePrivacy)}
-                    className="bg-[#18181b] border border-white/[0.1] rounded-lg px-2.5 py-1 text-xs text-white outline-none cursor-pointer"
-                  >
-                    <option value={ShowcasePrivacy.PUBLIC}>Public (Everyone)</option>
-                    <option value={ShowcasePrivacy.FOLLOWERS}>Followers Only</option>
-                    <option value={ShowcasePrivacy.PRIVATE}>Only Me</option>
-                  </select>
+                    onChange={setPrivacyShowcase}
+                    id="modal-privacy-showcase"
+                  />
                 </div>
 
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-white/10 transition-colors">
                   <span className="text-xs text-gray-200">Connected Accounts Strip</span>
-                  <select
+                  <CustomPrivacySelect
                     value={privacyLinks}
-                    onChange={(e) => setPrivacyLinks(e.target.value as ShowcasePrivacy)}
-                    className="bg-[#18181b] border border-white/[0.1] rounded-lg px-2.5 py-1 text-xs text-white outline-none cursor-pointer"
-                  >
-                    <option value={ShowcasePrivacy.PUBLIC}>Public (Everyone)</option>
-                    <option value={ShowcasePrivacy.FOLLOWERS}>Followers Only</option>
-                    <option value={ShowcasePrivacy.PRIVATE}>Only Me</option>
-                  </select>
+                    onChange={setPrivacyLinks}
+                    id="modal-privacy-links"
+                  />
                 </div>
               </div>
             </div>

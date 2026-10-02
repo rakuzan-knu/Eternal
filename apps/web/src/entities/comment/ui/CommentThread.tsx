@@ -61,17 +61,17 @@ export function CommentThread({
 
       {/* Replies Thread (Collapsible with 1-Level Indent & Curved Branch Line) */}
       {replyCount > 0 && (
-        <div className="ml-5 sm:ml-6 pl-3 sm:pl-4 border-l-2 border-white/[0.08] relative mt-0.5">
+        <div className="ml-5 sm:ml-6 pl-3 sm:pl-4 border-l-2 border-black/10 dark:border-white/[0.08] relative mt-0.5">
           {/* Toggle Replies Button */}
           <button
             type="button"
             onClick={() => setIsExpanded((prev) => !prev)}
-            className="flex items-center gap-2 text-xs font-semibold text-purple-400 hover:text-purple-300 py-1.5 px-2 rounded-xl hover:bg-purple-500/10 transition-all cursor-pointer group select-none"
+            className="flex items-center gap-2 text-xs font-semibold text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 py-1.5 px-2 rounded-xl hover:bg-purple-500/10 transition-all cursor-pointer group select-none"
           >
             <div className="flex items-center gap-1.5">
               <CornerDownRight
                 size={13}
-                className="text-purple-400/80 group-hover:translate-x-0.5 transition-transform"
+                className="text-purple-600/80 dark:text-purple-400/80 group-hover:translate-x-0.5 transition-transform"
               />
               <span>
                 {isExpanded
@@ -81,7 +81,7 @@ export function CommentThread({
             </div>
             <ChevronDown
               size={13}
-              className={`text-purple-400/70 transition-transform duration-300 ${
+              className={`text-purple-600/70 dark:text-purple-400/70 transition-transform duration-300 ${
                 isExpanded ? 'rotate-180' : ''
               }`}
             />
@@ -91,7 +91,7 @@ export function CommentThread({
           {isExpanded && (
             <div className="space-y-1.5 pt-1 animate-fadeIn">
               {isLoading ? (
-                <div className="flex items-center gap-2 py-3 px-2 text-xs text-gray-500">
+                <div className="flex items-center gap-2 py-3 px-2 text-xs text-gray-500 dark:text-gray-400">
                   <div className="w-3.5 h-3.5 border-2 border-purple-500/50 border-t-transparent rounded-full animate-spin" />
                   <span>Loading replies...</span>
                 </div>
@@ -118,7 +118,7 @@ export function CommentThread({
                       type="button"
                       disabled={isFetchingNextPage}
                       onClick={() => fetchNextPage()}
-                      className="text-xs text-purple-400 hover:text-purple-300 font-semibold py-1.5 px-2 rounded-lg hover:bg-purple-500/10 transition-colors cursor-pointer disabled:opacity-50"
+                      className="text-xs text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 font-semibold py-1.5 px-2 rounded-lg hover:bg-purple-500/10 transition-colors cursor-pointer disabled:opacity-50"
                     >
                       {isFetchingNextPage ? 'Loading more...' : 'View more replies'}
                     </button>

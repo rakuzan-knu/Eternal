@@ -17,7 +17,9 @@ export function loadThemeFont(fontFamily: string, googleFontName?: string): void
     fontName === 'Inter' ||
     fontName === 'sans-serif' ||
     fontName === 'monospace' ||
-    fontName === 'serif'
+    fontName === 'serif' ||
+    fontName === 'Minecraft' ||
+    fontName.includes('Minecraft')
   ) {
     return;
   }
@@ -67,6 +69,13 @@ export function preloadTextTabFonts(): void {
     'JetBrains+Mono:wght@500;700',
     'Kelly+Slab',
     'Pacifico',
+    'Dela+Gothic+One',
+    'Cinzel+Decorative:wght@700',
+    'UnifrakturMaguntia',
+    'Gothic+A1:wght@700',
+    'Orbitron:wght@600;800',
+    'Michroma',
+    'VT323',
   ];
 
   try {

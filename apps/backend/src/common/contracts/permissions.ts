@@ -91,6 +91,19 @@ export function setPermission(mask: number, permission: Permission, enabled: boo
 }
 
 /**
+ * Resolves effective permissions mask for a participant.
+ * If rawPerms is 0 (or null/undefined), falls back to role-based default.
+ */
+export function getEffectivePermissions(role?: string | null, rawPerms?: number | null): number {
+  if (rawPerms !== undefined && rawPerms !== null && rawPerms !== 0) {
+    return rawPerms | 0;
+  }
+  if (role === 'OWNER') return DEFAULT_OWNER_PERMISSIONS;
+  if (role === 'ADMIN') return DEFAULT_ADMIN_PERMISSIONS;
+  return DEFAULT_MEMBER_PERMISSIONS;
+}
+
+/**
  * Fast-Path permission check: single CPU instruction (~0.00001 ms).
  * Returns true if participant has the requested permission and is neither banned nor muted.
  */

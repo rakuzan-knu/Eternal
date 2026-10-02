@@ -99,3 +99,15 @@ export function getSafeSpotifyTrackUrl(
 
   return 'https://open.spotify.com';
 }
+
+/**
+ * Normalizes and compares two track IDs across SoundCloud (sc-, soundcloud-)
+ * and Spotify (spotify:track:) representations.
+ */
+export function isSameTrackId(a?: string | null, b?: string | null): boolean {
+  if (!a || !b) return false;
+  if (a === b) return true;
+  const cleanA = a.replace(/^(?:sc-|soundcloud-|spotify:track:)/i, '').trim();
+  const cleanB = b.replace(/^(?:sc-|soundcloud-|spotify:track:)/i, '').trim();
+  return cleanA.toLowerCase() === cleanB.toLowerCase();
+}

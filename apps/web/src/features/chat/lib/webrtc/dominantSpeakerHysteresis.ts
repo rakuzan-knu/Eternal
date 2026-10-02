@@ -192,12 +192,22 @@ export function useDominantSpeakerTracker(
         (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       audioContext = new AudioCtx();
 
+      const silentGain =
+        typeof audioContext.createGain === 'function' && audioContext.destination
+          ? audioContext.createGain()
+          : null;
+      if (silentGain && audioContext.destination) {
+        silentGain.gain.value = 0;
+        silentGain.connect(audioContext.destination);
+      }
+
       // Hook local stream
       if (localStream && localStream.getAudioTracks().length > 0) {
         const source = audioContext.createMediaStreamSource(localStream);
         const analyser = audioContext.createAnalyser();
         analyser.fftSize = 256;
         source.connect(analyser);
+        if (silentGain) analyser.connect(silentGain);
         analysers.set(currentUserId, analyser);
       }
 
@@ -209,6 +219,7 @@ export function useDominantSpeakerTracker(
             const analyser = audioContext.createAnalyser();
             analyser.fftSize = 256;
             source.connect(analyser);
+            if (silentGain) analyser.connect(silentGain);
             analysers.set(userId, analyser);
           } catch {
             // Ignore track binding errors
@@ -258,12 +269,5 @@ export function useDominantSpeakerTracker(
         setDominantSpeakerId(null);
       }
     };
-  }, [
-    localStream?.id,
-    remoteStreamsKey,
-    currentUserId,
-    setDominantSpeakerId,
-    localStream,
-    remoteStreams,
-  ]);
+  }, [localStream?.id, remoteStreamsKey, currentUserId, setDominantSpeakerId]);
 }

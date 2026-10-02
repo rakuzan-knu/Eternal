@@ -56,8 +56,12 @@ export function getConversationDisplay(
 function formatDurationSec(seconds?: number | null): string {
   if (!seconds || isNaN(seconds) || seconds <= 0) return '';
   const s = Math.round(seconds);
-  const m = Math.floor(s / 60);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
   const remSec = s % 60;
+  if (h > 0) {
+    return `${h}:${m.toString().padStart(2, '0')}:${remSec.toString().padStart(2, '0')}`;
+  }
   return `${m}:${remSec.toString().padStart(2, '0')}`;
 }
 

@@ -475,12 +475,12 @@ export function CommentModal() {
 
       {/* Instagram-Style Liquid Glass Modal Container */}
       <div
-        className="w-full max-w-[1240px] h-[92vh] max-h-[920px] min-h-[560px] flex flex-col md:flex-row bg-[#0a0b12]/95 backdrop-blur-3xl border-t md:border border-white/[0.12] rounded-t-3xl md:rounded-3xl shadow-[0_25px_80px_rgba(0,0,0,0.9),0_0_50px_rgba(147,51,234,0.12)] overflow-hidden animate-slideUp relative"
+        className="w-full max-w-[1240px] h-[92vh] max-h-[920px] min-h-[560px] flex flex-col md:flex-row glass-modal border-t md:border border-black/10 dark:border-white/[0.12] rounded-t-3xl md:rounded-3xl shadow-[0_25px_80px_rgba(0,0,0,0.7)] overflow-hidden animate-slideUp relative text-gray-900 dark:text-white"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Mobile Drag / Pull Handle */}
-        <div className="md:hidden pt-3 pb-1 flex justify-center shrink-0 bg-[#0a0b12]">
-          <div className="w-12 h-1.5 bg-white/20 rounded-full" />
+        <div className="md:hidden pt-3 pb-1 flex justify-center shrink-0 bg-transparent">
+          <div className="w-12 h-1.5 bg-black/20 dark:bg-white/20 rounded-full" />
         </div>
 
         {/* ========================================================= */}
@@ -625,9 +625,9 @@ export function CommentModal() {
         {/* =================================================================== */}
         {/* RIGHT COLUMN: AUTHOR HEADER, COMMENTS STREAM, ACTIONS & COMPOSER */}
         {/* =================================================================== */}
-        <div className="w-full md:w-[44%] lg:w-[42%] flex flex-col flex-1 h-full bg-[#0b0c14]/90 backdrop-blur-2xl relative min-w-0 overflow-hidden">
+        <div className="w-full md:w-[44%] lg:w-[42%] flex flex-col flex-1 h-full glass-panel border-t md:border-t-0 md:border-l border-black/10 dark:border-white/[0.08] relative min-w-0 overflow-hidden text-gray-900 dark:text-white">
           {/* Top Author Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.08] bg-white/[0.02] backdrop-blur-md shrink-0">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-black/10 dark:border-white/[0.08] bg-transparent shrink-0">
             <div className="flex items-center gap-3 min-w-0">
               <MiniProfileHoverCard username={activePostForComments.handle}>
                 <Link to={`/profile/${activePostForComments.handle}`}>
@@ -680,7 +680,7 @@ export function CommentModal() {
 
               <button
                 onClick={closeCommentModal}
-                className="text-gray-400 hover:text-white p-1 rounded-xl hover:bg-white/10 transition-colors cursor-pointer md:hidden"
+                className="text-gray-400 hover:text-gray-900 dark:hover:text-white p-1 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer md:hidden"
                 title="Close"
               >
                 <X size={18} />
@@ -701,10 +701,10 @@ export function CommentModal() {
                 fetchNextPage();
               }
             }}
-            className="flex-1 overflow-y-auto px-4 py-3.5 space-y-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full"
+            className="flex-1 overflow-y-auto px-4 py-3.5 space-y-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-black/10 dark:[&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full"
           >
             {/* Original Post Caption */}
-            <div className="flex gap-3 items-start pb-3.5 border-b border-white/[0.06]">
+            <div className="flex gap-3 items-start pb-3.5 border-b border-black/10 dark:border-white/[0.06]">
               <MiniProfileHoverCard username={activePostForComments.handle}>
                 <Link to={`/profile/${activePostForComments.handle}`} className="shrink-0 pt-0.5">
                   <Avatar size="sm" src={activePostForComments.avatar} />
@@ -726,12 +726,12 @@ export function CommentModal() {
                       />
                     </Link>
                   </MiniProfileHoverCard>
-                  <span className="text-[11px] text-gray-500 font-normal">
+                  <span className="text-[11px] text-gray-500 dark:text-gray-400 font-normal">
                     @{activePostForComments.handle} •{' '}
                     {formatRelativeTime(activePostForComments.createdAt)}
                   </span>
                 </div>
-                <div className="text-gray-200 text-sm mt-1 leading-relaxed break-words [overflow-wrap:anywhere]">
+                <div className="text-gray-800 dark:text-gray-200 text-sm mt-1 leading-relaxed break-words [overflow-wrap:anywhere]">
                   <FormattedText text={activePostForComments.text} />
                 </div>
               </div>
@@ -815,12 +815,14 @@ export function CommentModal() {
                 </>
               ) : (
                 /* Zero State with Quick Emoji Reaction Chips */
-                <div className="flex flex-col items-center justify-center py-10 px-4 text-center rounded-2xl bg-white/[0.01] border border-white/[0.04]">
-                  <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 mb-3 shadow-[0_0_20px_rgba(168,85,247,0.15)]">
+                <div className="flex flex-col items-center justify-center py-10 px-4 text-center rounded-2xl bg-black/[0.02] dark:bg-white/[0.01] border border-black/10 dark:border-white/[0.04]">
+                  <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-600 dark:text-purple-400 mb-3 shadow-[0_0_20px_rgba(168,85,247,0.15)]">
                     <Sparkles size={22} />
                   </div>
-                  <h4 className="text-white font-bold text-sm">No comments yet</h4>
-                  <p className="text-gray-500 text-xs mt-1 max-w-xs">
+                  <h4 className="text-gray-900 dark:text-white font-bold text-sm">
+                    No comments yet
+                  </h4>
+                  <p className="text-gray-500 dark:text-gray-400 text-xs mt-1 max-w-xs">
                     Start the conversation by sharing your thoughts or dropping a reaction!
                   </p>
 
@@ -834,7 +836,7 @@ export function CommentModal() {
                             text: emoji,
                           })
                         }
-                        className="px-2.5 py-1 rounded-xl bg-white/[0.04] hover:bg-white/[0.1] border border-white/[0.08] hover:border-purple-500/30 text-base transition-all transform active:scale-95 cursor-pointer shadow-sm"
+                        className="px-2.5 py-1 rounded-xl bg-black/5 hover:bg-black/10 dark:bg-white/[0.04] dark:hover:bg-white/[0.1] border border-black/10 dark:border-white/[0.08] hover:border-purple-500/30 text-base transition-all transform active:scale-95 cursor-pointer shadow-sm"
                       >
                         {emoji}
                       </button>
@@ -846,7 +848,7 @@ export function CommentModal() {
           </div>
 
           {/* Post Actions & Likes Summary Section (Comment icon removed, +1 counts functional) */}
-          <div className="px-4 py-2.5 border-t border-white/[0.08] bg-white/[0.01] backdrop-blur-md shrink-0 flex flex-col gap-1.5">
+          <div className="px-4 py-2.5 border-t border-black/10 dark:border-white/[0.08] bg-transparent shrink-0 flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 {/* Like Button */}
@@ -856,7 +858,7 @@ export function CommentModal() {
                   className={`p-1 -ml-1 cursor-pointer transition-transform duration-200 active:scale-125 ${
                     activePostForComments.isLiked
                       ? 'text-[#ec4899]'
-                      : 'text-gray-400 hover:text-white'
+                      : 'text-gray-500 hover:text-gray-950 dark:text-gray-400 dark:hover:text-white'
                   }`}
                   title={activePostForComments.isLiked ? 'Unlike' : 'Like'}
                 >
@@ -875,15 +877,17 @@ export function CommentModal() {
                   onClick={handleRepostPost}
                   className={`p-1 cursor-pointer transition-colors duration-200 ${
                     activePostForComments.isReposted
-                      ? 'text-green-400'
-                      : 'text-gray-400 hover:text-white'
+                      ? 'text-green-500 dark:text-green-400'
+                      : 'text-gray-500 hover:text-gray-950 dark:text-gray-400 dark:hover:text-white'
                   }`}
                   title={activePostForComments.isReposted ? 'Undo Repost' : 'Repost'}
                 >
                   <Repeat
                     size={22}
                     className={`transition-all duration-300 ${
-                      isRepostSpinning ? 'rotate-180 scale-125 text-green-400' : ''
+                      isRepostSpinning
+                        ? 'rotate-180 scale-125 text-green-500 dark:text-green-400'
+                        : ''
                     }`}
                   />
                 </button>
@@ -892,7 +896,7 @@ export function CommentModal() {
                 <button
                   type="button"
                   onClick={() => openShareModal(activePostForComments)}
-                  className="p-1 text-gray-400 hover:text-white cursor-pointer transition-transform duration-200 active:scale-125"
+                  className="p-1 text-gray-500 hover:text-gray-950 dark:text-gray-400 dark:hover:text-white cursor-pointer transition-transform duration-200 active:scale-125"
                   title="Share"
                 >
                   <Share size={22} />
@@ -903,12 +907,16 @@ export function CommentModal() {
               <button
                 type="button"
                 onClick={handleSavePost}
-                className="p-1 text-gray-400 hover:text-white cursor-pointer transition-transform duration-200 active:scale-125"
+                className="p-1 text-gray-500 hover:text-gray-950 dark:text-gray-400 dark:hover:text-white cursor-pointer transition-transform duration-200 active:scale-125"
                 title={activePostForComments.isSaved ? 'Unsave' : 'Save'}
               >
                 <Bookmark
                   size={22}
-                  className={activePostForComments.isSaved ? 'fill-white text-white' : ''}
+                  className={
+                    activePostForComments.isSaved
+                      ? 'fill-current text-gray-900 dark:text-white'
+                      : ''
+                  }
                 />
               </button>
             </div>
@@ -916,12 +924,12 @@ export function CommentModal() {
             {/* Likes Summary & Date Display */}
             <div className="flex flex-col text-xs">
               {!activePostForComments.hideLikesCount && (
-                <span className="font-semibold text-white">
+                <span className="font-semibold text-gray-900 dark:text-white">
                   {(activePostForComments.likes ?? 0).toLocaleString()}{' '}
                   {(activePostForComments.likes ?? 0) === 1 ? 'like' : 'likes'}
                 </span>
               )}
-              <span className="text-[10px] text-gray-500 uppercase tracking-wider mt-0.5">
+              <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-0.5">
                 {formatRelativeTime(activePostForComments.createdAt)}
               </span>
             </div>
@@ -929,7 +937,7 @@ export function CommentModal() {
 
           {/* Sticky Bottom Comment Composer */}
           {activePostForComments.isCommentsDisabled ? (
-            <div className="p-4 bg-white/[0.02] border-t border-white/[0.06] text-center text-xs font-medium text-gray-500 select-none">
+            <div className="p-4 bg-black/[0.02] dark:bg-white/[0.02] border-t border-black/10 dark:border-white/[0.06] text-center text-xs font-medium text-gray-500 dark:text-gray-400 select-none">
               Comments are disabled for this post
             </div>
           ) : (

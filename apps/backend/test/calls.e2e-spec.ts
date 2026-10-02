@@ -463,7 +463,7 @@ describe('Voice & Video Calls Signaling (e2e)', () => {
     const rawBody: unknown = res.body;
     const svgText = res.text || (Buffer.isBuffer(rawBody) ? rawBody.toString('utf-8') : '');
     expect(svgText).toContain('<svg');
-    expect(svgText).toContain('ANTIGRAVITY');
+    expect(svgText).toContain('Eternal');
     expect(svgText).toContain('Защищенный HD-звонок');
   });
 

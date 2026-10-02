@@ -13,13 +13,15 @@ import {
 import Avatar from '../../../shared/ui/Avatar';
 import { e2eeManager } from '../../../shared/lib/crypto/e2ee';
 import { useDecryptedMessageBody } from '../model/useDecryptedMessageBody';
-import { MessageView } from '../../../entities/chat/model/types';
+import { AttachmentView, MessageView } from '../../../entities/chat/model/types';
 import { formatMessageTime } from '../lib/groupMessagesByDate';
 import MessageReactionPicker from './MessageReactionPicker';
+import ExpandedReactionPicker from './ExpandedReactionPicker';
 import ReactionBadge from './ReactionBadge';
 import { triggerFlyingReaction } from '../lib/reactionBurstEngine';
 import MessageContextMenu from './MessageContextMenu';
 import DeleteMessageModal from './DeleteMessageModal';
+import MediaLightbox from './MediaLightbox';
 import MessageAttachments from './MessageAttachments';
 import ChatPollCard from './ChatPollCard';
 import { parseChatPoll } from '../lib/chatPoll';
@@ -31,6 +33,7 @@ import { extractFirstUrl } from '../../../shared/lib/urlUtils';
 import { ClusterPosition } from './MessageList';
 import { VideoNoteBubble } from './VideoNoteBubble';
 import { StoryReplyEmbed } from './StoryReplyEmbed';
+import { TelegramAppleEmoji, parseEmojiList, isOnlyEmojis } from './Call/TelegramAppleEmoji';
 import { ChatThemeConfig } from '../model/chatTheme';
 import { BubbleTail } from './BubbleTail';
 import { BubbleDecoration } from './BubbleDecoration';
@@ -40,6 +43,7 @@ import {
   getBubbleShapeStyles,
   getThemeTextStyle,
 } from '../lib/themeUtils';
+import { isVideoAttachment, isImageAttachment } from '../lib/chatMediaUtils';
 
 interface MessageBubbleProps {
   message: MessageView;
@@ -64,6 +68,8 @@ interface MessageBubbleProps {
   onRetry?: (messageId: string) => void;
   /** 1:1 peer for message-layer E2EE decrypt; null/undefined = groups or unknown (locked label). */
   e2eePeerUserId?: string | null;
+  peerName?: string | null;
+  onOpenMedia?: (attachment: AttachmentView, rect?: DOMRect, message?: MessageView) => void;
 }
 
 function extractMediaInfo(body: string): {
@@ -116,27 +122,75 @@ export default function MessageBubble({
   onJumpToMessage,
   onRetry,
   e2eePeerUserId = null,
+  peerName = null,
+  onOpenMedia,
 }: MessageBubbleProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isPickerOpen, setPickerOpen] = useState(false);
+  const [isExpandedPickerOpen, setExpandedPickerOpen] = useState(false);
+  const [expandedPickerCoords, setExpandedPickerCoords] = useState<{ x: number; y: number } | null>(
+    null,
+  );
   const [isMenuOpen, setMenuOpen] = useState(false);
+  const [menuCoords, setMenuCoords] = useState<{ x: number; y: number } | null>(null);
   const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [localLightboxState, setLocalLightboxState] = useState<{
+    index: number;
+    originRect: DOMRect | null;
+  } | null>(null);
   const reactionsContainerRef = useRef<HTMLDivElement | null>(null);
   const bubbleContainerRef = useRef<HTMLDivElement | null>(null);
+  const smileBtnRef = useRef<HTMLButtonElement | null>(null);
 
+  const [targetAttachment, setTargetAttachment] = useState<AttachmentView | null>(null);
+
+  const handleContextMenu = (e: React.MouseEvent, attachment?: AttachmentView) => {
+    if (isSelectionMode) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setMenuCoords({ x: e.clientX, y: e.clientY });
+    setTargetAttachment(attachment || message.attachments?.[0] || null);
+    setMenuOpen(true);
+  };
+
+  const handleOpenMedia = (attachment: AttachmentView, rect?: DOMRect) => {
+    if (onOpenMedia) {
+      onOpenMedia(attachment, rect, message);
+    } else {
+      const mediaList = (message.attachments || []).filter(
+        (a) =>
+          a.type === 'IMAGE' ||
+          a.type === 'GIF' ||
+          a.type === 'VIDEO' ||
+          isVideoAttachment(a) ||
+          isImageAttachment(a),
+      );
+      const foundIdx = mediaList.findIndex(
+        (a) => a.id === attachment.id || a.url === attachment.url,
+      );
+      setLocalLightboxState({
+        index: foundIdx >= 0 ? foundIdx : 0,
+        originRect: rect ?? null,
+      });
+    }
+  };
+
+  const resolvedSenderId =
+    message.sender?.id || message.senderId || (isOwnMessage ? currentUserId : null);
   const displaySource = useDecryptedMessageBody(
     message.body,
     e2eePeerUserId,
     message.conversationId,
-    message.sender?.id ?? null,
+    resolvedSenderId,
   );
   // Same dialog, same peer: quoted envelopes decrypt like the body itself.
   // NOTE: hooks must stay above the early returns below (deleted/leave/system).
+  const replyResolvedSenderId = message.replyTo?.sender?.id || message.replyTo?.senderId || null;
   const replyDisplaySource = useDecryptedMessageBody(
     message.replyTo?.body ?? null,
     e2eePeerUserId,
     message.replyTo?.conversationId ?? message.conversationId,
-    message.replyTo?.sender?.id ?? null,
+    replyResolvedSenderId,
   );
   const {
     displayText,
@@ -152,6 +206,7 @@ export default function MessageBubble({
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const lastTapRef = useRef<number>(0);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (isSelectionMode) return;
@@ -178,12 +233,26 @@ export default function MessageBubble({
 
   const handleTouchEnd = () => {
     if (isSelectionMode) return;
+    const now = Date.now();
+    const DOUBLE_TAP_DELAY = 300;
+
     if (swipeOffset >= 42) {
       if (typeof navigator !== 'undefined' && navigator.vibrate) {
         navigator.vibrate(15);
       }
       onReply(message);
+      lastTapRef.current = 0;
+    } else if (Math.abs(swipeOffset) < 8 && now - lastTapRef.current < DOUBLE_TAP_DELAY) {
+      // Double-tap on mobile touch screen
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(15);
+      }
+      onReply(message);
+      lastTapRef.current = 0;
+    } else {
+      lastTapRef.current = now;
     }
+
     setSwipeOffset(0);
     setIsSwiping(false);
     touchStartRef.current = null;
@@ -223,7 +292,7 @@ export default function MessageBubble({
     const timeString = formatMessageTime(message.createdAt);
     return (
       <div className="flex justify-center my-2.5 px-4 select-none">
-        <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#181926]/90 border border-white/10 backdrop-blur-xl text-xs text-gray-300 shadow-md">
+        <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#181926]/95 border border-white/10 text-xs text-gray-300 shadow-[0_4px_16px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.06)]">
           <Pencil size={12} className="text-purple-400 shrink-0" />
           <span className="leading-relaxed">
             {message.body}{' '}
@@ -272,14 +341,18 @@ export default function MessageBubble({
     onReact(message.id, emoji);
   };
 
+  const isDynamicBg = Boolean(
+    chatTheme?.backgroundType === 'shader' || chatTheme?.bgImageUrl || chatTheme?.audioReactive,
+  );
+
   const contrast = chatTheme ? getBubbleContrastTheme(chatTheme, isOwnMessage) : null;
   const bubbleStyles = chatTheme
-    ? getBubbleStyle(chatTheme, isOwnMessage)
+    ? getBubbleStyle(chatTheme, isOwnMessage, isDynamicBg)
     : {
         style: {},
         className: isOwnMessage
-          ? 'bg-gradient-to-br from-purple-600/30 to-purple-800/20 backdrop-blur-xl border border-purple-500/30 text-white shadow-[0_4px_20px_rgba(147,51,234,0.15)]'
-          : 'bg-[#12131b]/80 backdrop-blur-xl border border-white/[0.08] text-white/90 shadow-[0_4px_16px_rgba(0,0,0,0.4)]',
+          ? 'bg-gradient-to-br from-[#7c3aed]/90 to-[#6d28d9]/90 border border-purple-400/25 text-white shadow-[0_4px_20px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.18)]'
+          : 'bg-[#161722]/92 border border-white/[0.08] text-white/95 shadow-[0_4px_16px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.06)]',
       };
 
   const isSending =
@@ -349,10 +422,11 @@ export default function MessageBubble({
         : '#6366f1'
     : chatTheme?.incomingBubbleColor || '#12131b';
 
-  // Solo Emoji Detection
+  // Solo Emoji Detection (uses displaySource so decrypted/cached emoji messages render large)
+  const effectiveBody = (displaySource || message.body || '').trim();
   const isSoloEmoji =
-    Boolean(message.body) &&
-    /^(\p{Extended_Pictographic}|\p{Emoji_Presentation}|\s){1,3}$/u.test(message.body!.trim()) &&
+    Boolean(effectiveBody) &&
+    isOnlyEmojis(effectiveBody, 3) &&
     (!message.attachments || message.attachments.length === 0) &&
     !message.replyTo &&
     !message.forwardedFrom &&
@@ -366,12 +440,30 @@ export default function MessageBubble({
     !isSoloEmoji &&
     !message.body &&
     message.attachments?.length === 1 &&
-    message.attachments[0].type === 'VIDEO' &&
+    isVideoAttachment(message.attachments[0]) &&
     (message.attachments[0].fileName?.includes('video_note') ||
       message.attachments[0].mimeType?.includes('video_note') ||
       (message.attachments[0].width &&
         message.attachments[0].height &&
         message.attachments[0].width === message.attachments[0].height));
+
+  const isMediaOnly =
+    !pollData &&
+    !isSoloEmoji &&
+    !isSingleVideoNote &&
+    !message.body &&
+    !message.replyTo &&
+    Boolean(
+      message.attachments?.length &&
+      message.attachments.every(
+        (a) =>
+          a.type === 'IMAGE' ||
+          a.type === 'GIF' ||
+          a.type === 'VIDEO' ||
+          isVideoAttachment(a) ||
+          isImageAttachment(a),
+      ),
+    );
 
   const verticalSpacingClass = isSingleVideoNote
     ? 'py-1 sm:py-1.5'
@@ -416,6 +508,7 @@ export default function MessageBubble({
   return (
     <div
       id={`msg-${message.id}`}
+      style={{ contain: 'layout paint' }}
       className={`group relative w-full flex items-center gap-2 px-1 sm:px-1.5 ${verticalSpacingClass} ${
         isOwnMessage ? 'justify-end' : 'justify-start'
       } ${showHoverBar ? 'z-20' : 'z-0'}`}
@@ -485,9 +578,11 @@ export default function MessageBubble({
 
         {/* Bubble Body with Multi-Selection Click Handling */}
         <div
+          ref={bubbleContainerRef}
           className={`relative w-fit max-w-full select-text transition-all ${
             isSelectionMode ? 'cursor-pointer' : ''
           } ${isOwnMessage ? 'ml-auto' : 'mr-auto'}`}
+          onContextMenu={handleContextMenu}
           onClick={(e) => {
             if (isSelectionMode) {
               e.stopPropagation();
@@ -500,81 +595,141 @@ export default function MessageBubble({
             <div
               className={`absolute top-1/2 -translate-y-1/2 ${
                 isOwnMessage ? 'right-full mr-2' : 'left-full ml-2'
-              } z-30 flex items-center gap-0.5 bg-[#14151f]/95 backdrop-blur-xl border border-white/[0.14] rounded-full px-1.5 py-0.5 shadow-2xl animate-popIn whitespace-nowrap`}
+              } z-30 flex items-center gap-0.5 bg-[#14151f] border border-white/[0.14] rounded-full px-1.5 py-0.5 shadow-[0_8px_32px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.08)] animate-popIn whitespace-nowrap`}
             >
               <button
+                ref={smileBtnRef}
                 type="button"
                 onClick={() => setPickerOpen((v) => !v)}
-                className="w-6 h-6 flex items-center justify-center rounded-full text-gray-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                className="w-6 h-6 flex items-center justify-center rounded-full text-white/80 hover:text-white hover:bg-white/15 transition-colors cursor-pointer"
                 title="React"
               >
-                <Smile size={14} />
+                <Smile size={14} className="shrink-0 stroke-[2]" />
               </button>
               <button
                 type="button"
                 onClick={() => onReply(message)}
-                className="w-6 h-6 flex items-center justify-center rounded-full text-gray-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                className="w-6 h-6 flex items-center justify-center rounded-full text-white/80 hover:text-white hover:bg-white/15 transition-colors cursor-pointer"
                 title="Reply"
               >
-                <Reply size={14} />
+                <Reply size={14} className="shrink-0 stroke-[2]" />
               </button>
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setMenuOpen((v) => !v)}
-                  className="w-6 h-6 flex items-center justify-center rounded-full text-gray-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-                  title="More actions"
-                >
-                  <MoreHorizontal size={14} />
-                </button>
-                {isMenuOpen && (
-                  <MessageContextMenu
-                    message={message}
-                    isOwnMessage={isOwnMessage}
-                    onClose={() => setMenuOpen(false)}
-                    onEdit={() => {
-                      setMenuOpen(false);
-                      onEdit(message);
-                    }}
-                    onDelete={() => {
-                      setMenuOpen(false);
-                      setDeleteModalOpen(true);
-                    }}
-                    onForward={() => {
-                      setMenuOpen(false);
-                      onForward(message);
-                    }}
-                    onTogglePin={() => {
-                      setMenuOpen(false);
-                      onTogglePin(message);
-                    }}
-                    onReport={() => {
-                      setMenuOpen(false);
-                      onReport(message);
-                    }}
-                    onSelectMessage={() => {
-                      setMenuOpen(false);
-                      onToggleSelect?.(message.id, false);
-                    }}
-                    align={isOwnMessage ? 'right' : 'left'}
-                  />
-                )}
-              </div>
-              {isPickerOpen && (
-                <MessageReactionPicker
-                  align={isOwnMessage ? 'right' : 'left'}
-                  onPick={(emoji, origin) => handleReactionPick(emoji, origin)}
-                  onClose={() => setPickerOpen(false)}
-                />
-              )}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setMenuCoords({
+                    x: isOwnMessage ? Math.max(12, rect.right - 280) : rect.left,
+                    y: rect.bottom + 4,
+                  });
+                  setMenuOpen((v) => !v);
+                }}
+                className="w-6 h-6 flex items-center justify-center rounded-full text-white/80 hover:text-white hover:bg-white/15 transition-colors cursor-pointer"
+                title="More actions"
+              >
+                <MoreHorizontal size={14} className="shrink-0 stroke-[2]" />
+              </button>
             </div>
           )}
 
-          {message.forwardedFrom && (
-            <p className="text-[11px] text-gray-400 mb-0.5 px-1 font-medium">
-              Forwarded from{' '}
-              {message.forwardedFrom.sender.displayName ?? message.forwardedFrom.sender.username}
-            </p>
+          {/* Context Menu (Telegram style, positioned at click coordinates or 3-dots button) */}
+          {isMenuOpen && (
+            <MessageContextMenu
+              message={message}
+              isOwnMessage={isOwnMessage}
+              isReadByOther={isReadByOther}
+              coords={menuCoords}
+              targetAttachment={targetAttachment}
+              onClose={() => {
+                setMenuOpen(false);
+                setMenuCoords(null);
+                setTargetAttachment(null);
+              }}
+              onReply={() => {
+                setMenuOpen(false);
+                setMenuCoords(null);
+                setTargetAttachment(null);
+                onReply(message);
+              }}
+              onEdit={() => {
+                setMenuOpen(false);
+                setMenuCoords(null);
+                setTargetAttachment(null);
+                onEdit(message);
+              }}
+              onDelete={() => {
+                setMenuOpen(false);
+                setMenuCoords(null);
+                setDeleteModalOpen(true);
+              }}
+              onForward={() => {
+                setMenuOpen(false);
+                setMenuCoords(null);
+                onForward(message);
+              }}
+              onTogglePin={() => {
+                setMenuOpen(false);
+                setMenuCoords(null);
+                onTogglePin(message);
+              }}
+              onReport={() => {
+                setMenuOpen(false);
+                setMenuCoords(null);
+                onReport(message);
+              }}
+              onSelectMessage={() => {
+                setMenuOpen(false);
+                setMenuCoords(null);
+                onToggleSelect?.(message.id, false);
+              }}
+              onReact={(emoji, origin) => {
+                setMenuOpen(false);
+                setMenuCoords(null);
+                handleReactionPick(emoji, origin);
+              }}
+              onOpenExpandedPicker={(coords) => {
+                setMenuOpen(false);
+                setMenuCoords(null);
+                setExpandedPickerCoords(coords || null);
+                setExpandedPickerOpen(true);
+              }}
+              onOpenFullPicker={() => {
+                setMenuOpen(false);
+                setMenuCoords(null);
+                setExpandedPickerCoords(menuCoords);
+                setExpandedPickerOpen(true);
+              }}
+              align={isOwnMessage ? 'right' : 'left'}
+            />
+          )}
+
+          {/* Hover Bar Reaction Picker Dock */}
+          {isPickerOpen && (
+            <MessageReactionPicker
+              anchorEl={smileBtnRef.current || bubbleContainerRef.current}
+              align={isOwnMessage ? 'right' : 'left'}
+              onPick={(emoji, origin) => handleReactionPick(emoji, origin)}
+              onClose={() => setPickerOpen(false)}
+            />
+          )}
+
+          {/* Full Expanded Reaction Picker (opened from Context Menu arrow or hover dock expand) */}
+          {isExpandedPickerOpen && (
+            <ExpandedReactionPicker
+              anchorEl={bubbleContainerRef.current}
+              coords={expandedPickerCoords}
+              align={isOwnMessage ? 'right' : 'left'}
+              onPick={(emoji, origin) => {
+                setExpandedPickerOpen(false);
+                setExpandedPickerCoords(null);
+                handleReactionPick(emoji, origin);
+              }}
+              onClose={() => {
+                setExpandedPickerOpen(false);
+                setExpandedPickerCoords(null);
+              }}
+            />
           )}
 
           {pollData ? (
@@ -586,15 +741,39 @@ export default function MessageBubble({
               </span>
             </div>
           ) : isSoloEmoji ? (
-            /* Solo Emoji Large Transparent Display */
-            <div className="relative p-1 select-text">
-              <span className="text-4xl sm:text-5xl leading-tight inline-block filter drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] select-text">
-                {message.body!.trim()}
-              </span>
-              <span className="inline-flex items-center gap-1 ml-2 align-bottom px-1.5 py-0.5 rounded-full bg-black/50 backdrop-blur-md text-[10px] text-white/70 select-none">
-                {formatMessageTime(message.createdAt)}
-                {isOwnMessage && statusIcon}
-              </span>
+            /* Solo Emoji Large Transparent Display - Telegram Style */
+            <div className="relative p-1 select-text inline-flex flex-col items-end">
+              <div className="relative flex items-center gap-2">
+                {(() => {
+                  const rawList = parseEmojiList(effectiveBody);
+                  const emojis = rawList.length > 0 ? rawList : [effectiveBody];
+                  const isSingle = emojis.length === 1;
+                  const emojiSize = isSingle ? 116 : emojis.length === 2 ? 64 : 52;
+                  return (
+                    <>
+                      {emojis.map((emojiChar, idx) => (
+                        <TelegramAppleEmoji
+                          key={`${emojiChar}-${idx}`}
+                          emoji={emojiChar}
+                          size={emojiSize}
+                          playOnce={true}
+                          durationMs={2400}
+                          className="drop-shadow-[0_4px_18px_rgba(0,0,0,0.55)] transition-transform hover:scale-105 active:scale-95"
+                        />
+                      ))}
+                      {/* Telegram-style floating time and read badge in bottom-right corner */}
+                      <span
+                        className={`absolute ${
+                          isSingle ? '-bottom-1.5 -right-1.5' : '-bottom-2 -right-1'
+                        } flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/75 border border-white/10 text-[10px] text-white/90 select-none shadow-md pointer-events-none`}
+                      >
+                        {formatMessageTime(message.createdAt)}
+                        {isOwnMessage && statusIcon}
+                      </span>
+                    </>
+                  );
+                })()}
+              </div>
             </div>
           ) : isSingleVideoNote ? (
             /* Circular Telegram-style Video Note without outer box */
@@ -607,7 +786,7 @@ export default function MessageBubble({
                 sentAt={formatMessageTime(message.createdAt)}
                 conversationId={message.conversationId}
               />
-              <div className="absolute bottom-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-white select-none pointer-events-none shadow-md z-10">
+              <div className="absolute bottom-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/75 border border-white/10 text-white select-none pointer-events-none shadow-md z-10">
                 <span className="text-[10px] font-medium tracking-tight">
                   {formatMessageTime(message.createdAt)}
                 </span>
@@ -620,25 +799,71 @@ export default function MessageBubble({
               <BubbleDecoration shape={bubbleShape} isOwnMessage={isOwnMessage} />
               <div
                 ref={bubbleContainerRef}
+                data-chat-bubble="true"
                 style={{
                   ...bubbleStyles.style,
                   color: contrast ? contrast.textColor : undefined,
                   ...shapeStyles.extraStyle,
                 }}
-                className={`relative px-3.5 py-2 transition-all overflow-hidden ${
+                className={`relative transition-all overflow-hidden ${
+                  isMediaOnly
+                    ? message.forwardedFrom
+                      ? 'pt-2.5 px-2.5 pb-1.5'
+                      : 'p-1'
+                    : 'px-3.5 py-2'
+                } ${
                   isOwnMessage
                     ? hasLinkPreview
                       ? 'w-full max-w-115 sm:max-w-125 min-w-65'
-                      : message.replyTo
-                        ? 'w-fit min-w-52.5 sm:min-w-60 max-w-[88%] sm:max-w-130'
-                        : 'w-fit min-w-18.75 sm:min-w-21.25 max-w-[88%] sm:max-w-130'
+                      : isMediaOnly
+                        ? 'w-fit min-w-[260px] sm:min-w-[320px] max-w-[440px] sm:max-w-[480px]'
+                        : message.replyTo
+                          ? 'w-fit min-w-52.5 sm:min-w-60 max-w-[88%] sm:max-w-130'
+                          : 'w-fit min-w-18.75 sm:min-w-21.25 max-w-[88%] sm:max-w-130'
                     : hasLinkPreview
                       ? 'w-full max-w-105 sm:max-w-115 min-w-65'
-                      : message.replyTo
-                        ? 'w-fit min-w-52.5 sm:min-w-60 max-w-[82%] sm:max-w-110'
-                        : 'w-fit min-w-18.75 sm:min-w-21.25 max-w-[82%] sm:max-w-110'
+                      : isMediaOnly
+                        ? 'w-fit min-w-[260px] sm:min-w-[320px] max-w-[440px] sm:max-w-[480px]'
+                        : message.replyTo
+                          ? 'w-fit min-w-52.5 sm:min-w-60 max-w-[82%] sm:max-w-110'
+                          : 'w-fit min-w-18.75 sm:min-w-21.25 max-w-[82%] sm:max-w-110'
                 } ${roundingClass} ${bubbleStyles.className} ${shapeStyles.extraClass}`}
               >
+                {/* Telegram-style Forwarded From Header inside bubble */}
+                {message.forwardedFrom && (
+                  <div className="mb-2 select-none">
+                    <p
+                      style={{ color: contrast ? contrast.quoteAuthorColor : undefined }}
+                      className={`text-[12px] leading-tight font-normal ${
+                        !contrast ? 'text-white/80' : ''
+                      }`}
+                    >
+                      Forwarded from
+                    </p>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <Avatar
+                        src={message.forwardedFrom.sender?.avatar}
+                        name={
+                          message.forwardedFrom.sender?.displayName ??
+                          message.forwardedFrom.sender?.username ??
+                          'User'
+                        }
+                        size="xs"
+                        className="w-5 h-5 rounded-full object-cover shrink-0 border border-white/10"
+                      />
+                      <span
+                        style={{ color: contrast ? contrast.textColor : undefined }}
+                        className={`text-[13px] font-semibold leading-tight truncate ${
+                          !contrast ? 'text-white' : ''
+                        }`}
+                      >
+                        {message.forwardedFrom.sender?.displayName ??
+                          message.forwardedFrom.sender?.username}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Interactive Quoted Message */}
                 {message.replyTo && (
                   <div
@@ -730,12 +955,14 @@ export default function MessageBubble({
                         statusIcon={isOwnMessage ? statusIcon : null}
                         chatTheme={chatTheme}
                         contrast={contrast}
+                        onOpenMedia={handleOpenMedia}
+                        onContextMenuAttachment={handleContextMenu}
                       />
                       {!message.body &&
                         !message.attachments.every((a) => a.type === 'AUDIO') &&
                         !message.attachments.every((a) => a.type === 'FILE') && (
                           <div
-                            className="absolute bottom-1.5 right-1.5 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-white select-none"
+                            className="absolute bottom-1.5 right-1.5 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/75 backdrop-blur-sm border border-white/10 text-white select-none shadow-md z-10"
                             title={statusLabel}
                           >
                             <span className="text-[10px] font-normal tracking-tight">
@@ -845,6 +1072,7 @@ export default function MessageBubble({
                   key={r.emoji}
                   reaction={r}
                   currentUserId={currentUserId}
+                  chatTheme={chatTheme}
                   onToggle={(emoji, selfReacted) => {
                     if (selfReacted) {
                       onUnreact(message.id, emoji);
@@ -862,11 +1090,34 @@ export default function MessageBubble({
       {isDeleteModalOpen && (
         <DeleteMessageModal
           isOwnMessage={isOwnMessage}
+          peerName={
+            peerName ||
+            (!isOwnMessage ? message.sender?.displayName || message.sender?.username : null)
+          }
+          canDeleteForAll={true}
           onClose={() => setDeleteModalOpen(false)}
           onConfirm={(forAll) => {
             onDelete(message.id, forAll);
             setDeleteModalOpen(false);
           }}
+        />
+      )}
+
+      {localLightboxState !== null && (
+        <MediaLightbox
+          items={(message.attachments || [])
+            .filter((a) => a.type === 'IMAGE' || a.type === 'GIF' || a.type === 'VIDEO')
+            .map((a) => ({ message, attachment: a }))}
+          index={localLightboxState.index}
+          onIndexChange={(idx) =>
+            setLocalLightboxState((prev) => (prev ? { ...prev, index: idx } : null))
+          }
+          onClose={() => setLocalLightboxState(null)}
+          onDelete={onDelete}
+          onForward={onForward}
+          onJumpToMessage={onJumpToMessage}
+          originRect={localLightboxState.originRect}
+          currentUserId={currentUserId}
         />
       )}
     </div>

@@ -1,19 +1,29 @@
 import React from 'react';
-import { Phone, PhoneOff, ShieldCheck, Video } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+import {
+  Phone,
+  PhoneOff,
+  ShieldCheck,
+  Video,
+  SquareArrowOutUpRight,
+  SquareArrowDownLeft,
+} from 'lucide-react';
 import Avatar from '@/shared/ui/Avatar';
 import { useCallStore } from '../../model/callStore';
 import { useCall } from '../../model/CallContext';
+import { triggerCallPiPTransition, getPiPLastCenter } from '../../lib/webrtc/callPiPTransition';
 import { CallHeader } from './CallHeader';
 import { ParticipantGrid } from './ParticipantGrid';
 import { CallControls } from './CallControls';
 import { ScreenShareIndicator } from './ScreenShareIndicator';
-import { CallSettings } from './CallSettings';
+import { useUIStore } from '@/shared/model/useUIStore';
 import { ReconnectionOverlay } from './ReconnectionOverlay';
 import { FileTransferDrawer } from './FileTransferDrawer';
 import { StatsHUD } from './StatsHUD';
 import { SyncPlayModal } from './SyncPlayModal';
 import { WhiteboardModal } from './WhiteboardModal';
 import { AutoplayBlockedBanner } from './AutoplayBlockedBanner';
+import { WatchTogetherActivityBanner } from './WatchTogetherActivityBanner';
 import { CallAriaLiveAnnouncer } from './CallAriaLiveAnnouncer';
 import { ReactionParticleCanvas } from './ReactionParticleCanvas';
 import { CallSchemaOrg } from './CallSchemaOrg';
@@ -23,7 +33,6 @@ import { globalDocumentPiPManager } from '../../lib/webrtc/documentPiPManager';
 import { CallPiPPortal } from './CallPiPPortal';
 import { ScreenAnnotationOverlay } from './ScreenAnnotationOverlay';
 import { useCallKeyboardShortcuts } from '../../model/useCallKeyboardShortcuts';
-import { SoundboardModal } from './SoundboardModal';
 import { LiveSummaryModal } from './LiveSummaryModal';
 import { DualCameraModal } from './DualCameraModal';
 import { HolographicCallModal } from './HolographicCallModal';
@@ -140,8 +149,8 @@ export function CallModal() {
     if (callStatus === 'connected') {
       globalMediaSessionCoordinator.bindCallSession(
         {
-          title: String(callType).toLowerCase() === 'video' ? 'Видеозвонок' : 'Аудиозвонок',
-          callerName: remoteParticipant?.username || 'Собеседник',
+          title: String(callType).toLowerCase() === 'video' ? 'Video Call' : 'Voice Call',
+          callerName: remoteParticipant?.username || 'Peer',
           avatarUrl: remoteParticipant?.avatar ?? undefined,
         },
         {
@@ -168,51 +177,75 @@ export function CallModal() {
     };
   }, [callStatus, callType, remoteParticipant, isMuted, toggleMute, toggleVideo, endCall]);
 
-  const [pipWin, setPipWin] = React.useState<Window | null>(null);
+  const [popoutWin, setPopoutWin] = React.useState<Window | null>(null);
 
-  const handleTogglePiP = async () => {
-    if (globalDocumentPiPManager.isSupported()) {
+  const handleTogglePopout = React.useCallback(async () => {
+    if (globalDocumentPiPManager.isOpen()) {
+      globalDocumentPiPManager.close();
+      setPopoutWin(null);
+    } else {
+      const win = await globalDocumentPiPManager.open({ width: 960, height: 600 });
+      if (win) {
+        setPopoutWin(win);
+        globalDocumentPiPManager.onClose(() => {
+          setPopoutWin(null);
+        });
+      }
+    }
+  }, []);
+
+  const handleClosePopout = React.useCallback(() => {
+    if (globalDocumentPiPManager.isOpen()) {
+      globalDocumentPiPManager.close();
+    }
+    setPopoutWin(null);
+  }, []);
+
+  // Close popout window cleanly if call disconnects
+  React.useEffect(() => {
+    if (callStatus !== 'connected' && popoutWin) {
+      handleClosePopout();
+    }
+  }, [callStatus, popoutWin, handleClosePopout]);
+
+  // Clean up popout window on unmount
+  React.useEffect(() => {
+    return () => {
       if (globalDocumentPiPManager.isOpen()) {
         globalDocumentPiPManager.close();
-        setPipWin(null);
-        setIsPiP(false);
-      } else {
-        const win = await globalDocumentPiPManager.open({ width: 440, height: 340 });
-        if (win) {
-          setPipWin(win);
-          setIsPiP(true);
-          globalDocumentPiPManager.onClose(() => {
-            setPipWin(null);
-            setIsPiP(false);
-          });
-        } else {
-          setIsPiP(!isPiP);
-        }
       }
-    } else {
-      setIsPiP(!isPiP);
+    };
+  }, []);
+
+  const location = useLocation();
+  const lastPathnameRef = React.useRef(location.pathname);
+
+  // Automatically minimize call to PiP when user navigates anywhere on the site while call is connected and fullscreen
+  React.useEffect(() => {
+    if (lastPathnameRef.current !== location.pathname) {
+      lastPathnameRef.current = location.pathname;
+      if (callStatus === 'connected' && !isPiP) {
+        triggerCallPiPTransition('minimize', getPiPLastCenter(), () => {
+          setIsPiP(true);
+        });
+      }
     }
-  };
+  }, [location.pathname, callStatus, isPiP, setIsPiP]);
 
-  // If idle or minimized in PiP, modal shouldn't display full view
+  const handleTogglePiP = React.useCallback(() => {
+    if (!isPiP) {
+      triggerCallPiPTransition('minimize', getPiPLastCenter(), () => {
+        setIsPiP(true);
+      });
+    } else {
+      triggerCallPiPTransition('expand', getPiPLastCenter(), () => {
+        setIsPiP(false);
+      });
+    }
+  }, [isPiP, setIsPiP]);
+
+  // If idle or minimized in in-site PiP, modal shouldn't display full view
   if (callStatus === 'idle') return null;
-
-  if (isPiP && pipWin) {
-    return (
-      <CallPiPPortal
-        pipWindow={pipWin}
-        onClose={() => {
-          globalDocumentPiPManager.close();
-          setPipWin(null);
-          setIsPiP(false);
-        }}
-        onToggleMute={toggleMute}
-        onToggleVideo={toggleVideo}
-        onEndCall={endCall}
-      />
-    );
-  }
-
   if (isPiP) return null;
 
   return (
@@ -235,7 +268,7 @@ export function CallModal() {
       {callStatus === 'connected' && isAudioOnlyFallbackActive && (
         <div className="absolute top-16 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 px-3.5 py-1.5 bg-amber-950/85 border border-amber-500/30 text-amber-200 text-xs rounded-full backdrop-blur-md shadow-lg animate-fadeIn select-none pointer-events-none max-w-[calc(100vw-32px)] text-center">
           <span className="w-2 h-2 shrink-0 rounded-full bg-amber-400 animate-ping" />
-          <span className="truncate">Плохое соединение: видео временно приостановлено</span>
+          <span className="truncate">Poor connection: video temporarily paused</span>
           {audioOnlyFallbackReason && (
             <span className="text-[10px] text-amber-300/70 font-mono hidden sm:inline">
               ({audioOnlyFallbackReason})
@@ -337,40 +370,80 @@ export function CallModal() {
           {isAutoplayBlocked && <AutoplayBlockedBanner onUnblock={() => void unblockAutoplay()} />}
 
           <CallHeader
+            onTogglePopout={handleTogglePopout}
+            isPoppedOut={Boolean(popoutWin)}
             onTogglePiP={handleTogglePiP}
-            onOpenSettings={() => setIsSettingsOpen(true)}
+            onOpenSettings={() => useUIStore.getState().openEditProfile('voice-video')}
             onConfirmSasMatch={confirmE2eeSasMatch}
           />
 
-          <ScreenShareIndicator onStop={toggleScreenShare} />
+          {popoutWin ? (
+            <>
+              {/* Separate Popout Floating Window Portal */}
+              <CallPiPPortal
+                pipWindow={popoutWin}
+                onClose={handleClosePopout}
+                onToggleMute={toggleMute}
+                onToggleDeafen={toggleDeafen}
+                onToggleVideo={toggleVideo}
+                onToggleScreenShare={toggleScreenShare}
+                onEndCall={endCall}
+              />
 
-          {(isScreenSharing || screenShareStream) && (
-            <ScreenAnnotationOverlay
-              isActive={isScreenAnnotationActive}
-              onClose={() => setIsScreenAnnotationActive(false)}
-            />
+              {/* Main window paused state overlay (Discord /popout style) */}
+              <div className="flex-1 flex flex-col items-center justify-center text-center p-6 select-none animate-fadeIn">
+                <div className="w-16 h-16 rounded-2xl bg-[#7059f6]/10 border border-[#7059f6]/20 flex items-center justify-center mb-4 text-[#7059f6] shadow-lg shadow-[#7059f6]/10">
+                  <SquareArrowOutUpRight size={28} />
+                </div>
+                <h3 className="text-lg sm:text-xl font-bold text-white mb-2">
+                  You&apos;ve popped out the player to another window
+                </h3>
+                <p className="text-sm text-zinc-400 max-w-md mb-6 leading-relaxed">
+                  Call and controls have been moved to a separate window for maximum performance.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleClosePopout}
+                  className="px-5 py-2.5 rounded-full bg-[#7059f6] hover:bg-[#5f46f5] active:scale-95 text-white font-medium text-sm flex items-center gap-2 shadow-lg shadow-[#7059f6]/30 transition-all cursor-pointer"
+                >
+                  <SquareArrowDownLeft size={17} />
+                  <span>Return to this window</span>
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <ScreenShareIndicator onStop={toggleScreenShare} />
+
+              {(isScreenSharing || screenShareStream) && (
+                <ScreenAnnotationOverlay
+                  isActive={isScreenAnnotationActive}
+                  onClose={() => setIsScreenAnnotationActive(false)}
+                />
+              )}
+
+              <ParticipantGrid />
+
+              {/* Floating Reaction Emote Particles Canvas */}
+              <ReactionParticleCanvas engine={reactionEngine} />
+
+              <CallControls
+                onToggleMute={toggleMute}
+                onToggleDeafen={toggleDeafen}
+                onToggleVideo={toggleVideo}
+                onToggleScreenShare={toggleScreenShare}
+                onEndCall={endCall}
+                onOpenSettings={() => useUIStore.getState().openEditProfile('voice-video')}
+                onSendReaction={sendReaction}
+              />
+            </>
           )}
 
-          <ParticipantGrid />
-
-          {/* Floating Reaction Emote Particles Canvas */}
-          <ReactionParticleCanvas engine={reactionEngine} />
-
-          <CallControls
-            onToggleMute={toggleMute}
-            onToggleDeafen={toggleDeafen}
-            onToggleVideo={toggleVideo}
-            onToggleScreenShare={toggleScreenShare}
-            onEndCall={endCall}
-            onOpenSettings={() => setIsSettingsOpen(true)}
-            onSendReaction={sendReaction}
-          />
+          {/* Watch Together Live Activity Notification */}
+          <WatchTogetherActivityBanner className="absolute top-20 left-1/2 -translate-x-1/2 w-[92%] max-w-lg z-40" />
 
           {/* Reconnection Grace Period Overlay */}
           <ReconnectionOverlay onCancelCall={endCall} />
-
-          {/* Settings Modal */}
-          {isSettingsOpen && <CallSettings onClose={() => setIsSettingsOpen(false)} />}
 
           {/* P2P File Transfer Drawer */}
           {isFileTransferOpen && (
@@ -404,13 +477,6 @@ export function CallModal() {
             onToggleOverlay={setIsWhiteboardOverlay}
           />
 
-          {/* Interactive Soundboard with Sidechain Ducking */}
-          <SoundboardModal
-            isOpen={isSoundboardOpen}
-            onClose={() => setIsSoundboardOpen(false)}
-            localStream={localStream}
-          />
-
           {/* AI Live Summary («What did I miss?») */}
           <LiveSummaryModal
             isOpen={isLiveSummaryOpen}
@@ -424,7 +490,7 @@ export function CallModal() {
           <HolographicCallModal
             isOpen={isHolographicCallOpen}
             onClose={() => setIsHolographicCallOpen(false)}
-            userName={remoteParticipant?.displayName || remoteParticipant?.username || 'Собеседник'}
+            userName={remoteParticipant?.displayName || remoteParticipant?.username || 'Peer'}
           />
         </div>
       )}

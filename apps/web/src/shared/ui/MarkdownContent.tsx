@@ -7,6 +7,7 @@ import rehypeKatex from 'rehype-katex';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import { Link } from 'react-router-dom';
 import CodeBlock from './CodeBlock';
+import { TelegramAppleEmoji, parseEmojiSegments } from '@/features/chat/ui/Call/TelegramAppleEmoji';
 import { CpuCircuitBreaker } from '@/shared/lib/v8/cpuCircuitBreaker';
 import 'katex/dist/katex.min.css';
 
@@ -101,6 +102,29 @@ function preprocessDiscordMarkdown(raw: string): string {
   return processed;
 }
 
+function renderEmojiAndText(rawText: string): React.ReactNode {
+  if (!rawText) return null;
+  if (!/\p{Extended_Pictographic}/u.test(rawText)) {
+    return rawText;
+  }
+  const segments = parseEmojiSegments(rawText);
+  return segments.map((seg, idx) => {
+    if (seg.type === 'emoji') {
+      return (
+        <TelegramAppleEmoji
+          key={idx}
+          emoji={seg.content}
+          size={18}
+          playOnce={true}
+          durationMs={2400}
+          className="inline-flex align-[-0.28em] mx-[1.5px] select-text"
+        />
+      );
+    }
+    return <React.Fragment key={idx}>{seg.content}</React.Fragment>;
+  });
+}
+
 function renderTextWithMentionsAndSpoilers(
   text: string,
   enableMentions = true,
@@ -166,12 +190,12 @@ function renderTextWithMentionsAndSpoilers(
 
   // 4. Process Mentions (@handle) and Hashtags (#tag)
   if (!enableMentions && !enableHashtags) {
-    return text;
+    return renderEmojiAndText(text);
   }
 
   const tokenRegex = /((?:@|#)[a-zA-Z0-9_\u0400-\u04FF]+(?:\.[a-zA-Z0-9_\u0400-\u04FF]+)*)/g;
   if (!tokenRegex.test(text)) {
-    return text;
+    return renderEmojiAndText(text);
   }
 
   const parts = text.split(tokenRegex);
@@ -181,7 +205,7 @@ function renderTextWithMentionsAndSpoilers(
       const { clean: cleanHandle, punct: trailingPunct } = splitTrailingPunct(rawHandle);
 
       if (!cleanHandle) {
-        return <React.Fragment key={index}>{part}</React.Fragment>;
+        return <React.Fragment key={index}>{renderEmojiAndText(part)}</React.Fragment>;
       }
 
       return (
@@ -203,7 +227,7 @@ function renderTextWithMentionsAndSpoilers(
       const { clean: cleanTag, punct: trailingPunct } = splitTrailingPunct(rawTag);
 
       if (!cleanTag) {
-        return <React.Fragment key={index}>{part}</React.Fragment>;
+        return <React.Fragment key={index}>{renderEmojiAndText(part)}</React.Fragment>;
       }
 
       return (
@@ -220,7 +244,7 @@ function renderTextWithMentionsAndSpoilers(
       );
     }
 
-    return <React.Fragment key={index}>{part}</React.Fragment>;
+    return <React.Fragment key={index}>{renderEmojiAndText(part)}</React.Fragment>;
   });
 }
 
@@ -269,7 +293,7 @@ export function MarkdownContent({
       <div
         className={`markdown-content w-full min-w-0 max-w-full leading-relaxed select-text wrap-anywhere ${className}`}
       >
-        <p className="my-1 text-white/90">{content}</p>
+        <p className="my-1 text-white/90">{renderEmojiAndText(content)}</p>
       </div>
     );
   }

@@ -17,6 +17,7 @@ export class VADEngine {
   private audioCtx: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
   private source: MediaStreamAudioSourceNode | null = null;
+  private silentGain: GainNode | null = null;
   private pcmData: Float32Array<ArrayBuffer> | null = null;
   private intervalId: ReturnType<typeof setInterval> | null = null;
 
@@ -57,6 +58,16 @@ export class VADEngine {
 
       this.source = this.audioCtx.createMediaStreamSource(this.stream);
       this.source.connect(this.analyser);
+
+      // Chromium pull-path fix for WebRTC MediaStream tracks:
+      // AnalyserNode must terminate into audioCtx.destination through a 0-gain node
+      // so Chromium's audio graph pulls frames from the remote WebRTC track without playing audio.
+      if (typeof this.audioCtx.createGain === 'function' && this.audioCtx.destination) {
+        this.silentGain = this.audioCtx.createGain();
+        this.silentGain.gain.value = 0;
+        this.analyser.connect(this.silentGain);
+        this.silentGain.connect(this.audioCtx.destination);
+      }
 
       this.pcmData = new Float32Array(this.analyser.fftSize);
 
@@ -129,6 +140,8 @@ export class VADEngine {
     }
     try {
       this.source?.disconnect();
+      this.analyser?.disconnect();
+      this.silentGain?.disconnect();
       if (this.audioCtx && this.audioCtx.state !== 'closed') {
         void this.audioCtx.close();
       }
@@ -137,6 +150,7 @@ export class VADEngine {
     }
     this.source = null;
     this.analyser = null;
+    this.silentGain = null;
     this.pcmData = null;
     this.audioCtx = null;
   }

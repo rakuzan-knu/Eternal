@@ -47,7 +47,9 @@ export function UserNameWithBadges({
     <div
       className={`inline-flex items-center gap-1.5 min-w-0 max-w-full leading-none ${className}`}
     >
-      <span className={`truncate text-white ${fontSizes[size]} ${nameClassName}`}>
+      <span
+        className={`truncate text-gray-900 dark:text-white ${fontSizes[size]} ${nameClassName}`}
+      >
         {nameToDisplay}
       </span>
 

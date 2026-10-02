@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Phone, Video, Info, Music, Radio, Shield } from 'lucide-react';
+import React from 'react';
+import { Phone, Video, Info, Radio, Search } from 'lucide-react';
 import Avatar from '../../../shared/ui/Avatar';
 import GroupAvatarCollage from '../../../shared/ui/GroupAvatarCollage';
 import OnlineStatusIndicator from '../../../shared/ui/OnlineStatusIndicator';
@@ -7,8 +7,13 @@ import { ConversationDisplay } from '../lib/getConversationDisplay';
 import { VerifiedCheckmark } from '@/entities/profile/ui/VerifiedCheckmark';
 import { useCallPrewarmer } from '../lib/webrtc/webrtcPrewarmer';
 import { usePresenceStore } from '@/shared/model/usePresenceStore';
-import { DiscordGamepadIcon } from '@/shared/ui/BrandIcons';
-import { SecretChatVerificationModal } from './SecretChatVerificationModal';
+import {
+  isMusicActivity,
+  isGamingActivity,
+  getActivityGameIcon,
+  getActivityMusicCover,
+  formatActivityText,
+} from '../../../shared/ui/activityIcons';
 
 interface ChatThreadHeaderProps {
   conversationId?: string;
@@ -17,6 +22,8 @@ interface ChatThreadHeaderProps {
   isOtherTyping: boolean;
   isDetailsOpen: boolean;
   onToggleDetails: () => void;
+  isSearchOpen?: boolean;
+  onToggleSearch?: () => void;
   isGroup?: boolean;
   memberAvatars?: (string | null)[];
   memberCount?: number;
@@ -32,6 +39,8 @@ export default function ChatThreadHeader({
   isOtherTyping,
   isDetailsOpen,
   onToggleDetails,
+  isSearchOpen = false,
+  onToggleSearch,
   isGroup,
   memberAvatars = [],
   memberCount = 0,
@@ -45,28 +54,12 @@ export default function ChatThreadHeader({
   const otherActivity = usePresenceStore((s) =>
     otherUserId ? s.userActivities[otherUserId] : null,
   );
-  const isOtherGaming = Boolean(
-    !isGroup &&
-    otherUserId &&
-    otherActivity &&
-    (otherActivity.type === 'gaming' ||
-      otherActivity.type === 'game' ||
-      otherActivity.isSteam ||
-      (otherActivity.title && otherActivity.type !== 'spotify')),
-  );
-
-  const isOtherListening = Boolean(
-    !isGroup &&
-    !isOtherGaming &&
-    otherUserId &&
-    otherActivity &&
-    (otherActivity.type === 'spotify' || Boolean(otherActivity.trackId)),
-  );
-
-  const [isE2eeModalOpen, setIsE2eeModalOpen] = useState(false);
+  const isOtherListening = Boolean(!isGroup && otherUserId && isMusicActivity(otherActivity));
+  const isOtherGaming = Boolean(!isGroup && otherUserId && isGamingActivity(otherActivity));
+  const formattedActivity = formatActivityText(otherActivity, 28, 18);
 
   return (
-    <div className="flex items-center justify-between px-5 h-16 border-b border-white/5 shrink-0">
+    <div className="flex items-center justify-between px-5 h-16 border-b border-white/10 shrink-0 glass-panel z-10">
       <div className="flex items-center gap-3 min-w-0">
         <div className="relative">
           {isGroup ? (
@@ -95,48 +88,38 @@ export default function ChatThreadHeader({
             <p className="text-[12px] truncate text-blue-400">Typing…</p>
           ) : isGroup ? (
             <p className="text-[12px] truncate text-gray-500">{memberCount} members</p>
-          ) : isOtherGaming ? (
-            <div className="flex items-center gap-1.5 min-w-0 text-[12px] text-gray-300 font-medium">
-              <DiscordGamepadIcon
-                size={13}
-                className="text-[#23a55a] shrink-0 drop-shadow-[0_0_4px_rgba(35,165,90,0.6)]"
-              />
-              <span className="truncate">
-                Playing <span className="text-white font-semibold">{otherActivity?.title}</span>
+          ) : isOtherListening ? (
+            <div
+              className="flex items-center gap-1.5 min-w-0 text-[12px] text-gray-300 font-medium"
+              title={`Listening to ${formattedActivity.fullText}`}
+            >
+              {getActivityMusicCover(otherActivity, 14)}
+              <span className="truncate max-w-[280px] sm:max-w-[420px]">
+                Listening to{' '}
+                <span className="text-white font-semibold">{formattedActivity.title}</span>
+                {formattedActivity.subtitle ? (
+                  <span className="text-gray-400 font-normal"> — {formattedActivity.subtitle}</span>
+                ) : null}
               </span>
             </div>
-          ) : isOtherListening ? (
-            <div className="flex items-center gap-1.5 min-w-0 text-[12px] text-gray-300 font-medium">
-              <Music
-                size={13}
-                className="text-[#1DB954] shrink-0 drop-shadow-[0_0_4px_rgba(29,185,84,0.6)]"
-              />
-              <span className="truncate">
-                Listening to{' '}
-                <span className="text-white font-semibold">{otherActivity?.title}</span>
-                {otherActivity?.subtitle || otherActivity?.artist ? (
-                  <span className="text-gray-400 font-normal">
-                    {' '}
-                    — {otherActivity.subtitle || otherActivity.artist}
-                  </span>
-                ) : null}
+          ) : isOtherGaming ? (
+            <div
+              className="flex items-center gap-1.5 min-w-0 text-[12px] text-gray-300 font-medium"
+              title={`Playing ${formattedActivity.fullText}`}
+            >
+              {getActivityGameIcon(otherActivity, 14)}
+              <span className="truncate max-w-[280px] sm:max-w-[420px]">
+                Playing <span className="text-white font-semibold">{formattedActivity.title}</span>
               </span>
             </div>
           ) : (
             otherUserId && (
-              <span className="flex items-center gap-1.5 min-w-0">
-                <OnlineStatusIndicator
-                  userId={otherUserId}
-                  variant="dot"
-                  className="static shrink-0 border-0! w-2! h-2!"
-                  showOfflineDot={false}
-                />
-                <OnlineStatusIndicator
-                  userId={otherUserId}
-                  variant="text"
-                  className="text-[12px] truncate block"
-                />
-              </span>
+              <OnlineStatusIndicator
+                userId={otherUserId}
+                variant="text"
+                showIcon={false}
+                className="text-[12px] truncate block"
+              />
             )
           )}
         </div>
@@ -156,18 +139,6 @@ export default function ChatThreadHeader({
             }`}
           >
             <Radio size={19} className={isVoiceMeshActive ? 'animate-pulse' : ''} />
-          </button>
-        )}
-
-        {!isGroup && otherUserId && (
-          <button
-            type="button"
-            onClick={() => setIsE2eeModalOpen(true)}
-            title="End-to-End Encryption / Secret Chat"
-            aria-label="E2EE Security"
-            className="w-9 h-9 flex items-center justify-center rounded-full text-gray-400 hover:bg-white/5 hover:text-emerald-400 transition-colors cursor-pointer"
-          >
-            <Shield size={18} />
           </button>
         )}
 
@@ -201,6 +172,21 @@ export default function ChatThreadHeader({
           <Video size={19} />
         </button>
 
+        {onToggleSearch && (
+          <button
+            onClick={onToggleSearch}
+            title="Search messages (Ctrl+F)"
+            aria-label="Search messages"
+            className={`w-9 h-9 flex items-center justify-center rounded-full transition-colors cursor-pointer ${
+              isSearchOpen
+                ? 'bg-white/10 text-white'
+                : 'text-gray-400 hover:bg-white/5 hover:text-white'
+            }`}
+          >
+            <Search size={18} />
+          </button>
+        )}
+
         <button
           onClick={onToggleDetails}
           title="Conversation info"
@@ -213,15 +199,6 @@ export default function ChatThreadHeader({
           <Info size={19} />
         </button>
       </div>
-
-      {!isGroup && otherUserId && (
-        <SecretChatVerificationModal
-          isOpen={isE2eeModalOpen}
-          onClose={() => setIsE2eeModalOpen(false)}
-          peerUserId={otherUserId}
-          peerDisplayName={display.title}
-        />
-      )}
     </div>
   );
 }

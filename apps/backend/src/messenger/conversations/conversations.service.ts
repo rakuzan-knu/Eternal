@@ -46,6 +46,7 @@ import {
   DEFAULT_OWNER_PERMISSIONS,
   adminPermissionsToMask,
   maskToAdminPermissions,
+  getEffectivePermissions,
 } from '@common/contracts';
 import { MessengerMapper } from '../messenger.mapper';
 import type { ReportCategory } from '@prisma/client';
@@ -294,13 +295,10 @@ export class ConversationsService implements OnModuleDestroy {
 
       const inviter = conv.participants.find((p) => p.userId === userId);
       if (inviter) {
-        const inviterFlags =
-          (inviter as unknown as { permissions?: number }).permissions ??
-          (inviter.role === 'OWNER'
-            ? DEFAULT_OWNER_PERMISSIONS
-            : inviter.role === 'ADMIN'
-              ? DEFAULT_ADMIN_PERMISSIONS
-              : DEFAULT_MEMBER_PERMISSIONS);
+        const inviterFlags = getEffectivePermissions(
+          inviter.role,
+          (inviter as unknown as { permissions?: number }).permissions,
+        );
         if (inviter.role !== 'OWNER' && (inviterFlags & Permission.CAN_INVITE_USERS) === 0) {
           throw new ForbiddenException('You do not have permission to invite users');
         }
@@ -338,13 +336,10 @@ export class ConversationsService implements OnModuleDestroy {
     if (!admin) {
       throw new ForbiddenException('Only admins can remove members');
     }
-    const adminFlags =
-      (admin as unknown as { permissions?: number }).permissions ??
-      (admin.role === 'OWNER'
-        ? DEFAULT_OWNER_PERMISSIONS
-        : admin.role === 'ADMIN'
-          ? DEFAULT_ADMIN_PERMISSIONS
-          : DEFAULT_MEMBER_PERMISSIONS);
+    const adminFlags = getEffectivePermissions(
+      admin.role,
+      (admin as unknown as { permissions?: number }).permissions,
+    );
 
     if (admin.role !== 'OWNER' && (adminFlags & Permission.CAN_MANAGE_MEMBERS) === 0) {
       throw new ForbiddenException('Only admins can remove members');
@@ -643,13 +638,10 @@ export class ConversationsService implements OnModuleDestroy {
     if (!p) {
       throw new ForbiddenException('Only admins can perform this action');
     }
-    const pFlags =
-      (p as unknown as { permissions?: number }).permissions ??
-      (p.role === 'OWNER'
-        ? DEFAULT_OWNER_PERMISSIONS
-        : p.role === 'ADMIN'
-          ? DEFAULT_ADMIN_PERMISSIONS
-          : DEFAULT_MEMBER_PERMISSIONS);
+    const pFlags = getEffectivePermissions(
+      p.role,
+      (p as unknown as { permissions?: number }).permissions,
+    );
     if (
       p.role !== 'OWNER' &&
       (pFlags & Permission.IS_ADMIN) === 0 &&

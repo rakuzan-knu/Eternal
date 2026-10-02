@@ -7,14 +7,14 @@ describe('ProfileTabs', () => {
   it('marks the "posts" tab as active when activeTab is "posts"', () => {
     render(<ProfileTabs activeTab="posts" setActiveTab={vi.fn()} />);
 
-    expect(screen.getByRole('button', { name: /^posts$/i })).toHaveClass('text-white');
+    expect(screen.getByRole('button', { name: /^posts$/i })).toHaveClass('dark:text-white');
     expect(screen.getByRole('button', { name: /^reposts$/i })).toHaveClass('text-gray-500');
   });
 
   it('marks the "reposts" tab as active when activeTab is "reposts"', () => {
     render(<ProfileTabs activeTab="reposts" setActiveTab={vi.fn()} />);
 
-    expect(screen.getByRole('button', { name: /^reposts$/i })).toHaveClass('text-white');
+    expect(screen.getByRole('button', { name: /^reposts$/i })).toHaveClass('dark:text-white');
     expect(screen.getByRole('button', { name: /^posts$/i })).toHaveClass('text-gray-500');
   });
 
@@ -33,7 +33,7 @@ describe('ProfileTabs', () => {
     expect(setActiveTab).toHaveBeenCalledWith('saved');
 
     rerender(<ProfileTabs activeTab="saved" setActiveTab={setActiveTab} showSavedTab={true} />);
-    expect(screen.getByRole('button', { name: /^saved$/i })).toHaveClass('text-white');
+    expect(screen.getByRole('button', { name: /^saved$/i })).toHaveClass('dark:text-white');
   });
 
   it('calls setActiveTab("reposts") when the reposts tab is clicked', async () => {

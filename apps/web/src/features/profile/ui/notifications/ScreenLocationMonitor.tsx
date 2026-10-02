@@ -38,11 +38,11 @@ export default function ScreenLocationMonitor({
     <div className="flex flex-col gap-6">
       {/* Location on the screen */}
       <div>
-        <h3 className="px-1 mb-3 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+        <h3 className="px-1 mb-3 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
           Location on the screen
         </h3>
 
-        <div className="relative flex flex-col items-center justify-center p-6 rounded-2xl border border-white/10 bg-[#0d1117]/80 backdrop-blur-md">
+        <div className="relative flex flex-col items-center justify-center p-6 rounded-2xl border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-[#0d1117]/80 backdrop-blur-md">
           {/* Monitor Display Frame */}
           <div className="relative w-full max-w-[340px] h-[190px] rounded-xl border-4 border-[#e2e8f0]/90 bg-[#1e293b] shadow-2xl overflow-hidden flex flex-col">
             {/* Monitor Screen Area */}
@@ -66,7 +66,7 @@ export default function ScreenLocationMonitor({
                               isActive ? 'bg-sky-400' : 'bg-sky-700/60'
                             }`}
                           />
-                          <div className="flex-1 flex flex-col gap-0.5">
+                          <div className="flex-1 flex-col gap-0.5 flex">
                             <div
                               className={`h-1 rounded-full transition-colors ${
                                 isActive ? 'bg-sky-300' : 'bg-sky-800/80'
@@ -95,7 +95,7 @@ export default function ScreenLocationMonitor({
 
       {/* Notifications Count */}
       <div>
-        <h3 className="px-1 mb-3 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+        <h3 className="px-1 mb-3 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
           Notifications count
         </h3>
 
@@ -107,13 +107,13 @@ export default function ScreenLocationMonitor({
                 key={num}
                 type="button"
                 onClick={() => setMaxToasts(num)}
-                className="flex-1 h-1.5 rounded-full relative group transition-all"
+                className="flex-1 h-1.5 rounded-full relative group transition-all cursor-pointer"
               >
                 <div
                   className={`w-full h-full rounded-full transition-all duration-200 ${
                     maxToasts === num
                       ? 'bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.6)]'
-                      : 'bg-white/10 group-hover:bg-white/20'
+                      : 'bg-black/10 dark:bg-white/10 group-hover:bg-black/20 dark:group-hover:bg-white/20'
                   }`}
                 />
               </button>
@@ -127,10 +127,10 @@ export default function ScreenLocationMonitor({
                 key={num}
                 type="button"
                 onClick={() => setMaxToasts(num)}
-                className={`w-8 text-center transition-colors ${
+                className={`w-8 text-center transition-colors cursor-pointer ${
                   maxToasts === num
-                    ? 'text-sky-400 font-bold scale-110'
-                    : 'text-gray-500 hover:text-white'
+                    ? 'text-sky-500 dark:text-sky-400 font-bold scale-110'
+                    : 'text-gray-500 hover:text-gray-950 dark:hover:text-white'
                 }`}
               >
                 {num}

@@ -93,7 +93,7 @@ export function WebCodecsVideoPlayer({
         className={`flex flex-col items-center justify-center p-6 bg-zinc-900/90 text-zinc-400 rounded-2xl border border-white/10 ${className}`}
       >
         <Cpu size={24} className="text-zinc-500 mb-2" />
-        <p className="text-xs">WebCodecs аппаратное ускорение не поддерживается браузером</p>
+        <p className="text-xs">WebCodecs hardware acceleration is not supported by your browser</p>
       </div>
     );
   }
@@ -127,7 +127,7 @@ export function WebCodecsVideoPlayer({
         <button
           type="button"
           onClick={handlePliRequest}
-          title="Запросить мгновенный Keyframe (PLI)"
+          title="Request instant Keyframe (PLI)"
           className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/20 text-zinc-200 text-xs font-medium backdrop-blur-md border border-white/15 transition-all shadow-md active:scale-95"
         >
           <RefreshCw size={12} className="text-emerald-400" />

@@ -154,11 +154,39 @@ export class PresenceEngineService implements OnModuleInit, OnModuleDestroy {
       sockets.delete(socketId);
       if (sockets.size === 0) {
         this.localSockets.delete(userId);
+        this.heartbeatBuffer.delete(userId);
         this.pendingTransitions.set(userId, 'offline');
+        try {
+          const client = this.redisService.getClient?.();
+          if (typeof client?.zrem === 'function') {
+            void client.zrem(PresenceEngineService.PRESENCE_ZSET_KEY, userId);
+          }
+        } catch {
+          // ignore
+        }
         return true;
       }
     }
     return false;
+  }
+
+  /**
+   * Forces a user to offline status immediately (clearing local sockets, buffer, and redis score).
+   */
+  forceUserOffline(userId: string): boolean {
+    if (!userId) return false;
+    this.localSockets.delete(userId);
+    this.heartbeatBuffer.delete(userId);
+    this.pendingTransitions.set(userId, 'offline');
+    try {
+      const client = this.redisService.getClient?.();
+      if (typeof client?.zrem === 'function') {
+        void client.zrem(PresenceEngineService.PRESENCE_ZSET_KEY, userId);
+      }
+    } catch {
+      // ignore
+    }
+    return true;
   }
 
   /**

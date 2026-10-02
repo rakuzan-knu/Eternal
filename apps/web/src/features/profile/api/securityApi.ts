@@ -10,4 +10,6 @@ export const securityApi = {
     api
       .delete(`/users/${userId}`, { data: { password } satisfies DeleteAccountDto })
       .then((r) => r.data),
+  verifyPassword: (password: string) =>
+    api.post<{ valid: boolean }>('/auth/verify-password', { password }).then((r) => r.data),
 };

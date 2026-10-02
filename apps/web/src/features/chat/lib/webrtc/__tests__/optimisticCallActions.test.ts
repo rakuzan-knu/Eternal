@@ -71,7 +71,7 @@ describe('OptimisticReconciliationManager', () => {
 
     // State reverted back to 'off'
     expect(state).toBe('off');
-    expect(onRollback).toHaveBeenCalledWith('off', expect.stringContaining('Ошибка сети'));
+    expect(onRollback).toHaveBeenCalledWith('off', expect.stringContaining('Network error'));
     expect(manager.getPendingCount()).toBe(0);
   });
 
@@ -95,8 +95,8 @@ describe('OptimisticReconciliationManager', () => {
 
     expect(state).toBe(false);
 
-    manager.reconcileReject(actionId, 'Камера занята другим приложением');
+    manager.reconcileReject(actionId, 'Camera is in use by another application');
     expect(state).toBe(true);
-    expect(onRollback).toHaveBeenCalledWith(true, 'Камера занята другим приложением');
+    expect(onRollback).toHaveBeenCalledWith(true, 'Camera is in use by another application');
   });
 });

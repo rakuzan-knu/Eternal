@@ -201,10 +201,10 @@ export function PostCard({ post, queryKey }: PostCardProps) {
   return (
     <div
       id={`post-${post.id}`}
-      className={`bg-white/2 backdrop-blur-xl border border-white/5 rounded-3xl shadow-lg flex flex-col gap-3 transition-all duration-300 ease-out scroll-mt-20 relative ${
+      className={`glass-card border border-white/5 rounded-3xl shadow-lg flex flex-col gap-3 transition-all duration-300 ease-out scroll-mt-20 relative ${
         isCollapsing
           ? 'max-h-0 opacity-0 py-0 -my-2 border-0 pointer-events-none scale-95 overflow-hidden'
-          : 'max-h-[3000px] opacity-100 p-5 hover:bg-white/3'
+          : 'max-h-[3000px] opacity-100 p-5 hover:border-white/20'
       } ${isMenuOpen ? 'z-30' : 'z-0'}`}
     >
       {post.isPinned && (
@@ -241,7 +241,7 @@ export function PostCard({ post, queryKey }: PostCardProps) {
                 <MiniProfileHoverCard username={post.handle}>
                   <Link
                     to={`/profile/${post.handle}`}
-                    className="hover:underline font-semibold text-sm text-white truncate inline-block"
+                    className="hover:underline font-semibold text-sm text-gray-900 dark:text-white truncate inline-block"
                   >
                     {post.author || post.handle}
                   </Link>

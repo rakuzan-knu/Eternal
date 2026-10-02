@@ -104,4 +104,27 @@ describe('PostMenu', () => {
     fireEvent.click(screen.getByText('Hide post'));
     expect(useHiddenPostsStore.getState().hiddenIds.has('post-200')).toBe(true);
   });
+
+  it('closes previously opened PostMenu when another PostMenu is opened', () => {
+    render(
+      <div>
+        <PostMenu postId="post-1" isOwner={false} />
+        <PostMenu postId="post-2" isOwner={false} />
+      </div>,
+    );
+
+    const triggers = screen.getAllByRole('button', { name: /more options/i });
+    expect(triggers).toHaveLength(2);
+
+    // Open first menu
+    fireEvent.click(triggers[0]);
+    expect(screen.getByText('Hide post')).toBeInTheDocument();
+
+    // Open second menu without explicitly closing the first
+    fireEvent.click(triggers[1]);
+    expect(screen.getByText('Hide post')).toBeInTheDocument();
+
+    // Verify only one menu is rendered (not two duplicate 'Hide post' texts)
+    expect(screen.getAllByText('Hide post')).toHaveLength(1);
+  });
 });

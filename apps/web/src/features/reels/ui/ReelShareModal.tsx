@@ -43,16 +43,16 @@ export const ReelShareModal: React.FC<ReelShareModalProps> = ({ reel, isOpen, on
       }
       setIsCopied(true);
       recordShareMutation.mutate(reel.id);
-      triggerToast('Посилання скопійовано!');
+      triggerToast('Link copied!');
       setTimeout(() => setIsCopied(false), 2000);
     } catch {
-      triggerToast('Не вдалося скопіювати посилання');
+      triggerToast('Failed to copy link');
     }
   };
 
   const handleDownload = async () => {
     recordShareMutation.mutate(reel.id);
-    triggerToast('⬇ Завантаження відео...');
+    triggerToast('⬇ Downloading video...');
     try {
       const response = await fetch(reel.videoUrl);
       const blob = await response.blob();
@@ -77,7 +77,7 @@ export const ReelShareModal: React.FC<ReelShareModalProps> = ({ reel, isOpen, on
 
   const handleRepost = () => {
     recordShareMutation.mutate(reel.id);
-    triggerToast('Репост опубліковано у вашій стрічці!');
+    triggerToast('Repost shared to your feed!');
     setTimeout(() => onClose(), 1200);
   };
 
@@ -90,9 +90,9 @@ export const ReelShareModal: React.FC<ReelShareModalProps> = ({ reel, isOpen, on
     try {
       await navigator.clipboard.writeText(embedCode);
       recordShareMutation.mutate(reel.id);
-      triggerToast('HTML-код для вбудовування скопійовано!');
+      triggerToast('HTML embed code copied!');
     } catch {
-      triggerToast('Не вдалося скопіювати код');
+      triggerToast('Failed to copy code');
     }
   };
 
@@ -104,21 +104,21 @@ export const ReelShareModal: React.FC<ReelShareModalProps> = ({ reel, isOpen, on
   const shareActions = [
     {
       id: 'repost',
-      label: 'Репост',
+      label: 'Repost',
       icon: <Repeat className="w-6 h-6 text-black stroke-[2.5]" />,
       bg: 'bg-[#FFB703] hover:bg-[#ffaa00]',
       onClick: handleRepost,
     },
     {
       id: 'send',
-      label: 'Надіслати друзям',
+      label: 'Send to Friends',
       icon: <Send className="w-6 h-6 text-white stroke-[2.5] -translate-y-0.5 translate-x-0.5" />,
       bg: 'bg-gradient-to-tr from-[#D62976] via-[#FA7E1E] to-[#962FBF] hover:opacity-90',
       onClick: handleSendToFriends,
     },
     {
       id: 'copy',
-      label: isCopied ? 'Скопійовано' : 'Копіювати',
+      label: isCopied ? 'Copied' : 'Copy',
       icon: isCopied ? (
         <Check className="w-6 h-6 text-white stroke-[2.5]" />
       ) : (
@@ -129,7 +129,7 @@ export const ReelShareModal: React.FC<ReelShareModalProps> = ({ reel, isOpen, on
     },
     {
       id: 'download',
-      label: 'Завантажити',
+      label: 'Download',
       icon: <Download className="w-6 h-6 text-white stroke-[2.5]" />,
       bg: 'bg-emerald-600 hover:bg-emerald-500',
       onClick: handleDownload,
@@ -151,7 +151,7 @@ export const ReelShareModal: React.FC<ReelShareModalProps> = ({ reel, isOpen, on
     },
     {
       id: 'embed',
-      label: 'Вбудувати',
+      label: 'Embed',
       icon: <Code2 className="w-6 h-6 text-white stroke-[2.5]" />,
       bg: 'bg-[#00A896] hover:bg-[#009282]',
       onClick: handleEmbed,
@@ -215,12 +215,12 @@ export const ReelShareModal: React.FC<ReelShareModalProps> = ({ reel, isOpen, on
     },
     {
       id: 'direct',
-      label: 'Повідомлення',
+      label: 'Message',
       icon: <MessageSquare className="w-6 h-6 text-white stroke-[2.5]" />,
       bg: 'bg-indigo-600 hover:bg-indigo-500',
       onClick: () => {
         handleCopyLink();
-        triggerToast('Посилання скопійовано! Вставте в будь-який чат.');
+        triggerToast('Link copied! Paste into any chat.');
       },
     },
   ];
@@ -231,7 +231,7 @@ export const ReelShareModal: React.FC<ReelShareModalProps> = ({ reel, isOpen, on
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-lg bg-[#18181b]/95 backdrop-blur-2xl border border-white/10 rounded-3xl p-5 sm:p-6 shadow-2xl flex flex-col gap-4 animate-in zoom-in-95 duration-200"
+        className="relative w-full max-w-lg glass-modal border border-black/10 dark:border-white/10 rounded-3xl p-5 sm:p-6 shadow-2xl flex flex-col gap-4 animate-in zoom-in-95 duration-200 text-gray-900 dark:text-white"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Toast notification overlay */}
@@ -242,15 +242,15 @@ export const ReelShareModal: React.FC<ReelShareModalProps> = ({ reel, isOpen, on
         )}
 
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-white/10 pb-3">
+        <div className="flex items-center justify-between border-b border-black/10 dark:border-white/10 pb-3">
           <div className="w-8" />
-          <h3 className="text-white font-bold text-base sm:text-lg tracking-wide text-center">
-            Поділитися
+          <h3 className="text-gray-900 dark:text-white font-bold text-base sm:text-lg tracking-wide text-center">
+            Share
           </h3>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
-            aria-label="Закрити"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-gray-500 hover:text-gray-950 hover:bg-black/5 dark:text-zinc-400 dark:hover:text-white dark:hover:bg-white/10 transition-colors cursor-pointer"
+            aria-label="Close"
           >
             <X className="w-5 h-5" />
           </button>
@@ -270,7 +270,7 @@ export const ReelShareModal: React.FC<ReelShareModalProps> = ({ reel, isOpen, on
               >
                 {action.icon}
               </div>
-              <span className="text-[12px] font-medium text-zinc-300 group-hover:text-white text-center leading-tight line-clamp-2 transition-colors">
+              <span className="text-[12px] font-medium text-gray-700 group-hover:text-gray-950 dark:text-zinc-300 dark:group-hover:text-white text-center leading-tight line-clamp-2 transition-colors">
                 {action.label}
               </span>
             </button>
@@ -278,19 +278,19 @@ export const ReelShareModal: React.FC<ReelShareModalProps> = ({ reel, isOpen, on
         </div>
 
         {/* Bottom Copy Link Shortcut Bar */}
-        <div className="flex items-center gap-2 bg-zinc-900/90 border border-white/10 rounded-2xl p-1.5 pl-3">
-          <span className="text-xs text-zinc-400 truncate flex-1 select-all font-mono">
+        <div className="flex items-center gap-2 bg-black/5 dark:bg-zinc-900/90 border border-black/10 dark:border-white/10 rounded-2xl p-1.5 pl-3">
+          <span className="text-xs text-gray-600 dark:text-zinc-400 truncate flex-1 select-all font-mono">
             {reelUrl}
           </span>
           <button
             onClick={handleCopyLink}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
               isCopied
                 ? 'bg-emerald-600 text-white'
-                : 'bg-white/10 text-white hover:bg-white/20 active:scale-95'
+                : 'bg-gray-900 text-white hover:bg-gray-800 dark:bg-white/10 dark:text-white dark:hover:bg-white/20 active:scale-95'
             }`}
           >
-            {isCopied ? 'Скопійовано!' : 'Копіювати'}
+            {isCopied ? 'Copied!' : 'Copy'}
           </button>
         </div>
       </div>

@@ -8,6 +8,8 @@ import { useSpotifyDockOffset } from '@/shared/model/useSpotifyDockOffset';
 import { PlaylistActionMenu } from './PlaylistActionMenu';
 import { TrackActionMenu } from './TrackActionMenu';
 import type { MusicPlaylist, MusicRecentlyPlayedItem } from '../model/types';
+import { isSameTrackId } from '@/shared/lib/spotifyUrl';
+import { detectGenre } from '../model/useMusicHubStore';
 
 interface MusicSectionDetailViewProps {
   sectionId: string;
@@ -63,7 +65,7 @@ export const MusicSectionDetailView: React.FC<MusicSectionDetailViewProps> = ({
       if (!pl || pl.tracks.length === 0) return;
 
       const isThisPlaying =
-        isPlaying && currentTrack && pl.tracks.some((t) => t.id === currentTrack.id);
+        isPlaying && currentTrack && pl.tracks.some((t) => isSameTrackId(t.id, currentTrack.id));
       if (isThisPlaying) {
         togglePlay();
       } else {
@@ -82,20 +84,31 @@ export const MusicSectionDetailView: React.FC<MusicSectionDetailViewProps> = ({
       return;
     }
 
-    if (item.track) {
-      if (currentTrack?.id === item.track.id) {
-        togglePlay();
-      } else {
-        playTrack(item.track, [], item.track.title);
-        useMusicHubStore.getState().recordRecentlyPlayed({
-          id: item.track.id,
-          type: 'track',
-          title: item.track.title,
-          artist: item.track.artist,
-          coverUrl: item.track.albumArt,
-          track: item.track,
-        });
-      }
+    const tr: SpotifyTrack = item.track || {
+      id: item.id,
+      title: item.title,
+      artist: item.artist || item.subtitle || 'Unknown Artist',
+      album: item.title,
+      albumArt: item.coverUrl || '',
+      durationMs: 180000,
+      previewUrl: null,
+      spotifyUrl: 'https://soundcloud.com',
+      source: 'soundcloud',
+    };
+
+    if (currentTrack && isSameTrackId(currentTrack.id, tr.id)) {
+      togglePlay();
+    } else {
+      playTrack(tr, [], tr.title);
+      useMusicHubStore.getState().recordRecentlyPlayed({
+        id: tr.id,
+        type: 'track',
+        title: tr.title,
+        artist: tr.artist,
+        coverUrl: tr.albumArt,
+        genre: detectGenre(tr),
+        track: tr,
+      });
     }
   };
 
@@ -122,7 +135,7 @@ export const MusicSectionDetailView: React.FC<MusicSectionDetailViewProps> = ({
   return (
     <div
       style={{ paddingBottom: `${dockOffset + 56}px` }}
-      className="p-8 overflow-y-auto custom-scrollbar select-none min-h-full"
+      className="p-8 overflow-y-auto custom-scrollbar select-none min-h-full text-gray-900 dark:text-white"
     >
       {/* Header bar matching Spotify Screenshot 4 */}
       <div className="flex items-center gap-4 mb-8">
@@ -130,14 +143,16 @@ export const MusicSectionDetailView: React.FC<MusicSectionDetailViewProps> = ({
           type="button"
           onClick={() => navigate('/music')}
           aria-label="Back to home"
-          className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/70 hover:text-white transition-all hover:scale-105 active:scale-95"
+          className="w-10 h-10 rounded-full bg-black/5 hover:bg-black/10 text-gray-700 hover:text-gray-950 border border-black/10 dark:bg-white/5 dark:hover:bg-white/10 dark:text-gray-300 dark:hover:text-white dark:border-white/10 flex items-center justify-center transition-all hover:scale-105 active:scale-95 cursor-pointer"
         >
           <ArrowLeft size={20} />
         </button>
 
         <div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">Recently Played</h1>
-          <p className="text-xs text-gray-400 mt-1">
+          <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
+            Recently Played
+          </h1>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
             Recently played playlists and tracks on our platform
           </p>
         </div>
@@ -145,17 +160,19 @@ export const MusicSectionDetailView: React.FC<MusicSectionDetailViewProps> = ({
 
       {items.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-28 text-center">
-          <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center text-white/30 mb-4 border border-white/10">
+          <div className="w-16 h-16 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center text-gray-400 dark:text-white/30 mb-4 border border-black/10 dark:border-white/10">
             <Clock size={30} />
           </div>
-          <h2 className="text-lg font-bold text-white mb-1.5">Listening history is empty</h2>
-          <p className="text-xs text-gray-400 max-w-sm mb-6">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1.5">
+            Listening history is empty
+          </h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm mb-6">
             Playlists and tracks will appear here when you play them.
           </p>
           <button
             type="button"
             onClick={() => navigate('/music')}
-            className="px-5 py-2.5 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold transition-all shadow-lg shadow-purple-600/30 hover:scale-105 active:scale-95"
+            className="px-5 py-2.5 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold transition-all shadow-lg shadow-purple-600/30 hover:scale-105 active:scale-95 cursor-pointer"
           >
             Explore catalog
           </button>
@@ -163,10 +180,20 @@ export const MusicSectionDetailView: React.FC<MusicSectionDetailViewProps> = ({
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
           {items.map((item, idx) => {
-            const isThisPlaying =
-              isPlaying &&
-              currentTrack &&
-              (item.id === currentTrack.id || item.playlistId === currentTrack.contextName);
+            const isTrackItem = item.type === 'track' || Boolean(item.track);
+            let isThisPlaying = false;
+            if (isPlaying && currentTrack) {
+              if (isTrackItem) {
+                isThisPlaying =
+                  isSameTrackId(item.id, currentTrack.id) ||
+                  (item.track ? isSameTrackId(item.track.id, currentTrack.id) : false);
+              } else if (item.type === 'playlist') {
+                isThisPlaying = Boolean(
+                  (currentTrack.contextName && currentTrack.contextName === item.title) ||
+                  (item.playlistId && currentTrack.contextName === item.playlistId),
+                );
+              }
+            }
 
             return (
               <div
@@ -197,10 +224,10 @@ export const MusicSectionDetailView: React.FC<MusicSectionDetailViewProps> = ({
                     handleTrackContextMenu(e, tr);
                   }
                 }}
-                className="group relative p-4 rounded-2xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/5 hover:border-white/10 cursor-pointer transition-all duration-300 hover:shadow-2xl hover:-translate-y-1.5 flex flex-col"
+                className="group relative p-4 rounded-2xl bg-black/[0.02] hover:bg-black/[0.06] border border-black/5 hover:border-black/10 dark:bg-white/[0.03] dark:hover:bg-white/[0.07] dark:border-white/5 dark:hover:border-white/10 cursor-pointer transition-all duration-300 hover:shadow-2xl hover:-translate-y-1.5 flex flex-col"
               >
                 {/* Artwork container */}
-                <div className="relative w-full aspect-square rounded-xl overflow-hidden mb-3.5 bg-black/40 shadow-lg">
+                <div className="relative w-full aspect-square rounded-xl overflow-hidden mb-3.5 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 shadow-lg">
                   {item.coverUrl ? (
                     <img
                       src={item.coverUrl}
@@ -219,7 +246,7 @@ export const MusicSectionDetailView: React.FC<MusicSectionDetailViewProps> = ({
                       type="button"
                       onClick={(e) => handlePlayCard(e, item)}
                       aria-label={`Play ${item.title}`}
-                      className={`w-11 h-11 rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-xl shadow-purple-600/40 flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 ${
+                      className={`w-11 h-11 rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-xl shadow-purple-600/40 flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer ${
                         isThisPlaying
                           ? 'opacity-100 translate-y-0'
                           : 'opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0'
@@ -235,12 +262,12 @@ export const MusicSectionDetailView: React.FC<MusicSectionDetailViewProps> = ({
                 </div>
 
                 {/* Title */}
-                <h3 className="text-sm font-bold text-white truncate group-hover:text-purple-300 group-hover:underline transition-colors">
+                <h3 className="text-sm font-bold text-gray-900 dark:text-white truncate group-hover:text-purple-600 dark:group-hover:text-purple-300 group-hover:underline transition-colors">
                   {item.title}
                 </h3>
 
                 {/* Clean Subtitle - NO 'Playlist added' */}
-                <span className="text-xs text-gray-400 truncate mt-1">
+                <span className="text-xs text-gray-500 dark:text-gray-400 truncate mt-1">
                   {item.type === 'playlist'
                     ? item.subtitle || (item.artist ? `Playlist • ${item.artist}` : 'Playlist')
                     : item.artist || item.subtitle || 'Artist'}

@@ -13,7 +13,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FastifyFileInterceptor } from '../common/interceptors/fastify-file.interceptor';
 import { Throttle } from '@nestjs/throttler';
 import { CommentsService } from './comments.service';
 import { CommentsMediaService } from './comments-media.service';
@@ -59,7 +59,7 @@ export class CommentsController {
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
   @Throttle({ default: { limit: 10, ttl: 60_000 }, sensitive: { limit: 10, ttl: 60_000 } })
-  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 5 * 1024 * 1024, files: 1 } }))
+  @UseInterceptors(FastifyFileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload and sanitize comment image attachment' })
   @ApiResponse({ status: 201, description: 'Image sanitized and uploaded successfully.' })

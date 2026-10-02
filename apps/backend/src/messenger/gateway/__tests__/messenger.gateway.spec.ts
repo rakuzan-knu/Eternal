@@ -52,6 +52,8 @@ describe('MessengerGateway', () => {
     zrangebyscore: jest.Mock;
     expire: jest.Mock;
     exists: jest.Mock;
+    acquireLock: jest.Mock;
+    releaseLock: jest.Mock;
     getClient: jest.Mock;
   };
   let mockUsersService: {
@@ -136,6 +138,8 @@ describe('MessengerGateway', () => {
       zrangebyscore: jest.fn().mockResolvedValue([]),
       expire: jest.fn().mockResolvedValue(1),
       exists: jest.fn().mockResolvedValue(0),
+      acquireLock: jest.fn().mockResolvedValue('token-123'),
+      releaseLock: jest.fn().mockResolvedValue(true),
       getClient: jest.fn().mockReturnValue({
         multi: jest.fn().mockReturnValue({
           zremrangebyscore: jest.fn().mockReturnThis(),
@@ -490,6 +494,59 @@ describe('MessengerGateway', () => {
       expect(mockRedisService.del).toHaveBeenCalledWith('user:hibernated:usr-1:sock-1');
       expect(mockRedisService.set).toHaveBeenCalledWith('user:presence:usr-1', 'online', 60);
       expect(cbWake).toHaveBeenCalledWith({ status: 'ok', currentSeq: 42 });
+    });
+
+    it('handleSendMessage sends message, caches idempotency key, and broadcasts NEW_MESSAGE', async () => {
+      mockRedisService.get.mockResolvedValueOnce(null);
+      const cb = jest.fn();
+      await gateway.handleSendMessage(
+        mockSocket as unknown as AuthenticatedSocket,
+        {
+          conversationId: 'c1111111-1111-1111-1111-111111111111',
+          text: 'Hello world',
+          clientMessageId: 'client-msg-123',
+          messageType: MessageType.TEXT,
+        },
+        cb,
+      );
+
+      expect(mockMessagesService.send).toHaveBeenCalledTimes(1);
+      expect(mockRedisService.set).toHaveBeenCalledWith(
+        'idemp:msg:usr-1:client-msg-123',
+        JSON.stringify(sampleMsg),
+        120,
+      );
+      expect(cb).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'ok',
+          message: sampleMsg,
+          clientMessageId: 'client-msg-123',
+        }),
+      );
+    });
+
+    it('handleSendMessage returns cached message and skips duplicate creation when clientMessageId is repeated', async () => {
+      mockRedisService.get.mockResolvedValueOnce(JSON.stringify(sampleMsg));
+      const cb = jest.fn();
+      await gateway.handleSendMessage(
+        mockSocket as unknown as AuthenticatedSocket,
+        {
+          conversationId: 'c1111111-1111-1111-1111-111111111111',
+          text: 'Hello world duplicate',
+          clientMessageId: 'client-msg-123',
+          messageType: MessageType.TEXT,
+        },
+        cb,
+      );
+
+      expect(mockMessagesService.send).not.toHaveBeenCalled();
+      expect(cb).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'ok',
+          message: sampleMsg,
+          clientMessageId: 'client-msg-123',
+        }),
+      );
     });
   });
 });

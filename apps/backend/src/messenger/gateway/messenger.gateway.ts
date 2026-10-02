@@ -73,6 +73,7 @@ import {
   type VideoToggleDto,
   type ScreenShareDto,
   type CallReconnectDto,
+  type CallReconnectAnswerDto,
   type IceRestartDto,
   type IceRestartAnswerDto,
   initiateCallSchema,
@@ -84,6 +85,7 @@ import {
   videoToggleSchema,
   screenShareSchema,
   callReconnectSchema,
+  callReconnectAnswerSchema,
   iceRestartSchema,
   iceRestartAnswerSchema,
   relayAnnounceSchema,
@@ -92,6 +94,9 @@ import {
   type RelayRequestDto,
   callHandoffRequestSchema,
   type CallHandoffRequestDto,
+  type MessageView,
+  type ReactionSummary,
+  type UserSnapshot,
 } from '@common/contracts';
 import { CallsService } from '../calls/calls.service';
 
@@ -99,7 +104,7 @@ import { QueueService } from '../../queue/queue.service';
 import { MessageJobType, SearchJobType } from '../../queue/queue.constants';
 import { TraceContext } from '../../common/tracing/trace-context';
 import { WsTraceInterceptor } from '../../common/tracing/ws-trace.interceptor';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHash } from 'node:crypto';
 import { MetricsService } from '../../metrics/metrics.service';
 import { PresenceEngineService } from '../presence/presence-engine.service';
 import { WsDrainingService, type DrainOptions } from './ws-draining.service';
@@ -203,11 +208,17 @@ export class MessengerGateway
     private readonly jamService?: JamService,
   ) {}
 
-  afterInit() {
-    if (this.presenceEngine && this.server) {
-      this.presenceEngine.setServer(this.server);
+  afterInit(server?: Server) {
+    const s = server || this.server;
+    if (this.presenceEngine && s) {
+      this.presenceEngine.setServer(s);
     }
     this.logger.log(`Messenger WebSocket Gateway initialised.`);
+  }
+
+  public isUserOnline(userId: string): boolean {
+    const sockets = this.onlineUsers.get(userId);
+    return Boolean(sockets && sockets.size > 0);
   }
 
   registerSocketTimer(socketId: string, timer: NodeJS.Timeout): NodeJS.Timeout {
@@ -307,7 +318,7 @@ export class MessengerGateway
           await this.redisService.expire(`user:sockets:${userId}`, 86400).catch(() => {});
           await this.redisService.set(`user:presence:${userId}`, 'online', 60).catch(() => {});
 
-          if (wasOffline && !this.presenceEngine) {
+          if (wasOffline || this.onlineUsers.get(userId)?.size === 1) {
             await this.emitPresenceExceptBlocked(userId, WS_EVENTS.USER_ONLINE, { userId });
           }
 
@@ -377,19 +388,25 @@ export class MessengerGateway
         }
 
         await this.redisService.srem(`user:sockets:${userId}`, client.id).catch(() => {});
-        const remainingSockets = await this.redisService
-          .scard(`user:sockets:${userId}`)
-          .catch(() => 0);
 
-        // Only switch to offline if all tabs / sockets are closed
-        if ((!userSockets || userSockets.size === 0) && remainingSockets === 0) {
+        // Switch to offline when user has no more active local sockets
+        if (!userSockets || userSockets.size === 0) {
           this.onlineUsers.delete(userId);
-          await this.redisService.del(`user:presence:${userId}`).catch(() => {});
-          void this.usersService.touchLastSeen(userId).catch(() => {});
-          if (!this.presenceEngine) {
-            void this.emitPresenceExceptBlocked(userId, WS_EVENTS.USER_OFFLINE, { userId });
+          if (this.presenceEngine) {
+            this.presenceEngine.forceUserOffline(userId);
           }
-
+          await this.redisService.del(`user:sockets:${userId}`).catch(() => {});
+          await this.redisService.del(`user:presence:${userId}`).catch(() => {});
+          try {
+            const redisClient = this.redisService.getClient?.();
+            if (typeof redisClient?.zrem === 'function') {
+              void redisClient.zrem(PresenceEngineService.PRESENCE_ZSET_KEY, userId);
+            }
+          } catch {
+            // ignore
+          }
+          void this.usersService.touchLastSeen(userId).catch(() => {});
+          void this.emitPresenceExceptBlocked(userId, WS_EVENTS.USER_OFFLINE, { userId });
           // Handle 15s Grace Period for Jam Host / Listeners
           if (this.jamService) {
             void this.jamService.getRoomByUser(userId).then((room) => {
@@ -438,20 +455,32 @@ export class MessengerGateway
       activities?: Record<string, unknown>;
       error?: string;
     }) => void,
-  ): Promise<void> {
+  ): Promise<{
+    status: string;
+    online: string[];
+    activities: Record<string, unknown>;
+    error?: string;
+  }> {
     try {
       let onlineSubjects: string[] = [];
       if (this.presenceEngine) {
         onlineSubjects = await this.presenceEngine.getOnlineUserIds(payload.userIds);
-      } else {
-        onlineSubjects = payload.userIds.filter(
-          (userId) => this.onlineUsers.has(userId) || (client.userId && userId === client.userId),
-        );
+      }
+      for (const userId of payload.userIds) {
+        if (
+          (this.onlineUsers.has(userId) && (this.onlineUsers.get(userId)?.size ?? 0) > 0) ||
+          (client.userId && userId === client.userId)
+        ) {
+          if (!onlineSubjects.includes(userId)) {
+            onlineSubjects.push(userId);
+          }
+        }
       }
 
       if (onlineSubjects.length === 0) {
-        callback?.({ status: 'ok', online: [], activities: {} });
-        return;
+        const response = { status: 'ok', online: [], activities: {} };
+        if (typeof callback === 'function') callback(response);
+        return response;
       }
 
       // Resolve each subject's LAST_SEEN visibility toward this viewer (block + privacy + exceptions).
@@ -488,10 +517,14 @@ export class MessengerGateway
         }
       }
 
-      callback?.({ status: 'ok', online, activities });
+      const response = { status: 'ok', online, activities };
+      if (typeof callback === 'function') callback(response);
+      return response;
     } catch (e) {
       this.logger.warn(`Failed to resolve online status for user ${client.userId}: ${String(e)}`);
-      callback?.({ status: 'ok', online: [], activities: {} });
+      const errorResponse = { status: 'ok', online: [], activities: {} };
+      if (typeof callback === 'function') callback(errorResponse);
+      return errorResponse;
     }
   }
 
@@ -597,7 +630,7 @@ export class MessengerGateway
   @SubscribeMessage(WS_EVENTS.SEND_MESSAGE)
   async handleSendMessage(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody(new ZodValidationPipe(sendMessageSchema)) payload: SendMessageDto,
+    @MessageBody() rawPayload: unknown,
     callback?: (res: {
       status: string;
       message?: unknown;
@@ -606,12 +639,40 @@ export class MessengerGateway
       clientSeq?: number | undefined;
     }) => void,
   ): Promise<void> {
+    const parseResult = sendMessageSchema.safeParse(rawPayload);
+    if (!parseResult.success) {
+      const errMsg = parseResult.error.errors[0]?.message || 'Validation failed';
+      this.logger.warn(`sendMessage validation failed for user ${client.userId}: ${errMsg}`);
+      client.emit('error', { message: errMsg });
+      callback?.({
+        status: 'error',
+        error: errMsg,
+        clientMessageId: (rawPayload as any)?.clientMessageId,
+        clientSeq: (rawPayload as any)?.clientSeq,
+      });
+      return;
+    }
+    const payload = parseResult.data;
     const isLimited = await this.isRateLimited(client.userId).catch(() => false);
     if (isLimited) {
       const rateLimitError = 'Too many messages, slow down';
       client.emit(WS_EVENTS.RATE_LIMIT_EXCEEDED, { message: rateLimitError });
       callback?.({ status: 'error', error: rateLimitError });
       return;
+    }
+
+    if (payload.conversationId && payload.text) {
+      const isDupSpam = await this.isDuplicateFloodSpam(
+        client.userId,
+        payload.conversationId,
+        payload.text,
+      ).catch(() => false);
+      if (isDupSpam) {
+        const spamError = 'Too many repeated messages in 60s. Please slow down.';
+        client.emit('error', { message: spamError });
+        callback?.({ status: 'error', error: spamError });
+        return;
+      }
     }
 
     if (!payload.conversationId) {
@@ -621,59 +682,127 @@ export class MessengerGateway
 
     await this.convsService.assertMember(payload.conversationId, client.userId);
 
-    const message = await this.messagesService.send(payload.conversationId, client.userId, payload);
+    // Idempotency: Deduplicate concurrent or replayed sends sharing the same clientMessageId
+    const idempKey = payload.clientMessageId
+      ? `idemp:msg:${client.userId}:${payload.clientMessageId}`
+      : null;
+    let lockToken: string | null = null;
+    const lockKey = payload.clientMessageId
+      ? `lock:msg:${client.userId}:${payload.clientMessageId}`
+      : null;
 
-    if (payload.clientSeq != null) {
-      await this.redisService
-        .set(
-          `user:conv:last_client_seq:${client.userId}:${payload.conversationId}`,
-          String(payload.clientSeq),
-          86400,
-        )
-        .catch(() => {});
-    }
+    if (idempKey) {
+      const cached = await this.redisService.get(idempKey).catch(() => null);
+      if (cached) {
+        try {
+          const parsedMessage = JSON.parse(cached);
+          callback?.({
+            status: 'ok',
+            message: parsedMessage,
+            clientMessageId: payload.clientMessageId,
+            clientSeq: payload.clientSeq,
+          });
+          return;
+        } catch {}
+      }
 
-    await this.convsService.touchUpdatedAt(payload.conversationId);
-    await this.emitToConversationExceptBlocked(
-      payload.conversationId,
-      client.userId,
-      WS_EVENTS.NEW_MESSAGE,
-      {
-        conversationId: payload.conversationId,
-        message,
-        clientMessageId: payload.clientMessageId,
-        clientSeq: payload.clientSeq,
-      },
-    );
-
-    if (this.queueService) {
-      void this.queueService
-        .addMessageJob(MessageJobType.FANOUT, {
-          conversationId: payload.conversationId,
-          senderId: client.userId,
-          messageId: (message as { id?: string })?.id,
-          snippet: payload.text ? payload.text.slice(0, 100) : '',
-        })
-        .catch(() => {});
-
-      const hashtags = payload.text ? payload.text.match(/#[a-zA-Z0-9_]+/g) : null;
-      if (hashtags && hashtags.length > 0) {
-        void this.queueService
-          .addSearchIndexingJob(SearchJobType.INDEX_HASHTAG, {
-            id: (message as { id?: string })?.id || 'msg',
-            type: 'hashtag',
-            tags: hashtags,
-          })
-          .catch(() => {});
+      if (lockKey) {
+        lockToken = await this.redisService.acquireLock(lockKey, 5000).catch(() => null);
+        if (!lockToken) {
+          // Another concurrent send with this clientMessageId is currently in flight
+          for (let i = 0; i < 15; i++) {
+            await new Promise((r) => setTimeout(r, 100));
+            const recheck = await this.redisService.get(idempKey).catch(() => null);
+            if (recheck) {
+              try {
+                const parsed = JSON.parse(recheck);
+                callback?.({
+                  status: 'ok',
+                  message: parsed,
+                  clientMessageId: payload.clientMessageId,
+                  clientSeq: payload.clientSeq,
+                });
+                return;
+              } catch {}
+            }
+          }
+          callback?.({
+            status: 'ok',
+            clientMessageId: payload.clientMessageId,
+            clientSeq: payload.clientSeq,
+          });
+          return;
+        }
       }
     }
 
-    callback?.({
-      status: 'ok',
-      message,
-      clientMessageId: payload.clientMessageId,
-      clientSeq: payload.clientSeq,
-    });
+    try {
+      const message = await this.messagesService.send(
+        payload.conversationId,
+        client.userId,
+        payload,
+      );
+
+      if (idempKey) {
+        await this.redisService.set(idempKey, JSON.stringify(message), 120).catch(() => {});
+      }
+
+      if (payload.clientSeq != null) {
+        await this.redisService
+          .set(
+            `user:conv:last_client_seq:${client.userId}:${payload.conversationId}`,
+            String(payload.clientSeq),
+            86400,
+          )
+          .catch(() => {});
+      }
+
+      await this.convsService.touchUpdatedAt(payload.conversationId);
+      await this.emitToConversationExceptBlocked(
+        payload.conversationId,
+        client.userId,
+        WS_EVENTS.NEW_MESSAGE,
+        {
+          conversationId: payload.conversationId,
+          message,
+          clientMessageId: payload.clientMessageId,
+          clientSeq: payload.clientSeq,
+        },
+      );
+
+      if (this.queueService) {
+        void this.queueService
+          .addMessageJob(MessageJobType.FANOUT, {
+            conversationId: payload.conversationId,
+            senderId: client.userId,
+            messageId: (message as { id?: string })?.id,
+            snippet: payload.text ? payload.text.slice(0, 100) : '',
+          })
+          .catch(() => {});
+
+        const hashtags = payload.text ? payload.text.match(/#[a-zA-Z0-9_]+/g) : null;
+        if (hashtags && hashtags.length > 0) {
+          void this.queueService
+            .addSearchIndexingJob(SearchJobType.INDEX_HASHTAG, {
+              id: (message as { id?: string })?.id || 'msg',
+              type: 'hashtag',
+              tags: hashtags,
+            })
+            .catch(() => {});
+        }
+      }
+
+      callback?.({
+        status: 'ok',
+        message,
+        clientMessageId: payload.clientMessageId,
+        clientSeq: payload.clientSeq,
+      });
+    } finally {
+      if (lockKey && lockToken) {
+        await this.redisService.releaseLock(lockKey, lockToken).catch(() => {});
+      }
+    }
   }
 
   @SubscribeMessage(WS_EVENTS.GATEWAY_RESUME)
@@ -815,7 +944,7 @@ export class MessengerGateway
       client.userId,
       payload,
     );
-    this.emitMessageEdited(updatedMessage.conversationId, updatedMessage);
+    await this.emitMessageEdited(updatedMessage.conversationId, updatedMessage, client.userId);
     callback?.({ status: 'ok', message: updatedMessage });
   }
 
@@ -838,7 +967,7 @@ export class MessengerGateway
 
     if (msg) {
       if (result.deletedForAll) {
-        this.emitMessageDeleted(msg.conversationId, result.messageId, true);
+        await this.emitMessageDeleted(msg.conversationId, result.messageId, true, client.userId);
       } else {
         this.emitToUser(client.userId, WS_EVENTS.MESSAGE_DELETED, {
           conversationId: msg.conversationId,
@@ -891,7 +1020,7 @@ export class MessengerGateway
         client.userId,
         payload,
       );
-      this.emitReactionAdded(updated.conversationId, updated);
+      void this.emitReactionAdded(updated.conversationId, updated, client.userId);
       callback?.({ status: 'ok', message: updated });
     } catch (err: unknown) {
       callback?.({
@@ -917,7 +1046,7 @@ export class MessengerGateway
         client.userId,
         payload.emoji,
       );
-      this.emitReactionRemoved(updated.conversationId, updated);
+      void this.emitReactionRemoved(updated.conversationId, updated, client.userId);
       callback?.({ status: 'ok', message: updated });
     } catch (err: unknown) {
       callback?.({
@@ -1017,23 +1146,24 @@ export class MessengerGateway
     event: string,
     payload: unknown,
   ): Promise<void> {
-    const candidates = [...this.onlineUsers.keys()].filter((id) => id !== subjectUserId);
-    if (candidates.length === 0) return;
-
-    const audience = await this.visibility.resolvePresenceAudience(subjectUserId, candidates);
-
-    for (const [userId, socketIds] of this.onlineUsers.entries()) {
-      if (userId !== subjectUserId && !audience.has(userId)) continue;
-      for (const socketId of socketIds) {
-        const socket = this.getSocketInstance(socketId);
-        if (socket) {
-          if (this.backpressureService) {
-            this.backpressureService.sendSafe(socket, event, payload, 'ephemeral');
-          } else {
-            socket.emit(event, payload);
-          }
-        }
+    try {
+      const candidates = [...this.onlineUsers.keys()].filter((id) => id !== subjectUserId);
+      if (candidates.length === 0) {
+        this.server.to(`user:${subjectUserId}`).emit(event, payload);
+        return;
       }
+
+      const audience = await this.visibility.resolvePresenceAudience(subjectUserId, candidates);
+
+      for (const viewerId of audience) {
+        this.server.to(`user:${viewerId}`).emit(event, payload);
+      }
+      this.server.to(`user:${subjectUserId}`).emit(event, payload);
+    } catch (err) {
+      this.logger.warn(
+        `Failed to emit presence event ${event} for ${subjectUserId}: ${String(err)}`,
+      );
+      this.server.emit(event, payload);
     }
   }
 
@@ -1079,26 +1209,112 @@ export class MessengerGateway
     }
   }
 
-  emitMessageEdited(conversationId: string, message: unknown) {
+  async emitMessageEdited(conversationId: string, message: unknown, actingUserId?: string) {
     this.server.to(conversationId).emit(WS_EVENTS.MESSAGE_EDITED, { conversationId, message });
+    if (actingUserId) {
+      await this.emitToConversationExceptBlocked(
+        conversationId,
+        actingUserId,
+        WS_EVENTS.MESSAGE_EDITED,
+        { conversationId, message },
+      ).catch(() => {});
+    }
   }
 
-  emitMessageDeleted(conversationId: string, messageId: string, deletedForAll: boolean) {
+  async emitMessageDeleted(
+    conversationId: string,
+    messageId: string,
+    deletedForAll: boolean,
+    actingUserId?: string,
+  ) {
     this.server
       .to(conversationId)
       .emit(WS_EVENTS.MESSAGE_DELETED, { conversationId, messageId, deletedForAll });
+
+    if (deletedForAll) {
+      if (actingUserId) {
+        await this.emitToConversationExceptBlocked(
+          conversationId,
+          actingUserId,
+          WS_EVENTS.MESSAGE_DELETED,
+          { conversationId, messageId, deletedForAll: true },
+        ).catch(() => {});
+      } else {
+        const participantIds = await this.convsService
+          .getParticipantIds(conversationId)
+          .catch(() => []);
+        for (const uid of participantIds) {
+          this.emitToUser(uid, WS_EVENTS.MESSAGE_DELETED, {
+            conversationId,
+            messageId,
+            deletedForAll: true,
+          });
+        }
+      }
+    }
   }
 
-  emitReactionAdded(conversationId: string, message: unknown) {
+  async emitReactionAdded(conversationId: string, message: unknown, actingUserId?: string) {
     this.server
       .to(conversationId)
       .emit(WS_EVENTS.MESSAGE_REACTION_ADDED, { conversationId, message });
+    if (actingUserId && typeof message === 'object' && message !== null) {
+      await this.emitReactionToParticipants(
+        conversationId,
+        actingUserId,
+        WS_EVENTS.MESSAGE_REACTION_ADDED,
+        message as MessageView,
+      );
+    }
   }
 
-  emitReactionRemoved(conversationId: string, message: unknown) {
+  async emitReactionRemoved(conversationId: string, message: unknown, actingUserId?: string) {
     this.server
       .to(conversationId)
       .emit(WS_EVENTS.MESSAGE_REACTION_REMOVED, { conversationId, message });
+    if (actingUserId && typeof message === 'object' && message !== null) {
+      await this.emitReactionToParticipants(
+        conversationId,
+        actingUserId,
+        WS_EVENTS.MESSAGE_REACTION_REMOVED,
+        message as MessageView,
+      );
+    }
+  }
+
+  private async emitReactionToParticipants(
+    conversationId: string,
+    actingUserId: string,
+    event: string,
+    message: MessageView,
+  ): Promise<void> {
+    try {
+      const [participantIds, { blockedByMe, blockingMe }] = await Promise.all([
+        this.convsService.getParticipantIds(conversationId),
+        this.convsService.getBlockRelationships(actingUserId),
+      ]);
+
+      for (const userId of participantIds) {
+        if (userId !== actingUserId && (blockedByMe.has(userId) || blockingMe.has(userId))) {
+          continue;
+        }
+
+        const userMessage: MessageView = {
+          ...message,
+          reactions: (message.reactions || []).map((r: ReactionSummary) => ({
+            ...r,
+            selfReacted:
+              userId === actingUserId
+                ? r.selfReacted
+                : Boolean(r.users?.some((u: UserSnapshot) => u.id === userId)),
+          })),
+        };
+
+        this.emitToUser(userId, event, { conversationId, message: userMessage }, 'critical');
+      }
+    } catch (err) {
+      this.logger.warn(`Failed to fan out reaction to participants: ${String(err)}`);
+    }
   }
 
   emitMessagePinned(conversationId: string, messageId: string) {
@@ -1164,6 +1380,24 @@ export class MessengerGateway
     if (exists) return true;
     await this.redisService.set(key, '1', 4);
     return false;
+  }
+
+  private async isDuplicateFloodSpam(
+    userId: string,
+    conversationId: string,
+    text?: string,
+  ): Promise<boolean> {
+    if (!text || !text.trim()) return false;
+    const clean = text.trim();
+    // Hash normalized content to track repeated sends within 60s
+    const textHash = createHash('sha256').update(clean).digest('hex').slice(0, 16);
+    const key = `spam:dup:${userId}:${conversationId}:${textHash}`;
+    const count = await this.redisService.incr(key);
+    if (count === 1) {
+      await this.redisService.expire(key, 60);
+    }
+    // Block flood of identical or repeated text (> 4 identical sends within 60s)
+    return count > 4;
   }
 
   @SubscribeMessage('subscribeShowcase')
@@ -1643,6 +1877,7 @@ export class MessengerGateway
           callId: payload.callId,
           userId: client.userId,
           isMuted: payload.isMuted,
+          isDeafened: payload.isDeafened ?? false,
         });
       }
     }
@@ -1653,7 +1888,28 @@ export class MessengerGateway
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody(new ZodValidationPipe(muteToggleSchema)) payload: MuteToggleDto,
   ) {
-    return this.handleCallMute(client, { ...payload, isMuted: false });
+    return this.handleCallMute(client, { ...payload, isMuted: false, isDeafened: false });
+  }
+
+  @SubscribeMessage(WS_EVENTS.CALL_SPEAKING)
+  async handleCallSpeaking(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { callId: string; isSpeaking: boolean },
+  ) {
+    if (!this.callsService || !payload?.callId) return;
+    const call = await this.callsService
+      .getCallById(payload.callId, client.userId)
+      .catch(() => null);
+    if (!call) return;
+    for (const p of call.participants) {
+      if (p.userId !== client.userId) {
+        this.emitToUser(p.userId, WS_EVENTS.CALL_SPEAKING, {
+          callId: payload.callId,
+          userId: client.userId,
+          isSpeaking: Boolean(payload.isSpeaking),
+        });
+      }
+    }
   }
 
   @SubscribeMessage(WS_EVENTS.CALL_VIDEO_TOGGLE)
@@ -1723,24 +1979,111 @@ export class MessengerGateway
     }
   }
 
-  @SubscribeMessage(WS_EVENTS.CALL_RECONNECT)
-  async handleCallReconnect(
+  @SubscribeMessage(WS_EVENTS.CALL_ACTIVITY)
+  async handleCallActivity(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody(new ZodValidationPipe(callReconnectSchema)) payload: CallReconnectDto,
+    @MessageBody()
+    payload: {
+      callId: string;
+      activity?: Record<string, unknown> | null;
+    },
   ) {
-    if (!this.callsService) return;
+    if (!this.callsService || !payload?.callId) return;
     const call = await this.callsService
       .getCallById(payload.callId, client.userId)
       .catch(() => null);
     if (!call) return;
     for (const p of call.participants) {
       if (p.userId !== client.userId) {
-        this.emitToUser(p.userId, WS_EVENTS.CALL_RECONNECT, {
+        this.emitToUser(p.userId, WS_EVENTS.CALL_ACTIVITY, {
           callId: payload.callId,
           userId: client.userId,
+          activity: payload.activity ?? null,
         });
       }
     }
+  }
+
+  @SubscribeMessage(WS_EVENTS.CALL_RECONNECT)
+  async handleCallReconnect(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody(new ZodValidationPipe(callReconnectSchema)) payload: CallReconnectDto,
+    callback?: (res: {
+      status: string;
+      active?: boolean;
+      call?: any;
+      activeParticipantsCount?: number;
+      error?: string;
+    }) => void,
+  ) {
+    if (!this.callsService) {
+      const err = { status: 'error', error: 'Calls service unavailable' };
+      callback?.(err);
+      return err;
+    }
+    const check = await this.callsService
+      .checkCallActive(payload.callId, client.userId)
+      .catch(() => ({ active: false, activeParticipantsCount: 0, call: undefined }));
+
+    if (!check.active) {
+      const res = { status: 'ok', active: false, activeParticipantsCount: 0 };
+      callback?.(res);
+      return res;
+    }
+
+    const reconnectPayload = {
+      callId: payload.callId,
+      userId: client.userId,
+      sdpOffer: payload.sdpOffer,
+      iceCandidates: payload.iceCandidates,
+    };
+
+    if (check.call) {
+      for (const p of check.call.participants) {
+        if (p.userId !== client.userId) {
+          this.emitToUser(p.userId, WS_EVENTS.CALL_RECONNECT, reconnectPayload);
+        }
+      }
+    }
+
+    const res = {
+      status: 'ok',
+      active: true,
+      call: check.call,
+      activeParticipantsCount: check.activeParticipantsCount,
+    };
+    callback?.(res);
+    return res;
+  }
+
+  @SubscribeMessage(WS_EVENTS.CALL_RECONNECT_ANSWER)
+  async handleCallReconnectAnswer(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody(new ZodValidationPipe(callReconnectAnswerSchema)) payload: CallReconnectAnswerDto,
+    callback?: (res: { status: string }) => void,
+  ) {
+    const answerPayload = {
+      callId: payload.callId,
+      senderUserId: client.userId,
+      sdpAnswer: payload.sdpAnswer,
+      iceCandidates: payload.iceCandidates,
+    };
+    if (payload.targetUserId) {
+      this.emitToUser(payload.targetUserId, WS_EVENTS.CALL_RECONNECT_ANSWER, answerPayload);
+    } else {
+      const call = await this.callsService
+        ?.getCallById(payload.callId, client.userId)
+        .catch(() => null);
+      if (call) {
+        for (const p of call.participants) {
+          if (p.userId !== client.userId) {
+            this.emitToUser(p.userId, WS_EVENTS.CALL_RECONNECT_ANSWER, answerPayload);
+          }
+        }
+      }
+    }
+    callback?.({ status: 'ok' });
+    return { status: 'ok' };
   }
 
   @SubscribeMessage(WS_EVENTS.CALL_ICE_RESTART)
@@ -2155,22 +2498,36 @@ export class MessengerGateway
     if (!this.prisma) return;
 
     try {
-      const showcase = await this.prisma.profileShowcase.findUnique({
+      let showcase = await this.prisma.profileShowcase.findUnique({
         where: { userId },
       });
-      if (!showcase) return;
+      if (!showcase) {
+        showcase = await this.prisma.profileShowcase
+          .create({
+            data: {
+              userId,
+              accentColor: '#6366f1',
+            },
+          })
+          .catch(() => null);
+      }
 
-      const isPrivate = showcase.privacyActivity === 'PRIVATE';
+      const isPrivate = showcase ? showcase.privacyActivity === 'PRIVATE' : false;
+      const connectedAccounts = showcase?.connectedAccounts ?? undefined;
 
       if (!track) {
-        await this.prisma.profileShowcase.update({
-          where: { userId },
-          data: { activityStatus: Prisma.DbNull },
-        });
+        if (showcase) {
+          await this.prisma.profileShowcase
+            .update({
+              where: { userId },
+              data: { activityStatus: Prisma.DbNull },
+            })
+            .catch(() => {});
+        }
         this.handleShowcasePresenceUpdated({
           userId,
           activityStatus: null,
-          connectedAccounts: showcase.connectedAccounts,
+          connectedAccounts,
           isPrivate,
         });
         return;
@@ -2195,17 +2552,19 @@ export class MessengerGateway
         source: track.source || (track.id?.startsWith('sc-') ? 'soundcloud' : 'platform'),
       };
 
-      if (this.prisma) {
-        await this.prisma.profileShowcase.update({
-          where: { userId },
-          data: { activityStatus: activityStatus },
-        });
+      if (this.prisma && showcase) {
+        await this.prisma.profileShowcase
+          .update({
+            where: { userId },
+            data: { activityStatus: activityStatus },
+          })
+          .catch(() => {});
       }
 
       this.handleShowcasePresenceUpdated({
         userId,
         activityStatus,
-        connectedAccounts: showcase.connectedAccounts,
+        connectedAccounts,
         isPrivate,
       });
     } catch (err) {
@@ -2277,6 +2636,40 @@ export class MessengerGateway
     });
 
     return { success: true };
+  }
+
+  public broadcastChatSoundAdded(conversationId: string, item: unknown): void {
+    if (!this.server || !conversationId) return;
+    this.server.to(conversationId).emit('soundboard:chat_added', item);
+  }
+
+  public broadcastChatSoundDeleted(conversationId: string, soundId: string): void {
+    if (!this.server || !conversationId) return;
+    this.server.to(conversationId).emit('soundboard:chat_deleted', { conversationId, id: soundId });
+  }
+
+  @SubscribeMessage('soundboard:play')
+  handleSoundboardPlay(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { conversationId?: string; [key: string]: unknown },
+  ) {
+    if (!payload?.conversationId || !client.userId) return;
+    client.to(payload.conversationId).emit('soundboard:play', {
+      ...payload,
+      senderUserId: client.userId,
+    });
+  }
+
+  @SubscribeMessage('watchtogether:sync')
+  handleWatchTogetherSync(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { conversationId?: string; [key: string]: unknown },
+  ) {
+    if (!payload?.conversationId || !client.userId) return;
+    client.to(payload.conversationId).emit('watchtogether:sync', {
+      ...payload,
+      senderUserId: client.userId,
+    });
   }
 
   private extractToken(client: Socket): string | null {

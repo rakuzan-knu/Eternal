@@ -158,6 +158,7 @@ export async function registerIdentityKey(): Promise<void> {
     publicKey,
     algorithm: 'prime256v1',
     deviceId: getDeviceId(),
+    purpose: 'call',
   });
 }
 

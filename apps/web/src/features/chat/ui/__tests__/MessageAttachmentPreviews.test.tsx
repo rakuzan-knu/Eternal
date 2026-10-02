@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MediaAttachment, AudioAttachment } from '../MessageAttachmentPreviews';
 import { AttachmentView } from '@/entities/chat/model/types';
@@ -41,28 +41,40 @@ describe('MessageAttachmentPreviews', () => {
     expect(audio).toHaveClass('opacity-100');
   });
 
-  it('renders video attachment, triggers load, and reveals spoiler', () => {
+  it('renders video attachment, triggers load, displays glass countdown badge, and handles clicks to open media', () => {
+    const onOpenMedia = vi.fn();
     const videoAttachment = {
       id: 'att-video',
-      url: 'https://example.com/spoiler.mp4',
-      type: 'VIDEO' as const,
-      fileName: 'spoiler.mp4',
+      url: 'https://example.com/clip.webm',
+      type: 'FILE' as const,
+      fileName: 'clip.webm',
       size: 5000,
-      isSpoiler: true,
+      isSpoiler: false,
       width: 16,
       height: 9,
-    } as unknown as AttachmentView & { isSpoiler?: boolean };
+    } as unknown as AttachmentView;
 
-    const { container } = render(<MediaAttachment attachment={videoAttachment} />);
+    const { container } = render(
+      <MediaAttachment attachment={videoAttachment} onOpenMedia={onOpenMedia} />,
+    );
 
-    expect(screen.getByText('Spoiler')).toBeInTheDocument();
     const video = container.querySelector('video')!;
-    fireEvent.loadedData(video);
-    expect(video).toHaveClass('opacity-100');
+    expect(video).toBeInTheDocument();
+    expect(video.controls).toBe(false);
+    expect(video.muted).toBe(true);
+    expect(video.loop).toBe(true);
+    expect(video.autoplay).toBe(true);
 
-    const spoilerBtn = screen.getByTitle('Click to reveal spoiler');
-    fireEvent.click(spoilerBtn);
-    expect(screen.queryByTitle('Click to reveal spoiler')).not.toBeInTheDocument();
+    // Simulate loadedMetadata with duration 42 seconds
+    Object.defineProperty(video, 'duration', { value: 42, configurable: true });
+    fireEvent.loadedMetadata(video);
+
+    // Expect glass timer badge with 0:42
+    expect(screen.getByText('0:42')).toBeInTheDocument();
+
+    // Clicking the video triggers onOpenMedia
+    fireEvent.click(video);
+    expect(onOpenMedia).toHaveBeenCalledWith(videoAttachment, expect.any(Object));
   });
 
   it('triggers onLoad for non-spoiler image attachment', () => {

@@ -12,6 +12,7 @@ import {
 import { useAuthStore } from './useAuthStore';
 import { musicEventBridge } from '@/shared/lib/musicEvents';
 import { integrationsApi } from '../api/integrationsApi';
+import { getSocket } from '@/shared/api/socket';
 
 declare global {
   interface Window {
@@ -292,7 +293,10 @@ const getOrCreateAudio = (): HTMLAudioElement => {
           return;
         }
         if (state.isPlaying) {
-          useSpotifyPlayerStore.setState({ progressMs: posMs });
+          // Micro-throttle: Avoid spamming store updates faster than 250ms unless seeking/looping back
+          if (Math.abs(posMs - state.progressMs) >= 250 || posMs < state.progressMs) {
+            useSpotifyPlayerStore.setState({ progressMs: posMs });
+          }
         }
       }
     });
@@ -519,7 +523,7 @@ export const useSpotifyPlayerStore = create<SpotifyPlayerState>()(
           if (!window.Spotify || !window.Spotify.Player) return;
 
           const player = new window.Spotify.Player({
-            name: 'Antigravity Liquid Player',
+            name: 'Eternal Player',
             getOAuthToken: async (cb: (token: string) => void) => {
               try {
                 const data = await integrationsApi.getSpotifyUserToken();
@@ -548,7 +552,21 @@ export const useSpotifyPlayerStore = create<SpotifyPlayerState>()(
             }
 
             const state = get();
-            if (state.currentTrack && state.isPlaying) {
+            const isSoundCloud = Boolean(
+              state.currentTrack &&
+              (state.currentTrack.source === 'soundcloud' ||
+                state.currentTrack.source === 'platform' ||
+                state.currentTrack.source !== 'spotify' ||
+                state.currentTrack.id.startsWith('sc-') ||
+                state.currentTrack.id.startsWith('soundcloud-')),
+            );
+
+            if (
+              state.currentTrack &&
+              state.isPlaying &&
+              !isSoundCloud &&
+              state.currentTrack.source === 'spotify'
+            ) {
               if (globalAudio) {
                 globalAudio.pause();
                 globalAudio.src = '';
@@ -584,6 +602,28 @@ export const useSpotifyPlayerStore = create<SpotifyPlayerState>()(
               dur,
               track: state.track_window?.current_track?.name,
             });
+
+            // If user is currently playing or loaded on SoundCloud/platform,
+            // the Spotify Web Playback SDK must never hijack or overwrite active player session!
+            const activeTrack = get().currentTrack;
+            const isSoundCloudActive = Boolean(
+              activeTrack &&
+              (activeTrack.source === 'soundcloud' ||
+                activeTrack.source === 'platform' ||
+                activeTrack.source !== 'spotify' ||
+                activeTrack.id.startsWith('sc-') ||
+                activeTrack.id.startsWith('soundcloud-')),
+            );
+
+            if (isSoundCloudActive) {
+              // Silence rogue audio playback on Spotify SDK device if any
+              if (!isPaused && sdkPlayerInstance) {
+                try {
+                  sdkPlayerInstance.pause().catch(() => {});
+                } catch {}
+              }
+              return;
+            }
 
             // If track transition is actively occurring, ignore transient SDK paused state!
             if (isTransitioningTrack) {
@@ -1453,6 +1493,8 @@ export const useSpotifyPlayerStore = create<SpotifyPlayerState>()(
           try {
             const isSoundCloud = Boolean(
               currentTrack.source === 'soundcloud' ||
+              currentTrack.source === 'platform' ||
+              currentTrack.source !== 'spotify' ||
               currentTrack.id.startsWith('sc-') ||
               currentTrack.id.startsWith('soundcloud-'),
             );
@@ -1529,6 +1571,12 @@ export const useSpotifyPlayerStore = create<SpotifyPlayerState>()(
               return;
             }
 
+            // Strictly forbid calling Spotify queue unless track is an authentic Spotify track
+            if (currentTrack.source !== 'spotify') {
+              set({ isLoadingQueue: false });
+              return;
+            }
+
             const cleanTrackId = extractSpotifyTrackId(currentTrack) || currentTrack.id;
             const historyIds = get()
               .history.slice(0, 10)
@@ -1600,13 +1648,60 @@ export const useSpotifyPlayerStore = create<SpotifyPlayerState>()(
       },
 
       closeDock: () => {
-        get().pause();
+        // 1. Pause and teardown all audio instances
+        try {
+          get().pause();
+        } catch {}
+        try {
+          teardownSoundCloudAudio();
+        } catch {}
+        if (sdkPlayerInstance) {
+          try {
+            sdkPlayerInstance.pause();
+          } catch {}
+        }
+        if (globalAudio) {
+          try {
+            globalAudio.pause();
+            globalAudio.currentTime = 0;
+            globalAudio.removeAttribute('src');
+            globalAudio.load();
+          } catch {}
+        }
+        if (progressInterval) {
+          clearInterval(progressInterval);
+          progressInterval = null;
+        }
+
+        // 2. Notify Music Hub to smoothly collapse Now Playing panel
+        try {
+          musicEventBridge.emitPlayerClosed();
+        } catch {}
+
+        // 3. Clear network platform music presence immediately
+        try {
+          const socket = getSocket();
+          if (socket && socket.connected) {
+            socket.emit('user:activity:platform_music', {
+              track: null,
+              isPlaying: false,
+              progressMs: 0,
+              durationMs: 0,
+            });
+          }
+        } catch {}
+
+        // 4. Reset player state so it doesn't reopen upon page reload
         set({
+          currentTrack: null,
+          isPlaying: false,
+          progressMs: 0,
           isDockVisible: false,
           isDockMinimized: false,
           isGameModeOpen: false,
           isLyricsOpen: false,
           isQueueOpen: false,
+          isVolumeOpen: false,
           isMobileExpanded: false,
         });
       },
@@ -1666,8 +1761,8 @@ export const useSpotifyPlayerStore = create<SpotifyPlayerState>()(
         if (state) {
           // Strictly guarantee playback is paused on page reload with saved progress
           state.isPlaying = false;
-          if (state.currentTrack) {
-            state.isDockVisible = true;
+          if (!state.currentTrack || !state.isDockVisible) {
+            state.isDockVisible = false;
           }
         }
       },

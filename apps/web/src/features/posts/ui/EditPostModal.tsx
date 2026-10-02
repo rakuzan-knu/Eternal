@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Edit3, Eye } from 'lucide-react';
 import { PostType } from '@/entities/post/model/types';
@@ -11,7 +11,11 @@ import {
   FloatingSelectionToolbar,
   type SelectionFormatType,
 } from '@/shared/ui/editor';
-import { detectCodeSnippet, type DetectedCodeSnippet } from '@/shared/lib/editor';
+import {
+  detectCodeSnippet,
+  type DetectedCodeSnippet,
+  getTextareaSelectionCoordinates,
+} from '@/shared/lib/editor';
 
 interface EditPostModalProps {
   post: PostType;
@@ -76,8 +80,6 @@ export function EditPostModal({
     }
   }, [isOpen, isSaving, onClose, post.text]);
 
-  if (!isOpen) return null;
-
   const media =
     post.media && post.media.length > 0
       ? post.media
@@ -97,29 +99,47 @@ export function EditPostModal({
     }
   };
 
-  const updateSelectionToolbar = () => {
+  const updateSelectionToolbar = useCallback(() => {
     const el = textareaRef.current;
     if (!el) {
       setFloatingToolbarPos(null);
       return;
     }
-    const start = el.selectionStart;
-    const end = el.selectionEnd;
-    if (
-      start !== null &&
-      end !== null &&
-      start !== end &&
-      el.value.slice(start, end).trim().length > 0
-    ) {
-      const rect = el.getBoundingClientRect();
-      setFloatingToolbarPos({
-        top: rect.top - 46,
-        left: rect.left + rect.width / 2,
-      });
-    } else {
-      setFloatingToolbarPos(null);
-    }
-  };
+    const coords = getTextareaSelectionCoordinates(el);
+    setFloatingToolbarPos(coords);
+  }, []);
+
+  useEffect(() => {
+    const handleSelectionChange = () => {
+      const el = textareaRef.current;
+      if (!el) return;
+      if (document.activeElement !== el) {
+        setFloatingToolbarPos(null);
+        return;
+      }
+      if (el.selectionStart === el.selectionEnd) {
+        setFloatingToolbarPos(null);
+        return;
+      }
+      updateSelectionToolbar();
+    };
+
+    const handleScrollOrResize = () => {
+      if (floatingToolbarPos) {
+        updateSelectionToolbar();
+      }
+    };
+
+    document.addEventListener('selectionchange', handleSelectionChange);
+    window.addEventListener('resize', handleScrollOrResize);
+    window.addEventListener('scroll', handleScrollOrResize, true);
+
+    return () => {
+      document.removeEventListener('selectionchange', handleSelectionChange);
+      window.removeEventListener('resize', handleScrollOrResize);
+      window.removeEventListener('scroll', handleScrollOrResize, true);
+    };
+  }, [floatingToolbarPos, updateSelectionToolbar]);
 
   const handleFormattingHotkey = (prefix: string, suffix: string, defaultPlaceholder = '') => {
     const el = textareaRef.current;
@@ -268,6 +288,8 @@ export function EditPostModal({
     }
   };
 
+  if (!isOpen) return null;
+
   const modalContent = (
     <div
       className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fadeIn"
@@ -279,11 +301,11 @@ export function EditPostModal({
       }}
     >
       <div
-        className="bg-[#1c1c20] border border-white/10 rounded-3xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-scaleIn"
+        className="glass-modal border border-black/10 dark:border-white/10 rounded-3xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-scaleIn text-gray-900 dark:text-white"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-black/10 dark:border-white/10">
           <button
             type="button"
             disabled={isSaving}
@@ -291,20 +313,20 @@ export function EditPostModal({
               setIsEmojiOpen(false);
               onClose();
             }}
-            className="text-sm font-medium text-gray-300 hover:text-white transition-colors cursor-pointer"
+            className="text-sm font-medium text-gray-600 hover:text-gray-950 dark:text-gray-300 dark:hover:text-white transition-colors cursor-pointer"
           >
             Cancel
           </button>
           <div className="flex items-center gap-3">
-            <h3 className="text-base font-bold text-white">Edit information</h3>
-            <div className="flex items-center gap-0.5 bg-white/5 p-0.5 rounded-lg border border-white/10">
+            <h3 className="text-base font-bold text-gray-900 dark:text-white">Edit information</h3>
+            <div className="flex items-center gap-0.5 bg-black/5 dark:bg-white/5 p-0.5 rounded-lg border border-black/10 dark:border-white/10">
               <button
                 type="button"
                 onClick={() => setActiveTab('write')}
                 className={`flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
                   activeTab === 'write'
                     ? 'bg-purple-600/70 text-white shadow-sm'
-                    : 'text-gray-400 hover:text-white'
+                    : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
                 }`}
               >
                 <Edit3 size={11} />
@@ -316,7 +338,7 @@ export function EditPostModal({
                 className={`flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
                   activeTab === 'preview'
                     ? 'bg-purple-600/70 text-white shadow-sm'
-                    : 'text-gray-400 hover:text-white'
+                    : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
                 }`}
               >
                 <Eye size={11} />
@@ -328,7 +350,7 @@ export function EditPostModal({
             type="button"
             disabled={isSaving}
             onClick={handleSave}
-            className="text-sm font-bold text-sky-400 hover:text-sky-300 disabled:opacity-50 transition-colors cursor-pointer"
+            className="text-sm font-bold text-sky-500 hover:text-sky-600 dark:text-sky-400 dark:hover:text-sky-300 disabled:opacity-50 transition-colors cursor-pointer"
           >
             {isSaving ? 'Saving...' : 'Done'}
           </button>
@@ -351,7 +373,7 @@ export function EditPostModal({
         <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
           {/* Media preview column (if media present) */}
           {media.length > 0 && (
-            <div className="md:w-1/2 bg-black/40 flex items-center justify-center p-4 border-b md:border-b-0 md:border-r border-white/10 overflow-y-auto custom-scrollbar">
+            <div className="md:w-1/2 bg-black/40 flex items-center justify-center p-4 border-b md:border-b-0 md:border-r border-black/10 dark:border-white/10 overflow-y-auto custom-scrollbar">
               <div className="w-full max-h-[50vh] rounded-2xl overflow-hidden shadow-lg">
                 <PostMedia media={media} />
               </div>
@@ -366,7 +388,7 @@ export function EditPostModal({
             <div className="flex items-center gap-3 mb-4">
               <Avatar src={post.avatar} size="sm" />
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-white truncate">
+                <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
                   {typeof post.author === 'string'
                     ? post.author
                     : ((post.author as unknown as { displayName?: string })?.displayName ??
@@ -391,11 +413,11 @@ export function EditPostModal({
                   placeholder="Write a caption... (Markdown, LaTeX & Code supported)"
                   maxLength={MAX_CHARS}
                   rows={6}
-                  className="w-full flex-1 bg-transparent text-gray-100 placeholder-gray-500 text-sm focus:outline-none resize-none leading-relaxed"
+                  className="w-full flex-1 bg-transparent text-gray-900 dark:text-gray-100 placeholder-gray-500 text-sm focus:outline-none resize-none leading-relaxed"
                   autoFocus
                 />
               ) : (
-                <div className="flex-1 p-3 rounded-2xl bg-white/[0.02] border border-white/5 text-gray-200 text-sm leading-relaxed overflow-y-auto custom-scrollbar">
+                <div className="flex-1 p-3 rounded-2xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/5 text-gray-800 dark:text-gray-200 text-sm leading-relaxed overflow-y-auto custom-scrollbar">
                   {content.trim() ? (
                     <MarkdownContent content={content} />
                   ) : (
@@ -405,7 +427,7 @@ export function EditPostModal({
               )}
 
               {/* Bottom footer inside editor */}
-              <div className="flex items-center justify-between pt-3 border-t border-white/5 mt-2">
+              <div className="flex items-center justify-between pt-3 border-t border-black/5 dark:border-white/5 mt-2">
                 <div className="flex items-center gap-1.5 text-gray-400">
                   <AddEmojiButton
                     isOpen={isEmojiOpen}

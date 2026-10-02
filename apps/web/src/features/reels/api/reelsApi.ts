@@ -255,7 +255,7 @@ export function useAddReelComment() {
           user: {
             id: 'local-user',
             username: 'you',
-            displayName: 'Ви',
+            displayName: 'You',
             avatar: null,
           },
         };
@@ -274,7 +274,7 @@ export function useAddReelComment() {
         user: {
           id: 'local-user',
           username: 'you',
-          displayName: 'Ви',
+          displayName: 'You',
           avatar: null,
         },
       };
@@ -332,7 +332,7 @@ export function useCreateReel() {
         if (status && status >= 400 && status < 500 && status !== 401) {
           throw err;
         }
-        const caption = (formData.get('caption') as string) || 'Нове відео';
+        const caption = (formData.get('caption') as string) || 'New video';
         const audioTitle = (formData.get('audioTitle') as string) || 'Original Audio';
         const audioArtist = (formData.get('audioArtist') as string) || 'PROFKINO';
         const fallbackReel: ReelItem = {
@@ -425,7 +425,7 @@ export function useReportReel() {
         );
         return data;
       } catch {
-        return { success: true, message: 'Скаргу успішно зареєстровано' };
+        return { success: true, message: 'Report submitted successfully' };
       }
     },
   });

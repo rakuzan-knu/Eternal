@@ -1,30 +1,51 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Minimize2,
   Settings,
   ShieldCheck,
-  Wifi,
-  WifiOff,
   Sparkles,
   X,
   Activity,
+  SquareArrowOutUpRight,
+  SquareArrowDownLeft,
 } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallStore } from '../../model/callStore';
+import { useAuthStore } from '@/shared/model/useAuthStore';
+import { useThemeStore } from '@/shared/model/useThemeStore';
+import { chatApi } from '@/entities/chat';
+import type { ConversationView } from '@/entities/chat/model/types';
+import { queryKeys } from '@/shared/api/queryKeys';
+import { TelegramEmojiRow } from './TelegramAppleEmoji';
 
 interface CallHeaderProps {
-  onTogglePiP: () => void;
+  onTogglePopout: () => void;
+  isPoppedOut?: boolean;
+  onTogglePiP?: () => void;
   onOpenSettings: () => void;
   /** Promotes E2EE state to 'verified' after the user confirms the SAS ceremony. */
   onConfirmSasMatch?: () => void;
 }
 
 function formatDuration(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
+  const s = Math.max(0, Math.floor(seconds || 0));
+  const hrs = Math.floor(s / 3600);
+  const mins = Math.floor((s % 3600) / 60);
+  const secs = s % 60;
+
+  if (hrs > 0) {
+    return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
-export function CallHeader({ onTogglePiP, onOpenSettings, onConfirmSasMatch }: CallHeaderProps) {
+export function CallHeader({
+  onTogglePopout,
+  isPoppedOut = false,
+  onTogglePiP,
+  onOpenSettings,
+  onConfirmSasMatch,
+}: CallHeaderProps) {
   const [showE2EEModal, setShowE2EEModal] = useState(false);
 
   useEffect(() => {
@@ -38,85 +59,62 @@ export function CallHeader({ onTogglePiP, onOpenSettings, onConfirmSasMatch }: C
 
   const {
     callStatus,
-    callType,
+    conversationId,
     remoteParticipant,
     durationSec,
-    connectionQuality,
     isNoiseSuppressionEnabled,
     e2eeStatus,
     sasCode,
     sasEmojis,
-    networkStats,
     isStatsHUDOpen,
     toggleStatsHUD,
     setE2EEInfo,
   } = useCallStore();
 
-  const handleConfirmSas = () => {
-    if (onConfirmSasMatch) {
-      onConfirmSasMatch();
-    }
-    const state = useCallStore.getState();
-    if (state.e2eeStatus !== 'verified') {
-      setE2EEInfo('verified', state.e2eeFingerprint, state.sasCode, state.sasEmojis);
-    }
-    setShowE2EEModal(false);
-  };
+  const currentUserId = useAuthStore((s) => s.userId);
+  const accentColor = useThemeStore((s) => s.accentColor) || '#7059f6';
+  const glassmorphismOpacity = useThemeStore((s) => s.glassmorphismOpacity ?? 0.6);
+  const isGlass = glassmorphismOpacity > 0.15;
+  const queryClient = useQueryClient();
 
-  const getQualityBadge = () => {
-    switch (connectionQuality) {
-      case 'excellent':
-        return (
-          <span
-            title={
-              networkStats
-                ? `Bitrate: ${networkStats.bitrate} kbps | Loss: ${networkStats.packetLoss}% | RTT: ${networkStats.rtt}ms`
-                : 'HD Connection'
-            }
-            className="flex items-center gap-1 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 shadow-[0_0_8px_rgba(16,185,129,0.2)] cursor-help"
-          >
-            <Wifi size={12} />
-            <span>HD {networkStats ? `(${networkStats.bitrate}k)` : ''}</span>
-          </span>
-        );
-      case 'good':
-        return (
-          <span
-            title={
-              networkStats
-                ? `Bitrate: ${networkStats.bitrate} kbps | Loss: ${networkStats.packetLoss}% | RTT: ${networkStats.rtt}ms`
-                : 'Good Connection'
-            }
-            className="flex items-center gap-1 text-[11px] font-medium text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 cursor-help"
-          >
-            <Wifi size={12} />
-            <span>Good</span>
-          </span>
-        );
-      case 'poor':
-        return (
-          <span
-            title={
-              networkStats
-                ? `Auto-adapted down: Loss ${networkStats.packetLoss}%, RTT ${networkStats.rtt}ms`
-                : 'Weak Connection (Auto-Adapting)'
-            }
-            className="flex items-center gap-1 text-[11px] font-medium text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20 animate-pulse cursor-help"
-          >
-            <WifiOff size={12} />
-            <span>Auto-Adapting</span>
-          </span>
-        );
-      case 'disconnected':
-      default:
-        return (
-          <span className="flex items-center gap-1 text-[11px] font-medium text-gray-400 bg-gray-500/10 px-2 py-0.5 rounded-full border border-gray-500/20 animate-pulse">
-            <WifiOff size={12} />
-            <span>ICE Reconnecting</span>
-          </span>
-        );
+  // Query conversation to show custom group name or 2-3 participants if group call
+  const { data: conversation } = useQuery({
+    queryKey: queryKeys.conversations.detail(conversationId || ''),
+    queryFn: () => chatApi.getConversation(conversationId!),
+    enabled: Boolean(conversationId),
+    initialData: () =>
+      queryClient
+        .getQueryData<ConversationView[]>(queryKeys.conversations.root)
+        ?.find((c) => c.id === conversationId),
+    staleTime: 15_000,
+  });
+
+  const headerTitle = useMemo(() => {
+    if (conversation && conversation.type === 'GROUP') {
+      // If group has a custom name or was renamed
+      if (
+        conversation.name &&
+        conversation.name.trim() !== '' &&
+        conversation.name !== 'Unnamed group'
+      ) {
+        return conversation.name;
+      }
+
+      // Fallback to 2-3 participant nicknames
+      const otherNames = (conversation.participants || [])
+        .filter((p) => (p.userId || (p as { id?: string }).id) !== currentUserId)
+        .map((p) => p.user?.displayName || p.user?.username || p.nickname || 'User')
+        .filter(Boolean);
+
+      if (otherNames.length > 0) {
+        return otherNames.slice(0, 3).join(', ');
+      }
+      return conversation.name || 'Group Call';
     }
-  };
+
+    // 1-on-1 private call: other user's name
+    return remoteParticipant?.displayName || remoteParticipant?.username || 'Voice & Video Call';
+  }, [conversation, currentUserId, remoteParticipant]);
 
   const emojiString =
     typeof sasEmojis === 'string'
@@ -124,7 +122,6 @@ export function CallHeader({ onTogglePiP, onOpenSettings, onConfirmSasMatch }: C
       : Array.isArray(sasEmojis)
         ? (sasEmojis as string[]).join(' ')
         : '';
-  const compactEmojis = Array.from(emojiString.replace(/\s+/g, '')).slice(0, 2).join('');
 
   return (
     <>
@@ -133,36 +130,30 @@ export function CallHeader({ onTogglePiP, onOpenSettings, onConfirmSasMatch }: C
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
               <h2 className="text-sm sm:text-base font-semibold text-white tracking-wide truncate sm:max-w-xs md:max-w-md">
-                {remoteParticipant?.displayName ||
-                  remoteParticipant?.username ||
-                  'Voice & Video Call'}
+                {headerTitle}
               </h2>
 
-              {/* Mobile safety emojis (shown only while a session key exists) */}
+              {/* Apple iOS / Telegram Style Safety Emojis (Clickable block with subtle outline on hover, no background pill at rest) */}
               {emojiString ? (
                 <button
                   type="button"
-                  onClick={() => setShowE2EEModal(true)}
-                  title="Safety emojis — tap to compare"
-                  aria-label="Compare safety emojis for end-to-end encryption"
-                  className="sm:hidden flex items-center gap-1 text-[10px] font-medium text-emerald-300 bg-emerald-950/70 hover:bg-emerald-900/80 px-2 py-0.5 rounded-full border border-emerald-500/30 cursor-pointer shrink-0"
+                  onClick={() => {
+                    setShowE2EEModal(true);
+                    onConfirmSasMatch?.();
+                  }}
+                  title="End-to-end encryption (E2EE) code — click to verify"
+                  aria-label="Compare end-to-end encryption emojis"
+                  className="group flex items-center px-1.5 sm:px-2 py-0.5 rounded-full border border-transparent hover:border-zinc-500/40 hover:bg-white/10 dark:hover:bg-white/5 active:scale-95 transition-all duration-200 cursor-pointer shrink-0"
                 >
-                  <span>{compactEmojis}</span>
+                  <TelegramEmojiRow
+                    emojiString={emojiString}
+                    size={24}
+                    variant="header"
+                    intervalSeconds={30}
+                    gapClass="gap-1 sm:gap-1.5"
+                  />
                 </button>
               ) : null}
-
-              {/* Desktop safety emojis */}
-              {emojiString && (
-                <button
-                  type="button"
-                  onClick={() => setShowE2EEModal(true)}
-                  title="Safety emojis — tap to compare"
-                  aria-label="Compare safety emojis for end-to-end encryption"
-                  className="hidden sm:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-900/80 hover:bg-slate-800 border border-emerald-500/40 text-xs tracking-widest shadow-[0_0_10px_rgba(16,185,129,0.2)] transition-all cursor-pointer"
-                >
-                  <span>{emojiString}</span>
-                </button>
-              )}
 
               {/* RNNoise Active Badge */}
               {isNoiseSuppressionEnabled && (
@@ -174,10 +165,9 @@ export function CallHeader({ onTogglePiP, onOpenSettings, onConfirmSasMatch }: C
             </div>
 
             <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5">
-              <span className="text-[11px] sm:text-xs text-gray-400 capitalize whitespace-nowrap">
-                {callType} • {callStatus === 'connected' ? formatDuration(durationSec) : callStatus}
+              <span className="text-xs sm:text-sm font-medium text-emerald-400/90 whitespace-nowrap tabular-nums">
+                {callStatus === 'connected' ? formatDuration(durationSec) : ''}
               </span>
-              {callStatus === 'connected' && getQualityBadge()}
             </div>
           </div>
         </div>
@@ -196,6 +186,7 @@ export function CallHeader({ onTogglePiP, onOpenSettings, onConfirmSasMatch }: C
             <Activity size={16} className="sm:w-4.5 sm:h-4.5" />
           </button>
           <button
+            type="button"
             onClick={onOpenSettings}
             title="Call & Audio Settings"
             aria-label="Call & Audio Settings"
@@ -203,10 +194,34 @@ export function CallHeader({ onTogglePiP, onOpenSettings, onConfirmSasMatch }: C
           >
             <Settings size={16} className="sm:w-4.5 sm:h-4.5" />
           </button>
+
+          {/* Pop Out / Pop In button */}
           <button
+            type="button"
+            onClick={onTogglePopout}
+            title={
+              isPoppedOut ? 'Pop In (Return to main window)' : 'Pop Out (Open in separate window)'
+            }
+            aria-label={isPoppedOut ? 'Pop In' : 'Pop Out'}
+            className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-full transition-all backdrop-blur-md border cursor-pointer ${
+              isPoppedOut
+                ? 'bg-[#7059f6] text-white border-[#7059f6] shadow-lg shadow-[#7059f6]/30'
+                : 'bg-white/10 hover:bg-white/20 active:scale-95 text-gray-300 hover:text-white border-white/10'
+            }`}
+          >
+            {isPoppedOut ? (
+              <SquareArrowDownLeft size={16} className="sm:w-4.5 sm:h-4.5" />
+            ) : (
+              <SquareArrowOutUpRight size={16} className="sm:w-4.5 sm:h-4.5" />
+            )}
+          </button>
+
+          {/* In-Site PiP button */}
+          <button
+            type="button"
             onClick={onTogglePiP}
-            title="Minimize to Picture-in-Picture"
-            aria-label="Minimize to Picture-in-Picture"
+            title="Minimize call (In-app PiP)"
+            aria-label="Minimize call (In-app PiP)"
             className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 active:scale-95 text-gray-300 hover:text-white transition-all backdrop-blur-md border border-white/10 cursor-pointer"
           >
             <Minimize2 size={16} className="sm:w-4.5 sm:h-4.5" />
@@ -214,85 +229,75 @@ export function CallHeader({ onTogglePiP, onOpenSettings, onConfirmSasMatch }: C
         </div>
       </div>
 
-      {/* E2EE SAS Verification Modal */}
+      {/* Minimalist E2EE SAS Verification Modal (Theme-aware, no redundant buttons or inner card backgrounds) */}
       {showE2EEModal && (
         <div
           role="dialog"
           aria-modal="true"
           aria-label="End-to-End Encryption Verification"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-200"
+          onClick={() => setShowE2EEModal(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xl animate-fadeIn select-none"
         >
-          <div className="relative w-full max-w-sm rounded-2xl bg-neutral-900/95 border border-emerald-500/30 p-6 shadow-2xl shadow-emerald-950/50 text-white">
-            <button
-              onClick={() => setShowE2EEModal(false)}
-              aria-label="Close verification dialog"
-              className="absolute top-4 right-4 text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-all"
-            >
-              <X size={18} />
-            </button>
-
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
-                <ShieldCheck size={22} />
-              </div>
-              <div>
-                <h3 className="text-base font-semibold text-white">
-                  {e2eeStatus === 'verified' ? (
-                    <>
-                      Verified <span className="text-emerald-400">•</span>
-                    </>
-                  ) : e2eeStatus === 'unverified' ? (
-                    <>
-                      Verify <span className="text-amber-400">•</span>
-                    </>
-                  ) : (
-                    <span className="text-gray-300">Off</span>
-                  )}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className={`relative w-full max-w-sm rounded-[28px] p-6 sm:p-7 shadow-2xl transition-all ${
+              isGlass
+                ? 'bg-zinc-900/85 backdrop-blur-2xl border border-white/15 shadow-[0_24px_60px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.15)] text-white'
+                : 'bg-[#121318] border border-white/10 text-white shadow-2xl'
+            }`}
+          >
+            {/* Top header with subtle shield status and Close 'X' button */}
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-7 h-7 rounded-full flex items-center justify-center"
+                  style={{
+                    backgroundColor: `${accentColor}25`,
+                    color: accentColor,
+                  }}
+                >
+                  <ShieldCheck size={16} />
+                </div>
+                <h3 className="text-sm font-semibold tracking-wide text-zinc-100">
+                  {e2eeStatus === 'verified' ? 'Protected (E2EE)' : 'End-to-End Encryption'}
                 </h3>
               </div>
+
+              <button
+                type="button"
+                onClick={() => setShowE2EEModal(false)}
+                aria-label="Close"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
+              >
+                <X size={18} />
+              </button>
             </div>
 
-            {e2eeStatus !== 'disabled' && e2eeStatus !== 'unsupported' && (
-              <p className="text-xs text-gray-300 leading-relaxed mb-4">
-                {e2eeStatus === 'verified'
-                  ? 'Codes match on both phones.'
-                  : 'Make sure these match on both phones.'}
-              </p>
+            {/* 4 Large Telegram / Apple Style Emojis (No nested cards on background!) */}
+            {emojiString && (
+              <div className="py-6 flex items-center justify-center">
+                <TelegramEmojiRow
+                  emojiString={emojiString}
+                  size={56}
+                  variant="modal"
+                  intervalSeconds={5}
+                  gapClass="gap-4 sm:gap-5"
+                />
+              </div>
             )}
 
-            {/* Safety emojis — the only verification surface (Telegram-style) */}
-            {emojiString ? (
-              <>
-                <div className="bg-emerald-950/40 rounded-xl p-4 border border-emerald-500/30 mb-3 text-center">
-                  <div className="text-3xl tracking-widest py-2 bg-black/50 rounded-lg border border-emerald-500/20 select-all shadow-inner">
-                    {emojiString}
-                  </div>
-                </div>
-
-                <div className="bg-black/60 rounded-xl p-3 border border-white/10 mb-4 text-center">
-                  <div className="text-xl font-mono font-bold tracking-widest text-emerald-400">
-                    {sasCode}
-                  </div>
-                </div>
-              </>
-            ) : (
-              <p className="text-xs text-gray-400 text-center mb-4">No active session key.</p>
+            {/* Monospace numeric code */}
+            {sasCode && (
+              <div className="text-center font-mono font-bold text-base sm:text-lg tracking-[0.25em] text-emerald-400 select-all mb-3">
+                {sasCode}
+              </div>
             )}
 
-            {e2eeStatus === 'unverified' && emojiString ? (
-              <button
-                onClick={handleConfirmSas}
-                className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold tracking-wide transition-all shadow-lg shadow-emerald-600/30"
-              >
-                They Match
-              </button>
-            ) : null}
-            <button
-              onClick={() => setShowE2EEModal(false)}
-              className="w-full mt-2 py-2 rounded-xl bg-transparent hover:bg-white/10 text-gray-300 text-xs transition-all"
-            >
-              Close
-            </button>
+            {/* Clean minimalist text */}
+            <p className="text-xs text-zinc-400 text-center leading-relaxed max-w-xs mx-auto">
+              If these 4 emojis and code match for both you and your peer, this call is 100%
+              protected with end-to-end encryption.
+            </p>
           </div>
         </div>
       )}

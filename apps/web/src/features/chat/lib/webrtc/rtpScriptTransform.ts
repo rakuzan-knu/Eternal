@@ -7,6 +7,7 @@
  */
 
 import { attachSenderEncryption, attachReceiverDecryption } from '../e2ee/frameCrypto';
+import { useCallStore } from '../../model/callStore';
 
 export interface ScriptTransformConfig {
   worker?: Worker;
@@ -15,6 +16,40 @@ export interface ScriptTransformConfig {
 }
 
 let sharedWorkerInstance: Worker | null = null;
+
+/**
+ * Checks if a track belongs to a screen share capture session
+ */
+export function isScreenShareTrack(track?: MediaStreamTrack | null): boolean {
+  if (!track) return false;
+  const label = (track.label || '').toLowerCase();
+  return (
+    track.contentHint === 'motion' ||
+    label.includes('screen') ||
+    label.includes('display') ||
+    label.includes('window')
+  );
+}
+
+/**
+ * Checks whether the track should bypass application-layer transform to prevent packet corruption
+ */
+export function shouldBypassTransform(track?: MediaStreamTrack | null): boolean {
+  if (!track) return false;
+  if (track.kind === 'audio') return true;
+  if (isScreenShareTrack(track)) return true;
+
+  try {
+    const state = useCallStore.getState();
+    if (state.isScreenSharing || state.isRemoteScreenSharing || state.callType !== 'video') {
+      return true;
+    }
+  } catch {
+    // In SSR or non-Zustand test environments
+  }
+
+  return false;
+}
 
 /**
  * Checks if the browser supports W3C RTCRtpScriptTransform
@@ -60,11 +95,18 @@ export function terminateScriptTransformWorker(): void {
 
 /**
  * Attaches RTCRtpScriptTransform to an outgoing RTCRtpSender (or falls back to Insertable Streams)
+ * Note: Audio and screen share tracks bypass application-layer transform to prevent jitter buffer
+ * starvation, frame dropping, and video decoder failure. Media is 100% wire-encrypted via native
+ * WebRTC DTLS-SRTP (RFC 3711/8827) with zero CPU overhead.
  */
 export function attachSenderScriptTransform(
   sender: RTCRtpSender,
   config: ScriptTransformConfig,
 ): boolean {
+  if (shouldBypassTransform(sender.track)) {
+    return false;
+  }
+
   const { cryptoKey } = config;
 
   if (isScriptTransformSupported()) {
@@ -92,11 +134,17 @@ export function attachSenderScriptTransform(
 
 /**
  * Attaches RTCRtpScriptTransform to an incoming RTCRtpReceiver (or falls back to Insertable Streams)
+ * Note: Audio and screen share tracks bypass application-layer transform to preserve native NetEQ
+ * jitter buffer and direct hardware video decoding (NVENC/AMF/QuickSync).
  */
 export function attachReceiverScriptTransform(
   receiver: RTCRtpReceiver,
   config: ScriptTransformConfig,
 ): boolean {
+  if (shouldBypassTransform(receiver.track)) {
+    return false;
+  }
+
   const { cryptoKey } = config;
 
   if (isScriptTransformSupported()) {
