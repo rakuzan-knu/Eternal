@@ -14,6 +14,8 @@ import { chatApi } from '../../features/chat/api/chatApi';
 
 import type { ConversationView } from '../../entities/chat/model/types';
 import { SEOHead } from '../../shared/seo';
+import { recordRecentVisitedChat } from '../../features/chat/lib/recentVisitedChats';
+import { ensureMessageIdentityRegistered } from '../../features/chat/lib/e2ee/messageE2ee';
 
 export default function MessengerPage() {
   const { conversationId } = useParams<{ conversationId?: string }>();
@@ -21,6 +23,16 @@ export default function MessengerPage() {
   const isSidebarExpanded = useUIStore((s) => s.isSidebarExpanded);
   const { data: conversations, isLoading: isLoadingConversations } = useConversations();
   usePresenceSync();
+
+  React.useEffect(() => {
+    void ensureMessageIdentityRegistered();
+  }, []);
+
+  React.useEffect(() => {
+    if (conversationId) {
+      recordRecentVisitedChat(conversationId);
+    }
+  }, [conversationId]);
 
   const conversationInList =
     conversations?.find((c: ConversationView) => c.id === conversationId) ?? null;
@@ -42,7 +54,7 @@ export default function MessengerPage() {
   const handleSelectConversation = (id: string) => navigate(`/messages/${id}`);
 
   return (
-    <div className="fixed inset-0 flex bg-[#0b0b0c] overflow-hidden">
+    <div className="fixed inset-0 flex bg-transparent overflow-hidden">
       <SEOHead
         title="Messages • Direct Chats on Eternal"
         description="Direct and group messaging on Eternal."
@@ -83,7 +95,7 @@ export default function MessengerPage() {
             </button>
           </div>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center gap-2 text-gray-500">
+          <div className="flex-1 flex flex-col items-center justify-center gap-2 text-gray-500 animate-fadeIn select-none">
             <MessageSquare size={40} />
             <p className="text-lg font-medium">Select a chat to start messaging</p>
             <a href="/search" className="text-sm font-medium hover:underline text-sky-400">

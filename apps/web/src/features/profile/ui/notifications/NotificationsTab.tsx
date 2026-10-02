@@ -34,7 +34,7 @@ const Toggle = ({ checked, onChange }: { checked: boolean; onChange: () => void 
   <button
     type="button"
     onClick={onChange}
-    className={`w-11 h-6 rounded-full flex items-center px-1 transition-colors duration-200 ${
+    className={`w-11 h-6 rounded-full flex items-center px-1 transition-colors duration-200 cursor-pointer ${
       checked ? 'bg-white' : 'bg-[#333]'
     }`}
   >
@@ -141,35 +141,37 @@ export default function NotificationsTab() {
     : 'You have a new message';
 
   return (
-    <div className="animate-fadeIn flex flex-col gap-6 text-white pb-6">
+    <div className="animate-fadeIn flex flex-col gap-6 text-gray-950 dark:text-white pb-6">
       {/* Do Not Disturb (Quick Pause) */}
       <section>
         <div className="flex items-center justify-between px-1 mb-2">
-          <h3 className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-            Do Not Disturb (Snooze)
+          <h3 className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            Do Not Disturb
           </h3>
           {isDndActive && (
-            <span className="text-[11px] font-semibold text-purple-400 flex items-center gap-1">
+            <span className="text-[11px] font-semibold text-purple-600 dark:text-purple-400 flex items-center gap-1">
               <Moon size={12} />
               <span>Paused until {formatDndTime(dndUntil!)}</span>
             </span>
           )}
         </div>
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 flex flex-col gap-3">
+        <div className="rounded-2xl border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] p-4 flex flex-col gap-3">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <span
                 className={`w-9 h-9 flex items-center justify-center rounded-xl border transition-colors ${
                   isDndActive
-                    ? 'bg-purple-600/20 border-purple-500/40 text-purple-300'
-                    : 'bg-white/5 border-white/10 text-gray-400'
+                    ? 'bg-purple-600/20 border-purple-500/40 text-purple-600 dark:text-purple-300'
+                    : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-gray-950 dark:text-white'
                 }`}
               >
-                <Moon size={17} />
+                <Moon size={17} className="text-gray-950 dark:text-white" />
               </span>
               <div>
-                <h4 className="text-sm font-medium text-gray-200">Quick pause alerts</h4>
-                <p className="text-xs text-gray-500">
+                <h4 className="text-sm font-medium text-gray-950 dark:text-white">
+                  Quick pause alerts
+                </h4>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
                   {isDndActive
                     ? `Muted until ${formatDndTime(dndUntil!)}. All sounds and toasts paused.`
                     : 'Temporarily silence all push notifications and sound alerts'}
@@ -181,7 +183,7 @@ export default function NotificationsTab() {
               <button
                 type="button"
                 onClick={() => setDoNotDisturb('off')}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white transition-all shadow-[0_0_12px_rgba(168,85,247,0.3)]"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold bg-gray-950 text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-white/90 transition-all shadow-sm cursor-pointer"
               >
                 <Play size={12} fill="currentColor" />
                 <span>Resume</span>
@@ -201,12 +203,12 @@ export default function NotificationsTab() {
                 key={key}
                 type="button"
                 onClick={() => setDoNotDisturb(key as any)}
-                className={`py-2 px-2 text-center rounded-xl text-xs font-medium border transition-all duration-200 ${
+                className={`py-2 px-2 text-center rounded-xl text-xs font-medium border transition-all duration-200 cursor-pointer ${
                   key === 'off' && !isDndActive
-                    ? 'bg-white/10 text-white border-white/20 shadow-sm'
+                    ? 'bg-black/10 dark:bg-white/10 text-gray-950 dark:text-white border-black/20 dark:border-white/20 shadow-xs'
                     : key !== 'off' && isDndActive
-                      ? 'bg-purple-600/20 text-purple-200 border-purple-500/30 hover:bg-purple-600/30'
-                      : 'bg-white/5 text-gray-400 border-white/5 hover:bg-white/10 hover:text-white'
+                      ? 'bg-purple-600/20 text-purple-700 dark:text-purple-200 border-purple-500/30 hover:bg-purple-600/30'
+                      : 'bg-black/5 dark:bg-white/5 text-gray-600 dark:text-gray-400 border-black/5 dark:border-white/5 hover:bg-black/10 dark:hover:bg-white/10 hover:text-gray-950 dark:hover:text-white'
                 }`}
               >
                 {label}
@@ -218,18 +220,22 @@ export default function NotificationsTab() {
 
       {/* Global Settings */}
       <section>
-        <h3 className="px-1 mb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+        <h3 className="px-1 mb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
           Global settings
         </h3>
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] divide-y divide-white/5 overflow-hidden">
+        <div className="rounded-2xl border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] divide-y divide-black/5 dark:divide-white/5 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3.5">
             <div className="flex items-center gap-3">
-              <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-gray-200">
-                <Bell size={17} />
+              <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-gray-950 dark:text-white">
+                <Bell size={17} className="text-gray-950 dark:text-white" />
               </span>
               <div>
-                <h4 className="text-sm font-medium text-gray-200">Enable notifications</h4>
-                <p className="text-xs text-gray-500">Receive push notifications on site</p>
+                <h4 className="text-sm font-medium text-gray-950 dark:text-white">
+                  Enable notifications
+                </h4>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  Receive push notifications on site
+                </p>
               </div>
             </div>
             <Toggle checked={enableNotifications} onChange={handleToggleEnableNotifications} />
@@ -237,12 +243,16 @@ export default function NotificationsTab() {
 
           <div className="flex items-center justify-between px-4 py-3.5">
             <div className="flex items-center gap-3">
-              <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-gray-200">
-                {allowSound ? <Volume2 size={17} /> : <VolumeX size={17} />}
+              <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-gray-950 dark:text-white">
+                {allowSound ? (
+                  <Volume2 size={17} className="text-gray-950 dark:text-white" />
+                ) : (
+                  <VolumeX size={17} className="text-gray-950 dark:text-white" />
+                )}
               </span>
               <div>
-                <h4 className="text-sm font-medium text-gray-200">Audio signals</h4>
-                <p className="text-xs text-gray-500">Play sound notifications</p>
+                <h4 className="text-sm font-medium text-gray-950 dark:text-white">Audio signals</h4>
+                <p className="text-xs text-gray-600 dark:text-gray-400">Play sound notifications</p>
               </div>
             </div>
             <Toggle checked={allowSound} onChange={() => setAllowSound(!allowSound)} />
@@ -253,12 +263,12 @@ export default function NotificationsTab() {
       {/* Volume Control */}
       <section>
         <div className="flex items-center justify-between px-1 mb-2">
-          <h3 className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+          <h3 className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
             Volume
           </h3>
-          <span className="text-xs font-semibold text-sky-400">{volume}%</span>
+          <span className="text-xs font-semibold text-gray-950 dark:text-white">{volume}%</span>
         </div>
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 flex items-center gap-4">
+        <div className="rounded-2xl border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] p-4 flex items-center gap-4">
           <button
             type="button"
             onClick={() => {
@@ -266,7 +276,7 @@ export default function NotificationsTab() {
               setAllowSound(nextAllow);
               if (nextAllow) playPreviewNotificationSound(volume);
             }}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-gray-600 hover:text-gray-950 dark:text-gray-400 dark:hover:text-white transition-colors cursor-pointer"
           >
             {volume === 0 || !allowSound ? <VolumeX size={18} /> : <Volume2 size={18} />}
           </button>
@@ -278,7 +288,9 @@ export default function NotificationsTab() {
             onChange={handleVolumeChange}
             disabled={!allowSound}
             className={`w-full h-1.5 rounded-lg appearance-none cursor-pointer transition-opacity ${
-              allowSound ? 'accent-white bg-white/20' : 'bg-white/10 opacity-40 cursor-not-allowed'
+              allowSound
+                ? 'accent-gray-950 dark:accent-white bg-black/10 dark:bg-white/20'
+                : 'bg-black/5 dark:bg-white/10 opacity-40 cursor-not-allowed'
             }`}
           />
         </div>
@@ -286,18 +298,22 @@ export default function NotificationsTab() {
 
       {/* Live Preview Card */}
       <section>
-        <h3 className="px-1 mb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+        <h3 className="px-1 mb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
           Push Message Preview
         </h3>
-        <div className="rounded-2xl border border-white/10 bg-black/40 p-4 backdrop-blur-md shadow-2xl">
+        <div className="rounded-2xl border border-black/10 dark:border-white/10 bg-black/[0.03] dark:bg-black/40 p-4 backdrop-blur-md shadow-2xl">
           {/* Toast Card Mock */}
-          <div className="flex items-center gap-3 rounded-[20px] border border-white/10 bg-[#171b22]/95 px-4 py-3 shadow-lg">
+          <div className="flex items-center gap-3 rounded-[20px] border border-black/10 dark:border-white/10 bg-white/95 dark:bg-[#171b22]/95 px-4 py-3 shadow-lg">
             <div className="flex-shrink-0">{previewAvatar}</div>
             <div className="min-w-0 flex-1 pr-6 relative">
-              <p className="truncate text-sm font-semibold text-white">{previewTitle}</p>
-              <p className="truncate text-[13px] leading-5 text-gray-300">{previewBody}</p>
+              <p className="truncate text-sm font-semibold text-gray-950 dark:text-white">
+                {previewTitle}
+              </p>
+              <p className="truncate text-[13px] leading-5 text-gray-700 dark:text-gray-300">
+                {previewBody}
+              </p>
             </div>
-            <span className="text-gray-500 hover:text-white transition-colors cursor-pointer">
+            <span className="text-gray-400 hover:text-gray-950 dark:hover:text-white transition-colors cursor-pointer">
               <X size={15} />
             </span>
           </div>
@@ -307,15 +323,17 @@ export default function NotificationsTab() {
             <button
               type="button"
               onClick={() => setShowName(!showName)}
-              className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold border transition-all duration-200 ${
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold border transition-all duration-200 cursor-pointer ${
                 showName
-                  ? 'bg-white text-black border-white shadow-sm'
-                  : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10 hover:text-white'
+                  ? 'bg-gray-950 text-white border-gray-950 dark:bg-white dark:text-black dark:border-white shadow-xs'
+                  : 'bg-black/5 dark:bg-white/5 text-gray-600 dark:text-gray-400 border-black/10 dark:border-white/10 hover:bg-black/10 dark:hover:bg-white/10 hover:text-gray-950 dark:hover:text-white'
               }`}
             >
               <span
                 className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                  showName ? 'bg-black border-black text-white' : 'border-gray-500'
+                  showName
+                    ? 'bg-white text-black dark:bg-black dark:text-white border-transparent'
+                    : 'border-gray-400 dark:border-gray-500'
                 }`}
               >
                 {showName && <Check size={10} strokeWidth={3} />}
@@ -333,15 +351,17 @@ export default function NotificationsTab() {
                   setShowText(!showText);
                 }
               }}
-              className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold border transition-all duration-200 ${
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold border transition-all duration-200 cursor-pointer ${
                 showText
-                  ? 'bg-white text-black border-white shadow-sm'
-                  : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10 hover:text-white'
+                  ? 'bg-gray-950 text-white border-gray-950 dark:bg-white dark:text-black dark:border-white shadow-xs'
+                  : 'bg-black/5 dark:bg-white/5 text-gray-600 dark:text-gray-400 border-black/10 dark:border-white/10 hover:bg-black/10 dark:hover:bg-white/10 hover:text-gray-950 dark:hover:text-white'
               }`}
             >
               <span
                 className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                  showText ? 'bg-black border-black text-white' : 'border-gray-500'
+                  showText
+                    ? 'bg-white text-black dark:bg-black dark:text-white border-transparent'
+                    : 'border-gray-400 dark:border-gray-500'
                 }`}
               >
                 {showText && <Check size={10} strokeWidth={3} />}
@@ -354,18 +374,18 @@ export default function NotificationsTab() {
 
       {/* Notifications for Chats */}
       <section>
-        <h3 className="px-1 mb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+        <h3 className="px-1 mb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
           Notifications for chats
         </h3>
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] divide-y divide-white/5 overflow-hidden">
+        <div className="rounded-2xl border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] divide-y divide-black/5 dark:divide-white/5 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3.5">
             <div className="flex items-center gap-3">
-              <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-gray-200">
-                <User size={17} />
+              <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-gray-950 dark:text-white">
+                <User size={17} className="text-gray-950 dark:text-white" />
               </span>
               <div>
-                <h4 className="text-sm font-medium text-gray-200">Private chats</h4>
-                <p className="text-xs text-gray-500">Direct 1-on-1 messages</p>
+                <h4 className="text-sm font-medium text-gray-950 dark:text-white">Private chats</h4>
+                <p className="text-xs text-gray-600 dark:text-gray-400">Direct 1-on-1 messages</p>
               </div>
             </div>
             <Toggle checked={privateChats} onChange={() => setPrivateChats(!privateChats)} />
@@ -373,12 +393,12 @@ export default function NotificationsTab() {
 
           <div className="flex items-center justify-between px-4 py-3.5">
             <div className="flex items-center gap-3">
-              <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-gray-200">
-                <Users size={17} />
+              <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-gray-950 dark:text-white">
+                <Users size={17} className="text-gray-950 dark:text-white" />
               </span>
               <div>
-                <h4 className="text-sm font-medium text-gray-200">Groups</h4>
-                <p className="text-xs text-gray-500">Group chat messages</p>
+                <h4 className="text-sm font-medium text-gray-950 dark:text-white">Groups</h4>
+                <p className="text-xs text-gray-600 dark:text-gray-400">Group chat messages</p>
               </div>
             </div>
             <Toggle checked={groups} onChange={() => setGroups(!groups)} />
@@ -386,12 +406,14 @@ export default function NotificationsTab() {
 
           <div className="flex items-center justify-between px-4 py-3.5">
             <div className="flex items-center gap-3">
-              <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-gray-200">
-                <Heart size={17} />
+              <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-gray-950 dark:text-white">
+                <Heart size={17} className="text-gray-950 dark:text-white" />
               </span>
               <div>
-                <h4 className="text-sm font-medium text-gray-200">Reactions</h4>
-                <p className="text-xs text-gray-500">Reactions to your messages</p>
+                <h4 className="text-sm font-medium text-gray-950 dark:text-white">Reactions</h4>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  Reactions to your messages
+                </p>
               </div>
             </div>
             <Toggle checked={reactions} onChange={() => setReactions(!reactions)} />
@@ -401,18 +423,20 @@ export default function NotificationsTab() {
 
       {/* Notifications for Posts & Activity */}
       <section>
-        <h3 className="px-1 mb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+        <h3 className="px-1 mb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
           Activity notifications
         </h3>
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] divide-y divide-white/5 overflow-hidden">
+        <div className="rounded-2xl border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] divide-y divide-black/5 dark:divide-white/5 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3.5">
             <div className="flex items-center gap-3">
-              <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-rose-400">
-                <Heart size={17} />
+              <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-gray-950 dark:text-white">
+                <Heart size={17} className="text-gray-950 dark:text-white" />
               </span>
               <div>
-                <h4 className="text-sm font-medium text-gray-200">Likes</h4>
-                <p className="text-xs text-gray-500">When someone likes your posts</p>
+                <h4 className="text-sm font-medium text-gray-950 dark:text-white">Likes</h4>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  When someone likes your posts
+                </p>
               </div>
             </div>
             <Toggle checked={likes} onChange={() => setLikes(!likes)} />
@@ -420,12 +444,14 @@ export default function NotificationsTab() {
 
           <div className="flex items-center justify-between px-4 py-3.5">
             <div className="flex items-center gap-3">
-              <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-sky-400">
-                <MessageSquare size={17} />
+              <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-gray-950 dark:text-white">
+                <MessageSquare size={17} className="text-gray-950 dark:text-white" />
               </span>
               <div>
-                <h4 className="text-sm font-medium text-gray-200">Comments</h4>
-                <p className="text-xs text-gray-500">When someone comments on your posts</p>
+                <h4 className="text-sm font-medium text-gray-950 dark:text-white">Comments</h4>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  When someone comments on your posts
+                </p>
               </div>
             </div>
             <Toggle checked={comments} onChange={() => setComments(!comments)} />
@@ -433,12 +459,14 @@ export default function NotificationsTab() {
 
           <div className="flex items-center justify-between px-4 py-3.5">
             <div className="flex items-center gap-3">
-              <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-emerald-400">
-                <Repeat size={17} />
+              <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-gray-950 dark:text-white">
+                <Repeat size={17} className="text-gray-950 dark:text-white" />
               </span>
               <div>
-                <h4 className="text-sm font-medium text-gray-200">Reposts</h4>
-                <p className="text-xs text-gray-500">When someone reposts your publications</p>
+                <h4 className="text-sm font-medium text-gray-950 dark:text-white">Reposts</h4>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  When someone reposts your publications
+                </p>
               </div>
             </div>
             <Toggle checked={reposts} onChange={() => setReposts(!reposts)} />
@@ -446,12 +474,12 @@ export default function NotificationsTab() {
 
           <div className="flex items-center justify-between px-4 py-3.5">
             <div className="flex items-center gap-3">
-              <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-amber-400">
-                <UserPlus size={17} />
+              <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-gray-950 dark:text-white">
+                <UserPlus size={17} className="text-gray-950 dark:text-white" />
               </span>
               <div>
-                <h4 className="text-sm font-medium text-gray-200">Followers</h4>
-                <p className="text-xs text-gray-500">
+                <h4 className="text-sm font-medium text-gray-950 dark:text-white">Followers</h4>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
                   When someone subscribes or sends a follow request
                 </p>
               </div>
@@ -461,12 +489,12 @@ export default function NotificationsTab() {
 
           <div className="flex items-center justify-between px-4 py-3.5">
             <div className="flex items-center gap-3">
-              <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-purple-400">
-                <AtSign size={17} />
+              <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-gray-950 dark:text-white">
+                <AtSign size={17} className="text-gray-950 dark:text-white" />
               </span>
               <div>
-                <h4 className="text-sm font-medium text-gray-200">Mentions</h4>
-                <p className="text-xs text-gray-500">
+                <h4 className="text-sm font-medium text-gray-950 dark:text-white">Mentions</h4>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
                   When someone mentions you in a post or comment
                 </p>
               </div>
@@ -476,12 +504,14 @@ export default function NotificationsTab() {
 
           <div className="flex items-center justify-between px-4 py-3.5">
             <div className="flex items-center gap-3">
-              <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-amber-400">
-                <Award size={17} />
+              <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-gray-950 dark:text-white">
+                <Award size={17} className="text-gray-950 dark:text-white" />
               </span>
               <div>
-                <h4 className="text-sm font-medium text-gray-200">System & Verified</h4>
-                <p className="text-xs text-gray-500">
+                <h4 className="text-sm font-medium text-gray-950 dark:text-white">
+                  System & Verified
+                </h4>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
                   Verification badges, milestones, and system updates
                 </p>
               </div>
@@ -493,39 +523,39 @@ export default function NotificationsTab() {
 
       {/* Muted Accounts Accordion */}
       <section>
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] overflow-hidden">
+        <div className="rounded-2xl border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] overflow-hidden">
           <button
             type="button"
             onClick={() => setIsMutedAccordionOpen(!isMutedAccordionOpen)}
-            className="flex items-center justify-between w-full px-4 py-3.5 hover:bg-white/[0.02] transition-colors"
+            className="flex items-center justify-between w-full px-4 py-3.5 hover:bg-black/[0.03] dark:hover:bg-white/[0.02] transition-colors cursor-pointer"
           >
             <div className="flex items-center gap-3">
-              <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-purple-400">
-                <BellOff size={17} />
+              <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-gray-950 dark:text-white">
+                <BellOff size={17} className="text-gray-950 dark:text-white" />
               </span>
               <div className="text-left">
-                <h4 className="text-sm font-medium text-gray-200 flex items-center gap-2">
+                <h4 className="text-sm font-medium text-gray-950 dark:text-white flex items-center gap-2">
                   <span>Muted Accounts</span>
                   {mutedActorIds.length > 0 && (
-                    <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-purple-600/30 text-purple-200 border border-purple-500/40">
+                    <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-black/10 dark:bg-white/20 text-gray-950 dark:text-white border border-black/20 dark:border-white/30">
                       {mutedActorIds.length}
                     </span>
                   )}
                 </h4>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-600 dark:text-gray-400">
                   Manage accounts whose notifications you muted
                 </p>
               </div>
             </div>
-            <div className="text-gray-400">
+            <div className="text-gray-500 dark:text-gray-400">
               {isMutedAccordionOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             </div>
           </button>
 
           {isMutedAccordionOpen && (
-            <div className="border-t border-white/5 p-4 divide-y divide-white/5">
+            <div className="border-t border-black/5 dark:border-white/5 p-4 divide-y divide-black/5 dark:divide-white/5">
               {mutedActors.length === 0 && mutedActorIds.length === 0 ? (
-                <div className="py-4 text-center text-xs text-gray-500">
+                <div className="py-4 text-center text-xs text-gray-500 dark:text-gray-400">
                   No muted accounts. When you mute notifications from an author, they will appear
                   here.
                 </div>
@@ -550,16 +580,18 @@ export default function NotificationsTab() {
                         name={actor.displayName || actor.username}
                       />
                       <div>
-                        <p className="text-xs font-semibold text-white">
+                        <p className="text-xs font-semibold text-gray-950 dark:text-white">
                           {actor.displayName || actor.username}
                         </p>
-                        <p className="text-[11px] text-gray-400">@{actor.username}</p>
+                        <p className="text-[11px] text-gray-600 dark:text-gray-400">
+                          @{actor.username}
+                        </p>
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => unmuteAuthor(actor.id)}
-                      className="px-3 py-1 text-xs font-semibold rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 transition-colors"
+                      className="px-3 py-1 text-xs font-semibold rounded-lg bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/15 text-gray-950 dark:text-white border border-black/10 dark:border-white/10 transition-colors cursor-pointer"
                     >
                       Unmute
                     </button>

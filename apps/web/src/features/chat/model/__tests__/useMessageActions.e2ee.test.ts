@@ -222,10 +222,10 @@ describe.runIf(hasSubtle)('useMessageActions E2EE v2/v3 + pins + seq', () => {
     const { result } = renderHook(() => useMessageActions('conv-1'), { wrapper });
 
     await act(async () => {
-      await result.current.sendMessage('first');
+      await result.current.sendMessage('first', undefined, undefined, { encrypt: true });
     });
     await act(async () => {
-      await result.current.sendMessage('second');
+      await result.current.sendMessage('second', undefined, undefined, { encrypt: true });
     });
 
     const envs = sentEnvelopes();
@@ -240,10 +240,22 @@ describe.runIf(hasSubtle)('useMessageActions E2EE v2/v3 + pins + seq', () => {
     expect(seqs[1]).toBe(seqs[0] + 1);
   });
 
+  it('sendMessage sends plaintext by default (Telegram-style cloud chat) without encrypting', async () => {
+    const { result } = renderHook(() => useMessageActions('conv-1'), { wrapper });
+
+    await act(async () => {
+      await result.current.sendMessage('😍 hello world');
+    });
+
+    const envs = sentEnvelopes();
+    expect(envs).toHaveLength(1);
+    expect(envs[0]).toBe('😍 hello world');
+  });
+
   it('pin-changed peer blocks the send loudly (fail closed)', async () => {
     const { result } = renderHook(() => useMessageActions('conv-1'), { wrapper });
     await act(async () => {
-      await result.current.sendMessage('before rotation');
+      await result.current.sendMessage('before rotation', undefined, undefined, { encrypt: true });
     });
     // Rotate the peer key and evict the directory cache.
     dir.set('peer-9', [{ deviceId: 'dev-b9', spki: await makeSpki(), version: 2 }]);
@@ -252,7 +264,7 @@ describe.runIf(hasSubtle)('useMessageActions E2EE v2/v3 + pins + seq', () => {
     let thrown: unknown = null;
     await act(async () => {
       try {
-        await result.current.sendMessage('after rotation');
+        await result.current.sendMessage('after rotation', undefined, undefined, { encrypt: true });
       } catch (err) {
         thrown = err;
       }

@@ -22,7 +22,6 @@ import ChatFolderContextMenu from './ChatFolderContextMenu';
 import DeleteChatFolderModal from './DeleteChatFolderModal';
 import ArchivedChatsModal from './ArchivedChatsModal';
 import RestrictedAccountsPanel from './RestrictedAccountsPanel';
-import GlobalSearchModal from './GlobalSearchModal';
 import { initializeAndPublishPrekeys } from '../lib/e2ee/x3dhRatchet';
 import { ChatListSkeleton, ChatListMoreSkeleton } from './ChatListSkeletons';
 import { chatApi } from '../api/chatApi';
@@ -84,7 +83,6 @@ export default function ChatListPanel({
   );
   useQueryOnlineStatus(visibleDirectUserIds);
 
-  const [isGlobalSearchOpen, setGlobalSearchOpen] = useState(false);
   const [activeFolderId, setActiveFolderId] = useState('all');
   const [isHeaderMenuOpen, setHeaderMenuOpen] = useState(false);
   const [isNewGroupModalOpen, setNewGroupModalOpen] = useState(false);
@@ -106,17 +104,6 @@ export default function ChatListPanel({
       void initializeAndPublishPrekeys(userId).catch(() => {});
     }
   }, [userId]);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        setGlobalSearchOpen((prev) => !prev);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
 
   const {
     pinnedLocally,
@@ -185,6 +172,58 @@ export default function ChatListPanel({
   const visiblePinnedConversations = visibleConversations.filter((c) => pinnedLocally.has(c.id));
   const visibleUnpinnedConversations = visibleConversations.filter((c) => !pinnedLocally.has(c.id));
   const hasMoreVisibleConversations = visibleConversationCount < filteredConversations.length;
+
+  // Keyboard Shortcut: Alt+ArrowDown / Alt+ArrowUp to switch chats smoothly
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!e.altKey) return;
+      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+
+      // Skip if any modal / dialog / full-screen overlay is open
+      if (document.querySelector('[role="dialog"], [aria-modal="true"], .glass-modal')) return;
+
+      const ordered = [...visiblePinnedConversations, ...visibleUnpinnedConversations];
+      if (ordered.length === 0) return;
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (!activeConversationId) {
+          // When no chat is open yet, Alt+ArrowDown opens the very first chat
+          onSelectConversation(ordered[0].id);
+        } else {
+          const currentIndex = ordered.findIndex((c) => c.id === activeConversationId);
+          if (currentIndex === -1) {
+            onSelectConversation(ordered[0].id);
+          } else {
+            const nextIndex = Math.min(ordered.length - 1, currentIndex + 1);
+            onSelectConversation(ordered[nextIndex].id);
+          }
+        }
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Only switch if already in a chat
+        if (activeConversationId) {
+          const currentIndex = ordered.findIndex((c) => c.id === activeConversationId);
+          if (currentIndex > 0) {
+            const prevIndex = currentIndex - 1;
+            onSelectConversation(ordered[prevIndex].id);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [
+    visiblePinnedConversations,
+    visibleUnpinnedConversations,
+    activeConversationId,
+    onSelectConversation,
+  ]);
 
   const [visibleCountResetKey, setVisibleCountResetKey] = useState(activeFolderId);
   const currentVisibleCountKey = activeFolderId;
@@ -272,7 +311,7 @@ export default function ChatListPanel({
         width: isChatListExpanded ? width : COLLAPSED_WIDTH,
         transitionDuration: isResizing ? '0ms' : '300ms',
       }}
-      className="relative h-full shrink-0 flex flex-col bg-[#16161a]/60 backdrop-blur-2xl border-r border-white/5 py-6 transition-[width] ease-in-out overflow-hidden"
+      className="relative h-full shrink-0 flex flex-col glass-sidebar border-r border-white/10 py-6 transition-[width] ease-in-out overflow-hidden"
     >
       {!isChatListExpanded ? (
         <div className="h-full flex flex-col items-center pt-0 gap-4">
@@ -330,7 +369,7 @@ export default function ChatListPanel({
 
           <div className="px-5 mb-4">
             <div
-              onClick={() => setGlobalSearchOpen(true)}
+              onClick={() => useUIStore.getState().openGlobalSearch()}
               className="relative cursor-pointer group"
             >
               <Search
@@ -497,23 +536,6 @@ export default function ChatListPanel({
       )}
 
       {isRestrictedOpen && <RestrictedAccountsPanel onClose={() => setRestrictedOpen(false)} />}
-
-      <GlobalSearchModal
-        isOpen={isGlobalSearchOpen}
-        onClose={() => setGlobalSearchOpen(false)}
-        onSelectConversation={onSelectConversation}
-        onStartDirectChat={async (targetUserId) => {
-          try {
-            const conv = await chatApi.createDirectConversation(targetUserId);
-            onSelectConversation(conv.id);
-          } catch {
-            const existing = conversations?.find(
-              (c) => c.type === 'DIRECT' && c.participants.some((p) => p.userId === targetUserId),
-            );
-            if (existing) onSelectConversation(existing.id);
-          }
-        }}
-      />
     </div>
   );
 }

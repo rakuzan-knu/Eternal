@@ -188,6 +188,12 @@ export class AuthService {
     }
   }
 
+  async verifyPassword(userId: string, password: string): Promise<boolean> {
+    const user = await this.usersService.findById(userId);
+    if (!user) throw new UnauthorizedException('User no longer exists');
+    return argon2.verify(user.passwordHash, password);
+  }
+
   async revokeRefreshByJti(userId: string, jti: string): Promise<void> {
     await this.redisService.del(this.buildRefreshKey(userId, jti));
     await this.tokenRevocationService.revokeJti(jti);

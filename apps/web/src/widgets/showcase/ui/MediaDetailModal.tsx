@@ -548,20 +548,20 @@ export const MediaDetailModal: React.FC = () => {
           {/* Modal Dialog Box */}
           <div
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-[1140px] max-h-[92vh] bg-[#0e1015] border border-white/10 rounded-3xl shadow-[0_24px_70px_rgba(0,0,0,0.9)] flex flex-col overflow-hidden text-white"
+            className="relative w-full max-w-[1140px] max-h-[92vh] glass-modal border border-black/10 dark:border-white/10 rounded-3xl shadow-[0_24px_70px_rgba(0,0,0,0.7)] flex flex-col overflow-hidden text-gray-900 dark:text-white"
           >
             {/* Ambient Top Glow */}
             <div className="absolute top-0 left-1/4 -right-1/4 h-32 bg-gradient-to-b from-indigo-500/10 via-purple-500/5 to-transparent blur-3xl pointer-events-none" />
 
             {/* 1. Header (Discord Modal Header - Stable fixed layout, zero-layout-shift) */}
-            <header className="shrink-0 flex items-center justify-between min-h-[72px] sm:min-h-[78px] px-5 sm:px-6 py-3 border-b border-white/[0.08] bg-[#0e1015] z-30">
+            <header className="shrink-0 flex items-center justify-between min-h-[72px] sm:min-h-[78px] px-5 sm:px-6 py-3 border-b border-black/10 dark:border-white/[0.08] bg-transparent z-30">
               {/* Left: Media Icon + Title + Rank Pill + Subtitle */}
               <div className="flex items-center gap-3.5 min-w-0 pr-4">
                 <img
                   src={details.miniPosterUrl}
                   alt={details.title}
                   referrerPolicy="no-referrer"
-                  className="w-12 h-12 sm:w-13 sm:h-13 rounded-2xl object-cover border border-white/15 shrink-0 shadow-md"
+                  className="w-12 h-12 sm:w-13 sm:h-13 rounded-2xl object-cover border border-black/10 dark:border-white/15 shrink-0 shadow-md"
                   onError={(e) => {
                     (e.currentTarget as HTMLImageElement).src = getCategoryFallbackPoster(
                       activeItem.type,
@@ -571,16 +571,16 @@ export const MediaDetailModal: React.FC = () => {
                 <div className="flex flex-col min-w-0 justify-center">
                   <div className="flex items-center gap-2 min-w-0 flex-wrap sm:flex-nowrap">
                     {details.rank && (
-                      <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white text-black text-[10px] font-black uppercase tracking-wider w-fit shrink-0 shadow-sm">
-                        <Trophy size={11} className="fill-black text-black" />
+                      <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gray-900 text-white dark:bg-white dark:text-black text-[10px] font-black uppercase tracking-wider w-fit shrink-0 shadow-sm">
+                        <Trophy size={11} className="fill-current" />
                         <span>NO. {details.rank} OVERALL RANKING</span>
                       </div>
                     )}
                   </div>
-                  <h1 className="text-lg sm:text-xl font-black text-white leading-tight mt-1 truncate drop-shadow-md">
+                  <h1 className="text-lg sm:text-xl font-black text-gray-900 dark:text-white leading-tight mt-1 truncate drop-shadow-sm">
                     {details.title}
                   </h1>
-                  <span className="text-xs text-gray-400 font-medium truncate mt-0.5">
+                  <span className="text-xs text-gray-500 dark:text-gray-400 font-medium truncate mt-0.5">
                     {details.subtitle}
                   </span>
                 </div>
@@ -590,8 +590,8 @@ export const MediaDetailModal: React.FC = () => {
               <div className="flex items-center gap-2 shrink-0 relative">
                 {/* Add to profile / In profile */}
                 {isAlreadyInProfile ? (
-                  <div className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 text-xs font-bold shadow-sm">
-                    <Check size={13} className="text-emerald-400" />
+                  <div className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-500/15 border border-emerald-400/30 text-emerald-600 dark:text-emerald-300 text-xs font-bold shadow-sm">
+                    <Check size={13} className="text-emerald-500 dark:text-emerald-400" />
                     <span>In Profile</span>
                   </div>
                 ) : (
@@ -599,40 +599,40 @@ export const MediaDetailModal: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setIsAddMenuOpen((prev) => !prev)}
-                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/10 text-white text-xs font-bold transition-all cursor-pointer shadow-sm hover:scale-102 active:scale-98"
+                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-black/5 hover:bg-black/10 dark:bg-white/[0.08] dark:hover:bg-white/[0.14] border border-black/10 dark:border-white/10 text-gray-900 dark:text-white text-xs font-bold transition-all cursor-pointer shadow-sm hover:scale-102 active:scale-98"
                     >
-                      <Plus size={14} className="text-indigo-400" />
+                      <Plus size={14} className="text-indigo-600 dark:text-indigo-400" />
                       <span>Add to Profile</span>
                     </button>
 
                     {/* Add Target Selector Popover */}
                     {isAddMenuOpen && (
-                      <div className="absolute right-0 top-full mt-2 w-52 rounded-2xl bg-[#16181f] border border-white/15 p-2 shadow-2xl z-50 flex flex-col gap-1 text-xs">
-                        <span className="px-2.5 py-1 text-[10px] font-bold uppercase text-gray-400">
+                      <div className="absolute right-0 top-full mt-2 w-52 rounded-2xl glass-modal bg-white dark:bg-[#16181f] border border-black/10 dark:border-white/15 p-2 shadow-2xl z-50 flex flex-col gap-1 text-xs">
+                        <span className="px-2.5 py-1 text-[10px] font-bold uppercase text-gray-500 dark:text-gray-400">
                           Add to:
                         </span>
                         <button
                           type="button"
                           onClick={() => handleAddToProfile('spotlight')}
-                          className="flex items-center gap-2 px-2.5 py-2 rounded-xl hover:bg-white/10 text-left text-gray-200 hover:text-white transition-colors cursor-pointer"
+                          className="flex items-center gap-2 px-2.5 py-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 text-left text-gray-800 dark:text-gray-200 hover:text-gray-950 dark:hover:text-white transition-colors cursor-pointer"
                         >
-                          <Sparkles size={13} className="text-amber-400" />
+                          <Sparkles size={13} className="text-amber-500 dark:text-amber-400" />
                           <span>To Favorite (Main)</span>
                         </button>
                         <button
                           type="button"
                           onClick={() => handleAddToProfile('board')}
-                          className="flex items-center gap-2 px-2.5 py-2 rounded-xl hover:bg-white/10 text-left text-gray-200 hover:text-white transition-colors cursor-pointer"
+                          className="flex items-center gap-2 px-2.5 py-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 text-left text-gray-800 dark:text-gray-200 hover:text-gray-950 dark:hover:text-white transition-colors cursor-pointer"
                         >
-                          <Gamepad2 size={13} className="text-indigo-400" />
+                          <Gamepad2 size={13} className="text-indigo-600 dark:text-indigo-400" />
                           <span>To Top 5 Board</span>
                         </button>
                         <button
                           type="button"
                           onClick={() => handleAddToProfile('wishlist')}
-                          className="flex items-center gap-2 px-2.5 py-2 rounded-xl hover:bg-white/10 text-left text-gray-200 hover:text-white transition-colors cursor-pointer"
+                          className="flex items-center gap-2 px-2.5 py-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 text-left text-gray-800 dark:text-gray-200 hover:text-gray-950 dark:hover:text-white transition-colors cursor-pointer"
                         >
-                          <Star size={13} className="text-purple-400" />
+                          <Star size={13} className="text-purple-600 dark:text-purple-400" />
                           <span>To Wishlist</span>
                         </button>
                       </div>
@@ -645,10 +645,10 @@ export const MediaDetailModal: React.FC = () => {
                   type="button"
                   onClick={handleCopyLink}
                   title="Copy link"
-                  className="p-2 rounded-xl bg-white/[0.07] hover:bg-white/[0.14] border border-white/10 text-gray-300 hover:text-white transition-all cursor-pointer relative"
+                  className="p-2 rounded-xl bg-black/5 hover:bg-black/10 dark:bg-white/[0.07] dark:hover:bg-white/[0.14] border border-black/10 dark:border-white/10 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-all cursor-pointer relative"
                 >
                   {copiedLink ? (
-                    <Check size={15} className="text-emerald-400" />
+                    <Check size={15} className="text-emerald-500 dark:text-emerald-400" />
                   ) : (
                     <Link2 size={15} />
                   )}
@@ -665,21 +665,21 @@ export const MediaDetailModal: React.FC = () => {
                     type="button"
                     onClick={() => setIsMoreMenuOpen((prev) => !prev)}
                     title="More"
-                    className="p-2 rounded-xl bg-white/[0.07] hover:bg-white/[0.14] border border-white/10 text-gray-300 hover:text-white transition-all cursor-pointer"
+                    className="p-2 rounded-xl bg-black/5 hover:bg-black/10 dark:bg-white/[0.07] dark:hover:bg-white/[0.14] border border-black/10 dark:border-white/10 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-all cursor-pointer"
                   >
                     <MoreHorizontal size={15} />
                   </button>
 
                   {isMoreMenuOpen && (
-                    <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl bg-[#16181f] border border-white/15 p-2 shadow-2xl z-50 flex flex-col gap-1 text-xs">
+                    <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl glass-modal bg-white dark:bg-[#16181f] border border-black/10 dark:border-white/15 p-2 shadow-2xl z-50 flex flex-col gap-1 text-xs">
                       <a
                         href={details.platformButton.url}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={() => setIsMoreMenuOpen(false)}
-                        className="flex items-center gap-2 px-2.5 py-2 rounded-xl hover:bg-white/10 text-gray-200 hover:text-white transition-colors"
+                        className="flex items-center gap-2 px-2.5 py-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 text-gray-800 dark:text-gray-200 hover:text-gray-950 dark:hover:text-white transition-colors"
                       >
-                        <ExternalLink size={13} className="text-blue-400" />
+                        <ExternalLink size={13} className="text-blue-500 dark:text-blue-400" />
                         <span>Open in source</span>
                       </a>
                       <button
@@ -688,9 +688,9 @@ export const MediaDetailModal: React.FC = () => {
                           setIsMoreMenuOpen(false);
                           handleCopyLink();
                         }}
-                        className="flex items-center gap-2 px-2.5 py-2 rounded-xl hover:bg-white/10 text-left text-gray-200 hover:text-white transition-colors cursor-pointer"
+                        className="flex items-center gap-2 px-2.5 py-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 text-left text-gray-800 dark:text-gray-200 hover:text-gray-950 dark:hover:text-white transition-colors cursor-pointer"
                       >
-                        <Share2 size={13} className="text-emerald-400" />
+                        <Share2 size={13} className="text-emerald-500 dark:text-emerald-400" />
                         <span>Share card</span>
                       </button>
                       <a
@@ -698,7 +698,7 @@ export const MediaDetailModal: React.FC = () => {
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={() => setIsMoreMenuOpen(false)}
-                        className="flex items-center gap-2 px-2.5 py-2 rounded-xl hover:bg-white/10 text-left text-gray-400 hover:text-red-300 transition-colors"
+                        className="flex items-center gap-2 px-2.5 py-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 text-left text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-300 transition-colors"
                       >
                         <Flag size={13} />
                         <span>Report inaccuracy</span>
@@ -712,7 +712,7 @@ export const MediaDetailModal: React.FC = () => {
                   type="button"
                   onClick={handleClose}
                   title="Close"
-                  className="p-2 rounded-xl bg-white/[0.07] hover:bg-white/[0.14] border border-white/10 text-gray-400 hover:text-white transition-all cursor-pointer ml-1"
+                  className="p-2 rounded-xl bg-black/5 hover:bg-black/10 dark:bg-white/[0.07] dark:hover:bg-white/[0.14] border border-black/10 dark:border-white/10 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-all cursor-pointer ml-1"
                 >
                   <X size={16} />
                 </button>
@@ -799,7 +799,7 @@ export const MediaDetailModal: React.FC = () => {
                             </button>
 
                             {/* Time display: 0:05 / 1:52 */}
-                            <span className="text-xs font-mono font-medium text-gray-300 select-none">
+                            <span className="text-xs font-mono font-medium text-white select-none">
                               {formatTime(currentTime)} /{' '}
                               {duration > 0
                                 ? formatTime(duration)
@@ -814,7 +814,7 @@ export const MediaDetailModal: React.FC = () => {
                               step={0.1}
                               value={currentTime}
                               onChange={handleSeek}
-                              className="flex-1 h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-indigo-500 focus:outline-none"
+                              className="flex-1 h-1.5 bg-transparent rounded-lg appearance-none cursor-pointer accent-indigo-500 focus:outline-none"
                             />
 
                             {/* Volume Mute Toggle */}
@@ -976,15 +976,15 @@ export const MediaDetailModal: React.FC = () => {
                   </div>
 
                   {/* Description Paragraph */}
-                  <p className="text-sm text-gray-300 leading-relaxed pt-1">
+                  <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed pt-1">
                     {details.description}
                   </p>
 
                   {/* Similar media section */}
                   {resolvedSimilarItems && resolvedSimilarItems.length > 0 && (
-                    <div className="flex flex-col gap-3 pt-3 border-t border-white/[0.08]">
+                    <div className="flex flex-col gap-3 pt-3 border-t border-black/10 dark:border-white/[0.08]">
                       <div className="flex items-center justify-between">
-                        <h3 className="text-base font-bold text-white tracking-wide">
+                        <h3 className="text-base font-bold text-gray-900 dark:text-white tracking-wide">
                           {activeItem.type === ShowcaseMediaType.ANIME
                             ? 'Similar Anime'
                             : activeItem.type === ShowcaseMediaType.MOVIE ||
@@ -997,14 +997,14 @@ export const MediaDetailModal: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => scrollSimilar('left')}
-                            className="p-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.12] border border-white/10 text-gray-300 hover:text-white transition-all cursor-pointer"
+                            className="p-1.5 rounded-xl bg-black/5 hover:bg-black/10 dark:bg-white/[0.05] dark:hover:bg-white/[0.12] border border-black/10 dark:border-white/10 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-all cursor-pointer"
                           >
                             <ChevronLeft size={14} />
                           </button>
                           <button
                             type="button"
                             onClick={() => scrollSimilar('right')}
-                            className="p-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.12] border border-white/10 text-gray-300 hover:text-white transition-all cursor-pointer"
+                            className="p-1.5 rounded-xl bg-black/5 hover:bg-black/10 dark:bg-white/[0.05] dark:hover:bg-white/[0.12] border border-black/10 dark:border-white/10 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-all cursor-pointer"
                           >
                             <ChevronRight size={14} />
                           </button>
@@ -1020,7 +1020,7 @@ export const MediaDetailModal: React.FC = () => {
                           <div
                             key={idx}
                             onClick={() => handleSelectSimilar(sim)}
-                            className="relative w-28 sm:w-32 shrink-0 aspect-[2/3] rounded-2xl overflow-hidden border border-white/10 bg-[#14161d] group/sim hover:scale-105 hover:border-indigo-500/60 hover:shadow-xl transition-all duration-300 cursor-pointer"
+                            className="relative w-28 sm:w-32 shrink-0 aspect-[2/3] rounded-2xl overflow-hidden border border-black/10 dark:border-white/10 glass-card group/sim hover:scale-105 hover:border-indigo-500/60 hover:shadow-xl transition-all duration-300 cursor-pointer"
                           >
                             <img
                               src={sim.posterUrl}
@@ -1033,18 +1033,21 @@ export const MediaDetailModal: React.FC = () => {
                                   getCategoryFallbackPoster(sim.type);
                               }}
                             />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent p-2.5 flex flex-col justify-end">
+                            <div
+                              data-media-overlay="true"
+                              className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent p-2.5 flex flex-col justify-end"
+                            >
                               {sim.rating && (
                                 <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-black/85 text-[9px] font-bold text-amber-300 border border-amber-500/30 shadow-md">
                                   <Star size={9} className="fill-amber-400 text-amber-400" />
                                   <span>{sim.rating}</span>
                                 </div>
                               )}
-                              <span className="text-[11px] font-extrabold text-white leading-tight line-clamp-2">
+                              <span className="text-[11px] font-extrabold text-white text-on-media !text-white leading-tight line-clamp-2">
                                 {sim.title}
                               </span>
                               {sim.subtitle && (
-                                <span className="text-[9px] text-gray-400 truncate mt-0.5">
+                                <span className="text-[9px] text-gray-200 text-on-media !text-gray-200 truncate mt-0.5">
                                   {sim.subtitle}
                                 </span>
                               )}
@@ -1063,7 +1066,7 @@ export const MediaDetailModal: React.FC = () => {
                     href={details.platformButton.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full py-3.5 px-4 rounded-2xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/10 hover:border-white/25 flex items-center justify-center gap-2.5 text-white font-extrabold text-sm transition-all duration-300 shadow-md hover:scale-101 cursor-pointer group"
+                    className="w-full py-3.5 px-4 rounded-2xl glass-card border border-black/10 dark:border-white/10 hover:border-black/20 dark:hover:border-white/25 flex items-center justify-center gap-2.5 text-gray-900 dark:text-white font-extrabold text-sm transition-all duration-300 shadow-md hover:scale-101 cursor-pointer group"
                   >
                     {details.platformButton.type === 'steam' ? (
                       <SteamBrandIcon size={20} />
@@ -1091,9 +1094,9 @@ export const MediaDetailModal: React.FC = () => {
                     ) : activeItem.type === ShowcaseMediaType.ANIME ? (
                       <CrunchyrollBrandIcon size={20} />
                     ) : activeItem.type === ShowcaseMediaType.GAME ? (
-                      <Gamepad2 size={18} className="text-sky-400" />
+                      <Gamepad2 size={18} className="text-sky-500 dark:text-sky-400" />
                     ) : (
-                      <Film size={18} className="text-amber-400" />
+                      <Film size={18} className="text-amber-500 dark:text-amber-400" />
                     )}
                     <span>{details.platformButton.label}</span>
                     <ExternalLink
@@ -1104,14 +1107,14 @@ export const MediaDetailModal: React.FC = () => {
 
                   {/* Reviews Section */}
                   <div className="flex flex-col gap-2.5">
-                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider px-1">
+                    <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-1">
                       Reviews
                     </span>
-                    <div className="rounded-2xl bg-white/[0.03] border border-white/[0.07] p-3.5 flex flex-col gap-3">
+                    <div className="rounded-2xl glass-card border border-black/10 dark:border-white/[0.07] p-3.5 flex flex-col gap-3">
                       {/* Row 1: Primary Rating Service (MAL for Anime, IMDb for Movies, Steam / Platform for Games) */}
                       {details.reviews.recentReviews && (
                         <div className="flex items-start justify-between text-xs gap-3">
-                          <div className="flex items-center gap-2 text-gray-300 shrink-0">
+                          <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300 shrink-0">
                             {activeItem.type === ShowcaseMediaType.ANIME ? (
                               <MalBrandIcon size={16} />
                             ) : activeItem.type === ShowcaseMediaType.MOVIE ||
@@ -1136,7 +1139,7 @@ export const MediaDetailModal: React.FC = () => {
                               {details.reviews.recentReviews.label}
                             </span>
                           </div>
-                          <span className="font-bold text-amber-400 text-right shrink min-w-0 break-words leading-tight">
+                          <span className="font-bold text-amber-500 dark:text-amber-400 text-right shrink min-w-0 break-words leading-tight">
                             {details.reviews.recentReviews.count}
                           </span>
                         </div>
@@ -1145,7 +1148,7 @@ export const MediaDetailModal: React.FC = () => {
                       {/* Row 2: Secondary / Community Rating (AniList for Anime, TMDB for Movies, Steam / Global for Games) */}
                       {details.reviews.languageReviews && (
                         <div className="flex items-start justify-between text-xs gap-3">
-                          <div className="flex items-center gap-2 text-gray-300 shrink-0">
+                          <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300 shrink-0">
                             {activeItem.type === ShowcaseMediaType.ANIME ? (
                               <AniListBrandIcon size={16} />
                             ) : activeItem.type === ShowcaseMediaType.MOVIE ||
@@ -1154,13 +1157,13 @@ export const MediaDetailModal: React.FC = () => {
                             ) : details.platformButton.type === 'steam' ? (
                               <SteamBrandIcon size={15} />
                             ) : (
-                              <Globe size={14} className="text-sky-400" />
+                              <Globe size={14} className="text-sky-500 dark:text-sky-400" />
                             )}
                             <span className="font-medium whitespace-nowrap">
                               {details.reviews.languageReviews.label}
                             </span>
                           </div>
-                          <span className="font-bold text-sky-400 text-right shrink min-w-0 break-words leading-tight">
+                          <span className="font-bold text-sky-500 dark:text-sky-400 text-right shrink min-w-0 break-words leading-tight">
                             {details.reviews.languageReviews.count}
                           </span>
                         </div>
@@ -1168,8 +1171,8 @@ export const MediaDetailModal: React.FC = () => {
 
                       {/* Row 3: Score / Tier Badge */}
                       {details.reviews.openCritic && (
-                        <div className="flex items-center justify-between text-xs gap-2 pt-1 border-t border-white/[0.06]">
-                          <span className="font-medium text-gray-300 shrink-0">
+                        <div className="flex items-center justify-between text-xs gap-2 pt-1 border-t border-black/10 dark:border-white/[0.06]">
+                          <span className="font-medium text-gray-700 dark:text-gray-300 shrink-0">
                             {activeItem.type === ShowcaseMediaType.ANIME
                               ? 'AniList / MAL'
                               : activeItem.type === ShowcaseMediaType.MOVIE ||
@@ -1203,29 +1206,29 @@ export const MediaDetailModal: React.FC = () => {
 
                   {/* Details Section */}
                   <div className="flex flex-col gap-2.5">
-                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider px-1">
+                    <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-1">
                       Details
                     </span>
-                    <div className="rounded-2xl bg-white/[0.03] border border-white/[0.07] p-3.5 flex flex-col gap-2.5 text-xs">
+                    <div className="rounded-2xl glass-card border border-black/10 dark:border-white/[0.07] p-3.5 flex flex-col gap-2.5 text-xs">
                       {/* Genres */}
                       <div className="flex items-start justify-between gap-3">
-                        <span className="text-gray-400 shrink-0">Genres</span>
-                        <span className="text-gray-200 font-medium text-right leading-relaxed break-words min-w-0">
+                        <span className="text-gray-500 dark:text-gray-400 shrink-0">Genres</span>
+                        <span className="text-gray-900 dark:text-gray-200 font-medium text-right leading-relaxed break-words min-w-0">
                           {details.details.genres}
                         </span>
                       </div>
 
                       {/* Publisher */}
                       <div className="flex items-start justify-between gap-3">
-                        <span className="text-gray-400 shrink-0">Publisher</span>
-                        <span className="text-gray-200 font-medium text-right leading-relaxed break-words min-w-0">
+                        <span className="text-gray-500 dark:text-gray-400 shrink-0">Publisher</span>
+                        <span className="text-gray-900 dark:text-gray-200 font-medium text-right leading-relaxed break-words min-w-0">
                           {details.details.publisher}
                         </span>
                       </div>
 
                       {/* Developer / Studio */}
                       <div className="flex items-start justify-between gap-3">
-                        <span className="text-gray-400 shrink-0">
+                        <span className="text-gray-500 dark:text-gray-400 shrink-0">
                           {activeItem.type === ShowcaseMediaType.ANIME
                             ? 'Studio'
                             : activeItem.type === ShowcaseMediaType.MOVIE ||
@@ -1233,47 +1236,55 @@ export const MediaDetailModal: React.FC = () => {
                               ? 'Director'
                               : 'Developer'}
                         </span>
-                        <span className="text-gray-200 font-medium text-right leading-relaxed break-words min-w-0">
+                        <span className="text-gray-900 dark:text-gray-200 font-medium text-right leading-relaxed break-words min-w-0">
                           {details.details.developer}
                         </span>
                       </div>
 
                       {/* Release Date */}
                       <div className="flex items-start justify-between gap-3">
-                        <span className="text-gray-400 shrink-0">Release Date</span>
-                        <span className="text-gray-200 font-medium text-right leading-relaxed break-words min-w-0">
+                        <span className="text-gray-500 dark:text-gray-400 shrink-0">
+                          Release Date
+                        </span>
+                        <span className="text-gray-900 dark:text-gray-200 font-medium text-right leading-relaxed break-words min-w-0">
                           {details.details.releaseDate}
                         </span>
                       </div>
 
                       {/* Platform */}
                       <div className="flex items-start justify-between gap-3">
-                        <span className="text-gray-400 shrink-0">Platform</span>
-                        <div className="flex items-start justify-end gap-1.5 text-gray-300 text-right min-w-0">
+                        <span className="text-gray-500 dark:text-gray-400 shrink-0">Platform</span>
+                        <div className="flex items-start justify-end gap-1.5 text-gray-700 dark:text-gray-300 text-right min-w-0">
                           {activeItem.type === ShowcaseMediaType.ANIME ? (
-                            <Tv size={14} className="text-sky-400 shrink-0 mt-0.5" />
+                            <Tv
+                              size={14}
+                              className="text-sky-500 dark:text-sky-400 shrink-0 mt-0.5"
+                            />
                           ) : activeItem.type === ShowcaseMediaType.MOVIE ||
                             activeItem.type === ShowcaseMediaType.SERIES ? (
-                            <Film size={14} className="text-amber-400 shrink-0 mt-0.5" />
+                            <Film
+                              size={14}
+                              className="text-amber-500 dark:text-amber-400 shrink-0 mt-0.5"
+                            />
                           ) : (
                             <Monitor size={14} className="shrink-0 mt-0.5" />
                           )}
-                          <span className="font-medium leading-relaxed break-words">
+                          <span className="font-medium text-gray-900 dark:text-gray-200 leading-relaxed break-words">
                             {details.details.platform}
                           </span>
                         </div>
                       </div>
 
                       {/* Links */}
-                      <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/[0.06]">
-                        <span className="text-gray-400 shrink-0">Links</span>
-                        <div className="flex items-center gap-2 text-gray-400 shrink-0">
+                      <div className="flex items-center justify-between gap-3 pt-2 border-t border-black/10 dark:border-white/[0.06]">
+                        <span className="text-gray-500 dark:text-gray-400 shrink-0">Links</span>
+                        <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 shrink-0">
                           {details.details.socialLinks.web && (
                             <a
                               href={details.details.socialLinks.web}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="hover:text-white transition-colors"
+                              className="hover:text-gray-900 dark:hover:text-white transition-colors"
                               title="Official website"
                             >
                               <Globe size={14} />
@@ -1284,7 +1295,7 @@ export const MediaDetailModal: React.FC = () => {
                               href={details.details.socialLinks.twitter}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="hover:text-white transition-colors"
+                              className="hover:text-gray-900 dark:hover:text-white transition-colors"
                               title="X / Twitter"
                             >
                               <XBrandIcon size={14} />
@@ -1295,7 +1306,7 @@ export const MediaDetailModal: React.FC = () => {
                               href={details.details.socialLinks.youtube}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="hover:text-white transition-colors"
+                              className="hover:text-gray-900 dark:hover:text-white transition-colors"
                               title="YouTube"
                             >
                               <YouTubeBrandIcon size={14} />
@@ -1306,7 +1317,7 @@ export const MediaDetailModal: React.FC = () => {
                               href={details.details.socialLinks.twitch}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="hover:text-white transition-colors"
+                              className="hover:text-gray-900 dark:hover:text-white transition-colors"
                               title="Twitch"
                             >
                               <TwitchBrandIcon size={14} />
@@ -1317,14 +1328,14 @@ export const MediaDetailModal: React.FC = () => {
 
                       {/* Metadata Source */}
                       <div className="flex items-center justify-between gap-3 pt-1">
-                        <span className="text-gray-400 shrink-0">
+                        <span className="text-gray-500 dark:text-gray-400 shrink-0">
                           Metadata by {details.details.metadataSource.name}
                         </span>
                         <a
                           href={details.details.metadataSource.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-400 hover:underline font-semibold shrink-0"
+                          className="text-blue-500 dark:text-blue-400 hover:underline font-semibold shrink-0"
                         >
                           {details.details.metadataSource.name}
                         </a>
@@ -1333,7 +1344,7 @@ export const MediaDetailModal: React.FC = () => {
 
                     {/* Footer Claim link (Games only) */}
                     {activeItem.type === ShowcaseMediaType.GAME && (
-                      <div className="px-1 text-[11px] text-gray-400">
+                      <div className="px-1 text-[11px] text-gray-500 dark:text-gray-400">
                         <span>Are you the developer of this game? </span>
                         <a
                           href={
@@ -1341,7 +1352,7 @@ export const MediaDetailModal: React.FC = () => {
                           }
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-400 hover:underline"
+                          className="text-blue-500 dark:text-blue-400 hover:underline"
                         >
                           Claim this page
                         </a>

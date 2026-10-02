@@ -36,24 +36,28 @@ class RNNoiseManager {
     this.loadPromise = (async () => {
       try {
         if (!ctx.audioWorklet) return false;
+        let timer: ReturnType<typeof setTimeout> | null = null;
         const load = ctx.audioWorklet
           .addModule('/rnnoise-processor.js')
-          .then(() => true)
+          .then(() => {
+            if (timer) clearTimeout(timer);
+            return true;
+          })
           .catch((err) => {
-            console.warn('AudioWorklet RNNoise module not loaded, falling back to DSP filter', err);
+            if (timer) clearTimeout(timer);
+            console.warn('[rnnoise] AudioWorklet module failed, falling back to DSP filter:', err);
             return false;
           });
-        const timeout = new Promise<boolean>((resolve) =>
-          setTimeout(() => {
-            console.warn('[rnnoise] AudioWorklet load timed out, falling back to DSP filter');
+        const timeout = new Promise<boolean>((resolve) => {
+          timer = setTimeout(() => {
             resolve(false);
-          }, 1500),
-        );
+          }, 400);
+        });
         const success = await Promise.race([load, timeout]);
         this.workletLoaded = success;
         return success;
       } catch (err) {
-        console.warn('AudioWorklet RNNoise module not loaded, falling back to DSP filter', err);
+        console.warn('[rnnoise] AudioWorklet init error, falling back to DSP filter:', err);
         return false;
       }
     })();

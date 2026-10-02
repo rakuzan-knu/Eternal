@@ -52,18 +52,27 @@ export const MusicNowPlayingSidebar: React.FC = () => {
     storageKey: 'eternal_music_now_playing_width',
   });
 
-  if (!currentTrack) return null;
+  const lastTrackRef = useRef<SpotifyTrack | null>(currentTrack);
+  if (currentTrack) {
+    lastTrackRef.current = currentTrack;
+  }
+  const displayTrack = currentTrack || lastTrackRef.current;
+
+  if (!displayTrack) return null;
+
+  const isVisible = Boolean(currentTrack);
+  const panelWidth = !isVisible ? 0 : isNowPlayingPanelOpen ? nowPlayingWidth : 20;
 
   const isSoundCloud = Boolean(
-    currentTrack.source === 'soundcloud' ||
-    currentTrack.id.startsWith('sc-') ||
-    currentTrack.id.startsWith('soundcloud-') ||
-    isSoundCloudUrl(currentTrack.spotifyUrl),
+    displayTrack.source === 'soundcloud' ||
+    displayTrack.id.startsWith('sc-') ||
+    displayTrack.id.startsWith('soundcloud-') ||
+    isSoundCloudUrl(displayTrack.spotifyUrl),
   );
 
   const externalLink = isSoundCloud
-    ? currentTrack.spotifyUrl || 'https://soundcloud.com'
-    : getSafeSpotifyTrackUrl(currentTrack);
+    ? displayTrack.spotifyUrl || 'https://soundcloud.com'
+    : getSafeSpotifyTrackUrl(displayTrack);
 
   const nextTrack = queue.length > 0 ? queue[0] : null;
 
@@ -73,7 +82,7 @@ export const MusicNowPlayingSidebar: React.FC = () => {
     if (!threeDotsButtonRef.current) return;
     const rect = threeDotsButtonRef.current.getBoundingClientRect();
     setActiveMenuState({
-      track: currentTrack,
+      track: displayTrack,
       rect,
       triggerRef: threeDotsButtonRef,
     });
@@ -82,7 +91,7 @@ export const MusicNowPlayingSidebar: React.FC = () => {
   // Handler for right-click context menu on artwork or title
   const handleTrackContextMenu = (
     e: React.MouseEvent,
-    targetTrack: SpotifyTrack = currentTrack,
+    targetTrack: SpotifyTrack = displayTrack,
   ) => {
     e.preventDefault();
     e.stopPropagation();
@@ -105,22 +114,28 @@ export const MusicNowPlayingSidebar: React.FC = () => {
           isNowPlayingPanelOpen ? 'music-now-playing-sidebar' : 'music-now-playing-collapsed-tab'
         }
         onClick={() => {
-          if (!isNowPlayingPanelOpen) {
+          if (isVisible && !isNowPlayingPanelOpen) {
             setNowPlayingPanelOpen(true);
           }
         }}
         style={{
-          width: isNowPlayingPanelOpen ? nowPlayingWidth : 20,
+          width: panelWidth,
           transition: isNowPlayingResizing ? 'none' : 'width 300ms cubic-bezier(0.16,1,0.3,1)',
-          cursor: isNowPlayingPanelOpen ? 'default' : 'pointer',
+          cursor: isNowPlayingPanelOpen ? 'default' : isVisible ? 'pointer' : 'default',
         }}
-        className="hidden xl:flex h-full flex-shrink-0 flex-col bg-[#111116]/85 backdrop-blur-2xl border-l border-white/5 select-none z-10 relative overflow-hidden"
+        className={`hidden xl:flex h-full flex-shrink-0 flex-col glass-sidebar ${
+          panelWidth === 0 ? 'border-l-0 pointer-events-none' : 'border-l border-white/10'
+        } select-none z-10 relative overflow-hidden`}
       >
         {/* Closed State Tab (narrow 20px strip with centered chevron, Screenshot 3) */}
         <div
-          onClick={() => setNowPlayingPanelOpen(true)}
+          onClick={() => {
+            if (isVisible) setNowPlayingPanelOpen(true);
+          }}
           className={`w-full h-full flex flex-col items-center justify-center hover:bg-[#16161d] transition-opacity duration-300 cursor-pointer group select-none ${
-            isNowPlayingPanelOpen ? 'opacity-0 pointer-events-none absolute inset-0' : 'opacity-100'
+            isNowPlayingPanelOpen || !isVisible
+              ? 'opacity-0 pointer-events-none absolute inset-0'
+              : 'opacity-100'
           }`}
           title="Expand Now Playing panel"
           aria-label="Expand Now Playing panel"
@@ -231,14 +246,14 @@ export const MusicNowPlayingSidebar: React.FC = () => {
 
           {/* Large Album Artwork (Right-click opens Context Menu) */}
           <div
-            onContextMenu={(e) => handleTrackContextMenu(e, currentTrack)}
+            onContextMenu={(e) => handleTrackContextMenu(e, displayTrack)}
             className="relative aspect-square w-full rounded-2xl overflow-hidden border border-white/10 shadow-2xl mb-4 group bg-black/40 cursor-pointer"
             title="Right-click for options"
           >
-            {currentTrack.albumArt ? (
+            {displayTrack.albumArt ? (
               <img
-                src={currentTrack.albumArt}
-                alt={currentTrack.title}
+                src={displayTrack.albumArt}
+                alt={displayTrack.title}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
             ) : (
@@ -259,14 +274,14 @@ export const MusicNowPlayingSidebar: React.FC = () => {
           {/* Track Info (Green checkmark removed per user instruction) */}
           <div className="flex items-start justify-between gap-2 mb-4">
             <div
-              onContextMenu={(e) => handleTrackContextMenu(e, currentTrack)}
+              onContextMenu={(e) => handleTrackContextMenu(e, displayTrack)}
               className="min-w-0 cursor-pointer group/title"
               title="Right-click for options"
             >
               <h2 className="text-base font-black text-white truncate leading-tight group-hover/title:underline">
-                {currentTrack.title}
+                {displayTrack.title}
               </h2>
-              <p className="text-xs text-gray-400 truncate mt-0.5">{currentTrack.artist}</p>
+              <p className="text-xs text-gray-400 truncate mt-0.5">{displayTrack.artist}</p>
             </div>
 
             {/* Like Heart Button */}
@@ -320,15 +335,15 @@ export const MusicNowPlayingSidebar: React.FC = () => {
               <div className="flex items-center justify-between text-gray-400">
                 <span>Artist</span>
                 <span className="text-white truncate max-w-[140px] font-medium">
-                  {currentTrack.artist}
+                  {displayTrack.artist}
                 </span>
               </div>
 
-              {currentTrack.contextName && (
+              {displayTrack.contextName && (
                 <div className="flex items-center justify-between text-gray-400">
                   <span>Context</span>
                   <span className="text-white truncate max-w-[140px] font-medium">
-                    {currentTrack.contextName}
+                    {displayTrack.contextName}
                   </span>
                 </div>
               )}

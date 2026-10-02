@@ -45,6 +45,7 @@ describe('RailwaySidebar (MessengerSidebar)', () => {
     expect(screen.getByText('Message')).toBeInTheDocument();
     expect(screen.getByText('Notifications')).toBeInTheDocument();
     expect(screen.getByText('Create')).toBeInTheDocument();
+    expect(screen.getByText('Shop')).toBeInTheDocument();
     expect(screen.getByText('Alice Smith')).toBeInTheDocument();
   });
 

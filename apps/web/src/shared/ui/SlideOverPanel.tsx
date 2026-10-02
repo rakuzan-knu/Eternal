@@ -8,6 +8,7 @@ interface SlideOverPanelProps {
   onClose: () => void;
   children: React.ReactNode;
   headerRight?: React.ReactNode;
+  isClosing?: boolean;
 }
 
 export default function SlideOverPanel({
@@ -15,13 +16,15 @@ export default function SlideOverPanel({
   onClose,
   children,
   headerRight,
+  isClosing: externalIsClosing,
 }: SlideOverPanelProps) {
-  const [isClosing, setIsClosing] = useState(false);
+  const [internalIsClosing, setInternalIsClosing] = useState(false);
   const host = useSettingsPanelHost();
+  const isClosing = Boolean(externalIsClosing || internalIsClosing);
 
   const requestClose = useCallback(() => {
     if (isClosing) return;
-    setIsClosing(true);
+    setInternalIsClosing(true);
     setTimeout(onClose, 180);
   }, [isClosing, onClose]);
 
@@ -37,19 +40,22 @@ export default function SlideOverPanel({
 
   const content = (
     <div
-      className={`${positionClass} flex flex-col bg-[#1a1a1a] ${
+      className={`${positionClass} flex flex-col glass-subpanel border-l border-black/10 dark:border-white/10 backdrop-blur-3xl text-gray-950 dark:text-white shadow-2xl ${
         isClosing ? 'animate-slideOutLeft' : 'animate-slideInLeft'
       }`}
     >
-      <div className="flex items-center gap-2 px-4 h-16 flex-shrink-0 border-b border-white/5">
+      <div className="flex items-center gap-2 px-4 h-16 flex-shrink-0 border-b border-black/10 dark:border-white/10">
         <button
+          type="button"
           onClick={requestClose}
           aria-label="Back"
-          className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-white/10 hover:text-white transition-colors active:scale-90"
+          className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-950 dark:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors active:scale-90 cursor-pointer"
         >
-          <ArrowLeft size={18} />
+          <ArrowLeft size={18} className="text-gray-950 dark:text-white" />
         </button>
-        <h2 className="text-base font-bold text-white flex-1 truncate">{title}</h2>
+        <h2 className="text-base font-bold text-gray-950 dark:text-white flex-1 truncate">
+          {title}
+        </h2>
         {headerRight}
       </div>
 

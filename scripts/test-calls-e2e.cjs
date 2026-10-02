@@ -17,7 +17,7 @@ const playwrightPath =
 const { chromium } = require(playwrightPath);
 
 const API_URL = 'http://localhost:3000/v1';
-const CONVERSATION_ID = '0a1de6ca-ef62-4045-837f-bf236d627416';
+const CONVERSATION_ID = '70806b25-5dad-4e0c-ace5-5ecbcb697bef';
 const FRONTEND_URL = `http://localhost:5173/messages/${CONVERSATION_ID}`;
 
 // Create test-results directory for visual artifact snapshots
@@ -334,15 +334,25 @@ async function runTest() {
   // 8. Testing In-Call Controls
   console.log('\n8. Testing In-Call Controls (Audio, Video, Deafen, Reactions)...');
 
-  // 8.1 Microphone Mute / Unmute
+  // 8.1 Microphone Mute / Unmute & Remote Indicator Sync
   const muteBtn = pageAlice
     .locator('button[aria-label="Mute microphone"], button[aria-label="Unmute microphone"]')
     .first();
   await muteBtn.click();
-  console.log('✓ Toggled Microphone: Muted');
-  await pageAlice.waitForTimeout(500);
+  console.log('✓ Toggled Microphone: Muted locally on Alice');
+
+  // Verify Bob sees Alice is muted
+  const remoteMuteIconOnBob = pageBob
+    .locator('[data-testid="participant-muted-badge"], div[title*="muted"]')
+    .first();
+  await remoteMuteIconOnBob.waitFor({ state: 'visible', timeout: 8000 });
+  console.log('✓ Bob successfully observed Alice remote mute badge (Discord-style sync verified)');
+
+  await pageAlice.waitForTimeout(600);
   await muteBtn.click();
-  console.log('✓ Toggled Microphone: Unmuted');
+  console.log('✓ Toggled Microphone: Unmuted locally on Alice');
+  await remoteMuteIconOnBob.waitFor({ state: 'hidden', timeout: 8000 });
+  console.log('✓ Bob observed Alice remote mute badge removed upon unmute');
 
   // 8.2 Deafen / Undeafen (Наушники)
   const deafenBtn = pageAlice
@@ -481,6 +491,10 @@ async function runTest() {
     }
   }
 
+  // Dismiss any lingering tools sheet / backdrop before clicking top HUD
+  await pageAlice.keyboard.press('Escape');
+  await pageAlice.waitForTimeout(400);
+
   // 10. WebRTC Stats HUD
   console.log('\n10. Testing WebRTC Stats HUD...');
   const statsHudBtn = pageAlice.locator('button[aria-label="WebRTC Live Stream Stats HUD"]');
@@ -513,24 +527,27 @@ async function runTest() {
     console.log('✓ More Tools sheet dismissed via Escape key (A11Y compliant)');
   }
 
-  // 12. Call Settings Dialog
+  // 12. Call Settings Dialog (EditProfileModal Voice & Video Tab)
   console.log('\n12. Testing Call Settings Modal...');
   const settingsBtn = pageAlice
     .locator('button[aria-label="Call & Audio Settings"], button[aria-label="Device settings"]')
     .first();
   if (await settingsBtn.isVisible().catch(() => false)) {
     await settingsBtn.click();
-    console.log('✓ Call Settings modal opened');
+    console.log('✓ Call Settings modal opened (EditProfileModal triggered)');
     await pageAlice.waitForTimeout(800);
-    const closeSettings = pageAlice
-      .locator('button[aria-label="Close"], button[title="Close"]')
+
+    const voiceHeading = pageAlice
+      .locator('h3:has-text("Голос"), h2:has-text("Голос и видео")')
       .first();
-    if (await closeSettings.isVisible().catch(() => false)) {
-      await closeSettings.click();
-      console.log('✓ Call Settings modal closed');
-    } else {
-      await pageAlice.keyboard.press('Escape');
-    }
+    const isVoiceVisible = await voiceHeading.isVisible().catch(() => false);
+    console.log(`✓ Voice & Video Tab rendered inside EditProfileModal: ${isVoiceVisible}`);
+
+    await safeScreenshot(pageAlice, '06-voice-video-settings-modal.png');
+
+    await pageAlice.keyboard.press('Escape');
+    await pageAlice.waitForTimeout(400);
+    console.log('✓ Call Settings modal closed via Escape');
   }
 
   // 13. In-Call Chat Messaging

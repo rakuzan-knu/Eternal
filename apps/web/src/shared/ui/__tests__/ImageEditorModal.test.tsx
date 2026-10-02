@@ -158,7 +158,7 @@ describe('ImageEditorModal', () => {
     // Switch to Text mode
     fireEvent.click(screen.getByText('Text'));
 
-    const canvas = container.querySelector('canvas');
+    const canvas = document.querySelector('canvas');
     if (canvas) {
       fireEvent.pointerDown(canvas, { clientX: 100, clientY: 100 });
     }

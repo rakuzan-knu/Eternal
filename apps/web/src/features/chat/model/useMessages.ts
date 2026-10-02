@@ -4,6 +4,7 @@ import { chatApi } from '../api/chatApi';
 import { queryKeys } from '@/shared/api/queryKeys';
 import { queryStaleTimes, queryGcTimes } from '@/shared/api/queryClient';
 import { MessageView } from '../../../entities/chat/model/types';
+import { dedupeMessages } from './chatCacheSync';
 
 /**
  * Server State: paginated chat history (TanStack Query, infinite).
@@ -30,16 +31,7 @@ export function useMessages(conversationId: string | null) {
     const raw = [...query.data.pages]
       .reverse()
       .flatMap((page) => [...(Array.isArray(page?.data) ? page.data : [])].reverse());
-    const seen = new Set<string>();
-    const result: MessageView[] = new Array<MessageView>(raw.length);
-    let count = 0;
-    for (const m of raw) {
-      const key = m.id || m.tempId || m.clientMessageId;
-      if (key && seen.has(key)) continue;
-      if (key) seen.add(key);
-      result[count++] = m;
-    }
-    result.length = count;
+    const result = dedupeMessages(raw);
 
     result.sort((a, b) => {
       const timeA = new Date(a.createdAt).getTime();

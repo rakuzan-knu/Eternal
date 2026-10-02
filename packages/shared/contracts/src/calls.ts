@@ -95,6 +95,7 @@ export type IceCandidateDto = z.infer<typeof iceCandidateSchema>;
 export const muteToggleSchema = z.object({
   callId: z.string().min(1).max(128),
   isMuted: z.boolean(),
+  isDeafened: z.boolean().optional(),
 });
 export type MuteToggleDto = z.infer<typeof muteToggleSchema>;
 
@@ -112,8 +113,18 @@ export type ScreenShareDto = z.infer<typeof screenShareSchema>;
 
 export const callReconnectSchema = z.object({
   callId: z.string().min(1).max(128),
+  sdpOffer: z.unknown().optional(),
+  iceCandidates: z.array(z.unknown()).optional(),
 });
 export type CallReconnectDto = z.infer<typeof callReconnectSchema>;
+
+export const callReconnectAnswerSchema = z.object({
+  callId: z.string().min(1).max(128),
+  targetUserId: z.string().min(1).max(128).optional(),
+  sdpAnswer: z.unknown(),
+  iceCandidates: z.array(z.unknown()).optional(),
+});
+export type CallReconnectAnswerDto = z.infer<typeof callReconnectAnswerSchema>;
 
 export const iceRestartSchema = z.object({
   callId: z.string().min(1).max(128),

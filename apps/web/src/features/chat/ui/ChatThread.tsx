@@ -5,14 +5,16 @@ import { useStagedAttachments } from '@/shared/model/useStagedAttachments';
 import { useUIStore } from '@/shared/model/useUIStore';
 import AttachmentDropZone from '@/shared/ui/AttachmentDropZone';
 import { Archive, ArchiveRestore, CheckSquare, Copy, Forward, Trash2, X } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { ConversationView, MessageView } from '../../../entities/chat/model/types';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { AttachmentView, ConversationView, MessageView } from '../../../entities/chat/model/types';
+import { MediaItem } from '../model/chatMediaTypes';
+import MediaLightbox from './MediaLightbox';
 import { chatApi } from '../api/chatApi';
 import { getConversationDisplay } from '../lib/getConversationDisplay';
 import { formatMessageTime } from '../lib/groupMessagesByDate';
-import { promptEditMessage } from '../lib/promptEditMessage';
 import { getChatBackgroundStyle, parseChatTheme, updateMetaThemeColor } from '../lib/themeUtils';
+import { isVideoAttachment, isImageAttachment } from '../lib/chatMediaUtils';
 import { useCall } from '../model/CallContext';
 import { useChatGapFill } from '../model/useChatGapFill';
 import { useChatTheme } from '../model/useChatTheme';
@@ -25,6 +27,7 @@ import { useMeshVoiceRoom } from '../model/useMeshVoiceRoom';
 import BatchDeleteModal from './BatchDeleteModal';
 import BlockedComposerBanner from './BlockedComposerBanner';
 import { CallHandoffBanner } from './Call/CallHandoffBanner';
+import { WatchTogetherActivityBanner } from './Call/WatchTogetherActivityBanner';
 import ChatDatePicker from './ChatDatePicker';
 import ChatThreadHeader from './ChatThreadHeader';
 import { DiscordVoiceChannelBar } from './DiscordVoiceChannelBar';
@@ -37,6 +40,7 @@ import MessageSearchPanel from './MessageSearchPanel';
 import PinnedMessagesBar from './PinnedMessagesBar';
 import PinnedMessagesModal from './PinnedMessagesModal';
 import ProceduralChatBackground from './ProceduralChatBackground';
+import { ensureMessageIdentityRegistered } from '../lib/e2ee/messageE2ee';
 
 interface ChatThreadProps {
   conversation: ConversationView;
@@ -45,6 +49,7 @@ interface ChatThreadProps {
 type RightPanel = 'details' | 'search' | null;
 
 export default function ChatThread({ conversation }: ChatThreadProps) {
+  const navigate = useNavigate();
   const userId = useAuthStore((s) => s.userId);
   const [searchParams] = useSearchParams();
   const initialMessageId = searchParams.get('messageId');
@@ -52,7 +57,8 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
   const otherParticipant =
     conversation.type === 'GROUP'
       ? undefined
-      : conversation.participants.find((p) => p.userId !== userId);
+      : (conversation.participants.find((p) => p.userId !== userId) ??
+        conversation.participants.find((p) => p.userId === userId));
   const myParticipant = conversation.participants.find((p) => p.userId === userId);
 
   useQueryOnlineStatus(otherParticipant ? [otherParticipant.userId] : []);
@@ -87,11 +93,17 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
   const isVoiceInThisRoom = voiceRoom.isConnected && voiceRoom.currentRoomId === conversation.id;
 
   const [replyingTo, setReplyingTo] = useState<MessageView | null>(null);
+  const [editingMessage, setEditingMessage] = useState<MessageView | null>(null);
   const [forwardingMessage, setForwardingMessage] = useState<MessageView | null>(null);
   const [isBatchForwardOpen, setIsBatchForwardOpen] = useState(false);
   const [isBatchDeleteOpen, setIsBatchDeleteOpen] = useState(false);
   const [isPinnedModalOpen, setIsPinnedModalOpen] = useState(false);
   const [copyToast, setCopyToast] = useState<string | null>(null);
+  const [activeLightbox, setActiveLightbox] = useState<{
+    items: MediaItem[];
+    index: number;
+    originRect: DOMRect | null;
+  } | null>(null);
 
   // Date picker state
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
@@ -107,7 +119,103 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
 
   const staged = useStagedAttachments();
   const [rightPanel, setRightPanel] = useState<RightPanel>(null);
+  const [renderedPanel, setRenderedPanel] = useState<RightPanel>(null);
+  const [isPanelClosing, setIsPanelClosing] = useState(false);
+  const panelCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [isClosingChat, setIsClosingChat] = useState(false);
+
+  const handleCloseChat = useCallback(() => {
+    if (isClosingChat) return;
+    setIsClosingChat(true);
+    setTimeout(() => {
+      navigate('/messages');
+    }, 240);
+  }, [isClosingChat, navigate]);
+
+  const handleOpenMedia = useCallback(
+    (attachment: AttachmentView, rect?: DOMRect, msg?: MessageView) => {
+      const items: MediaItem[] = [];
+      let initialIdx = 0;
+      for (const m of messages) {
+        if (m.attachments && m.attachments.length > 0) {
+          for (const a of m.attachments) {
+            const isVid = isVideoAttachment(a);
+            const isImg = isImageAttachment(a);
+            if (a.type === 'IMAGE' || a.type === 'GIF' || a.type === 'VIDEO' || isVid || isImg) {
+              const isVideoNote =
+                isVid &&
+                (a.fileName?.includes('video_note') ||
+                  a.mimeType?.includes('video_note') ||
+                  (a.width && a.height && a.width === a.height));
+              if (!isVideoNote) {
+                if (a.id === attachment.id || a.url === attachment.url) {
+                  initialIdx = items.length;
+                }
+                items.push({ message: m, attachment: a });
+              }
+            }
+          }
+        }
+      }
+
+      if (items.length === 0 && msg) {
+        items.push({ message: msg, attachment });
+      }
+
+      setActiveLightbox({
+        items,
+        index: initialIdx,
+        originRect: rect ?? null,
+      });
+    },
+    [messages],
+  );
+
+  // Synchronize smooth panel transitions (avoid abrupt width jumps)
+  useEffect(() => {
+    if (rightPanel) {
+      if (panelCloseTimerRef.current) {
+        clearTimeout(panelCloseTimerRef.current);
+        panelCloseTimerRef.current = null;
+      }
+      setIsPanelClosing(false);
+      setRenderedPanel(rightPanel);
+    } else if (renderedPanel) {
+      setIsPanelClosing(true);
+      panelCloseTimerRef.current = setTimeout(() => {
+        setRenderedPanel(null);
+        setIsPanelClosing(false);
+        panelCloseTimerRef.current = null;
+      }, 300);
+    }
+  }, [rightPanel]);
+
+  useEffect(() => {
+    return () => {
+      if (panelCloseTimerRef.current) {
+        clearTimeout(panelCloseTimerRef.current);
+      }
+    };
+  }, []);
+
   const [highlightMessageId, setHighlightMessageId] = useState<string | null>(initialMessageId);
+
+  // Global Ctrl+F / Cmd+F shortcut to smoothly open/toggle search panel in chat
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isF = e.code === 'KeyF' || e.key?.toLowerCase() === 'f' || e.key?.toLowerCase() === 'а';
+      if ((e.ctrlKey || e.metaKey) && isF) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        setRightPanel((prev) => (prev === 'search' ? null : 'search'));
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
+  }, []);
 
   const isOtherTyping = otherParticipant ? typingUserIds.has(otherParticipant.userId) : false;
   const typingParticipants = conversation.participants
@@ -167,6 +275,10 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
   useEffect(() => {
     actionsRef.current = actions;
   }, [actions]);
+
+  useEffect(() => {
+    void ensureMessageIdentityRegistered();
+  }, []);
 
   useEffect(() => {
     actionsRef.current.markRead();
@@ -408,8 +520,198 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
     setLastSelectedId(null);
   };
 
+  const canAutoFocusComposer =
+    !isSelectionMode &&
+    !isDatePickerOpen &&
+    !forwardingMessage &&
+    !isBatchForwardOpen &&
+    !isBatchDeleteOpen &&
+    !isPinnedModalOpen &&
+    rightPanel === null &&
+    !isClosingChat;
+
+  // Esc key listener with strict priority handling (Telegram/Discord standard):
+  // Closes open popups/modals/panels first, cancels selection/replies next,
+  // blurs active inputs with text, and finally smoothly closes the chat thread.
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+
+      // 1. If any global modal/dialog exists or lightbox is active, let it handle Escape
+      if (
+        activeLightbox !== null ||
+        forwardingMessage !== null ||
+        isBatchForwardOpen ||
+        isBatchDeleteOpen ||
+        isPinnedModalOpen ||
+        isDatePickerOpen ||
+        document.querySelector(
+          '[role="dialog"], [aria-modal="true"], [data-modal-open="true"], [data-lightbox-open="true"], .glass-modal, [data-video-editor-open="true"]',
+        )
+      ) {
+        return;
+      }
+
+      // 2. ChatThread sub-modals
+      if (isDatePickerOpen) {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDatePickerOpen(false);
+        return;
+      }
+      if (forwardingMessage) {
+        e.preventDefault();
+        e.stopPropagation();
+        setForwardingMessage(null);
+        return;
+      }
+      if (isBatchForwardOpen) {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsBatchForwardOpen(false);
+        return;
+      }
+      if (isBatchDeleteOpen) {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsBatchDeleteOpen(false);
+        return;
+      }
+      if (isPinnedModalOpen) {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsPinnedModalOpen(false);
+        return;
+      }
+
+      // 3. Selection mode
+      if (isSelectionMode) {
+        e.preventDefault();
+        e.stopPropagation();
+        handleCancelSelection();
+        return;
+      }
+
+      // 4. Right side panel (search or details)
+      if (rightPanel !== null) {
+        e.preventDefault();
+        e.stopPropagation();
+        setRightPanel(null);
+        return;
+      }
+
+      // 5. Editing or Replying to message preview
+      if (editingMessage) {
+        e.preventDefault();
+        e.stopPropagation();
+        setEditingMessage(null);
+        return;
+      }
+
+      if (replyingTo) {
+        e.preventDefault();
+        e.stopPropagation();
+        setReplyingTo(null);
+        return;
+      }
+
+      // 6. If active element is an input or textarea with non-empty text, blur it on first Esc
+      const activeEl = document.activeElement as HTMLElement | null;
+      if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
+        const val = (activeEl as HTMLInputElement | HTMLTextAreaElement).value;
+        if (val && val.length > 0) {
+          e.preventDefault();
+          e.stopPropagation();
+          activeEl.blur();
+          return;
+        }
+      }
+
+      // 7. Otherwise, close this chat thread with smooth animated exit
+      e.preventDefault();
+      e.stopPropagation();
+      handleCloseChat();
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [
+    activeLightbox,
+    isDatePickerOpen,
+    forwardingMessage,
+    isBatchForwardOpen,
+    isBatchDeleteOpen,
+    isPinnedModalOpen,
+    isSelectionMode,
+    rightPanel,
+    editingMessage,
+    replyingTo,
+    handleCancelSelection,
+    handleCloseChat,
+  ]);
+
+  // Ctrl+ArrowUp / Cmd+ArrowUp: smoothly cycle reply to messages from bottom to top
+  // Ctrl+ArrowDown / Cmd+ArrowDown: smoothly cycle reply back down or exit reply
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+        if (!messages || messages.length === 0) return;
+
+        // Skip if modal is open
+        if (document.querySelector('[role="dialog"], [aria-modal="true"], .glass-modal')) return;
+
+        // Eligible messages to reply to (exclude deleted)
+        const eligible = messages.filter((m) => !m.isDeleted);
+        if (eligible.length === 0) return;
+
+        if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          e.stopPropagation();
+
+          if (!replyingTo) {
+            // First press: take the latest message (closest to composer)
+            setReplyingTo(eligible[eligible.length - 1]);
+          } else {
+            // Next press: take the next message above it
+            const curIdx = eligible.findIndex((m) => m.id === replyingTo.id);
+            if (curIdx === -1 || curIdx <= 0) {
+              // Loop back around to the bottom-most / latest message
+              setReplyingTo(eligible[eligible.length - 1]);
+            } else {
+              setReplyingTo(eligible[curIdx - 1]);
+            }
+          }
+        } else if (e.key === 'ArrowDown') {
+          // If replying, navigate back down towards latest or cancel reply if at the bottom
+          if (replyingTo) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const curIdx = eligible.findIndex((m) => m.id === replyingTo.id);
+            if (curIdx === -1 || curIdx >= eligible.length - 1) {
+              // Reached newest message: cancel reply smoothly
+              setReplyingTo(null);
+            } else {
+              // Move one message down
+              setReplyingTo(eligible[curIdx + 1]);
+            }
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
+  }, [messages, replyingTo]);
+
   return (
-    <div className="flex-1 flex h-full min-w-0">
+    <div
+      className={`flex-1 flex h-full min-w-0 transition-all duration-240 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+        isClosingChat
+          ? 'opacity-0 scale-[0.985] translate-x-4 pointer-events-none'
+          : 'opacity-100 scale-100 translate-x-0'
+      }`}
+    >
       <div ref={chatPaneRef} className="flex-1 flex flex-col h-full min-w-0">
         <ChatThreadHeader
           conversationId={conversation.id}
@@ -418,6 +720,8 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
           isOtherTyping={isOtherTyping}
           isDetailsOpen={rightPanel === 'details'}
           onToggleDetails={() => setRightPanel((p) => (p === 'details' ? null : 'details'))}
+          isSearchOpen={rightPanel === 'search'}
+          onToggleSearch={() => setRightPanel((p) => (p === 'search' ? null : 'search'))}
           isGroup={conversation.type === 'GROUP'}
           memberAvatars={conversation.participants.map((p) => p.user.avatar)}
           memberCount={conversation.participants.length}
@@ -480,6 +784,7 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
         )}
 
         <CallHandoffBanner />
+        <WatchTogetherActivityBanner conversationId={conversation.id} />
 
         <GlobalMediaPlaybackBar
           onNearQueueEnd={hasNextPage && !isFetchingNextPage ? fetchNextPage : undefined}
@@ -494,7 +799,14 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
 
         <div className="relative flex-1 flex flex-col min-h-0 overflow-hidden">
           {/* Isolated Hardware-Accelerated Background Layer */}
-          <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none" style={bgStyle}>
+          <div
+            className="absolute inset-0 z-0 overflow-hidden pointer-events-none chat-background"
+            style={{
+              ...bgStyle,
+              transform: 'translateZ(0)',
+              willChange: 'transform',
+            }}
+          >
             {chatTheme.backgroundType === 'shader' && (
               <ProceduralChatBackground
                 shaderId={chatTheme.shaderPresetId || 'neon-smoke'}
@@ -504,13 +816,9 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
             )}
             {chatTheme.backgroundType === 'image' && chatTheme.bgImageUrl && (
               <div
-                className="absolute inset-0"
+                className="absolute inset-0 pointer-events-none"
                 style={{
                   backgroundColor: `rgba(0, 0, 0, ${1 - (chatTheme.bgBrightness ?? 0.8)})`,
-                  backdropFilter: chatTheme.bgBlur ? `blur(${chatTheme.bgBlur}px)` : undefined,
-                  WebkitBackdropFilter: chatTheme.bgBlur
-                    ? `blur(${chatTheme.bgBlur}px)`
-                    : undefined,
                 }}
               />
             )}
@@ -540,13 +848,13 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
               chatTheme={chatTheme}
               onToggleSelectMessage={handleToggleSelectMessage}
               onLoadMore={fetchNextPage}
-              onReply={setReplyingTo}
+              onReply={(message) => {
+                setEditingMessage(null);
+                setReplyingTo(message);
+              }}
               onEdit={(message) => {
-                void promptEditMessage(
-                  message,
-                  otherParticipant?.userId ?? null,
-                  actions.editMessage,
-                );
+                setReplyingTo(null);
+                setEditingMessage(message);
               }}
               onDelete={handleDelete}
               onForward={setForwardingMessage}
@@ -576,6 +884,7 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
               onRetry={(msgId) => {
                 actions.retrySendMessage(msgId).catch(() => {});
               }}
+              onOpenMedia={handleOpenMedia}
             />
 
             {/* Copy Toast Feedback */}
@@ -669,6 +978,8 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
                   replyingTo={replyingTo}
                   onCancelReply={() => setReplyingTo(null)}
                   onSetReplyingTo={setReplyingTo}
+                  editingMessage={editingMessage}
+                  onCancelEdit={() => setEditingMessage(null)}
                   stagedFiles={staged.files}
                   stagedFilesError={staged.error}
                   onAddFiles={staged.addFiles}
@@ -681,6 +992,7 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
                   e2eePeerUserId={
                     conversation.type === 'GROUP' ? null : (otherParticipant?.userId ?? null)
                   }
+                  canAutoFocus={canAutoFocusComposer}
                 />
               )}
             </div>
@@ -691,9 +1003,12 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
         {forwardingMessage && (
           <ForwardMessageModal
             messageCount={1}
+            chatTheme={chatTheme}
             onClose={() => setForwardingMessage(null)}
-            onForward={(conversationIds, _hideAuthor) => {
-              actions.forwardMessage(forwardingMessage, conversationIds).catch(() => {});
+            onForward={(conversationIds, hideAuthor) => {
+              actions
+                .forwardMessage(forwardingMessage, conversationIds, { hideAuthor })
+                .catch(() => {});
               setForwardingMessage(null);
             }}
           />
@@ -703,6 +1018,7 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
         {isBatchForwardOpen && (
           <ForwardMessageModal
             messageCount={selectedMessageIds.size}
+            chatTheme={chatTheme}
             onClose={() => setIsBatchForwardOpen(false)}
             onForward={handleConfirmBatchForward}
           />
@@ -729,28 +1045,62 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
             onUnpin={(messageId) => actions.unpinMessage(messageId).catch(() => {})}
           />
         )}
+
+        {/* Fullscreen Telegram-Style Media Lightbox */}
+        {activeLightbox && (
+          <MediaLightbox
+            items={activeLightbox.items}
+            index={activeLightbox.index}
+            onIndexChange={(idx) =>
+              setActiveLightbox((prev) => (prev ? { ...prev, index: idx } : null))
+            }
+            onClose={() => setActiveLightbox(null)}
+            onDelete={(messageId, forAll) => actions.deleteMessage(messageId, forAll)}
+            onForward={(msg) => setForwardingMessage(msg)}
+            onJumpToMessage={handleJumpToMessage}
+            originRect={activeLightbox.originRect}
+            currentUserId={userId}
+          />
+        )}
       </div>
 
-      {rightPanel === 'details' && (
-        <ConversationDetailsPanel
-          conversation={conversation}
-          display={display}
-          otherUserId={otherParticipant?.userId ?? null}
-          messages={messages}
-          onClose={() => setRightPanel(null)}
-          onOpenSearch={() => setRightPanel('search')}
-          onJumpToMessage={handleJumpToMessage}
-        />
-      )}
+      {/* Smooth Animated Right Drawer Container */}
+      <aside
+        aria-label="Chat side panel"
+        className={`h-full flex-shrink-0 overflow-hidden transition-[width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          rightPanel && !isPanelClosing ? 'w-[340px]' : 'w-0'
+        }`}
+      >
+        <div
+          className={`w-[340px] h-full flex flex-col flex-shrink-0 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+            rightPanel && !isPanelClosing
+              ? 'opacity-100 translate-x-0'
+              : 'opacity-0 translate-x-4 pointer-events-none'
+          }`}
+        >
+          {renderedPanel === 'details' && (
+            <ConversationDetailsPanel
+              conversation={conversation}
+              display={display}
+              otherUserId={otherParticipant?.userId ?? null}
+              messages={messages}
+              onClose={() => setRightPanel(null)}
+              onOpenSearch={() => setRightPanel('search')}
+              onJumpToMessage={handleJumpToMessage}
+            />
+          )}
 
-      {rightPanel === 'search' && (
-        <MessageSearchPanel
-          conversationId={conversation.id}
-          onClose={() => setRightPanel(null)}
-          onJumpToMessage={handleJumpToMessage}
-          onOpenDatePicker={(rect) => handleOpenDatePicker(undefined, rect)}
-        />
-      )}
+          {renderedPanel === 'search' && (
+            <MessageSearchPanel
+              conversationId={conversation.id}
+              onClose={() => setRightPanel(null)}
+              onJumpToMessage={handleJumpToMessage}
+              onOpenDatePicker={(rect) => handleOpenDatePicker(undefined, rect)}
+              onSelectConversation={(targetConvId) => navigate(`/messages/${targetConvId}`)}
+            />
+          )}
+        </div>
+      </aside>
 
       {/* Telegram-style Chat Date Picker Modal / Popover */}
       <ChatDatePicker

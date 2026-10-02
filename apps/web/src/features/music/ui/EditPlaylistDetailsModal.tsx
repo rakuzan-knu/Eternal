@@ -84,14 +84,16 @@ export const EditPlaylistDetailsModal: React.FC<EditPlaylistDetailsModalProps> =
   return (
     <Modal onClose={onClose} className="w-full max-w-xl">
       {(close) => (
-        <div className="bg-[#282828] text-white rounded-3xl p-6 shadow-2xl flex flex-col select-none border border-white/10 animate-scaleUp">
+        <div className="glass-modal text-gray-900 dark:text-white rounded-3xl p-6 shadow-2xl flex flex-col select-none border border-black/10 dark:border-white/10 backdrop-blur-3xl animate-scaleUp">
           {/* Header */}
-          <div className="flex items-center justify-between pb-4 border-b border-white/5">
-            <h2 className="text-xl font-bold tracking-tight text-white">Edit details</h2>
+          <div className="flex items-center justify-between pb-4 border-b border-black/10 dark:border-white/5">
+            <h2 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+              Edit details
+            </h2>
             <button
               type="button"
               onClick={close}
-              className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              className="w-8 h-8 flex items-center justify-center rounded-full text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
             >
               <X size={18} />
             </button>
@@ -111,12 +113,12 @@ export const EditPlaylistDetailsModal: React.FC<EditPlaylistDetailsModalProps> =
 
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="relative group w-44 h-44 sm:w-full aspect-square rounded-xl bg-[#18181c] border border-white/10 flex items-center justify-center overflow-hidden cursor-pointer shadow-lg hover:border-white/25 transition-all"
+                  className="relative group w-44 h-44 sm:w-full aspect-square rounded-xl bg-black/5 dark:bg-[#18181c] border border-black/10 dark:border-white/10 flex items-center justify-center overflow-hidden cursor-pointer shadow-lg hover:border-black/20 dark:hover:border-white/25 transition-all"
                 >
                   {coverUrl ? (
                     <img src={coverUrl} alt={title} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="flex flex-col items-center justify-center text-neutral-500">
+                    <div className="flex flex-col items-center justify-center text-gray-400 dark:text-neutral-500">
                       <Music2 size={64} strokeWidth={1.5} />
                     </div>
                   )}
@@ -136,7 +138,7 @@ export const EditPlaylistDetailsModal: React.FC<EditPlaylistDetailsModalProps> =
                       setCoverUrl('');
                       if (fileInputRef.current) fileInputRef.current.value = '';
                     }}
-                    className="flex items-center justify-center gap-1.5 text-xs text-gray-400 hover:text-red-400 transition-colors py-1 cursor-pointer"
+                    className="flex items-center justify-center gap-1.5 text-xs text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 transition-colors py-1 cursor-pointer"
                   >
                     <Trash2 size={13} />
                     <span>Remove cover</span>
@@ -144,7 +146,9 @@ export const EditPlaylistDetailsModal: React.FC<EditPlaylistDetailsModalProps> =
                 )}
 
                 {fileError && (
-                  <p className="text-[11px] text-red-400 text-center leading-tight">{fileError}</p>
+                  <p className="text-[11px] text-red-500 dark:text-red-400 text-center leading-tight">
+                    {fileError}
+                  </p>
                 )}
 
                 {/* Privacy toggle pill button */}
@@ -153,18 +157,18 @@ export const EditPlaylistDetailsModal: React.FC<EditPlaylistDetailsModalProps> =
                   onClick={() => setIsPrivate((prev) => !prev)}
                   className={`mt-1 w-full flex items-center justify-center gap-2 py-2 px-3 rounded-full text-xs font-bold border transition-all cursor-pointer ${
                     isPrivate
-                      ? 'bg-purple-600/20 border-purple-500/50 text-purple-300 hover:bg-purple-600/30'
-                      : 'bg-white/5 border-white/15 text-gray-200 hover:bg-white/10 hover:border-white/30'
+                      ? 'bg-purple-600/20 border-purple-500/50 text-purple-700 dark:text-purple-300 hover:bg-purple-600/30'
+                      : 'bg-black/5 border-black/10 text-gray-700 hover:bg-black/10 hover:text-gray-950 dark:bg-white/5 dark:border-white/15 dark:text-gray-200 dark:hover:bg-white/10 dark:hover:border-white/30'
                   }`}
                 >
                   {isPrivate ? (
                     <>
-                      <Lock size={13} className="text-purple-400 shrink-0" />
+                      <Lock size={13} className="text-purple-600 dark:text-purple-400 shrink-0" />
                       <span className="truncate">Make public</span>
                     </>
                   ) : (
                     <>
-                      <Globe size={13} className="text-gray-400 shrink-0" />
+                      <Globe size={13} className="text-gray-500 dark:text-gray-400 shrink-0" />
                       <span className="truncate">Make private</span>
                     </>
                   )}
@@ -174,19 +178,21 @@ export const EditPlaylistDetailsModal: React.FC<EditPlaylistDetailsModalProps> =
               {/* Right column: Title & Description inputs */}
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-gray-300 tracking-wide">Name</label>
+                  <label className="text-xs font-bold text-gray-700 dark:text-gray-300 tracking-wide">
+                    Name
+                  </label>
                   <input
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="My Playlist"
-                    className="w-full px-3.5 py-2.5 rounded-lg bg-[#3e3e3e]/70 focus:bg-[#333338] border border-transparent focus:border-white/30 text-sm font-semibold text-white placeholder-gray-400 outline-none transition-all"
+                    className="w-full px-3.5 py-2.5 rounded-lg bg-black/5 focus:bg-black/10 dark:bg-[#3e3e3e]/70 dark:focus:bg-[#333338] border border-black/10 dark:border-transparent dark:focus:border-white/30 text-sm font-semibold text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all"
                     autoFocus
                   />
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-gray-300 tracking-wide">
+                  <label className="text-xs font-bold text-gray-700 dark:text-gray-300 tracking-wide">
                     Description
                   </label>
                   <textarea
@@ -194,7 +200,7 @@ export const EditPlaylistDetailsModal: React.FC<EditPlaylistDetailsModalProps> =
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="Add an optional description"
                     rows={4}
-                    className="w-full px-3.5 py-2.5 rounded-lg bg-[#3e3e3e]/70 focus:bg-[#333338] border border-transparent focus:border-white/30 text-sm text-white placeholder-gray-400 outline-none resize-none transition-all"
+                    className="w-full px-3.5 py-2.5 rounded-lg bg-black/5 focus:bg-black/10 dark:bg-[#3e3e3e]/70 dark:focus:bg-[#333338] border border-black/10 dark:border-transparent dark:focus:border-white/30 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none resize-none transition-all"
                   />
                 </div>
 
@@ -202,7 +208,7 @@ export const EditPlaylistDetailsModal: React.FC<EditPlaylistDetailsModalProps> =
                   <button
                     type="submit"
                     disabled={!title.trim()}
-                    className="px-8 py-3 rounded-full bg-white hover:bg-gray-100 text-black text-sm font-bold shadow-lg hover:scale-105 active:scale-95 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="px-8 py-3 rounded-full bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:hover:bg-gray-100 dark:text-black text-sm font-bold shadow-lg hover:scale-105 active:scale-95 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     Save
                   </button>
@@ -211,8 +217,8 @@ export const EditPlaylistDetailsModal: React.FC<EditPlaylistDetailsModalProps> =
             </div>
 
             {/* Bottom Disclaimer */}
-            <div className="pt-4 mt-5 border-t border-white/5">
-              <p className="text-[11px] text-gray-400 leading-snug">
+            <div className="pt-4 mt-5 border-t border-black/10 dark:border-white/5">
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-snug">
                 By continuing, you agree to grant Eternal access to the selected image. Make sure
                 you have the right to use it.
               </p>

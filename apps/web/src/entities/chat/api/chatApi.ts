@@ -142,6 +142,20 @@ export const chatApi = {
       .then((r) => r.data);
   },
 
+  addReaction: (conversationId: string, messageId: string, emoji: string) =>
+    api
+      .post<MessageView>(`/conversations/${conversationId}/messages/${messageId}/reactions`, {
+        emoji,
+      })
+      .then((r) => r.data),
+
+  removeReaction: (conversationId: string, messageId: string, emoji: string) =>
+    api
+      .delete<MessageView>(
+        `/conversations/${conversationId}/messages/${messageId}/reactions/${encodeURIComponent(emoji)}`,
+      )
+      .then((r) => r.data),
+
   mute: (conversationId: string, muteLevel: MuteLevel, mutedUntil?: string) =>
     api
       .patch(`/conversations/${conversationId}/mute`, { muteLevel, mutedUntil })
@@ -260,7 +274,7 @@ export const chatApi = {
   // Global Full-Text Search
   globalSearch: (
     q: string,
-    type: 'all' | 'messages' | 'media' | 'files' | 'links' | 'people' = 'all',
+    type: 'all' | 'messages' | 'media' | 'music' | 'files' | 'links' | 'people' = 'all',
     conversationId?: string,
     limit = 20,
     offset = 0,

@@ -5,6 +5,13 @@ export interface StagedFile {
   file: File;
   previewUrl: string;
   isSpoiler?: boolean;
+  sendAsFile?: boolean;
+  isMuted?: boolean;
+  duration?: number;
+  trimStart?: number;
+  trimEnd?: number;
+  uploadProgress?: number;
+  hasCustomEdits?: boolean;
 }
 
 export function useStagedAttachments() {
@@ -34,15 +41,31 @@ export function useStagedAttachments() {
     });
   }, []);
 
-  const replaceFile = useCallback((index: number, newFile: File, isSpoiler?: boolean) => {
+  const replaceFile = useCallback(
+    (index: number, newFile: File, isSpoiler?: boolean, meta?: Partial<StagedFile>) => {
+      setFiles((prev) => {
+        if (!prev[index]) return prev;
+        URL.revokeObjectURL(prev[index].previewUrl);
+        const next = [...prev];
+        next[index] = {
+          file: newFile,
+          previewUrl: URL.createObjectURL(newFile),
+          isSpoiler: isSpoiler !== undefined ? isSpoiler : prev[index].isSpoiler,
+          ...meta,
+        };
+        return next;
+      });
+    },
+    [],
+  );
+
+  const updateFileMeta = useCallback((index: number, meta: Partial<StagedFile>) => {
     setFiles((prev) => {
       if (!prev[index]) return prev;
-      URL.revokeObjectURL(prev[index].previewUrl);
       const next = [...prev];
       next[index] = {
-        file: newFile,
-        previewUrl: URL.createObjectURL(newFile),
-        isSpoiler: isSpoiler !== undefined ? isSpoiler : prev[index].isSpoiler,
+        ...next[index],
+        ...meta,
       };
       return next;
     });
@@ -74,6 +97,7 @@ export function useStagedAttachments() {
     addFiles,
     removeFile,
     replaceFile,
+    updateFileMeta,
     toggleSpoiler,
     clear,
     dismissError: () => setError(null),

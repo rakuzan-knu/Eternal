@@ -45,7 +45,7 @@ export default function MuteOptionsModal({ onClose, onConfirm }: MuteOptionsModa
   return (
     <Modal onClose={onClose} className="w-full max-w-sm">
       {() => (
-        <div className="bg-[#151922]/95 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-2xl overflow-hidden text-left">
+        <div className="glass-modal border border-white/10 rounded-3xl shadow-2xl overflow-hidden text-left">
           <div className="flex items-center justify-between px-5 pt-5 pb-3">
             <div className="flex items-center gap-2.5">
               <span className="w-8 h-8 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400">

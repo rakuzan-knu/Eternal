@@ -148,7 +148,7 @@ export const PersonalMetaWidget: React.FC<PersonalMetaWidgetProps> = ({
 
   return (
     <div
-      className="relative overflow-hidden rounded-3xl bg-[#121216]/90 border border-white/[0.08] p-4.5 transition-all duration-300 hover:border-white/[0.16] shadow-xl group"
+      className="glass-card relative overflow-hidden rounded-3xl border border-white/[0.08] p-4.5 transition-all duration-300 hover:border-white/[0.16] shadow-xl group"
       style={{
         boxShadow: `0 8px 32px 0 rgba(0, 0, 0, 0.37)`,
       }}

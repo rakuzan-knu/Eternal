@@ -5,6 +5,7 @@ import { useSpotifyPlayerStore } from '@/shared/model/useSpotifyPlayerStore';
 import { integrationsApi } from '@/entities/showcase/api/integrationsApi';
 import { SpotifyBrandIcon, SoundCloudBrandIcon } from '@/shared/ui/BrandIcons';
 import { getSafeSpotifyTrackUrl, unescapeHtml, isSoundCloudUrl } from '@/shared/lib/spotifyUrl';
+import { useThemeStore, isCurrentThemeLight } from '@/shared/model/useThemeStore';
 
 const DEFAULT_ARTWORK_FALLBACK =
   'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=200&auto=format&fit=crop&q=80';
@@ -28,6 +29,7 @@ export const SpotifyLyricsModal: React.FC = () => {
 
   const [lyrics, setLyrics] = useState<LyricLine[]>([]);
   const [loading, setLoading] = useState(false);
+  const isLight = useThemeStore((s) => isCurrentThemeLight(s));
   const linesContainerRef = useRef<HTMLDivElement | null>(null);
   const activeLineRef = useRef<HTMLDivElement | null>(null);
 
@@ -138,13 +140,19 @@ export const SpotifyLyricsModal: React.FC = () => {
           transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
           className="relative w-full max-w-2xl h-[620px] max-h-[88vh] rounded-[32px] sm:rounded-[40px] flex flex-col overflow-hidden shadow-2xl"
           style={{
-            background: 'rgba(13, 14, 20, 0.88)',
+            background: isLight ? 'rgba(255, 255, 255, 0.94)' : 'rgba(13, 14, 20, 0.88)',
             backdropFilter: 'blur(48px) saturate(230%)',
             WebkitBackdropFilter: 'blur(48px) saturate(230%)',
-            border: '1px solid rgba(255, 255, 255, 0.22)',
-            boxShadow: `0 32px 80px -16px rgba(0, 0, 0, 0.9), inset 0 2px 2px 0 rgba(255, 255, 255, 0.45), inset 0 -1.5px 2px 0 rgba(0, 0, 0, 0.5), 0 0 40px ${
-              isSoundCloud ? 'rgba(255, 85, 0, 0.2)' : 'rgba(29, 185, 84, 0.2)'
-            }`,
+            border: isLight
+              ? '1px solid rgba(0, 0, 0, 0.12)'
+              : '1px solid rgba(255, 255, 255, 0.22)',
+            boxShadow: isLight
+              ? `0 32px 80px -16px rgba(0, 0, 0, 0.15), inset 0 2px 2px 0 rgba(255, 255, 255, 0.9), 0 0 40px ${
+                  isSoundCloud ? 'rgba(255, 85, 0, 0.12)' : 'rgba(29, 185, 84, 0.12)'
+                }`
+              : `0 32px 80px -16px rgba(0, 0, 0, 0.9), inset 0 2px 2px 0 rgba(255, 255, 255, 0.45), inset 0 -1.5px 2px 0 rgba(0, 0, 0, 0.5), 0 0 40px ${
+                  isSoundCloud ? 'rgba(255, 85, 0, 0.2)' : 'rgba(29, 185, 84, 0.2)'
+                }`,
           }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -155,10 +163,14 @@ export const SpotifyLyricsModal: React.FC = () => {
           />
 
           {/* Liquid Glass Top Refraction Highlight Rim */}
-          <div className="absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-white/50 to-transparent pointer-events-none" />
+          <div
+            className={`absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent ${
+              isLight ? 'via-black/10' : 'via-white/50'
+            } to-transparent pointer-events-none`}
+          />
 
           {/* Modal Header */}
-          <div className="relative flex items-center justify-between p-5 sm:p-6 border-b border-white/[0.08] shrink-0 z-10">
+          <div className="relative flex items-center justify-between p-5 sm:p-6 border-b border-black/[0.08] dark:border-white/[0.08] shrink-0 z-10">
             <div className="flex items-center gap-3.5 min-w-0">
               <img
                 src={currentTrack.albumArt || DEFAULT_ARTWORK_FALLBACK}
@@ -167,11 +179,11 @@ export const SpotifyLyricsModal: React.FC = () => {
                   (e.currentTarget as HTMLImageElement).src =
                     currentTrack.artistAvatar || DEFAULT_ARTWORK_FALLBACK;
                 }}
-                className="w-12 h-12 rounded-2xl object-cover shadow-lg border border-white/10 shrink-0"
+                className="w-12 h-12 rounded-2xl object-cover shadow-lg border border-black/10 dark:border-white/10 shrink-0"
               />
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-sm sm:text-base font-bold text-white truncate">
+                  <h3 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white truncate">
                     {unescapeHtml(currentTrack.title)}
                   </h3>
                   {isSoundCloud ? (
@@ -179,7 +191,7 @@ export const SpotifyLyricsModal: React.FC = () => {
                       href={currentTrack.spotifyUrl || 'https://soundcloud.com'}
                       target="_blank"
                       rel="noreferrer"
-                      className="p-1 rounded-full hover:bg-white/10 text-gray-400 hover:text-[#FF5500] transition-colors shrink-0"
+                      className="p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-gray-500 hover:text-[#FF5500] dark:text-gray-400 transition-colors shrink-0"
                       title="Open in SoundCloud"
                     >
                       <SoundCloudBrandIcon size={16} />
@@ -189,7 +201,7 @@ export const SpotifyLyricsModal: React.FC = () => {
                       href={getSafeSpotifyTrackUrl(currentTrack)}
                       target="_blank"
                       rel="noreferrer"
-                      className="p-1 rounded-full hover:bg-white/10 text-gray-400 hover:text-[#1DB954] transition-colors shrink-0"
+                      className="p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-gray-500 hover:text-[#1DB954] dark:text-gray-400 transition-colors shrink-0"
                       title="Open in Spotify"
                     >
                       <SpotifyBrandIcon size={14} />
@@ -206,7 +218,7 @@ export const SpotifyLyricsModal: React.FC = () => {
                       <SpotifyBrandIcon size={11} />
                     </span>
                   )}
-                  <p className="text-xs text-gray-400 truncate font-medium">
+                  <p className="text-xs text-gray-600 dark:text-gray-400 truncate font-medium">
                     {unescapeHtml(currentTrack.artist)}
                   </p>
                 </div>
@@ -227,10 +239,10 @@ export const SpotifyLyricsModal: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setLyricsOpen(false)}
-                className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/15 text-gray-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer border border-white/10"
+                className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors cursor-pointer text-gray-700 hover:text-black bg-black/5 hover:bg-black/10 border border-black/10 dark:text-gray-300 dark:hover:text-white dark:bg-white/5 dark:hover:bg-white/15 dark:border-white/10"
                 title="Close (Esc)"
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4 shrink-0" />
               </button>
             </div>
           </div>
@@ -250,7 +262,11 @@ export const SpotifyLyricsModal: React.FC = () => {
                 <span className="text-xs">Loading synchronized lyrics...</span>
               </div>
             ) : lyrics.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full gap-3 text-gray-400">
+              <div
+                className={`flex flex-col items-center justify-center h-full gap-3 ${
+                  isLight ? 'text-gray-600' : 'text-gray-400'
+                }`}
+              >
                 <div
                   className={`p-4 rounded-full ${
                     isSoundCloud
@@ -260,8 +276,16 @@ export const SpotifyLyricsModal: React.FC = () => {
                 >
                   <Mic2 className="w-8 h-8" />
                 </div>
-                <p className="text-base font-semibold text-white">Lyrics are not available yet</p>
-                <p className="text-xs text-gray-400 max-w-xs text-center">
+                <p
+                  className={`text-base font-semibold ${isLight ? 'text-gray-950' : 'text-white'}`}
+                >
+                  Lyrics are not available yet
+                </p>
+                <p
+                  className={`text-xs max-w-xs text-center ${
+                    isLight ? 'text-gray-600' : 'text-gray-400'
+                  }`}
+                >
                   No synchronized lyrics available for this track, or it is an instrumental piece
                 </p>
               </div>
@@ -277,14 +301,24 @@ export const SpotifyLyricsModal: React.FC = () => {
                     onClick={() => seek(line.timeMs)}
                     className={`transition-all duration-300 cursor-pointer py-1.5 px-4 rounded-2xl ${
                       isActive
-                        ? `text-white text-2xl sm:text-3xl font-extrabold scale-[1.04] bg-white/[0.04] ${
-                            isSoundCloud
-                              ? 'drop-shadow-[0_0_24px_rgba(255,85,0,0.5)]'
-                              : 'drop-shadow-[0_0_24px_rgba(29,185,84,0.5)]'
-                          }`
+                        ? isLight
+                          ? `text-gray-950 text-2xl sm:text-3xl font-black scale-[1.04] bg-black/[0.04] ${
+                              isSoundCloud
+                                ? 'drop-shadow-[0_2px_14px_rgba(255,85,0,0.35)]'
+                                : 'drop-shadow-[0_2px_14px_rgba(29,185,84,0.35)]'
+                            }`
+                          : `text-white text-2xl sm:text-3xl font-extrabold scale-[1.04] bg-white/[0.04] ${
+                              isSoundCloud
+                                ? 'drop-shadow-[0_0_24px_rgba(255,85,0,0.5)]'
+                                : 'drop-shadow-[0_0_24px_rgba(29,185,84,0.5)]'
+                            }`
                         : isPast
-                          ? 'text-white/40 text-lg sm:text-xl font-medium hover:text-white/80'
-                          : 'text-white/20 text-lg sm:text-xl font-normal hover:text-white/60'
+                          ? isLight
+                            ? 'text-gray-600 text-lg sm:text-xl font-medium hover:text-gray-950'
+                            : 'text-white/40 text-lg sm:text-xl font-medium hover:text-white/80'
+                          : isLight
+                            ? 'text-gray-400 text-lg sm:text-xl font-normal hover:text-gray-700'
+                            : 'text-white/20 text-lg sm:text-xl font-normal hover:text-white/60'
                     }`}
                   >
                     {line.text}
@@ -295,14 +329,14 @@ export const SpotifyLyricsModal: React.FC = () => {
           </div>
 
           {/* Modal Footer Controls */}
-          <div className="p-4 sm:p-5 border-t border-white/[0.08] bg-black/30 backdrop-blur-md shrink-0 flex flex-col gap-2.5 z-10">
+          <div className="p-4 sm:p-5 border-t border-black/[0.08] dark:border-white/[0.08] bg-black/[0.03] dark:bg-black/30 backdrop-blur-md shrink-0 flex flex-col gap-2.5 z-10">
             {/* Scrubber */}
             <div className="flex items-center gap-3 w-full">
-              <span className="text-[11px] font-mono text-gray-400 w-10 text-right">
+              <span className="text-[11px] font-mono text-gray-500 dark:text-gray-400 w-10 text-right">
                 {formatTime(progressMs)}
               </span>
               <div
-                className="relative flex-1 h-2 bg-white/10 rounded-full cursor-pointer overflow-hidden group/scrub"
+                className="relative flex-1 h-2 bg-black/10 dark:bg-white/10 rounded-full cursor-pointer overflow-hidden group/scrub"
                 onClick={(e) => {
                   const rect = e.currentTarget.getBoundingClientRect();
                   const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
@@ -318,7 +352,7 @@ export const SpotifyLyricsModal: React.FC = () => {
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
-              <span className="text-[11px] font-mono text-gray-400 w-10">
+              <span className="text-[11px] font-mono text-gray-500 dark:text-gray-400 w-10">
                 {formatTime(durationMs)}
               </span>
             </div>
@@ -328,7 +362,7 @@ export const SpotifyLyricsModal: React.FC = () => {
               <button
                 type="button"
                 onClick={prevTrack}
-                className="text-gray-400 hover:text-white transition-colors cursor-pointer"
+                className="text-gray-600 hover:text-gray-950 dark:text-gray-400 dark:hover:text-white transition-colors cursor-pointer"
                 title="Previous track"
               >
                 <SkipBack className="w-5 h-5 fill-current" />
@@ -337,20 +371,20 @@ export const SpotifyLyricsModal: React.FC = () => {
               <button
                 type="button"
                 onClick={togglePlay}
-                className="w-11 h-11 rounded-full bg-white text-black hover:scale-105 active:scale-95 transition-transform flex items-center justify-center shadow-lg cursor-pointer"
+                className="w-11 h-11 rounded-full bg-gray-950 text-white dark:bg-white dark:text-black hover:scale-105 active:scale-95 transition-transform flex items-center justify-center shadow-lg cursor-pointer"
                 title={isPlaying ? 'Pause' : 'Play'}
               >
                 {isPlaying ? (
-                  <Pause className="w-5 h-5 fill-black text-black" />
+                  <Pause className="w-5 h-5 fill-current" />
                 ) : (
-                  <Play className="w-5 h-5 fill-black text-black ml-0.5" />
+                  <Play className="w-5 h-5 fill-current ml-0.5" />
                 )}
               </button>
 
               <button
                 type="button"
                 onClick={nextTrack}
-                className="text-gray-400 hover:text-white transition-colors cursor-pointer"
+                className="text-gray-600 hover:text-gray-950 dark:text-gray-400 dark:hover:text-white transition-colors cursor-pointer"
                 title="Next track"
               >
                 <SkipForward className="w-5 h-5 fill-current" />

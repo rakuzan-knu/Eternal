@@ -35,7 +35,7 @@ export const AddFileButton: React.FC<AddFileButtonProps> = ({
         onClick={() => fileInputRef.current?.click()}
         disabled={disabled}
         title="Attach a photo or video"
-        className="p-2.5 rounded-xl text-gray-400 hover:bg-white/5 hover:text-white transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed"
+        className="p-2.5 rounded-xl text-gray-500 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
       >
         <Paperclip size={18} />
       </button>

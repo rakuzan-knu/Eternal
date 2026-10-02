@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Heart,
@@ -27,10 +27,22 @@ import { JamRoomPopover } from './JamRoomPopover';
 import { JamAutoplayBanner } from './JamAutoplayBanner';
 import { useJamStore } from '@/features/music/model/useJamStore';
 import { useJamSession } from '@/features/music/model/useJamSession';
-import { usePlatformMusicPresence } from '@/features/music/model/usePlatformMusicPresence';
+import { useLiquidGlassTheme } from '@/shared/lib/useLiquidGlassTheme';
 import { getSafeSpotifyTrackUrl, unescapeHtml, isSoundCloudUrl } from '@/shared/lib/spotifyUrl';
 
 export const SpotifyBottomDock: React.FC = () => {
+  const {
+    isLight,
+    liquidGradient,
+    popoverGradient,
+    backdropFilter,
+    WebkitBackdropFilter,
+    topSpecularClass,
+    bottomSpecularClass,
+    borderClass,
+    boxShadow,
+  } = useLiquidGlassTheme();
+
   const currentTrack = useSpotifyPlayerStore((s) => s.currentTrack);
   const isDockVisible = useSpotifyPlayerStore((s) => s.isDockVisible);
   const isDockMinimized = useSpotifyPlayerStore((s) => s.isDockMinimized);
@@ -77,9 +89,6 @@ export const SpotifyBottomDock: React.FC = () => {
   const toggleGameMode = useSpotifyPlayerStore((s) => s.toggleGameMode);
   const needsSpotifyPermissions = useSpotifyPlayerStore((s) => s.needsSpotifyPermissions);
   const reauthorizeSpotify = useSpotifyPlayerStore((s) => s.reauthorizeSpotify);
-
-  // Broadcast real-time platform music activity across network
-  usePlatformMusicPresence();
 
   // Jam / Listen Along state & session hook
   const {
@@ -163,6 +172,87 @@ export const SpotifyBottomDock: React.FC = () => {
     emitManualHostSync,
   ]);
 
+  // Scrubber drag-to-seek state & handlers
+  const [isScrubbing, setIsScrubbing] = useState(false);
+  const [scrubProgressMs, setScrubProgressMs] = useState<number | null>(null);
+  const scrubberRef = useRef<HTMLDivElement>(null);
+  const isScrubbingRef = useRef(false);
+  const durationMsRef = useRef(durationMs);
+  const cleanupDragRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    durationMsRef.current = durationMs;
+  }, [durationMs]);
+
+  useEffect(() => {
+    return () => {
+      if (cleanupDragRef.current) {
+        cleanupDragRef.current();
+      }
+      if (volumeTimeoutRef.current) {
+        clearTimeout(volumeTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const calculateScrubberPos = useCallback((clientX: number) => {
+    if (!scrubberRef.current) return 0;
+    const rect = scrubberRef.current.getBoundingClientRect();
+    if (rect.width <= 0) return 0;
+    return Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+  }, []);
+
+  const handleScrubberPointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (e.button !== 0) return;
+      if (isJamActive && !isHost) return;
+      e.preventDefault();
+      e.stopPropagation();
+
+      const pos = calculateScrubberPos(e.clientX);
+      const targetMs = pos * (durationMsRef.current || 0);
+
+      isScrubbingRef.current = true;
+      setIsScrubbing(true);
+      setScrubProgressMs(targetMs);
+
+      const onPointerMove = (moveEvent: PointerEvent) => {
+        if (!isScrubbingRef.current) return;
+        moveEvent.preventDefault();
+        const movePos = calculateScrubberPos(moveEvent.clientX);
+        const moveMs = movePos * (durationMsRef.current || 0);
+        setScrubProgressMs(moveMs);
+      };
+
+      const onPointerUp = (upEvent: PointerEvent) => {
+        if (!isScrubbingRef.current) return;
+        isScrubbingRef.current = false;
+        setIsScrubbing(false);
+        setScrubProgressMs(null);
+
+        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('pointerup', onPointerUp);
+        window.removeEventListener('pointercancel', onPointerUp);
+        cleanupDragRef.current = null;
+
+        const finalPos = calculateScrubberPos(upEvent.clientX);
+        const finalMs = finalPos * (durationMsRef.current || 0);
+        seek(finalMs);
+        if (isHost) emitManualHostSync();
+      };
+
+      window.addEventListener('pointermove', onPointerMove);
+      window.addEventListener('pointerup', onPointerUp);
+      window.addEventListener('pointercancel', onPointerUp);
+      cleanupDragRef.current = () => {
+        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('pointerup', onPointerUp);
+        window.removeEventListener('pointercancel', onPointerUp);
+      };
+    },
+    [isJamActive, isHost, calculateScrubberPos, seek, emitManualHostSync],
+  );
+
   if (!isDockVisible || !currentTrack) return null;
 
   const formatTime = (ms: number) => {
@@ -172,7 +262,9 @@ export const SpotifyBottomDock: React.FC = () => {
     return `${min}:${sec < 10 ? '0' : ''}${sec}`;
   };
 
-  const progressPercent = Math.min(100, Math.max(0, (progressMs / (durationMs || 1)) * 100));
+  const displayProgressMs = isScrubbing && scrubProgressMs !== null ? scrubProgressMs : progressMs;
+
+  const progressPercent = Math.min(100, Math.max(0, (displayProgressMs / (durationMs || 1)) * 100));
 
   const handleVolumeMouseEnter = () => {
     if (volumeTimeoutRef.current) clearTimeout(volumeTimeoutRef.current);
@@ -207,25 +299,46 @@ export const SpotifyBottomDock: React.FC = () => {
             }
           }}
         >
-          {/* Minimized Bottom Tab with Specular Liquid Glass Border */}
+          {/* Minimized Bottom Tab with Apple iOS Liquid Glass Style */}
           <div
-            className={`relative h-8 sm:h-9 px-3 flex items-center gap-2 rounded-t-2xl sm:rounded-t-[20px] border-t border-x border-white/20 min-w-[200px] max-w-[290px] sm:max-w-[380px] shadow-[0_-8px_24px_rgba(0,0,0,0.7),inset_0_1px_1px_rgba(255,255,255,0.4)] transition-all duration-200 group-hover:bg-[#14151e]/95 ${
-              isSoundCloud ? 'group-hover:border-[#FF5500]/60' : 'group-hover:border-emerald-500/50'
+            className={`relative h-8 sm:h-9 px-3 flex items-center gap-2 rounded-t-2xl sm:rounded-t-[20px] ${
+              isLight ? 'border-t border-x border-white/70' : 'border-t border-x border-white/25'
+            } min-w-[200px] max-w-[290px] sm:max-w-[380px] transition-all duration-300 group-hover:brightness-110 active:scale-[0.99] ${
+              isSoundCloud
+                ? 'group-hover:border-[#FF5500]/70'
+                : isLight
+                  ? 'group-hover:border-emerald-600/60'
+                  : 'group-hover:border-emerald-400/60'
             }`}
             style={{
-              background:
-                'linear-gradient(135deg, rgba(22, 23, 31, 0.9) 0%, rgba(11, 12, 16, 0.96) 100%)',
-              backdropFilter: 'blur(32px) saturate(210%) brightness(108%)',
-              WebkitBackdropFilter: 'blur(32px) saturate(210%) brightness(108%)',
+              background: liquidGradient,
+              backdropFilter: 'blur(36px) saturate(210%) brightness(108%)',
+              WebkitBackdropFilter: 'blur(36px) saturate(210%) brightness(108%)',
+              boxShadow: isLight
+                ? '0 -6px 20px -2px rgba(0, 0, 0, 0.1), inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.04)'
+                : '0 -8px 24px -2px rgba(0, 0, 0, 0.65), inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.45), inset 0 0 12px 1px rgba(255, 255, 255, 0.04)',
             }}
           >
             {/* Top Specular Reflection Highlight */}
-            <div className="absolute inset-x-3 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-white/50 to-transparent pointer-events-none rounded-t-full" />
+            <div
+              className={`absolute inset-x-3 top-0 h-[1.5px] ${topSpecularClass} pointer-events-none rounded-t-full`}
+            />
+
+            {/* Apple Liquid Glass Surface Sheen Overlay */}
+            <div className="absolute inset-0 rounded-t-2xl sm:rounded-t-[20px] pointer-events-none bg-gradient-to-b from-white/[0.12] via-white/[0.03] to-transparent opacity-70 group-hover:opacity-100 transition-opacity" />
 
             {/* Left Indicator: Expand chevron + Equalizer bars / state dot */}
             <div
-              className={`flex items-center gap-1.5 shrink-0 text-gray-300 transition-colors ${
-                isSoundCloud ? 'group-hover:text-orange-400' : 'group-hover:text-emerald-400'
+              className={`flex items-center gap-1.5 shrink-0 ${
+                isLight ? 'text-gray-600' : 'text-gray-300'
+              } transition-colors ${
+                isSoundCloud
+                  ? isLight
+                    ? 'group-hover:text-[#FF5500]'
+                    : 'group-hover:text-orange-400'
+                  : isLight
+                    ? 'group-hover:text-emerald-600'
+                    : 'group-hover:text-emerald-400'
               }`}
             >
               <ChevronUp className="w-3.5 h-3.5 group-hover:-translate-y-0.5 transition-transform" />
@@ -271,7 +384,11 @@ export const SpotifyBottomDock: React.FC = () => {
                   (currentTrack.artist ? ` • ${unescapeHtml(currentTrack.artist)}` : '')
                 }
                 align="center"
-                className="text-[11px] sm:text-xs font-medium text-gray-200 group-hover:text-white transition-colors"
+                className={`text-[11px] sm:text-xs font-medium ${
+                  isLight
+                    ? 'text-gray-800 group-hover:text-gray-950'
+                    : 'text-gray-200 group-hover:text-white'
+                } transition-colors`}
                 containerClassName="w-full flex justify-center"
               />
             </div>
@@ -283,7 +400,11 @@ export const SpotifyBottomDock: React.FC = () => {
                 e.stopPropagation();
                 closeDock();
               }}
-              className="w-4 h-4 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-colors shrink-0 cursor-pointer"
+              className={`w-4 h-4 rounded-full flex items-center justify-center ${
+                isLight
+                  ? 'text-gray-500 hover:text-gray-900 hover:bg-black/5'
+                  : 'text-gray-400 hover:text-white hover:bg-white/10'
+              } transition-colors shrink-0 cursor-pointer`}
               title="Close player"
               aria-label="Close player"
             >
@@ -309,17 +430,17 @@ export const SpotifyBottomDock: React.FC = () => {
         >
           {/* Apple Liquid Glass Container with bubble lens refraction border */}
           <div
-            className="relative rounded-2xl sm:rounded-[26px] p-2.5 sm:px-4 sm:py-2.5 h-[64px] sm:h-[72px] flex items-center justify-between gap-3 sm:gap-4 overflow-visible"
+            className={`relative rounded-2xl sm:rounded-[26px] p-2.5 sm:px-4 sm:py-2.5 h-[64px] sm:h-[72px] flex items-center justify-between gap-3 sm:gap-4 overflow-visible ${borderClass}`}
             style={{
-              background:
-                'linear-gradient(135deg, rgba(24, 25, 34, 0.72) 0%, rgba(12, 13, 18, 0.82) 50%, rgba(18, 19, 26, 0.76) 100%)',
-              backdropFilter: 'blur(40px) saturate(220%) brightness(106%)',
-              WebkitBackdropFilter: 'blur(40px) saturate(220%) brightness(106%)',
-              border: 'none',
-              boxShadow:
-                'inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.45), inset 0 -1px 1.5px 0 rgba(255, 255, 255, 0.1), inset 0 0 12px 2px rgba(255, 255, 255, 0.04), 0 24px 48px -12px rgba(0, 0, 0, 0.75), 0 8px 16px -4px rgba(0, 0, 0, 0.5)',
+              background: liquidGradient,
+              backdropFilter,
+              WebkitBackdropFilter,
+              boxShadow,
             }}
           >
+            {/* Apple Liquid Glass Specular Lens Sheen Overlay */}
+            <div className="absolute inset-0 rounded-2xl sm:rounded-[26px] pointer-events-none bg-gradient-to-b from-white/[0.09] via-transparent to-black/[0.06]" />
+
             {/* 1-Click Spotify Premium Permissions Badge */}
             {needsSpotifyPermissions && !isSoundCloud && (
               <div
@@ -339,8 +460,12 @@ export const SpotifyBottomDock: React.FC = () => {
             )}
 
             {/* Subtle Chromatic & Specular Top Reflection Sweep */}
-            <div className="absolute inset-x-8 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-white/50 to-transparent pointer-events-none rounded-t-full" />
-            <div className="absolute inset-x-12 bottom-0 h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none rounded-b-full" />
+            <div
+              className={`absolute inset-x-8 top-0 h-[1.5px] ${topSpecularClass} pointer-events-none rounded-t-full`}
+            />
+            <div
+              className={`absolute inset-x-12 bottom-0 h-[1px] ${bottomSpecularClass} pointer-events-none rounded-b-full`}
+            />
 
             {/* Discreet Control Cluster at top-right edge: Minimize & Close */}
             <div className="absolute -top-3 -right-2 sm:-top-2.5 sm:-right-2 flex items-center gap-1.5 z-20">
@@ -351,7 +476,11 @@ export const SpotifyBottomDock: React.FC = () => {
                   e.stopPropagation();
                   toggleDockMinimized();
                 }}
-                className="w-6 h-6 rounded-full bg-white/[0.08] hover:bg-white/[0.18] text-gray-300 hover:text-white shadow-[inset_0_1px_1px_rgba(255,255,255,0.35),0_4px_12px_rgba(0,0,0,0.6)] backdrop-blur-xl flex items-center justify-center transition-all cursor-pointer group"
+                className={`w-6 h-6 rounded-full ${
+                  isLight
+                    ? 'bg-white/90 hover:bg-white text-gray-700 hover:text-gray-950 border border-black/10 shadow-sm'
+                    : 'bg-white/[0.08] hover:bg-white/[0.18] text-gray-300 hover:text-white shadow-[inset_0_1px_1px_rgba(255,255,255,0.35),0_4px_12px_rgba(0,0,0,0.6)]'
+                } backdrop-blur-xl flex items-center justify-center transition-all cursor-pointer group`}
                 title="Minimize player"
                 aria-label="Minimize player"
               >
@@ -365,7 +494,11 @@ export const SpotifyBottomDock: React.FC = () => {
                   e.stopPropagation();
                   closeDock();
                 }}
-                className="w-6 h-6 rounded-full bg-white/[0.08] hover:bg-white/[0.18] text-gray-300 hover:text-white shadow-[inset_0_1px_1px_rgba(255,255,255,0.35),0_4px_12px_rgba(0,0,0,0.6)] backdrop-blur-xl flex items-center justify-center transition-all cursor-pointer group"
+                className={`w-6 h-6 rounded-full ${
+                  isLight
+                    ? 'bg-white/90 hover:bg-white text-gray-700 hover:text-gray-950 border border-black/10 shadow-sm'
+                    : 'bg-white/[0.08] hover:bg-white/[0.18] text-gray-300 hover:text-white shadow-[inset_0_1px_1px_rgba(255,255,255,0.35),0_4px_12px_rgba(0,0,0,0.6)]'
+                } backdrop-blur-xl flex items-center justify-center transition-all cursor-pointer group`}
                 title="Close player"
                 aria-label="Close player"
               >
@@ -412,7 +545,9 @@ export const SpotifyBottomDock: React.FC = () => {
                   target="_blank"
                   rel="noreferrer"
                   onClick={(e) => e.stopPropagation()}
-                  className={`text-xs sm:text-[13px] font-bold text-white truncate hover:underline transition-colors ${
+                  className={`text-xs sm:text-[13px] font-bold ${
+                    isLight ? 'text-gray-900' : 'text-white'
+                  } truncate hover:underline transition-colors ${
                     isSoundCloud ? 'hover:text-[#FF5500]' : 'hover:text-[#1DB954]'
                   }`}
                   title={unescapeHtml(currentTrack.title)}
@@ -420,7 +555,9 @@ export const SpotifyBottomDock: React.FC = () => {
                   {unescapeHtml(currentTrack.title)}
                 </a>
                 <span
-                  className="text-[10.5px] sm:text-[11.5px] text-gray-400 truncate mt-0.5 font-medium"
+                  className={`text-[10.5px] sm:text-[11.5px] ${
+                    isLight ? 'text-gray-500' : 'text-gray-400'
+                  } truncate mt-0.5 font-medium`}
                   title={unescapeHtml(currentTrack.artist)}
                 >
                   {unescapeHtml(currentTrack.artist)}
@@ -435,7 +572,11 @@ export const SpotifyBottomDock: React.FC = () => {
                   toggleLike();
                 }}
                 className={`p-1.5 rounded-full transition-all cursor-pointer shrink-0 active:scale-75 ${
-                  isLiked ? 'text-[#1DB954] hover:text-[#1ed760]' : 'text-gray-400 hover:text-white'
+                  isLiked
+                    ? 'text-[#1DB954] hover:text-[#1ed760]'
+                    : isLight
+                      ? 'text-gray-400 hover:text-gray-900'
+                      : 'text-gray-400 hover:text-white'
                 }`}
                 title={isLiked ? 'Remove from Liked' : 'Save to Liked Songs'}
               >
@@ -497,12 +638,14 @@ export const SpotifyBottomDock: React.FC = () => {
                   disabled={isJamActive && !isHost}
                   className={`p-1 rounded-full transition-colors relative ${
                     isJamActive && !isHost
-                      ? 'text-gray-600 opacity-40 cursor-not-allowed'
+                      ? 'text-gray-400 dark:text-gray-600 opacity-40 cursor-not-allowed'
                       : isShuffled
                         ? isSoundCloud
                           ? 'text-[#FF5500] cursor-pointer'
                           : 'text-[#1DB954] cursor-pointer'
-                        : 'text-gray-400 hover:text-white cursor-pointer'
+                        : isLight
+                          ? 'text-gray-500 hover:text-gray-900 cursor-pointer'
+                          : 'text-gray-400 hover:text-white cursor-pointer'
                   }`}
                   title={
                     isJamActive && !isHost
@@ -531,8 +674,10 @@ export const SpotifyBottomDock: React.FC = () => {
                   disabled={isJamActive && !isHost}
                   className={`p-1 transition-all ${
                     isJamActive && !isHost
-                      ? 'text-gray-600 opacity-40 cursor-not-allowed'
-                      : 'text-gray-300 hover:text-white active:scale-95 cursor-pointer'
+                      ? 'text-gray-400 dark:text-gray-600 opacity-40 cursor-not-allowed'
+                      : isLight
+                        ? 'text-gray-700 hover:text-gray-950 active:scale-95 cursor-pointer'
+                        : 'text-gray-300 hover:text-white active:scale-95 cursor-pointer'
                   }`}
                   title={
                     isJamActive && !isHost
@@ -558,7 +703,11 @@ export const SpotifyBottomDock: React.FC = () => {
                     togglePlay();
                     if (isHost) setTimeout(emitManualHostSync, 50);
                   }}
-                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/[0.14] hover:bg-white/[0.24] text-white hover:scale-105 active:scale-95 transition-all flex items-center justify-center cursor-pointer shrink-0 shadow-[inset_0_1.5px_1.5px_rgba(255,255,255,0.5),inset_0_-1px_1px_rgba(255,255,255,0.1),0_4px_16px_rgba(0,0,0,0.4)] backdrop-blur-xl"
+                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full ${
+                    isLight
+                      ? 'bg-gray-900 hover:bg-black text-white shadow-md'
+                      : 'bg-white/[0.14] hover:bg-white/[0.24] text-white shadow-[inset_0_1.5px_1.5px_rgba(255,255,255,0.5),inset_0_-1px_1px_rgba(255,255,255,0.1),0_4px_16px_rgba(0,0,0,0.4)]'
+                  } hover:scale-105 active:scale-95 transition-all flex items-center justify-center cursor-pointer shrink-0 backdrop-blur-xl`}
                   title={
                     isJamActive && !isHost
                       ? isPlaying
@@ -587,8 +736,10 @@ export const SpotifyBottomDock: React.FC = () => {
                   disabled={isJamActive && !isHost}
                   className={`p-1 transition-all ${
                     isJamActive && !isHost
-                      ? 'text-gray-600 opacity-40 cursor-not-allowed'
-                      : 'text-gray-300 hover:text-white active:scale-95 cursor-pointer'
+                      ? 'text-gray-400 dark:text-gray-600 opacity-40 cursor-not-allowed'
+                      : isLight
+                        ? 'text-gray-700 hover:text-gray-950 active:scale-95 cursor-pointer'
+                        : 'text-gray-300 hover:text-white active:scale-95 cursor-pointer'
                   }`}
                   title={
                     isJamActive && !isHost
@@ -606,12 +757,14 @@ export const SpotifyBottomDock: React.FC = () => {
                   disabled={isJamActive && !isHost}
                   className={`p-1 rounded-full transition-colors relative ${
                     isJamActive && !isHost
-                      ? 'text-gray-600 opacity-40 cursor-not-allowed'
+                      ? 'text-gray-400 dark:text-gray-600 opacity-40 cursor-not-allowed'
                       : repeatMode > 0
                         ? isSoundCloud
                           ? 'text-[#FF5500] cursor-pointer'
                           : 'text-[#1DB954] cursor-pointer'
-                        : 'text-gray-400 hover:text-white cursor-pointer'
+                        : isLight
+                          ? 'text-gray-500 hover:text-gray-900 cursor-pointer'
+                          : 'text-gray-400 hover:text-white cursor-pointer'
                   }`}
                   title={
                     isJamActive && !isHost
@@ -644,51 +797,80 @@ export const SpotifyBottomDock: React.FC = () => {
               </div>
 
               {/* Scrubber Progress Bar Row with Apple Glass Thumb Knob */}
-              <div className="flex items-center gap-2 w-full">
-                <span className="text-[10px] font-mono text-gray-400 w-8 text-right shrink-0">
-                  {formatTime(progressMs)}
+              <div className="flex items-center gap-2 w-full select-none">
+                <span
+                  className={`text-[10px] font-mono ${
+                    isLight ? 'text-gray-600' : 'text-gray-400'
+                  } w-8 text-right shrink-0`}
+                >
+                  {formatTime(displayProgressMs)}
                 </span>
 
                 <div
-                  className={`relative flex-1 h-2 flex items-center ${
+                  ref={scrubberRef}
+                  onPointerDown={handleScrubberPointerDown}
+                  className={`relative flex-1 h-3 flex items-center touch-none select-none ${
                     isJamActive && !isHost
                       ? 'cursor-not-allowed opacity-80'
-                      : 'cursor-pointer group/scrubber'
+                      : isScrubbing
+                        ? 'cursor-grabbing group/scrubber'
+                        : 'cursor-pointer group/scrubber'
                   }`}
                   title={
                     isJamActive && !isHost
                       ? `Timeline controlled by @${hostUsername || 'host'}`
                       : undefined
                   }
-                  onClick={(e) => {
-                    if (isJamActive && !isHost) return; // Rubber-Banding protection
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-                    seek(pos * durationMs);
-                    if (isHost) emitManualHostSync();
-                  }}
                 >
                   {/* Background track */}
-                  <div className="w-full h-1 sm:h-1.5 bg-white/15 rounded-full overflow-hidden relative">
+                  <div
+                    className={`w-full h-1 sm:h-1.5 ${
+                      isLight ? 'bg-black/10' : 'bg-white/15'
+                    } rounded-full overflow-hidden relative`}
+                  >
                     {/* Track filled bar */}
                     <div
-                      className={`h-full bg-white rounded-full transition-all duration-150 ${
+                      className={`h-full ${isLight ? 'bg-gray-900' : 'bg-white'} rounded-full ${
+                        isScrubbing ? '' : 'transition-all duration-150'
+                      } ${
                         isSoundCloud
                           ? 'group-hover/scrubber:bg-[#FF5500]'
                           : 'group-hover/scrubber:bg-[#1DB954]'
                       }`}
-                      style={{ width: `${progressPercent}%` }}
+                      style={{
+                        width: `${progressPercent}%`,
+                        backgroundColor: isScrubbing
+                          ? isSoundCloud
+                            ? '#FF5500'
+                            : '#1DB954'
+                          : undefined,
+                      }}
                     />
                   </div>
 
                   {/* Apple Glass Thumb Knob */}
                   <span
-                    className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.9),0_2px_4px_rgba(0,0,0,0.5)] transition-transform group-hover/scrubber:scale-125 pointer-events-none"
-                    style={{ left: `${progressPercent}%` }}
+                    className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 rounded-full ${
+                      isLight
+                        ? 'bg-gray-900 shadow-[0_1px_4px_rgba(0,0,0,0.3)]'
+                        : 'bg-white shadow-[0_0_8px_rgba(255,255,255,0.9),0_2px_4px_rgba(0,0,0,0.5)]'
+                    } pointer-events-none ${
+                      isScrubbing
+                        ? 'w-3.5 h-3.5 sm:w-4 sm:h-4 scale-110 shadow-[0_0_12px_rgba(255,255,255,1)]'
+                        : 'w-2.5 h-2.5 sm:w-3 sm:h-3 transition-transform group-hover/scrubber:scale-125'
+                    }`}
+                    style={{
+                      left: `${progressPercent}%`,
+                      transition: isScrubbing ? 'none' : undefined,
+                    }}
                   />
                 </div>
 
-                <span className="text-[10px] font-mono text-gray-400 w-8 shrink-0">
+                <span
+                  className={`text-[10px] font-mono ${
+                    isLight ? 'text-gray-600' : 'text-gray-400'
+                  } w-8 shrink-0`}
+                >
                   {formatTime(durationMs)}
                 </span>
               </div>
@@ -749,7 +931,9 @@ export const SpotifyBottomDock: React.FC = () => {
                     ? isSoundCloud
                       ? 'bg-[#FF5500]/20 text-[#FF5500] shadow-[0_0_12px_rgba(255,85,0,0.3)]'
                       : 'bg-[#1DB954]/20 text-[#1DB954] shadow-[0_0_12px_rgba(29,185,84,0.3)]'
-                    : 'text-gray-400 hover:text-white hover:bg-white/10'
+                    : isLight
+                      ? 'text-gray-500 hover:text-gray-900 hover:bg-black/5'
+                      : 'text-gray-400 hover:text-white hover:bg-white/10'
                 }`}
                 title="Lyrics (Karaoke)"
               >
@@ -767,7 +951,9 @@ export const SpotifyBottomDock: React.FC = () => {
                       ? isSoundCloud
                         ? 'bg-[#FF5500]/20 text-[#FF5500] shadow-[0_0_12px_rgba(255,85,0,0.3)]'
                         : 'bg-[#1DB954]/20 text-[#1DB954] shadow-[0_0_12px_rgba(29,185,84,0.3)]'
-                      : 'text-gray-400 hover:text-white hover:bg-white/10'
+                      : isLight
+                        ? 'text-gray-500 hover:text-gray-900 hover:bg-black/5'
+                        : 'text-gray-400 hover:text-white hover:bg-white/10'
                   }`}
                   title="Playback queue"
                 >
@@ -787,7 +973,11 @@ export const SpotifyBottomDock: React.FC = () => {
                 <button
                   type="button"
                   onClick={toggleMute}
-                  className="p-1.5 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                  className={`p-1.5 rounded-xl ${
+                    isLight
+                      ? 'text-gray-500 hover:text-gray-900 hover:bg-black/5'
+                      : 'text-gray-400 hover:text-white hover:bg-white/10'
+                  } transition-colors cursor-pointer`}
                   title={isMuted ? 'Unmute' : 'Mute'}
                 >
                   {isMuted || volume === 0 ? (
@@ -809,13 +999,15 @@ export const SpotifyBottomDock: React.FC = () => {
                       transition={{ duration: 0.18 }}
                       className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 px-3 py-2.5 rounded-2xl flex items-center gap-2.5 z-50 shadow-xl"
                       style={{
-                        background:
-                          'linear-gradient(135deg, rgba(24, 25, 34, 0.82) 0%, rgba(13, 14, 20, 0.88) 100%)',
-                        backdropFilter: 'blur(40px) saturate(220%) brightness(106%)',
-                        WebkitBackdropFilter: 'blur(40px) saturate(220%) brightness(106%)',
-                        border: 'none',
-                        boxShadow:
-                          'inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.45), inset 0 -1px 1.5px 0 rgba(255, 255, 255, 0.1), inset 0 0 12px 2px rgba(255, 255, 255, 0.04), 0 24px 48px -12px rgba(0, 0, 0, 0.75), 0 8px 16px -4px rgba(0, 0, 0, 0.5)',
+                        background: popoverGradient,
+                        backdropFilter,
+                        WebkitBackdropFilter,
+                        border: isLight
+                          ? '1px solid rgba(255, 255, 255, 0.6)'
+                          : '1px solid rgba(255, 255, 255, 0.18)',
+                        boxShadow: isLight
+                          ? '0 12px 28px -4px rgba(0, 0, 0, 0.15), inset 0 1px 1px 0 rgba(255, 255, 255, 0.9)'
+                          : 'inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.45), inset 0 -1px 1.5px 0 rgba(255, 255, 255, 0.1), inset 0 0 12px 2px rgba(255, 255, 255, 0.04), 0 24px 48px -12px rgba(0, 0, 0, 0.75), 0 8px 16px -4px rgba(0, 0, 0, 0.5)',
                       }}
                     >
                       <input
@@ -825,11 +1017,17 @@ export const SpotifyBottomDock: React.FC = () => {
                         step="0.01"
                         value={isMuted ? 0 : volume}
                         onChange={(e) => setVolume(parseFloat(e.target.value))}
-                        className={`w-24 h-1.5 bg-white/20 rounded-full appearance-none cursor-pointer ${
+                        className={`w-24 h-1.5 ${
+                          isLight ? 'bg-black/10' : 'bg-white/20'
+                        } rounded-full appearance-none cursor-pointer ${
                           isSoundCloud ? 'accent-[#FF5500]' : 'accent-[#1DB954]'
                         }`}
                       />
-                      <span className="text-[10px] font-mono text-gray-300 w-7 text-right">
+                      <span
+                        className={`text-[10px] font-mono ${
+                          isLight ? 'text-gray-700' : 'text-gray-300'
+                        } w-7 text-right`}
+                      >
                         {isMuted ? '0%' : `${Math.round(volume * 100)}%`}
                       </span>
                     </motion.div>
@@ -848,8 +1046,12 @@ export const SpotifyBottomDock: React.FC = () => {
                       ? 'bg-[#FF5500]/25 text-[#FF5500] shadow-[0_0_12px_rgba(255,85,0,0.4)]'
                       : 'bg-[#1DB954]/25 text-[#1DB954] shadow-[0_0_12px_rgba(29,185,84,0.4)]'
                     : isSoundCloud
-                      ? 'text-gray-400 hover:text-[#FF5500] hover:bg-white/10'
-                      : 'text-gray-400 hover:text-[#1DB954] hover:bg-white/10'
+                      ? isLight
+                        ? 'text-gray-500 hover:text-[#FF5500] hover:bg-black/5'
+                        : 'text-gray-400 hover:text-[#FF5500] hover:bg-white/10'
+                      : isLight
+                        ? 'text-gray-500 hover:text-[#1DB954] hover:bg-black/5'
+                        : 'text-gray-400 hover:text-[#1DB954] hover:bg-white/10'
                 }`}
                 title={isGameModeOpen ? 'Exit Game Mode' : 'Open Game Mode'}
               >
@@ -865,7 +1067,9 @@ export const SpotifyBottomDock: React.FC = () => {
                   className={`p-1.5 rounded-xl transition-all cursor-pointer relative ${
                     isJamPopoverOpen || isJamActive
                       ? 'bg-purple-500/25 text-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.4)]'
-                      : 'text-gray-400 hover:text-purple-400 hover:bg-white/10'
+                      : isLight
+                        ? 'text-gray-500 hover:text-purple-600 hover:bg-black/5'
+                        : 'text-gray-400 hover:text-purple-400 hover:bg-white/10'
                   }`}
                   title={isJamActive ? 'Manage Jam' : 'Listen Together'}
                 >

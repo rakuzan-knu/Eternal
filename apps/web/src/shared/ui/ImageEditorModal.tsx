@@ -1,4 +1,5 @@
 import React, { lazy, Suspense, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   FlipHorizontal,
   RotateCw,
@@ -130,15 +131,17 @@ export default function ImageEditorModal({
   };
 
   if (!current) {
-    return (
-      <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/80">
+    const loadingContent = (
+      <div className="fixed inset-0 z-[99990] flex items-center justify-center bg-black/80">
         <p className="text-gray-400 text-sm">Loading image…</p>
       </div>
     );
+    if (typeof document === 'undefined') return loadingContent;
+    return createPortal(loadingContent, document.body);
   }
 
-  return (
-    <div className="fixed inset-0 z-[300] flex flex-col bg-black/90 backdrop-blur-xl">
+  const modalContent = (
+    <div className="fixed inset-0 z-[99990] flex flex-col bg-black/92 backdrop-blur-xl">
       <div className="flex items-center justify-between px-6 py-4 flex-shrink-0">
         <button
           onClick={onCancel}
@@ -391,4 +394,7 @@ export default function ImageEditorModal({
       </div>
     </div>
   );
+
+  if (typeof document === 'undefined') return modalContent;
+  return createPortal(modalContent, document.body);
 }

@@ -1,5 +1,7 @@
 @import 'tailwindcss';
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -22,8 +24,17 @@ body:fullscreen {
   background-color: #08090d !important;
 }
 
+html.reels-mode-active,
+body.reels-mode-active {
+  overflow: hidden !important;
+  scrollbar-gutter: auto !important;
+  scrollbar-width: none !important;
+}
+
 html.game-mode-active::-webkit-scrollbar,
 body.game-mode-active::-webkit-scrollbar,
+html.reels-mode-active::-webkit-scrollbar,
+body.reels-mode-active::-webkit-scrollbar,
 :fullscreen::-webkit-scrollbar,
 html:fullscreen::-webkit-scrollbar,
 body:fullscreen::-webkit-scrollbar {
@@ -32,9 +43,846 @@ body:fullscreen::-webkit-scrollbar {
   height: 0 !important;
 }
 
+/* Universal scrollbar-none utility */
+.scrollbar-none {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+:root {
+  --app-bg-color: #070709;
+  --app-surface-elevated: #16161a;
+  --app-surface-card: #121216;
+  --app-border-subtle: rgba(255, 255, 255, 0.08);
+  --app-text-primary: #ffffff;
+  --app-text-secondary: #94a3b8;
+  --app-accent-color: #8b5cf6;
+  --app-glass-opacity: 0;
+  --app-glass-modal-bg: rgba(12, 12, 14, 0.98);
+  --app-glass-card-bg: rgba(18, 18, 22, 0.95);
+  --app-glass-sidebar-bg: rgba(16, 16, 20, 0.98);
+  --app-glass-blur: 0px;
+  --app-glass-saturate: 100%;
+  --app-glass-border-color: rgba(255, 255, 255, 0.08);
+  --app-glass-shadow: none;
+}
+
+[data-theme='light'] {
+  --app-bg-color: #ffffff;
+  --app-surface-elevated: #ffffff;
+  --app-surface-card: #ffffff;
+  --app-border-subtle: rgba(0, 0, 0, 0.08);
+  --app-text-primary: #0f172a;
+  --app-text-secondary: #334155;
+  --app-text-muted: #64748b;
+  --app-glass-modal-bg: rgba(255, 255, 255, 0.96);
+  --app-glass-card-bg: rgba(255, 255, 255, 0.94);
+  --app-glass-sidebar-bg: rgba(255, 255, 255, 0.98);
+  --app-glass-border-color: rgba(0, 0, 0, 0.08);
+  --app-glass-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+  color-scheme: light;
+}
+
+[data-theme='ash'] {
+  --app-bg-color: #26262b;
+  --app-surface-elevated: #212226;
+  --app-surface-card: #1c1d20;
+  --app-border-subtle: rgba(255, 255, 255, 0.08);
+  --app-text-primary: #f2f3f5;
+  --app-text-secondary: #94a3b8;
+}
+
+[data-theme='dark'] {
+  --app-bg-color: #050505;
+  --app-surface-elevated: #16161a;
+  --app-surface-card: #111111;
+  --app-border-subtle: rgba(255, 255, 255, 0.05);
+  --app-text-primary: #ffffff;
+  --app-text-secondary: #94a3b8;
+  --app-glass-modal-bg: rgba(22, 22, 26, 0.98);
+  --app-glass-card-bg: rgba(17, 17, 17, 0.98);
+  --app-glass-sidebar-bg: rgba(22, 22, 26, 0.98);
+}
+
+[data-theme='midnight'] {
+  --app-bg-color: #000000;
+  --app-surface-elevated: #121216;
+  --app-surface-card: #0d0d10;
+  --app-border-subtle: rgba(255, 255, 255, 0.06);
+  --app-text-primary: #ffffff;
+  --app-text-secondary: #94a3b8;
+  --app-glass-modal-bg: rgba(18, 18, 22, 0.98);
+  --app-glass-card-bg: rgba(13, 13, 16, 0.98);
+  --app-glass-sidebar-bg: rgba(18, 18, 22, 0.98);
+}
+
+/* Glassmorphism System - 1:1 Apple iOS Liquid Glass */
+.glass-modal {
+  background-color: var(--app-glass-modal-bg, rgba(22, 22, 26, 0.98)) !important;
+  background-image:
+    radial-gradient(
+      120% 60% at 50% 0%,
+      rgba(255, 255, 255, calc(0.15 * var(--app-glass-opacity, 0))) 0%,
+      rgba(255, 255, 255, calc(0.02 * var(--app-glass-opacity, 0))) 45%,
+      transparent 80%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, calc(0.12 * var(--app-glass-opacity, 0))) 0%,
+      rgba(255, 255, 255, calc(0.03 * var(--app-glass-opacity, 0))) 35%,
+      rgba(0, 0, 0, calc(0.1 * var(--app-glass-opacity, 0))) 100%
+    ) !important;
+  backdrop-filter: blur(var(--app-glass-blur, 0px)) saturate(var(--app-glass-saturate, 100%));
+  -webkit-backdrop-filter: blur(var(--app-glass-blur, 0px))
+    saturate(var(--app-glass-saturate, 100%));
+  box-shadow: var(--app-glass-shadow, none);
+  border: 1px solid var(--app-glass-border-color, rgba(255, 255, 255, 0.05)) !important;
+  border-top-color: rgba(255, 255, 255, calc(0.05 + 0.45 * var(--app-glass-opacity, 0))) !important;
+  border-left-color: rgba(
+    255,
+    255,
+    255,
+    calc(0.05 + 0.18 * var(--app-glass-opacity, 0))
+  ) !important;
+  border-right-color: rgba(
+    255,
+    255,
+    255,
+    calc(0.05 + 0.1 * var(--app-glass-opacity, 0))
+  ) !important;
+  border-bottom-color: rgba(
+    255,
+    255,
+    255,
+    calc(0.05 + 0.05 * var(--app-glass-opacity, 0))
+  ) !important;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Glassmorphism Subpanel - For nested slide-overs that overlay content */
+.glass-subpanel {
+  background-color: var(--app-glass-subpanel-bg, rgba(20, 21, 26, 0.96)) !important;
+  backdrop-filter: blur(40px) saturate(var(--app-glass-saturate, 190%));
+  -webkit-backdrop-filter: blur(40px) saturate(var(--app-glass-saturate, 190%));
+  box-shadow: var(--app-glass-shadow, none);
+  border-color: var(--app-glass-border-color, rgba(255, 255, 255, 0.08)) !important;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Glassmorphism Menu - For floating popups/menus over text with dense optical diffusion */
+.glass-menu {
+  background-color: var(--app-glass-menu-bg, rgba(20, 21, 26, 0.88)) !important;
+  background-image:
+    radial-gradient(
+      120% 60% at 50% 0%,
+      rgba(255, 255, 255, calc(0.12 * var(--app-glass-opacity, 0))) 0%,
+      rgba(255, 255, 255, calc(0.02 * var(--app-glass-opacity, 0))) 45%,
+      transparent 80%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, calc(0.08 * var(--app-glass-opacity, 0))) 0%,
+      rgba(255, 255, 255, calc(0.02 * var(--app-glass-opacity, 0))) 35%,
+      rgba(0, 0, 0, calc(0.12 * var(--app-glass-opacity, 0))) 100%
+    ) !important;
+  backdrop-filter: blur(var(--app-glass-blur, 0px)) saturate(var(--app-glass-saturate, 100%));
+  -webkit-backdrop-filter: blur(var(--app-glass-blur, 0px))
+    saturate(var(--app-glass-saturate, 100%));
+  box-shadow:
+    0 20px 50px -10px rgba(0, 0, 0, 0.5),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--app-glass-border-color, rgba(255, 255, 255, 0.1)) !important;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+.glass-sidebar {
+  background-color: var(--app-glass-sidebar-bg, rgba(22, 22, 26, 0.98)) !important;
+  background-image: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, calc(0.1 * var(--app-glass-opacity, 0))) 0%,
+    rgba(255, 255, 255, calc(0.02 * var(--app-glass-opacity, 0))) 40%,
+    rgba(0, 0, 0, calc(0.08 * var(--app-glass-opacity, 0))) 100%
+  ) !important;
+  backdrop-filter: blur(var(--app-glass-blur, 0px)) saturate(var(--app-glass-saturate, 100%));
+  -webkit-backdrop-filter: blur(var(--app-glass-blur, 0px))
+    saturate(var(--app-glass-saturate, 100%));
+  box-shadow: var(--app-glass-shadow, none);
+  border-color: var(--app-glass-border-color, rgba(255, 255, 255, 0.05)) !important;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+.glass-card {
+  background-color: var(--app-glass-card-bg, rgba(17, 17, 17, 0.98)) !important;
+  background-image:
+    radial-gradient(
+      120% 60% at 50% 0%,
+      rgba(255, 255, 255, calc(0.18 * var(--app-glass-opacity, 0))) 0%,
+      rgba(255, 255, 255, calc(0.03 * var(--app-glass-opacity, 0))) 45%,
+      transparent 80%
+    ),
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, calc(0.12 * var(--app-glass-opacity, 0))) 0%,
+      rgba(255, 255, 255, calc(0.02 * var(--app-glass-opacity, 0))) 40%,
+      rgba(0, 0, 0, calc(0.14 * var(--app-glass-opacity, 0))) 100%
+    ) !important;
+  backdrop-filter: blur(var(--app-glass-blur, 0px)) saturate(var(--app-glass-saturate, 100%));
+  -webkit-backdrop-filter: blur(var(--app-glass-blur, 0px))
+    saturate(var(--app-glass-saturate, 100%));
+  box-shadow: var(--app-glass-shadow, none);
+  border: 1px solid var(--app-glass-border-color, rgba(255, 255, 255, 0.05)) !important;
+  border-top-color: rgba(255, 255, 255, calc(0.05 + 0.45 * var(--app-glass-opacity, 0))) !important;
+  border-left-color: rgba(
+    255,
+    255,
+    255,
+    calc(0.05 + 0.18 * var(--app-glass-opacity, 0))
+  ) !important;
+  border-right-color: rgba(
+    255,
+    255,
+    255,
+    calc(0.05 + 0.1 * var(--app-glass-opacity, 0))
+  ) !important;
+  border-bottom-color: rgba(
+    255,
+    255,
+    255,
+    calc(0.05 + 0.05 * var(--app-glass-opacity, 0))
+  ) !important;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  transition:
+    border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 0.25s ease,
+    transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-card:hover {
+  border-top-color: rgba(255, 255, 255, calc(0.1 + 0.45 * var(--app-glass-opacity, 0))) !important;
+  border-left-color: rgba(255, 255, 255, calc(0.08 + 0.2 * var(--app-glass-opacity, 0))) !important;
+  transform: translateY(-0.5px);
+}
+
+.glass-panel {
+  background-color: var(--app-glass-modal-bg, rgba(22, 22, 26, 0.98)) !important;
+  background-image:
+    radial-gradient(
+      120% 60% at 50% 0%,
+      rgba(255, 255, 255, calc(0.15 * var(--app-glass-opacity, 0))) 0%,
+      rgba(255, 255, 255, calc(0.02 * var(--app-glass-opacity, 0))) 45%,
+      transparent 80%
+    ),
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, calc(0.1 * var(--app-glass-opacity, 0))) 0%,
+      rgba(255, 255, 255, calc(0.02 * var(--app-glass-opacity, 0))) 40%,
+      rgba(0, 0, 0, calc(0.12 * var(--app-glass-opacity, 0))) 100%
+    ) !important;
+  backdrop-filter: blur(var(--app-glass-blur, 0px)) saturate(var(--app-glass-saturate, 100%));
+  -webkit-backdrop-filter: blur(var(--app-glass-blur, 0px))
+    saturate(var(--app-glass-saturate, 100%));
+  box-shadow: var(--app-glass-shadow, none);
+  border: 1px solid var(--app-glass-border-color, rgba(255, 255, 255, 0.05)) !important;
+  border-top-color: rgba(255, 255, 255, calc(0.05 + 0.45 * var(--app-glass-opacity, 0))) !important;
+  border-left-color: rgba(
+    255,
+    255,
+    255,
+    calc(0.05 + 0.18 * var(--app-glass-opacity, 0))
+  ) !important;
+  border-right-color: rgba(
+    255,
+    255,
+    255,
+    calc(0.05 + 0.1 * var(--app-glass-opacity, 0))
+  ) !important;
+  border-bottom-color: rgba(
+    255,
+    255,
+    255,
+    calc(0.05 + 0.05 * var(--app-glass-opacity, 0))
+  ) !important;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Universal High-Contrast Dynamic Text & Surface Protection on Glass Elements */
+.glass-card,
+.glass-panel,
+.glass-sidebar,
+.glass-modal {
+  color: var(--glass-text-primary, var(--app-text-primary, #ffffff));
+}
+
+/* High-legibility inputs and placeholder text inside glass */
+.glass-card input,
+.glass-card textarea,
+.glass-panel input,
+.glass-panel textarea,
+.glass-modal input,
+.glass-modal textarea {
+  color: var(--glass-text-primary, var(--app-text-primary, #ffffff)) !important;
+}
+
+.glass-card input::placeholder,
+.glass-card textarea::placeholder,
+.glass-panel input::placeholder,
+.glass-panel textarea::placeholder,
+.glass-modal input::placeholder,
+.glass-modal textarea::placeholder {
+  color: var(--glass-text-placeholder, rgba(255, 255, 255, 0.6)) !important;
+  opacity: 1 !important;
+  -webkit-text-fill-color: var(--glass-text-placeholder, rgba(255, 255, 255, 0.6)) !important;
+}
+
+/* Dynamic Text Contrast for Dark Glass Surfaces (Default & Wallpaper & Dark Solid) */
+:root:not([data-surface-contrast='light']) .glass-card h1,
+:root:not([data-surface-contrast='light']) .glass-card h2,
+:root:not([data-surface-contrast='light']) .glass-card h3,
+:root:not([data-surface-contrast='light']) .glass-card h4,
+:root:not([data-surface-contrast='light']) .glass-card .font-bold,
+:root:not([data-surface-contrast='light']) .glass-card .font-semibold,
+:root:not([data-surface-contrast='light']) .glass-panel h1,
+:root:not([data-surface-contrast='light']) .glass-panel h2,
+:root:not([data-surface-contrast='light']) .glass-panel h3,
+:root:not([data-surface-contrast='light']) .glass-panel h4,
+:root:not([data-surface-contrast='light']) .glass-panel .font-bold,
+:root:not([data-surface-contrast='light']) .glass-panel .font-semibold,
+:root:not([data-surface-contrast='light']) .glass-sidebar h1,
+:root:not([data-surface-contrast='light']) .glass-sidebar h2,
+:root:not([data-surface-contrast='light']) .glass-sidebar h3,
+:root:not([data-surface-contrast='light']) .glass-modal h1,
+:root:not([data-surface-contrast='light']) .glass-modal h2,
+:root:not([data-surface-contrast='light']) .glass-modal h3,
+:root:not([data-surface-contrast='light']) .glass-modal h4 {
+  text-shadow: 0 1px 2.5px rgba(0, 0, 0, calc(0.7 * var(--app-glass-opacity, 0)));
+}
+
+:root:not([data-surface-contrast='light']) .glass-card p,
+:root:not([data-surface-contrast='light']) .glass-card span,
+:root:not([data-surface-contrast='light']) .glass-panel p,
+:root:not([data-surface-contrast='light']) .glass-panel span {
+  text-shadow: 0 0.5px 1.5px rgba(0, 0, 0, calc(0.45 * var(--app-glass-opacity, 0)));
+}
+
+/* Dynamic contrast mapping for Tailwind grays on dark glass */
+:root:not([data-surface-contrast='light']) .glass-card .text-gray-900,
+:root:not([data-surface-contrast='light']) .glass-card .text-gray-800,
+:root:not([data-surface-contrast='light']) .glass-card .text-gray-700,
+:root:not([data-surface-contrast='light']) .glass-panel .text-gray-900,
+:root:not([data-surface-contrast='light']) .glass-panel .text-gray-800,
+:root:not([data-surface-contrast='light']) .glass-panel .text-gray-700,
+:root:not([data-surface-contrast='light']) .glass-sidebar .text-gray-900,
+:root:not([data-surface-contrast='light']) .glass-sidebar .text-gray-800,
+:root:not([data-surface-contrast='light']) .glass-sidebar .text-gray-700,
+:root:not([data-surface-contrast='light']) .glass-modal .text-gray-900,
+:root:not([data-surface-contrast='light']) .glass-modal .text-gray-800,
+:root:not([data-surface-contrast='light']) .glass-modal .text-gray-700,
+:root:not([data-surface-contrast='light']) .glass-menu .text-gray-900,
+:root:not([data-surface-contrast='light']) .glass-menu .text-gray-800,
+:root:not([data-surface-contrast='light']) .glass-menu .text-gray-700 {
+  color: var(--glass-text-primary, #ffffff) !important;
+}
+
+:root:not([data-surface-contrast='light']) .glass-card .text-gray-600,
+:root:not([data-surface-contrast='light']) .glass-card .text-gray-500,
+:root:not([data-surface-contrast='light']) .glass-panel .text-gray-600,
+:root:not([data-surface-contrast='light']) .glass-panel .text-gray-500,
+:root:not([data-surface-contrast='light']) .glass-sidebar .text-gray-600,
+:root:not([data-surface-contrast='light']) .glass-sidebar .text-gray-500,
+:root:not([data-surface-contrast='light']) .glass-modal .text-gray-600,
+:root:not([data-surface-contrast='light']) .glass-modal .text-gray-500,
+:root:not([data-surface-contrast='light']) .glass-menu .text-gray-600,
+:root:not([data-surface-contrast='light']) .glass-menu .text-gray-500 {
+  color: var(--glass-text-muted, #cbd5e1) !important;
+}
+
+:root:not([data-surface-contrast='light']) .glass-card .text-gray-400,
+:root:not([data-surface-contrast='light']) .glass-card .text-gray-300,
+:root:not([data-surface-contrast='light']) .glass-panel .text-gray-400,
+:root:not([data-surface-contrast='light']) .glass-panel .text-gray-300,
+:root:not([data-surface-contrast='light']) .glass-sidebar .text-gray-400,
+:root:not([data-surface-contrast='light']) .glass-sidebar .text-gray-300,
+:root:not([data-surface-contrast='light']) .glass-modal .text-gray-400,
+:root:not([data-surface-contrast='light']) .glass-modal .text-gray-300,
+:root:not([data-surface-contrast='light']) .glass-menu .text-gray-400,
+:root:not([data-surface-contrast='light']) .glass-menu .text-gray-300 {
+  color: var(--glass-text-secondary, #e2e8f0) !important;
+}
+
+/* Dynamic contrast mapping for Tailwind grays on light glass */
+[data-surface-contrast='light'] .glass-card,
+[data-surface-contrast='light'] .glass-panel,
+[data-surface-contrast='light'] .glass-sidebar,
+[data-surface-contrast='light'] .glass-modal,
+[data-surface-contrast='light'] .glass-menu {
+  color: var(--glass-text-primary, #0f172a) !important;
+}
+
+[data-surface-contrast='light'] .glass-card .text-gray-400,
+[data-surface-contrast='light'] .glass-panel .text-gray-400,
+[data-surface-contrast='light'] .glass-sidebar .text-gray-400,
+[data-surface-contrast='light'] .glass-modal .text-gray-400,
+[data-surface-contrast='light'] .glass-menu .text-gray-400 {
+  color: var(--glass-text-secondary, #334155) !important;
+}
+
+[data-surface-contrast='light'] .glass-card .text-gray-500,
+[data-surface-contrast='light'] .glass-panel .text-gray-500,
+[data-surface-contrast='light'] .glass-sidebar .text-gray-500,
+[data-surface-contrast='light'] .glass-modal .text-gray-500,
+[data-surface-contrast='light'] .glass-menu .text-gray-500 {
+  color: var(--glass-text-muted, #64748b) !important;
+}
+
+/* ==========================================================================
+   Light Theme Enterprise Contrast & High-Legibility Overrides (Discord Standard)
+   ========================================================================== */
+[data-theme='light'] .glass-card,
+[data-theme='light'] .glass-panel,
+[data-theme='light'] .glass-sidebar,
+[data-theme='light'] .glass-modal,
+[data-theme='light'] .glass-menu {
+  background-image: none !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  border-top-color: rgba(0, 0, 0, 0.1) !important;
+  border-left-color: rgba(0, 0, 0, 0.08) !important;
+  border-right-color: rgba(0, 0, 0, 0.08) !important;
+  border-bottom-color: rgba(0, 0, 0, 0.06) !important;
+  box-shadow:
+    0 10px 35px -4px rgba(0, 0, 0, 0.12),
+    0 4px 12px -2px rgba(0, 0, 0, 0.06) !important;
+}
+
+[data-theme='light'] .glass-card:hover {
+  border-top-color: rgba(0, 0, 0, 0.14) !important;
+  border-left-color: rgba(0, 0, 0, 0.12) !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Eliminate dark text shadows on light mode */
+[data-theme='light'] .glass-card h1,
+[data-theme='light'] .glass-card h2,
+[data-theme='light'] .glass-card h3,
+[data-theme='light'] .glass-card h4,
+[data-theme='light'] .glass-card .font-bold,
+[data-theme='light'] .glass-card .font-semibold,
+[data-theme='light'] .glass-panel h1,
+[data-theme='light'] .glass-panel h2,
+[data-theme='light'] .glass-panel h3,
+[data-theme='light'] .glass-panel h4,
+[data-theme='light'] .glass-panel .font-bold,
+[data-theme='light'] .glass-panel .font-semibold,
+[data-theme='light'] .glass-sidebar h1,
+[data-theme='light'] .glass-sidebar h2,
+[data-theme='light'] .glass-sidebar h3,
+[data-theme='light'] .glass-modal h1,
+[data-theme='light'] .glass-modal h2,
+[data-theme='light'] .glass-modal h3,
+[data-theme='light'] .glass-modal h4,
+[data-theme='light'] .glass-card p,
+[data-theme='light'] .glass-card span,
+[data-theme='light'] .glass-panel p,
+[data-theme='light'] .glass-panel span,
+[data-theme='light'] .glass-modal p,
+[data-theme='light'] .glass-modal span {
+  text-shadow: none !important;
+}
+
+/* Light Theme High-Contrast Placeholders & Muted Texts */
+[data-theme='light'] .glass-card input::placeholder,
+[data-theme='light'] .glass-card textarea::placeholder,
+[data-theme='light'] .glass-panel input::placeholder,
+[data-theme='light'] .glass-panel textarea::placeholder,
+[data-theme='light'] .glass-modal input::placeholder,
+[data-theme='light'] .glass-modal textarea::placeholder,
+[data-theme='light'] input::placeholder,
+[data-theme='light'] textarea::placeholder {
+  color: #475569 !important;
+  opacity: 0.95;
+}
+
+[data-theme='light'] .glass-card .text-gray-400,
+[data-theme='light'] .glass-panel .text-gray-400,
+[data-theme='light'] .glass-modal .text-gray-400 {
+  color: #334155 !important;
+}
+
+[data-theme='light'] .glass-card .text-gray-500,
+[data-theme='light'] .glass-panel .text-gray-500,
+[data-theme='light'] .glass-modal .text-gray-500 {
+  color: #475569 !important;
+}
+
+/* Mapped Palette Colors for light theme (scoped to cards, panels, sidebars, and modals) */
+[data-theme='light'] .glass-card .text-gray-200,
+[data-theme='light'] .glass-panel .text-gray-200,
+[data-theme='light'] .glass-sidebar .text-gray-200,
+[data-theme='light'] .glass-modal .text-gray-200 {
+  color: #0f172a !important;
+}
+
+[data-theme='light'] .glass-card .text-gray-300,
+[data-theme='light'] .glass-panel .text-gray-300,
+[data-theme='light'] .glass-sidebar .text-gray-300,
+[data-theme='light'] .glass-modal .text-gray-300 {
+  color: #1e293b !important;
+}
+
+[data-theme='light'] .glass-card .text-gray-400,
+[data-theme='light'] .glass-panel .text-gray-400,
+[data-theme='light'] .glass-sidebar .text-gray-400,
+[data-theme='light'] .glass-modal .text-gray-400 {
+  color: #334155 !important;
+}
+
+[data-theme='light'] .glass-card .text-gray-500,
+[data-theme='light'] .glass-panel .text-gray-500,
+[data-theme='light'] .glass-sidebar .text-gray-500,
+[data-theme='light'] .glass-modal .text-gray-500 {
+  color: #475569 !important;
+}
+
+/* Invert .text-white when inside standard light cards, panels, and modals */
+[data-theme='light']
+  .glass-card
+  .text-white:not([class*='bg-']):not([class*='btn']):not([class*='badge']):not(
+    [class*='pill']
+  ):not([class*='accent']):not(.text-on-accent):not([data-media-overlay] *):not(.text-on-media),
+[data-theme='light']
+  .glass-panel
+  .text-white:not([class*='bg-']):not([class*='btn']):not([class*='badge']):not(
+    [class*='pill']
+  ):not([class*='accent']):not(.text-on-accent):not([data-media-overlay] *):not(.text-on-media),
+[data-theme='light']
+  .glass-sidebar
+  .text-white:not([class*='bg-']):not([class*='btn']):not([class*='badge']):not(
+    [class*='pill']
+  ):not([class*='accent']):not(.text-on-accent):not([data-media-overlay] *):not(.text-on-media),
+[data-theme='light']
+  .glass-modal
+  .text-white:not([class*='bg-']):not([class*='btn']):not([class*='badge']):not(
+    [class*='pill']
+  ):not([class*='accent']):not(.text-on-accent):not([data-media-overlay] *):not(.text-on-media) {
+  color: #0f172a !important;
+}
+
+/* Prevent hover:text-white and group-hover:text-white from turning text white on light mode */
+[data-theme='light']
+  .glass-card
+  [class*='hover:text-white']:hover:not([class*='bg-']):not([class*='btn']):not(
+    [class*='badge']
+  ):not([data-media-overlay] *):not(.text-on-media),
+[data-theme='light']
+  .glass-panel
+  [class*='hover:text-white']:hover:not([class*='bg-']):not([class*='btn']):not(
+    [class*='badge']
+  ):not([data-media-overlay] *):not(.text-on-media),
+[data-theme='light']
+  .glass-sidebar
+  [class*='hover:text-white']:hover:not([class*='bg-']):not([class*='btn']):not(
+    [class*='badge']
+  ):not([data-media-overlay] *):not(.text-on-media),
+[data-theme='light']
+  .glass-modal
+  [class*='hover:text-white']:hover:not([class*='bg-']):not([class*='btn']):not(
+    [class*='badge']
+  ):not([data-media-overlay] *):not(.text-on-media),
+[data-theme='light']
+  .glass-card
+  .group:hover
+  [class*='group-hover:text-white']:not([class*='bg-']):not([class*='btn']):not(
+    [class*='badge']
+  ):not([data-media-overlay] *):not(.text-on-media),
+[data-theme='light']
+  .glass-panel
+  .group:hover
+  [class*='group-hover:text-white']:not([class*='bg-']):not([class*='btn']):not(
+    [class*='badge']
+  ):not([data-media-overlay] *):not(.text-on-media),
+[data-theme='light']
+  .glass-sidebar
+  .group:hover
+  [class*='group-hover:text-white']:not([class*='bg-']):not([class*='btn']):not(
+    [class*='badge']
+  ):not([data-media-overlay] *):not(.text-on-media),
+[data-theme='light']
+  .glass-modal
+  .group:hover
+  [class*='group-hover:text-white']:not([class*='bg-']):not([class*='btn']):not(
+    [class*='badge']
+  ):not([data-media-overlay] *):not(.text-on-media) {
+  color: #0f172a !important;
+}
+
+/* Explicit force-white for media overlays and video/poster text */
+[data-media-overlay],
+[data-media-overlay] *,
+.text-on-media {
+  color: #ffffff !important;
+}
+
+[data-theme='light'] .border-white\/5,
+[data-theme='light'] .border-white\/6,
+[data-theme='light'] .border-white\/8,
+[data-theme='light'] .border-white\/10,
+[data-theme='light'] .border-white\/15,
+[data-theme='light'] .border-white\/20,
+[data-theme='light'] .border-white\/\[0\.05\],
+[data-theme='light'] .border-white\/\[0\.06\],
+[data-theme='light'] .border-white\/\[0\.08\],
+[data-theme='light'] .border-white\/\[0\.10\],
+[data-theme='light'] .border-white\/\[0\.12\],
+[data-theme='light'] .border-white\/\[0\.15\] {
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-theme='light'] .bg-white\/5,
+[data-theme='light'] .bg-white\/6,
+[data-theme='light'] .bg-white\/8,
+[data-theme='light'] .bg-white\/10,
+[data-theme='light'] .bg-white\/\[0\.02\],
+[data-theme='light'] .bg-white\/\[0\.03\],
+[data-theme='light'] .bg-white\/\[0\.04\],
+[data-theme='light'] .bg-white\/\[0\.05\],
+[data-theme='light'] .bg-white\/\[0\.06\],
+[data-theme='light'] .bg-white\/\[0\.07\],
+[data-theme='light'] .bg-white\/\[0\.08\] {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Universal sleek range slider styling across all themes (no rectangular block) */
+input[type='range'] {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  cursor: pointer;
+  height: 20px;
+  margin: 0;
+  padding: 0;
+  vertical-align: middle;
+}
+
+input[type='range']:focus {
+  outline: none;
+}
+
+/* WebKit Track */
+input[type='range']::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 6px;
+  border-radius: 9999px;
+  background-color: rgba(148, 163, 184, 0.25) !important;
+  border: none;
+  transition: background-color 0.2s ease;
+}
+
+[data-theme='light'] input[type='range']::-webkit-slider-runnable-track {
+  background-color: rgba(0, 0, 0, 0.12) !important;
+}
+
+/* WebKit Thumb */
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 16px;
+  width: 16px;
+  border-radius: 9999px;
+  background: var(--app-accent-color, #8b5cf6);
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  margin-top: -5px;
+  cursor: grab;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+input[type='range']:active::-webkit-slider-thumb {
+  transform: scale(1.18);
+  cursor: grabbing;
+}
+
+/* Firefox Track */
+input[type='range']::-moz-range-track {
+  width: 100%;
+  height: 6px;
+  border-radius: 9999px;
+  background-color: rgba(148, 163, 184, 0.25) !important;
+  border: none;
+}
+
+[data-theme='light'] input[type='range']::-moz-range-track {
+  background-color: rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Firefox Thumb */
+input[type='range']::-moz-range-thumb {
+  height: 16px;
+  width: 16px;
+  border-radius: 9999px;
+  background: var(--app-accent-color, #8b5cf6);
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  cursor: grab;
+  transition: transform 0.15s ease;
+}
+
+input[type='range']:active::-moz-range-thumb {
+  transform: scale(1.18);
+  cursor: grabbing;
+}
+
+/* Light theme markdown typography (strictly excluded inside chat bubbles) */
+[data-theme='light'] .markdown-content:not([data-chat-bubble] *),
+[data-theme='light'] .markdown-content:not([data-chat-bubble] *) h1,
+[data-theme='light'] .markdown-content:not([data-chat-bubble] *) h2,
+[data-theme='light'] .markdown-content:not([data-chat-bubble] *) h3,
+[data-theme='light'] .markdown-content:not([data-chat-bubble] *) li,
+[data-theme='light'] .markdown-content:not([data-chat-bubble] *) p,
+[data-theme='light'] .markdown-content:not([data-chat-bubble] *) th,
+[data-theme='light'] .markdown-content:not([data-chat-bubble] *) td {
+  color: #0f172a !important;
+}
+
+/* Chat bubble text strictly inherits its own bubble contrast colors */
+[data-chat-bubble],
+[data-chat-bubble] .markdown-content,
+[data-chat-bubble] .markdown-content p,
+[data-chat-bubble] .markdown-content span,
+[data-chat-bubble] .markdown-content strong,
+[data-chat-bubble] .markdown-content em {
+  color: inherit !important;
+}
+
+/* Hardware-isolated wallpaper layer */
+.wallpaper-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  transform: translateZ(0);
+  will-change: transform, opacity;
+  contain: strict;
+}
+
+/* View Transitions Circular Ripple Animation (60 FPS GPU-Accelerated) */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+  display: block;
+  position: fixed;
+  inset: 0;
+  height: 100%;
+  width: 100%;
+  overflow: clip;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 99999;
+  will-change: clip-path;
+}
+
+/* Explicit layering for PiP minimize vs expand */
+html.pip-minimizing::view-transition-old(root) {
+  z-index: 99999 !important;
+  will-change: clip-path;
+}
+html.pip-minimizing::view-transition-new(root) {
+  z-index: 1 !important;
+  will-change: auto;
+}
+
+html.pip-expanding::view-transition-old(root) {
+  z-index: 1 !important;
+  will-change: auto;
+}
+html.pip-expanding::view-transition-new(root) {
+  z-index: 99999 !important;
+  will-change: clip-path;
+}
+
+/* Suppress CSS background transitions during active view transitions to eliminate micro-stutters */
+html.theme-transitioning,
+html.theme-transitioning *,
+html.theme-transitioning *::before,
+html.theme-transitioning *::after,
+html.pip-transitioning,
+html.pip-transitioning *,
+html.pip-transitioning *::before,
+html.pip-transitioning *::after {
+  transition: none !important;
+}
+
+/* Telegram Animated Emojis (Subtle Organic Pulse Waves for In-Call SAS & Modal) */
+@keyframes telegramEmojiPulse {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.14);
+    filter: drop-shadow(0 4px 10px rgba(112, 89, 246, 0.45));
+  }
+  60% {
+    transform: scale(0.97);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.telegram-emoji-bounce {
+  animation: telegramEmojiPulse 0.75s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  transform-origin: center center;
+}
+
+@keyframes telegramEmojiPulseModal {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.18);
+    filter: drop-shadow(0 8px 24px rgba(112, 89, 246, 0.5));
+  }
+  65% {
+    transform: scale(0.97);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.telegram-emoji-bounce-modal {
+  animation: telegramEmojiPulseModal 0.85s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  transform-origin: center center;
+}
+
 body {
   margin: 0;
-  background-color: #050505;
+  background-color: var(--app-bg-color, #050505);
+  color: var(--app-text-primary, #ffffff);
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
 }
 
 .bg-radial-gradient {
@@ -45,11 +893,36 @@ body {
   );
 }
 
-* {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+/* Firefox-only standard scrollbar definitions (Firefox does not support ::-webkit-scrollbar and never paints arrows) */
+@supports (-moz-appearance: none) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+  }
+
+  [data-theme='light'] *,
+  .light * {
+    scrollbar-color: rgba(0, 0, 0, 0.28) transparent;
+  }
+
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+  }
+
+  [data-theme='light'] .custom-scrollbar,
+  .light .custom-scrollbar {
+    scrollbar-color: rgba(0, 0, 0, 0.28) transparent;
+  }
+
+  .tabs-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+  }
 }
 
+/* Chromium / WebKit Scrollbars (Chrome, Edge, Safari, Brave, Opera)
+   No !important inside pseudo-elements as it causes Blink parser to drop rules */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -59,10 +932,34 @@ body {
   background: transparent;
 }
 
+::-webkit-scrollbar-button,
+::-webkit-scrollbar-button:single-button,
+::-webkit-scrollbar-button:vertical:decrement,
+::-webkit-scrollbar-button:vertical:increment,
+::-webkit-scrollbar-button:horizontal:decrement,
+::-webkit-scrollbar-button:horizontal:increment,
+::-webkit-scrollbar-button:start,
+::-webkit-scrollbar-button:end {
+  display: none;
+  width: 0;
+  height: 0;
+  background: transparent;
+}
+
+::-webkit-scrollbar-corner {
+  display: none;
+  background: transparent;
+}
+
 ::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.14);
   border-radius: 9999px;
   transition: background-color 0.2s ease-in-out;
+}
+
+[data-theme='light'] ::-webkit-scrollbar-thumb,
+.light ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.28);
 }
 
 ::-webkit-scrollbar-thumb:hover,
@@ -70,15 +967,15 @@ body {
   background: rgba(255, 255, 255, 0.45);
 }
 
-::-webkit-scrollbar-button {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
+[data-theme='light'] ::-webkit-scrollbar-thumb:hover,
+.light ::-webkit-scrollbar-thumb:hover,
+[data-theme='light'] ::-webkit-scrollbar-thumb:active,
+.light ::-webkit-scrollbar-thumb:active {
+  background: rgba(0, 0, 0, 0.5);
 }
 
 .custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+  overflow-y: auto;
   overscroll-behavior: contain;
 }
 
@@ -103,9 +1000,61 @@ body {
   transition: background-color 0.2s ease-in-out;
 }
 
+[data-theme='light'] .custom-scrollbar::-webkit-scrollbar-thumb,
+.light .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.28);
+}
+
 .custom-scrollbar::-webkit-scrollbar-thumb:hover,
 .custom-scrollbar::-webkit-scrollbar-thumb:active {
   background: rgba(255, 255, 255, 0.45);
+}
+
+[data-theme='light'] .custom-scrollbar::-webkit-scrollbar-thumb:hover,
+.light .custom-scrollbar::-webkit-scrollbar-thumb:hover,
+[data-theme='light'] .custom-scrollbar::-webkit-scrollbar-thumb:active,
+.light .custom-scrollbar::-webkit-scrollbar-thumb:active {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+/* Sidebar Scrollbar:
+   - Native scrollbars hidden completely (no arrows, no browser quirks)
+   - Smooth animated overlay thumb provided by SidebarScrollbar component
+*/
+.sidebar-scrollbar {
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+  background: transparent;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-corner {
+  display: none;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-track,
+.sidebar-scrollbar::-webkit-scrollbar-track-piece {
+  display: none;
+  background: transparent;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb {
+  display: none;
+  background: transparent;
 }
 
 .no-scrollbar {
@@ -239,6 +1188,21 @@ body {
     }
   }
 
+  @keyframes slideDownDropdown {
+    from {
+      opacity: 0;
+      transform: translateY(-8px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .animate-slideDownDropdown {
+    animation: slideDownDropdown 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
   .animate-popIn {
     animation: popIn 280ms cubic-bezier(0.34, 1.56, 0.64, 1);
   }
@@ -302,6 +1266,46 @@ body {
     100% {
       opacity: 1;
       transform: scale(1);
+    }
+  }
+
+  .animate-attachMenuExpand {
+    animation: attachMenuExpand 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    will-change: transform, opacity, filter;
+  }
+
+  @keyframes attachMenuExpand {
+    0% {
+      opacity: 0;
+      transform: scale(0.22);
+      filter: blur(8px);
+    }
+    45% {
+      opacity: 0.95;
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+      filter: none;
+    }
+  }
+
+  .animate-attachMenuCollapse {
+    animation: attachMenuCollapse 150ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    will-change: transform, opacity, filter;
+    pointer-events: none;
+  }
+
+  @keyframes attachMenuCollapse {
+    0% {
+      opacity: 1;
+      transform: scale(1);
+      filter: none;
+    }
+    100% {
+      opacity: 0;
+      transform: scale(0.22);
+      filter: blur(6px);
     }
   }
 
@@ -524,6 +1528,36 @@ body {
     to {
       opacity: 0;
       transform: translateX(-24px);
+    }
+  }
+
+  .animate-lightboxSlideNext {
+    animation: lightboxSlideNext 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes lightboxSlideNext {
+    from {
+      opacity: 0.15;
+      transform: translate3d(70px, 0, 0) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+  }
+
+  .animate-lightboxSlidePrev {
+    animation: lightboxSlidePrev 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes lightboxSlidePrev {
+    from {
+      opacity: 0.15;
+      transform: translate3d(-70px, 0, 0) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0) scale(1);
     }
   }
 
@@ -857,4 +1891,454 @@ body {
 .story-anim-typewriter {
   border-right: 2px solid currentColor;
   animation: storyTypewriterCursor 0.8s step-end infinite;
+}
+
+/* ==========================================================================
+   Typography Engine: Minecraft Font & Scoped Customization
+   ========================================================================== */
+
+/* Authentic cubic Minecraft font with full Cyrillic + Latin character set */
+@font-face {
+  font-family: 'Minecraft';
+  src:
+    url('/fonts/minecraft.woff2') format('woff2'),
+    url('/fonts/minecraft.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --font-heading: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --app-custom-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --app-custom-text-color: inherit;
+}
+
+/* Safety Fuse: Never apply transparent gradient text or text shadows to form inputs, svgs, and buttons */
+:is(
+  input,
+  textarea,
+  select,
+  svg,
+  svg *,
+  button svg,
+  code,
+  pre,
+  [contenteditable],
+  [contenteditable] *
+) {
+  -webkit-text-fill-color: initial !important;
+  color: inherit !important;
+  text-shadow: none !important;
+}
+
+/* Connect CSS variable --font-heading when scope is active */
+[data-font-scope='headings'],
+[data-font-scope='all'] {
+  --font-heading: var(--app-custom-font);
+}
+
+/* 1. Headings Only Scope: Applies to tabs, modal titles, field labels, nicknames */
+[data-font-scope='headings']
+  :is(
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    [role='tab'],
+    .tab-item,
+    .tab-label,
+    label:not([data-plain-label]),
+    legend,
+    .modal-title,
+    .user-display-name,
+    [data-profile-name],
+    [data-username],
+    [data-font-heading]
+  ) {
+  font-family: var(--app-custom-font, inherit);
+}
+
+/* Strictly preserve readable default system font on posts, comments, article bodies in headings-only mode */
+[data-font-scope='headings']
+  :is(
+    p,
+    article p,
+    .post-body,
+    [data-post-body],
+    .comment-content,
+    [data-comment-text],
+    .markdown-content,
+    .markdown-content *
+  ) {
+  font-family:
+    'Inter',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif !important;
+}
+
+/* 2. All Scope: Applies to entire app interface EXCEPT chats */
+[data-font-scope='all']
+  :is(body, #root, div, span, p, a, button, h1, h2, h3, h4, h5, h6, label):not(
+    [data-chat-root]
+  ):not([data-chat-root] *):not([data-chat-bubble]):not([data-chat-bubble] *):not(
+    [data-chat-window]
+  ):not([data-chat-window] *):not(.chat-scope):not(.chat-scope *):not(code):not(pre) {
+  font-family: var(--app-custom-font, inherit);
+}
+
+/* Chats strictly retain their own independent theme fonts and bubble typography */
+:is(
+  [data-chat-root],
+  [data-chat-root] *,
+  [data-chat-window],
+  [data-chat-window] *,
+  [data-chat-bubble],
+  [data-chat-bubble] *
+) {
+  font-family: var(--chat-font-family, inherit);
+}
+
+/* Custom Text Color Application */
+[data-has-custom-color='true'][data-font-scope='headings']
+  :is(
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    [role='tab'],
+    .user-display-name,
+    [data-profile-name],
+    [data-font-heading]
+  ):not(input):not(textarea):not(select):not(button):not(svg) {
+  color: var(--app-custom-text-color) !important;
+}
+
+[data-has-custom-color='true'][data-font-scope='all']
+  :is(
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    [role='tab'],
+    .user-display-name,
+    [data-profile-name],
+    [data-font-heading]
+  ):not(input):not(textarea):not(select):not(button):not(svg) {
+  color: var(--app-custom-text-color) !important;
+}
+
+/* Text Effects Scoped Application (safe from inputs and svgs) */
+[data-font-effect='gradient']
+  :is(
+    [data-app-text-effect='true'],
+    [data-font-scope='headings'] h1,
+    [data-font-scope='headings'] h2,
+    [data-font-scope='headings'] h3,
+    [data-font-scope='headings'] .user-display-name,
+    [data-font-scope='all'] h1,
+    [data-font-scope='all'] h2,
+    [data-font-scope='all'] h3,
+    [data-font-scope='all'] .user-display-name
+  ):not(input):not(textarea):not(button):not(svg):not(select) {
+  background: linear-gradient(135deg, #ec4899 0%, #a855f7 50%, #38bdf8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+}
+
+[data-font-effect='neon']
+  :is(
+    [data-app-text-effect='true'],
+    [data-font-scope='headings'] h1,
+    [data-font-scope='headings'] h2,
+    [data-font-scope='headings'] h3,
+    [data-font-scope='headings'] .user-display-name,
+    [data-font-scope='all'] h1,
+    [data-font-scope='all'] h2,
+    [data-font-scope='all'] h3,
+    [data-font-scope='all'] .user-display-name
+  ):not(input):not(textarea):not(button):not(svg):not(select) {
+  text-shadow:
+    0 0 5px currentColor,
+    0 0 12px currentColor,
+    0 0 22px rgba(168, 85, 247, 0.8);
+}
+
+[data-font-effect='cartoon']
+  :is(
+    [data-app-text-effect='true'],
+    [data-font-scope='headings'] h1,
+    [data-font-scope='headings'] h2,
+    [data-font-scope='headings'] h3,
+    [data-font-scope='headings'] .user-display-name,
+    [data-font-scope='all'] h1,
+    [data-font-scope='all'] h2,
+    [data-font-scope='all'] h3,
+    [data-font-scope='all'] .user-display-name
+  ):not(input):not(textarea):not(button):not(svg):not(select) {
+  text-shadow:
+    -1px -1px 0 #000,
+    1px -1px 0 #000,
+    -1px 1px 0 #000,
+    1px 1px 0 #000,
+    2px 2px 0 #000;
+}
+
+[data-font-effect='highlight']
+  :is(
+    [data-app-text-effect='true'],
+    [data-font-scope='headings'] h1,
+    [data-font-scope='headings'] h2,
+    [data-font-scope='headings'] h3,
+    [data-font-scope='headings'] .user-display-name,
+    [data-font-scope='all'] h1,
+    [data-font-scope='all'] h2,
+    [data-font-scope='all'] h3,
+    [data-font-scope='all'] .user-display-name
+  ):not(input):not(textarea):not(button):not(svg):not(select) {
+  text-shadow:
+    0 0 8px rgba(52, 211, 153, 0.7),
+    0 2px 0 #047857;
+}
+
+[data-font-effect='gummy']
+  :is(
+    [data-app-text-effect='true'],
+    [data-font-scope='headings'] h1,
+    [data-font-scope='headings'] h2,
+    [data-font-scope='headings'] h3,
+    [data-font-scope='headings'] .user-display-name,
+    [data-font-scope='all'] h1,
+    [data-font-scope='all'] h2,
+    [data-font-scope='all'] h3,
+    [data-font-scope='all'] .user-display-name
+  ):not(input):not(textarea):not(button):not(svg):not(select) {
+  text-shadow:
+    0 2px 0 #db2777,
+    0 4px 6px rgba(219, 39, 119, 0.45),
+    0 -1px 1px rgba(255, 255, 255, 0.6);
+}
+
+[data-font-effect='prism']
+  :is(
+    [data-app-text-effect='true'],
+    [data-font-scope='headings'] h1,
+    [data-font-scope='headings'] h2,
+    [data-font-scope='headings'] h3,
+    [data-font-scope='headings'] .user-display-name,
+    [data-font-scope='all'] h1,
+    [data-font-scope='all'] h2,
+    [data-font-scope='all'] h3,
+    [data-font-scope='all'] .user-display-name
+  ):not(input):not(textarea):not(button):not(svg):not(select) {
+  text-shadow:
+    -1.75px 0px 1px #f43f5e,
+    1.75px 0px 1px #06b6d4,
+    0px 1.5px 1px #10b981;
+}
+
+/* ==========================================================================
+   Custom Cursors System
+   ========================================================================== */
+html[data-custom-cursor='true'],
+html[data-custom-cursor='true'] * {
+  cursor: var(--custom-cursor-default, auto);
+}
+
+/* Interactive clickables get the reactive pointer state */
+html[data-custom-cursor='true']
+  :is(
+    a,
+    button,
+    [role='button'],
+    [role='tab'],
+    [role='menuitem'],
+    [role='switch'],
+    [role='checkbox'],
+    input[type='button'],
+    input[type='submit'],
+    input[type='reset'],
+    summary,
+    select,
+    .cursor-pointer
+  ) {
+  cursor: var(--custom-cursor-pointer, pointer) !important;
+}
+
+/* Styled custom text I-beam cursor for all text editable inputs and selections */
+html[data-custom-cursor='true']
+  :is(
+    input:not([type='button']):not([type='submit']):not([type='reset']):not([type='checkbox']):not(
+        [type='radio']
+      ):not([type='range']):not([type='color']),
+    textarea,
+    [contenteditable='true'],
+    [contenteditable=''],
+    .selectable-text
+  ) {
+  cursor: var(--custom-cursor-text, text) !important;
+}
+
+/* Draggable elements and range sliders get grab/grabbing */
+html[data-custom-cursor='true'] :is([draggable='true'], .cursor-grab, input[type='range']) {
+  cursor: var(--custom-cursor-grab, grab) !important;
+}
+
+html[data-custom-cursor='true']
+  :is(.cursor-grabbing, input[type='range']:active, [draggable='true']:active) {
+  cursor: var(--custom-cursor-grabbing, grabbing) !important;
+}
+
+/* System functional cursors override */
+html[data-custom-cursor='true'] .cursor-ew-resize {
+  cursor: ew-resize !important;
+}
+html[data-custom-cursor='true'] .cursor-ns-resize {
+  cursor: ns-resize !important;
+}
+html[data-custom-cursor='true'] .cursor-col-resize {
+  cursor: col-resize !important;
+}
+html[data-custom-cursor='true'] .cursor-row-resize {
+  cursor: row-resize !important;
+}
+html[data-custom-cursor='true'] :is(.cursor-not-allowed, [disabled], [aria-disabled='true']) {
+  cursor: var(--custom-cursor-not-allowed, not-allowed) !important;
+}
+
+html[data-custom-cursor='true'] .cursor-default {
+  cursor: var(--custom-cursor-default, auto) !important;
+}
+
+/* Discord Tumbling Dual-Cubes Video & Stream Loader */
+@keyframes discord-cubes-rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes discord-cube-1 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(14px, 0) scale(0.8);
+  }
+  50% {
+    transform: translate(14px, 14px) scale(1);
+  }
+  75% {
+    transform: translate(0, 14px) scale(0.8);
+  }
+}
+
+@keyframes discord-cube-2 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(-14px, 0) scale(0.8);
+  }
+  50% {
+    transform: translate(-14px, -14px) scale(1);
+  }
+  75% {
+    transform: translate(0, -14px) scale(0.8);
+  }
+}
+
+.discord-cubes-wrapper {
+  animation: discord-cubes-rotate 1.8s linear infinite;
+}
+
+.discord-cube-1 {
+  animation: discord-cube-1 1.8s ease-in-out infinite;
+}
+
+.discord-cube-2 {
+  animation: discord-cube-2 1.8s ease-in-out infinite;
+}
+
+/* Lightbox Media Navigation Slide Animations */
+@keyframes lightbox-slide-next {
+  0% {
+    opacity: 0;
+    transform: translate3d(50px, 0, 0) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes lightbox-slide-prev {
+  0% {
+    opacity: 0;
+    transform: translate3d(-50px, 0, 0) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.animate-lightboxSlideNext {
+  animation: lightbox-slide-next 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
+}
+
+.animate-lightboxSlidePrev {
+  animation: lightbox-slide-prev 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
+}
+
+/* Telegram Context Menu Entrance & Reactions Expand */
+@keyframes telegram-menu-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes telegram-reactions-expand {
+  0% {
+    opacity: 0;
+    clip-path: inset(0 100% 0 0 round 9999px);
+    transform: scale(0.92);
+  }
+  100% {
+    opacity: 1;
+    clip-path: inset(0 0% 0 0 round 9999px);
+    transform: scale(1);
+  }
+}
+
+.animate-telegramMenuIn {
+  animation: telegram-menu-in 140ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
+}
+
+.animate-telegramReactionsExpand {
+  animation: telegram-reactions-expand 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: clip-path, transform, opacity;
 }

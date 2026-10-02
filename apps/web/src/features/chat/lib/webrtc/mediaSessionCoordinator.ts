@@ -60,7 +60,7 @@ export class MediaSessionCoordinator {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: metadata.title,
         artist: metadata.callerName,
-        album: metadata.isGroupCall ? 'Групповой звонок' : 'Личный звонок',
+        album: metadata.isGroupCall ? 'Group Call' : 'Direct Call',
         artwork,
       });
 

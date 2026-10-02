@@ -1,5 +1,7 @@
 import sharp from 'sharp';
 import os from 'os';
+import * as fs from 'fs/promises';
+import * as path from 'path';
 import { type S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { isCloudflareStorageDomain } from '../storage/storage-url.util';
 
@@ -204,8 +206,26 @@ export async function uploadToStorageWithFallback(
         `Cloudflare R2 upload failed for ${cleanKey} in bucket ${bucket}: ${(err as Error).message}`,
       );
     }
-    // Resilient memory data URI fallback for offline unit/local tests only
-    return `data:${contentType};base64,${buffer.toString('base64')}`;
+    // Unit tests fallback
+    if (process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID) {
+      return `data:${contentType};base64,${buffer.toString('base64')}`;
+    }
+    // Local development fallback: persist to local disk static assets directory
+    try {
+      const configuredDir = process.env.LOCAL_STORAGE_DIR;
+      const uploadDir = configuredDir
+        ? path.resolve(process.cwd(), configuredDir)
+        : path.resolve(process.cwd(), 'uploads');
+      const targetPath = path.resolve(uploadDir, cleanKey);
+      await fs.mkdir(path.dirname(targetPath), { recursive: true });
+      await fs.writeFile(targetPath, buffer);
+      const port = process.env.PORT || 3000;
+      const configuredUrl = process.env.LOCAL_STORAGE_PUBLIC_URL;
+      const baseUrl = (configuredUrl || `http://localhost:${port}`).replace(/\/+$/, '');
+      return `${baseUrl}/uploads/${cleanKey}`;
+    } catch {
+      return `data:${contentType};base64,${buffer.toString('base64')}`;
+    }
   }
 }
 

@@ -222,7 +222,18 @@ export class BandwidthAdapter {
       }
 
       if (sender.track.kind === 'video') {
-        if (targetLevel === 2) {
+        const isScreenTrack =
+          Boolean(sender.track.label?.toLowerCase().includes('screen')) ||
+          sender.track.contentHint === 'motion' ||
+          sender.track.contentHint === 'detail';
+
+        if (isScreenTrack) {
+          // Never degrade screen share to 180-360p or 300kbps; preserve full 1080p resolution and 60fps
+          params.encodings[0].scaleResolutionDownBy = 1.0;
+          params.encodings[0].maxFramerate = 60;
+          params.encodings[0].maxBitrate = targetLevel === 2 ? 4_000_000 : 8_000_000;
+          params.degradationPreference = 'maintain-framerate';
+        } else if (targetLevel === 2) {
           // Heavy: 4x downscale, cap at 300kbps
           params.encodings[0].scaleResolutionDownBy = 4;
           params.encodings[0].maxBitrate = 300_000;
@@ -257,7 +268,17 @@ export class BandwidthAdapter {
       if (!params.encodings || params.encodings.length === 0) continue;
 
       if (sender.track.kind === 'video') {
-        if (this.currentDegradationLevel === 1) {
+        const isScreenTrack =
+          Boolean(sender.track.label?.toLowerCase().includes('screen')) ||
+          sender.track.contentHint === 'motion' ||
+          sender.track.contentHint === 'detail';
+
+        if (isScreenTrack) {
+          params.encodings[0].scaleResolutionDownBy = 1.0;
+          params.encodings[0].maxFramerate = 60;
+          params.encodings[0].maxBitrate = 8_000_000;
+          params.degradationPreference = 'maintain-framerate';
+        } else if (this.currentDegradationLevel === 1) {
           params.encodings[0].scaleResolutionDownBy = 2;
           params.encodings[0].maxBitrate = 900_000;
           params.degradationPreference = 'balanced';

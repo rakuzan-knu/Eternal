@@ -4,6 +4,7 @@ import { X, Play, Trash2, ListMusic, Music, RefreshCw, Sparkles, Loader2 } from 
 import { SoundCloudBrandIcon, SpotifyBrandIcon } from '@/shared/ui/BrandIcons';
 import { useSpotifyPlayerStore } from '@/shared/model/useSpotifyPlayerStore';
 import { unescapeHtml, isSoundCloudUrl } from '@/shared/lib/spotifyUrl';
+import { useLiquidGlassTheme } from '@/shared/lib/useLiquidGlassTheme';
 
 const DEFAULT_ARTWORK_FALLBACK =
   'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=200&auto=format&fit=crop&q=80';
@@ -14,6 +15,8 @@ export interface SpotifyQueuePopoverProps {
 
 export const SpotifyQueuePopover: React.FC<SpotifyQueuePopoverProps> = ({ align = 'center' }) => {
   const popoverRef = useRef<HTMLDivElement>(null);
+  const { isLight, popoverGradient, backdropFilter, WebkitBackdropFilter, topSpecularClass } =
+    useLiquidGlassTheme();
 
   const isQueueOpen = useSpotifyPlayerStore((s) => s.isQueueOpen);
   const setQueueOpen = useSpotifyPlayerStore((s) => s.setQueueOpen);
@@ -103,35 +106,52 @@ export const SpotifyQueuePopover: React.FC<SpotifyQueuePopoverProps> = ({ align 
           } w-[350px] sm:w-[380px] max-w-[calc(100vw-32px)] max-h-[500px] sm:max-h-[540px] rounded-[26px] p-4 flex flex-col z-50 select-none overflow-hidden`}
           style={{
             transformOrigin: isRight ? '90% 100%' : '50% 100%',
-            background:
-              'linear-gradient(145deg, rgba(22, 23, 32, 0.88) 0%, rgba(11, 12, 18, 0.94) 100%)',
-            backdropFilter: 'blur(40px) saturate(220%) brightness(106%)',
-            WebkitBackdropFilter: 'blur(40px) saturate(220%) brightness(106%)',
-            border: 'none',
-            boxShadow:
-              'inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.45), inset 0 -1px 1.5px 0 rgba(255, 255, 255, 0.1), inset 0 0 12px 2px rgba(255, 255, 255, 0.04), 0 24px 48px -12px rgba(0, 0, 0, 0.75), 0 8px 16px -4px rgba(0, 0, 0, 0.5)',
+            background: popoverGradient,
+            backdropFilter,
+            WebkitBackdropFilter,
+            border: isLight
+              ? '1px solid rgba(255, 255, 255, 0.6)'
+              : '1px solid rgba(255, 255, 255, 0.18)',
+            boxShadow: isLight
+              ? 'inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 1.5px 0 rgba(0, 0, 0, 0.05), 0 24px 48px -12px rgba(0, 0, 0, 0.16), 0 8px 16px -4px rgba(0, 0, 0, 0.08)'
+              : 'inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.45), inset 0 -1px 1.5px 0 rgba(255, 255, 255, 0.1), inset 0 0 12px 2px rgba(255, 255, 255, 0.04), 0 24px 48px -12px rgba(0, 0, 0, 0.75), 0 8px 16px -4px rgba(0, 0, 0, 0.5)',
           }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Subtle Liquid Top Reflection Accent */}
-          <div className="absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-white/50 to-transparent pointer-events-none" />
+          <div
+            className={`absolute inset-x-0 top-0 h-[1.5px] ${topSpecularClass} pointer-events-none`}
+          />
+
+          {/* Liquid Glass Specular Lens Sheen */}
+          <div className="absolute inset-0 rounded-[26px] pointer-events-none bg-gradient-to-b from-white/[0.08] via-transparent to-black/[0.06]" />
 
           {/* Visual downward anchor notch pointing towards Queue button */}
           <div
             className={`absolute -bottom-1.5 ${
               isRight ? 'right-4' : 'left-1/2 -translate-x-1/2'
-            } w-3 h-3 bg-[#13141a] rotate-45 border-r border-b border-white/10 pointer-events-none`}
+            } w-3 h-3 ${
+              isLight ? 'bg-white/80 border-black/10' : 'bg-[#14151f]/80 border-white/10'
+            } rotate-45 border-r border-b pointer-events-none`}
           />
 
           {/* Header */}
-          <div className="flex items-center justify-between pb-3 border-b border-white/[0.08] shrink-0">
+          <div
+            className={`flex items-center justify-between pb-3 border-b ${
+              isLight ? 'border-black/[0.08]' : 'border-white/[0.08]'
+            } shrink-0`}
+          >
             <div className="flex items-center gap-2 min-w-0">
               <ListMusic
                 className={`w-4 h-4 shrink-0 transition-colors ${
                   isSoundCloud ? 'text-[#FF5500]' : 'text-[#1DB954]'
                 }`}
               />
-              <span className="text-xs font-bold text-white tracking-wide uppercase truncate">
+              <span
+                className={`text-xs font-bold tracking-wide uppercase truncate ${
+                  isLight ? 'text-gray-950' : 'text-white'
+                }`}
+              >
                 Queue
               </span>
             </div>
@@ -142,13 +162,15 @@ export const SpotifyQueuePopover: React.FC<SpotifyQueuePopoverProps> = ({ align 
                 type="button"
                 onClick={() => loadInfiniteAudioQueue(true)}
                 disabled={isLoadingQueue}
-                className={`p-1.5 rounded-lg text-gray-400 ${
+                className={`p-1.5 rounded-lg ${
+                  isLight ? 'text-gray-600 hover:bg-black/5' : 'text-gray-400 hover:bg-white/5'
+                } ${
                   isSoundCloud ? 'hover:text-[#FF5500]' : 'hover:text-[#1DB954]'
-                } hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-50`}
+                } transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center shrink-0`}
                 title="Refresh recommendations (next 10)"
               >
                 <RefreshCw
-                  className={`w-3.5 h-3.5 ${
+                  className={`w-3.5 h-3.5 shrink-0 ${
                     isLoadingQueue
                       ? `animate-spin ${isSoundCloud ? 'text-[#FF5500]' : 'text-[#1DB954]'}`
                       : ''
@@ -160,7 +182,11 @@ export const SpotifyQueuePopover: React.FC<SpotifyQueuePopoverProps> = ({ align 
                 <button
                   type="button"
                   onClick={clearQueue}
-                  className="text-[11px] font-semibold text-gray-400 hover:text-red-400 px-2 py-0.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
+                  className={`text-[11px] font-semibold px-2 py-0.5 rounded-lg ${
+                    isLight
+                      ? 'text-gray-600 hover:text-red-600 hover:bg-black/5'
+                      : 'text-gray-400 hover:text-red-400 hover:bg-white/5'
+                  } transition-colors cursor-pointer`}
                   title="Clear queue"
                 >
                   Clear
@@ -170,10 +196,14 @@ export const SpotifyQueuePopover: React.FC<SpotifyQueuePopoverProps> = ({ align 
               <button
                 type="button"
                 onClick={() => setQueueOpen(false)}
-                className="p-1 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
+                  isLight
+                    ? 'text-gray-600 hover:text-gray-950 hover:bg-black/8'
+                    : 'text-gray-400 hover:text-white hover:bg-white/10'
+                } transition-colors cursor-pointer`}
                 title="Close"
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4 shrink-0" />
               </button>
             </div>
           </div>
@@ -183,16 +213,28 @@ export const SpotifyQueuePopover: React.FC<SpotifyQueuePopoverProps> = ({ align 
             className="flex-1 overflow-y-auto space-y-4 pr-1 mt-3 custom-scrollbar"
             style={{
               scrollbarWidth: 'thin',
-              scrollbarColor: 'rgba(255, 255, 255, 0.15) transparent',
+              scrollbarColor: isLight
+                ? 'rgba(0, 0, 0, 0.28) transparent'
+                : 'rgba(255, 255, 255, 0.15) transparent',
             }}
           >
             {/* Currently Playing Track */}
             {currentTrack && (
               <div>
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-2">
+                <span
+                  className={`text-[10px] font-bold uppercase tracking-wider block mb-2 ${
+                    isLight ? 'text-gray-600' : 'text-gray-400'
+                  }`}
+                >
                   Now Playing
                 </span>
-                <div className="flex items-center gap-3 p-2.5 rounded-2xl bg-white/[0.06] border border-white/10 shadow-xs">
+                <div
+                  className={`flex items-center gap-3 p-2.5 rounded-2xl ${
+                    isLight
+                      ? 'bg-black/[0.04] border border-black/10 shadow-xs'
+                      : 'bg-white/[0.06] border border-white/10 shadow-xs'
+                  }`}
+                >
                   <img
                     src={currentTrack.albumArt || DEFAULT_ARTWORK_FALLBACK}
                     alt={currentTrack.title}
@@ -200,10 +242,16 @@ export const SpotifyQueuePopover: React.FC<SpotifyQueuePopoverProps> = ({ align 
                       (e.currentTarget as HTMLImageElement).src =
                         currentTrack.artistAvatar || DEFAULT_ARTWORK_FALLBACK;
                     }}
-                    className="w-10 h-10 rounded-xl object-cover shadow-sm shrink-0 border border-white/10"
+                    className={`w-10 h-10 rounded-xl object-cover shadow-sm shrink-0 border ${
+                      isLight ? 'border-black/10' : 'border-white/10'
+                    }`}
                   />
                   <div className="flex-1 min-w-0">
-                    <h5 className="text-xs font-bold text-white truncate">
+                    <h5
+                      className={`text-xs font-bold truncate ${
+                        isLight ? 'text-gray-950' : 'text-white'
+                      }`}
+                    >
                       {unescapeHtml(currentTrack.title)}
                     </h5>
                     <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
@@ -216,7 +264,11 @@ export const SpotifyQueuePopover: React.FC<SpotifyQueuePopoverProps> = ({ align 
                           <SpotifyBrandIcon size={11} />
                         </span>
                       )}
-                      <p className="text-[11px] text-gray-300 truncate">
+                      <p
+                        className={`text-[11px] truncate ${
+                          isLight ? 'text-gray-600' : 'text-gray-300'
+                        }`}
+                      >
                         {unescapeHtml(currentTrack.artist)}
                       </p>
                     </div>
@@ -246,17 +298,31 @@ export const SpotifyQueuePopover: React.FC<SpotifyQueuePopoverProps> = ({ align 
             {/* Up Next in Queue (Max 10) */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                <span
+                  className={`text-[10px] font-bold uppercase tracking-wider ${
+                    isLight ? 'text-gray-600' : 'text-gray-400'
+                  }`}
+                >
                   Next up ({displayedQueue.length}
                   {queue.length > 10 ? ` of ${queue.length}` : ''})
                 </span>
                 {queueSource === 'playlist' && queue.length > 0 && (
-                  <span className="text-[10px] font-medium text-gray-400">From playlist</span>
+                  <span
+                    className={`text-[10px] font-medium ${
+                      isLight ? 'text-gray-600' : 'text-gray-400'
+                    }`}
+                  >
+                    From playlist
+                  </span>
                 )}
               </div>
 
               {isLoadingQueue && displayedQueue.length === 0 ? (
-                <div className="py-6 flex flex-col items-center justify-center gap-2 text-gray-400 text-xs">
+                <div
+                  className={`py-6 flex flex-col items-center justify-center gap-2 text-xs ${
+                    isLight ? 'text-gray-600' : 'text-gray-400'
+                  }`}
+                >
                   <Loader2
                     className={`w-5 h-5 animate-spin ${
                       isSoundCloud ? 'text-[#FF5500]' : 'text-[#1DB954]'
@@ -265,8 +331,12 @@ export const SpotifyQueuePopover: React.FC<SpotifyQueuePopoverProps> = ({ align 
                   <span>Loading Infinite Audio recommendations...</span>
                 </div>
               ) : displayedQueue.length === 0 ? (
-                <div className="py-4 text-center text-xs text-gray-500 flex flex-col items-center gap-2">
-                  <Music className="w-5 h-5 text-gray-600" />
+                <div
+                  className={`py-4 text-center text-xs flex flex-col items-center gap-2 ${
+                    isLight ? 'text-gray-600' : 'text-gray-500'
+                  }`}
+                >
+                  <Music className={`w-5 h-5 ${isLight ? 'text-gray-400' : 'text-gray-600'}`} />
                   <span>Queue is empty</span>
                   <button
                     type="button"
@@ -296,17 +366,31 @@ export const SpotifyQueuePopover: React.FC<SpotifyQueuePopoverProps> = ({ align 
                     return (
                       <div
                         key={`${track.id}-${idx}`}
-                        className="group/item flex items-center justify-between p-2 rounded-xl hover:bg-white/[0.06] transition-colors cursor-pointer border border-transparent hover:border-white/5"
+                        className={`group/item flex items-center justify-between p-2 rounded-xl transition-colors cursor-pointer border ${
+                          isLight
+                            ? 'hover:bg-black/[0.04] border-transparent hover:border-black/10'
+                            : 'hover:bg-white/[0.06] border-transparent hover:border-white/5'
+                        }`}
                         onClick={() => {
                           const nextQueue = queue.slice(idx + 1);
                           playTrack(track, nextQueue);
                         }}
                       >
                         <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                          <span className="text-[10px] font-mono font-semibold text-gray-500 w-4 text-center shrink-0">
+                          <span
+                            className={`text-[10px] font-mono font-semibold w-4 text-center shrink-0 ${
+                              isLight ? 'text-gray-500' : 'text-gray-500'
+                            }`}
+                          >
                             {idx + 1 < 10 ? `0${idx + 1}` : idx + 1}
                           </span>
-                          <div className="relative w-8 h-8 rounded-lg overflow-hidden shrink-0 border border-white/5 group-hover/item:border-white/20">
+                          <div
+                            className={`relative w-8 h-8 rounded-lg overflow-hidden shrink-0 border ${
+                              isLight
+                                ? 'border-black/10 group-hover/item:border-black/20'
+                                : 'border-white/5 group-hover/item:border-white/20'
+                            }`}
+                          >
                             <img
                               src={track.albumArt || DEFAULT_ARTWORK_FALLBACK}
                               alt={track.title}
@@ -321,7 +405,13 @@ export const SpotifyQueuePopover: React.FC<SpotifyQueuePopoverProps> = ({ align 
                             </div>
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="text-xs font-semibold text-gray-200 group-hover/item:text-white truncate">
+                            <p
+                              className={`text-xs font-semibold truncate ${
+                                isLight
+                                  ? 'text-gray-900 group-hover/item:text-black'
+                                  : 'text-gray-200 group-hover/item:text-white'
+                              }`}
+                            >
                               {unescapeHtml(track.title)}
                             </p>
                             <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
@@ -334,7 +424,11 @@ export const SpotifyQueuePopover: React.FC<SpotifyQueuePopoverProps> = ({ align 
                                   <SpotifyBrandIcon size={9} />
                                 </span>
                               )}
-                              <p className="text-[10.5px] text-gray-400 truncate">
+                              <p
+                                className={`text-[10.5px] truncate ${
+                                  isLight ? 'text-gray-600' : 'text-gray-400'
+                                }`}
+                              >
                                 {unescapeHtml(track.artist)}
                               </p>
                             </div>
@@ -348,7 +442,11 @@ export const SpotifyQueuePopover: React.FC<SpotifyQueuePopoverProps> = ({ align 
                               e.stopPropagation();
                               removeFromQueue(idx);
                             }}
-                            className="p-1 rounded text-gray-400 hover:text-red-400 hover:bg-white/10 transition-colors"
+                            className={`p-1 rounded transition-colors ${
+                              isLight
+                                ? 'text-gray-500 hover:text-red-600 hover:bg-black/5'
+                                : 'text-gray-400 hover:text-red-400 hover:bg-white/10'
+                            }`}
                             title="Remove from queue"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -370,13 +468,19 @@ export const SpotifyQueuePopover: React.FC<SpotifyQueuePopoverProps> = ({ align 
                       }
                     }}
                     disabled={isLoadingQueue}
-                    className="w-full mt-2 py-2 px-3 text-center text-[11px] font-semibold text-gray-300 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 hover:border-white/20 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    className={`w-full mt-2 py-2 px-3 text-center text-[11px] font-semibold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 border ${
+                      isLight
+                        ? 'text-gray-800 hover:text-black bg-black/[0.04] hover:bg-black/[0.08] border-black/10 hover:border-black/20'
+                        : 'text-gray-300 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border-white/10 hover:border-white/20'
+                    }`}
                   >
                     <RefreshCw
                       className={`w-3 h-3 ${
                         isLoadingQueue
                           ? `animate-spin ${isSoundCloud ? 'text-[#FF5500]' : 'text-[#1DB954]'}`
-                          : 'text-gray-400'
+                          : isLight
+                            ? 'text-gray-600'
+                            : 'text-gray-400'
                       }`}
                     />
                     <span>
@@ -391,8 +495,16 @@ export const SpotifyQueuePopover: React.FC<SpotifyQueuePopoverProps> = ({ align 
 
             {/* Recently Played History (Max 5) */}
             {displayedHistory.length > 0 && (
-              <div className="pt-2 border-t border-white/[0.06]">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-2">
+              <div
+                className={`pt-2 border-t ${
+                  isLight ? 'border-black/[0.08]' : 'border-white/[0.06]'
+                }`}
+              >
+                <span
+                  className={`text-[10px] font-bold uppercase tracking-wider block mb-2 ${
+                    isLight ? 'text-gray-600' : 'text-gray-400'
+                  }`}
+                >
                   Recently Played ({displayedHistory.length})
                 </span>
                 <div className="space-y-1">
@@ -407,11 +519,19 @@ export const SpotifyQueuePopover: React.FC<SpotifyQueuePopoverProps> = ({ align 
                     return (
                       <div
                         key={`hist-${track.id}-${idx}`}
-                        className="group/hist flex items-center justify-between p-1.5 rounded-xl hover:bg-white/[0.05] transition-colors cursor-pointer border border-transparent hover:border-white/5 opacity-80 hover:opacity-100"
+                        className={`group/hist flex items-center justify-between p-1.5 rounded-xl transition-colors cursor-pointer border ${
+                          isLight
+                            ? 'hover:bg-black/[0.04] border-transparent hover:border-black/10 opacity-90 hover:opacity-100'
+                            : 'hover:bg-white/[0.05] border-transparent hover:border-white/5 opacity-80 hover:opacity-100'
+                        }`}
                         onClick={() => playTrack(track)}
                       >
                         <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                          <div className="relative w-7 h-7 rounded-lg overflow-hidden shrink-0 border border-white/5">
+                          <div
+                            className={`relative w-7 h-7 rounded-lg overflow-hidden shrink-0 border ${
+                              isLight ? 'border-black/10' : 'border-white/5'
+                            }`}
+                          >
                             <img
                               src={track.albumArt || DEFAULT_ARTWORK_FALLBACK}
                               alt={track.title}
@@ -426,7 +546,13 @@ export const SpotifyQueuePopover: React.FC<SpotifyQueuePopoverProps> = ({ align 
                             </div>
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="text-[11px] font-medium text-gray-300 group-hover/hist:text-white truncate">
+                            <p
+                              className={`text-[11px] font-medium truncate ${
+                                isLight
+                                  ? 'text-gray-800 group-hover/hist:text-black'
+                                  : 'text-gray-300 group-hover/hist:text-white'
+                              }`}
+                            >
                               {unescapeHtml(track.title)}
                             </p>
                             <div className="flex items-center gap-1 mt-0.5 min-w-0">
@@ -439,7 +565,11 @@ export const SpotifyQueuePopover: React.FC<SpotifyQueuePopoverProps> = ({ align 
                                   <SpotifyBrandIcon size={8} />
                                 </span>
                               )}
-                              <p className="text-[9.5px] text-gray-500 truncate">
+                              <p
+                                className={`text-[9.5px] truncate ${
+                                  isLight ? 'text-gray-600' : 'text-gray-500'
+                                }`}
+                              >
                                 {unescapeHtml(track.artist)}
                               </p>
                             </div>

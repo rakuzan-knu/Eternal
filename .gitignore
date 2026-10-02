@@ -6,6 +6,7 @@
 .Trashes
 Thumbs.db
 Desktop.ini
+.ppt_render_cache/
 
 # Logs
 logs
@@ -160,6 +161,9 @@ vite.config.ts.timestamp-*
 
 # Claude Code local settings
 .claude/
+
+# Presentation render cache
+.ppt_render_cache/
 
 # Prisma generated client (regenerated on install)
 **/src/generated/

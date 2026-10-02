@@ -184,25 +184,181 @@ export function injectVP9SVC(sdp: string): string {
 }
 
 /**
- * Applies full SDP munging pipeline (codec prioritization + VP9 SVC injection)
+ * Injects Discord-grade Opus audio parameters (48kHz stereo, 128kbps, in-band FEC, minptime=10)
  */
-export function mungeSDP(sdp: string, preferredCodec: VideoCodecPreference = 'av1'): string {
-  if (!sdp || preferredCodec === 'auto') return sdp;
+export function optimizeOpusAudioSDP(sdp: string): string {
+  if (!sdp || typeof sdp !== 'string') return sdp;
 
-  // Prioritize selected codec first, followed by high efficiency backups
-  const fallbackOrder: VideoCodecPreference[] =
-    preferredCodec === 'av1'
-      ? ['av1', 'vp9', 'h264', 'vp8']
-      : preferredCodec === 'vp9'
-        ? ['vp9', 'av1', 'h264', 'vp8']
-        : preferredCodec === 'h264'
-          ? ['h264', 'vp9', 'av1', 'vp8']
-          : ['vp8', 'vp9', 'h264', 'av1'];
+  const lines = sdp.split(/\r\n|\r|\n/);
+  let opusPt: string | null = null;
+  for (const line of lines) {
+    const match = line.match(/^a=rtpmap:(\d+)\s+opus\/48000/i);
+    if (match && match[1]) {
+      opusPt = match[1];
+      break;
+    }
+  }
 
-  let result = prioritizeVideoCodecs(sdp, fallbackOrder);
+  if (!opusPt) return sdp;
 
-  if (preferredCodec === 'vp9' || fallbackOrder.includes('vp9')) {
-    result = injectVP9SVC(result);
+  const opusParams =
+    'minptime=10;useinbandfec=1;stereo=1;sprop-stereo=1;maxaveragebitrate=128000;cbr=0';
+  let fmtpFound = false;
+
+  const updatedLines = lines.map((line) => {
+    if (line.startsWith(`a=fmtp:${opusPt} `) || line.startsWith(`a=fmtp:${opusPt}=`)) {
+      fmtpFound = true;
+      const existingParams = line.slice(line.indexOf(' ') + 1);
+      const paramMap = new Map<string, string>();
+      for (const param of `${existingParams};${opusParams}`.split(';')) {
+        const [k, v] = param.trim().split('=');
+        if (k) paramMap.set(k.trim(), v ? v.trim() : '');
+      }
+      const merged = Array.from(paramMap.entries())
+        .map(([k, v]) => (v ? `${k}=${v}` : k))
+        .join(';');
+      return `a=fmtp:${opusPt} ${merged}`;
+    }
+    return line;
+  });
+
+  if (!fmtpFound) {
+    const rtpmapIndex = updatedLines.findIndex((line) => line.startsWith(`a=rtpmap:${opusPt} `));
+    if (rtpmapIndex !== -1) {
+      updatedLines.splice(rtpmapIndex + 1, 0, `a=fmtp:${opusPt} ${opusParams}`);
+    }
+  }
+
+  return updatedLines.join('\r\n');
+}
+
+/**
+ * Injects Discord-grade 1080p60 video parameters into SDP:
+ * - b=AS:8000 (8 Mbps application-specific maximum bandwidth)
+ * - b=TIAS:8000000 (Transport Independent Application Specific bandwidth)
+ * - x-google-min-bitrate=3000;x-google-start-bitrate=6000;x-google-max-bitrate=12000
+ */
+export function optimizeVideoSDPForScreenShare(sdp: string, bitrateKbps: number = 6000): string {
+  if (!sdp || typeof sdp !== 'string') return sdp;
+
+  const lines = sdp.split(/\r\n|\r|\n/);
+  const mVideoIndex = lines.findIndex((l) => l.startsWith('m=video '));
+  if (mVideoIndex === -1) return sdp;
+
+  // Insert b=AS and b=TIAS right after m=video or c= line within the video m-section
+  let insertIndex = mVideoIndex + 1;
+  while (
+    insertIndex < lines.length &&
+    (lines[insertIndex].startsWith('c=') || lines[insertIndex].startsWith('b='))
+  ) {
+    if (lines[insertIndex].startsWith('b=')) {
+      // Remove any existing low bitrate line
+      lines.splice(insertIndex, 1);
+      continue;
+    }
+    insertIndex++;
+  }
+
+  const tiasBps = bitrateKbps * 1000;
+  lines.splice(insertIndex, 0, `b=AS:${bitrateKbps}`, `b=TIAS:${tiasBps}`);
+
+  // Build pt to codec map from rtpmap lines
+  const ptToCodec = new Map<string, string>();
+  for (let i = mVideoIndex; i < lines.length; i++) {
+    if (i > mVideoIndex && lines[i]?.startsWith('m=')) break;
+    const rtpMatch = lines[i]?.match(/^a=rtpmap:(\d+)\s+([A-Za-z0-9-]+)\//i);
+    if (rtpMatch && rtpMatch[1] && rtpMatch[2]) {
+      ptToCodec.set(rtpMatch[1], rtpMatch[2].toUpperCase());
+    }
+  }
+
+  // Augment video a=fmtp lines ONLY for VP8 / VP9 (appending x-google-* to H264 breaks Chrome's RFC 6184 SDP parser!)
+  const updatedLines: string[] = [];
+  const handledFmtp = new Set<string>();
+
+  for (const line of lines) {
+    if (line.startsWith('a=fmtp:')) {
+      const match = line.match(/^a=fmtp:(\d+)\s*(.*)$/);
+      if (match) {
+        const pt = match[1];
+        const codec = ptToCodec.get(pt);
+        if (codec === 'VP8' || codec === 'VP9') {
+          handledFmtp.add(pt);
+          let params = match[2];
+          if (!params.includes('x-google-min-bitrate')) {
+            params = params
+              ? `${params};x-google-min-bitrate=3000;x-google-start-bitrate=5000;x-google-max-bitrate=10000`
+              : `x-google-min-bitrate=3000;x-google-start-bitrate=5000;x-google-max-bitrate=10000`;
+          }
+          updatedLines.push(`a=fmtp:${pt} ${params}`);
+          continue;
+        }
+      }
+    }
+    updatedLines.push(line);
+  }
+
+  // If VP8 or VP9 did not have an a=fmtp line, inject one right after its a=rtpmap line
+  const finalLines: string[] = [];
+  for (const line of updatedLines) {
+    finalLines.push(line);
+    for (const [pt, codec] of ptToCodec.entries()) {
+      if (
+        (codec === 'VP8' || codec === 'VP9') &&
+        !handledFmtp.has(pt) &&
+        line.startsWith(`a=rtpmap:${pt} `)
+      ) {
+        finalLines.push(
+          `a=fmtp:${pt} x-google-min-bitrate=3000;x-google-start-bitrate=5000;x-google-max-bitrate=10000`,
+        );
+        handledFmtp.add(pt);
+      }
+    }
+  }
+
+  return finalLines.join('\r\n');
+}
+
+/**
+ * Applies full SDP munging pipeline (Opus audio optimization + video codec prioritization + optional VP9 SVC + screen share 1080p60)
+ */
+export function mungeSDP(
+  sdp: string,
+  preferredCodec: VideoCodecPreference = 'vp8',
+  enableVP9SVC: boolean = false,
+  isScreenShare: boolean = false,
+): string {
+  if (!sdp || typeof sdp !== 'string') return sdp;
+  if (preferredCodec === 'auto' && !isScreenShare) return sdp;
+
+  let result = optimizeOpusAudioSDP(sdp);
+
+  // For screen sharing, Discord-grade VP8 provides 100% reliable hardware/software encoding & decoding
+  // across all Chromium browsers (Chrome, Edge, Opera) without MediaFoundation/DXVA GPU session limits.
+  const effectiveCodec: VideoCodecPreference = isScreenShare ? 'vp8' : preferredCodec;
+
+  if (effectiveCodec && effectiveCodec !== 'auto') {
+    const fallbackOrder: VideoCodecPreference[] =
+      effectiveCodec === 'vp8'
+        ? ['vp8', 'vp9', 'h264', 'av1']
+        : effectiveCodec === 'h264'
+          ? ['h264', 'vp8', 'vp9', 'av1']
+          : effectiveCodec === 'av1'
+            ? ['av1', 'vp9', 'vp8', 'h264']
+            : ['vp9', 'vp8', 'h264', 'av1'];
+
+    result = prioritizeVideoCodecs(result, fallbackOrder);
+
+    // CRITICAL: Only inject VP9 SVC (L3T3_KEY) if explicitly requested, NOT a screen share,
+    // and effectiveCodec is strictly 'vp9'. Injecting L3T3_KEY on single-layer screen shares
+    // causes the VP9 decoder to discard all frames and stay black.
+    if (enableVP9SVC && !isScreenShare && effectiveCodec === 'vp9') {
+      result = injectVP9SVC(result);
+    }
+  }
+
+  if (isScreenShare) {
+    result = optimizeVideoSDPForScreenShare(result, 6000);
   }
 
   return result;

@@ -48,7 +48,7 @@ export default function SystemMessageCluster({
 
     return (
       <div className="flex justify-center my-2 select-none">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#181926]/90 border border-white/10 shadow-lg backdrop-blur-md text-xs text-purple-200">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#181926]/95 border border-white/10 shadow-[0_4px_16px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.06)] text-xs text-purple-200">
           <Edit3 size={13} className="text-purple-400 shrink-0" />
           <span>{msg.body}</span>
           <button
@@ -91,7 +91,7 @@ export default function SystemMessageCluster({
         type="button"
         onClick={() => setIsExpanded(!isExpanded)}
         data-testid="system-message-cluster-toggle"
-        className="group inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-[#161724]/95 border border-purple-500/30 hover:border-purple-500/50 shadow-[0_4px_20px_rgba(0,0,0,0.5)] backdrop-blur-xl text-xs text-purple-200 hover:text-white transition-all active:scale-95 cursor-pointer"
+        className="group inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-[#161724]/95 border border-purple-500/30 hover:border-purple-500/50 shadow-[0_4px_20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.08)] text-xs text-purple-200 hover:text-white transition-all active:scale-95 cursor-pointer"
         title="Click to view details"
       >
         <Sparkles
@@ -134,7 +134,7 @@ export default function SystemMessageCluster({
           {messages.map((msg) => (
             <div
               key={msg.id}
-              className="flex items-center justify-between px-3.5 py-1.5 rounded-2xl bg-[#181926]/90 border border-white/10 backdrop-blur-md text-xs text-purple-200 shadow-md"
+              className="flex items-center justify-between px-3.5 py-1.5 rounded-2xl bg-[#181926]/95 border border-white/10 text-xs text-purple-200 shadow-[0_2px_10px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)]"
             >
               <div className="flex items-center gap-2 min-w-0 flex-1">
                 <Edit3 size={12} className="text-purple-400 shrink-0" />

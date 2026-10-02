@@ -150,8 +150,8 @@ export const StoryReplyEmbed: React.FC<StoryReplyEmbedProps> = ({ attachment, cr
 
   if (showUnavailable) {
     return (
-      <div className="mb-2.5 p-2.5 rounded-2xl bg-[#12131d]/90 backdrop-blur-2xl border border-white/8 flex items-center gap-3 shadow-[0_4px_20px_rgba(0,0,0,0.35)] transition-all select-none">
-        <div className="w-10 h-14 rounded-xl bg-white/4 border border-white/10 shrink-0 flex items-center justify-center backdrop-blur-md shadow-inner">
+      <div className="mb-2.5 p-2.5 rounded-2xl bg-[#12131d]/95 border border-white/8 flex items-center gap-3 shadow-[0_4px_20px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.06)] transition-all select-none">
+        <div className="w-10 h-14 rounded-xl bg-white/5 border border-white/10 shrink-0 flex items-center justify-center shadow-inner">
           <Clock size={18} className="text-purple-300/70 animate-pulse" />
         </div>
         <div className="flex flex-col min-w-0 pr-1">
@@ -172,7 +172,7 @@ export const StoryReplyEmbed: React.FC<StoryReplyEmbedProps> = ({ attachment, cr
   return (
     <div
       onClick={handleOpenStory}
-      className="mb-2.5 p-2 rounded-2xl bg-[#14141e]/90 backdrop-blur-xl border border-purple-500/25 flex items-center gap-2.5 shadow-[0_4px_16px_rgba(139,92,246,0.15)] group/story hover:border-purple-500/50 hover:bg-[#1c1c2b] transition-all cursor-pointer select-none"
+      className="mb-2.5 p-2 rounded-2xl bg-[#14141e]/95 border border-purple-500/25 flex items-center gap-2.5 shadow-[0_4px_16px_rgba(139,92,246,0.15),inset_0_1px_0_rgba(255,255,255,0.06)] group/story hover:border-purple-500/50 hover:bg-[#1c1c2b] transition-all cursor-pointer select-none"
       title="Click to view story"
     >
       <div className="relative w-10 h-14 rounded-xl overflow-hidden bg-purple-950/60 border border-white/15 shrink-0 flex items-center justify-center">
@@ -198,7 +198,7 @@ export const StoryReplyEmbed: React.FC<StoryReplyEmbedProps> = ({ attachment, cr
               onError={() => setHasError(true)}
             />
             {hasAudioTrack && (
-              <div className="absolute bottom-0.5 right-0.5 p-0.5 rounded-full bg-black/70 backdrop-blur-sm shadow">
+              <div className="absolute bottom-0.5 right-0.5 p-0.5 rounded-full bg-black/85 shadow">
                 <Sparkles size={8} className="text-pink-300" />
               </div>
             )}

@@ -139,7 +139,7 @@ export default function MusicHubPage() {
   const seoImage = currentTargetTrack?.albumArt || currentPlaylist?.coverUrl || undefined;
 
   return (
-    <div className="fixed inset-0 flex bg-[#070709] overflow-hidden text-white select-none">
+    <div className="fixed inset-0 flex bg-transparent overflow-hidden text-gray-900 dark:text-white select-none">
       <SEOHead title={seoTitle} description={seoDescription} ogImage={seoImage} noindex={false} />
 
       {/* Left Railway Sidebar */}
@@ -172,7 +172,7 @@ export default function MusicHubPage() {
           />
 
           {/* Main content + Now Playing */}
-          <div className="flex-1 min-w-0 flex overflow-hidden bg-gradient-to-br from-[#0c0c12]/60 via-[#0a0a0e]/80 to-[#07070a] backdrop-blur-3xl">
+          <div className="flex-1 min-w-0 flex overflow-hidden bg-transparent">
             <main className="flex-1 min-w-0 overflow-hidden flex flex-col">
               {isContentFeed ? (
                 <MusicContentFeedView />

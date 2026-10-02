@@ -12,14 +12,19 @@ import {
   UploadedFile,
   UseGuards,
   UseInterceptors,
+  Optional,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FastifyFileInterceptor } from '../../common/interceptors/fastify-file.interceptor';
 import { Throttle } from '@nestjs/throttler';
 import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../../auth/interfaces/jwt-payload.interface';
 import { MessagesService } from './messages.service';
+import { MessengerGateway } from '../gateway/messenger.gateway';
+import { WS_EVENTS } from '../events/ws-events';
 import {
   type DeleteMessageDto,
   type EditMessageDto,
@@ -51,7 +56,12 @@ import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 @UseGuards(AuthGuard)
 @Controller('conversations/:conversationId/messages')
 export class MessagesController {
-  constructor(private readonly service: MessagesService) {}
+  constructor(
+    private readonly service: MessagesService,
+    @Optional()
+    @Inject(forwardRef(() => MessengerGateway))
+    private readonly gateway?: MessengerGateway,
+  ) {}
 
   @Get('activity')
   @ApiOperation({ summary: 'Get monthly message activity map for chat calendar date picker' })
@@ -94,12 +104,26 @@ export class MessagesController {
   @HttpCode(HttpStatus.OK)
   @Throttle({ sensitive: { limit: 10, ttl: 60_000 } })
   @ApiOperation({ summary: 'Batch delete up to 50 messages' })
-  batchDelete(
+  async batchDelete(
     @Param('conversationId') conversationId: string,
     @Body(new ZodValidationPipe(batchDeleteMessagesSchema)) dto: BatchDeleteMessagesDto,
     @CurrentUser() user: RequestUser,
   ) {
-    return this.service.batchDelete(conversationId, user.id, dto);
+    const res = await this.service.batchDelete(conversationId, user.id, dto);
+    if (Array.isArray(res?.deletedIds)) {
+      for (const messageId of res.deletedIds) {
+        if (res.forAll) {
+          void this.gateway?.emitMessageDeleted(conversationId, messageId, true, user.id);
+        } else {
+          this.gateway?.emitToUser(user.id, WS_EVENTS.MESSAGE_DELETED, {
+            conversationId,
+            messageId,
+            deletedForAll: false,
+          });
+        }
+      }
+    }
+    return res;
   }
 
   @Post('batch-forward')
@@ -126,7 +150,7 @@ export class MessagesController {
 
   @Post('attachments')
   @Throttle({ sensitive: { limit: 10, ttl: 60_000 } })
-  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 25 * 1024 * 1024, files: 1 } }))
+  @UseInterceptors(FastifyFileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload attachment for conversation message' })
   uploadAttachment(
@@ -171,12 +195,25 @@ export class MessagesController {
 
   @Delete(':messageId')
   @ApiOperation({ summary: 'Delete a message' })
-  delete(
+  async delete(
     @Param('messageId') messageId: string,
     @Body(new ZodValidationPipe(deleteMessageSchema)) dto: DeleteMessageDto,
     @CurrentUser() user: RequestUser,
   ) {
-    return this.service.delete(messageId, user.id, dto);
+    const msg = await (this.service as any)?.messagesRepo?.findOne?.(messageId, user.id);
+    const result = await this.service.delete(messageId, user.id, dto);
+    if (msg) {
+      if (result.deletedForAll) {
+        void this.gateway?.emitMessageDeleted(msg.conversationId, result.messageId, true, user.id);
+      } else {
+        this.gateway?.emitToUser(user.id, WS_EVENTS.MESSAGE_DELETED, {
+          conversationId: msg.conversationId,
+          messageId: result.messageId,
+          deletedForAll: false,
+        });
+      }
+    }
+    return result;
   }
 
   @Post(':messageId/forward')
@@ -191,23 +228,28 @@ export class MessagesController {
 
   @Post(':messageId/reactions')
   @ApiOperation({ summary: 'Add a reaction to a message' })
-  addReaction(
+  async addReaction(
     @Param('messageId') messageId: string,
     @Body(new ZodValidationPipe(reactToMessageSchema)) dto: ReactToMessageDto,
     @CurrentUser() user: RequestUser,
   ) {
-    return this.service.addReaction(messageId, user.id, dto);
+    const updated = await this.service.addReaction(messageId, user.id, dto);
+    void this.gateway?.emitReactionAdded(updated.conversationId, updated, user.id);
+    return updated;
   }
 
   @Delete(':messageId/reactions/:emoji')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Remove a reaction from a message' })
-  removeReaction(
+  async removeReaction(
     @Param('messageId') messageId: string,
     @Param('emoji') emoji: string,
     @CurrentUser() user: RequestUser,
   ) {
-    return this.service.removeReaction(messageId, user.id, emoji);
+    const decodedEmoji = decodeURIComponent(emoji);
+    const updated = await this.service.removeReaction(messageId, user.id, decodedEmoji);
+    void this.gateway?.emitReactionRemoved(updated.conversationId, updated, user.id);
+    return updated;
   }
 
   @Post('read')

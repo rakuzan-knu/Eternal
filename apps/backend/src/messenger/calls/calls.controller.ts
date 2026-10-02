@@ -128,6 +128,25 @@ export class CallsController {
     return this.callsStepUpService.verifyStepUpAssertion(user.id, body);
   }
 
+  @Get(':id/active-check')
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard)
+  @ApiOperation({
+    summary: 'Check if call is active with at least 1 participant for auto-reconnect',
+  })
+  @ApiParam({ name: 'id', description: 'Call UUID' })
+  checkCallActive(
+    @Param('id') id: string,
+    @CurrentUser() user: RequestUser,
+  ): Promise<{
+    active: boolean;
+    call?: CallSessionView;
+    activeParticipantsCount: number;
+    reason?: string;
+  }> {
+    return this.callsService.checkCallActive(id, user.id);
+  }
+
   @Get(':id')
   @ApiBearerAuth()
   @UseGuards(AuthGuard)

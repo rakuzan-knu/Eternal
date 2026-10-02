@@ -28,6 +28,19 @@ export function useMessageReactionMutation(conversationId: string | null) {
     async (messageId: string, emoji: string, currentSelfReacted: boolean) => {
       if (!conversationId) return;
       const currentUserId = useAuthStore.getState().userId;
+      const userProfile = currentUserId
+        ? queryClient.getQueryData<{
+            username?: string;
+            displayName?: string | null;
+            avatar?: string | null;
+          }>(queryKeys.user.current(currentUserId))
+        : null;
+      const currentUserSnapshot = {
+        id: currentUserId || 'me',
+        username: userProfile?.username || '',
+        displayName: userProfile?.displayName || userProfile?.username || null,
+        avatar: userProfile?.avatar || null,
+      };
 
       // 1. Instant optimistic update
       updatePages((pages) =>
@@ -82,10 +95,7 @@ export function useMessageReactionMutation(conversationId: string | null) {
                   selfReacted: true,
                   users:
                     currentUserId && !(prev.users || []).some((u) => u.id === currentUserId)
-                      ? [
-                          ...(prev.users || []),
-                          { id: currentUserId, username: '', displayName: null, avatar: null },
-                        ]
+                      ? [...(prev.users || []), currentUserSnapshot]
                       : prev.users || [],
                 };
               } else {
@@ -93,9 +103,7 @@ export function useMessageReactionMutation(conversationId: string | null) {
                   emoji,
                   count: 1,
                   selfReacted: true,
-                  users: currentUserId
-                    ? [{ id: currentUserId, username: '', displayName: null, avatar: null }]
-                    : [],
+                  users: currentUserId ? [currentUserSnapshot] : [],
                 });
               }
 

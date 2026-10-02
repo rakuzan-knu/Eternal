@@ -52,6 +52,10 @@ import { PrekeysService } from './crypto/prekeys.service';
 import { PrekeysRepository } from './repositories/prekeys.repository';
 import { PREKEYS_REPOSITORY } from './interfaces/prekeys-repository.interface';
 import { JamService } from '../integrations/jam.service';
+import { SoundboardController } from './soundboard/soundboard.controller';
+import { SoundboardService } from './soundboard/soundboard.service';
+import { WatchTogetherController } from './watch-together/watch-together.controller';
+import { WatchTogetherService } from './watch-together/watch-together.service';
 
 @Module({
   imports: [
@@ -71,8 +75,12 @@ import { JamService } from '../integrations/jam.service';
     FoldersController,
     SearchController,
     PrekeysController,
+    SoundboardController,
+    WatchTogetherController,
   ],
   providers: [
+    SoundboardService,
+    WatchTogetherService,
     {
       provide: CONVERSATIONS_REPOSITORY,
       useClass: ConversationsRepository,
@@ -145,6 +153,8 @@ import { JamService } from '../integrations/jam.service';
     K8sPodMigrationService,
     OffHeapBufferPoolService,
     JamService,
+    SoundboardService,
+    WatchTogetherService,
   ],
 })
 export class MessengerModule {}

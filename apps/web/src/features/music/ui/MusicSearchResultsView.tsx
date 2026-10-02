@@ -19,6 +19,7 @@ import type { MusicCatalogSource, MusicPlaylist } from '../model/types';
 import { isPlaylistSearchDiscoverable } from '../model/types';
 import { useCurrentUser } from '@/entities/profile/model/useCurrentUser';
 import { isSoundCloudUrl } from '@/shared/lib/urlSecurity';
+import { isSameTrackId } from '@/shared/lib/spotifyUrl';
 
 export type SearchCategory = 'all' | 'tracks' | 'playlists';
 
@@ -654,7 +655,8 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
   }, [query, remotePlaylists, catalogPlaylists, playlists, results, currentUser?.id, source]);
 
   const handlePlayTrack = (track: SpotifyTrack, index: number, trackList: SpotifyTrack[]) => {
-    const isThisPlaying = isPlaying && currentTrack?.id === track.id;
+    const isThisPlaying =
+      isPlaying && Boolean(currentTrack && isSameTrackId(currentTrack.id, track.id));
     if (isThisPlaying) {
       togglePlay();
     } else {
@@ -752,11 +754,13 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
       {/* Search Header Title */}
       <div className="flex items-center justify-between mb-3">
         <div>
-          <h2 className="text-2xl font-black text-white tracking-tight">Search Results</h2>
-          <p className="text-xs text-gray-400 mt-0.5">For "{query}"</p>
+          <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
+            Search Results
+          </h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">For "{query}"</p>
         </div>
         {(isLoading || isLoadingPlaylists) && (
-          <div className="flex items-center gap-2 text-xs text-purple-400">
+          <div className="flex items-center gap-2 text-xs text-purple-600 dark:text-purple-400">
             <Loader2 size={16} className="animate-spin" />
             <span>Searching...</span>
           </div>
@@ -768,10 +772,10 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
         <button
           type="button"
           onClick={() => setSearchCategory('all')}
-          className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
+          className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
             searchCategory === 'all'
-              ? 'bg-white text-black shadow-md shadow-white/10 scale-105'
-              : 'bg-white/10 text-gray-300 hover:text-white hover:bg-white/15'
+              ? 'bg-gray-900 text-white shadow-md shadow-black/10 dark:bg-white dark:text-black dark:shadow-white/10 scale-105'
+              : 'bg-black/5 text-gray-600 hover:text-gray-950 hover:bg-black/10 dark:bg-white/10 dark:text-gray-300 dark:hover:text-white dark:hover:bg-white/15'
           }`}
         >
           All
@@ -780,10 +784,10 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
         <button
           type="button"
           onClick={() => setSearchCategory('tracks')}
-          className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
+          className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
             searchCategory === 'tracks'
-              ? 'bg-white text-black shadow-md shadow-white/10 scale-105'
-              : 'bg-white/10 text-gray-300 hover:text-white hover:bg-white/15'
+              ? 'bg-gray-900 text-white shadow-md shadow-black/10 dark:bg-white dark:text-black dark:shadow-white/10 scale-105'
+              : 'bg-black/5 text-gray-600 hover:text-gray-950 hover:bg-black/10 dark:bg-white/10 dark:text-gray-300 dark:hover:text-white dark:hover:bg-white/15'
           }`}
         >
           Songs
@@ -792,10 +796,10 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
         <button
           type="button"
           onClick={() => setSearchCategory('playlists')}
-          className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
+          className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
             searchCategory === 'playlists'
-              ? 'bg-white text-black shadow-md shadow-white/10 scale-105'
-              : 'bg-white/10 text-gray-300 hover:text-white hover:bg-white/15'
+              ? 'bg-gray-900 text-white shadow-md shadow-black/10 dark:bg-white dark:text-black dark:shadow-white/10 scale-105'
+              : 'bg-black/5 text-gray-600 hover:text-gray-950 hover:bg-black/10 dark:bg-white/10 dark:text-gray-300 dark:hover:text-white dark:hover:bg-white/15'
           }`}
         >
           Playlists
@@ -804,10 +808,13 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
 
       {/* Empty State */}
       {isEmpty && (
-        <div className="p-12 text-center text-gray-500 rounded-2xl bg-white/[0.02] border border-white/5 max-w-lg mx-auto mt-6">
-          <Music size={40} className="mx-auto mb-3 opacity-40 text-purple-400" />
-          <p className="text-base font-bold text-white">No results found</p>
-          <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+        <div className="p-12 text-center text-gray-500 rounded-2xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 max-w-lg mx-auto mt-6">
+          <Music
+            size={40}
+            className="mx-auto mb-3 opacity-40 text-purple-600 dark:text-purple-400"
+          />
+          <p className="text-base font-bold text-gray-900 dark:text-white">No results found</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
             Try adjusting your search query or switching sources in the search bar.
           </p>
         </div>
@@ -820,12 +827,12 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
           {results.length > 0 && (
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-lg font-bold text-white">Songs</h3>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Songs</h3>
                 {results.length > 5 && (
                   <button
                     type="button"
                     onClick={() => setSearchCategory('tracks')}
-                    className="text-xs font-bold text-gray-400 hover:text-white hover:underline transition-colors"
+                    className="text-xs font-bold text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:underline transition-colors cursor-pointer"
                   >
                     Show all ({results.length})
                   </button>
@@ -834,7 +841,9 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
 
               <div className="space-y-1.5">
                 {results.slice(0, 5).map((track, idx) => {
-                  const isCurrent = currentTrack?.id === track.id;
+                  const isCurrent = Boolean(
+                    currentTrack && isSameTrackId(currentTrack.id, track.id),
+                  );
                   const isThisPlaying = isCurrent && isPlaying;
                   const liked = isTrackLiked(track.id);
                   const isSoundCloud = Boolean(
@@ -855,8 +864,8 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
                       onContextMenu={(e) => handleTrackContextMenu(e, track)}
                       className={`group flex items-center justify-between p-2.5 rounded-xl border border-transparent transition-all cursor-pointer ${
                         isCurrent
-                          ? 'bg-purple-600/15 border-purple-500/20 text-purple-300'
-                          : 'hover:bg-white/5 text-gray-300'
+                          ? 'bg-purple-600/15 border-purple-500/20 text-purple-600 dark:text-purple-300'
+                          : 'hover:bg-black/5 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300'
                       }`}
                     >
                       {/* Left: Play button, Cover Art, Title & Proper Subtitle */}
@@ -868,20 +877,20 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
                             handlePlayTrack(track, idx, results);
                           }}
                           aria-label={isThisPlaying ? 'Pause' : 'Play'}
-                          className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-all ${
+                          className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-all cursor-pointer ${
                             isThisPlaying
                               ? 'bg-purple-600 text-white shadow-md shadow-purple-600/40 scale-105'
-                              : 'bg-white/10 hover:bg-white/20 text-white group-hover:scale-105'
+                              : 'bg-black/5 hover:bg-black/10 text-gray-800 border border-black/10 dark:bg-white/10 dark:hover:bg-white/20 dark:text-white dark:border-white/10 group-hover:scale-105'
                           }`}
                         >
                           {isThisPlaying ? (
                             <Pause size={16} className="fill-white" />
                           ) : (
-                            <Play size={16} className="fill-white ml-0.5" />
+                            <Play size={16} className="fill-current ml-0.5" />
                           )}
                         </button>
 
-                        <div className="relative w-11 h-11 rounded-lg overflow-hidden shrink-0 border border-white/10 bg-black/40">
+                        <div className="relative w-11 h-11 rounded-lg overflow-hidden shrink-0 border border-black/10 dark:border-white/10 bg-black/10 dark:bg-black/40">
                           {track.albumArt ? (
                             <img
                               src={track.albumArt}
@@ -889,7 +898,7 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-600">
+                            <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-600">
                               <Music size={18} />
                             </div>
                           )}
@@ -904,8 +913,8 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
                               }}
                               className={`text-sm font-bold truncate hover:underline cursor-pointer ${
                                 isCurrent
-                                  ? 'text-purple-400'
-                                  : 'text-white group-hover:text-purple-300'
+                                  ? 'text-purple-600 dark:text-purple-400'
+                                  : 'text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-300'
                               }`}
                             >
                               {track.title}
@@ -933,9 +942,11 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
                               ) : null)}
                           </div>
                           {/* Label: Song • Artist */}
-                          <p className="text-xs text-gray-400 truncate flex items-center gap-1.5 mt-0.5">
-                            <span className="text-gray-300 font-medium">Song</span>
-                            <span className="text-gray-600">•</span>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate flex items-center gap-1.5 mt-0.5">
+                            <span className="text-gray-700 dark:text-gray-300 font-medium">
+                              Song
+                            </span>
+                            <span className="text-gray-400 dark:text-gray-600">•</span>
                             <span className="truncate">{track.artist}</span>
                           </p>
                         </div>
@@ -950,11 +961,13 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
                             toggleLikeTrack(track);
                           }}
                           title={liked ? 'Remove from Liked' : 'Save to Liked'}
-                          className={`p-1.5 rounded-lg transition-transform hover:scale-110 ${
-                            liked ? 'text-purple-400' : 'text-gray-400 hover:text-white'
+                          className={`p-1.5 rounded-lg transition-transform hover:scale-110 cursor-pointer ${
+                            liked
+                              ? 'text-purple-600 dark:text-purple-400'
+                              : 'text-gray-400 hover:text-gray-900 dark:hover:text-white'
                           }`}
                         >
-                          <Heart size={16} className={liked ? 'fill-purple-400' : ''} />
+                          <Heart size={16} className={liked ? 'fill-current' : ''} />
                         </button>
 
                         <button
@@ -962,12 +975,12 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
                           data-menu-trigger="true"
                           onClick={(e) => handleTrackThreeDots(e, track)}
                           title="More actions"
-                          className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 text-gray-400 hover:text-white hover:bg-white/10 transition-all"
+                          className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-all cursor-pointer"
                         >
                           <MoreHorizontal size={16} />
                         </button>
 
-                        <span className="text-xs text-gray-400 font-mono w-12 text-right">
+                        <span className="text-xs text-gray-500 dark:text-gray-400 font-mono w-12 text-right">
                           {formatDuration(track.durationMs)}
                         </span>
                       </div>
@@ -982,12 +995,12 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
           {matchingPlaylists.length > 0 && (
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-lg font-bold text-white">Playlists</h3>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Playlists</h3>
                 {matchingPlaylists.length > 6 && (
                   <button
                     type="button"
                     onClick={() => setSearchCategory('playlists')}
-                    className="text-xs font-bold text-gray-400 hover:text-white hover:underline transition-colors"
+                    className="text-xs font-bold text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:underline transition-colors cursor-pointer"
                   >
                     Show all ({matchingPlaylists.length})
                   </button>
@@ -1000,10 +1013,10 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
                     key={playlist.id}
                     onClick={() => handleOpenPlaylist(playlist.id)}
                     onContextMenu={(e) => handlePlaylistContextMenu(e, playlist)}
-                    className="group relative p-3.5 rounded-2xl bg-white/[0.03] hover:bg-white/[0.08] transition-all cursor-pointer border border-white/5 hover:border-white/10 flex flex-col"
+                    className="group relative p-3.5 rounded-2xl bg-black/[0.02] hover:bg-black/[0.06] border border-black/5 hover:border-black/10 dark:bg-white/[0.03] dark:hover:bg-white/[0.08] dark:border-white/5 dark:hover:border-white/10 transition-all cursor-pointer flex flex-col shadow-sm"
                   >
                     {/* Cover Art with Hover Play Button */}
-                    <div className="relative aspect-square w-full rounded-xl overflow-hidden shadow-lg bg-[#121216] shrink-0">
+                    <div className="relative aspect-square w-full rounded-xl overflow-hidden shadow-md bg-black/10 dark:bg-[#121216] shrink-0">
                       {source === 'all' &&
                         (playlist.source === 'soundcloud' || playlist.id.startsWith('sc-pl-') ? (
                           <div className="absolute top-2 left-2 z-10 px-2 py-0.5 rounded-full backdrop-blur-md bg-black/80 border border-[#FF5500]/30 flex items-center gap-1.5 shadow-md pointer-events-none">
@@ -1034,18 +1047,18 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-600 bg-white/5">
+                        <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-600 bg-black/5 dark:bg-white/5">
                           <Music size={32} />
                         </div>
                       )}
 
-                      {/* Hover Play Button (Point 2, Screenshot 4) */}
+                      {/* Hover Play Button */}
                       <button
                         type="button"
                         disabled={loadingPlaylistId === playlist.id}
                         onClick={(e) => handlePlayPlaylist(playlist, e)}
                         aria-label={`Play playlist "${playlist.title}"`}
-                        className="absolute bottom-2.5 right-2.5 w-11 h-11 rounded-full bg-gradient-to-br from-[#8B5CF6] to-[#7C3AED] hover:from-[#9333EA] hover:to-[#6D28D9] text-white flex items-center justify-center shadow-xl shadow-purple-600/40 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-80"
+                        className="absolute bottom-2.5 right-2.5 w-11 h-11 rounded-full bg-gradient-to-br from-[#8B5CF6] to-[#7C3AED] hover:from-[#9333EA] hover:to-[#6D28D9] text-white flex items-center justify-center shadow-xl shadow-purple-600/40 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-80 cursor-pointer"
                       >
                         {loadingPlaylistId === playlist.id ? (
                           <Loader2 size={18} className="animate-spin text-white" />
@@ -1061,17 +1074,21 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
                         e.stopPropagation();
                         handleOpenPlaylist(playlist.id);
                       }}
-                      className="text-sm font-bold text-white truncate mt-3 hover:underline cursor-pointer group-hover:text-purple-300 transition-colors"
+                      className="text-sm font-bold text-gray-900 dark:text-white truncate mt-3 hover:underline cursor-pointer group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors"
                     >
                       {playlist.title}
                     </h4>
 
                     {/* Label: Playlist • Creator */}
-                    <p className="text-xs text-gray-400 mt-1 truncate">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
                       Playlist •{' '}
-                      <span className="text-gray-300 font-medium">{playlist.creator}</span>
+                      <span className="text-gray-700 dark:text-gray-300 font-medium">
+                        {playlist.creator}
+                      </span>
                       {(playlist as any).trackCount ? (
-                        <span className="text-gray-500 ml-1">({(playlist as any).trackCount})</span>
+                        <span className="text-gray-400 dark:text-gray-500 ml-1">
+                          ({(playlist as any).trackCount})
+                        </span>
                       ) : null}
                     </p>
                   </div>
@@ -1094,7 +1111,7 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
             </colgroup>
 
             <thead>
-              <tr className="border-b border-white/10 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+              <tr className="border-b border-black/10 dark:border-white/10 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 <th className="py-2.5 px-3 text-center">#</th>
                 <th className="py-2.5 px-3">Title</th>
                 {visibleColumns.album && <th className="py-2.5 px-3">Album</th>}
@@ -1109,8 +1126,10 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
                         type="button"
                         onClick={() => setIsColumnsMenuOpen((prev) => !prev)}
                         aria-label="Configure columns"
-                        className={`p-1 rounded hover:text-white hover:bg-white/10 transition-colors ${
-                          isColumnsMenuOpen ? 'text-purple-400 bg-white/10' : 'text-gray-400'
+                        className={`p-1 rounded hover:text-gray-900 hover:bg-black/5 dark:hover:text-white dark:hover:bg-white/10 transition-colors cursor-pointer ${
+                          isColumnsMenuOpen
+                            ? 'text-purple-600 dark:text-purple-400 bg-black/5 dark:bg-white/10'
+                            : 'text-gray-500 dark:text-gray-400'
                         }`}
                       >
                         <ChevronDown size={13} />
@@ -1120,26 +1139,28 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
                       {isColumnsMenuOpen && (
                         <div
                           ref={columnsMenuRef}
-                          className="absolute right-0 top-8 z-30 w-44 rounded-xl bg-[#1c1c24]/95 backdrop-blur-2xl border border-white/10 shadow-2xl p-2 text-white select-none animate-fadeIn text-left normal-case"
+                          className="absolute right-0 top-8 z-30 w-44 rounded-xl glass-modal backdrop-blur-2xl border border-black/10 dark:border-white/10 shadow-2xl p-2 text-gray-900 dark:text-white select-none animate-fadeIn text-left normal-case"
                         >
-                          <div className="px-2 py-1 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                          <div className="px-2 py-1 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                             Columns
                           </div>
 
                           {/* Album checkbox */}
                           <div
                             onClick={() => setVisibleColumns((v) => ({ ...v, album: !v.album }))}
-                            className="flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-white/5 cursor-pointer text-xs font-medium text-gray-300"
+                            className="flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer text-xs font-medium text-gray-700 dark:text-gray-300"
                           >
                             <div className="flex items-center gap-2">
-                              <span className="text-gray-500 font-mono text-[10px]">::::</span>
+                              <span className="text-gray-400 dark:text-gray-500 font-mono text-[10px]">
+                                ::::
+                              </span>
                               <span>Album</span>
                             </div>
                             <input
                               type="checkbox"
                               checked={visibleColumns.album}
                               onChange={() => {}}
-                              className="w-4 h-4 rounded accent-purple-600 bg-white/10 border-white/20 cursor-pointer"
+                              className="w-4 h-4 rounded accent-purple-600 bg-black/5 dark:bg-white/10 border-black/20 dark:border-white/20 cursor-pointer"
                             />
                           </div>
 
@@ -1148,17 +1169,19 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
                             onClick={() =>
                               setVisibleColumns((v) => ({ ...v, duration: !v.duration }))
                             }
-                            className="flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-white/5 cursor-pointer text-xs font-medium text-gray-300"
+                            className="flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer text-xs font-medium text-gray-700 dark:text-gray-300"
                           >
                             <div className="flex items-center gap-2">
-                              <span className="text-gray-500 font-mono text-[10px]">::::</span>
+                              <span className="text-gray-400 dark:text-gray-500 font-mono text-[10px]">
+                                ::::
+                              </span>
                               <span>Duration</span>
                             </div>
                             <input
                               type="checkbox"
                               checked={visibleColumns.duration}
                               onChange={() => {}}
-                              className="w-4 h-4 rounded accent-purple-600 bg-white/10 border-white/20 cursor-pointer"
+                              className="w-4 h-4 rounded accent-purple-600 bg-black/5 dark:bg-white/10 border-black/20 dark:border-white/20 cursor-pointer"
                             />
                           </div>
                         </div>
@@ -1171,7 +1194,7 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
 
             <tbody>
               {results.map((track, idx) => {
-                const isCurrent = currentTrack?.id === track.id;
+                const isCurrent = Boolean(currentTrack && isSameTrackId(currentTrack.id, track.id));
                 const isThisPlaying = isCurrent && isPlaying;
                 const liked = isTrackLiked(track.id);
 
@@ -1180,7 +1203,7 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
                     key={`${track.id}-${idx}`}
                     onClick={() => handlePlayTrack(track, idx, results)}
                     onContextMenu={(e) => handleTrackContextMenu(e, track)}
-                    className={`group border-b border-white/[0.03] hover:bg-white/[0.06] rounded-xl transition-colors cursor-pointer ${
+                    className={`group border-b border-black/[0.03] dark:border-white/[0.03] hover:bg-black/[0.04] dark:hover:bg-white/[0.06] rounded-xl transition-colors cursor-pointer ${
                       isCurrent ? 'bg-purple-600/10' : ''
                     }`}
                   >
@@ -1190,13 +1213,17 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
                         <span className="group-hover:hidden flex items-center justify-center">
                           {isThisPlaying ? (
                             <div className="flex items-end justify-center gap-0.5 h-3.5 w-3.5">
-                              <span className="w-0.5 bg-purple-400 animate-pulse h-full rounded-full" />
-                              <span className="w-0.5 bg-purple-400 animate-pulse h-2/3 rounded-full [animation-delay:150ms]" />
-                              <span className="w-0.5 bg-purple-400 animate-pulse h-4/5 rounded-full [animation-delay:300ms]" />
+                              <span className="w-0.5 bg-purple-600 dark:bg-purple-400 animate-pulse h-full rounded-full" />
+                              <span className="w-0.5 bg-purple-600 dark:bg-purple-400 animate-pulse h-2/3 rounded-full [animation-delay:150ms]" />
+                              <span className="w-0.5 bg-purple-600 dark:bg-purple-400 animate-pulse h-4/5 rounded-full [animation-delay:300ms]" />
                             </div>
                           ) : (
                             <span
-                              className={isCurrent ? 'text-purple-400 font-bold' : 'text-gray-400'}
+                              className={
+                                isCurrent
+                                  ? 'text-purple-600 dark:text-purple-400 font-bold'
+                                  : 'text-gray-500 dark:text-gray-400'
+                              }
                             >
                               {idx + 1}
                             </span>
@@ -1208,7 +1235,7 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
                             e.stopPropagation();
                             handlePlayTrack(track, idx, results);
                           }}
-                          className="hidden group-hover:flex items-center justify-center text-white hover:text-purple-400 transition-colors"
+                          className="hidden group-hover:flex items-center justify-center text-gray-800 hover:text-purple-600 dark:text-white dark:hover:text-purple-400 transition-colors"
                         >
                           {isThisPlaying ? (
                             <Pause size={15} className="fill-current" />
@@ -1222,7 +1249,7 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
                     {/* Track Title + Cover Art */}
                     <td className="min-w-0 py-3 px-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="relative w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-white/10 bg-black/40">
+                        <div className="relative w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-black/10 dark:border-white/10 bg-black/10 dark:bg-black/40">
                           {track.albumArt ? (
                             <img
                               src={track.albumArt}
@@ -1230,7 +1257,7 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-600">
+                            <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-600">
                               <Music size={16} />
                             </div>
                           )}
@@ -1245,8 +1272,8 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
                               }}
                               className={`text-sm font-medium truncate cursor-pointer hover:underline ${
                                 isCurrent
-                                  ? 'text-purple-400 font-bold'
-                                  : 'text-white group-hover:text-purple-300 transition-colors'
+                                  ? 'text-purple-600 dark:text-purple-400 font-bold'
+                                  : 'text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors'
                               }`}
                             >
                               {track.title}
@@ -1280,14 +1307,16 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
                                 </span>
                               ) : null)}
                           </div>
-                          <p className="text-xs text-gray-400 truncate mt-0.5">{track.artist}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                            {track.artist}
+                          </p>
                         </div>
                       </div>
                     </td>
 
                     {/* Album Column */}
                     {visibleColumns.album && (
-                      <td className="text-xs text-gray-400 min-w-0 py-3 px-3">
+                      <td className="text-xs text-gray-500 dark:text-gray-400 min-w-0 py-3 px-3">
                         <span className="truncate block hover:underline cursor-pointer">
                           {track.album || track.title}
                         </span>
@@ -1306,16 +1335,13 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
                               toggleLikeTrack(track);
                             }}
                             title={liked ? 'Remove from Liked' : 'Save to Liked'}
-                            className={`p-1 rounded-full transition-all ${
+                            className={`p-1 rounded-full transition-all cursor-pointer ${
                               liked
-                                ? 'text-purple-400 opacity-100'
-                                : 'text-gray-400 hover:text-white opacity-0 group-hover:opacity-100'
+                                ? 'text-purple-600 dark:text-purple-400 opacity-100'
+                                : 'text-gray-400 hover:text-gray-900 dark:hover:text-white opacity-0 group-hover:opacity-100'
                             }`}
                           >
-                            <Heart
-                              size={15}
-                              className={liked ? 'fill-purple-400 text-purple-400' : ''}
-                            />
+                            <Heart size={15} className={liked ? 'fill-current' : ''} />
                           </button>
 
                           {/* 3 Dots button */}
@@ -1324,12 +1350,12 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
                             data-menu-trigger="true"
                             onClick={(e) => handleTrackThreeDots(e, track)}
                             title="More actions"
-                            className="p-1 rounded-full text-gray-400 hover:text-white opacity-0 group-hover:opacity-100 transition-all"
+                            className="p-1 rounded-full text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
                           >
                             <MoreHorizontal size={15} />
                           </button>
 
-                          <span className="text-xs text-gray-400 font-mono w-10 text-right">
+                          <span className="text-xs text-gray-500 dark:text-gray-400 font-mono w-10 text-right">
                             {formatDuration(track.durationMs)}
                           </span>
                         </div>
@@ -1348,11 +1374,14 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
                 type="button"
                 disabled={isLoadingMoreTracks}
                 onClick={handleLoadMoreTracks}
-                className="px-6 py-2.5 rounded-full bg-white/10 hover:bg-white/15 text-xs font-bold text-white transition-all flex items-center gap-2 hover:scale-105 active:scale-95 disabled:opacity-50 border border-white/5"
+                className="px-6 py-2.5 rounded-full bg-black/5 hover:bg-black/10 text-gray-900 border border-black/10 dark:bg-white/10 dark:hover:bg-white/15 dark:text-white dark:border-white/5 text-xs font-bold transition-all flex items-center gap-2 hover:scale-105 active:scale-95 disabled:opacity-50 cursor-pointer"
               >
                 {isLoadingMoreTracks ? (
                   <>
-                    <Loader2 size={14} className="animate-spin text-purple-400" />
+                    <Loader2
+                      size={14}
+                      className="animate-spin text-purple-600 dark:text-purple-400"
+                    />
                     <span>Loading more tracks...</span>
                   </>
                 ) : (
@@ -1372,10 +1401,10 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
               key={playlist.id}
               onClick={() => handleOpenPlaylist(playlist.id)}
               onContextMenu={(e) => handlePlaylistContextMenu(e, playlist)}
-              className="group relative p-3.5 rounded-2xl bg-white/[0.03] hover:bg-white/[0.08] transition-all cursor-pointer border border-white/5 hover:border-white/10 flex flex-col"
+              className="group relative p-3.5 rounded-2xl bg-black/[0.02] hover:bg-black/[0.06] border border-black/5 hover:border-black/10 dark:bg-white/[0.03] dark:hover:bg-white/[0.08] dark:border-white/5 dark:hover:border-white/10 transition-all cursor-pointer flex flex-col shadow-sm"
             >
-              {/* Cover Art with Hover Play Button (Point 2, Screenshot 4) */}
-              <div className="relative aspect-square w-full rounded-xl overflow-hidden shadow-lg bg-[#121216] shrink-0">
+              {/* Cover Art with Hover Play Button */}
+              <div className="relative aspect-square w-full rounded-xl overflow-hidden shadow-md bg-black/10 dark:bg-[#121216] shrink-0">
                 {source === 'all' &&
                   (playlist.source === 'soundcloud' || playlist.id.startsWith('sc-pl-') ? (
                     <div className="absolute top-2 left-2 z-10 px-2 py-0.5 rounded-full backdrop-blur-md bg-black/80 border border-[#FF5500]/30 flex items-center gap-1.5 shadow-md pointer-events-none">
@@ -1403,7 +1432,7 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-600 bg-white/5">
+                  <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-600 bg-black/5 dark:bg-white/5">
                     <Music size={32} />
                   </div>
                 )}
@@ -1414,7 +1443,7 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
                   disabled={loadingPlaylistId === playlist.id}
                   onClick={(e) => handlePlayPlaylist(playlist, e)}
                   aria-label={`Play playlist "${playlist.title}"`}
-                  className="absolute bottom-2.5 right-2.5 w-11 h-11 rounded-full bg-gradient-to-br from-[#8B5CF6] to-[#7C3AED] hover:from-[#9333EA] hover:to-[#6D28D9] text-white flex items-center justify-center shadow-xl shadow-purple-600/40 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-80"
+                  className="absolute bottom-2.5 right-2.5 w-11 h-11 rounded-full bg-gradient-to-br from-[#8B5CF6] to-[#7C3AED] hover:from-[#9333EA] hover:to-[#6D28D9] text-white flex items-center justify-center shadow-xl shadow-purple-600/40 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-80 cursor-pointer"
                 >
                   {loadingPlaylistId === playlist.id ? (
                     <Loader2 size={18} className="animate-spin text-white" />
@@ -1430,16 +1459,19 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
                   e.stopPropagation();
                   handleOpenPlaylist(playlist.id);
                 }}
-                className="text-sm font-bold text-white truncate mt-3 hover:underline cursor-pointer group-hover:text-purple-300 transition-colors"
+                className="text-sm font-bold text-gray-900 dark:text-white truncate mt-3 hover:underline cursor-pointer group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors"
               >
                 {playlist.title}
               </h4>
 
               {/* Subtitle: "By [Creator]" */}
-              <p className="text-xs text-gray-400 mt-1 truncate">
-                By <span className="text-gray-300 font-medium">{playlist.creator}</span>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
+                By{' '}
+                <span className="text-gray-700 dark:text-gray-300 font-medium">
+                  {playlist.creator}
+                </span>
                 {(playlist as any).trackCount ? (
-                  <span className="text-gray-500 ml-1">
+                  <span className="text-gray-400 dark:text-gray-500 ml-1">
                     ({(playlist as any).trackCount} tracks)
                   </span>
                 ) : null}
@@ -1456,11 +1488,11 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
             type="button"
             disabled={isLoadingMorePlaylists}
             onClick={handleLoadMorePlaylists}
-            className="px-6 py-2.5 rounded-full bg-white/10 hover:bg-white/15 text-xs font-bold text-white transition-all flex items-center gap-2 hover:scale-105 active:scale-95 disabled:opacity-50 border border-white/5"
+            className="px-6 py-2.5 rounded-full bg-black/5 hover:bg-black/10 text-gray-900 border border-black/10 dark:bg-white/10 dark:hover:bg-white/15 dark:text-white dark:border-white/5 text-xs font-bold transition-all flex items-center gap-2 hover:scale-105 active:scale-95 disabled:opacity-50 cursor-pointer"
           >
             {isLoadingMorePlaylists ? (
               <>
-                <Loader2 size={14} className="animate-spin text-purple-400" />
+                <Loader2 size={14} className="animate-spin text-purple-600 dark:text-purple-400" />
                 <span>Loading more playlists...</span>
               </>
             ) : (

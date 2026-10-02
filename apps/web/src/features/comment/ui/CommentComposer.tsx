@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, Image as ImageIcon, X, Loader2 } from 'lucide-react';
 import { AddEmojiButton } from '../../../shared/ui/AddEmojiButton';
 import {
@@ -7,7 +7,11 @@ import {
   FloatingSelectionToolbar,
   type SelectionFormatType,
 } from '@/shared/ui/editor';
-import { detectCodeSnippet, type DetectedCodeSnippet } from '@/shared/lib/editor';
+import {
+  detectCodeSnippet,
+  type DetectedCodeSnippet,
+  getTextareaSelectionCoordinates,
+} from '@/shared/lib/editor';
 
 const MAX_COMMENT_LENGTH = 1000;
 const MAX_TEXTAREA_HEIGHT = 115; // Allows ~4 to 4.5 lines of text comfortably
@@ -91,29 +95,47 @@ export function CommentComposer({
     setCursorPos(e.target.selectionStart || 0);
   };
 
-  const updateSelectionToolbar = () => {
+  const updateSelectionToolbar = useCallback(() => {
     const el = textareaRef.current;
     if (!el) {
       setFloatingToolbarPos(null);
       return;
     }
-    const start = el.selectionStart;
-    const end = el.selectionEnd;
-    if (
-      start !== null &&
-      end !== null &&
-      start !== end &&
-      el.value.slice(start, end).trim().length > 0
-    ) {
-      const rect = el.getBoundingClientRect();
-      setFloatingToolbarPos({
-        top: rect.top - 46,
-        left: rect.left + rect.width / 2,
-      });
-    } else {
-      setFloatingToolbarPos(null);
-    }
-  };
+    const coords = getTextareaSelectionCoordinates(el);
+    setFloatingToolbarPos(coords);
+  }, []);
+
+  useEffect(() => {
+    const handleSelectionChange = () => {
+      const el = textareaRef.current;
+      if (!el) return;
+      if (document.activeElement !== el) {
+        setFloatingToolbarPos(null);
+        return;
+      }
+      if (el.selectionStart === el.selectionEnd) {
+        setFloatingToolbarPos(null);
+        return;
+      }
+      updateSelectionToolbar();
+    };
+
+    const handleScrollOrResize = () => {
+      if (floatingToolbarPos) {
+        updateSelectionToolbar();
+      }
+    };
+
+    document.addEventListener('selectionchange', handleSelectionChange);
+    window.addEventListener('resize', handleScrollOrResize);
+    window.addEventListener('scroll', handleScrollOrResize, true);
+
+    return () => {
+      document.removeEventListener('selectionchange', handleSelectionChange);
+      window.removeEventListener('resize', handleScrollOrResize);
+      window.removeEventListener('scroll', handleScrollOrResize, true);
+    };
+  }, [floatingToolbarPos, updateSelectionToolbar]);
 
   const handleFormattingHotkey = (prefix: string, suffix: string, defaultPlaceholder = '') => {
     const el = textareaRef.current;
@@ -344,18 +366,20 @@ export function CommentComposer({
     !isUploadingImage;
 
   return (
-    <div className="sticky bottom-0 bg-[#0c0d16]/95 backdrop-blur-2xl border-t border-white/[0.08] p-3 sm:p-4 z-20 transition-all shrink-0">
+    <div className="sticky bottom-0 bg-white/95 dark:bg-[#0c0d16]/95 backdrop-blur-2xl border-t border-black/10 dark:border-white/[0.08] p-3 sm:p-4 z-20 transition-all shrink-0">
       {/* Sliding Replying Banner */}
       {replyingTo && (
-        <div className="flex items-center justify-between bg-purple-950/40 border border-purple-500/30 rounded-xl px-3 py-1.5 mb-2.5 text-xs text-purple-200 animate-fadeIn">
+        <div className="flex items-center justify-between bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-500/30 rounded-xl px-3 py-1.5 mb-2.5 text-xs text-purple-900 dark:text-purple-200 animate-fadeIn">
           <div className="flex items-center gap-1.5 truncate">
-            <span className="text-gray-400">Replying to</span>
-            <span className="font-semibold text-purple-300 truncate">@{replyingTo.username}</span>
+            <span className="text-gray-500 dark:text-gray-400">Replying to</span>
+            <span className="font-semibold text-purple-700 dark:text-purple-300 truncate">
+              @{replyingTo.username}
+            </span>
           </div>
           <button
             type="button"
             onClick={onCancelReply}
-            className="text-purple-300 hover:text-white p-0.5 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+            className="text-purple-700 hover:text-purple-950 dark:text-purple-300 dark:hover:text-white p-0.5 rounded-lg hover:bg-purple-500/10 transition-colors cursor-pointer"
             title="Cancel reply (Esc)"
           >
             <X size={14} />
@@ -378,7 +402,7 @@ export function CommentComposer({
 
       {/* Inline Matte Media Preview with Delete Cross & Spinner */}
       {imagePreview && (
-        <div className="relative inline-block mb-2.5 rounded-xl overflow-hidden border border-white/[0.12] bg-black/60 shadow-lg">
+        <div className="relative inline-block mb-2.5 rounded-xl overflow-hidden border border-black/10 dark:border-white/[0.12] bg-black/5 dark:bg-black/60 shadow-lg">
           <img src={imagePreview} alt="upload preview" className="w-20 h-20 object-cover" />
           {isUploadingImage ? (
             <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
@@ -403,7 +427,7 @@ export function CommentComposer({
 
       {/* Input Form */}
       <form onSubmit={handleSubmit} className="flex items-end gap-2.5 relative">
-        <div className="flex-1 relative flex flex-col rounded-2xl bg-white/[0.04] border border-white/[0.08] focus-within:border-purple-500/50 focus-within:ring-1 focus-within:ring-purple-500/30 transition-all">
+        <div className="flex-1 relative flex flex-col rounded-2xl bg-black/[0.03] dark:bg-white/[0.04] border border-black/10 dark:border-white/[0.08] focus-within:border-purple-500/50 focus-within:ring-1 focus-within:ring-purple-500/30 transition-all">
           <textarea
             ref={textareaRef}
             rows={1}
@@ -422,11 +446,11 @@ export function CommentComposer({
                 ? `Reply to @${replyingTo.username}...`
                 : `Add a comment as @${currentUserHandle}...`
             }
-            className="w-full bg-transparent px-3.5 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none resize-none min-h-[38px] max-h-[115px] leading-relaxed overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full"
+            className="w-full bg-transparent px-3.5 py-2.5 text-sm text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none resize-none min-h-[38px] max-h-[115px] leading-relaxed overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-black/10 dark:[&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full"
           />
 
           {/* Action Tools Inside Input Bar */}
-          <div className="flex items-center justify-between px-3 py-1.5 border-t border-white/[0.04]">
+          <div className="flex items-center justify-between px-3 py-1.5 border-t border-black/5 dark:border-white/[0.04]">
             <div className="flex items-center gap-1.5">
               <AddEmojiButton
                 isOpen={isEmojiOpen}
@@ -449,7 +473,7 @@ export function CommentComposer({
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="p-1.5 text-gray-400 hover:text-purple-400 hover:bg-white/[0.06] rounded-xl transition-colors cursor-pointer"
+                className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-black/5 dark:hover:bg-white/[0.06] rounded-xl transition-colors cursor-pointer"
                 title="Attach image"
               >
                 <ImageIcon size={17} />
@@ -464,13 +488,13 @@ export function CommentComposer({
                     ? 'text-red-400 font-bold'
                     : isNearLimit
                       ? 'text-amber-400 font-semibold'
-                      : 'text-gray-500'
+                      : 'text-gray-500 dark:text-gray-400'
                 }`}
               >
                 {text.length} / {MAX_COMMENT_LENGTH}
               </span>
 
-              <span className="hidden sm:inline text-[10px] text-gray-500 select-none">
+              <span className="hidden sm:inline text-[10px] text-gray-500 dark:text-gray-400 select-none">
                 Shift+Enter for newline
               </span>
             </div>
@@ -487,7 +511,7 @@ export function CommentComposer({
           className={`h-[42px] px-4 rounded-2xl font-medium text-sm flex items-center justify-center transition-all duration-200 shrink-0 ${
             canSubmit
               ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-[0_0_20px_rgba(147,51,234,0.5)] cursor-pointer active:scale-95'
-              : 'bg-white/[0.05] text-gray-500 cursor-not-allowed opacity-50'
+              : 'bg-black/5 dark:bg-white/[0.05] text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-50'
           }`}
           title="Send comment"
         >
