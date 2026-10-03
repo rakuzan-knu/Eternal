@@ -1,26 +1,48 @@
 {
   "expo": {
-    "name": "Social Network",
-    "slug": "social-network",
+    "name": "Eternal Social",
+    "slug": "eternal-social",
     "version": "1.0.0",
+    "description": "Next-generation social network connecting people who matter.",
+    "scheme": "eternal",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Eternal to attach photos and videos to your posts and stories.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ]
+    ],
     "splash": {
-      "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#09090b"
+      "backgroundColor": "#050505"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.socialnetwork.app"
+      "bundleIdentifier": "com.eternalsocial.app",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Use Face ID to securely log in to your Eternal account."
+      }
     },
     "android": {
+      "package": "com.eternalsocial.app",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#09090b"
+        "backgroundColor": "#050505"
       },
-      "package": "com.socialnetwork.app"
-    }
+      "permissions": ["USE_BIOMETRIC", "USE_FINGERPRINT"]
+    },
+    "web": {
+      "bundler": "metro",
+      "shortName": "Eternal",
+      "backgroundColor": "#050505",
+      "themeColor": "#050505",
+      "lang": "en"
+    },
+    "platforms": ["ios", "android", "web"]
   }
 }
