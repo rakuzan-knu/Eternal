@@ -170,6 +170,28 @@ describe('PostsRepository', () => {
   });
 
   describe('getPostsByUserId, getRepostsByUserId, getSavedPostsByUserId', () => {
+    it('paginates saved posts using the public post ID within the current user', async () => {
+      mockPrisma.userBlock.findMany.mockResolvedValueOnce([
+        { blockerId: 'usr-viewer', blockedId: 'usr-blocked' },
+      ]);
+      mockPrisma.savedPost.findMany.mockResolvedValueOnce([
+        { id: 'saved-record-200', post: basePrismaPost },
+      ]);
+
+      const posts = await repository.getSavedPostsByUserId('usr-viewer', 10, 'post-cursor');
+
+      expect(mockPrisma.savedPost.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: 'usr-viewer', post: { authorId: { notIn: ['usr-blocked'] } } },
+          cursor: { postId_userId: { postId: 'post-cursor', userId: 'usr-viewer' } },
+          take: 11,
+          skip: 1,
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        }),
+      );
+      expect(posts[0]?.id).toBe('post-100');
+    });
+
     it('getPostsByUserId returns empty array if target user is blocked', async () => {
       mockPrisma.userBlock.findMany.mockResolvedValueOnce([
         { blockerId: 'usr-viewer', blockedId: 'usr-target' },
