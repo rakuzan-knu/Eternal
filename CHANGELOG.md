@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.1](https://github.com/rakuzan-knu/social-network/compare/v1.3.0...v1.3.1) (2026-10-03)
+
+### 🐛 Bug Fixes
+
+* **deps:** align react with react-dom 19.3.0 and pin react-native to expo 52 ([17f9a63](https://github.com/rakuzan-knu/social-network/commit/17f9a6314705743113cbf7c1368d50f6c7673e38))
+
+### 🔧 Tooling & Dependencies
+
+* **ci)(deps:** bump the github-actions group across 2 directories with 28 updates ([6619cb3](https://github.com/rakuzan-knu/social-network/commit/6619cb3cd3a62ef95b02366a420294e7474d5dbc))
+* **ci:** merge PR [#88](https://github.com/rakuzan-knu/social-network/issues/88) github-actions updates ([a5a9e97](https://github.com/rakuzan-knu/social-network/commit/a5a9e97b3bb17d2a2ef6d1a45eb190e3616ac04a))
+* **deps)(deps:** bump the production-dependencies group across 1 directory with 18 updates ([feaccb6](https://github.com/rakuzan-knu/social-network/commit/feaccb6274e446c8f30445fbc85d99f0b855cac3))
+* **deps:** ignore major updates and expo-managed dependencies in dependabot ([1cbbad0](https://github.com/rakuzan-knu/social-network/commit/1cbbad060f6f0f07bb0bfe75bcfa2c0f54736937))
+
 ## [1.3.0](https://github.com/rakuzan-knu/social-network/compare/v1.2.0...v1.3.0) (2026-09-17)
 
 ### ✨ Features
