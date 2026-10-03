@@ -1,9 +1,14 @@
 import * as React from 'react';
-import { View, Text, BackHandler, Platform, StyleSheet } from 'react-native';
+import { View, Text, AppState, BackHandler, Platform, StyleSheet } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
-import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query';
+import {
+  QueryClient,
+  QueryClientProvider,
+  focusManager,
+  onlineManager,
+} from '@tanstack/react-query';
 import NetInfo from '@react-native-community/netinfo';
 import * as Linking from 'expo-linking';
 import { useAuthStore, configureAuthStorage } from '@social-network/shared-stores';
@@ -12,8 +17,9 @@ import { LoginScreen } from '@/pages/auth-login';
 import { RegisterScreen } from '@/pages/auth-register';
 import { ForgotPasswordScreen } from '@/pages/auth-forgot-password';
 import { SecurityLockScreen } from '@/features/security';
-import { Button, GlassCard, AuthFooter } from '@/shared/ui';
-import { LogOut, User, CheckCircle2, WifiOff } from 'lucide-react-native';
+import { WifiOff } from 'lucide-react-native';
+import { FeedScreen } from '@/pages/feed';
+import { getMobileApi } from '@/shared/api/client';
 
 // 6. Hold native splash screen until storage rehydration completes
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -74,6 +80,18 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
       outline: none !important;
       box-shadow: none !important;
     }
+    [data-testid="mobile-feed"] [role="button"]:focus-visible,
+    [data-testid="mobile-feed"] [role="tab"]:focus-visible,
+    [data-testid="mobile-feed"] [role="link"]:focus-visible,
+    [data-testid="mobile-feed"] textarea:focus-visible,
+    [data-testid="feed-sheet"] [role="button"]:focus-visible,
+    [data-testid="feed-sheet"] [role="tab"]:focus-visible,
+    [data-testid="feed-sheet"] [role="link"]:focus-visible,
+    [data-testid="feed-sheet"] input:focus-visible,
+    [data-testid="feed-sheet"] textarea:focus-visible {
+      outline: 2px solid #c084fc !important;
+      outline-offset: 3px !important;
+    }
     /* Prevent Chrome / Edge autofill from painting inputs white */
     input:-webkit-autofill,
     input:-webkit-autofill:hover,
@@ -89,17 +107,19 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
 
 export type Screen = 'login' | 'register' | 'forgot-password';
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      staleTime: 5 * 60 * 1000,
+const createQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: 1,
+        staleTime: 5 * 60 * 1000,
+      },
+      mutations: {
+        retry: 0,
+        networkMode: 'always',
+      },
     },
-    mutations: {
-      retry: 0,
-    },
-  },
-});
+  });
 
 function AppContent() {
   const [appIsReady, setAppIsReady] = React.useState(false);
@@ -108,6 +128,14 @@ function AppContent() {
   const [isOnline, setIsOnline] = React.useState(true);
   const { isAuthenticated, user, clearSession } = useAuthStore();
   const { isLocked, unlock } = useAppLock(isAuthenticated);
+
+  React.useEffect(() => {
+    if (Platform.OS === 'web') return;
+    const subscription = AppState.addEventListener('change', (state) =>
+      focusManager.setFocused(state === 'active'),
+    );
+    return () => subscription.remove();
+  }, []);
 
   // 6. Splash Screen: Hold native splash screen until token rehydration completes
   React.useEffect(() => {
@@ -208,13 +236,22 @@ function AppContent() {
 
     document.title = pageTitle;
 
-    let metaTag = document.querySelector('meta[name="description"]') as HTMLMetaElement | null;
+    let metaTag = document.querySelector<HTMLMetaElement>('meta[name="description"]');
     if (!metaTag) {
       metaTag = document.createElement('meta');
       metaTag.name = 'description';
       document.head.appendChild(metaTag);
     }
     metaTag.content = metaDescription;
+
+    let robotsTag = document.querySelector<HTMLMetaElement>('meta[name="robots"]');
+    if (!robotsTag) {
+      robotsTag = document.createElement('meta');
+      robotsTag.name = 'robots';
+      document.head.appendChild(robotsTag);
+    }
+    // The mobile web shell contains account screens and a private, personalized feed.
+    robotsTag.content = 'noindex, nofollow';
   }, [currentScreen, isAuthenticated]);
 
   // Keep splash screen visible until app is fully ready
@@ -227,102 +264,26 @@ function AppContent() {
     return <SecurityLockScreen onUnlock={unlock} />;
   }
 
-  // Authenticated State View
   if (isAuthenticated && user) {
     return (
-      <SafeAreaView style={styles.safeArea} accessibilityRole={'main' as any}>
+      <SafeAreaView style={styles.safeArea}>
         <StatusBar style="light" backgroundColor="#050505" />
-
-        {/* Offline Banner */}
         {!isOnline && (
           <View style={styles.offlineBanner} accessibilityRole="alert">
             <WifiOff size={14} color="#fca5a5" />
             <Text style={styles.offlineBannerText}>
-              No internet connection. Waiting for network...
+              You're offline. Loaded posts are still available.
             </Text>
           </View>
         )}
-
-        <View style={styles.container}>
-          {/* Header */}
-          <View style={styles.header} accessibilityRole="header">
-            <View style={styles.brandRow}>
-              <View
-                style={styles.logoBadge}
-                accessibilityRole="image"
-                accessibilityLabel="Eternal Logo"
-              >
-                <Text style={styles.logoText}>E</Text>
-              </View>
-              <Text style={styles.brandName}>Eternal Social</Text>
-            </View>
-
-            <View
-              style={styles.statusBadge}
-              accessibilityRole="text"
-              accessibilityLabel="Connection status: Connected"
-            >
-              <CheckCircle2 size={12} color="#34d399" />
-              <Text style={styles.statusBadgeText}>Connected</Text>
-            </View>
-          </View>
-
-          {/* Profile Section */}
-          <View style={styles.profileSection}>
-            <View
-              style={styles.avatarContainer}
-              accessibilityRole="image"
-              accessibilityLabel={`${user.displayName || user.username}'s avatar`}
-            >
-              <User size={38} color="#a855f7" />
-            </View>
-
-            <Text style={styles.displayName}>{user.displayName || user.username}</Text>
-            <Text style={styles.username}>@{user.username}</Text>
-
-            {/* GlassCard for profile information */}
-            <GlassCard style={styles.infoCard}>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Account ID</Text>
-                <Text style={styles.infoValueMono}>{user.id.slice(0, 8)}...</Text>
-              </View>
-
-              <View style={styles.infoDivider} />
-
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Email</Text>
-                <Text style={styles.infoValue}>{user.email || 'N/A'}</Text>
-              </View>
-
-              <View style={styles.infoDivider} />
-
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Runtime</Text>
-                <Text style={styles.infoValueAccent}>React Native + Expo SDK 52</Text>
-              </View>
-            </GlassCard>
-
-            <Button
-              title="Sign Out"
-              variant="secondary"
-              size="lg"
-              leftIcon={<LogOut size={16} color="#e4e4e7" />}
-              accessibilityLabel="Sign Out"
-              accessibilityHint="Signs out of your active account session"
-              onPress={clearSession}
-              style={styles.signOutButton}
-            />
-          </View>
-
-          <AuthFooter />
-        </View>
+        <FeedScreen user={user} isOnline={isOnline} onSignOut={clearSession} />
       </SafeAreaView>
     );
   }
 
   // Unauthenticated Auth Screens
   return (
-    <SafeAreaView style={styles.safeArea} accessibilityRole={'main' as any}>
+    <SafeAreaView style={styles.safeArea}>
       <StatusBar style="light" backgroundColor="#050505" />
 
       {/* Offline Banner */}
@@ -363,12 +324,24 @@ function AppContent() {
   );
 }
 
+function SessionQueries() {
+  const [queryClient] = React.useState(() => {
+    getMobileApi();
+    return createQueryClient();
+  });
+  React.useEffect(() => () => queryClient.clear(), [queryClient]);
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AppContent />
+    </QueryClientProvider>
+  );
+}
+
 export function App() {
+  const userId = useAuthStore((state) => state.user?.id);
   return (
     <SafeAreaProvider>
-      <QueryClientProvider client={queryClient}>
-        <AppContent />
-      </QueryClientProvider>
+      <SessionQueries key={userId || 'signed-out'} />
     </SafeAreaProvider>
   );
 }
@@ -383,141 +356,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
 
-  container: {
-    flex: 1,
-    width: '100%',
-    paddingHorizontal: 20,
-    justifyContent: 'space-between',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1f1f23',
-  },
-  brandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  logoBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    backgroundColor: '#4f46e5',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#9333ea',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.14)',
-  },
-  logoText: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: '#ffffff',
-  },
-  brandName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#ffffff',
-    letterSpacing: -0.3,
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-  },
-  statusBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#34d399',
-  },
-  profileSection: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    maxWidth: 380,
-    width: '100%',
-    alignSelf: 'center',
-  },
-  avatarContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#18181b',
-    borderWidth: 2,
-    borderColor: 'rgba(147, 51, 234, 0.35)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-    shadowColor: '#9333ea',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 14,
-    elevation: 6,
-  },
-  displayName: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#ffffff',
-    marginBottom: 4,
-  },
-  username: {
-    fontSize: 14,
-    color: '#a1a1aa',
-    marginBottom: 24,
-  },
-  infoCard: {
-    width: '100%',
-    marginBottom: 28,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 6,
-  },
-  infoDivider: {
-    height: 1,
-    backgroundColor: '#262626',
-    marginVertical: 4,
-  },
-  infoLabel: {
-    fontSize: 12,
-    color: '#71717a',
-    fontWeight: '500',
-  },
-  infoValue: {
-    fontSize: 13,
-    color: '#ffffff',
-    fontWeight: '500',
-  },
-  infoValueMono: {
-    fontSize: 13,
-    color: '#ffffff',
-    fontWeight: '600',
-    fontVariant: ['tabular-nums'],
-  },
-  infoValueAccent: {
-    fontSize: 12,
-    color: '#a855f7',
-    fontWeight: '600',
-  },
-  signOutButton: {
-    maxWidth: 300,
-  },
   offlineBanner: {
     width: '100%',
     backgroundColor: 'rgba(220, 38, 38, 0.18)',
