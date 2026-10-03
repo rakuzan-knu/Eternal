@@ -16,6 +16,13 @@ updates:
       - automated
     reviewers:
       - subvincdebian
+    ignore:
+      - dependency-name: "react-native"
+      - dependency-name: "expo"
+      - dependency-name: "expo-status-bar"
+      - dependency-name: "*"
+        update-types:
+          - "version-update:semver-major"
     groups:
       production-dependencies:
         dependency-type: production
@@ -27,11 +34,6 @@ updates:
         update-types:
           - "minor"
           - "patch"
-      major-dependencies:
-        patterns:
-          - "*"
-        update-types:
-          - "major"
 
 
   - package-ecosystem: github-actions
