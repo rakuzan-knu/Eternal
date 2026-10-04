@@ -96,21 +96,21 @@ const wrapTestFn = (fn: unknown): unknown => {
 const createTestWrapper = <T extends AnyFn>(orig: T): T => {
   if (!orig) return orig;
   return new Proxy(orig, {
-    apply(target, thisArg, args) {
+    apply(target: T, thisArg: unknown, args: unknown[]) {
       const [name, fn, timeout] = args;
       return Reflect.apply(target, thisArg, [name, wrapTestFn(fn), timeout]);
     },
-    get(target, prop, receiver) {
+    get(target: T, prop: string | symbol, receiver: unknown) {
       if (prop === 'only' || prop === 'concurrent') {
-        const origMethod = Reflect.get(target, prop, receiver);
+        const origMethod = Reflect.get(target, prop, receiver) as unknown;
         if (typeof origMethod === 'function') {
-          return (name: string, fn: unknown, timeout?: number) =>
+          return (name: string, fn: unknown, timeout?: number): unknown =>
             origMethod.call(target, name, wrapTestFn(fn), timeout);
         }
       }
-      return Reflect.get(target, prop, receiver);
+      return Reflect.get(target, prop, receiver) as unknown;
     },
-  }) as T;
+  });
 };
 
 if (typeof globalObj.it === 'function') {
