@@ -2,7 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MeshVoiceRoomManager } from '../meshVoiceRoom';
 
 describe('MeshVoiceRoomManager', () => {
-  let mockSocketEmit: ReturnType<typeof vi.fn>;
+  let mockSocketEmit: ReturnType<typeof vi.fn> &
+    ((event: string, payload: unknown, callback?: (res: unknown) => void) => void);
   let mockAudioTrack: { enabled: boolean; stop: ReturnType<typeof vi.fn> };
   let mockStream: {
     getTracks: () => unknown[];
@@ -11,7 +12,7 @@ describe('MeshVoiceRoomManager', () => {
 
   beforeEach(() => {
     vi.restoreAllMocks();
-    mockSocketEmit = vi.fn();
+    mockSocketEmit = vi.fn() as unknown as typeof mockSocketEmit;
 
     mockAudioTrack = {
       enabled: true,

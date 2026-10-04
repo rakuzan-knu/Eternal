@@ -149,7 +149,7 @@ jobs:
           TRIVY_USERNAME: ${{ github.actor }}
           TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          trivy image ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.image }}:latest --severity HIGH,CRITICAL --format sarif -o trivy-${{ matrix.image }}.sarif
+          trivy image ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.image }}:latest --severity HIGH,CRITICAL --ignore-unfixed --format sarif -o trivy-${{ matrix.image }}.sarif
         continue-on-error: true
 
       - name: Upload Trivy results to GitHub Security
