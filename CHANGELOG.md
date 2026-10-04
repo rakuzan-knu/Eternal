@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.4](https://github.com/rakuzan-knu/social-network/compare/v1.3.3...v1.3.4) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* **security:** resolve dependabot lockfile indexing and code scanning sarif pipelines ([#99](https://github.com/rakuzan-knu/social-network/issues/99)) ([3f19263](https://github.com/rakuzan-knu/social-network/commit/3f1926379027c3e872cffb60e484f500d72b128f))
+
 ## [1.3.3](https://github.com/rakuzan-knu/social-network/compare/v1.3.2...v1.3.3) (2026-10-04)
 
 ### 🐛 Bug Fixes
