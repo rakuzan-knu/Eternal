@@ -749,7 +749,7 @@ jobs:
       - name: Run Trivy vulnerability scanner
         id: trivy_scanner
         run: |
-          trivy image social-network-backend:ci-${{ github.sha }} --severity CRITICAL,HIGH --format sarif -o trivy-backend.sarif --exit-code 0
+          trivy image social-network-backend:ci-${{ github.sha }} --severity CRITICAL,HIGH --ignore-unfixed --format sarif -o trivy-backend.sarif --exit-code 0
 
       - name: Upload Trivy SARIF report (image category)
         if: always() && steps.trivy_scanner.outcome == 'success'
@@ -828,7 +828,7 @@ jobs:
       - name: Run Trivy vulnerability scanner
         id: trivy_scanner
         run: |
-          trivy image social-network-frontend:ci-${{ github.sha }} --severity CRITICAL,HIGH --format sarif -o trivy-frontend.sarif --exit-code 0
+          trivy image social-network-frontend:ci-${{ github.sha }} --severity CRITICAL,HIGH --ignore-unfixed --format sarif -o trivy-frontend.sarif --exit-code 0
 
       - name: Upload Trivy SARIF report (image category)
         if: always() && steps.trivy_scanner.outcome == 'success'

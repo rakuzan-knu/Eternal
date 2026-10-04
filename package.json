@@ -93,7 +93,7 @@
     "prettier": "^3.9.9",
     "semantic-release": "^25.0.9",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.7"
+    "vitest": "^4.1.11"
   },
   "allowScripts": {
     "esbuild": true,
@@ -149,13 +149,23 @@
       "form-data": ">=2.5.4",
       "tar": ">=7.5.19",
       "basic-ftp": ">=6.2.2",
-      "nx>brace-expansion": "^5.0.12"
+      "nx>brace-expansion": "^5.0.12",
+      "vitest": "^4.1.11",
+      "@vitest/coverage-v8": "^4.1.11",
+      "@vitest/ui": "^4.1.11",
+      "@vitest/mocker": "^4.1.11",
+      "selfsigned": "^5.5.0"
     }
   },
   "resolutions": {
     "@xmldom/xmldom": ">=0.8.15",
     "axios": ">=1.20.0",
     "fastify": ">=5.12.5",
-    "basic-ftp": ">=6.2.2"
+    "basic-ftp": ">=6.2.2",
+    "vitest": "^4.1.11",
+    "@vitest/coverage-v8": "^4.1.11",
+    "@vitest/ui": "^4.1.11",
+    "@vitest/mocker": "^4.1.11",
+    "selfsigned": "^5.5.0"
   }
 }

@@ -7,7 +7,9 @@ describe('WebTransportSignalingClient', () => {
 
   beforeEach(() => {
     fallbackEmit = vi.fn();
-    client = new WebTransportSignalingClient(fallbackEmit);
+    client = new WebTransportSignalingClient(
+      fallbackEmit as unknown as (event: string, data: unknown) => void,
+    );
   });
 
   it('packs and unpacks binary datagrams accurately', () => {

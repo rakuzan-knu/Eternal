@@ -20,24 +20,28 @@ const mockGetJobCounts = jest.fn().mockResolvedValue({
 
 jest.mock('bullmq', () => {
   return {
-    Queue: jest.fn().mockImplementation(() => ({
-      add: mockQueueAdd,
-      close: mockQueueClose,
-      getJobCounts: mockGetJobCounts,
-      on: jest.fn().mockReturnThis(),
-      client: Promise.resolve({ on: jest.fn() }),
-      waitUntilReady: jest.fn().mockResolvedValue(undefined),
-    })),
+    Queue: jest.fn().mockImplementation(function () {
+      return {
+        add: mockQueueAdd,
+        close: mockQueueClose,
+        getJobCounts: mockGetJobCounts,
+        on: jest.fn().mockReturnThis(),
+        client: Promise.resolve({ on: jest.fn() }),
+        waitUntilReady: jest.fn().mockResolvedValue(undefined),
+      };
+    }),
   };
 });
 
 jest.mock('ioredis', () => {
-  const MockRedis = jest.fn().mockImplementation(() => ({
-    on: jest.fn().mockReturnThis(),
-    status: 'ready',
-    quit: jest.fn().mockResolvedValue('OK'),
-    disconnect: jest.fn(),
-  }));
+  const MockRedis = jest.fn().mockImplementation(function () {
+    return {
+      on: jest.fn().mockReturnThis(),
+      status: 'ready',
+      quit: jest.fn().mockResolvedValue('OK'),
+      disconnect: jest.fn(),
+    };
+  });
   return {
     default: MockRedis,
     Redis: MockRedis,

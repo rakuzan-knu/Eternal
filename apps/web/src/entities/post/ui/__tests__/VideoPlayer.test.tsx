@@ -88,7 +88,7 @@ describe('VideoPlayer', () => {
 
   it('observes intersection with IntersectionObserver and plays/pauses accordingly', () => {
     let observerCb: any;
-    window.IntersectionObserver = vi.fn().mockImplementation((cb) => {
+    window.IntersectionObserver = vi.fn().mockImplementation(function (cb) {
       observerCb = cb;
       return {
         observe: vi.fn(),

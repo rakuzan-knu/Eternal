@@ -24,13 +24,15 @@ vi.mock('@nestjs/swagger', async (importOriginal: () => Promise<Record<string, u
   const actual = await importOriginal();
   return {
     ...actual,
-    DocumentBuilder: jest.fn().mockImplementation(() => ({
-      setTitle: jest.fn().mockReturnThis(),
-      setDescription: jest.fn().mockReturnThis(),
-      setVersion: jest.fn().mockReturnThis(),
-      addBearerAuth: jest.fn().mockReturnThis(),
-      build: jest.fn().mockReturnValue({}),
-    })),
+    DocumentBuilder: jest.fn().mockImplementation(function () {
+      return {
+        setTitle: jest.fn().mockReturnThis(),
+        setDescription: jest.fn().mockReturnThis(),
+        setVersion: jest.fn().mockReturnThis(),
+        addBearerAuth: jest.fn().mockReturnThis(),
+        build: jest.fn().mockReturnValue({}),
+      };
+    }),
     SwaggerModule: {
       createDocument: jest.fn().mockReturnValue({}),
       setup: jest.fn(),
@@ -44,18 +46,24 @@ jest.mock('@fastify/cookie', () => ({ default: jest.fn(() => jest.fn()), __esMod
 jest.mock('@fastify/multipart', () => ({ default: jest.fn(() => jest.fn()), __esModule: true }));
 jest.mock('@nestjs/platform-fastify', () => {
   return {
-    FastifyAdapter: jest.fn().mockImplementation(() => ({})),
+    FastifyAdapter: jest.fn().mockImplementation(function () {
+      return {};
+    }),
   };
 });
 jest.mock('@nestjs/platform-socket.io', () => ({
-  IoAdapter: jest.fn().mockImplementation(() => ({})),
+  IoAdapter: jest.fn().mockImplementation(function () {
+    return {};
+  }),
 }));
 jest.mock('../common/adapters/redis-io.adapter', () => ({
-  RedisIoAdapter: jest.fn().mockImplementation(() => ({
-    connectToRedis: jest.fn().mockResolvedValue(undefined),
-    createIOServer: jest.fn(),
-    close: jest.fn().mockResolvedValue(undefined),
-  })),
+  RedisIoAdapter: jest.fn().mockImplementation(function () {
+    return {
+      connectToRedis: jest.fn().mockResolvedValue(undefined),
+      createIOServer: jest.fn(),
+      close: jest.fn().mockResolvedValue(undefined),
+    };
+  }),
 }));
 
 jest.mock('nestjs-pino', () => ({

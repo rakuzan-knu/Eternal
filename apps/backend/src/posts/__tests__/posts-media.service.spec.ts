@@ -5,14 +5,16 @@ import { MediaType } from '@prisma/client';
 import { PostsMediaService } from '../posts-media.service';
 
 jest.mock('sharp', () => {
-  const mockSharp = jest.fn().mockImplementation(() => ({
-    webp: jest.fn().mockReturnThis(),
-    toBuffer: jest
-      .fn()
-      .mockResolvedValue(
-        Buffer.from([0x52, 0x49, 0x46, 0x46, 0x00, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50]),
-      ),
-  }));
+  const mockSharp = jest.fn().mockImplementation(function () {
+    return {
+      webp: jest.fn().mockReturnThis(),
+      toBuffer: jest
+        .fn()
+        .mockResolvedValue(
+          Buffer.from([0x52, 0x49, 0x46, 0x46, 0x00, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50]),
+        ),
+    };
+  });
   return {
     default: mockSharp,
     __esModule: true,
