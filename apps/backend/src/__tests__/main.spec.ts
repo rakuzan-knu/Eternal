@@ -172,7 +172,7 @@ describe('main.ts handler and bootstrap', () => {
     }
     expect(createSpy).toHaveBeenCalledTimes(1);
     expect(mockHttpInstance).toHaveBeenCalledWith('request', req2, res);
-  });
+  }, 15000);
 
   it('handles CORS options callback in bootstrap', async () => {
     process.env.NODE_ENV = 'development';

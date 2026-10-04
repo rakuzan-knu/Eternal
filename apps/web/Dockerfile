@@ -1,8 +1,8 @@
 # Stage 1: Builder
 FROM node:24-alpine AS builder
 
-RUN --mount=type=cache,target=/var/cache/apk \
-    apk add --no-cache libc6-compat
+RUN apk update && apk upgrade --no-cache \
+    && apk add --no-cache libc6-compat
 
 RUN corepack enable && corepack prepare pnpm@10.5.2 --activate
 
@@ -35,10 +35,9 @@ RUN --mount=type=cache,target=/app/apps/web/node_modules/.vite \
     pnpm --filter frontend build
 
 # Stage 2: Production (Nginx)
-FROM nginx:1.27-alpine AS production
+FROM nginx:alpine AS production
 
-RUN --mount=type=cache,target=/var/cache/apk \
-    apk add --no-cache curl
+RUN apk update && apk upgrade --no-cache
 
 RUN rm -rf /usr/share/nginx/html/*
 
@@ -55,6 +54,6 @@ USER nginx
 EXPOSE 80
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost/health || exit 1
+    CMD wget -q -O - http://127.0.0.1/health || exit 1
 
 CMD ["nginx", "-g", "daemon off;"]

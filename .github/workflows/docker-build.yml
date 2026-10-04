@@ -5,8 +5,8 @@ on:
     branches: [main, develop]
     tags: ['v*']
     paths:
-      - 'backend/**'
-      - 'frontend/**'
+      - 'apps/backend/**'
+      - 'apps/web/**'
       - 'packages/**'
       - 'docker-compose*.yml'
       - '.github/workflows/docker-build.yml'

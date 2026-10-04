@@ -34,7 +34,7 @@ let cachedApp: INestApplication | undefined;
 
 async function bootstrap() {
   const fastifyAdapter = new FastifyAdapter({
-    trustProxy: 1,
+    trustProxy: true,
     bodyLimit: 10485760,
   });
 
@@ -231,7 +231,7 @@ if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
 export default async function handler(req: Request, res: Response): Promise<void> {
   if (!cachedApp) {
     const fastifyAdapter = new FastifyAdapter({
-      trustProxy: 1,
+      trustProxy: true,
       bodyLimit: 10485760,
     });
     const app = await NestFactory.create<NestFastifyApplication>(AppModule, fastifyAdapter, {

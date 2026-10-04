@@ -1,8 +1,8 @@
 # Stage 1: Base image with shared build tools and cache
 FROM node:24-alpine AS base
 
-RUN --mount=type=cache,target=/var/cache/apk \
-    apk add --no-cache libc6-compat build-base python3 openssl
+RUN apk update && apk upgrade --no-cache \
+    && apk add --no-cache libc6-compat build-base python3 openssl
 
 RUN corepack enable && corepack prepare pnpm@10.5.2 --activate
 
@@ -50,8 +50,9 @@ RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
 # Stage 5: Minimal Production Runtime
 FROM node:24-alpine AS production
 
-RUN --mount=type=cache,target=/var/cache/apk \
-    apk add --no-cache tini openssl libc6-compat bash
+RUN apk update && apk upgrade --no-cache \
+    && apk add --no-cache tini openssl libc6-compat bash \
+    && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
 RUN addgroup -g 1001 -S appgroup && adduser -u 1001 -S -G appgroup appuser
 WORKDIR /app
