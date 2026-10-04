@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.2](https://github.com/rakuzan-knu/social-network/compare/v1.3.1...v1.3.2) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* **backend:** align RedisIoAdapter logger visibility with IoAdapter ([516bf74](https://github.com/rakuzan-knu/social-network/commit/516bf74b6c988faade15ba3a04ad34c63ece918b))
+
+### 🔧 Tooling & Dependencies
+
+* **ci)(deps:** bump the github-actions group across 1 directory with 4 updates ([f66b5b6](https://github.com/rakuzan-knu/social-network/commit/f66b5b6279d9e61c61ffdf284ae6a4a39ec47f1d))
+* **ci:** merge PR [#95](https://github.com/rakuzan-knu/social-network/issues/95) github-actions updates ([2650bc5](https://github.com/rakuzan-knu/social-network/commit/2650bc5c4e89d0789fe4edde5783761d4d0c81d2))
+* **deps)(deps-dev:** bump the dev-dependencies group with 23 updates ([075c9e7](https://github.com/rakuzan-knu/social-network/commit/075c9e7523949b3d6c80765eb06cb3754025e4fd))
+* **deps)(deps:** bump the production-dependencies group with 24 updates ([fdc5ed2](https://github.com/rakuzan-knu/social-network/commit/fdc5ed23afaa02ba32d86b9b3a3b30a4cfb1afcb))
+* **deps:** bump production-dependencies group with 24 updates (PR [#96](https://github.com/rakuzan-knu/social-network/issues/96)) ([6ab1eed](https://github.com/rakuzan-knu/social-network/commit/6ab1eed6dc6683efd95fcd3e302f74893b1af96a))
+* **deps:** merge PR [#97](https://github.com/rakuzan-knu/social-network/issues/97) dev-dependencies updates with types resilience fix ([bd68a85](https://github.com/rakuzan-knu/social-network/commit/bd68a854bd6798c0c53447e1feaca939bfc43a51))
+
 ## [1.3.1](https://github.com/rakuzan-knu/social-network/compare/v1.3.0...v1.3.1) (2026-10-03)
 
 ### 🐛 Bug Fixes
