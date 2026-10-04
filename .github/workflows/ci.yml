@@ -751,12 +751,19 @@ jobs:
         run: |
           trivy image social-network-backend:ci-${{ github.sha }} --severity CRITICAL,HIGH --format sarif -o trivy-backend.sarif --exit-code 0
 
-      - name: Upload Trivy SARIF report
+      - name: Upload Trivy SARIF report (image category)
         if: always() && steps.trivy_scanner.outcome == 'success'
         uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
         with:
           sarif_file: trivy-backend.sarif
           category: trivy-backend-image
+
+      - name: Upload Trivy SARIF report (root category)
+        if: always() && steps.trivy_scanner.outcome == 'success'
+        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        with:
+          sarif_file: trivy-backend.sarif
+          category: trivy-backend
 
   docker-frontend:
     name: Docker — Build & Scan (Frontend)
@@ -823,12 +830,19 @@ jobs:
         run: |
           trivy image social-network-frontend:ci-${{ github.sha }} --severity CRITICAL,HIGH --format sarif -o trivy-frontend.sarif --exit-code 0
 
-      - name: Upload Trivy SARIF report
+      - name: Upload Trivy SARIF report (image category)
         if: always() && steps.trivy_scanner.outcome == 'success'
         uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
         with:
           sarif_file: trivy-frontend.sarif
           category: trivy-frontend-image
+
+      - name: Upload Trivy SARIF report (root category)
+        if: always() && steps.trivy_scanner.outcome == 'success'
+        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        with:
+          sarif_file: trivy-frontend.sarif
+          category: trivy-frontend
 
   ci-success:
     name: CI — All checks passed

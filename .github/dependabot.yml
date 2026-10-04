@@ -57,8 +57,8 @@ updates:
 
   - package-ecosystem: docker
     directories:
-      - "/backend"
-      - "/frontend"
+      - "/apps/backend"
+      - "/apps/web"
     schedule:
       interval: weekly
       day: monday
