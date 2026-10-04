@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.3](https://github.com/rakuzan-knu/social-network/compare/v1.3.2...v1.3.3) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* **security:** resolve dependabot and code scanning vulnerabilities ([#98](https://github.com/rakuzan-knu/social-network/issues/98)) ([440c94a](https://github.com/rakuzan-knu/social-network/commit/440c94a6e9190cd1291d4fa52a36a82f0fa3763c))
+
 ## [1.3.2](https://github.com/rakuzan-knu/social-network/compare/v1.3.1...v1.3.2) (2026-10-04)
 
 ### 🐛 Bug Fixes
