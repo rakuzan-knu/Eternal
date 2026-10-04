@@ -11,8 +11,10 @@ describe('MobileEdgeCaseHandler', () => {
     onCameraVisibilityChange = vi.fn();
 
     handler = new MobileEdgeCaseHandler({
-      onAutoplayBlocked,
-      onCameraVisibilityChange,
+      onAutoplayBlocked: onAutoplayBlocked as unknown as (isBlocked: boolean) => void,
+      onCameraVisibilityChange: onCameraVisibilityChange as unknown as (
+        isBackgrounded: boolean,
+      ) => void,
     });
   });
 

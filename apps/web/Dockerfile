@@ -37,7 +37,8 @@ RUN --mount=type=cache,target=/app/apps/web/node_modules/.vite \
 # Stage 2: Production (Nginx)
 FROM nginx:alpine AS production
 
-RUN apk update && apk upgrade --no-cache
+RUN apk update && apk upgrade --no-cache \
+    && rm -rf /var/cache/apk/*
 
 RUN rm -rf /usr/share/nginx/html/*
 

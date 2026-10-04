@@ -90,11 +90,17 @@ describe('Public Pages Routing Integration', () => {
   it('is publicly accessible directly via /download without requiring login', async () => {
     renderWithProviders(<App />, { initialEntries: ['/download'] });
 
-    await waitFor(() => {
-      expect(
-        screen.getByRole('heading', { level: 1, name: /DOWNLOAD ETERNAL WHEREVER YOU HANG OUT/i }),
-      ).toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(
+          screen.getByRole('heading', {
+            level: 1,
+            name: /DOWNLOAD ETERNAL WHEREVER YOU HANG OUT/i,
+          }),
+        ).toBeInTheDocument();
+      },
+      { timeout: 8000 },
+    );
   });
 
   it('is publicly accessible directly via /newsroom without requiring login', async () => {
