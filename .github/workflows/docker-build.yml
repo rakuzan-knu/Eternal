@@ -125,24 +125,35 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
+      packages: read
       security-events: write
-    
+
     strategy:
       matrix:
         image: [backend, frontend]
-    
+
     steps:
+      - name: Log in to Container Registry
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Install Trivy CLI
         run: |
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
 
       - name: Run Trivy vulnerability scanner
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
         run: |
           trivy image ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.image }}:latest --severity HIGH,CRITICAL --format sarif -o trivy-${{ matrix.image }}.sarif
         continue-on-error: true
 
-
       - name: Upload Trivy results to GitHub Security
+        if: always() && hashFiles(format('trivy-{0}.sarif', matrix.image)) != ''
         uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
         with:
           sarif_file: 'trivy-${{ matrix.image }}.sarif'

@@ -52,7 +52,9 @@ FROM node:24-alpine AS production
 
 RUN apk update && apk upgrade --no-cache \
     && apk add --no-cache tini openssl libc6-compat bash \
-    && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
+    && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx \
+    && rm -rf /usr/local/lib/node_modules/corepack /usr/local/bin/corepack \
+    && rm -rf /root/.npm /root/.cache
 
 RUN addgroup -g 1001 -S appgroup && adduser -u 1001 -S -G appgroup appuser
 WORKDIR /app
