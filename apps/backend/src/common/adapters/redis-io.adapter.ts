@@ -10,7 +10,7 @@ interface SocketIoServerInstance {
 }
 
 export class RedisIoAdapter extends IoAdapter {
-  private readonly logger = new Logger(RedisIoAdapter.name);
+  protected override readonly logger = new Logger(RedisIoAdapter.name);
   private adapterConstructor: ReturnType<typeof createAdapter> | undefined;
   private pubClient?: Redis;
   private subClient?: Redis;
