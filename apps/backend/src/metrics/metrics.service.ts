@@ -8,12 +8,7 @@ import {
 } from '@nestjs/common';
 import * as promClient from 'prom-client';
 import * as v8 from 'node:v8';
-import {
-  monitorEventLoopDelay,
-  performance,
-  type IntervalHistogram,
-  type EventLoopUtilization,
-} from 'node:perf_hooks';
+import { monitorEventLoopDelay, performance, type EventLoopUtilization } from 'node:perf_hooks';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { QueueService } from '../queue/queue.service';
 import { MemoryMonitorService } from '../common/memory/memory-monitor.service';
@@ -64,7 +59,7 @@ export class MetricsService implements OnModuleInit, OnModuleDestroy {
   private deadlockSuspectsTotal!: promClient.Counter<string>;
   private redisConnectedGauge!: promClient.Gauge;
 
-  private elDelayHistogram?: IntervalHistogram | undefined;
+  private elDelayHistogram?: ReturnType<typeof monitorEventLoopDelay> | undefined;
   private lastElu?: EventLoopUtilization | undefined;
 
   private uptimeInterval?: NodeJS.Timeout | undefined;

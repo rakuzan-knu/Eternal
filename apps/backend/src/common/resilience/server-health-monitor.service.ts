@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as os from 'node:os';
-import { monitorEventLoopDelay, type IntervalHistogram } from 'node:perf_hooks';
+import { monitorEventLoopDelay } from 'node:perf_hooks';
 import * as v8 from 'node:v8';
 
 export enum ServerDegradationState {
@@ -30,7 +30,7 @@ export interface ServerHealthStatus {
 export class ServerHealthMonitorService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(ServerHealthMonitorService.name);
 
-  private histogram?: IntervalHistogram | undefined;
+  private histogram?: ReturnType<typeof monitorEventLoopDelay> | undefined;
   private monitorInterval?: NodeJS.Timeout | undefined;
 
   private lastCpuUsage = process.cpuUsage();
