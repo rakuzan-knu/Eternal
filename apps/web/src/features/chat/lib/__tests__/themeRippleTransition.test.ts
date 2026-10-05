@@ -10,6 +10,7 @@ describe('themeRippleTransition', () => {
     document.querySelectorAll('.theme-ripple-overlay').forEach((overlay) => overlay.remove());
     vi.useRealTimers();
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it.each([false, true])(
@@ -18,16 +19,19 @@ describe('themeRippleTransition', () => {
       const applyTheme = vi.fn();
       const transition = vi.fn();
       const vibrate = vi.fn();
-      vi.spyOn(window, 'matchMedia').mockReturnValue({
-        matches: true,
-        media: '(prefers-reduced-motion: reduce)',
-        onchange: null,
-        addListener: vi.fn(),
-        removeListener: vi.fn(),
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-        dispatchEvent: vi.fn(),
-      });
+      vi.stubGlobal(
+        'matchMedia',
+        vi.fn().mockReturnValue({
+          matches: true,
+          media: '(prefers-reduced-motion: reduce)',
+          onchange: null,
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          dispatchEvent: vi.fn(),
+        }),
+      );
       Object.defineProperty(navigator, 'vibrate', {
         configurable: true,
         writable: true,
