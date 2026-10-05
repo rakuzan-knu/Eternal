@@ -16,7 +16,8 @@ const http = require('http');
 const https = require('https');
 
 const DEFAULT_TARGET = 'https://social-network-backend-4h47.onrender.com';
-const WARM_UP_TIMEOUT_MS = 150_000;
+const WARM_UP_TIMEOUT_MS = 300_000;
+const WARM_UP_REQUEST_TIMEOUT_MS = 30_000;
 const CHECK_TIMEOUT_MS = 30_000;
 
 function baseUrl() {
@@ -69,7 +70,7 @@ async function warmUp(target) {
   let attempt = 1;
   while (Date.now() < deadline) {
     try {
-      const res = await fetchUrl(`${target}/health/live`, {}, 15_000);
+      const res = await fetchUrl(`${target}/health/live`, {}, WARM_UP_REQUEST_TIMEOUT_MS);
       if (res.statusCode === 200) {
         console.log(`🔥 Service warm after ${attempt} attempt(s).`);
         return;
