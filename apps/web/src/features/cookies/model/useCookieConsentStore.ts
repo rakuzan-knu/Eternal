@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { syncConsentCookie } from '@/shared/lib/cookieUtils';
 
 export interface CookiePreferences {
   strictlyNecessary: boolean;
@@ -31,34 +32,46 @@ export const useCookieConsentStore = create<CookieConsentState>()(
       openPreferences: () => set({ isPreferencesOpen: true }),
       closePreferences: () => set({ isPreferencesOpen: false }),
       savePreferences: (newPrefs) =>
-        set((state) => ({
-          hasConsented: true,
-          isPreferencesOpen: false,
-          preferences: {
+        set((state) => {
+          const preferences = {
             ...state.preferences,
             ...newPrefs,
             strictlyNecessary: true, // Always required
-          },
-        })),
+          };
+          syncConsentCookie({ hasConsented: true, preferences });
+          return {
+            hasConsented: true,
+            isPreferencesOpen: false,
+            preferences,
+          };
+        }),
       acceptAll: () =>
-        set({
-          hasConsented: true,
-          isPreferencesOpen: false,
-          preferences: {
+        set(() => {
+          const preferences = {
             strictlyNecessary: true,
             functional: true,
             analytics: true,
-          },
+          };
+          syncConsentCookie({ hasConsented: true, preferences });
+          return {
+            hasConsented: true,
+            isPreferencesOpen: false,
+            preferences,
+          };
         }),
       rejectNonEssential: () =>
-        set({
-          hasConsented: true,
-          isPreferencesOpen: false,
-          preferences: {
+        set(() => {
+          const preferences = {
             strictlyNecessary: true,
             functional: false,
             analytics: false,
-          },
+          };
+          syncConsentCookie({ hasConsented: true, preferences });
+          return {
+            hasConsented: true,
+            isPreferencesOpen: false,
+            preferences,
+          };
         }),
     }),
     {

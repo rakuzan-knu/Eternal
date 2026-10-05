@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import axios from 'axios';
-import { apiClient } from '../httpClient';
+import { apiClient, requestTokenRefresh } from '../httpClient';
 import { useAuthStore } from '@/shared/model/useAuthStore';
 import { useAccountsStore } from '@/shared/model/useAccountsStore';
 import { resetSessionStores, registerSessionResetHandler } from '@/shared/model/resetSession';
@@ -373,5 +373,24 @@ describe('httpClient and session management', () => {
 
     apiClient.defaults.adapter = originalAdapter;
     vi.useRealTimers();
+  });
+
+  it('refreshes token via cookie transport even when refreshToken is absent in localStorage', async () => {
+    localStorage.setItem('accessToken', 'expired-token');
+    useAuthStore.getState().setAuth('user-1');
+
+    vi.mocked(axios.post).mockResolvedValueOnce({
+      data: {
+        accessToken: 'cookie-refreshed-access-token',
+      },
+    });
+
+    const refreshed = await requestTokenRefresh();
+    expect(refreshed).toBe('cookie-refreshed-access-token');
+    expect(axios.post).toHaveBeenCalledWith(
+      expect.stringContaining('/auth/refresh'),
+      {},
+      expect.objectContaining({ withCredentials: true }),
+    );
   });
 });

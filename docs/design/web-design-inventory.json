@@ -433,7 +433,7 @@
     }
   },
   "summary": {
-    "scannedSources": 847,
+    "scannedSources": 849,
     "designSources": 491,
     "literalColors": 1057,
     "assets": 128,
@@ -1786,7 +1786,7 @@
         "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2583",
         "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:613",
         "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:615",
-        "apps/web/src/pages/OAuth/OAuthCallbackHandler.tsx:130"
+        "apps/web/src/pages/OAuth/OAuthCallbackHandler.tsx:136"
       ]
     },
     {
@@ -2712,7 +2712,7 @@
       "value": "#141417",
       "references": [
         "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1386",
-        "apps/web/src/pages/OAuth/OAuthCallbackHandler.tsx:131"
+        "apps/web/src/pages/OAuth/OAuthCallbackHandler.tsx:137"
       ]
     },
     {
@@ -5401,7 +5401,7 @@
         "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:770",
         "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:807",
         "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:825",
-        "apps/web/src/pages/OAuth/OAuthCallbackHandler.tsx:134",
+        "apps/web/src/pages/OAuth/OAuthCallbackHandler.tsx:140",
         "apps/web/src/pages/Safety/FamilyCenterPage.tsx:356",
         "apps/web/src/pages/Safety/FamilyCenterPage.tsx:99",
         "apps/web/src/shared/ui/BrandIcons.tsx:197",
@@ -107212,97 +107212,97 @@
       "colorLiterals": ["#0e0e11", "#141417", "#5865F2"],
       "presentation": [
         {
-          "line": 130,
+          "line": 136,
           "attribute": "className",
           "expression": "\"flex items-center justify-center min-h-screen bg-[#0e0e11] text-white p-6 select-none font-sans\""
         },
         {
-          "line": 131,
+          "line": 137,
           "attribute": "className",
           "expression": "\"text-center p-8 rounded-3xl bg-[#141417] border border-white/[0.1] shadow-2xl max-w-sm w-full flex flex-col items-center gap-4\""
         },
         {
-          "line": 134,
+          "line": 140,
           "attribute": "className",
           "expression": "\"w-12 h-12 rounded-2xl bg-[#5865F2]/10 border border-[#5865F2]/30 flex items-center justify-center text-[#5865F2]\""
         },
         {
-          "line": 135,
+          "line": 141,
           "attribute": "size",
           "expression": "{24}"
         },
         {
-          "line": 135,
+          "line": 141,
           "attribute": "className",
           "expression": "\"animate-spin\""
         },
         {
-          "line": 137,
+          "line": 143,
           "attribute": "className",
           "expression": "\"flex flex-col gap-1\""
         },
         {
-          "line": 138,
+          "line": 144,
           "attribute": "className",
           "expression": "\"text-base font-bold text-white capitalize\""
         },
         {
-          "line": 141,
+          "line": 147,
           "attribute": "className",
           "expression": "\"text-xs text-gray-400\""
         },
         {
-          "line": 150,
+          "line": 156,
           "attribute": "className",
           "expression": "\"w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-[0_0_24px_rgba(16,185,129,0.3)]\""
         },
         {
-          "line": 151,
+          "line": 157,
           "attribute": "size",
           "expression": "{26}"
         },
         {
-          "line": 153,
+          "line": 159,
           "attribute": "className",
           "expression": "\"flex flex-col gap-1\""
         },
         {
-          "line": 154,
+          "line": 160,
           "attribute": "className",
           "expression": "\"text-base font-bold text-white capitalize\""
         },
         {
-          "line": 157,
+          "line": 163,
           "attribute": "className",
           "expression": "\"text-xs text-gray-400\""
         },
         {
-          "line": 166,
+          "line": 172,
           "attribute": "className",
           "expression": "\"w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 shadow-[0_0_24px_rgba(239,68,68,0.3)]\""
         },
         {
-          "line": 167,
+          "line": 173,
           "attribute": "size",
           "expression": "{26}"
         },
         {
-          "line": 169,
+          "line": 175,
           "attribute": "className",
           "expression": "\"flex flex-col gap-1\""
         },
         {
-          "line": 170,
+          "line": 176,
           "attribute": "className",
           "expression": "\"text-base font-bold text-white\""
         },
         {
-          "line": 171,
+          "line": 177,
           "attribute": "className",
           "expression": "\"text-xs text-gray-400 leading-relaxed\""
         },
         {
-          "line": 176,
+          "line": 182,
           "attribute": "className",
           "expression": "\"mt-2 px-4 py-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] text-xs font-bold text-white transition-colors cursor-pointer\""
         }

@@ -3,12 +3,10 @@ import {
   type ChangePasswordDto,
   type CheckUsernameDto,
   type LoginDto,
-  type RefreshTokenDto,
   type RegisterDto,
   changePasswordSchema,
   checkUsernameSchema,
   loginSchema,
-  refreshTokenSchema,
   registerSchema,
 } from '@common/contracts';
 import {
@@ -22,11 +20,14 @@ import {
   Post,
   Query,
   Req,
+  Res,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
+import { z } from 'zod';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import type { RequestMeta } from '../sessions/sessions.service';
 import { AuthService } from './auth.service';
@@ -35,6 +36,16 @@ import { AuthGuard } from './guards/jwt-auth.guard';
 import type { RequestUser } from './interfaces/jwt-payload.interface';
 import { TurnstileService } from './turnstile.service';
 import { HighPriority } from '../common/resilience/request-priority.decorator';
+import {
+  setRefreshTokenCookie,
+  clearRefreshTokenCookie,
+  extractRefreshToken,
+} from './utils/auth-cookie.util';
+
+const refreshBodySchema = z.object({
+  refreshToken: z.string().min(1).max(4096).optional(),
+});
+type RefreshBodyDto = z.infer<typeof refreshBodySchema>;
 
 function extractMeta(req: Request, ip: string, ua?: string): RequestMeta {
   return { ip: req.ip ?? ip ?? null, userAgent: ua ?? null };
@@ -83,9 +94,12 @@ export class AuthController {
     @Req() req: Request,
     @Ip() ip: string,
     @Headers('user-agent') ua?: string,
+    @Res({ passthrough: true }) res?: Response,
   ): Promise<AuthResponse> {
     await this.turnstileService.verifyToken(dto.turnstileToken, req.ip ?? ip);
-    return this.authService.register(dto, extractMeta(req, ip, ua));
+    const result = await this.authService.register(dto, extractMeta(req, ip, ua));
+    setRefreshTokenCookie(res, req, result.refreshToken);
+    return result;
   }
 
   @Post('login')
@@ -106,11 +120,14 @@ export class AuthController {
     @Req() req: Request,
     @Ip() ip: string,
     @Headers('user-agent') ua?: string,
+    @Res({ passthrough: true }) res?: Response,
   ): Promise<AuthResponse> {
     if (dto.turnstileToken) {
       await this.turnstileService.verifyToken(dto.turnstileToken, req.ip ?? ip);
     }
-    return this.authService.login(dto, extractMeta(req, ip, ua));
+    const result = await this.authService.login(dto, extractMeta(req, ip, ua));
+    setRefreshTokenCookie(res, req, result.refreshToken);
+    return result;
   }
 
   @Post('refresh')
@@ -126,10 +143,15 @@ export class AuthController {
     status: HttpStatus.UNAUTHORIZED,
     description: 'Refresh token is invalid, expired or revoked',
   })
-  refresh(
-    @Body(new ZodValidationPipe(refreshTokenSchema)) dto: RefreshTokenDto,
+  async refresh(
+    @Body(new ZodValidationPipe(refreshBodySchema)) dto?: RefreshBodyDto,
+    @Req() req?: Request,
   ): Promise<{ accessToken: string }> {
-    return this.authService.refresh(dto.refreshToken);
+    const token = extractRefreshToken(req, dto?.refreshToken);
+    if (!token) {
+      throw new UnauthorizedException('Refresh token is missing or expired');
+    }
+    return this.authService.refresh(token);
   }
 
   @Post('change-password')
@@ -165,8 +187,14 @@ export class AuthController {
   })
   async logout(
     @CurrentUser() user: RequestUser,
-    @Body(new ZodValidationPipe(refreshTokenSchema)) dto: RefreshTokenDto,
+    @Body(new ZodValidationPipe(refreshBodySchema)) dto?: RefreshBodyDto,
+    @Req() req?: Request,
+    @Res({ passthrough: true }) res?: Response,
   ): Promise<void> {
-    await this.authService.logout(user.id, dto.refreshToken);
+    const token = extractRefreshToken(req, dto?.refreshToken);
+    clearRefreshTokenCookie(res, req);
+    if (token) {
+      await this.authService.logout(user.id, token);
+    }
   }
 }
