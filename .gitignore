@@ -254,3 +254,5 @@ packages/feed-score/rust/target/
 
 scratch/
 **/scratch/
+storybook-static/
+**/storybook-static/

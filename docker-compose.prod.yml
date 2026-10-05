@@ -81,7 +81,7 @@ services:
   backend:
     build:
       context: .
-      dockerfile: backend/Dockerfile
+      dockerfile: apps/backend/Dockerfile
     image: ${DOCKER_REGISTRY:-docker.io/subvincdebian}/social-network-backend:${IMAGE_TAG:-latest}
     restart: unless-stopped
     environment:
@@ -173,7 +173,7 @@ services:
           memory: 256M
 
   minio-init:
-    image: minio/mc
+    image: quay.io/minio/mc:latest
     depends_on:
       minio:
         condition: service_healthy
@@ -192,7 +192,7 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: frontend/Dockerfile
+      dockerfile: apps/web/Dockerfile
     image: ${DOCKER_REGISTRY:-docker.io/subvincdebian}/social-network-frontend:${IMAGE_TAG:-latest}
     restart: unless-stopped
     ports:
