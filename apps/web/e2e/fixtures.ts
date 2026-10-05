@@ -69,21 +69,16 @@ async function mockApi(
     allPatterns.add(withV1);
   }
 
-  const hosts = Array.from(
-    new Set([
-      API_BASE,
-      'http://localhost:3000',
-      'http://127.0.0.1:3000',
-      'http://localhost:6007',
-      'http://127.0.0.1:6007',
-      '',
-    ]),
-  );
+  const hosts = Array.from(new Set([API_BASE, 'http://localhost:3000', 'http://127.0.0.1:3000']));
 
   for (const host of hosts) {
     for (const p of allPatterns) {
       await page.route(`${host}${p}`, handler);
     }
+  }
+  for (const p of rawPatterns) {
+    const withoutV1 = p.startsWith('/') ? p : `/${p}`;
+    await page.route(`**/v1${withoutV1}`, handler);
   }
 }
 
