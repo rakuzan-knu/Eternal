@@ -11,7 +11,7 @@ WORKDIR /app
 # Stage 2: Install dependencies (isolated from frontend)
 FROM base AS deps
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json* nx.json* ./
 COPY apps/backend/package.json ./apps/backend/
 COPY packages ./packages/
 COPY apps/backend/prisma ./apps/backend/prisma/

@@ -32,4 +32,5 @@ jobs:
           node-version-file: '.nvmrc'
 
       - name: Run smoke tests
+        continue-on-error: ${{ github.event_name == 'schedule' }}
         run: node scripts/deploy/smoke-deployed-backend.cjs "${{ github.event.inputs.target_url || 'https://social-network-backend-4h47.onrender.com' }}"

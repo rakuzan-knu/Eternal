@@ -18,6 +18,9 @@ const config: StorybookConfig = {
     reactDocgen: 'react-docgen-typescript',
   },
   viteFinal: async (config) => {
+    // Disable Vite's publicDir copy because Storybook's staticDirs already copies public assets.
+    // Concurrently copying public assets triggers EEXIST race conditions on linux runners in CI.
+    config.publicDir = false;
     if (config.plugins) {
       config.plugins = config.plugins.filter((plugin) => {
         if (!plugin || typeof plugin !== 'object') return true;

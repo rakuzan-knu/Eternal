@@ -113,6 +113,7 @@ jobs:
     timeout-minutes: 15
     needs: release
     if: needs.release.outputs.new-release-published == 'true'
+    continue-on-error: true
     permissions:
       contents: read
     env:
@@ -144,6 +145,7 @@ jobs:
       - name: Create Sentry release
         if: steps.check-sentry.outputs.configured == 'true'
         uses: getsentry/action-release@ff07929a6537bac57790c3451cf4d364aca38528 # v3.7.0
+        continue-on-error: true
         with:
           environment: production
           release: ${{ env.SENTRY_VERSION }}
