@@ -2,6 +2,7 @@ import { access, readFile, readdir, stat, writeFile } from 'node:fs/promises';
 import { dirname, extname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
+import { format, resolveConfig } from 'prettier';
 
 // Documentation extraction only: parse source; never import/execute web code.
 const directory = dirname(fileURLToPath(import.meta.url));
@@ -232,7 +233,10 @@ const inventory = {
   declaredAssets,
   stories,
 };
-const serialized = `${JSON.stringify(inventory, null, 2)}\n`;
+const serialized = await format(`${JSON.stringify(inventory, null, 2)}\n`, {
+  ...(await resolveConfig(output)),
+  parser: 'json',
+});
 if (process.argv.includes('--check')) {
   const previous = await read(output);
   if (previous !== serialized) {
