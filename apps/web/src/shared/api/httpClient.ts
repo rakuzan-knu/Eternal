@@ -43,12 +43,18 @@ const setStoredItem = (key: string, value: string): void => {
   }
 };
 
-const rawBaseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:3000')
-  .replace(/\/api\/?$/, '')
-  .replace(/\/+$/, '');
+const defaultBaseUrl =
+  typeof window !== 'undefined' && import.meta.env.PROD ? '' : 'http://localhost:3000';
+
+const configuredUrl = import.meta.env.VITE_API_URL;
+const rawApiUrl = (
+  configuredUrl !== undefined && configuredUrl !== '' ? configuredUrl : defaultBaseUrl
+).trim();
+
+const rawBaseUrl = rawApiUrl.replace(/\/api\/?$/, '').replace(/\/+$/, '');
 
 export const apiClient = axios.create({
-  baseURL: rawBaseUrl.endsWith('/v1') ? rawBaseUrl : `${rawBaseUrl}/v1`,
+  baseURL: rawBaseUrl ? (rawBaseUrl.endsWith('/v1') ? rawBaseUrl : `${rawBaseUrl}/v1`) : '/v1',
   timeout: 30000,
   withCredentials: true,
 });

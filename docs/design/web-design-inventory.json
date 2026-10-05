@@ -433,7 +433,7 @@
     }
   },
   "summary": {
-    "scannedSources": 849,
+    "scannedSources": 850,
     "designSources": 491,
     "literalColors": 1057,
     "assets": 128,
@@ -1129,7 +1129,7 @@
         "apps/web/src/pages/Terms/TermsPage.tsx:159",
         "apps/web/src/pages/Terms/YourDataPackagePage.tsx:147",
         "apps/web/src/shared/design/tokens.css:5",
-        "apps/web/src/widgets/footer/ui/EternalFooter.tsx:220"
+        "apps/web/src/widgets/footer/ui/EternalFooter.tsx:216"
       ]
     },
     {
@@ -2985,7 +2985,7 @@
         "apps/web/src/widgets/sidebar/ui/Sidebar.tsx:276",
         "apps/web/src/widgets/sidebar/ui/Sidebar.tsx:393",
         "apps/web/src/widgets/sidebar/ui/Sidebar.tsx:400",
-        "apps/web/src/widgets/sidebar/ui/SidebarMenu.tsx:140"
+        "apps/web/src/widgets/sidebar/ui/SidebarMenu.tsx:135"
       ]
     },
     {
@@ -3802,7 +3802,7 @@
         "apps/web/src/widgets/sidebar/ui/ReportDetailsModal.tsx:42",
         "apps/web/src/widgets/sidebar/ui/ReportDetailsModal.tsx:64",
         "apps/web/src/widgets/sidebar/ui/ReportProblemModal.tsx:15",
-        "apps/web/src/widgets/sidebar/ui/SidebarMenu.tsx:230"
+        "apps/web/src/widgets/sidebar/ui/SidebarMenu.tsx:225"
       ]
     },
     {
@@ -3837,7 +3837,7 @@
     },
     {
       "value": "#1d1242",
-      "references": ["apps/web/src/widgets/footer/ui/EternalFooter.tsx:220"]
+      "references": ["apps/web/src/widgets/footer/ui/EternalFooter.tsx:216"]
     },
     {
       "value": "#1d1448",
@@ -4445,7 +4445,7 @@
     },
     {
       "value": "#261b52",
-      "references": ["apps/web/src/widgets/footer/ui/EternalFooter.tsx:245"]
+      "references": ["apps/web/src/widgets/footer/ui/EternalFooter.tsx:241"]
     },
     {
       "value": "#261e05",
@@ -4699,7 +4699,7 @@
     },
     {
       "value": "#32236b",
-      "references": ["apps/web/src/widgets/footer/ui/EternalFooter.tsx:245"]
+      "references": ["apps/web/src/widgets/footer/ui/EternalFooter.tsx:241"]
     },
     {
       "value": "#332082",
@@ -5124,7 +5124,7 @@
     },
     {
       "value": "#45188a",
-      "references": ["apps/web/src/widgets/footer/ui/EternalFooter.tsx:220"]
+      "references": ["apps/web/src/widgets/footer/ui/EternalFooter.tsx:216"]
     },
     {
       "value": "#451a03",
@@ -5366,11 +5366,11 @@
         "apps/web/src/pages/Safety/PrivacyHubPage.tsx:124",
         "apps/web/src/pages/Safety/PrivacyHubPage.tsx:153",
         "apps/web/src/shared/design/tokens.css:3",
-        "apps/web/src/widgets/footer/ui/EternalFooter.tsx:257",
-        "apps/web/src/widgets/footer/ui/EternalFooter.tsx:325",
-        "apps/web/src/widgets/footer/ui/EternalFooter.tsx:337",
-        "apps/web/src/widgets/footer/ui/EternalFooter.tsx:404",
-        "apps/web/src/widgets/footer/ui/EternalFooter.tsx:416"
+        "apps/web/src/widgets/footer/ui/EternalFooter.tsx:253",
+        "apps/web/src/widgets/footer/ui/EternalFooter.tsx:321",
+        "apps/web/src/widgets/footer/ui/EternalFooter.tsx:333",
+        "apps/web/src/widgets/footer/ui/EternalFooter.tsx:400",
+        "apps/web/src/widgets/footer/ui/EternalFooter.tsx:412"
       ]
     },
     {
@@ -7166,7 +7166,7 @@
     },
     {
       "value": "#d6cdfa",
-      "references": ["apps/web/src/widgets/footer/ui/EternalFooter.tsx:444"]
+      "references": ["apps/web/src/widgets/footer/ui/EternalFooter.tsx:440"]
     },
     {
       "value": "#d8b4fe",
@@ -8085,7 +8085,7 @@
     },
     {
       "value": "#feed",
-      "references": ["apps/web/src/widgets/footer/ui/EternalFooter.tsx:89"]
+      "references": ["apps/web/src/widgets/footer/ui/EternalFooter.tsx:85"]
     },
     {
       "value": "#fef08a",
@@ -17948,112 +17948,112 @@
       "colorLiterals": [],
       "presentation": [
         {
-          "line": 98,
+          "line": 96,
           "attribute": "className",
           "expression": "\"flex flex-col gap-4 mt-4\""
         },
         {
-          "line": 102,
+          "line": 100,
           "attribute": "className",
           "expression": "\"p-3.5 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-2.5 text-xs text-neutral-300 animate-fadeIn\""
         },
         {
-          "line": 104,
+          "line": 102,
           "attribute": "size",
           "expression": "{16}"
         },
         {
-          "line": 104,
+          "line": 102,
           "attribute": "className",
           "expression": "\"text-red-500 mt-0.5 flex-shrink-0\""
         },
         {
-          "line": 105,
+          "line": 103,
           "attribute": "className",
           "expression": "\"text-left leading-relaxed\""
         },
         {
-          "line": 109,
+          "line": 107,
           "attribute": "className",
           "expression": "\"flex flex-col w-full\""
         },
         {
-          "line": 114,
+          "line": 112,
           "attribute": "className",
           "expression": "{\n            userNotFoundError\n              ? 'border-red-500 focus:border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.1)]'\n              : ''\n          }"
         },
         {
-          "line": 123,
+          "line": 121,
           "attribute": "className",
           "expression": "\"text-xs text-red-500/90 flex items-start gap-1.5 px-1 mt-1 text-left leading-relaxed animate-slideUp\""
         },
         {
-          "line": 124,
+          "line": 122,
           "attribute": "size",
           "expression": "{14}"
         },
         {
-          "line": 124,
+          "line": 122,
           "attribute": "className",
           "expression": "\"mt-0.5 flex-shrink-0\""
         },
         {
-          "line": 128,
+          "line": 126,
           "attribute": "className",
           "expression": "\"text-sky-400 hover:underline font-semibold\""
         },
         {
-          "line": 136,
+          "line": 134,
           "attribute": "className",
           "expression": "\"flex flex-col w-full\""
         },
         {
-          "line": 142,
+          "line": 140,
           "attribute": "className",
           "expression": "{\n            wrongPasswordError\n              ? 'border-red-500 focus:border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.1)]'\n              : ''\n          }"
         },
         {
-          "line": 151,
+          "line": 149,
           "attribute": "size",
           "expression": "{18}"
         },
         {
-          "line": 152,
+          "line": 150,
           "attribute": "className",
           "expression": "\"cursor-pointer text-neutral-500 hover:text-neutral-300\""
         },
         {
-          "line": 157,
+          "line": 155,
           "attribute": "size",
           "expression": "{18}"
         },
         {
-          "line": 158,
+          "line": 156,
           "attribute": "className",
           "expression": "\"cursor-pointer text-neutral-500 hover:text-neutral-300\""
         },
         {
-          "line": 166,
+          "line": 164,
           "attribute": "className",
           "expression": "\"text-xs text-red-500/90 flex items-start gap-1.5 px-1 mt-1 text-left animate-slideUp\""
         },
         {
-          "line": 167,
+          "line": 165,
           "attribute": "size",
           "expression": "{14}"
         },
         {
-          "line": 167,
+          "line": 165,
           "attribute": "className",
           "expression": "\"mt-[2px] flex-shrink-0\""
         },
         {
-          "line": 175,
+          "line": 173,
           "attribute": "className",
           "expression": "\"text-sm font-semibold text-purple-400 hover:underline self-start mt-0.5\""
         },
         {
-          "line": 180,
+          "line": 178,
           "attribute": "className",
           "expression": "\"mt-2\""
         }
@@ -18163,107 +18163,107 @@
           "expression": "\"grid grid-cols-3 gap-2\""
         },
         {
-          "line": 275,
+          "line": 273,
           "attribute": "className",
           "expression": "\"flex flex-col gap-4 text-left w-full max-w-md mx-auto\""
         },
         {
-          "line": 278,
+          "line": 276,
           "attribute": "className",
           "expression": "\"p-3.5 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-2.5 text-xs text-neutral-300 animate-fadeIn\""
         },
         {
-          "line": 279,
+          "line": 277,
           "attribute": "size",
           "expression": "{16}"
         },
         {
-          "line": 279,
+          "line": 277,
           "attribute": "className",
           "expression": "\"text-red-500 mt-0.5 shrink-0\""
         },
         {
-          "line": 280,
+          "line": 278,
           "attribute": "className",
           "expression": "\"text-left leading-relaxed\""
         },
         {
-          "line": 284,
+          "line": 282,
           "attribute": "className",
           "expression": "\"grid grid-cols-2 gap-3\""
         },
         {
-          "line": 315,
+          "line": 313,
           "attribute": "className",
           "expression": "\"flex flex-col gap-1.5\""
         },
         {
-          "line": 316,
+          "line": 314,
           "attribute": "className",
           "expression": "\"flex items-center gap-1.5\""
         },
         {
-          "line": 317,
+          "line": 315,
           "attribute": "className",
           "expression": "\"text-xs font-semibold text-neutral-400 uppercase tracking-wider\""
+        },
+        {
+          "line": 323,
+          "attribute": "className",
+          "expression": "\"flex flex-col gap-1.5\""
+        },
+        {
+          "line": 324,
+          "attribute": "className",
+          "expression": "\"flex items-center gap-1.5\""
         },
         {
           "line": 325,
           "attribute": "className",
-          "expression": "\"flex flex-col gap-1.5\""
-        },
-        {
-          "line": 326,
-          "attribute": "className",
-          "expression": "\"flex items-center gap-1.5\""
-        },
-        {
-          "line": 327,
-          "attribute": "className",
           "expression": "\"text-xs font-semibold text-neutral-400 uppercase tracking-wider\""
         },
         {
-          "line": 360,
+          "line": 358,
           "attribute": "className",
           "expression": "\"text-neutral-500 hover:text-neutral-300 transition-colors focus:outline-none flex items-center justify-center\""
         },
         {
-          "line": 363,
+          "line": 361,
           "attribute": "size",
           "expression": "{16}"
         },
         {
-          "line": 363,
+          "line": 361,
           "attribute": "size",
           "expression": "{16}"
         },
         {
-          "line": 368,
+          "line": 366,
           "attribute": "className",
           "expression": "\"text-xs text-neutral-500 leading-relaxed mt-1\""
         },
         {
-          "line": 370,
+          "line": 368,
           "attribute": "className",
           "expression": "\"text-purple-400 font-medium hover:underline\""
         },
         {
-          "line": 374,
+          "line": 372,
           "attribute": "className",
           "expression": "\"text-purple-400 font-medium hover:underline\""
         },
         {
-          "line": 378,
+          "line": 376,
           "attribute": "className",
           "expression": "\"text-purple-400 font-medium cursor-pointer hover:underline\""
         },
         {
-          "line": 384,
+          "line": 382,
           "attribute": "size",
           "expression": "\"invisible\""
         },
         {
-          "line": 388,
+          "line": 386,
           "attribute": "className",
           "expression": "{`mt-4 transition-all duration-200 ${isFormDisabled ? 'opacity-40 cursor-not-allowed select-none' : 'active:scale-[0.98]'}`}"
         }
@@ -111377,6 +111377,7 @@
         "mb-4",
         "mb-6",
         "min-h-112.5",
+        "motion-reduce:animate-none",
         "mt-2",
         "overflow-hidden",
         "p-8",
@@ -111505,12 +111506,12 @@
         {
           "line": 236,
           "attribute": "className",
-          "expression": "\"absolute inset-0 rounded-full bg-red-500/20 blur-xl animate-pulse w-24 h-24\""
+          "expression": "\"absolute inset-0 rounded-full bg-red-500/20 blur-xl animate-pulse motion-reduce:animate-none w-24 h-24\""
         },
         {
           "line": 237,
           "attribute": "className",
-          "expression": "\"relative w-20 h-20 flex items-center justify-center bg-[#0b0b0c] border border-red-500/30 rounded-2xl animate-bounce shadow-2xl\""
+          "expression": "\"relative w-20 h-20 flex items-center justify-center bg-[#0b0b0c] border border-red-500/30 rounded-2xl animate-bounce motion-reduce:animate-none shadow-2xl\""
         },
         {
           "line": 240,
@@ -145131,307 +145132,307 @@
       ],
       "presentation": [
         {
-          "line": 162,
+          "line": 158,
           "attribute": "className",
           "expression": "\"flex items-center gap-5 text-white\""
         },
         {
-          "line": 168,
+          "line": 164,
           "attribute": "className",
           "expression": "\"text-white hover:text-purple-300 hover:scale-110 active:scale-95 transition-all\""
         },
         {
-          "line": 171,
+          "line": 167,
           "attribute": "className",
           "expression": "\"w-5 h-5 fill-current\""
         },
         {
-          "line": 171,
+          "line": 167,
           "attribute": "viewBox",
           "expression": "\"0 0 24 24\""
         },
         {
-          "line": 181,
+          "line": 177,
           "attribute": "className",
           "expression": "\"text-white hover:text-purple-300 hover:scale-110 active:scale-95 transition-all\""
         },
         {
-          "line": 184,
+          "line": 180,
           "attribute": "className",
           "expression": "\"w-5 h-5 fill-current\""
         },
         {
-          "line": 184,
+          "line": 180,
           "attribute": "viewBox",
           "expression": "\"0 0 24 24\""
         },
         {
-          "line": 194,
+          "line": 190,
           "attribute": "className",
           "expression": "\"text-white hover:text-purple-300 hover:scale-110 active:scale-95 transition-all\""
         },
         {
-          "line": 197,
+          "line": 193,
           "attribute": "className",
           "expression": "\"w-5 h-5 fill-current\""
         },
         {
-          "line": 197,
+          "line": 193,
           "attribute": "viewBox",
           "expression": "\"0 0 24 24\""
         },
         {
-          "line": 207,
+          "line": 203,
           "attribute": "className",
           "expression": "\"text-white hover:text-purple-300 hover:scale-110 active:scale-95 transition-all\""
         },
         {
-          "line": 210,
+          "line": 206,
           "attribute": "className",
           "expression": "\"w-5 h-5 fill-current\""
         },
         {
-          "line": 210,
+          "line": 206,
           "attribute": "viewBox",
           "expression": "\"0 0 24 24\""
         },
         {
-          "line": 220,
+          "line": 216,
           "attribute": "className",
           "expression": "\"w-full bg-gradient-to-b from-[#07050f] via-[#1d1242] to-[#45188a] text-white relative overflow-visible select-none\""
         },
         {
-          "line": 223,
+          "line": 219,
           "attribute": "className",
           "expression": "\"max-w-7xl mx-auto px-6 lg:px-12 pt-16 pb-6 relative z-10\""
         },
         {
-          "line": 224,
+          "line": 220,
           "attribute": "className",
           "expression": "\"grid grid-cols-1 lg:grid-cols-12 gap-10\""
         },
         {
-          "line": 226,
+          "line": 222,
           "attribute": "className",
           "expression": "\"lg:col-span-4 flex flex-col justify-start gap-7\""
         },
         {
-          "line": 229,
+          "line": 225,
           "attribute": "className",
           "expression": "\"cursor-pointer inline-flex items-center w-fit\""
         },
         {
-          "line": 232,
+          "line": 228,
           "attribute": "className",
           "expression": "\"text-4xl sm:text-5xl font-black text-white hover:text-purple-300 hover:scale-105 transition-all leading-none\""
         },
         {
-          "line": 238,
+          "line": 234,
           "attribute": "className",
           "expression": "\"relative w-full max-w-sm sm:max-w-xs z-30\""
         },
         {
-          "line": 239,
+          "line": 235,
           "attribute": "className",
           "expression": "\"text-xs font-bold text-purple-200 uppercase tracking-wider block mb-2\""
         },
         {
-          "line": 245,
+          "line": 241,
           "attribute": "className",
           "expression": "\"w-full flex items-center justify-between px-4 py-3 rounded-2xl bg-[#261b52] border border-purple-400/20 text-white hover:bg-[#32236b] transition-all text-sm font-semibold shadow-sm cursor-pointer\""
         },
         {
-          "line": 247,
+          "line": 243,
           "attribute": "className",
           "expression": "\"font-semibold text-sm\""
         },
         {
-          "line": 249,
+          "line": 245,
           "attribute": "className",
           "expression": "{`w-4 h-4 text-purple-300 transition-transform duration-200 ${\n                    isLangOpen ? 'rotate-180' : ''\n                  }`}"
         },
         {
-          "line": 257,
+          "line": 253,
           "attribute": "className",
           "expression": "\"absolute top-full mt-2 left-0 w-full max-h-64 overflow-y-auto rounded-2xl bg-[#5822b4] border border-purple-400/30 text-white shadow-[0_20px_50px_rgba(0,0,0,0.85)] z-50 animate-fadeIn custom-scrollbar py-2\""
         },
         {
-          "line": 266,
+          "line": 262,
           "attribute": "className",
           "expression": "{`w-full text-left px-5 py-2.5 text-sm font-semibold transition-colors flex items-center justify-between cursor-pointer ${\n                        currentLanguage === lang\n                          ? 'bg-white/20 text-white font-bold'\n                          : 'text-neutral-100 hover:bg-white/10 hover:text-white'\n                      }`}"
         },
         {
-          "line": 274,
+          "line": 270,
           "attribute": "className",
           "expression": "\"w-2 h-2 rounded-full bg-white shadow-sm\""
         },
         {
-          "line": 283,
+          "line": 279,
           "attribute": "className",
           "expression": "\"hidden lg:block\""
         },
         {
-          "line": 284,
+          "line": 280,
           "attribute": "className",
           "expression": "\"text-xs font-bold text-purple-200 uppercase tracking-wider mb-3\""
         },
         {
-          "line": 292,
+          "line": 288,
           "attribute": "className",
           "expression": "\"hidden lg:grid lg:col-span-8 grid-cols-4 gap-8\""
         },
         {
-          "line": 294,
+          "line": 290,
           "attribute": "className",
           "expression": "\"flex flex-col gap-4\""
         },
         {
-          "line": 295,
+          "line": 291,
           "attribute": "className",
           "expression": "\"text-xs font-bold text-purple-200 uppercase tracking-wider\""
         },
         {
-          "line": 298,
+          "line": 294,
           "attribute": "className",
           "expression": "\"flex flex-col gap-3\""
         },
         {
-          "line": 302,
+          "line": 298,
           "attribute": "className",
           "expression": "\"text-[15px] font-bold flex items-center gap-2 cursor-not-allowed opacity-50 select-none\""
         },
         {
-          "line": 303,
+          "line": 299,
           "attribute": "className",
           "expression": "\"line-through decoration-neutral-400 decoration-[1.5px] text-neutral-400\""
         },
         {
-          "line": 306,
+          "line": 302,
           "attribute": "className",
           "expression": "\"px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-white/10 text-neutral-300 border border-white/15 leading-none\""
         },
         {
-          "line": 314,
+          "line": 310,
           "attribute": "className",
           "expression": "\"text-[15px] font-bold text-white hover:underline transition-colors flex items-center gap-1.5 cursor-pointer text-left\""
         },
         {
-          "line": 321,
+          "line": 317,
           "attribute": "className",
           "expression": "\"text-[15px] font-bold text-white hover:underline transition-colors flex items-center gap-1.5\""
         },
         {
-          "line": 325,
+          "line": 321,
           "attribute": "className",
           "expression": "\"px-1.5 py-0.2 rounded-md text-[10px] font-bold bg-[#5822b4] text-white\""
+        },
+        {
+          "line": 329,
+          "attribute": "className",
+          "expression": "\"text-[15px] font-bold text-white hover:underline transition-colors flex items-center gap-1.5\""
         },
         {
           "line": 333,
           "attribute": "className",
-          "expression": "\"text-[15px] font-bold text-white hover:underline transition-colors flex items-center gap-1.5\""
-        },
-        {
-          "line": 337,
-          "attribute": "className",
           "expression": "\"px-1.5 py-0.2 rounded-md text-[10px] font-bold bg-[#5822b4] text-white\""
         },
         {
-          "line": 351,
+          "line": 347,
           "attribute": "className",
           "expression": "\"lg:hidden w-full flex flex-col pt-2\""
         },
         {
-          "line": 352,
+          "line": 348,
           "attribute": "className",
           "expression": "\"text-xs font-bold text-purple-200 uppercase tracking-wider mb-2\""
         },
         {
-          "line": 356,
+          "line": 352,
           "attribute": "className",
           "expression": "\"flex flex-col\""
         },
         {
-          "line": 360,
+          "line": 356,
           "attribute": "className",
           "expression": "\"border-b border-white/10 flex flex-col\""
         },
         {
-          "line": 364,
+          "line": 360,
           "attribute": "className",
           "expression": "\"w-full flex items-center justify-between py-3.5 text-left text-base font-bold text-white hover:text-purple-200 transition-colors cursor-pointer\""
         },
         {
-          "line": 366,
+          "line": 362,
           "attribute": "className",
           "expression": "\"capitalize sm:uppercase text-sm sm:text-base font-bold tracking-wide\""
         },
         {
-          "line": 370,
+          "line": 366,
           "attribute": "className",
           "expression": "{`w-4 h-4 text-purple-300 transition-transform duration-200 ${\n                          isOpen ? 'rotate-180 text-white' : ''\n                        }`}"
         },
         {
-          "line": 377,
+          "line": 373,
           "attribute": "className",
           "expression": "\"pb-4 pt-1 pl-2 flex flex-col gap-3 animate-fadeIn\""
         },
         {
-          "line": 381,
+          "line": 377,
           "attribute": "className",
           "expression": "\"text-[15px] font-semibold flex items-center gap-2 cursor-not-allowed opacity-50 select-none py-1\""
         },
         {
-          "line": 382,
+          "line": 378,
           "attribute": "className",
           "expression": "\"line-through decoration-neutral-400 decoration-[1.5px] text-neutral-400\""
         },
         {
-          "line": 385,
+          "line": 381,
           "attribute": "className",
           "expression": "\"px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-white/10 text-neutral-300 border border-white/15 leading-none\""
         },
         {
-          "line": 393,
+          "line": 389,
           "attribute": "className",
           "expression": "\"text-[15px] font-semibold text-white/95 hover:text-white hover:underline transition-colors flex items-center gap-2 py-1 cursor-pointer text-left\""
         },
         {
-          "line": 400,
+          "line": 396,
           "attribute": "className",
           "expression": "\"text-[15px] font-semibold text-white/95 hover:text-white hover:underline transition-colors flex items-center gap-2 py-1\""
         },
         {
-          "line": 404,
+          "line": 400,
           "attribute": "className",
           "expression": "\"px-1.5 py-0.2 rounded-md text-[10px] font-bold bg-[#5822b4] text-white\""
+        },
+        {
+          "line": 408,
+          "attribute": "className",
+          "expression": "\"text-[15px] font-semibold text-white/95 hover:text-white hover:underline transition-colors flex items-center gap-2 py-1\""
         },
         {
           "line": 412,
           "attribute": "className",
-          "expression": "\"text-[15px] font-semibold text-white/95 hover:text-white hover:underline transition-colors flex items-center gap-2 py-1\""
-        },
-        {
-          "line": 416,
-          "attribute": "className",
           "expression": "\"px-1.5 py-0.2 rounded-md text-[10px] font-bold bg-[#5822b4] text-white\""
         },
         {
-          "line": 432,
+          "line": 428,
           "attribute": "className",
           "expression": "\"mt-8 mb-2\""
         },
         {
-          "line": 433,
+          "line": 429,
           "attribute": "className",
           "expression": "\"text-xs font-bold text-purple-200 uppercase tracking-wider mb-3\""
         },
         {
-          "line": 443,
+          "line": 439,
           "attribute": "className",
           "expression": "\"w-full overflow-hidden select-none pointer-events-none text-center pt-6 pb-2 flex items-center justify-center\""
         },
         {
-          "line": 444,
+          "line": 440,
           "attribute": "className",
           "expression": "\"text-[110px] sm:text-[170px] md:text-[230px] lg:text-[310px] font-black tracking-tight leading-none text-[#d6cdfa] opacity-95\""
         }
@@ -162226,112 +162227,112 @@
       "colorLiterals": ["#16161a", "#1c1c20"],
       "presentation": [
         {
-          "line": 109,
+          "line": 104,
           "attribute": "className",
           "expression": "\"relative w-full\""
         },
         {
-          "line": 119,
+          "line": 114,
           "attribute": "className",
           "expression": "{`flex items-center rounded-2xl transition-all duration-200 group relative h-12 ${\n          isOpen\n            ? 'bg-white/10 text-white font-semibold shadow-md'\n            : 'text-gray-400 hover:bg-white/5 hover:text-white'\n        } ${isSidebarExpanded ? 'w-full px-4 gap-4 justify-start' : 'w-12 justify-center mx-auto'}`}"
         },
         {
-          "line": 125,
+          "line": 120,
           "attribute": "className",
           "expression": "\"shrink-0 flex items-center justify-center transition-transform duration-200 group-hover:scale-105\""
         },
         {
-          "line": 126,
+          "line": 121,
           "attribute": "size",
           "expression": "{24}"
         },
         {
-          "line": 129,
+          "line": 124,
           "attribute": "className",
           "expression": "{`text-[15px] font-medium transition-all duration-200 whitespace-nowrap ${\n            isSidebarExpanded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2 absolute'\n          }`}"
         },
         {
-          "line": 140,
+          "line": 135,
           "attribute": "className",
           "expression": "\"absolute bottom-full left-0 mb-3 w-72 max-h-[calc(100vh-100px)] overflow-y-auto bg-[#16161a]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] p-2 z-70 animate-menuIn origin-bottom-left\""
         },
         {
-          "line": 173,
+          "line": 168,
           "attribute": "className",
           "expression": "\"h-px bg-white/10 my-2\""
         },
         {
-          "line": 200,
+          "line": 195,
           "attribute": "className",
           "expression": "\"h-px bg-white/10 my-2\""
         },
         {
-          "line": 228,
+          "line": 223,
           "attribute": "className",
           "expression": "\"w-full max-w-sm\""
         },
         {
-          "line": 230,
+          "line": 225,
           "attribute": "className",
           "expression": "\"bg-[#1c1c20] border border-white/10 rounded-3xl shadow-2xl p-6 flex flex-col gap-4 text-white\""
         },
         {
-          "line": 231,
+          "line": 226,
           "attribute": "className",
           "expression": "\"flex items-center justify-between\""
         },
         {
-          "line": 232,
+          "line": 227,
           "attribute": "className",
           "expression": "\"flex items-center gap-3\""
         },
         {
-          "line": 233,
+          "line": 228,
           "attribute": "className",
           "expression": "\"w-10 h-10 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400\""
         },
         {
-          "line": 234,
+          "line": 229,
           "attribute": "size",
           "expression": "{20}"
         },
         {
-          "line": 237,
+          "line": 232,
           "attribute": "className",
           "expression": "\"text-base font-bold\""
         },
         {
-          "line": 238,
+          "line": 233,
           "attribute": "className",
           "expression": "\"text-xs text-gray-400\""
         },
         {
-          "line": 244,
+          "line": 239,
           "attribute": "className",
           "expression": "\"w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white transition-colors cursor-pointer\""
         },
         {
-          "line": 247,
+          "line": 242,
           "attribute": "size",
           "expression": "{16}"
         },
         {
-          "line": 251,
+          "line": 246,
           "attribute": "className",
           "expression": "\"text-sm text-gray-300 leading-relaxed\""
         },
         {
-          "line": 256,
+          "line": 251,
           "attribute": "className",
           "expression": "\"flex items-center justify-end gap-3 pt-2\""
         },
         {
-          "line": 260,
+          "line": 255,
           "attribute": "className",
           "expression": "\"px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-300 hover:bg-white/10 transition-colors cursor-pointer\""
         },
         {
-          "line": 267,
+          "line": 262,
           "attribute": "className",
           "expression": "\"px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 active:scale-95 text-white text-sm font-bold transition-all shadow-lg shadow-red-600/20 cursor-pointer\""
         }

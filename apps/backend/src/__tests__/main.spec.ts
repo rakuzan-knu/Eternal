@@ -246,6 +246,10 @@ describe('main.ts handler and bootstrap', () => {
     const cb = jest.fn();
     invokeOrigin('http://evil-origin.com', cb);
     expect(cb).toHaveBeenCalledWith(new Error('Not allowed by CORS'), false);
+
+    const cbProd = jest.fn();
+    invokeOrigin('https://eternalnet.vercel.app', cbProd);
+    expect(cbProd).toHaveBeenCalledWith(null, true);
   });
 
   it('sets DIRECT_URL to DATABASE_URL if DIRECT_URL is missing', async () => {
