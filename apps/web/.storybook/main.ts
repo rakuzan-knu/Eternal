@@ -18,6 +18,8 @@ const config: StorybookConfig = {
     reactDocgen: 'react-docgen-typescript',
   },
   viteFinal: async (config) => {
+    // Storybook copies staticDirs; avoid a concurrent Vite copy into the same output.
+    config.publicDir = false;
     // Preserve the application's Tailwind Vite pipeline so stories render the
     // same utilities, tokens and reduced-motion rules as the client.
     config.resolve = config.resolve ?? {};

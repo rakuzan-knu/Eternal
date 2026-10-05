@@ -129,7 +129,7 @@ for (const path of sourcePaths) {
       const tokens = node.getText(ast).slice(1, -1).split(/\s+/);
       for (const token of tokens) {
         if (
-          /^(?:(?:[\w-]+|\[[^\s]+\]):)*!?(?:-?(?:bg|text|font|leading|tracking|p[xytrblse]?|m[xytrblse]?|gap|space-[xy]|w|min-w|max-w|h|min-h|max-h|size|rounded|border|ring|shadow|opacity|blur|backdrop|z|top|bottom|left|right|inset|translate|scale|rotate|duration|delay|ease|animate|transition|grid|col|row|flex|items|justify|overflow|object|aspect|cursor|select|scroll|touch|snap|fill|stroke)-[^\s'"`{}]+|hidden|block|inline|inline-block|flex|grid|relative|absolute|fixed|sticky)$/.test(
+          /^(?:(?:[\w-]+|\[[^\s\]]+\]):)*!?(?:-?(?:bg|text|font|leading|tracking|p[xytrblse]?|m[xytrblse]?|gap|space-[xy]|w|min-w|max-w|h|min-h|max-h|size|rounded|border|ring|shadow|opacity|blur|backdrop|z|top|bottom|left|right|inset|translate|scale|rotate|duration|delay|ease|animate|transition|grid|col|row|flex|items|justify|overflow|object|aspect|cursor|select|scroll|touch|snap|fill|stroke)-[^\s'"`{}]+|hidden|block|inline|inline-block|flex|grid|relative|absolute|fixed|sticky)$/.test(
             token,
           )
         ) {

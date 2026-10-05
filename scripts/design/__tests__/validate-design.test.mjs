@@ -16,11 +16,15 @@ test('validates links and headings while ignoring external URLs and fenced examp
       '[fonts](target.md#chat-fonts)\n[second](target.md#chat-fonts-1)\n[external](https://example.com)\n```md\n[example](absent.md)\n```\n',
     );
     assert.deepEqual(await validateMarkdownFile(source), []);
-    await writeFile(source, '[missing](absent.md)\n[heading](target.md#missing)\n');
+    await writeFile(
+      source,
+      '[missing](absent.md)\n[heading](target.md#missing)\n[missing anchored target](absent.md#missing)\n',
+    );
     const issues = await validateMarkdownFile(source);
-    assert.equal(issues.length, 2);
+    assert.equal(issues.length, 3);
     assert.match(issues[0], /missing link target/);
     assert.match(issues[1], /missing heading/);
+    assert.match(issues[2], /missing link target/);
   } finally {
     await unlink(source);
     await unlink(target);

@@ -29,15 +29,16 @@ export async function validateMarkdownFile(file) {
     const [path, anchor] = href.split('#');
     const target = path ? resolve(dirname(file), decodeURIComponent(path)) : file;
     try {
-      await access(target);
+      if (anchor && /\.md$/i.test(target)) {
+        const targetSource = await readFile(target, 'utf8');
+        if (!headings(targetSource).has(decodeURIComponent(anchor)))
+          issues.push(`${file}: missing heading ${href}`);
+      } else {
+        await access(target);
+      }
     } catch {
       issues.push(`${file}: missing link target ${href}`);
       continue;
-    }
-    if (anchor && /\.md$/i.test(target)) {
-      const targetSource = await readFile(target, 'utf8');
-      if (!headings(targetSource).has(decodeURIComponent(anchor)))
-        issues.push(`${file}: missing heading ${href}`);
     }
   }
   return issues;
