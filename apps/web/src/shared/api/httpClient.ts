@@ -77,12 +77,11 @@ let refreshPromise: Promise<string> | null = null;
 
 export async function requestTokenRefresh(): Promise<string> {
   const refreshToken = getStoredItem('refreshToken');
-  if (!refreshToken) throw new Error('No refresh token available');
 
   const base = (apiClient.defaults.baseURL || '').replace(/\/+$/, '');
   const refreshUrl = base.endsWith('/v1') ? `${base}/auth/refresh` : `${base}/v1/auth/refresh`;
-  const response = await axios.post(refreshUrl, {
-    refreshToken,
+  const response = await axios.post(refreshUrl, refreshToken ? { refreshToken } : {}, {
+    withCredentials: true,
   });
   const { accessToken, refreshToken: newRefreshToken } = response.data;
   setStoredItem('accessToken', accessToken);
@@ -110,7 +109,8 @@ export async function getValidAccessToken(): Promise<string | null> {
     return token;
   }
   const refreshToken = getStoredItem('refreshToken');
-  if (!refreshToken) return null;
+  const isAuth = useAuthStore.getState().isAuthenticated;
+  if (!refreshToken && !isAuth) return null;
 
   try {
     if (!refreshPromise) {
@@ -152,7 +152,7 @@ apiClient.interceptors.request.use(async (config) => {
   }
 
   let token = getStoredItem('accessToken');
-  if (token && isTokenExpired(token) && getStoredItem('refreshToken')) {
+  if (token && isTokenExpired(token)) {
     const freshToken = await getValidAccessToken();
     if (freshToken) {
       token = freshToken;

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { getOAuthSessionState, clearOAuthSessionState } from '@/shared/lib/safeSessionStorage';
 
 export const OAuthCallbackHandler: React.FC<{ platform?: string }> = ({
   platform: propPlatform,
@@ -42,6 +43,11 @@ export const OAuthCallbackHandler: React.FC<{ platform?: string }> = ({
   }
 
   useEffect(() => {
+    const savedSessionState = getOAuthSessionState(effectivePlatform);
+    if (savedSessionState) {
+      clearOAuthSessionState(effectivePlatform);
+    }
+
     if (error) {
       setStatus('error');
       setErrorMessage(error);
