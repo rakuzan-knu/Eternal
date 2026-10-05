@@ -98,7 +98,8 @@ async function bootstrap() {
     ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim())
     : ['http://localhost:5173', 'http://localhost:3000'];
 
-  const vercelProjectPattern = /^https:\/\/eternal(-[a-z0-9-]+)?-rakuzan\.vercel\.app$/;
+  const vercelProjectPattern =
+    /^https:\/\/(eternal|eternalnet)(-[a-z0-9-]+)?(-rakuzan)?\.vercel\.app$/;
   const customCorsRegex = process.env.CORS_ORIGIN_REGEX
     ? new RegExp(process.env.CORS_ORIGIN_REGEX)
     : null;
