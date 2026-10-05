@@ -3,10 +3,12 @@ import { ConfigService } from '@nestjs/config';
 import { AUTO_DELETE_S3_CLIENT, autoDeleteS3Provider } from '../s3-provider';
 
 jest.mock('@aws-sdk/client-s3', () => ({
-  S3Client: jest.fn().mockImplementation((config: Record<string, unknown>) => ({
-    config,
-    _isAutoDeleteS3Mock: true,
-  })),
+  S3Client: jest.fn().mockImplementation(function (config: Record<string, unknown>) {
+    return {
+      config,
+      _isAutoDeleteS3Mock: true,
+    };
+  }),
 }));
 
 describe('messenger auto-delete autoDeleteS3Provider', () => {

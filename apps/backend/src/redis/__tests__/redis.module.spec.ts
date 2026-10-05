@@ -101,10 +101,12 @@ describe('RedisModule', () => {
       try {
         const mockOn = jest.fn();
         const mockCall = jest.fn().mockResolvedValue('OK');
-        (Redis as unknown as jest.Mock).mockImplementationOnce(() => ({
-          on: mockOn,
-          call: mockCall,
-        }));
+        (Redis as unknown as jest.Mock).mockImplementationOnce(function () {
+          return {
+            on: mockOn,
+            call: mockCall,
+          };
+        });
 
         const mockConfigService = {
           get: jest.fn().mockReturnValue('redis://localhost:6379'),

@@ -13,8 +13,8 @@ describe('messageNotificationSound', () => {
   beforeEach(() => {
     playMock = vi.fn().mockResolvedValue(undefined);
     pauseMock = vi.fn();
-    window.HTMLMediaElement.prototype.play = playMock;
-    window.HTMLMediaElement.prototype.pause = pauseMock;
+    window.HTMLMediaElement.prototype.play = playMock as unknown as () => Promise<void>;
+    window.HTMLMediaElement.prototype.pause = pauseMock as unknown as () => void;
 
     useNotificationSettingsStore.setState({
       allowSound: true,

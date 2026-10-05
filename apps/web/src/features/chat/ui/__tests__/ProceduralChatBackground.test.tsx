@@ -14,6 +14,7 @@ describe('ProceduralChatBackground', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
     useVisualEffects.setState({ simplified: false });
   });
 
@@ -53,16 +54,19 @@ describe('ProceduralChatBackground', () => {
   it.each(['neon-smoke', 'cosmic-aurora', 'synthwave-grid', 'starlight-drift', 'cyber-matrix'])(
     'keeps the %s shader visible without scheduling movement',
     (shaderId) => {
-      vi.spyOn(window, 'matchMedia').mockReturnValue({
-        matches: true,
-        media: '(prefers-reduced-motion: reduce)',
-        onchange: null,
-        addListener: vi.fn(),
-        removeListener: vi.fn(),
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-        dispatchEvent: vi.fn(),
-      });
+      vi.stubGlobal(
+        'matchMedia',
+        vi.fn().mockReturnValue({
+          matches: true,
+          media: '(prefers-reduced-motion: reduce)',
+          onchange: null,
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          dispatchEvent: vi.fn(),
+        }),
+      );
       const context = document.createElement('canvas').getContext('2d')!;
       // The shared canvas fixture omits this standard browser drawing method.
       Object.defineProperty(context, 'strokeRect', { configurable: true, value: vi.fn() });
@@ -77,16 +81,19 @@ describe('ProceduralChatBackground', () => {
   );
 
   it('renders a static shader and redraws on resize with reduced motion', () => {
-    vi.spyOn(window, 'matchMedia').mockReturnValue({
-      matches: true,
-      media: '(prefers-reduced-motion: reduce)',
-      onchange: null,
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    });
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockReturnValue({
+        matches: true,
+        media: '(prefers-reduced-motion: reduce)',
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }),
+    );
     const raf = vi.spyOn(window, 'requestAnimationFrame');
     const { container } = render(<ProceduralChatBackground shaderId="neon-smoke" />);
     const canvas = container.querySelector('canvas');
@@ -108,18 +115,21 @@ describe('ProceduralChatBackground', () => {
   it('starts and cancels shader movement when the OS preference changes', () => {
     let reduced = true;
     const events = new EventTarget();
-    vi.spyOn(window, 'matchMedia').mockReturnValue({
-      get matches() {
-        return reduced;
-      },
-      media: '(prefers-reduced-motion: reduce)',
-      onchange: null,
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      addEventListener: events.addEventListener.bind(events),
-      removeEventListener: events.removeEventListener.bind(events),
-      dispatchEvent: events.dispatchEvent.bind(events),
-    });
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockReturnValue({
+        get matches() {
+          return reduced;
+        },
+        media: '(prefers-reduced-motion: reduce)',
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: events.addEventListener.bind(events),
+        removeEventListener: events.removeEventListener.bind(events),
+        dispatchEvent: events.dispatchEvent.bind(events),
+      }),
+    );
     const raf = vi.spyOn(window, 'requestAnimationFrame').mockReturnValue(42);
     const cancel = vi.spyOn(window, 'cancelAnimationFrame');
     const { unmount } = render(<ProceduralChatBackground shaderId="neon-smoke" />);

@@ -3,10 +3,12 @@ import { ConfigService } from '@nestjs/config';
 import { BANNER_S3_CLIENT, bannerS3Provider } from '../s3-provider';
 
 jest.mock('@aws-sdk/client-s3', () => ({
-  S3Client: jest.fn().mockImplementation((config: Record<string, unknown>) => ({
-    config,
-    _isBannerS3Mock: true,
-  })),
+  S3Client: jest.fn().mockImplementation(function (config: Record<string, unknown>) {
+    return {
+      config,
+      _isBannerS3Mock: true,
+    };
+  }),
 }));
 
 describe('banners bannerS3Provider', () => {

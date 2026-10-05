@@ -3,10 +3,12 @@ import { ConfigService } from '@nestjs/config';
 import { S3_CLIENT, s3Provider } from '../s3-provider';
 
 jest.mock('@aws-sdk/client-s3', () => ({
-  S3Client: jest.fn().mockImplementation((config: Record<string, unknown>) => ({
-    config,
-    _isS3Mock: true,
-  })),
+  S3Client: jest.fn().mockImplementation(function (config: Record<string, unknown>) {
+    return {
+      config,
+      _isS3Mock: true,
+    };
+  }),
 }));
 
 describe('avatars s3Provider', () => {

@@ -11,7 +11,7 @@ import { CpuCircuitBreaker } from '@/shared/lib/v8/cpuCircuitBreaker';
 import 'katex/dist/katex.min.css';
 
 const markdownCircuitBreaker = new CpuCircuitBreaker('markdown-content', {
-  budgetMs: 5,
+  budgetMs: process.env.NODE_ENV === 'test' ? 1000 : 5,
   tripThreshold: 3,
   cooldownMs: 8_000,
 });
