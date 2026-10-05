@@ -111377,6 +111377,7 @@
         "mb-4",
         "mb-6",
         "min-h-112.5",
+        "motion-reduce:animate-none",
         "mt-2",
         "overflow-hidden",
         "p-8",
@@ -111505,12 +111506,12 @@
         {
           "line": 236,
           "attribute": "className",
-          "expression": "\"absolute inset-0 rounded-full bg-red-500/20 blur-xl animate-pulse w-24 h-24\""
+          "expression": "\"absolute inset-0 rounded-full bg-red-500/20 blur-xl animate-pulse motion-reduce:animate-none w-24 h-24\""
         },
         {
           "line": 237,
           "attribute": "className",
-          "expression": "\"relative w-20 h-20 flex items-center justify-center bg-[#0b0b0c] border border-red-500/30 rounded-2xl animate-bounce shadow-2xl\""
+          "expression": "\"relative w-20 h-20 flex items-center justify-center bg-[#0b0b0c] border border-red-500/30 rounded-2xl animate-bounce motion-reduce:animate-none shadow-2xl\""
         },
         {
           "line": 240,
