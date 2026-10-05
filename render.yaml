@@ -3,7 +3,7 @@ services:
   - type: web
     name: social-network-backend
     env: docker
-    dockerfilePath: ./backend/Dockerfile
+    dockerfilePath: ./apps/backend/Dockerfile
     dockerContext: .
     plan: free
     region: frankfurt
