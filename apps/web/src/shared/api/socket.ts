@@ -29,10 +29,17 @@ export function getSocket(): Socket {
     randomizationFactor: 0.5,
     auth: (cb) => {
       const token = localStorage.getItem('accessToken');
-      if (token && isTokenExpired(token) && localStorage.getItem('refreshToken')) {
-        void getValidAccessToken();
+      if (!token || isTokenExpired(token)) {
+        void getValidAccessToken()
+          .then((freshToken) => {
+            cb({ token: freshToken || token || undefined });
+          })
+          .catch(() => {
+            cb({ token: token || undefined });
+          });
+      } else {
+        cb({ token });
       }
-      cb({ token });
     },
   });
 
@@ -45,6 +52,7 @@ export function getSocket(): Socket {
     ) {
       void getValidAccessToken().then((newToken) => {
         if (newToken && socket) {
+          socket.auth = { token: newToken };
           socket.connect();
         }
       });

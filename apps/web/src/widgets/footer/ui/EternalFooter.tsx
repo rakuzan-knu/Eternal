@@ -41,9 +41,7 @@ export const EternalFooter: React.FC = () => {
 
   const handleNavFeed = () => {
     const hasAccounts = useAccountsStore.getState().accounts.length > 0;
-    const hasToken = Boolean(
-      localStorage.getItem('accessToken') || localStorage.getItem('refreshToken'),
-    );
+    const hasToken = Boolean(localStorage.getItem('accessToken'));
     if (isAuthenticated || hasAccounts || hasToken) {
       navigate('/feed');
     } else {
@@ -53,9 +51,7 @@ export const EternalFooter: React.FC = () => {
 
   const handleNavMessenger = () => {
     const hasAccounts = useAccountsStore.getState().accounts.length > 0;
-    const hasToken = Boolean(
-      localStorage.getItem('accessToken') || localStorage.getItem('refreshToken'),
-    );
+    const hasToken = Boolean(localStorage.getItem('accessToken'));
     if (isAuthenticated || hasAccounts || hasToken) {
       navigate('/messages');
     } else {
