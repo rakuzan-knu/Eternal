@@ -107,7 +107,51 @@ describe('auth-cookie.util', () => {
     expect(extractRefreshToken(mockReqWithCookies, undefined)).toBe('cookie-token');
     expect(extractRefreshToken(mockReqWithCookies, '')).toBe('cookie-token');
 
+    // Extracts from __Host-refreshToken if present
+    const mockReqWithHostCookie = {
+      cookies: {
+        '__Host-refreshToken': 'host-prefixed-token',
+      },
+    } as unknown as Request;
+    expect(extractRefreshToken(mockReqWithHostCookie)).toBe('host-prefixed-token');
+
     // Returns undefined if neither exists
     expect(extractRefreshToken({ cookies: {} } as unknown as Request)).toBeUndefined();
+  });
+
+  it('respects COOKIE_DOMAIN and COOKIE_SAMESITE environment variables', () => {
+    const originalDomain = process.env.COOKIE_DOMAIN;
+    const originalSameSite = process.env.COOKIE_SAMESITE;
+
+    try {
+      process.env.COOKIE_DOMAIN = '.eternal.social';
+      process.env.COOKIE_SAMESITE = 'none';
+
+      const mockReply = { setCookie: vi.fn() };
+      const mockReq = { secure: true } as Request;
+
+      setRefreshTokenCookie(mockReply, mockReq, 'token-domain-test', 3600);
+
+      expect(mockReply.setCookie).toHaveBeenCalledWith(
+        REFRESH_TOKEN_COOKIE_NAME,
+        'token-domain-test',
+        expect.objectContaining({
+          domain: '.eternal.social',
+          sameSite: 'none',
+          secure: true,
+        }),
+      );
+    } finally {
+      process.env.COOKIE_DOMAIN = originalDomain;
+      process.env.COOKIE_SAMESITE = originalSameSite;
+    }
+  });
+
+  it('clears both default and __Host- cookie variants', () => {
+    const mockRes = { clearCookie: vi.fn() };
+    clearRefreshTokenCookie(mockRes);
+
+    expect(mockRes.clearCookie).toHaveBeenCalledWith(REFRESH_TOKEN_COOKIE_NAME, expect.anything());
+    expect(mockRes.clearCookie).toHaveBeenCalledWith('__Host-refreshToken', expect.anything());
   });
 });

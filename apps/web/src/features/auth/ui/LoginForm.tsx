@@ -52,7 +52,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, redirectOnSucce
       const responseData = await loginMutation.mutateAsync(payload);
 
       localStorage.setItem('accessToken', responseData.accessToken);
-      localStorage.setItem('refreshToken', responseData.refreshToken);
+      localStorage.removeItem('refreshToken');
 
       useAuthStore.getState().setAuth(responseData.user.id);
 
@@ -61,8 +61,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, redirectOnSucce
         username: responseData.user.username,
         displayName: responseData.user.displayName,
         avatar: responseData.user.avatar ?? null,
-        accessToken: responseData.accessToken,
-        refreshToken: responseData.refreshToken,
       });
 
       onSuccess?.(responseData);

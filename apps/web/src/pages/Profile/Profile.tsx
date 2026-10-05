@@ -233,8 +233,8 @@ export default function ProfilePage() {
           noindex={true}
         />
         <div className="relative mb-6 flex items-center justify-center">
-          <div className="absolute inset-0 rounded-full bg-red-500/20 blur-xl animate-pulse w-24 h-24" />
-          <div className="relative w-20 h-20 flex items-center justify-center bg-[#0b0b0c] border border-red-500/30 rounded-2xl animate-bounce shadow-2xl">
+          <div className="absolute inset-0 rounded-full bg-red-500/20 blur-xl animate-pulse motion-reduce:animate-none w-24 h-24" />
+          <div className="relative w-20 h-20 flex items-center justify-center bg-[#0b0b0c] border border-red-500/30 rounded-2xl animate-bounce motion-reduce:animate-none shadow-2xl">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"

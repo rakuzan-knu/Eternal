@@ -42,6 +42,14 @@ async function openSurface(page: Page, screen: ExtendedScreen, state: ExtendedSt
     await page.getByRole('button', { name: 'Security', exact: true }).click();
     await page.getByRole('button', { name: 'Password & Security', exact: true }).click();
     await page.getByText('Active sessions', { exact: true }).click();
+    if ((page.viewportSize()?.width ?? 1280) < 1024) {
+      await page.evaluate(() => {
+        const subnav = document.querySelector('form nav')?.parentElement;
+        if (subnav) {
+          subnav.scrollTop = 223;
+        }
+      });
+    }
     await expect(
       page.getByRole('heading', { name: 'Active sessions', exact: true, level: 2 }),
     ).toBeVisible();

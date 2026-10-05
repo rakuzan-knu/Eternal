@@ -7,11 +7,21 @@ let socket: Socket | null = null;
 let isManagerSubscribed = false;
 
 function getSocketBaseUrl() {
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-  return apiUrl
-    .replace(/\/v1\/?$/, '')
-    .replace(/\/api\/?$/, '')
-    .replace(/\/+$/, '');
+  const wsUrl = import.meta.env.VITE_WS_URL;
+  if (wsUrl) {
+    return wsUrl.replace(/\/messenger\/?$/, '').replace(/\/+$/, '');
+  }
+  const apiUrl = (import.meta.env.VITE_API_URL || '').trim();
+  if (apiUrl && (apiUrl.startsWith('http://') || apiUrl.startsWith('https://'))) {
+    return apiUrl
+      .replace(/\/v1\/?$/, '')
+      .replace(/\/api\/?$/, '')
+      .replace(/\/+$/, '');
+  }
+  if (import.meta.env.PROD) {
+    return 'https://social-network-backend-4h47.onrender.com';
+  }
+  return 'http://localhost:3000';
 }
 
 export function getSocket(): Socket {
@@ -29,10 +39,17 @@ export function getSocket(): Socket {
     randomizationFactor: 0.5,
     auth: (cb) => {
       const token = localStorage.getItem('accessToken');
-      if (token && isTokenExpired(token) && localStorage.getItem('refreshToken')) {
-        void getValidAccessToken();
+      if (!token || isTokenExpired(token)) {
+        void getValidAccessToken()
+          .then((freshToken) => {
+            cb({ token: freshToken || token || undefined });
+          })
+          .catch(() => {
+            cb({ token: token || undefined });
+          });
+      } else {
+        cb({ token });
       }
-      cb({ token });
     },
   });
 
@@ -45,6 +62,7 @@ export function getSocket(): Socket {
     ) {
       void getValidAccessToken().then((newToken) => {
         if (newToken && socket) {
+          socket.auth = { token: newToken };
           socket.connect();
         }
       });
