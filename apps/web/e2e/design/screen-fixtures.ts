@@ -89,6 +89,7 @@ export async function prepareScreen(page: Page, screen: Screen, state: ScreenSta
   await mockApi(page, '/users/suggested?**', { json: [] });
   await mockApi(page, '/users/me/friends', { json: [] });
   await mockApi(page, '/users/online?**', { json: [] });
+  await mockApi(page, '/conversations', { json: [conversation] });
   await mockApi(page, '/conversations/folders', { json: [] });
   await mockApi(page, '/posts?**', { json: { posts: [post], nextCursor: null } });
   if (screen === 'feed') {

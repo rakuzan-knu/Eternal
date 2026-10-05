@@ -69,7 +69,16 @@ async function mockApi(
     allPatterns.add(withV1);
   }
 
-  const hosts = Array.from(new Set([API_BASE, 'http://localhost:3000', 'http://127.0.0.1:3000']));
+  const hosts = Array.from(
+    new Set([
+      API_BASE,
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+      'http://localhost:6007',
+      'http://127.0.0.1:6007',
+      '',
+    ]),
+  );
 
   for (const host of hosts) {
     for (const p of allPatterns) {
