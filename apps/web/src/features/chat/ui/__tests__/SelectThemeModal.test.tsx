@@ -37,6 +37,14 @@ describe('SelectThemeModal', () => {
     expect(screen.getByText('My Themes')).toBeInTheDocument();
   });
 
+  it('offers readable bubbles in the draft without silently saving the theme', () => {
+    render(<SelectThemeModal conversationId="c1" currentTheme="default" onClose={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Use readable bubbles' }));
+    expect(screen.getByRole('status')).toHaveTextContent('solid message text reaches');
+    expect(chatApi.setTheme).not.toHaveBeenCalled();
+    expect(screen.getByText('New').closest('button')).toHaveClass('bg-purple-600');
+  });
+
   it('supports selecting procedural WebGL shader wallpapers', () => {
     const onClose = vi.fn();
     render(<SelectThemeModal conversationId="c1" currentTheme="default" onClose={onClose} />);

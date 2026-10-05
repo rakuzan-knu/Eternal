@@ -1,5 +1,6 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { useActiveMediaPlaybackStore } from '../../../shared/model/useActiveMediaPlaybackStore';
+import { useVisualEffects } from '../../../shared/model/useVisualEffects';
 
 interface ProceduralChatBackgroundProps {
   shaderId?: string; // 'neon-smoke' | 'cosmic-aurora' | 'synthwave-grid' | 'starlight-drift' | 'cyber-matrix'
@@ -29,32 +30,52 @@ export default function ProceduralChatBackground({
 }: ProceduralChatBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const simplified = useVisualEffects((state) => state.simplified);
+  const [osReducedMotion, setReducedMotion] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false),
+  );
+  const reducedMotion = osReducedMotion || simplified;
+
+  useEffect(() => {
+    const preference = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    if (!preference) return;
+    const updatePreference = () => setReducedMotion(preference.matches);
+    preference.addEventListener('change', updatePreference);
+    return () => preference.removeEventListener('change', updatePreference);
+  }, []);
 
   // Audio Playback Store Integration
   const isAudioPlaying = useActiveMediaPlaybackStore((s) => s.isPlaying);
   const audioVolume = useActiveMediaPlaybackStore((s) => s.volume);
+  const reactiveAudioPlaying = audioReactive && !reducedMotion && isAudioPlaying;
+  const reactiveAudioVolume = reducedMotion ? 0 : audioVolume;
 
   // Mouse & Gyro Coordinates with smooth lerp
   const mouseRef = useRef({ x: 0.5, y: 0.5, targetX: 0.5, targetY: 0.5 });
   const tiltRef = useRef({ gamma: 0, beta: 0, targetGamma: 0, targetBeta: 0 });
 
   // Handle Mouse / Touch Move
-  const handlePointerMove = useCallback((e: MouseEvent | TouchEvent) => {
-    if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const clientX = 'touches' in e ? (e.touches[0]?.clientX ?? 0) : e.clientX;
-    const clientY = 'touches' in e ? (e.touches[0]?.clientY ?? 0) : e.clientY;
+  const handlePointerMove = useCallback(
+    (e: MouseEvent | TouchEvent) => {
+      if (reducedMotion || !containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const clientX = 'touches' in e ? (e.touches[0]?.clientX ?? 0) : e.clientX;
+      const clientY = 'touches' in e ? (e.touches[0]?.clientY ?? 0) : e.clientY;
 
-    const normX = Math.max(0, Math.min(1, (clientX - rect.left) / (rect.width || 1)));
-    const normY = Math.max(0, Math.min(1, (clientY - rect.top) / (rect.height || 1)));
+      const normX = Math.max(0, Math.min(1, (clientX - rect.left) / (rect.width || 1)));
+      const normY = Math.max(0, Math.min(1, (clientY - rect.top) / (rect.height || 1)));
 
-    mouseRef.current.targetX = normX;
-    mouseRef.current.targetY = normY;
-  }, []);
+      mouseRef.current.targetX = normX;
+      mouseRef.current.targetY = normY;
+    },
+    [reducedMotion],
+  );
 
   // Handle Mobile Device Orientation (3D Gyro Parallax)
   useEffect(() => {
-    if (!parallax3d || typeof window === 'undefined') return;
+    if (reducedMotion || !parallax3d || typeof window === 'undefined') return;
 
     const handleOrientation = (e: DeviceOrientationEvent) => {
       if (e.gamma !== null && e.beta !== null) {
@@ -68,7 +89,7 @@ export default function ProceduralChatBackground({
     return () => {
       window.removeEventListener('deviceorientation', handleOrientation);
     };
-  }, [parallax3d]);
+  }, [parallax3d, reducedMotion]);
 
   // Main Canvas Rendering Loop
   useEffect(() => {
@@ -78,20 +99,30 @@ export default function ProceduralChatBackground({
     const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) return;
 
-    let animationFrameId: number;
+    let animationFrameId = 0;
+    let renderStatic: (() => void) | undefined;
     let time = 0;
     let isVisible = true;
+    let resumeAnimation = () => {};
+    const updateVisibility = () => {
+      if (!isVisible || document.hidden) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = 0;
+      } else resumeAnimation();
+    };
+    document.addEventListener('visibilitychange', updateVisibility);
 
     // Resize canvas with devicePixelRatio
     const handleResize = () => {
       if (!canvas || !containerRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const dpr = Math.min(window.devicePixelRatio || 1, simplified ? 1 : 2);
       const newWidth = Math.floor((rect.width || 400) * dpr);
       const newHeight = Math.floor((rect.height || 600) * dpr);
       if (canvas.width !== newWidth || canvas.height !== newHeight) {
         canvas.width = newWidth;
         canvas.height = newHeight;
+        renderStatic?.();
       }
     };
 
@@ -107,10 +138,11 @@ export default function ProceduralChatBackground({
       resizeObserver.observe(containerRef.current);
     }
 
-    // Track visibility to maintain 0% CPU when tab or chat is hidden
+    // Pause animation scheduling while the tab or chat is hidden.
     const observer = new IntersectionObserver(
       (entries) => {
         isVisible = entries[0]?.isIntersecting ?? true;
+        updateVisibility();
       },
       { threshold: 0.05 },
     );
@@ -134,10 +166,8 @@ export default function ProceduralChatBackground({
 
     // Animation Loop
     const render = () => {
-      if (!isVisible) {
-        animationFrameId = requestAnimationFrame(render);
-        return;
-      }
+      animationFrameId = 0;
+      if ((!isVisible || document.hidden) && !reducedMotion) return;
 
       const width = canvas.width;
       const height = canvas.height;
@@ -149,14 +179,19 @@ export default function ProceduralChatBackground({
       tiltRef.current.beta += (tiltRef.current.targetBeta - tiltRef.current.beta) * 0.08;
 
       // Audio beat intensity multiplier
-      const audioIntensity =
-        audioReactive && isAudioPlaying ? 1 + audioVolume * 0.45 * Math.sin(time * 8) : 1;
-      const speedMultiplier = audioReactive && isAudioPlaying ? 1.6 : 1.0;
-      time += 0.012 * speedMultiplier;
+      const audioIntensity = reactiveAudioPlaying
+        ? 1 + reactiveAudioVolume * 0.45 * Math.sin(time * 8)
+        : 1;
+      const speedMultiplier = reactiveAudioPlaying ? 1.6 : 1.0;
+      if (!reducedMotion) time += 0.012 * speedMultiplier;
 
       // Parallax pixel offsets
-      const parallaxX = (tiltRef.current.gamma / 30) * 16 + (mouseRef.current.x - 0.5) * 14;
-      const parallaxY = (tiltRef.current.beta / 30) * 16 + (mouseRef.current.y - 0.5) * 14;
+      const parallaxX = reducedMotion
+        ? 0
+        : (tiltRef.current.gamma / 30) * 16 + (mouseRef.current.x - 0.5) * 14;
+      const parallaxY = reducedMotion
+        ? 0
+        : (tiltRef.current.beta / 30) * 16 + (mouseRef.current.y - 0.5) * 14;
 
       ctx.save();
       ctx.translate(parallaxX, parallaxY);
@@ -434,18 +469,29 @@ export default function ProceduralChatBackground({
       }
 
       ctx.restore();
-      animationFrameId = requestAnimationFrame(render);
+      if (!reducedMotion) animationFrameId = requestAnimationFrame(render);
     };
 
-    animationFrameId = requestAnimationFrame(render);
+    resumeAnimation = () => {
+      if (!reducedMotion && isVisible && !document.hidden && !animationFrameId) {
+        animationFrameId = requestAnimationFrame(render);
+      }
+    };
+    if (reducedMotion) {
+      renderStatic = render;
+      render();
+    } else {
+      resumeAnimation();
+    }
 
     return () => {
       cancelAnimationFrame(animationFrameId);
+      document.removeEventListener('visibilitychange', updateVisibility);
       window.removeEventListener('resize', handleResize);
       if (resizeObserver) resizeObserver.disconnect();
       observer.disconnect();
     };
-  }, [shaderId, audioReactive, parallax3d, isAudioPlaying, audioVolume]);
+  }, [shaderId, reducedMotion, simplified, reactiveAudioPlaying, reactiveAudioVolume]);
 
   return (
     <div

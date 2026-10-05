@@ -1,7 +1,7 @@
 import Avatar from '@/shared/ui/Avatar';
 import TypingIndicatorBubble from './TypingIndicatorBubble';
 import { ChevronDown } from 'lucide-react';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { MessageView, UserSnapshot } from '../../../entities/chat/model/types';
 import { groupMessagesByDate } from '../lib/groupMessagesByDate';
@@ -13,6 +13,11 @@ import { useSpotifyDockOffset } from '@/shared/model/useSpotifyDockOffset';
 import { CallHistoryItem } from './Call/CallHistoryItem';
 import SystemMessageCluster from './SystemMessageCluster';
 import { ThemeProposalMessage } from './ThemeProposalMessage';
+import {
+  getChatScrollGeneration,
+  getChatScrollPosition,
+  saveChatScrollPosition,
+} from '../model/chatScrollPositions';
 
 export type ClusterPosition = 'single' | 'first' | 'middle' | 'last';
 
@@ -246,20 +251,37 @@ export default function MessageList({
   onRetry,
 }: MessageListProps) {
   const scrollerElementRef = useRef<HTMLDivElement | null>(null);
+  const sizeContainerRef = useRef<HTMLDivElement | null>(null);
   const rows = useMemo(() => buildRows(messages), [messages]);
+  const hasMessages = rows.length > 0;
+  const [initialPosition] = useState(() =>
+    conversationId ? getChatScrollPosition(conversationId) : undefined,
+  );
+  const [scrollGeneration] = useState(getChatScrollGeneration);
 
   const virtualizer = useVirtualizer({
     count: rows.length,
+    getItemKey: (index) => rows[index].key,
     getScrollElement: () => scrollerElementRef.current,
     estimateSize: () => 64,
     overscan: 6,
     initialRect: { width: 500, height: 800 },
+    initialOffset: initialPosition?.offset ?? 0,
+    initialMeasurementsCache: initialPosition?.measurements,
   });
 
   const virtualRows = virtualizer.getVirtualItems();
+  const totalSize = virtualizer.getTotalSize();
+  const viewportHeight = virtualizer.scrollRect?.height ?? 0;
 
-  const [showScrollBottom, setShowScrollBottom] = useState(false);
+  const [showScrollBottom, setShowScrollBottom] = useState(
+    Boolean(initialPosition && !initialPosition.atBottom),
+  );
   const [unreadBelowCount, setUnreadBelowCount] = useState(0);
+  const [isFollowingLatest, setIsFollowingLatest] = useState(
+    !initialPosition || initialPosition.atBottom,
+  );
+  const followScrollCommand = useRef(false);
 
   const handleStartReached = useCallback(() => {
     if (isAnchoredInHistory && onLoadOlder) {
@@ -276,10 +298,23 @@ export default function MessageList({
     }
   }, [isAnchoredInHistory, onLoadNewer]);
 
+  const stopLiveFollowing = useCallback(() => {
+    const el = scrollerElementRef.current;
+    if (!el || !followScrollCommand.current) return;
+    // Cancel only in response to input, not virtual row measurement corrections.
+    // Targeted reply/search jumps have a different purpose and retain their target.
+    virtualizer.scrollToOffset(el.scrollTop);
+    followScrollCommand.current = false;
+    setIsFollowingLatest(false);
+  }, [virtualizer]);
+
   const checkScrollPosition = useCallback(() => {
     const el = scrollerElementRef.current;
     if (!el) return;
     const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    // Leaving the live edge requires user input (or a targeted jump).
+    // Row measurements may temporarily grow the list below the same offset.
+    if (distanceFromBottom <= 20) setIsFollowingLatest(true);
     // Only appear when the user scrolls up by at least the height of the chat screen (el.clientHeight) or is in history anchor mode
     const isOneScreenUp = el.clientHeight > 0 && distanceFromBottom >= el.clientHeight;
     setShowScrollBottom(isOneScreenUp || isAnchoredInHistory);
@@ -301,24 +336,84 @@ export default function MessageList({
     return () => el.removeEventListener('scroll', checkScrollPosition);
   }, [checkScrollPosition]);
 
-  const isInitialMount = useRef(true);
+  useLayoutEffect(() => {
+    const element = scrollerElementRef.current;
+    return () => {
+      if (!element || !conversationId) return;
+      saveChatScrollPosition(
+        conversationId,
+        {
+          offset: element.scrollTop,
+          atBottom: element.scrollHeight - element.scrollTop - element.clientHeight <= 20,
+          measurements: virtualizer.takeSnapshot(),
+        },
+        scrollGeneration,
+      );
+    };
+  }, [conversationId, scrollGeneration, virtualizer, isLoading, hasMessages]);
+
+  const isInitialMount = useRef(!initialPosition || initialPosition.atBottom);
   useEffect(() => {
     if (
       rows.length > 0 &&
-      (isInitialMount.current || (!showScrollBottom && !isAnchoredInHistory))
+      !highlightMessageId &&
+      (isInitialMount.current || (isFollowingLatest && !isAnchoredInHistory))
     ) {
       isInitialMount.current = false;
-      virtualizer.scrollToIndex(rows.length - 1, { align: 'end' });
+      followScrollCommand.current = true;
+      // Measure committed DOM geometry, including late virtual row sizing.
+      // React may flush effects while the size container still has its old height.
+      let frame = 0;
+      const align = () => {
+        cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(() => {
+          if (followScrollCommand.current) {
+            virtualizer.scrollToIndex(rows.length - 1, { align: 'end' });
+          }
+        });
+      };
+      const observer = new ResizeObserver(align);
+      const element = scrollerElementRef.current;
+      const onScroll = () => {
+        // Some engines apply an offset correction after geometry has settled.
+        // Input already cancels following before its native scroll event.
+        if (element && element.scrollHeight - element.clientHeight - element.scrollTop > 20) {
+          align();
+        }
+      };
+      if (element) {
+        observer.observe(element);
+        element.addEventListener('scroll', onScroll, { passive: true });
+      }
+      if (sizeContainerRef.current) observer.observe(sizeContainerRef.current);
+      align();
+      return () => {
+        observer.disconnect();
+        element?.removeEventListener('scroll', onScroll);
+        cancelAnimationFrame(frame);
+      };
     }
-  }, [rows.length, showScrollBottom, isAnchoredInHistory, virtualizer]);
-
+  }, [
+    rows.length,
+    totalSize,
+    viewportHeight,
+    isLoading,
+    isFollowingLatest,
+    isAnchoredInHistory,
+    highlightMessageId,
+    virtualizer,
+  ]);
   const { dockOffset } = useSpotifyDockOffset();
+  const previousDockOffset = useRef(dockOffset);
 
   useEffect(() => {
+    if (previousDockOffset.current === dockOffset) return;
+    previousDockOffset.current = dockOffset;
     // When dock offset changes (dock opens, minimizes, or closes),
     // if the user is reading live messages at the bottom, maintain smooth pinning to bottom.
-    if (!isAnchoredInHistory && !showScrollBottom && rows.length > 0) {
+    if (!isAnchoredInHistory && !highlightMessageId && isFollowingLatest && rows.length > 0) {
       const timer = setTimeout(() => {
+        followScrollCommand.current = true;
         virtualizer.scrollToIndex(rows.length - 1, {
           align: 'end',
           behavior: 'smooth',
@@ -326,7 +421,14 @@ export default function MessageList({
       }, 60);
       return () => clearTimeout(timer);
     }
-  }, [dockOffset, isAnchoredInHistory, rows.length, showScrollBottom, virtualizer]);
+  }, [
+    dockOffset,
+    isAnchoredInHistory,
+    highlightMessageId,
+    rows.length,
+    isFollowingLatest,
+    virtualizer,
+  ]);
 
   useEffect(() => {
     if (!highlightMessageId) return;
@@ -334,6 +436,10 @@ export default function MessageList({
       (r) => r.type === 'message' && r.message.id === highlightMessageId,
     );
     if (relativeIndex !== -1) {
+      isInitialMount.current = false;
+      setIsFollowingLatest(false);
+      // Targeted reply/search/pinned navigation is not an automatic live pin.
+      followScrollCommand.current = false;
       virtualizer.scrollToIndex(relativeIndex, {
         align: 'center',
         behavior: 'smooth',
@@ -397,7 +503,7 @@ export default function MessageList({
         </h3>
         {handle && <p className="text-xs text-gray-400 font-medium mt-0.5">{handle}</p>}
 
-        <p className="text-xs text-gray-500 mt-2 max-w-xs leading-relaxed">
+        <p className="text-xs text-gray-400 mt-2 max-w-xs leading-relaxed">
           No messages here yet. Send a greeting to start the conversation!
         </p>
       </div>
@@ -408,7 +514,26 @@ export default function MessageList({
     <div className="relative flex-1 flex flex-col min-h-0 overflow-x-hidden">
       <div
         ref={scrollerElementRef}
+        data-testid="message-scroll"
+        role="region"
+        aria-label="Message history"
+        tabIndex={0}
         onScroll={checkScrollPosition}
+        onWheelCapture={(event) => {
+          if (event.deltaY < 0) stopLiveFollowing();
+        }}
+        onTouchStartCapture={stopLiveFollowing}
+        onPointerDownCapture={(event) => {
+          if (event.target === event.currentTarget) stopLiveFollowing();
+        }}
+        onKeyDownCapture={(event) => {
+          if (
+            ['ArrowUp', 'PageUp', 'Home'].includes(event.key) ||
+            (event.key === ' ' && event.shiftKey)
+          ) {
+            stopLiveFollowing();
+          }
+        }}
         className="flex-1 custom-scrollbar py-2 overflow-y-auto overflow-x-hidden"
         style={{ overflowAnchor: 'none', overflowX: 'hidden' }}
       >
@@ -424,8 +549,9 @@ export default function MessageList({
         )}
 
         <div
+          ref={sizeContainerRef}
           style={{
-            height: `${virtualizer.getTotalSize()}px`,
+            height: `${totalSize}px`,
             width: '100%',
             position: 'relative',
           }}
@@ -581,6 +707,8 @@ export default function MessageList({
               if (isAnchoredInHistory) {
                 onResetToLive?.();
               }
+              followScrollCommand.current = true;
+              setIsFollowingLatest(true);
               virtualizer.scrollToIndex(rows.length - 1, {
                 align: 'end',
                 behavior: 'smooth',

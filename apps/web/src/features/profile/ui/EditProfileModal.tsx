@@ -742,7 +742,7 @@ export default function EditProfileModal() {
           <X size={20} />
         </button>
 
-        <div className="w-full sm:w-[300px] bg-[#09090b]/95 border-b sm:border-b-0 sm:border-r border-white/[0.06] p-4 flex flex-col gap-4 select-none shrink-0 overflow-x-hidden overflow-y-hidden">
+        <div className="w-full sm:w-[300px] max-h-[45%] sm:max-h-none bg-[#09090b]/95 border-b sm:border-b-0 sm:border-r border-white/[0.06] p-4 flex flex-col gap-4 select-none shrink-0 overflow-x-hidden overflow-y-hidden">
           <div className="flex items-center gap-3 p-2.5 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
             <Avatar src={avatarPreview} size="md" alt={currentUser?.displayName || 'User'} />
             <div className="flex flex-col min-w-0 flex-1">
@@ -776,7 +776,7 @@ export default function EditProfileModal() {
 
           <div
             ref={subNavRef}
-            className="relative flex-1 overflow-y-auto overflow-x-hidden pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full"
+            className="relative flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full"
           >
             <nav className="flex flex-col gap-2">
               {filteredTabs.map((tab) => {

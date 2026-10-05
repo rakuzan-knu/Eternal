@@ -191,7 +191,7 @@ describe('LoginForm', () => {
     await user.click(screen.getByRole('button', { name: 'Log in' }));
 
     await waitFor(() =>
-      expect(screen.getByText(/You entered incorrect credentials/)).toBeInTheDocument(),
+      expect(screen.getByRole('alert')).toHaveTextContent('We could not log you in. Try again.'),
     );
   });
 
@@ -211,7 +211,7 @@ describe('LoginForm', () => {
     await user.click(screen.getByRole('button', { name: 'Log in' }));
 
     await waitFor(() =>
-      expect(screen.getByText(/You entered incorrect credentials/)).toBeInTheDocument(),
+      expect(screen.getByRole('alert')).toHaveTextContent('We could not log you in. Try again.'),
     );
   });
 

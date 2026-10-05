@@ -7,8 +7,64 @@ describe('themeRippleTransition', () => {
   });
 
   afterEach(() => {
+    document.querySelectorAll('.theme-ripple-overlay').forEach((overlay) => overlay.remove());
     vi.useRealTimers();
     vi.restoreAllMocks();
+  });
+
+  it.each([false, true])(
+    'applies immediately without vibration or animation when reduced motion is requested (native=%s)',
+    (hasNativeTransition) => {
+      const applyTheme = vi.fn();
+      const transition = vi.fn();
+      const vibrate = vi.fn();
+      vi.spyOn(window, 'matchMedia').mockReturnValue({
+        matches: true,
+        media: '(prefers-reduced-motion: reduce)',
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      });
+      Object.defineProperty(navigator, 'vibrate', {
+        configurable: true,
+        writable: true,
+        value: vibrate,
+      });
+      if (hasNativeTransition) {
+        Object.defineProperty(document, 'startViewTransition', {
+          configurable: true,
+          value: transition,
+        });
+      }
+
+      try {
+        triggerCircularRippleTransition({ x: 100, y: 200 }, applyTheme);
+
+        expect(applyTheme).toHaveBeenCalledTimes(1);
+        expect(vibrate).not.toHaveBeenCalled();
+        expect(transition).not.toHaveBeenCalled();
+        expect(document.querySelector('.theme-ripple-overlay')).toBeNull();
+        expect(vi.getTimerCount()).toBe(0);
+      } finally {
+        Reflect.deleteProperty(document, 'startViewTransition');
+      }
+    },
+  );
+
+  it('retains fallback behavior if matchMedia is unavailable', () => {
+    vi.stubGlobal('matchMedia', undefined);
+    const applyTheme = vi.fn();
+    try {
+      triggerCircularRippleTransition(null, applyTheme);
+      expect(document.querySelector('.theme-ripple-overlay')).toBeInTheDocument();
+      vi.advanceTimersByTime(16);
+      expect(applyTheme).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('handles startViewTransition API when available on document', async () => {

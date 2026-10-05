@@ -62,6 +62,19 @@ describe('FeedPage', () => {
     });
   });
 
+  it('distinguishes a failed feed from empty data and keeps the draft after retry', async () => {
+    server.use(http.get('*/posts', () => new HttpResponse(null, { status: 503 })));
+    const user = userEvent.setup({ delay: null });
+    renderWithProviders(<FeedPage />);
+    expect(await screen.findByText('Your feed could not load')).toBeInTheDocument();
+    expect(screen.queryByText("There's nothing here yet...")).not.toBeInTheDocument();
+    await user.type(screen.getByPlaceholderText("What's new?"), 'Keep this draft');
+    server.use(http.get('*/posts', () => HttpResponse.json({ posts: [], nextCursor: null })));
+    await user.click(screen.getByRole('button', { name: 'Retry feed' }));
+    expect(await screen.findByText("There's nothing here yet...")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("What's new?")).toHaveValue('Keep this draft');
+  });
+
   it('does not publish an empty post', async () => {
     renderWithProviders(<FeedPage />);
 
