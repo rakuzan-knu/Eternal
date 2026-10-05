@@ -258,5 +258,6 @@ packages/feed-score/rust/target/
 scratch/
 **/scratch/
 apps/web/playwright-design-report/
+apps/web/playwright-report/
 apps/web/playwright-platforms-report/
 apps/web/test-results-platforms/
