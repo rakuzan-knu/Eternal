@@ -106,8 +106,8 @@ importers:
   apps/backend:
     dependencies:
       '@aws-sdk/client-s3':
-        specifier: ^3.1144.0
-        version: 3.1144.0
+        specifier: ^3.1145.0
+        version: 3.1145.0
       '@fastify/compress':
         specifier: ^9.2.0
         version: 9.2.0
@@ -458,8 +458,8 @@ importers:
         specifier: ^4.22.3
         version: 4.22.3(react@19.3.0)
       framer-motion:
-        specifier: ^13.4.6
-        version: 13.4.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        specifier: ^13.5.0
+        version: 13.5.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       hls.js:
         specifier: ^1.7.2
         version: 1.7.3
@@ -470,8 +470,8 @@ importers:
         specifier: ^6.3.0
         version: 6.3.0
       katex:
-        specifier: ^0.18.10
-        version: 0.18.10
+        specifier: ^0.19.0
+        version: 0.19.0
       lucide-react:
         specifier: ^1.49.0
         version: 1.49.0(@types/react@19.3.0)(react@19.3.0)
@@ -825,8 +825,8 @@ packages:
     resolution: {integrity: sha512-x12Q17KYlJAd3nKf8LV5LV0vt8sh8/6YfQLGPtrGnQf/tW4jqxPGq5GPpuVitpQYM3eUR4XB7CbxZf751NMbLw==}
     engines: {node: '>=20.0.0'}
 
-  '@aws-sdk/client-s3@3.1144.0':
-    resolution: {integrity: sha512-CAicFlKAuCAUEU1tIptCTh6Eikr4rig9CWYwofZdEuJm9i24XNclgCspV4DKXlOY2nK2AMGHRt88oxmwDdNW7w==}
+  '@aws-sdk/client-s3@3.1145.0':
+    resolution: {integrity: sha512-MPKAQdx8qCZW1/ChDPILNehtAn/BMP4GNTnaH/xhGCWg3v50ADVq1K2WzxIrFfeANdWUyjwiY0CXDBhclsNWgQ==}
     engines: {node: '>=20.0.0'}
 
   '@aws-sdk/core@3.978.1':
@@ -3135,6 +3135,7 @@ packages:
   '@pact-foundation/pact-core@20.2.0':
     resolution: {integrity: sha512-AKPJomBRHmQ8ilOkCaT2ZpvL2j/GM9CeE3K81w57zy3gwOnN6ZdMyw38ddqIHudTgS6eNQLqBKLbrRsOOKwwtg==}
     engines: {node: '>=22'}
+    cpu: [x64, ia32, arm64]
     os: [darwin, linux, win32]
 
   '@pact-foundation/pact@17.1.4':
@@ -6637,8 +6638,8 @@ packages:
     resolution: {integrity: sha512-buRG0fpBtRHSTCOASe6hD258tEubFoRLb4ZNA6NxMVHNw2gOcwHo9wyablzMzOA5z9xA9L1KNjk/Nt6MT9aYow==}
     engines: {node: '>= 0.6'}
 
-  framer-motion@13.4.6:
-    resolution: {integrity: sha512-TwKWt2CC8rjhARzwV00TZIh04ipumSAqyKM/JZmS+urdncSHg6wTF/mfj/Fd6Oi2W01TZSWsiA3uxXDrXZtKyw==}
+  framer-motion@13.5.0:
+    resolution: {integrity: sha512-5KDKvhGTKKEQPWl8xg2mZRC+pGsenooz9v+ar6BpoXcD1mae4wdhvjxLaK+3jvFbge0jk4C8JeIjIC8m98z7hg==}
     peerDependencies:
       react: ^18.0.0 || ^19.0.0
       react-dom: ^18.0.0 || ^19.0.0
@@ -7569,8 +7570,8 @@ packages:
     resolution: {integrity: sha512-Eeo8Ys1doU1z+x8AZsPpQu+p/QcZBI5PeOo7QGQdy2x2m0MU/hYagBbGOmXwr5KVbEfVuWv9LpnQWeehogurjg==}
     hasBin: true
 
-  katex@0.18.10:
-    resolution: {integrity: sha512-/B6p9eY9DX7aHBfpkHdpirDTZ5QH9xTwL9y837PWuzuv41O5jFdqNQwVQEQsimY0/iVNkwBY4+4hMfhQ7d4Dbw==}
+  katex@0.19.0:
+    resolution: {integrity: sha512-v6Tznz3zJ7u3niRCoDTsumM2+HA2XXcCu+WAacCeHD2z3p9A9Ks987o5FzfTGBN0e8A0vjEgIDvLbICrXpdw/Q==}
     hasBin: true
 
   keyv@4.5.4:
@@ -10929,7 +10930,7 @@ snapshots:
       '@smithy/types': 4.19.0
       tslib: 2.8.1
 
-  '@aws-sdk/client-s3@3.1144.0':
+  '@aws-sdk/client-s3@3.1145.0':
     dependencies:
       '@aws-sdk/checksums': 3.1001.1
       '@aws-sdk/core': 3.978.1
@@ -17306,7 +17307,7 @@ snapshots:
 
   forwarded@0.2.0: {}
 
-  framer-motion@13.4.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
+  framer-motion@13.5.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
     dependencies:
       motion-dom: 13.5.1
       motion-utils: 13.5.0
@@ -18505,7 +18506,7 @@ snapshots:
     dependencies:
       commander: 8.3.0
 
-  katex@0.18.10:
+  katex@0.19.0:
     dependencies:
       commander: 15.0.0
 
