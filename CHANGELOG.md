@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.0](https://github.com/rakuzan-knu/Eternal/compare/v1.4.0...v1.5.0) (2026-10-05)
+
+### ✨ Features
+
+* **auth:** harden token cookies, add safeSessionStorage, and mirror preferences ([#108](https://github.com/rakuzan-knu/Eternal/issues/108)) ([e379fee](https://github.com/rakuzan-knu/Eternal/commit/e379fee3fdec889ceca490a2f06477ba2bf805e9))
+
 ## [1.4.0](https://github.com/rakuzan-knu/Eternal/compare/v1.3.6...v1.4.0) (2026-10-05)
 
 ### ✨ Features
