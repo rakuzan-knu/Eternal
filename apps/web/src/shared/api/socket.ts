@@ -7,11 +7,21 @@ let socket: Socket | null = null;
 let isManagerSubscribed = false;
 
 function getSocketBaseUrl() {
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-  return apiUrl
-    .replace(/\/v1\/?$/, '')
-    .replace(/\/api\/?$/, '')
-    .replace(/\/+$/, '');
+  const wsUrl = import.meta.env.VITE_WS_URL;
+  if (wsUrl) {
+    return wsUrl.replace(/\/messenger\/?$/, '').replace(/\/+$/, '');
+  }
+  const apiUrl = (import.meta.env.VITE_API_URL || '').trim();
+  if (apiUrl && (apiUrl.startsWith('http://') || apiUrl.startsWith('https://'))) {
+    return apiUrl
+      .replace(/\/v1\/?$/, '')
+      .replace(/\/api\/?$/, '')
+      .replace(/\/+$/, '');
+  }
+  if (import.meta.env.PROD) {
+    return 'https://social-network-backend-4h47.onrender.com';
+  }
+  return 'http://localhost:3000';
 }
 
 export function getSocket(): Socket {
