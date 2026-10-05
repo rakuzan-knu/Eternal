@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { MessageSquare, Loader2 } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Loader2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import MessengerSidebar from '../../widgets/sidebar/ui/RailwaySidebar';
 import ChatListPanel from '../../features/chat/ui/ChatListPanel';
@@ -18,6 +18,15 @@ import { SEOHead } from '../../shared/seo';
 export default function MessengerPage() {
   const { conversationId } = useParams<{ conversationId?: string }>();
   const navigate = useNavigate();
+  const previousConversation = useRef(conversationId);
+  useEffect(() => {
+    if (!conversationId && previousConversation.current) {
+      document
+        .getElementById(`conversation-${previousConversation.current}`)
+        ?.focus({ preventScroll: true });
+    }
+    previousConversation.current = conversationId;
+  }, [conversationId]);
   const isSidebarExpanded = useUIStore((s) => s.isSidebarExpanded);
   const { data: conversations, isLoading: isLoadingConversations } = useConversations();
   usePresenceSync();
@@ -48,49 +57,64 @@ export default function MessengerPage() {
         description="Direct and group messaging on Eternal."
         noindex={true}
       />
-      <MessengerSidebar />
+      <div className="max-md:hidden">
+        <MessengerSidebar />
+      </div>
 
       <div
-        className={`flex flex-1 min-w-0 overflow-hidden transition-all duration-300 ease-in-out ${
+        className={`flex flex-1 min-w-0 overflow-hidden transition-all duration-300 ease-in-out max-md:ml-0 ${
           isSidebarExpanded ? 'ml-[200px]' : 'ml-16'
         }`}
       >
         <ChatListPanel
+          onBack={() => navigate('/')}
+          className={conversationId ? 'max-md:hidden' : 'max-md:w-full!'}
           onSelectConversation={handleSelectConversation}
           activeConversationId={conversationId ?? null}
         />
 
-        {isResolvingActiveChat ? (
-          <div className="flex-1 flex flex-col items-center justify-center gap-3 text-gray-400 bg-[#0d111a]/40">
-            <Loader2 size={32} className="animate-spin text-sky-400" />
-            <p className="text-sm font-medium text-gray-400">Loading conversation...</p>
-          </div>
-        ) : activeConversation ? (
-          <ChatThread key={activeConversation.id} conversation={activeConversation} />
-        ) : conversationId ? (
-          <div className="flex-1 flex flex-col items-center justify-center gap-3 text-gray-500 bg-[#0d111a]/40">
-            <MessageSquare size={40} className="text-gray-600" />
-            <p className="text-lg font-medium text-white">Conversation not found</p>
-            <p className="text-sm text-gray-400">
-              This chat may have been deleted or is unavailable.
-            </p>
+        <div className={`flex flex-1 min-w-0 flex-col ${conversationId ? '' : 'max-md:hidden'}`}>
+          {conversationId && (
             <button
               type="button"
               onClick={() => navigate('/messages')}
-              className="mt-2 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-sm font-medium text-white transition-colors"
+              className="md:hidden min-h-11 px-4 flex items-center gap-2 text-sm text-gray-300 bg-[#16161a] border-b border-white/5"
             >
-              Back to messages
+              <ArrowLeft size={18} aria-hidden="true" /> Back to chats
             </button>
-          </div>
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center gap-2 text-gray-500">
-            <MessageSquare size={40} />
-            <p className="text-lg font-medium">Select a chat to start messaging</p>
-            <a href="/search" className="text-sm font-medium hover:underline text-sky-400">
-              Find friends
-            </a>
-          </div>
-        )}
+          )}
+          {isResolvingActiveChat ? (
+            <div className="flex-1 flex flex-col items-center justify-center gap-3 text-gray-400 bg-[#0d111a]/40">
+              <Loader2 size={32} className="animate-spin text-sky-400" />
+              <p className="text-sm font-medium text-gray-400">Loading conversation...</p>
+            </div>
+          ) : activeConversation ? (
+            <ChatThread key={activeConversation.id} conversation={activeConversation} />
+          ) : conversationId ? (
+            <div className="flex-1 flex flex-col items-center justify-center gap-3 text-gray-500 bg-[#0d111a]/40">
+              <MessageSquare size={40} className="text-gray-600" />
+              <p className="text-lg font-medium text-white">Conversation not found</p>
+              <p className="text-sm text-gray-400">
+                This chat may have been deleted or is unavailable.
+              </p>
+              <button
+                type="button"
+                onClick={() => navigate('/messages')}
+                className="mt-2 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-sm font-medium text-white transition-colors"
+              >
+                Back to messages
+              </button>
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center gap-2 text-gray-500">
+              <MessageSquare size={40} />
+              <p className="text-lg font-medium">Select a chat to start messaging</p>
+              <a href="/search" className="text-sm font-medium hover:underline text-sky-400">
+                Find friends
+              </a>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

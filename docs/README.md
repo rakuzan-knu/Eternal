@@ -6,8 +6,23 @@ Welcome to the technical documentation repository for the **Social Network** pla
 
 ## 🗺️ Unified Documentation Sitemap
 
+For the existing web visual language and future mobile/desktop reuse, see the
+[Eternal design reference](design/README.md): colors, fonts, geometry, components, screen layouts,
+custom themes, motion, accessibility and a reproducible source inventory.
+
 ```text
 docs/
+├── 🎨 design/                 # Web design reference & mobile/desktop adaptation
+│   ├── README.md              # Scope, guide index & source inventory workflow
+│   ├── foundations.md         # Brand, colors, fonts, geometry, glass & assets
+│   ├── components.md          # Reusable recipes, component APIs & states
+│   ├── screens.md             # Layouts, navigation & feature/public page patterns
+│   ├── customization.md       # Chat themes, fonts, bubble shapes & story settings
+│   ├── motion-accessibility.md # Animations, interaction & accessibility gaps
+│   ├── platforms.md           # Web/mobile/desktop adaptation & acceptance checks
+│   ├── generate-inventory.mjs # Reproducible design-source extraction
+│   └── web-design-inventory.json # Exact values, expressions, sources & assets
+│
 ├── 🏛️ architecture/           # Core System & Software Architecture
 │   ├── README.md              # Monorepo topology, C4 model, tech stack & domain boundaries
 │   ├── backend.md             # NestJS 11 + Fastify, 4-tier layering & BullMQ

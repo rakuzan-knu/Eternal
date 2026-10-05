@@ -12,6 +12,7 @@ import {
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore, useUIStore } from '@social-network/shared-stores';
 import { formatRelativeTime, formatCompactNumber } from '@social-network/shared-utils';
+import { designTokens } from '@social-network/shared-ui-primitives';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -99,14 +100,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   darkBg: {
-    backgroundColor: '#09090b',
+    backgroundColor: designTokens.color.canvasApp,
   },
   lightBg: {
     backgroundColor: '#ffffff',
   },
   header: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: designTokens.spacing.xl,
+    paddingVertical: designTokens.spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: '#27272a',
   },
@@ -118,35 +119,35 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 12,
     color: '#a1a1aa',
-    marginTop: 2,
+    marginTop: designTokens.spacing.half,
   },
   content: {
     flex: 1,
-    padding: 16,
+    padding: designTokens.spacing.lg,
   },
   card: {
     backgroundColor: '#18181b',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    borderRadius: designTokens.radius.control,
+    padding: designTokens.spacing.lg,
+    marginBottom: designTokens.spacing.lg,
     borderWidth: 1,
     borderColor: '#27272a',
   },
   cardTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#f4f4f5',
-    marginBottom: 8,
+    color: designTokens.color.textPrimary,
+    marginBottom: designTokens.spacing.sm,
   },
   cardBody: {
     fontSize: 14,
     color: '#a1a1aa',
-    marginBottom: 8,
+    marginBottom: designTokens.spacing.sm,
   },
   featureItem: {
     fontSize: 13,
     color: '#38bdf8',
-    marginVertical: 2,
+    marginVertical: designTokens.spacing.half,
   },
   metricText: {
     fontSize: 13,

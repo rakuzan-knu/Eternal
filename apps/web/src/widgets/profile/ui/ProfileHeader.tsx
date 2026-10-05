@@ -152,7 +152,7 @@ export default function ProfileHeader({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 justify-end pt-4">
+        <div className="flex flex-wrap items-center gap-2 justify-end pt-4 max-md:pt-20">
           {isOwnProfile ? (
             <button
               type="button"
@@ -233,11 +233,11 @@ export default function ProfileHeader({
           <span>Joined {formatJoinedDate(createdAt)}</span>
         </div>
 
-        <div className="flex items-center gap-6 mt-5">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-5">
           <button
             type="button"
             onClick={() => setOpenList('followers')}
-            className="group flex items-center gap-1.5 cursor-pointer transition-all duration-200"
+            className="group min-h-8 flex items-center gap-1.5 cursor-pointer transition-all duration-200"
           >
             <span className="text-white font-bold text-sm sm:text-base tracking-tight group-hover:text-blue-400 transition-colors">
               {followersCount}
@@ -250,7 +250,7 @@ export default function ProfileHeader({
           <button
             type="button"
             onClick={() => setOpenList('following')}
-            className="group flex items-center gap-1.5 cursor-pointer transition-all duration-200"
+            className="group min-h-8 flex items-center gap-1.5 cursor-pointer transition-all duration-200"
           >
             <span className="text-white font-bold text-sm sm:text-base tracking-tight group-hover:text-blue-400 transition-colors">
               {followingCount}

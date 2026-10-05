@@ -6,16 +6,29 @@ on:
     paths:
       - 'apps/web/src/**'
       - 'apps/web/.storybook/**'
-      - 'apps/web/package*.json'
-      - 'frontend/src/**'
-      - 'frontend/.storybook/**'
-      - 'frontend/package*.json'
+      - 'apps/web/public/**'
+      - 'apps/web/package.json'
+      - 'apps/web/vite.config.*'
+      - 'apps/web/tsconfig*.json'
+      - 'packages/shared/ui-primitives/**'
+      - 'packages/shared/contracts/**'
+      - 'packages/shared/socket/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'tsconfig.base.json'
+      - '.npmrc'
+      - '.nvmrc'
+      - '.github/workflows/storybook.yml'
+      - '.github/workflows/chromatic.yml'
+      - 'scripts/ci/__tests__/chromatic-workflow.test.mjs'
 
 concurrency:
   group: storybook-${{ github.ref }}
   cancel-in-progress: true
 
-permissions: read-all
+permissions:
+  contents: read
 
 jobs:
   build-storybook:
@@ -57,62 +70,12 @@ jobs:
       - name: Build Storybook
         run: pnpm --filter frontend run build:storybook
 
+      - name: Check Chromatic publication policy
+        run: node --test scripts/ci/__tests__/chromatic-workflow.test.mjs
+
       - name: Upload Storybook artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: storybook-build
           path: apps/web/storybook-static/
           retention-days: 3
-
-  # Skipped until the CHROMATIC_TOKEN repository secret is configured; once
-  # present, every PR publishes snapshots and fails on visual regressions.
-  visual-regression:
-    name: Visual Regression — Chromatic
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: build-storybook
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'pnpm'
-
-      - name: Cache Node Modules & Prisma
-        id: monorepo-cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: |
-            node_modules
-            apps/*/node_modules
-            apps/backend/node_modules
-            apps/web/node_modules
-            packages/*/dist
-            packages/*/node_modules
-            ~/.cache/prisma
-          key: ${{ runner.os }}-monorepo-pnpm-${{ hashFiles('pnpm-lock.yaml', 'apps/backend/prisma/schema.prisma') }}
-
-      - name: Install (On Cache Miss)
-        if: steps.monorepo-cache.outputs.cache-hit != 'true'
-        run: pnpm install --frozen-lockfile --ignore-scripts
-
-      - name: Download Storybook build
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: storybook-build
-          path: apps/web/storybook-static
-
-      - name: Publish to Chromatic
-        if: env.CHROMATIC_PROJECT_TOKEN != ''
-        working-directory: apps/web
-        run: pnpm exec chromatic --storybook-build-dir=storybook-static --exit-once-uploaded
-        env:
-          CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}

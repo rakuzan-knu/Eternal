@@ -63,7 +63,7 @@ export default function OnlineStatusIndicator({
       );
     }
     return (
-      <span className={`${isOnline ? 'text-emerald-400' : 'text-gray-500'} ${className}`}>
+      <span className={`${isOnline ? 'text-emerald-400' : 'text-gray-400'} ${className}`}>
         {isOnline ? 'Active now' : 'Offline'}
       </span>
     );

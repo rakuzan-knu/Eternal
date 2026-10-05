@@ -42,6 +42,7 @@ function formatCount(num?: number): string {
 interface MiniProfileHoverCardProps {
   username: string;
   children: React.ReactNode;
+  className?: string;
   align?: 'left' | 'center' | 'right';
   side?: 'top' | 'bottom' | 'left' | 'right';
 }
@@ -49,6 +50,7 @@ interface MiniProfileHoverCardProps {
 export function MiniProfileHoverCard({
   username,
   children,
+  className = '',
   align = 'left',
   side = 'top',
 }: MiniProfileHoverCardProps) {
@@ -246,7 +248,7 @@ export function MiniProfileHoverCard({
   return (
     <span
       ref={triggerRef}
-      className="relative inline-block"
+      className={`relative inline-block ${className}`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >

@@ -476,7 +476,7 @@ export default function App() {
                         } max-md:pl-0 ${isSpotifyDockVisible ? (isSpotifyDockMinimized ? 'pb-14' : 'pb-28') : ''}`
                       : `flex min-h-screen flex-1 justify-center py-8 transition-[padding-left,padding-bottom] duration-300 ${
                           isSidebarExpanded ? 'pl-72' : 'pl-24'
-                        } ${isSpotifyDockVisible ? (isSpotifyDockMinimized ? 'pb-14' : 'pb-28') : ''}`
+                        } max-md:pl-0 max-md:pt-20 ${isSpotifyDockVisible ? (isSpotifyDockMinimized ? 'pb-14' : 'pb-28') : ''}`
                 }
               >
                 <Suspense fallback={<PageFallback />}>

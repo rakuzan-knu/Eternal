@@ -19,6 +19,8 @@
     "test:ui": "vitest --config vitest.config.ts --ui",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "test:design": "playwright test --config playwright.design.config.ts",
+    "test:design:platforms": "playwright test --config playwright.platforms.config.ts",
     "typecheck": "tsc --noEmit",
     "check:bundle": "node ../../scripts/ci/check-bundle-size.js",
     "storybook": "storybook dev -p 6006",

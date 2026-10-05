@@ -1,5 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Search, UserPlus, MoreHorizontal, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import {
+  ArrowLeft,
+  Search,
+  UserPlus,
+  MoreHorizontal,
+  PanelLeftClose,
+  PanelLeftOpen,
+} from 'lucide-react';
 import { useUIStore } from '../../../shared/model/useUIStore';
 import { useAuthStore } from '../../../shared/model/useAuthStore';
 import Tooltip from '../../../shared/ui/Tooltip';
@@ -41,11 +48,15 @@ function getConversationActivityTime(conversation: ConversationView) {
 }
 
 interface ChatListPanelProps {
+  onBack?: () => void;
+  className?: string;
   onSelectConversation: (conversationId: string) => void;
   activeConversationId: string | null;
 }
 
 export default function ChatListPanel({
+  onBack,
+  className = '',
   onSelectConversation,
   activeConversationId,
 }: ChatListPanelProps) {
@@ -272,8 +283,17 @@ export default function ChatListPanel({
         width: isChatListExpanded ? width : COLLAPSED_WIDTH,
         transitionDuration: isResizing ? '0ms' : '300ms',
       }}
-      className="relative h-full shrink-0 flex flex-col bg-[#16161a]/60 backdrop-blur-2xl border-r border-white/5 py-6 transition-[width] ease-in-out overflow-hidden"
+      className={`relative h-full shrink-0 flex flex-col bg-[#16161a]/60 backdrop-blur-2xl border-r border-white/5 py-6 transition-[width] ease-in-out overflow-hidden ${className}`}
     >
+      {onBack && (
+        <button
+          type="button"
+          onClick={onBack}
+          className="md:hidden min-h-11 shrink-0 px-4 mb-3 flex items-center gap-2 text-sm text-gray-300"
+        >
+          <ArrowLeft size={18} aria-hidden="true" /> Back to feed
+        </button>
+      )}
       {!isChatListExpanded ? (
         <div className="h-full flex flex-col items-center pt-0 gap-4">
           <Tooltip label="Open side panel" position="right">

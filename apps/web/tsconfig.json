@@ -31,6 +31,14 @@
     "exactOptionalPropertyTypes": false,
     "types": ["node", "vite/client"]
   },
-  "include": ["src/**/*", ".storybook/**/*", "vite.config.ts", "playwright.config.ts", "e2e/**/*"],
+  "include": [
+    "src/**/*",
+    ".storybook/**/*",
+    "vite.config.ts",
+    "playwright.config.ts",
+    "playwright.design.config.ts",
+    "playwright.platforms.config.ts",
+    "e2e/**/*"
+  ],
   "exclude": ["node_modules", "dist", "coverage", ".nx"]
 }

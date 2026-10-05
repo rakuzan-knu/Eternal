@@ -1,0 +1,31 @@
+{
+  "environment": "Local Windows Chromium, synthetic 6x CPU slowdown; GPU and physical devices not represented",
+  "browserVersion": "151.0.7922.34",
+  "viewport": {
+    "width": 1280,
+    "height": 900
+  },
+  "devicePixelRatio": 1,
+  "measurements": [
+    {
+      "simplified": false,
+      "blur": "blur(24px)",
+      "cpuSlowdown": 6,
+      "frames": 22,
+      "p95FrameMs": 116.69999999999982,
+      "longTasks": [
+        95, 113, 99, 93, 98, 112, 125, 92, 113, 103, 91, 107, 73, 127, 107, 95, 91, 108
+      ],
+      "durationMs": 2016.8999999999996
+    },
+    {
+      "simplified": true,
+      "blur": "none",
+      "cpuSlowdown": 6,
+      "frames": 121,
+      "p95FrameMs": 16.700000000000728,
+      "longTasks": [],
+      "durationMs": 2000.0999999761589
+    }
+  ]
+}
