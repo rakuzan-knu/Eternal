@@ -15,6 +15,7 @@ This reference records the design implemented in `apps/web` on 2026-10-03. Use i
 | [Shared tokens](tokens.md)                          | Typed values, generated CSS, native units, consumers and maintenance                                                       |
 | [Screen scenarios](scenarios.md)                    | Screen/state matrix, responsive review and local screenshot tests                                                          |
 | [Actual screen captures](screen-captures.md)        | Feed/Profile/Chat at desktop, narrow and enlarged text, including empty/error states                                       |
+| [Visual CI and Chromatic](visual-ci.md)             | Automatic local checks, explicit PR skips, optional cloud publication and quota/status behavior                             |
 | [Readability audit](readability.md)                 | Measured contrast, target sizes, responsive fixes, reports and release limits                                              |
 | [Font policy](font-policy.md)                       | Shared system stacks, Cyrillic/emoji, decorative font fallback and platform checks                                         |
 | [Component usage](component-usage.md)               | Correct/incorrect examples, component selection and state contracts                                                        |

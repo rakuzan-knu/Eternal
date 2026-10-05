@@ -1,30 +1,70 @@
 name: Chromatic
+
 on:
-  push:
-    branches: [main, develop, feat/**]
   pull_request:
+    branches: [main, develop]
     types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+concurrency:
+  group: chromatic-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
+
 jobs:
   chromatic:
+    name: Chromatic — PR skip or manual publish
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+      CHROMATIC_BRANCH: ${{ github.head_ref || github.ref_name }}
+      CHROMATIC_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      CHROMATIC_SLUG: ${{ github.repository }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Check project token
+        shell: bash
+        run: |
+          if [ -z "$CHROMATIC_PROJECT_TOKEN" ]; then
+            if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+              echo "::error::Configure CHROMATIC_PROJECT_TOKEN before publishing."
+              exit 1
+            fi
+            echo "Chromatic is not configured; no snapshots or external status were requested." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        if: env.CHROMATIC_PROJECT_TOKEN != ''
+
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        if: env.CHROMATIC_PROJECT_TOKEN != ''
         with:
           node-version-file: '.nvmrc'
           cache: 'pnpm'
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-      - name: Initialize MSW
-        run: pnpm -r --filter frontend exec msw init public
-      - name: Build Storybook
-        run: pnpm -r --filter frontend run build:storybook
-      - name: Publish to Chromatic
-        env:
-          CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
-        run: pnpm -r --filter frontend exec chromatic --project-token=${{ secrets.CHROMATIC_PROJECT_TOKEN }} --build-script-name=build:storybook --exit-once-uploaded
+
+      - name: Install dependencies without build hooks
+        if: env.CHROMATIC_PROJECT_TOKEN != ''
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      # Chromatic must receive --skip, rather than no invocation, to settle its
+      # external UI Tests status. This does not render or approve any snapshots.
+      - name: Skip PR snapshots and settle Chromatic status
+        if: github.event_name == 'pull_request' && env.CHROMATIC_PROJECT_TOKEN != ''
+        run: pnpm --filter frontend exec chromatic --skip --no-interactive
+
+      - name: Build Storybook for manual publication
+        if: github.event_name == 'workflow_dispatch'
+        run: pnpm --filter frontend run build:storybook --disable-telemetry
+
+      - name: Publish existing Storybook build to Chromatic
+        if: github.event_name == 'workflow_dispatch'
+        working-directory: apps/web
+        run: pnpm exec chromatic --storybook-build-dir=storybook-static --exit-once-uploaded
