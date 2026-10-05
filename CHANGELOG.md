@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.6](https://github.com/rakuzan-knu/Eternal/compare/v1.3.5...v1.3.6) (2026-10-05)
+
+### 🐛 Bug Fixes
+
+* **infra:** resolve pipeline failures across docker, storybook, sentry, and chaos suite ([#107](https://github.com/rakuzan-knu/Eternal/issues/107)) ([5afe1d7](https://github.com/rakuzan-knu/Eternal/commit/5afe1d72fb100dd90682582f1327e57f85f5492e))
+
+### 🔧 Tooling & Dependencies
+
+* **deps:** bump github-actions group (docker/login-action, sbom-action) ([#105](https://github.com/rakuzan-knu/Eternal/issues/105)) ([1e26b72](https://github.com/rakuzan-knu/Eternal/commit/1e26b72efc0b41f6b8d0e8970beed2968b168f70))
+* **deps:** bump production-dependencies (aws-sdk, framer-motion, katex) ([#104](https://github.com/rakuzan-knu/Eternal/issues/104)) ([87f3652](https://github.com/rakuzan-knu/Eternal/commit/87f3652926ff6b22cbb0857e4291fd4560749ef4))
+
 ## [1.3.5](https://github.com/rakuzan-knu/social-network/compare/v1.3.4...v1.3.5) (2026-10-04)
 
 ### 🐛 Bug Fixes
