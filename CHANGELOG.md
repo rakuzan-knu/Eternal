@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.0](https://github.com/rakuzan-knu/Eternal/compare/v1.5.0...v1.6.0) (2026-10-05)
+
+### ✨ Features
+
+* **security:** harden storage isolation, websocket auth refresh, and CORS policy ([#109](https://github.com/rakuzan-knu/Eternal/issues/109)) ([0cc9f23](https://github.com/rakuzan-knu/Eternal/commit/0cc9f236a02d3aa749a3165e3cc57f266b69142c))
+
 ## [1.5.0](https://github.com/rakuzan-knu/Eternal/compare/v1.4.0...v1.5.0) (2026-10-05)
 
 ### ✨ Features
