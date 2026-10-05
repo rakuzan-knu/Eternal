@@ -18,16 +18,10 @@ const config: StorybookConfig = {
     reactDocgen: 'react-docgen-typescript',
   },
   viteFinal: async (config) => {
-    // Disable Vite's publicDir copy because Storybook's staticDirs already copies public assets.
-    // Concurrently copying public assets triggers EEXIST race conditions on linux runners in CI.
+    // Storybook copies staticDirs; avoid a concurrent Vite copy into the same output.
     config.publicDir = false;
-    if (config.plugins) {
-      config.plugins = config.plugins.filter((plugin) => {
-        if (!plugin || typeof plugin !== 'object') return true;
-        const p = plugin as { name?: string };
-        return p.name !== 'tailwindcss' && p.name !== '@tailwindcss/vite';
-      });
-    }
+    // Preserve the application's Tailwind Vite pipeline so stories render the
+    // same utilities, tokens and reduced-motion rules as the client.
     config.resolve = config.resolve ?? {};
     config.resolve.alias = {
       ...config.resolve.alias,

@@ -4,9 +4,70 @@ import MessageList from '../MessageList';
 import { MessageView } from '@/entities/chat/model/types';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
+import { getChatScrollPosition } from '../../model/chatScrollPositions';
 
 describe('MessageList', () => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
+  it('saves the history position when the scroller appears after the initial loading render', () => {
+    const props: React.ComponentProps<typeof MessageList> = {
+      conversationId: 'delayed-history',
+      messages: [],
+      currentUserId: 'u1',
+      otherParticipantId: 'u2',
+      hasMore: false,
+      isLoading: true,
+      isFetchingMore: false,
+      typingParticipants: [],
+      isGroup: false,
+      onLoadMore: vi.fn(),
+      onReply: vi.fn(),
+      onEdit: vi.fn(),
+      onDelete: vi.fn(),
+      onForward: vi.fn(),
+      onTogglePin: vi.fn(),
+      onReport: vi.fn(),
+      onReact: vi.fn(),
+      onUnreact: vi.fn(),
+    };
+    const content = (loading: boolean, messages: MessageView[]) => (
+      <QueryClientProvider client={queryClient}>
+        <MessageList {...props} isLoading={loading} messages={messages} />
+      </QueryClientProvider>
+    );
+    const view = render(content(true, []));
+    expect(screen.queryByTestId('message-scroll')).not.toBeInTheDocument();
+    view.rerender(
+      content(false, [
+        {
+          id: 'delayed-message',
+          conversationId: 'delayed-history',
+          sender: { id: 'u2', username: 'alice', displayName: 'Alice', avatar: null },
+          body: 'History',
+          messageType: 'TEXT',
+          replyTo: null,
+          forwardedFrom: null,
+          attachments: [],
+          reactions: [],
+          readBy: [],
+          isEdited: false,
+          isDeleted: false,
+          isPinned: false,
+          createdAt: '2026-10-03T10:00:00Z',
+          editedAt: null,
+        },
+      ]),
+    );
+    const scroller = screen.getByTestId('message-scroll');
+    Object.defineProperties(scroller, {
+      scrollTop: { value: 320, configurable: true },
+      scrollHeight: { value: 1200, configurable: true },
+      clientHeight: { value: 400, configurable: true },
+    });
+    view.unmount();
+    expect(getChatScrollPosition('delayed-history')?.offset).toBe(320);
+    expect(getChatScrollPosition('delayed-history')?.atBottom).toBe(false);
+  });
 
   it('renders empty conversation view when messages array is empty', () => {
     render(

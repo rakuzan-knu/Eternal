@@ -49,8 +49,12 @@ test.describe('Authentication (unauthenticated)', () => {
     await page.getByPlaceholder('Password').fill('wrong-password');
     await page.getByRole('button', { name: 'Log in' }).click();
 
-    await expect(page.getByText('You entered incorrect credentials.')).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Find your account and log in' })).toBeVisible();
+    const error = page.getByRole('alert');
+    await expect(error).toBeVisible();
+    await expect(error).toHaveText('We could not log you in. Try again.');
+    await expect(page.getByRole('button', { name: 'Log in' })).toBeEnabled();
+    expect(await page.evaluate(() => localStorage.getItem('accessToken'))).toBeNull();
+    expect(await page.evaluate(() => localStorage.getItem('refreshToken'))).toBeNull();
     await expect(page).toHaveURL(/\/login$/);
   });
 

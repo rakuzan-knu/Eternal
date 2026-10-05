@@ -67,6 +67,7 @@ describe('PrivacySettingPanel', () => {
     );
 
     expect(screen.getByText('Who can see this')).toBeInTheDocument();
+    expect(screen.getByRole('radiogroup', { name: 'Who can see this' })).toBeInTheDocument();
     expect(screen.getByText('Always share with')).toBeInTheDocument();
     expect(screen.getByText('Never share with')).toBeInTheDocument();
 

@@ -1,8 +1,27 @@
 @import 'tailwindcss';
+@import './shared/design/tokens.css';
+
+@theme inline {
+  --font-sans: var(--eternal-typography-family-web-sans);
+  --font-mono: var(--eternal-typography-family-web-mono);
+  --font-serif: var(--eternal-typography-family-web-serif);
+}
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Explicit device preference: remove costly blur without changing media palettes. */
+html[data-visual-effects='reduced'] [class*='backdrop-blur'],
+html[data-visual-effects='reduced'] [style*='backdrop-filter'] {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+html[data-visual-effects='reduced'] .eternal-glass {
+  background-color: var(--eternal-semantic-surface-opaque);
+  box-shadow: none;
+}
 
 html {
   scrollbar-gutter: stable;
@@ -19,7 +38,7 @@ body:fullscreen {
   overflow: hidden !important;
   scrollbar-gutter: auto !important;
   scrollbar-width: none !important;
-  background-color: #08090d !important;
+  background-color: var(--eternal-color-canvas-immersive) !important;
 }
 
 html.game-mode-active::-webkit-scrollbar,
@@ -34,7 +53,7 @@ body:fullscreen::-webkit-scrollbar {
 
 body {
   margin: 0;
-  background-color: #050505;
+  background-color: var(--eternal-color-canvas-body);
 }
 
 .bg-radial-gradient {
@@ -857,4 +876,19 @@ body {
 .story-anim-typewriter {
   border-right: 2px solid currentColor;
   animation: storyTypewriterCursor 0.8s step-end infinite;
+}
+
+/* Keep final CSS states and animation-end cleanup while removing movement.
+   Pending controls expose text/aria-busy independently of their spinner. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
 }

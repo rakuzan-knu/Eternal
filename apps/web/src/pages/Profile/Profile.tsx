@@ -335,64 +335,73 @@ export default function ProfilePage() {
             activeTab={activeTab}
             setActiveTab={handleTabChange}
             showSavedTab={isOwnProfile}
+            idPrefix="profile-tab"
+            panelId="profile-feed-panel"
           />
         </div>
 
-        {isOwnProfile && activeTab === 'posts' && (
-          <div className="mb-4">
-            <CreatePost
-              onSubmitFormData={(fd, optimisticPost) =>
-                createPost.mutateAsync({ formData: fd, optimisticPost })
-              }
-              isPending={createPost.isPending}
-            />
-          </div>
-        )}
+        <div
+          id="profile-feed-panel"
+          role="tabpanel"
+          aria-labelledby={`profile-tab-${activeTab}`}
+          tabIndex={0}
+        >
+          {isOwnProfile && activeTab === 'posts' && (
+            <div className="mb-4">
+              <CreatePost
+                onSubmitFormData={(fd, optimisticPost) =>
+                  createPost.mutateAsync({ formData: fd, optimisticPost })
+                }
+                isPending={createPost.isPending}
+              />
+            </div>
+          )}
 
-        {activeTab === 'saved' && isOwnProfile ? (
-          <SavedPostsView userId={user.id} />
-        ) : activeTab === 'reels' ? (
-          <UserReelsView userId={user.id} />
-        ) : activeQuery.isLoading ? (
-          <SkeletonFeed count={4} />
-        ) : activeFeed.length > 0 ? (
-          <div
-            ref={containerRef}
-            style={{
-              height: `${postVirtualizer.getTotalSize()}px`,
-              width: '100%',
-              position: 'relative',
-            }}
-          >
-            {virtualItems.map((virtualItem) => {
-              const post = activeFeed[virtualItem.index];
-              if (!post) return null;
-              return (
-                <div
-                  key={virtualItem.key}
-                  ref={postVirtualizer.measureElement}
-                  data-index={virtualItem.index}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    transform: `translateY(${virtualItem.start - postVirtualizer.options.scrollMargin}px)`,
-                    paddingBottom: '16px',
-                  }}
-                >
-                  <PostCard post={post} queryKey={feedQueryKey} />
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-white/5 rounded-4xl bg-white/1">
-            <p className="text-gray-500 font-medium text-base">
-              {activeTab === 'posts' ? 'No posts have been created yet.' : 'No reposts yet'}
-            </p>
-          </div>
-        )}
+          {activeTab === 'saved' && isOwnProfile ? (
+            <SavedPostsView userId={user.id} />
+          ) : activeTab === 'reels' ? (
+            <UserReelsView userId={user.id} />
+          ) : activeQuery.isLoading ? (
+            <SkeletonFeed count={4} />
+          ) : activeFeed.length > 0 ? (
+            <div
+              ref={containerRef}
+              style={{
+                height: `${postVirtualizer.getTotalSize()}px`,
+                width: '100%',
+                position: 'relative',
+              }}
+            >
+              {virtualItems.map((virtualItem) => {
+                const post = activeFeed[virtualItem.index];
+                if (!post) return null;
+                return (
+                  <div
+                    key={virtualItem.key}
+                    ref={postVirtualizer.measureElement}
+                    data-index={virtualItem.index}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      transform: `translateY(${virtualItem.start - postVirtualizer.options.scrollMargin}px)`,
+                      paddingBottom: '16px',
+                    }}
+                  >
+                    <PostCard post={post} queryKey={feedQueryKey} />
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-white/5 rounded-4xl bg-white/1">
+              <p className="text-gray-500 font-medium text-base">
+                {activeTab === 'posts' ? 'No posts have been created yet.' : 'No reposts yet'}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Desktop Sticky Profile Showcase Sidebar (>= 1024px) */}

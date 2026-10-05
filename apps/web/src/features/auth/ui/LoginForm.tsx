@@ -97,20 +97,19 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, redirectOnSucce
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 mt-4">
       {globalError && (
-        <div className="p-3.5 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-2.5 text-xs text-neutral-300 animate-fadeIn">
-          <AlertCircle size={16} className="text-red-500 mt-0.5 flex-shrink-0" />
-          <div className="text-left leading-relaxed">
-            You entered incorrect credentials.{' '}
-            <Link to="/forgot-password" className="text-sky-400 hover:underline font-semibold">
-              Find your account and log in
-            </Link>
-          </div>
+        <div
+          role="alert"
+          className="p-3.5 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-2.5 text-xs text-neutral-300 animate-fadeIn"
+        >
+          <AlertCircle aria-hidden="true" size={16} className="text-red-500 mt-0.5 flex-shrink-0" />
+          <div className="text-left leading-relaxed">We could not log you in. Try again.</div>
         </div>
       )}
 
       <div className="flex flex-col w-full">
         <Input
           placeholder="Email address or phone number"
+          aria-label="Email address or phone number"
           {...register('identity')}
           className={
             userNotFoundError
@@ -137,6 +136,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, redirectOnSucce
       <div className="flex flex-col w-full">
         <Input
           placeholder="Password"
+          aria-label="Password"
           type={showPass ? 'text' : 'password'}
           {...register('password')}
           className={

@@ -169,6 +169,8 @@ vite.config.ts.timestamp-*
 
 # Storybook
 frontend/storybook-static/
+apps/web/storybook-static/
+apps/web/test-results/
 
 # Lighthouse
 .lighthouseci/
@@ -181,6 +183,7 @@ AGENTS.md
 
 # SVG
 *.svg
+!apps/web/public/favicon.svg
 
 # Graphify
 graphify-out/
@@ -254,5 +257,9 @@ packages/feed-score/rust/target/
 
 scratch/
 **/scratch/
+apps/web/playwright-design-report/
+apps/web/playwright-report/
+apps/web/playwright-platforms-report/
+apps/web/test-results-platforms/
 storybook-static/
 **/storybook-static/

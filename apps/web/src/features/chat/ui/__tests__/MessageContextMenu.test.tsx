@@ -56,8 +56,8 @@ describe('MessageContextMenu', () => {
       />,
     );
 
-    const buttons = screen.getAllByRole('button');
-    const labels = buttons.map((b) => b.textContent);
+    const items = screen.getAllByRole('menuitem');
+    const labels = items.map((item) => item.textContent);
 
     expect(labels).toEqual(['Select', 'Edit', 'Pin', 'Forward', 'Copy message text', 'Delete']);
 

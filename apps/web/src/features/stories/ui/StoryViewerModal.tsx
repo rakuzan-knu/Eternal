@@ -236,7 +236,10 @@ function StorySegmentProgressBar({
   }, [isActive, isPassed, durationMs, isVideo, onComplete, videoRef]);
 
   return (
-    <div className="h-1 flex-1 bg-white/25 rounded-full overflow-hidden backdrop-blur-xs">
+    <div
+      data-testid="story-segment-progress"
+      className="h-1 flex-1 bg-white/25 rounded-full overflow-hidden backdrop-blur-xs"
+    >
       <div
         ref={barRef}
         style={{ width: isPassed ? '100%' : '0%' }}
