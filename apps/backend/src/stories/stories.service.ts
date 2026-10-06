@@ -283,6 +283,7 @@ export class StoriesService implements OnModuleDestroy {
         username: story.author.username,
         displayName: story.author.displayName,
         avatar: story.author.avatar,
+        activeDecoration: (story.author as any).activeDecoration ?? null,
         isVerified: story.author.isVerified,
       },
     };

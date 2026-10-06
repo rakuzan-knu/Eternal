@@ -60,6 +60,10 @@ import { TextPipelineModule } from './common/text-pipeline/text-pipeline.module'
 import { IntegrationsModule } from './integrations/integrations.module';
 import { StorageModule } from './common/storage/storage.module';
 import { FamilyModule } from './family/family.module';
+import { DecorationsModule } from './decorations/decorations.module';
+import { ProfileFramesModule } from './profile-frames/profile-frames.module';
+import { ProfileEffectsModule } from './profile-effects/profile-effects.module';
+import { NameplatesModule } from './nameplates/nameplates.module';
 
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 
@@ -68,6 +72,10 @@ import type { MiddlewareConsumer, NestModule } from '@nestjs/common';
 
 @Module({
   imports: [
+    DecorationsModule,
+    NameplatesModule,
+    ProfileEffectsModule,
+    ProfileFramesModule,
     SentryModule.forRoot(),
     LoggerModule.forRootAsync({
       inject: [ConfigService],

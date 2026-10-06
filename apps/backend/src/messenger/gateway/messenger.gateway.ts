@@ -1472,6 +1472,19 @@ export class MessengerGateway
     }
   }
 
+  @OnEvent('user.customization.updated')
+  handleUserCustomizationUpdated(payload: {
+    userId: string;
+    activeDecorationId?: string | null;
+    activeDecoration?: unknown;
+    activeNameplateId?: string | null;
+    activeNameplate?: unknown;
+  }) {
+    if (payload?.userId) {
+      this.server.emit('user:customization:updated', payload);
+    }
+  }
+
   @SubscribeMessage('subscribeStory')
   handleSubscribeStory(
     @ConnectedSocket() client: Socket,

@@ -304,7 +304,7 @@ describe('OnlineFriendsSidebar', () => {
     expect(screen.getByText('Near you')).toBeInTheDocument();
   });
 
-  it('renders Discord-style game presence and aggregator when friends are playing', () => {
+  it('renders game presence and aggregator when friends are playing', () => {
     usePresenceStore.setState({ onlineUserIds: new Set(['user-1', 'user-2']) });
 
     vi.spyOn(useSuggestedUsersModule, 'useSuggestedUsers').mockReturnValue({
@@ -358,7 +358,7 @@ describe('OnlineFriendsSidebar', () => {
     expect(screen.getByText(/Forser_all/i)).toBeInTheDocument();
     expect(screen.getByText(/Alice Smith/i)).toBeInTheDocument();
 
-    // Verify 2+ friends playing Dota 2 triggers the Discord aggregator card
+    // Verify 2+ friends playing Dota 2 triggers the aggregator card
     expect(screen.getByText('2 friends')).toBeInTheDocument();
   });
 });

@@ -1554,7 +1554,7 @@ export const ShowcaseQuickEditor: React.FC<ShowcaseQuickEditorProps> = ({
             </div>
           )}
 
-          {/* 1. TOP 5 SHOWCASE TAB (Discord-Grade Two-Panel Master-Detail Layout) */}
+          {/* 1. TOP 5 SHOWCASE TAB */}
           {activeTab === 'media' && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1 min-h-0">
               {/* LEFT PANEL: 5 Slots Showcase Board (lg:col-span-5) */}
@@ -1645,7 +1645,7 @@ export const ShowcaseQuickEditor: React.FC<ShowcaseQuickEditorProps> = ({
                             </div>
                           </div>
 
-                          {/* Quick Actions (Discord style) */}
+                          {/* Quick Actions */}
                           <div className="flex items-center gap-1 shrink-0">
                             <button
                               type="button"
@@ -2688,7 +2688,7 @@ export const ShowcaseQuickEditor: React.FC<ShowcaseQuickEditorProps> = ({
                 </div>
               </div>
 
-              {/* Display Toggles (Discord-Style Grouped Toggles) */}
+              {/* Display Toggles */}
               <div className="flex flex-col gap-4 pt-2 border-t border-white/[0.06]">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-gray-200 uppercase tracking-wider">
@@ -2974,7 +2974,7 @@ export const ShowcaseQuickEditor: React.FC<ShowcaseQuickEditorProps> = ({
                     );
                   })}
 
-                  {/* Discord-style Custom RGB Color Swatch */}
+                  {/* Custom RGB Color Swatch */}
                   {(() => {
                     const isCustom = !ACCENT_COLORS.some(
                       (c) => c.toLowerCase() === accentColor.toLowerCase(),

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Search, X, Plus, Loader2 } from 'lucide-react';
 import Avatar from '@/shared/ui/Avatar';
+import { Nameplate } from '@/shared/ui/Nameplate';
 import { useUserSearch } from '@/entities/user';
 import type { UserSearchResult } from '@/entities/user';
 import {
@@ -95,11 +96,21 @@ export default function ExceptionPicker({ dimension, mode }: ExceptionPickerProp
             <li key={u.id}>
               <button
                 onClick={() => add(u)}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-2xl hover:bg-white/5 transition-colors active:scale-[0.99]"
+                className="nameplate-row w-full flex items-center gap-3 px-3 py-2 rounded-2xl hover:bg-white/5 transition-colors active:scale-[0.99]"
               >
-                <Avatar src={u.avatar} size="sm" alt={u.displayName ?? u.username} />
-                <span className="flex-1 text-left min-w-0">
-                  <span className="block text-sm font-medium text-white truncate">
+                <Nameplate nameplate={u.activeNameplate} alwaysPlay={true} />
+                <Avatar
+                  src={u.avatar}
+                  size="sm"
+                  alt={u.displayName ?? u.username}
+                  decoration={u.activeDecoration}
+                  userId={u.id}
+                />
+                <span data-nameplate-text className="flex-1 text-left min-w-0">
+                  <span
+                    data-nameplate-label
+                    className="block text-sm font-medium text-white truncate"
+                  >
                     {u.displayName ?? u.username}
                   </span>
                   <span className="block text-xs text-gray-500 truncate">@{u.username}</span>

@@ -1,3 +1,4 @@
+import { Nameplate } from '@/shared/ui/Nameplate';
 import React, { useEffect, useRef, useState } from 'react';
 import { MoreHorizontal, Pin, BellOff } from 'lucide-react';
 import Avatar from '../../../shared/ui/Avatar';
@@ -111,7 +112,7 @@ export default function ChatListItem({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={() => onSelect(conversation.id)}
-      className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-2xl cursor-pointer select-none transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+      className={`nameplate-row group relative flex items-center gap-3 px-3 py-2.5 rounded-2xl cursor-pointer select-none transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
         isActive
           ? 'glass-card bg-white/12 dark:bg-white/10 shadow-[0_4px_24px_rgba(0,0,0,0.25),inset_0_1px_1px_rgba(255,255,255,0.45),0_0_18px_rgba(56,189,248,0.15)] border border-white/20 dark:border-white/15 scale-[1.012]'
           : isHovered
@@ -119,6 +120,7 @@ export default function ChatListItem({
             : 'border border-transparent'
       }`}
     >
+      <Nameplate nameplate={display.activeNameplate} />
       {/* Specular Liquid Glass Top Reflection Sweep */}
       {isActive && (
         <div className="absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent pointer-events-none rounded-t-full" />
@@ -135,7 +137,12 @@ export default function ChatListItem({
           )
         ) : (
           <>
-            <Avatar size="md" src={display.avatar} />
+            <Avatar
+              size="md"
+              src={display.avatar}
+              decoration={display.activeDecoration}
+              userId={display.otherUserId}
+            />
             {display.otherUserId && (
               <OnlineStatusIndicator userId={display.otherUserId} variant="dot" />
             )}
@@ -143,9 +150,10 @@ export default function ChatListItem({
         )}
       </div>
 
-      <div className="flex-1 min-w-0">
+      <div data-nameplate-text className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 min-w-0">
           <span
+            data-nameplate-label
             className={`text-[15px] truncate ${
               hasUnread
                 ? 'text-white font-semibold'

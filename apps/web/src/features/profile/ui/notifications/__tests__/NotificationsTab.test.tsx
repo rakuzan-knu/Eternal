@@ -13,6 +13,12 @@ vi.mock('@/entities/notification', async (importOriginal) => {
   };
 });
 
+vi.mock('@/entities/profile/model/useCurrentUser', () => ({
+  useCurrentUser: () => ({
+    data: null,
+  }),
+}));
+
 describe('NotificationsTab', () => {
   beforeEach(() => {
     vi.clearAllMocks();

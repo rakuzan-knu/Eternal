@@ -1,9 +1,3 @@
-/**
- * Theme Sound FX Engine (Linear / Discord style tactile micro-feedback)
- * Synthesizes ultra-short, soft mechanical clicks using the Web Audio API.
- * Requires 0 external network requests, runs with 0ms latency.
- */
-
 let audioCtx: AudioContext | null = null;
 
 function getAudioContext(): AudioContext | null {

@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { X, Send, MessageCircle } from 'lucide-react';
 import { useReelComments, useAddReelComment } from '../api/reelsApi';
 import { Link } from 'react-router-dom';
+import Avatar from '@/shared/ui/Avatar';
+import StyledDisplayName from '@/shared/ui/StyledDisplayName';
 
 interface ReelCommentsDrawerProps {
   reelId: string;
@@ -85,25 +87,27 @@ export const ReelCommentsDrawer: React.FC<ReelCommentsDrawerProps> = ({
                   to={`/profile/${comment.user.username || comment.user.id}`}
                   className="shrink-0"
                 >
-                  {comment.user.avatar ? (
-                    <img
-                      src={comment.user.avatar}
-                      alt={comment.user.username}
-                      className="w-8 h-8 rounded-full object-cover ring-1 ring-black/10 dark:ring-zinc-700"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-linear-to-tr from-indigo-600 to-purple-600 flex items-center justify-center font-bold text-white text-xs">
-                      {comment.user.username.slice(0, 2).toUpperCase()}
-                    </div>
-                  )}
+                  <Avatar
+                    src={comment.user.avatar}
+                    name={comment.user.displayName || comment.user.username}
+                    userId={comment.user.id}
+                    decoration={comment.user.activeDecoration}
+                    size="sm"
+                    className="w-8 h-8 ring-1 ring-black/10 dark:ring-zinc-700"
+                  />
                 </Link>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline gap-2">
                     <Link
                       to={`/profile/${comment.user.username || comment.user.id}`}
-                      className="font-semibold text-gray-900 dark:text-white hover:underline text-xs"
+                      className="hover:underline text-xs"
                     >
-                      {comment.user.displayName || comment.user.username}
+                      <StyledDisplayName
+                        name={comment.user.displayName || comment.user.username || 'User'}
+                        style={comment.user.displayNameStyle}
+                        userId={comment.user.id}
+                        className="font-semibold text-gray-900 dark:text-white"
+                      />
                     </Link>
                     <span className="text-[10px] text-gray-500 dark:text-zinc-500">
                       {new Date(comment.createdAt).toLocaleDateString(undefined, {

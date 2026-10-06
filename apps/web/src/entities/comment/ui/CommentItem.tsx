@@ -5,6 +5,7 @@ import Avatar from '../../../shared/ui/Avatar';
 import { CommentType } from '../model/types';
 import { FormattedText } from '@/shared/ui/FormattedText';
 import { sanitizeImageUrl } from '@/shared/lib/urlSecurity';
+import StyledDisplayName from '@/shared/ui/StyledDisplayName';
 
 interface CommentItemProps {
   comment: CommentType;
@@ -153,12 +154,22 @@ export function CommentItem({
           renderHoverCard(
             comment.handle,
             <Link to={`/profile/${comment.handle}`} onClick={(e) => e.stopPropagation()}>
-              <Avatar size={isReply ? 'xs' : 'sm'} src={comment.avatar} />
+              <Avatar
+                size={isReply ? 'xs' : 'sm'}
+                src={comment.avatar}
+                decoration={comment.activeDecoration}
+                userId={comment.userId}
+              />
             </Link>,
           )
         ) : (
           <Link to={`/profile/${comment.handle}`} onClick={(e) => e.stopPropagation()}>
-            <Avatar size={isReply ? 'xs' : 'sm'} src={comment.avatar} />
+            <Avatar
+              size={isReply ? 'xs' : 'sm'}
+              src={comment.avatar}
+              decoration={comment.activeDecoration}
+              userId={comment.userId}
+            />
           </Link>
         )}
       </div>
@@ -176,7 +187,12 @@ export function CommentItem({
                   onClick={(e) => e.stopPropagation()}
                   className="hover:underline inline-flex items-center text-xs font-semibold text-gray-900 dark:text-white truncate"
                 >
-                  {comment.author || comment.handle}
+                  <StyledDisplayName
+                    name={comment.author || comment.handle}
+                    nameStyle={(comment as any).displayNameStyle}
+                    userId={comment.userId}
+                    nameClassName="hover:underline text-xs font-semibold truncate"
+                  />
                 </Link>,
               )
             ) : (
@@ -185,7 +201,12 @@ export function CommentItem({
                 onClick={(e) => e.stopPropagation()}
                 className="hover:underline inline-flex items-center text-xs font-semibold text-gray-900 dark:text-white truncate"
               >
-                {comment.author || comment.handle}
+                <StyledDisplayName
+                  name={comment.author || comment.handle}
+                  nameStyle={(comment as any).displayNameStyle}
+                  userId={comment.userId}
+                  nameClassName="hover:underline text-xs font-semibold truncate"
+                />
               </Link>
             )}
             {renderBadge ? (

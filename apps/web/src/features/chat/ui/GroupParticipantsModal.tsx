@@ -1,3 +1,4 @@
+import { Nameplate } from '@/shared/ui/Nameplate';
 import React, { useState } from 'react';
 import { X, Crown, ShieldCheck, SlidersHorizontal } from 'lucide-react';
 import Avatar from '../../../shared/ui/Avatar';
@@ -61,8 +62,9 @@ export default function GroupParticipantsModal({
                   <div
                     key={p.userId}
                     style={{ animationDelay: `${Math.min(index, 8) * 20}ms` }}
-                    className="animate-fadeIn w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-all group"
+                    className="nameplate-row animate-fadeIn w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-all group"
                   >
+                    <Nameplate nameplate={p.user.activeNameplate} />
                     <button
                       type="button"
                       onClick={() => {
@@ -72,12 +74,22 @@ export default function GroupParticipantsModal({
                       className="flex items-center gap-3 min-w-0 flex-1 text-left cursor-pointer"
                     >
                       <div className="relative">
-                        <Avatar size="sm" src={p.user.avatar} />
+                        <Avatar
+                          size="sm"
+                          src={p.user.avatar}
+                          decoration={p.user.activeDecoration}
+                          userId={p.userId}
+                        />
                         <OnlineStatusIndicator userId={p.userId} variant="dot" />
                       </div>
-                      <div className="min-w-0 flex-1">
+                      <div data-nameplate-text className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 min-w-0">
-                          <p className="text-sm font-semibold text-white truncate">{name}</p>
+                          <p
+                            data-nameplate-label
+                            className="text-sm font-semibold text-white truncate"
+                          >
+                            {name}
+                          </p>
                           <VerifiedCheckmark
                             isVerified={p.user.isVerified}
                             primaryBadge={p.user.primaryBadge}

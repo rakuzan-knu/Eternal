@@ -28,7 +28,12 @@ export function CollectionCardCover({ coverImg, post, emptyIcon }: CollectionCar
         {/* Top bar: Author + Type Badge */}
         <div className="flex items-center justify-between gap-1.5 z-10">
           <div className="flex items-center gap-1.5 min-w-0 pr-1">
-            <Avatar size="sm" src={post.avatar} />
+            <Avatar
+              size="sm"
+              src={post.avatar}
+              decoration={(post as any).activeDecoration}
+              userId={(post as any).authorId}
+            />
             <span className="text-[11px] font-medium text-gray-300 truncate">@{post.handle}</span>
           </div>
 

@@ -80,7 +80,7 @@ describe('ParticipantContextMenu', () => {
   });
 
   describe('Self Context Menu', () => {
-    it('renders all self menu items according to Screenshot 1', () => {
+    it('renders all self menu items', () => {
       const onClose = vi.fn();
       const onOpenPreview = vi.fn();
 
@@ -188,7 +188,7 @@ describe('ParticipantContextMenu', () => {
   });
 
   describe('Other User Context Menu', () => {
-    it('renders all remote participant menu items according to Screenshot 2', () => {
+    it('renders all remote participant menu items', () => {
       const onClose = vi.fn();
 
       render(

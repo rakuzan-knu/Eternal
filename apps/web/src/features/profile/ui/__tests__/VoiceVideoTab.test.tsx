@@ -148,7 +148,7 @@ describe('VoiceVideoTab', () => {
     });
   });
 
-  it('renders all main sections properly in English with Discord layout', async () => {
+  it('renders all main sections properly in English', async () => {
     render(<VoiceVideoTab />);
 
     // Block 1: Voice (Microphone, Speaker, Volume, Test)

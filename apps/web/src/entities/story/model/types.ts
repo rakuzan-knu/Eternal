@@ -147,11 +147,15 @@ export type StoryOverlay =
   | AudioOverlay
   | DrawingOverlay;
 
+import type { AvatarDecorationDto } from '@social-network/shared-contracts';
+
 export interface StoryViewerUser {
   id: string;
   username: string;
   displayName: string | null;
   avatar: string | null;
+  activeDecoration?: AvatarDecorationDto | null;
+  displayNameStyle?: import('@social-network/shared-contracts').DisplayNameStyleDto | null;
   isVerified?: boolean;
 }
 

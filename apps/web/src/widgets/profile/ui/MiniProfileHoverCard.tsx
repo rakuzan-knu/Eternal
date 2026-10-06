@@ -3,7 +3,10 @@ import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Send, Play, FileText, AtSign } from 'lucide-react';
+import { ProfileEffect } from '@/shared/ui/ProfileEffect';
+import { ProfileFrame } from '@/shared/ui/ProfileFrame';
 import Avatar from '@/shared/ui/Avatar';
+import StyledDisplayName from '@/shared/ui/StyledDisplayName';
 import { apiClient as api } from '@/shared/api/httpClient';
 import { postsApi } from '@/entities/post/api/postsApi';
 import { PostType } from '@/entities/post/model/types';
@@ -18,6 +21,11 @@ interface MiniProfileData {
   username: string;
   displayName: string | null;
   avatar: string | null;
+  activeProfileEffect?: import('@social-network/shared-contracts').ProfileEffectDto | null;
+  activeProfileFrame?: import('@social-network/shared-contracts').ProfileFrameDto | null;
+  activeDecoration?: import('@social-network/shared-contracts').AvatarDecorationDto | null;
+  displayNameStyle?: import('@social-network/shared-contracts').DisplayNameStyleDto | null;
+  profileTheme?: import('@social-network/shared-contracts').ProfileThemeDto | null;
   banner?: string | null;
   bannerPosition?: number;
   bio: string | null;
@@ -246,7 +254,7 @@ export function MiniProfileHoverCard({
   return (
     <span
       ref={triggerRef}
-      className="relative inline-block"
+      className="relative inline-flex items-center"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
@@ -266,8 +274,20 @@ export function MiniProfileHoverCard({
               bottom: coords.bottom !== undefined ? `${coords.bottom}px` : undefined,
               left: coords.left !== undefined ? `${coords.left}px` : undefined,
               right: coords.right !== undefined ? `${coords.right}px` : undefined,
+              ...(profile?.profileTheme?.primary && profile?.profileTheme?.accent
+                ? {
+                    backgroundColor: profile.profileTheme.accent,
+                    backgroundImage: `linear-gradient(180deg, ${profile.profileTheme.primary} 0%, ${profile.profileTheme.accent} 100%)`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundSize: '100% 100%',
+                  }
+                : {}),
             }}
-            className="z-[9999] w-[330px] sm:w-[350px] max-w-[calc(100vw-24px)] rounded-[26px] overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.12)] border border-white/[0.14] bg-[#090a0f]/85 backdrop-blur-2xl animate-fadeIn text-left select-none"
+            className={`z-[9999] w-[330px] sm:w-[350px] max-w-[calc(100vw-24px)] rounded-[26px] overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.18)] border animate-fadeIn text-left select-none ${
+              profile?.profileTheme?.primary && profile?.profileTheme?.accent
+                ? 'border-white/20'
+                : 'border-white/[0.14] bg-[#090a0f]/85 backdrop-blur-2xl'
+            }`}
           >
             {/* Safe Hover Area Bridge to prevent premature closing */}
             <div className="absolute -inset-3 pointer-events-auto -z-20" />
@@ -278,7 +298,11 @@ export function MiniProfileHoverCard({
                 <img
                   src={profile.banner}
                   alt="Banner"
-                  className="w-full h-full object-cover opacity-35 scale-110 filter blur-xl"
+                  className={`w-full h-full object-cover filter blur-xl ${
+                    profile?.profileTheme?.primary && profile?.profileTheme?.accent
+                      ? 'opacity-20 scale-110'
+                      : 'opacity-35 scale-110'
+                  }`}
                   style={{
                     objectPosition: `center ${profile.bannerPosition ?? 50}%`,
                   }}
@@ -287,15 +311,27 @@ export function MiniProfileHoverCard({
                 <img
                   src={profile.avatar}
                   alt="Ambient"
-                  className="w-full h-full object-cover opacity-25 scale-125 filter blur-2xl"
+                  className={`w-full h-full object-cover filter blur-2xl ${
+                    profile?.profileTheme?.primary && profile?.profileTheme?.accent
+                      ? 'opacity-15 scale-125'
+                      : 'opacity-25 scale-125'
+                  }`}
                 />
-              ) : (
+              ) : !(profile?.profileTheme?.primary && profile?.profileTheme?.accent) ? (
                 <div className="w-full h-full bg-gradient-to-br from-purple-950/30 via-indigo-950/20 to-[#090a0f]" />
-              )}
-              <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-[#090a0f]/75 to-[#090a0f]/95" />
+              ) : null}
+              <div
+                className={`absolute inset-0 ${
+                  profile?.profileTheme?.primary && profile?.profileTheme?.accent
+                    ? 'bg-gradient-to-b from-black/10 via-transparent to-black/30'
+                    : 'bg-gradient-to-b from-black/40 via-[#090a0f]/75 to-[#090a0f]/95'
+                }`}
+              />
             </div>
 
             {/* 2. Card Content */}
+            <ProfileFrame frame={profile?.activeProfileFrame} priority compact />
+            <ProfileEffect effect={profile?.activeProfileEffect} priority />
             <div className="relative z-10 p-4 sm:p-5 flex flex-col gap-3.5">
               {isProfileLoading ? (
                 <div className="flex items-center justify-center py-16">
@@ -308,12 +344,15 @@ export function MiniProfileHoverCard({
                     <Link
                       to={`/profile/${profile.username}`}
                       onClick={(e) => e.stopPropagation()}
+                      data-profile-effect-avatar
                       className="relative shrink-0 group/avatar cursor-pointer"
                     >
                       <Avatar
                         src={profile.avatar}
                         name={profile.displayName || profile.username}
                         size="lg"
+                        decoration={profile.activeDecoration}
+                        userId={profile.id}
                         className="w-13 h-13 sm:w-14 sm:h-14 shadow-lg group-hover/avatar:scale-105 transition-transform duration-200"
                       />
                     </Link>
@@ -324,9 +363,12 @@ export function MiniProfileHoverCard({
                         onClick={(e) => e.stopPropagation()}
                         className="flex items-center gap-1.5 group/name"
                       >
-                        <span className="font-bold text-base text-white group-hover/name:underline truncate">
-                          {profile.displayName || profile.username}
-                        </span>
+                        <StyledDisplayName
+                          name={profile.displayName || profile.username}
+                          style={profile.displayNameStyle}
+                          userId={profile.id}
+                          className="font-bold text-base text-white group-hover/name:underline truncate"
+                        />
                         <VerifiedCheckmark
                           isVerified={profile.isVerified}
                           primaryBadge={profile.primaryBadge}
@@ -336,46 +378,48 @@ export function MiniProfileHoverCard({
 
                       {/* Threads / Handle pill */}
                       <div className="mt-1">
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.08] text-[11px] text-gray-300 font-medium">
-                          <AtSign size={11} className="text-gray-400" />
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-black/30 backdrop-blur-xl border border-white/15 text-[11px] text-white/90 font-medium shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]">
+                          <AtSign size={11} className="text-white/70" />
                           <span className="truncate max-w-[140px]">{profile.username}</span>
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Bio text (if available) */}
+                  {/* Bio text with liquid glass container */}
                   {profile.bio && (
-                    <p className="text-xs text-gray-200 line-clamp-2 leading-relaxed px-0.5">
-                      {profile.bio}
-                    </p>
+                    <div className="bg-black/30 backdrop-blur-xl rounded-2xl border border-white/15 px-3.5 py-2.5 shadow-[0_6px_20px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.15)]">
+                      <p className="text-xs text-white/95 line-clamp-2 leading-relaxed">
+                        {profile.bio}
+                      </p>
+                    </div>
                   )}
 
                   {/* 3. Liquid Glass Statistics Bar */}
-                  <div className="grid grid-cols-3 gap-2 bg-white/[0.04] backdrop-blur-md rounded-2xl border border-white/[0.08] p-2.5 sm:p-3 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                  <div className="grid grid-cols-3 gap-2 bg-black/30 backdrop-blur-xl rounded-2xl border border-white/15 p-2.5 sm:p-3 text-center shadow-[0_8px_24px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.2)]">
                     <div className="flex flex-col items-center">
-                      <span className="font-extrabold text-sm text-white tracking-tight">
+                      <span className="font-extrabold text-sm text-white tracking-tight drop-shadow-sm">
                         {formatCount(profile.postsCount ?? recentPosts.length)}
                       </span>
-                      <span className="text-[11px] text-gray-400 font-medium">posts</span>
+                      <span className="text-[11px] text-white/70 font-medium">posts</span>
                     </div>
-                    <div className="flex flex-col items-center border-x border-white/[0.06]">
-                      <span className="font-extrabold text-sm text-white tracking-tight">
+                    <div className="flex flex-col items-center border-x border-white/15">
+                      <span className="font-extrabold text-sm text-white tracking-tight drop-shadow-sm">
                         {formatCount(profile.followersCount)}
                       </span>
-                      <span className="text-[11px] text-gray-400 font-medium">followers</span>
+                      <span className="text-[11px] text-white/70 font-medium">followers</span>
                     </div>
                     <div className="flex flex-col items-center">
-                      <span className="font-extrabold text-sm text-white tracking-tight">
+                      <span className="font-extrabold text-sm text-white tracking-tight drop-shadow-sm">
                         {formatCount(profile.followingCount)}
                       </span>
-                      <span className="text-[11px] text-gray-400 font-medium">following</span>
+                      <span className="text-[11px] text-white/70 font-medium">following</span>
                     </div>
                   </div>
 
-                  {/* 4. Three Most Recent Posts Preview */}
+                  {/* 4. Three Most Recent Posts Preview with Liquid Glass Container */}
                   {recentPosts.length > 0 && (
-                    <div className="grid grid-cols-3 gap-1.5 rounded-2xl overflow-hidden border border-white/[0.06] bg-black/35 backdrop-blur-md p-1">
+                    <div className="grid grid-cols-3 gap-1.5 rounded-2xl overflow-hidden border border-white/15 bg-black/30 backdrop-blur-xl p-1.5 shadow-[0_8px_24px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.15)]">
                       {recentPosts.map((post) => {
                         const mediaItem =
                           post.media?.[0] ??
@@ -394,7 +438,7 @@ export function MiniProfileHoverCard({
                               e.stopPropagation();
                               openCommentModal(post);
                             }}
-                            className="aspect-square relative rounded-xl overflow-hidden bg-[#111115] border border-white/[0.04] group/thumb cursor-pointer select-none transition-transform hover:scale-[1.03]"
+                            className="aspect-square relative rounded-xl overflow-hidden bg-[#111115] border border-white/[0.08] group/thumb cursor-pointer select-none transition-transform hover:scale-[1.03]"
                           >
                             {mediaItem?.url ? (
                               <>
@@ -424,9 +468,9 @@ export function MiniProfileHoverCard({
                               </>
                             ) : (
                               /* Liquid glass text card preview */
-                              <div className="w-full h-full bg-gradient-to-br from-white/[0.08] to-white/[0.02] p-2 flex flex-col justify-between text-left">
-                                <FileText size={12} className="text-purple-400 opacity-80" />
-                                <p className="text-[10px] text-gray-300 line-clamp-3 leading-tight font-medium">
+                              <div className="w-full h-full bg-gradient-to-br from-white/[0.12] to-white/[0.03] p-2 flex flex-col justify-between text-left">
+                                <FileText size={12} className="text-purple-300 opacity-90" />
+                                <p className="text-[10px] text-white/85 line-clamp-3 leading-tight font-medium">
                                   {post.text || 'Post'}
                                 </p>
                               </div>
@@ -452,7 +496,7 @@ export function MiniProfileHoverCard({
                         type="button"
                         onClick={handleMessageClick}
                         disabled={isStartingChat}
-                        className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-xs shadow-lg shadow-blue-500/20 active:scale-95 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer disabled:opacity-50 select-none whitespace-nowrap"
+                        className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-xs shadow-lg shadow-blue-500/25 border border-white/15 active:scale-95 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer disabled:opacity-50 select-none whitespace-nowrap"
                       >
                         <Send size={13} className="fill-white" />
                         <span>Message</span>
@@ -468,11 +512,11 @@ export function MiniProfileHoverCard({
                         className={`w-full min-w-[94px] whitespace-nowrap flex items-center justify-center py-2 px-3 rounded-2xl font-semibold text-xs border transition-all duration-200 ease-out cursor-pointer disabled:opacity-50 select-none active:scale-95 hover:-translate-y-0.5 ${
                           isFollowing
                             ? isHoveredFollow
-                              ? 'bg-red-500/15 text-red-400 border-red-500/30 hover:shadow-[0_6px_20px_rgba(239,68,68,0.2)]'
+                              ? 'bg-red-500/25 text-red-300 border-red-500/40 backdrop-blur-xl shadow-[0_6px_20px_rgba(239,68,68,0.25)]'
                               : profile?.isFriend || (isFollowing && profile?.followsYou)
-                                ? 'bg-blue-500/15 text-blue-300 border-blue-500/30 hover:shadow-[0_6px_20px_rgba(59,130,246,0.3)]'
-                                : 'bg-white/[0.08] text-white border-white/[0.1] hover:bg-white/[0.12] hover:shadow-[0_6px_20px_rgba(255,255,255,0.08)]'
-                            : 'bg-white text-black border-transparent hover:bg-gray-100 shadow-md hover:shadow-[0_6px_20px_rgba(255,255,255,0.15)]'
+                                ? 'bg-blue-500/25 text-blue-200 border-blue-500/40 backdrop-blur-xl shadow-[0_6px_20px_rgba(59,130,246,0.3)]'
+                                : 'bg-black/30 text-white border-white/20 backdrop-blur-xl hover:bg-black/40 shadow-[0_6px_20px_rgba(0,0,0,0.2)]'
+                            : 'bg-white text-black border-transparent hover:bg-white/90 shadow-md hover:shadow-[0_6px_20px_rgba(255,255,255,0.2)]'
                         }`}
                       >
                         {isFollowing

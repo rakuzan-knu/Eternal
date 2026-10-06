@@ -1,0 +1,45 @@
+{
+  "format": "animated_webp",
+  "width": 384,
+  "height": 384,
+  "authoringWidth": 512,
+  "frames": 300,
+  "fps": 60,
+  "delay": [
+    17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17,
+    17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17,
+    17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17,
+    17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17,
+    17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17,
+    17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17,
+    17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17,
+    17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17,
+    17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17,
+    17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17,
+    17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17,
+    17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17,
+    17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17
+  ],
+  "revision": 1,
+  "sources": [
+    {
+      "file": "frontend\\public\\Profile-decorations\\3D-Models\\Swords\\blue_rose_sword.glb",
+      "sha256": "cb53b3ca62fcc50eac6b287e5bcaab6adfde64a6e3b2bd8fada966df15f96f05",
+      "vertices": 38529,
+      "extractedVertices": null
+    },
+    {
+      "file": "frontend\\public\\Profile-decorations\\3D-Models\\Swords\\excalibur_-_sword_art_online.glb",
+      "sha256": "79b3128db16b5a8dc46ad2d96f909c87b86d0c52822e7e052e0c06729c4199c1",
+      "vertices": 21109,
+      "extractedVertices": null
+    }
+  ],
+  "firstHash": "d29f80b9219ad58a679f9cfd36e21aa47e49801ab8d7f83f97ae7d76caf2d858",
+  "lastHash": "214cb72374ecd77217c4734fd6adf39fdb376a37b6da9f3535a9630ebf38e91c",
+  "maximumEndpointDeviationMetres": 1.4901161193847656e-8,
+  "renderScale": 1.775,
+  "geometry": "Supplied GLB swords, grip pivots, 3D swing/roll/depth and tetrahedral disintegration",
+  "endpointConvention": "Render 1..300; exact return pose at 301; no duplicated endpoint",
+  "vfx": "Actual 3D shards or binary glyphs, alpha-aware two-scale glow"
+}

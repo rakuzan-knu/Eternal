@@ -20,6 +20,8 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import Avatar from '@/shared/ui/Avatar';
+import StyledDisplayName from '@/shared/ui/StyledDisplayName';
 import type { ReelItem } from '../api/reelsApi';
 import {
   useToggleLikeReel,
@@ -419,23 +421,16 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
             onClick={(e) => e.stopPropagation()}
             className="block group"
           >
-            {reel.author.avatar ? (
-              <img
-                src={reel.author.avatar}
-                alt={reel.author.username}
-                className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full object-cover ring-2 ${
-                  isMobile ? 'ring-white/80' : 'ring-black/15 dark:ring-white/60'
-                } group-hover:scale-105 transition-transform`}
-              />
-            ) : (
-              <div
-                className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-linear-to-tr from-pink-500 to-indigo-500 flex items-center justify-center font-bold text-white text-sm ring-2 ${
-                  isMobile ? 'ring-white/80' : 'ring-black/15 dark:ring-white/60'
-                }`}
-              >
-                {reel.author.username.slice(0, 2).toUpperCase()}
-              </div>
-            )}
+            <Avatar
+              src={reel.author.avatar}
+              name={reel.author.displayName || reel.author.username}
+              userId={reel.author.id}
+              decoration={reel.author.activeDecoration}
+              size="md"
+              className={`w-11 h-11 sm:w-12 sm:h-12 group-hover:scale-105 transition-transform ring-2 ${
+                isMobile ? 'ring-white/80' : 'ring-black/15 dark:ring-white/60'
+              }`}
+            />
           </Link>
           {!isFollowing && !isOwnReel && (
             <button
@@ -920,10 +915,16 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
           <div className="flex items-center gap-1.5 mb-1">
             <Link
               to={`/profile/${reel.author.username || reel.author.id}`}
-              className="font-black text-white text-base sm:text-lg hover:underline truncate drop-shadow tracking-wide"
+              className="hover:underline truncate drop-shadow tracking-wide"
               onClick={(e) => e.stopPropagation()}
             >
-              {reel.author.displayName || reel.author.username}
+              <StyledDisplayName
+                name={reel.author.displayName || reel.author.username || 'User'}
+                style={reel.author.displayNameStyle}
+                userId={reel.author.id}
+                themeMode="dark"
+                className="font-black text-white text-base sm:text-lg"
+              />
             </Link>
             {reel.author.isVerified && (
               <CheckCircle2 className="w-4 h-4 text-blue-400 fill-blue-400 shrink-0" />
@@ -987,7 +988,7 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
         />
       </div>
 
-      {/* Desktop Action Rail (Positioned to the right of the video, matching screenshot) */}
+      {/* Desktop Action Rail */}
       <div className="hidden sm:flex flex-col items-center pb-2 z-20 shrink-0 pointer-events-auto">
         {renderActionRail(false)}
       </div>

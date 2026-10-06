@@ -33,6 +33,7 @@ import { MiniProfileHoverCard } from '@/widgets/profile';
 import { useAuthStore } from '@/shared/model/useAuthStore';
 import { useCurrentUser } from '@/entities/profile/model/useCurrentUser';
 import { useMessageToastStore } from '@/shared/model/useMessageToastStore';
+import StyledDisplayName from '@/shared/ui/StyledDisplayName';
 
 interface PostCardProps {
   post: PostType;
@@ -231,25 +232,35 @@ export function PostCard({ post, queryKey }: PostCardProps) {
               src={post.avatar}
               userId={post.authorId}
               username={post.handle}
+              decoration={post.activeDecoration}
             />
           </Link>
         </MiniProfileHoverCard>
         <div className="flex flex-col flex-1 gap-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
-              <div className="flex items-center gap-1.5 min-w-0">
+              <div className="flex items-center gap-1.5 min-w-0 flex-nowrap shrink-0">
                 <MiniProfileHoverCard username={post.handle}>
                   <Link
                     to={`/profile/${post.handle}`}
-                    className="hover:underline font-semibold text-sm text-gray-900 dark:text-white truncate inline-block"
+                    className="hover:underline font-semibold text-sm text-gray-900 dark:text-white truncate inline-flex items-center"
                   >
-                    {post.author || post.handle}
+                    <StyledDisplayName
+                      name={post.author || post.handle}
+                      nameStyle={
+                        post.displayNameStyle || (post as any).authorUser?.displayNameStyle
+                      }
+                      userId={post.authorId}
+                      className="inline-flex items-center"
+                      nameClassName="hover:underline text-sm font-semibold truncate inline-flex items-center"
+                    />
                   </Link>
                 </MiniProfileHoverCard>
                 <VerifiedCheckmark
                   isVerified={post.isVerified}
                   primaryBadge={post.primaryBadge}
                   size="sm"
+                  className="self-center"
                 />
               </div>
               <span className="text-xs text-gray-500 shrink-0 inline-flex items-center gap-1">

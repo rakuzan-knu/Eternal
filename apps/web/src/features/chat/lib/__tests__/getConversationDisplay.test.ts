@@ -3,6 +3,21 @@ import { getConversationDisplay, getMessagePreview } from '../getConversationDis
 import type { ConversationView } from '@/entities/chat/model/types';
 
 describe('getConversationDisplay', () => {
+  it('shows the other participant nameplate, never the current user plate or a member plate on a group', () => {
+    const mine = { id: 'mine' },
+      theirs = { id: 'theirs' };
+    const conversation = {
+      type: 'DIRECT',
+      participants: [
+        { userId: 'me', user: { username: 'me', activeNameplate: mine } },
+        { userId: 'other', user: { username: 'other', activeNameplate: theirs } },
+      ],
+    } as unknown as ConversationView;
+    expect(getConversationDisplay(conversation, 'me').activeNameplate).toBe(theirs);
+    expect(
+      getConversationDisplay({ ...conversation, type: 'GROUP' }, 'me').activeNameplate,
+    ).toBeNull();
+  });
   it('returns group title, avatar, verified flag and badge for group chats', () => {
     const groupConv: Partial<ConversationView> = {
       type: 'GROUP',

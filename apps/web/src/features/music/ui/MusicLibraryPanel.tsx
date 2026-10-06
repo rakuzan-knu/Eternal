@@ -120,7 +120,7 @@ export const MusicLibraryPanel: React.FC = () => {
     rect: DOMRect;
   } | null>(null);
 
-  // Liked Songs dedicated context menu (Screenshot 4: ONLY Pin/Unpin)
+  // Liked Songs dedicated context menu
   const [likedSongsMenu, setLikedSongsMenu] = useState<{ x: number; y: number } | null>(null);
 
   // Folder and Track context menu for Library
@@ -564,9 +564,7 @@ export const MusicLibraryPanel: React.FC = () => {
         }}
         className="relative h-full flex flex-col glass-sidebar border-r border-white/10 select-none overflow-hidden z-10 flex-shrink-0"
       >
-        {/* ========================================================= */}
-        {/* 1. COLLAPSED VIEW HEADER (Width 72px, 1-to-1 with Spotify) */}
-        {/* ========================================================= */}
+        {/* 1. COLLAPSED VIEW HEADER*/}
         {!isLibraryExpanded ? (
           <div className="h-16 flex items-center justify-center w-full shrink-0 border-b border-white/5">
             {/* Top Library Expand Button */}
@@ -588,9 +586,7 @@ export const MusicLibraryPanel: React.FC = () => {
             </Tooltip>
           </div>
         ) : (
-          /* ========================================================= */
-          /* 2. EXPANDED VIEW HEADER                                   */
-          /* ========================================================= */
+          /* 2. EXPANDED VIEW HEADER*/
           <div
             className={`flex items-center justify-between border-b border-white/5 shrink-0 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] h-16 ${
               isLibraryFullWidth ? 'px-6' : 'px-4'
@@ -734,15 +730,10 @@ export const MusicLibraryPanel: React.FC = () => {
           </div>
         )}
 
-        {/* ========================================================= */}
-        {/* 3. FILTERS, SEARCH & PRESENTATION CONTROLS (EXPANDED)    */}
-        {/* ========================================================= */}
+        {/* 3. FILTERS, SEARCH & PRESENTATION CONTROLS (EXPANDED)*/}
         {isLibraryExpanded && (
           <>
             {isLibraryFullWidth ? (
-              /* ----------------------------------------------------- */
-              /* FULL-WIDTH TOOLBAR (1-to-1 with Spotify Screenshot 1) */
-              /* ----------------------------------------------------- */
               <div className="px-6 py-3 flex items-center justify-between gap-4 shrink-0 border-b border-black/5 dark:border-white/5">
                 {/* Left: Filter Buttons (Larger, more balanced pills) */}
                 <div className="flex items-center gap-2.5">
@@ -911,9 +902,7 @@ export const MusicLibraryPanel: React.FC = () => {
                 </div>
               </div>
             ) : (
-              /* ----------------------------------------------------- */
-              /* SIDEBAR TOOLBAR (Width 340px)                         */
-              /* ----------------------------------------------------- */
+              /* SIDEBAR TOOLBAR (Width 340px)*/
               <div className="px-4 pt-3 pb-2 space-y-2 shrink-0">
                 {/* Filter Pills */}
                 <div className="flex items-center gap-2">
@@ -1112,14 +1101,9 @@ export const MusicLibraryPanel: React.FC = () => {
             )}
           </>
         )}
-
-        {/* ========================================================= */}
-        {/* 4. CONTENT AREA (FULL-WIDTH vs COLLAPSED vs EXPANDED)     */}
-        {/* ========================================================= */}
+        {/* 4. CONTENT AREA (FULL-WIDTH vs COLLAPSED vs EXPANDED)*/}
         {!isLibraryExpanded ? (
-          /* --------------------------------------------------------- */
-          /* COLLAPSED LIST VIEW (Width 72px, 1-to-1 with Spotify)     */
-          /* --------------------------------------------------------- */
+          /* COLLAPSED LIST VIEW*/
           <div
             style={{ paddingBottom: `${dockOffset + 16}px` }}
             className="flex-1 w-full overflow-y-auto custom-scrollbar flex flex-col items-center gap-2.5 py-3 px-0 select-none"
@@ -1286,9 +1270,7 @@ export const MusicLibraryPanel: React.FC = () => {
             ))}
           </div>
         ) : (
-          /* --------------------------------------------------------- */
-          /* EXPANDED & FULL-WIDTH PRESENTATION MODES (4 MODES)        */
-          /* --------------------------------------------------------- */
+          /* EXPANDED & FULL-WIDTH PRESENTATION MODES (4 MODES)*/
           <div
             style={{ paddingBottom: `${dockOffset + 24}px` }}
             className={`flex-1 overflow-y-auto custom-scrollbar select-none transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
@@ -1319,10 +1301,7 @@ export const MusicLibraryPanel: React.FC = () => {
                 </p>
               </div>
             )}
-
-            {/* ======================================================= */}
             {/* MODE 1: COMPACT */}
-            {/* ======================================================= */}
             {hasAnyItems && libraryViewMode === 'compact' && (
               <div className="space-y-1">
                 {/* Liked Songs Entry */}
@@ -1509,10 +1488,7 @@ export const MusicLibraryPanel: React.FC = () => {
                   })}
               </div>
             )}
-
-            {/* ======================================================= */}
             {/* MODE 2: LIST */}
-            {/* ======================================================= */}
             {hasAnyItems && libraryViewMode === 'list' && (
               <div className="space-y-1.5">
                 {/* Liked Songs Entry */}
@@ -1773,10 +1749,7 @@ export const MusicLibraryPanel: React.FC = () => {
                   })}
               </div>
             )}
-
-            {/* ======================================================= */}
             {/* MODE 3: GRID COVERS */}
-            {/* ======================================================= */}
             {hasAnyItems && libraryViewMode === 'grid-covers' && (
               <div
                 className={`grid gap-3.5 ${
@@ -1912,10 +1885,7 @@ export const MusicLibraryPanel: React.FC = () => {
                   ))}
               </div>
             )}
-
-            {/* ======================================================= */}
             {/* MODE 4: GRID CARDS */}
-            {/* ======================================================= */}
             {hasAnyItems && libraryViewMode === 'grid-cards' && (
               <div
                 className={`grid gap-4 ${
@@ -2105,9 +2075,7 @@ export const MusicLibraryPanel: React.FC = () => {
           </div>
         )}
 
-        {/* ========================================================= */}
-        {/* 5. SLIDE-IN FOLDER PANEL (Spotify UI: Screenshot 1)       */}
-        {/* ========================================================= */}
+        {/* 5. SLIDE-IN FOLDER PANEL*/}
         <AnimatePresence>
           {activeFolder && (
             <motion.div
@@ -2234,7 +2202,7 @@ export const MusicLibraryPanel: React.FC = () => {
                 className="flex-1 overflow-y-auto custom-scrollbar p-3 select-none"
               >
                 {folderPlaylists.length === 0 ? (
-                  /* Empty State (1-to-1 with Screenshot 1) */
+                  /* Empty State */
                   <div className="h-full min-h-[300px] flex flex-col items-center justify-center text-center px-6 py-12">
                     <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
                       This folder is empty

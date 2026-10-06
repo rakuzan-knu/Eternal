@@ -72,7 +72,6 @@ export const MusicTopNavbar: React.FC<MusicTopNavbarProps> = ({
   return (
     <>
       <header className="h-16 shrink-0 grid grid-cols-[1fr_auto_1fr] items-center px-6 glass-panel border-b border-black/10 dark:border-white/10 z-20 select-none">
-        {/* Left: Navigation History (< and >) like Apple Music, Spotify & Discord */}
         <div className="justify-self-start flex items-center gap-1.5">
           <Tooltip label="Back" position="bottom">
             <button

@@ -29,10 +29,6 @@ export interface ParticipantContextMenuProps {
   onOpenPreview: () => void;
 }
 
-/**
- * Discord-style custom Checkbox with spring pop-in & stroke draw animation
- * and contrasting purple palette that never blends into row hover background.
- */
 function DiscordCheckbox({ checked, disabled = false }: { checked: boolean; disabled?: boolean }) {
   return (
     <motion.div
@@ -88,10 +84,6 @@ function DiscordCheckbox({ checked, disabled = false }: { checked: boolean; disa
   );
 }
 
-/**
- * Discord-style custom Range Slider for User Volume (0% - 200%)
- * Styled with our purple theme gradient and instant 0-gain support.
- */
 function DiscordVolumeSlider({
   value,
   onChange,
@@ -420,7 +412,7 @@ export function ParticipantContextMenu({
       }}
     >
       {isLocal ? (
-        /* ================= 1. SELF CONTEXT MENU (Screenshot 1) ================= */
+        /*1. SELF CONTEXT MENU*/
         <>
           {/* 1.1 Profile */}
           <button
@@ -482,7 +474,7 @@ export function ParticipantContextMenu({
           </button>
         </>
       ) : (
-        /* ================= 2. OTHER USER CONTEXT MENU (Screenshot 2) ================= */
+        /* 2. OTHER USER CONTEXT MENU */
         <>
           {/* 2.1 Profile */}
           <button

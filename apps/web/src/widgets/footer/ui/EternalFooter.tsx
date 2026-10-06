@@ -234,7 +234,7 @@ export const EternalFooter: React.FC = () => {
               </span>
             </div>
 
-            {/* Language Selector Dropdown (Opens downwards with scrollbar 1:1 Discord style) */}
+            {/* Language Selector Dropdown (Opens downwards with scrollbar) */}
             <div className="relative w-full max-w-sm sm:max-w-xs z-30" ref={langRef}>
               <label className="text-xs font-bold text-purple-200 uppercase tracking-wider block mb-2">
                 {t.language}
@@ -347,7 +347,7 @@ export const EternalFooter: React.FC = () => {
             ))}
           </div>
 
-          {/* Mobile Accordion Menu (Screens < lg, 1:1 Discord Style) */}
+          {/* Mobile Accordion Menu */}
           <div className="lg:hidden w-full flex flex-col pt-2">
             <div className="text-xs font-bold text-purple-200 uppercase tracking-wider mb-2">
               {menuTitle}
@@ -428,7 +428,7 @@ export const EternalFooter: React.FC = () => {
               })}
             </div>
 
-            {/* Mobile Social Media Section (Placed below menu accordions, Discord 1:1) */}
+            {/* Mobile Social Media Section*/}
             <div className="mt-8 mb-2">
               <div className="text-xs font-bold text-purple-200 uppercase tracking-wider mb-3">
                 {t.social}

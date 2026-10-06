@@ -905,7 +905,6 @@ export class SoundboardEngine {
     osc.stop(startTime + 0.65);
   }
 
-  /** Quack: Discord-style duck quack with resonant formant filters */
   private synthQuack(startTime: number): void {
     if (!this.audioCtx || !this.sidechainGain) return;
 

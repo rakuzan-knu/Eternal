@@ -583,7 +583,12 @@ export function CommentModal() {
                     to={`/profile/${activePostForComments.handle}`}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <Avatar size="lg" src={activePostForComments.avatar} />
+                    <Avatar
+                      size="lg"
+                      src={activePostForComments.avatar}
+                      decoration={activePostForComments.activeDecoration}
+                      userId={activePostForComments.authorId}
+                    />
                   </Link>
                 </MiniProfileHoverCard>
 
@@ -591,6 +596,8 @@ export function CommentModal() {
                   <UserNameWithBadges
                     displayName={activePostForComments.author}
                     username={activePostForComments.handle}
+                    nameStyle={(activePostForComments as any).displayNameStyle}
+                    userId={activePostForComments.authorId}
                     isVerified={activePostForComments.isVerified}
                     primaryBadge={activePostForComments.primaryBadge}
                     size="md"
@@ -631,7 +638,12 @@ export function CommentModal() {
             <div className="flex items-center gap-3 min-w-0">
               <MiniProfileHoverCard username={activePostForComments.handle}>
                 <Link to={`/profile/${activePostForComments.handle}`}>
-                  <Avatar size="sm" src={activePostForComments.avatar} />
+                  <Avatar
+                    size="sm"
+                    src={activePostForComments.avatar}
+                    decoration={activePostForComments.activeDecoration}
+                    userId={activePostForComments.authorId}
+                  />
                 </Link>
               </MiniProfileHoverCard>
 
@@ -644,6 +656,8 @@ export function CommentModal() {
                     <UserNameWithBadges
                       displayName={activePostForComments.author}
                       username={activePostForComments.handle}
+                      nameStyle={(activePostForComments as any).displayNameStyle}
+                      userId={activePostForComments.authorId}
                       isVerified={activePostForComments.isVerified}
                       primaryBadge={activePostForComments.primaryBadge}
                       size="sm"
@@ -707,7 +721,12 @@ export function CommentModal() {
             <div className="flex gap-3 items-start pb-3.5 border-b border-black/10 dark:border-white/[0.06]">
               <MiniProfileHoverCard username={activePostForComments.handle}>
                 <Link to={`/profile/${activePostForComments.handle}`} className="shrink-0 pt-0.5">
-                  <Avatar size="sm" src={activePostForComments.avatar} />
+                  <Avatar
+                    size="sm"
+                    src={activePostForComments.avatar}
+                    decoration={activePostForComments.activeDecoration}
+                    userId={activePostForComments.authorId}
+                  />
                 </Link>
               </MiniProfileHoverCard>
               <div className="flex-1 min-w-0">
@@ -720,6 +739,8 @@ export function CommentModal() {
                       <UserNameWithBadges
                         displayName={activePostForComments.author}
                         username={activePostForComments.handle}
+                        nameStyle={(activePostForComments as any).displayNameStyle}
+                        userId={activePostForComments.authorId}
                         isVerified={activePostForComments.isVerified}
                         primaryBadge={activePostForComments.primaryBadge}
                         size="sm"

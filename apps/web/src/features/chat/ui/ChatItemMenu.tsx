@@ -56,6 +56,7 @@ interface ChatItemMenuProps {
 
 export default function ChatItemMenu({
   conversation,
+  otherUserId,
   otherUsername,
   conversationTitle = 'Chat',
   avatarUrl = null,
@@ -355,6 +356,10 @@ export default function ChatItemMenu({
         <DeleteChatModal
           conversationName={conversationTitle}
           avatarUrl={avatarUrl}
+          decoration={
+            conversation.participants.find((p) => p.userId === otherUserId)?.user?.activeDecoration
+          }
+          userId={otherUserId ?? undefined}
           isGroup={isGroup}
           memberAvatars={memberAvatars}
           otherUserName={otherUsername ?? conversationTitle}

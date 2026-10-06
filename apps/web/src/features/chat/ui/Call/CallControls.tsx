@@ -165,7 +165,7 @@ export function CallControls({
           </div>
         )}
 
-        {/* 1. Mute Split Button Pill (Discord-style) */}
+        {/* 1. Mute Split Button Pill */}
         <div className="relative">
           <div
             data-popover-trigger="mic"
@@ -224,7 +224,7 @@ export function CallControls({
           />
         </div>
 
-        {/* Deafen Split Button Pill (Discord-style) */}
+        {/* Deafen Split Button Pill */}
         {onToggleDeafen && (
           <div className="relative">
             <div
@@ -284,7 +284,7 @@ export function CallControls({
           </div>
         )}
 
-        {/* 2. Video Toggle Split Button Pill (Discord-style) */}
+        {/* 2. Video Toggle Split Button Pill */}
         <div className="relative">
           <div
             data-popover-trigger="camera"
@@ -469,7 +469,7 @@ export function CallControls({
         onOpenSettings={onOpenSettings}
       />
 
-      {/* Floating Camera Preview Modal (Discord style) */}
+      {/* Floating Camera Preview Modal */}
       <CameraPreviewModal
         isOpen={isCameraPreviewOpen}
         onClose={() => setIsCameraPreviewOpen(false)}

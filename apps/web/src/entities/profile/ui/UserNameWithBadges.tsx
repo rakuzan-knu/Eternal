@@ -1,10 +1,15 @@
 import React from 'react';
+import type { DisplayNameStyleDto } from '@social-network/shared-contracts';
 import VerifiedCheckmark from './VerifiedCheckmark';
 import UserBadgeIcon from './UserBadgeIcon';
+import StyledDisplayName from '@/shared/ui/StyledDisplayName';
 
 interface UserNameWithBadgesProps {
   displayName?: string | null | undefined;
   username: string;
+  nameStyle?: DisplayNameStyleDto | null | undefined;
+  userId?: string | null | undefined;
+  isCurrentUser?: boolean | undefined;
   isVerified?: boolean | undefined;
   primaryBadge?: string | null | undefined;
   size?: ('sm' | 'md' | 'lg') | undefined;
@@ -19,6 +24,9 @@ interface UserNameWithBadgesProps {
 export function UserNameWithBadges({
   displayName,
   username,
+  nameStyle,
+  userId,
+  isCurrentUser,
   isVerified = false,
   primaryBadge = null,
   size = 'md',
@@ -47,13 +55,22 @@ export function UserNameWithBadges({
     <div
       className={`inline-flex items-center gap-1.5 min-w-0 max-w-full leading-none ${className}`}
     >
-      <span
-        className={`truncate text-gray-900 dark:text-white ${fontSizes[size]} ${nameClassName}`}
-      >
-        {nameToDisplay}
-      </span>
+      <StyledDisplayName
+        name={nameToDisplay}
+        nameStyle={nameStyle}
+        userId={userId}
+        isCurrentUser={isCurrentUser}
+        className={fontSizes[size]}
+        nameClassName={nameClassName}
+      />
 
-      {isVerified && <VerifiedCheckmark size={badgeSizes[size]} />}
+      {isVerified && (
+        <VerifiedCheckmark
+          isVerified={isVerified}
+          size={badgeSizes[size]}
+          className="self-center"
+        />
+      )}
       {primaryBadge && (
         <UserBadgeIcon
           badgeId={primaryBadge}

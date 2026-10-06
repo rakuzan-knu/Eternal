@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Search, UserPlus, Check, Loader2 } from 'lucide-react';
 import Avatar from '@/shared/ui/Avatar';
 import Modal from '@/shared/ui/Modal';
+import { Nameplate } from '@/shared/ui/Nameplate';
 import { useUserSearch } from '@/entities/user';
 import type { UserSearchResult } from '@/entities/user';
 import { useCurrentUser } from '@/entities/profile/model/useCurrentUser';
@@ -192,16 +193,22 @@ export const PlaylistCollaboratorsModal: React.FC<PlaylistCollaboratorsModalProp
                 return (
                   <div
                     key={user.id}
-                    className="flex items-center justify-between p-2.5 rounded-2xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                    className="nameplate-row flex items-center justify-between p-2.5 rounded-2xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
                   >
+                    <Nameplate nameplate={user.activeNameplate} alwaysPlay={true} />
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       <Avatar
                         size="md"
                         src={user.avatar}
                         name={user.displayName || user.username}
+                        decoration={(user as any).activeDecoration}
+                        userId={user.id}
                       />
-                      <div className="min-w-0 flex-1">
-                        <div className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                      <div data-nameplate-text className="min-w-0 flex-1">
+                        <div
+                          data-nameplate-label
+                          className="text-sm font-semibold text-gray-900 dark:text-white truncate"
+                        >
                           {user.displayName || user.username}
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400 truncate">

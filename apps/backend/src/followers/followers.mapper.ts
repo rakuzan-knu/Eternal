@@ -25,7 +25,15 @@ export function toUserProfileDto(
     id: user.id,
     username: user.username,
     displayName: user.displayName,
+    displayNameStyle: 'displayNameStyle' in user ? (user.displayNameStyle as any) : undefined,
+    profileTheme: 'profileTheme' in user ? (user.profileTheme as any) : undefined,
     avatar: user.avatar,
+    ...('activeDecoration' in user
+      ? { activeDecoration: user.activeDecoration, activeDecorationId: user.activeDecorationId }
+      : {}),
+    ...('activeNameplate' in user
+      ? { activeNameplate: user.activeNameplate, activeNameplateId: user.activeNameplateId }
+      : {}),
     bio: user.bio,
     isPrivate: user.isPrivate,
     isVerified: user.isVerified ?? false,

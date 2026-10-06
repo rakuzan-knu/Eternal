@@ -1,13 +1,3 @@
-/**
- * Web Audio Processing Pipeline for Microphone Input (Discord-Grade Architecture)
- *
- * Raw Stream (getUserMedia) ➔ AudioContext ➔ RNNoise / Highpass (80Hz) ➔ Compressor
- * ➔ Voice FX (Robot/Radio/Deep/Cosmic) ➔ GainNode (Input Volume 0-200%)
- * ➔ VAD / PTT Gate Node (10ms attack / smooth release) ➔ AnalyserNode ➔ MediaStreamDestinationNode
- *
- * Retains strong instance references to all nodes to prevent Chrome V8 Garbage Collection bug.
- */
-
 import type { VoiceFXMode } from './voiceFX';
 
 export interface LocalAudioPipelineOptions {

@@ -67,7 +67,12 @@ export default function GroupMemberDetailView({
       <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-5">
         <div className="flex flex-col items-center text-center mb-5">
           <div className="relative w-28 h-28 mx-auto mb-3 shrink-0 flex items-center justify-center">
-            <Avatar size="xl" src={participant.user.avatar} />
+            <Avatar
+              size="xl"
+              src={participant.user.avatar}
+              decoration={participant.user.activeDecoration}
+              userId={participant.userId}
+            />
             <OnlineStatusIndicator userId={participant.userId} variant="dot" size="xl" />
           </div>
           <div className="flex items-center justify-center gap-1.5 min-w-0">

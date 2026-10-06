@@ -8,11 +8,6 @@ export interface VideoLoaderProps {
   className?: string;
 }
 
-/**
- * Authentic Discord-Style Video & Screen Share Loader.
- * Displays the iconic tumbling dual purple cubes in the center of a dark card
- * with a bottom-left participant metadata pill badge.
- */
 export function VideoLoader({
   userName,
   isMuted = false,
@@ -25,7 +20,7 @@ export function VideoLoader({
       aria-label={`Connecting video for ${userName || 'participant'}...`}
       className={`absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#1e1f22] select-none pointer-events-none transition-opacity duration-300 ${className}`}
     >
-      {/* Discord tumbling dual purple cubes animation */}
+      {/* tumbling dual purple cubes animation */}
       <div className="relative w-12 h-12 flex items-center justify-center">
         <div className="discord-cubes-wrapper relative w-8 h-8">
           <div className="discord-cube-1 absolute top-0 left-0 w-3 h-3 bg-[#8b5cf6] rounded-[3px] shadow-[0_0_12px_rgba(139,92,246,0.85)]" />

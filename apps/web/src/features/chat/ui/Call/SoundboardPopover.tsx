@@ -366,7 +366,7 @@ export function SoundboardPopover({
 
         {/* Popover Body: Left Rail + Sound Library */}
         <div className="flex-1 flex min-h-0 overflow-hidden">
-          {/* Left Navigation Rail (Discord-style sidebar) */}
+          {/* Left Navigation Rail */}
           <div className="w-13 border-r border-white/10 flex flex-col items-center py-2.5 gap-1 shrink-0 bg-black/30 overflow-y-auto">
             {CATEGORIES.map((cat) => {
               const Icon = cat.icon;
@@ -932,7 +932,7 @@ function SoundCard({
     >
       {/* Left side: Emoji + Preview button + Sound Name */}
       <div className="flex items-center gap-2 min-w-0 flex-1 pr-1">
-        {/* Telegram-style Animated Emoji (static when idle, animates when hovered or playing) */}
+        {/* Animated Emoji (static when idle, animates when hovered or playing) */}
         <div
           className={`shrink-0 transition-transform duration-200 ${
             isPlaying ? 'scale-115' : 'group-hover:scale-105'
@@ -946,7 +946,7 @@ function SoundCard({
           />
         </div>
 
-        {/* Discord-style Hover Preview Button with Tooltip */}
+        {/* Hover Preview Button with Tooltip */}
         <div className="relative shrink-0 flex items-center">
           <button
             type="button"

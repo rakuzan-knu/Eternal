@@ -288,6 +288,7 @@ export function CallModal() {
             <Avatar
               src={remoteParticipant?.avatar}
               size="xl"
+              suppressDecoration={true}
               className="relative z-10 ring-4 ring-indigo-500/50 shadow-2xl"
             />
           </div>
@@ -318,6 +319,7 @@ export function CallModal() {
             <Avatar
               src={incomingCall.caller.avatar}
               size="xl"
+              suppressDecoration={true}
               className="relative z-10 ring-4 ring-emerald-500/50 shadow-2xl"
             />
           </div>
@@ -390,7 +392,7 @@ export function CallModal() {
                 onEndCall={endCall}
               />
 
-              {/* Main window paused state overlay (Discord /popout style) */}
+              {/* Main window paused state overlay */}
               <div className="flex-1 flex flex-col items-center justify-center text-center p-6 select-none animate-fadeIn">
                 <div className="w-16 h-16 rounded-2xl bg-[#7059f6]/10 border border-[#7059f6]/20 flex items-center justify-center mb-4 text-[#7059f6] shadow-lg shadow-[#7059f6]/10">
                   <SquareArrowOutUpRight size={28} />
@@ -454,7 +456,7 @@ export function CallModal() {
             />
           )}
 
-          {/* Discord-Style Live Stream Stats HUD */}
+          {/* Live Stream Stats HUD */}
           {isStatsHUDOpen && (
             <StatsHUD stats={liveStats} onClose={() => setIsStatsHUDOpen(false)} />
           )}

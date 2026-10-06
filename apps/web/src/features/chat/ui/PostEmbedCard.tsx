@@ -76,7 +76,12 @@ export function PostEmbedCard({ postId, isOwnMessage }: PostEmbedCardProps) {
       {/* Author Bar */}
       <div className="flex items-center justify-between gap-2 mb-2">
         <div className="flex items-center gap-2 min-w-0">
-          <Avatar size="sm" src={post.avatar} />
+          <Avatar
+            size="sm"
+            src={post.avatar}
+            decoration={(post as any).activeDecoration}
+            userId={(post as any).authorId}
+          />
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-1 min-w-0">
               <span

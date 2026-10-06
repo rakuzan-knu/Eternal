@@ -90,8 +90,8 @@ function ReplyLinkThumbnail({ url }: { url: string }) {
 
 export function getTelegramPeerColor(senderKey?: string | null): TelegramPeerColor {
   const TELEGRAM_PALETTE: TelegramPeerColor[] = [
-    { accent: '#e55050', tint: 'rgba(229, 80, 80, 0.08)', hover: 'rgba(229, 80, 80, 0.16)' }, // Red / Coral (Ayate in screenshots 2, 3, 4)
-    { accent: '#29b6f6', tint: 'rgba(41, 182, 246, 0.08)', hover: 'rgba(41, 182, 246, 0.16)' }, // Cyan Sky (Artem / Misha in screenshots 1, 5)
+    { accent: '#e55050', tint: 'rgba(229, 80, 80, 0.08)', hover: 'rgba(229, 80, 80, 0.16)' }, // Red / Coral
+    { accent: '#29b6f6', tint: 'rgba(41, 182, 246, 0.08)', hover: 'rgba(41, 182, 246, 0.16)' }, // Cyan Sky
     { accent: '#ab47bc', tint: 'rgba(171, 71, 188, 0.08)', hover: 'rgba(171, 71, 188, 0.16)' }, // Purple / Violet
     { accent: '#4caf50', tint: 'rgba(76, 175, 80, 0.08)', hover: 'rgba(76, 175, 80, 0.16)' }, // Green
     { accent: '#ffa726', tint: 'rgba(255, 167, 38, 0.08)', hover: 'rgba(255, 167, 38, 0.16)' }, // Orange / Amber

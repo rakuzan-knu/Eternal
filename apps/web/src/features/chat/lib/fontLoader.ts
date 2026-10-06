@@ -47,10 +47,6 @@ export function loadThemeFont(fontFamily: string, googleFontName?: string): void
   }
 }
 
-/**
- * Preloads the 12 Discord-style text fonts in a single batch request when the user
- * opens the "Text" tab in the Theme Customizer modal.
- */
 export function preloadTextTabFonts(): void {
   if (typeof document === 'undefined') return;
 

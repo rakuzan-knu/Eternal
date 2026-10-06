@@ -12,7 +12,25 @@ model User {
   email            String           @unique
   username         String           @unique
   displayName      String?
+  displayNameStyle Json?            @map("display_name_style")
+  profileTheme     Json?            @map("profile_theme")
   passwordHash     String
+  activeDecorationId String? @map("active_decoration_id")
+  activeDecoration AvatarDecoration? @relation("ActiveAvatarDecoration", fields: [activeDecorationId], references: [id], onDelete: SetNull)
+  decorations UserDecoration[]
+  activeOwnedDecoration UserDecoration? @relation("ActiveOwnedDecoration", fields: [id, activeDecorationId], references: [userId, decorationId], onDelete: NoAction, onUpdate: NoAction, map: "User_active_decoration_owned_fkey")
+  activeProfileFrameId String? @map("active_profile_frame_id")
+  activeProfileFrame ProfileFrame? @relation("ActiveProfileFrame", fields: [activeProfileFrameId], references: [id], onDelete: SetNull)
+  profileFrames UserProfileFrame[]
+  activeOwnedProfileFrame UserProfileFrame? @relation("ActiveOwnedProfileFrame", fields: [id, activeProfileFrameId], references: [userId, profileFrameId], onDelete: NoAction, onUpdate: NoAction, map: "User_active_profile_frame_owned_fkey")
+  activeProfileEffectId String? @map("active_profile_effect_id")
+  activeProfileEffect ProfileEffect? @relation("ActiveProfileEffect", fields: [activeProfileEffectId], references: [id], onDelete: SetNull)
+  profileEffects UserProfileEffect[]
+  activeOwnedProfileEffect UserProfileEffect? @relation("ActiveOwnedProfileEffect", fields: [id, activeProfileEffectId], references: [userId, profileEffectId], onDelete: NoAction, onUpdate: NoAction, map: "User_active_profile_effect_owned_fkey")
+  activeNameplateId String? @map("active_nameplate_id")
+  activeNameplate Nameplate? @relation("ActiveNameplate", fields: [activeNameplateId], references: [id], onDelete: SetNull)
+  nameplates UserNameplate[]
+  activeOwnedNameplate UserNameplate? @relation("ActiveOwnedNameplate", fields: [id, activeNameplateId], references: [userId, nameplateId], onDelete: NoAction, onUpdate: NoAction, map: "User_active_nameplate_owned_fkey")
   avatar           String?
   bio              String?
   banner           String?
@@ -79,6 +97,11 @@ model User {
   likedTracks              UserLikedTrack[]
   musicFolders             UserMusicFolder[]
   musicPlaylists           UserPlaylist[]
+
+  @@index([activeDecorationId])
+  @@index([activeNameplateId])
+  @@index([activeProfileFrameId])
+  @@index([activeProfileEffectId])
 }
 
 model UserBadge {
@@ -1198,4 +1221,159 @@ model FeatureFlag {
 
   @@index([key, isEnabled])
   @@map("feature_flags")
+}
+
+enum DecorationAssetType {
+  animated_webp
+  css_canvas
+  lottie
+}
+
+enum DecorationRarity {
+  common
+  rare
+  epic
+  legendary
+}
+
+model AvatarDecoration {
+  id          String              @id @default(uuid())
+  name        String
+  slug        String              @unique
+  description String
+  assetType   DecorationAssetType @map("asset_type")
+  assetUrl    String              @map("asset_url")
+  previewUrl  String              @map("preview_url")
+  renderScale Float              @default(1.2) @map("render_scale")
+  rarity      DecorationRarity    @default(common)
+  priceCents  Int                 @default(199) @map("price_cents")
+  isAvailable Boolean             @default(false) @map("is_available")
+  owners      UserDecoration[]
+  activeUsers User[]              @relation("ActiveAvatarDecoration")
+
+  @@map("avatar_decorations")
+}
+
+model UserDecoration {
+  userId       String           @map("user_id")
+  decorationId String           @map("decoration_id")
+  purchasedAt  DateTime         @default(now()) @map("purchased_at")
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  decoration   AvatarDecoration @relation(fields: [decorationId], references: [id], onDelete: Restrict)
+  activeUsers  User[]            @relation("ActiveOwnedDecoration")
+
+  @@id([userId, decorationId])
+  @@index([decorationId])
+  @@map("user_decorations")
+}
+
+enum NameplateAssetType {
+  video
+}
+
+model Nameplate {
+  id String @id @default(uuid())
+  slug String @unique
+  name String
+  description String
+  assetType NameplateAssetType @default(video) @map("asset_type")
+  assetUrl String @map("asset_url")
+  previewUrl String @map("preview_url")
+  width Int @default(640)
+  height Int @default(112)
+  fps Float
+  durationMs Int @map("duration_ms")
+  shadeOpacity Float @default(0.5) @map("shade_opacity")
+  rarity DecorationRarity @default(epic)
+  priceCents Int @default(199) @map("price_cents")
+  isAvailable Boolean @default(false) @map("is_available")
+  owners UserNameplate[]
+  activeUsers User[] @relation("ActiveNameplate")
+  @@map("nameplates")
+}
+
+model UserNameplate {
+  userId String @map("user_id")
+  nameplateId String @map("nameplate_id")
+  purchasedAt DateTime @default(now()) @map("purchased_at")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nameplate Nameplate @relation(fields: [nameplateId], references: [id], onDelete: Restrict)
+  activeUsers User[] @relation("ActiveOwnedNameplate")
+  @@id([userId,nameplateId])
+  @@index([nameplateId])
+  @@map("user_nameplates")
+}
+
+model ProfileEffect {
+  id String @id @default(uuid())
+  slug String @unique
+  name String
+  description String
+  family String
+  variant String
+  assetType String @default("animated_webp") @map("asset_type")
+  assetUrl String @map("asset_url")
+  previewUrl String @map("preview_url")
+  width Int @default(640)
+  height Int @default(1120)
+  fps Float @default(60)
+  durationMs Int @default(8000) @map("duration_ms")
+  avatarAnchorX Float @default(0.16) @map("avatar_anchor_x")
+  avatarAnchorY Float @default(0.22) @map("avatar_anchor_y")
+  rarity DecorationRarity @default(epic)
+  priceCents Int @default(199) @map("price_cents")
+  isAvailable Boolean @default(false) @map("is_available")
+  owners UserProfileEffect[]
+  activeUsers User[] @relation("ActiveProfileEffect")
+  @@map("profile_effects")
+}
+
+model UserProfileEffect {
+  userId String @map("user_id")
+  profileEffectId String @map("profile_effect_id")
+  purchasedAt DateTime @default(now()) @map("purchased_at")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileEffect ProfileEffect @relation(fields: [profileEffectId], references: [id], onDelete: Restrict)
+  activeUsers User[] @relation("ActiveOwnedProfileEffect")
+  @@id([userId,profileEffectId])
+  @@index([profileEffectId])
+  @@map("user_profile_effects")
+}
+
+model ProfileFrame {
+  vehicleAtlasUrl String? @map("vehicle_atlas_url")
+  vehiclePreviewUrl String? @map("vehicle_preview_url")
+  id String @id @default(uuid())
+  slug String @unique
+  name String
+  description String
+  family String
+  variant String
+  color String
+  accent String
+  crownUrl String @map("crown_url")
+  crownPreviewUrl String @map("crown_preview_url")
+  cornerUrl String @map("corner_url")
+  railUrl String @map("rail_url")
+  footerUrl String @map("footer_url")
+  animated Boolean @default(false)
+  fps Float @default(0)
+  durationMs Int @default(3000) @map("duration_ms")
+  rarity DecorationRarity @default(epic)
+  priceCents Int @default(199) @map("price_cents")
+  isAvailable Boolean @default(false) @map("is_available")
+  owners UserProfileFrame[]
+  activeUsers User[] @relation("ActiveProfileFrame")
+  @@map("profile_frames")
+}
+model UserProfileFrame {
+  userId String @map("user_id")
+  profileFrameId String @map("profile_frame_id")
+  purchasedAt DateTime @default(now()) @map("purchased_at")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileFrame ProfileFrame @relation(fields: [profileFrameId], references: [id], onDelete: Restrict)
+  activeUsers User[] @relation("ActiveOwnedProfileFrame")
+  @@id([userId,profileFrameId])
+  @@index([profileFrameId])
+  @@map("user_profile_frames")
 }

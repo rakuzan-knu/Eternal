@@ -137,7 +137,7 @@ export const MusicSectionDetailView: React.FC<MusicSectionDetailViewProps> = ({
       style={{ paddingBottom: `${dockOffset + 56}px` }}
       className="p-8 overflow-y-auto custom-scrollbar select-none min-h-full text-gray-900 dark:text-white"
     >
-      {/* Header bar matching Spotify Screenshot 4 */}
+      {/* Header bar */}
       <div className="flex items-center gap-4 mb-8">
         <button
           type="button"

@@ -410,7 +410,7 @@ export const VoiceAdvancedSection: React.FC = () => {
         </div>
       </div>
 
-      {/* 4. Diagnostics Settings Accordion (Discord 1:1) */}
+      {/* 4. Diagnostics Settings Accordion*/}
       <div className="flex flex-col">
         {!isDiagnosticsExpanded ? (
           <div
@@ -789,7 +789,7 @@ export const VoiceAdvancedSection: React.FC = () => {
         )}
       </div>
 
-      {/* 5. Reset Button Row (Discord 1:1) */}
+      {/* 5. Reset Button Row */}
       <div className="flex items-center justify-between py-2 border-t border-black/[0.06] dark:border-white/[0.06]">
         <div className="pr-4 min-w-0">
           <span className="text-sm font-semibold text-gray-950 dark:text-white block">
@@ -811,7 +811,7 @@ export const VoiceAdvancedSection: React.FC = () => {
         </button>
       </div>
 
-      {/* Discord-style Reset Confirmation Modal */}
+      {/* Reset Confirmation Modal */}
       {isResetConfirmOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fadeIn">
           <div className="relative w-full max-w-sm bg-[#121215] border border-white/[0.1] rounded-2xl p-6 shadow-2xl flex flex-col gap-4 text-white">

@@ -306,7 +306,12 @@ export default function StandaloneChatPage() {
               )
             ) : (
               <>
-                <Avatar size="sm" src={display.avatar} />
+                <Avatar
+                  size="sm"
+                  src={display.avatar}
+                  decoration={display.activeDecoration}
+                  userId={display.otherUserId}
+                />
                 {display.otherUserId && (
                   <OnlineStatusIndicator userId={display.otherUserId} variant="dot" />
                 )}

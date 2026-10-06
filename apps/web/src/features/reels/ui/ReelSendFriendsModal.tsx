@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { X, Search, Check } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import Avatar from '@/shared/ui/Avatar';
 import { useCurrentUser } from '@/entities/profile/model/useCurrentUser';
 import { followApi, FollowUserSummary } from '@/entities/user';
 import { chatApi } from '@/entities/chat';
@@ -243,27 +244,18 @@ export const ReelSendFriendsModal: React.FC<ReelSendFriendsModalProps> = ({
                   className="flex flex-col items-center gap-1.5 group cursor-pointer shrink-0"
                 >
                   <div className="relative">
-                    {friend.avatar ? (
-                      <img
-                        src={friend.avatar}
-                        alt={friend.username}
-                        className={`w-14 h-14 rounded-full object-cover transition-all ${
-                          isSelected
-                            ? 'ring-2 ring-rose-500 scale-105'
-                            : 'ring-1 ring-black/10 dark:ring-white/20 group-hover:ring-rose-400'
-                        }`}
-                      />
-                    ) : (
-                      <div
-                        className={`w-14 h-14 rounded-full bg-linear-to-tr from-pink-600 to-indigo-600 flex items-center justify-center font-bold text-white text-base transition-all ${
-                          isSelected
-                            ? 'ring-2 ring-rose-500 scale-105'
-                            : 'ring-1 ring-black/10 dark:ring-white/20 group-hover:ring-rose-400'
-                        }`}
-                      >
-                        {friend.username.slice(0, 2).toUpperCase()}
-                      </div>
-                    )}
+                    <Avatar
+                      src={friend.avatar}
+                      name={friend.username}
+                      size="lg"
+                      decoration={friend.activeDecoration}
+                      userId={friend.id}
+                      className={`transition-all ${
+                        isSelected
+                          ? 'ring-2 ring-rose-500 scale-105'
+                          : 'ring-1 ring-black/10 dark:ring-white/20 group-hover:ring-rose-400'
+                      }`}
+                    />
 
                     {/* Red Check Badge matching user's Image 1 */}
                     {isSelected && (

@@ -17,6 +17,7 @@ import {
   ListMusic,
 } from 'lucide-react';
 import Modal from '@/shared/ui/Modal';
+import { Nameplate } from '@/shared/ui/Nameplate';
 import Avatar from '@/shared/ui/Avatar';
 import GroupAvatarCollage from '@/shared/ui/GroupAvatarCollage';
 import OnlineStatusIndicator from '@/shared/ui/OnlineStatusIndicator';
@@ -1000,12 +1001,13 @@ export default function GlobalSearchModal({
                                   setSelectedIndex(itemIndex);
                                 }
                               }}
-                              className={`flex items-center gap-3 p-2.5 rounded-2xl transition-all cursor-pointer group border ${
+                              className={`nameplate-row flex items-center gap-3 p-2.5 rounded-2xl transition-all cursor-pointer group border ${
                                 isNavSelected
                                   ? 'glass-card bg-white/12 border-sky-400/40 shadow-[0_0_18px_rgba(56,189,248,0.2),inset_0_1px_1px_rgba(255,255,255,0.3)] scale-[1.012]'
                                   : 'bg-white/2 hover:bg-white/6 border-white/5 hover:border-white/10'
                               }`}
                             >
+                              <Nameplate nameplate={display.activeNameplate} alwaysPlay={true} />
                               <div className="relative shrink-0">
                                 {display.isGroup ? (
                                   display.avatar ? (
@@ -1030,9 +1032,12 @@ export default function GlobalSearchModal({
                                 )}
                               </div>
 
-                              <div className="min-w-0 flex-1">
+                              <div data-nameplate-text className="min-w-0 flex-1">
                                 <div className="flex items-center gap-1.5">
-                                  <span className="text-sm font-semibold text-white group-hover:text-sky-300 transition-colors truncate">
+                                  <span
+                                    data-nameplate-label
+                                    className="text-sm font-semibold text-white group-hover:text-sky-300 transition-colors truncate"
+                                  >
                                     {display.title}
                                   </span>
                                   <VerifiedCheckmark
@@ -1307,21 +1312,30 @@ export default function GlobalSearchModal({
                                 setSelectedIndex(itemIndex);
                               }
                             }}
-                            className={`flex items-center gap-3 p-2.5 rounded-2xl transition-all cursor-pointer group border ${
+                            className={`nameplate-row flex items-center gap-3 p-2.5 rounded-2xl transition-all cursor-pointer group border ${
                               isNavSelected
                                 ? 'glass-card bg-white/12 border-sky-400/40 shadow-[0_0_18px_rgba(56,189,248,0.2),inset_0_1px_1px_rgba(255,255,255,0.3)] scale-[1.012]'
                                 : 'bg-white/3 hover:bg-white/8 border-white/5 hover:border-white/15'
                             }`}
                           >
+                            <Nameplate nameplate={person.activeNameplate} alwaysPlay={true} />
                             <div className="relative shrink-0">
-                              <Avatar src={person.avatar} size="md" />
+                              <Avatar
+                                src={person.avatar}
+                                decoration={(person as any).activeDecoration}
+                                userId={person.id}
+                                size="md"
+                              />
                               {person.isOnline && (
                                 <OnlineStatusIndicator userId={person.id} variant="dot" />
                               )}
                             </div>
-                            <div className="min-w-0 flex-1">
+                            <div data-nameplate-text className="min-w-0 flex-1">
                               <div className="flex items-center gap-1.5">
-                                <p className="text-sm font-medium text-white truncate">
+                                <p
+                                  data-nameplate-label
+                                  className="text-sm font-medium text-white truncate"
+                                >
                                   {person.displayName || person.username}
                                 </p>
                                 {isKnown && (
@@ -1375,6 +1389,8 @@ export default function GlobalSearchModal({
                           >
                             <Avatar
                               src={msg.conversationAvatar || msg.senderAvatar}
+                              decoration={(msg as any).activeDecoration}
+                              userId={(msg as any).senderId}
                               size="md"
                               className="shrink-0 mt-0.5"
                             />

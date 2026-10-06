@@ -1205,6 +1205,7 @@ export const SyncPlayModal: React.FC<SyncPlayModalProps> = ({
                       src={viewer.avatar}
                       name={viewer.name}
                       size="xs"
+                      suppressDecoration={true}
                       className="ring-2 ring-neutral-950 border border-white/10"
                     />
                   ))}

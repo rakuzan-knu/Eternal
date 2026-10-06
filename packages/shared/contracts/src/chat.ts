@@ -1,3 +1,5 @@
+import type { NameplateDto } from './nameplates';
+import type { AvatarDecorationDto } from './decorations';
 import { z } from 'zod';
 export const AttachmentType = {
   IMAGE: 'IMAGE',
@@ -368,6 +370,8 @@ export const promoteMemberSchema = z.object({
 export type PromoteMemberDto = z.infer<typeof promoteMemberSchema>;
 
 export interface UserSnapshot {
+  activeDecoration?: AvatarDecorationDto | null;
+  activeNameplate?: NameplateDto | null;
   id: string;
   username: string;
   displayName: string | null;
@@ -577,6 +581,7 @@ export interface GlobalSearchResult {
     displayName: string | null;
     avatar: string | null;
     isOnline: boolean;
+    activeNameplate?: NameplateDto | null;
   }>;
 }
 

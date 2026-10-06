@@ -80,6 +80,7 @@ export function WatchTogetherActivityBanner({
           src={activeActivity.initiatorAvatar}
           name={activeActivity.initiatorName}
           size="sm"
+          suppressDecoration={true}
           className="ring-2 ring-purple-500/40 shrink-0"
         />
 

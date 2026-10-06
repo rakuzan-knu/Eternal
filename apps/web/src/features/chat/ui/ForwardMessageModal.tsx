@@ -299,7 +299,7 @@ export default function ForwardMessageModal({
 
           {/* Chat List */}
           <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-1 flex flex-col gap-1 min-h-[160px]">
-            {/* Telegram-style Top Item: Saved Messages (Screenshot 4) */}
+            {/* Telegram-style Top Item: Saved Messages */}
             {isSavedFolder &&
               (!searchQuery || 'saved messages'.includes(searchQuery.toLowerCase())) && (
                 <button
@@ -356,7 +356,13 @@ export default function ForwardMessageModal({
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="relative flex-shrink-0">
-                      <Avatar size="md" src={display.avatar} className="w-11 h-11" />
+                      <Avatar
+                        size="md"
+                        src={display.avatar}
+                        decoration={display.activeDecoration}
+                        userId={display.otherUserId}
+                        className="w-11 h-11"
+                      />
                       {isOnline && !display.isGroup && (
                         <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-[#181920]" />
                       )}

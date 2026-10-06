@@ -58,14 +58,26 @@ export class SearchRepository implements ISearchRepository {
               participants: {
                 include: {
                   user: {
-                    select: { id: true, username: true, displayName: true, avatar: true },
+                    select: {
+                      id: true,
+                      username: true,
+                      displayName: true,
+                      avatar: true,
+                      activeDecoration: true,
+                    },
                   },
                 },
               },
             },
           },
           sender: {
-            select: { id: true, username: true, displayName: true, avatar: true },
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+              avatar: true,
+              activeDecoration: true,
+            },
           },
         },
       });
@@ -191,6 +203,7 @@ export class SearchRepository implements ISearchRepository {
           displayName: true,
           avatar: true,
           lastSeenAt: true,
+          activeNameplate: true,
         },
       });
 
@@ -199,6 +212,7 @@ export class SearchRepository implements ISearchRepository {
         username: u.username,
         displayName: u.displayName,
         avatar: u.avatar,
+        activeNameplate: u.activeNameplate,
         isOnline: u.lastSeenAt
           ? Date.now() - new Date(u.lastSeenAt).getTime() < 5 * 60 * 1000
           : false,

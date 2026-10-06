@@ -205,6 +205,8 @@ export const ExportShowcaseModal: React.FC<ExportShowcaseModalProps> = ({
               <Avatar
                 src={user.avatar ? sanitizeImageUrl(user.avatar) || undefined : undefined}
                 alt={user.displayName}
+                decoration={(user as any).activeDecoration}
+                userId={(user as any).id}
                 size="md"
                 className="w-13 h-13 rounded-2xl border-2 border-white/20 shrink-0"
               />

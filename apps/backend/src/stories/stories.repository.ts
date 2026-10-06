@@ -16,7 +16,9 @@ export type StoryWithDetails = Prisma.StoryGetPayload<{
         id: true;
         username: true;
         displayName: true;
+        displayNameStyle: true;
         avatar: true;
+        activeDecoration: true;
         isVerified: true;
       };
     };
@@ -72,7 +74,9 @@ export class StoriesRepository {
             id: true,
             username: true,
             displayName: true,
+            displayNameStyle: true,
             avatar: true,
+            activeDecoration: true,
             isVerified: true,
           },
         },
@@ -128,7 +132,9 @@ export class StoriesRepository {
             id: true,
             username: true,
             displayName: true,
+            displayNameStyle: true,
             avatar: true,
+            activeDecoration: true,
             isVerified: true,
           },
         },
@@ -173,7 +179,9 @@ export class StoriesRepository {
             id: true,
             username: true,
             displayName: true,
+            displayNameStyle: true,
             avatar: true,
+            activeDecoration: true,
             isVerified: true,
           },
         },
@@ -211,7 +219,9 @@ export class StoriesRepository {
             id: true,
             username: true,
             displayName: true,
+            displayNameStyle: true,
             avatar: true,
+            activeDecoration: true,
             isVerified: true,
           },
         },
@@ -324,7 +334,9 @@ export class StoriesRepository {
               id: true,
               username: true,
               displayName: true,
+              displayNameStyle: true,
               avatar: true,
+              activeDecoration: true,
               isVerified: true,
             },
           },
@@ -482,7 +494,9 @@ export class StoriesRepository {
         id: true,
         username: true,
         displayName: true,
+        displayNameStyle: true,
         avatar: true,
+        activeDecoration: true,
         isVerified: true,
       },
     });

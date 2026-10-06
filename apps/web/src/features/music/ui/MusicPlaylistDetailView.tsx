@@ -1315,7 +1315,7 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
                   </div>
                 </th>
 
-                {/* Artist Column (Visible only in Compact Mode as separate column, matching Screenshot 5) */}
+                {/* Artist Column*/}
                 {viewMode === 'compact' && (
                   <th
                     onClick={() => handleColumnSortClick('artist')}
@@ -1480,7 +1480,7 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
                         </div>
                       </td>
 
-                      {/* Track Title (+ Cover Art in List mode, NO cover in Compact mode matching Screenshot 5) */}
+                      {/* Track Title*/}
                       <td
                         className={`min-w-0 ${viewMode === 'compact' ? 'py-2 px-3' : 'py-3 px-3'}`}
                       >
@@ -1530,7 +1530,7 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
                         </div>
                       </td>
 
-                      {/* Separate Artist Column in Compact Mode (Screenshot 5) */}
+                      {/* Separate Artist Column in Compact Mode*/}
                       {viewMode === 'compact' && (
                         <td className="py-2 px-3 text-xs text-gray-700 dark:text-gray-300 min-w-0">
                           <span className="truncate block hover:underline cursor-pointer">
@@ -1633,7 +1633,7 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
         />
       )}
 
-      {/* Spotify Sort & View Dropdown Menu via React Portal (Screenshots 4 & 5) */}
+      {/* Spotify Sort & View Dropdown Menu via React Portal*/}
       <PlaylistSortViewMenu
         isOpen={isSortViewMenuOpen}
         onClose={() => setIsSortViewMenuOpen(false)}

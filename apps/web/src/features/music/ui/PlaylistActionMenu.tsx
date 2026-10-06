@@ -434,7 +434,7 @@ export const PlaylistActionMenu: React.FC<PlaylistActionMenuProps> = ({
 
             <div className="my-1 border-t border-black/10 dark:border-white/5" />
 
-            {/* Owner & Collaborator Controls (Spotify screenshot 2) */}
+            {/* Owner & Collaborator Controls */}
             {isOwner || isCollaborator ? (
               <>
                 {/* Edit details */}

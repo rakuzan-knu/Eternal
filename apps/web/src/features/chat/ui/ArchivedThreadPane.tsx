@@ -84,7 +84,12 @@ export default function ArchivedThreadPane({
               )
             ) : (
               <>
-                <Avatar size="sm" src={display.avatar} />
+                <Avatar
+                  size="sm"
+                  src={display.avatar}
+                  decoration={display.activeDecoration}
+                  userId={display.otherUserId}
+                />
                 {otherParticipant && (
                   <OnlineStatusIndicator userId={otherParticipant.userId} variant="dot" />
                 )}

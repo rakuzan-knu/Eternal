@@ -16,7 +16,7 @@ describe('extractFirstUrl', () => {
     expect(extractFirstUrl(text)).toBe('https://gemini.google.com/app');
   });
 
-  it('extracts ONLY the first URL when message contains 100 links (Discord / Telegram behavior)', () => {
+  it('extracts ONLY the first URL when message contains 100 links', () => {
     const hundredLinks = Array.from(
       { length: 100 },
       (_, i) => `https://gemini.google.com/app?index=${i}`,

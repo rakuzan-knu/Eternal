@@ -75,7 +75,7 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
 
   const [loadingPlaylistId, setLoadingPlaylistId] = useState<string | null>(null);
 
-  // Column visibility for Songs table view (Point 2, Screenshot 3)
+  // Column visibility for Songs table view
   const [visibleColumns, setVisibleColumns] = useState({
     album: true,
     duration: true,
@@ -1119,8 +1119,6 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
                   <th className="py-2.5 px-3 text-right" aria-label="Duration">
                     <div className="flex items-center justify-end gap-2 relative">
                       <Clock size={14} />
-
-                      {/* Dropdown for Columns (Screenshot 3) with Toggle on Repeat Click */}
                       <button
                         ref={columnsBtnRef}
                         type="button"
@@ -1135,7 +1133,7 @@ export const MusicSearchResultsView: React.FC<MusicSearchResultsViewProps> = ({
                         <ChevronDown size={13} />
                       </button>
 
-                      {/* Columns Checkbox Dropdown Menu (Screenshot 3) */}
+                      {/* Columns Checkbox Dropdown Menu */}
                       {isColumnsMenuOpen && (
                         <div
                           ref={columnsMenuRef}

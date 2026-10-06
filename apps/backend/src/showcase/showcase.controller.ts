@@ -32,9 +32,11 @@ import {
 } from '@common/contracts';
 import { LowPriority } from '../common/resilience/request-priority.decorator';
 import { ConditionalHttpCache } from '../common/cache/etag.interceptor';
+import { QueryComplexity } from '../common/resilience/query-complexity.decorator';
 
 @ApiTags('Showcase')
 @Controller('users')
+@QueryComplexity({ maxComplexity: 10000, maxDepth: 10 })
 export class ShowcaseController {
   constructor(
     private readonly showcaseService: ShowcaseService,
@@ -108,6 +110,7 @@ export class ShowcaseController {
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
+  @QueryComplexity({ maxComplexity: 10000, maxDepth: 10 })
   @ApiOperation({ summary: 'Update own profile showcase' })
   @ApiResponse({ status: 200, description: 'Showcase updated successfully' })
   updateShowcase(

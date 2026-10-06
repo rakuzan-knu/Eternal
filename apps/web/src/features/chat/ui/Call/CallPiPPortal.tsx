@@ -92,7 +92,7 @@ export function CallPiPPortal({
 
   const content = (
     <div className="w-full h-full min-h-screen flex flex-col justify-between bg-[#111214] text-white select-none overflow-hidden relative font-sans">
-      {/* 1. Popout Top Header (Discord /popout style) */}
+      {/* 1. Popout Top Header */}
       <div className="flex items-center justify-between px-3 sm:px-5 py-2.5 bg-black/50 backdrop-blur-md border-b border-white/10 shrink-0 z-30">
         <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 pr-2">
           <Volume2 size={17} className="text-[#7059f6] shrink-0" />

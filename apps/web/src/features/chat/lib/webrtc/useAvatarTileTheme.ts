@@ -12,10 +12,6 @@ const DEFAULT_THEME: DiscordTileTheme = {
 
 const tileThemeCache = new Map<string, DiscordTileTheme>();
 
-/**
- * Samples the dominant/average color from an avatar image and computes
- * an eye-pleasing, Discord-style muted tile background.
- */
 export async function extractAvatarTileTheme(avatarUrl?: string | null): Promise<DiscordTileTheme> {
   if (!avatarUrl || typeof window === 'undefined') {
     return DEFAULT_THEME;
@@ -83,7 +79,6 @@ export async function extractAvatarTileTheme(avatarUrl?: string | null): Promise
         const avgG = Math.round(totalG / count);
         const avgB = Math.round(totalB / count);
 
-        // Convert RGB to HSL for sophisticated Discord-grade tone tuning
         const rNorm = avgR / 255;
         const gNorm = avgG / 255;
         const bNorm = avgB / 255;

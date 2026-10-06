@@ -227,7 +227,6 @@ export function useWebRTC(options: WebRTCOptions = {}) {
       globalSoundboardEngine.play(data.soundId, data.audioData, effectiveVol, true);
     }
 
-    // 6. Trigger floating Discord-style emoji badge and speaking ring on sender's tile
     if (
       (data.type === 'SOUNDBOARD_BADGE' ||
         data.type === 'SOUNDBOARD_PLAY' ||
@@ -1242,7 +1241,6 @@ export function useWebRTC(options: WebRTCOptions = {}) {
       );
       adapter.start(2000);
       bandwidthAdapterRef.current = adapter;
-      // Start Discord-Style Live Stats Collector (1s polling)
       if (liveStatsCollectorRef.current) {
         liveStatsCollectorRef.current.stop();
       }
@@ -2166,7 +2164,6 @@ export function useWebRTC(options: WebRTCOptions = {}) {
               pc.addTrack(cameraTrack, newLocalStream);
             }
 
-            // Prioritize audio traffic over video (like Discord / Google Meet)
             try {
               const sender =
                 videoSender || pc.getSenders().find((s) => s.track?.id === cameraTrack.id);
@@ -2375,7 +2372,7 @@ export function useWebRTC(options: WebRTCOptions = {}) {
           }
           for (const enc of params.encodings) {
             enc.active = true;
-            enc.maxBitrate = 8_000_000; // 8 Mbps for pristine 1080p60 Discord quality
+            enc.maxBitrate = 8_000_000;
             enc.maxFramerate = 60;
             enc.scaleResolutionDownBy = 1.0;
           }

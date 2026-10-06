@@ -456,7 +456,7 @@ export function CursorsSection() {
         </div>
       </div>
 
-      {/* Cursor Playground Sandbox (Discord Minimalist Style) */}
+      {/* Cursor Playground Sandbox */}
       <div className="p-4 rounded-2xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">

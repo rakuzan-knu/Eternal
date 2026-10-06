@@ -346,7 +346,7 @@ async function runTest() {
     .locator('[data-testid="participant-muted-badge"], div[title*="muted"]')
     .first();
   await remoteMuteIconOnBob.waitFor({ state: 'visible', timeout: 8000 });
-  console.log('✓ Bob successfully observed Alice remote mute badge (Discord-style sync verified)');
+  console.log('✓ Bob successfully observed Alice remote mute badge');
 
   await pageAlice.waitForTimeout(600);
   await muteBtn.click();

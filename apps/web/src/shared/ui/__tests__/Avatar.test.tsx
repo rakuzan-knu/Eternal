@@ -1,6 +1,14 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render as rtlRender, screen, fireEvent } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Avatar from '../Avatar';
+
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: false } },
+});
+
+const render = (ui: React.ReactElement) =>
+  rtlRender(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
 
 describe('Avatar', () => {
   it('renders the default SVG placeholder when no src is provided', () => {

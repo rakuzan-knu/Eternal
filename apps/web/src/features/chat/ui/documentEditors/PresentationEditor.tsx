@@ -1208,7 +1208,7 @@ export default function PresentationEditor({
             </button>
           )}
 
-          {/* Text Color Picker (Matching Microsoft Office - Screenshot 2) */}
+          {/* Text Color Picker*/}
           <div className="relative flex items-center" ref={colorPickerRef}>
             <button
               type="button"
@@ -1308,7 +1308,7 @@ export default function PresentationEditor({
                   </div>
                 </div>
 
-                {/* More Colors Button -> Opens Screenshot 3 Modal */}
+                {/* More Colors Button*/}
                 <div className="border-t border-white/10 pt-1">
                   <button
                     type="button"
@@ -2343,7 +2343,7 @@ export default function PresentationEditor({
         </div>
       )}
 
-      {/* 4. Custom Colors Modal ("Спеціальні кольори" - Matching Microsoft Office - Screenshot 3) */}
+      {/* 4. Custom Colors Modal */}
       {isCustomColorModalOpen && (
         <div
           role="dialog"

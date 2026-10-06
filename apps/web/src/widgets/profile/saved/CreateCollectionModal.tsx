@@ -130,7 +130,12 @@ export function CreateCollectionModal({
                       ) : (
                         <div className="w-full h-full bg-white/[0.04] p-2 flex flex-col justify-between text-left">
                           <div className="flex items-center gap-1">
-                            <Avatar size="sm" src={post.avatar} />
+                            <Avatar
+                              size="sm"
+                              src={post.avatar}
+                              decoration={(post as any).activeDecoration}
+                              userId={(post as any).authorId}
+                            />
                           </div>
                           <p className="text-[10px] text-gray-300 line-clamp-3 leading-tight">
                             {post.text || 'Post'}

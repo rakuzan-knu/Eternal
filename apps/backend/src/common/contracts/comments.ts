@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import type { AvatarDecorationDto } from './decorations';
+import type { DisplayNameStyleDto } from './users';
 
 export interface Comment {
   id: string;
@@ -66,14 +68,19 @@ export type CommentWithUser = Comment & {
     id: string;
     username: string;
     displayName: string | null;
+    displayNameStyle?: any;
     avatar: string | null;
     isVerified?: boolean;
     primaryBadge?: string | null;
+    activeDecoration?: any;
   } | null;
   replyToUser?: {
     id: string;
     username: string;
     displayName: string | null;
+    displayNameStyle?: any;
+    avatar?: string | null;
+    activeDecoration?: any;
   } | null;
   _count?: {
     replies?: number;
@@ -94,12 +101,21 @@ export class CommentResponseDto {
   author!: string;
   handle!: string;
   avatar!: string | null;
+  activeDecoration?: AvatarDecorationDto | null;
+  displayNameStyle?: DisplayNameStyleDto | null;
   isVerified!: boolean;
   primaryBadge!: string | null;
   parentId!: string | null;
   rootParentId!: string | null;
   replyToUserId!: string | null;
-  replyToUser!: { id: string; username: string; displayName: string | null } | null;
+  replyToUser!: {
+    id: string;
+    username: string;
+    displayName: string | null;
+    displayNameStyle?: DisplayNameStyleDto | null;
+    avatar?: string | null;
+    activeDecoration?: AvatarDecorationDto | null;
+  } | null;
   mediaUrl!: string | null;
   likesCount!: number;
   replyCount!: number;
@@ -120,6 +136,8 @@ export class CommentResponseDto {
     const avatar = comment.user?.avatar || null;
     const isVerified = Boolean(comment.user?.isVerified);
     const primaryBadge = comment.user?.primaryBadge ?? null;
+    const activeDecoration = comment.user?.activeDecoration ?? null;
+    const displayNameStyle = (comment.user?.displayNameStyle as DisplayNameStyleDto) ?? null;
 
     const likesCount =
       comment.likesCount ??
@@ -154,6 +172,8 @@ export class CommentResponseDto {
       author: displayName,
       handle,
       avatar,
+      activeDecoration,
+      displayNameStyle,
       isVerified,
       primaryBadge,
       parentId: comment.parentId ?? null,
@@ -164,6 +184,9 @@ export class CommentResponseDto {
             id: comment.replyToUser.id,
             username: comment.replyToUser.username,
             displayName: comment.replyToUser.displayName || comment.replyToUser.username,
+            displayNameStyle: (comment.replyToUser as any).displayNameStyle ?? null,
+            avatar: (comment.replyToUser as any).avatar ?? null,
+            activeDecoration: (comment.replyToUser as any).activeDecoration ?? null,
           }
         : null,
       mediaUrl: comment.isDeleted ? null : (comment.mediaUrl ?? null),
