@@ -21,7 +21,7 @@ const renderWithRouter = (ui: React.ReactElement) => {
   return render(<BrowserRouter>{ui}</BrowserRouter>);
 };
 
-describe('FamilyCenterPanel (Discord 1:1 in Settings)', () => {
+describe('FamilyCenterPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetFamilyMockState();

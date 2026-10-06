@@ -3,6 +3,38 @@ import { followApi, normalizeFollowListPage } from '../followApi';
 import { apiClient } from '@/shared/api/httpClient';
 
 describe('followApi', () => {
+  it('preserves valid nameplates on followers and friends and ignores malformed media metadata', async () => {
+    const activeNameplate = {
+      id: 'sky',
+      slug: 'sky',
+      name: 'Sky',
+      description: '',
+      assetType: 'video',
+      assetUrl: '/sky.mp4',
+      previewUrl: '/sky.webp',
+      width: 640,
+      height: 112,
+      fps: 10,
+      durationMs: 1500,
+      shadeOpacity: 0.58,
+      rarity: 'epic',
+      priceCents: 199,
+      isAvailable: false,
+    };
+    expect(
+      normalizeFollowListPage({ items: [{ id: 'alice', username: 'alice', activeNameplate }] })
+        .items[0]?.activeNameplate,
+    ).toEqual(activeNameplate);
+    expect(
+      normalizeFollowListPage({
+        items: [{ id: 'bob', username: 'bob', activeNameplate: { id: 'broken' } }],
+      }).items[0]?.activeNameplate,
+    ).toBeNull();
+    vi.spyOn(apiClient, 'get').mockResolvedValueOnce({
+      data: [{ id: 'alice', username: 'alice', activeNameplate }],
+    });
+    expect((await followApi.getFriends())[0]?.activeNameplate).toEqual(activeNameplate);
+  });
   it('normalizes raw follow list page and handles null input', () => {
     expect(normalizeFollowListPage(null)).toEqual({ items: [], nextCursor: null });
 

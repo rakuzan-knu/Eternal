@@ -679,6 +679,8 @@ export default function MediaLightbox({
             src={current.message.sender.avatar}
             name={senderDisplayName}
             size="sm"
+            decoration={current.message.sender.activeDecoration}
+            userId={current.message.sender.id}
             className="w-10 h-10 border border-white/10 shadow-sm"
           />
           <div className="flex flex-col min-w-0">

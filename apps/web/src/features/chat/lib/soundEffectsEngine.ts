@@ -1,9 +1,3 @@
-/**
- * High-fidelity Discord sound effects engine.
- * Supports zero-latency playback, single-shot execution (no loop),
- * and Web Audio API synthesizer fallback.
- */
-
 export interface DiscordSoundItem {
   id: string;
   name: string;
@@ -11,13 +5,11 @@ export interface DiscordSoundItem {
 }
 
 export const DISCORD_SOUND_ITEMS: DiscordSoundItem[] = [
-  // First 4 visible items (matching Discord screenshot 1)
   { id: 'mute', name: 'Mute', file: '/sounds/mute.wav' },
   { id: 'undeafen', name: 'Undeafen', file: '/sounds/undeafen.wav' },
   { id: 'deafen', name: 'Deafen', file: '/sounds/deafen.wav' },
   { id: 'unmute', name: 'Unmute', file: '/sounds/unmute.wav' },
 
-  // Remaining 18 collapsed items (matching Discord screenshots 2-4)
   { id: 'camera_on', name: 'Camera On', file: '/sounds/camera_on.wav' },
   { id: 'camera_off', name: 'Camera Off', file: '/sounds/camera_off.wav' },
   { id: 'disconnect', name: 'Voice Disconnected', file: '/sounds/disconnect.wav' },
@@ -134,10 +126,6 @@ export function stopAllSounds(): void {
   }
 }
 
-/**
- * Plays a Discord sound effect strictly once without looping.
- * Automatically interrupts previously playing sound.
- */
 export function playSingleSound(soundId: string, onEnded?: () => void): void {
   stopAllSounds();
 

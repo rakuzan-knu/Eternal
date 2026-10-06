@@ -51,6 +51,7 @@ import { useDebounce } from '@/shared/lib/useDebounce';
 import { useMessageToastStore } from '../../../shared/model/useMessageToastStore';
 import { isTrustedMessageOrigin } from '@/shared/lib/urlSecurity';
 import Avatar from '../../../shared/ui/Avatar';
+import StyledDisplayName from '../../../shared/ui/StyledDisplayName';
 import { SettingsPanelHost } from '@/shared/ui/SettingsPanelHost';
 import SecurityTab from './security/SecurityTab';
 import PrivacyTab from './privacy/PrivacyTab';
@@ -58,7 +59,7 @@ import NotificationsTab from './notifications/NotificationsTab';
 import AppearanceTab from './appearance/AppearanceTab';
 import VoiceVideoTab from './voice/VoiceVideoTab';
 import BadgeSettingsSection from './BadgeSettingsSection';
-import { ProfileShowcaseSettingsSection } from './ProfileShowcaseSettingsSection';
+import { ProfileCustomizeSettingsSection } from './ProfileCustomizeSettingsSection';
 import { compressImage } from '@/shared/lib/compressImage';
 import { useShowcase } from '@/entities/showcase/model/useShowcase';
 import { ConfigureIntegrationModal } from './integrations/ConfigureIntegrationModal';
@@ -98,7 +99,7 @@ const TABS_CONFIG: MainTab[] = [
     subsections: [
       { id: 'sec-account-info', label: 'Account Information' },
       { id: 'sec-badges', label: 'Profile Badges' },
-      { id: 'sec-showcase', label: 'Profile Showcase' },
+      { id: 'sec-customize', label: 'Profile Customize' },
       { id: 'sec-integrations', label: 'Integrations' },
       { id: 'sec-reputation', label: 'Account Reputation' },
       { id: 'sec-family', label: 'Family Center' },
@@ -190,6 +191,24 @@ export default function EditProfileModal() {
         setActiveSection(targetSec);
         setTimeout(() => {
           const el = document.getElementById(targetSec);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 150);
+        return;
+      }
+
+      if (
+        editProfileInitialTab === 'customize' ||
+        editProfileInitialTab === 'sec-customize' ||
+        editProfileInitialTab === 'showcase' ||
+        editProfileInitialTab === 'sec-showcase'
+      ) {
+        setActiveTab('account');
+        setExpandedTabs((prev) => ({ ...prev, account: true }));
+        setActiveSection('sec-customize');
+        setTimeout(() => {
+          const el = document.getElementById('sec-customize');
           if (el) {
             el.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }
@@ -412,7 +431,7 @@ export default function EditProfileModal() {
     const replacement = `${prefix}${content}${suffix}`;
     const nextVal = (currentVal.slice(0, start) + replacement + currentVal.slice(end)).slice(
       0,
-      200,
+      1000,
     );
     setValue('bio', nextVal, { shouldValidate: true, shouldDirty: true });
     requestAnimationFrame(() => {
@@ -460,6 +479,23 @@ export default function EditProfileModal() {
     setBioToolbarPos(null);
   };
 
+  const handleBioPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const pasteText = e.clipboardData.getData('text');
+    if (!pasteText) return;
+    const el = e.currentTarget;
+    const currentVal = el.value;
+    const start = el.selectionStart ?? 0;
+    const end = el.selectionEnd ?? 0;
+
+    const nextVal = currentVal.slice(0, start) + pasteText + currentVal.slice(end);
+    const lines = nextVal.split('\n');
+    if (lines.length > 50) {
+      e.preventDefault();
+      const clampedVal = lines.slice(0, 50).join('\n').slice(0, 1000);
+      setValue('bio', clampedVal, { shouldValidate: true, shouldDirty: true });
+    }
+  };
+
   const handleBioKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     const isCmdOrCtrl = e.ctrlKey || e.metaKey;
     if (isCmdOrCtrl) {
@@ -483,6 +519,20 @@ export default function EditProfileModal() {
         e.preventDefault();
         handleBioFormatting('~~', '~~', 'strikethrough');
         return;
+      }
+    }
+
+    if (e.key === 'Enter') {
+      const currentVal = e.currentTarget.value;
+      const lines = currentVal.split('\n');
+      if (lines.length >= 50) {
+        const { selectionStart, selectionEnd } = e.currentTarget;
+        const selectedText = currentVal.slice(selectionStart, selectionEnd);
+        const selectedNewlines = (selectedText.match(/\n/g) || []).length;
+        if (selectedNewlines === 0) {
+          e.preventDefault();
+          return;
+        }
       }
     }
   };
@@ -728,17 +778,49 @@ export default function EditProfileModal() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (e.defaultPrevented) return;
+        if (isMoreMenuOpen) {
+          e.preventDefault();
+          setIsMoreMenuOpen(false);
+          return;
+        }
+        if (unlinkTarget !== null) {
+          e.preventDefault();
+          setUnlinkTarget(null);
+          return;
+        }
+        if (isLogoutModalOpen) {
+          e.preventDefault();
+          setIsLogoutModalOpen(false);
+          return;
+        }
+        if (isPlatformModalOpen) {
+          e.preventDefault();
+          setIsPlatformModalOpen(false);
+          return;
+        }
+        if (isDeactivateModalOpen) {
+          e.preventDefault();
+          setIsDeactivateModalOpen(false);
+          return;
+        }
+        if (isDeleteModalOpen) {
+          e.preventDefault();
+          setIsDeleteModalOpen(false);
+          return;
+        }
+        if (isReputationPanelOpen) {
+          e.preventDefault();
+          setIsReputationPanelOpen(false);
+          return;
+        }
+        if (isFamilyCenterPanelOpen) {
+          e.preventDefault();
+          setIsFamilyCenterPanelOpen(false);
+          return;
+        }
         if (
           document.querySelector('[data-submodal-open="true"]') !== null ||
-          document.querySelector('[data-modal-open="true"]') !== null ||
-          isLogoutModalOpen ||
-          isReputationPanelOpen ||
-          isFamilyCenterPanelOpen ||
-          isDeactivateModalOpen ||
-          isDeleteModalOpen ||
-          isPlatformModalOpen ||
-          unlinkTarget !== null ||
-          isMoreMenuOpen
+          document.querySelector('[data-modal-open="true"]') !== null
         ) {
           return;
         }
@@ -940,7 +1022,7 @@ export default function EditProfileModal() {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`glass-modal relative flex flex-col sm:flex-row w-full max-w-[920px] h-[92vh] max-h-[720px] rounded-3xl shadow-[0_30px_100px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden border border-black/10 dark:border-white/[0.08] overscroll-contain transition-all duration-200 ease-out ${
+        className={`glass-modal relative flex flex-col sm:flex-row w-full max-w-[980px] h-[92vh] max-h-[720px] rounded-3xl shadow-[0_30px_100px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden border border-black/10 dark:border-white/[0.08] overscroll-contain transition-all duration-200 ease-out ${
           isClosing
             ? 'opacity-0 scale-95 translate-y-2 pointer-events-none'
             : 'opacity-100 scale-100 translate-y-0 animate-modalPop'
@@ -957,11 +1039,21 @@ export default function EditProfileModal() {
 
         <div className="w-full sm:w-[300px] border-b sm:border-b-0 sm:border-r border-black/10 dark:border-white/[0.06] p-4 flex flex-col gap-4 select-none shrink-0 overflow-x-hidden overflow-y-hidden bg-transparent transition-colors duration-200">
           <div className="flex items-center gap-3 p-2.5 rounded-2xl bg-black/[0.03] dark:bg-white/[0.03] border border-black/10 dark:border-white/[0.06]">
-            <Avatar src={avatarPreview} size="md" alt={currentUser?.displayName || 'User'} />
+            <Avatar
+              src={avatarPreview}
+              size="md"
+              alt={currentUser?.displayName || 'User'}
+              userId={currentUser?.id}
+              decoration={currentUser?.activeDecoration}
+            />
             <div className="flex flex-col min-w-0 flex-1">
-              <span className="text-gray-950 dark:text-white font-bold text-sm truncate">
-                {currentUser?.displayName || currentUser?.username || 'User'}
-              </span>
+              <StyledDisplayName
+                name={currentUser?.displayName || currentUser?.username || 'User'}
+                style={currentUser?.displayNameStyle}
+                userId={currentUser?.id}
+                isCurrentUser
+                className="font-bold text-sm truncate"
+              />
               <button
                 type="button"
                 onClick={() => handleSectionClick('account', 'sec-account-info')}
@@ -1165,7 +1257,7 @@ export default function EditProfileModal() {
               onTouchMove={() => {
                 isScrollingToRef.current = false;
               }}
-              className="absolute inset-0 overflow-y-auto p-6 sm:p-8 flex flex-col gap-10 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/20"
+              className="absolute inset-0 overflow-y-auto overflow-x-hidden p-6 sm:p-8 flex flex-col gap-10 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/20"
             >
               {activeTab === 'account' && (
                 <div className="text-gray-950 dark:text-white flex flex-col gap-10 pb-36 animate-fadeIn">
@@ -1331,15 +1423,15 @@ export default function EditProfileModal() {
                       <div>
                         <div className="flex items-center justify-between mb-1.5">
                           <label className="block text-xs font-semibold text-gray-800 dark:text-gray-300">
-                            About myself
+                            BIO
                           </label>
                           <span className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">
-                            {(bioValue || '').length}/200
+                            {(bioValue || '').length}/1000
                           </span>
                         </div>
                         <textarea
-                          rows={3}
-                          maxLength={200}
+                          rows={4}
+                          maxLength={1000}
                           {...bioRest}
                           ref={(e) => {
                             registerBioRef(e);
@@ -1349,8 +1441,9 @@ export default function EditProfileModal() {
                           onKeyUp={handleBioSelect}
                           onMouseUp={handleBioSelect}
                           onKeyDown={handleBioKeyDown}
+                          onPaste={handleBioPaste}
                           placeholder={currentUser?.bio || 'Tell us about yourself...'}
-                          className="w-full bg-black/[0.02] dark:bg-white/[0.04] border border-black/15 dark:border-white/[0.08] rounded-xl px-4 py-2.5 text-gray-950 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 text-sm focus:outline-none focus:border-black/30 dark:focus:border-white/30 transition resize-none"
+                          className="w-full bg-black/[0.02] dark:bg-white/[0.04] border border-black/15 dark:border-white/[0.08] rounded-xl px-4 py-2.5 text-gray-950 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 text-sm focus:outline-none focus:border-black/30 dark:focus:border-white/30 transition resize-none min-h-[90px] max-h-[300px] overflow-y-auto custom-scrollbar"
                         />
                         {bioToolbarPos && (
                           <FloatingSelectionToolbar
@@ -1404,10 +1497,10 @@ export default function EditProfileModal() {
                   </div>
 
                   <div
-                    id="sec-showcase"
+                    id="sec-customize"
                     className="pt-6 border-t border-black/10 dark:border-white/[0.06]"
                   >
-                    <ProfileShowcaseSettingsSection />
+                    <ProfileCustomizeSettingsSection />
                   </div>
 
                   <div
@@ -1638,7 +1731,7 @@ export default function EditProfileModal() {
                     </div>
                   </div>
 
-                  {/* Account Deactivation & Deletion Controls (Discord 1:1) */}
+                  {/* Account Deactivation & Deletion Controls */}
                   <div className="pt-6 border-t border-black/10 dark:border-white/[0.06] flex flex-col gap-6">
                     {/* Row 1: Deactivate Account */}
                     <div className="flex items-center justify-between gap-4">
@@ -1757,8 +1850,22 @@ export default function EditProfileModal() {
       </div>
 
       {isLogoutModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fadeIn">
-          <div className="relative w-full max-w-sm bg-[#121215] border border-white/[0.1] rounded-2xl p-6 shadow-2xl flex flex-col gap-4 text-white">
+        <div
+          role="dialog"
+          aria-modal="true"
+          data-modal-open="true"
+          data-submodal-open="true"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setIsLogoutModalOpen(false);
+            }
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fadeIn"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-sm bg-[#121215] border border-white/[0.1] rounded-2xl p-6 shadow-2xl flex flex-col gap-4 text-white"
+          >
             <button
               type="button"
               onClick={() => setIsLogoutModalOpen(false)}

@@ -127,7 +127,7 @@ export const MusicNowPlayingSidebar: React.FC = () => {
           panelWidth === 0 ? 'border-l-0 pointer-events-none' : 'border-l border-white/10'
         } select-none z-10 relative overflow-hidden`}
       >
-        {/* Closed State Tab (narrow 20px strip with centered chevron, Screenshot 3) */}
+        {/* Closed State Tab*/}
         <div
           onClick={() => {
             if (isVisible) setNowPlayingPanelOpen(true);

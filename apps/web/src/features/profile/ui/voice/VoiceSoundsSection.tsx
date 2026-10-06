@@ -58,7 +58,7 @@ export const VoiceSoundsSection: React.FC<VoiceSoundsSectionProps> = ({
           </button>
         </div>
 
-        {/* Discord-style Toggle Switch */}
+        {/* Toggle Switch */}
         <label className="relative inline-flex items-center cursor-pointer shrink-0">
           <input
             type="checkbox"
@@ -97,7 +97,7 @@ export const VoiceSoundsSection: React.FC<VoiceSoundsSectionProps> = ({
       {/* Top 4 sounds (always visible) */}
       <div className="flex flex-col">{initialSounds.map(renderSoundRow)}</div>
 
-      {/* Collapser button (matching Discord screenshot 1 & 2) */}
+      {/* Collapser button */}
       <div className="border-b border-black/[0.06] dark:border-white/[0.06] pb-3">
         <button
           type="button"

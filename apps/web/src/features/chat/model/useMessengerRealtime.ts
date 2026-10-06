@@ -219,7 +219,6 @@ export function useMessengerRealtime(
     };
   }, [socket, queryClient]);
 
-  // Periodic lightweight heartbeat ping (Discord model) every 25s
   useEffect(() => {
     const interval = setInterval(() => {
       if (socket.connected) {

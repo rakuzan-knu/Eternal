@@ -1,3 +1,4 @@
+import { ProfileFrameSurface } from '@/shared/ui/ProfileFrame';
 import React, { useState, useEffect, useMemo, useOptimistic, useTransition, useRef } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
@@ -9,6 +10,7 @@ import { useUserReposts } from '../../entities/post/model/useUserReposts';
 import { useCreatePost } from '@/features/posts/model/useCreatePost';
 import { USER_POSTS_KEY, USER_REPOSTS_KEY } from '@/shared/api/queryKeys';
 import { useUserPosts } from '../../entities/post/model/useUserPosts';
+import { ProfileEffect } from '@/shared/ui/ProfileEffect';
 import ProfileHeader from '@/widgets/profile/ui/ProfileHeader';
 import ProfileTabs, { ProfileTabType } from '../../shared/ui/ProfileTabs';
 import CreatePost from '../../features/posts/ui/CreatePost';
@@ -195,6 +197,26 @@ export default function ProfilePage() {
     }
   }, [activeFeed, postVirtualizer]);
 
+  const profileTheme = useMemo(() => {
+    if (user?.profileTheme?.primary && user?.profileTheme?.accent) {
+      return user.profileTheme;
+    }
+    if (isOwnProfile) {
+      try {
+        const raw = localStorage.getItem('eternal_profile_customizations_v2');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed.themePrimary && parsed.themeAccent) {
+            return { primary: parsed.themePrimary, accent: parsed.themeAccent };
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+    return null;
+  }, [user?.profileTheme, isOwnProfile]);
+
   if (isReserved) {
     return (
       <div className="w-full min-h-112.5 flex flex-col items-center justify-center bg-white/2 backdrop-blur-2xl border border-white/5 rounded-[2.5rem] p-8 text-center shadow-[0_12px_40px_rgba(0,0,0,0.6)] animate-fadeIn">
@@ -293,50 +315,71 @@ export default function ProfilePage() {
             breadcrumbs: [{ name: profileName, url: `/@${user.username}` }],
           }}
         />
-        <div className="glass-card border border-white/5 rounded-[2.5rem] overflow-hidden shadow-[0_12px_40px_rgba(0,0,0,0.6)] mb-6 transition-colors duration-200">
-          <ProfileHeader
-            userId={user.id}
-            displayName={user.displayName}
-            username={user.username}
-            bio={user.bio}
-            avatar={user.avatar}
-            banner={user.banner}
-            bannerPosition={user.bannerPosition}
-            createdAt={user.createdAt}
-            isOwnProfile={isOwnProfile}
-            isFollowing={Boolean(user.isFollowing || user.followStatus === 'following')}
-            followStatus={user.followStatus}
-            followsYou={user.followsYou}
-            isVerified={user.isVerified}
-            primaryBadge={user.primaryBadge}
-            badges={user.badges}
-            mergedPrsCount={user.mergedPrsCount}
-            reportCount={user.reportCount}
-            subscriptionMonths={user.subscriptionMonths}
-            subscriptionDate={user.subscriptionDate}
-            followersCount={user.followersCount}
-            followingCount={user.followingCount}
-            onEditClick={() => openEditProfile('account')}
-          />
+        <ProfileFrameSurface frame={user.activeProfileFrame} radius={40} priority className="mb-6">
+          <div
+            className={`border rounded-[2.5rem] overflow-hidden shadow-[0_16px_50px_rgba(0,0,0,0.6)] transition-all duration-300 relative ${
+              profileTheme ? 'border-white/15' : 'glass-card border-white/5'
+            }`}
+            style={
+              profileTheme
+                ? {
+                    backgroundColor: profileTheme.accent,
+                    backgroundImage: `linear-gradient(180deg, ${profileTheme.primary} 0%, ${profileTheme.accent} 100%)`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundSize: '100% 100%',
+                  }
+                : undefined
+            }
+          >
+            <ProfileEffect effect={user.activeProfileEffect} priority />
+            <ProfileHeader
+              userId={user.id}
+              displayName={user.displayName}
+              displayNameStyle={user.displayNameStyle}
+              profileTheme={profileTheme}
+              username={user.username}
+              bio={user.bio}
+              avatar={user.avatar}
+              decoration={user.activeDecoration}
+              banner={user.banner}
+              bannerPosition={user.bannerPosition}
+              createdAt={user.createdAt}
+              isOwnProfile={isOwnProfile}
+              isFollowing={Boolean(user.isFollowing || user.followStatus === 'following')}
+              followStatus={user.followStatus}
+              followsYou={user.followsYou}
+              isVerified={user.isVerified}
+              primaryBadge={user.primaryBadge}
+              badges={user.badges}
+              mergedPrsCount={user.mergedPrsCount}
+              reportCount={user.reportCount}
+              subscriptionMonths={user.subscriptionMonths}
+              subscriptionDate={user.subscriptionDate}
+              followersCount={user.followersCount}
+              followingCount={user.followingCount}
+              onEditClick={() => openEditProfile('account')}
+            />
 
-          {/* Mobile Showcase View (< 1024px) */}
-          <div className="px-6 pt-2 lg:hidden relative z-20">
-            <React.Suspense fallback={null}>
-              <ProfileShowcaseSidebar
-                username={user.username}
-                userId={user.id}
-                isOwner={isOwnProfile}
-                variant="mobile"
-              />
-            </React.Suspense>
+            {/* Mobile Showcase View (< 1024px) */}
+            <div className="px-6 pt-2 lg:hidden relative z-20">
+              <React.Suspense fallback={null}>
+                <ProfileShowcaseSidebar
+                  username={user.username}
+                  userId={user.id}
+                  isOwner={isOwnProfile}
+                  variant="mobile"
+                />
+              </React.Suspense>
+            </div>
+
+            <ProfileTabs
+              activeTab={activeTab}
+              setActiveTab={handleTabChange}
+              showSavedTab={isOwnProfile}
+              hasProfileTheme={Boolean(profileTheme)}
+            />
           </div>
-
-          <ProfileTabs
-            activeTab={activeTab}
-            setActiveTab={handleTabChange}
-            showSavedTab={isOwnProfile}
-          />
-        </div>
+        </ProfileFrameSurface>
 
         {isOwnProfile && activeTab === 'posts' && (
           <div className="mb-4">

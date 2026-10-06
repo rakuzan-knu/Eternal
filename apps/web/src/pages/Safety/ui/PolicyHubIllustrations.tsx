@@ -1,7 +1,7 @@
 import React from 'react';
 
 /**
- * 3D Floating Ban Hammer for Policy Hub Hero (matching Discord's iconic ban hammer aesthetic)
+ * 3D Floating Ban Hammer for Policy Hub Hero
  */
 export const PolicyBanHammerIllustration: React.FC<{ className?: string }> = ({
   className = 'w-44 h-44 xl:w-56 xl:h-56',
@@ -207,7 +207,7 @@ export const PolicyBanHammerIllustration: React.FC<{ className?: string }> = ({
 };
 
 /**
- * 3D Floating Shield for Policy Hub Hero (matching Discord's shield)
+ * 3D Floating Shield for Policy Hub Hero
  */
 export const PolicyHeroShieldIllustration: React.FC<{ className?: string }> = ({
   className = 'w-44 h-44 xl:w-56 xl:h-56',
@@ -406,7 +406,7 @@ export const PolicyCardThumbnail: React.FC<{
           />
         </g>
 
-        {/* Floating 3D Pickaxes (matching Discord card style) */}
+        {/* Floating 3D Pickaxes */}
         {/* Left Pickaxe */}
         <g transform="translate(170, 65) rotate(-35) scale(0.65)">
           <rect x="25" y="5" width="8" height="50" rx="4" fill="#cbd5e1" />

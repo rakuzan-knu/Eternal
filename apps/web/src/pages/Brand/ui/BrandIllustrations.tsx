@@ -283,7 +283,7 @@ export const EternalCrystalCube3D: React.FC<{ className?: string }> = ({
 };
 
 /**
- * 3. 3D Cyber Frying Pan Prop (Hero Bottom-Right, matching Discord branding 1:1)
+ * 3. 3D Cyber Frying Pan Prop
  */
 export const EternalCyberPan3D: React.FC<{ className?: string }> = ({
   className = 'w-32 h-32 lg:w-40 lg:h-40',

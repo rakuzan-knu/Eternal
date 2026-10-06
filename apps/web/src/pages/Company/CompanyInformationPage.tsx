@@ -165,7 +165,7 @@ export const CompanyInformationPage: React.FC = () => {
           <p className="text-base sm:text-lg text-neutral-400">{t.subtitle}</p>
         </div>
 
-        {/* Company Card Block (Discord Impressum Style) */}
+        {/* Company Card Block */}
         <div className="p-8 sm:p-10 rounded-3xl bg-[#0e0a1f]/80 border border-purple-800/30 backdrop-blur-xl shadow-2xl flex flex-col gap-8">
           {/* Company Name Header without extra tags */}
           <div className="flex items-center gap-4 pb-6 border-b border-purple-800/30">

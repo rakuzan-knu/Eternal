@@ -1,9 +1,3 @@
-/**
- * Circular Ripple Transition Engine (Instagram x Discord x Apple Polish)
- * Creates a seamless, GPU-accelerated 60 FPS radial expanding wave
- * from the user's click/upload coordinates to smoothly transition the theme.
- */
-
 export interface RippleOrigin {
   x: number;
   y: number;

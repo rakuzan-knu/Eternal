@@ -1,0 +1,21 @@
+{
+  "format": "animated_webp",
+  "width": 288,
+  "height": 288,
+  "frames": 55,
+  "delay": [
+    83, 84, 83, 83, 84, 83, 83, 84, 83, 83, 84, 83, 83, 84, 83, 83, 84, 83, 83, 84, 83, 83, 84, 83,
+    83, 84, 83, 83, 84, 83, 83, 84, 83, 83, 84, 83, 83, 84, 83, 83, 84, 83, 83, 84, 83, 83, 84, 83,
+    83, 84, 83, 83, 84, 83, 500
+  ],
+  "loop": 0,
+  "durationMs": 5000,
+  "sourceFrames": 60,
+  "sourceSha256": "1cebf6dab91935547839a4ec1710a8dae76b70c8d2e11598a8f474ab6d7e4247",
+  "sourceTitle": "Cat Ears",
+  "exactSource": false,
+  "lossless": true,
+  "renderScale": 1.2,
+  "centerTransparent": true,
+  "authoring": "separate coat pigments with retained APNG motion"
+}

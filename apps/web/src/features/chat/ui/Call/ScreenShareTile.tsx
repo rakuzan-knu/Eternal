@@ -33,7 +33,7 @@ export function ScreenShareTile({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // Local streamer preview state: defaults to false (resource-saving placeholder like Discord)
+  // Local streamer preview state: defaults to false
   const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(!isLocal);
   const [autoPauseWhenHidden, setAutoPauseWhenHidden] = useState<boolean>(true);
   const [isBackgroundPaused, setIsBackgroundPaused] = useState<boolean>(false);
@@ -226,7 +226,6 @@ export function ScreenShareTile({
       ref={containerRef}
       className={`group relative flex items-center justify-center bg-black/95 rounded-2xl overflow-hidden border border-zinc-800/80 shadow-2xl transition-all select-none ${className}`}
     >
-      {/* Top Discord-Grade Stream Badges */}
       <div className="absolute top-3 left-3 flex items-center z-30 pointer-events-none drop-shadow-md">
         <div className="bg-zinc-800/90 backdrop-blur-md px-2.5 py-0.5 rounded-l-md border-y border-l border-zinc-700/60 text-[10px] font-bold text-zinc-200 tracking-wider">
           1080P 60 FPS
@@ -264,7 +263,7 @@ export function ScreenShareTile({
               <MoreHorizontal size={15} />
             </button>
 
-            {/* Main Context Menu (Screenshot 4) */}
+            {/* Main Context Menu*/}
             {isMenuOpen && (
               <div className="absolute right-0 top-full mt-1.5 w-60 bg-zinc-950/95 backdrop-blur-2xl border border-zinc-800/90 rounded-xl p-1 shadow-2xl text-xs z-50 animate-in fade-in zoom-in-95 duration-150">
                 {/* 1. Stop Stream */}
@@ -320,7 +319,7 @@ export function ScreenShareTile({
                     <ChevronRight size={14} className="text-zinc-400" />
                   </button>
 
-                  {/* Submenu Flyout (Screenshot 4) */}
+                  {/* Submenu Flyout*/}
                   {isSubmenuOpen && (
                     <div className="absolute right-full top-0 mr-1.5 w-64 bg-zinc-950/95 backdrop-blur-2xl border border-zinc-800/90 rounded-xl p-1.5 shadow-2xl text-xs z-50 animate-in fade-in zoom-in-95 duration-150">
                       {/* Submenu Item 1: Show My Screen */}
@@ -436,7 +435,7 @@ export function ScreenShareTile({
         />
       )}
 
-      {/* Discord Resource-Saving Dark Placeholder (Screenshot 1) */}
+      {/* Resource-Saving Dark Placeholder */}
       {!shouldRenderVideo && (
         <div
           onClick={() => setIsPreviewOpen(true)}
@@ -457,7 +456,7 @@ export function ScreenShareTile({
         </div>
       )}
 
-      {/* Bottom Left Stream Metadata Pill (Screenshot 1 & 2) */}
+      {/* Bottom Left Stream Metadata Pill */}
       {(!isVideoLoading || !shouldRenderVideo) && (
         <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-black/75 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 text-xs font-semibold text-zinc-200 shadow-lg pointer-events-none">
           <Monitor size={14} className="text-indigo-400" />

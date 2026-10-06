@@ -19,6 +19,7 @@ import { useCurrentUser } from '@/entities/profile/model/useCurrentUser';
 import { useStoryEditorStore } from '@/features/stories/model/useStoryEditorStore';
 import { ProfileMenu } from './SidebarMenu';
 import Avatar from '../../../shared/ui/Avatar';
+import StyledDisplayName from '@/shared/ui/StyledDisplayName';
 import OnlineStatusIndicator from '../../../shared/ui/OnlineStatusIndicator';
 import { useQueryOnlineStatus } from '@/features/chat/model/usePresence';
 import { useUnreadMessagesCount } from '@/features/chat/model/useUnreadMessagesCount';
@@ -408,7 +409,12 @@ export default function Sidebar() {
               } ${isSidebarExpanded ? 'px-3 gap-3' : 'justify-center mx-auto w-12'}`}
             >
               <div className="relative shrink-0">
-                <Avatar size="sm" src={currentUser?.avatar} />
+                <Avatar
+                  size="sm"
+                  src={currentUser?.avatar}
+                  decoration={currentUser?.activeDecoration}
+                  userId={currentUser?.id}
+                />
                 {currentUser?.id && <OnlineStatusIndicator userId={currentUser.id} variant="dot" />}
               </div>
 
@@ -419,9 +425,12 @@ export default function Sidebar() {
                     : 'opacity-0 -translate-x-4 hidden duration-100'
                 }`}
               >
-                <span className="text-sm font-semibold text-gray-950 dark:text-white whitespace-nowrap truncate">
-                  {currentUser?.displayName || currentUser?.username || 'Profile'}
-                </span>
+                <StyledDisplayName
+                  name={currentUser?.displayName || currentUser?.username || 'Profile'}
+                  style={currentUser?.displayNameStyle}
+                  userId={currentUser?.id}
+                  className="text-sm font-semibold whitespace-nowrap truncate"
+                />
                 <ChevronRight size={18} className="text-gray-500 dark:text-gray-400" />
               </div>
             </NavLink>

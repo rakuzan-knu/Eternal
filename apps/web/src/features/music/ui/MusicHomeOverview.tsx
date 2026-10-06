@@ -483,7 +483,7 @@ export const MusicHomeOverview: React.FC = () => {
       {/* Main Music View */}
       {homeCategory !== 'podcasts' && (
         <div>
-          {/* Top 6-Item Quick Access Grid (Screenshot 1 & 2: 2 rows × 3 columns) */}
+          {/* Top 6-Item Quick Access Grid*/}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-9">
             {topGridItems.map((item, idx) => {
               const isFirstPlayingSlot = idx === 0 && isPlaying && item.isPlaying;

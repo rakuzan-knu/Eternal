@@ -93,7 +93,12 @@ export function ManageAccountsModal({
                     onClick={() => account.id !== activeAccountId && onSwitchAccount(account.id)}
                     className="flex items-center gap-3 flex-1 min-w-0 text-left"
                   >
-                    <Avatar size="sm" src={avatarUrl} />
+                    <Avatar
+                      size="sm"
+                      src={avatarUrl}
+                      decoration={(account as any).activeDecoration}
+                      userId={account.id}
+                    />
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-gray-950 dark:text-white truncate">
                         {account.displayName || account.username}

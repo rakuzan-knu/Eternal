@@ -250,7 +250,7 @@ export const MediaDetailModal: React.FC = () => {
     };
   }, [baseDetails, dynamicDetails]);
 
-  // Direct fast streaming MP4 video url (Discord CDN / Steam Cloudflare CDN)
+  // Direct fast streaming MP4 video url
   const resolvedVideoUrl = useMemo(() => {
     const raw = details?.videoUrl || baseDetails?.videoUrl || '';
     if (!raw) return '';
@@ -553,7 +553,7 @@ export const MediaDetailModal: React.FC = () => {
             {/* Ambient Top Glow */}
             <div className="absolute top-0 left-1/4 -right-1/4 h-32 bg-gradient-to-b from-indigo-500/10 via-purple-500/5 to-transparent blur-3xl pointer-events-none" />
 
-            {/* 1. Header (Discord Modal Header - Stable fixed layout, zero-layout-shift) */}
+            {/* 1. Header (Modal Header - Stable fixed layout, zero-layout-shift) */}
             <header className="shrink-0 flex items-center justify-between min-h-[72px] sm:min-h-[78px] px-5 sm:px-6 py-3 border-b border-black/10 dark:border-white/[0.08] bg-transparent z-30">
               {/* Left: Media Icon + Title + Rank Pill + Subtitle */}
               <div className="flex items-center gap-3.5 min-w-0 pr-4">
@@ -733,7 +733,7 @@ export const MediaDetailModal: React.FC = () => {
                   {/* Hero Video / Screenshot Viewer */}
                   <div className="relative aspect-video rounded-2xl overflow-hidden bg-black/95 border border-white/10 shadow-2xl group/player">
                     {selectedMediaIndex === 0 ? (
-                      // Video Trailer View (Discord HTML5 Player - 0.1s Fast Direct MP4)
+                      // Video Trailer View (HTML5 Player - 0.1s Fast Direct MP4)
                       <>
                         {/* Dark Skeleton & Poster Blur until video loads */}
                         {!videoLoaded && (
@@ -772,7 +772,7 @@ export const MediaDetailModal: React.FC = () => {
                           </button>
                         )}
 
-                        {/* Floating Discord Unmute Overlay Badge (if muted) */}
+                        {/* Floating Unmute Overlay Badge (if muted) */}
                         {isMuted && (
                           <button
                             type="button"
@@ -838,7 +838,7 @@ export const MediaDetailModal: React.FC = () => {
                         </div>
                       </>
                     ) : (
-                      // Screenshot Enlarged View (Discord Grade)
+                      // Screenshot Enlarged View
                       <div className="w-full h-full relative flex items-center justify-center bg-black/95 group/hero select-none">
                         <img
                           src={details.screenshots[selectedMediaIndex - 1] || details.miniPosterUrl}
@@ -851,14 +851,14 @@ export const MediaDetailModal: React.FC = () => {
                           }}
                         />
 
-                        {/* Discord-style Screenshot Counter Badge */}
+                        {/* Screenshot Counter Badge */}
                         <div className="absolute top-3 right-3 px-3 py-1 rounded-full bg-black/75 backdrop-blur-md border border-white/15 text-xs font-semibold text-white/90 shadow-lg flex items-center gap-1.5 select-none pointer-events-none z-10">
                           <span>
                             Screenshot {selectedMediaIndex} of {details.screenshots.length}
                           </span>
                         </div>
 
-                        {/* Discord-style Hover Overlay Left/Right Navigation Arrows */}
+                        {/* Hover Overlay Left/Right Navigation Arrows */}
                         <button
                           type="button"
                           onClick={(e) => {

@@ -346,7 +346,7 @@ export const LicensesPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Discord-style Software Packages Listing */}
+                {/* Software Packages Listing */}
                 <div className="flex flex-col gap-4 text-xs sm:text-sm text-neutral-300 leading-relaxed">
                   <p>
                     <span className="font-semibold text-white">{t.includedIntro}</span>{' '}
@@ -439,7 +439,7 @@ export const LicensesPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Discord-style Fonts Listing */}
+                {/* Fonts Listing */}
                 <div className="flex flex-col gap-5 text-xs sm:text-sm text-neutral-300 leading-relaxed">
                   <p className="font-semibold text-white">{t.fontsSubtitle}</p>
 

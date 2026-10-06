@@ -59,7 +59,7 @@ export function useCallManager() {
   const callStatus = useCallStore((s) => s.callStatus);
   useWakeLock(callStatus === 'connected' || callStatus === 'calling');
 
-  // Real-time speaking status broadcast via WebSocket (Discord Tier-2)
+  // Real-time speaking status broadcast via WebSocket
   const localIsSpeaking = useCallStore((s) => s.localIsSpeaking);
   useEffect(() => {
     const currentCallId = useCallStore.getState().callId;
@@ -269,7 +269,7 @@ export function useCallManager() {
     };
   }, [callStatus, incrementDuration]);
 
-  // Auto-reconnect to ongoing active call after page reload (Discord-style)
+  // Auto-reconnect to ongoing active call after page reload
   useEffect(() => {
     const saved = getCallSession();
     if (!saved || !saved.callId) return;
@@ -1098,7 +1098,6 @@ export function useCallManager() {
     const currentMuted = useCallStore.getState().isMuted;
     const currentDeafened = useCallStore.getState().isDeafened;
 
-    // Discord behavior: clicking mute while deafened un-deafens and un-mutes you
     if (currentDeafened) {
       setIsDeafened(false);
       setIsMuted(false);
@@ -1186,8 +1185,6 @@ export function useCallManager() {
         });
       });
 
-      // Discord behavior: restore mute state before deafen
-      // If user was already muted before deafening, stay muted; otherwise unmute
       const shouldBeMuted = wasMutedBeforeDeafenRef.current;
       setIsMuted(shouldBeMuted);
       webRTC.toggleMuteTrack(shouldBeMuted);

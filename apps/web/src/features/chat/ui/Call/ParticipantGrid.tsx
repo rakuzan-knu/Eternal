@@ -287,7 +287,6 @@ export function ParticipantGrid({ compact = false, className = '' }: Participant
       } ${className}`}
     >
       {screenShareCount === 2 ? (
-        /* Discord 2x2 Grid when 2 users share screen simultaneously (Screen shares always on top row) */
         <div
           className={`w-full max-w-5xl h-full grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 items-center justify-center p-2 ${compact ? 'max-h-full' : 'max-h-[75vh]'}`}
         >
@@ -300,7 +299,6 @@ export function ParticipantGrid({ compact = false, className = '' }: Participant
           {renderLocalUserTile()}
         </div>
       ) : screenShareCount === 1 ? (
-        /* Discord 3-Block Horizontal Layout when 1 screen share is active (Screen share is at top / first) */
         <div
           className={`w-full max-w-6xl h-full grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 items-center justify-center p-2 ${compact ? 'max-h-full' : 'max-h-[75vh]'}`}
         >

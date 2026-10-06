@@ -4,9 +4,15 @@ interface BannerProps {
   src?: string | null | undefined;
   positionY?: number | undefined;
   alt?: string | undefined;
+  fallbackGradient?: string | undefined;
 }
 
-export default function Banner({ src, positionY = 50, alt = 'User profile banner' }: BannerProps) {
+export default function Banner({
+  src,
+  positionY = 50,
+  alt = 'User profile banner',
+  fallbackGradient,
+}: BannerProps) {
   return (
     <div className="w-full h-full relative border-b border-white/[0.05] overflow-hidden bg-[#111]">
       {src ? (
@@ -22,6 +28,10 @@ export default function Banner({ src, positionY = 50, alt = 'User profile banner
           />
           <div className="absolute inset-0 bg-white/[0.01] backdrop-blur-[1px]"></div>
         </>
+      ) : fallbackGradient ? (
+        <div className="w-full h-full relative" style={{ background: fallbackGradient }}>
+          <div className="absolute inset-0 bg-black/20 backdrop-blur-[1px]"></div>
+        </div>
       ) : (
         <div className="w-full h-full bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-pink-500/20 relative">
           <div className="absolute inset-0 bg-white/[0.01] backdrop-blur-[2px]"></div>

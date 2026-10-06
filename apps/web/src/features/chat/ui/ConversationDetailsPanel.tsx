@@ -216,7 +216,12 @@ export default function ConversationDetailsPanel({
               )
             ) : (
               <>
-                <Avatar size="xl" src={display.avatar} />
+                <Avatar
+                  size="xl"
+                  src={display.avatar}
+                  decoration={display.activeDecoration}
+                  userId={otherUserId}
+                />
                 {otherUserId && (
                   <OnlineStatusIndicator userId={otherUserId} variant="dot" size="xl" />
                 )}
@@ -533,6 +538,8 @@ export default function ConversationDetailsPanel({
           onConfirm={handleDeleteChat}
           conversationName={display.title}
           avatarUrl={display.avatar}
+          decoration={display.activeDecoration}
+          userId={display.otherUserId}
           isGroup={isGroup}
           otherUserName={display.title}
         />

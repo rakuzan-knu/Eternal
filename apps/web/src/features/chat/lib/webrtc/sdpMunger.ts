@@ -183,9 +183,6 @@ export function injectVP9SVC(sdp: string): string {
   return finalLines.join('\r\n');
 }
 
-/**
- * Injects Discord-grade Opus audio parameters (48kHz stereo, 128kbps, in-band FEC, minptime=10)
- */
 export function optimizeOpusAudioSDP(sdp: string): string {
   if (!sdp || typeof sdp !== 'string') return sdp;
 
@@ -232,12 +229,6 @@ export function optimizeOpusAudioSDP(sdp: string): string {
   return updatedLines.join('\r\n');
 }
 
-/**
- * Injects Discord-grade 1080p60 video parameters into SDP:
- * - b=AS:8000 (8 Mbps application-specific maximum bandwidth)
- * - b=TIAS:8000000 (Transport Independent Application Specific bandwidth)
- * - x-google-min-bitrate=3000;x-google-start-bitrate=6000;x-google-max-bitrate=12000
- */
 export function optimizeVideoSDPForScreenShare(sdp: string, bitrateKbps: number = 6000): string {
   if (!sdp || typeof sdp !== 'string') return sdp;
 
@@ -333,8 +324,6 @@ export function mungeSDP(
 
   let result = optimizeOpusAudioSDP(sdp);
 
-  // For screen sharing, Discord-grade VP8 provides 100% reliable hardware/software encoding & decoding
-  // across all Chromium browsers (Chrome, Edge, Opera) without MediaFoundation/DXVA GPU session limits.
   const effectiveCodec: VideoCodecPreference = isScreenShare ? 'vp8' : preferredCodec;
 
   if (effectiveCodec && effectiveCodec !== 'auto') {

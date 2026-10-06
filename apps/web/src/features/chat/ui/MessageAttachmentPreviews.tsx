@@ -38,7 +38,7 @@ export function MediaAttachment({
   const [isPausedByUser, setIsPausedByUser] = useState(false);
   const [posterFrame, setPosterFrame] = useState<string | null>(null);
 
-  // IntersectionObserver: automatically halt decoders when out of viewport (Telegram/Discord standard)
+  // IntersectionObserver: automatically halt decoders when out of viewport
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -245,7 +245,7 @@ export function MediaAttachment({
         </div>
       )}
 
-      {/* Telegram/Discord style GIF playback pill badge */}
+      {/* GIF playback pill badge */}
       {isGif && isSpoilerRevealed && (
         <button
           type="button"

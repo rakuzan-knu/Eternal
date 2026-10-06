@@ -395,7 +395,7 @@ export const ProfileShowcaseSettingsSection: React.FC = () => {
         </div>
       </div>
 
-      {/* Accent Color Theme Picker (Preset swatches + Discord-style Custom RGB circle) */}
+      {/* Accent Color Theme Picker (Preset swatches + Custom RGB circle) */}
       <div className="flex flex-col gap-2.5">
         <label className="text-xs font-bold text-gray-300">Custom Accent Glow Color:</label>
         <div className="flex items-center gap-2.5 flex-wrap">
@@ -419,7 +419,7 @@ export const ProfileShowcaseSettingsSection: React.FC = () => {
             );
           })}
 
-          {/* 9th Discord-style Custom RGB Color Swatch */}
+          {/* 9th Custom RGB Color Swatch */}
           <div className="relative group">
             <label
               title={isCustomColor ? `Custom Color: ${accentColor}` : 'Pick custom RGB color'}

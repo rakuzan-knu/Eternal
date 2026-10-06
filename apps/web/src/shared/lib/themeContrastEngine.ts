@@ -108,7 +108,7 @@ export function generateSemanticTokens(canvasHex: string, accentHex: string): Se
   const textOnAccent = getTextOnAccent(accentHex);
 
   if (isLight) {
-    // Light Canvas tokens (Discord/Apple high-contrast legibility)
+    // Light Canvas tokens
     return {
       surfaceBase: canvasHex,
       surfaceElevated1: '#ffffff',

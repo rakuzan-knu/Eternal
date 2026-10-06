@@ -41,8 +41,10 @@ describe('StoriesService', () => {
     id: 'user-1',
     username: 'alice',
     displayName: 'Alice Wonderland',
+    displayNameStyle: null,
     avatar: 'https://example.com/avatar.jpg',
     isVerified: true,
+    activeDecoration: null,
   };
 
   const mockStory = {

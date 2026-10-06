@@ -182,7 +182,7 @@ export const PersonalMetaWidget: React.FC<PersonalMetaWidgetProps> = ({
         )}
       </div>
 
-      {/* Structured Facebook & Discord-Style Information List */}
+      {/* Structured Information List */}
       <div className="flex flex-col gap-2">
         {/* 1. Relationship Status & Anniversary */}
         {showRelationship && (

@@ -426,7 +426,12 @@ export function PictureInPicture() {
                   : 'ring-1 ring-black/10 dark:ring-white/15'
               }`}
             >
-              <Avatar src={activeUser.avatar} size="lg" className="w-20 h-20 shadow-xl" />
+              <Avatar
+                src={activeUser.avatar}
+                size="lg"
+                suppressDecoration={true}
+                className="w-20 h-20 shadow-xl"
+              />
             </div>
           </div>
         )}

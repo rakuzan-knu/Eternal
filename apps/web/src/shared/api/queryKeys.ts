@@ -129,6 +129,22 @@ const featureFlags = {
 } as const;
 
 export const queryKeys = {
+  profileFrames: {
+    catalog: ['profile-frame-catalog'] as const,
+    inventory: (userId: string | null) => ['profile-frame-inventory', userId] as const,
+  },
+  profileEffects: {
+    catalog: ['profile-effect-catalog'] as const,
+    inventory: (userId: string | null) => ['profile-effect-inventory', userId] as const,
+  },
+  nameplates: {
+    catalog: ['nameplate-catalog'] as const,
+    inventory: (userId: string | null) => ['nameplate-inventory', userId] as const,
+  },
+  decorations: {
+    catalog: ['decoration-catalog'] as const,
+    inventory: (userId: string | null) => ['decoration-inventory', userId] as const,
+  },
   user,
   feed,
   comments,

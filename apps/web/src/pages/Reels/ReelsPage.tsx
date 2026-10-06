@@ -259,7 +259,7 @@ export const ReelsPage: React.FC = () => {
         <span className="hidden sm:inline">Create Reel</span>
       </button>
 
-      {/* Desktop Vertical Navigation Arrows (screen width >= 880px, matching TikTok Screenshot 2) */}
+      {/* Desktop Vertical Navigation Arrows*/}
       <div className="hidden min-[880px]:flex flex-col gap-3 fixed right-5 lg:right-8 top-1/2 -translate-y-1/2 z-30 pointer-events-auto">
         {/* Up Arrow */}
         <button

@@ -477,7 +477,12 @@ export function ShareModal() {
                             : 'group-hover:scale-105'
                         }`}
                       >
-                        <Avatar size="lg" src={u.avatar} />
+                        <Avatar
+                          size="lg"
+                          src={u.avatar}
+                          decoration={u.activeDecoration}
+                          userId={u.id}
+                        />
                       </div>
 
                       {/* Selected Purple Checkmark Badge */}

@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { useUIStore } from '@/shared/model/useUIStore';
 import Avatar from '@/shared/ui/Avatar';
+import StyledDisplayName from '@/shared/ui/StyledDisplayName';
 import { VerifiedCheckmark } from '@/entities/profile/ui/VerifiedCheckmark';
 import {
   NotificationFilter,
@@ -572,6 +573,8 @@ export function NotificationsPage() {
                         size="md"
                         src={item.actor?.avatar}
                         name={actorDisplayName}
+                        decoration={item.actor?.activeDecoration}
+                        userId={item.actor?.id}
                         className="transition-transform duration-200 group-hover:scale-105"
                       />
                       <div
@@ -592,7 +595,11 @@ export function NotificationsPage() {
                               if (item.actor?.username) navigate(`/${item.actor.username}`);
                             }}
                           >
-                            {actorDisplayName}
+                            <StyledDisplayName
+                              name={actorDisplayName}
+                              style={(item.actor as any)?.displayNameStyle}
+                              userId={item.actor?.id}
+                            />
                           </span>
                           <VerifiedCheckmark
                             isVerified={Boolean(item.actor?.isVerified)}

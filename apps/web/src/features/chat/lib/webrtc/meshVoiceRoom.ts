@@ -1,12 +1,3 @@
-/**
- * P2P WebRTC Mesh Voice Room Manager (Discord Voice Channels UX)
- *
- * Provides a decentralized Full Mesh audio topology for groups of 2-6 peers.
- * Audio streams travel directly peer-to-peer over UDP with 0ms server transcoding overhead
- * and $0 SFU/MCU infrastructure cost.
- * The NestJS WebSocket gateway serves strictly as the signaling relay.
- */
-
 export interface VoiceMeshPeer {
   peerId: string;
   pc: RTCPeerConnection;

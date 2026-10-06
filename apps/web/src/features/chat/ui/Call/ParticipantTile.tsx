@@ -572,7 +572,7 @@ export function ParticipantTile({
         )}
       </div>
 
-      {/* Floating Discord-style Soundboard Playback Reaction Badge */}
+      {/* Floating Soundboard Playback Reaction Badge */}
       {activeSoundboardEvent && (
         <div className="absolute top-12 left-1/2 -translate-x-1/2 z-30 pointer-events-none animate-in fade-in zoom-in-95 duration-200">
           <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#111214]/90 backdrop-blur-xl border border-amber-400/40 shadow-[0_8px_30px_rgba(245,158,11,0.35)] text-white">
@@ -602,7 +602,7 @@ export function ParticipantTile({
         />
       )}
 
-      {/* Audio-only / Video-off Fallback with Clean Discord Avatar Layout */}
+      {/* Audio-only / Video-off Fallback with Clean Avatar Layout */}
       {isVideoOff && (
         <div className="flex flex-col items-center justify-center select-none gap-4 p-6">
           <div
@@ -614,7 +614,7 @@ export function ParticipantTile({
             }}
             className="relative flex items-center justify-center rounded-full will-change-transform"
           >
-            {/* Discord Speaking Wave: Only when actually speaking and NOT muted */}
+            {/* Speaking Wave: Only when actually speaking and NOT muted */}
             {activeSpeaking && (
               <div className="absolute w-32 h-32 rounded-full bg-emerald-500/20 animate-ping opacity-60 pointer-events-none" />
             )}
@@ -623,6 +623,7 @@ export function ParticipantTile({
               <Avatar
                 src={effectiveUser?.avatar || null}
                 size="xl"
+                suppressDecoration={true}
                 className={`relative z-10 transition-all ${
                   activeSpeaking
                     ? 'ring-4 ring-emerald-400 shadow-[0_0_24px_rgba(16,185,129,0.7)]'

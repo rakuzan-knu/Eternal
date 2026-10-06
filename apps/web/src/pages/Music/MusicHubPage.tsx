@@ -151,7 +151,7 @@ export default function MusicHubPage() {
           isSidebarExpanded ? 'ml-[200px]' : 'ml-16'
         }`}
       >
-        {/* Left Column: Full-Height Library Panel (flush from y=0 to bottom, adjacent to RailwaySidebar like Discord/Apple) */}
+        {/* Left Column: Full-Height Library Panel */}
         <MusicLibraryPanel />
 
         {/* Right Column: Top Navbar + Main Content Area + Now Playing Sidebar */}

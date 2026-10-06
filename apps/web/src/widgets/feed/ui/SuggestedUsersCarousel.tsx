@@ -1,3 +1,4 @@
+import { Nameplate } from '@/shared/ui/Nameplate';
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, X, MapPin, Sparkles, Compass } from 'lucide-react';
@@ -235,7 +236,13 @@ function SuggestedCreatorCard({
         <MiniProfileHoverCard username={user.username} side="top">
           <Link to={`/profile/${user.username}`} className="relative mb-2.5 mt-1 block">
             <div className="p-0.5 rounded-full bg-gradient-to-tr from-purple-500/30 to-blue-500/30">
-              <Avatar src={user.avatar} alt={displayName} size="lg" />
+              <Avatar
+                src={user.avatar}
+                alt={displayName}
+                size="lg"
+                decoration={user.activeDecoration}
+                userId={user.id}
+              />
             </div>
             {user.isVerified && (
               <span className="absolute bottom-0 right-0 p-0.5 rounded-full bg-[#070709] flex items-center justify-center">
@@ -246,10 +253,15 @@ function SuggestedCreatorCard({
         </MiniProfileHoverCard>
 
         {/* Name & Handle */}
-        <div className="w-full flex flex-col items-center min-w-0">
+        <div
+          data-nameplate-text
+          className="nameplate-row rounded-lg py-1 px-1 w-full flex flex-col items-center min-w-0"
+        >
+          <Nameplate nameplate={user.activeNameplate} />
           <div className="flex items-center justify-center gap-1 max-w-full">
             <MiniProfileHoverCard username={user.username} side="top">
               <Link
+                data-nameplate-label
                 to={`/profile/${user.username}`}
                 className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate group-hover/card:text-blue-600 dark:group-hover/card:text-white hover:underline transition-colors block"
               >

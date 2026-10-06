@@ -85,6 +85,7 @@ export class ReelsService {
         username: reel.author.username,
         displayName: reel.author.displayName,
         avatar: reel.author.avatar,
+        activeDecoration: reel.author.activeDecoration ?? null,
         isVerified: reel.author.isVerified,
         isFollowing,
       },
@@ -103,6 +104,7 @@ export class ReelsService {
         username: comment.user.username,
         displayName: comment.user.displayName,
         avatar: comment.user.avatar,
+        activeDecoration: comment.user.activeDecoration ?? null,
         isVerified: comment.user.isVerified,
       },
     };

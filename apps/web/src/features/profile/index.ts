@@ -17,3 +17,4 @@ export { default as BadgeModal } from './ui/BadgeModal';
 export { default as BadgeList } from './ui/BadgeList';
 export { BadgeSettingsSection } from './ui/BadgeSettingsSection';
 export { ProfileShowcaseSettingsSection } from './ui/ProfileShowcaseSettingsSection';
+export { ProfileCustomizeSettingsSection } from './ui/ProfileCustomizeSettingsSection';

@@ -185,6 +185,7 @@ export interface GlobalSearchResult {
     displayName: string | null;
     avatar: string | null;
     isOnline: boolean;
+    activeNameplate?: import('@social-network/shared-contracts').NameplateDto | null;
   }>;
 }
 

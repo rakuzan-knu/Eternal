@@ -91,7 +91,6 @@ export interface CallStoreState {
   // Virtual Background & Blur
   virtualBackground: VirtualBackgroundMode;
 
-  // Voice Activity Detection & Noise Gate (Discord style)
   isVADEnabled: boolean;
   noiseGateThreshold: number; // dB, e.g. -45
   inputVolume: number; // 0-100%
@@ -122,7 +121,6 @@ export interface CallStoreState {
   // Preferred Video Codec (SDP Munging)
   preferredVideoCodec: VideoCodecPreference;
 
-  // Discord-Style Live Stream Stats HUD
   isStatsHUDOpen: boolean;
   liveStats: LiveConnectionStats | null;
 

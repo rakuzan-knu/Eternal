@@ -49,7 +49,12 @@ export function AccountSwitcherMenuItem({
                     : 'text-gray-700 dark:text-gray-300 hover:bg-black/5 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white'
                 }`}
               >
-                <Avatar size="sm" src={avatarUrl} />
+                <Avatar
+                  size="sm"
+                  src={avatarUrl}
+                  decoration={(account as any).activeDecoration}
+                  userId={account.id}
+                />
                 <div className="flex flex-col text-left min-w-0 flex-1">
                   <span className="truncate font-medium text-sm">
                     {account.displayName || account.username}

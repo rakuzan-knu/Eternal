@@ -163,7 +163,7 @@ export const FamilyActivityTab: React.FC<FamilyActivityTabProps> = ({
         </div>
       )}
 
-      {/* 2. Three Explanation Cards (Clean horizontal list layout like Discord) */}
+      {/* 2. Three Explanation Cards */}
       <div className="flex flex-col gap-3">
         {/* Card 1 */}
         <div className={`flex items-start gap-4 p-4 sm:p-5 rounded-2xl ${cardBaseStyle}`}>

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { AvatarDecorationDto } from './decorations';
 
 export const createReelSchema = z.object({
   caption: z.string().max(2000).default('').optional(),
@@ -37,6 +38,7 @@ export interface ReelAuthorDto {
   username: string;
   displayName: string | null;
   avatar: string | null;
+  activeDecoration?: AvatarDecorationDto | null | undefined;
   isVerified?: boolean | undefined;
   isFollowing?: boolean | undefined;
 }

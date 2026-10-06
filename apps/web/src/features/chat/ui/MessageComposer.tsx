@@ -687,7 +687,7 @@ export default function MessageComposer({
     typingTimeout.current = setTimeout(() => actions.setTyping(false), 2000);
   };
 
-  // Telegram/Discord-style auto-focus typing:
+  // auto-focus typing:
   // When pressing an ordinary alphanumeric/punctuation key while idle in chat,
   // automatically focus the textarea and type the character seamlessly.
   useEffect(() => {
@@ -699,7 +699,7 @@ export default function MessageComposer({
       if (e.key.length !== 1) return;
       if (e.key.charCodeAt(0) < 32) return;
 
-      // Avoid capturing spacebar when input is empty (Telegram/Discord standard: space is used for scrolling or ignored)
+      // Avoid capturing spacebar when input is empty
       if (e.key === ' ' && !text.length) return;
 
       // 3. Skip if already typing in an editable field or textarea
@@ -1575,7 +1575,7 @@ export default function MessageComposer({
                     onChange={handlePickReplaceDoc}
                   />
 
-                  {/* Popup Menu (Screenshot 3) */}
+                  {/* Popup Menu*/}
                   {isReplaceMenuOpen && (
                     <>
                       <div

@@ -1,3 +1,4 @@
+import { Nameplate } from '@/shared/ui/Nameplate';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -21,9 +22,11 @@ import { usePresenceStore } from '@/shared/model/usePresenceStore';
 import { useQueryOnlineStatus } from '@/features/chat/model/usePresence';
 import { useConversations } from '@/features/chat/model/useConversations';
 import { useAuthStore } from '@/shared/model/useAuthStore';
+import { useActiveDecorationStore } from '@/shared/model/useActiveDecorationStore';
 import { MiniProfileHoverCard } from '@/widgets/profile';
 import { FollowButton } from '@/features/follow/ui/FollowButton';
 import Avatar from '@/shared/ui/Avatar';
+import StyledDisplayName from '@/shared/ui/StyledDisplayName';
 import { StoryAvatar } from '@/entities/story';
 import { VerifiedCheckmark } from '@/entities/profile/ui/VerifiedCheckmark';
 import { chatApi } from '@/features/chat/api/chatApi';
@@ -53,6 +56,20 @@ const FriendRowItem: React.FC<FriendRowItemProps> = ({
   onStartChat,
   onNavigate,
 }) => {
+  const currentUserId = useAuthStore((s) => s.userId);
+  const currentStoreNameplate = useActiveDecorationStore((s) => s.activeNameplate);
+  const currentStoreDecoration = useActiveDecorationStore((s) => s.activeDecoration);
+
+  const effectiveNameplate =
+    friend.id === currentUserId && currentStoreNameplate !== undefined
+      ? currentStoreNameplate
+      : friend.activeNameplate;
+
+  const effectiveDecoration =
+    friend.id === currentUserId && currentStoreDecoration !== undefined
+      ? currentStoreDecoration
+      : (friend as any).activeDecoration;
+
   const isListening = Boolean(isOnline && isMusicActivity(friend.activityStatus));
   const isPlaying = Boolean(isOnline && isGamingActivity(friend.activityStatus));
   const elapsed = useLiveElapsedTimer(isPlaying ? friend.activityStatus?.startedAt : null);
@@ -61,12 +78,13 @@ const FriendRowItem: React.FC<FriendRowItemProps> = ({
   return (
     <div
       onClick={() => onNavigate(friend.username)}
-      className={`group flex flex-col p-2 rounded-2xl cursor-pointer transition-all duration-200 hover:bg-black/5 dark:hover:bg-white/[0.06] ${
+      className={`nameplate-row group flex flex-col p-2 rounded-2xl cursor-pointer transition-all duration-200 hover:bg-black/5 dark:hover:bg-white/[0.06] ${
         isOnline
           ? 'text-gray-900 dark:text-gray-200'
           : 'text-gray-600 dark:text-gray-400 opacity-80 hover:opacity-100'
       }`}
     >
+      <Nameplate nameplate={effectiveNameplate} alwaysPlay={true} />
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
           {/* Story Avatar with Status Dot */}
@@ -77,6 +95,7 @@ const FriendRowItem: React.FC<FriendRowItemProps> = ({
                 alt={displayName}
                 userId={friend.id}
                 username={friend.username}
+                decoration={effectiveDecoration}
                 size="sm"
               />
               {isPlaying ? (
@@ -118,12 +137,15 @@ const FriendRowItem: React.FC<FriendRowItemProps> = ({
           </MiniProfileHoverCard>
 
           {/* User Info */}
-          <div className="flex flex-col min-w-0">
+          <div data-nameplate-text className="flex flex-col min-w-0">
             <div className="flex items-center gap-1.5 min-w-0">
               <MiniProfileHoverCard username={friend.username} side="left">
-                <span className="text-xs font-semibold text-gray-900 dark:text-white truncate group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors hover:underline">
-                  {displayName}
-                </span>
+                <StyledDisplayName
+                  name={displayName}
+                  style={(friend as any).displayNameStyle}
+                  userId={friend.id}
+                  className="text-xs font-semibold text-gray-900 dark:text-white truncate group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors hover:underline"
+                />
               </MiniProfileHoverCard>
               <VerifiedCheckmark
                 isVerified={friend.isVerified}
@@ -209,7 +231,7 @@ const FriendRowItem: React.FC<FriendRowItemProps> = ({
         </div>
       </div>
 
-      {/* Discord-style Active Game Subcard */}
+      {/* Active Game Subcard */}
       {isPlaying && (
         <div className="mt-1.5 p-2 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center gap-2.5 shadow-xs">
           <div className="relative w-8 h-8 rounded-lg overflow-visible bg-black/40 border border-white/10 shrink-0 flex items-center justify-center">
@@ -229,7 +251,7 @@ const FriendRowItem: React.FC<FriendRowItemProps> = ({
               </div>
             )}
           </div>
-          <div className="flex flex-col min-w-0 flex-1">
+          <div data-nameplate-text className="flex flex-col min-w-0 flex-1">
             <span className="text-[11px] font-bold text-white truncate">
               {friend.activityStatus?.title}
             </span>
@@ -261,6 +283,8 @@ export function OnlineFriendsSidebar() {
   useQueryOnlineStatus(friendIds);
   const onlineUserIds = usePresenceStore((s) => s.onlineUserIds);
   const currentUserId = useAuthStore((s) => s.userId);
+  const currentStoreNameplate = useActiveDecorationStore((s) => s.activeNameplate);
+  const currentStoreDecoration = useActiveDecorationStore((s) => s.activeDecoration);
   const navigate = useNavigate();
 
   // Listen to real-time game activity changes via WebSockets
@@ -431,97 +455,115 @@ export function OnlineFriendsSidebar() {
           </div>
         ) : suggestedUsers && suggestedUsers.length > 0 ? (
           <div className="flex flex-col gap-2">
-            {suggestedUsers.slice(0, suggestedVisibleCount).map((user: FollowUserSummary) => (
-              <div
-                key={user.id}
-                className="flex items-center justify-between gap-2 p-2 rounded-2xl hover:bg-black/5 dark:hover:bg-white/[0.04] transition-colors group"
-              >
-                <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                  <MiniProfileHoverCard username={user.username} side="left">
-                    <Link to={`/profile/${user.username}`} className="shrink-0">
-                      <Avatar src={user.avatar} alt={user.displayName || user.username} size="sm" />
-                    </Link>
-                  </MiniProfileHoverCard>
-                  <div className="flex flex-col min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <MiniProfileHoverCard username={user.username} side="left">
-                        <Link
-                          to={`/profile/${user.username}`}
-                          className="text-xs font-semibold text-gray-900 dark:text-gray-100 truncate hover:text-purple-600 dark:hover:text-purple-300 hover:underline transition-colors"
-                        >
-                          {user.displayName || user.username}
-                        </Link>
-                      </MiniProfileHoverCard>
-                      <VerifiedCheckmark
-                        isVerified={user.isVerified}
-                        primaryBadge={user.primaryBadge}
-                        size="xs"
-                      />
-                    </div>
+            {suggestedUsers.slice(0, suggestedVisibleCount).map((user: FollowUserSummary) => {
+              const effectiveNameplate =
+                user.id === currentUserId && currentStoreNameplate !== undefined
+                  ? currentStoreNameplate
+                  : user.activeNameplate;
+              const effectiveDecoration =
+                user.id === currentUserId && currentStoreDecoration !== undefined
+                  ? currentStoreDecoration
+                  : (user as any).activeDecoration;
+              return (
+                <div
+                  key={user.id}
+                  className="nameplate-row flex items-center justify-between gap-2 p-2 rounded-2xl hover:bg-black/5 dark:hover:bg-white/[0.04] transition-colors group"
+                >
+                  <Nameplate nameplate={effectiveNameplate} alwaysPlay={true} />
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <MiniProfileHoverCard username={user.username} side="left">
+                      <Link to={`/profile/${user.username}`} className="shrink-0">
+                        <Avatar
+                          src={user.avatar}
+                          alt={user.displayName || user.username}
+                          size="sm"
+                          decoration={effectiveDecoration}
+                          userId={user.id}
+                        />
+                      </Link>
+                    </MiniProfileHoverCard>
+                    <div data-nameplate-text className="flex flex-col min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <MiniProfileHoverCard username={user.username} side="left">
+                          <Link
+                            data-nameplate-label
+                            to={`/profile/${user.username}`}
+                            className="text-xs font-semibold text-gray-900 dark:text-gray-100 truncate hover:text-purple-600 dark:hover:text-purple-300 hover:underline transition-colors"
+                          >
+                            {user.displayName || user.username}
+                          </Link>
+                        </MiniProfileHoverCard>
+                        <VerifiedCheckmark
+                          isVerified={user.isVerified}
+                          primaryBadge={user.primaryBadge}
+                          size="xs"
+                        />
+                      </div>
 
-                    {/* Recommendation Reason Context */}
-                    <Link to={`/profile/${user.username}`} className="block truncate">
-                      {user.recommendationReason?.type === 'MUTUAL_FRIENDS' &&
-                      user.recommendationReason.mutualFriends &&
-                      user.recommendationReason.mutualFriends.length > 0 ? (
-                        <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
-                          <div className="flex -space-x-1.5 shrink-0">
-                            {user.recommendationReason.mutualFriends.map(
-                              (m: RecommendationMutualFriend, idx: number) => (
-                                <Avatar
-                                  key={m.id || idx}
-                                  src={m.avatar}
-                                  alt={m.username}
-                                  size="2xs"
-                                  className="w-3.5 h-3.5 ring-1 ring-[#070709] border-0 shrink-0"
-                                />
-                              ),
-                            )}
+                      {/* Recommendation Reason Context */}
+                      <Link to={`/profile/${user.username}`} className="block truncate">
+                        {user.recommendationReason?.type === 'MUTUAL_FRIENDS' &&
+                        user.recommendationReason.mutualFriends &&
+                        user.recommendationReason.mutualFriends.length > 0 ? (
+                          <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
+                            <div className="flex -space-x-1.5 shrink-0">
+                              {user.recommendationReason.mutualFriends.map(
+                                (m: RecommendationMutualFriend, idx: number) => (
+                                  <Avatar
+                                    key={m.id || idx}
+                                    src={m.avatar}
+                                    alt={m.username}
+                                    size="2xs"
+                                    className="w-3.5 h-3.5 ring-1 ring-[#070709] border-0 shrink-0"
+                                  />
+                                ),
+                              )}
+                            </div>
+                            <span className="text-[10px] text-gray-400 truncate leading-none">
+                              {user.recommendationReason.text}
+                            </span>
                           </div>
-                          <span className="text-[10px] text-gray-400 truncate leading-none">
-                            {user.recommendationReason.text}
+                        ) : user.recommendationReason?.type === 'NEARBY' ||
+                          user.recommendationReason?.type === 'SAME_CITY' ? (
+                          <div className="flex items-center gap-1 mt-0.5 min-w-0">
+                            <MapPin className="w-2.5 h-2.5 text-blue-400 shrink-0" />
+                            <span className="text-[10px] text-blue-300/80 truncate leading-none">
+                              {user.recommendationReason.text}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate mt-0.5 block">
+                            {user.recommendationReason?.text || `@${user.username}`}
                           </span>
-                        </div>
-                      ) : user.recommendationReason?.type === 'NEARBY' ||
-                        user.recommendationReason?.type === 'SAME_CITY' ? (
-                        <div className="flex items-center gap-1 mt-0.5 min-w-0">
-                          <MapPin className="w-2.5 h-2.5 text-blue-400 shrink-0" />
-                          <span className="text-[10px] text-blue-300/80 truncate leading-none">
-                            {user.recommendationReason.text}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate mt-0.5 block">
-                          {user.recommendationReason?.text || `@${user.username}`}
-                        </span>
-                      )}
-                    </Link>
+                        )}
+                      </Link>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <FollowButton
+                      authorId={user.id}
+                      isFollowing={user.isFollowing}
+                      isFriend={user.isFriend}
+                      followsYou={user.followsYou}
+                      className="px-3 py-1 text-[11px]"
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        dismissMutation.mutate(user.id);
+                      }}
+                      title="Hide recommendation"
+                      aria-label={`Hide recommendation for ${user.username}`}
+                      className="opacity-0 group-hover:opacity-100 p-1 rounded-lg text-gray-500 hover:text-gray-950 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-all cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <FollowButton
-                    authorId={user.id}
-                    isFollowing={user.isFollowing}
-                    isFriend={user.isFriend}
-                    followsYou={user.followsYou}
-                    className="px-3 py-1 text-[11px]"
-                  />
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      dismissMutation.mutate(user.id);
-                    }}
-                    title="Hide recommendation"
-                    aria-label={`Hide recommendation for ${user.username}`}
-                    className="opacity-0 group-hover:opacity-100 p-1 rounded-lg text-gray-500 hover:text-gray-950 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-all cursor-pointer"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
 
             {/* "See more" button replacing the search link */}
             {suggestedUsers.length > 3 && (
@@ -657,7 +699,7 @@ export function OnlineFriendsSidebar() {
                     />
                   ))}
 
-                  {/* Friends Game Aggregator (Discord Active Now) */}
+                  {/* Friends Game Aggregator*/}
                   {gameAggregators.map((group) => (
                     <div
                       key={group.title}

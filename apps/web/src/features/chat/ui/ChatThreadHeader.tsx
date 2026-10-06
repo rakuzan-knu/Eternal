@@ -70,7 +70,12 @@ export default function ChatThreadHeader({
             )
           ) : (
             <>
-              <Avatar size="sm" src={display.avatar} />
+              <Avatar
+                size="sm"
+                src={display.avatar}
+                decoration={display.activeDecoration}
+                userId={otherUserId}
+              />
               {otherUserId && <OnlineStatusIndicator userId={otherUserId} variant="dot" />}
             </>
           )}
@@ -130,7 +135,7 @@ export default function ChatThreadHeader({
           <button
             type="button"
             onClick={onStartVoiceMesh}
-            title={isVoiceMeshActive ? 'Voice Channel Active' : 'Join Voice Channel (Discord P2P)'}
+            title={isVoiceMeshActive ? 'Voice Channel Active' : 'Join Voice Channel'}
             aria-label="Join Voice Channel"
             className={`w-9 h-9 flex items-center justify-center rounded-full transition-colors cursor-pointer ${
               isVoiceMeshActive

@@ -1,0 +1,30 @@
+[
+  {
+    "slug": "light-racers-kart",
+    "name": "Light Racers · Kart",
+    "family": "racing",
+    "variant": "kart",
+    "assetType": "animated_webp",
+    "assetUrl": "/Profile-decorations/Avatar-decorations/light-racers-kart.webp?v=1",
+    "previewUrl": "/Profile-decorations/Avatar-decorations/light-racers-kart.preview.webp?v=1",
+    "rarity": "epic",
+    "priceCents": 199,
+    "isAvailable": false,
+    "renderScale": 1.525,
+    "description": "Два объёмных карта с фиолетовым свечением мчатся вокруг аватара. Колёса вращаются, кузов наклоняется, а световые следы плавно затухают."
+  },
+  {
+    "slug": "light-racers-formula",
+    "name": "Light Racers · Formula 1",
+    "family": "racing",
+    "variant": "formula",
+    "assetType": "animated_webp",
+    "assetUrl": "/Profile-decorations/Avatar-decorations/light-racers-formula.webp?v=1",
+    "previewUrl": "/Profile-decorations/Avatar-decorations/light-racers-formula.preview.webp?v=1",
+    "rarity": "epic",
+    "priceCents": 199,
+    "isAvailable": false,
+    "renderScale": 1.525,
+    "description": "Два болида Формулы-1 проходят повороты вокруг аватара, оставляя ледяные синие следы и искры. Колёса вращаются, подвеска и наклон кузова оживляют движение."
+  }
+]

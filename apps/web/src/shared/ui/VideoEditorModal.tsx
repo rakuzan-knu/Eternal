@@ -387,7 +387,7 @@ function RealisticArrowIcon({ color }: { color: string }) {
       <rect x="40" y="5" width="4" height="14" fill="url(#arrowRingGrad)" />
       {/* Dark ferrule collar */}
       <polygon points="44,6 48,7.5 48,16.5 44,18" fill="#18191f" />
-      {/* Bold Crisp Arrow Glyphs: stem & arrowhead pointing right (matching Telegram Screenshot 2) */}
+      {/* Bold Crisp Arrow Glyphs: stem & arrowhead pointing right */}
       <rect x="49" y="10.5" width="12" height="3" rx="1" fill={color} />
       <polygon points="59,6 71,12 59,18 62,12" fill={color} />
     </svg>

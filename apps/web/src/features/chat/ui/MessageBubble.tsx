@@ -569,7 +569,12 @@ export default function MessageBubble({
         {!isOwnMessage && (
           <div className="w-8 shrink-0 self-end flex items-end justify-center mb-0.5">
             {showAvatar ? (
-              <Avatar size="sm" src={message.sender.avatar} />
+              <Avatar
+                size="sm"
+                src={message.sender.avatar}
+                decoration={message.sender.activeDecoration}
+                userId={message.sender.id}
+              />
             ) : (
               <div className="w-8 h-8 pointer-events-none" />
             )}
@@ -849,6 +854,8 @@ export default function MessageBubble({
                           'User'
                         }
                         size="xs"
+                        decoration={(message.forwardedFrom.sender as any)?.activeDecoration}
+                        userId={message.forwardedFrom.sender?.id}
                         className="w-5 h-5 rounded-full object-cover shrink-0 border border-white/10"
                       />
                       <span

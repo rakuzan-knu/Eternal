@@ -1,0 +1,105 @@
+.decorated-avatar {
+  width: var(--avatar-size);
+  height: var(--avatar-size);
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  overflow: visible;
+  vertical-align: middle;
+  isolation: isolate;
+}
+.decorated-avatar__portrait {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #09090b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.decorated-avatar__portrait img,
+.decorated-avatar__portrait svg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.decorated-avatar__overlay {
+  position: absolute;
+  width: var(--decoration-scale, 120%);
+  height: var(--decoration-scale, 120%);
+  left: 50%;
+  top: 50%;
+  transform: translate3d(-50%, -50%, 0);
+  z-index: 2;
+  pointer-events: none;
+}
+.decorated-avatar__overlay[data-ink='black'] {
+  filter: brightness(0);
+}
+.decorated-avatar[data-playing='true'] .decorated-avatar__overlay {
+  will-change: transform;
+}
+.decorated-avatar__overlay > img,
+.decorated-avatar__lottie,
+.decorated-avatar__lottie svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.decorated-avatar__status {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 23%;
+  height: 23%;
+  border: max(2px, calc(var(--avatar-size) * 0.025)) solid #171923;
+  border-radius: 50%;
+  z-index: 3;
+  background: #88909e;
+}
+.decorated-avatar__lottie img {
+  /* Lottie's absolute layer wrappers have no intrinsic width. */
+  max-width: none;
+  display: block;
+}
+.decorated-avatar__lottie > div {
+  will-change: transform;
+}
+.decorated-avatar__lottie {
+  position: absolute;
+  inset: 0;
+}
+.decorated-avatar__status--online {
+  background: #2adba2;
+}
+.decorated-avatar__status--idle {
+  background: #f3c562;
+}
+.decorated-avatar__status--idle::after {
+  content: '';
+  position: absolute;
+  width: 60%;
+  height: 60%;
+  top: -5%;
+  left: -5%;
+  border-radius: 50%;
+  background: #171923;
+}
+.decorated-avatar__status--dnd {
+  background: #f16e80;
+}
+.decorated-avatar__status--dnd::after {
+  content: '';
+  position: absolute;
+  left: 20%;
+  right: 20%;
+  height: 18%;
+  top: 41%;
+  background: #171923;
+}
+.decorated-avatar__status--offline {
+  box-shadow: inset 0 0 0 calc(var(--avatar-size) * 0.04) #88909e;
+  background: #171923;
+}

@@ -1,3 +1,4 @@
+import { Nameplate } from '@/shared/ui/Nameplate';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Search as SearchIcon,
@@ -18,6 +19,7 @@ import {
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import Avatar from '@/shared/ui/Avatar';
+import StyledDisplayName from '@/shared/ui/StyledDisplayName';
 import { apiClient as api } from '@/shared/api/httpClient';
 import { postsApi } from '@/entities/post/api/postsApi';
 import { PostType, PostMedia } from '@/entities/post/model/types';
@@ -28,12 +30,20 @@ import { VerifiedCheckmark } from '@/entities/profile/ui/VerifiedCheckmark';
 import { useAuthStore } from '@/shared/model/useAuthStore';
 import { userApi } from '@/entities/profile/api/userApi';
 import { SEOHead } from '@/shared/seo';
+import type {
+  AvatarDecorationDto,
+  NameplateDto,
+  DisplayNameStyleDto,
+} from '@social-network/shared-contracts';
 
 interface SearchUserItem {
   id: string;
   username: string;
   displayName: string | null;
   avatar: string | null;
+  activeDecoration?: AvatarDecorationDto | null;
+  activeNameplate?: NameplateDto | null;
+  displayNameStyle?: DisplayNameStyleDto | null;
   isVerified?: boolean;
   primaryBadge?: string | null;
   bio?: string | null;
@@ -149,7 +159,12 @@ function GridMediaCard({ post, onClick }: { post: PostType; onClick: () => void 
       ) : (
         <div className="w-full h-full p-4 flex flex-col justify-between bg-gradient-to-br from-[#1b1528] via-[#121216] to-[#111625] text-white">
           <div className="flex items-center gap-2">
-            <Avatar src={post.avatar} size="sm" />
+            <Avatar
+              src={post.avatar}
+              decoration={post.activeDecoration}
+              userId={post.authorId}
+              size="sm"
+            />
             <span className="text-[11px] font-semibold text-gray-300 truncate">@{post.handle}</span>
           </div>
           <p className="text-xs text-gray-200 line-clamp-3 leading-relaxed font-medium">
@@ -632,13 +647,22 @@ export default function SearchPage() {
                   <div
                     key={u.id}
                     onClick={() => handleUserClick(u)}
-                    className="py-3.5 first:pt-1 last:pb-1 flex items-center justify-between gap-3 hover:bg-white/[0.02] rounded-2xl px-2 -mx-2 transition-colors cursor-pointer group"
+                    className="nameplate-row py-3.5 first:pt-1 last:pb-1 flex items-center justify-between gap-3 hover:bg-white/[0.02] rounded-2xl px-2 -mx-2 transition-colors cursor-pointer group"
                   >
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      <Avatar src={u.avatar} size="md" />
+                    <Nameplate nameplate={u.activeNameplate} alwaysPlay={true} />
+                    <div data-nameplate-text className="flex items-center gap-3.5 min-w-0">
+                      <Avatar
+                        src={u.avatar}
+                        decoration={u.activeDecoration}
+                        userId={u.id}
+                        size="md"
+                      />
                       <div className="flex flex-col min-w-0">
                         <div className="flex items-center gap-1.5 truncate">
-                          <span className="text-white font-semibold text-sm group-hover:text-purple-300 transition-colors truncate">
+                          <span
+                            data-nameplate-label
+                            className="text-white font-semibold text-sm group-hover:text-purple-300 transition-colors truncate"
+                          >
                             {u.username}
                           </span>
                           <VerifiedCheckmark
@@ -702,13 +726,22 @@ export default function SearchPage() {
                   <div
                     key={u.id}
                     onClick={() => handleUserClick(u)}
-                    className="py-3 flex items-center justify-between gap-3 hover:bg-white/[0.02] rounded-2xl px-2 -mx-2 transition-colors cursor-pointer group"
+                    className="nameplate-row py-3 flex items-center justify-between gap-3 hover:bg-white/[0.02] rounded-2xl px-2 -mx-2 transition-colors cursor-pointer group"
                   >
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      <Avatar src={u.avatar} size="md" />
+                    <Nameplate nameplate={u.activeNameplate} alwaysPlay={true} />
+                    <div data-nameplate-text className="flex items-center gap-3.5 min-w-0">
+                      <Avatar
+                        src={u.avatar}
+                        decoration={u.activeDecoration}
+                        userId={u.id}
+                        size="md"
+                      />
                       <div className="flex flex-col min-w-0">
                         <div className="flex items-center gap-1.5 truncate">
-                          <span className="text-white font-semibold text-sm group-hover:text-purple-300 transition-colors truncate">
+                          <span
+                            data-nameplate-label
+                            className="text-white font-semibold text-sm group-hover:text-purple-300 transition-colors truncate"
+                          >
                             {u.displayName || u.username}
                           </span>
                           <VerifiedCheckmark
@@ -762,12 +795,20 @@ export default function SearchPage() {
                         onClick={() => handleUserClick(u)}
                         className="glass-card hover:border-white/20 rounded-2xl p-3 flex flex-col items-center text-center gap-2 transition-all cursor-pointer group"
                       >
-                        <Avatar src={u.avatar} size="lg" />
+                        <Avatar
+                          src={u.avatar}
+                          decoration={u.activeDecoration}
+                          userId={u.id}
+                          size="lg"
+                        />
                         <div className="flex flex-col items-center min-w-0 w-full">
                           <div className="flex items-center gap-1 justify-center max-w-full">
-                            <span className="font-semibold text-xs text-white truncate group-hover:text-purple-300">
-                              {u.displayName || u.username}
-                            </span>
+                            <StyledDisplayName
+                              name={u.displayName || u.username}
+                              style={u.displayNameStyle}
+                              userId={u.id}
+                              className="font-semibold text-xs text-white truncate group-hover:text-purple-300"
+                            />
                             <VerifiedCheckmark
                               isVerified={u.isVerified}
                               primaryBadge={u.primaryBadge}
@@ -843,15 +884,24 @@ export default function SearchPage() {
                           <div
                             key={u.id}
                             onClick={() => handleUserClick(u)}
-                            className="py-2.5 flex items-center justify-between gap-3 hover:bg-white/[0.02] rounded-2xl px-2 -mx-2 cursor-pointer group"
+                            className="nameplate-row py-2.5 flex items-center justify-between gap-3 hover:bg-white/[0.02] rounded-2xl px-2 -mx-2 cursor-pointer group"
                           >
-                            <div className="flex items-center gap-3 min-w-0">
-                              <Avatar src={u.avatar} size="md" />
+                            <Nameplate nameplate={u.activeNameplate} alwaysPlay={true} />
+                            <div data-nameplate-text className="flex items-center gap-3 min-w-0">
+                              <Avatar
+                                src={u.avatar}
+                                decoration={u.activeDecoration}
+                                userId={u.id}
+                                size="md"
+                              />
                               <div className="flex flex-col min-w-0">
                                 <div className="flex items-center gap-1.5 truncate">
-                                  <span className="text-white font-semibold text-sm group-hover:text-purple-300 truncate">
-                                    {u.displayName || u.username}
-                                  </span>
+                                  <StyledDisplayName
+                                    name={u.displayName || u.username}
+                                    style={u.displayNameStyle}
+                                    userId={u.id}
+                                    className="text-white font-semibold text-sm group-hover:text-purple-300 truncate"
+                                  />
                                   <VerifiedCheckmark
                                     isVerified={u.isVerified}
                                     primaryBadge={u.primaryBadge}
@@ -973,15 +1023,24 @@ export default function SearchPage() {
                         <div
                           key={u.id}
                           onClick={() => handleUserClick(u)}
-                          className="py-3 flex items-center justify-between gap-3 hover:bg-white/[0.02] rounded-2xl px-2 -mx-2 cursor-pointer group"
+                          className="nameplate-row py-3 flex items-center justify-between gap-3 hover:bg-white/[0.02] rounded-2xl px-2 -mx-2 cursor-pointer group"
                         >
-                          <div className="flex items-center gap-3.5 min-w-0">
-                            <Avatar src={u.avatar} size="md" />
+                          <Nameplate nameplate={u.activeNameplate} alwaysPlay={true} />
+                          <div data-nameplate-text className="flex items-center gap-3.5 min-w-0">
+                            <Avatar
+                              src={u.avatar}
+                              decoration={u.activeDecoration}
+                              userId={u.id}
+                              size="md"
+                            />
                             <div className="flex flex-col min-w-0">
                               <div className="flex items-center gap-1.5 truncate">
-                                <span className="text-white font-semibold text-sm group-hover:text-purple-300 truncate">
-                                  {u.displayName || u.username}
-                                </span>
+                                <StyledDisplayName
+                                  name={u.displayName || u.username}
+                                  style={u.displayNameStyle}
+                                  userId={u.id}
+                                  className="text-white font-semibold text-sm group-hover:text-purple-300 truncate"
+                                />
                                 <VerifiedCheckmark
                                   isVerified={u.isVerified}
                                   primaryBadge={u.primaryBadge}

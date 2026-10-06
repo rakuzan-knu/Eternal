@@ -18,6 +18,7 @@ import { Throttle } from '@nestjs/throttler';
 import { AuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OptionalAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
+import { QueryComplexity } from '../common/resilience/query-complexity.decorator';
 import {
   type DeleteAccountDto,
   type GetPostsQueryDto,
@@ -341,8 +342,9 @@ export class UsersController {
   @Patch(':id')
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle({ default: { limit: 60, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
+  @QueryComplexity({ maxComplexity: 5000, maxDepth: 8 })
   @ApiOperation({ summary: 'Update own profile' })
   @ApiResponse({ status: 200, description: 'Profile updated' })
   @ApiResponse({ status: 400, description: 'No fields provided or validation error' })

@@ -49,7 +49,7 @@ export const SafetyCenterPage: React.FC = () => {
       <PrivacyNavbar />
 
       <main className="flex-1 w-full pt-20">
-        {/* 2. Hero Section (matching Discord Safety Center) */}
+        {/* 2. Hero Section */}
         <section className="relative w-full overflow-hidden bg-gradient-to-b from-[#281b75] via-[#1b104a] to-[#07050f] py-20 sm:py-28 lg:py-36 px-6 lg:px-12 flex items-center justify-center">
           {/* Ambient Background Glows */}
           <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />

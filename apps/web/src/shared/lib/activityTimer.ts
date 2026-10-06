@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 
 /**
- * Formats elapsed time into Discord-style compact format for friend rows.
+ * Formats elapsed time into compact format for friend rows.
  * Examples: '1 hr', '48 min', '< 1 min'
  */
 export function formatShortDuration(startedAt?: string | null): string {

@@ -69,11 +69,11 @@ function splitTrailingPunct(raw: string): { clean: string; punct: string } {
 function preprocessDiscordMarkdown(raw: string): string {
   if (!raw) return '';
 
-  // 1. Discord Subtext: lines starting with "-# "
+  // 1. Subtext: lines starting with "-# "
   let processed = raw.replace(/(^|\n)-#\s+([^\n]+)/g, '$1\uE000SUBTEXT:$2\uE001');
 
   // 2. Escape double underscores in text segments outside of codeblocks
-  // This prevents CommonMark from turning __ into <strong> and enables Discord-style __underline__
+  // This prevents CommonMark from turning __ into <strong> and enables  __underline__
   const codeBlockRegex = /(```[\s\S]*?```|`[^`\n]+`)/g;
   const segments = processed.split(codeBlockRegex);
   processed = segments
@@ -82,7 +82,7 @@ function preprocessDiscordMarkdown(raw: string): string {
         return segment;
       }
       let s = segment;
-      // Normalization of compound Discord formats:
+      // Normalization of compound formats:
       // __***text***__ or ***__text__*** -> ***\_\_text\_\_*** (bold italic underline)
       s = s.replace(/__\*\*\*(.+?)\*\*\*__/gs, '***\\_\\_$1\\_\\_***');
       s = s.replace(/\*\*\*__(.+?)__\*\*\*/gs, '***\\_\\_$1\\_\\_***');
@@ -293,7 +293,7 @@ export function MarkdownContent({
       <div
         className={`markdown-content w-full min-w-0 max-w-full leading-relaxed select-text wrap-anywhere ${className}`}
       >
-        <p className="my-1 text-white/90">{renderEmojiAndText(content)}</p>
+        <p className="my-1 whitespace-pre-wrap break-words">{renderEmojiAndText(content)}</p>
       </div>
     );
   }
@@ -309,7 +309,7 @@ export function MarkdownContent({
       <div
         className={`markdown-content w-full min-w-0 max-w-full leading-relaxed select-text wrap-anywhere ${className}`}
       >
-        <p className="my-1 text-white/80 whitespace-pre-wrap">{content}</p>
+        <p className="my-1 whitespace-pre-wrap break-words">{content}</p>
       </div>
     );
   }
@@ -432,7 +432,7 @@ export function MarkdownContent({
     // Paragraph
     p({ children }) {
       return (
-        <p className="leading-relaxed my-1 wrap-anywhere first:mt-0 last:mb-0">
+        <p className="leading-relaxed my-1 wrap-anywhere whitespace-pre-wrap break-words first:mt-0 last:mb-0">
           {processChildren(children, enableMentions, enableHashtags)}
         </p>
       );

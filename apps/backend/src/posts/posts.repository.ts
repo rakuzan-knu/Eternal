@@ -36,7 +36,9 @@ type PrismaPostQueryResult = {
     id?: string;
     username?: string;
     displayName?: string | null;
+    displayNameStyle?: any;
     avatar?: string | null;
+    activeDecoration?: any;
     isVerified?: boolean;
     primaryBadge?: string | null;
     followers?: { id: string }[];
@@ -79,7 +81,9 @@ export class PostsRepository implements IPostRepository {
           id: true,
           username: true,
           displayName: true,
+          displayNameStyle: true,
           avatar: true,
+          activeDecoration: true,
           isVerified: true,
           primaryBadge: true,
           ...(viewerId
@@ -156,7 +160,9 @@ export class PostsRepository implements IPostRepository {
             id: authorRecord.id ?? post.authorId,
             username: authorRecord.username ?? 'user',
             displayName: authorRecord.displayName ?? null,
+            displayNameStyle: authorRecord.displayNameStyle ?? null,
             avatar: authorRecord.avatar ?? null,
+            activeDecoration: authorRecord.activeDecoration ?? null,
             isVerified: authorRecord.isVerified ?? false,
             primaryBadge: authorRecord.primaryBadge ?? null,
           }

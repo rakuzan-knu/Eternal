@@ -32,7 +32,7 @@ export const MusicContentFeedView: React.FC = () => {
       className="p-6 md:p-8 overflow-y-auto custom-scrollbar select-none min-h-full"
     >
       <div className="max-w-5xl mx-auto space-y-6">
-        {/* Purple Notification Banner (Screenshot 2 1-in-1 matching design in purple) */}
+        {/* Purple Notification Banner */}
         {isBannerVisible && (
           <div className="relative flex items-center justify-between gap-3 p-3.5 px-4.5 rounded-2xl bg-gradient-to-r from-purple-600 via-purple-700 to-indigo-700 text-white shadow-xl shadow-purple-950/40 border border-purple-400/20 transition-all duration-300">
             <div className="flex items-center gap-3 min-w-0">
@@ -112,7 +112,7 @@ export const MusicContentFeedView: React.FC = () => {
           </button>
         </div>
 
-        {/* Clean Background-Integrated Empty State (Spotify Screenshot 2) */}
+        {/* Clean Background-Integrated Empty State*/}
         <div className="py-20 flex flex-col items-center justify-center text-center px-4">
           <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight mb-2.5">
             No updates right now

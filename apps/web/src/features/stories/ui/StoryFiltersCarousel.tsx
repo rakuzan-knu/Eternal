@@ -118,7 +118,7 @@ export const StoryFiltersCarousel: React.FC<StoryFiltersCarouselProps> = ({
         })}
       </div>
 
-      {/* Bottom Filter Info & Action Pill (Instagram Screenshot 4 & 5 Match) */}
+      {/* Bottom Filter Info & Action Pill */}
       <div className="flex items-center justify-between gap-4 px-5 py-2.5 rounded-full bg-[#181822]/90 backdrop-blur-2xl border border-white/15 text-white shadow-2xl min-w-[260px] max-w-[320px]">
         {/* Bookmark Favorite */}
         <button

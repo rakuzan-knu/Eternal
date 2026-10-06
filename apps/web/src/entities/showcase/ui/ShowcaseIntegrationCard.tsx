@@ -303,7 +303,6 @@ export const ShowcaseIntegrationCard: React.FC<ShowcaseIntegrationCardProps> = (
             <p className="text-[11px] text-gray-300 leading-relaxed">{data.bio}</p>
           )}
 
-          {/* Discord-style GitHub Stats Chips */}
           <div className="flex items-center flex-wrap gap-1.5 pt-0.5">
             {data.showReposCount !== false && typeof data.reposCount === 'number' && (
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white/[0.04] border border-white/[0.08] text-[10px] text-gray-300">

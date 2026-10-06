@@ -1,10 +1,3 @@
-/**
- * WebRTC Voice Activity Detection (VAD) & Discord-style Noise Gate
- *
- * Real-time audio energy analysis with hangover window smoothing and
- * microphone transmission gating.
- */
-
 export interface VADEngineOptions {
   thresholdDb?: number; // default -45 dB
   hangoverMs?: number; // default 250 ms to avoid clipping word endings

@@ -1,3 +1,4 @@
+import { Nameplate } from '@/shared/ui/Nameplate';
 import React, { useState } from 'react';
 import { X, Check, Search } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -79,13 +80,19 @@ export default function NewGroupModal({ onClose, onCreated }: NewGroupModalProps
                 <button
                   key={user.id}
                   onClick={() => toggleUser(user)}
-                  className="animate-popIn flex items-center gap-1.5 pl-1.5 pr-2 py-1 rounded-full bg-white/10 hover:bg-white/15 transition-colors"
+                  className="nameplate-row animate-popIn flex items-center gap-1.5 pl-1.5 pr-2 py-1 rounded-full bg-white/10 hover:bg-white/15 transition-colors overflow-hidden"
                 >
-                  <Avatar size="sm" src={user.avatar} />
-                  <span className="text-xs font-medium text-white">
+                  <Nameplate nameplate={user.activeNameplate} alwaysPlay={true} />
+                  <Avatar
+                    size="sm"
+                    src={user.avatar}
+                    decoration={(user as any).activeDecoration}
+                    userId={user.id}
+                  />
+                  <span data-nameplate-text className="text-xs font-medium text-white truncate">
                     {user.displayName ?? user.username}
                   </span>
-                  <X size={11} className="text-gray-400" />
+                  <X size={11} className="text-gray-400 relative z-10" />
                 </button>
               ))}
             </div>
@@ -126,13 +133,22 @@ export default function NewGroupModal({ onClose, onCreated }: NewGroupModalProps
                   key={user.id}
                   disabled={disabled}
                   onClick={() => toggleUser(user)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all active:scale-[0.99] ${
+                  className={`nameplate-row w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all active:scale-[0.99] ${
                     selectedState ? 'bg-white/10' : 'hover:bg-white/5'
                   } ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
                 >
-                  <Avatar size="sm" src={user.avatar} />
-                  <span className="flex-1 text-left min-w-0">
-                    <span className="block text-sm font-semibold text-white truncate">
+                  <Nameplate nameplate={user.activeNameplate} alwaysPlay={true} />
+                  <Avatar
+                    size="sm"
+                    src={user.avatar}
+                    decoration={(user as any).activeDecoration}
+                    userId={user.id}
+                  />
+                  <span data-nameplate-text className="flex-1 text-left min-w-0">
+                    <span
+                      data-nameplate-label
+                      className="block text-sm font-semibold text-white truncate"
+                    >
                       {user.displayName ?? user.username}
                     </span>
                     <span className="block text-xs text-gray-500 truncate">@{user.username}</span>

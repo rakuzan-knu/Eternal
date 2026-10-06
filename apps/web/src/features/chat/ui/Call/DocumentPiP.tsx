@@ -170,7 +170,7 @@ export function DocumentPiP() {
 
         {!hasVideo && (
           <div className="flex flex-col items-center gap-2 p-4">
-            <Avatar src={remoteParticipant?.avatar} size="lg" />
+            <Avatar src={remoteParticipant?.avatar} size="lg" suppressDecoration={true} />
             <p className="text-sm font-semibold text-white truncate max-w-50">
               {remoteParticipant?.displayName || remoteParticipant?.username || 'Call Participant'}
             </p>

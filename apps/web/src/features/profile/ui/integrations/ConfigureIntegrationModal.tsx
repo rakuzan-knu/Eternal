@@ -1326,7 +1326,7 @@ export const ConfigureIntegrationModal: React.FC<ConfigureIntegrationModalProps>
                 </div>
               )}
 
-              {/* GITHUB CONFIGURATION (Discord-Style) */}
+              {/* GITHUB CONFIGURATION */}
               {platform.id === 'github' && (
                 <div className="flex flex-col gap-3.5">
                   {/* Master Toggle: Display on profile */}

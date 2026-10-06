@@ -51,7 +51,7 @@ export default function AppearanceTab() {
             Appearance & Themes
           </h3>
 
-          {/* Sync with System Theme Switch (Discord Style) */}
+          {/* Sync with System Theme Switch*/}
           <div className="flex items-center gap-3">
             <div className="flex flex-col text-right">
               <span className="text-xs font-semibold text-gray-900 dark:text-gray-200">

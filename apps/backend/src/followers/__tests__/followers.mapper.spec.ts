@@ -4,8 +4,18 @@ import type { PublicUserEntity } from '../types/followers.types';
 describe('followers.mapper', () => {
   const baseUser: PublicUserEntity = {
     id: 'usr-1',
+    activeProfileEffectId: null,
+    activeProfileFrameId: null,
+    activeNameplateId: null,
+    activeDecorationId: null,
+    activeProfileEffect: null,
+    activeProfileFrame: null,
+    activeNameplate: null,
+    activeDecoration: null,
     username: 'john_doe',
     displayName: 'John Doe',
+    displayNameStyle: null,
+    profileTheme: null,
     avatar: 'https://example.com/avatar.jpg',
     bio: 'Software engineer',
     isPrivate: false,
@@ -23,8 +33,18 @@ describe('followers.mapper', () => {
 
     expect(dto).toEqual({
       id: 'usr-1',
+      activeProfileEffectId: null,
+      activeProfileFrameId: null,
+      activeNameplateId: null,
+      activeDecorationId: null,
+      activeProfileEffect: null,
+      activeProfileFrame: null,
+      activeNameplate: null,
+      activeDecoration: null,
       username: 'john_doe',
       displayName: 'John Doe',
+      displayNameStyle: null,
+      profileTheme: null,
       avatar: 'https://example.com/avatar.jpg',
       bio: 'Software engineer',
       isPrivate: false,
@@ -50,6 +70,34 @@ describe('followers.mapper', () => {
 
     const dto = toUserProfileDto(userWithStrBadges);
     expect(dto.badges).toEqual(['badge1', 'badge2']);
+  });
+
+  it('preserves an equipped nameplate independently of an avatar decoration', () => {
+    const nameplate: NonNullable<PublicUserEntity['activeNameplate']> = {
+      id: 'sky',
+      slug: 'sky',
+      name: 'Sky',
+      description: '',
+      assetType: 'video',
+      assetUrl: '/sky.mp4',
+      previewUrl: '/sky.webp',
+      width: 640,
+      height: 112,
+      fps: 10,
+      durationMs: 1500,
+      shadeOpacity: 0.58,
+      rarity: 'epic',
+      priceCents: 199,
+      isAvailable: false,
+    };
+    const dto = toUserProfileDto({
+      ...baseUser,
+      activeNameplateId: nameplate.id,
+      activeNameplate: nameplate,
+    });
+    expect(dto.activeNameplate).toEqual(nameplate);
+    expect(dto.activeNameplateId).toBe('sky');
+    expect(dto.activeDecoration).toBeNull();
   });
 
   it('handles missing or non-array badges gracefully', () => {
@@ -80,8 +128,18 @@ describe('followers.mapper', () => {
   it('falls back correctly for undefined optional fields', () => {
     const minimalUser: PublicUserEntity = {
       id: 'usr-2',
+      activeProfileEffectId: null,
+      activeProfileFrameId: null,
+      activeNameplateId: null,
+      activeDecorationId: null,
+      activeProfileEffect: null,
+      activeProfileFrame: null,
+      activeNameplate: null,
+      activeDecoration: null,
       username: 'jane',
       displayName: null,
+      displayNameStyle: null,
+      profileTheme: null,
       avatar: null,
       bio: null,
       isPrivate: false,

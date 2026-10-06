@@ -331,7 +331,7 @@ export const ProfileShowcaseSidebar: React.FC<ProfileShowcaseSidebarProps> = ({
         onEditClick={() => openEditor('anthem')}
       />
 
-      {/* 3. Discord-Grade 3-Tab Selector with Framer Motion Sliding Pill */}
+      {/* 3. 3-Tab Selector with Framer Motion Sliding Pill */}
       <div className="glass-panel relative flex items-center p-1 rounded-2xl border border-black/10 dark:border-white/8 shadow-inner mb-2">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
@@ -360,7 +360,7 @@ export const ProfileShowcaseSidebar: React.FC<ProfileShowcaseSidebarProps> = ({
         })}
       </div>
 
-      {/* Discord Header Row: Your Widgets & Add Widget Action */}
+      {/* Header Row: Your Widgets & Add Widget Action */}
       {isOwner && (
         <div className="flex items-center justify-between px-1 mb-1">
           <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -482,7 +482,7 @@ export const ProfileShowcaseSidebar: React.FC<ProfileShowcaseSidebarProps> = ({
         </button>
       )}
 
-      {/* Discord-style Floating Bottom Unsaved Changes Bar */}
+      {/* Floating Bottom Unsaved Changes Bar */}
       <UnsavedChangesBar
         isVisible={isOwner && hasUnsavedChanges}
         onReset={handleResetOrder}

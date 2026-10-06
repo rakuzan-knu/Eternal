@@ -1,0 +1,29 @@
+{
+  "format": "animated_webp",
+  "width": 288,
+  "height": 288,
+  "frames": 10,
+  "delay": [83, 84, 83, 83, 84, 83, 83, 84, 83, 83],
+  "loop": 0,
+  "durationMs": 833,
+  "sourceFrames": 10,
+  "sourceSha256": "3202418ae0bcb43927c620cf1d308beac0b92591694b11eac3d2de1b8b8d7d25",
+  "sourceTitle": "Buffering...",
+  "exactSource": true,
+  "lossless": true,
+  "renderScale": 1.2,
+  "centerTransparent": true,
+  "authoring": "native APNG pixels and timing",
+  "sourceSampleHashes": [
+    "dbf1a1e1de0326563073abf8d25a781a86b30440bfae2a037ce8455ffec2d140",
+    "66fc941f5048c850be817d3e0a6bb0f2e49b490a15c9934863d618d7ee4987e7",
+    "0f76d113f9df1bb0bd28612bcafca4ec46cb12c5c2f4443865a6e12bd2b4a7ee",
+    "9318865290e26dc11d6b2e68aad49978079ef2d0a22bcc968c957140f0811fbd",
+    "fd5bba9a83df493b52ed05268734ece0dfb55bcd2794415708e346c74e74c61d",
+    "7818069a535281928e5d88bcbc40976531cd24bd60ca0f72b07dae1a329c20bd",
+    "eac0ecf8ad211b519c902f1600eeefabda65388ed7ad60508349c46bd017db3f",
+    "f1fc15bf347b01c0786bf84f07f8aad92231daa7835044e4a1f4e47db198e203",
+    "d84a9224c93510fc1b4ee1112816d865b4fad82bf990c14f10e25c7e2b6cb167",
+    "994cdd40e0021b06ea334a2524346ab2c37fe084f3518c7233fd030af19d4496"
+  ]
+}

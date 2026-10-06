@@ -13,6 +13,8 @@ export class CompactAuthorDto {
   username!: string;
   displayName!: string;
   avatar!: string | null;
+  activeDecoration?: any;
+  displayNameStyle?: any;
   isVerified!: boolean;
 }
 
@@ -51,6 +53,8 @@ export class CompactPostDto {
       username: post.author?.username || 'user',
       displayName: post.author?.displayName || post.author?.username || 'User',
       avatar: post.author?.avatar || null,
+      activeDecoration: post.author?.activeDecoration ?? null,
+      displayNameStyle: post.author?.displayNameStyle ?? null,
       isVerified: Boolean(post.author?.isVerified),
     };
 

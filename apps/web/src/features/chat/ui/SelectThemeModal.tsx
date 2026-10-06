@@ -2387,7 +2387,7 @@ export default function SelectThemeModal({
                 </div>
               )}
 
-              {/* Tab: Text (Discord-Style Custom Typography & Effects) */}
+              {/* Tab: Text ( Custom Typography & Effects) */}
               {activeTab === 'text' && (
                 <div className="space-y-6">
                   {/* 1. Font Selection */}
@@ -2430,7 +2430,7 @@ export default function SelectThemeModal({
                               }`}
                               title={font.name}
                             >
-                              {/* Selection indicator dot matching screenshot */}
+                              {/* Selection indicator dot*/}
                               {isSelected && (
                                 <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-indigo-400 shadow-[0_0_6px_#818cf8]" />
                               )}
@@ -2447,7 +2447,7 @@ export default function SelectThemeModal({
                               </span>
                             </button>
 
-                            {/* Discord-style Tooltip on Hover */}
+                            {/* Tooltip on Hover */}
                             <AnimatePresence>
                               {isHovered && (
                                 <motion.div
@@ -2569,7 +2569,7 @@ export default function SelectThemeModal({
                         )}
                       </div>
 
-                      {/* Custom Color Picker Button (Red / custom square with pen icon matching screenshot) */}
+                      {/* Custom Color Picker Button (Red / custom square with pen icon) */}
                       <div className="relative shrink-0">
                         <button
                           type="button"
@@ -2598,7 +2598,7 @@ export default function SelectThemeModal({
                         />
                       </div>
 
-                      {/* Discord Swatches Horizontal Quick Row */}
+                      {/* Horizontal Quick Row */}
                       <div className="flex items-center gap-1.5 overflow-x-auto py-1 custom-scrollbar">
                         {DISCORD_TEXT_COLORS.map((swatch) => {
                           const isAuto = swatch.color === 'auto';

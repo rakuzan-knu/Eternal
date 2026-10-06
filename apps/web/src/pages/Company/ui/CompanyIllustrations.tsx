@@ -58,7 +58,7 @@ const MascotAnimationStyles: React.FC = () => (
 );
 
 /**
- * 3D Glowing Eternal Coin with "E" (Perspective 3D Tilted Discord Style with 7s Toss Cycle)
+ * 3D Glowing Eternal Coin with "E"
  */
 export const EternalCoin3D: React.FC<{ className?: string; animated?: boolean }> = ({
   className = 'w-28 h-28',
@@ -297,7 +297,7 @@ export const HeroSafetyOrb: React.FC<{ className?: string }> = ({ className = 'w
 };
 
 /**
- * High-Fidelity 3D White/Silver Crown with Glowing Pink Faceted Gems (1:1 Discord Style)
+ * High-Fidelity 3D White/Silver Crown with Glowing Pink Faceted Gems
  */
 export const EternalCrown3D: React.FC<{ className?: string }> = ({ className = 'w-28 h-28' }) => {
   const rawId = useId();
@@ -444,7 +444,7 @@ export const EternalCrown3D: React.FC<{ className?: string }> = ({ className = '
 };
 
 /**
- * 3D Glossy Sprout / Turnip Mascot (1:1 Discord Careers Hero Mascot)
+ * 3D Glossy Sprout / Turnip Mascot
  */
 export const EternalSprout3D: React.FC<{ className?: string }> = ({ className = 'w-28 h-28' }) => {
   const rawId = useId();

@@ -549,7 +549,6 @@ export const MusicTrackDetailView: React.FC<MusicTrackDetailViewProps> = ({ trac
         }`}
       >
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-start md:items-end gap-6 md:gap-8">
-          {/* Cover Art (Screenshot 3) */}
           <div className="relative w-48 h-48 md:w-56 md:h-56 rounded-2xl overflow-hidden shadow-2xl border border-black/10 dark:border-white/10 shrink-0 bg-black/5 dark:bg-black/40 group">
             {track.albumArt ? (
               <img src={track.albumArt} alt={track.title} className="w-full h-full object-cover" />

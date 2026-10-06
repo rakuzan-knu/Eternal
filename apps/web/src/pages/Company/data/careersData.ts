@@ -104,7 +104,7 @@ export const JOBS_EN: JobOpening[] = [
     responsibilities: [
       'Perform vulnerability assessments and pentesting on the web client and backend API',
       'Audit WebSocket channels and REST routes for potential data leaks or injection vulnerabilities',
-      'Review OAuth 2.0 security workflows (Spotify, SoundCloud, Discord integration tokens)',
+      'Review OAuth 2.0 security workflows (Spotify, SoundCloud, integration tokens)',
       'Harden client-side defenses against XSS, CSRF, and brute-force attempts',
     ],
     requirements: [
@@ -190,7 +190,7 @@ export const JOBS_EN: JobOpening[] = [
       'Junior UI/UX designers, 2D/3D artists, and motion enthusiasts passionate about dark modern aesthetics.',
     responsibilities: [
       'Evolve Eternal’s Dark Glassmorphism design system with neon highlights and liquid glass elements',
-      'Design Discord-style 3D mascots, custom sticker packs, reaction badges, and iconography',
+      'Design 3D mascots, custom sticker packs, profile decorations and iconography',
       'Prototype smooth micro-animations and interactive state transitions',
     ],
     requirements: [
@@ -235,7 +235,7 @@ export const JOBS_EN: JobOpening[] = [
     ],
     requirements: [
       'Friendly, empathetic, and communicative personality',
-      'Experience with Discord or Telegram community moderation',
+      'Experience with community moderation',
       'Genuine enthusiasm for building vibrant social spaces',
     ],
     benefits: COMMON_BENEFITS_EN,
@@ -273,7 +273,7 @@ const JOBS_UK: JobOpening[] = [
     responsibilities: [
       'Пошук вразливостей (Pentesting) веб-клієнта та серверного API',
       'Аудит безпеки WebSocket-каналів та REST-маршрутів на витоки даних',
-      'Перевірка захисту OAuth 2.0 (Spotify, SoundCloud, Discord токени авторизації)',
+      'Перевірка захисту OAuth 2.0 (Spotify, SoundCloud, токени авторизації)',
       'Захист від XSS, CSRF, WebSocket injection та брутфорс атак',
     ],
     requirements: [
@@ -358,7 +358,7 @@ const JOBS_UK: JobOpening[] = [
       'UI/UX дизайнери, 2D/3D художники та моушн-дизайнери, які люблять естетику темного скла.',
     responsibilities: [
       'Розвиток дизайн-системи Eternal (Dark Glassmorphism, неонові акценти, рідке скло)',
-      'Створення 3D маскотів у стилі Discord, стікерів, реакцій та іконок',
+      'Створення 3D маскотів, стікерів, декорацій профілю та іконок',
       'Прототипування плавних мікро-анімацій та інтерактивних станів',
     ],
     requirements: [

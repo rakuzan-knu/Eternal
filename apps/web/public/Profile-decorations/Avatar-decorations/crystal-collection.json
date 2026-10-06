@@ -1,0 +1,16 @@
+[
+  {
+    "slug": "plumbob-crystal",
+    "name": "Plumbob · Emerald",
+    "description": "Изумрудный гранёный кристалл расположен точно над центром аватара и плавно вращается вокруг вертикальной оси.",
+    "family": "crystal",
+    "variant": "crystal",
+    "assetType": "animated_webp",
+    "assetUrl": "/Profile-decorations/Avatar-decorations/plumbob-crystal.webp?v=1",
+    "previewUrl": "/Profile-decorations/Avatar-decorations/plumbob-crystal.preview.webp?v=1",
+    "rarity": "epic",
+    "priceCents": 199,
+    "isAvailable": false,
+    "renderScale": 1.775
+  }
+]

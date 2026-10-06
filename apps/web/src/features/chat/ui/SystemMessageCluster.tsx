@@ -111,6 +111,8 @@ export default function SystemMessageCluster({
                   src={user.avatar}
                   name={user.name}
                   size="xs"
+                  decoration={(user as any).activeDecoration}
+                  userId={user.id}
                   className="w-4.5 h-4.5 rounded-full"
                 />
               </div>

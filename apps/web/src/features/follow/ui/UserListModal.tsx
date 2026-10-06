@@ -1,3 +1,4 @@
+import { Nameplate } from '@/shared/ui/Nameplate';
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, X, Users, UserPlus } from 'lucide-react';
@@ -21,7 +22,7 @@ function UserListSkeleton() {
   return (
     <div className="space-y-2 py-1 px-1">
       {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-2xl">
+        <div key={i} className="nameplate-row flex items-center gap-3 px-3 py-2.5 rounded-2xl">
           <div className="w-10 h-10 rounded-full bg-black/5 dark:bg-white/5 animate-pulse shrink-0" />
           <div className="flex-1 min-w-0 space-y-1.5">
             <div
@@ -175,24 +176,33 @@ export function UserListModal({ userId, mode, isOwnProfile, onClose }: UserListM
                   {filteredUsers.map((u) => (
                     <div
                       key={u.id}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-2xl hover:bg-black/[0.03] dark:hover:bg-white/[0.04] transition-colors"
+                      className="nameplate-row flex items-center gap-3 px-3 py-2.5 rounded-2xl hover:bg-black/[0.03] dark:hover:bg-white/[0.04] transition-colors"
                     >
+                      <Nameplate nameplate={u.activeNameplate} alwaysPlay={true} />
                       <Link
                         to={`/${u.username}`}
                         onClick={onClose}
                         className="shrink-0 cursor-pointer"
                       >
-                        <Avatar size="md" src={u.avatar} />
+                        <Avatar
+                          size="md"
+                          src={u.avatar}
+                          decoration={u.activeDecoration}
+                          userId={u.id}
+                        />
                       </Link>
                       <Link
                         to={`/${u.username}`}
                         onClick={onClose}
+                        data-nameplate-text
                         className="flex-1 min-w-0 flex flex-col gap-0.5 text-left cursor-pointer"
                       >
                         <div className="flex items-center gap-2 min-w-0">
                           <UserNameWithBadges
                             displayName={u.displayName}
                             username={u.username}
+                            nameStyle={(u as any).displayNameStyle}
+                            userId={u.id}
                             isVerified={u.isVerified}
                             primaryBadge={u.primaryBadge}
                             size="sm"

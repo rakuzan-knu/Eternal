@@ -348,20 +348,12 @@ export function getChatBackgroundStyle(config: ChatThemeConfig): React.CSSProper
   };
 }
 
-/**
- * Converts a hex color and alpha (0 to 1) to rgba string.
- */
 export function hexToRgba(hex: string, alpha = 1): string {
   const [r, g, b] = hexToRgb(hex);
   const clampedAlpha = Math.max(0, Math.min(1, alpha));
   return `rgba(${r}, ${g}, ${b}, ${clampedAlpha})`;
 }
 
-/**
- * Computes CSS styles and classes for custom typography and Discord-style text effects.
- * Supports on-demand font loading, font scaling/line-height normalization,
- * contrast-aware text color resolution, and toggle scope (own vs all messages).
- */
 export function getThemeTextStyle(
   config?: ChatThemeConfig | null,
   isOwnMessage = true,

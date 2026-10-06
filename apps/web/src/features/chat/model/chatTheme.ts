@@ -387,7 +387,7 @@ export interface ChatThemeConfig {
   incomingBubbleOpacity?: number;
   incomingBubbleBlur?: number;
 
-  // Custom Typography & Text Styling (Discord-style Text tab)
+  // Custom Typography & Text Styling
   textFont?: string;
   textEffect?: string;
   textColor?: string;

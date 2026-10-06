@@ -8,7 +8,9 @@ const userSelect = {
   id: true,
   username: true,
   displayName: true,
+  displayNameStyle: true,
   avatar: true,
+  activeDecoration: true,
   isVerified: true,
   primaryBadge: true,
 };
@@ -17,7 +19,9 @@ const replyToUserSelect = {
   id: true,
   username: true,
   displayName: true,
+  displayNameStyle: true,
   avatar: true,
+  activeDecoration: true,
 };
 
 @Injectable()

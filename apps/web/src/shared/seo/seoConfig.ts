@@ -122,7 +122,7 @@ export function toCleanTitleCase(str: string): string {
 }
 
 /**
- * Format a page title consistently like Instagram/Discord:
+ * Format a page title consistently like:
  * `<Page Name> • <Context> | Eternal`
  * Automatically eliminates unsightly ALL-CAPS headers.
  */

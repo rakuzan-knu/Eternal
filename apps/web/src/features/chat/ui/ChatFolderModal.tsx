@@ -306,7 +306,12 @@ export default function ChatFolderModal({
                               />
                             )
                           ) : (
-                            <Avatar size="md" src={display.avatar} />
+                            <Avatar
+                              size="md"
+                              src={display.avatar}
+                              decoration={display.activeDecoration}
+                              userId={display.otherUserId}
+                            />
                           )}
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-sm font-semibold">

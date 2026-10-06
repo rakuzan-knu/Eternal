@@ -139,6 +139,8 @@ export function StoriesBar() {
               <Avatar
                 src={currentUser?.avatar}
                 alt={currentUser?.displayName || 'Your story'}
+                suppressDecoration={true}
+                userId={currentUser?.id}
                 className="w-14 h-14"
               />
             </div>
@@ -210,6 +212,8 @@ export function StoriesBar() {
                   <Avatar
                     src={author.avatar}
                     alt={author.displayName || author.username}
+                    suppressDecoration={true}
+                    userId={author.id}
                     className="w-14 h-14"
                   />
                 </div>

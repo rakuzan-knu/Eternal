@@ -21,12 +21,15 @@ import { useCurrentUser } from '@/entities/profile/model/useCurrentUser';
 import { useStoryEditorStore } from '@/features/stories/model/useStoryEditorStore';
 import { ProfileMenu } from './SidebarMenu';
 import Avatar from '../../../shared/ui/Avatar';
+import StyledDisplayName from '@/shared/ui/StyledDisplayName';
 import Tooltip from '../../../shared/ui/Tooltip';
 import OnlineStatusIndicator from '../../../shared/ui/OnlineStatusIndicator';
 import SidebarScrollbar from './SidebarScrollbar';
 import { useQueryOnlineStatus } from '@/features/chat/model/usePresence';
 import { useUnreadMessagesCount } from '@/features/chat/model/useUnreadMessagesCount';
 import { useUnreadNotificationsCount } from '../model/useUnreadNotificationsCount';
+import { Nameplate } from '@/shared/ui/Nameplate';
+import { useActiveDecorationStore } from '@/shared/model/useActiveDecorationStore';
 
 const menuItems = [
   { to: '/', icon: <Home size={22} />, label: 'Home' },
@@ -137,6 +140,12 @@ export default function MessengerSidebar() {
   const unreadNotificationsLabel =
     unreadNotificationsCount > 99 ? '99+' : String(unreadNotificationsCount);
   useQueryOnlineStatus(currentUser?.id ? [currentUser.id] : []);
+
+  const storeNameplate = useActiveDecorationStore((s) => s.activeNameplate);
+  const activeNameplate =
+    storeNameplate !== undefined && storeNameplate !== null
+      ? storeNameplate
+      : currentUser?.activeNameplate;
 
   return (
     <aside
@@ -322,27 +331,37 @@ export default function MessengerSidebar() {
           <div className="w-full px-2 mt-2">
             <NavLink
               to={profilePath ?? location.pathname}
-              className={`flex items-center rounded-2xl transition-all duration-200 h-12 w-full ${
+              className={`nameplate-row flex items-center rounded-2xl transition-all duration-200 h-12 w-full relative overflow-hidden ${
                 isProfileActive
                   ? 'bg-black/8 dark:bg-white/10 text-gray-950 dark:text-white font-bold'
                   : 'hover:bg-black/5 dark:hover:bg-white/5 text-gray-600 dark:text-gray-400 hover:text-gray-950 dark:hover:text-white'
               } ${isSidebarExpanded ? 'px-3 gap-3' : 'justify-center mx-auto w-12'}`}
             >
-              <div className="relative flex-shrink-0">
-                <Avatar size="sm" src={currentUser?.avatar} />
+              {isSidebarExpanded && activeNameplate && <Nameplate nameplate={activeNameplate} />}
+              <div className="relative flex-shrink-0 z-10">
+                <Avatar
+                  size="sm"
+                  src={currentUser?.avatar}
+                  decoration={currentUser?.activeDecoration}
+                  userId={currentUser?.id}
+                />
                 {currentUser?.id && <OnlineStatusIndicator userId={currentUser.id} variant="dot" />}
               </div>
 
               <div
-                className={`flex items-center justify-between flex-1 transition-all duration-300 overflow-hidden min-w-0 ${
+                data-nameplate-text
+                className={`flex items-center justify-between flex-1 transition-all duration-300 overflow-hidden min-w-0 z-10 ${
                   isSidebarExpanded
                     ? 'opacity-100 translate-x-0'
                     : 'opacity-0 -translate-x-4 hidden'
                 }`}
               >
-                <span className="text-sm font-semibold whitespace-nowrap truncate text-gray-900 dark:text-white">
-                  {currentUser?.displayName || currentUser?.username || 'Profile'}
-                </span>
+                <StyledDisplayName
+                  name={currentUser?.displayName || currentUser?.username || 'Profile'}
+                  style={currentUser?.displayNameStyle}
+                  userId={currentUser?.id}
+                  className="text-sm font-semibold whitespace-nowrap truncate text-gray-900 dark:text-white"
+                />
                 <ChevronRight size={18} className="text-gray-500" />
               </div>
             </NavLink>

@@ -6,6 +6,8 @@ import GroupAvatarCollage from '../../../shared/ui/GroupAvatarCollage';
 interface DeleteChatModalProps {
   conversationName: string;
   avatarUrl: string | null;
+  decoration?: import('@social-network/shared-contracts').AvatarDecorationDto | null;
+  userId?: string | null;
   isGroup?: boolean;
   memberAvatars?: (string | null)[];
   otherUserName?: string;
@@ -17,6 +19,8 @@ interface DeleteChatModalProps {
 export default function DeleteChatModal({
   conversationName,
   avatarUrl,
+  decoration,
+  userId,
   isGroup = false,
   memberAvatars = [],
   otherUserName,
@@ -40,7 +44,7 @@ export default function DeleteChatModal({
                   <GroupAvatarCollage avatars={memberAvatars} size={36} />
                 )
               ) : (
-                <Avatar size="sm" src={avatarUrl} />
+                <Avatar size="sm" src={avatarUrl} decoration={decoration} userId={userId} />
               )}
             </div>
             <h3 className="text-base font-bold text-white">Delete chat</h3>

@@ -23,7 +23,12 @@ export default function TypingIndicatorBubble({ typists }: TypingIndicatorBubble
               key={typist.id || idx}
               className="w-5 h-5 rounded-full overflow-hidden border-2 border-[#181926] shadow-sm bg-black/40 flex-shrink-0"
             >
-              <Avatar size="sm" src={typist.avatar} />
+              <Avatar
+                size="sm"
+                src={typist.avatar}
+                decoration={typist.activeDecoration}
+                userId={typist.id}
+              />
             </div>
           ))}
         </div>

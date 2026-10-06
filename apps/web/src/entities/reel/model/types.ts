@@ -3,6 +3,8 @@ export interface ReelAuthor {
   username: string;
   displayName: string | null;
   avatar: string | null;
+  activeDecoration?: import('@social-network/shared-contracts').AvatarDecorationDto | null;
+  displayNameStyle?: import('@social-network/shared-contracts').DisplayNameStyleDto | null;
   isVerified?: boolean;
   isFollowing?: boolean;
 }

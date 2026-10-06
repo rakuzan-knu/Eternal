@@ -530,7 +530,7 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
     rightPanel === null &&
     !isClosingChat;
 
-  // Esc key listener with strict priority handling (Telegram/Discord standard):
+  // Esc key listener with strict priority handling:
   // Closes open popups/modals/panels first, cancels selection/replies next,
   // blurs active inputs with text, and finally smoothly closes the chat thread.
   useEffect(() => {

@@ -103,6 +103,10 @@ export class UsersRepository implements IUsersRepository {
     return this.prisma.user.findUnique({
       where: { id },
       include: {
+        activeDecoration: true,
+        activeNameplate: true,
+        activeProfileEffect: true,
+        activeProfileFrame: true,
         badges: true,
         _count: {
           select: {
@@ -193,6 +197,10 @@ export class UsersRepository implements IUsersRepository {
       },
       take: takeLimit,
       include: {
+        activeDecoration: true,
+        activeNameplate: true,
+        activeProfileEffect: true,
+        activeProfileFrame: true,
         badges: true,
         _count: {
           select: {
@@ -277,6 +285,10 @@ export class UsersRepository implements IUsersRepository {
         username: { notIn: reservedUsernames },
       },
       include: {
+        activeDecoration: true,
+        activeNameplate: true,
+        activeProfileEffect: true,
+        activeProfileFrame: true,
         badges: true,
         privacy: {
           select: { allowNearbyRecommendations: true },
@@ -299,6 +311,10 @@ export class UsersRepository implements IUsersRepository {
                 id: true,
                 username: true,
                 avatar: true,
+                activeDecoration: true,
+                activeNameplate: true,
+                activeProfileEffect: true,
+                activeProfileFrame: true,
               },
             },
           },
@@ -316,6 +332,10 @@ export class UsersRepository implements IUsersRepository {
       },
       take: 50,
       include: {
+        activeDecoration: true,
+        activeNameplate: true,
+        activeProfileEffect: true,
+        activeProfileFrame: true,
         badges: true,
         privacy: {
           select: { allowNearbyRecommendations: true },

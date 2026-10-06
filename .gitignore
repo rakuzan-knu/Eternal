@@ -171,8 +171,8 @@ vite.config.ts.timestamp-*
 # Husky
 .husky/_/
 
-# Storybook
-frontend/storybook-static/
+# Legacy frontend directory
+frontend/
 
 # Lighthouse
 .lighthouseci/
@@ -258,3 +258,17 @@ packages/feed-score/rust/target/
 
 scratch/
 **/scratch/
+
+# Offline decoration production inputs and regenerated intermediate renders.
+# Published media in both public delivery roots must remain versioned.
+/scripts/decorations/
+/scripts/profile-effects/
+/scripts/profile-frames/
+/scripts/nameplates/
+/frontend/public/Profile-decorations/3D-Models/
+/frontend/public/Profile-decorations/Nameplates/sketches/
+!apps/web/public/Profile-decorations/**/*.svg
+!frontend/public/Profile-decorations/Avatar-decorations/**/*.svg
+!frontend/public/Profile-decorations/Profile-frames/**/*.svg
+!frontend/public/Profile-decorations/Profile-effects/**/*.svg
+!frontend/public/Profile-decorations/Nameplates/*.svg

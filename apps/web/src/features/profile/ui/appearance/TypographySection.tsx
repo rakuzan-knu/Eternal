@@ -114,7 +114,7 @@ export function TypographySection() {
         </button>
       </div>
 
-      {/* 1. Scope Selector (Discord Minimalist Equal-Height Cards) */}
+      {/* 1. Scope Selector */}
       <div className="flex flex-col gap-3">
         <span className="text-xs font-semibold text-gray-800 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
           <Sparkles size={14} className="text-purple-500" />
@@ -147,7 +147,7 @@ export function TypographySection() {
                     <Icon size={16} />
                   </div>
 
-                  {/* Discord-style Radio Indicator */}
+                  {/* Radio Indicator */}
                   <div
                     className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all ${
                       isSelected
@@ -173,7 +173,7 @@ export function TypographySection() {
         </div>
       </div>
 
-      {/* Live Preview Card (Discord Message Preview Style) */}
+      {/* Live Preview Card (Message Preview Style) */}
       <div className="p-4 rounded-2xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 flex flex-col gap-3">
         <div className="flex items-center justify-between text-xs font-semibold text-gray-800 dark:text-gray-300">
           <span className="flex items-center gap-1.5 uppercase tracking-wider text-[11px] text-gray-500 dark:text-gray-400">
@@ -185,7 +185,7 @@ export function TypographySection() {
           </span>
         </div>
 
-        {/* Discord Chat Message Preview */}
+        {/* Chat Message Preview */}
         <div className="p-3.5 rounded-xl bg-white/60 dark:bg-black/40 border border-black/5 dark:border-white/5 flex items-start gap-3">
           <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-xs">
             NA
@@ -287,7 +287,7 @@ export function TypographySection() {
                   </span>
                 </button>
 
-                {/* Discord-style Tooltip on Hover */}
+                {/* Tooltip on Hover */}
                 <AnimatePresence>
                   {isHovered && (
                     <motion.div

@@ -1688,7 +1688,7 @@ export default function VoiceVideoTab({ onNavigateToNotifications }: VoiceVideoT
             Virtual Background
           </h4>
 
-          {/* 4-column Discord-style Background Grid */}
+          {/* 4-column Background Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {/* 1. NONE */}
             <button

@@ -1,9 +1,14 @@
 import { useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useChatSocket } from './useChatSocket';
 import { usePresenceStore } from '@/shared/model/usePresenceStore';
+import { useAuthStore } from '@/shared/model/useAuthStore';
+import { useActiveDecorationStore } from '@/shared/model/useActiveDecorationStore';
+import type { AvatarDecorationDto, NameplateDto } from '@social-network/shared-contracts';
 
 export function usePresenceSync() {
   const socket = useChatSocket();
+  const queryClient = useQueryClient();
   const setOnline = usePresenceStore((s) => s.setOnline);
   const setOffline = usePresenceStore((s) => s.setOffline);
   const applyBatch = usePresenceStore((s) => s.applyBatch);
@@ -32,18 +37,59 @@ export function usePresenceSync() {
       setUserActivity(userId, activityStatus);
     };
 
+    const handleCustomizationUpdated = (payload: {
+      userId: string;
+      activeDecorationId?: string | null;
+      activeDecoration?: AvatarDecorationDto | null;
+      activeNameplateId?: string | null;
+      activeNameplate?: NameplateDto | null;
+    }) => {
+      if (!payload?.userId) return;
+      const currentUserId = useAuthStore.getState().userId;
+      if (payload.userId === currentUserId) {
+        if (payload.activeDecoration !== undefined) {
+          useActiveDecorationStore.getState().setActiveDecoration(payload.activeDecoration);
+        }
+        if (payload.activeNameplate !== undefined) {
+          useActiveDecorationStore.getState().setActiveNameplate(payload.activeNameplate);
+        }
+      }
+
+      void queryClient.invalidateQueries({
+        predicate: (q) =>
+          [
+            'user',
+            'profile',
+            'friends',
+            'followList',
+            'suggestedUsers',
+            'user-search',
+            'conversations',
+            'conversation',
+            'conversations-search',
+            'decorations',
+            'nameplates',
+            'miniProfile',
+            'profile-frame-inventory',
+            'profile-effect-inventory',
+          ].includes(String(q.queryKey[0])),
+      });
+    };
+
     socket.on('userOnline', handleOnline);
     socket.on('userOffline', handleOffline);
     socket.on('presence:batch', handleBatch);
     socket.on('user:activity:changed', handleActivityChanged);
+    socket.on('user:customization:updated', handleCustomizationUpdated);
 
     return () => {
       socket.off('userOnline', handleOnline);
       socket.off('userOffline', handleOffline);
       socket.off('presence:batch', handleBatch);
       socket.off('user:activity:changed', handleActivityChanged);
+      socket.off('user:customization:updated', handleCustomizationUpdated);
     };
-  }, [socket, setOnline, setOffline, applyBatch, setUserActivity]);
+  }, [socket, setOnline, setOffline, applyBatch, setUserActivity, queryClient]);
 }
 
 export function useQueryOnlineStatus(userIds: string[]) {

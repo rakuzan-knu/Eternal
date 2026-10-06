@@ -39,6 +39,8 @@ export interface PostType extends Omit<Partial<PostResponseDto>, 'id' | 'media' 
   authorId: string;
   author: string;
   avatar?: string | null;
+  activeDecoration?: import('@social-network/shared-contracts').AvatarDecorationDto | null;
+  displayNameStyle?: import('@social-network/shared-contracts').DisplayNameStyleDto | null;
   handle: string;
   text: string;
   createdAt: string;

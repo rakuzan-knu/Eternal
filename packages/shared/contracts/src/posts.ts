@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import type { AvatarDecorationDto } from './decorations';
+import type { DisplayNameStyleDto } from './users';
 
 function safeJsonParse(raw: string): unknown {
   try {
@@ -187,7 +189,9 @@ export type PostWithRelations = {
         id: string;
         username: string;
         displayName?: string | null | undefined;
+        displayNameStyle?: DisplayNameStyleDto | null | undefined;
         avatar?: string | null | undefined;
+        activeDecoration?: AvatarDecorationDto | null | undefined;
         isVerified?: boolean | undefined;
         primaryBadge?: string | null | undefined;
         followers?: { id: string }[] | undefined;
@@ -264,6 +268,8 @@ export class PostResponseDto {
   author!: string;
   handle!: string;
   avatar!: string | null;
+  activeDecoration?: AvatarDecorationDto | null;
+  displayNameStyle?: DisplayNameStyleDto | null;
   isVerified!: boolean;
   primaryBadge!: string | null;
   createdAt!: string;
@@ -289,6 +295,8 @@ export class PostResponseDto {
     const displayName = post.author?.displayName || post.author?.username || 'User';
     const handle = post.author?.username || 'user';
     const avatar = post.author?.avatar || null;
+    const activeDecoration = post.author?.activeDecoration ?? null;
+    const displayNameStyle = (post.author?.displayNameStyle as DisplayNameStyleDto) ?? null;
     const isVerified = Boolean(post.author?.isVerified);
     const primaryBadge = post.author?.primaryBadge ?? null;
 
@@ -338,6 +346,8 @@ export class PostResponseDto {
       author: displayName,
       handle,
       avatar,
+      activeDecoration,
+      displayNameStyle,
       isVerified,
       primaryBadge,
       createdAt: toSafeIsoString(post.createdAt),

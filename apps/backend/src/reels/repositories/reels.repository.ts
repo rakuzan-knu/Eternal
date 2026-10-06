@@ -11,7 +11,9 @@ const AUTHOR_SELECT = {
   id: true,
   username: true,
   displayName: true,
+  displayNameStyle: true,
   avatar: true,
+  activeDecoration: true,
   isVerified: true,
 } as const;
 
