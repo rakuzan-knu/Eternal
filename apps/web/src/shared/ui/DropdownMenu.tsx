@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState, useCallback, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronRight, Check } from 'lucide-react';
 
@@ -20,6 +20,7 @@ interface DropdownMenuProps {
   onClose: () => void;
   align?: 'left' | 'right';
   className?: string;
+  'aria-label'?: string;
 }
 
 const EXIT_DURATION_MS = 120;
@@ -31,7 +32,9 @@ export default function DropdownMenu({
   onClose,
   align = 'left',
   className = '',
+  'aria-label': ariaLabel = 'Actions',
 }: DropdownMenuProps) {
+  const id = useId();
   const anchorRef = useRef<HTMLSpanElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const submenuRef = useRef<HTMLDivElement>(null);
@@ -49,13 +52,46 @@ export default function DropdownMenu({
   const submenuCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const modalOwnerRef = useRef<string | undefined>(undefined);
+  const hasFocused = useRef(false);
+  const focusSubmenu = useRef(false);
+  const closingRef = useRef(false);
+  const searchRef = useRef({ text: '', time: 0 });
 
   const requestClose = useCallback(() => {
-    if (isClosing) return;
+    if (closingRef.current) return;
+    closingRef.current = true;
     setIsClosing(true);
     if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
     closeTimerRef.current = setTimeout(onClose, EXIT_DURATION_MS);
-  }, [isClosing, onClose]);
+  }, [onClose]);
+
+  useLayoutEffect(() => {
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    modalOwnerRef.current = opener?.closest<HTMLElement>('[data-modal-id]')?.dataset.modalId;
+    return () => {
+      const active = document.activeElement;
+      if (
+        opener?.isConnected &&
+        (active === document.body ||
+          (active instanceof HTMLElement &&
+            active.closest<HTMLElement>('[data-dropdown-id]')?.dataset.dropdownId === id))
+      )
+        opener.focus();
+    };
+  }, [id]);
+
+  useLayoutEffect(() => {
+    if (!coords || hasFocused.current) return;
+    hasFocused.current = true;
+    menuRef.current?.querySelector<HTMLButtonElement>('button')?.focus();
+  }, [coords]);
+
+  useLayoutEffect(() => {
+    if (!focusSubmenu.current || !activeSubmenuKey || !submenuCoords) return;
+    focusSubmenu.current = false;
+    submenuRef.current?.querySelector<HTMLButtonElement>('button')?.focus();
+  }, [activeSubmenuKey, submenuCoords]);
 
   useEffect(() => {
     return () => {
@@ -146,7 +182,10 @@ export default function DropdownMenu({
       }
     }
     function handleEscape(e: KeyboardEvent) {
-      if (e.key === 'Escape') requestClose();
+      if (e.key === 'Escape' && !e.defaultPrevented) {
+        e.preventDefault();
+        requestClose();
+      }
     }
     document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('keydown', handleEscape);
@@ -166,14 +205,16 @@ export default function DropdownMenu({
   const scheduleSubmenuClose = useCallback(() => {
     cancelSubmenuClose();
     submenuCloseTimerRef.current = setTimeout(() => {
+      if (submenuRef.current?.contains(document.activeElement)) return;
       setActiveSubmenuKey(null);
       setSubmenuCoords(null);
     }, SUBMENU_CLOSE_DELAY_MS);
   }, [cancelSubmenuClose]);
 
   const openSubmenu = useCallback(
-    (itemKey: string) => {
+    (itemKey: string, moveFocus = false) => {
       cancelSubmenuClose();
+      focusSubmenu.current = moveFocus;
       const btn = itemRefs.current.get(itemKey);
       if (!btn) return;
       const rect = btn.getBoundingClientRect();
@@ -207,6 +248,69 @@ export default function DropdownMenu({
 
   const isVisible = mounted && !isClosing;
 
+  const closeSubmenu = () => {
+    if (activeSubmenuKey) itemRefs.current.get(activeSubmenuKey)?.focus();
+    cancelSubmenuClose();
+    setActiveSubmenuKey(null);
+    setSubmenuCoords(null);
+  };
+
+  const handleMenuKeyDown = (event: React.KeyboardEvent<HTMLDivElement>, isSubmenu = false) => {
+    if (event.key === 'Escape' || (isSubmenu && event.key === 'ArrowLeft')) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (isSubmenu || activeSubmenuKey) closeSubmenu();
+      else requestClose();
+      return;
+    }
+    if (event.key === 'Tab') {
+      requestClose();
+      return;
+    }
+    if (!(event.target instanceof HTMLElement)) return;
+    const button = event.target.closest('button');
+    const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('button'));
+    const index = button ? buttons.indexOf(button) : -1;
+    if (event.key === 'ArrowRight' && !isSubmenu) {
+      const item = items.find((candidate) => itemRefs.current.get(candidate.key) === button);
+      if (item?.submenuItems?.length) {
+        event.preventDefault();
+        openSubmenu(item.key, true);
+      }
+      return;
+    }
+    if (!buttons.length) return;
+    let nextIndex: number;
+    if (event.key === 'ArrowDown') nextIndex = (index + 1) % buttons.length;
+    else if (event.key === 'ArrowUp') nextIndex = (index - 1 + buttons.length) % buttons.length;
+    else if (event.key === 'Home') nextIndex = 0;
+    else if (event.key === 'End') nextIndex = buttons.length - 1;
+    else if (
+      event.key.length === 1 &&
+      !event.altKey &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      event.key !== ' '
+    ) {
+      const now = Date.now();
+      const text =
+        (now - searchRef.current.time < 500 ? searchRef.current.text : '') +
+        event.key.toLowerCase();
+      searchRef.current = { text, time: now };
+      const match = buttons
+        .slice(index + 1)
+        .concat(buttons.slice(0, index + 1))
+        .find((candidate) => candidate.textContent?.trim().toLowerCase().startsWith(text));
+      if (match) {
+        event.preventDefault();
+        match.focus();
+      }
+      return;
+    } else return;
+    event.preventDefault();
+    buttons[nextIndex]?.focus();
+  };
+
   return (
     <>
       <span ref={anchorRef} className="absolute inset-0 pointer-events-none" aria-hidden />
@@ -215,8 +319,13 @@ export default function DropdownMenu({
           <>
             <div
               ref={menuRef}
+              role="menu"
+              aria-label={ariaLabel}
+              data-modal-owner={modalOwnerRef.current}
+              data-dropdown-id={id}
+              onKeyDown={(event) => handleMenuKeyDown(event)}
               style={{ position: 'fixed', top: coords.top, left: coords.left, right: coords.right }}
-              className={`z-[1000] min-w-[240px] rounded-2xl bg-[#16181f]/95 backdrop-blur-2xl border border-white/10 shadow-[0_16px_50px_rgba(0,0,0,0.75)] py-1.5 origin-top transition-all duration-150 ${
+              className={`z-(--eternal-layer-menu) min-w-[240px] rounded-2xl bg-[#16181f]/95 backdrop-blur-2xl border border-white/10 shadow-[0_16px_50px_rgba(0,0,0,0.75)] py-1.5 origin-top transition-all duration-(--eternal-motion-duration-fast) ${
                 isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
               } ${className}`}
             >
@@ -230,6 +339,15 @@ export default function DropdownMenu({
                   <React.Fragment key={item.key}>
                     {item.divider && <div className="h-px bg-white/10 my-1.5 mx-2" />}
                     <button
+                      type="button"
+                      role={item.checked === undefined ? 'menuitem' : 'menuitemcheckbox'}
+                      aria-checked={item.checked}
+                      tabIndex={-1}
+                      aria-haspopup={item.submenuItems?.length ? 'menu' : undefined}
+                      aria-expanded={item.submenuItems?.length ? isSubmenuActive : undefined}
+                      aria-controls={
+                        isSubmenuActive && item.submenuItems?.length ? `${id}-submenu` : undefined
+                      }
                       ref={(el) => {
                         if (el) itemRefs.current.set(item.key, el);
                         else itemRefs.current.delete(item.key);
@@ -249,7 +367,7 @@ export default function DropdownMenu({
                       onClick={(e) => {
                         e.stopPropagation();
                         if (hasSubmenu) {
-                          openSubmenu(item.key);
+                          openSubmenu(item.key, e.detail === 0);
                         } else {
                           item.onClick?.();
                           requestClose();
@@ -297,6 +415,12 @@ export default function DropdownMenu({
             {activeSubmenuItems && activeSubmenuItems.length > 0 && submenuCoords && (
               <div
                 ref={submenuRef}
+                id={`${id}-submenu`}
+                role="menu"
+                aria-label={activeItem?.label}
+                data-modal-owner={modalOwnerRef.current}
+                data-dropdown-id={id}
+                onKeyDown={(event) => handleMenuKeyDown(event, true)}
                 style={{
                   position: 'fixed',
                   top: submenuCoords.top,
@@ -305,12 +429,16 @@ export default function DropdownMenu({
                 }}
                 onMouseEnter={cancelSubmenuClose}
                 onMouseLeave={scheduleSubmenuClose}
-                className="z-[1010] min-w-[210px] rounded-2xl bg-[#16181f]/95 backdrop-blur-2xl border border-white/10 shadow-[0_16px_50px_rgba(0,0,0,0.8)] py-1.5 animate-fadeIn"
+                className="z-(--eternal-layer-submenu) min-w-[210px] rounded-2xl bg-[#16181f]/95 backdrop-blur-2xl border border-white/10 shadow-[0_16px_50px_rgba(0,0,0,0.8)] py-1.5 animate-fadeIn"
               >
                 {activeSubmenuItems.map((subItem) => (
                   <React.Fragment key={subItem.key}>
                     {subItem.divider && <div className="h-px bg-white/10 my-1.5 mx-2" />}
                     <button
+                      type="button"
+                      role={subItem.checked === undefined ? 'menuitem' : 'menuitemcheckbox'}
+                      aria-checked={subItem.checked}
+                      tabIndex={-1}
                       onClick={(e) => {
                         e.stopPropagation();
                         subItem.onClick?.();

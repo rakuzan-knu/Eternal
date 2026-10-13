@@ -211,8 +211,8 @@ describe('StoriesService', () => {
   });
 
   describe('processUploadedMedia', () => {
-    it('classifies iPhone HEIC and AVIF as images, including compatible brands', async () => {
-      for (const brand of ['heic', 'avif']) {
+    it('classifies AVIF as an image, including compatible brands', async () => {
+      for (const brand of ['avif', 'avis']) {
         const buffer = Buffer.alloc(24);
         buffer.writeUInt32BE(24, 0);
         buffer.write('ftyp', 4, 'ascii');
@@ -225,10 +225,27 @@ describe('StoriesService', () => {
       oversized.writeUInt32BE(24, 0);
       oversized.write('ftyp', 4, 'ascii');
       oversized.write('iso8', 8, 'ascii');
-      oversized.write('heic', 16, 'ascii');
+      oversized.write('avif', 16, 'ascii');
       await expect(
         service.processUploadedMedia({ buffer: oversized } as Express.Multer.File),
       ).rejects.toThrow('Image size exceeds 10MB limit');
+    });
+
+    it('rejects unsupported HEIC before storing bytes under a WebP content type', async () => {
+      jest.mocked(uploadToStorageWithFallback).mockClear();
+      for (const brand of ['heic', 'heix', 'hevc', 'hevx', 'mif1', 'msf1']) {
+        for (const compatible of [false, true]) {
+          const buffer = Buffer.alloc(24);
+          buffer.writeUInt32BE(24, 0);
+          buffer.write('ftyp', 4, 'ascii');
+          buffer.write(compatible ? 'iso8' : brand, 8, 'ascii');
+          if (compatible) buffer.write(brand, 16, 'ascii');
+          await expect(
+            service.processUploadedMedia({ buffer } as Express.Multer.File),
+          ).rejects.toThrow('Convert HEIC photos');
+        }
+      }
+      expect(uploadToStorageWithFallback).not.toHaveBeenCalled();
     });
 
     it('detects and uploads PNG, WEBP, GIF, WEBM, and Voice audio', async () => {
@@ -471,21 +488,20 @@ describe('StoriesService', () => {
       main,
       [sticker],
     );
+    const backgroundColor: unknown = expect.stringContaining('linear-gradient');
+    const overlays: unknown = expect.arrayContaining([
+      expect.objectContaining({ id: 'main', url: 'https://assets.test/stories/main.webp' }),
+      expect.objectContaining({ id: 'sticker', url: 'https://assets.test/stories/sticker.webp' }),
+    ]);
     expect(repo.createStory).toHaveBeenCalledWith(
       expect.objectContaining({
         filter: 'tokyo',
-        backgroundColor: expect.stringContaining('linear-gradient'),
+        backgroundColor,
         mediaAssets: [
           'https://assets.test/stories/main.webp',
           'https://assets.test/stories/sticker.webp',
         ],
-        overlays: expect.arrayContaining([
-          expect.objectContaining({ id: 'main', url: 'https://assets.test/stories/main.webp' }),
-          expect.objectContaining({
-            id: 'sticker',
-            url: 'https://assets.test/stories/sticker.webp',
-          }),
-        ]),
+        overlays,
       }),
     );
   });

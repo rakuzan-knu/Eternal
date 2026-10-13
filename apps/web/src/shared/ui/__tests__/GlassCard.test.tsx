@@ -16,7 +16,10 @@ describe('GlassCard', () => {
   it('merges a custom className with the base styles', () => {
     render(<GlassCard className="custom-class">content</GlassCard>);
 
-    expect(screen.getByText('content')).toHaveClass('custom-class', 'bg-neutral-900/50');
+    expect(screen.getByText('content')).toHaveClass(
+      'custom-class',
+      'bg-(--eternal-semantic-surface-overlay)',
+    );
   });
 
   it('forwards additional HTML attributes to the underlying div', () => {

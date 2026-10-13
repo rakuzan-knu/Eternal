@@ -257,6 +257,12 @@ export default function MessageComposer({
   };
 
   const handleTextChange = (value: string) => {
+    if (conversationId) {
+      // Commit the latest input before navigation can cancel the reply-state debounce.
+      useChatDraftsStore
+        .getState()
+        .setDraft(conversationId, value.slice(0, MAX_MESSAGE_LENGTH), replyingTo);
+    }
     if (value.length > MAX_MESSAGE_LENGTH) {
       setText(value.slice(0, MAX_MESSAGE_LENGTH));
       triggerShake();
@@ -754,7 +760,7 @@ export default function MessageComposer({
 
       <div className="w-full">
         <div
-          className={`relative w-full flex items-center gap-1.5 sm:gap-2 rounded-2xl sm:rounded-[26px] p-1.5 sm:px-3 sm:py-1.5 min-h-11.5 border border-white/15 focus-within:border-white/30 shadow-[0_16px_40px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.15)] backdrop-blur-3xl transition-all duration-200 ${
+          className={`relative w-full flex max-md:flex-wrap items-center gap-1.5 sm:gap-2 rounded-2xl sm:rounded-[26px] p-1.5 sm:px-3 sm:py-1.5 min-h-11.5 border border-white/15 focus-within:border-white/30 shadow-[0_16px_40px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.15)] backdrop-blur-3xl transition-all duration-200 ${
             isShaking ? 'animate-shake' : ''
           }`}
           style={{
@@ -786,6 +792,7 @@ export default function MessageComposer({
 
           <textarea
             ref={textareaRef}
+            aria-label="Message"
             value={text}
             onChange={(e) => handleTextChange(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -802,10 +809,10 @@ export default function MessageComposer({
             rows={1}
             maxLength={MAX_MESSAGE_LENGTH}
             style={{ maxHeight: MAX_TEXTAREA_HEIGHT }}
-            className="flex-1 bg-transparent text-sm text-white placeholder:text-gray-400 focus:outline-none resize-none py-1.5 px-1 custom-scrollbar leading-5 self-center min-h-8"
+            className="flex-1 min-w-0 max-md:basis-full max-md:order-first max-md:w-full bg-transparent text-sm text-white placeholder:text-gray-400 focus:outline-none resize-none py-1.5 px-1 custom-scrollbar leading-5 self-center min-h-8"
           />
 
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex max-md:flex-wrap items-center gap-1 shrink-0 max-md:ml-auto max-md:max-w-full">
             {/* Twitter-Style Progress Ring Limit Indicator */}
             {text.length >= WARN_THRESHOLD && (
               <div

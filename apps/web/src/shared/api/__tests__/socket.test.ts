@@ -79,4 +79,13 @@ describe('socket', () => {
     expect(io).toHaveBeenCalledWith('https://api.example.com/messenger', expect.any(Object));
     vi.unstubAllEnvs();
   });
+
+  it('prefers VITE_WS_URL when defined', () => {
+    vi.stubEnv('VITE_WS_URL', 'https://custom-ws.example.com/messenger');
+    vi.stubEnv('VITE_API_URL', 'https://api.example.com');
+    disconnectSocket();
+    getSocket();
+    expect(io).toHaveBeenCalledWith('https://custom-ws.example.com/messenger', expect.any(Object));
+    vi.unstubAllEnvs();
+  });
 });

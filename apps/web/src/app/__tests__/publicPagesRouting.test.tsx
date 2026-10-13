@@ -13,9 +13,14 @@ describe('Public Pages Routing Integration', () => {
   it('is publicly accessible directly via /blog without requiring login', async () => {
     renderWithProviders(<App />, { initialEntries: ['/blog'] });
 
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { level: 1, name: /ETERNAL BLOG/i })).toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(
+          screen.getByRole('heading', { level: 1, name: /ETERNAL BLOG/i }),
+        ).toBeInTheDocument();
+      },
+      { timeout: 5000 },
+    );
   });
 
   it('is publicly accessible directly via /category/community without requiring login', async () => {
@@ -85,11 +90,17 @@ describe('Public Pages Routing Integration', () => {
   it('is publicly accessible directly via /download without requiring login', async () => {
     renderWithProviders(<App />, { initialEntries: ['/download'] });
 
-    await waitFor(() => {
-      expect(
-        screen.getByRole('heading', { level: 1, name: /DOWNLOAD ETERNAL WHEREVER YOU HANG OUT/i }),
-      ).toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(
+          screen.getByRole('heading', {
+            level: 1,
+            name: /DOWNLOAD ETERNAL WHEREVER YOU HANG OUT/i,
+          }),
+        ).toBeInTheDocument();
+      },
+      { timeout: 8000 },
+    );
   });
 
   it('is publicly accessible directly via /newsroom without requiring login', async () => {

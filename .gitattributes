@@ -108,12 +108,12 @@ nginx.conf text
 *.webm binary
 *.flac binary
 
-# Lock files (keep as-is)
-package-lock.json binary
-pnpm-lock.yaml binary
-yarn.lock binary
+# Lock files (keep as-is, parsed as text by GitHub Dependency Graph)
+package-lock.json text eol=lf linguist-generated=true
+pnpm-lock.yaml text eol=lf linguist-generated=true
+yarn.lock text eol=lf linguist-generated=true
 bun.lockb binary
-*.lock binary
+*.lock text eol=lf linguist-generated=true
 
 # Terraform
 *.tf text eol=lf

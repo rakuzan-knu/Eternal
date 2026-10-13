@@ -75,6 +75,9 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
     isFetchingNextPage,
     fetchNextPage,
     isLoading: isLoadingMessages,
+    isError: isMessagesError,
+    isFetching: isFetchingMessages,
+    refetch: refetchMessages,
   } = useMessages(conversation.id);
   const { typingUserIds } = useConversationRealtime(conversation.id);
   // Offline-first: on reconnect, fetch the REST `after`-delta for this
@@ -409,7 +412,7 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
   };
 
   return (
-    <div className="flex-1 flex h-full min-w-0">
+    <div data-testid="chat-thread" className="flex-1 flex min-h-0 min-w-0">
       <div ref={chatPaneRef} className="flex-1 flex flex-col h-full min-w-0">
         <ChatThreadHeader
           conversationId={conversation.id}
@@ -520,63 +523,86 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
             onFilesDropped={staged.addFiles}
             className="relative z-10 flex-1 flex flex-col min-h-0 bg-transparent"
           >
-            <MessageList
-              messages={messages}
-              currentUserId={userId}
-              otherParticipantId={otherParticipant?.userId ?? null}
-              conversationId={conversation.id}
-              contentMaxWidth={composerMaxWidth}
-              horizontalShift={horizontalShift}
-              onThemeAccepted={(themeStr) => applyTheme(parseChatTheme(themeStr))}
-              otherParticipant={otherParticipant}
-              display={display}
-              hasMore={!!hasNextPage}
-              isLoading={isLoadingMessages}
-              isFetchingMore={isFetchingNextPage}
-              typingParticipants={typingParticipants}
-              isGroup={conversation.type === 'GROUP'}
-              isSelectionMode={isSelectionMode}
-              selectedMessageIds={selectedMessageIds}
-              chatTheme={chatTheme}
-              onToggleSelectMessage={handleToggleSelectMessage}
-              onLoadMore={fetchNextPage}
-              onReply={setReplyingTo}
-              onEdit={(message) => {
-                void promptEditMessage(
-                  message,
-                  otherParticipant?.userId ?? null,
-                  actions.editMessage,
-                );
-              }}
-              onDelete={handleDelete}
-              onForward={setForwardingMessage}
-              onTogglePin={handleTogglePin}
-              onReport={handleReport}
-              onReact={actions.addReaction}
-              onUnreact={actions.removeReaction}
-              onMarkRead={actions.markRead}
-              highlightMessageId={highlightMessageId}
-              onHighlightHandled={() => setHighlightMessageId(null)}
-              onJumpToMessage={handleJumpToMessage}
-              onLoadAround={actions.loadAroundMessages}
-              onOpenDatePicker={handleOpenDatePicker}
-              highlightDateLabel={highlightDateLabel}
-              isAnchoredInHistory={isAnchoredInHistory}
-              onResetToLive={async () => {
-                setIsAnchoredInHistory(false);
-                await actions.resetToLive();
-              }}
-              onLoadOlder={() => {
-                if (messages.length > 0) actions.loadOlderMessages(messages[0].id);
-              }}
-              onLoadNewer={() => {
-                if (messages.length > 0)
-                  actions.loadNewerMessages(messages[messages.length - 1].id);
-              }}
-              onRetry={(msgId) => {
-                actions.retrySendMessage(msgId).catch(() => {});
-              }}
-            />
+            {isMessagesError && (
+              <div
+                role="alert"
+                className="m-3 p-4 rounded-2xl bg-neutral-900 border border-red-400/30 text-white space-y-2"
+              >
+                <p className="font-semibold">Messages could not load</p>
+                <p className="text-sm text-gray-300">Your draft and loaded messages are kept.</p>
+                <button
+                  type="button"
+                  onClick={() => void refetchMessages()}
+                  disabled={isFetchingMessages}
+                  aria-busy={isFetchingMessages}
+                  className="min-h-11 px-4 rounded-xl bg-white text-black text-sm font-semibold disabled:opacity-50"
+                >
+                  {isFetchingMessages ? 'Retrying…' : 'Retry messages'}
+                </button>
+              </div>
+            )}
+            {(!isMessagesError || messages.length > 0) && (
+              <MessageList
+                messages={messages}
+                currentUserId={userId}
+                otherParticipantId={otherParticipant?.userId ?? null}
+                conversationId={conversation.id}
+                contentMaxWidth={composerMaxWidth}
+                horizontalShift={horizontalShift}
+                onThemeAccepted={(themeStr) => applyTheme(parseChatTheme(themeStr))}
+                otherParticipant={otherParticipant}
+                display={display}
+                hasMore={!!hasNextPage}
+                isLoading={isLoadingMessages}
+                isFetchingMore={isFetchingNextPage}
+                typingParticipants={typingParticipants}
+                isGroup={conversation.type === 'GROUP'}
+                isSelectionMode={isSelectionMode}
+                selectedMessageIds={selectedMessageIds}
+                chatTheme={chatTheme}
+                onToggleSelectMessage={handleToggleSelectMessage}
+                onLoadMore={fetchNextPage}
+                onReply={setReplyingTo}
+                onEdit={(message) => {
+                  void promptEditMessage(
+                    message,
+                    otherParticipant?.userId ?? null,
+                    actions.editMessage,
+                  );
+                }}
+                onDelete={handleDelete}
+                onForward={setForwardingMessage}
+                onTogglePin={handleTogglePin}
+                onReport={handleReport}
+                onReact={actions.addReaction}
+                onUnreact={actions.removeReaction}
+                onMarkRead={actions.markRead}
+                highlightMessageId={highlightMessageId}
+                onHighlightHandled={() => setHighlightMessageId(null)}
+                onJumpToMessage={handleJumpToMessage}
+                onLoadAround={actions.loadAroundMessages}
+                onOpenDatePicker={handleOpenDatePicker}
+                highlightDateLabel={highlightDateLabel}
+                isAnchoredInHistory={isAnchoredInHistory}
+                onResetToLive={async () => {
+                  setIsAnchoredInHistory(false);
+                  await actions.resetToLive();
+                }}
+                onLoadOlder={() => {
+                  if (messages.length > 0) actions.loadOlderMessages(messages[0].id);
+                }}
+                onLoadNewer={() => {
+                  if (messages.length > 0)
+                    actions.loadNewerMessages(messages[messages.length - 1].id);
+                }}
+                onRetry={(msgId) => {
+                  actions.retrySendMessage(msgId).catch(() => {});
+                  chatPaneRef.current
+                    ?.querySelector<HTMLTextAreaElement>('textarea[aria-label="Message"]')
+                    ?.focus({ preventScroll: true });
+                }}
+              />
+            )}
 
             {/* Copy Toast Feedback */}
             {copyToast && (

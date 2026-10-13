@@ -12,9 +12,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@social-network/shared-contracts": "workspace:*",
-    "@tanstack/react-query": "^5.103.0",
-    "axios": "^1.8.1"
+    "@tanstack/react-query": "^5.104.0",
+    "axios": "^1.20.0",
+    "@social-network/shared-contracts": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.9.3"

@@ -31,7 +31,7 @@ function location(s: SessionView): string {
 }
 
 export default function SessionsPanel({ onClose }: SessionsPanelProps) {
-  const { data: sessions, isLoading } = useSessions();
+  const { data: sessions, isLoading, isError, isFetching, refetch } = useSessions();
   const revoke = useRevokeSession();
   const revokeAll = useRevokeAllSessions();
 
@@ -40,9 +40,27 @@ export default function SessionsPanel({ onClose }: SessionsPanelProps) {
   return (
     <SlideOverPanel title="Active sessions" onClose={onClose}>
       {isLoading ? (
-        <div className="flex items-center justify-center py-10 text-gray-500">
+        <div
+          role="status"
+          aria-label="Loading sessions"
+          className="flex items-center justify-center py-10 text-gray-500"
+        >
           <Loader2 size={20} className="animate-spin" />
         </div>
+      ) : isError ? (
+        <div role="alert" className="py-10 text-center text-gray-300 text-sm">
+          <p>Sessions could not load</p>
+          <button
+            type="button"
+            onClick={() => void refetch()}
+            disabled={isFetching}
+            className="mt-3 px-4 py-2 rounded-xl bg-purple-600 text-white disabled:opacity-50"
+          >
+            Retry sessions
+          </button>
+        </div>
+      ) : sessions?.length === 0 ? (
+        <p className="py-10 text-center text-gray-300 text-sm">No active sessions</p>
       ) : (
         <>
           {sessions?.map((s: SessionView) => {

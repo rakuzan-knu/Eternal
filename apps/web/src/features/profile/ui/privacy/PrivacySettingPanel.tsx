@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import SlideOverPanel from '@/shared/ui/SlideOverPanel';
 import RadioGroup from '@/shared/ui/RadioGroup';
 import type { RadioOption } from '@/shared/ui/RadioGroup';
@@ -24,6 +25,7 @@ export default function PrivacySettingPanel({
   title,
   onClose,
 }: PrivacySettingPanelProps) {
+  const visibilityHeadingId = useId();
   const { data: privacy } = usePrivacy();
   const updatePrivacy = useUpdatePrivacy();
 
@@ -41,10 +43,18 @@ export default function PrivacySettingPanel({
         <PreviewCard dimension={dimension} value={value} />
 
         <section>
-          <h3 className="px-1 mb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+          <h3
+            id={visibilityHeadingId}
+            className="px-1 mb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500"
+          >
             Who can see this
           </h3>
-          <RadioGroup value={value} options={VISIBILITY_OPTIONS} onChange={setValue} />
+          <RadioGroup
+            aria-labelledby={visibilityHeadingId}
+            value={value}
+            options={VISIBILITY_OPTIONS}
+            onChange={setValue}
+          />
         </section>
 
         <section>

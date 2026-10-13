@@ -76,6 +76,10 @@ async function mockApi(
       await page.route(`${host}${p}`, handler);
     }
   }
+  for (const p of rawPatterns) {
+    const withoutV1 = p.startsWith('/') ? p : `/${p}`;
+    await page.route(`**/v1${withoutV1}`, handler);
+  }
 }
 
 /**

@@ -2,7 +2,18 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ImagePickerAsset } from 'expo-image-picker';
 
 const platform = vi.hoisted(() => ({ OS: 'web' }));
+const manipulator = vi.hoisted(() => ({
+  create: vi.fn(),
+  render: vi.fn(),
+  save: vi.fn(),
+  imageRelease: vi.fn(),
+  contextRelease: vi.fn(),
+}));
 vi.mock('react-native', () => ({ Platform: platform }));
+vi.mock('expo-image-manipulator', () => ({
+  ImageManipulator: { manipulate: manipulator.create },
+  SaveFormat: { JPEG: 'jpeg' },
+}));
 import { postForm, storyForm, reelForm } from './postForm';
 
 const photo: ImagePickerAsset = {
@@ -17,6 +28,67 @@ const photo: ImagePickerAsset = {
 afterEach(() => {
   vi.unstubAllGlobals();
   platform.OS = 'web';
+  vi.clearAllMocks();
+});
+
+it('converts native HEIC story media and stickers to JPEG and releases decoded images', async () => {
+  platform.OS = 'ios';
+  manipulator.create.mockReturnValue({
+    renderAsync: manipulator.render,
+    release: manipulator.contextRelease,
+  });
+  manipulator.render.mockResolvedValue({
+    saveAsync: manipulator.save,
+    release: manipulator.imageRelease,
+  });
+  manipulator.save.mockResolvedValue({ uri: 'file:///converted.jpg', width: 300, height: 200 });
+  class NativeFormData {
+    fields = new Map<string, unknown>();
+    append(name: string, value: unknown) {
+      this.fields.set(name, value);
+    }
+    get(name: string) {
+      return this.fields.get(name);
+    }
+  }
+  vi.stubGlobal('FormData', NativeFormData);
+  const heic = {
+    ...photo,
+    uri: 'file:///photo.HEIC',
+    fileName: 'photo.HEIC',
+    mimeType: 'image/heic',
+  };
+  const body = await storyForm(
+    heic,
+    'photo',
+    'ALL_FOLLOWERS',
+    { overlays: [{ id: 'sticker', type: 'image', xPercent: 50, yPercent: 50 }] },
+    { sticker: heic },
+  );
+  for (const field of ['file', 'overlay:sticker'])
+    expect(body.get(field)).toEqual({
+      uri: 'file:///converted.jpg',
+      name: 'photo.jpg',
+      type: 'image/jpeg',
+    });
+  expect(manipulator.create).toHaveBeenCalledWith(heic.uri);
+  expect(manipulator.save).toHaveBeenCalledWith({ format: 'jpeg', compress: 1 });
+  expect(manipulator.imageRelease).toHaveBeenCalledTimes(2);
+  expect(manipulator.contextRelease).toHaveBeenCalledTimes(2);
+});
+
+it('retains the original upload error and releases its context when native decoding fails', async () => {
+  platform.OS = 'ios';
+  manipulator.create.mockReturnValue({
+    renderAsync: manipulator.render,
+    release: manipulator.contextRelease,
+  });
+  manipulator.render.mockRejectedValue(new Error('Cannot decode photo'));
+  await expect(postForm('', [{ ...photo, mimeType: 'image/heic' }], [])).rejects.toThrow(
+    'Cannot decode photo',
+  );
+  expect(manipulator.contextRelease).toHaveBeenCalledOnce();
+  expect(manipulator.save).not.toHaveBeenCalled();
 });
 
 it('uploads reels using video and converts picker milliseconds to server seconds', async () => {

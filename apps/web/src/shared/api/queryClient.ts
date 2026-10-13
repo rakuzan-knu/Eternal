@@ -79,7 +79,15 @@ export const queryClient = new QueryClient({
   }),
   defaultOptions: {
     queries: {
-      retry: 1,
+      retry: (failureCount, error: unknown) => {
+        const status =
+          (error as { response?: { status?: number }; status?: number })?.response?.status ??
+          (error as { status?: number })?.status;
+        if (typeof status === 'number' && status >= 400 && status < 500) {
+          return false;
+        }
+        return failureCount < 1;
+      },
       refetchOnWindowFocus: false,
       // Refetch stale queries on reconnect — complements WS gap-fill
       // (WS applies the delta instantly, TQ reconciles in background).

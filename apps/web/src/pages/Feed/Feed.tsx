@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useCallback, useRef, useState } from 'react';
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import CreatePost from '../../features/posts/ui/CreatePost';
 import { StoriesBar } from '@/widgets/feed/ui/StoriesBar';
@@ -12,14 +12,29 @@ import { AllCaughtUpBanner } from '@/widgets/feed/ui/AllCaughtUpBanner';
 import { SuggestedUsersCarousel } from '@/widgets/feed/ui/SuggestedUsersCarousel';
 import { SEOHead } from '@/shared/seo';
 import { usePredictivePrefetch } from '@/shared/lib/usePredictivePrefetch';
+import { usePostDraftStore } from '@/features/posts';
 
 export default function FeedPage() {
-  const { data, isLoading, hasNextPage, isFetchingNextPage, fetchNextPage } = usePostsFeed();
+  const {
+    data,
+    isLoading,
+    isError,
+    isFetching,
+    refetch,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = usePostsFeed();
   const createPost = useCreatePost([FEED_KEY]);
+  const draftText = usePostDraftStore((state) => state.text);
+  const setDraftText = usePostDraftStore((state) => state.setText);
+  const draftRevision = usePostDraftStore((state) => state.revision);
+  const clearSubmittedDraft = usePostDraftStore((state) => state.clearIfUnchanged);
   const hiddenIds = useHiddenPostsStore((s) => s.hiddenIds);
 
   const posts = data?.pages.flatMap((p) => p.posts) ?? [];
   const visiblePosts = posts.filter((p) => !hiddenIds.has(p.id));
+  const hasVisiblePosts = visiblePosts.length > 0;
 
   // Extract upcoming media URLs from tail of the feed for speculative RAM pre-decoding
   const getUpcomingMediaUrls = useCallback(() => {
@@ -45,11 +60,16 @@ export default function FeedPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollMargin, setScrollMargin] = useState(0);
 
-  useEffect(() => {
-    if (containerRef.current) {
-      setScrollMargin(containerRef.current.offsetTop);
-    }
-  }, []);
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const measure = () => setScrollMargin(container.offsetTop);
+    measure();
+    // The editor/stories above the virtual list can change height after mount.
+    const observer = new ResizeObserver(measure);
+    observer.observe(container.parentElement ?? container);
+    return () => observer.disconnect();
+  }, [isLoading, hasVisiblePosts]);
 
   const postVirtualizer = useWindowVirtualizer({
     count: visiblePosts.length,
@@ -104,12 +124,35 @@ export default function FeedPage() {
       <StoriesBar />
 
       <CreatePost
+        draft={{
+          text: draftText,
+          setText: setDraftText,
+          onSubmitSuccess: () => clearSubmittedDraft(draftRevision),
+        }}
         onSubmitFormData={(fd, optimisticPost) =>
           createPost.mutateAsync({ formData: fd, optimisticPost })
         }
         isPending={createPost.isPending}
       />
 
+      {isError && (
+        <div
+          role="alert"
+          className="rounded-2xl border border-red-400/30 bg-neutral-900 p-5 space-y-3"
+        >
+          <p className="font-semibold text-white">Your feed could not load</p>
+          <p className="text-sm text-gray-300">Try again. Your draft and loaded posts are kept.</p>
+          <button
+            type="button"
+            onClick={() => void refetch()}
+            disabled={isFetching}
+            aria-busy={isFetching}
+            className="min-h-11 px-4 rounded-xl bg-white text-black text-sm font-semibold disabled:opacity-50"
+          >
+            {isFetching ? 'Retrying…' : 'Retry feed'}
+          </button>
+        </div>
+      )}
       {isLoading ? (
         <SkeletonFeed count={10} />
       ) : visiblePosts.length > 0 ? (
@@ -168,19 +211,19 @@ export default function FeedPage() {
 
           {!hasNextPage && visiblePosts.length > 0 && <AllCaughtUpBanner showCarousel={true} />}
         </>
-      ) : (
+      ) : !isError ? (
         <div className="flex flex-col gap-6">
           <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-white/5 rounded-3xl bg-white/[0.01]">
             <p className="text-gray-400 font-semibold text-sm sm:text-base">
               There's nothing here yet...
             </p>
-            <p className="text-xs text-gray-500 mt-1 max-w-xs">
+            <p className="text-xs text-gray-400 mt-1 max-w-xs">
               Follow interesting creators below to see their posts and updates here.
             </p>
           </div>
           <SuggestedUsersCarousel title="Discover Creators" limit={8} />
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

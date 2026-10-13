@@ -236,7 +236,10 @@ function StorySegmentProgressBar({
   }, [isActive, isPassed, durationMs, isVideo, onComplete, videoRef]);
 
   return (
-    <div className="h-1 flex-1 bg-white/25 rounded-full overflow-hidden backdrop-blur-xs">
+    <div
+      data-testid="story-segment-progress"
+      className="h-1 flex-1 bg-white/25 rounded-full overflow-hidden backdrop-blur-xs"
+    >
       <div
         ref={barRef}
         style={{ width: isPassed ? '100%' : '0%' }}
@@ -527,21 +530,22 @@ export function StoryViewerModal() {
   );
 
   // Resolve legacy API endpoints on activeAudioOverlay if present
+  const activeStoryId = activeStory?.id;
   useEffect(() => {
     const trackId = activeMusicTrackId;
-    if (!trackId) return;
+    if (!trackId || !activeStoryId) return;
 
     let cancelled = false;
     (async () => {
       const streamUrl = await integrationsApi.getSoundCloudStream(trackId).catch(() => null);
       if (cancelled) return;
-      if (streamUrl?.streamUrl && activeStory)
-        setResolvedMusic({ storyId: activeStory.id, url: streamUrl.streamUrl });
+      if (streamUrl?.streamUrl)
+        setResolvedMusic({ storyId: activeStoryId, url: streamUrl.streamUrl });
     })();
     return () => {
       cancelled = true;
     };
-  }, [activeMusicTrackId, activeStory?.id]);
+  }, [activeMusicTrackId, activeStoryId]);
 
   // Set initial start time and loop snippet when audio overlay loads
   useEffect(() => {

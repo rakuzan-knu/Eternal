@@ -1,0 +1,13 @@
+# Trivy ignore file for known unfixable / false-positive CVEs
+# GHSA-vfj7-8cjw-p6xm: braces AST stack-exhaustion (no upstream patch published yet)
+GHSA-vfj7-8cjw-p6xm
+CVE-2026-93687
+
+# GHSA-86w9-cpqp-85rv: node-forge RSA PKCS#1 v1.5 (no upstream patch published yet)
+GHSA-86w9-cpqp-85rv
+CVE-2026-85393
+
+# OS base unfixable vendor advisories
+CVE-2023-45853
+CVE-2024-4741
+CVE-2026-40200

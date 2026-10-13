@@ -9,8 +9,8 @@ export interface SavedAccount {
   username: string;
   displayName?: string;
   avatar?: string | null;
-  accessToken: string;
-  refreshToken: string;
+  accessToken?: string;
+  refreshToken?: string;
 }
 
 export interface AccountsState {
@@ -50,8 +50,16 @@ export const useAccountsStore = create<AccountsState>()(
         // Tear down the previous session BEFORE activating the next one:
         // reset clears the query cache + socket while the old auth is still
         // set, so no fetch/socket churn happens under the new identity.
-        localStorage.setItem('accessToken', account.accessToken);
-        localStorage.setItem('refreshToken', account.refreshToken);
+        if (account.accessToken) {
+          localStorage.setItem('accessToken', account.accessToken);
+        } else {
+          localStorage.removeItem('accessToken');
+        }
+        if (account.refreshToken) {
+          localStorage.setItem('refreshToken', account.refreshToken);
+        } else {
+          localStorage.removeItem('refreshToken');
+        }
         resetSessionStores();
         set({ activeAccountId: id });
         useAuthStore.getState().setAuth(account.id);
@@ -71,7 +79,17 @@ export const useAccountsStore = create<AccountsState>()(
     }),
     {
       name: 'eternal-accounts',
-      partialize: (state) => ({ accounts: state.accounts, activeAccountId: state.activeAccountId }),
+      partialize: (state) => ({
+        // Never persist sensitive auth tokens (accessToken, refreshToken) to disk!
+        // Storing plaintext tokens in localStorage exposes saved accounts to XSS exfiltration.
+        accounts: state.accounts.map(({ id, username, displayName, avatar }) => ({
+          id,
+          username,
+          displayName,
+          avatar,
+        })),
+        activeAccountId: state.activeAccountId,
+      }),
     },
   ),
 );

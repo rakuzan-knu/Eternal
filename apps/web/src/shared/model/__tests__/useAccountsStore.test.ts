@@ -99,4 +99,23 @@ describe('useAccountsStore', () => {
     expect(useAccountsStore.getState().accounts).toHaveLength(0);
     expect(useAccountsStore.getState().activeAccountId).toBeNull();
   });
+
+  it('never persists refreshToken or accessToken to eternal-accounts in localStorage', () => {
+    const accWithTokens: SavedAccount = {
+      id: 'acc-secure',
+      username: 'secure_user',
+      displayName: 'Secure User',
+      avatar: 'https://example.com/avatar.png',
+      accessToken: 'secret-access-token',
+      refreshToken: 'secret-refresh-token',
+    };
+
+    useAccountsStore.getState().upsertAccount(accWithTokens);
+
+    const rawStored = localStorage.getItem('eternal-accounts');
+    expect(rawStored).toBeTruthy();
+    expect(rawStored).not.toContain('secret-access-token');
+    expect(rawStored).not.toContain('secret-refresh-token');
+    expect(rawStored).toContain('secure_user');
+  });
 });

@@ -1,0 +1,1364 @@
+<!doctype html>
+<html lang="uk">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Eternal · Прототипи платформ</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', 'Noto Sans',
+          Arial, sans-serif;
+        color: #fff;
+        background: #07050f;
+        --muted: #b0afbb;
+        --line: rgb(255 255 255 / 0.09);
+        --panel: #16161a;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      body {
+        margin: 0;
+        background: radial-gradient(ellipse at 25% 0, #251443 0, transparent 42%), #07050f;
+        min-height: 100vh;
+      }
+      button,
+      input,
+      textarea,
+      select {
+        font: inherit;
+      }
+      button,
+      select {
+        cursor: pointer;
+      }
+      button {
+        color: inherit;
+        border: 1px solid var(--line);
+        background: rgb(255 255 255 / 0.04);
+        border-radius: 12px;
+        min-height: 44px;
+        padding: 10px 14px;
+        font-weight: 600;
+      }
+      button:hover {
+        background: rgb(255 255 255 / 0.09);
+      }
+      button:active {
+        transform: scale(0.99);
+      }
+      button:disabled {
+        cursor: default;
+        opacity: 0.5;
+        transform: none;
+      }
+      :focus-visible {
+        outline: 2px solid #a855f7;
+        outline-offset: 3px;
+      }
+      button.primary {
+        background: #fff;
+        color: #000;
+        border-color: #fff;
+      }
+      button.primary:hover {
+        background: #e5e5e5;
+      }
+      button.plain {
+        border-color: transparent;
+        background: transparent;
+      }
+      button.icon {
+        width: 44px;
+        padding: 10px;
+        display: inline-grid;
+        place-items: center;
+        flex-shrink: 0;
+      }
+      .icon svg,
+      .nav-icon {
+        width: 22px;
+        height: 22px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+        border: 0;
+      }
+      .lab {
+        max-width: 1400px;
+        margin: auto;
+        padding: 32px 24px 48px;
+      }
+      .lab-header {
+        display: flex;
+        align-items: start;
+        gap: 16px;
+        justify-content: space-between;
+        margin-bottom: 24px;
+      }
+      .lab h1 {
+        font-size: 24px;
+        margin: 0 0 8px;
+        letter-spacing: -0.025em;
+      }
+      .lab-header p {
+        max-width: 760px;
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.6;
+      }
+      a {
+        color: #d8b4fe;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        align-items: end;
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: rgb(255 255 255 / 0.025);
+      }
+      .control {
+        display: grid;
+        gap: 8px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .control select {
+        color: #fff;
+        background: #16161a;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        min-height: 44px;
+        padding: 8px 12px;
+      }
+      .control input[type='range'] {
+        width: 180px;
+        accent-color: #a855f7;
+        height: 32px;
+      }
+      .control.check {
+        display: flex;
+        align-items: center;
+        min-height: 44px;
+        font-size: 14px;
+        color: #fff;
+      }
+      .check input {
+        width: 18px;
+        height: 18px;
+        accent-color: #8b5cf6;
+      }
+      .stage {
+        display: flex;
+        justify-content: center;
+        padding: 32px 0 16px;
+      }
+      .device {
+        width: 390px;
+        max-width: 100%;
+        height: 812px;
+        border: 1px solid #3d374e;
+        border-radius: 40px;
+        padding: 8px;
+        background: #101017;
+        box-shadow: 0 32px 100px rgb(0 0 0 / 0.5);
+        transition: width 200ms ease;
+      }
+      .device.desktop {
+        width: 1120px;
+        height: 750px;
+        border-radius: 16px;
+        padding: 0;
+      }
+      .viewport {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        border-radius: 32px;
+        background: #070709;
+        container-type: inline-size;
+      }
+      .desktop .viewport {
+        border-radius: 16px;
+      }
+      .statusbar {
+        height: 46px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 26px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .island {
+        width: 90px;
+        height: 24px;
+        background: #000;
+        border-radius: 20px;
+      }
+      .android .island {
+        width: 10px;
+        height: 10px;
+      }
+      .desktop .statusbar {
+        display: none;
+      }
+      .titlebar {
+        display: none;
+        padding: 0 16px;
+        align-items: center;
+        justify-content: space-between;
+        height: 40px;
+        background: #16161a;
+        font-size: 12px;
+        color: var(--muted);
+        flex-shrink: 0;
+      }
+      .desktop .titlebar {
+        display: flex;
+      }
+      .window-dots {
+        display: flex;
+        gap: 7px;
+      }
+      .window-dots i {
+        width: 9px;
+        height: 9px;
+        border: 1px solid #797583;
+        border-radius: 50%;
+      }
+      .workspace {
+        display: flex;
+        min-height: 0;
+        flex: 1;
+      }
+      .sidebar {
+        display: none;
+        width: 208px;
+        margin: 16px 0 16px 16px;
+        padding: 20px 12px;
+        border: 1px solid var(--line);
+        background: rgb(22 22 26 / 0.7);
+        border-radius: 32px;
+        flex-shrink: 0;
+      }
+      .desktop .sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .brand {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        padding: 0 8px 24px;
+        font-weight: 800;
+        font-size: 20px;
+      }
+      .brand img {
+        height: 32px;
+        width: 32px;
+      }
+      .sidebar button {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-align: left;
+        border: 0;
+        min-height: 48px;
+      }
+      .sidebar .active,
+      .tabbar .active {
+        background: rgb(168 85 247 / 0.15);
+        color: #e9d5ff;
+      }
+      .sidebar .account {
+        margin-top: auto;
+      }
+      .content {
+        flex: 1;
+        min-width: 0;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .screen-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--line);
+        min-height: 66px;
+        flex-shrink: 0;
+      }
+      .screen-header h2 {
+        font-size: 18px;
+        margin: 0;
+        letter-spacing: -0.025em;
+      }
+      .screen-header .subtitle {
+        margin-top: 2px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .screen-header .trailing {
+        margin-left: auto;
+      }
+      .desktop .screen-header {
+        padding-inline: 24px;
+      }
+      .scroll {
+        overflow-y: auto;
+        flex: 1;
+        min-height: 0;
+        overscroll-behavior: contain;
+        scrollbar-width: thin;
+      }
+      .feed {
+        max-width: 672px;
+        margin: auto;
+        padding: 20px 16px;
+      }
+      .eyebrow {
+        font-size: 11px;
+        color: #d8b4fe;
+        text-transform: uppercase;
+        letter-spacing: 0.09em;
+        font-weight: 600;
+      }
+      .welcome {
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: -0.04em;
+        margin: 6px 0 4px;
+      }
+      .muted {
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.5;
+      }
+      .stories {
+        display: flex;
+        gap: 16px;
+        margin: 24px 0;
+      }
+      .story {
+        text-align: center;
+        font-size: 12px;
+        background: transparent;
+        border: 0;
+        padding: 0;
+        font-weight: 400;
+      }
+      .story .avatar {
+        margin: 0 auto 8px;
+        outline: 2px solid #8b5cf6;
+        outline-offset: 3px;
+      }
+      .avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: #251d35;
+        border: 1px solid rgb(255 255 255 / 0.05);
+        color: #e9d5ff;
+        font-size: 14px;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+      .avatar.green {
+        background: #18312d;
+        color: #a7f3d0;
+      }
+      .avatar.warm {
+        background: #342125;
+        color: #fecdd3;
+      }
+      .post {
+        padding: 20px;
+        border-radius: 24px;
+        border: 1px solid rgb(255 255 255 / 0.05);
+        background: rgb(255 255 255 / 0.02);
+        margin-bottom: 16px;
+      }
+      .post-author {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+      }
+      .author-link {
+        border: 0;
+        padding: 0;
+        min-height: 44px;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        text-align: left;
+        background: transparent;
+      }
+      .name {
+        display: block;
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .meta {
+        font-size: 12px;
+        color: var(--muted);
+        font-weight: 400;
+      }
+      .post p {
+        font-size: 15px;
+        line-height: 1.65;
+        margin: 16px 0;
+        overflow-wrap: anywhere;
+      }
+      .post-art {
+        height: 154px;
+        border-radius: 16px;
+        overflow: hidden;
+        position: relative;
+        background:
+          radial-gradient(ellipse at 75% 50%, #7a39a2 0, transparent 50%),
+          linear-gradient(140deg, #12131b, #30224c);
+        display: flex;
+        align-items: end;
+        padding: 20px;
+      }
+      .post-art::before {
+        content: '';
+        position: absolute;
+        width: 240px;
+        height: 240px;
+        border: 1px solid rgb(255 255 255 / 0.2);
+        border-radius: 50%;
+        right: -65px;
+        top: -54px;
+        box-shadow:
+          0 0 0 25px rgb(255 255 255 / 0.02),
+          0 0 0 50px rgb(255 255 255 / 0.02);
+      }
+      .post-art span {
+        position: relative;
+        font-weight: 700;
+        font-size: 22px;
+        letter-spacing: -0.03em;
+      }
+      .post-actions {
+        display: flex;
+        gap: 4px;
+        margin: 12px -6px -8px;
+      }
+      .post-actions button {
+        flex: 1;
+        font-size: 12px;
+        padding: 8px;
+      }
+      .post-actions [aria-pressed='true'] {
+        color: #f9a8d4;
+        background: rgb(236 72 153 / 0.1);
+      }
+      .tabbar {
+        display: flex;
+        flex-shrink: 0;
+        gap: 4px;
+        padding: 8px 12px;
+        border-top: 1px solid var(--line);
+        background: #101014;
+      }
+      .tabbar button {
+        border: 0;
+        flex: 1;
+        display: grid;
+        justify-items: center;
+        gap: 4px;
+        padding: 8px;
+        font-size: 11px;
+      }
+      .desktop .tabbar {
+        display: none;
+      }
+      .home-safe {
+        height: 26px;
+        background: #101014;
+        flex-shrink: 0;
+        display: grid;
+        place-items: center;
+      }
+      .home-safe::after {
+        content: '';
+        height: 4px;
+        width: 110px;
+        background: #ddd;
+        border-radius: 5px;
+      }
+      .desktop .home-safe,
+      .no-safe .home-safe,
+      .no-safe .statusbar {
+        display: none;
+      }
+      .profile {
+        max-width: 760px;
+        margin: auto;
+      }
+      .banner {
+        height: 164px;
+        position: relative;
+        background: linear-gradient(125deg, #151320, #432063, #30245e);
+        overflow: hidden;
+      }
+      .banner::after {
+        content: '';
+        position: absolute;
+        width: 350px;
+        height: 350px;
+        border: 1px solid rgb(168 85 247 / 0.3);
+        border-radius: 50%;
+        left: 40%;
+        top: -240px;
+        box-shadow:
+          0 0 0 40px rgb(168 85 247 / 0.05),
+          0 0 0 80px rgb(168 85 247 / 0.04);
+      }
+      .profile-body {
+        padding: 0 24px 24px;
+      }
+      .profile-top {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: -36px;
+        position: relative;
+      }
+      .profile-top .avatar {
+        width: 88px;
+        height: 88px;
+        font-size: 26px;
+        border: 5px solid #070709;
+      }
+      .profile-top button {
+        margin-bottom: 8px;
+      }
+      .profile h3 {
+        font-size: 24px;
+        margin: 16px 0 4px;
+      }
+      .bio {
+        font-size: 15px;
+        line-height: 1.65;
+        margin: 16px 0;
+      }
+      .stats {
+        display: flex;
+        gap: 20px;
+        margin: 16px 0 24px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .stats strong {
+        display: block;
+        color: #fff;
+        font-size: 18px;
+        margin-bottom: 4px;
+      }
+      .profile-actions {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 24px;
+      }
+      .profile-actions button {
+        flex: 1;
+      }
+      .section-label {
+        font-size: 14px;
+        font-weight: 600;
+        padding: 14px 0;
+        border-bottom: 1px solid var(--line);
+        margin-bottom: 16px;
+      }
+      .chat-layout {
+        display: flex;
+        min-height: 0;
+        flex: 1;
+      }
+      .chat-list {
+        display: none;
+        width: 236px;
+        flex-shrink: 0;
+        border-right: 1px solid var(--line);
+        padding: 20px 12px;
+      }
+      .chat-list h3 {
+        font-size: 14px;
+        margin: 0 12px 16px;
+      }
+      .chat-list button {
+        width: 100%;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        text-align: left;
+        padding: 12px;
+        background: rgb(168 85 247 / 0.1);
+      }
+      .conversation {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-width: 0;
+        min-height: 0;
+        background: #0b0b0c;
+      }
+      .messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 24px 16px;
+        min-height: 0;
+        scrollbar-width: thin;
+      }
+      .day {
+        text-align: center;
+        font-size: 11px;
+        color: var(--muted);
+        margin-bottom: 24px;
+      }
+      .bubble {
+        max-width: 82%;
+        width: fit-content;
+        background: rgb(18 19 27 / 0.8);
+        border: 1px solid var(--line);
+        border-radius: 16px 16px 16px 4px;
+        padding: 12px 14px;
+        font-size: 14px;
+        line-height: 1.6;
+        margin-bottom: 12px;
+        overflow-wrap: anywhere;
+      }
+      .bubble.outgoing {
+        margin-left: auto;
+        background: linear-gradient(135deg, #9333ea, #6366f1);
+        border: 0;
+        border-radius: 16px 16px 4px 16px;
+      }
+      .bubble small {
+        display: block;
+        text-align: right;
+        font-size: 10px;
+        color: #dedbea;
+        margin-top: 6px;
+      }
+      .bubble.failed {
+        background: #311d2c;
+        border: 1px solid #ad5c73;
+      }
+      .bubble.failed button {
+        font-size: 12px;
+        padding: 8px;
+        display: block;
+        margin-top: 8px;
+      }
+      .composer {
+        display: flex;
+        gap: 8px;
+        align-items: end;
+        padding: 12px 16px;
+        border-top: 1px solid var(--line);
+        background: #0b0b0c;
+        flex-shrink: 0;
+      }
+      .composer textarea {
+        min-height: 44px;
+        height: 44px;
+        max-height: 120px;
+        resize: none;
+        border: 1px solid #36333f;
+        border-radius: 12px;
+        background: #16161a;
+        color: #fff;
+        padding: 11px 12px;
+        flex: 1;
+        min-width: 0;
+        font-size: 14px;
+      }
+      .composer .send {
+        background: #8b5cf6;
+        border-color: #8b5cf6;
+      }
+      .keyboard {
+        display: none;
+        flex-shrink: 0;
+        padding: 10px 6px 12px;
+        background: #222128;
+        border-top: 1px solid #494550;
+      }
+      .keyboard.visible {
+        display: block;
+      }
+      .keyboard-row {
+        display: flex;
+        justify-content: center;
+        gap: 4px;
+        margin-bottom: 5px;
+      }
+      .keyboard button {
+        min-width: 0;
+        min-height: 34px;
+        flex: 1;
+        padding: 6px 0;
+        background: #46434d;
+        border: 0;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 400;
+        box-shadow: 0 1px 0 #111;
+      }
+      .keyboard .space {
+        flex: 3;
+      }
+      .keyboard .wide {
+        flex: 1.4;
+      }
+      .feedback {
+        padding: 48px 24px;
+        text-align: center;
+        max-width: 500px;
+        margin: auto;
+      }
+      .feedback h3 {
+        font-size: 20px;
+        margin-bottom: 12px;
+      }
+      .feedback p {
+        font-size: 14px;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+      .feedback button {
+        margin-top: 12px;
+      }
+      .skeleton {
+        height: 20px;
+        background: rgb(255 255 255 / 0.07);
+        border-radius: 6px;
+        margin: 16px 0;
+      }
+      .skeleton.card {
+        height: 140px;
+        border-radius: 24px;
+      }
+      .notes {
+        font-size: 12px;
+        line-height: 1.6;
+        color: var(--muted);
+        margin: 8px auto 0;
+        text-align: center;
+        max-width: 760px;
+      }
+      .toast {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #26212f;
+        border: 1px solid #62566e;
+        padding: 12px 18px;
+        border-radius: 12px;
+        font-size: 14px;
+        box-shadow: 0 8px 30px #000;
+        max-width: calc(100% - 32px);
+        z-index: 1100;
+      }
+      .toast:empty {
+        display: none;
+      }
+      dialog {
+        color: #fff;
+        background: #16161a;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        padding: 24px;
+        width: 440px;
+        max-width: calc(100% - 32px);
+      }
+      dialog::backdrop {
+        background: rgb(0 0 0 / 0.6);
+      }
+      dialog h2 {
+        font-size: 20px;
+        margin: 0 0 12px;
+      }
+      dialog p {
+        font-size: 14px;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+      dialog textarea {
+        width: 100%;
+        min-height: 120px;
+        color: #fff;
+        background: #0b0b0c;
+        border: 1px solid #37313f;
+        border-radius: 12px;
+        padding: 14px;
+        font-size: 14px;
+        margin: 8px 0 16px;
+      }
+      .dialog-actions {
+        display: flex;
+        justify-content: end;
+        gap: 8px;
+      }
+      [popover] {
+        color: #fff;
+        background: #16181f;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 8px;
+        min-width: 240px;
+        box-shadow: 0 20px 40px #000;
+      }
+      [popover] button {
+        display: block;
+        width: 100%;
+        text-align: left;
+        border: 0;
+      }
+      @container (min-width: 930px) {
+        .desktop .chat-list {
+          display: block;
+        }
+      }
+      @container (max-width: 760px) {
+        .desktop .sidebar {
+          width: 76px;
+          margin-left: 10px;
+          padding: 16px 8px;
+          border-radius: 24px;
+        }
+        .desktop .sidebar button {
+          justify-content: center;
+          padding: 10px;
+        }
+        .desktop .sidebar .nav-label,
+        .desktop .brand span {
+          display: none;
+        }
+        .desktop .brand {
+          padding: 0 12px 24px;
+        }
+      }
+      @media (max-width: 600px) {
+        .lab {
+          padding: 20px 12px;
+        }
+        .lab-header {
+          flex-direction: column;
+        }
+        .device {
+          height: 760px;
+        }
+        .stage {
+          padding-top: 20px;
+        }
+        .controls {
+          gap: 12px;
+          padding: 12px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <svg class="sr-only" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+      <symbol id="feed-icon" viewBox="0 0 24 24">
+        <path d="m3 10 9-7 9 7v10H3zM9 20v-7h6v7" />
+      </symbol>
+      <symbol id="profile-icon" viewBox="0 0 24 24">
+        <circle cx="12" cy="8" r="4" />
+        <path d="M4 21v-2a8 8 0 0 1 16 0v2" />
+      </symbol>
+      <symbol id="chat-icon" viewBox="0 0 24 24">
+        <path d="M21 11a9 9 0 0 1-9 9 9 9 0 0 1-4-1l-5 2 2-5a9 9 0 1 1 16-5Z" />
+        <path d="M8 11h8" />
+      </symbol>
+      <symbol id="back-icon" viewBox="0 0 24 24"><path d="m14 5-7 7 7 7" /></symbol>
+      <symbol id="send-icon" viewBox="0 0 24 24"><path d="m3 3 18 9-18 9 4-9zM7 12h14" /></symbol>
+      <symbol id="more-icon" viewBox="0 0 24 24">
+        <circle cx="5" cy="12" r="1" />
+        <circle cx="12" cy="12" r="1" />
+        <circle cx="19" cy="12" r="1" />
+      </symbol>
+      <symbol id="plus-icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></symbol>
+    </svg>
+    <main class="lab">
+      <div class="lab-header">
+        <div>
+          <h1>Eternal · Прототипи платформ</h1>
+          <p>
+            Пропозиції адаптації: стрічка → профіль → чат. Мобільні рамки, клавіатура та вікно
+            робочого столу є симуляцією; це не нативні застосунки. Дані вигадані й залишаються лише
+            до перезавантаження.
+          </p>
+        </div>
+        <a href="prototypes.md">Сценарії перевірки ↗</a>
+      </div>
+      <section class="controls" aria-label="Налаштування прототипу">
+        <label class="control"
+          >Платформа<select id="platform">
+            <option value="ios">iOS · 390 px</option>
+            <option value="android">Android · 412 px</option>
+            <option value="desktop">Desktop · змінна ширина</option>
+          </select></label
+        >
+        <label class="control" id="width-control" hidden
+          >Ширина вікна · <output id="width-value">1120 px</output
+          ><input id="width" type="range" min="480" max="1280" step="10" value="1120"
+        /></label>
+        <label class="control"
+          >Стан екрана<select id="state">
+            <option value="content">Вміст</option>
+            <option value="loading">Завантаження</option>
+            <option value="empty">Порожньо</option>
+            <option value="error">Помилка / повторити</option>
+          </select></label
+        >
+        <label class="control check" id="safe-control"
+          ><input id="safe" type="checkbox" checked /> Безпечні зони</label
+        >
+        <label class="control check" id="keyboard-control"
+          ><input id="keyboard" type="checkbox" disabled /> Клавіатура у чаті</label
+        >
+        <button id="reset" class="plain">Скинути</button>
+      </section>
+      <div class="stage">
+        <section class="device ios" id="device" aria-label="Екран Eternal">
+          <div class="viewport">
+            <div class="statusbar" aria-hidden="true">
+              <span>9:41</span><span class="island"></span><span>▰ 100%</span>
+            </div>
+            <div class="titlebar" aria-hidden="true">
+              <span>Eternal</span><span class="window-dots"><i></i><i></i><i></i></span>
+            </div>
+            <div class="workspace">
+              <nav class="sidebar" aria-label="Основна навігація">
+                <div class="brand">
+                  <img src="../../apps/web/public/favicon.svg" alt="" /><span>Eternal</span>
+                </div>
+                <div id="desktop-nav"></div>
+                <div class="account">
+                  <span class="avatar green" aria-label="Ваш профіль, Марко">М</span>
+                </div>
+              </nav>
+              <div class="content" id="screen"></div>
+            </div>
+            <nav class="tabbar" id="mobile-nav" aria-label="Основна навігація"></nav>
+            <div
+              class="keyboard"
+              id="onscreen-keyboard"
+              role="group"
+              aria-label="Симульована клавіатура"
+            ></div>
+            <div class="home-safe" aria-hidden="true"></div>
+          </div>
+        </section>
+      </div>
+      <p class="notes" id="layout-note">
+        iOS · 390 px · верхній відступ 46 px, нижній 26 px. Умовні значення для перевірки
+        композиції, а не специфікація пристрою.
+      </p>
+      <p class="notes">
+        Tab / Shift+Tab — перехід між діями; Enter — активація або надсилання; Shift+Enter — новий
+        рядок; Escape — закрити меню чи діалог. У меню також працюють стрілки, Home та End.
+      </p>
+    </main>
+    <div class="toast" id="status" role="status" aria-live="polite"></div>
+    <dialog id="post-dialog" aria-labelledby="post-title">
+      <form id="post-form">
+        <h2 id="post-title">Новий допис</h2>
+        <label for="post-draft" class="muted">Що хочете розповісти?</label
+        ><textarea
+          id="post-draft"
+          placeholder="Поділіться думкою…"
+          required
+          maxlength="1000"
+        ></textarea>
+        <div class="dialog-actions">
+          <button type="button" id="cancel-post">Скасувати</button
+          ><button class="primary" type="submit">Опублікувати</button>
+        </div>
+      </form>
+    </dialog>
+    <div id="post-menu" popover="auto" role="menu" aria-label="Дії з дописом">
+      <button type="button" role="menuitem" data-action="save-menu">Зберегти допис</button
+      ><button type="button" role="menuitem" data-action="profile-menu">Переглянути профіль</button>
+    </div>
+    <script>
+      const byId = (id) => document.getElementById(id);
+      const escapeHtml = (text) =>
+        text.replace(
+          /[&<>"']/g,
+          (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char],
+        );
+      const icon = (name) =>
+        `<svg class="nav-icon" aria-hidden="true"><use href="#${name}-icon"></use></svg>`;
+      const navLabels = { feed: 'Стрічка', profile: 'Профіль', chat: 'Чат' };
+      const state = {
+        route: 'feed',
+        history: [],
+        draft: '',
+        liked: false,
+        saved: false,
+        following: false,
+        messages: [],
+        posts: [],
+        keyboard: false,
+      };
+      let toastTimer;
+      let menuTrigger;
+      function notify(text) {
+        clearTimeout(toastTimer);
+        byId('status').textContent = text;
+        toastTimer = setTimeout(() => {
+          byId('status').textContent = '';
+        }, 4000);
+      }
+      function route(next, back = false) {
+        if (!back && next !== state.route) state.history.push(state.route);
+        state.route = next;
+        byId('state').value = 'content';
+        if (next !== 'chat') state.keyboard = false;
+        render();
+        byId('screen-title').focus();
+      }
+      function navigation() {
+        const markup = Object.entries(navLabels)
+          .map(
+            ([key, label]) =>
+              `<button type="button" data-route="${key}" class="${state.route === key ? 'active' : ''}" ${state.route === key ? 'aria-current="page"' : ''} aria-label="${label}">${icon(key)}<span class="nav-label">${label}</span></button>`,
+          )
+          .join('');
+        byId('desktop-nav').innerHTML = markup;
+        byId('mobile-nav').innerHTML = markup;
+      }
+      function header() {
+        const back = state.history.length
+          ? `<button class="icon plain" data-action="back" aria-label="Назад">${icon('back')}</button>`
+          : '';
+        const subtitle =
+          state.route === 'chat' ? '<div class="subtitle">Софія Коваль · онлайн</div>' : '';
+        const action =
+          state.route === 'feed'
+            ? `<button class="icon primary trailing" data-action="new-post" aria-label="Створити допис">${icon('plus')}</button>`
+            : '';
+        return `<header class="screen-header">${back}<div><h2 id="screen-title" tabindex="-1">${navLabels[state.route]}</h2>${subtitle}</div>${action}</header>`;
+      }
+      function postCard(text, self = false) {
+        const author = self
+          ? '<div class="author-link"><span class="avatar green">М</span><span><span class="name">Ви</span><span class="meta">Щойно</span></span></div>'
+          : `<button class="author-link" data-route="profile" aria-label="Відкрити профіль Софії Коваль"><span class="avatar">СК</span><span><span class="name">Софія Коваль</span><span class="meta">@sofia · 24 хв</span></span></button><button class="icon plain" style="margin-left:auto" data-action="menu" aria-label="Дії з дописом" aria-haspopup="menu" aria-expanded="false">${icon('more')}</button>`;
+        return `<article class="post"><div class="post-author">${author}</div><p>${escapeHtml(text)}</p>${self ? '' : '<div class="post-art" role="img" aria-label="Абстрактна фіолетова композиція з колами"><span>Залишаймося<br />на зв’язку.</span></div>'}<div class="post-actions">${self ? '' : `<button class="plain" data-action="like" aria-pressed="${state.liked}">♡ ${state.liked ? 129 : 128}</button><button class="plain" data-route="chat">Написати</button><button class="plain" data-action="save" aria-pressed="${state.saved}">${state.saved ? 'Збережено' : 'Зберегти'}</button>`}</div></article>`;
+      }
+      function feed() {
+        return `<div class="scroll"><div class="feed"><div class="eyebrow">Ваш простір</div><h3 class="welcome">Раді бачити, Марко</h3><div class="muted">Нові думки від ваших людей.</div><div class="stories" aria-label="Люди"><button class="story" data-route="profile"><span class="avatar">СК</span>Софія</button></div>${state.posts.map((text) => postCard(text, true)).join('')}${postCard('Маленькі моменти роблять день особливим. Сьогодні знайшла новий маршрут для прогулянки ✨ А де ви відновлюєте сили?')}<div class="muted" style="text-align:center;padding:12px">Ви переглянули всі нові дописи.</div></div></div>`;
+      }
+      function profile() {
+        return `<div class="scroll"><div class="profile"><div class="banner" role="img" aria-label="Абстрактний фіолетовий банер"></div><div class="profile-body"><div class="profile-top"><div class="avatar">СК</div><button class="icon plain" data-route="chat" aria-label="Написати Софії">${icon('chat')}</button></div><h3>Софія Коваль</h3><div class="muted">@sofia · Київ</div><p class="bio">Помічаю красу у простих речах.<br />Дизайн, музика і довгі прогулянки ✨</p><div class="stats"><span><strong>42</strong>дописи</span><span><strong>${state.following ? '1 249' : '1 248'}</strong>читачі</span><span><strong>286</strong>читає</span></div><div class="profile-actions"><button class="primary" data-action="follow" aria-pressed="${state.following}">${state.following ? 'Ви стежите' : 'Стежити'}</button><button data-route="chat">Написати</button></div><div class="section-label">Дописи</div>${postCard('Коли місто трохи стихає, з’являється місце для нових ідей.')}</div></div></div>`;
+      }
+      function messageMarkup(message, index) {
+        return `<div class="bubble outgoing ${message.failed ? 'failed' : ''}">${escapeHtml(message.text)}<small>${message.failed ? 'Не надіслано' : 'Щойно · надіслано'}</small>${message.failed ? `<button data-action="retry-message" data-index="${index}">Повторити надсилання</button>` : ''}</div>`;
+      }
+      function chat() {
+        return `<div class="chat-layout"><aside class="chat-list" aria-label="Розмови"><h3>Повідомлення</h3><button aria-current="true" data-action="select-chat"><span class="avatar">СК</span><span><span class="name">Софія Коваль</span><span class="meta">Дякую за натхнення ✨</span></span></button></aside><section class="conversation" aria-label="Розмова з Софією Коваль"><div class="messages" id="messages" role="log" aria-live="polite" aria-label="Повідомлення"><div class="day">Сьогодні</div><div class="bubble">Привіт! Бачила твій допис про прогулянки. Маєш улюблене місце?<small>14:28</small></div><div class="bubble outgoing">Привіт! Найбільше люблю набережну на заході сонця 🌅<small>14:30 · прочитано</small></div><div class="bubble">Звучить чудово. Дякую за натхнення ✨<small>14:31</small></div>${state.messages.map(messageMarkup).join('')}</div><form class="composer" id="composer"><label for="draft" class="sr-only">Повідомлення Софії</label><textarea id="draft" rows="1" placeholder="Повідомлення…" maxlength="2000">${escapeHtml(state.draft)}</textarea><button class="icon send" type="submit" id="send" aria-label="Надіслати повідомлення" ${state.draft.trim() ? '' : 'disabled'}>${icon('send')}</button></form></section></div>`;
+      }
+      function feedback(kind) {
+        if (kind === 'loading')
+          return '<div class="scroll" aria-busy="true"><div class="feed"><p class="muted" role="status">Завантажуємо…</p><div class="skeleton"></div><div class="skeleton" style="width:65%"></div><div class="skeleton card"></div><div class="skeleton card"></div></div></div>';
+        const title =
+          kind === 'error'
+            ? 'Не вдалося завантажити'
+            : { feed: 'Тут поки тихо', profile: 'Профіль недоступний', chat: 'Почніть розмову' }[
+                state.route
+              ];
+        const description =
+          kind === 'error'
+            ? 'З’єднання перервалося. Спробуйте ще раз — ваша чернетка збережена.'
+            : {
+                feed: 'Знайдіть людей, чиї думки вам близькі.',
+                profile: 'Цей профіль зараз неможливо переглянути.',
+                chat: 'Надішліть Софії перше повідомлення.',
+              }[state.route];
+        return `<div class="scroll"><div class="feedback"><div class="avatar" style="margin:auto">${kind === 'error' ? '!' : '✦'}</div><h3>${title}</h3><p>${description}</p><button class="primary" data-action="retry">${kind === 'error' ? 'Повторити' : state.route === 'chat' ? 'Написати повідомлення' : 'До стрічки'}</button></div></div>`;
+      }
+      function renderKeyboard() {
+        const mobile = byId('platform').value !== 'desktop';
+        const available = mobile && state.route === 'chat' && byId('state').value === 'content';
+        byId('keyboard').disabled = !available;
+        byId('keyboard').checked = available && state.keyboard;
+        byId('onscreen-keyboard').classList.toggle('visible', available && state.keyboard);
+        byId('mobile-nav').hidden = available && state.keyboard;
+        byId('mobile-nav').style.display = available && state.keyboard ? 'none' : '';
+      }
+      function render() {
+        const active = document.activeElement;
+        const action = active?.closest('#screen') ? active.dataset.action : null;
+        navigation();
+        const visualState = byId('state').value;
+        byId('screen').innerHTML =
+          header() +
+          (visualState === 'content'
+            ? { feed, profile, chat }[state.route]()
+            : feedback(visualState));
+        renderKeyboard();
+        if (byId('messages')) byId('messages').scrollTop = byId('messages').scrollHeight;
+        if (action) byId('screen').querySelector(`[data-action="${action}"]`)?.focus();
+      }
+      function setPlatform() {
+        const platform = byId('platform').value;
+        byId('device').className = `device ${platform}${byId('safe').checked ? '' : ' no-safe'}`;
+        byId('device').style.width =
+          `${platform === 'desktop' ? byId('width').value : platform === 'android' ? 412 : 390}px`;
+        byId('width-control').hidden = platform !== 'desktop';
+        byId('safe-control').hidden = platform === 'desktop';
+        byId('keyboard-control').hidden = platform === 'desktop';
+        byId('width-value').textContent = `${byId('width').value} px`;
+        if (platform === 'desktop') state.keyboard = false;
+        renderKeyboard();
+        updateLayoutNote();
+      }
+      function updateLayoutNote() {
+        const platform = byId('platform').value;
+        const width = Math.round(byId('device').getBoundingClientRect().width);
+        byId('layout-note').textContent =
+          platform === 'desktop'
+            ? `Desktop · фактична ширина ${width} px. До 760 px — згорнута навігація; список чатів доступний від 930 px внутрішньої ширини. Вміст має власні області прокручування.`
+            : `${platform === 'ios' ? 'iOS' : 'Android'} · фактична ширина ${width} px · ${byId('safe').checked ? 'верхній відступ 46 px, нижній 26 px' : 'безпечні зони вимкнені'}. Умовні значення для перевірки композиції, а не специфікація пристрою.`;
+      }
+      function sendMessage() {
+        const text = state.draft.trim();
+        if (!text) return;
+        state.messages.push({ text, failed: false });
+        state.draft = '';
+        render();
+        byId('draft').focus();
+        notify('Повідомлення надіслано');
+      }
+      document.addEventListener('click', (event) => {
+        const button = event.target.closest('button');
+        if (!button) return;
+        if (button.dataset.route) {
+          route(button.dataset.route);
+          return;
+        }
+        const action = button.dataset.action;
+        if (action === 'back') route(state.history.pop() || 'feed', true);
+        if (action === 'new-post') byId('post-dialog').showModal();
+        if (action === 'like') {
+          state.liked = !state.liked;
+          button.setAttribute('aria-pressed', String(state.liked));
+          button.textContent = `♡ ${state.liked ? 129 : 128}`;
+          notify(state.liked ? 'Вподобано' : 'Вподобання скасовано');
+        }
+        if (action === 'save' || action === 'save-menu') {
+          state.saved = !state.saved;
+          byId('post-menu').hidePopover();
+          const save = byId('screen').querySelector('[data-action="save"]');
+          save.setAttribute('aria-pressed', String(state.saved));
+          save.textContent = state.saved ? 'Збережено' : 'Зберегти';
+          notify(state.saved ? 'Допис збережено' : 'Допис вилучено зі збережених');
+        }
+        if (action === 'follow') {
+          state.following = !state.following;
+          button.setAttribute('aria-pressed', String(state.following));
+          button.textContent = state.following ? 'Ви стежите' : 'Стежити';
+          byId('screen').querySelector('.stats span:nth-child(2) strong').textContent =
+            state.following ? '1 249' : '1 248';
+          notify(state.following ? 'Ви стежите за Софією' : 'Ви більше не стежите за Софією');
+        }
+        if (action === 'profile-menu') {
+          byId('post-menu').hidePopover();
+          route('profile');
+        }
+        if (action === 'select-chat') notify('Відкрита розмова з Софією');
+        if (action === 'retry') {
+          if (byId('state').value === 'empty' && state.route !== 'chat') route('feed');
+          else {
+            byId('state').value = 'content';
+            render();
+            notify('Вміст завантажено');
+          }
+        }
+        if (action === 'retry-message') {
+          state.messages[Number(button.dataset.index)].failed = false;
+          render();
+          notify('Повідомлення надіслано');
+        }
+        if (action === 'menu') {
+          menuTrigger = button;
+          const menu = byId('post-menu');
+          menu.showPopover();
+          button.setAttribute('aria-expanded', 'true');
+          const rect = button.getBoundingClientRect();
+          const menuRect = menu.getBoundingClientRect();
+          menu.style.margin = '0';
+          menu.style.left = `${Math.max(8, Math.min(rect.right - menuRect.width, innerWidth - menuRect.width - 8))}px`;
+          menu.style.top = `${Math.max(8, Math.min(rect.bottom + 8, innerHeight - menuRect.height - 8))}px`;
+          menu.querySelector('button').focus();
+        }
+        if (button.dataset.key !== undefined && byId('draft')) {
+          const key = button.dataset.key;
+          state.draft =
+            key === 'backspace'
+              ? [...state.draft].slice(0, -1).join('')
+              : (state.draft + key).slice(0, 2000);
+          byId('draft').value = state.draft;
+          byId('send').disabled = !state.draft.trim();
+        }
+      });
+      document.addEventListener('input', (event) => {
+        if (event.target.id === 'draft') {
+          state.draft = event.target.value;
+          byId('send').disabled = !state.draft.trim();
+        }
+      });
+      document.addEventListener('submit', (event) => {
+        if (event.target.id === 'composer') {
+          event.preventDefault();
+          sendMessage();
+        }
+        if (event.target.id === 'post-form') {
+          event.preventDefault();
+          const draft = byId('post-draft').value.trim();
+          if (!draft) {
+            byId('post-draft').setCustomValidity('Напишіть текст допису.');
+            byId('post-draft').reportValidity();
+            return;
+          }
+          state.posts.unshift(draft);
+          byId('post-draft').value = '';
+          byId('post-dialog').close();
+          route('feed');
+          notify('Допис опубліковано');
+        }
+      });
+      byId('post-draft').addEventListener('input', () => byId('post-draft').setCustomValidity(''));
+      document.addEventListener('keydown', (event) => {
+        if (
+          event.target.id === 'draft' &&
+          event.key === 'Enter' &&
+          !event.shiftKey &&
+          !event.isComposing
+        ) {
+          event.preventDefault();
+          sendMessage();
+        }
+        if (event.target.closest('#post-menu')) {
+          const items = [...byId('post-menu').querySelectorAll('button')];
+          const index = items.indexOf(document.activeElement);
+          if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+            event.preventDefault();
+            const next =
+              event.key === 'Home'
+                ? 0
+                : event.key === 'End'
+                  ? items.length - 1
+                  : (index + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+            items[next].focus();
+          }
+          if (event.key === 'Escape' || event.key === 'Tab') byId('post-menu').hidePopover();
+        }
+      });
+      byId('post-menu').addEventListener('toggle', (event) => {
+        if (event.newState === 'closed' && menuTrigger?.isConnected) {
+          menuTrigger.setAttribute('aria-expanded', 'false');
+          menuTrigger.focus();
+        }
+      });
+      byId('cancel-post').addEventListener('click', () => byId('post-dialog').close());
+      byId('platform').addEventListener('change', setPlatform);
+      byId('width').addEventListener('input', setPlatform);
+      byId('safe').addEventListener('change', setPlatform);
+      byId('state').addEventListener('change', () => {
+        if (byId('state').value === 'error' && state.route === 'chat') {
+          state.messages.push({
+            text: state.draft.trim() || 'Домовимося про прогулянку?',
+            failed: true,
+          });
+          byId('state').value = 'content';
+          notify('Не вдалося надіслати. Повторіть біля повідомлення.');
+        }
+        render();
+      });
+      byId('keyboard').addEventListener('change', () => {
+        state.keyboard = byId('keyboard').checked;
+        renderKeyboard();
+        if (byId('messages')) byId('messages').scrollTop = byId('messages').scrollHeight;
+      });
+      byId('reset').addEventListener('click', () => {
+        Object.assign(state, {
+          route: 'feed',
+          history: [],
+          draft: '',
+          liked: false,
+          saved: false,
+          following: false,
+          messages: [],
+          posts: [],
+          keyboard: false,
+        });
+        byId('state').value = 'content';
+        byId('post-draft').value = '';
+        render();
+        notify('Прототип скинуто');
+      });
+      byId('onscreen-keyboard').innerHTML =
+        ['йцукенгшщзх', 'фівапролджє', 'ячсмитьбю']
+          .map(
+            (row) =>
+              `<div class="keyboard-row">${[...row].map((letter) => `<button type="button" data-key="${letter}" aria-label="Літера ${letter}">${letter}</button>`).join('')}</div>`,
+          )
+          .join('') +
+        '<div class="keyboard-row"><button type="button" class="wide" data-key="backspace" aria-label="Видалити останній символ">⌫</button><button type="button" class="space" data-key=" ">Пробіл</button><button type="button" class="wide" data-action="hide-keyboard">Готово</button></div>';
+      byId('onscreen-keyboard').addEventListener('click', (event) => {
+        if (event.target.closest('[data-action="hide-keyboard"]')) {
+          state.keyboard = false;
+          renderKeyboard();
+          byId('draft')?.focus();
+        }
+      });
+      new ResizeObserver(updateLayoutNote).observe(byId('device'));
+      render();
+      setPlatform();
+    </script>
+  </body>
+</html>

@@ -76,11 +76,16 @@ describe('ChatListItem', () => {
     expect(screen.getByText('See you tomorrow!')).toBeInTheDocument();
     expect(screen.getByText('2')).toBeInTheDocument();
 
-    fireEvent.click(
-      screen.getByText('Alice Smith').closest('div[role="button"]') ||
-        screen.getByText('Alice Smith'),
-    );
+    const open = screen.getByRole('button', { name: 'Open conversation with Alice Smith' });
+    expect(open.tagName).toBe('BUTTON');
+    fireEvent.click(open);
     expect(onSelect).toHaveBeenCalledWith('conv-1');
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    fireEvent.focus(open);
+    const menu = screen.getByRole('button', { name: 'Conversation actions for Alice Smith' });
+    expect(open.contains(menu)).toBe(false);
+    fireEvent.click(menu);
+    expect(onSelect).toHaveBeenCalledTimes(1);
   });
 
   it('renders typing indicator, draft, muted bell, and toggles item menu on hover', () => {
@@ -110,10 +115,7 @@ describe('ChatListItem', () => {
 
     // Hover to reveal more button
     fireEvent.mouseEnter(container.firstChild as HTMLElement);
-    const moreBtn = container.querySelector('button');
-    if (moreBtn) {
-      fireEvent.click(moreBtn);
-    }
+    fireEvent.click(screen.getByRole('button', { name: 'Conversation actions for Alice Smith' }));
   });
 
   it('formats dates for minutes, hours, days, older dates, and displays group typist', async () => {
