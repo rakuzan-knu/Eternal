@@ -5,10 +5,11 @@ import { RedisModule } from '../redis/redis.module';
 import { HealthController } from './health.controller';
 import { HealthRepository } from './health.repository';
 import { HealthService } from './health.service';
+import { roleControllers } from '../config/service-role';
 
 @Module({
   imports: [TerminusModule, PrismaModule, RedisModule],
-  controllers: [HealthController],
+  controllers: roleControllers('all', [HealthController]),
   providers: [HealthRepository, HealthService],
   exports: [HealthService],
 })

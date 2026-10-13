@@ -18,6 +18,7 @@ import {
   type IConversationsRepository,
 } from '../../messenger/interfaces/conversations-repository.interface';
 import { TraceContext } from '../../common/tracing/trace-context';
+import { runsBackground } from '../../config/service-role';
 
 export interface MessageFanoutJobData {
   conversationId: string;
@@ -53,6 +54,7 @@ export class MessagesProcessor implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit(): void {
+    if (!runsBackground('messenger')) return;
     const redisUrl = this.configService.get<string>('REDIS_URL');
     if (
       !redisUrl ||

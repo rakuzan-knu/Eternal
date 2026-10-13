@@ -12,6 +12,7 @@ import { TraceContext } from '../../common/tracing/trace-context';
 import { chunkQuery } from '../../common/utils/batch-stream.util';
 import { randomUUID } from 'node:crypto';
 import { deleteFromStorage } from '../../common/media/image-processor';
+import { runsBackground } from '../../config/service-role';
 
 const PAGE_SIZE = 200;
 const USER_BATCH_SIZE = 500;
@@ -36,6 +37,7 @@ export class AutoDeleteService implements OnModuleInit, OnModuleDestroy {
   /** Hourly sweep: per-message TTL delete of each user's own messages past their chosen period. */
   @Cron(CronExpression.EVERY_HOUR)
   async sweep(): Promise<void> {
+    if (!runsBackground('messenger')) return;
     if (this.running) {
       this.logger.warn('Auto-delete sweep already running; skipping this tick.');
       return;
@@ -124,6 +126,7 @@ export class AutoDeleteService implements OnModuleInit, OnModuleDestroy {
   }
 
   onModuleInit(): void {
+    if (!runsBackground('messenger')) return;
     this.logger.log('AutoDeleteService initialized');
   }
 

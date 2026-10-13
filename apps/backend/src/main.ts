@@ -18,6 +18,7 @@ import { RedisIoAdapter } from './common/adapters/redis-io.adapter';
 import { setupGracefulShutdown } from './common/lifecycle/graceful-shutdown';
 import { setupFdGuard } from './common/lifecycle/fd-guard';
 import './instrument';
+import { getServiceRole } from './config/service-role';
 
 EventEmitter.defaultMaxListeners = 50;
 if (typeof process.setMaxListeners === 'function') {
@@ -36,6 +37,10 @@ async function bootstrap() {
   const fastifyAdapter = new FastifyAdapter({
     trustProxy: true,
     bodyLimit: 10485760,
+  });
+  fastifyAdapter.getInstance().addHook('onSend', async (_request, reply, payload) => {
+    reply.header('X-Service-Role', getServiceRole());
+    return payload;
   });
 
   const app = await NestFactory.create<NestFastifyApplication>(AppModule, fastifyAdapter, {
@@ -132,7 +137,9 @@ async function bootstrap() {
   });
 
   const redisIoAdapter = new RedisIoAdapter(app);
-  await redisIoAdapter.connectToRedis(process.env.REDIS_URL);
+  if (getServiceRole() !== 'reels') {
+    await redisIoAdapter.connectToRedis(process.env.REDIS_URL);
+  }
   app.useWebSocketAdapter(redisIoAdapter);
 
   const config = new DocumentBuilder()

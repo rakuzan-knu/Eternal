@@ -7,9 +7,9 @@ let socket: Socket | null = null;
 let isManagerSubscribed = false;
 
 function getSocketBaseUrl() {
-  const wsUrl = import.meta.env.VITE_WS_URL;
+  const wsUrl = import.meta.env.VITE_WS_URL || import.meta.env.VITE_MESSENGER_API_URL;
   if (wsUrl) {
-    return wsUrl.replace(/\/messenger\/?$/, '').replace(/\/+$/, '');
+    return wsUrl.replace(/\/+$/, '').replace(/\/(messenger|v1)$/, '');
   }
   const apiUrl = (import.meta.env.VITE_API_URL || '').trim();
   if (apiUrl && (apiUrl.startsWith('http://') || apiUrl.startsWith('https://'))) {

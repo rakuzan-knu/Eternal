@@ -1,3 +1,4 @@
+import { roleControllers } from '../config/service-role';
 import { Module } from '@nestjs/common';
 import { PollController } from './poll.controller';
 import { PollService } from './poll.service';
@@ -5,7 +6,7 @@ import { PollRepository } from './repositories/poll.repository';
 import { POLL_REPOSITORY } from './interfaces/poll-repository.interface';
 
 @Module({
-  controllers: [PollController],
+  controllers: roleControllers('core', [PollController]),
   providers: [
     PollService,
     PollRepository,

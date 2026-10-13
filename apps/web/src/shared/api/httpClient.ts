@@ -1,4 +1,5 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios';
+import { getServiceBaseUrl } from '@social-network/shared-api-client';
 import {
   useAccountsStore,
   type AccountsState,
@@ -58,6 +59,12 @@ export const apiClient = axios.create({
   timeout: 30000,
   withCredentials: true,
 });
+const coreBaseUrl = apiClient.defaults.baseURL ?? '/v1';
+const serviceOrigins = {
+  messenger: import.meta.env.VITE_MESSENGER_API_URL ?? '',
+  reels: import.meta.env.VITE_REELS_API_URL ?? '',
+  music: import.meta.env.VITE_MUSIC_API_URL ?? '',
+};
 
 export function isTokenExpired(token: string | null): boolean {
   if (!token) return true;
@@ -131,6 +138,7 @@ export async function getValidAccessToken(): Promise<string | null> {
 }
 
 apiClient.interceptors.request.use(async (config) => {
+  config.baseURL = getServiceBaseUrl(config.url ?? '', serviceOrigins, coreBaseUrl);
   // Since baseURL already ends with /v1, strip any redundant /v1 prefix from config.url
   if (config.url && !config.url.startsWith('http://') && !config.url.startsWith('https://')) {
     if (config.url.startsWith('/v1/')) {

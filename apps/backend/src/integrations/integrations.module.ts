@@ -1,3 +1,4 @@
+import { roleControllers } from '../config/service-role';
 import { Module, forwardRef } from '@nestjs/common';
 import { IntegrationsController } from './integrations.controller';
 import { SpotifyCallbackController } from './spotify-callback.controller';
@@ -18,7 +19,7 @@ import { MessengerModule } from '../messenger/messenger.module';
     forwardRef(() => ShowcaseModule),
     forwardRef(() => MessengerModule),
   ],
-  controllers: [IntegrationsController, SpotifyCallbackController],
+  controllers: roleControllers('music', [IntegrationsController, SpotifyCallbackController]),
   providers: [
     IntegrationsService,
     SteamPresenceService,

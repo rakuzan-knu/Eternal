@@ -2,6 +2,8 @@
 
 A modern, high-performance **Social Network Application** built as a monorepo using **pnpm workspaces**. Powered by **NestJS** on the backend and **React + Vite** on the frontend.
 
+Backend contributors and AI agents: read [service ownership and deployment rules](docs/SERVICE_OWNERSHIP.md) before adding modules, background tasks, WebSocket events or client API routes.
+
 ---
 
 ## 🛠️ Tech Stack

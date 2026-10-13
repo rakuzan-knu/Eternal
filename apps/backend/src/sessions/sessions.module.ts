@@ -1,3 +1,4 @@
+import { roleControllers } from '../config/service-role';
 import { Module, forwardRef } from '@nestjs/common';
 import { PrismaModule } from '@common/prisma';
 import { RedisModule } from '../redis/redis.module';
@@ -9,7 +10,7 @@ import { SESSIONS_REPOSITORY } from './interfaces/sessions-repository.interface'
 
 @Module({
   imports: [PrismaModule, RedisModule, forwardRef(() => AuthModule)],
-  controllers: [SessionsController],
+  controllers: roleControllers('core', [SessionsController]),
   providers: [
     SessionsService,
     {
