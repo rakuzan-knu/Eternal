@@ -12,7 +12,7 @@
     "test": "vitest run --config vitest.config.ts"
   },
   "dependencies": {
-    "@babel/runtime": "^7.26.0",
+    "@babel/runtime": "^7.29.10",
     "@expo/metro-runtime": "~4.0.1",
     "@hookform/resolvers": "^5.9.1",
     "@react-native-async-storage/async-storage": "1.23.1",
@@ -22,7 +22,7 @@
     "@social-network/shared-contracts": "workspace:*",
     "@social-network/shared-stores": "workspace:*",
     "@social-network/shared-utils": "workspace:*",
-    "@tanstack/react-query": "^5.104.0",
+    "@tanstack/react-query": "^5.104.1",
     "expo": "~52.0.0",
     "expo-clipboard": "~7.0.1",
     "expo-document-picker": "~13.0.3",
