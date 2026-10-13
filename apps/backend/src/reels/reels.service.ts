@@ -267,6 +267,7 @@ export class ReelsService {
     thumbnailFile?: Express.Multer.File,
   ): Promise<ReelResponseDto> {
     let videoUrl = dto.audioUrl; // fallback if needed
+    let sourceStorageKey: string | undefined;
     let thumbnailUrl: string | null = null;
     let blurhash: string | null = null;
 
@@ -280,7 +281,8 @@ export class ReelsService {
       }
 
       const fileId = uid(16);
-      const ext = file.originalname.split('.').pop() || 'mp4';
+      const originalExt = file.originalname.split('.').pop() || 'mp4';
+      const ext = /^[a-z0-9]{1,16}$/i.test(originalExt) ? originalExt : 'mp4';
       const key = `reels/${fileId}.${ext}`;
 
       // Enterprise FastStart Optimization: Move moov atom before mdat for instant progressive streaming
@@ -294,6 +296,7 @@ export class ReelsService {
         publicUrl: this.publicUrl,
         cacheControl: 'public, max-age=31536000, immutable',
       });
+      if (!videoUrl.startsWith('data:')) sourceStorageKey = key;
 
       // If client provided a generated thumbnail frame, process and upload to Cloudflare R2 / S3
       if (thumbnailFile && thumbnailFile.buffer) {
@@ -336,12 +339,15 @@ export class ReelsService {
     await this.invalidateFeedCache();
 
     // Trigger BullMQ adaptive HLS transcode worker in background
-    if (this.queueService) {
-      await this.queueService.addVideoTranscodeJob({
-        reelId: reel.id,
-        videoUrl: reel.videoUrl,
-        sourceBufferBase64: file ? file.buffer.toString('base64') : undefined,
-      });
+    if (this.queueService && !reel.videoUrl.startsWith('data:')) {
+      await this.queueService.addVideoTranscodeJob(
+        {
+          reelId: reel.id,
+          videoUrl: reel.videoUrl,
+          ...(sourceStorageKey ? { sourceStorageKey } : {}),
+        },
+        { jobId: `reel-${reel.id}` },
+      );
     }
 
     return this.mapToDto(reel, authorId);
