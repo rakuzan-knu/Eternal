@@ -3,11 +3,37 @@ import { e2eeManager } from '@/shared/lib/crypto/e2ee';
 
 export function getMessageToastPreview(message: MessageView) {
   if (message.isDeleted) return 'This message was deleted';
+
+  if (
+    message.messageType === 'CALL_LOG' ||
+    (message.messageType as unknown) === 'CALL' ||
+    Boolean(message.body && typeof message.body === 'string' && message.body.includes('"callId"'))
+  ) {
+    try {
+      const meta = typeof message.body === 'string' ? JSON.parse(message.body) : message.body;
+      const isVideo = meta?.callType === 'VIDEO';
+      const label = isVideo ? 'Video call' : 'Voice call';
+      if (
+        meta?.status === 'MISSED' ||
+        meta?.status === 'DECLINED' ||
+        meta?.status === 'NO_ANSWER'
+      ) {
+        return `Missed ${label.toLowerCase()}`;
+      }
+      return `${label} ended`;
+    } catch {
+      return 'Call ended';
+    }
+  }
+
   if (message.body?.trim()) {
     const trimmed = message.body.trim();
     // Never leak ciphertext JSON into notifications — the envelope is opaque
     // by design; toasts stay generic until the conversation is opened.
     if (e2eeManager.isEncrypted(trimmed)) return 'New encrypted message';
+    if (trimmed.startsWith('{') && trimmed.includes('"callId"')) {
+      return 'Call ended';
+    }
     return trimmed;
   }
 

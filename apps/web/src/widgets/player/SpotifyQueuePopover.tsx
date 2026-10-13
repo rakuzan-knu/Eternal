@@ -1,4 +1,5 @@
 import React, { useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Play, Trash2, ListMusic, Music, RefreshCw, Sparkles, Loader2 } from 'lucide-react';
 import { SoundCloudBrandIcon, SpotifyBrandIcon } from '@/shared/ui/BrandIcons';
@@ -11,9 +12,15 @@ const DEFAULT_ARTWORK_FALLBACK =
 
 export interface SpotifyQueuePopoverProps {
   align?: 'center' | 'right';
+  portal?: boolean;
+  anchorRect?: DOMRect | { left: number; top: number; right: number; bottom: number } | null;
 }
 
-export const SpotifyQueuePopover: React.FC<SpotifyQueuePopoverProps> = ({ align = 'center' }) => {
+export const SpotifyQueuePopover: React.FC<SpotifyQueuePopoverProps> = ({
+  align = 'center',
+  portal = false,
+  anchorRect = null,
+}) => {
   const popoverRef = useRef<HTMLDivElement>(null);
   const { isLight, popoverGradient, backdropFilter, WebkitBackdropFilter, topSpecularClass } =
     useLiquidGlassTheme();
@@ -75,8 +82,23 @@ export const SpotifyQueuePopover: React.FC<SpotifyQueuePopoverProps> = ({ align 
   const displayedHistory = history.slice(0, 5);
 
   const isRight = align === 'right';
+  const isPortal = Boolean(portal && typeof document !== 'undefined');
 
-  return (
+  const portalStyle: React.CSSProperties =
+    isPortal && anchorRect
+      ? {
+          position: 'fixed',
+          right: Math.max(
+            16,
+            Math.min(window.innerWidth - 370, window.innerWidth - anchorRect.right),
+          ),
+          bottom: Math.max(16, window.innerHeight - anchorRect.top + 12),
+          maxHeight: Math.min(540, Math.max(260, anchorRect.top - 24)),
+          zIndex: 9999,
+        }
+      : {};
+
+  const popoverNode = (
     <AnimatePresence>
       {isQueueOpen && (
         <motion.div
@@ -101,9 +123,9 @@ export const SpotifyQueuePopover: React.FC<SpotifyQueuePopoverProps> = ({ align 
             stiffness: 380,
             mass: 0.75,
           }}
-          className={`absolute bottom-full mb-3.5 ${
-            isRight ? 'right-0 sm:-right-2' : 'left-1/2 -translate-x-1/2'
-          } w-[350px] sm:w-[380px] max-w-[calc(100vw-32px)] max-h-[500px] sm:max-h-[540px] rounded-[26px] p-4 flex flex-col z-50 select-none overflow-hidden`}
+          className={`${isPortal ? 'fixed' : 'absolute bottom-full mb-3.5'} ${
+            !isPortal ? (isRight ? 'right-0 sm:-right-2' : 'left-1/2 -translate-x-1/2') : ''
+          } w-[350px] sm:w-[380px] max-w-[calc(100vw-32px)] max-h-[500px] sm:max-h-[540px] rounded-[26px] p-4 flex flex-col z-[9999] select-none overflow-hidden`}
           style={{
             transformOrigin: isRight ? '90% 100%' : '50% 100%',
             background: popoverGradient,
@@ -115,6 +137,7 @@ export const SpotifyQueuePopover: React.FC<SpotifyQueuePopoverProps> = ({ align 
             boxShadow: isLight
               ? 'inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 1.5px 0 rgba(0, 0, 0, 0.05), 0 24px 48px -12px rgba(0, 0, 0, 0.16), 0 8px 16px -4px rgba(0, 0, 0, 0.08)'
               : 'inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.45), inset 0 -1px 1.5px 0 rgba(255, 255, 255, 0.1), inset 0 0 12px 2px rgba(255, 255, 255, 0.04), 0 24px 48px -12px rgba(0, 0, 0, 0.75), 0 8px 16px -4px rgba(0, 0, 0, 0.5)',
+            ...portalStyle,
           }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -586,4 +609,10 @@ export const SpotifyQueuePopover: React.FC<SpotifyQueuePopoverProps> = ({ align 
       )}
     </AnimatePresence>
   );
+
+  if (isPortal) {
+    return createPortal(popoverNode, document.body);
+  }
+
+  return popoverNode;
 };

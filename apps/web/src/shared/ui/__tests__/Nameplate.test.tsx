@@ -85,21 +85,41 @@ describe('Nameplate media lifecycle', () => {
     expect(container.querySelector('video')).toBeNull();
     expect(container.querySelector('img')).not.toBeNull();
   });
-  it('renders video immediately when alwaysPlay is set to true', () => {
+  it('plays visible forced nameplates without requiring hover', () => {
     const { container } = render(
       <div className="nameplate-row">
         <Nameplate nameplate={plate} alwaysPlay={true} />
       </div>,
     );
+    expect(container.querySelector('video')).toBeNull();
+    reveal(container);
     expect(container.querySelector('video')).not.toBeNull();
   });
-  it('renders video immediately when alwaysPlay is set to true even with motion false', () => {
+  it('can force visible playback even with motion false', () => {
     const { container } = render(
       <div className="nameplate-row">
         <Nameplate nameplate={plate} alwaysPlay={true} motion={false} />
       </div>,
     );
+    reveal(container);
     expect(container.querySelector('video')).not.toBeNull();
+  });
+  it('releases even an always-playing decoder when hidden and on unmount', () => {
+    const { container, rerender, unmount } = render(<Nameplate nameplate={plate} alwaysPlay />);
+    reveal(container);
+    const first = container.querySelector('video')!;
+    motion.allowed = false;
+    rerender(<Nameplate nameplate={{ ...plate }} alwaysPlay />);
+    expect(container.querySelector('video')).toBeNull();
+    expect(first.hasAttribute('src')).toBe(false);
+    motion.allowed = true;
+    rerender(<Nameplate nameplate={{ ...plate }} alwaysPlay />);
+    reveal(container);
+    const resumed = container.querySelector('video')!;
+    expect(resumed).not.toBeNull();
+    unmount();
+    expect(resumed.hasAttribute('src')).toBe(false);
+    expect(HTMLMediaElement.prototype.pause).toHaveBeenCalled();
   });
   it('resets failed state and plays new nameplate when assetUrl changes', () => {
     const { container, rerender } = render(
@@ -107,6 +127,7 @@ describe('Nameplate media lifecycle', () => {
         <Nameplate nameplate={plate} alwaysPlay={true} />
       </div>,
     );
+    reveal(container);
     const video = container.querySelector('video')!;
     fireEvent.error(video);
     expect(container.querySelector('video')).toBeNull();
@@ -117,6 +138,7 @@ describe('Nameplate media lifecycle', () => {
         <Nameplate nameplate={plate2} alwaysPlay={true} />
       </div>,
     );
+    reveal(container);
     expect(container.querySelector('video')).not.toBeNull();
   });
   it('plays on pointerenter and stops on pointerleave when playOnHover is true', () => {
@@ -131,5 +153,34 @@ describe('Nameplate media lifecycle', () => {
     expect(container.querySelector('video')).not.toBeNull();
     fireEvent.pointerLeave(row);
     expect(container.querySelector('video')).toBeNull();
+  });
+  it('bounds decoders even for forced playback in a long visible list', () => {
+    const { container } = render(
+      <>
+        {Array.from({ length: 40 }, (_, i) => (
+          <Nameplate key={i} nameplate={plate} alwaysPlay />
+        ))}
+      </>,
+    );
+    act(() =>
+      report(
+        [...container.querySelectorAll('.nameplate-surface')].map((target) => ({
+          target,
+          isIntersecting: true,
+        })) as IntersectionObserverEntry[],
+        {} as IntersectionObserver,
+      ),
+    );
+    expect(container.querySelectorAll('video').length).toBeLessThanOrEqual(8);
+    act(() =>
+      report(
+        [...container.querySelectorAll('.nameplate-surface')].map((target) => ({
+          target,
+          isIntersecting: false,
+        })) as IntersectionObserverEntry[],
+        {} as IntersectionObserver,
+      ),
+    );
+    expect(container.querySelectorAll('video')).toHaveLength(0);
   });
 });

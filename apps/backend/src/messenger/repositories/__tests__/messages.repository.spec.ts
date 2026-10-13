@@ -26,6 +26,8 @@ describe('MessagesRepository', () => {
       update: jest.Mock;
     };
     $transaction: jest.Mock;
+    $queryRaw: jest.Mock;
+    $executeRaw: jest.Mock;
   };
 
   const sampleMsg = {
@@ -39,6 +41,8 @@ describe('MessagesRepository', () => {
 
   beforeEach(() => {
     mockPrisma = {
+      $queryRaw: jest.fn().mockResolvedValue([]),
+      $executeRaw: jest.fn().mockResolvedValue(1),
       $transaction: jest.fn(async (cb: ((tx: unknown) => unknown) | Promise<unknown>[]) =>
         typeof cb === 'function' ? cb(mockPrisma) : Promise.all(cb),
       ),

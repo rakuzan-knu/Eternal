@@ -14,7 +14,9 @@ import { ensureDevAccounts } from '@/shared/lib/devAccounts';
 
 initSentry();
 initCrossTabSync();
-void ensureDevAccounts();
+if (import.meta.env.DEV && import.meta.env.VITE_SEED_DEV_ACCOUNTS === 'true') {
+  void ensureDevAccounts();
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

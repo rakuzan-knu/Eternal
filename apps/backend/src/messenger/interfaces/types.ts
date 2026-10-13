@@ -53,6 +53,7 @@ export const messageInclude = {
   },
   replyTo: {
     include: {
+      deletedFor: { select: { userId: true } },
       sender: { select: userSnapshot },
       attachments: { select: attachmentFields },
     },
@@ -69,6 +70,39 @@ export const messageInclude = {
     select: { userId: true },
   },
 } satisfies Prisma.MessageInclude;
+
+/** List previews do not display reactions or pin backreferences. Deletion
+ * visibility only needs the requesting user's row, including on the reply. */
+export function conversationPreviewMessageInclude(userId: string) {
+  const deletedFor = {
+    where: { userId },
+    select: { userId: true },
+    take: 1,
+  } satisfies Prisma.MessageDeletionFindManyArgs;
+  return {
+    sender: messageInclude.sender,
+    attachments: messageInclude.attachments,
+    conversation: {
+      select: {
+        participants: {
+          where: { leftAt: null },
+          orderBy: { lastReadAt: 'desc' },
+          take: 64,
+          select: { userId: true, lastReadAt: true },
+        },
+      },
+    },
+    replyTo: {
+      include: {
+        sender: messageInclude.replyTo.include.sender,
+        attachments: messageInclude.replyTo.include.attachments,
+        deletedFor,
+      },
+    },
+    forwardedFrom: messageInclude.forwardedFrom,
+    deletedFor,
+  } satisfies Prisma.MessageInclude;
+}
 
 export const participantInclude = {
   user: { select: userSnapshot },

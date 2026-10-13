@@ -178,7 +178,23 @@ const MediaRouterSync: React.FC<{
   return null;
 };
 
+// Global registry of mounted MediaDetailModal instances to prevent duplicates
+const mountedModalInstances = new Set<string>();
+
 export const MediaDetailModal: React.FC = () => {
+  const instanceId = React.useId();
+  const [isPrimary, setIsPrimary] = useState(() => {
+    return mountedModalInstances.size === 0 || mountedModalInstances.has(instanceId);
+  });
+
+  useEffect(() => {
+    mountedModalInstances.add(instanceId);
+    setIsPrimary(instanceId === Array.from(mountedModalInstances)[0]);
+    return () => {
+      mountedModalInstances.delete(instanceId);
+    };
+  }, [instanceId]);
+
   const inRouter = useInRouterContext();
   const { isOpen, activeItem, closeMediaDetail, setActiveItem } = useMediaDetailModalStore();
 
@@ -367,6 +383,10 @@ export const MediaDetailModal: React.FC = () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen, handleClose, handlePrevMedia, handleNextMedia]);
+
+  if (!isPrimary) {
+    return null;
+  }
 
   if (!isOpen || !activeItem || !details) {
     return inRouter ? (

@@ -267,6 +267,11 @@ jobs:
         working-directory: apps/backend
         run: pnpm test:cov:ci
 
+      - name: Verify unread projection against isolated PostgreSQL
+        run: |
+          docker pull postgres:16-alpine
+          node scripts/test-unread-projection.mjs
+
       - name: Upload backend coverage
         if: always() && github.event_name != 'pull_request'
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
@@ -654,6 +659,58 @@ jobs:
 
       - name: Enforce bundle size budget
         run: node scripts/ci/check-bundle-size.cjs
+
+      - name: Enforce search startup imports and transfer budget
+        working-directory: apps/web
+        run: pnpm check:startup
+
+      - name: Cache performance benchmark browser
+        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install performance benchmark browser
+        working-directory: apps/web
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Verify production search request budget
+        working-directory: apps/web
+        run: pnpm test:performance
+        env:
+          CI: 'true'
+
+      - name: Verify recycled media and bounded chat history
+        working-directory: apps/web
+        run: pnpm test:media-performance
+        env:
+          CI: 'true'
+
+      - name: Verify idle and overlay resource cleanup
+        working-directory: apps/web
+        run: pnpm test:memory
+        env:
+          CI: 'true'
+          MEMORY_IDLE_SECONDS: '60'
+          MEMORY_WALLPAPER: '1'
+
+      - name: Verify ordinary feed window and messenger pagination
+        working-directory: apps/web
+        run: pnpm test:data-window
+        env:
+          CI: 'true'
+
+      - name: Retain performance measurements
+        if: always()
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: frontend-production-performance
+          path: |
+            apps/web/test-results-production/
+            apps/web/test-results-media-performance/
+            apps/web/test-results-memory/
+            apps/web/test-results-data-window/
+          retention-days: 14
 
       - name: Check bundle size changes
         uses: preactjs/compressed-size-action@f322c295dde06a1cb7ccaef105732dd8a726d1d9 # v2.10.0

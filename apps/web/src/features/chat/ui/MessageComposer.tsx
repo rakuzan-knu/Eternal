@@ -34,11 +34,13 @@ import { AddEmojiButton } from '@/shared/ui/AddEmojiButton';
 import { AddGifButton } from '@/shared/ui/AddGifButton';
 import PollComposer from './PollComposer';
 import AttachMenu from '@/shared/ui/AttachMenu';
-import ImageEditorModal from '@/shared/ui/ImageEditorModal';
-import VideoEditorModal from '@/shared/ui/VideoEditorModal';
+import {
+  DeferredImageEditorModal as ImageEditorModal,
+  DeferredVideoEditorModal as VideoEditorModal,
+} from './DeferredChatEditors';
 import CircularProgress from '@/shared/ui/CircularProgress';
 import FileIconBadge from './FileIconBadge';
-import DocumentPreviewModal from './DocumentPreviewModal';
+import { DeferredDocumentPreviewModal as DocumentPreviewModal } from './DeferredChatEditors';
 import { useChatDraftsStore } from '../model/useChatDraftsStore';
 import { useMediaRecorderGesture, RecordedPayload } from '../model/useMediaRecorderGesture';
 import VoiceRecorderBar from './VoiceRecorderBar';

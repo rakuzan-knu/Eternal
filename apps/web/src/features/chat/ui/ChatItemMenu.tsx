@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
+import { updateConversationLists } from '../model/chatCacheSync';
+import { queryKeys } from '@/shared/api/queryKeys';
 import {
   Mail,
   MailOpen,
@@ -280,16 +282,15 @@ export default function ChatItemMenu({
     // Snapshot current query cache state
     const prevMessages = queryClient.getQueryData([CONVERSATION_MESSAGES_KEY, conversation.id]);
     const prevConversations = queryClient.getQueryData<ConversationView[]>([CONVERSATIONS_KEY]);
+    const previousPages = queryClient.getQueriesData({ queryKey: queryKeys.conversations.pages });
 
     // Optimistically clear messages and lastMessage
     queryClient.setQueryData([CONVERSATION_MESSAGES_KEY, conversation.id], {
       pages: [{ data: [], hasMore: false, nextCursor: null }],
       pageParams: [undefined],
     });
-    queryClient.setQueryData<ConversationView[]>([CONVERSATIONS_KEY], (prev) =>
-      prev?.map((c) =>
-        c.id === conversation.id ? { ...c, lastMessage: null, unreadCount: 0 } : c,
-      ),
+    updateConversationLists(queryClient, (prev) =>
+      prev.map((c) => (c.id === conversation.id ? { ...c, lastMessage: null, unreadCount: 0 } : c)),
     );
 
     startUndo({
@@ -303,6 +304,7 @@ export default function ChatItemMenu({
         if (prevConversations !== undefined) {
           queryClient.setQueryData([CONVERSATIONS_KEY], prevConversations);
         }
+        previousPages.forEach(([key, data]) => queryClient.setQueryData(key, data));
       },
       execute: () => {
         clearChatHistory.mutate({ conversationId: conversation.id, forAll });

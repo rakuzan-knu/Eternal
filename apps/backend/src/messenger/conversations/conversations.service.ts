@@ -38,6 +38,8 @@ import type {
   ThemeProposalData,
   UserSnapshot,
   ReportDto,
+  ConversationPageQuery,
+  ConversationPage,
 } from '@common/contracts';
 import {
   Permission,
@@ -50,11 +52,15 @@ import {
 } from '@common/contracts';
 import { MessengerMapper } from '../messenger.mapper';
 import type { ReportCategory } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { WS_EVENTS } from '../events/ws-events';
 import { messageInclude } from '../interfaces/types';
 
 import { DataLoaderService } from '../../common/dataloader';
 import { QueueService } from '../../queue/queue.service';
+import { decodeConversationCursor, encodeConversationCursor } from './conversation-cursor';
+import { UnreadProjectionService } from '../unread/unread-projection.service';
+import { withUnreadWriteLock } from '../unread/unread-write-lock';
 
 @Injectable()
 export class ConversationsService implements OnModuleDestroy {
@@ -82,6 +88,8 @@ export class ConversationsService implements OnModuleDestroy {
     private readonly dataLoaderService?: DataLoaderService,
     @Optional()
     private readonly queueService?: QueueService,
+    @Optional()
+    private readonly unreadProjection?: UnreadProjectionService,
   ) {
     const accountId = this.configService.get<string>('R2_ACCOUNT_ID');
     const endpoint =
@@ -110,6 +118,31 @@ export class ConversationsService implements OnModuleDestroy {
       },
       forcePathStyle: !isR2,
     });
+  }
+
+  /** One scalar query for the global badge; no conversation/message DTO hydration. */
+  async getUnreadCount(userId: string): Promise<{ count: number }> {
+    if (this.unreadProjection) return this.unreadProjection.getUnreadCount(userId);
+    const rows = await this.prisma.$queryRaw<Array<{ count: bigint }>>(Prisma.sql`
+      SELECT COUNT(*) AS count
+      FROM "ConversationParticipant" p
+      JOIN "Message" m ON m."conversationId" = p."conversationId"
+      WHERE p."userId" = ${userId}
+        AND p."leftAt" IS NULL AND p."archivedAt" IS NULL
+        AND m."senderId" <> ${userId}
+        AND m."deletedAt" IS NULL AND m."deletedForAll" = false
+        AND m."createdAt" >= p."joinedAt" AND m."createdAt" > p."lastReadAt"
+        AND NOT EXISTS (
+          SELECT 1 FROM "MessageDeletion" d
+          WHERE d."messageId" = m.id AND d."userId" = ${userId}
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM "UserBlock" b
+          WHERE (b."blockerId" = ${userId} AND b."blockedId" = m."senderId")
+             OR (b."blockedId" = ${userId} AND b."blockerId" = m."senderId")
+        )
+    `);
+    return { count: Number(rows[0]?.count ?? 0) };
   }
 
   async getConversations(userId: string): Promise<ConversationView[]> {
@@ -146,6 +179,102 @@ export class ConversationsService implements OnModuleDestroy {
     return convs.map((conv, index) =>
       this.mapper.mapConversation(conv, userId, unreadCounts[index], blockCtx),
     );
+  }
+
+  async getConversationPage(
+    userId: string,
+    query: ConversationPageQuery,
+  ): Promise<ConversationPage> {
+    if (query.folderId) {
+      const folder = await this.prisma.chatFolder.findFirst({
+        where: { id: query.folderId, userId },
+      });
+      if (!folder) throw new NotFoundException('Folder not found');
+      const filter = ['ALL', 'PERSONAL', 'GROUPS', 'UNREAD'].includes(folder.filterType)
+        ? (folder.filterType as ConversationPageQuery['filter'])
+        : folder.includeIds.length
+          ? 'CUSTOM'
+          : folder.excludeIds.length || folder.filterType !== 'CUSTOM'
+            ? 'ALL'
+            : 'EMPTY';
+      query = { ...query, filter, includeIds: folder.includeIds, excludeIds: folder.excludeIds };
+    }
+    const { cursor, ...filters } = query;
+    const scope = JSON.stringify([userId, filters]);
+    const secret =
+      this.configService.get<string>('JWT_SECRET') ?? 'development-conversation-cursor';
+    const boundary = cursor ? decodeConversationCursor(cursor, scope, secret) : null;
+    const cutoff = boundary ? boundary.cutoff : await this.convsRepo.getPageSnapshot(userId);
+    const useUnreadProjection =
+      query.filter === 'UNREAD' && Boolean(await this.unreadProjection?.canFilterUsingProjection());
+    const page = await this.convsRepo.findPageForUser(userId, {
+      ...query,
+      cutoff,
+      useUnreadProjection,
+      ...(boundary ? { before: { id: boundary.id, createdAt: new Date(boundary.before) } } : {}),
+    });
+    const unreadCounts = await (
+      this.unreadProjection ?? new UnreadProjectionService(this.prisma)
+    ).getConversationCounts(
+      userId,
+      page.rows.map(({ conversation }) => conversation.id),
+    );
+    const peerIds = [
+      ...new Set(
+        page.rows
+          .flatMap(({ conversation }) => [
+            ...conversation.participants.map((p) => p.userId),
+            ...conversation.messages.map((m) => m.senderId),
+            ...conversation.pinnedMessages.map((p) => p.message.senderId),
+          ])
+          .filter((id) => id !== userId),
+      ),
+    ];
+    const blockRows = peerIds.length
+      ? await this.prisma.userBlock.findMany({
+          where: {
+            OR: [
+              { blockerId: userId, blockedId: { in: peerIds } },
+              { blockedId: userId, blockerId: { in: peerIds } },
+            ],
+          },
+          select: { blockerId: true, blockedId: true },
+        })
+      : [];
+    const blockCtx = {
+      blockedByMe: new Set(
+        blockRows.filter((row) => row.blockerId === userId).map((row) => row.blockedId),
+      ),
+      blockingMe: new Set(
+        blockRows.filter((row) => row.blockedId === userId).map((row) => row.blockerId),
+      ),
+    };
+    return {
+      data: page.rows.map(({ conversation, participantCount }) => ({
+        ...this.mapper.mapConversation(
+          conversation,
+          userId,
+          unreadCounts.get(conversation.id) ?? 0,
+          blockCtx,
+        ),
+        participantCount,
+        hasMoreParticipants: participantCount > conversation.participants.length,
+      })),
+      hasMore: page.hasMore,
+      order: 'activityAt',
+      nextCursor:
+        page.hasMore && page.boundary
+          ? encodeConversationCursor(
+              {
+                id: page.boundary.id,
+                before: page.boundary.createdAt.toISOString(),
+                cutoff,
+              },
+              scope,
+              secret,
+            )
+          : null,
+    };
   }
 
   async getConversation(conversationId: string, userId: string): Promise<ConversationView> {
@@ -250,15 +379,20 @@ export class ConversationsService implements OnModuleDestroy {
     if (dto.name && dto.name !== conv.name) {
       const user = await this.prisma.user.findUnique({ where: { id: userId } });
       const userName = user?.displayName || user?.username || 'User';
-      const sysMsg = await this.prisma.message.create({
-        data: {
-          conversationId,
-          senderId: userId,
-          messageType: 'SYSTEM',
-          body: `User ${userName} changed the group name to "${dto.name}"`,
-        },
-        include: messageInclude,
-      });
+      const sysMsg = await withUnreadWriteLock(
+        this.prisma,
+        { conversationIds: [conversationId] },
+        (tx) =>
+          tx.message.create({
+            data: {
+              conversationId,
+              senderId: userId,
+              messageType: 'SYSTEM',
+              body: `User ${userName} changed the group name to "${dto.name}"`,
+            },
+            include: messageInclude,
+          }),
+      );
 
       const mapped = this.mapper.mapMessage(sysMsg, userId, new Set());
       await this.broadcastToParticipants(conversationId, participantIds, WS_EVENTS.NEW_MESSAGE, {
@@ -434,15 +568,20 @@ export class ConversationsService implements OnModuleDestroy {
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     const userName = user?.displayName || user?.username || 'User';
-    const sysMsg = await this.prisma.message.create({
-      data: {
-        conversationId,
-        senderId: userId,
-        messageType: 'SYSTEM',
-        body: `${userName} left the group`,
-      },
-      include: messageInclude,
-    });
+    const sysMsg = await withUnreadWriteLock(
+      this.prisma,
+      { conversationIds: [conversationId] },
+      (tx) =>
+        tx.message.create({
+          data: {
+            conversationId,
+            senderId: userId,
+            messageType: 'SYSTEM',
+            body: `${userName} left the group`,
+          },
+          include: messageInclude,
+        }),
+    );
 
     const participantIds = await this.convsRepo.findParticipantIds(conversationId);
     const mapped = this.mapper.mapMessage(sysMsg, userId, new Set());
@@ -692,9 +831,11 @@ export class ConversationsService implements OnModuleDestroy {
           throw new ForbiddenException('Only admins or owners can delete group for everyone');
         }
       }
-      await this.prisma.conversation.delete({
-        where: { id: conversationId },
-      });
+      await withUnreadWriteLock(this.prisma, { conversationIds: [conversationId] }, (tx) =>
+        tx.conversation.delete({
+          where: { id: conversationId },
+        }),
+      );
       this.gateway?.emitConversationDeleted(conversationId, participantIds);
     } else {
       if (conv.type === 'GROUP') {
@@ -717,10 +858,12 @@ export class ConversationsService implements OnModuleDestroy {
         select: { id: true },
       });
       if (messages.length > 0) {
-        await this.prisma.messageDeletion.createMany({
-          data: messages.map((m) => ({ messageId: m.id, userId })),
-          skipDuplicates: true,
-        });
+        await withUnreadWriteLock(this.prisma, { conversationIds: [conversationId] }, (tx) =>
+          tx.messageDeletion.createMany({
+            data: messages.map((m) => ({ messageId: m.id, userId })),
+            skipDuplicates: true,
+          }),
+        );
       }
 
       this.gateway?.emitConversationDeleted(conversationId, [userId]);
@@ -728,15 +871,20 @@ export class ConversationsService implements OnModuleDestroy {
       if (conv.type === 'GROUP') {
         const user = await this.prisma.user.findUnique({ where: { id: userId } });
         const userName = user?.displayName || user?.username || 'User';
-        const sysMsg = await this.prisma.message.create({
-          data: {
-            conversationId,
-            senderId: userId,
-            messageType: 'SYSTEM',
-            body: `${userName} left the group`,
-          },
-          include: messageInclude,
-        });
+        const sysMsg = await withUnreadWriteLock(
+          this.prisma,
+          { conversationIds: [conversationId] },
+          (tx) =>
+            tx.message.create({
+              data: {
+                conversationId,
+                senderId: userId,
+                messageType: 'SYSTEM',
+                body: `${userName} left the group`,
+              },
+              include: messageInclude,
+            }),
+        );
 
         const remainingParticipantIds = participantIds.filter((id) => id !== userId);
         const mapped = this.mapper.mapMessage(sysMsg, userId, new Set());
@@ -767,15 +915,17 @@ export class ConversationsService implements OnModuleDestroy {
           throw new ForbiddenException('Only admins or owners can clear history for everyone');
         }
       }
-      await this.prisma.message.updateMany({
-        where: { conversationId },
-        data: {
-          body: null,
-          messageType: 'DELETED',
-          deletedAt: new Date(),
-          deletedForAll: true,
-        },
-      });
+      await withUnreadWriteLock(this.prisma, { conversationIds: [conversationId] }, (tx) =>
+        tx.message.updateMany({
+          where: { conversationId },
+          data: {
+            body: null,
+            messageType: 'DELETED',
+            deletedAt: new Date(),
+            deletedForAll: true,
+          },
+        }),
+      );
       this.gateway?.emitMessagesCleared(conversationId, participantIds);
     } else {
       const messages = await this.prisma.message.findMany({
@@ -783,10 +933,12 @@ export class ConversationsService implements OnModuleDestroy {
         select: { id: true },
       });
       if (messages.length > 0) {
-        await this.prisma.messageDeletion.createMany({
-          data: messages.map((m) => ({ messageId: m.id, userId })),
-          skipDuplicates: true,
-        });
+        await withUnreadWriteLock(this.prisma, { conversationIds: [conversationId] }, (tx) =>
+          tx.messageDeletion.createMany({
+            data: messages.map((m) => ({ messageId: m.id, userId })),
+            skipDuplicates: true,
+          }),
+        );
       }
       this.gateway?.emitMessagesCleared(conversationId, [userId]);
     }
@@ -811,6 +963,10 @@ export class ConversationsService implements OnModuleDestroy {
   async markUnread(conversationId: string, userId: string): Promise<void> {
     const conv = await this.convsRepo.findOneForUser(conversationId, userId);
     if (!conv) throw new NotFoundException('Conversation not found');
+    if (this.unreadProjection) {
+      await this.unreadProjection.resetRead(conversationId, userId);
+      return;
+    }
     await this.convsRepo.updateParticipant(conversationId, userId, {
       lastReadAt: new Date(0),
     });
@@ -860,15 +1016,20 @@ export class ConversationsService implements OnModuleDestroy {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     const userName = user?.displayName || user?.username || 'User';
 
-    const sysMsg = await this.prisma.message.create({
-      data: {
-        conversationId,
-        senderId: userId,
-        messageType: 'SYSTEM',
-        body: `User ${userName} updated the group icon`,
-      },
-      include: messageInclude,
-    });
+    const sysMsg = await withUnreadWriteLock(
+      this.prisma,
+      { conversationIds: [conversationId] },
+      (tx) =>
+        tx.message.create({
+          data: {
+            conversationId,
+            senderId: userId,
+            messageType: 'SYSTEM',
+            body: `User ${userName} updated the group icon`,
+          },
+          include: messageInclude,
+        }),
+    );
 
     const participantIds = await this.convsRepo.findParticipantIds(conversationId);
     const mapped = this.mapper.mapMessage(sysMsg, userId, new Set());
@@ -941,15 +1102,20 @@ export class ConversationsService implements OnModuleDestroy {
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
     };
 
-    const message = await this.prisma.message.create({
-      data: {
-        conversationId,
-        senderId: userId,
-        messageType: 'THEME_PROPOSAL',
-        body: JSON.stringify(proposalData),
-      },
-      include: messageInclude,
-    });
+    const message = await withUnreadWriteLock(
+      this.prisma,
+      { conversationIds: [conversationId] },
+      (tx) =>
+        tx.message.create({
+          data: {
+            conversationId,
+            senderId: userId,
+            messageType: 'THEME_PROPOSAL',
+            body: JSON.stringify(proposalData),
+          },
+          include: messageInclude,
+        }),
+    );
 
     await this.convsRepo.touchUpdatedAt(conversationId);
 

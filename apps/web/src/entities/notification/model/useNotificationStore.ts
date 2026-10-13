@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { registerSessionResetHandler } from '@/shared/model/resetSession';
-import { NotificationFilter, NotificationUnreadCounts } from './types';
+import { NotificationFilter, NotificationType, NotificationUnreadCounts } from './types';
 
 interface NotificationState {
   unreadCounts: NotificationUnreadCounts;
@@ -10,6 +10,7 @@ interface NotificationState {
   setActiveFilter: (filter: NotificationFilter) => void;
   setOptimisticFollow: (userId: string, isFollowing: boolean, isLoading?: boolean) => void;
   resetUnreadCountForFilter: (filter: NotificationFilter) => void;
+  decrementUnreadCount: (type?: NotificationType | NotificationFilter) => void;
 }
 
 const initialCounts: NotificationUnreadCounts = {
@@ -68,6 +69,35 @@ export const useNotificationStore = create<NotificationState>((set) => ({
           mentions: filter === 'mentions' ? 0 : state.unreadCounts.mentions | 0,
           reposts: filter === 'reposts' ? 0 : state.unreadCounts.reposts | 0,
           system: filter === 'system' ? 0 : state.unreadCounts.system | 0,
+        },
+      };
+    }),
+
+  decrementUnreadCount: (type) =>
+    set((state) => {
+      const counts = state.unreadCounts || initialCounts;
+      const currentTotal = counts.total ?? 0;
+      const newTotal = Math.max(0, currentTotal - 1) | 0;
+      let cat: keyof Omit<NotificationUnreadCounts, 'total'> | null = null;
+      if (type) {
+        if (type === 'LIKE_POST' || type === 'LIKE_COMMENT' || type === 'likes') cat = 'likes';
+        else if (type === 'COMMENT' || type === 'comments') cat = 'comments';
+        else if (type === 'FOLLOW' || type === 'follows') cat = 'follows';
+        else if (type === 'MENTION' || type === 'mentions') cat = 'mentions';
+        else if (type === 'REPOST' || type === 'reposts') cat = 'reposts';
+        else if (
+          type === 'SYSTEM' ||
+          type === 'SYSTEM_VERIFIED' ||
+          type === 'SYSTEM_VIEW' ||
+          type === 'system'
+        )
+          cat = 'system';
+      }
+      return {
+        unreadCounts: {
+          ...counts,
+          total: newTotal,
+          ...(cat ? { [cat]: Math.max(0, (counts[cat] || 0) - 1) | 0 } : {}),
         },
       };
     }),

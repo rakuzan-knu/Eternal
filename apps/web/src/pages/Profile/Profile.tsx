@@ -1,7 +1,6 @@
 import { ProfileFrameSurface } from '@/shared/ui/ProfileFrame';
-import React, { useState, useEffect, useMemo, useOptimistic, useTransition, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useOptimistic, useTransition } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
-import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { useUIStore } from '../../shared/model/useUIStore';
 import { useUserByUsername } from '../../entities/profile/model/useUserByUsername';
 import { useCurrentUser } from '../../entities/profile/model/useCurrentUser';
@@ -14,7 +13,7 @@ import { ProfileEffect } from '@/shared/ui/ProfileEffect';
 import ProfileHeader from '@/widgets/profile/ui/ProfileHeader';
 import ProfileTabs, { ProfileTabType } from '../../shared/ui/ProfileTabs';
 import CreatePost from '../../features/posts/ui/CreatePost';
-import { PostCard } from '@/widgets/post/ui/PostCard';
+import { BoundedPostList } from '@/widgets/post/ui/BoundedPostList';
 import { SkeletonFeed } from '../../entities/post/ui/SkeletonPostCard';
 import { SavedPostsView } from '@/widgets/profile';
 import { UserReelsView } from '@/features/reels';
@@ -158,45 +157,6 @@ export default function ProfilePage() {
   const feedQueryKey =
     activeTab === 'posts' ? [USER_POSTS_KEY, user?.id] : [USER_REPOSTS_KEY, user?.id];
 
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [scrollMargin, setScrollMargin] = useState(0);
-
-  useEffect(() => {
-    if (containerRef.current) {
-      setScrollMargin(containerRef.current.offsetTop);
-    }
-  }, [activeTab]);
-
-  const postVirtualizer = useWindowVirtualizer({
-    count: activeFeed.length,
-    estimateSize: () => 240,
-    overscan: 5,
-    scrollMargin,
-  });
-
-  const virtualItems = postVirtualizer.getVirtualItems();
-  const lastVirtualItem = virtualItems[virtualItems.length - 1];
-
-  const { hasNextPage, isFetchingNextPage, fetchNextPage } = activeQuery;
-  useEffect(() => {
-    if (!lastVirtualItem) return;
-    if (lastVirtualItem.index >= activeFeed.length - 2 && hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
-    }
-  }, [lastVirtualItem, activeFeed.length, hasNextPage, isFetchingNextPage, fetchNextPage]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const hash = window.location.hash;
-    if (hash && hash.startsWith('#post-') && activeFeed.length > 0) {
-      const targetPostId = hash.replace('#post-', '');
-      const targetIndex = activeFeed.findIndex((p) => String(p.id) === targetPostId);
-      if (targetIndex !== -1) {
-        postVirtualizer.scrollToIndex(targetIndex, { align: 'center', behavior: 'smooth' });
-      }
-    }
-  }, [activeFeed, postVirtualizer]);
-
   const profileTheme = useMemo(() => {
     if (user?.profileTheme?.primary && user?.profileTheme?.accent) {
       return user.profileTheme;
@@ -315,7 +275,13 @@ export default function ProfilePage() {
             breadcrumbs: [{ name: profileName, url: `/@${user.username}` }],
           }}
         />
-        <ProfileFrameSurface frame={user.activeProfileFrame} radius={40} priority className="mb-6">
+        <ProfileFrameSurface
+          frame={user.activeProfileFrame}
+          radius={40}
+          priority
+          reserveHeadroom={false}
+          className="mb-6"
+        >
           <div
             className={`border rounded-[2.5rem] overflow-hidden shadow-[0_16px_50px_rgba(0,0,0,0.6)] transition-all duration-300 relative ${
               profileTheme ? 'border-white/15' : 'glass-card border-white/5'
@@ -399,36 +365,12 @@ export default function ProfilePage() {
         ) : activeQuery.isLoading ? (
           <SkeletonFeed count={4} />
         ) : activeFeed.length > 0 ? (
-          <div
-            ref={containerRef}
-            style={{
-              height: `${postVirtualizer.getTotalSize()}px`,
-              width: '100%',
-              position: 'relative',
-            }}
-          >
-            {virtualItems.map((virtualItem) => {
-              const post = activeFeed[virtualItem.index];
-              if (!post) return null;
-              return (
-                <div
-                  key={virtualItem.key}
-                  ref={postVirtualizer.measureElement}
-                  data-index={virtualItem.index}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    transform: `translateY(${virtualItem.start - postVirtualizer.options.scrollMargin}px)`,
-                    paddingBottom: '16px',
-                  }}
-                >
-                  <PostCard post={post} queryKey={feedQueryKey} />
-                </div>
-              );
-            })}
-          </div>
+          <BoundedPostList
+            key={JSON.stringify(feedQueryKey)}
+            posts={activeFeed}
+            query={activeQuery}
+            queryKey={feedQueryKey}
+          />
         ) : (
           <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-white/5 rounded-4xl bg-white/1">
             <p className="text-gray-500 font-medium text-base">

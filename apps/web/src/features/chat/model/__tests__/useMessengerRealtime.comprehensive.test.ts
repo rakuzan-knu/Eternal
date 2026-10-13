@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { act, renderHook } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import { useMessengerRealtime } from '../useMessengerRealtime';
@@ -31,6 +31,7 @@ describe('useMessengerRealtime (Comprehensive Suite)', () => {
   ];
 
   beforeEach(() => {
+    vi.useFakeTimers();
     vi.clearAllMocks();
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
@@ -54,6 +55,7 @@ describe('useMessengerRealtime (Comprehensive Suite)', () => {
 
     vi.spyOn(socketHookModule, 'useChatSocket').mockReturnValue(mockSocket as any);
   });
+  afterEach(() => vi.useRealTimers());
 
   const wrapper = ({ children }: { children: React.ReactNode }) =>
     React.createElement(QueryClientProvider, { client: queryClient }, children);
@@ -87,8 +89,11 @@ describe('useMessengerRealtime (Comprehensive Suite)', () => {
     renderHook(() => useMessengerRealtime(['conv-1'], 'conv-1', true), { wrapper });
 
     // 1. messagesCleared
-    const clearedHandler = mockSocket.on.mock.calls.find((c) => c[0] === 'messagesCleared')?.[1];
+    const clearedHandler = mockSocket.on.mock.calls
+      .filter((c) => c[0] === 'messagesCleared')
+      .at(-1)?.[1];
     clearedHandler?.({ conversationId: 'conv-1' });
+    act(() => vi.advanceTimersByTime(50));
 
     let convs = queryClient.getQueryData<any>([CONVERSATIONS_KEY]);
     expect(convs[0].lastMessage).toBeNull();
@@ -99,10 +104,11 @@ describe('useMessengerRealtime (Comprehensive Suite)', () => {
     typingHandler?.({ conversationId: 'conv-1', userId: 'user-2', isTyping: true });
 
     // 3. conversationDeleted
-    const deletedHandler = mockSocket.on.mock.calls.find(
-      (c) => c[0] === 'conversationDeleted',
-    )?.[1];
+    const deletedHandler = mockSocket.on.mock.calls
+      .filter((c) => c[0] === 'conversationDeleted')
+      .at(-1)?.[1];
     deletedHandler?.({ conversationId: 'conv-1' });
+    act(() => vi.advanceTimersByTime(50));
 
     convs = queryClient.getQueryData<any>([CONVERSATIONS_KEY]);
     expect(convs).toHaveLength(0);

@@ -51,7 +51,7 @@ RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
 FROM node:24-alpine AS production
 
 RUN --mount=type=cache,target=/var/cache/apk \
-    apk add --no-cache tini openssl libc6-compat bash
+    apk add --no-cache tini openssl libc6-compat bash ffmpeg
 
 RUN addgroup -g 1001 -S appgroup && adduser -u 1001 -S -G appgroup appuser
 WORKDIR /app

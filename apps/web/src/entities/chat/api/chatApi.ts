@@ -2,6 +2,7 @@ import { apiClient as api } from '@/shared/api/httpClient';
 import {
   ChatActivityMap,
   ConversationView,
+  ConversationPage,
   MessageView,
   MuteLevel,
   OutgoingAttachment,
@@ -15,10 +16,31 @@ import {
 } from '../model/types';
 
 export const chatApi = {
-  getConversations: () => api.get<ConversationView[]>('/conversations').then((r) => r.data),
+  getConversations: (signal?: AbortSignal) =>
+    api.get<ConversationView[]>('/conversations', { signal }).then((r) => r.data),
 
-  getConversation: (conversationId: string) =>
-    api.get<ConversationView>(`/conversations/${conversationId}`).then((r) => r.data),
+  getConversationsPage: (
+    query: Partial<import('@social-network/shared-contracts').ConversationPageQuery>,
+    signal?: AbortSignal,
+  ) =>
+    api
+      .get<ConversationPage>('/conversations/page', {
+        params: {
+          ...query,
+          includeIds: query.includeIds?.join(','),
+          excludeIds: query.excludeIds?.join(','),
+          forcedUnreadIds: query.forcedUnreadIds?.join(','),
+          locallyReadIds: query.locallyReadIds?.join(','),
+        },
+        signal,
+      })
+      .then((r) => r.data),
+
+  getUnreadCount: (signal?: AbortSignal) =>
+    api.get<{ count: number }>('/conversations/unread-count', { signal }).then((r) => r.data),
+
+  getConversation: (conversationId: string, signal?: AbortSignal) =>
+    api.get<ConversationView>(`/conversations/${conversationId}`, { signal }).then((r) => r.data),
 
   createDirectConversation: (participantId: string) =>
     api.post<ConversationView>('/conversations/direct', { participantId }).then((r) => r.data),
@@ -61,24 +83,38 @@ export const chatApi = {
       .post(`/conversations/${conversationId}/transfer-ownership`, { newOwnerId })
       .then((r) => r.data),
 
-  getMessages: (conversationId: string, before?: string, limit = 20, after?: string) =>
+  getMessages: (
+    conversationId: string,
+    before?: string,
+    limit = 20,
+    after?: string,
+    signal?: AbortSignal,
+  ) =>
     api
       .get<PaginatedMessages>(`/conversations/${conversationId}/messages`, {
         params: { before, after, limit },
+        signal,
       })
       .then((r) => r.data),
 
-  getMessagesAround: (conversationId: string, messageId: string, limit = 50) =>
+  getMessagesAround: (
+    conversationId: string,
+    messageId: string,
+    limit = 50,
+    signal?: AbortSignal,
+  ) =>
     api
       .get<PaginatedMessages>(`/conversations/${conversationId}/messages/around/${messageId}`, {
         params: { limit },
+        signal,
       })
       .then((r) => r.data),
 
-  getMessagesAroundDate: (conversationId: string, date: string, limit = 50) =>
+  getMessagesAroundDate: (conversationId: string, date: string, limit = 50, signal?: AbortSignal) =>
     api
       .get<PaginatedMessages>(`/conversations/${conversationId}/messages/around-date`, {
         params: { date, limit },
+        signal,
       })
       .then((r) => r.data),
 
@@ -278,10 +314,12 @@ export const chatApi = {
     conversationId?: string,
     limit = 20,
     offset = 0,
+    signal?: AbortSignal,
   ) =>
     api
       .get<GlobalSearchResult>('/conversations/search', {
         params: { q, type, conversationId, limit, offset },
+        signal,
       })
       .then((r) => r.data),
 

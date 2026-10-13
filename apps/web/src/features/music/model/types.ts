@@ -42,6 +42,7 @@ export interface MusicPlaylist {
   collaborators?: PlaylistCollaborator[];
   source?: 'soundcloud' | 'spotify';
   trackCount?: number;
+  isDeleted?: boolean;
 }
 
 export function isDefaultPlaylistTitle(title: string): boolean {

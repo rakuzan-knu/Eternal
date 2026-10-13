@@ -11,6 +11,7 @@ import { CONVERSATIONS_REPOSITORY } from './interfaces/conversations-repository.
 
 import { MessagesController } from './messages/messages.controller';
 import { MessagesService } from './messages/messages.service';
+import { UnreadProjectionModule } from './unread/unread-projection.module';
 import { MessagesRepository } from './repositories/messages.repository';
 import { MESSAGES_REPOSITORY } from './interfaces/messages-repository.interface';
 
@@ -60,6 +61,7 @@ import { WatchTogetherService } from './watch-together/watch-together.service';
 @Module({
   imports: [
     PrismaModule,
+    UnreadProjectionModule,
     RedisModule,
     forwardRef(() => UsersModule),
     ConfigModule,

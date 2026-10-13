@@ -42,7 +42,7 @@ export const PRESS_RELEASES_EN: PressReleaseItem[] = [
     title:
       'Eternal Expands Platform Transparency: Launching Comprehensive Legal, Privacy & Policy Hub',
     description:
-      'A complete redesign of user rights, safety centers, terms of service, and open-source licensing to empower millions of users worldwide.',
+      'A complete redesign of user rights, safety centers, terms of service, and third-party software license notices to empower millions of users worldwide.',
     gradientClass: 'from-purple-900 via-indigo-950 to-[#07050f]',
     iconText: '🛡️',
   },

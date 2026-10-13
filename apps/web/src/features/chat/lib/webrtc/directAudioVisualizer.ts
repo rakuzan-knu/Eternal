@@ -35,6 +35,10 @@ export class DirectAudioVisualizer {
   private readonly fftSize: number;
   private readonly minVolumeThreshold: number;
   private readonly onSpeakingChange?: (isSpeaking: boolean) => void;
+  private readonly onVisibilityChange = () => {
+    if (document.hidden) this.stopLoop();
+    else this.startLoop();
+  };
 
   constructor(
     targetElement: HTMLElement,
@@ -47,6 +51,7 @@ export class DirectAudioVisualizer {
     this.onSpeakingChange = options.onSpeakingChange;
 
     this.initAudio(stream);
+    document.addEventListener('visibilitychange', this.onVisibilityChange);
   }
 
   private initAudio(stream: MediaStream): void {
@@ -86,10 +91,11 @@ export class DirectAudioVisualizer {
   }
 
   private startLoop = (): void => {
-    if (this.isDestroyed) return;
+    if (this.isDestroyed || this.isPaused || document.hidden || this.animId !== null) return;
 
     const render = () => {
-      if (this.isDestroyed) return;
+      this.animId = null;
+      if (this.isDestroyed || this.isPaused || document.hidden) return;
 
       if (!this.isPaused && this.analyser && this.dataArray) {
         this.analyser.getByteFrequencyData(this.dataArray);
@@ -133,6 +139,7 @@ export class DirectAudioVisualizer {
   public setPaused(paused: boolean): void {
     this.isPaused = paused;
     if (paused) {
+      this.stopLoop();
       this.smoothedVolume = 0;
       this.targetElement.style.setProperty('--volume', '0');
       this.targetElement.style.setProperty('--volume-glow', '0px');
@@ -141,16 +148,20 @@ export class DirectAudioVisualizer {
         this.lastSpeakingState = false;
         this.onSpeakingChange?.(false);
       }
+    } else {
+      this.startLoop();
     }
+  }
+
+  private stopLoop(): void {
+    if (this.animId !== null) cancelAnimationFrame(this.animId);
+    this.animId = null;
   }
 
   public destroy(): void {
     this.isDestroyed = true;
-
-    if (this.animId !== null) {
-      cancelAnimationFrame(this.animId);
-      this.animId = null;
-    }
+    document.removeEventListener('visibilitychange', this.onVisibilityChange);
+    this.stopLoop();
 
     try {
       this.sourceNode?.disconnect();

@@ -10,10 +10,12 @@ import { getCachedWallpaperColors, parseColorToRgb } from '../lib/useLiquidGlass
 import { idbGet } from '../lib/indexedDbStorage';
 import { CHAT_FONTS } from '@/features/chat/model/chatTheme';
 import { loadThemeFont } from '@/features/chat/lib/fontLoader';
-import { CURSOR_PRESETS, applyCursorToDOM } from '../lib/cursorEngine';
+import { CURSOR_PRESETS } from '../lib/cursorPresets';
+import { applyCursorToDOM } from '../lib/cursorLoader';
 
 export type AppFontScope = 'none' | 'headings' | 'all';
 export type CursorSize = 'normal' | 'large';
+export type SpotifyDockStyle = 'bar' | 'square';
 
 export type Theme = 'dark' | 'light';
 export type BaseSolidTheme = 'light' | 'ash' | 'dark' | 'midnight' | 'custom';
@@ -127,6 +129,7 @@ export interface ThemeState {
   ambientPlayerGlow: boolean;
   soundFxEnabled: boolean;
   previousThemeSnapshot: ThemeSnapshot | null;
+  spotifyDockStyle: SpotifyDockStyle;
 
   // Typography Engine fields
   appFontId: string;
@@ -151,6 +154,7 @@ export interface ThemeState {
   setSyncWithSystem: (enabled: boolean) => void;
   setAmbientPlayerGlow: (enabled: boolean) => void;
   setSoundFxEnabled: (enabled: boolean) => void;
+  setSpotifyDockStyle: (style: SpotifyDockStyle) => void;
   resetToDefaults: () => void;
 
   // Typography Actions
@@ -548,6 +552,7 @@ function getSerializableThemeState(state: ThemeState) {
     ambientPlayerGlow: state.ambientPlayerGlow,
     soundFxEnabled: state.soundFxEnabled,
     previousThemeSnapshot: state.previousThemeSnapshot,
+    spotifyDockStyle: state.spotifyDockStyle,
     appFontId: state.appFontId,
     appFontFamily: state.appFontFamily,
     appFontScope: state.appFontScope,
@@ -629,6 +634,7 @@ export const useThemeStore = create<ThemeState>()(
       ambientPlayerGlow: false,
       soundFxEnabled: true,
       previousThemeSnapshot: null,
+      spotifyDockStyle: 'bar',
 
       // Typography Engine Initial State
       appFontId: 'default',
@@ -867,6 +873,11 @@ export const useThemeStore = create<ThemeState>()(
         set({ soundFxEnabled });
       },
 
+      setSpotifyDockStyle: (spotifyDockStyle) => {
+        set({ spotifyDockStyle });
+        broadcastThemeSync(get());
+      },
+
       resetToDefaults: () => {
         const prev = get().wallpaper;
         if (prev?.url) {
@@ -887,6 +898,7 @@ export const useThemeStore = create<ThemeState>()(
           syncWithSystem: false,
           ambientPlayerGlow: false,
           soundFxEnabled: true,
+          spotifyDockStyle: 'bar',
           appFontId: 'default',
           appFontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
           appFontScope: 'none',

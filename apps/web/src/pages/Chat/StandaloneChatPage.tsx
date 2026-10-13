@@ -23,6 +23,8 @@ import GroupAvatarCollage from '@/shared/ui/GroupAvatarCollage';
 import OnlineStatusIndicator from '@/shared/ui/OnlineStatusIndicator';
 import { useAuthStore } from '@/shared/model/useAuthStore';
 import { useConversations } from '@/features/chat/model/useConversations';
+import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/shared/api/queryKeys';
 import { useMessages } from '@/features/chat/model/useMessages';
 import { useMessageActions } from '@/features/chat/model/useMessageActions';
 import { useConversationRealtime } from '@/features/chat/model/useConversationRealtime';
@@ -37,9 +39,11 @@ import {
 } from '@/features/chat/lib/e2ee/messageE2ee';
 import { VerifiedCheckmark } from '@/entities/profile/ui/VerifiedCheckmark';
 import MessageList from '@/features/chat/ui/MessageList';
-import MessageSearchPanel from '@/features/chat/ui/MessageSearchPanel';
-import ConversationDetailsPanel from '@/features/chat/ui/ConversationDetailsPanel';
-import ForwardMessageModal from '@/features/chat/ui/ForwardMessageModal';
+import {
+  DeferredMessageSearchPanel as MessageSearchPanel,
+  DeferredConversationDetailsPanel as ConversationDetailsPanel,
+  DeferredForwardMessageModal as ForwardMessageModal,
+} from '@/features/chat/ui/DeferredChatOverlays';
 import { MessageView } from '@/entities/chat/model/types';
 import { useNavigate } from 'react-router-dom';
 import { chatApi } from '@/features/chat/api/chatApi';
@@ -55,6 +59,12 @@ export default function StandaloneChatPage() {
   const userId = useAuthStore((s) => s.userId);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const { data: conversations, isLoading: isLoadingConversations } = useConversations();
+  const { data: directConversation, isLoading: isLoadingDirect } = useQuery({
+    queryKey: queryKeys.conversations.detail(conversationId ?? 'none'),
+    queryFn: ({ signal }) => chatApi.getConversation(conversationId!, signal),
+    enabled: Boolean(conversationId && isAuthenticated),
+    retry: 1,
+  });
 
   useEffect(() => {
     initCrossTabSync();
@@ -71,7 +81,8 @@ export default function StandaloneChatPage() {
     }
   }, [isAuthenticated, userId, navigate]);
 
-  const conversation = conversations?.find((c) => c.id === conversationId) ?? null;
+  const conversation =
+    directConversation ?? conversations?.find((c) => c.id === conversationId) ?? null;
   const display = conversation ? getConversationDisplay(conversation, userId) : null;
   const otherParticipant =
     conversation && conversation.type !== 'GROUP'
@@ -85,6 +96,12 @@ export default function StandaloneChatPage() {
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
+    loadNewer,
+    loadAroundMessage,
+    resetToLive,
+    isAnchoredInHistory,
+    hasNewer,
+    isFetchingPreviousPage,
     isLoading: isLoadingMessages,
   } = useMessages(conversationId ?? '');
   const { typingUserIds } = useConversationRealtime(conversationId ?? null);
@@ -253,7 +270,7 @@ export default function StandaloneChatPage() {
       ? conversation.pinnedMessages[0]
       : null;
 
-  if (isLoadingConversations) {
+  if (!conversation && (isLoadingConversations || isLoadingDirect)) {
     return (
       <div className="fixed inset-0 bg-[#0c1017] flex items-center justify-center text-gray-400">
         <div className="w-8 h-8 rounded-full border-2 border-sky-500 border-t-transparent animate-spin" />
@@ -440,6 +457,7 @@ export default function StandaloneChatPage() {
           <div className="flex-1 min-h-0 flex flex-col">
             <MessageList
               messages={messages}
+              conversationId={conversation.id}
               currentUserId={userId}
               otherParticipantId={otherParticipant?.userId ?? null}
               otherParticipant={otherParticipant}
@@ -447,6 +465,15 @@ export default function StandaloneChatPage() {
               hasMore={!!hasNextPage}
               isLoading={isLoadingMessages}
               isFetchingMore={isFetchingNextPage}
+              hasNewer={hasNewer}
+              isFetchingNewer={isFetchingPreviousPage}
+              isAnchoredInHistory={isAnchoredInHistory}
+              onLoadOlder={fetchNextPage}
+              onLoadNewer={loadNewer}
+              onLoadAround={loadAroundMessage}
+              onResetToLive={() => {
+                void resetToLive().catch(() => {});
+              }}
               typingParticipants={typingParticipants}
               isGroup={conversation.type === 'GROUP'}
               onLoadMore={fetchNextPage}
@@ -477,6 +504,10 @@ export default function StandaloneChatPage() {
               onMarkRead={actions.markRead}
               highlightMessageId={highlightMessageId}
               onHighlightHandled={() => setHighlightMessageId(null)}
+              onJumpToMessage={(messageId) => {
+                setRightPanel(null);
+                setHighlightMessageId(messageId);
+              }}
             />
           </div>
 

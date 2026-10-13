@@ -26,6 +26,7 @@ import {
   setPiPLastCenter,
   triggerCallPiPTransition,
 } from '../../lib/webrtc/callPiPTransition';
+import { usePiPStackOffset } from '@/shared/lib/pipStackCoordinator';
 
 function formatDuration(seconds: number): string {
   const s = Math.max(0, Math.floor(seconds || 0));
@@ -186,6 +187,10 @@ export function PictureInPicture() {
     }
   }, [isPiP, callStatus]);
 
+  // Stacking offset when both Call PiP and Spotify Square Dock are in default bottom-right position
+  const isCallAtDefault = Boolean(isPiP && callStatus === 'connected' && position === null);
+  const isStackedAbove = usePiPStackOffset('call', isCallAtDefault);
+
   // Track the actual center of the PiP card on screen for radial ripple transitions
   useEffect(() => {
     if (cardRef.current && isPiP) {
@@ -197,7 +202,7 @@ export function PictureInPicture() {
         });
       }
     }
-  }, [position, isPiP]);
+  }, [position, isPiP, isStackedAbove]);
 
   // Clamping on viewport resize (keeps custom drag position within bounds, or keeps default anchored CSS position)
   useEffect(() => {
@@ -400,11 +405,13 @@ export function PictureInPicture() {
                 width: CARD_SIZE,
                 height: CARD_SIZE,
                 right: 'calc(env(safe-area-inset-right, 0px) + 20px)',
-                bottom: 'calc(env(safe-area-inset-bottom, 0px) + 84px)',
+                bottom: isStackedAbove
+                  ? 'calc(env(safe-area-inset-bottom, 0px) + 294px)'
+                  : 'calc(env(safe-area-inset-bottom, 0px) + 84px)',
                 backgroundColor: cardBgColor,
               }
         }
-        className={`fixed z-50 rounded-[32px] overflow-hidden select-none flex items-center justify-center transition-[background-color,box-shadow,transform] duration-300 ${
+        className={`fixed z-50 rounded-[32px] overflow-hidden select-none flex items-center justify-center transition-[background-color,box-shadow,transform,bottom] duration-300 ${
           isDragging ? 'cursor-grabbing scale-102 shadow-2xl' : 'cursor-grab hover:shadow-2xl'
         } ${liquidCardStyle}`}
       >

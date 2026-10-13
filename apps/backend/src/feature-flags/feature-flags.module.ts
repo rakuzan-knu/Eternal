@@ -1,3 +1,4 @@
+import { PlatformAdminGuard } from '../auth/guards/platform-admin.guard';
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '@common/prisma';
 import { RedisModule } from '../redis';
@@ -11,6 +12,7 @@ import { FEATURE_FLAGS_REPOSITORY } from './interfaces/feature-flags-repository.
   imports: [PrismaModule, RedisModule],
   controllers: [FeatureFlagsController],
   providers: [
+    PlatformAdminGuard,
     FeatureFlagsRepository,
     {
       provide: FEATURE_FLAGS_REPOSITORY,

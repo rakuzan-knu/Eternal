@@ -2,6 +2,7 @@
   "name": "@social-network/shared-api-client",
   "version": "0.0.1",
   "private": true,
+  "license": "UNLICENSED",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -12,7 +13,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@tanstack/react-query": "^5.67.1",
+    "@tanstack/react-query": "^5.103.0",
     "axios": "^1.8.1"
   },
   "devDependencies": {

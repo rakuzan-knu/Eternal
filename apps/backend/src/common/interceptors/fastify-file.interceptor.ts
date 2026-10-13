@@ -1,4 +1,7 @@
 import {
+  BadRequestException,
+  HttpException,
+  PayloadTooLargeException,
   CallHandler,
   ExecutionContext,
   Injectable,
@@ -14,16 +17,39 @@ interface FastifyMultipartPart {
   filename?: string;
   encoding?: string;
   mimetype?: string;
-  file?: Readable;
+  file?: Readable & { truncated?: boolean };
   toBuffer: () => Promise<Buffer>;
   value?: unknown;
   fields?: Record<string, { value?: unknown } | Record<string, unknown>>;
 }
 
+async function readFilePart(part: FastifyMultipartPart): Promise<Buffer> {
+  const buffer = await part.toBuffer();
+  if (part.file?.truncated)
+    throw new PayloadTooLargeException('File size exceeds the upload limit');
+  if (!buffer.length) throw new BadRequestException('Empty files cannot be uploaded');
+  return buffer;
+}
+
+function rethrowMultipartError(error: unknown): never {
+  if (error instanceof HttpException) throw error;
+  const code = (error as { code?: string })?.code;
+  if (
+    code === 'FST_REQ_FILE_TOO_LARGE' ||
+    code === 'FST_FILES_LIMIT' ||
+    code === 'FST_PARTS_LIMIT'
+  ) {
+    throw new PayloadTooLargeException('Upload exceeds the file size or count limit');
+  }
+  throw new BadRequestException('Unable to read the uploaded file');
+}
+
 interface FastifyMultipartRequest {
   isMultipart?: () => boolean;
-  parts?: () => AsyncIterable<FastifyMultipartPart>;
-  file?: Express.Multer.File | (() => Promise<FastifyMultipartPart>);
+  parts?: (options?: { limits: { fileSize: number } }) => AsyncIterable<FastifyMultipartPart>;
+  file?:
+    | Express.Multer.File
+    | ((options?: { limits: { fileSize: number } }) => Promise<FastifyMultipartPart>);
   files?: Express.Multer.File[];
   incomingFile?: Express.Multer.File;
   incomingFiles?: Express.Multer.File[];
@@ -31,7 +57,10 @@ interface FastifyMultipartRequest {
   [key: string]: unknown;
 }
 
-export function FastifyFileInterceptor(fieldName = 'file'): Type<NestInterceptor> {
+export function FastifyFileInterceptor(
+  fieldName = 'file',
+  maxFileBytes?: number,
+): Type<NestInterceptor> {
   @Injectable()
   class Interceptor implements NestInterceptor {
     async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<unknown>> {
@@ -50,10 +79,14 @@ export function FastifyFileInterceptor(fieldName = 'file'): Type<NestInterceptor
             req.body && typeof req.body === 'object' ? { ...req.body } : {};
 
           if (typeof req.parts === 'function') {
-            for await (const part of req.parts()) {
+            for await (const part of req.parts(
+              maxFileBytes ? { limits: { fileSize: maxFileBytes } } : undefined,
+            )) {
               if (part.file) {
                 if (!capturedFile && (!fieldName || part.fieldname === fieldName)) {
-                  const buffer = await part.toBuffer();
+                  const buffer = await readFilePart(part);
+                  if (maxFileBytes && buffer.length > maxFileBytes)
+                    throw new PayloadTooLargeException('Chunk is too large');
                   capturedFile = {
                     fieldname: part.fieldname || fieldName,
                     originalname: part.filename || 'upload',
@@ -66,8 +99,14 @@ export function FastifyFileInterceptor(fieldName = 'file'): Type<NestInterceptor
                     filename: part.filename || 'upload',
                     path: '',
                   };
-                } else if (part.fieldname === 'thumbnail') {
-                  const buffer = await part.toBuffer();
+                } else if (
+                  fieldName === 'video' &&
+                  part.fieldname === 'thumbnail' &&
+                  !req.thumbnailFile
+                ) {
+                  const buffer = await readFilePart(part);
+                  if (maxFileBytes && buffer.length > maxFileBytes)
+                    throw new PayloadTooLargeException('Chunk is too large');
                   req.thumbnailFile = {
                     fieldname: part.fieldname,
                     originalname: part.filename || 'thumbnail.webp',
@@ -81,7 +120,7 @@ export function FastifyFileInterceptor(fieldName = 'file'): Type<NestInterceptor
                     path: '',
                   };
                 } else {
-                  await part.toBuffer();
+                  throw new BadRequestException('Unexpected file field or too many files');
                 }
               } else if (part.fieldname) {
                 const existing = currentBody[part.fieldname];
@@ -98,9 +137,15 @@ export function FastifyFileInterceptor(fieldName = 'file'): Type<NestInterceptor
             }
           } else if (typeof req.file === 'function') {
             const fileFn = req.file;
-            const part = await fileFn();
+            const part = await fileFn(
+              maxFileBytes ? { limits: { fileSize: maxFileBytes } } : undefined,
+            );
             if (part) {
-              const buffer = await part.toBuffer();
+              if (fieldName && part.fieldname !== fieldName)
+                throw new BadRequestException('Unexpected file field');
+              const buffer = await readFilePart(part);
+              if (maxFileBytes && buffer.length > maxFileBytes)
+                throw new PayloadTooLargeException('Chunk is too large');
               capturedFile = {
                 fieldname: part.fieldname || fieldName,
                 originalname: part.filename || 'upload',
@@ -131,8 +176,8 @@ export function FastifyFileInterceptor(fieldName = 'file'): Type<NestInterceptor
             req.incomingFile = capturedFile;
           }
           req.body = currentBody;
-        } catch {
-          // Keep request alive if file extraction fails
+        } catch (error) {
+          rethrowMultipartError(error);
         }
       }
 
@@ -163,8 +208,8 @@ export function FastifyFilesInterceptor(fieldName = 'files', maxCount = 10): Typ
 
           for await (const part of req.parts()) {
             if (part.file) {
-              if (files.length < maxCount) {
-                const buffer = await part.toBuffer();
+              if ((!fieldName || part.fieldname === fieldName) && files.length < maxCount) {
+                const buffer = await readFilePart(part);
                 files.push({
                   fieldname: part.fieldname || fieldName,
                   originalname: part.filename || 'upload',
@@ -178,7 +223,7 @@ export function FastifyFilesInterceptor(fieldName = 'files', maxCount = 10): Typ
                   path: '',
                 });
               } else {
-                await part.toBuffer();
+                throw new BadRequestException('Unexpected file field or too many files');
               }
             } else if (part.fieldname) {
               const existing = currentBody[part.fieldname];
@@ -197,8 +242,8 @@ export function FastifyFilesInterceptor(fieldName = 'files', maxCount = 10): Typ
           req.files = files;
           req.incomingFiles = files;
           req.body = currentBody;
-        } catch {
-          // Keep request alive if stream error occurs
+        } catch (error) {
+          rethrowMultipartError(error);
         }
       }
 

@@ -75,6 +75,7 @@ export const MusicLibraryPanel: React.FC = () => {
     setLibraryViewMode,
     isItemPinned,
     togglePinItem,
+    removePlaylistFromLibrary,
   } = useMusicHubStore();
 
   const navigate = useNavigate();
@@ -139,6 +140,24 @@ export const MusicLibraryPanel: React.FC = () => {
   const [isActiveFolderMenuOpen, setIsActiveFolderMenuOpen] = useState(false);
   const folderMenuButtonRef = useRef<HTMLButtonElement>(null);
   const activeFolderMenuRef = useRef<HTMLDivElement>(null);
+
+  // Dissolving IDs for deleted playlist smooth fade-out removal
+  const [dissolvingIds, setDissolvingIds] = useState<Set<string>>(new Set());
+
+  const handleDeletedPlaylistClick = (e: React.MouseEvent, plId: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (dissolvingIds.has(plId)) return;
+    setDissolvingIds((prev) => new Set(prev).add(plId));
+    setTimeout(() => {
+      removePlaylistFromLibrary(plId);
+      setDissolvingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(plId);
+        return next;
+      });
+    }, 450);
+  };
 
   // Synchronize playlists and folders freshly with backend on mount
   useEffect(() => {
@@ -1242,32 +1261,61 @@ export const MusicLibraryPanel: React.FC = () => {
             ))}
 
             {/* 3. Playlists Tiles */}
-            {playlists.map((pl, idx) => (
-              <Tooltip
-                key={`lib-col-pl-${pl.id}-${idx}`}
-                label={`${pl.title} • Playlist • ${pl.creator || 'Eternal'}`}
-                position="right"
-              >
-                <div
-                  onClick={() => {
-                    setSelectedPlaylistId(pl.id);
-                    navigate(`/music/playlist/${pl.id}`);
-                  }}
-                  onContextMenu={(e) => handlePlaylistContextMenu(e, pl)}
-                  className={`w-12 h-12 rounded-xl bg-[#282828] border border-white/5 overflow-hidden flex items-center justify-center shadow-md cursor-pointer transition-all hover:scale-105 active:scale-95 shrink-0 ${
-                    selectedPlaylistId === pl.id
-                      ? 'ring-2 ring-purple-500 shadow-purple-500/40'
-                      : ''
-                  }`}
+            {playlists.map((pl, idx) => {
+              const isDissolving = dissolvingIds.has(pl.id);
+              return (
+                <Tooltip
+                  key={`lib-col-pl-${pl.id}-${idx}`}
+                  label={
+                    pl.isDeleted
+                      ? `${pl.title} • Deleted (Click to remove)`
+                      : `${pl.title} • Playlist • ${pl.creator || 'Eternal'}`
+                  }
+                  position="right"
                 >
-                  {pl.coverUrl ? (
-                    <img src={pl.coverUrl} alt={pl.title} className="w-full h-full object-cover" />
-                  ) : (
-                    <Music2 size={22} className="text-[#b3b3b3]" />
-                  )}
-                </div>
-              </Tooltip>
-            ))}
+                  <div
+                    onClick={(e) => {
+                      if (pl.isDeleted) {
+                        handleDeletedPlaylistClick(e, pl.id);
+                        return;
+                      }
+                      setSelectedPlaylistId(pl.id);
+                      navigate(`/music/playlist/${pl.id}`);
+                    }}
+                    onContextMenu={(e) => !pl.isDeleted && handlePlaylistContextMenu(e, pl)}
+                    className={`relative w-12 h-12 rounded-xl bg-[#282828] border border-white/5 overflow-hidden flex items-center justify-center shadow-md cursor-pointer transition-all duration-300 shrink-0 ${
+                      isDissolving
+                        ? 'opacity-0 scale-75 blur-sm pointer-events-none'
+                        : pl.isDeleted
+                          ? 'opacity-60 grayscale hover:opacity-85 hover:border-red-500/40'
+                          : selectedPlaylistId === pl.id
+                            ? 'ring-2 ring-purple-500 shadow-purple-500/40 hover:scale-105 active:scale-95'
+                            : 'hover:scale-105 active:scale-95'
+                    }`}
+                  >
+                    {pl.coverUrl ? (
+                      <img
+                        src={pl.coverUrl}
+                        alt={pl.title}
+                        className={`w-full h-full object-cover ${pl.isDeleted ? 'grayscale' : ''}`}
+                      />
+                    ) : (
+                      <Music2
+                        size={22}
+                        className={pl.isDeleted ? 'text-gray-500' : 'text-[#b3b3b3]'}
+                      />
+                    )}
+                    {pl.isDeleted && (
+                      <div className="absolute inset-0 bg-black/60 backdrop-blur-[1px] flex items-center justify-center">
+                        <span className="text-[9px] font-black uppercase tracking-wider text-red-400 bg-red-950/70 px-1 py-0.5 rounded border border-red-500/40">
+                          Del
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </Tooltip>
+              );
+            })}
           </div>
         ) : (
           /* EXPANDED & FULL-WIDTH PRESENTATION MODES (4 MODES)*/
@@ -1377,41 +1425,62 @@ export const MusicLibraryPanel: React.FC = () => {
                   const isSelected = selectedPlaylistId === pl.id;
                   const isPlayingThis =
                     isPlaying && currentTrack && pl.tracks.some((t) => t.id === currentTrack.id);
+                  const isDissolving = dissolvingIds.has(pl.id);
                   return (
                     <div
                       key={`lib-compact-pl-${pl.id}-${idx}`}
-                      onClick={() => {
+                      onClick={(e) => {
+                        if (pl.isDeleted) {
+                          handleDeletedPlaylistClick(e, pl.id);
+                          return;
+                        }
                         if (isLibraryFullWidth) setLibraryFullWidth(false);
                         setSelectedPlaylistId(pl.id);
                         navigate(`/music/playlist/${pl.id}`);
                       }}
-                      onContextMenu={(e) => handlePlaylistContextMenu(e, pl)}
-                      className={`group flex items-center justify-between px-3.5 py-2.5 rounded-xl cursor-pointer transition-all ${
-                        isSelected
-                          ? 'bg-purple-600/20 border border-purple-500/30'
-                          : 'hover:bg-white/5 text-gray-200'
+                      onContextMenu={(e) => !pl.isDeleted && handlePlaylistContextMenu(e, pl)}
+                      className={`group flex items-center justify-between px-3.5 py-2.5 rounded-xl cursor-pointer transition-all duration-300 ${
+                        isDissolving
+                          ? 'opacity-0 -translate-x-4 blur-sm pointer-events-none'
+                          : pl.isDeleted
+                            ? 'opacity-60 grayscale hover:opacity-85 hover:bg-red-500/5 border border-dashed border-red-500/20'
+                            : isSelected
+                              ? 'bg-purple-600/20 border border-purple-500/30'
+                              : 'hover:bg-white/5 text-gray-200'
                       }`}
                     >
                       <div className="min-w-0 flex-1 flex items-center gap-3">
                         <Music2
                           size={16}
-                          className="text-gray-400 group-hover:text-purple-300 shrink-0 transition-colors"
+                          className={`${
+                            pl.isDeleted
+                              ? 'text-gray-500'
+                              : 'text-gray-400 group-hover:text-purple-300'
+                          } shrink-0 transition-colors`}
                         />
                         <div className="min-w-0 flex-1">
                           <span
                             className={`text-sm font-semibold truncate block ${
-                              isPlayingThis
-                                ? 'text-purple-400 font-bold'
-                                : 'text-white group-hover:text-purple-300 transition-colors'
+                              pl.isDeleted
+                                ? 'text-gray-400 line-through'
+                                : isPlayingThis
+                                  ? 'text-purple-400 font-bold'
+                                  : 'text-white group-hover:text-purple-300 transition-colors'
                             }`}
                           >
                             {pl.title}
                           </span>
-                          <p className="text-xs text-gray-400 truncate flex items-center gap-1">
+                          <p className="text-xs text-gray-400 truncate flex items-center gap-1.5 mt-0.5">
                             {isItemPinned(pl.id) && (
                               <Pin size={11} className="text-purple-400 shrink-0 rotate-45" />
                             )}
-                            <span>Playlist • {pl.creator || 'Eternal'}</span>
+                            {pl.isDeleted ? (
+                              <span className="px-1.5 py-0.2 rounded text-[10px] font-bold uppercase tracking-wider bg-red-500/20 text-red-400 border border-red-500/30">
+                                Deleted
+                              </span>
+                            ) : (
+                              <span>Playlist • {pl.creator || 'Eternal'}</span>
+                            )}
                           </p>
                         </div>
                       </div>
@@ -1592,50 +1661,81 @@ export const MusicLibraryPanel: React.FC = () => {
                   const isSelected = selectedPlaylistId === pl.id;
                   const isPlayingThis =
                     isPlaying && currentTrack && pl.tracks.some((t) => t.id === currentTrack.id);
+                  const isDissolving = dissolvingIds.has(pl.id);
 
                   return (
                     <div
                       key={`lib-list-pl-${pl.id}-${idx}`}
-                      onClick={() => {
+                      onClick={(e) => {
+                        if (pl.isDeleted) {
+                          handleDeletedPlaylistClick(e, pl.id);
+                          return;
+                        }
                         if (isLibraryFullWidth) setLibraryFullWidth(false);
                         setSelectedPlaylistId(pl.id);
                         navigate(`/music/playlist/${pl.id}`);
                       }}
-                      onContextMenu={(e) => handlePlaylistContextMenu(e, pl)}
-                      className={`group relative flex items-center justify-between gap-3 p-2.5 rounded-2xl cursor-pointer transition-all ${
-                        isSelected
-                          ? 'bg-purple-600/20 border border-purple-500/30'
-                          : 'hover:bg-white/5 text-gray-200'
+                      onContextMenu={(e) => !pl.isDeleted && handlePlaylistContextMenu(e, pl)}
+                      className={`group relative flex items-center justify-between gap-3 p-2.5 rounded-2xl cursor-pointer transition-all duration-300 ${
+                        isDissolving
+                          ? 'opacity-0 scale-95 blur-sm pointer-events-none'
+                          : pl.isDeleted
+                            ? 'opacity-60 grayscale hover:opacity-85 hover:bg-red-500/5 border border-dashed border-red-500/20'
+                            : isSelected
+                              ? 'bg-purple-600/20 border border-purple-500/30'
+                              : 'hover:bg-white/5 text-gray-200'
                       }`}
                     >
                       <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                        <div className="relative w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-white/5 bg-[#282828] flex items-center justify-center text-[#b3b3b3] group-hover:scale-105 transition-transform">
+                        <div
+                          className={`relative w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-white/5 bg-[#282828] flex items-center justify-center text-[#b3b3b3] group-hover:scale-105 transition-transform ${
+                            pl.isDeleted ? 'grayscale' : ''
+                          }`}
+                        >
                           {pl.coverUrl ? (
                             <img
                               src={pl.coverUrl}
                               alt={pl.title}
-                              className="w-full h-full object-cover"
+                              className={`w-full h-full object-cover ${pl.isDeleted ? 'grayscale' : ''}`}
                             />
                           ) : (
-                            <Music2 size={22} className="text-[#b3b3b3]" />
+                            <Music2
+                              size={22}
+                              className={pl.isDeleted ? 'text-gray-500' : 'text-[#b3b3b3]'}
+                            />
+                          )}
+                          {pl.isDeleted && (
+                            <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px] flex items-center justify-center">
+                              <span className="text-[9px] font-black uppercase tracking-wider text-red-400 bg-red-950/80 px-1 py-0.5 rounded border border-red-500/40">
+                                Del
+                              </span>
+                            </div>
                           )}
                         </div>
 
                         <div className="min-w-0 flex-1">
                           <p
                             className={`text-sm font-bold truncate ${
-                              isPlayingThis
-                                ? 'text-purple-400 font-bold'
-                                : 'text-white group-hover:text-purple-300 transition-colors'
+                              pl.isDeleted
+                                ? 'text-gray-400 line-through'
+                                : isPlayingThis
+                                  ? 'text-purple-400 font-bold'
+                                  : 'text-white group-hover:text-purple-300 transition-colors'
                             }`}
                           >
                             {pl.title}
                           </p>
-                          <p className="text-xs text-gray-400 truncate mt-0.5 flex items-center gap-1">
+                          <p className="text-xs text-gray-400 truncate mt-0.5 flex items-center gap-1.5">
                             {isItemPinned(pl.id) && (
                               <Pin size={11} className="text-purple-400 shrink-0 rotate-45" />
                             )}
-                            <span>Playlist • {pl.creator || 'Eternal'}</span>
+                            {pl.isDeleted ? (
+                              <span className="px-1.5 py-0.2 rounded text-[10px] font-bold uppercase tracking-wider bg-red-500/20 text-red-400 border border-red-500/30">
+                                Deleted
+                              </span>
+                            ) : (
+                              <span>Playlist • {pl.creator || 'Eternal'}</span>
+                            )}
                           </p>
                         </div>
                       </div>
@@ -1810,45 +1910,73 @@ export const MusicLibraryPanel: React.FC = () => {
                 ))}
 
                 {/* Playlists */}
-                {filteredPlaylists.map((pl, idx) => (
-                  <Tooltip
-                    key={`lib-grid-pl-${pl.id}-${idx}`}
-                    label={`${pl.title} • Playlist`}
-                    position="top"
-                  >
-                    <div
-                      onClick={() => {
-                        if (isLibraryFullWidth) setLibraryFullWidth(false);
-                        setSelectedPlaylistId(pl.id);
-                        navigate(`/music/playlist/${pl.id}`);
-                      }}
-                      onContextMenu={(e) => handlePlaylistContextMenu(e, pl)}
-                      className={`w-full aspect-square rounded-2xl bg-[#282828] border border-white/5 overflow-hidden flex items-center justify-center shadow-lg cursor-pointer group hover:scale-[1.03] transition-all relative ${
-                        selectedPlaylistId === pl.id
-                          ? 'ring-2 ring-purple-500 shadow-purple-500/40'
-                          : ''
-                      }`}
+                {filteredPlaylists.map((pl, idx) => {
+                  const isDissolving = dissolvingIds.has(pl.id);
+                  return (
+                    <Tooltip
+                      key={`lib-grid-pl-${pl.id}-${idx}`}
+                      label={
+                        pl.isDeleted
+                          ? `${pl.title} • Deleted (Click to remove)`
+                          : `${pl.title} • Playlist`
+                      }
+                      position="top"
                     >
-                      {pl.coverUrl ? (
-                        <img
-                          src={pl.coverUrl}
-                          alt={pl.title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <Music2 size={30} className="text-[#b3b3b3]" />
-                      )}
-                      {isItemPinned(pl.id) && (
-                        <div className="absolute top-2 left-2 z-10 w-5 h-5 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center shadow-md">
-                          <Pin size={11} className="text-purple-400 rotate-45" />
-                        </div>
-                      )}
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                        <Play size={24} className="fill-white text-white ml-0.5" />
+                      <div
+                        onClick={(e) => {
+                          if (pl.isDeleted) {
+                            handleDeletedPlaylistClick(e, pl.id);
+                            return;
+                          }
+                          if (isLibraryFullWidth) setLibraryFullWidth(false);
+                          setSelectedPlaylistId(pl.id);
+                          navigate(`/music/playlist/${pl.id}`);
+                        }}
+                        onContextMenu={(e) => !pl.isDeleted && handlePlaylistContextMenu(e, pl)}
+                        className={`w-full aspect-square rounded-2xl bg-[#282828] border border-white/5 overflow-hidden flex items-center justify-center shadow-lg cursor-pointer group transition-all duration-300 relative ${
+                          isDissolving
+                            ? 'opacity-0 scale-75 blur-sm pointer-events-none'
+                            : pl.isDeleted
+                              ? 'opacity-60 grayscale hover:opacity-85 hover:border-red-500/30'
+                              : selectedPlaylistId === pl.id
+                                ? 'ring-2 ring-purple-500 shadow-purple-500/40 hover:scale-[1.03]'
+                                : 'hover:scale-[1.03]'
+                        }`}
+                      >
+                        {pl.coverUrl ? (
+                          <img
+                            src={pl.coverUrl}
+                            alt={pl.title}
+                            className={`w-full h-full object-cover ${pl.isDeleted ? 'grayscale' : ''}`}
+                          />
+                        ) : (
+                          <Music2
+                            size={30}
+                            className={pl.isDeleted ? 'text-gray-500' : 'text-[#b3b3b3]'}
+                          />
+                        )}
+                        {pl.isDeleted ? (
+                          <div className="absolute inset-0 bg-black/60 backdrop-blur-[1px] flex flex-col items-center justify-center gap-1 p-2">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-red-400 bg-red-950/80 px-1.5 py-0.5 rounded border border-red-500/40">
+                              Deleted
+                            </span>
+                          </div>
+                        ) : (
+                          <>
+                            {isItemPinned(pl.id) && (
+                              <div className="absolute top-2 left-2 z-10 w-5 h-5 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center shadow-md">
+                                <Pin size={11} className="text-purple-400 rotate-45" />
+                              </div>
+                            )}
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                              <Play size={24} className="fill-white text-white ml-0.5" />
+                            </div>
+                          </>
+                        )}
                       </div>
-                    </div>
-                  </Tooltip>
-                ))}
+                    </Tooltip>
+                  );
+                })}
 
                 {/* Tracks */}
                 {libraryFilter === 'tracks' &&
@@ -1970,28 +2098,51 @@ export const MusicLibraryPanel: React.FC = () => {
                 {filteredPlaylists.map((pl, idx) => {
                   const isPlayingThis =
                     isPlaying && currentTrack && pl.tracks.some((t) => t.id === currentTrack.id);
+                  const isDissolving = dissolvingIds.has(pl.id);
                   return (
                     <div
                       key={`lib-card-pl-${pl.id}-${idx}`}
-                      onClick={() => {
+                      onClick={(e) => {
+                        if (pl.isDeleted) {
+                          handleDeletedPlaylistClick(e, pl.id);
+                          return;
+                        }
                         if (isLibraryFullWidth) setLibraryFullWidth(false);
                         setSelectedPlaylistId(pl.id);
                         navigate(`/music/playlist/${pl.id}`);
                       }}
-                      onContextMenu={(e) => handlePlaylistContextMenu(e, pl)}
-                      className="group flex flex-col p-3 rounded-2xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/5 hover:border-white/10 cursor-pointer transition-all hover:shadow-xl"
+                      onContextMenu={(e) => !pl.isDeleted && handlePlaylistContextMenu(e, pl)}
+                      className={`group flex flex-col p-3 rounded-2xl cursor-pointer transition-all duration-300 ${
+                        isDissolving
+                          ? 'opacity-0 scale-90 blur-sm pointer-events-none'
+                          : pl.isDeleted
+                            ? 'opacity-60 grayscale hover:opacity-85 bg-red-500/5 border border-dashed border-red-500/20'
+                            : 'bg-white/[0.03] hover:bg-white/[0.08] border border-white/5 hover:border-white/10 hover:shadow-xl'
+                      }`}
                     >
                       <div className="w-full aspect-square rounded-xl bg-[#282828] border border-white/5 relative shadow-md overflow-hidden mb-2.5 flex items-center justify-center">
                         {pl.coverUrl ? (
                           <img
                             src={pl.coverUrl}
                             alt={pl.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            className={`w-full h-full object-cover transition-transform duration-300 ${
+                              pl.isDeleted ? 'grayscale' : 'group-hover:scale-105'
+                            }`}
                           />
                         ) : (
-                          <Music2 size={40} className="text-[#b3b3b3]" />
+                          <Music2
+                            size={40}
+                            className={pl.isDeleted ? 'text-gray-500' : 'text-[#b3b3b3]'}
+                          />
                         )}
-                        {pl.tracks.length > 0 && (
+                        {pl.isDeleted && (
+                          <div className="absolute inset-0 bg-black/60 backdrop-blur-[1px] flex items-center justify-center">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-red-400 bg-red-950/80 px-2 py-0.5 rounded border border-red-500/40">
+                              Deleted
+                            </span>
+                          </div>
+                        )}
+                        {!pl.isDeleted && pl.tracks.length > 0 && (
                           <div className="absolute right-2 bottom-2 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
                             <button
                               type="button"
@@ -2011,14 +2162,26 @@ export const MusicLibraryPanel: React.FC = () => {
                           </div>
                         )}
                       </div>
-                      <p className="text-sm font-bold text-white truncate group-hover:text-purple-300 transition-colors">
+                      <p
+                        className={`text-sm font-bold truncate transition-colors ${
+                          pl.isDeleted
+                            ? 'text-gray-400 line-through'
+                            : 'text-white group-hover:text-purple-300'
+                        }`}
+                      >
                         {pl.title}
                       </p>
-                      <p className="text-xs text-gray-400 truncate mt-0.5 flex items-center gap-1">
+                      <p className="text-xs text-gray-400 truncate mt-1 flex items-center gap-1.5">
                         {isItemPinned(pl.id) && (
                           <Pin size={11} className="text-purple-400 shrink-0 rotate-45" />
                         )}
-                        <span>Playlist • {pl.creator || 'Eternal'}</span>
+                        {pl.isDeleted ? (
+                          <span className="px-1.5 py-0.2 rounded text-[10px] font-bold uppercase tracking-wider bg-red-500/20 text-red-400 border border-red-500/30">
+                            Deleted
+                          </span>
+                        ) : (
+                          <span>Playlist • {pl.creator || 'Eternal'}</span>
+                        )}
                       </p>
                     </div>
                   );
@@ -2245,45 +2408,76 @@ export const MusicLibraryPanel: React.FC = () => {
                         isPlaying &&
                         currentTrack &&
                         pl.tracks.some((t) => t.id === currentTrack.id);
+                      const isDissolving = dissolvingIds.has(pl.id);
                       return (
                         <div
                           key={`lib-fld-pl-${pl.id}-${idx}`}
-                          onClick={() => {
+                          onClick={(e) => {
+                            if (pl.isDeleted) {
+                              handleDeletedPlaylistClick(e, pl.id);
+                              return;
+                            }
                             if (isLibraryFullWidth) setLibraryFullWidth(false);
                             setSelectedPlaylistId(pl.id);
                             navigate(`/music/playlist/${pl.id}`);
                           }}
-                          onContextMenu={(e) => handlePlaylistContextMenu(e, pl)}
-                          className={`group relative flex items-center justify-between gap-3 p-2.5 rounded-2xl cursor-pointer transition-all ${
-                            isSelected
-                              ? 'bg-purple-600/20 border border-purple-500/30'
-                              : 'hover:bg-black/5 dark:hover:bg-white/5 text-gray-700 dark:text-gray-200'
+                          onContextMenu={(e) => !pl.isDeleted && handlePlaylistContextMenu(e, pl)}
+                          className={`group relative flex items-center justify-between gap-3 p-2.5 rounded-2xl cursor-pointer transition-all duration-300 ${
+                            isDissolving
+                              ? 'opacity-0 scale-95 blur-sm pointer-events-none'
+                              : pl.isDeleted
+                                ? 'opacity-60 grayscale hover:opacity-85 hover:bg-red-500/5 border border-dashed border-red-500/20'
+                                : isSelected
+                                  ? 'bg-purple-600/20 border border-purple-500/30'
+                                  : 'hover:bg-black/5 dark:hover:bg-white/5 text-gray-700 dark:text-gray-200'
                           }`}
                         >
                           <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                            <div className="relative w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-black/5 dark:border-white/5 bg-black/5 dark:bg-[#282828] flex items-center justify-center text-[#b3b3b3]">
+                            <div
+                              className={`relative w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-black/5 dark:border-white/5 bg-black/5 dark:bg-[#282828] flex items-center justify-center text-[#b3b3b3] ${
+                                pl.isDeleted ? 'grayscale' : ''
+                              }`}
+                            >
                               {pl.coverUrl ? (
                                 <img
                                   src={pl.coverUrl}
                                   alt={pl.title}
-                                  className="w-full h-full object-cover"
+                                  className={`w-full h-full object-cover ${pl.isDeleted ? 'grayscale' : ''}`}
                                 />
                               ) : (
-                                <Music2 size={22} className="text-[#b3b3b3]" />
+                                <Music2
+                                  size={22}
+                                  className={pl.isDeleted ? 'text-gray-500' : 'text-[#b3b3b3]'}
+                                />
+                              )}
+                              {pl.isDeleted && (
+                                <div className="absolute inset-0 bg-black/60 backdrop-blur-[1px] flex items-center justify-center">
+                                  <span className="text-[9px] font-black uppercase tracking-wider text-red-400 bg-red-950/80 px-1 py-0.5 rounded border border-red-500/40">
+                                    Del
+                                  </span>
+                                </div>
                               )}
                             </div>
                             <div className="min-w-0 flex-1">
                               <p
                                 className={`text-sm font-bold truncate ${
-                                  isPlayingThis
-                                    ? 'text-purple-600 dark:text-purple-400'
-                                    : 'text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors'
+                                  pl.isDeleted
+                                    ? 'text-gray-400 line-through'
+                                    : isPlayingThis
+                                      ? 'text-purple-600 dark:text-purple-400'
+                                      : 'text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors'
                                 }`}
                               >
                                 {pl.title}
                               </p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
-                                Playlist • {formatTracksDeclension(pl.tracks.length)}
+                              <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5 flex items-center gap-1.5">
+                                {pl.isDeleted ? (
+                                  <span className="px-1.5 py-0.2 rounded text-[10px] font-bold uppercase tracking-wider bg-red-500/20 text-red-400 border border-red-500/30">
+                                    Deleted
+                                  </span>
+                                ) : (
+                                  <span>Playlist • {formatTracksDeclension(pl.tracks.length)}</span>
+                                )}
                               </p>
                             </div>
                           </div>

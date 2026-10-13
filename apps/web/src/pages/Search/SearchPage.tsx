@@ -17,18 +17,25 @@ import {
   Flame,
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { useDebounce } from '@/shared/lib/useDebounce';
+import { useCurrentUser } from '@/entities/profile/model/useCurrentUser';
+import { queryStaleTimes } from '@/shared/api/queryClient';
+import { queryKeys } from '@/shared/api/queryKeys';
 import Avatar from '@/shared/ui/Avatar';
 import StyledDisplayName from '@/shared/ui/StyledDisplayName';
 import { apiClient as api } from '@/shared/api/httpClient';
 import { postsApi } from '@/entities/post/api/postsApi';
 import { PostType, PostMedia } from '@/entities/post/model/types';
 import { useUIStore } from '@/shared/model/useUIStore';
-import { PostCard } from '@/widgets/post/ui/PostCard';
+const PostCard = React.lazy(() =>
+  import('@/widgets/post/ui/PostCard').then((m) => ({ default: m.PostCard })),
+);
+import { VirtualPeopleResults } from './VirtualPeopleResults';
 import { FollowButton } from '@/features/follow/ui/FollowButton';
 import { VerifiedCheckmark } from '@/entities/profile/ui/VerifiedCheckmark';
 import { useAuthStore } from '@/shared/model/useAuthStore';
-import { userApi } from '@/entities/profile/api/userApi';
+
 import { SEOHead } from '@/shared/seo';
 import type {
   AvatarDecorationDto,
@@ -131,6 +138,7 @@ function GridMediaCard({ post, onClick }: { post: PostType; onClick: () => void 
 
   return (
     <div
+      style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 250px' }}
       onClick={onClick}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -146,7 +154,7 @@ function GridMediaCard({ post, onClick }: { post: PostType; onClick: () => void 
             muted
             playsInline
             loop
-            preload="metadata"
+            preload="none"
           />
         ) : (
           <img
@@ -208,9 +216,12 @@ export default function SearchPage() {
   const initialTab = (searchParams.get('tab') as SearchTab) || 'All';
 
   const [searchTerm, setSearchTerm] = useState(initialQuery);
-  const [debouncedTerm, setDebouncedTerm] = useState(initialQuery);
+  const debouncedTerm = useDebounce(searchTerm.trim(), 350);
+  const queryClient = useQueryClient();
+  const isSettled = searchTerm.trim() === debouncedTerm;
   const [activeTab, setActiveTab] = useState<SearchTab>(initialTab);
   const [isFocused, setIsFocused] = useState(false);
+  const showDiscovery = !searchTerm.trim() && !isFocused;
   const [recentSearches, setRecentSearches] = useState<SearchUserItem[]>(() => {
     try {
       const saved = localStorage.getItem(RECENT_SEARCHES_KEY);
@@ -228,7 +239,7 @@ export default function SearchPage() {
 
   const inputRef = useRef<HTMLInputElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
-  const hasSyncedRecentRef = useRef(false);
+
   const navigate = useNavigate();
   const currentUserId = useAuthStore((s) => s.userId);
   const openCommentModal = useUIStore((state) => state.openCommentModal);
@@ -264,29 +275,26 @@ export default function SearchPage() {
   if (prevUrlQ !== urlParamQ) {
     setPrevUrlQ(urlParamQ);
     setSearchTerm(urlParamQ);
-    setDebouncedTerm(urlParamQ);
   }
 
-  // Debounce search input
+  // Abort the previous search as soon as input changes, before the next debounce.
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedTerm(searchTerm);
-      if (searchTerm) {
-        setSearchParams({ q: searchTerm, tab: activeTab }, { replace: true });
-      } else {
-        setSearchParams({}, { replace: true });
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchTerm, activeTab, setSearchParams]);
+    if (!isSettled) {
+      void queryClient.cancelQueries({
+        predicate: (query) =>
+          ['user-search', 'searchHashtags', 'searchPosts', 'explorePosts'].includes(
+            String(query.queryKey[0]),
+          ),
+      });
+    }
+  }, [searchTerm, isSettled, queryClient]);
 
-  // Fetch current user profile to ensure own recent avatar and display name are fresh
-  const { data: meProfile } = useQuery({
-    queryKey: ['currentUserProfile'],
-    queryFn: () => userApi.getMe(),
-    staleTime: 10 * 1000,
-    enabled: Boolean(currentUserId),
-  });
+  useEffect(() => {
+    if (!isSettled) return;
+    setSearchParams(debouncedTerm ? { q: debouncedTerm, tab: activeTab } : {}, { replace: true });
+  }, [debouncedTerm, isSettled, activeTab, setSearchParams]);
+
+  const { data: meProfile } = useCurrentUser();
 
   // Sync meProfile with recent searches
   useEffect(() => {
@@ -332,88 +340,37 @@ export default function SearchPage() {
     });
   }, [meProfile]);
 
-  // Refresh all recent searches users on mount
-  useEffect(() => {
-    if (hasSyncedRecentRef.current || recentSearches.length === 0) return;
-    hasSyncedRecentRef.current = true;
-    const usernames = recentSearches.map((u) => u.username).filter(Boolean);
-    if (usernames.length === 0) return;
-
-    Promise.allSettled(
-      usernames.map((un) => api.get<SearchUserItem>(`/users/${un}`).then((r) => r.data)),
-    ).then((results) => {
-      const freshUsers: SearchUserItem[] = [];
-      for (const res of results) {
-        if (res.status === 'fulfilled' && res.value && res.value.id) {
-          freshUsers.push(res.value);
-        }
-      }
-      if (freshUsers.length > 0) {
-        setRecentSearches((prev) => {
-          let changed = false;
-          const updated = prev.map((u) => {
-            const fresh = freshUsers.find(
-              (f) => f.id === u.id || f.username.toLowerCase() === u.username.toLowerCase(),
-            );
-            if (
-              fresh &&
-              (fresh.avatar !== u.avatar ||
-                fresh.displayName !== u.displayName ||
-                fresh.isVerified !== u.isVerified ||
-                fresh.primaryBadge !== u.primaryBadge ||
-                fresh.followersCount !== u.followersCount)
-            ) {
-              changed = true;
-              return {
-                ...u,
-                avatar: fresh.avatar,
-                displayName: fresh.displayName,
-                isVerified: fresh.isVerified,
-                primaryBadge: fresh.primaryBadge,
-                followersCount: fresh.followersCount ?? u.followersCount,
-              };
-            }
-            return u;
-          });
-          if (changed) {
-            try {
-              localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
-            } catch (e) {
-              void e;
-            }
-            return updated;
-          }
-          return prev;
-        });
-      }
-    });
-  }, [recentSearches]);
+  // Recent-search snapshots are refreshed when opening a profile, not with N requests on mount.
 
   // 1. Trending Hashtags
   const { data: trendingHashtags = [] } = useQuery<HashtagItem[]>({
     queryKey: ['trendingHashtags'],
-    queryFn: async () => {
-      const res = await api.get<HashtagItem[]>('/users/trending-hashtags?limit=6');
+    enabled: showDiscovery,
+    queryFn: async ({ signal }) => {
+      const res = await api.get<HashtagItem[]>('/users/trending-hashtags?limit=6', { signal });
       return Array.isArray(res.data) ? res.data : [];
     },
-    staleTime: 60 * 1000,
+    staleTime: queryStaleTimes.recommendations,
   });
 
   // 2. Suggested Creators
   const { data: suggestedUsers = [] } = useQuery<SearchUserItem[]>({
-    queryKey: ['suggestedUsers'],
-    queryFn: async () => {
-      const res = await api.get<SearchUserItem[]>('/users/suggested?limit=5');
+    queryKey: queryKeys.user.suggested(5),
+    enabled: showDiscovery,
+    queryFn: async ({ signal }) => {
+      const res = await api.get<SearchUserItem[]>('/users/suggested?limit=5', { signal });
       return Array.isArray(res.data) ? res.data : [];
     },
-    staleTime: 60 * 1000,
+    staleTime: queryStaleTimes.recommendations,
   });
 
   // 3. Top Creators by followers
   const { data: topUsers = [] } = useQuery<SearchUserItem[]>({
     queryKey: ['topFollowedUsers'],
-    queryFn: async () => {
-      const res = await api.get<SearchUserItem[]>('/users/top?limit=5');
+    enabled: showDiscovery,
+    staleTime: queryStaleTimes.recommendations,
+    queryFn: async ({ signal }) => {
+      const res = await api.get<SearchUserItem[]>('/users/top?limit=5', { signal });
       return Array.isArray(res.data) ? res.data : [];
     },
   });
@@ -423,28 +380,36 @@ export default function SearchPage() {
   const cleanSearchTerm = debouncedTerm.replace(/^#+/, '');
 
   const { data: searchUsers = [] } = useQuery<SearchUserItem[]>({
-    queryKey: ['searchUsers', debouncedTerm],
-    queryFn: async () => {
+    queryKey: queryKeys.user.search(debouncedTerm),
+    queryFn: async ({ signal }) => {
       if (!debouncedTerm || isHashtagSearch) return [];
       const res = await api.get<SearchUserItem[]>('/users/search', {
         params: { q: debouncedTerm },
+        signal,
       });
       return Array.isArray(res.data) ? res.data : [];
     },
-    enabled: !!debouncedTerm && !isHashtagSearch,
+    enabled:
+      isSettled &&
+      !!debouncedTerm &&
+      !isHashtagSearch &&
+      (activeTab === 'All' || activeTab === 'People'),
+    staleTime: queryStaleTimes.search,
   });
 
   // 5. Live Hashtag Search Results
   const { data: searchHashtags = [] } = useQuery<HashtagItem[]>({
     queryKey: ['searchHashtags', cleanSearchTerm],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       if (!cleanSearchTerm) return [];
       const res = await api.get<HashtagItem[]>('/users/hashtags', {
         params: { q: cleanSearchTerm },
+        signal,
       });
       return Array.isArray(res.data) ? res.data : [];
     },
-    enabled: !!cleanSearchTerm,
+    enabled: isSettled && !!cleanSearchTerm && (activeTab === 'All' || activeTab === 'Hashtags'),
+    staleTime: queryStaleTimes.search,
   });
 
   // 6. Posts Search Results (Text Posts)
@@ -456,10 +421,12 @@ export default function SearchPage() {
     isFetchingNextPage: isFetchingNextPosts,
   } = useInfiniteQuery({
     queryKey: ['searchPosts', debouncedTerm],
-    queryFn: ({ pageParam }) => postsApi.searchPosts(debouncedTerm, pageParam, 10, false),
+    queryFn: ({ pageParam, signal }) =>
+      postsApi.searchPosts(debouncedTerm, pageParam, 10, false, signal),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
-    enabled: !!debouncedTerm && (activeTab === 'All' || activeTab === 'Posts'),
+    enabled: isSettled && !!debouncedTerm && (activeTab === 'All' || activeTab === 'Posts'),
+    staleTime: queryStaleTimes.search,
   });
 
   const matchingPosts = postsData?.pages.flatMap((p) => p.posts) ?? [];
@@ -473,14 +440,18 @@ export default function SearchPage() {
     isFetchingNextPage: isFetchingNextExplore,
   } = useInfiniteQuery({
     queryKey: ['explorePosts', debouncedTerm, isHashtagSearch],
-    queryFn: ({ pageParam }) => {
+    enabled:
+      isSettled &&
+      (showDiscovery || (!!debouncedTerm && (activeTab === 'All' || activeTab === 'Media'))),
+    staleTime: queryStaleTimes.search,
+    queryFn: ({ pageParam, signal }) => {
       if (isHashtagSearch) {
-        return postsApi.getPostsByHashtag(cleanSearchTerm, pageParam, 9);
+        return postsApi.getPostsByHashtag(cleanSearchTerm, pageParam, 9, signal);
       }
       if (debouncedTerm) {
-        return postsApi.searchPosts(debouncedTerm, pageParam, 9, true);
+        return postsApi.searchPosts(debouncedTerm, pageParam, 9, true, signal);
       }
-      return postsApi.getExplorePosts(pageParam, 9);
+      return postsApi.getExplorePosts(pageParam, 9, signal);
     },
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
@@ -523,7 +494,6 @@ export default function SearchPage() {
   const handleHashtagClick = (tag: string) => {
     const formatted = `#${tag}`;
     setSearchTerm(formatted);
-    setDebouncedTerm(formatted);
     setIsFocused(false);
   };
 
@@ -539,7 +509,7 @@ export default function SearchPage() {
   ];
 
   return (
-    <div className="w-full flex flex-col gap-6 animate-fadeIn pb-16">
+    <div className="w-full flex flex-col gap-6 animate-fadeInOverlay pb-16">
       <SEOHead
         title={searchTerm ? `Search "${searchTerm}" • Eternal` : 'Explore & Search • Eternal'}
         description="Search creators, hashtags, stories, and popular community discussions across Eternal."
@@ -554,7 +524,6 @@ export default function SearchPage() {
             onClick={() => {
               setIsFocused(false);
               setSearchTerm('');
-              setDebouncedTerm('');
             }}
             className="p-2.5 rounded-full hover:bg-white/[0.08] text-gray-300 hover:text-white transition-colors cursor-pointer"
             title="Go back"
@@ -580,7 +549,6 @@ export default function SearchPage() {
               type="button"
               onClick={() => {
                 setSearchTerm('');
-                setDebouncedTerm('');
                 inputRef.current?.focus();
               }}
               className="absolute right-3.5 p-1 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
@@ -987,11 +955,9 @@ export default function SearchPage() {
                       <span className="text-white font-bold text-sm">Posts</span>
                       <div className="flex flex-col gap-4">
                         {matchingPosts.map((post) => (
-                          <PostCard
-                            key={post.id}
-                            post={post}
-                            queryKey={['searchPosts', debouncedTerm]}
-                          />
+                          <React.Suspense key={post.id} fallback={null}>
+                            <PostCard post={post} queryKey={['searchPosts', debouncedTerm]} />
+                          </React.Suspense>
                         ))}
                       </div>
                     </div>
@@ -1018,55 +984,11 @@ export default function SearchPage() {
                       No users found matching "{debouncedTerm}"
                     </div>
                   ) : (
-                    <div className="divide-y divide-white/[0.03]">
-                      {searchUsers.map((u: SearchUserItem) => (
-                        <div
-                          key={u.id}
-                          onClick={() => handleUserClick(u)}
-                          className="nameplate-row py-3 flex items-center justify-between gap-3 hover:bg-white/[0.02] rounded-2xl px-2 -mx-2 cursor-pointer group"
-                        >
-                          <Nameplate nameplate={u.activeNameplate} alwaysPlay={true} />
-                          <div data-nameplate-text className="flex items-center gap-3.5 min-w-0">
-                            <Avatar
-                              src={u.avatar}
-                              decoration={u.activeDecoration}
-                              userId={u.id}
-                              size="md"
-                            />
-                            <div className="flex flex-col min-w-0">
-                              <div className="flex items-center gap-1.5 truncate">
-                                <StyledDisplayName
-                                  name={u.displayName || u.username}
-                                  style={u.displayNameStyle}
-                                  userId={u.id}
-                                  className="text-white font-semibold text-sm group-hover:text-purple-300 truncate"
-                                />
-                                <VerifiedCheckmark
-                                  isVerified={u.isVerified}
-                                  primaryBadge={u.primaryBadge}
-                                  size="sm"
-                                />
-                              </div>
-                              <span className="text-xs text-gray-400 truncate">
-                                @{u.username} · {formatCount(u.followersCount)} followers
-                              </span>
-                              {u.bio && (
-                                <span className="text-xs text-gray-300 mt-1 line-clamp-1">
-                                  {u.bio}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          {currentUserId !== u.id && (
-                            <FollowButton
-                              authorId={u.id}
-                              isFollowing={u.isFollowing ?? false}
-                              className="shrink-0 text-xs px-3.5 py-1"
-                            />
-                          )}
-                        </div>
-                      ))}
-                    </div>
+                    <VirtualPeopleResults
+                      users={searchUsers}
+                      currentUserId={currentUserId}
+                      onSelect={handleUserClick}
+                    />
                   )}
                 </div>
               )}
@@ -1089,11 +1011,9 @@ export default function SearchPage() {
                     </div>
                   ) : (
                     matchingPosts.map((post) => (
-                      <PostCard
-                        key={post.id}
-                        post={post}
-                        queryKey={['searchPosts', debouncedTerm]}
-                      />
+                      <React.Suspense key={post.id} fallback={null}>
+                        <PostCard post={post} queryKey={['searchPosts', debouncedTerm]} />
+                      </React.Suspense>
                     ))
                   )}
                 </div>

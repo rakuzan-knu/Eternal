@@ -256,7 +256,7 @@ const EN_UI: LegalUITranslation = {
           id: 'who-we-are',
           title: '1.3 Who Runs Eternal',
           content: [
-            'Eternal is operated by Eternal Inc. When you use our services, we act as the data controller of your account information under applicable global privacy regulations.',
+            'Eternal is operated in Ukraine by its founders Ag Mykola and Ag Mihal. When you use our services, we act as the data controller of your account information under applicable global privacy regulations.',
           ],
         },
       ],
@@ -670,7 +670,7 @@ const UK_UI: LegalUITranslation = {
           id: 'who-we-are',
           title: '1.3 Хто керує Eternal',
           content: [
-            'Eternal управляється компанією Eternal Inc. Ми виступаємо розпорядником даних вашого облікового запису відповідно до міжнародного законодавства про захист персональних даних.',
+            'Eternal — це проєкт, яким керують засновники Ag Mykola та Ag Mihal, які керують проєктом Eternal в Україні. Ми виступаємо розпорядником даних вашого облікового запису відповідно до міжнародного законодавства про захист персональних даних.',
           ],
         },
       ],

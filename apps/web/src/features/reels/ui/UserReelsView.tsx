@@ -55,11 +55,9 @@ export const UserReelsView: React.FC<UserReelsViewProps> = ({ userId }) => {
               className="w-full h-full object-cover"
             />
           ) : (
-            <video
-              src={reel.videoUrl}
-              className="w-full h-full object-cover pointer-events-none"
-              preload="metadata"
-            />
+            <div className="w-full h-full flex items-center justify-center bg-linear-to-b from-zinc-800 to-zinc-950">
+              <Film className="w-8 h-8 text-zinc-500" aria-hidden="true" />
+            </div>
           )}
 
           {/* Dark gradient on bottom */}

@@ -21,7 +21,7 @@ import ReactionBadge from './ReactionBadge';
 import { triggerFlyingReaction } from '../lib/reactionBurstEngine';
 import MessageContextMenu from './MessageContextMenu';
 import DeleteMessageModal from './DeleteMessageModal';
-import MediaLightbox from './MediaLightbox';
+import { DeferredMediaLightbox as MediaLightbox } from './DeferredChatOverlays';
 import MessageAttachments from './MessageAttachments';
 import ChatPollCard from './ChatPollCard';
 import { parseChatPoll } from '../lib/chatPoll';
@@ -447,6 +447,17 @@ export default function MessageBubble({
         message.attachments[0].height &&
         message.attachments[0].width === message.attachments[0].height));
 
+  const hasVisualMedia = Boolean(
+    message.attachments?.some(
+      (a) =>
+        a.type === 'IMAGE' ||
+        a.type === 'GIF' ||
+        a.type === 'VIDEO' ||
+        isVideoAttachment(a) ||
+        isImageAttachment(a),
+    ),
+  );
+
   const isMediaOnly =
     !pollData &&
     !isSoloEmoji &&
@@ -508,7 +519,6 @@ export default function MessageBubble({
   return (
     <div
       id={`msg-${message.id}`}
-      style={{ contain: 'layout paint' }}
       className={`group relative w-full flex items-center gap-2 px-1 sm:px-1.5 ${verticalSpacingClass} ${
         isOwnMessage ? 'justify-end' : 'justify-start'
       } ${showHoverBar ? 'z-20' : 'z-0'}`}
@@ -815,19 +825,21 @@ export default function MessageBubble({
                     ? message.forwardedFrom
                       ? 'pt-2.5 px-2.5 pb-1.5'
                       : 'p-1'
-                    : 'px-3.5 py-2'
+                    : hasVisualMedia
+                      ? 'p-1 pb-2'
+                      : 'px-3.5 py-2'
                 } ${
                   isOwnMessage
                     ? hasLinkPreview
                       ? 'w-full max-w-115 sm:max-w-125 min-w-65'
-                      : isMediaOnly
+                      : hasVisualMedia
                         ? 'w-fit min-w-[260px] sm:min-w-[320px] max-w-[440px] sm:max-w-[480px]'
                         : message.replyTo
                           ? 'w-fit min-w-52.5 sm:min-w-60 max-w-[88%] sm:max-w-130'
                           : 'w-fit min-w-18.75 sm:min-w-21.25 max-w-[88%] sm:max-w-130'
                     : hasLinkPreview
                       ? 'w-full max-w-105 sm:max-w-115 min-w-65'
-                      : isMediaOnly
+                      : hasVisualMedia
                         ? 'w-fit min-w-[260px] sm:min-w-[320px] max-w-[440px] sm:max-w-[480px]'
                         : message.replyTo
                           ? 'w-fit min-w-52.5 sm:min-w-60 max-w-[82%] sm:max-w-110'
@@ -992,7 +1004,11 @@ export default function MessageBubble({
                   )}
 
                 {message.body && (
-                  <div className="relative text-[14.5px] leading-[1.38] wrap-anywhere w-full">
+                  <div
+                    className={`relative text-[14.5px] leading-[1.38] wrap-anywhere w-full ${
+                      hasVisualMedia ? 'px-2 pt-1' : ''
+                    }`}
+                  >
                     {resolvedDisplayText && (
                       <div
                         className={`font-normal ${themeTextStyle.className}`}

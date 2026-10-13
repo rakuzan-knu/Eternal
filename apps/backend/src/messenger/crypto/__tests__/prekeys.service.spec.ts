@@ -25,7 +25,14 @@ describe('PrekeysService', () => {
       replenishPrekeys: jest.fn(),
       countRemainingPrekeys: jest.fn(),
     };
-    service = new PrekeysService(mockPrekeysRepo);
+    service = new PrekeysService(
+      mockPrekeysRepo,
+      {
+        loadContext: jest.fn().mockResolvedValue({}),
+        resolve: jest.fn().mockReturnValue(true),
+      } as any,
+      { getClient: () => ({ eval: jest.fn().mockResolvedValue(1) }) } as any,
+    );
   });
 
   it('delegates uploadBundle to repository', async () => {
@@ -44,12 +51,12 @@ describe('PrekeysService', () => {
 
   it('throws NotFoundException when target prekey bundle does not exist', async () => {
     mockPrekeysRepo.consumePrekeyBundle.mockResolvedValue(null);
-    await expect(service.getPrekeyBundle('missing-user')).rejects.toThrow(NotFoundException);
+    await expect(service.getPrekeyBundle('missing-user', 'u-1')).rejects.toThrow(NotFoundException);
   });
 
   it('returns bundle when target user prekey exists', async () => {
     mockPrekeysRepo.consumePrekeyBundle.mockResolvedValue(mockBundle);
-    const res = await service.getPrekeyBundle('u-2');
+    const res = await service.getPrekeyBundle('u-2', 'u-1');
     expect(res.userId).toBe('u-2');
     expect(res.oneTimePrekey?.keyId).toBe(1);
   });

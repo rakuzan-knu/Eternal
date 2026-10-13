@@ -1,3 +1,4 @@
+import { updateConversationLists, getCachedConversations } from './chatCacheSync';
 import { useCallback, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useChatSocket } from './useChatSocket';
@@ -6,6 +7,7 @@ import { queryKeys } from '@/shared/api/queryKeys';
 import { chatApi } from '../api/chatApi';
 import { emitWithAck } from './socketAck';
 import { updateCachedPages, dedupeMessages, applyReactionMessage } from './chatCacheSync';
+import { flushRealtimeChatBatch } from './realtimeChatBatch';
 import { nextMessageStatus } from './messageStatus';
 import {
   decryptMessageForDisplay,
@@ -44,6 +46,7 @@ export function useMessageActions(conversationId: string | null) {
   const updatePages = useCallback(
     (updater: (pages: PaginatedMessages[]) => PaginatedMessages[]) => {
       if (!conversationId) return;
+      flushRealtimeChatBatch(queryClient);
       updateCachedPages(queryClient, conversationId, updater);
     },
     [conversationId, queryClient],
@@ -191,7 +194,7 @@ export function useMessageActions(conversationId: string | null) {
       let outgoingText = text;
       if (opts?.encrypt && text.trim() && userId) {
         const peerId = resolveDirectPeerUserId(
-          queryClient.getQueryData<ConversationPeerView[]>(queryKeys.conversations.root),
+          getCachedConversations(queryClient),
           conversationId,
           userId,
         );
@@ -338,6 +341,7 @@ export function useMessageActions(conversationId: string | null) {
   const retrySendMessage = useCallback(
     async (failedMessageId: string) => {
       if (!conversationId) return;
+      flushRealtimeChatBatch(queryClient);
       const data = queryClient.getQueryData<InfiniteMessagesData>(
         queryKeys.conversations.messages(conversationId),
       );
@@ -493,7 +497,7 @@ export function useMessageActions(conversationId: string | null) {
       if (originalBody && conversationId && userId && e2eeManager.isEncrypted(originalBody)) {
         try {
           const peerId = resolveDirectPeerUserId(
-            queryClient.getQueryData<ConversationPeerView[]>(queryKeys.conversations.root),
+            getCachedConversations(queryClient),
             conversationId,
             userId,
           );
@@ -586,9 +590,7 @@ export function useMessageActions(conversationId: string | null) {
       // ciphertext in the target dialog. Decrypt with the SOURCE peer, then
       // re-encrypt per TARGET (explicit user-chosen targets without E2EE go
       // plaintext — same rule as the send path).
-      const conversations = queryClient.getQueryData<ConversationPeerView[]>(
-        queryKeys.conversations.root,
-      );
+      const conversations = getCachedConversations(queryClient);
       const sourcePeer = resolveDirectPeerUserId(conversations, message.conversationId, userId);
       const plain = await decryptMessageForDisplay(message.body, {
         peerUserId: sourcePeer,
@@ -701,6 +703,7 @@ export function useMessageActions(conversationId: string | null) {
               emoji,
             });
             if (res?.message && conversationId) {
+              flushRealtimeChatBatch(queryClient);
               applyReactionMessage(
                 queryClient,
                 conversationId,
@@ -718,6 +721,7 @@ export function useMessageActions(conversationId: string | null) {
         if (!applied && conversationId) {
           const updated = await chatApi.addReaction(conversationId, messageId, emoji);
           if (updated) {
+            flushRealtimeChatBatch(queryClient);
             applyReactionMessage(queryClient, conversationId, updated, currentUserId);
           }
         }
@@ -766,6 +770,7 @@ export function useMessageActions(conversationId: string | null) {
               emoji,
             });
             if (res?.message && conversationId) {
+              flushRealtimeChatBatch(queryClient);
               applyReactionMessage(
                 queryClient,
                 conversationId,
@@ -783,6 +788,7 @@ export function useMessageActions(conversationId: string | null) {
         if (!applied && conversationId) {
           const updated = await chatApi.removeReaction(conversationId, messageId, emoji);
           if (updated) {
+            flushRealtimeChatBatch(queryClient);
             applyReactionMessage(queryClient, conversationId, updated, currentUserId);
           }
         }
@@ -841,14 +847,11 @@ export function useMessageActions(conversationId: string | null) {
       }
 
       markReadTimeoutRef.current = setTimeout(() => {
-        queryClient.setQueryData<ConversationView[]>(
-          queryKeys.conversations.root,
-          (prev: ConversationView[] | undefined) =>
-            prev?.map((conversation: ConversationView) =>
-              conversation.id === conversationId
-                ? { ...conversation, unreadCount: 0 }
-                : conversation,
-            ),
+        flushRealtimeChatBatch(queryClient);
+        updateConversationLists(queryClient, (prev: ConversationView[] | undefined) =>
+          prev?.map((conversation: ConversationView) =>
+            conversation.id === conversationId ? { ...conversation, unreadCount: 0 } : conversation,
+          ),
         );
         socket.emit('markRead', { conversationId, messageId: lastReadMessageId });
         chatApi.markRead?.(conversationId)?.catch?.(() => {});
@@ -880,6 +883,7 @@ export function useMessageActions(conversationId: string | null) {
   const batchForwardMessages = useCallback(
     async (messageIds: string[], conversationIds: string[], hideAuthor = false) => {
       if (!conversationId || messageIds.length === 0 || conversationIds.length === 0) return;
+      flushRealtimeChatBatch(queryClient);
       // Envelopes must never take the server batch path (it copies bodies
       // verbatim): fan out client-side per message when any id is encrypted.
       const data = queryClient.getQueryData<InfiniteMessagesData>(
@@ -912,98 +916,6 @@ export function useMessageActions(conversationId: string | null) {
     [conversationId, queryClient, forwardMessage],
   );
 
-  const loadAroundMessages = useCallback(
-    async (messageId: string) => {
-      if (!conversationId) return;
-      const res = await chatApi.getMessagesAround(conversationId, messageId);
-      if (res && res.data) {
-        updatePages((pages) => {
-          if (pages.length === 0) return [res];
-          const existingIds = new Set(pages.flatMap((p) => p.data.map((m) => m.id)));
-          const newMessages = res.data.filter((m) => !existingIds.has(m.id));
-          if (newMessages.length === 0) return pages;
-          const merged = [...pages[0].data, ...newMessages].sort(
-            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-          );
-          return [{ ...pages[0], data: merged }, ...pages.slice(1)];
-        });
-      }
-      return res;
-    },
-    [conversationId, updatePages],
-  );
-
-  const loadAroundDate = useCallback(
-    async (dateIso: string) => {
-      if (!conversationId) return;
-      const res = await chatApi.getMessagesAroundDate(conversationId, dateIso);
-      if (res && res.data) {
-        updatePages((pages) => {
-          if (pages.length === 0) return [res];
-          const existingIds = new Set(pages.flatMap((p) => p.data.map((m) => m.id)));
-          const newMessages = res.data.filter((m) => !existingIds.has(m.id));
-          if (newMessages.length === 0) return pages;
-          const merged = [...pages[0].data, ...newMessages].sort(
-            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-          );
-          return [{ ...pages[0], data: merged }, ...pages.slice(1)];
-        });
-      }
-      return res;
-    },
-    [conversationId, updatePages],
-  );
-
-  const loadOlderMessages = useCallback(
-    async (beforeMessageId: string) => {
-      if (!conversationId) return;
-      const res = await chatApi.getMessages(conversationId, beforeMessageId, 50);
-      if (res && res.data && res.data.length > 0) {
-        updatePages((pages) => {
-          const existingIds = new Set(pages.flatMap((p) => p.data.map((m) => m.id)));
-          const newMessages = res.data.filter((m) => !existingIds.has(m.id));
-          if (newMessages.length === 0) return pages;
-          const merged = [...pages[0].data, ...newMessages].sort(
-            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-          );
-          return [
-            { ...pages[0], data: merged, hasMore: res.hasMore, nextCursor: res.nextCursor },
-            ...pages.slice(1),
-          ];
-        });
-      }
-      return res;
-    },
-    [conversationId, updatePages],
-  );
-
-  const loadNewerMessages = useCallback(
-    async (afterMessageId: string) => {
-      if (!conversationId) return;
-      const res = await chatApi.getMessages(conversationId, undefined, 50, afterMessageId);
-      if (res && res.data && res.data.length > 0) {
-        updatePages((pages) => {
-          const existingIds = new Set(pages.flatMap((p) => p.data.map((m) => m.id)));
-          const newMessages = res.data.filter((m) => !existingIds.has(m.id));
-          if (newMessages.length === 0) return pages;
-          const merged = [...pages[0].data, ...newMessages].sort(
-            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-          );
-          return [{ ...pages[0], data: merged }, ...pages.slice(1)];
-        });
-      }
-      return res;
-    },
-    [conversationId, updatePages],
-  );
-
-  const resetToLive = useCallback(async () => {
-    if (!conversationId) return;
-    await queryClient.invalidateQueries({
-      queryKey: queryKeys.conversations.messages(conversationId),
-    });
-  }, [conversationId, queryClient]);
-
   return {
     sendMessage,
     retrySendMessage,
@@ -1012,11 +924,6 @@ export function useMessageActions(conversationId: string | null) {
     batchDeleteMessages,
     forwardMessage,
     batchForwardMessages,
-    loadAroundMessages,
-    loadAroundDate,
-    loadOlderMessages,
-    loadNewerMessages,
-    resetToLive,
     addReaction,
     removeReaction,
     pinMessage,

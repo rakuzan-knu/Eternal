@@ -1,3 +1,4 @@
+import { issueOAuthState, consumeOAuthState, setOAuthCookie } from '../common/security/oauth-state';
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { RedisService } from '../redis/redis.service';
@@ -86,12 +87,13 @@ export class IntegrationsService {
     return null;
   }
 
-  getSteamAuthUrl(userId: string, req: Request): string {
+  async getSteamAuthUrl(userId: string, req: Request, existingState?: string): Promise<string> {
     const host = req.get('host') || 'localhost:3000';
     const protocol = req.protocol || 'http';
     const backendUrl = `${protocol}://${host}`;
 
-    const returnTo = `${backendUrl}/integrations/steam/callback?userId=${encodeURIComponent(userId || '')}`;
+    const state = existingState || (await issueOAuthState(this.redis, 'steam', userId));
+    const returnTo = `${backendUrl}/integrations/steam/callback?state=${encodeURIComponent(state)}`;
     const steamUrl = new URL('https://steamcommunity.com/openid/login');
     steamUrl.searchParams.set('openid.ns', 'http://specs.openid.net/auth/2.0');
     steamUrl.searchParams.set('openid.mode', 'checkid_setup');
@@ -108,14 +110,19 @@ export class IntegrationsService {
     return steamUrl.toString();
   }
 
-  async handleSteamCallback(query: Record<string, unknown>, res: Response): Promise<void> {
+  async handleSteamCallback(
+    query: Record<string, unknown>,
+    res: Response,
+    browserState?: string,
+  ): Promise<void> {
     const claimedId =
       typeof query['openid.claimed_id'] === 'string'
         ? query['openid.claimed_id']
         : typeof query['openid.identity'] === 'string'
           ? query['openid.identity']
           : null;
-    const userId = typeof query['userId'] === 'string' ? query['userId'] : null;
+    const state = typeof query.state === 'string' ? query.state : undefined;
+    const { userId } = await consumeOAuthState(this.redis, 'steam', state, undefined, browserState);
 
     if (!claimedId) {
       res.status(400).send('Invalid OpenID response from Steam');
@@ -123,13 +130,27 @@ export class IntegrationsService {
     }
 
     // Extract 64-bit Steam ID strictly validating digits
-    const match = claimedId.match(/\/id\/(\d{15,25})$/);
+    const match = claimedId.match(/^https:\/\/steamcommunity\.com\/openid\/id\/(\d{17})$/);
     if (!match) {
       res.status(400).send('Invalid Steam OpenID claimed ID format');
       return;
     }
     const steamId = match[1];
 
+    const verification = new URLSearchParams();
+    for (const [key, value] of Object.entries(query)) {
+      if (key.startsWith('openid.') && typeof value === 'string') verification.set(key, value);
+    }
+    verification.set('openid.mode', 'check_authentication');
+    const verified = await fetch('https://steamcommunity.com/openid/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: verification,
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!verified.ok || !(await verified.text()).split(/\r?\n/).includes('is_valid:true')) {
+      throw new BadRequestException('Invalid Steam provider assertion');
+    }
     // Fetch verified Steam data
     const steamData = await this.fetchSteam(steamId, { featuredGame: 'dota2' });
 
@@ -214,7 +235,13 @@ export class IntegrationsService {
 </html>`);
   }
 
-  handlePlatformOAuthStart(platform: string, userId: string, req: Request, res: Response): void {
+  async handlePlatformOAuthStart(
+    platform: string,
+    userId: string,
+    req: Request,
+    res: Response,
+    asJson = false,
+  ): Promise<void> {
     const host = req.get('host') || 'localhost:3000';
     const protocol = req.protocol || 'http';
     const backendUrl = `${protocol}://${host}`;
@@ -241,18 +268,27 @@ export class IntegrationsService {
       isVercel = false;
     }
 
-    // If GitHub, redirect to /auth/github
+    const finish = (url: string) => {
+      if (asJson) res.send({ url });
+      else res.redirect(url);
+    };
+    const state = await issueOAuthState(this.redis, p, userId);
+    setOAuthCookie(res, p, state);
     if (p === 'github') {
-      return res.redirect(
-        `${backendUrl}/auth/github?userId=${encodeURIComponent(userId || '')}&origin=${encodeURIComponent(clientOrigin)}`,
+      const url = new URL('https://github.com/login/oauth/authorize');
+      url.searchParams.set('client_id', process.env.GITHUB_CLIENT_ID || '');
+      const githubCallback = process.env.GITHUB_CALLBACK_URL;
+      url.searchParams.set(
+        'redirect_uri',
+        githubCallback && !githubCallback.includes(':5000')
+          ? githubCallback
+          : `http://localhost:${process.env.PORT || 3000}/api/auth/github/callback`,
       );
+      url.searchParams.set('scope', 'read:user');
+      url.searchParams.set('state', state);
+      return finish(url.toString());
     }
-
-    if (p === 'steam') {
-      return res.redirect(
-        `${backendUrl}/integrations/steam/auth?userId=${encodeURIComponent(userId || '')}&origin=${encodeURIComponent(clientOrigin)}`,
-      );
-    }
+    if (p === 'steam') return finish(await this.getSteamAuthUrl(userId, req, state));
 
     if (p === 'spotify' && process.env.SPOTIFY_CLIENT_ID) {
       const spotifyUrl = new URL('https://accounts.spotify.com/authorize');
@@ -266,8 +302,8 @@ export class IntegrationsService {
         'redirect_uri',
         process.env.SPOTIFY_CALLBACK_URL || `${backendUrl}/api/auth/spotify/callback`,
       );
-      spotifyUrl.searchParams.set('state', userId || '');
-      return res.redirect(spotifyUrl.toString());
+      spotifyUrl.searchParams.set('state', state);
+      return finish(spotifyUrl.toString());
     }
 
     if (p === 'twitch' && process.env.TWITCH_CLIENT_ID) {
@@ -278,8 +314,8 @@ export class IntegrationsService {
         process.env.TWITCH_CALLBACK_URL || `${backendUrl}/integrations/twitch/callback`;
       twitchUrl.searchParams.set('redirect_uri', redirectUri);
       twitchUrl.searchParams.set('scope', 'user:read:email channel:read:subscriptions');
-      twitchUrl.searchParams.set('state', `twitch:${userId || ''}`);
-      return res.redirect(twitchUrl.toString());
+      twitchUrl.searchParams.set('state', state);
+      return finish(twitchUrl.toString());
     }
 
     if (p === 'youtube' && process.env.GOOGLE_CLIENT_ID) {
@@ -299,8 +335,8 @@ export class IntegrationsService {
       googleUrl.searchParams.set('scope', 'https://www.googleapis.com/auth/youtube.readonly');
       googleUrl.searchParams.set('access_type', 'offline');
       googleUrl.searchParams.set('prompt', 'consent');
-      googleUrl.searchParams.set('state', `youtube:${userId || ''}`);
-      return res.redirect(googleUrl.toString());
+      googleUrl.searchParams.set('state', state);
+      return finish(googleUrl.toString());
     }
 
     if (p === 'roblox') {
@@ -331,10 +367,11 @@ export class IntegrationsService {
     redirectUri?: string,
     userId?: string,
     state?: string,
+    browserState?: string,
   ): Promise<{ success: boolean; data: Record<string, unknown> | null }> {
     const p = platform.toLowerCase();
-    const rawTarget = userId || state || '';
-    const targetUserId = rawTarget.replace(/^[a-z]+:/i, '');
+    const identity = await consumeOAuthState(this.redis, p, state, userId, browserState);
+    const targetUserId = identity.userId;
     let data: Record<string, unknown> | null = null;
 
     if (p === 'youtube' && process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
@@ -820,15 +857,16 @@ export class IntegrationsService {
       return;
     }
 
-    const userId =
-      typeof query['userId'] === 'string'
-        ? query['userId']
-        : typeof query['state'] === 'string'
-          ? query['state']
-          : '';
-
+    const state = typeof query.state === 'string' ? query.state : '';
     try {
-      await this.exchangeOAuthCode(p, code, undefined, userId);
+      await this.exchangeOAuthCode(
+        p,
+        code,
+        undefined,
+        undefined,
+        state,
+        typeof query.browserState === 'string' ? query.browserState : undefined,
+      );
     } catch {
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       res.status(400).send(`<!DOCTYPE html>

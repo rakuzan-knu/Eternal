@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { withObjectUrl } from '@/shared/lib/blobResources';
 import { createPortal } from 'react-dom';
 import {
   X,
@@ -527,25 +528,29 @@ export default function MediaLightbox({
           if (fetchedBlob.type === 'image/png') {
             pngBlob = fetchedBlob;
           } else {
-            pngBlob = await new Promise<Blob | null>((resolve) => {
-              const img = new Image();
-              img.crossOrigin = 'anonymous';
-              img.onload = () => {
-                try {
-                  const canvas = document.createElement('canvas');
-                  canvas.width = img.naturalWidth || 800;
-                  canvas.height = img.naturalHeight || 600;
-                  const ctx = canvas.getContext('2d');
-                  if (!ctx) return resolve(null);
-                  ctx.drawImage(img, 0, 0);
-                  canvas.toBlob((b) => resolve(b), 'image/png');
-                } catch {
-                  resolve(null);
-                }
-              };
-              img.onerror = () => resolve(null);
-              img.src = URL.createObjectURL(fetchedBlob);
-            });
+            pngBlob = await withObjectUrl(
+              fetchedBlob,
+              (url) =>
+                new Promise<Blob | null>((resolve) => {
+                  const img = new Image();
+                  img.crossOrigin = 'anonymous';
+                  img.onload = () => {
+                    try {
+                      const canvas = document.createElement('canvas');
+                      canvas.width = img.naturalWidth || 800;
+                      canvas.height = img.naturalHeight || 600;
+                      const ctx = canvas.getContext('2d');
+                      if (!ctx) return resolve(null);
+                      ctx.drawImage(img, 0, 0);
+                      canvas.toBlob((b) => resolve(b), 'image/png');
+                    } catch {
+                      resolve(null);
+                    }
+                  };
+                  img.onerror = () => resolve(null);
+                  img.src = url;
+                }),
+            );
           }
         }
       } catch {

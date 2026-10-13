@@ -134,6 +134,21 @@ export class CallsService {
     };
   }
 
+  private async assertCallMember(
+    call: CallWithDetails,
+    userId: string,
+    reconnect = false,
+  ): Promise<void> {
+    if (
+      !call.participants.some(
+        (participant) => participant.userId === userId && (reconnect || !participant.leftAt),
+      )
+    ) {
+      throw new ForbiddenException('Not an active participant of this call');
+    }
+    await this.convsService.assertMember(call.conversationId, userId);
+  }
+
   async acceptCall(
     calleeId: string,
     callId: string,
@@ -147,8 +162,13 @@ export class CallsService {
   }> {
     const call = await this.callsRepo.findCallById(callId);
     if (!call) throw new NotFoundException('Call not found');
+    await this.assertCallMember(call, calleeId);
 
-    if (call.status === CallStatus.ENDED || call.status === CallStatus.DECLINED) {
+    if (
+      ([CallStatus.ENDED, CallStatus.DECLINED, CallStatus.MISSED] as CallStatus[]).includes(
+        call.status,
+      )
+    ) {
       throw new BadRequestException('Call is no longer active');
     }
 
@@ -173,6 +193,15 @@ export class CallsService {
   ): Promise<{ call: CallWithDetails; conversationId: string; targetUserIds: string[] }> {
     const call = await this.callsRepo.findCallById(callId);
     if (!call) throw new NotFoundException('Call not found');
+    await this.assertCallMember(call, calleeId);
+
+    if (
+      ([CallStatus.ENDED, CallStatus.DECLINED, CallStatus.MISSED] as CallStatus[]).includes(
+        call.status,
+      )
+    ) {
+      throw new BadRequestException('Call is no longer active');
+    }
 
     const durationMs = 0;
     const updated = await this.callsRepo.updateCallStatus(
@@ -206,12 +235,12 @@ export class CallsService {
   }> {
     const call = await this.callsRepo.findCallById(callId);
     if (!call) throw new NotFoundException('Call not found');
+    const ended = (
+      [CallStatus.ENDED, CallStatus.DECLINED, CallStatus.MISSED] as CallStatus[]
+    ).includes(call.status);
+    await this.assertCallMember(call, actorId, ended);
 
-    if (
-      ([CallStatus.ENDED, CallStatus.DECLINED, CallStatus.MISSED] as CallStatus[]).includes(
-        call.status,
-      )
-    ) {
+    if (ended) {
       return {
         call,
         conversationId: call.conversationId,
@@ -254,6 +283,14 @@ export class CallsService {
   ): Promise<CallWithDetails> {
     const call = await this.callsRepo.findCallById(callId);
     if (!call) throw new NotFoundException('Call not found');
+    await this.assertCallMember(call, userId);
+    if (
+      ([CallStatus.ENDED, CallStatus.DECLINED, CallStatus.MISSED] as CallStatus[]).includes(
+        call.status,
+      )
+    ) {
+      throw new BadRequestException('Call is no longer active');
+    }
 
     const updateData: { muteState?: boolean; videoState?: boolean; screenShare?: boolean } = {};
     if (type === 'mute') updateData.muteState = state;
@@ -522,6 +559,9 @@ export class CallsService {
     if (!isActiveStatus) {
       return { active: false, activeParticipantsCount: 0, reason: 'CALL_ENDED' };
     }
+
+    // A disconnected call participant may rejoin only while still a conversation member.
+    await this.assertCallMember(call, userId, true);
 
     const otherParticipants = call.participants.filter((p) => p.userId !== userId);
     const activeOthers = otherParticipants.filter((p) => !p.leftAt);

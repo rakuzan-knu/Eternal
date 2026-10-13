@@ -6,32 +6,9 @@ import { useDecorationIntro } from './useDecorationIntro';
 import { DECORATION_SIZES, type DecorationSize } from './avatarDecorationSizes';
 import { isCurrentThemeLight, useThemeStore } from '@/shared/model/useThemeStore';
 import { DefaultAvatarSvg } from './Avatar';
+import { registerAvatarDecoration } from './avatarDecorationPlayback';
 
 const LottieDecoration = lazy(() => import('./LottieDecoration'));
-const visibilityListeners = new Map<Element, (visible: boolean) => void>();
-let observer: IntersectionObserver | undefined;
-function observe(element: Element, listener: (visible: boolean) => void) {
-  if (!('IntersectionObserver' in window)) {
-    listener(true);
-    return () => {};
-  }
-  observer ??= new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => visibilityListeners.get(entry.target)?.(entry.isIntersecting));
-    },
-    { threshold: 0 },
-  );
-  visibilityListeners.set(element, listener);
-  observer.observe(element);
-  return () => {
-    observer?.unobserve(element);
-    visibilityListeners.delete(element);
-    if (!visibilityListeners.size) {
-      observer?.disconnect();
-      observer = undefined;
-    }
-  };
-}
 
 export interface AvatarWithDecorationProps {
   avatarUrl?: string | null | undefined;
@@ -58,7 +35,31 @@ export const AvatarWithDecoration = memo(function AvatarWithDecoration({
   const isLight = useThemeStore(isCurrentThemeLight);
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const [failedAsset, setFailedAsset] = useState<string | null>(null);
-  useEffect(() => (ref.current ? observe(ref.current, setVisible) : undefined), []);
+  const hasDecoration = Boolean(decoration);
+  const canPlay = motion && motionAllowed && hasDecoration;
+  const registrationRef = useRef<ReturnType<typeof registerAvatarDecoration> | null>(null);
+  useEffect(() => {
+    const element = ref.current;
+    if (!element || !hasDecoration) {
+      setVisible(false);
+      return;
+    }
+    const registration = registerAvatarDecoration(element, setVisible);
+    registrationRef.current = registration;
+    const parent = element.parentElement;
+    const promote = () => registration.promote();
+    parent?.addEventListener('pointerenter', promote);
+    parent?.addEventListener('focusin', promote);
+    return () => {
+      parent?.removeEventListener('pointerenter', promote);
+      parent?.removeEventListener('focusin', promote);
+      registration.dispose();
+      registrationRef.current = null;
+    };
+  }, [hasDecoration]);
+  useEffect(() => {
+    registrationRef.current?.setEligible(canPlay);
+  }, [canPlay]);
   const playing = motion && visible && motionAllowed;
   const intro = useDecorationIntro(decoration, playing);
   const pixels = typeof size === 'number' ? size : DECORATION_SIZES[size];
@@ -69,7 +70,8 @@ export const AvatarWithDecoration = memo(function AvatarWithDecoration({
   return (
     <span
       ref={ref}
-      className={`decorated-avatar ${className}`}
+      className={`decorated-avatar select-none ${className}`}
+      onContextMenu={(e) => e.preventDefault()}
       style={
         {
           '--avatar-size': `${pixels}px`,
@@ -78,22 +80,42 @@ export const AvatarWithDecoration = memo(function AvatarWithDecoration({
       }
       data-playing={playing}
     >
-      <span className="decorated-avatar__portrait">
+      <span
+        className="decorated-avatar__portrait select-none"
+        onContextMenu={(e) => e.preventDefault()}
+      >
         {avatarUrl && failedUrl !== avatarUrl ? (
-          <img src={avatarUrl} alt={alt} decoding="async" onError={() => setFailedUrl(avatarUrl)} />
+          <img
+            src={avatarUrl}
+            alt={alt}
+            decoding="async"
+            draggable={false}
+            onContextMenu={(e) => e.preventDefault()}
+            onError={() => setFailedUrl(avatarUrl)}
+          />
         ) : (
           <DefaultAvatarSvg />
         )}
       </span>
       {decoration && (
         <span
-          className="decorated-avatar__overlay"
+          className="decorated-avatar__overlay select-none"
+          onContextMenu={(e) => e.preventDefault()}
           data-ink={decoration.slug === 'ronin-orbit' && isLight ? 'black' : undefined}
           aria-hidden="true"
         >
           {decoration.assetType === 'lottie' && playing ? (
             <Suspense
-              fallback={<img src={decoration.previewUrl} alt="" loading="lazy" decoding="async" />}
+              fallback={
+                <img
+                  src={decoration.previewUrl}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  draggable={false}
+                  onContextMenu={(e) => e.preventDefault()}
+                />
+              }
             >
               <LottieDecoration decoration={decoration} />
             </Suspense>
@@ -104,6 +126,8 @@ export const AvatarWithDecoration = memo(function AvatarWithDecoration({
               alt=""
               loading="lazy"
               decoding="async"
+              draggable={false}
+              onContextMenu={(e) => e.preventDefault()}
               onLoad={asset === intro.introUrl ? intro.onLoad : undefined}
               onError={() =>
                 asset === intro.introUrl ? intro.onError() : setFailedAsset(decoration.assetUrl)

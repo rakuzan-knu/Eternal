@@ -1,3 +1,4 @@
+import { issueOAuthState, consumeOAuthState, setOAuthCookie } from '../common/security/oauth-state';
 import {
   Inject,
   Injectable,
@@ -78,55 +79,19 @@ export class GithubService {
     return this.config.get<string>('GITHUB_WEBHOOK_SECRET') || '';
   }
 
-  getAuthorizationUrl(req: Request, res: Response): void {
-    const csrf = crypto.randomBytes(32).toString('hex');
-    let userIdParam = typeof req.query.userId === 'string' ? req.query.userId : '';
-    const rawToken = typeof req.query.token === 'string' ? req.query.token : undefined;
-    if (!userIdParam && rawToken) {
-      try {
-        const parts = rawToken.split('.');
-        if (parts.length === 3) {
-          const payload = safeJsonParse<{ sub?: string }>(Buffer.from(parts[1], 'base64url'));
-          if (payload?.sub) userIdParam = String(payload.sub);
-        }
-      } catch (e) {
-        this.logger.debug(`Could not parse optional token in getAuthorizationUrl: ${String(e)}`);
-      }
-    }
-
-    const state = userIdParam ? `${csrf}:${userIdParam}` : csrf;
-
-    const forwardedProtoHeader = req.headers['x-forwarded-proto'];
-    const forwardedProto = Array.isArray(forwardedProtoHeader)
-      ? forwardedProtoHeader[0]
-      : forwardedProtoHeader?.split(',')[0];
-    const isSecureRequest =
-      req.secure || forwardedProto?.trim() === 'https' || process.env.NODE_ENV === 'production';
-
-    const originParam = typeof req.query.origin === 'string' ? req.query.origin : '';
-    if (originParam) {
-      res.cookie('github_client_origin', originParam, {
-        httpOnly: true,
-        secure: isSecureRequest,
-        sameSite: 'lax',
-        maxAge: 10 * 60 * 1000,
-      });
-    }
-
-    res.cookie('github_oauth_state', csrf, {
-      httpOnly: true,
-      secure: isSecureRequest,
-      sameSite: 'lax',
-      maxAge: 10 * 60 * 1000,
-    });
-
+  async getAuthorizationUrl(req: Request, res: Response, asJson = false): Promise<void> {
+    const userId = (req as Request & { user?: { id: string } }).user?.id;
+    if (!userId) throw new UnauthorizedException('Authentication required');
+    const state = await issueOAuthState(this.redis, 'github', userId, this.callbackUrl);
+    setOAuthCookie(res, 'github', state);
     const targetUrl = new URL('https://github.com/login/oauth/authorize');
     targetUrl.searchParams.set('client_id', this.clientId);
     targetUrl.searchParams.set('redirect_uri', this.callbackUrl);
     targetUrl.searchParams.set('scope', 'read:user');
     targetUrl.searchParams.set('state', state);
 
-    res.redirect(targetUrl.toString());
+    if (asJson) res.send({ url: targetUrl.toString() });
+    else res.redirect(targetUrl.toString());
   }
 
   async handleOAuthCallback(
@@ -136,24 +101,14 @@ export class GithubService {
     res: Response,
     userId?: string,
   ): Promise<void> {
-    const [csrfFromState, userIdFromState] = (state || '').split(':');
-    const cookieState = (req.cookies as Record<string, string> | undefined)?.github_oauth_state;
-
-    const clientOriginCookie = (req.cookies as Record<string, string> | undefined)
-      ?.github_client_origin;
-    const effectiveFrontendUrl = clientOriginCookie || this.frontendRedirectUrl;
-
-    // Resilient state check: Allow if cookie matches OR if userIdFromState was provided in signed state
-    if (cookieState && csrfFromState && csrfFromState !== cookieState && !userIdFromState) {
-      this.logger.warn(`CSRF state mismatch during GitHub OAuth callback.`);
-      res.clearCookie('github_oauth_state');
-      res.clearCookie('github_client_origin');
-      return res.redirect(`${effectiveFrontendUrl}/settings?error=csrf_state_mismatch`);
-    }
-
-    res.clearCookie('github_oauth_state');
-    res.clearCookie('github_client_origin');
-
+    const identity = await consumeOAuthState(
+      this.redis,
+      'github',
+      state,
+      userId,
+      (req.cookies as Record<string, string> | undefined)?.github_oauth_state,
+    );
+    const effectiveFrontendUrl = this.frontendRedirectUrl;
     try {
       const abortSignal = TraceContext.getAbortSignal();
       let tokenRes = await fetch('https://github.com/login/oauth/access_token', {
@@ -225,11 +180,7 @@ export class GithubService {
       const githubId = ghUser.id ? String(ghUser.id) : '';
       const githubUsername = ghUser.login || 'GitHubUser';
 
-      let targetUserId = userId || userIdFromState;
-      if (!targetUserId && githubId) {
-        const existing = await this.githubRepo.findUserByGithubId(githubId);
-        if (existing) targetUserId = existing.id;
-      }
+      const targetUserId = identity.userId;
 
       // Fetch user repos and stars
       let repos: {

@@ -4,21 +4,7 @@ import type { S3Client } from '@aws-sdk/client-s3';
 import { MediaType } from '@prisma/client';
 import { PostsMediaService } from '../posts-media.service';
 
-jest.mock('sharp', () => {
-  const mockSharp = jest.fn().mockImplementation(() => ({
-    webp: jest.fn().mockReturnThis(),
-    toBuffer: jest
-      .fn()
-      .mockResolvedValue(
-        Buffer.from([0x52, 0x49, 0x46, 0x46, 0x00, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50]),
-      ),
-  }));
-  return {
-    default: mockSharp,
-    __esModule: true,
-  };
-});
-
+import { pngImage, gifImage, sampleVideo } from '../../common/media/__tests__/upload-fixtures';
 describe('PostsMediaService', () => {
   let service: PostsMediaService;
   let mockS3: {
@@ -28,9 +14,9 @@ describe('PostsMediaService', () => {
     get: jest.Mock;
   };
 
-  const pngHeader = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  const pngHeader = pngImage;
   const jpegHeader = Buffer.from([0xff, 0xd8, 0xff, 0xe0]);
-  const gifHeader = Buffer.from('GIF89a');
+  const gifHeader = gifImage;
   const mp4Header = Buffer.from([0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70]);
 
   beforeEach(() => {
@@ -67,7 +53,7 @@ describe('PostsMediaService', () => {
       } as Express.Multer.File;
 
       await expect(service.processUploadedFile(unsupportedFile, 0)).rejects.toThrow(
-        new BadRequestException('Unsupported or invalid file format'),
+        new BadRequestException('Unsupported, damaged or empty media file'),
       );
     });
 
@@ -88,7 +74,7 @@ describe('PostsMediaService', () => {
 
     it('processes MP4 and WEBM video formats', async () => {
       const mp4File = {
-        buffer: mp4Header,
+        buffer: await sampleVideo(),
         mimetype: 'video/mp4',
         originalname: 'clip.mp4',
       } as Express.Multer.File;
@@ -116,7 +102,7 @@ describe('PostsMediaService', () => {
       } as Express.Multer.File;
 
       await expect(service.processUploadedFile(oversizedVideo, 0)).rejects.toThrow(
-        new BadRequestException('Video size exceeds 100MB limit'),
+        new BadRequestException('Media file is too large'),
       );
     });
 
@@ -162,12 +148,18 @@ describe('PostsMediaService', () => {
 
       await expect(
         service.processUploadedFiles([{ mimetype: 'image/png' } as Express.Multer.File]),
-      ).rejects.toThrow(new BadRequestException('Invalid media file payload'));
+      ).rejects.toThrow(new BadRequestException('Invalid media file'));
     });
 
     it('cleans up abandoned chunk sessions and validates chunk payload', async () => {
       await expect(
-        service.uploadChunk('sess-1', 0, 2, { mimetype: 'image/png' } as Express.Multer.File),
+        service.uploadChunk(
+          'sess-1',
+          0,
+          2,
+          { mimetype: 'image/png' } as Express.Multer.File,
+          'usr-1',
+        ),
       ).rejects.toThrow(new BadRequestException('Invalid chunk buffer'));
 
       // Seed old session in chunkStore
@@ -184,12 +176,56 @@ describe('PostsMediaService', () => {
         mimetype: 'image/png',
       } as Express.Multer.File;
 
-      await service.uploadChunk('new-sess', 0, 2, validChunk);
-      expect(service.getChunkStatus('old-sess').totalChunks).toBe(0);
+      await service.uploadChunk('new-sess', 0, 2, validChunk, 'usr-1');
+      expect(service.getChunkStatus('old-sess', 'usr-1').totalChunks).toBe(0);
     });
   });
 
   describe('Chunked upload and status', () => {
+    it('binds session writes and resume status to the authenticated owner', async () => {
+      const file = {
+        buffer: Buffer.from('chunk'),
+        mimetype: 'application/octet-stream',
+      } as Express.Multer.File;
+      await service.uploadChunk('owned-session', 0, 2, file, 'alice');
+      await expect(service.uploadChunk('owned-session', 1, 2, file, 'mallory')).rejects.toThrow(
+        'another user',
+      );
+      expect(() => service.getChunkStatus('owned-session', 'mallory')).toThrow('another user');
+      expect(service.getChunkStatus('owned-session', 'alice').uploadedChunks).toEqual([0]);
+    });
+
+    it('bounds sessions per user and expires abandoned buffers during resume', async () => {
+      const file = {
+        buffer: Buffer.from('chunk'),
+        mimetype: 'application/octet-stream',
+      } as Express.Multer.File;
+      for (let i = 0; i < 3; i++) await service.uploadChunk(`limited-${i}`, 0, 2, file, 'alice');
+      await expect(service.uploadChunk('limited-3', 0, 2, file, 'alice')).rejects.toThrow(
+        'Too many',
+      );
+      const state = service as unknown as { chunkStore: Map<string, { createdAt: number }> };
+      state.chunkStore.get('limited-0')!.createdAt = Date.now() - 16 * 60000;
+      expect(service.getChunkStatus('limited-0', 'alice').totalChunks).toBe(0);
+      await expect(service.uploadChunk('limited-3', 0, 2, file, 'alice')).resolves.toMatchObject({
+        complete: false,
+      });
+    });
+
+    it('enforces the aggregate byte budget across users and reserves assembly memory', async () => {
+      Object.assign(service, { MAX_BUFFERED_BYTES: 16 });
+      const file = {
+        buffer: Buffer.from('12345'),
+        mimetype: 'application/octet-stream',
+      } as Express.Multer.File;
+      await service.uploadChunk('alice-upload', 0, 3, file, 'alice');
+      await service.uploadChunk('bob-upload', 0, 3, file, 'bob');
+      await expect(service.uploadChunk('carol-upload', 0, 3, file, 'carol')).rejects.toThrow(
+        'budget',
+      );
+      expect(service.getChunkStatus('alice-upload', 'alice').uploadedChunks).toEqual([0]);
+    });
+
     it('stores chunks and assembles complete file when all chunks arrive', async () => {
       const uploadId = 'session-upload-123';
       const chunk0 = {
@@ -204,22 +240,22 @@ describe('PostsMediaService', () => {
         originalname: 'assembled.png',
       } as Express.Multer.File;
 
-      const step1 = await service.uploadChunk(uploadId, 0, 2, chunk0);
+      const step1 = await service.uploadChunk(uploadId, 0, 2, chunk0, 'usr-1');
       expect(step1.complete).toBe(false);
       expect(step1.uploadedChunks).toEqual([0]);
 
-      const status = service.getChunkStatus(uploadId);
+      const status = service.getChunkStatus(uploadId, 'usr-1');
       expect(status.uploadedChunks).toEqual([0]);
       expect(status.totalChunks).toBe(2);
 
-      const step2 = await service.uploadChunk(uploadId, 1, 2, chunk1);
+      const step2 = await service.uploadChunk(uploadId, 1, 2, chunk1, 'usr-1');
       expect(step2.complete).toBe(true);
       expect(step2.media).toBeDefined();
       expect(step2.media?.type).toBe(MediaType.IMAGE);
     });
 
     it('returns empty chunk status for unknown uploadId', () => {
-      expect(service.getChunkStatus('nonexistent')).toEqual({
+      expect(service.getChunkStatus('nonexistent', 'usr-1')).toEqual({
         uploadedChunks: [],
         totalChunks: 0,
       });

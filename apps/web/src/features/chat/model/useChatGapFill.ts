@@ -4,6 +4,9 @@ import { chatApi } from '../api/chatApi';
 import { queryKeys } from '@/shared/api/queryKeys';
 import { applyRestDelta, getLatestLocalMessageId } from './chatCacheSync';
 import { getSocket } from '@/shared/api/socket';
+import { flushRealtimeChatBatch } from './realtimeChatBatch';
+import { useAuthStore } from '@/shared/model/useAuthStore';
+import { registerSessionResetHandler } from '@/shared/model/resetSession';
 
 /**
  * Enterprise gap-filling on reconnect (offline-first).
@@ -30,15 +33,54 @@ interface GapFillResult {
   failed: string[];
 }
 
+interface GapFillScope {
+  userId: string | null;
+  disposed: boolean;
+  controller: AbortController;
+  inFlight: boolean;
+  lastFillAt: number;
+}
+
 export function useChatGapFill(conversationIds: string[]) {
   const queryClient = useQueryClient();
+  const userId = useAuthStore((state) => state.userId);
   const idsRef = useRef<string[]>(conversationIds);
   idsRef.current = conversationIds;
-  const inFlightRef = useRef(false);
-  const lastFillAtRef = useRef(0);
+  const scopeRef = useRef<GapFillScope | null>(null);
+  useEffect(() => {
+    const scope: GapFillScope = {
+      userId,
+      disposed: false,
+      controller: new AbortController(),
+      inFlight: false,
+      lastFillAt: 0,
+    };
+    scopeRef.current = scope;
+    const dispose = () => {
+      scope.disposed = true;
+      scope.controller.abort();
+    };
+    const unregisterReset = registerSessionResetHandler(dispose);
+    return () => {
+      unregisterReset();
+      dispose();
+      if (scopeRef.current === scope) scopeRef.current = null;
+    };
+  }, [userId, queryClient]);
+  const isCurrentScope = useCallback(
+    (scope: GapFillScope | null): scope is GapFillScope =>
+      scope !== null &&
+      !scope.disposed &&
+      scopeRef.current === scope &&
+      useAuthStore.getState().userId === scope.userId,
+    [],
+  );
 
   const fillConversation = useCallback(
     async (conversationId: string): Promise<number> => {
+      const scope = scopeRef.current;
+      if (!isCurrentScope(scope) || scope.userId !== userId) return 0;
+      flushRealtimeChatBatch(queryClient);
       const after = getLatestLocalMessageId(queryClient, conversationId);
       // No local baseline: let the normal infinite query fetch history.
       if (!after) {
@@ -48,10 +90,19 @@ export function useChatGapFill(conversationIds: string[]) {
         return 0;
       }
       try {
-        const page = await chatApi.getMessages(conversationId, undefined, FILL_LIMIT, after);
+        const page = await chatApi.getMessages(
+          conversationId,
+          undefined,
+          FILL_LIMIT,
+          after,
+          scope.controller.signal,
+        );
+        if (!isCurrentScope(scope)) return 0;
+        flushRealtimeChatBatch(queryClient);
         const delta = page?.data ?? [];
         return applyRestDelta(queryClient, conversationId, delta);
       } catch {
+        if (!isCurrentScope(scope)) return 0;
         // REST delta failed (offline/permissions): schedule reconciling fetch.
         await queryClient.invalidateQueries({
           queryKey: queryKeys.conversations.messages(conversationId),
@@ -59,16 +110,18 @@ export function useChatGapFill(conversationIds: string[]) {
         return 0;
       }
     },
-    [queryClient],
+    [queryClient, isCurrentScope, userId],
   );
 
   const fillAllGaps = useCallback(async (): Promise<GapFillResult> => {
+    const scope = scopeRef.current;
+    if (!isCurrentScope(scope) || scope.userId !== userId) return { filled: 0, failed: [] };
     const now = Date.now();
-    if (inFlightRef.current || now - lastFillAtRef.current < FILL_DEBOUNCE_MS) {
+    if (scope.inFlight || now - scope.lastFillAt < FILL_DEBOUNCE_MS) {
       return { filled: 0, failed: [] };
     }
-    inFlightRef.current = true;
-    lastFillAtRef.current = now;
+    scope.inFlight = true;
+    scope.lastFillAt = now;
     const ids = [...new Set(idsRef.current.filter(Boolean))];
     let filled = 0;
     const failed: string[] = [];
@@ -79,14 +132,14 @@ export function useChatGapFill(conversationIds: string[]) {
         else failed.push(ids[i]);
       });
     } finally {
-      inFlightRef.current = false;
+      scope.inFlight = false;
     }
     // Conversation list preview/unread counts reconcile in background.
-    if (ids.length > 0) {
+    if (isCurrentScope(scope) && ids.length > 0) {
       void queryClient.invalidateQueries({ queryKey: queryKeys.conversations.root });
     }
     return { filled, failed };
-  }, [fillConversation, queryClient]);
+  }, [fillConversation, queryClient, isCurrentScope, userId]);
 
   // Socket reconnect + explicit server resync demand → gap-fill.
   useEffect(() => {

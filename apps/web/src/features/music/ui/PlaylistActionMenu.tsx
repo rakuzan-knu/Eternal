@@ -504,7 +504,7 @@ export const PlaylistActionMenu: React.FC<PlaylistActionMenuProps> = ({
                 ) : (
                   <div
                     onClick={() => {
-                      toggleSavePlaylist(playlist.id);
+                      toggleSavePlaylist(playlist.id, playlist);
                       showToast(
                         'Saved to Library',
                         `Playlist "${playlist.title}" saved to your library.`,

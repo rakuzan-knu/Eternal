@@ -1,31 +1,29 @@
-import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useConversations } from './useConversations';
-import { useMessengerRealtime } from './useMessengerRealtime';
-import type { ConversationView } from '../../../entities/chat/model/types';
+import { chatApi } from '../api/chatApi';
+import { queryKeys } from '@/shared/api/queryKeys';
+import { queryStaleTimes } from '@/shared/api/queryClient';
+import { useAuthStore } from '@/shared/model/useAuthStore';
 
 export function useUnreadMessagesCount(
   activeConversationId: string | null,
-  options: { showPushNotifications?: boolean } = {},
+  _options: { showPushNotifications?: boolean } = {},
 ) {
-  const { data: conversations } = useConversations();
-  const conversationIds = useMemo(
-    () => conversations?.map((c: ConversationView) => c.id) ?? [],
-    [conversations],
-  );
-
-  useMessengerRealtime(
-    conversationIds,
-    activeConversationId,
-    options.showPushNotifications ?? false,
-  );
-
-  return useMemo(
-    () =>
-      (conversations?.reduce((total: number, conversation: ConversationView) => {
-        if (conversation.id === activeConversationId) return total;
-        if (conversation.isArchived) return total;
-        return (total + Math.max(0, conversation.unreadCount | 0)) | 0;
-      }, 0) ?? 0) | 0,
-    [activeConversationId, conversations],
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  // A badge observes cached metadata, but never fetches the conversation list.
+  const { data: conversations } = useConversations({ enabled: false });
+  const { data } = useQuery({
+    queryKey: queryKeys.conversations.unreadCount,
+    queryFn: ({ signal }) => chatApi.getUnreadCount(signal),
+    enabled: isAuthenticated,
+    staleTime: queryStaleTimes.counters,
+    refetchOnWindowFocus: false,
+  });
+  // The scalar includes every dialog. Paged metadata cannot reconstruct it;
+  // realtime events update/invalidate the scalar independently of loaded pages.
+  const active = conversations?.find((c) => c.id === activeConversationId);
+  return Math.max(
+    0,
+    (data?.count ?? 0) - (active && !active.isArchived ? Math.max(0, active.unreadCount || 0) : 0),
   );
 }

@@ -118,4 +118,18 @@ describe('DirectAudioVisualizer (Zero-Re-render CSS Variables via rAF)', () => {
     expect(mockElement.style.getPropertyValue('--volume')).toBe('');
     expect(mockElement.style.getPropertyValue('--speech-scale')).toBe('');
   });
+
+  it('stops the frame loop while muted and resumes one loop when unmuted', () => {
+    vi.useFakeTimers();
+    const visualizer = new DirectAudioVisualizer(mockElement, mockStream);
+    expect(vi.getTimerCount()).toBe(1);
+    visualizer.setPaused(true);
+    expect(vi.getTimerCount()).toBe(0);
+    visualizer.setPaused(false);
+    visualizer.setPaused(false);
+    expect(vi.getTimerCount()).toBe(1);
+    visualizer.destroy();
+    expect(vi.getTimerCount()).toBe(0);
+    vi.useRealTimers();
+  });
 });

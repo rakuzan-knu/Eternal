@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useCallStore } from './callStore';
 import { playPTTPressChirp, playPTTReleaseChirp } from '../lib/callRingtone';
 
@@ -167,10 +167,13 @@ export function usePushToTalk(options: UsePushToTalkOptions = {}) {
     setIsPTTActive,
   ]);
 
-  return {
-    isPTTEnabled,
-    isPTTActive,
-    startTalking,
-    stopTalkingWithTail,
-  };
+  return useMemo(
+    () => ({
+      isPTTEnabled,
+      isPTTActive,
+      startTalking,
+      stopTalkingWithTail,
+    }),
+    [isPTTEnabled, isPTTActive, startTalking, stopTalkingWithTail],
+  );
 }

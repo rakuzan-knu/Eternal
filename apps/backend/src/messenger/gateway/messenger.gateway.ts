@@ -1,3 +1,5 @@
+import { canViewStory } from '../../stories/story-access';
+import { publicIntegrationData } from '../../common/security/public-integration-data';
 import {
   ConnectedSocket,
   MessageBody,
@@ -680,15 +682,15 @@ export class MessengerGateway
       return;
     }
 
-    await this.convsService.assertMember(payload.conversationId, client.userId);
+    await this.messagesService.assertCanSend(payload.conversationId, client.userId, payload);
 
     // Idempotency: Deduplicate concurrent or replayed sends sharing the same clientMessageId
     const idempKey = payload.clientMessageId
-      ? `idemp:msg:${client.userId}:${payload.clientMessageId}`
+      ? `idemp:msg:${payload.conversationId}:${client.userId}:${payload.clientMessageId}`
       : null;
     let lockToken: string | null = null;
     const lockKey = payload.clientMessageId
-      ? `lock:msg:${client.userId}:${payload.clientMessageId}`
+      ? `lock:msg:${payload.conversationId}:${client.userId}:${payload.clientMessageId}`
       : null;
 
     if (idempKey) {
@@ -1163,7 +1165,7 @@ export class MessengerGateway
       this.logger.warn(
         `Failed to emit presence event ${event} for ${subjectUserId}: ${String(err)}`,
       );
-      this.server.emit(event, payload);
+      // Fail closed when audience resolution is unavailable.
     }
   }
 
@@ -1439,36 +1441,70 @@ export class MessengerGateway
   }
 
   @OnEvent('showcase.presence.updated')
-  handleShowcasePresenceUpdated(payload: {
+  async handleShowcasePresenceUpdated(payload: {
     userId: string;
     activityStatus: unknown;
     connectedAccounts?: unknown;
     isPrivate?: boolean;
   }) {
-    if (payload?.userId) {
-      this.server.to(`showcase:${payload.userId}`).emit('showcase:presence:update', payload);
+    if (!payload?.userId) return;
 
-      if (!payload.isPrivate) {
-        this.emitToUser(payload.userId, 'user:activity:changed', {
-          userId: payload.userId,
-          activityStatus: payload.activityStatus,
-          connectedAccounts: payload.connectedAccounts,
-        });
-        void this.emitPresenceExceptBlocked(payload.userId, 'user:activity:changed', {
-          userId: payload.userId,
-          activityStatus: payload.activityStatus,
-          connectedAccounts: payload.connectedAccounts,
-        });
-      } else {
-        this.emitToUser(payload.userId, 'user:activity:changed', {
-          userId: payload.userId,
-          activityStatus: null,
-        });
-        void this.emitPresenceExceptBlocked(payload.userId, 'user:activity:changed', {
-          userId: payload.userId,
-          activityStatus: null,
-        });
-      }
+    const cleanActivityStatus = payload.activityStatus
+      ? publicIntegrationData(payload.activityStatus)
+      : null;
+    const cleanConnected = payload.connectedAccounts
+      ? publicIntegrationData(payload.connectedAccounts)
+      : undefined;
+
+    this.emitToUser(payload.userId, 'user:activity:changed', {
+      userId: payload.userId,
+      activityStatus: cleanActivityStatus,
+    });
+
+    if (!this.prisma) {
+      this.server.to(`showcase:${payload.userId}`).emit('showcase:presence:update', {
+        userId: payload.userId,
+        activityStatus: cleanActivityStatus,
+        connectedAccounts: cleanConnected,
+      });
+      return;
+    }
+
+    const showcase = await this.prisma.profileShowcase.findUnique({
+      where: { userId: payload.userId },
+      select: { privacyActivity: true },
+    });
+    const candidates = [...this.onlineUsers.keys()].filter((id) => id !== payload.userId);
+    const audience = await this.visibility.resolvePresenceAudience(payload.userId, candidates);
+    const follows = await this.prisma.follow.findMany({
+      where: { followingId: payload.userId, followerId: { in: [...audience] }, status: 'ACCEPTED' },
+      select: { followerId: true },
+    });
+    const followers = new Set(follows.map((f) => f.followerId));
+
+    const roomSockets = await this.server.in(`showcase:${payload.userId}`).fetchSockets();
+    for (const socket of roomSockets) {
+      const viewerId =
+        (socket as unknown as AuthenticatedSocket).userId || (socket.data as any)?.userId;
+      const allowed =
+        viewerId === payload.userId ||
+        showcase?.privacyActivity === 'PUBLIC' ||
+        (showcase?.privacyActivity === 'FOLLOWERS' && Boolean(viewerId && followers.has(viewerId)));
+      socket.emit('showcase:presence:update', {
+        userId: payload.userId,
+        activityStatus: allowed ? cleanActivityStatus : null,
+        connectedAccounts: cleanConnected,
+      });
+    }
+
+    for (const viewerId of audience) {
+      const allowed =
+        showcase?.privacyActivity === 'PUBLIC' ||
+        (showcase?.privacyActivity === 'FOLLOWERS' && followers.has(viewerId));
+      this.emitToUser(viewerId, 'user:activity:changed', {
+        userId: payload.userId,
+        activityStatus: allowed ? cleanActivityStatus : null,
+      });
     }
   }
 
@@ -1486,7 +1522,7 @@ export class MessengerGateway
   }
 
   @SubscribeMessage('subscribeStory')
-  handleSubscribeStory(
+  async handleSubscribeStory(
     @ConnectedSocket() client: Socket,
     @MessageBody(
       new ZodValidationPipe(
@@ -1497,9 +1533,12 @@ export class MessengerGateway
     )
     data: { storyId: string },
   ) {
-    if (data?.storyId) {
-      void client.join(`story:${data.storyId}`);
-    }
+    const userId = (client as AuthenticatedSocket).userId;
+    if (!userId || !this.prisma) throw new WsException('Authentication required');
+    const story = await this.prisma.story.findUnique({ where: { id: data.storyId } });
+    if (!story || !(await canViewStory(this.prisma, story, userId)))
+      throw new WsException('Story is not accessible');
+    await client.join(`story:${data.storyId}`);
   }
 
   @SubscribeMessage('unsubscribeStory')
@@ -1520,10 +1559,36 @@ export class MessengerGateway
   }
 
   @OnEvent('story.created')
-  handleStoryCreated(payload: { authorId: string; story: any }) {
-    if (payload?.authorId) {
-      // Broadcast new story event so follower clients instantly light up glowing StoryAvatar rings
-      this.server.emit('story:new', payload);
+  async handleStoryCreated(payload: { authorId: string; story: any }) {
+    if (!payload?.authorId || !this.prisma) return;
+    this.emitToUser(payload.authorId, 'story:new', payload);
+    const [followers, closeFriends, blocks] = await Promise.all([
+      this.prisma.follow.findMany({
+        where: { followingId: payload.authorId, status: 'ACCEPTED' },
+        select: { followerId: true },
+      }),
+      this.prisma.closeFriend.findMany({
+        where: { userId: payload.authorId },
+        select: { friendId: true },
+      }),
+      this.prisma.userBlock.findMany({
+        where: { OR: [{ blockerId: payload.authorId }, { blockedId: payload.authorId }] },
+        select: { blockerId: true, blockedId: true },
+      }),
+    ]);
+    const close = new Set(closeFriends.map((friend) => friend.friendId));
+    const blocked = new Set(
+      blocks.map((block) =>
+        block.blockerId === payload.authorId ? block.blockedId : block.blockerId,
+      ),
+    );
+    for (const follower of followers) {
+      if (
+        blocked.has(follower.followerId) ||
+        (payload.story?.privacy === 'CLOSE_FRIENDS' && !close.has(follower.followerId))
+      )
+        continue;
+      this.emitToUser(follower.followerId, 'story:new', { authorId: payload.authorId });
     }
   }
 
@@ -1537,7 +1602,7 @@ export class MessengerGateway
   }) {
     if (payload?.storyId) {
       // Broadcast to room of active viewers/author for this story
-      this.server.to(`story:${payload.storyId}`).emit('story:viewed', payload);
+      this.emitToUser(payload.authorId, 'story:viewed', payload);
     }
   }
 
@@ -1551,7 +1616,7 @@ export class MessengerGateway
     createdAt: string;
   }) {
     if (payload?.storyId) {
-      this.server.to(`story:${payload.storyId}`).emit('story:reacted', payload);
+      this.emitToUser(payload.authorId, 'story:reacted', payload);
     }
   }
 
@@ -1564,7 +1629,10 @@ export class MessengerGateway
     optionIndex: number;
   }) {
     if (payload?.storyId) {
-      this.server.to(`story:${payload.storyId}`).emit('story:poll_voted', payload);
+      this.emitToUser(payload.authorId, 'story:poll_voted', payload);
+      this.server
+        .to(`story:${payload.storyId}`)
+        .emit('story:poll_voted', { storyId: payload.storyId });
     }
   }
 
@@ -1771,6 +1839,25 @@ export class MessengerGateway
       });
   }
 
+  private async assertSignalParticipants(
+    callId: string,
+    actorId: string,
+    targetId?: string,
+  ): Promise<void> {
+    if (!this.callsService) throw new WsException('Calls unavailable');
+    const call = await this.callsService.getCallById(callId, actorId);
+    if (
+      call.status === 'ENDED' ||
+      call.status === 'DECLINED' ||
+      !call.participants.some((p) => p.userId === actorId && !p.leftAt) ||
+      (targetId && !call.participants.some((p) => p.userId === targetId && !p.leftAt))
+    ) {
+      throw new WsException('Not an active call participant');
+    }
+    await this.convsService.assertMember(call.conversationId, actorId);
+    if (targetId) await this.convsService.assertMember(call.conversationId, targetId);
+  }
+
   private async flushCandidateBatch(
     batch: Array<{
       callId: string;
@@ -1781,6 +1868,17 @@ export class MessengerGateway
   ): Promise<void> {
     if (batch.length === 0) return;
 
+    const authorized = [];
+    for (const item of batch) {
+      try {
+        await this.assertSignalParticipants(item.callId, item.senderUserId, item.targetUserId);
+        authorized.push(item);
+      } catch {
+        /* Discard stale or forged signaling before persistence. */
+      }
+    }
+    batch = authorized;
+    if (!batch.length) return;
     const first = batch[0];
     const callId = first.callId;
 
@@ -1822,10 +1920,11 @@ export class MessengerGateway
   }
 
   @SubscribeMessage(WS_EVENTS.CALL_ICE_CANDIDATE)
-  handleCallIceCandidate(
+  async handleCallIceCandidate(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody(new ZodValidationPipe(iceCandidateSchema)) payload: IceCandidateDto,
   ) {
+    await this.assertSignalParticipants(payload.callId, client.userId, payload.targetUserId);
     this.candidateSubject$.next({
       callId: payload.callId,
       candidate: payload.candidate,
@@ -2075,6 +2174,7 @@ export class MessengerGateway
     @MessageBody(new ZodValidationPipe(callReconnectAnswerSchema)) payload: CallReconnectAnswerDto,
     callback?: (res: { status: string }) => void,
   ) {
+    await this.assertSignalParticipants(payload.callId, client.userId, payload.targetUserId);
     const answerPayload = {
       callId: payload.callId,
       senderUserId: client.userId,
@@ -2105,6 +2205,7 @@ export class MessengerGateway
     @MessageBody(new ZodValidationPipe(iceRestartSchema)) payload: IceRestartDto,
     callback?: (res: { status: string }) => void,
   ) {
+    await this.assertSignalParticipants(payload.callId, client.userId, payload.targetUserId);
     const restartPayload = {
       callId: payload.callId,
       senderUserId: client.userId,
@@ -2134,6 +2235,7 @@ export class MessengerGateway
     @MessageBody(new ZodValidationPipe(iceRestartAnswerSchema)) payload: IceRestartAnswerDto,
     callback?: (res: { status: string }) => void,
   ) {
+    await this.assertSignalParticipants(payload.callId, client.userId, payload.targetUserId);
     const answerPayload = {
       callId: payload.callId,
       senderUserId: client.userId,
@@ -2176,6 +2278,7 @@ export class MessengerGateway
     @MessageBody(new ZodValidationPipe(relayRequestSchema)) payload: RelayRequestDto,
     callback?: (res: { status: string; relay?: unknown; error?: string }) => void,
   ) {
+    await this.assertSignalParticipants(payload.callId, client.userId, payload.targetUserId);
     if (!this.callsService) throw new WsException('CallsService not available');
     const allocation = await this.callsService.allocateRelayNode(
       payload.callId,
@@ -2537,7 +2640,7 @@ export class MessengerGateway
             })
             .catch(() => {});
         }
-        this.handleShowcasePresenceUpdated({
+        await this.handleShowcasePresenceUpdated({
           userId,
           activityStatus: null,
           connectedAccounts,
@@ -2574,7 +2677,7 @@ export class MessengerGateway
           .catch(() => {});
       }
 
-      this.handleShowcasePresenceUpdated({
+      await this.handleShowcasePresenceUpdated({
         userId,
         activityStatus,
         connectedAccounts,
@@ -2591,6 +2694,7 @@ export class MessengerGateway
     @MessageBody() payload: { roomId: string },
   ) {
     if (!payload?.roomId || !client.userId) return { success: false, existingPeers: [] };
+    await this.convsService.assertMember(payload.roomId, client.userId);
     const roomKey = `voice-mesh:${payload.roomId}`;
     await client.join(roomKey);
 
@@ -2619,6 +2723,7 @@ export class MessengerGateway
   ) {
     if (!payload?.roomId || !client.userId) return { success: false };
     const roomKey = `voice-mesh:${payload.roomId}`;
+    if (!client.rooms.has(roomKey)) return { success: false };
     await client.leave(roomKey);
 
     this.server.to(roomKey).emit(WS_EVENTS.VOICE_MESH_PEER_LEFT, {
@@ -2629,7 +2734,7 @@ export class MessengerGateway
   }
 
   @SubscribeMessage(WS_EVENTS.VOICE_MESH_SIGNAL)
-  handleVoiceMeshSignal(
+  async handleVoiceMeshSignal(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody()
     payload: {
@@ -2642,6 +2747,10 @@ export class MessengerGateway
       return { success: false };
     }
 
+    await this.convsService.assertMember(payload.roomId, client.userId);
+    await this.convsService.assertMember(payload.roomId, payload.targetPeerId);
+    if (!client.rooms.has(`voice-mesh:${payload.roomId}`))
+      throw new WsException('Join voice room first');
     this.emitToUser(payload.targetPeerId, WS_EVENTS.VOICE_MESH_SIGNAL, {
       roomId: payload.roomId,
       senderPeerId: client.userId,
@@ -2662,11 +2771,12 @@ export class MessengerGateway
   }
 
   @SubscribeMessage('soundboard:play')
-  handleSoundboardPlay(
+  async handleSoundboardPlay(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() payload: { conversationId?: string; [key: string]: unknown },
   ) {
     if (!payload?.conversationId || !client.userId) return;
+    await this.convsService.assertMember(payload.conversationId, client.userId);
     client.to(payload.conversationId).emit('soundboard:play', {
       ...payload,
       senderUserId: client.userId,
@@ -2674,11 +2784,12 @@ export class MessengerGateway
   }
 
   @SubscribeMessage('watchtogether:sync')
-  handleWatchTogetherSync(
+  async handleWatchTogetherSync(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() payload: { conversationId?: string; [key: string]: unknown },
   ) {
     if (!payload?.conversationId || !client.userId) return;
+    await this.convsService.assertMember(payload.conversationId, client.userId);
     client.to(payload.conversationId).emit('watchtogether:sync', {
       ...payload,
       senderUserId: client.userId,

@@ -215,7 +215,7 @@ crash.log
 crash.*.log
 
 # React Native / mobile (apps/mobile roadmap) — NEVER commit signing
-# credentials or push-notification keys in the open-source repo. When you need
+# credentials or push-notification keys in the repository. When you need
 # a template, commit NAME.example (e.g. google-services.json.example) instead.
 *.keystore
 *.jks
@@ -242,6 +242,21 @@ packages/native/prebuilds/
 # Node heap snapshots (local profiling, e.g. backend/heapdumps/)
 heapdumps/
 *.heapsnapshot
+
+# Local browser traces and performance runner outputs. Durable summaries live in docs/performance.
+/apps/web/test-results*/
+/apps/web/playwright-report*/
+/apps/web/performance-*.json
+/apps/backend/performance-*.json
+# Generated SQL plans, pgbench samples and raw performance measurements.
+# Keep these local; commit benchmark scripts and durable report summaries instead.
+/docs/performance/artifacts/
+# Local snapshots; durable measurements are summarized in the Markdown reports.
+/docs/performance/search-network-budget.json
+/docs/performance/search-startup-budget.json
+/docs/performance/validation.json
+# Session-specific agent checklists, retained locally for continuing work.
+/docs/superpowers/plans/
 
 # Vercel (frontend hosting — local deploy state, no secrets in repo)
 .vercel/

@@ -1,5 +1,7 @@
 import {
   memo,
+  lazy,
+  Suspense,
   useCallback,
   useEffect,
   useRef,
@@ -10,7 +12,9 @@ import {
 import type { ProfileFrameDto } from '@social-network/shared-contracts';
 import { useDecorationMotion } from './useDecorationMotion';
 import { registerProfileEffect } from './profileEffectPlayback';
-import { RacingProfileFrame } from './RacingProfileFrame';
+const RacingProfileFrame = lazy(() =>
+  import('./RacingProfileFrame').then((m) => ({ default: m.RacingProfileFrame })),
+);
 import './profileFrame.css';
 
 /** One proportional crown, fixed corners and repeating rails; never stretch artwork. */
@@ -60,7 +64,8 @@ export const ProfileFrame = memo(function ProfileFrame({
   return (
     <span
       ref={node}
-      className="profile-frame"
+      className="profile-frame select-none"
+      onContextMenu={(e) => e.preventDefault()}
       aria-hidden="true"
       data-profile-frame={frame.id}
       data-motion={playing}
@@ -123,39 +128,44 @@ export const ProfileFrame = memo(function ProfileFrame({
       <span className="profile-frame__spark profile-frame__spark--two" />
       <span className="profile-frame__spark profile-frame__spark--three" />
       {frame.family === 'racing' && frame.vehicleAtlasUrl && frame.vehiclePreviewUrl && (
-        <RacingProfileFrame
-          frame={frame}
-          playing={playing}
-          compact={compact}
-          onMotionError={onMotionError}
-        />
+        <Suspense fallback={null}>
+          <RacingProfileFrame
+            frame={frame}
+            playing={playing}
+            compact={compact}
+            onMotionError={onMotionError}
+          />
+        </Suspense>
       )}
     </span>
   );
 });
 
-/** Headroom is reserved in layout; art cannot be clipped by the inner profile. */
+/** Reserve crown headroom unless the surrounding layout already provides it. */
 export function ProfileFrameSurface({
   frame,
   children,
   radius = 26,
   className = '',
   priority = false,
+  reserveHeadroom = true,
 }: {
   frame?: ProfileFrameDto | null;
   children: ReactNode;
   radius?: number;
   className?: string;
   priority?: boolean;
+  reserveHeadroom?: boolean;
 }) {
   return (
     <div
-      className={`profile-frame-surface ${className}`}
+      className={`profile-frame-surface select-none ${className}`}
+      onContextMenu={(e) => e.preventDefault()}
       data-framed={Boolean(frame)}
       style={{ '--pf-radius': `${radius}px` } as CSSProperties}
     >
-      {frame && <div className="profile-frame-headroom" aria-hidden="true" />}
-      <div className="profile-frame-card">
+      {frame && reserveHeadroom && <div className="profile-frame-headroom" aria-hidden="true" />}
+      <div className="profile-frame-card select-none" onContextMenu={(e) => e.preventDefault()}>
         {children}
         <ProfileFrame frame={frame} priority={priority} />
       </div>

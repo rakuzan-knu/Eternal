@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useCallStore } from './callStore';
 import { apiClient } from '@/shared/api/httpClient';
 import type { IceServersResponse } from '@common/contracts';
@@ -70,6 +70,7 @@ import { useAuthStore } from '@/shared/model/useAuthStore';
 import { usePresenceStore } from '@/shared/model/usePresenceStore';
 import { useSoundboardStore } from './soundboardStore';
 import { getSocket } from '@/shared/api/socket';
+import { CallSetupCancelledError } from '../lib/callSetupCancellation';
 
 const DEFAULT_STUN = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }];
 
@@ -109,12 +110,48 @@ export function useWebRTC(options: WebRTCOptions = {}) {
   const ensureReceiverTracksRef = useRef<((userId?: string) => void) | null>(null);
   const currentAuthUserId = useAuthStore((s) => s.userId);
   const whiteboardEngineRef = useRef<WhiteboardCRDTEngine | null>(null);
-  if (!whiteboardEngineRef.current) {
-    whiteboardEngineRef.current = new WhiteboardCRDTEngine({
-      userId: currentAuthUserId || undefined,
-      userName: currentAuthUserId ? `User ${currentAuthUserId.slice(0, 4)}` : 'You',
+  const [whiteboardEngine, setWhiteboardEngine] = useState<WhiteboardCRDTEngine | null>(null);
+  const mountedRef = useRef(false);
+  const disposeConnectionRef = useRef<(() => void) | null>(null);
+  const setupGenerationRef = useRef(0);
+  const ensureCurrentSetup = useCallback((generation: number, stream?: MediaStream) => {
+    if (!mountedRef.current || generation !== setupGenerationRef.current) {
+      stream?.getTracks().forEach((track) => track.stop());
+      throw new CallSetupCancelledError();
+    }
+  }, []);
+  const awaitCurrentSetup = useCallback(
+    async <T>(generation: number, operation: Promise<T>, stream?: MediaStream): Promise<T> => {
+      try {
+        return await operation;
+      } finally {
+        // A rejected browser operation is also stale after teardown. Classify it
+        // before a caller can mistake it for a failure of a newer call.
+        ensureCurrentSetup(generation, stream);
+      }
+    },
+    [ensureCurrentSetup],
+  );
+
+  // The CRDT engine owns a timer. Allocate it only after commit, with a paired
+  // teardown; an abandoned render must never leave a Y.Doc/interval alive.
+  useEffect(() => {
+    mountedRef.current = true;
+    const userId = useAuthStore.getState().userId;
+    const engine = new WhiteboardCRDTEngine({
+      userId: userId || undefined,
+      userName: userId ? `User ${userId.slice(0, 4)}` : 'You',
     });
-  }
+    whiteboardEngineRef.current = engine;
+    superResEngineRef.current ??= new WebGPUSuperResEngine();
+    webCodecsManagerRef.current ??= new WebCodecsStreamManager(superResEngineRef.current);
+    peerRelayManagerRef.current ??= new P2PTurnRelayManager();
+    setWhiteboardEngine(engine);
+    return () => {
+      mountedRef.current = false;
+      disposeConnectionRef.current?.();
+    };
+  }, []);
 
   useEffect(() => {
     if (whiteboardEngineRef.current && currentAuthUserId) {
@@ -876,12 +913,16 @@ export function useWebRTC(options: WebRTCOptions = {}) {
       onIceCandidate: (candidate: RTCIceCandidate) => void,
       targetUserId?: string,
     ): Promise<RTCPeerConnection> => {
+      const generation = setupGenerationRef.current;
+      ensureCurrentSetup(generation);
       if (pcRef.current) {
         return pcRef.current;
       }
 
       console.log('[initPeerConnection] fetching ICE servers...');
       const iceServers = await fetchIceServers();
+      ensureCurrentSetup(generation);
+      if (pcRef.current) return pcRef.current;
       console.log('[initPeerConnection] creating RTCPeerConnection...');
       const pc = new RTCPeerConnection({
         iceServers,
@@ -1271,11 +1312,14 @@ export function useWebRTC(options: WebRTCOptions = {}) {
       setIsPeerRelayActive,
       isSatelliteModeEnabled,
       setupMuxChannels,
+      ensureCurrentSetup,
     ],
   );
 
   const acquireLocalMedia = useCallback(
     async (callType: 'audio' | 'video'): Promise<MediaStream> => {
+      const generation = setupGenerationRef.current;
+      ensureCurrentSetup(generation);
       const type = ((callType as unknown as string) || 'audio').toLowerCase() as 'audio' | 'video';
       console.log('[acquireLocalMedia] started. type:', type);
       // If we already have an active local stream with required tracks, return it
@@ -1316,6 +1360,7 @@ export function useWebRTC(options: WebRTCOptions = {}) {
       try {
         rawStream = await navigator.mediaDevices.getUserMedia(constraints);
       } catch (err) {
+        ensureCurrentSetup(generation);
         console.error('[acquireLocalMedia] getUserMedia FAILED:', err);
         void CallAlarming.captureCallAlarm({
           callId: callId || 'initiation',
@@ -1335,6 +1380,7 @@ export function useWebRTC(options: WebRTCOptions = {}) {
               video: false,
             });
           } catch (audioErr) {
+            ensureCurrentSetup(generation);
             void CallAlarming.captureCallAlarm({
               callId: callId || 'initiation',
               error: audioErr,
@@ -1347,6 +1393,7 @@ export function useWebRTC(options: WebRTCOptions = {}) {
         }
       }
 
+      ensureCurrentSetup(generation, rawStream);
       rawStreamRef.current = rawStream;
 
       if (callAudioPipelineRef.current) {
@@ -1402,6 +1449,7 @@ export function useWebRTC(options: WebRTCOptions = {}) {
       setLocalStream,
       isNoiseSuppressionEnabled,
       callId,
+      ensureCurrentSetup,
     ],
   );
 
@@ -1458,8 +1506,11 @@ export function useWebRTC(options: WebRTCOptions = {}) {
       onIceCandidate: (candidate: RTCIceCandidate) => void,
       targetUserId?: string,
     ): Promise<RTCSessionDescriptionInit> => {
+      const generation = setupGenerationRef.current;
       const pc = await initPeerConnection(onIceCandidate, targetUserId);
+      ensureCurrentSetup(generation);
       const stream = await acquireLocalMedia(callType);
+      ensureCurrentSetup(generation, stream);
       attachLocalStream(pc, stream);
 
       globalCallExternalStore.transition('CALLING');
@@ -1565,20 +1616,27 @@ export function useWebRTC(options: WebRTCOptions = {}) {
         console.warn('[Reactions] Failed to create data channel on offer:', err);
       }
 
-      const offer = await pc.createOffer({
-        offerToReceiveAudio: true,
-        offerToReceiveVideo: true,
-      });
+      const offer = await awaitCurrentSetup(
+        generation,
+        pc.createOffer({
+          offerToReceiveAudio: true,
+          offerToReceiveVideo: true,
+        }),
+      );
+      ensureCurrentSetup(generation);
       const codecPref = useCallStore.getState().preferredVideoCodec;
       if (offer.sdp && callType === 'video') {
         offer.sdp = mungeSDP(offer.sdp, codecPref, false);
       }
-      await pc.setLocalDescription(offer);
+      await awaitCurrentSetup(generation, pc.setLocalDescription(offer));
+      ensureCurrentSetup(generation);
       return offer;
     },
     [
       initPeerConnection,
       acquireLocalMedia,
+      ensureCurrentSetup,
+      awaitCurrentSetup,
       attachLocalStream,
       upsertFileTransfer,
       setSyncPlayMetrics,
@@ -1594,11 +1652,14 @@ export function useWebRTC(options: WebRTCOptions = {}) {
       onIceCandidate: (candidate: RTCIceCandidate) => void,
       callerUserId?: string,
     ): Promise<RTCSessionDescriptionInit> => {
+      const generation = setupGenerationRef.current;
       console.log('[handleOffer] STEP 1: acquireLocalMedia...');
       const stream = await acquireLocalMedia(type);
+      ensureCurrentSetup(generation, stream);
 
       console.log('[handleOffer] STEP 2: initPeerConnection...');
       const pc = await initPeerConnection(onIceCandidate, callerUserId);
+      ensureCurrentSetup(generation, stream);
 
       console.log('[handleOffer] STEP 2.5: attachLocalStream...');
       attachLocalStream(pc, stream);
@@ -1610,7 +1671,11 @@ export function useWebRTC(options: WebRTCOptions = {}) {
         offer?.sdp ? offer.sdp.slice(0, 40) : 'NO_SDP',
       );
       try {
-        await pc.setRemoteDescription(new RTCSessionDescription(offer));
+        await awaitCurrentSetup(
+          generation,
+          pc.setRemoteDescription(new RTCSessionDescription(offer)),
+        );
+        ensureCurrentSetup(generation);
         console.log('[handleOffer] STEP 3 setRemoteDescription SUCCEEDED!');
       } catch (e) {
         console.error('[handleOffer] STEP 3 setRemoteDescription EXCEPTION:', e);
@@ -1640,15 +1705,20 @@ export function useWebRTC(options: WebRTCOptions = {}) {
         receivers: pc.getReceivers().length,
       });
       try {
-        const answer = await Promise.race([
-          pc.createAnswer(),
-          new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error('pc.createAnswer timed out after 10000ms')), 10000),
-          ),
-        ]);
+        const answer = await awaitCurrentSetup(
+          generation,
+          Promise.race([
+            pc.createAnswer(),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error('pc.createAnswer timed out after 10000ms')), 10000),
+            ),
+          ]),
+        );
+        ensureCurrentSetup(generation);
         console.log('[handleOffer] STEP 5.5: createAnswer succeeded!');
         console.log('[handleOffer] STEP 6: setLocalDescription...');
-        await pc.setLocalDescription(answer);
+        await awaitCurrentSetup(generation, pc.setLocalDescription(answer));
+        ensureCurrentSetup(generation);
         console.log('[handleOffer] STEP 7: attaching E2EE transforms...');
         if (cryptoKeyRef.current) {
           attachE2eeToTransceivers(pc, cryptoKeyRef.current);
@@ -1660,7 +1730,15 @@ export function useWebRTC(options: WebRTCOptions = {}) {
         throw e;
       }
     },
-    [initPeerConnection, acquireLocalMedia, attachLocalStream, attachE2eeToTransceivers, callId],
+    [
+      initPeerConnection,
+      acquireLocalMedia,
+      attachLocalStream,
+      attachE2eeToTransceivers,
+      callId,
+      ensureCurrentSetup,
+      awaitCurrentSetup,
+    ],
   );
 
   const handleAnswer = useCallback(async (answer: RTCSessionDescriptionInit): Promise<void> => {
@@ -2063,6 +2141,7 @@ export function useWebRTC(options: WebRTCOptions = {}) {
 
   const toggleVideoTrack = useCallback(
     async (videoOff: boolean): Promise<boolean> => {
+      const generation = setupGenerationRef.current;
       const pc = pcRef.current;
       const currentStream = useCallStore.getState().localStream;
 
@@ -2101,6 +2180,7 @@ export function useWebRTC(options: WebRTCOptions = {}) {
       } else {
         // Turning camera ON:
         try {
+          ensureCurrentSetup(generation);
           const constraints: MediaStreamConstraints = {
             audio: false,
             video: selectedVideoInput
@@ -2118,6 +2198,7 @@ export function useWebRTC(options: WebRTCOptions = {}) {
           };
 
           const cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+          ensureCurrentSetup(generation, cameraStream);
           const cameraTrack = cameraStream.getVideoTracks()[0];
           if (!cameraTrack) {
             throw new Error('No video track returned from camera');
@@ -2156,7 +2237,12 @@ export function useWebRTC(options: WebRTCOptions = {}) {
                 );
 
             if (videoSender) {
-              await videoSender.replaceTrack(cameraTrack);
+              await awaitCurrentSetup(
+                generation,
+                videoSender.replaceTrack(cameraTrack),
+                cameraStream,
+              );
+              ensureCurrentSetup(generation, cameraStream);
               if (videoTransceiver) {
                 videoTransceiver.direction = 'sendrecv';
               }
@@ -2207,12 +2293,13 @@ export function useWebRTC(options: WebRTCOptions = {}) {
 
           return true;
         } catch (err) {
+          if (err instanceof CallSetupCancelledError) throw err;
           console.error('[toggleVideoTrack] Failed to acquire camera:', err);
           return false;
         }
       }
     },
-    [selectedVideoInput, setLocalStream, triggerIceRestart],
+    [selectedVideoInput, setLocalStream, triggerIceRestart, ensureCurrentSetup, awaitCurrentSetup],
   );
 
   const stopScreenShare = useCallback(async (): Promise<void> => {
@@ -2269,6 +2356,8 @@ export function useWebRTC(options: WebRTCOptions = {}) {
   ]);
 
   const startScreenShare = useCallback(async (): Promise<MediaStream> => {
+    const generation = setupGenerationRef.current;
+    ensureCurrentSetup(generation);
     let screenStream: MediaStream;
     try {
       screenStream = await navigator.mediaDevices.getDisplayMedia({
@@ -2284,6 +2373,7 @@ export function useWebRTC(options: WebRTCOptions = {}) {
         },
       });
     } catch {
+      ensureCurrentSetup(generation);
       try {
         screenStream = await navigator.mediaDevices.getDisplayMedia({
           video: {
@@ -2292,12 +2382,14 @@ export function useWebRTC(options: WebRTCOptions = {}) {
           audio: true,
         });
       } catch {
+        ensureCurrentSetup(generation);
         screenStream = await navigator.mediaDevices.getDisplayMedia({
           video: true,
         });
       }
     }
 
+    ensureCurrentSetup(generation, screenStream);
     const screenTrack = screenStream.getVideoTracks()[0];
     const screenAudioTrack = screenStream.getAudioTracks()[0];
     if (screenTrack) {
@@ -2315,6 +2407,7 @@ export function useWebRTC(options: WebRTCOptions = {}) {
         // Advisory
       }
     }
+    ensureCurrentSetup(generation, screenStream);
 
     const pc = pcRef.current;
     if (pc && screenTrack) {
@@ -2363,7 +2456,7 @@ export function useWebRTC(options: WebRTCOptions = {}) {
             }
           } catch {}
         }
-        await videoSender.replaceTrack(screenTrack);
+        await awaitCurrentSetup(generation, videoSender.replaceTrack(screenTrack), screenStream);
 
         try {
           const params = videoSender.getParameters();
@@ -2410,6 +2503,7 @@ export function useWebRTC(options: WebRTCOptions = {}) {
 
       // CRITICAL: Set screen share active in Zustand BEFORE renegotiating SDP
       // so triggerIceRestart / triggerRenegotiation recognizes that screen sharing is active!
+      ensureCurrentSetup(generation, screenStream);
       setScreenShareStream(screenStream);
       setIsScreenSharing(true);
 
@@ -2429,12 +2523,14 @@ export function useWebRTC(options: WebRTCOptions = {}) {
         audioMixerRef.current = mixer;
         const mixedTrack = mixer.getMixedTrack();
         if (mixedTrack) {
-          await audioSender.replaceTrack(mixedTrack);
+          await awaitCurrentSetup(generation, audioSender.replaceTrack(mixedTrack), screenStream);
+          ensureCurrentSetup(generation, screenStream);
           setIsScreenAudioSharing(true);
         }
       }
     }
 
+    ensureCurrentSetup(generation, screenStream);
     screenTrack.onended = () => {
       void stopScreenShare();
     };
@@ -2448,6 +2544,8 @@ export function useWebRTC(options: WebRTCOptions = {}) {
     setIsScreenAudioSharing,
     stopScreenShare,
     triggerIceRestart,
+    ensureCurrentSetup,
+    awaitCurrentSetup,
   ]);
 
   const sendP2PFile = useCallback(async (file: File): Promise<string> => {
@@ -2470,6 +2568,7 @@ export function useWebRTC(options: WebRTCOptions = {}) {
   }, []);
 
   const closeConnection = useCallback(() => {
+    setupGenerationRef.current += 1;
     stopReconnectingChime();
     if (reconnectCountdownTimerRef.current) {
       clearInterval(reconnectCountdownTimerRef.current);
@@ -2522,16 +2621,25 @@ export function useWebRTC(options: WebRTCOptions = {}) {
     syncPlayEngineRef.current?.destroy();
     syncPlayEngineRef.current = null;
     whiteboardEngineRef.current?.destroy();
-    whiteboardEngineRef.current = new WhiteboardCRDTEngine({
-      userId: useAuthStore.getState().userId || undefined,
-      userName: useAuthStore.getState().userId
-        ? `User ${useAuthStore.getState().userId!.slice(0, 4)}`
-        : 'You',
-    });
+    whiteboardEngineRef.current = mountedRef.current
+      ? new WhiteboardCRDTEngine({
+          userId: useAuthStore.getState().userId || undefined,
+          userName: useAuthStore.getState().userId
+            ? `User ${useAuthStore.getState().userId!.slice(0, 4)}`
+            : 'You',
+        })
+      : null;
+    if (mountedRef.current) setWhiteboardEngine(whiteboardEngineRef.current);
     webCodecsManagerRef.current?.destroy();
-    webCodecsManagerRef.current = new WebCodecsStreamManager(superResEngineRef.current!);
+    webCodecsManagerRef.current = mountedRef.current
+      ? new WebCodecsStreamManager(superResEngineRef.current!)
+      : null;
     peerRelayManagerRef.current?.destroy();
-    peerRelayManagerRef.current = new P2PTurnRelayManager();
+    peerRelayManagerRef.current = mountedRef.current ? new P2PTurnRelayManager() : null;
+    if (!mountedRef.current) {
+      superResEngineRef.current?.destroy();
+      superResEngineRef.current = null;
+    }
 
     headTrackerRef.current?.stop();
     headTrackerRef.current = null;
@@ -2595,9 +2703,12 @@ export function useWebRTC(options: WebRTCOptions = {}) {
     transformedSendersRef.current = new WeakSet();
     transformedReceiversRef.current = new WeakSet();
     terminateScriptTransformWorker();
-    globalCallExternalStore.transition('ENDED');
+    if (globalCallExternalStore.getSnapshot().fsmState !== 'IDLE') {
+      globalCallExternalStore.transition('ENDED');
+    }
     globalCallExternalStore.reset();
   }, [setIsReconnecting, localStream, screenShareStream, remoteStreams]);
+  disposeConnectionRef.current = closeConnection;
 
   const resetPeerConnectionOnly = useCallback(() => {
     if (pcRef.current) {
@@ -2687,6 +2798,7 @@ export function useWebRTC(options: WebRTCOptions = {}) {
     if (localStream.getVideoTracks().length === 0) return;
 
     const switchVideo = async () => {
+      const generation = setupGenerationRef.current;
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: selectedVideoInput
@@ -2698,11 +2810,13 @@ export function useWebRTC(options: WebRTCOptions = {}) {
             : { width: { ideal: 1280 }, height: { ideal: 720 } },
           audio: false,
         });
+        ensureCurrentSetup(generation, stream);
         const newTrack = stream.getVideoTracks()[0];
         if (newTrack) {
           const sender = pc.getSenders().find((s) => s.track?.kind === 'video');
           if (sender) {
-            await sender.replaceTrack(newTrack);
+            await awaitCurrentSetup(generation, sender.replaceTrack(newTrack), stream);
+            ensureCurrentSetup(generation, stream);
           }
           const oldTrack = localStream.getVideoTracks()[0];
           if (oldTrack) {
@@ -2716,7 +2830,7 @@ export function useWebRTC(options: WebRTCOptions = {}) {
       }
     };
     void switchVideo();
-  }, [selectedVideoInput, localStream]);
+  }, [selectedVideoInput, localStream, ensureCurrentSetup, awaitCurrentSetup]);
 
   // Dynamic audio input device switch via sender.replaceTrack (real-time microphone change)
   const prevAudioInputRef = useRef(selectedAudioInput);
@@ -2729,6 +2843,7 @@ export function useWebRTC(options: WebRTCOptions = {}) {
     if (localStream.getAudioTracks().length === 0) return;
 
     const switchAudio = async () => {
+      const generation = setupGenerationRef.current;
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: selectedAudioInput
@@ -2745,6 +2860,7 @@ export function useWebRTC(options: WebRTCOptions = {}) {
               },
           video: false,
         });
+        ensureCurrentSetup(generation, stream);
         rawStreamRef.current = stream;
 
         if (callAudioPipelineRef.current) {
@@ -2765,7 +2881,8 @@ export function useWebRTC(options: WebRTCOptions = {}) {
 
           const sender = pc.getSenders().find((s) => s.track?.kind === 'audio');
           if (sender && targetTrack) {
-            await sender.replaceTrack(targetTrack);
+            await awaitCurrentSetup(generation, sender.replaceTrack(targetTrack), stream);
+            ensureCurrentSetup(generation, stream);
           }
           const oldTrack = localStream.getAudioTracks()[0];
           if (oldTrack && oldTrack !== targetTrack) {
@@ -2780,7 +2897,8 @@ export function useWebRTC(options: WebRTCOptions = {}) {
           if (newTrack) {
             const sender = pc.getSenders().find((s) => s.track?.kind === 'audio');
             if (sender) {
-              await sender.replaceTrack(newTrack);
+              await awaitCurrentSetup(generation, sender.replaceTrack(newTrack), stream);
+              ensureCurrentSetup(generation, stream);
             }
             const oldTrack = localStream.getAudioTracks()[0];
             if (oldTrack) {
@@ -2795,7 +2913,13 @@ export function useWebRTC(options: WebRTCOptions = {}) {
       }
     };
     void switchAudio();
-  }, [selectedAudioInput, localStream, isNoiseSuppressionEnabled]);
+  }, [
+    selectedAudioInput,
+    localStream,
+    isNoiseSuppressionEnabled,
+    ensureCurrentSetup,
+    awaitCurrentSetup,
+  ]);
 
   // Dynamic audio output dispatching via setSinkId
   useEffect(() => {
@@ -3021,7 +3145,7 @@ export function useWebRTC(options: WebRTCOptions = {}) {
     sendCallActivity,
     reactionEngine: reactionEngineRef.current,
     syncPlayEngine: syncPlayEngineRef.current,
-    whiteboardEngine: whiteboardEngineRef.current,
+    whiteboardEngine,
     superResEngine: superResEngineRef.current,
     webCodecsManager: webCodecsManagerRef.current,
     peerRelayManager: peerRelayManagerRef.current,

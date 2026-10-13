@@ -66,8 +66,23 @@ export default function LottieDecoration({ decoration }: { decoration: AvatarDec
   }, [decoration.assetUrl]);
   return (
     <>
-      {!ready && <img src={decoration.previewUrl} alt="" loading="lazy" decoding="async" />}
-      <span ref={ref} className="decorated-avatar__lottie" style={{ opacity: ready ? 1 : 0 }} />
+      {!ready && (
+        <img
+          src={decoration.previewUrl}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          draggable={false}
+          onContextMenu={(e) => e.preventDefault()}
+          className="select-none pointer-events-none"
+        />
+      )}
+      <span
+        ref={ref}
+        className="decorated-avatar__lottie select-none"
+        onContextMenu={(e) => e.preventDefault()}
+        style={{ opacity: ready ? 1 : 0 }}
+      />
     </>
   );
 }

@@ -17,7 +17,10 @@ export function ProfileFramePreview({
 }) {
   return (
     <ProfileFrameSurface frame={item} radius={18} priority={priority}>
-      <div className="relative aspect-[4/6] overflow-hidden rounded-[18px] border border-white/10 bg-[#101016] text-white">
+      <div
+        className="relative aspect-[4/6] overflow-hidden rounded-[18px] border border-white/10 bg-[#101016] text-white select-none"
+        onContextMenu={(e) => e.preventDefault()}
+      >
         <div className="h-[27%] bg-gradient-to-br from-[#33304b] via-[#272337] to-[#17151f]" />
         <div className="absolute left-[10%] top-[20%]">
           <Avatar src={avatarUrl} size="md" decoration={decoration} />

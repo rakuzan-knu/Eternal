@@ -39,7 +39,7 @@ export const LAW_ENFORCEMENT_DATA: Record<'en' | 'uk', LawEnforcementTranslation
       effectiveDate: 'Effective: September 1, 2026 • Last updated: August 30, 2026',
       lastUpdated: 'Last Updated: August 30, 2026',
       description:
-        'These guidelines provide information for domestic and international law enforcement agencies, government authorities, and courts seeking user records or emergency disclosures from Eternal Inc. (headquartered in Kyiv, Ukraine).',
+        'These guidelines provide information for domestic and international law enforcement agencies, government authorities, and courts seeking user records or emergency disclosures from the Eternal project, operated by Ag Mykola and Ag Mihal, the founders operating the Eternal project in Ukraine.',
     },
     toc: {
       contents: 'Table of Contents',
@@ -59,7 +59,7 @@ export const LAW_ENFORCEMENT_DATA: Record<'en' | 'uk', LawEnforcementTranslation
             id: 'statutory-standards',
             title: '1.1 Requirement of Valid Legal Process',
             content: [
-              'Eternal Inc. strictly adheres to applicable data privacy statutes, international treaties, and human rights standards. We do not disclose non-public user information without valid, enforceable legal process served in accordance with applicable jurisdictional rules.',
+              'Eternal strictly adheres to applicable data privacy statutes, international treaties, and human rights standards. We do not disclose non-public user information without valid, enforceable legal process served in accordance with applicable jurisdictional rules.',
             ],
             bullets: [
               'Subpoenas & Production Orders: Required to compel basic subscriber information (such as registered email address, account registration timestamp, and IP connection logs).',
@@ -154,7 +154,7 @@ export const LAW_ENFORCEMENT_DATA: Record<'en' | 'uk', LawEnforcementTranslation
             bullets: [
               'Legal & Law Enforcement Operations: legal@eternal.app',
               'Safety & Urgent Reports: safety@eternal.app',
-              'Physical Service: Eternal Inc., Legal Department, Kyiv, Ukraine',
+              'Project operators: Ag Mykola and Ag Mihal, Ukraine. Contact the published legal channel to confirm arrangements for service of legal process.',
             ],
           },
         ],
@@ -168,7 +168,7 @@ export const LAW_ENFORCEMENT_DATA: Record<'en' | 'uk', LawEnforcementTranslation
       effectiveDate: 'Набуття чинності: 1 вересня 2026 р. • Останнє оновлення: 30 серпня 2026 р.',
       lastUpdated: 'Останнє оновлення: 30 серпня 2026 р.',
       description:
-        'Цей документ містить правила та процедури взаємодії з правоохоронними органами, судами та державними регуляторами, які звертаються із запитами щодо надання інформації про користувачів до Eternal Inc. (м. Київ, Україна).',
+        'Цей документ містить правила та процедури взаємодії з правоохоронними органами, судами та державними регуляторами, які звертаються із запитами щодо надання інформації про користувачів до проєкту Eternal, яким керують Ag Mykola та Ag Mihal в Україні.',
     },
     toc: {
       contents: 'Зміст документа',
@@ -188,7 +188,7 @@ export const LAW_ENFORCEMENT_DATA: Record<'en' | 'uk', LawEnforcementTranslation
             id: 'statutory-standards',
             title: '1.1 Процесуальні підстави',
             content: [
-              'Eternal Inc. суворо дотримується законодавства України, міжнародних конвенцій та норм захисту персональних даних. Надання інформації здійснюється за наявності ухвали слідчого судді або належного міжнародного правового запиту (MLAT).',
+              'Eternal суворо дотримується законодавства України, міжнародних конвенцій та норм захисту персональних даних. Надання інформації здійснюється за наявності ухвали слідчого судді або належного міжнародного правового запиту (MLAT).',
             ],
           },
         ],
@@ -259,7 +259,7 @@ export const LAW_ENFORCEMENT_DATA: Record<'en' | 'uk', LawEnforcementTranslation
             bullets: [
               'Юридичний департамент: legal@eternal.app',
               'Служба безпеки: safety@eternal.app',
-              'Головний офіс: Eternal Inc., м. Київ, Україна',
+              'Оператори проєкту: Ag Mykola та Ag Mihal, Україна',
             ],
           },
         ],

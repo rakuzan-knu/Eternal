@@ -3,7 +3,15 @@ import { useLocation, Navigate, Routes, Route } from 'react-router-dom';
 
 import Sidebar from '../widgets/sidebar/ui/Sidebar';
 import DeviceLockGate from '../features/profile/ui/security/DeviceLockGate';
-import MessageToastViewport from '../features/chat/ui/MessageToastViewport';
+import { GlobalMessengerEvents } from './GlobalMessengerEvents';
+import { useStoryViewerStore } from '../features/stories/model/useStoryViewerStore';
+import { useStoryEditorStore } from '../features/stories/model/useStoryEditorStore';
+import { useHiddenUndoStore } from '../features/posts/model/useHiddenUndoStore';
+import { useClearHistoryUndoStore } from '../features/chat/model/useClearHistoryUndoStore';
+import { useCallStore } from '../features/chat/model/callStore';
+import { useActiveMediaPlaybackStore } from '../shared/model/useActiveMediaPlaybackStore';
+import { useMessageToastStore } from '../shared/model/useMessageToastStore';
+const MessageToastViewport = lazy(() => import('../features/chat/ui/MessageToastViewport'));
 import { CallProvider } from '../features/chat/model/CallProvider';
 import { OfflineBanner } from '../shared/ui/OfflineBanner';
 import { lazyWithRetry } from '../shared/lib/lazyWithRetry';
@@ -64,7 +72,7 @@ const UndoClearHistorySnackbar = lazy(() =>
   })),
 );
 const FloatingVideoNotePiP = lazy(() => import('../features/chat/ui/FloatingVideoNotePiP'));
-const ReactionBurstCanvas = lazy(() => import('../features/chat/ui/ReactionBurstCanvas'));
+const ReactionBurstCanvas = lazyWithRetry(() => import('../features/chat/ui/ReactionBurstCanvas'));
 const CallModal = lazy(() =>
   import('../features/chat/ui/Call/CallModal').then((m) => ({ default: m.CallModal })),
 );
@@ -170,6 +178,11 @@ const OnlineFriendsSidebar = lazy(() =>
     default: m.OnlineFriendsSidebar,
   })),
 );
+const MediaDetailModal = lazy(() =>
+  import('../widgets/showcase').then((m) => ({
+    default: m.MediaDetailModal,
+  })),
+);
 import { usePresenceSync } from '../features/chat/model/usePresence';
 import { usePlatformMusicPresence } from '../features/music/model/usePlatformMusicPresence';
 import { useDynamicTabBadge, useNotificationRealtime } from '@/entities/notification';
@@ -270,6 +283,19 @@ export default function App() {
     }
   }, [isAuthenticated]);
 
+  const isStoryViewerOpen = useStoryViewerStore((s) => s.isOpen);
+  const isStoryEditorOpen = useStoryEditorStore((s) => s.isOpen);
+  const hasHideUndo = useHiddenUndoStore((s) => Boolean(s.activeUndo));
+  const hasClearUndo = useClearHistoryUndoStore((s) => Boolean(s.activeUndo));
+  const hasToasts = useMessageToastStore((s) => s.toasts.length > 0);
+  const hasVideoNote = useActiveMediaPlaybackStore((s) =>
+    Boolean(s.activeMediaId && s.mediaType === 'video'),
+  );
+  const callStatus = useCallStore((s) => s.callStatus);
+  const hasIncomingCall = useCallStore((s) => Boolean(s.incomingCall));
+  const isCallPiP = useCallStore((s) => s.isPiP);
+  const isLyricsOpen = useSpotifyPlayerStore((s) => s.isLyricsOpen);
+  const isMobileExpanded = useSpotifyPlayerStore((s) => s.isMobileExpanded);
   const isSpotifyDockVisible = useSpotifyPlayerStore((s) => s.isDockVisible);
   const isSpotifyDockMinimized = useSpotifyPlayerStore((s) => s.isDockMinimized);
   const isGameModeOpen = useSpotifyPlayerStore((s) => s.isGameModeOpen);
@@ -522,6 +548,7 @@ export default function App() {
   return (
     <DeviceLockGate>
       <CallProvider>
+        <GlobalMessengerEvents />
         <div
           className={`relative ${isGameModeOpen || isReelsRoute ? 'h-screen overflow-hidden' : 'min-h-screen'} text-white transition-colors duration-200`}
           style={appBackgroundStyle}
@@ -532,7 +559,7 @@ export default function App() {
           {isGameModeOpen ? (
             <Suspense fallback={null}>
               <SpotifyGameModePlayer />
-              <SpotifyLyricsModal />
+              {isLyricsOpen && <SpotifyLyricsModal />}
             </Suspense>
           ) : (
             <>
@@ -547,27 +574,30 @@ export default function App() {
                 {isGlobalSearchOpen && (
                   <GlobalSearchModal isOpen={isGlobalSearchOpen} onClose={closeGlobalSearch} />
                 )}
-                <StoryViewerModal />
-                <StoryEditorModal />
-                <CallModal />
-                <IncomingCallToast />
-                <PictureInPicture />
-                <VoiceWarningBanner />
+                {isStoryViewerOpen && <StoryViewerModal />}
+                {isStoryEditorOpen && <StoryEditorModal />}
+                {callStatus !== 'idle' && <CallModal />}
+                {hasIncomingCall && <IncomingCallToast />}
+                {isCallPiP && <PictureInPicture />}
+                {callStatus === 'connected' && <VoiceWarningBanner />}
+                <MediaDetailModal />
               </Suspense>
-              <UndoHideSnackbar />
-              <UndoClearHistorySnackbar />
               <Suspense fallback={null}>
-                <FloatingVideoNotePiP />
-                <ReactionBurstCanvas />
-                {!isMessengerRoute && <MessageToastViewport />}
+                {hasHideUndo && <UndoHideSnackbar />}
+                {hasClearUndo && <UndoClearHistorySnackbar />}
+              </Suspense>
+              <Suspense fallback={null}>
+                {hasVideoNote && <FloatingVideoNotePiP />}
+                {isMessengerRoute && <ReactionBurstCanvas />}
+                {!isMessengerRoute && hasToasts && <MessageToastViewport />}
               </Suspense>
 
               {/* Global Spotify Apple Liquid Glass Player Dock & Overlays */}
               {!isReelsRoute && (
                 <Suspense fallback={null}>
-                  <SpotifyBottomDock />
-                  <SpotifyLyricsModal />
-                  <SpotifyMobilePlayerSheet />
+                  {isSpotifyDockVisible && <SpotifyBottomDock />}
+                  {isLyricsOpen && <SpotifyLyricsModal />}
+                  {isMobileExpanded && <SpotifyMobilePlayerSheet />}
                 </Suspense>
               )}
 
@@ -578,10 +608,10 @@ export default function App() {
                         isSpotifyDockVisible ? (isSpotifyDockMinimized ? 'pb-14' : 'pb-28') : ''
                       }`
                     : isReelsRoute
-                      ? `h-screen overflow-hidden flex-1 transition-[padding-left] duration-200 ease-out will-change-[padding-left] ${
+                      ? `h-screen overflow-hidden flex-1 transition-[padding-left] duration-200 ease-out motion-reduce:transition-none ${
                           isSidebarExpanded ? 'pl-72' : 'pl-24'
                         } max-md:pl-0`
-                      : `flex min-h-screen flex-1 justify-center py-8 transition-[padding-left,padding-bottom] duration-300 ${
+                      : `flex min-h-screen flex-1 justify-center py-8 transition-[padding-left,padding-bottom] duration-300 motion-reduce:transition-none ${
                           isSidebarExpanded ? 'pl-72' : 'pl-24'
                         } ${isSpotifyDockVisible ? (isSpotifyDockMinimized ? 'pb-14' : 'pb-28') : ''}`
                 }

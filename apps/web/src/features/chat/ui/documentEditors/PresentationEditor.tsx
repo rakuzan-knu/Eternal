@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { downloadBlob } from '@/shared/lib/blobResources';
 import {
   Plus,
   Trash2,
@@ -956,12 +957,7 @@ export default function PresentationEditor({
       } else if (onDownload) {
         onDownload(fileToUse);
       } else {
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(fileToUse);
-        link.download = fileToUse.name;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        downloadBlob(fileToUse, fileToUse.name);
       }
     } catch (err) {
       console.error('Failed to export presentation:', err);

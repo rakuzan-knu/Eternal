@@ -39,7 +39,7 @@ export const COPYRIGHT_POLICY_DATA: Record<'en' | 'uk', CopyrightPolicyTranslati
       effectiveDate: 'Effective: September 1, 2026 • Last updated: August 30, 2026',
       lastUpdated: 'Last Updated: August 30, 2026',
       description:
-        'Eternal Inc. respects the intellectual property rights of creators and copyright holders. This policy outlines our procedures for submitting copyright takedown notices under the Digital Millennium Copyright Act (DMCA 17 U.S.C. § 512) and the EU Digital Services Act (DSA Art. 16), as well as filing counter-notifications and our repeat infringer policy.',
+        'Eternal respects the intellectual property rights of creators and copyright holders. This policy outlines our procedures for submitting copyright takedown notices under the Digital Millennium Copyright Act (DMCA 17 U.S.C. § 512) and the EU Digital Services Act (DSA Art. 16), as well as filing counter-notifications and our repeat infringer policy.',
     },
     toc: {
       contents: 'Table of Contents',
@@ -80,7 +80,7 @@ export const COPYRIGHT_POLICY_DATA: Record<'en' | 'uk', CopyrightPolicyTranslati
             ],
             bullets: [
               'Designated Agent: DMCA Copyright Compliance Officer',
-              'Organization: Eternal Inc.',
+              'Project operators: Ag Mykola and Ag Mihal, Ukraine',
               'Physical Address: Kyiv, Ukraine',
               'Email: copyright@eternal.app',
               'Legal & Inquiries: legal@eternal.app',
@@ -192,7 +192,7 @@ export const COPYRIGHT_POLICY_DATA: Record<'en' | 'uk', CopyrightPolicyTranslati
       effectiveDate: 'Набуття чинності: 1 вересня 2026 р. • Останнє оновлення: 30 серпня 2026 р.',
       lastUpdated: 'Останнє оновлення: 30 серпня 2026 р.',
       description:
-        'Eternal Inc. поважає інтелектуальну власність авторів. Ця політика регулює процедуру подання повідомлень про порушення авторських прав згідно з DMCA (17 U.S.C. § 512), Законом ЄС про цифрові послуги (DSA Art. 16) та законодавством України, а також подання зустрічних повідомлень і політику повторних порушників.',
+        'Eternal поважає інтелектуальну власність авторів. Ця політика регулює процедуру подання повідомлень про порушення авторських прав згідно з DMCA (17 U.S.C. § 512), Законом ЄС про цифрові послуги (DSA Art. 16) та законодавством України, а також подання зустрічних повідомлень і політику повторних порушників.',
     },
     toc: {
       contents: 'Зміст документа',
@@ -231,7 +231,7 @@ export const COPYRIGHT_POLICY_DATA: Record<'en' | 'uk', CopyrightPolicyTranslati
             content: ['Офіційні звернення правовласників приймаються уповноваженим представником:'],
             bullets: [
               'Уповноважена особа: Уповноважений агент з авторських прав (DMCA Compliance Officer)',
-              'Організація: Eternal Inc.',
+              'Оператори проєкту: Ag Mykola та Ag Mihal, Україна',
               'Місцезнаходження: м. Київ, Україна',
               'E-mail для скарг: copyright@eternal.app',
               'Юридичний відділ: legal@eternal.app',

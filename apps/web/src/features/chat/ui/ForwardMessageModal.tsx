@@ -12,6 +12,7 @@ import ChatFolderIcon from './ChatFolderIcon';
 import { chatApi } from '../api/chatApi';
 import type { ConversationView } from '../../../entities/chat/model/types';
 import type { ChatThemeConfig } from '../model/chatTheme';
+import { conversationFolderQuery } from '../lib/conversationPageFilters';
 
 interface ForwardMessageModalProps {
   messageCount?: number;
@@ -26,7 +27,6 @@ export default function ForwardMessageModal({
   onForward,
   chatTheme,
 }: ForwardMessageModalProps) {
-  const { data: conversations } = useConversations();
   const userId = useAuthStore((s) => s.userId);
   const onlineUserIds = usePresenceStore((s) => s.onlineUserIds);
 
@@ -67,6 +67,12 @@ export default function ForwardMessageModal({
       ) ?? effectiveFolders[0]
     );
   }, [activeFolderId, effectiveFolders]);
+  const {
+    data: conversations,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = useConversations({ ...conversationFolderQuery(activeFolder), search: searchQuery });
 
   const emptySet = useMemo(() => new Set<string>(), []);
 
@@ -404,6 +410,16 @@ export default function ForwardMessageModal({
               );
             })}
 
+            {hasNextPage && (
+              <button
+                type="button"
+                disabled={isFetchingNextPage}
+                onClick={() => void fetchNextPage()}
+                className="w-full py-3 text-sm text-gray-400"
+              >
+                {isFetchingNextPage ? 'Loading chats...' : 'Load more chats'}
+              </button>
+            )}
             {filteredConversations.length === 0 && (
               <div className="py-8 text-center text-xs text-gray-400">No chats found</div>
             )}

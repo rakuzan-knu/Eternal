@@ -10,6 +10,7 @@ import { folderIconOptions } from '../lib/chatFolderIcons';
 import { ChatFolder } from '../model/useChatFoldersStore';
 import ChatFolderIcon from './ChatFolderIcon';
 import FolderRow from './FolderRow';
+import { useConversations } from '../model/useConversations';
 
 interface ChatFolderModalProps {
   folder?: ChatFolder | null;
@@ -43,6 +44,16 @@ export default function ChatFolderModal({
   const [query, setQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<ChatTypeFilter>('all');
   const [didTrySubmit, setDidTrySubmit] = useState(false);
+  const {
+    data: pageConversations,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = useConversations({
+    enabled: Boolean(selectionMode),
+    search: query,
+    filter: typeFilter === 'direct' ? 'PERSONAL' : typeFilter === 'group' ? 'GROUPS' : 'ALL',
+  });
 
   const trimmedName = name.trim();
   const isEditing = Boolean(folder);
@@ -50,7 +61,7 @@ export default function ChatFolderModal({
 
   const selectableConversations = useMemo(() => {
     const lower = query.toLowerCase();
-    return conversations
+    return (pageConversations ?? conversations)
       .filter((conversation) => !conversation.isArchived)
       .filter((conversation) => {
         if (typeFilter === 'direct') return conversation.type === 'DIRECT';
@@ -60,7 +71,7 @@ export default function ChatFolderModal({
       .filter((conversation) =>
         getConversationDisplay(conversation, currentUserId).title.toLowerCase().includes(lower),
       );
-  }, [conversations, currentUserId, query, typeFilter]);
+  }, [pageConversations, conversations, currentUserId, query, typeFilter]);
 
   const toggleConversation = (conversationId: string) => {
     if (selectionMode === 'include') {
@@ -332,6 +343,16 @@ export default function ChatFolderModal({
                       );
                     })}
                   </div>
+                  {hasNextPage && (
+                    <button
+                      type="button"
+                      disabled={isFetchingNextPage}
+                      onClick={() => void fetchNextPage()}
+                      className="w-full py-3 text-sm text-gray-400"
+                    >
+                      {isFetchingNextPage ? 'Loading chats...' : 'Load more chats'}
+                    </button>
+                  )}
                   <div className="flex justify-end gap-4 border-t border-white/10 px-5 py-4">
                     <button
                       className="font-semibold text-sky-300"

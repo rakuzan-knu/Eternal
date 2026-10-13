@@ -12,6 +12,9 @@ interface ArchivedListProps {
   currentUserId: string | null;
   activeId: string | null;
   onSelect: (id: string) => void;
+  hasNextPage?: boolean;
+  isFetchingNextPage?: boolean;
+  onLoadMore?: () => void;
 }
 
 export default function ArchivedList({
@@ -19,11 +22,34 @@ export default function ArchivedList({
   currentUserId,
   activeId,
   onSelect,
+  hasNextPage,
+  isFetchingNextPage,
+  onLoadMore,
 }: ArchivedListProps) {
   const archiveConversation = useArchiveConversation();
 
   return (
-    <aside className="flex w-[300px] flex-shrink-0 flex-col overflow-y-auto custom-scrollbar bg-white/[0.02] p-2">
+    <aside
+      onScroll={(event) => {
+        const el = event.currentTarget;
+        if (
+          hasNextPage &&
+          !isFetchingNextPage &&
+          el.scrollHeight - el.scrollTop - el.clientHeight < 200
+        )
+          onLoadMore?.();
+      }}
+      className="flex w-[300px] flex-shrink-0 flex-col overflow-y-auto custom-scrollbar bg-white/[0.02] p-2"
+    >
+      {hasNextPage && (
+        <button
+          disabled={isFetchingNextPage}
+          onClick={onLoadMore}
+          className="py-2 text-sm text-gray-400"
+        >
+          {isFetchingNextPage ? 'Loading chats...' : 'Load more chats'}
+        </button>
+      )}
       {conversations.length === 0 && (
         <p className="mt-8 px-4 text-center text-sm text-gray-500">No archived chats</p>
       )}

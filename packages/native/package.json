@@ -2,7 +2,7 @@
   "name": "@social-network/native",
   "version": "1.0.0",
   "description": "Node.js adapter for msg-codec v1: Buffer-typed facade, process metrics, optional Rust (napi-rs) accelerator. Runs inside the backend process — no separate server.",
-  "license": "AGPL-3.0-only",
+  "license": "UNLICENSED",
   "private": true,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

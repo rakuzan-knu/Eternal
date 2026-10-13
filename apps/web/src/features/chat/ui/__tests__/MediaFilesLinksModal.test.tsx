@@ -1,8 +1,14 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render as renderUi, screen, fireEvent } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import MediaFilesLinksModal from '../MediaFilesLinksModal';
 import { MessageView } from '@/entities/chat/model/types';
 import React from 'react';
+
+function render(ui: React.ReactElement) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return renderUi(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
+}
 
 describe('MediaFilesLinksModal', () => {
   const mockMessages: MessageView[] = [
@@ -35,7 +41,7 @@ describe('MediaFilesLinksModal', () => {
     } as unknown as MessageView,
   ];
 
-  it('renders media, files, and links tabs and handles interaction', () => {
+  it('renders media, files, and links tabs and handles interaction', async () => {
     const onClose = vi.fn();
     const onJumpToMessage = vi.fn();
 
@@ -57,7 +63,7 @@ describe('MediaFilesLinksModal', () => {
 
     // Lightbox controls: Go to message button removed per user request
     expect(screen.queryByTitle('Go to message')).not.toBeInTheDocument();
-    const closeLightboxBtn = screen.getByTitle('Close');
+    const closeLightboxBtn = await screen.findByTitle('Close');
     fireEvent.click(closeLightboxBtn);
 
     // Files Tab

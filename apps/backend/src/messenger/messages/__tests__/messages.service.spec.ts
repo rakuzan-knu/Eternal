@@ -71,6 +71,7 @@ describe('MessagesService', () => {
       create: jest.Mock;
     };
     $transaction: jest.Mock;
+    $queryRaw: jest.Mock;
   };
   let mockConfigService: {
     get: jest.Mock;
@@ -128,6 +129,7 @@ describe('MessagesService', () => {
     };
 
     mockPrisma = {
+      $queryRaw: jest.fn().mockResolvedValue([]),
       userBlock: {
         findMany: jest.fn().mockResolvedValue([]),
         findFirst: jest.fn().mockResolvedValue(null),
@@ -436,7 +438,10 @@ describe('MessagesService', () => {
     });
 
     it('marks messages as read with and without messageId', async () => {
-      mockPrisma.message.findUnique.mockResolvedValueOnce({ senderId: 'usr-2' });
+      mockPrisma.message.findUnique.mockResolvedValueOnce({
+        senderId: 'usr-2',
+        conversationId: 'conv-1',
+      });
       const marked = await service.markRead('conv-1', 'usr-1', 'msg-1');
       expect(marked).toBe(true);
       expect(mockMessagesRepo.markAllRead).toHaveBeenCalledWith('conv-1', 'usr-1');
@@ -447,9 +452,49 @@ describe('MessagesService', () => {
       expect(markedAll).toBe(true);
 
       // Marking own message returns false
-      mockPrisma.message.findUnique.mockResolvedValueOnce({ senderId: 'usr-1' });
+      mockPrisma.message.findUnique.mockResolvedValueOnce({
+        senderId: 'usr-1',
+        conversationId: 'conv-1',
+      });
       const own = await service.markRead('conv-1', 'usr-1', 'msg-1');
       expect(own).toBe(false);
+    });
+
+    it.each([undefined, 'own-last-message'])(
+      'acknowledges incoming backlog behind own latest message (target %s) while suppressing its receipt',
+      async (messageId) => {
+        let watermark = new Date('2026-01-01T00:00:00Z');
+        const incomingCreatedAt = new Date('2026-01-01T00:00:01Z');
+        const acknowledgedAt = new Date('2026-01-01T00:00:03Z');
+        const ownMessage = { senderId: 'usr-1', conversationId: 'conv-1' };
+        mockPrisma.message.findUnique.mockResolvedValueOnce(ownMessage);
+        mockPrisma.message.findFirst.mockResolvedValueOnce(ownMessage);
+        // The external repository boundary owns the persisted watermark. Assert
+        // its resulting state rather than the number of mock invocations.
+        mockMessagesRepo.markAllRead.mockImplementation(async () => {
+          watermark = acknowledgedAt;
+        });
+
+        expect(await service.markRead('conv-1', 'usr-1', messageId)).toBe(false);
+        expect(watermark.getTime()).toBeGreaterThan(incomingCreatedAt.getTime());
+        expect(watermark.toISOString()).toBe('2026-01-01T00:00:03.000Z');
+      },
+    );
+
+    it('rejects a read target from another conversation without moving the watermark', async () => {
+      let watermark = new Date('2026-01-01T00:00:00Z');
+      mockPrisma.message.findUnique.mockResolvedValueOnce({
+        senderId: 'usr-2',
+        conversationId: 'foreign-conversation',
+      });
+      mockMessagesRepo.markAllRead.mockImplementation(async () => {
+        watermark = new Date('2026-01-01T00:00:03Z');
+      });
+
+      await expect(service.markRead('conv-1', 'usr-1', 'foreign-message')).rejects.toThrow(
+        'Message not found in this conversation',
+      );
+      expect(watermark.toISOString()).toBe('2026-01-01T00:00:00.000Z');
     });
 
     it('searches messages within conversation and filters blocked users', async () => {

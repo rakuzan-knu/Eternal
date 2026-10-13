@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { downloadBlob } from '@/shared/lib/blobResources';
 import {
   Undo,
   Redo,
@@ -1278,12 +1279,7 @@ export default function WordDocumentEditor({
       } else if (onDownload) {
         onDownload(editedFile);
       } else {
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(editedFile);
-        link.download = editedFile.name;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        downloadBlob(editedFile, editedFile.name);
       }
     } catch (err) {
       console.error('Failed to export DOCX:', err);

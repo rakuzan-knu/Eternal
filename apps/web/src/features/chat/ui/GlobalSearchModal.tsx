@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import React, { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -25,6 +26,7 @@ import { VerifiedCheckmark } from '@/entities/profile/ui/VerifiedCheckmark';
 import { chatApi } from '@/features/chat/api/chatApi';
 import type { ConversationView, GlobalSearchResult } from '../../../entities/chat/model/types';
 import { useConversations } from '../model/useConversations';
+import { useDebounce } from '@/shared/lib/useDebounce';
 import { getConversationDisplay } from '../lib/getConversationDisplay';
 import { formatMessageTime } from '../lib/groupMessagesByDate';
 import { getRecentVisitedChatIds, recordRecentVisitedChat } from '../lib/recentVisitedChats';
@@ -147,8 +149,8 @@ export default function GlobalSearchModal({
   initialConversationId,
 }: GlobalSearchModalProps) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const currentUserId = useAuthStore((s) => s.userId);
-  const { data: conversations } = useConversations();
   const onlineUserIds = usePresenceStore((s) => s.onlineUserIds);
   const userActivities = usePresenceStore((s) => s.userActivities);
 
@@ -159,6 +161,13 @@ export default function GlobalSearchModal({
   const isPlaying = useSpotifyPlayerStore((s) => s.isPlaying);
 
   const [query, setQuery] = useState('');
+  const conversationSearch = useDebounce(query.trim(), 350);
+  const {
+    data: conversations,
+    hasNextPage: hasMoreConversations,
+    isFetchingNextPage: loadingConversations,
+    fetchNextPage: loadMoreConversations,
+  } = useConversations({ enabled: isOpen, search: conversationSearch });
   const [tab, setTab] = useState<SearchTab>('all');
   const [results, setResults] = useState<GlobalSearchResult | null>(null);
   const [musicResults, setMusicResults] = useState<{
@@ -189,13 +198,27 @@ export default function GlobalSearchModal({
   >([]);
 
   useEffect(() => {
+    const controller = new AbortController();
+    let focusTimer: ReturnType<typeof setTimeout> | undefined;
     if (isOpen) {
-      setTimeout(() => inputRef.current?.focus(), 50);
+      focusTimer = setTimeout(() => inputRef.current?.focus(), 50);
       // Fetch recent media attachments for default view (strictly visual media)
-      chatApi
-        .globalSearch('', 'media', undefined, 20, 0)
+      queryClient
+        .fetchQuery({
+          queryKey: ['global-search-recent-media'],
+          staleTime: 60_000,
+          queryFn: ({ signal }) =>
+            chatApi.globalSearch(
+              '',
+              'media',
+              undefined,
+              20,
+              0,
+              AbortSignal.any([signal, controller.signal]),
+            ),
+        })
         .then((res) => {
-          if (res?.media && Array.isArray(res.media)) {
+          if (!controller.signal.aborted && res?.media && Array.isArray(res.media)) {
             setRecentChatMedia(res.media);
           }
         })
@@ -206,11 +229,17 @@ export default function GlobalSearchModal({
       setMusicResults({ tracks: [], playlists: [] });
       setSelectedIndex(0);
     }
-  }, [isOpen]);
+    return () => {
+      controller.abort();
+      if (focusTimer) clearTimeout(focusTimer);
+      void queryClient.cancelQueries({ queryKey: ['global-search-recent-media'], exact: true });
+    };
+  }, [isOpen, queryClient]);
 
   // Debounced search for Chat and Music
   useEffect(() => {
     if (!isOpen) return;
+    const controller = new AbortController();
     const trimmed = query.trim();
     if (!trimmed) {
       setResults(null);
@@ -226,15 +255,29 @@ export default function GlobalSearchModal({
     const timeoutId = setTimeout(async () => {
       // 1. Search chat content (messages, media, people, files, links)
       if (tab !== 'music') {
-        chatApi
-          .globalSearch(trimmed, tab === 'all' ? 'all' : tab, initialConversationId, 30, 0)
+        queryClient
+          .fetchQuery({
+            queryKey: ['global-search', trimmed, tab, initialConversationId],
+            staleTime: 30_000,
+            queryFn: ({ signal }) =>
+              chatApi.globalSearch(
+                trimmed,
+                tab === 'all' ? 'all' : tab,
+                initialConversationId,
+                30,
+                0,
+                AbortSignal.any([signal, controller.signal]),
+              ),
+          })
           .then((res) => {
+            if (controller.signal.aborted) return;
             startTransition(() => {
               setResults(res);
               setIsLoading(false);
             });
           })
           .catch(() => {
+            if (controller.signal.aborted) return;
             setIsLoading(false);
           });
       } else {
@@ -248,17 +291,31 @@ export default function GlobalSearchModal({
           const trackLimit = tab === 'music' ? 24 : 6;
           const plLimit = tab === 'music' ? 12 : 4;
 
-          const [scTracks, spTracks, scPls] = await Promise.all([
-            typeof integrationsApi.searchSoundCloudCatalog === 'function'
-              ? integrationsApi.searchSoundCloudCatalog(trimmed, trackLimit, 0).catch(() => [])
-              : Promise.resolve([]),
-            typeof integrationsApi.searchSpotifyCatalog === 'function'
-              ? integrationsApi.searchSpotifyCatalog(trimmed, trackLimit, 0).catch(() => [])
-              : Promise.resolve([]),
-            typeof integrationsApi.searchSoundCloudPlaylists === 'function'
-              ? integrationsApi.searchSoundCloudPlaylists(trimmed, plLimit, 0).catch(() => [])
-              : Promise.resolve([]),
-          ]);
+          const [scTracks, spTracks, scPls] = await queryClient.fetchQuery({
+            queryKey: ['global-music-search', trimmed, tab],
+            staleTime: 30_000,
+            queryFn: ({ signal }) => {
+              const requestSignal = AbortSignal.any([signal, controller.signal]);
+              return Promise.all([
+                typeof integrationsApi.searchSoundCloudCatalog === 'function'
+                  ? integrationsApi
+                      .searchSoundCloudCatalog(trimmed, trackLimit, 0, requestSignal)
+                      .catch(() => [])
+                  : Promise.resolve([]),
+                typeof integrationsApi.searchSpotifyCatalog === 'function'
+                  ? integrationsApi
+                      .searchSpotifyCatalog(trimmed, trackLimit, 0, requestSignal)
+                      .catch(() => [])
+                  : Promise.resolve([]),
+                typeof integrationsApi.searchSoundCloudPlaylists === 'function'
+                  ? integrationsApi
+                      .searchSoundCloudPlaylists(trimmed, plLimit, 0, requestSignal)
+                      .catch(() => [])
+                  : Promise.resolve([]),
+              ]);
+            },
+          });
+          if (controller.signal.aborted) return;
 
           const combinedTracks: SpotifyTrack[] = [];
           const seenTrackIds = new Set<string>();
@@ -350,18 +407,30 @@ export default function GlobalSearchModal({
             playlists: combinedPlaylists.slice(0, tab === 'music' ? 16 : 4),
           });
         } catch {
+          if (controller.signal.aborted) return;
           setMusicResults({ tracks: [], playlists: [] });
         } finally {
-          setIsMusicSearching(false);
+          if (!controller.signal.aborted) setIsMusicSearching(false);
         }
       } else {
         setMusicResults({ tracks: [], playlists: [] });
         setIsMusicSearching(false);
       }
-    }, 180);
+    }, 350);
 
-    return () => clearTimeout(timeoutId);
-  }, [query, tab, isOpen, initialConversationId]);
+    return () => {
+      clearTimeout(timeoutId);
+      controller.abort();
+      void queryClient.cancelQueries({
+        queryKey: ['global-search', trimmed, tab, initialConversationId],
+        exact: true,
+      });
+      void queryClient.cancelQueries({
+        queryKey: ['global-music-search', trimmed, tab],
+        exact: true,
+      });
+    };
+  }, [query, tab, isOpen, initialConversationId, queryClient]);
 
   // Navigate to conversation
   const handleSelectConversation = (conversationId: string, messageId?: string) => {
@@ -564,6 +633,7 @@ export default function GlobalSearchModal({
 
   const isSearching = isLoading || isMusicSearching;
   const totalResults =
+    (query ? (conversations?.length ?? 0) : 0) +
     (results?.messages.length ?? 0) +
     (results?.media.length ?? 0) +
     (sortedPeople.length ?? 0) +
@@ -639,6 +709,13 @@ export default function GlobalSearchModal({
         });
       }
     } else if (totalResults > 0) {
+      if (tab === 'all' || tab === 'messages')
+        (conversations ?? []).forEach((conv) => {
+          items.push({
+            id: `chat-match-${conv.id}`,
+            onSelect: () => handleSelectConversation(conv.id),
+          });
+        });
       // 1. People & Contacts
       if ((tab === 'all' || tab === 'people') && sortedPeople.length > 0) {
         sortedPeople.forEach((person) => {
@@ -1082,7 +1159,7 @@ export default function GlobalSearchModal({
                                       className="text-xs"
                                     />
                                   ) : display.isGroup ? (
-                                    `${conv.participants.length} members${
+                                    `${conv.participantCount ?? conv.participants.length} members${
                                       conv.lastMessage
                                         ? ` • ${conv.lastMessage.body || 'Shared media'}`
                                         : ''
@@ -1277,6 +1354,37 @@ export default function GlobalSearchModal({
             )}
 
             {/* Query provided, but 0 results found */}
+            {!isSearching &&
+              query &&
+              (tab === 'all' || tab === 'messages') &&
+              Boolean(conversations?.length) && (
+                <section className="space-y-2">
+                  <p className="text-xs font-semibold text-gray-400">Chats</p>
+                  {(conversations ?? []).map((conv) => {
+                    const display = getConversationDisplay(conv, currentUserId);
+                    return (
+                      <button
+                        key={conv.id}
+                        data-search-nav-id={`chat-match-${conv.id}`}
+                        onClick={() => handleSelectConversation(conv.id)}
+                        className="flex w-full items-center gap-3 rounded-xl p-3 text-left hover:bg-white/5"
+                      >
+                        <Avatar src={display.avatar} size="sm" />
+                        <span className="truncate text-sm text-white">{display.title}</span>
+                      </button>
+                    );
+                  })}
+                  {hasMoreConversations && (
+                    <button
+                      disabled={loadingConversations}
+                      onClick={() => void loadMoreConversations()}
+                      className="w-full py-2 text-sm text-gray-400"
+                    >
+                      {loadingConversations ? 'Loading chats...' : 'Load more chats'}
+                    </button>
+                  )}
+                </section>
+              )}
             {!isSearching && query && totalResults === 0 && (
               <div className="text-center py-16 text-gray-500 space-y-2">
                 <Search size={36} className="mx-auto opacity-40" />

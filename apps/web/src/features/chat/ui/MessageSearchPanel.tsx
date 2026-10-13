@@ -29,13 +29,18 @@ export default function MessageSearchPanel({
 }: MessageSearchPanelProps) {
   const navigate = useNavigate();
   const currentUserId = useAuthStore((s) => s.userId);
-  const { data: conversations } = useConversations();
 
   const [query, setQuery] = useState('');
   const [selectedConversationId, setSelectedConversationId] = useState<string>(conversationId);
   const [isChatMenuOpen, setIsChatMenuOpen] = useState(false);
   const [isMenuClosing, setIsMenuClosing] = useState(false);
   const [chatFilterQuery, setChatFilterQuery] = useState('');
+  const {
+    data: conversations,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = useConversations({ search: chatFilterQuery });
   const [isClosing, setIsClosing] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -310,6 +315,16 @@ export default function MessageSearchPanel({
 
               {/* Scrollable Chat List */}
               <div className="max-h-60 overflow-y-auto scrollbar-none space-y-0.5 custom-scrollbar pr-0.5">
+                {hasNextPage && (
+                  <button
+                    type="button"
+                    disabled={isFetchingNextPage}
+                    onClick={() => void fetchNextPage()}
+                    className="w-full py-2 text-sm text-gray-400"
+                  >
+                    {isFetchingNextPage ? 'Loading chats...' : 'Load more chats'}
+                  </button>
+                )}
                 {/* 1. "This Chat" option */}
                 {conversations?.some((c: ConversationView) => c.id === conversationId) && (
                   <button

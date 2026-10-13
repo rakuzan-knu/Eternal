@@ -1,3 +1,4 @@
+import { updateConversationLists } from './chatCacheSync';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { chatApi } from '../api/chatApi';
 import {
@@ -20,10 +21,8 @@ function useOptimisticConversationUpdate() {
   const queryClient = useQueryClient();
 
   return (conversationId: string, patch: Partial<ConversationView>) => {
-    queryClient.setQueryData<ConversationView[]>(
-      queryKeys.conversations.root,
-      (prev: ConversationView[] | undefined) =>
-        prev?.map((c: ConversationView) => (c.id === conversationId ? { ...c, ...patch } : c)),
+    updateConversationLists(queryClient, (prev: ConversationView[] | undefined) =>
+      prev?.map((c: ConversationView) => (c.id === conversationId ? { ...c, ...patch } : c)),
     );
     queryClient.setQueryData<ConversationView>(
       queryKeys.conversations.detail(conversationId),
@@ -64,16 +63,15 @@ export function useArchiveConversation() {
         queryKey: queryKeys.conversations.detail(conversationId),
       });
       const previous = queryClient.getQueryData<ConversationView[]>(queryKeys.conversations.root);
+      const previousPages = queryClient.getQueriesData({ queryKey: queryKeys.conversations.pages });
       const previousSingle = queryClient.getQueryData<ConversationView>(
         queryKeys.conversations.detail(conversationId),
       );
 
-      queryClient.setQueryData<ConversationView[]>(
-        queryKeys.conversations.root,
-        (prev: ConversationView[] | undefined) =>
-          prev?.map((c: ConversationView) =>
-            c.id === conversationId ? { ...c, isArchived: archived } : c,
-          ),
+      updateConversationLists(queryClient, (prev: ConversationView[] | undefined) =>
+        prev?.map((c: ConversationView) =>
+          c.id === conversationId ? { ...c, isArchived: archived } : c,
+        ),
       );
 
       queryClient.setQueryData<ConversationView>(
@@ -81,12 +79,13 @@ export function useArchiveConversation() {
         (prev: ConversationView | undefined) => (prev ? { ...prev, isArchived: archived } : prev),
       );
 
-      return { previous, previousSingle };
+      return { previous, previousSingle, previousPages };
     },
     onError: (_err, vars, context) => {
       if (context?.previous) {
         queryClient.setQueryData(queryKeys.conversations.root, context.previous);
       }
+      context?.previousPages?.forEach(([key, data]) => queryClient.setQueryData(key, data));
       if (context?.previousSingle) {
         queryClient.setQueryData(
           queryKeys.conversations.detail(vars.conversationId),
@@ -95,14 +94,12 @@ export function useArchiveConversation() {
       }
     },
     onSuccess: (updatedConversation, { conversationId, archived }) => {
-      queryClient.setQueryData<ConversationView[]>(
-        queryKeys.conversations.root,
-        (prev: ConversationView[] | undefined) =>
-          prev?.map((c: ConversationView) =>
-            c.id === conversationId
-              ? { ...c, ...(updatedConversation ?? {}), isArchived: archived }
-              : c,
-          ),
+      updateConversationLists(queryClient, (prev: ConversationView[] | undefined) =>
+        prev?.map((c: ConversationView) =>
+          c.id === conversationId
+            ? { ...c, ...(updatedConversation ?? {}), isArchived: archived }
+            : c,
+        ),
       );
       queryClient.setQueryData<ConversationView>(
         queryKeys.conversations.detail(conversationId),
@@ -182,19 +179,17 @@ export function useSetNickname() {
       nickname: string | null;
     }) => chatApi.setNickname(conversationId, targetUserId, nickname),
     onMutate: ({ conversationId, targetUserId, nickname }) => {
-      queryClient.setQueryData<ConversationView[]>(
-        queryKeys.conversations.root,
-        (prev: ConversationView[] | undefined) =>
-          prev?.map((c: ConversationView) =>
-            c.id === conversationId
-              ? {
-                  ...c,
-                  participants: c.participants.map((p: ConversationView['participants'][number]) =>
-                    p.userId === targetUserId ? { ...p, nickname } : p,
-                  ),
-                }
-              : c,
-          ),
+      updateConversationLists(queryClient, (prev: ConversationView[] | undefined) =>
+        prev?.map((c: ConversationView) =>
+          c.id === conversationId
+            ? {
+                ...c,
+                participants: c.participants.map((p: ConversationView['participants'][number]) =>
+                  p.userId === targetUserId ? { ...p, nickname } : p,
+                ),
+              }
+            : c,
+        ),
       );
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.conversations.root }),
@@ -273,9 +268,7 @@ export function useDeleteConversation() {
       forAll?: boolean;
     }) => chatApi.deleteConversation(conversationId, forAll),
     onMutate: ({ conversationId }) => {
-      queryClient.setQueryData<ConversationView[]>(queryKeys.conversations.root, (prev) =>
-        prev?.filter((c) => c.id !== conversationId),
-      );
+      updateConversationLists(queryClient, (prev) => prev?.filter((c) => c.id !== conversationId));
     },
     onSettled: (_data, _error, { conversationId }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.conversations.root });
@@ -302,7 +295,7 @@ export function useClearChatHistory() {
         pages: [{ data: [], hasMore: false, nextCursor: null }],
         pageParams: [undefined],
       });
-      queryClient.setQueryData<ConversationView[]>(queryKeys.conversations.root, (prev) =>
+      updateConversationLists(queryClient, (prev) =>
         prev?.map((c) =>
           c.id === conversationId ? { ...c, lastMessage: null, unreadCount: 0 } : c,
         ),

@@ -46,6 +46,8 @@ import { getStoryFilterCss } from '../lib/storyFilterUtils';
 import { StoryMusicSearchModal } from './StoryMusicSearchModal';
 import { StoryMusicStickerView } from './StoryMusicStickerView';
 import type { Theme as EmojiTheme } from 'emoji-picker-react';
+import { IMAGE_UPLOAD_ACCEPT, STORY_UPLOAD_ACCEPT } from '@social-network/shared-contracts';
+import { MediaUploadError, validateMediaUpload } from '@/shared/lib/mediaUploadValidation';
 
 const EmojiPicker = lazy(() => import('emoji-picker-react'));
 
@@ -110,6 +112,8 @@ export function StoryEditorModal() {
   // Local state
   const [gradientIndex, setGradientIndex] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isCheckingMedia, setIsCheckingMedia] = useState(false);
+  const mediaSelection = useRef(0);
   const [showStickerSheet, setShowStickerSheet] = useState(false);
   const [colorTarget, setColorTarget] = useState<'text' | 'background'>('text');
   const [isMoreToolsOpen, setIsMoreToolsOpen] = useState(false);
@@ -192,6 +196,8 @@ export function StoryEditorModal() {
 
   useEffect(() => {
     if (!isOpen) {
+      mediaSelection.current++;
+      setIsCheckingMedia(false);
       if (mediaUrl && mediaUrl.startsWith('blob:')) URL.revokeObjectURL(mediaUrl);
       if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
       audioUrlRef.current = null;
@@ -213,78 +219,76 @@ export function StoryEditorModal() {
 
   // File selection & Smart Palette extraction
   const handleFileSelect = async (file: File, isSticker = false) => {
+    if (createStoryMutation.isPending) return;
+    const request = ++mediaSelection.current;
     setErrorMessage(null);
-
-    const isVideo = file.type.startsWith('video/');
-    const isAudio = file.type.startsWith('audio/');
-    const isImage = file.type.startsWith('image/');
-
-    const maxMediaSize = 50 * 1024 * 1024; // 50MB max limit
-
-    if (file.size > maxMediaSize) {
-      setErrorMessage('File size must not exceed 50 MB');
-      return;
-    }
-
-    const previewUrl = URL.createObjectURL(file);
-
-    if (isSticker && isImage) {
-      // Add as a new image sticker
-      const stickerOverlay: ImageOverlay = {
-        id: uid(8),
-        type: 'image',
-        url: previewUrl,
-        xPercent: 50,
-        yPercent: 50,
-        scale: 0.85,
-        rotation: 0,
-        borderRadius: 20,
-        zIndex: overlays.length + 1,
-      };
-      addOverlay(stickerOverlay);
-      setShowStickerSheet(false);
-      return;
-    }
-
-    if (isVideo) {
-      const tempVideo = document.createElement('video');
-      tempVideo.src = previewUrl;
-      tempVideo.onloadedmetadata = () => {
-        // Soft auto-trimming to 30s instead of blocking error
-        setMedia(file, previewUrl, 'VIDEO');
-      };
-      tempVideo.onerror = () => {
-        setErrorMessage('Failed to read video file');
-      };
-    } else if (isAudio) {
-      setMedia(file, previewUrl, 'VOICE');
-    } else {
-      // Photo selected: auto-extract Smart Palette from local file without CORS taint!
-      setMedia(file, previewUrl, 'IMAGE');
-      const smartGradient = await extractDominantGradient(file);
-      setBackgroundColor(smartGradient);
-
-      // Add image as movable/scalable overlay so it's fully editable like in Instagram!
-      const existingMainImage = overlays.find(
-        (o) => o.type === 'image' && (o as ImageOverlay).isMainMedia,
-      );
-      if (existingMainImage) {
-        updateOverlay(existingMainImage.id, { url: previewUrl });
-      } else {
-        const mainImageOverlay: ImageOverlay = {
+    setIsCheckingMedia(true);
+    let previewUrl: string | null = null;
+    try {
+      const kind = await validateMediaUpload(file, isSticker ? 'sticker' : 'story');
+      const smartGradient =
+        kind === 'image' && !isSticker ? await extractDominantGradient(file) : null;
+      if (request !== mediaSelection.current || !useStoryEditorStore.getState().isOpen) return;
+      previewUrl = URL.createObjectURL(file);
+      if (isSticker) {
+        // Add as a new image sticker
+        const stickerOverlay: ImageOverlay = {
           id: uid(8),
           type: 'image',
           url: previewUrl,
-          isMainMedia: true,
           xPercent: 50,
           yPercent: 50,
-          scale: 1,
+          scale: 0.85,
           rotation: 0,
-          borderRadius: 24,
-          zIndex: 2,
+          borderRadius: 20,
+          zIndex: overlays.length + 1,
         };
-        addOverlay(mainImageOverlay);
+        addOverlay(stickerOverlay);
+        setShowStickerSheet(false);
+        return;
       }
+      if (kind === 'video') {
+        setMedia(file, previewUrl, 'VIDEO');
+      } else if (kind === 'audio') {
+        setMedia(file, previewUrl, 'VOICE');
+      } else {
+        // Photo selected: auto-extract Smart Palette from local file without CORS taint!
+        setMedia(file, previewUrl, 'IMAGE');
+        if (smartGradient) setBackgroundColor(smartGradient);
+
+        // Add image as movable/scalable overlay so it's fully editable like in Instagram!
+        const existingMainImage = overlays.find(
+          (o) => o.type === 'image' && (o as ImageOverlay).isMainMedia,
+        );
+        if (existingMainImage) {
+          updateOverlay(existingMainImage.id, { url: previewUrl });
+        } else {
+          const mainImageOverlay: ImageOverlay = {
+            id: uid(8),
+            type: 'image',
+            url: previewUrl,
+            isMainMedia: true,
+            xPercent: 50,
+            yPercent: 50,
+            scale: 1,
+            rotation: 0,
+            borderRadius: 24,
+            zIndex: 2,
+          };
+          addOverlay(mainImageOverlay);
+        }
+      }
+    } catch (error) {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      if (request === mediaSelection.current) {
+        setErrorMessage(
+          error instanceof MediaUploadError
+            ? error.message
+            : 'Could not process this media. Choose another file.',
+        );
+      }
+    } finally {
+      if (request === mediaSelection.current) setIsCheckingMedia(false);
     }
   };
 
@@ -704,6 +708,7 @@ export function StoryEditorModal() {
 
   // Publish Story
   const handlePublish = async (selectedPrivacy?: StoryPrivacy) => {
+    if (isCheckingMedia || createStoryMutation.isPending) return;
     const finalPrivacy = selectedPrivacy || privacy;
 
     // Clean up overlays before sending: exclude caption overlay (it is sent via caption field)
@@ -753,19 +758,23 @@ export function StoryEditorModal() {
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*,video/*,audio/*"
+        accept={STORY_UPLOAD_ACCEPT}
         className="hidden"
         onChange={(e) => {
-          if (e.target.files?.[0]) handleFileSelect(e.target.files[0], false);
+          const file = e.target.files?.[0];
+          e.target.value = '';
+          if (file) void handleFileSelect(file, false);
         }}
       />
       <input
         ref={stickerFileInputRef}
         type="file"
-        accept="image/*"
+        accept={IMAGE_UPLOAD_ACCEPT}
         className="hidden"
         onChange={(e) => {
-          if (e.target.files?.[0]) handleFileSelect(e.target.files[0], true);
+          const file = e.target.files?.[0];
+          e.target.value = '';
+          if (file) void handleFileSelect(file, true);
         }}
       />
 
@@ -773,8 +782,19 @@ export function StoryEditorModal() {
       <div className="relative flex flex-col items-center w-full max-w-[420px] h-full max-h-[96vh] justify-between py-1">
         {/* Error Alert Bar */}
         {errorMessage && (
-          <div className="absolute top-2 z-50 px-4 py-2 rounded-2xl bg-red-500/20 border border-red-500/40 text-red-200 text-xs font-semibold text-center backdrop-blur-xl shadow-lg animate-shake">
+          <div
+            role="alert"
+            className="absolute top-2 z-50 px-4 py-2 rounded-2xl bg-red-500/20 border border-red-500/40 text-red-200 text-xs font-semibold text-center backdrop-blur-xl shadow-lg animate-shake"
+          >
             {errorMessage}
+          </div>
+        )}
+        {isCheckingMedia && (
+          <div
+            role="status"
+            className="absolute top-2 z-50 px-4 py-2 rounded-2xl bg-black/80 text-white text-xs"
+          >
+            Checking media...
           </div>
         )}
 
@@ -2130,7 +2150,7 @@ export function StoryEditorModal() {
               {/* 1. Your story button */}
               <button
                 type="button"
-                disabled={createStoryMutation.isPending}
+                disabled={createStoryMutation.isPending || isCheckingMedia}
                 onClick={() => handlePublish('ALL_FOLLOWERS')}
                 className="flex-1 flex items-center justify-center gap-2 py-3 px-3 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 text-white font-bold text-xs transition-all active:scale-95 cursor-pointer shadow-lg disabled:opacity-50 backdrop-blur-xl"
               >
@@ -2145,7 +2165,7 @@ export function StoryEditorModal() {
               {/* 2. Close friends button */}
               <button
                 type="button"
-                disabled={createStoryMutation.isPending}
+                disabled={createStoryMutation.isPending || isCheckingMedia}
                 onClick={() => handlePublish('CLOSE_FRIENDS')}
                 className="flex-1 flex items-center justify-center gap-2 py-3 px-3 rounded-full bg-emerald-950/60 hover:bg-emerald-900/80 border border-emerald-500/40 text-emerald-300 font-bold text-xs transition-all active:scale-95 cursor-pointer shadow-lg disabled:opacity-50 backdrop-blur-xl"
               >
@@ -2158,7 +2178,7 @@ export function StoryEditorModal() {
               {/* 3. Circular Forward Arrow Button (Signature Purple) */}
               <button
                 type="button"
-                disabled={createStoryMutation.isPending}
+                disabled={createStoryMutation.isPending || isCheckingMedia}
                 onClick={() => handlePublish()}
                 className="w-12 h-12 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-[0_0_22px_rgba(168,85,247,0.6)] cursor-pointer disabled:opacity-50 shrink-0"
                 title="Share"

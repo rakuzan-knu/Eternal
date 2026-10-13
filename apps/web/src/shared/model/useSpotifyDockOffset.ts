@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSpotifyPlayerStore } from './useSpotifyPlayerStore';
+import { useThemeStore } from './useThemeStore';
 
 export interface SpotifyDockOffsetResult {
   /** True if dock is currently active and rendered on screen */
@@ -10,7 +11,7 @@ export interface SpotifyDockOffsetResult {
    * Additional bottom offset in pixels:
    * - Full dock: 100px (desktop >=640px) or 84px (mobile <640px)
    * - Minimized dock: 42px (desktop >=640px) or 38px (mobile <640px)
-   * - Closed/Hidden: 0px
+   * - Square / Closed / Hidden: 0px
    */
   dockOffset: number;
   /**
@@ -36,6 +37,7 @@ export function useSpotifyDockOffset(defaultPadding = 8): SpotifyDockOffsetResul
   const isDockMinimized = useSpotifyPlayerStore((s) => s.isDockMinimized);
   const currentTrack = useSpotifyPlayerStore((s) => s.currentTrack);
   const isGameModeOpen = useSpotifyPlayerStore((s) => s.isGameModeOpen);
+  const spotifyDockStyle = useThemeStore((s) => s.spotifyDockStyle);
 
   const [isMobile, setIsMobile] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
@@ -57,7 +59,9 @@ export function useSpotifyDockOffset(defaultPadding = 8): SpotifyDockOffsetResul
 
   let dockOffset = 0;
   if (isDockActive) {
-    if (isDockMinimized) {
+    if (spotifyDockStyle === 'square') {
+      dockOffset = 0;
+    } else if (isDockMinimized) {
       // Minimized pill is 36px (sm) / 32px (mobile) tall at bottom-0.
       // Offset provides ~14px clean breather gap between the pill and composer buttons.
       dockOffset = isMobile ? 38 : 42;

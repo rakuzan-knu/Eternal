@@ -2,6 +2,7 @@ export * from './auth';
 export * from './decorations';
 export * from './calls';
 export * from './chat';
+export * from './conversation-page';
 export * from './comments';
 export * from './followers';
 export * from './health';

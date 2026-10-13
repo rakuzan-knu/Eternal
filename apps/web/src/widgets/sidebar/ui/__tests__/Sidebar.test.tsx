@@ -161,20 +161,21 @@ describe('Sidebar', () => {
     expect(screen.queryByText('Create Post')).not.toBeInTheDocument();
   });
 
-  it('opens More menu with full settings and options on click', () => {
+  it('opens More menu with full settings and options on click', async () => {
     act(() => {
       useUIStore.getState().setSidebarExpanded(true);
       renderWithProviders(<Sidebar />);
     });
 
     const moreBtn = screen.getByRole('button', { name: /more/i });
-    act(() => {
+    await act(async () => {
       fireEvent.click(moreBtn);
+      await vi.dynamicImportSettled();
     });
 
     expect(screen.getByText('Settings')).toBeInTheDocument();
     expect(screen.getByText('Saved')).toBeInTheDocument();
-    expect(screen.getByText('Change appearance')).toBeInTheDocument();
+    expect(await screen.findByText('Change appearance')).toBeInTheDocument();
     expect(screen.getByText('Log out')).toBeInTheDocument();
-  });
+  }, 10000);
 });

@@ -8,10 +8,11 @@ export function GlobalThemeBackgroundLayer() {
   const wallpaper = useThemeStore((s) => s.wallpaper);
 
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isMediaLoaded, setIsMediaLoaded] = useState(false);
+  const [loadedUrl, setLoadedUrl] = useState<string | null>(null);
   const rehydrateAttemptsRef = useRef(0);
 
   const isReelsRoute = location.pathname.startsWith('/reels');
+  const hasWallpaper = themeMode === 'wallpaper' && Boolean(wallpaper?.url);
 
   // Rehydrate wallpaper from IndexedDB on fresh reload
   useEffect(() => {
@@ -23,27 +24,34 @@ export function GlobalThemeBackgroundLayer() {
   // Video Lifecycle Management: pause on tab hidden, /reels, or when unmounted
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || wallpaper?.mediaType !== 'video') return;
+    if (!video || !hasWallpaper || wallpaper?.mediaType !== 'video') return;
+
+    const release = () => {
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+    };
 
     const handleVisibilityChange = () => {
-      if (document.hidden) {
-        video.pause();
-      } else if (!isReelsRoute) {
+      if (document.hidden || isReelsRoute) {
+        release();
+      } else {
+        if (video.getAttribute('src') !== wallpaper.url) {
+          video.setAttribute('src', wallpaper.url!);
+          video.load();
+        }
         video.play().catch(() => {});
       }
     };
 
-    if (isReelsRoute || document.hidden) {
-      video.pause();
-    } else {
-      video.play().catch(() => {});
-    }
+    handleVisibilityChange();
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      release();
     };
-  }, [isReelsRoute, wallpaper?.mediaType]);
+  }, [hasWallpaper, isReelsRoute, wallpaper?.mediaType, wallpaper?.url]);
 
   const handleMediaError = useCallback(() => {
     if (rehydrateAttemptsRef.current < 2) {
@@ -53,11 +61,9 @@ export function GlobalThemeBackgroundLayer() {
   }, []);
 
   const handleMediaSuccess = useCallback(() => {
-    setIsMediaLoaded(true);
+    setLoadedUrl(wallpaper?.url ?? null);
     rehydrateAttemptsRef.current = 0;
-  }, []);
-
-  const hasWallpaper = themeMode === 'wallpaper' && Boolean(wallpaper?.url);
+  }, [wallpaper?.url]);
 
   return (
     <>
@@ -66,23 +72,23 @@ export function GlobalThemeBackgroundLayer() {
         <div
           className="wallpaper-layer fixed inset-0 pointer-events-none z-0 overflow-hidden"
           style={{
-            opacity: isMediaLoaded ? 1 : 0,
+            opacity: loadedUrl === wallpaper.url ? 1 : 0,
             transition: 'opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-            transform: 'translateZ(0)',
-            willChange: 'transform, opacity',
             contain: 'strict',
           }}
         >
           {wallpaper.mediaType === 'video' ? (
             <video
               ref={videoRef}
-              src={wallpaper.url}
-              autoPlay
+              src={isReelsRoute ? undefined : wallpaper.url}
+              preload="none"
               loop
               muted
               playsInline
               onLoadedData={handleMediaSuccess}
-              onError={handleMediaError}
+              onError={(event) => {
+                if (event.currentTarget.getAttribute('src')) handleMediaError();
+              }}
               className="w-full h-full object-cover"
             />
           ) : (

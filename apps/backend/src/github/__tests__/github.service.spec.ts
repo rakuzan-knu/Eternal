@@ -20,6 +20,7 @@ describe('GithubService', () => {
   let mockRedis: {
     del: jest.Mock;
     withLock?: jest.Mock;
+    getClient: jest.Mock;
   };
   let mockConfig: {
     get: jest.Mock;
@@ -54,6 +55,11 @@ describe('GithubService', () => {
     };
 
     mockRedis = {
+      getClient: jest.fn(() => ({
+        set: jest.fn().mockResolvedValue('OK'),
+        get: jest.fn().mockResolvedValue(JSON.stringify({ provider: 'github', userId: 'usr-1' })),
+        eval: jest.fn().mockResolvedValue(1),
+      })),
       del: jest.fn().mockResolvedValue(1),
       withLock: jest.fn((_k: string, action: () => unknown) => action()),
     };
@@ -78,9 +84,10 @@ describe('GithubService', () => {
   });
 
   describe('getAuthorizationUrl', () => {
-    it('sets state cookie and redirects to GitHub authorize url', () => {
+    it('sets state cookie and redirects to GitHub authorize url', async () => {
       const req = {
-        query: { token: 'header.eyJzdWIiOiJ1c3ItMSJ9.signature' },
+        user: { id: 'usr-1' },
+        query: {},
         headers: { 'x-forwarded-proto': 'https' },
         secure: true,
       } as unknown as Request;
@@ -92,12 +99,13 @@ describe('GithubService', () => {
         redirect: redirectMock,
       } as unknown as Response;
 
-      service.getAuthorizationUrl(req, res);
+      await service.getAuthorizationUrl(req, res);
 
       expect(cookieMock).toHaveBeenCalledWith('github_oauth_state', expect.any(String), {
         httpOnly: true,
-        secure: true,
+        secure: false,
         sameSite: 'lax',
+        path: '/',
         maxAge: 600000,
       });
       expect(redirectMock).toHaveBeenCalledWith(
@@ -114,16 +122,16 @@ describe('GithubService', () => {
         redirect: jest.fn(),
       } as unknown as Response;
 
-      await service.handleOAuthCallback('code123', 'wrong-csrf', req, res);
-
-      expect(res.clearCookie).toHaveBeenCalledWith('github_oauth_state');
-      expect(res.redirect).toHaveBeenCalledWith(
-        expect.stringContaining('error=csrf_state_mismatch'),
+      await expect(service.handleOAuthCallback('code123', 'wrong-csrf', req, res)).rejects.toThrow(
+        'Invalid OAuth state',
       );
+      expect(global.fetch).not.toHaveBeenCalled();
     });
 
     it('exchanges code for token, links github to user, and syncs contributions', async () => {
-      const req = { cookies: { github_oauth_state: 'valid-csrf' } } as unknown as Request;
+      const req = {
+        cookies: { github_oauth_state: `github:${'a'.repeat(64)}` },
+      } as unknown as Request;
       const res = {
         clearCookie: jest.fn(),
         redirect: jest.fn(),
@@ -152,7 +160,7 @@ describe('GithubService', () => {
           json: jest.fn().mockResolvedValue({ total_count: 5 }),
         });
 
-      await service.handleOAuthCallback('code123', 'valid-csrf:usr-1', req, res, 'usr-1');
+      await service.handleOAuthCallback('code123', `github:${'a'.repeat(64)}`, req, res, 'usr-1');
 
       expect(mockGithubRepo.updateUserGithub).toHaveBeenCalledWith('usr-1', {
         githubId: '12345',

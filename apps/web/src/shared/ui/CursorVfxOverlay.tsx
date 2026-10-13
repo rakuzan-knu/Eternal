@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useThemeStore } from '@/shared/model/useThemeStore';
 import { cursorVfxEngine } from '@/shared/lib/cursorVfxEngine';
+import { useDecorationMotion } from './useDecorationMotion';
 
 /**
  * Global Cursor VFX Overlay Component.
@@ -8,6 +9,7 @@ import { cursorVfxEngine } from '@/shared/lib/cursorVfxEngine';
  * Canvas Cursor VFX Engine.
  */
 export function CursorVfxOverlay() {
+  const motionAllowed = useDecorationMotion();
   const customCursorEnabled = useThemeStore((s) => s.customCursorEnabled);
   const customCursorId = useThemeStore((s) => s.customCursorId);
   const customCursorVariant = useThemeStore((s) => s.customCursorVariant);
@@ -18,7 +20,7 @@ export function CursorVfxOverlay() {
 
   useEffect(() => {
     cursorVfxEngine.configure({
-      enabled: customCursorEnabled && cursorVfxEnabled,
+      enabled: motionAllowed && customCursorEnabled && cursorVfxEnabled,
       trail: cursorVfxTrail,
       click: cursorVfxClick,
       hover: cursorVfxHover,
@@ -31,6 +33,7 @@ export function CursorVfxOverlay() {
       cursorVfxEngine.configure({ enabled: false });
     };
   }, [
+    motionAllowed,
     customCursorEnabled,
     customCursorId,
     customCursorVariant,

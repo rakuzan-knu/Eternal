@@ -56,6 +56,7 @@ model User {
   comments  Comment[]
 
   conversationParticipants ConversationParticipant[]
+  conversationActivityVersions ConversationActivityVersion[]
   sentMessages             Message[]                 @relation("SentMessages")
   messageReactions         MessageReaction[]
   blockedUsers             UserBlock[]               @relation("Blocker")
@@ -285,6 +286,7 @@ model Conversation {
   messages       Message[]
   pinnedMessages PinnedMessage[]
   calls          Call[]
+  activityVersions ConversationActivityVersion[]
 
   @@index([createdAt])
   @@index([updatedAt, id])
@@ -309,16 +311,50 @@ model ConversationParticipant {
   archivedAt     DateTime?
   pinnedAt       DateTime?
   lastReadAt     DateTime        @default(now())
+  unreadProjectionReady Boolean  @default(false)
+  unreadProjectionVerifiedAt DateTime?
   joinedAt       DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  unreadSenderCounts UnreadSenderCount[]
 
   @@unique([conversationId, userId])
   @@index([userId])
   @@index([conversationId])
   @@index([userId, leftAt])
+}
+
+/// Transactional unread buckets. Blocks are applied when reading, so block/unblock is immediate.
+model UnreadSenderCount {
+  participantId String
+  senderId String
+  count BigInt
+  participant ConversationParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@id([participantId, senderId])
+}
+
+/// Per-user activity intervals preserve the recency order of a paginated snapshot.
+model ConversationActivityVersion {
+  userId String
+  conversationId String
+  conversationType ConversationType
+  archived Boolean @default(false)
+  searchText String @default("")
+  activityAt DateTime @db.Timestamp(3)
+  validFrom DateTime @db.Timestamptz(6)
+  validTo DateTime? @db.Timestamptz(6)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@id([userId, conversationId, validFrom])
+  @@index([userId, activityAt(sort: Desc), conversationId(sort: Desc)], map: "conv_activity_user_order_idx")
+  @@index([userId, conversationId, validTo], map: "conv_activity_user_dialog_validity_idx")
+  @@index([conversationId, validTo], map: "conv_activity_dialog_validity_idx")
+  @@index([userId, archived, activityAt(sort: Desc), conversationId(sort: Desc)], map: "conv_activity_user_archive_order_idx")
+  @@index([userId, conversationType, activityAt(sort: Desc), conversationId(sort: Desc)], map: "conv_activity_user_type_order_idx")
 }
 
 enum ParticipantRole {

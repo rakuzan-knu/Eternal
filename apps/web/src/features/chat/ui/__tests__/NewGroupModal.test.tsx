@@ -1,9 +1,9 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import NewGroupModal from '../NewGroupModal';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-vi.mock('../../api/userSearchApi', () => ({
+vi.mock('@/entities/user/api/userSearchApi', () => ({
   userSearchApi: {
     search: vi.fn(),
   },
@@ -16,8 +16,9 @@ vi.mock('../../api/chatApi', () => ({
 }));
 
 describe('NewGroupModal', () => {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
+  let queryClient: QueryClient;
+  beforeEach(() => {
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   });
 
   it('renders new group modal header, search input, and create button disabled initially', () => {
@@ -33,7 +34,7 @@ describe('NewGroupModal', () => {
   });
 
   it('searches users, selects user chips, and triggers group creation', async () => {
-    const { userSearchApi } = await import('../../api/userSearchApi');
+    const { userSearchApi } = await import('@/entities/user/api/userSearchApi');
     const { chatApi } = await import('../../api/chatApi');
 
     vi.mocked(userSearchApi.search).mockResolvedValueOnce([
@@ -54,6 +55,7 @@ describe('NewGroupModal', () => {
     fireEvent.change(input, { target: { value: 'bob' } });
 
     const userRow = await screen.findByText('Bob');
+    expect(userSearchApi.search).toHaveBeenCalledWith('bob', expect.any(AbortSignal));
     fireEvent.click(userRow);
 
     // Deselect by clicking chip X
@@ -68,5 +70,7 @@ describe('NewGroupModal', () => {
     const createBtn = screen.getByRole('button', { name: /create/i });
     expect(createBtn).toBeEnabled();
     fireEvent.click(createBtn);
+    await waitFor(() => expect(onCreated).toHaveBeenCalledWith('conv-new-group'));
+    expect(chatApi.createGroupConversation).toHaveBeenCalledWith('bob', ['usr-1']);
   });
 });

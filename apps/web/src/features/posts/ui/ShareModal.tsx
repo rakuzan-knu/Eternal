@@ -19,6 +19,8 @@ import { useMessageToastStore } from '@/shared/model/useMessageToastStore';
 import { chatApi } from '@/entities/chat';
 import { postsApi } from '@/features/posts/api/postsApi';
 import { FeedPage } from '@/entities/post/api/postsApi';
+import { mapPostFeedData } from '@/entities/post/model/mapPostFeedData';
+import { invalidatePostFeedHistory } from '@/entities/post/model/postFeedColdCache';
 import {
   FEED_KEY,
   USER_POSTS_KEY,
@@ -122,22 +124,16 @@ export function ShareModal() {
     }
 
     // Increment shares count optimistically
+    invalidatePostFeedHistory();
     const updateFeedData = (old: InfiniteData<FeedPage> | undefined) => {
-      if (!old?.pages) return old;
-      return {
-        ...old,
-        pages: old.pages.map((page) => ({
-          ...page,
-          posts: page.posts.map((p) =>
-            String(p.id) === String(post.id)
-              ? {
-                  ...p,
-                  sharesCount: (p.sharesCount ?? 0) + 1,
-                }
-              : p,
-          ),
-        })),
-      };
+      return mapPostFeedData(old, (p) =>
+        String(p.id) === String(post.id)
+          ? {
+              ...p,
+              sharesCount: (p.sharesCount ?? 0) + 1,
+            }
+          : p,
+      );
     };
 
     queryClient.setQueriesData<InfiniteData<FeedPage>>({ queryKey: [FEED_KEY] }, updateFeedData);
@@ -158,6 +154,7 @@ export function ShareModal() {
     postsApi
       .share(post.id)
       .finally(() => {
+        invalidatePostFeedHistory();
         queryClient.invalidateQueries({ queryKey: [FEED_KEY] });
         queryClient.invalidateQueries({ queryKey: [USER_POSTS_KEY] });
         queryClient.invalidateQueries({ queryKey: [USER_REPOSTS_KEY] });

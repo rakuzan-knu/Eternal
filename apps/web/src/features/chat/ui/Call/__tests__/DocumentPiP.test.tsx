@@ -1,6 +1,7 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, act } from '@testing-library/react';
+import { act } from '@testing-library/react';
+import { renderWithProviders as render } from '@/test/renderWithProviders';
 import { DocumentPiP } from '../DocumentPiP';
 import { isDocumentPiPSupported } from '../../../lib/documentPiP';
 import { useCallStore } from '../../../model/callStore';

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { act, render, screen, fireEvent } from '@testing-library/react';
 import ChatListPanel from '../ChatListPanel';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
@@ -22,7 +22,7 @@ describe('ChatListPanel', () => {
     expect(screen.getByRole('button', { name: 'New group chat' })).toBeInTheDocument();
   });
 
-  it('toggles new group modal and header options menu', () => {
+  it('toggles new group modal and header options menu', async () => {
     render(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter>
@@ -41,9 +41,14 @@ describe('ChatListPanel', () => {
 
     // New group modal
     const newGroupBtn = screen.getByRole('button', { name: 'New group chat' });
-    fireEvent.click(newGroupBtn);
-    expect(screen.getByRole('heading', { name: 'New group chat' })).toBeInTheDocument();
-  });
+    await act(async () => {
+      fireEvent.click(newGroupBtn);
+      await vi.dynamicImportSettled();
+    });
+    expect(
+      await screen.findByRole('heading', { name: 'New group chat' }, { timeout: 5000 }),
+    ).toBeInTheDocument();
+  }, 30000);
 
   it('handles folder creation, editing, context menu deletion, and new group creation callback', async () => {
     const onSelectConversation = vi.fn();
@@ -74,10 +79,13 @@ describe('ChatListPanel', () => {
     // Context menu on folder -> Delete
     fireEvent.contextMenu(screen.getByText('Custom Folder').closest('button')!);
     expect(screen.getByText('Delete')).toBeInTheDocument();
-    fireEvent.click(screen.getByText('Delete'));
+    await act(async () => {
+      fireEvent.click(screen.getByText('Delete'));
+      await vi.dynamicImportSettled();
+    });
 
     // Confirm deletion in modal
-    const confirmDeleteBtn = screen.getByRole('button', { name: 'Delete' });
+    const confirmDeleteBtn = await screen.findByRole('button', { name: 'Delete' });
     fireEvent.click(confirmDeleteBtn);
     expect(
       foldersStore.useChatFoldersStore.getState().folders.some((f) => f.id === 'f-custom'),

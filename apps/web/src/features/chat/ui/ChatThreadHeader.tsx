@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Phone, Video, Info, Radio, Search } from 'lucide-react';
 import Avatar from '../../../shared/ui/Avatar';
 import GroupAvatarCollage from '../../../shared/ui/GroupAvatarCollage';
@@ -7,6 +8,9 @@ import { ConversationDisplay } from '../lib/getConversationDisplay';
 import { VerifiedCheckmark } from '@/entities/profile/ui/VerifiedCheckmark';
 import { useCallPrewarmer } from '../lib/webrtc/webrtcPrewarmer';
 import { usePresenceStore } from '@/shared/model/usePresenceStore';
+import { useMediaDetailModalStore } from '@/entities/showcase/model/useMediaDetailModalStore';
+import { ShowcaseMediaType } from '@backend/common/contracts';
+import { useMusicHubStore } from '@/features/music/model/useMusicHubStore';
 import {
   isMusicActivity,
   isGamingActivity,
@@ -48,6 +52,7 @@ export default function ChatThreadHeader({
   onStartVoiceMesh,
   isVoiceMeshActive = false,
 }: ChatThreadHeaderProps) {
+  const navigate = useNavigate();
   const callKey = otherUserId || 'default';
   const prewarmer = useCallPrewarmer(callKey);
 
@@ -57,6 +62,54 @@ export default function ChatThreadHeader({
   const isOtherListening = Boolean(!isGroup && otherUserId && isMusicActivity(otherActivity));
   const isOtherGaming = Boolean(!isGroup && otherUserId && isGamingActivity(otherActivity));
   const formattedActivity = formatActivityText(otherActivity, 28, 18);
+
+  const handleTrackClick = (e: React.MouseEvent, activity: any) => {
+    e.stopPropagation();
+    if (!activity) return;
+
+    let trackId = activity.trackId;
+    if (!trackId && activity.externalUrl) {
+      const match = String(activity.externalUrl).match(/\/(?:music\/)?track\/([^/?#]+)/i);
+      if (match) {
+        trackId = match[1];
+      }
+    }
+
+    if (trackId || activity.title) {
+      const resolvedId =
+        trackId ||
+        `trk-${encodeURIComponent(
+          String(activity.title)
+            .toLowerCase()
+            .trim()
+            .replace(/[^a-z0-9]+/g, '-'),
+        )}`;
+
+      useMusicHubStore.getState().cacheTrack({
+        id: resolvedId,
+        title: activity.title || 'Unknown Track',
+        artist: activity.subtitle || activity.artist || 'Unknown Artist',
+        albumArt: activity.imageUrl || activity.albumArt || activity.coverUrl || '',
+        durationMs: activity.durationMs || 180000,
+        previewUrl: activity.previewUrl || null,
+        spotifyUrl: `/music/track/${resolvedId}`,
+        source: (activity.source as any) || 'platform',
+      });
+      navigate(`/music/track/${resolvedId}`);
+    } else {
+      navigate('/music');
+    }
+  };
+
+  const handleGameClick = (e: React.MouseEvent, activity: any) => {
+    e.stopPropagation();
+    if (!activity?.title) return;
+    useMediaDetailModalStore.getState().openMediaDetail({
+      title: activity.title,
+      type: ShowcaseMediaType.GAME,
+      posterUrl: activity.imageUrl || '',
+    });
+  };
 
   return (
     <div className="flex items-center justify-between px-5 h-16 border-b border-white/10 shrink-0 glass-panel z-10">
@@ -98,10 +151,22 @@ export default function ChatThreadHeader({
               className="flex items-center gap-1.5 min-w-0 text-[12px] text-gray-300 font-medium"
               title={`Listening to ${formattedActivity.fullText}`}
             >
-              {getActivityMusicCover(otherActivity, 14)}
+              <span
+                onClick={(e) => handleTrackClick(e, otherActivity)}
+                className="cursor-pointer hover:scale-110 transition-transform shrink-0"
+                title={`Open track: ${formattedActivity.title}`}
+              >
+                {getActivityMusicCover(otherActivity, 14)}
+              </span>
               <span className="truncate max-w-[280px] sm:max-w-[420px]">
                 Listening to{' '}
-                <span className="text-white font-semibold">{formattedActivity.title}</span>
+                <span
+                  onClick={(e) => handleTrackClick(e, otherActivity)}
+                  className="text-white font-semibold hover:underline cursor-pointer"
+                  title={`Open track: ${formattedActivity.title}`}
+                >
+                  {formattedActivity.title}
+                </span>
                 {formattedActivity.subtitle ? (
                   <span className="text-gray-400 font-normal"> — {formattedActivity.subtitle}</span>
                 ) : null}
@@ -112,9 +177,22 @@ export default function ChatThreadHeader({
               className="flex items-center gap-1.5 min-w-0 text-[12px] text-gray-300 font-medium"
               title={`Playing ${formattedActivity.fullText}`}
             >
-              {getActivityGameIcon(otherActivity, 14)}
+              <span
+                onClick={(e) => handleGameClick(e, otherActivity)}
+                className="cursor-pointer hover:scale-110 transition-transform shrink-0"
+                title={`View ${formattedActivity.title}`}
+              >
+                {getActivityGameIcon(otherActivity, 14)}
+              </span>
               <span className="truncate max-w-[280px] sm:max-w-[420px]">
-                Playing <span className="text-white font-semibold">{formattedActivity.title}</span>
+                Playing{' '}
+                <span
+                  onClick={(e) => handleGameClick(e, otherActivity)}
+                  className="text-white font-semibold hover:underline cursor-pointer"
+                  title={`View ${formattedActivity.title}`}
+                >
+                  {formattedActivity.title}
+                </span>
               </span>
             </div>
           ) : (

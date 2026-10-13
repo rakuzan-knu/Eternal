@@ -206,6 +206,18 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
   // Fetch remote SoundCloud / Spotify playlists if not found in local store
   useEffect(() => {
     if (isLikedSongs) return;
+
+    // Guard: If remote playlist is already loaded for this playlistId, preserve it without wiping
+    if (
+      remotePlaylist &&
+      (remotePlaylist.id === playlistId ||
+        remotePlaylist.id.includes(playlistId) ||
+        playlistId.includes(remotePlaylist.id))
+    ) {
+      setIsLoadingRemote(false);
+      return;
+    }
+
     const local =
       customPlaylists.find((p) => p.id === playlistId) ||
       playlists.find((p) => p.id === playlistId) ||
@@ -213,13 +225,11 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
       getPlaylistById(playlistId);
 
     if (local) {
-      setRemotePlaylist(null);
       setIsLoadingRemote(false);
       return;
     }
 
     let isMounted = true;
-    setRemotePlaylist(null);
     setIsLoadingRemote(true);
 
     const fetchRemote = async () => {
@@ -250,6 +260,8 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
               createdAt: new Date().toISOString(),
             };
             setRemotePlaylist(pl);
+          } else if (!data && isMounted) {
+            useMusicHubStore.getState().markPlaylistAsDeleted(playlistId);
           }
         } else if (
           playlistId.startsWith('sp-pl-') ||
@@ -281,8 +293,21 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
                 createdAt: new Date().toISOString(),
               };
               setRemotePlaylist(pl);
+            } else if (!data && isMounted) {
+              useMusicHubStore.getState().markPlaylistAsDeleted(playlistId);
             }
-          } catch {}
+          } catch (spErr: any) {
+            const isNotFound =
+              spErr?.status === 404 ||
+              spErr?.response?.status === 404 ||
+              spErr?.statusCode === 404 ||
+              String(spErr?.message || '')
+                .toLowerCase()
+                .includes('not found');
+            if (isNotFound) {
+              useMusicHubStore.getState().markPlaylistAsDeleted(playlistId);
+            }
+          }
         } else {
           // Check if valid UUID for user-created database playlist
           const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
@@ -299,8 +324,24 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
             } catch {}
           }
         }
-      } catch (err) {
+      } catch (err: any) {
         console.warn('Failed to fetch remote playlist:', err);
+        const isNotFound =
+          err?.status === 404 ||
+          err?.response?.status === 404 ||
+          err?.statusCode === 404 ||
+          String(err?.message || '')
+            .toLowerCase()
+            .includes('not found') ||
+          String(err?.message || '')
+            .toLowerCase()
+            .includes('deleted') ||
+          String(err || '')
+            .toLowerCase()
+            .includes('404');
+        if (isNotFound) {
+          useMusicHubStore.getState().markPlaylistAsDeleted(playlistId);
+        }
       } finally {
         if (isMounted) setIsLoadingRemote(false);
       }
@@ -965,30 +1006,72 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
               </button>
             </Tooltip>
 
-            {/* 4. Like / Add to Library Button */}
+            {/* 4. Like / Add to Library Button with slick checkmark drawing animation */}
             {!isLikedSongs && (
               <Tooltip
                 label={isPlaylistSaved(playlist.id) ? 'Remove from library' : 'Add to library'}
                 position="top"
               >
-                <button
+                <motion.button
                   type="button"
+                  whileHover={{ scale: 1.08 }}
+                  whileTap={{ scale: 0.92 }}
                   aria-label={
                     isPlaylistSaved(playlist.id) ? 'Remove from library' : 'Add to library'
                   }
-                  onClick={() => toggleSavePlaylist(playlist.id)}
-                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 cursor-pointer ${
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleSavePlaylist(playlist.id, playlist);
+                  }}
+                  className={`relative w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 cursor-pointer overflow-hidden ${
                     isPlaylistSaved(playlist.id)
-                      ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30 border border-purple-500'
-                      : 'border border-white/40 text-gray-300 hover:border-white hover:text-white'
+                      ? 'bg-gradient-to-tr from-purple-600 to-indigo-500 text-white shadow-lg shadow-purple-600/40 border border-purple-400/50'
+                      : 'border border-white/30 text-gray-300 hover:border-white hover:text-white bg-white/5 hover:bg-white/10'
                   }`}
                 >
-                  {isPlaylistSaved(playlist.id) ? (
-                    <Check size={16} strokeWidth={3} />
-                  ) : (
-                    <Plus size={18} strokeWidth={2.5} />
-                  )}
-                </button>
+                  <AnimatePresence mode="wait" initial={false}>
+                    {isPlaylistSaved(playlist.id) ? (
+                      <motion.div
+                        key="saved-check"
+                        initial={{ scale: 0.4, rotate: -45, opacity: 0 }}
+                        animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                        exit={{ scale: 0.4, rotate: 45, opacity: 0 }}
+                        transition={{ type: 'spring', stiffness: 450, damping: 25 }}
+                        className="flex items-center justify-center"
+                      >
+                        <motion.svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="3.2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <motion.path
+                            d="M4.5 12.5l5 5L19.5 7"
+                            initial={{ pathLength: 0 }}
+                            animate={{ pathLength: 1 }}
+                            transition={{ duration: 0.35, ease: 'easeOut' }}
+                          />
+                        </motion.svg>
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="add-plus"
+                        initial={{ scale: 0.4, rotate: 45, opacity: 0 }}
+                        animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                        exit={{ scale: 0.4, rotate: 45, opacity: 0 }}
+                        transition={{ type: 'spring', stiffness: 450, damping: 25 }}
+                        className="flex items-center justify-center"
+                      >
+                        <Plus size={18} strokeWidth={2.5} />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.button>
               </Tooltip>
             )}
 

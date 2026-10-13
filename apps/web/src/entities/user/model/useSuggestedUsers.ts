@@ -1,3 +1,4 @@
+import { queryStaleTimes } from '@/shared/api/queryClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient as api } from '@/shared/api/httpClient';
 import { useAuthStore } from '@/shared/model/useAuthStore';
@@ -29,7 +30,7 @@ export function useSuggestedUsers(limit = 5) {
       }));
     },
     enabled: isAuthenticated,
-    staleTime: 60 * 1000,
+    staleTime: queryStaleTimes.recommendations,
   });
 }
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { downloadBlob } from '@/shared/lib/blobResources';
 import { createPortal } from 'react-dom';
 import {
   X,
@@ -165,12 +166,7 @@ export default function DocumentPreviewModal({
   const handleDownload = useCallback(
     (customFile?: File) => {
       if (customFile) {
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(customFile);
-        link.download = customFile.name;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        downloadBlob(customFile, customFile.name);
         return;
       }
       if (!downloadUrl) return;

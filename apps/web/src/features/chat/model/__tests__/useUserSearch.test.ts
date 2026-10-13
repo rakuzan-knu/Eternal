@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { useUserSearch } from '../useUserSearch';
-import { userSearchApi } from '../../api/userSearchApi';
+import { userSearchApi } from '@/entities/user/api/userSearchApi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
-vi.mock('../../api/userSearchApi', () => ({
+vi.mock('@/entities/user/api/userSearchApi', () => ({
   userSearchApi: {
     search: vi.fn(),
   },
@@ -33,6 +33,6 @@ describe('useUserSearch', () => {
     });
 
     await waitFor(() => expect(result.current.results).toHaveLength(1));
-    expect(userSearchApi.search).toHaveBeenCalledWith('bob');
+    expect(userSearchApi.search).toHaveBeenCalledWith('bob', expect.any(AbortSignal));
   });
 });

@@ -109,9 +109,7 @@ describe('ChatThread', () => {
     const infoBtn = screen.getByTitle('Conversation info');
     fireEvent.click(infoBtn);
 
-    await waitFor(() => {
-      expect(screen.getByText('Search')).toBeInTheDocument();
-    });
+    expect(await screen.findByText('Search', {}, { timeout: 5000 })).toBeInTheDocument();
   });
 
   it('renders blocked banner when conversation is blocked', () => {
@@ -169,7 +167,7 @@ describe('ChatThread', () => {
     const viewAllBtn = screen.getByTitle('View all pinned messages');
     fireEvent.click(viewAllBtn);
 
-    expect(screen.getByRole('heading', { name: /Pinned messages/i })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /Pinned messages/i })).toBeInTheDocument();
   });
 
   it('dynamically raises composer padding when SpotifyBottomDock is full or minimized', () => {
@@ -257,7 +255,7 @@ describe('ChatThread', () => {
     // 1. Toggle search panel
     const searchBtn = screen.getByTitle('Search messages (Ctrl+F)');
     fireEvent.click(searchBtn);
-    expect(screen.getByText('Search')).toBeInTheDocument();
+    expect(await screen.findByText('Search')).toBeInTheDocument();
 
     // 2. Press Escape -> closes search panel
     fireEvent.keyDown(window, { key: 'Escape' });

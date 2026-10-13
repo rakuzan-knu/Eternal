@@ -28,6 +28,9 @@ import {
   getActivityMusicCover,
   formatActivityText,
 } from '../../../shared/ui/activityIcons';
+import { useMediaDetailModalStore } from '@/entities/showcase/model/useMediaDetailModalStore';
+import { ShowcaseMediaType } from '@backend/common/contracts';
+import { useMusicHubStore } from '@/features/music/model/useMusicHubStore';
 import { useQueryOnlineStatus } from '../model/usePresence';
 import { usePresenceStore } from '@/shared/model/usePresenceStore';
 import { useAuthStore } from '@/shared/model/useAuthStore';
@@ -109,6 +112,55 @@ export default function ConversationDetailsPanel({
   const isOtherListening = Boolean(!isGroup && otherUserId && isMusicActivity(otherActivity));
   const isOtherGaming = Boolean(!isGroup && otherUserId && isGamingActivity(otherActivity));
   const formattedActivity = formatActivityText(otherActivity, 26, 18);
+
+  const handleTrackClick = (e: React.MouseEvent, activity: any) => {
+    e.stopPropagation();
+    if (!activity) return;
+
+    let trackId = activity.trackId;
+    if (!trackId && activity.externalUrl) {
+      const match = String(activity.externalUrl).match(/\/(?:music\/)?track\/([^/?#]+)/i);
+      if (match) {
+        trackId = match[1];
+      }
+    }
+
+    if (trackId || activity.title) {
+      const resolvedId =
+        trackId ||
+        `trk-${encodeURIComponent(
+          String(activity.title)
+            .toLowerCase()
+            .trim()
+            .replace(/[^a-z0-9]+/g, '-'),
+        )}`;
+
+      useMusicHubStore.getState().cacheTrack({
+        id: resolvedId,
+        title: activity.title || 'Unknown Track',
+        artist: activity.subtitle || activity.artist || 'Unknown Artist',
+        albumArt: activity.imageUrl || activity.albumArt || activity.coverUrl || '',
+        durationMs: activity.durationMs || 180000,
+        previewUrl: activity.previewUrl || null,
+        spotifyUrl: `/music/track/${resolvedId}`,
+        source: (activity.source as any) || 'platform',
+      });
+      navigate(`/music/track/${resolvedId}`);
+    } else {
+      navigate('/music');
+    }
+  };
+
+  const handleGameClick = (e: React.MouseEvent, activity: any) => {
+    e.stopPropagation();
+    if (!activity?.title) return;
+    useMediaDetailModalStore.getState().openMediaDetail({
+      title: activity.title,
+      type: ShowcaseMediaType.GAME,
+      posterUrl: activity.imageUrl || '',
+    });
+  };
+
   const muteConversation = useMuteConversation();
   const archiveConversation = useArchiveConversation();
   const blockUser = useBlockUser();
@@ -245,10 +297,22 @@ export default function ConversationDetailsPanel({
               className="inline-flex items-center justify-center gap-1.5 text-sm mt-0.5 text-gray-300 font-medium max-w-full px-2"
               title={`Listening to ${formattedActivity.fullText}`}
             >
-              {getActivityMusicCover(otherActivity, 16)}
+              <span
+                onClick={(e) => handleTrackClick(e, otherActivity)}
+                className="cursor-pointer hover:scale-110 transition-transform shrink-0"
+                title={`Open track: ${formattedActivity.title}`}
+              >
+                {getActivityMusicCover(otherActivity, 16)}
+              </span>
               <span className="truncate max-w-[260px] text-center">
                 Listening to{' '}
-                <span className="text-white font-semibold">{formattedActivity.title}</span>
+                <span
+                  onClick={(e) => handleTrackClick(e, otherActivity)}
+                  className="text-white font-semibold hover:underline cursor-pointer"
+                  title={`Open track: ${formattedActivity.title}`}
+                >
+                  {formattedActivity.title}
+                </span>
                 {formattedActivity.subtitle ? (
                   <span className="text-gray-400 font-normal"> — {formattedActivity.subtitle}</span>
                 ) : null}
@@ -259,9 +323,22 @@ export default function ConversationDetailsPanel({
               className="inline-flex items-center justify-center gap-1.5 text-sm mt-0.5 text-gray-300 font-medium max-w-full px-2"
               title={`Playing ${formattedActivity.fullText}`}
             >
-              {getActivityGameIcon(otherActivity, 16)}
+              <span
+                onClick={(e) => handleGameClick(e, otherActivity)}
+                className="cursor-pointer hover:scale-110 transition-transform shrink-0"
+                title={`View ${formattedActivity.title}`}
+              >
+                {getActivityGameIcon(otherActivity, 16)}
+              </span>
               <span className="truncate max-w-[260px] text-center">
-                Playing <span className="text-white font-semibold">{formattedActivity.title}</span>
+                Playing{' '}
+                <span
+                  onClick={(e) => handleGameClick(e, otherActivity)}
+                  className="text-white font-semibold hover:underline cursor-pointer"
+                  title={`View ${formattedActivity.title}`}
+                >
+                  {formattedActivity.title}
+                </span>
               </span>
             </div>
           ) : (

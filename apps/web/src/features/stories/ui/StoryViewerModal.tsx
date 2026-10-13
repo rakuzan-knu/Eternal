@@ -447,8 +447,18 @@ export function StoryViewerModal() {
       }
     };
 
-    const handleLivePoll = (payload: { storyId: string; pollResult: any }) => {
-      if (payload.storyId !== storyId || !payload.pollResult) return;
+    const handleLivePoll = async (payload: { storyId: string; pollResult?: any }) => {
+      if (payload.storyId !== storyId) return;
+      if (!payload.pollResult) {
+        try {
+          const group = await storiesApi.getUserStories(activeStory.authorId);
+          const refreshed = group?.stories.find((story) => story.id === storyId);
+          if (refreshed?.pollResult) payload = { ...payload, pollResult: refreshed.pollResult };
+          else return;
+        } catch {
+          return;
+        }
+      }
       const currentGroups = useStoryViewerStore.getState().groups;
       const updated = currentGroups.map((g, gIdx) => {
         if (gIdx !== activeGroupIndex) return g;
@@ -476,7 +486,7 @@ export function StoryViewerModal() {
       socket.off('story:reacted', handleLiveReaction);
       socket.off('story:poll_voted', handleLivePoll);
     };
-  }, [activeStory?.id, activeGroupIndex, activeStoryIndex]);
+  }, [activeStory?.id, activeStory?.authorId, activeGroupIndex, activeStoryIndex]);
 
   // Media Prefetching: prefetch next 1-2 stories in background
   useEffect(() => {

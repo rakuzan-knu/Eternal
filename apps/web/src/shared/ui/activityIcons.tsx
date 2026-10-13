@@ -13,7 +13,12 @@ import {
 export function isMusicActivity(activity: any): boolean {
   if (!activity) return false;
   return Boolean(
-    activity.type === 'spotify' || activity.type === 'music' || activity.trackId || activity.artist,
+    activity.type === 'spotify' ||
+    activity.type === 'music' ||
+    activity.type === 'platform_music' ||
+    activity.isPlatformTrack ||
+    activity.trackId ||
+    activity.artist,
   );
 }
 

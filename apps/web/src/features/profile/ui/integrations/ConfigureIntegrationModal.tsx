@@ -394,37 +394,10 @@ export const ConfigureIntegrationModal: React.FC<ConfigureIntegrationModalProps>
   // Listen for OAuth completion popup postMessage & real-time cache refresh
   useEffect(() => {
     const handleAuthMessage = async (event: MessageEvent) => {
-      if (!isTrustedMessageOrigin(event.origin)) return;
+      if (!isTrustedMessageOrigin(event.origin) || event.source !== popupRef.current) return;
       if (!platform) return;
       const authPlatform = (event.data?.platform || '').toLowerCase();
       if (authPlatform !== platform.id.toLowerCase()) return;
-
-      if (event.data?.type === 'OAUTH_CODE_RECEIVED' && event.data?.code) {
-        setIsAuthenticating(true);
-        try {
-          const exchangeRes = await integrationsApi.exchangeCode(authPlatform, {
-            code: event.data.code,
-            redirectUri: event.origin || window.location.origin,
-            state: event.data.state || currentUser?.id,
-          });
-          if (exchangeRes?.data) {
-            setActiveData(exchangeRes.data);
-            onSaveSuccess(platform.id, exchangeRes.data);
-            setIsAuthenticating(false);
-            queryClient.invalidateQueries({ queryKey: [USER_KEY] });
-            queryClient.invalidateQueries({ queryKey: ['showcase'] });
-            queryClient.invalidateQueries({ queryKey: ['user'] });
-            queryClient.invalidateQueries({ queryKey: ['profile'] });
-            try {
-              if (popupRef.current && !popupRef.current.closed) {
-                popupRef.current.close();
-              }
-            } catch {}
-          }
-        } catch (err) {
-          console.error('Failed to exchange OAuth code in opener:', err);
-        }
-      }
 
       if (event.data?.type === 'INTEGRATION_AUTH_SUCCESS') {
         setIsAuthenticating(false);
@@ -501,24 +474,35 @@ export const ConfigureIntegrationModal: React.FC<ConfigureIntegrationModalProps>
     });
   };
 
-  const handleStartOAuth = () => {
+  const handleStartOAuth = async () => {
     setIsAuthenticating(true);
-    const rawApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-    const baseBackendUrl = rawApiUrl.replace(/\/api\/?$/, '').replace(/\/$/, '');
-    const currentOrigin = window.location.origin;
-    const targetUrl = `${baseBackendUrl}/integrations/${platform.id}/auth?userId=${encodeURIComponent(currentUser?.id || '')}&origin=${encodeURIComponent(currentOrigin)}`;
-
     const width = 640;
     const height = 750;
     const left = window.screenX + (window.outerWidth - width) / 2;
     const top = window.screenY + (window.outerHeight - height) / 2;
 
     const popup = window.open(
-      targetUrl,
+      'about:blank',
       `${platform.id}_oauth_window`,
       `width=${width},height=${height},left=${left},top=${top},status=no,resizable=yes,scrollbars=yes`,
     );
     popupRef.current = popup;
+    if (!popup) {
+      setIsAuthenticating(false);
+      return;
+    }
+    try {
+      const { apiClient } = await import('@/shared/api/httpClient');
+      const response = await apiClient.post<{ url: string }>(
+        `/integrations/${platform.id}/oauth/start`,
+      );
+      popup.location.href = response.data.url;
+    } catch (error) {
+      popup.close();
+      setIsAuthenticating(false);
+      console.error('Unable to start OAuth', error);
+      return;
+    }
 
     const timer = setInterval(() => {
       if (!popup || popup.closed) {

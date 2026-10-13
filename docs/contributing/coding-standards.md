@@ -1,6 +1,6 @@
 # 📐 Coding Standards & Conventions
 
-To maintain a world-class codebase as an open-source project, all contributors and maintainers adhere to the following architecture rules, style standards, and Git conventions.
+Authorized Eternal contributors and maintainers follow these architecture rules, style standards, and Git conventions. These standards grant no software license; see [LICENSE.md](../../LICENSE.md).
 
 ---
 
