@@ -16,6 +16,8 @@ export async function openWebSection(path: string, onError: (failed: boolean) =>
 export function FeedDock({
   home,
   saved = false,
+  music = false,
+  onMusic,
   busy,
   profileOpen,
   onHome,
@@ -24,6 +26,8 @@ export function FeedDock({
 }: {
   home: boolean;
   saved?: boolean;
+  music?: boolean;
+  onMusic: () => void;
   busy: boolean;
   profileOpen: boolean;
   onHome: () => void;
@@ -34,7 +38,14 @@ export function FeedDock({
     { label: 'Home', Icon: Home, action: onHome, active: home, disabled: busy },
     { label: 'Reels', Icon: Film, path: '/reels' },
     { label: 'Chats', accessibleLabel: 'Messages', Icon: MessageSquare, path: '/messages' },
-    { label: 'Music', accessibleLabel: 'Music Hub', Icon: Music2, path: '/music' },
+    {
+      label: 'Music',
+      accessibleLabel: 'Music Hub',
+      Icon: Music2,
+      action: onMusic,
+      active: music,
+      disabled: busy,
+    },
     {
       label: 'Profile',
       accessibleLabel: saved ? 'Profile, Saved posts' : 'Profile',

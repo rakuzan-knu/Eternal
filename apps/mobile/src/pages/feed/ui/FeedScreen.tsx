@@ -40,25 +40,79 @@ import { CreatePostEditor, emptyPostDraft } from './CreatePostSheet';
 import { CreateMenu, type CreateType } from './CreateMenu';
 import { CreateReelSheet } from './CreateReelSheet';
 import { NotificationsScreen } from '../../notifications/ui/NotificationsScreen';
+import { SearchScreen } from '../../search/ui/SearchScreen';
 import { useUnreadNotifications } from '../../notifications/model/queries';
+import { MusicProvider, useMusic } from '../../music/model/MusicProvider';
+import { MusicHubScreen } from '../../music/ui/MusicHubScreen';
+import { MusicPlayer } from '../../music/ui/MusicPlayer';
+import { MusicModeBoundary } from '../../music/ui/MusicModeBoundary';
 import { PostCard } from './PostCard';
 import { StoriesBar, CreateStory } from './StoriesBar';
 import { SuggestedUsers } from './SuggestedUsers';
 
-export function FeedScreen({
-  user,
-  isOnline,
-  onSignOut,
-}: {
+export function FeedScreen(props: {
   user: UserSessionProfile;
   isOnline: boolean;
   onSignOut: () => void;
 }) {
+  return (
+    <MusicProvider key={props.user.id} userId={props.user.id} isOnline={props.isOnline}>
+      <FeedExperience {...props} />
+    </MusicProvider>
+  );
+}
+
+type FeedPage = 'feed' | 'notifications' | 'search' | 'music';
+type FeedExperienceProps = { user: UserSessionProfile; isOnline: boolean; onSignOut: () => void };
+function FeedExperience(props: FeedExperienceProps) {
+  // Retain navigation and the user's unsent post while Game Mode releases the UI.
   const draftState = React.useState(emptyPostDraft);
+  const pageState = React.useState<FeedPage>('feed');
+  const modeState = React.useState<FeedMode>('home');
+  return (
+    <MusicModeBoundary>
+      <FeedScreenContent
+        {...props}
+        draftState={draftState}
+        pageState={pageState}
+        modeState={modeState}
+      />
+    </MusicModeBoundary>
+  );
+}
+
+function FeedScreenContent({
+  user,
+  isOnline,
+  onSignOut,
+  draftState,
+  pageState,
+  modeState,
+}: {
+  user: UserSessionProfile;
+  isOnline: boolean;
+  onSignOut: () => void;
+  draftState: [
+    ReturnType<typeof emptyPostDraft>,
+    React.Dispatch<React.SetStateAction<ReturnType<typeof emptyPostDraft>>>,
+  ];
+  pageState: [FeedPage, React.Dispatch<React.SetStateAction<FeedPage>>];
+  modeState: [FeedMode, React.Dispatch<React.SetStateAction<FeedMode>>];
+}) {
+  const music = useMusic();
   const [publishing, setPublishing] = React.useState(false);
-  const [mode, setMode] = React.useState<FeedMode>('home');
+  const [mode, setMode] = modeState;
   const [createType, setCreateType] = React.useState<CreateType | 'menu' | null>(null);
-  const [notificationsOpen, setNotificationsOpen] = React.useState(false);
+  const storyCloseRequest = React.useRef<(() => void) | null>(null);
+  const registerStoryClose = React.useCallback((handler: (() => void) | null) => {
+    storyCloseRequest.current = handler;
+  }, []);
+  const [page, setPage] = pageState;
+  const [searchVisited, setSearchVisited] = React.useState(page === 'search');
+  const musicOpen = page === 'music';
+  const notificationsOpen = page === 'notifications';
+  const searchOpen = page === 'search';
+  const feedHidden = page !== 'feed';
   const [publishedMessage, setPublishedMessage] = React.useState<string | null>(null);
   const [navigationError, setNavigationError] = React.useState(false);
   const [account, setAccount] = React.useState(false);
@@ -86,18 +140,21 @@ export function FeedScreen({
     (id: string) => setHidden((current) => new Set([...current, id])),
     [],
   );
-  const canPlay = !createType && !notificationsOpen && !account && !storyOpen;
+  const canPlay = !createType && !feedHidden && !account && !storyOpen && !music.playing;
+  React.useEffect(() => {
+    if (createType || storyOpen) music.setPlaying(false);
+  }, [createType, storyOpen, music.setPlaying]);
 
   React.useEffect(() => {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
-      document.title = `${notificationsOpen ? 'Notifications' : mode === 'saved' ? 'Saved' : 'Home'} • Eternal`;
+      document.title = `${musicOpen ? 'Music Hub' : searchOpen ? 'Search' : notificationsOpen ? 'Notifications' : mode === 'saved' ? 'Saved' : 'Home'} • Eternal`;
     }
-  }, [mode, notificationsOpen]);
+  }, [mode, notificationsOpen, searchOpen, musicOpen]);
 
   React.useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (notificationsOpen) {
-        setNotificationsOpen(false);
+      if (page !== 'feed') {
+        setPage('feed');
         return true;
       }
       if (mode === 'saved' && !publishing) {
@@ -107,7 +164,7 @@ export function FeedScreen({
       return false;
     });
     return () => subscription.remove();
-  }, [notificationsOpen, mode, publishing]);
+  }, [page, mode, publishing]);
 
   async function refresh() {
     if (refreshing || !isOnline || query.isFetching) return;
@@ -126,7 +183,7 @@ export function FeedScreen({
   function changeMode(next: FeedMode) {
     if (publishing) return;
     Keyboard.dismiss();
-    setNotificationsOpen(false);
+    setPage('feed');
     setPublishedMessage(null);
     haptics.selection();
     if (next === mode) list.current?.scrollToOffset({ offset: 0, animated: true });
@@ -171,7 +228,7 @@ export function FeedScreen({
             style={notificationsOpen ? s.selectedHeaderButton : undefined}
             onPress={() => {
               Keyboard.dismiss();
-              setNotificationsOpen((open) => !open);
+              setPage((current) => (current === 'notifications' ? 'feed' : 'notifications'));
             }}
           >
             <Bell size={22} color={colors.text} />
@@ -179,9 +236,13 @@ export function FeedScreen({
           </IconButton>
           <IconButton
             label="Search"
+            selected={searchOpen}
+            disabled={publishing}
+            style={searchOpen ? s.selectedHeaderButton : undefined}
             onPress={() => {
               Keyboard.dismiss();
-              void openWebSection('/search', setNavigationError);
+              setSearchVisited(true);
+              setPage('search');
             }}
           >
             <Search size={22} color={colors.text} />
@@ -195,10 +256,10 @@ export function FeedScreen({
         </Text>
       )}
       <View
-        style={[common.flex, notificationsOpen && s.hidden]}
-        accessibilityElementsHidden={notificationsOpen}
-        importantForAccessibility={notificationsOpen ? 'no-hide-descendants' : 'auto'}
-        aria-hidden={notificationsOpen}
+        style={[common.flex, feedHidden && s.hidden]}
+        accessibilityElementsHidden={feedHidden}
+        importantForAccessibility={feedHidden ? 'no-hide-descendants' : 'auto'}
+        aria-hidden={feedHidden}
       >
         {mode === 'saved' && (
           <View style={s.savedHeader}>
@@ -393,13 +454,49 @@ export function FeedScreen({
         <NotificationsScreen
           user={user}
           isOnline={isOnline}
-          onBack={() => setNotificationsOpen(false)}
+          onBack={() => setPage('feed')}
           onNavigationError={setNavigationError}
         />
       )}
+      {searchVisited && (
+        <View
+          style={[common.flex, !searchOpen && s.hidden]}
+          accessibilityElementsHidden={!searchOpen}
+          importantForAccessibility={!searchOpen ? 'no-hide-descendants' : 'auto'}
+          aria-hidden={!searchOpen}
+        >
+          <SearchScreen
+            userId={user.id}
+            isOnline={isOnline}
+            active={searchOpen && !createType && !account}
+            onBack={() => setPage('feed')}
+            onNavigationError={setNavigationError}
+          />
+        </View>
+      )}
+      {music.visited && (
+        <View
+          style={[common.flex, !musicOpen && s.hidden]}
+          accessibilityElementsHidden={!musicOpen}
+          importantForAccessibility={!musicOpen ? 'no-hide-descendants' : 'auto'}
+          aria-hidden={!musicOpen}
+        >
+          <MusicHubScreen
+            active={musicOpen && !createType && !account}
+            onBack={() => setPage('feed')}
+          />
+        </View>
+      )}
+      <MusicPlayer />
       <FeedDock
-        home={mode === 'home' && !notificationsOpen}
-        saved={mode === 'saved' && !notificationsOpen}
+        music={musicOpen}
+        onMusic={() => {
+          Keyboard.dismiss();
+          music.setVisited(true);
+          setPage('music');
+        }}
+        home={mode === 'home' && !feedHidden}
+        saved={mode === 'saved' && !feedHidden}
         busy={publishing}
         profileOpen={account}
         onHome={() => changeMode('home')}
@@ -418,7 +515,12 @@ export function FeedScreen({
                   : 'Create New Reel'
           }
           closeDisabled={publishing}
-          onClose={closeCreate}
+          hideHeader={createType === 'story'}
+          onClose={() =>
+            createType === 'story' && storyCloseRequest.current
+              ? storyCloseRequest.current()
+              : closeCreate()
+          }
         >
           {createType === 'menu' && <CreateMenu onSelect={setCreateType} />}
           {createType === 'post' && (
@@ -438,6 +540,7 @@ export function FeedScreen({
               isOnline={isOnline}
               embedded
               onBusyChange={setPublishing}
+              onCloseRequestChange={registerStoryClose}
               onClose={closeCreate}
             />
           )}

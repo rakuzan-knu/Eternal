@@ -101,6 +101,7 @@ export const PostCard = React.memo(function PostCard({
       client.setQueryData(authorKey, result.requested);
       void client.invalidateQueries({ queryKey: feedKeys.stories(userId) });
       void client.invalidateQueries({ queryKey: feedKeys.suggestions(userId) });
+      void client.invalidateQueries({ queryKey: feedKeys.search(userId) });
     },
     onSettled: () => client.invalidateQueries({ queryKey: feedKeys.posts(userId) }),
   });

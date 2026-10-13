@@ -73,6 +73,7 @@ export function IconButton({
       accessibilityLabel={label}
       accessibilityState={{ disabled: !!disabled, selected }}
       aria-disabled={!!disabled}
+      aria-pressed={selected}
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [s.iconButton, style, pressed && s.pressed, disabled && s.disabled]}
@@ -100,11 +101,13 @@ export function Sheet({
   children,
   onClose,
   closeDisabled = false,
+  hideHeader = false,
 }: {
   title: string;
   children: React.ReactNode;
   onClose: () => void;
   closeDisabled?: boolean;
+  hideHeader?: boolean;
 }) {
   return (
     <Modal
@@ -117,14 +120,16 @@ export function Sheet({
       }}
     >
       <SafeAreaView style={s.sheet} testID="feed-sheet" accessibilityViewIsModal>
-        <View style={s.sheetHeader}>
-          <Text accessibilityRole="header" style={s.sheetTitle}>
-            {title}
-          </Text>
-          <IconButton label={`Close ${title}`} disabled={closeDisabled} onPress={onClose}>
-            <X size={22} color={colors.text} />
-          </IconButton>
-        </View>
+        {!hideHeader && (
+          <View style={s.sheetHeader}>
+            <Text accessibilityRole="header" style={s.sheetTitle}>
+              {title}
+            </Text>
+            <IconButton label={`Close ${title}`} disabled={closeDisabled} onPress={onClose}>
+              <X size={22} color={colors.text} />
+            </IconButton>
+          </View>
+        )}
         <KeyboardAvoidingView
           style={s.flex}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

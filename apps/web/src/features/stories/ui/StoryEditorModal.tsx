@@ -25,6 +25,8 @@ import {
 } from 'lucide-react';
 import { useStoryEditorStore } from '../model/useStoryEditorStore';
 import { useCreateStory } from '../model/useStories';
+import { useAuthStore } from '@/shared/model/useAuthStore';
+import { useAccountsStore } from '@/shared/model/useAccountsStore';
 import { useCurrentUser } from '@/entities/profile/model/useCurrentUser';
 import { useBodyScrollLock } from '@/shared/lib/useBodyScrollLock';
 import Avatar from '@/shared/ui/Avatar';
@@ -106,6 +108,9 @@ export function StoryEditorModal() {
   useBodyScrollLock(isOpen);
 
   const createStoryMutation = useCreateStory();
+  const publishLock = useRef(false);
+  const [preparingPublish, setPreparingPublish] = useState(false);
+  const stickerUrls = useRef(new Set<string>());
 
   // Local state
   const [gradientIndex, setGradientIndex] = useState(0);
@@ -192,11 +197,21 @@ export function StoryEditorModal() {
 
   useEffect(() => {
     if (!isOpen) {
+      stickerUrls.current.forEach((url) => URL.revokeObjectURL(url));
+      stickerUrls.current.clear();
       if (mediaUrl && mediaUrl.startsWith('blob:')) URL.revokeObjectURL(mediaUrl);
       if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
       audioUrlRef.current = null;
     }
   }, [isOpen, mediaUrl]);
+
+  useEffect(
+    () => () => {
+      stickerUrls.current.forEach((url) => URL.revokeObjectURL(url));
+      stickerUrls.current.clear();
+    },
+    [],
+  );
 
   // Preload custom fonts on open
   useEffect(() => {
@@ -227,6 +242,7 @@ export function StoryEditorModal() {
     }
 
     const previewUrl = URL.createObjectURL(file);
+    if (isSticker) stickerUrls.current.add(previewUrl);
 
     if (isSticker && isImage) {
       // Add as a new image sticker
@@ -704,6 +720,11 @@ export function StoryEditorModal() {
 
   // Publish Story
   const handlePublish = async (selectedPrivacy?: StoryPrivacy) => {
+    if (publishLock.current || createStoryMutation.isPending) return;
+    publishLock.current = true;
+    setPreparingPublish(true);
+    const sessionUser = useAuthStore.getState().userId;
+    const sessionAccount = useAccountsStore.getState().activeAccountId;
     const finalPrivacy = selectedPrivacy || privacy;
 
     // Clean up overlays before sending: exclude caption overlay (it is sent via caption field)
@@ -721,6 +742,8 @@ export function StoryEditorModal() {
           const audioOverlay = o as AudioOverlay;
           return {
             ...audioOverlay,
+            videoVolume: Math.max(0, Math.min(1, (audioOverlay.videoVolume ?? videoVolume) / 100)),
+            musicVolume: Math.max(0, Math.min(1, (audioOverlay.musicVolume ?? musicVolume) / 100)),
             albumArt: audioOverlay.albumArt?.startsWith('blob:')
               ? undefined
               : audioOverlay.albumArt,
@@ -731,7 +754,23 @@ export function StoryEditorModal() {
       });
 
     try {
+      const attachments: Record<string, File> = {};
+      for (const overlay of overlays) {
+        if (overlay.type === 'image' && !overlay.isMainMedia && overlay.url?.startsWith('blob:')) {
+          const blob = await (await fetch(overlay.url)).blob();
+          if (blob.size > 10 * 1024 * 1024) throw new Error('Photo sticker exceeds 10 MB');
+          attachments[overlay.id] = new File([blob], `sticker-${overlay.id}`, { type: blob.type });
+        }
+      }
+      if (
+        !sessionUser ||
+        useAuthStore.getState().userId !== sessionUser ||
+        useAccountsStore.getState().activeAccountId !== sessionAccount ||
+        !useStoryEditorStore.getState().isOpen
+      )
+        throw new Error('Your session changed. Reopen the story editor.');
       await createStoryMutation.mutateAsync({
+        attachments,
         file: mediaFile ?? undefined,
         mediaType: mediaType,
         caption: caption.trim() || undefined,
@@ -743,7 +782,10 @@ export function StoryEditorModal() {
 
       closeEditor();
     } catch {
-      setErrorMessage('Error publishing story. Please try again.');
+      setErrorMessage('Error publishing story. Your draft is still here. Please try again.');
+    } finally {
+      publishLock.current = false;
+      setPreparingPublish(false);
     }
   };
 
@@ -795,6 +837,7 @@ export function StoryEditorModal() {
           <div className="absolute top-4 left-4 z-40">
             <button
               type="button"
+              disabled={preparingPublish || createStoryMutation.isPending}
               onClick={closeEditor}
               className="w-10 h-10 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center backdrop-blur-xl border border-white/15 transition-all cursor-pointer shadow-lg active:scale-95"
               title="Close"
@@ -2130,7 +2173,7 @@ export function StoryEditorModal() {
               {/* 1. Your story button */}
               <button
                 type="button"
-                disabled={createStoryMutation.isPending}
+                disabled={preparingPublish || createStoryMutation.isPending}
                 onClick={() => handlePublish('ALL_FOLLOWERS')}
                 className="flex-1 flex items-center justify-center gap-2 py-3 px-3 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 text-white font-bold text-xs transition-all active:scale-95 cursor-pointer shadow-lg disabled:opacity-50 backdrop-blur-xl"
               >
@@ -2145,7 +2188,7 @@ export function StoryEditorModal() {
               {/* 2. Close friends button */}
               <button
                 type="button"
-                disabled={createStoryMutation.isPending}
+                disabled={preparingPublish || createStoryMutation.isPending}
                 onClick={() => handlePublish('CLOSE_FRIENDS')}
                 className="flex-1 flex items-center justify-center gap-2 py-3 px-3 rounded-full bg-emerald-950/60 hover:bg-emerald-900/80 border border-emerald-500/40 text-emerald-300 font-bold text-xs transition-all active:scale-95 cursor-pointer shadow-lg disabled:opacity-50 backdrop-blur-xl"
               >
@@ -2158,7 +2201,7 @@ export function StoryEditorModal() {
               {/* 3. Circular Forward Arrow Button (Signature Purple) */}
               <button
                 type="button"
-                disabled={createStoryMutation.isPending}
+                disabled={preparingPublish || createStoryMutation.isPending}
                 onClick={() => handlePublish()}
                 className="w-12 h-12 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-[0_0_22px_rgba(168,85,247,0.6)] cursor-pointer disabled:opacity-50 shrink-0"
                 title="Share"
@@ -2180,6 +2223,7 @@ export function StoryEditorModal() {
             type: 'audio',
             title: track.title,
             artist: track.artist,
+            soundCloudTrackId: track.rawId || track.id.replace(/^(sc-|soundcloud-)/, ''),
             albumArt: track.albumArt,
             audioUrl: track.streamUrl || track.audioUrl || '',
             musicStyle: track.musicStyle || 'card',

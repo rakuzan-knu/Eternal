@@ -723,8 +723,9 @@ export class IntegrationsController {
     return playlists.map((p) => this.formatUserPlaylist(p));
   }
 
+  @UseGuards(OptionalAuthGuard)
   @Get('music/playlists/:id')
-  async getPlaylistById(@Param('id') id: string) {
+  async getPlaylistById(@Param('id') id: string, @CurrentUser() user?: RequestUser) {
     const playlist = await this.prisma.userPlaylist.findUnique({
       where: { id },
       include: {
@@ -741,7 +742,8 @@ export class IntegrationsController {
         },
       },
     });
-    if (!playlist) throw new NotFoundException('Playlist not found');
+    if (!playlist || (!playlist.isPublic && playlist.userId !== user?.id))
+      throw new NotFoundException('Playlist not found');
     return this.formatUserPlaylist(playlist);
   }
 
@@ -936,7 +938,7 @@ export class IntegrationsController {
       },
     });
 
-    return this.getPlaylistById(id);
+    return this.getPlaylistById(id, user);
   }
 
   @UseGuards(AuthGuard)

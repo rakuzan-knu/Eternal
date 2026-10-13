@@ -21,6 +21,7 @@ export const feedKeys = {
     ['mobile', userId, ...queryKeys.posts.feed(mode)] as const,
   stories: (userId: string) => ['mobile', userId, ...queryKeys.stories.feed()] as const,
   suggestions: (userId: string) => ['mobile', userId, 'suggested-users'] as const,
+  search: (userId: string) => ['mobile', userId, 'search'] as const,
   comments: (userId: string, postId: string) =>
     ['mobile', userId, ...queryKeys.posts.comments(postId)] as const,
 };
