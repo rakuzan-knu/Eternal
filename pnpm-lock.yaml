@@ -45,6 +45,11 @@ overrides:
 
 packageExtensionsChecksum: sha256-7m7C91A/qOxn2R2Hm54t+/Sfhsggg3cDkIEhTwNFyMw=
 
+patchedDependencies:
+  node-forge@1.4.0:
+    hash: dbcd537074563b0e4b97916b728cd684500dc04567d204e71297ee9d001cea8c
+    path: patches/node-forge@1.4.0.patch
+
 importers:
 
   .:
@@ -14907,7 +14912,7 @@ snapshots:
       is-wsl: 2.2.0
       lodash.debounce: 4.0.8
       minimatch: 3.1.5
-      node-forge: 1.4.0
+      node-forge: 1.4.0(patch_hash=dbcd537074563b0e4b97916b728cd684500dc04567d204e71297ee9d001cea8c)
       npm-package-arg: 11.0.3
       ora: 3.4.0
       picomatch: 4.0.7
@@ -14944,7 +14949,7 @@ snapshots:
 
   '@expo/code-signing-certificates@0.0.6':
     dependencies:
-      node-forge: 1.4.0
+      node-forge: 1.4.0(patch_hash=dbcd537074563b0e4b97916b728cd684500dc04567d204e71297ee9d001cea8c)
 
   '@expo/config-plugins@9.0.17':
     dependencies:
@@ -24092,7 +24097,7 @@ snapshots:
     dependencies:
       whatwg-url: 5.0.0
 
-  node-forge@1.4.0: {}
+  node-forge@1.4.0(patch_hash=dbcd537074563b0e4b97916b728cd684500dc04567d204e71297ee9d001cea8c): {}
 
   node-gyp-build-optional-packages@5.2.2:
     dependencies:

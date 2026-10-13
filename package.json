@@ -30,6 +30,7 @@
     "test": "vitest run",
     "test:backend": "vitest run --project=backend",
     "test:frontend": "vitest run --project=frontend",
+    "test:security": "node --test scripts/security/node-forge.test.mjs",
     "test:cov": "vitest run --coverage",
     "test:e2e": "pnpm --filter backend test:e2e",
     "format": "prettier --write . --ignore-unknown --no-error-on-unmatched-pattern",
@@ -160,6 +161,9 @@
       "@vitest/ui": "^4.1.11",
       "@vitest/mocker": "^4.1.11",
       "selfsigned": "^5.5.0"
+    },
+    "patchedDependencies": {
+      "node-forge@1.4.0": "patches/node-forge@1.4.0.patch"
     }
   },
   "resolutions": {
