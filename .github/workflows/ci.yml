@@ -168,6 +168,9 @@ jobs:
         if: steps.monorepo-cache.outputs.cache-hit != 'true'
         run: pnpm install --frozen-lockfile
 
+      - name: Verify Expo RSA security backport
+        run: pnpm test:security
+
       - name: Build Native Packages & Generate Prisma
         run: |
           pnpm build:native
