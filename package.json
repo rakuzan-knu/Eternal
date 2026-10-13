@@ -160,7 +160,9 @@
       "@vitest/coverage-v8": "^4.1.11",
       "@vitest/ui": "^4.1.11",
       "@vitest/mocker": "^4.1.11",
-      "selfsigned": "^5.5.0"
+      "selfsigned": "^5.5.0",
+      "handlebars": ">=4.7.10",
+      "katex": "^0.19.0"
     },
     "patchedDependencies": {
       "node-forge@1.4.0": "patches/node-forge@1.4.0.patch"
@@ -175,6 +177,8 @@
     "@vitest/coverage-v8": "^4.1.11",
     "@vitest/ui": "^4.1.11",
     "@vitest/mocker": "^4.1.11",
-    "selfsigned": "^5.5.0"
+    "selfsigned": "^5.5.0",
+    "handlebars": ">=4.7.10",
+    "katex": "^0.19.0"
   }
 }

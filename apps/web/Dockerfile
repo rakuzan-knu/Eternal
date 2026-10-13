@@ -36,9 +36,10 @@ RUN --mount=type=cache,target=/app/apps/web/node_modules/.vite \
     pnpm --filter frontend build
 
 # Stage 2: Production (Nginx)
-FROM nginx:alpine AS production
+FROM nginx:alpine-slim AS production
 
 RUN apk update && apk upgrade --no-cache \
+    && (apk del --no-cache tiff libtiff libtiffxx 2>/dev/null || true) \
     && rm -rf /var/cache/apk/*
 
 RUN rm -rf /usr/share/nginx/html/*
