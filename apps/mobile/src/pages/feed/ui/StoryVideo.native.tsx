@@ -6,6 +6,7 @@ import { STORY_FILTERS } from '../model/storyEditor';
 import { Video } from './MediaGallery';
 import { ErrorNotice } from './primitives';
 import type { StoryVideoProps } from './storyVideoTypes';
+import { storyVideoStringLiteral, storyVideoSyncScript } from './storyVideoScript';
 
 let previewSequence = 0;
 /** The native web renderer supplies the same GPU video effects as the web app. */
@@ -32,7 +33,11 @@ function FilteredStoryVideo({
   function sync() {
     const value = latest.current;
     view.current?.injectJavaScript(
-      `(function(){const v=document.querySelector('video');if(v){v.volume=${value.volume};v.style.filter=${JSON.stringify(value.css)};${value.active && AppState.currentState === 'active' ? 'v.play().catch(function(){});' : 'v.pause();'}}})();true;`,
+      storyVideoSyncScript(
+        value.active && AppState.currentState === 'active',
+        value.volume,
+        value.css,
+      ),
     );
   }
   React.useEffect(() => {
@@ -48,7 +53,7 @@ function FilteredStoryVideo({
         await FileSystem.copyAsync({ from: uri, to: `${directory}media.mp4` });
         videoUri = 'media.mp4';
       }
-      const encoded = JSON.stringify(videoUri).replace(/</g, '\\u003c');
+      const encoded = storyVideoStringLiteral(videoUri);
       const html = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{margin:0;width:100%;height:100%;background:transparent;overflow:hidden}video{width:100%;height:100%;object-fit:contain}</style></head><body><video controls playsinline loop></video><script>const video=document.querySelector('video');video.src=${encoded};video.addEventListener('error',()=>window.ReactNativeWebView.postMessage('video-error'));</script></body></html>`;
       if (directory) {
         await FileSystem.writeAsStringAsync(`${directory}preview.html`, html);
