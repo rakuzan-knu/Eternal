@@ -777,16 +777,53 @@ jobs:
           cache-to: type=gha,mode=max,scope=backend
       - name: Test container health (Smoke Test)
         run: |
+          set -euo pipefail
+          cleanup() {
+            docker logs --tail 100 backend-smoke || true
+            docker stats --no-stream backend-smoke || true
+            docker rm -f backend-smoke backend-smoke-db backend-smoke-redis || true
+            docker network rm backend-smoke-network || true
+          }
+          trap cleanup EXIT
+          docker network create backend-smoke-network
+          docker run -d --name backend-smoke-db --network backend-smoke-network \
+            -e POSTGRES_USER=smoke -e POSTGRES_PASSWORD=smoke -e POSTGRES_DB=smoke \
+            postgres:17-alpine
+          docker run -d --name backend-smoke-redis --network backend-smoke-network redis:7-alpine
+          for attempt in $(seq 1 30); do
+            if docker exec backend-smoke-db pg_isready -U smoke -d smoke; then break; fi
+            sleep 1
+          done
+          docker exec backend-smoke-db pg_isready -U smoke -d smoke
           docker run -d --name backend-smoke \
+            --network backend-smoke-network --memory 512m --cpus 0.15 \
+            -p 127.0.0.1:3000:3000 -e PORT=3000 -e AUTO_MIGRATE=true \
+            -e DATABASE_POOL_LIMIT=5 \
             -e JWT_ACCESS_SECRET=ci_test_access_secret_key_32_bytes_min \
             -e JWT_REFRESH_SECRET=ci_test_refresh_secret_key_32_bytes_min \
-            -e DATABASE_URL=postgresql://user:pass@localhost:5432/db \
-            -e REDIS_URL=redis://localhost:6379 \
+            -e JWT_ACCESS_TTL=15m -e JWT_REFRESH_TTL=7d \
+            -e DATABASE_URL=postgresql://smoke:smoke@backend-smoke-db:5432/smoke \
+            -e REDIS_URL=redis://backend-smoke-redis:6379 \
             social-network-backend:ci-${{ github.sha }}
-          sleep 5
-          docker logs backend-smoke || true
-          docker stop backend-smoke || true
-          docker rm -f backend-smoke || true
+          ready=false
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent --max-time 3 http://127.0.0.1:3000/health/ready > /dev/null; then
+              ready=true
+              break
+            fi
+            if [ "$(docker inspect -f '{{.State.Running}}' backend-smoke)" != true ]; then exit 1; fi
+            sleep 2
+          done
+          test "$ready" = true
+          pids=()
+          for client in $(seq 1 10); do
+            curl --fail --silent --show-error --max-time 30 \
+              'http://127.0.0.1:3000/posts?limit=1' \
+              -o "/tmp/backend-smoke-client-$client.json" &
+            pids+=("$!")
+          done
+          for pid in "${pids[@]}"; do wait "$pid"; done
+          curl --fail --silent --show-error --max-time 10 http://127.0.0.1:3000/health/ready
 
       - name: Install Trivy CLI
         run: |
