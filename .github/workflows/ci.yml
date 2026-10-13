@@ -796,7 +796,7 @@ jobs:
           done
           docker exec backend-smoke-db pg_isready -U smoke -d smoke
           docker run -d --name backend-smoke \
-            --network backend-smoke-network --memory 512m --cpus 0.15 \
+            --network backend-smoke-network --memory 512m --memory-swap 512m --cpus 0.15 \
             -p 127.0.0.1:3000:3000 -e PORT=3000 -e AUTO_MIGRATE=true \
             -e DATABASE_POOL_LIMIT=5 \
             -e JWT_ACCESS_SECRET=ci_test_access_secret_key_32_bytes_min \
