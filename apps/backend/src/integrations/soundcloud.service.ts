@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { RedisService } from '../redis/redis.service';
 
 export interface SoundCloudTrackDto {
@@ -115,8 +115,10 @@ export class SoundCloudService {
     }
 
     try {
-      this.logger.log('Scraping dynamic guest client_id from soundcloud.com...');
+      this.logger.log('Refreshing SoundCloud catalog access...');
+      const signal = AbortSignal.timeout(10_000);
       const homeRes = await fetch('https://soundcloud.com', {
+        signal,
         headers: { 'User-Agent': this.USER_AGENT },
       });
 
@@ -135,6 +137,7 @@ export class SoundCloudService {
         for (const scriptUrl of scriptUrls.slice(-6)) {
           try {
             const scriptRes = await fetch(scriptUrl, {
+              signal,
               headers: { 'User-Agent': this.USER_AGENT },
             });
             if (scriptRes.ok) {
@@ -149,9 +152,7 @@ export class SoundCloudService {
                   await this.redis.set('soundcloud:client_id', scrapedId, 7200);
                 } catch {}
 
-                this.logger.log(
-                  `Successfully scraped SoundCloud client_id: ${scrapedId.slice(0, 8)}...`,
-                );
+                this.logger.log('SoundCloud catalog access refreshed');
                 return scrapedId;
               }
             }
@@ -192,6 +193,7 @@ export class SoundCloudService {
     try {
       let res = await fetch(buildUrl(clientId), {
         headers: { 'User-Agent': this.USER_AGENT },
+        signal: AbortSignal.timeout(10_000),
       });
 
       if (res.status === 401) {
@@ -199,23 +201,28 @@ export class SoundCloudService {
         clientId = await this.getClientId(true);
         res = await fetch(buildUrl(clientId), {
           headers: { 'User-Agent': this.USER_AGENT },
+          signal: AbortSignal.timeout(10_000),
         });
       }
 
       if (!res.ok) {
-        this.logger.warn(`SoundCloud search returned HTTP ${res.status}`);
-        return [];
+        throw new ServiceUnavailableException('SoundCloud search is temporarily unavailable.');
       }
 
       const data = (await res.json()) as RawSoundCloudCollection<RawSoundCloudTrack>;
-      if (!Array.isArray(data.collection)) return [];
+      if (!Array.isArray(data.collection))
+        throw new ServiceUnavailableException('SoundCloud returned an invalid search response.');
 
       return data.collection
         .filter((item): item is RawSoundCloudTrack => Boolean(item && item.id && item.title))
         .map((item) => this.mapSoundCloudTrack(item));
     } catch (err) {
-      this.logger.error(`SoundCloud track search error: ${(err as Error).message}`);
-      return [];
+      this.logger.warn(
+        `SoundCloud track search failed: ${err instanceof Error ? err.name : 'upstream error'}`,
+      );
+      throw new ServiceUnavailableException(
+        'SoundCloud search is temporarily unavailable. Please retry.',
+      );
     }
   }
 
@@ -241,22 +248,26 @@ export class SoundCloudService {
     try {
       let res = await fetch(buildUrl(clientId), {
         headers: { 'User-Agent': this.USER_AGENT },
+        signal: AbortSignal.timeout(10_000),
       });
 
       if (res.status === 401) {
         clientId = await this.getClientId(true);
         res = await fetch(buildUrl(clientId), {
           headers: { 'User-Agent': this.USER_AGENT },
+          signal: AbortSignal.timeout(10_000),
         });
       }
 
       if (!res.ok) {
-        this.logger.warn(`SoundCloud playlist search returned HTTP ${res.status}`);
-        return [];
+        throw new ServiceUnavailableException(
+          'SoundCloud playlist search is temporarily unavailable.',
+        );
       }
 
       const data = (await res.json()) as RawSoundCloudCollection<RawSoundCloudPlaylist>;
-      if (!Array.isArray(data.collection)) return [];
+      if (!Array.isArray(data.collection))
+        throw new ServiceUnavailableException('SoundCloud returned an invalid search response.');
 
       return data.collection
         .filter((item): item is RawSoundCloudPlaylist => Boolean(item && item.id && item.title))
@@ -296,8 +307,12 @@ export class SoundCloudService {
           };
         });
     } catch (err) {
-      this.logger.error(`SoundCloud playlist search error: ${(err as Error).message}`);
-      return [];
+      this.logger.warn(
+        `SoundCloud playlist search failed: ${err instanceof Error ? err.name : 'upstream error'}`,
+      );
+      throw new ServiceUnavailableException(
+        'SoundCloud playlist search is temporarily unavailable. Please retry.',
+      );
     }
   }
 

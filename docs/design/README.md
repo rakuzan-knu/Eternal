@@ -39,7 +39,7 @@ Three related visual families coexist:
 
 Global appearance currently defaults to dark. The light appearance menu is marked “Soon” and is inactive in [ThemeSubmenu](../../apps/web/src/widgets/sidebar/ui/ThemeSubmenu.tsx). Light chat presets are available independently. A light Storybook background is a preview option, not proof of a complete light application theme.
 
-The mobile app is an Expo/React Native scaffold in [App.tsx](../../apps/mobile/App.tsx). Desktop is under evaluation in [its README](../../apps/desktop/README.md). Platform adaptation guidance is explicitly a future implementation contract, not a claim that those clients already match web.
+The Expo/React Native mobile client starts in [App.tsx](../../apps/mobile/src/app/App.tsx). Desktop is under evaluation in [its README](../../apps/desktop/README.md). Platform adaptation guidance is explicitly a future implementation contract, not a claim that those clients already match web.
 
 ## Using the source inventory
 

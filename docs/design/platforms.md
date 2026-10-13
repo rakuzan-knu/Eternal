@@ -2,9 +2,9 @@
 
 ## Implementation status
 
-Web is the visual reference. [Mobile](../../apps/mobile/App.tsx) contains an Expo/React Native scaffold and now consumes shared foundation values for its canvas, text and spacing; [desktop](../../apps/desktop/README.md) is under runtime evaluation. The [shared UI primitives package](../../packages/shared/ui-primitives/src/index.ts) exports typed design tokens, interfaces and an avatar fallback helper. It is not a styled cross-platform component library.
+Web is the visual reference. [Mobile](../../apps/mobile/src/app/App.tsx) implements native authentication, Feed, Search, Notifications, story editing and Music Hub; [desktop](../../apps/desktop/README.md) is under runtime evaluation. The [shared UI primitives package](../../packages/shared/ui-primitives/src/index.ts) exports typed design tokens, interfaces and an avatar fallback helper. It is not a styled cross-platform component library.
 
-The following is guidance for future implementations, not an assertion that platform parity already exists. The [token contract](tokens.md) is available now; native components and feature screens still require implementation. This work does not select a desktop runtime or add native dependencies.
+The following is guidance for future implementations, not an assertion that platform parity already exists. The [token contract](tokens.md) is available now; each native screen still requires platform-specific verification. This work does not select a desktop runtime or add native dependencies.
 
 ## What to preserve
 

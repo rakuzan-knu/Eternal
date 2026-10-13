@@ -47,6 +47,9 @@ export interface CreateStoryDbData {
   mediaType: StoryMediaType;
   caption?: string | null;
   overlays?: Prisma.InputJsonValue;
+  backgroundColor?: string | null;
+  filter?: string | null;
+  mediaAssets?: string[];
   privacy: StoryPrivacy;
   expiresAt: Date;
 }
@@ -62,6 +65,9 @@ export class StoriesRepository {
         mediaUrl: data.mediaUrl,
         mediaType: data.mediaType,
         caption: data.caption ?? null,
+        backgroundColor: data.backgroundColor ?? null,
+        filter: data.filter ?? null,
+        ...(data.mediaAssets ? { mediaAssets: data.mediaAssets } : {}),
         privacy: data.privacy,
         expiresAt: data.expiresAt,
         ...(data.overlays !== undefined ? { overlays: data.overlays } : {}),
@@ -109,6 +115,10 @@ export class StoriesRepository {
     return this.prisma.story.findMany({
       where: {
         authorId: { in: allAuthorIds },
+        author: {
+          blockedUsers: { none: { blockedId: viewerId } },
+          blockedByUsers: { none: { blockerId: viewerId } },
+        },
         expiresAt: { gt: now },
         OR: [
           // 1. All public/follower stories
@@ -381,6 +391,7 @@ export class StoriesRepository {
       select: {
         id: true,
         mediaUrl: true,
+        mediaAssets: true,
       },
     });
   }
@@ -409,6 +420,27 @@ export class StoriesRepository {
       },
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  async canViewStoryAuthor(authorId: string, viewerId?: string): Promise<boolean> {
+    if (authorId === viewerId) return true;
+    const author = await this.prisma.user.findFirst({
+      where: {
+        id: authorId,
+        ...(viewerId
+          ? {
+              blockedUsers: { none: { blockedId: viewerId } },
+              blockedByUsers: { none: { blockerId: viewerId } },
+              OR: [
+                { isPrivate: false },
+                { followers: { some: { followerId: viewerId, status: 'ACCEPTED' } } },
+              ],
+            }
+          : { isPrivate: false }),
+      },
+      select: { id: true },
+    });
+    return Boolean(author);
   }
 
   async isCloseFriend(ownerId: string, friendId: string): Promise<boolean> {
