@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.0](https://github.com/rakuzan-knu/Eternal/compare/v1.6.0...v1.7.0) (2026-10-13)
+
+### ✨ Features
+
+* **frontend:** add mobile feed, stories, search and music hub ([#91](https://github.com/rakuzan-knu/Eternal/issues/91)) ([1697b3d](https://github.com/rakuzan-knu/Eternal/commit/1697b3d1083c605ae43ba2a0a1def008f20e4789)), closes [#1159](https://github.com/rakuzan-knu/Eternal/issues/1159)
+
 ## [1.6.0](https://github.com/rakuzan-knu/Eternal/compare/v1.5.0...v1.6.0) (2026-10-05)
 
 ### ✨ Features
