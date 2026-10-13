@@ -91,8 +91,12 @@ export class StoriesController {
       overlays = parsed;
     }
 
+    const primary = files.filter((item) => item.fieldname === 'file');
+    if (primary.length > 1) throw new BadRequestException('Use one main story file');
+    // Fastify decorates request.file with a function even when no primary file was uploaded.
+    const primaryFile = primary[0] || (typeof file === 'object' ? file : undefined);
     const rawDto: CreateStoryDto = {
-      mediaType: body?.mediaType || (file ? undefined : 'IMAGE'),
+      mediaType: body?.mediaType || (primaryFile ? undefined : 'IMAGE'),
       caption: body?.caption,
       overlays: Array.isArray(overlays) ? overlays : undefined,
       privacy: body?.privacy || 'ALL_FOLLOWERS',
@@ -103,12 +107,10 @@ export class StoriesController {
     const parsedDto = CreateStoryDtoSchema.safeParse(rawDto);
     if (!parsedDto.success) throw new BadRequestException('Invalid story data');
     const validatedDto = parsedDto.data;
-    const primary = files.filter((item) => item.fieldname === 'file');
-    if (primary.length > 1) throw new BadRequestException('Use one main story file');
     const attachments = files.filter((item) => item.fieldname !== 'file');
     return attachments.length
-      ? this.storiesService.createStory(user.id, validatedDto, primary[0] || file, attachments)
-      : this.storiesService.createStory(user.id, validatedDto, primary[0] || file);
+      ? this.storiesService.createStory(user.id, validatedDto, primaryFile, attachments)
+      : this.storiesService.createStory(user.id, validatedDto, primaryFile);
   }
 
   @Post(':id/view')

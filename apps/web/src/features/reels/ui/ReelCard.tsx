@@ -942,7 +942,9 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
         </div>
 
         {/* Mobile-Only Action Rail (overlay on bottom-right inside video) */}
-        <div className="sm:hidden absolute right-2 bottom-5 z-30 pointer-events-auto">
+        <div
+          className={`sm:hidden absolute right-2 bottom-5 ${hasPlaybackError ? 'z-40' : 'z-30'} pointer-events-auto`}
+        >
           {renderActionRail(true)}
         </div>
 

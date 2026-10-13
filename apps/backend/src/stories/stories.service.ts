@@ -145,7 +145,7 @@ export class StoriesService implements OnModuleDestroy {
       if (
         brands.some((brand) => ['heic', 'heix', 'hevc', 'hevx', 'mif1', 'msf1'].includes(brand))
       ) {
-        return { type: StoryMediaType.IMAGE, mime: 'image/heic', ext: 'heic' };
+        throw new BadRequestException('Convert HEIC photos to JPEG or PNG before uploading');
       }
       if (brands.some((brand) => ['M4A ', 'M4B '].includes(brand))) {
         return { type: StoryMediaType.VOICE, mime: 'audio/mp4', ext: 'm4a' };

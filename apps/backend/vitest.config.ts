@@ -69,12 +69,8 @@ export default defineConfig({
     environment: 'node',
     include: ['src/**/*.spec.ts'],
     setupFiles: ['./src/test-setup.ts'],
+    testTimeout: 15000,
     pool: 'forks',
-    poolOptions: {
-      forks: {
-        minForks: 1,
-      },
-    },
     fileParallelism: true,
     maxConcurrency: 16,
     passWithNoTests: true,

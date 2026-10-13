@@ -9,7 +9,7 @@ export function useUnreadMessagesCount(
 ) {
   const { data: conversations } = useConversations();
   const conversationIds = useMemo(
-    () => conversations?.map((c: ConversationView) => c.id) ?? [],
+    () => (Array.isArray(conversations) ? conversations.map((c: ConversationView) => c.id) : []),
     [conversations],
   );
 
@@ -21,11 +21,13 @@ export function useUnreadMessagesCount(
 
   return useMemo(
     () =>
-      (conversations?.reduce((total: number, conversation: ConversationView) => {
-        if (conversation.id === activeConversationId) return total;
-        if (conversation.isArchived) return total;
-        return (total + Math.max(0, conversation.unreadCount | 0)) | 0;
-      }, 0) ?? 0) | 0,
+      (Array.isArray(conversations)
+        ? conversations.reduce((total: number, conversation: ConversationView) => {
+            if (conversation.id === activeConversationId) return total;
+            if (conversation.isArchived) return total;
+            return (total + Math.max(0, conversation.unreadCount | 0)) | 0;
+          }, 0)
+        : 0) | 0,
     [activeConversationId, conversations],
   );
 }

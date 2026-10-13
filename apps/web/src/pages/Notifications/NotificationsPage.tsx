@@ -283,8 +283,17 @@ export function NotificationsPage() {
   const { data: currentUser } = useCurrentUser();
   const playlistInvites = useMusicHubStore((s) => s.playlistInvites || []);
 
-  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
-    useNotifications(activeFilter);
+  const {
+    data,
+    isLoading,
+    isError,
+    isFetching,
+    isFetchNextPageError,
+    refetch,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+  } = useNotifications(activeFilter);
 
   const markAsReadMutation = useMarkNotificationAsRead();
   const markAllMutation = useMarkAllNotificationsAsRead();
@@ -470,6 +479,21 @@ export function NotificationsPage() {
           <div className="flex flex-col items-center justify-center py-16 text-gray-400 gap-3">
             <Loader2 size={24} className="animate-spin text-purple-400" />
             <span className="text-xs font-medium">Loading notifications...</span>
+          </div>
+        ) : isError && allItems.length === 0 ? (
+          <div
+            role="alert"
+            className="flex flex-col items-center justify-center py-16 text-gray-300 gap-3 text-sm"
+          >
+            <p>Notifications could not load</p>
+            <button
+              type="button"
+              onClick={() => void refetch()}
+              disabled={isFetching}
+              className="rounded-xl bg-purple-600 px-4 py-2 text-white disabled:opacity-50"
+            >
+              Retry notifications
+            </button>
           </div>
         ) : allItems.length === 0 ? (
           /* Empty State */
@@ -745,6 +769,24 @@ export function NotificationsPage() {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {isError && allItems.length > 0 && (
+          <div role="alert" className="p-4 text-center text-gray-300 text-sm">
+            <p>
+              {isFetchNextPageError
+                ? 'More notifications could not load'
+                : 'Notifications could not refresh'}
+            </p>
+            <button
+              type="button"
+              onClick={() => void (isFetchNextPageError ? fetchNextPage() : refetch())}
+              disabled={isFetching}
+              className="mt-3 rounded-xl bg-purple-600 px-4 py-2 text-white disabled:opacity-50"
+            >
+              {isFetchNextPageError ? 'Retry more notifications' : 'Retry notifications refresh'}
+            </button>
           </div>
         )}
 

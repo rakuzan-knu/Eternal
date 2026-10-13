@@ -128,18 +128,20 @@ describe('Story multipart upload on Fastify', () => {
       payload: Buffer.from(await request.arrayBuffer()),
     });
     expect(result.statusCode).toBe(201);
+    const backgroundColor: unknown = expect.stringContaining('linear-gradient');
+    const overlays: unknown = expect.arrayContaining([
+      expect.objectContaining({
+        soundCloudTrackId: '123',
+        musicVolume: 0.5,
+        clipDurationSeconds: 10,
+      }),
+    ]);
     expect(createStory).toHaveBeenCalledWith(
       'author-1',
       expect.objectContaining({
         filter: 'tokyo',
-        backgroundColor: expect.stringContaining('linear-gradient'),
-        overlays: expect.arrayContaining([
-          expect.objectContaining({
-            soundCloudTrackId: '123',
-            musicVolume: 0.5,
-            clipDurationSeconds: 10,
-          }),
-        ]),
+        backgroundColor,
+        overlays,
       }),
       undefined,
       [expect.objectContaining({ fieldname: 'overlay:sticker', buffer: image })],

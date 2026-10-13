@@ -6,20 +6,24 @@ import { MessageJobType } from '../../queue.constants';
 
 jest.mock('bullmq', () => {
   return {
-    Worker: jest.fn().mockImplementation(() => ({
-      on: jest.fn(),
-      close: jest.fn().mockResolvedValue(undefined),
-    })),
+    Worker: jest.fn().mockImplementation(function () {
+      return {
+        on: jest.fn(),
+        close: jest.fn().mockResolvedValue(undefined),
+      };
+    }),
   };
 });
 
 jest.mock('ioredis', () => {
-  const MockRedis = jest.fn().mockImplementation(() => ({
-    on: jest.fn().mockReturnThis(),
-    status: 'ready',
-    quit: jest.fn().mockResolvedValue('OK'),
-    disconnect: jest.fn(),
-  }));
+  const MockRedis = jest.fn().mockImplementation(function () {
+    return {
+      on: jest.fn().mockReturnThis(),
+      status: 'ready',
+      quit: jest.fn().mockResolvedValue('OK'),
+      disconnect: jest.fn(),
+    };
+  });
   return {
     default: MockRedis,
     Redis: MockRedis,

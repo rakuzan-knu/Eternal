@@ -94,7 +94,9 @@ describe('WebRTC Memory Leak Audit & Stress Testing', () => {
 
       vi.stubGlobal(
         'AudioContext',
-        vi.fn().mockImplementation(() => mockAudioContext),
+        vi.fn().mockImplementation(function () {
+          return mockAudioContext;
+        }),
       );
 
       // 3. Initialize spatial audio & head tracker

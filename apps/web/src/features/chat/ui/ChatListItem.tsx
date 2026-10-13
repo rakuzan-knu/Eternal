@@ -77,89 +77,106 @@ export default function ChatListItem({
   return (
     <div
       onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseLeave={(event) => {
+        if (!event.currentTarget.contains(document.activeElement)) setIsHovered(false);
+      }}
       onClick={() => onSelect(conversation.id)}
+      onFocusCapture={() => setIsHovered(true)}
+      onBlurCapture={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setIsHovered(false);
+      }}
       className={`relative flex items-center gap-3 px-3 py-2.5 rounded-2xl cursor-pointer transition-colors duration-150 ${
         isActive ? 'bg-white/10' : isHovered ? 'bg-white/5' : ''
       }`}
     >
-      <div className="relative flex-shrink-0">
-        {display.isGroup ? (
-          display.avatar ? (
-            <Avatar size="md" src={display.avatar} />
+      <button
+        type="button"
+        id={`conversation-${conversation.id}`}
+        aria-label={`Open conversation with ${display.title}`}
+        onClick={(event) => {
+          event.stopPropagation();
+          onSelect(conversation.id);
+        }}
+        className="flex flex-1 min-w-0 items-center gap-3 text-left rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-400"
+      >
+        <div className="relative flex-shrink-0">
+          {display.isGroup ? (
+            display.avatar ? (
+              <Avatar size="md" src={display.avatar} />
+            ) : (
+              <GroupAvatarCollage
+                avatars={conversation.participants.map((p) => p.user.avatar)}
+                size={40}
+              />
+            )
           ) : (
-            <GroupAvatarCollage
-              avatars={conversation.participants.map((p) => p.user.avatar)}
-              size={40}
-            />
-          )
-        ) : (
-          <>
-            <Avatar size="md" src={display.avatar} />
-            {display.otherUserId && (
-              <OnlineStatusIndicator userId={display.otherUserId} variant="dot" />
-            )}
-          </>
-        )}
-      </div>
-
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <span
-            className={`text-[15px] truncate ${
-              hasUnread
-                ? 'text-white font-semibold'
-                : isMuted
-                  ? 'text-gray-400 font-medium'
-                  : 'text-gray-200 font-medium'
-            }`}
-          >
-            {display.title}
-          </span>
-          <VerifiedCheckmark
-            isVerified={display.isVerified}
-            primaryBadge={display.primaryBadge}
-            size="sm"
-          />
-          {isMuted && <BellOff size={13} className="text-gray-400 flex-shrink-0" />}
-          {isPinnedLocally && <Pin size={12} className="text-gray-400 flex-shrink-0" />}
+            <>
+              <Avatar size="md" src={display.avatar} />
+              {display.otherUserId && (
+                <OnlineStatusIndicator userId={display.otherUserId} variant="dot" />
+              )}
+            </>
+          )}
         </div>
-        {hasDraft ? (
-          <p className="text-[13px] truncate flex items-center gap-1">
-            <span className="text-red-400 font-semibold drop-shadow-[0_0_8px_rgba(248,113,113,0.4)] flex-shrink-0">
-              Draft:
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span
+              className={`text-[15px] truncate ${
+                hasUnread
+                  ? 'text-white font-semibold'
+                  : isMuted
+                    ? 'text-gray-400 font-medium'
+                    : 'text-gray-200 font-medium'
+              }`}
+            >
+              {display.title}
             </span>
-            <span className="text-gray-300 truncate">{draft!.text}</span>
-          </p>
-        ) : isTyping ? (
-          <div className="flex items-center gap-1.5 text-[13px] text-sky-400 font-medium animate-fadeIn">
-            <span className="flex gap-0.5 items-center">
-              <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-bounce [animation-delay:-0.3s]" />
-              <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-bounce [animation-delay:-0.15s]" />
-              <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-bounce" />
-            </span>
-            <span className="truncate">
-              {display.isGroup && firstTypistUsername
-                ? `${firstTypistUsername} is typing...`
-                : 'typing...'}
-            </span>
+            <VerifiedCheckmark
+              isVerified={display.isVerified}
+              primaryBadge={display.primaryBadge}
+              size="sm"
+            />
+            {isMuted && <BellOff size={13} className="text-gray-400 flex-shrink-0" />}
+            {isPinnedLocally && <Pin size={12} className="text-gray-400 flex-shrink-0" />}
           </div>
-        ) : (
-          <p
-            className={`text-[13px] truncate ${
-              hasUnread ? 'text-gray-200' : isMuted ? 'text-gray-500' : 'text-gray-400'
-            }`}
-          >
-            {getMessagePreview(conversation, currentUserId)}
-          </p>
-        )}
-      </div>
+          {hasDraft ? (
+            <p className="text-[13px] truncate flex items-center gap-1">
+              <span className="text-red-400 font-semibold drop-shadow-[0_0_8px_rgba(248,113,113,0.4)] flex-shrink-0">
+                Draft:
+              </span>
+              <span className="text-gray-300 truncate">{draft!.text}</span>
+            </p>
+          ) : isTyping ? (
+            <div className="flex items-center gap-1.5 text-[13px] text-sky-400 font-medium animate-fadeIn">
+              <span className="flex gap-0.5 items-center">
+                <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-bounce [animation-delay:-0.3s]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-bounce [animation-delay:-0.15s]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-bounce" />
+              </span>
+              <span className="truncate">
+                {display.isGroup && firstTypistUsername
+                  ? `${firstTypistUsername} is typing...`
+                  : 'typing...'}
+              </span>
+            </div>
+          ) : (
+            <p
+              className={`text-[13px] truncate ${
+                hasUnread ? 'text-gray-200' : isMuted ? 'text-gray-400' : 'text-gray-400'
+              }`}
+            >
+              {getMessagePreview(conversation, currentUserId)}
+            </p>
+          )}
+        </div>
+      </button>
 
       <div className="flex-shrink-0 flex items-center w-12 justify-end">
         {!isHovered && !isMenuOpen && (
           <div className="flex flex-col items-end gap-1">
             {conversation.lastMessage && (
-              <span className="text-[12px] leading-none text-gray-500 whitespace-nowrap">
+              <span className="text-[12px] leading-none text-gray-400 whitespace-nowrap">
                 {formatChatListTime(conversation.lastMessage.createdAt)}
               </span>
             )}
@@ -174,6 +191,8 @@ export default function ChatListItem({
         {(isHovered || isMenuOpen) && (
           <div className="relative">
             <button
+              type="button"
+              aria-label={`Conversation actions for ${display.title}`}
               onClick={(e) => {
                 e.stopPropagation();
                 setMenuOpen((v) => !v);

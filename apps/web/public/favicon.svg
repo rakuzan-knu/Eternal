@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" fill="none">
+    <defs>
+      <linearGradient id="app_icon_grad" x1="4" y1="4" x2="116" y2="116" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="#6366f1"/>
+        <stop offset="50%" stop-color="#8b5cf6"/>
+        <stop offset="100%" stop-color="#ec4899"/>
+      </linearGradient>
+    </defs>
+    <rect width="112" height="112" x="4" y="4" rx="34" fill="url(#app_icon_grad)" />
+    <text x="60" y="86" font-family="system-ui, -apple-system, sans-serif" font-size="76" font-weight="900" text-anchor="middle" fill="#ffffff">E</text>
+  </svg>

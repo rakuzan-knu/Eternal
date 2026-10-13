@@ -78,6 +78,8 @@ import { useRecentReactions } from '../model/useRecentReactions';
 import { triggerReactionBurst } from '../lib/reactionBurstEngine';
 import { idbDelete } from '../../../shared/lib/indexedDbStorage';
 import ProceduralChatBackground from './ProceduralChatBackground';
+import { checkThemeReadability, withReadableBubbles } from '../lib/themeReadability';
+import { useVisualEffects } from '../../../shared/model/useVisualEffects';
 
 interface SelectThemeModalProps {
   conversationId: string;
@@ -950,6 +952,9 @@ export default function SelectThemeModal({
   const incomingBubble = getBubbleStyle(displayTheme, false);
   const outgoingContrast = getBubbleContrastTheme(displayTheme, true);
   const incomingContrast = getBubbleContrastTheme(displayTheme, false);
+  const readability = checkThemeReadability(displayTheme);
+  const simplified = useVisualEffects((state) => state.simplified);
+  const setSimplified = useVisualEffects((state) => state.setSimplified);
 
   return (
     <Modal onClose={onClose} className="w-full max-w-5xl">
@@ -2913,6 +2918,39 @@ export default function SelectThemeModal({
                 </div>
               </div>
 
+              <div className="rounded-xl bg-neutral-900 p-3 text-sm text-neutral-300 space-y-2">
+                <div role="status" aria-live="polite" aria-atomic="true">
+                  {readability.map((finding) => (
+                    <p key={finding.direction}>{finding.message}</p>
+                  ))}
+                  <p className="text-xs text-neutral-400">
+                    Checks cover message text. Review timestamps, links and media separately.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="min-h-11 rounded-lg bg-white/10 px-3 text-white"
+                    onClick={() => {
+                      setDraftTheme((theme) => withReadableBubbles(theme));
+                      setPreviewMode('draft');
+                    }}
+                  >
+                    Use readable bubbles
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={simplified}
+                    className="min-h-11 rounded-lg bg-white/10 px-3 text-white"
+                    onClick={() => setSimplified(!simplified)}
+                  >
+                    Simplify visual effects
+                  </button>
+                </div>
+                <p className="text-xs text-neutral-400">
+                  Readable bubbles change this draft. Simplified effects apply on this device.
+                </p>
+              </div>
               {/* Chat Frame Mockup */}
               <div className="relative flex-1 rounded-3xl overflow-hidden border border-white/15 shadow-2xl flex flex-col min-h-95">
                 {/* Background Layer with Filters & Hardware Acceleration */}

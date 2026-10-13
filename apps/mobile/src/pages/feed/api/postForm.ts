@@ -19,6 +19,32 @@ declare global {
 async function appendAsset(body: FormData, field: string, asset: ImagePickerAsset) {
   const video = asset.type === 'video' || asset.mimeType?.toLowerCase().startsWith('video/');
   const audio = asset.mimeType?.toLowerCase().startsWith('audio/');
+  if (
+    Platform.OS !== 'web' &&
+    !video &&
+    !audio &&
+    (/^image\/(heic|heif)$/i.test(asset.mimeType || '') ||
+      /\.(heic|heif)(?:$|\?)/i.test(asset.fileName || asset.uri))
+  ) {
+    const { ImageManipulator, SaveFormat } = await import('expo-image-manipulator');
+    const context = ImageManipulator.manipulate(asset.uri);
+    try {
+      const image = await context.renderAsync();
+      try {
+        const converted = await image.saveAsync({ format: SaveFormat.JPEG, compress: 1 });
+        asset = {
+          ...asset,
+          ...converted,
+          mimeType: 'image/jpeg',
+          fileName: `${asset.fileName?.replace(/\.[^.]+$/, '') || 'attachment'}.jpg`,
+        };
+      } finally {
+        image.release();
+      }
+    } finally {
+      context.release();
+    }
+  }
   const name = asset.fileName || `attachment.${audio ? 'mp3' : video ? 'mp4' : 'jpg'}`;
   if (Platform.OS === 'web') {
     if (asset.file) body.append(field, asset.file, name);

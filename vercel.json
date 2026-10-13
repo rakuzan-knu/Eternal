@@ -6,6 +6,34 @@
   "framework": "vite",
   "rewrites": [
     {
+      "source": "/api/v1/:path*",
+      "destination": "https://social-network-backend-4h47.onrender.com/v1/:path*"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "https://social-network-backend-4h47.onrender.com/v1/:path*"
+    },
+    {
+      "source": "/v1/:path*",
+      "destination": "https://social-network-backend-4h47.onrender.com/v1/:path*"
+    },
+    {
+      "source": "/auth/:path*",
+      "destination": "https://social-network-backend-4h47.onrender.com/v1/auth/:path*"
+    },
+    {
+      "source": "/integrations/:path*",
+      "destination": "https://social-network-backend-4h47.onrender.com/v1/integrations/:path*"
+    },
+    {
+      "source": "/uploads/:path*",
+      "destination": "https://social-network-backend-4h47.onrender.com/uploads/:path*"
+    },
+    {
+      "source": "/health",
+      "destination": "https://social-network-backend-4h47.onrender.com/health"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

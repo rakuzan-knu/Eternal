@@ -22,10 +22,9 @@
     "@social-network/shared-contracts": "workspace:*",
     "@social-network/shared-stores": "workspace:*",
     "@social-network/shared-utils": "workspace:*",
-    "@tanstack/react-query": "^5.103.0",
-    "axios": "^1.8.1",
+    "@tanstack/react-query": "^5.104.0",
     "expo": "~52.0.0",
-    "expo-clipboard": "^57.0.2",
+    "expo-clipboard": "~7.0.1",
     "expo-document-picker": "~13.0.3",
     "expo-file-system": "~18.0.12",
     "expo-font": "~13.0.4",
@@ -35,7 +34,7 @@
     "expo-linear-gradient": "~14.0.2",
     "expo-linking": "~7.0.5",
     "expo-local-authentication": "~15.0.2",
-    "expo-screen-capture": "^57.0.3",
+    "expo-screen-capture": "~7.0.1",
     "expo-secure-store": "~14.0.1",
     "expo-splash-screen": "~0.29.21",
     "expo-status-bar": "~2.0.0",
@@ -54,12 +53,13 @@
     "socket.io-client": "^4.8.3",
     "socket.io-msgpack-parser": "^3.0.2",
     "zod": "^3.24.2",
-    "zustand": "^5.0.3"
+    "zustand": "^5.0.3",
+    "axios": "^1.20.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.3",
+    "@types/react": "~18.3.12",
+    "@types/react-dom": "~18.3.1",
     "typescript": "^5.9.3"
   }
 }

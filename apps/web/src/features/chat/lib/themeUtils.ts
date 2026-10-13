@@ -157,18 +157,20 @@ export function hexToRgb(hex: string): [number, number, number] {
  */
 export function getLuminance(hexOrRgb: string): number {
   if (!hexOrRgb) return 0;
-  if (hexOrRgb.startsWith('rgba') || hexOrRgb.startsWith('rgb')) {
-    const match = hexOrRgb.match(/\d+/g);
-    if (match && match.length >= 3) {
-      const [r, g, b] = match.slice(0, 3).map((v) => parseInt(v, 10) / 255);
-      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-    }
-  }
-
-  const [rRaw, gRaw, bRaw] = hexToRgb(hexOrRgb);
+  // Alpha compositing is caller-owned; this function measures the RGB color.
+  const rgb = hexOrRgb
+    .trim()
+    .match(/^rgba?\(\s*([\d.]+%?)[,\s]+([\d.]+%?)[,\s]+([\d.]+%?)(?:\s*[,/].*)?\s*\)$/i);
+  const [rRaw, gRaw, bRaw] = rgb
+    ? rgb
+        .slice(1, 4)
+        .map((channel) =>
+          channel.endsWith('%') ? (parseFloat(channel) / 100) * 255 : parseFloat(channel),
+        )
+    : hexToRgb(hexOrRgb);
   const transform = (val: number) => {
-    const s = val / 255;
-    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+    const s = Math.min(255, Math.max(0, val)) / 255;
+    return s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
   };
 
   const r = transform(rRaw);
@@ -222,8 +224,14 @@ export function getBubbleContrastTheme(
     avgLuminance = getLuminance(color);
   }
 
-  const isLight = avgLuminance > 0.48;
-  return createContrastTheme(isLight);
+  const darkLuminance = getLuminance('#0f172a');
+  const whiteContrast = 1.05 / (avgLuminance + 0.05);
+  const darkContrast =
+    (Math.max(avgLuminance, darkLuminance) + 0.05) / (Math.min(avgLuminance, darkLuminance) + 0.05);
+  const isLight = darkContrast > whiteContrast;
+  // Near the crossover, pure black meets 4.5:1 where the dark slate cannot.
+  const useBlack = whiteContrast < 4.5 && darkContrast < 4.5 && (avgLuminance + 0.05) / 0.05 >= 4.5;
+  return createContrastTheme(isLight || useBlack, useBlack ? '#000000' : undefined);
 }
 
 function createContrastTheme(isLight: boolean, explicitTextColor?: string): ContrastTheme {

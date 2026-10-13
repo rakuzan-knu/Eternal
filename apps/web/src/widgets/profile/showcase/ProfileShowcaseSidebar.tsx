@@ -341,7 +341,7 @@ export const ProfileShowcaseSidebar: React.FC<ProfileShowcaseSidebarProps> = ({
       />
 
       {/* 3. Discord-Grade 3-Tab Selector with Framer Motion Sliding Pill */}
-      <div className="relative flex items-center p-1 rounded-2xl bg-[#111116] border border-white/8 shadow-inner mb-2">
+      <div className="relative flex flex-wrap items-center p-1 rounded-2xl bg-[#111116] border border-white/8 shadow-inner mb-2">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
@@ -349,7 +349,7 @@ export const ProfileShowcaseSidebar: React.FC<ProfileShowcaseSidebarProps> = ({
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
-              className={`relative flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-colors z-10 cursor-pointer ${
+              className={`relative flex-1 min-w-max flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-xs font-bold transition-colors z-10 cursor-pointer ${
                 isActive ? 'text-white' : 'text-gray-400 hover:text-gray-200'
               }`}
             >

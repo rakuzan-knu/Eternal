@@ -66,7 +66,7 @@ export default function ChatThreadHeader({
   const [isE2eeModalOpen, setIsE2eeModalOpen] = useState(false);
 
   return (
-    <div className="flex items-center justify-between px-5 h-16 border-b border-white/5 shrink-0">
+    <div className="flex flex-wrap gap-y-2 items-center justify-between px-5 max-md:px-3 min-h-16 py-2 border-b border-white/5 shrink-0">
       <div className="flex items-center gap-3 min-w-0">
         <div className="relative">
           {isGroup ? (
@@ -94,7 +94,7 @@ export default function ChatThreadHeader({
           {isOtherTyping ? (
             <p className="text-[12px] truncate text-blue-400">Typing…</p>
           ) : isGroup ? (
-            <p className="text-[12px] truncate text-gray-500">{memberCount} members</p>
+            <p className="text-[12px] truncate text-gray-400">{memberCount} members</p>
           ) : isOtherGaming ? (
             <div className="flex items-center gap-1.5 min-w-0 text-[12px] text-gray-300 font-medium">
               <DiscordGamepadIcon
@@ -142,14 +142,14 @@ export default function ChatThreadHeader({
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 shrink-0">
+      <div className="flex flex-wrap items-center gap-1.5">
         {onStartVoiceMesh && (
           <button
             type="button"
             onClick={onStartVoiceMesh}
             title={isVoiceMeshActive ? 'Voice Channel Active' : 'Join Voice Channel (Discord P2P)'}
             aria-label="Join Voice Channel"
-            className={`w-9 h-9 flex items-center justify-center rounded-full transition-colors cursor-pointer ${
+            className={`w-9 h-9 max-md:w-[44px] max-md:h-[44px] flex items-center justify-center rounded-full transition-colors cursor-pointer ${
               isVoiceMeshActive
                 ? 'bg-emerald-500/20 text-emerald-400'
                 : 'text-gray-400 hover:bg-white/5 hover:text-emerald-400'
@@ -165,7 +165,7 @@ export default function ChatThreadHeader({
             onClick={() => setIsE2eeModalOpen(true)}
             title="End-to-End Encryption / Secret Chat"
             aria-label="E2EE Security"
-            className="w-9 h-9 flex items-center justify-center rounded-full text-gray-400 hover:bg-white/5 hover:text-emerald-400 transition-colors cursor-pointer"
+            className="w-9 h-9 max-md:w-[44px] max-md:h-[44px] flex items-center justify-center rounded-full text-gray-400 hover:bg-white/5 hover:text-emerald-400 transition-colors cursor-pointer"
           >
             <Shield size={18} />
           </button>
@@ -181,7 +181,7 @@ export default function ChatThreadHeader({
           onTouchStart={prewarmer.onTouchStart}
           title="Audio call"
           aria-label="Start audio call"
-          className="w-9 h-9 flex items-center justify-center rounded-full text-gray-400 hover:bg-white/5 hover:text-white transition-colors"
+          className="w-9 h-9 max-md:w-[44px] max-md:h-[44px] flex items-center justify-center rounded-full text-gray-400 hover:bg-white/5 hover:text-white transition-colors"
         >
           <Phone size={19} />
         </button>
@@ -196,7 +196,7 @@ export default function ChatThreadHeader({
           onTouchStart={prewarmer.onTouchStart}
           title="Video call"
           aria-label="Start video call"
-          className="w-9 h-9 flex items-center justify-center rounded-full text-gray-400 hover:bg-white/5 hover:text-white transition-colors"
+          className="w-9 h-9 max-md:w-[44px] max-md:h-[44px] flex items-center justify-center rounded-full text-gray-400 hover:bg-white/5 hover:text-white transition-colors"
         >
           <Video size={19} />
         </button>
@@ -204,7 +204,7 @@ export default function ChatThreadHeader({
         <button
           onClick={onToggleDetails}
           title="Conversation info"
-          className={`w-9 h-9 flex items-center justify-center rounded-full transition-colors ${
+          className={`w-9 h-9 max-md:w-[44px] max-md:h-[44px] flex items-center justify-center rounded-full transition-colors ${
             isDetailsOpen
               ? 'bg-white/10 text-white'
               : 'text-gray-400 hover:bg-white/5 hover:text-white'

@@ -42,11 +42,13 @@ describe('VideoNoteBubble', () => {
     });
 
     // Mock IntersectionObserver
-    window.IntersectionObserver = vi.fn().mockImplementation((cb) => ({
-      observe: vi.fn(() => cb([{ isIntersecting: true }])),
-      unobserve: vi.fn(),
-      disconnect: vi.fn(),
-    }));
+    window.IntersectionObserver = vi.fn().mockImplementation(function (cb) {
+      return {
+        observe: vi.fn(() => cb([{ isIntersecting: true }])),
+        unobserve: vi.fn(),
+        disconnect: vi.fn(),
+      };
+    });
   });
 
   it('renders circular video note with progress ring and mute capsule', () => {
@@ -83,7 +85,7 @@ describe('VideoNoteBubble', () => {
 
   it('handles second click pause toggle, loadedmetadata event, seekTarget and intersection changes', () => {
     let intersectCb: ((entries: any[]) => void) | null = null;
-    window.IntersectionObserver = vi.fn().mockImplementation((cb) => {
+    window.IntersectionObserver = vi.fn().mockImplementation(function (cb) {
       intersectCb = cb;
       return {
         observe: vi.fn(),

@@ -1,3 +1,4 @@
+/* eslint-disable */
 /* tslint:disable */
 
 /**
@@ -20,12 +21,6 @@ addEventListener('activate', function (event) {
 });
 
 addEventListener('message', async function (event) {
-  const workerOrigin = self.location.origin;
-
-  if (event.origin && event.origin !== workerOrigin) {
-    return;
-  }
-
   const clientId = Reflect.get(event.source || {}, 'id');
 
   if (!clientId || !self.clients) {
