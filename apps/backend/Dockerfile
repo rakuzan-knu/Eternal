@@ -48,6 +48,12 @@ FROM builder AS deployer
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
     pnpm --filter backend deploy --legacy --prod /app/deploy
 
+# pnpm deploy copies packages, but not Prisma's generated node_modules files.
+# Generate against the isolated bundle so the final client resolves its own schema.
+RUN cd /app/deploy \
+    && node node_modules/prisma/build/index.js generate --schema=./prisma/schema.prisma \
+    && node -e "const { PrismaClient } = require('@prisma/client'); if (typeof PrismaClient !== 'function') process.exit(1)"
+
 # Stage 5: Minimal Production Runtime
 FROM node:24-alpine AS production
 
@@ -83,7 +89,7 @@ USER appuser
 
 EXPOSE 7860 3000
 ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["sh", "-c", "export NODE_OPTIONS=$(echo \"${NODE_OPTIONS:-}\" | sed 's/--optimize-for-size//g'); export DIRECT_URL=\"${DIRECT_URL:-$DATABASE_URL}\"; export DATABASE_URL=\"${DATABASE_URL}\"; if [ -n \"$DATABASE_URL\" ] && [ \"$AUTO_MIGRATE\" != \"false\" ]; then echo '🚀 Applying Prisma database migrations...'; prisma migrate deploy --schema=./prisma/schema.prisma; fi; if [ -f dist/main.js ]; then node dist/main; elif [ -f dist/src/main.js ]; then node dist/src/main; else node dist/backend/src/main; fi"]
+CMD ["sh", "-ec", "export NODE_OPTIONS=$(echo \"${NODE_OPTIONS:-}\" | sed 's/--optimize-for-size//g'); export DIRECT_URL=\"${DIRECT_URL:-$DATABASE_URL}\"; if [ -n \"$DATABASE_URL\" ] && [ \"$AUTO_MIGRATE\" != \"false\" ]; then echo '🚀 Applying Prisma database migrations...'; prisma migrate deploy --schema=./prisma/schema.prisma; fi; if [ -f dist/main.js ]; then exec node dist/main; elif [ -f dist/src/main.js ]; then exec node dist/src/main; else exec node dist/backend/src/main; fi"]
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD node -e "require('http').get('http://localhost:' + (process.env.PORT || 7860) + '/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1))"

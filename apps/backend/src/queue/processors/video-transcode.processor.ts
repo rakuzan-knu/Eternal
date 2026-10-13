@@ -1,4 +1,5 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { GetObjectCommand, type S3Client } from '@aws-sdk/client-s3';
 import { ConfigService } from '@nestjs/config';
 import { Worker, type Job } from 'bullmq';
 import Redis from 'ioredis';
@@ -6,14 +7,20 @@ import { spawn } from 'child_process';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
+import { Readable } from 'node:stream';
 import { QUEUE_VIDEO_TRANSCODE, VideoJobType } from '../queue.constants';
 import { generateBlurHash } from '../../common/media/image-processor';
 import { PrismaService } from '@common/prisma';
+import { REELS_S3_CLIENT } from '../../reels/s3-provider';
+
+export const MAX_VIDEO_SOURCE_BYTES = 150 * 1024 * 1024;
 
 export interface VideoHlsTranscodeJobData {
   reelId?: string;
   mediaId?: string;
   videoUrl: string;
+  sourceStorageKey?: string;
+  /** Compatibility with jobs queued before source files moved out of Redis. */
   sourceBufferBase64?: string;
   traceId?: string;
 }
@@ -42,6 +49,7 @@ export class VideoTranscodeProcessor implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
+    @Inject(REELS_S3_CLIENT) private readonly s3: S3Client,
   ) {}
 
   onModuleInit(): void {
@@ -125,8 +133,9 @@ export class VideoTranscodeProcessor implements OnModuleInit, OnModuleDestroy {
   }> {
     const hasFfmpeg = await this.checkFfmpegAvailable();
 
-    if (hasFfmpeg && data.sourceBufferBase64) {
-      return this.executeFfmpegHls(data);
+    if (hasFfmpeg && (data.sourceStorageKey || data.sourceBufferBase64)) {
+      const sourceBuffer = await this.readSourceBuffer(data);
+      return this.executeFfmpegHls(data, sourceBuffer);
     }
 
     // High-performance fallback: build master HLS manifest with adaptive resolution variants
@@ -136,7 +145,7 @@ export class VideoTranscodeProcessor implements OnModuleInit, OnModuleDestroy {
     let blurhash = 'L6PZfSi_.AyE_3t7t7R**0o#DgR4';
     if (data.sourceBufferBase64) {
       try {
-        const buf = Buffer.from(data.sourceBufferBase64, 'base64');
+        const buf = await this.readSourceBuffer(data);
         const bhRes = await generateBlurHash(buf);
         blurhash = bhRes.blurhash;
       } catch {
@@ -149,6 +158,56 @@ export class VideoTranscodeProcessor implements OnModuleInit, OnModuleDestroy {
       thumbnailUrl: baseVideoUrl.replace(/\.mp4$/i, '-thumb.webp'),
       blurhash,
     };
+  }
+
+  private async readSourceBuffer(data: VideoHlsTranscodeJobData): Promise<Buffer> {
+    if (!data.sourceStorageKey) {
+      const encoded = data.sourceBufferBase64;
+      if (!encoded || encoded.length > 4 * Math.ceil(MAX_VIDEO_SOURCE_BYTES / 3)) {
+        throw new Error('Video source exceeds 150MB limit or is missing');
+      }
+      const buffer = Buffer.from(encoded, 'base64');
+      if (buffer.length > MAX_VIDEO_SOURCE_BYTES) {
+        throw new Error('Video source exceeds 150MB limit');
+      }
+      return buffer;
+    }
+
+    // Object keys only: never fetch a user-supplied URL or arbitrary bucket.
+    if (!/^reels\/[a-z0-9_-]+\.[a-z0-9]{1,16}$/i.test(data.sourceStorageKey)) {
+      throw new Error('Invalid video source storage key');
+    }
+    const bucket =
+      this.configService.get<string>('R2_BUCKET') ??
+      this.configService.get<string>('MINIO_BUCKET', 'posts');
+    const response = await this.s3.send(
+      new GetObjectCommand({ Bucket: bucket, Key: data.sourceStorageKey }),
+      { abortSignal: AbortSignal.timeout(30_000) },
+    );
+    const body = response.Body;
+    if (!(body instanceof Readable)) {
+      throw new Error('Video source stream is unavailable');
+    }
+    if (response.ContentLength !== undefined && response.ContentLength > MAX_VIDEO_SOURCE_BYTES) {
+      body.destroy();
+      throw new Error('Video source exceeds 150MB limit');
+    }
+    const timer = setTimeout(() => body.destroy(new Error('Video source read timed out')), 30_000);
+    const chunks: Buffer[] = [];
+    let size = 0;
+    try {
+      for await (const chunk of body) {
+        if (!Buffer.isBuffer(chunk)) throw new Error('Invalid video source stream');
+        size += chunk.length;
+        if (size > MAX_VIDEO_SOURCE_BYTES) throw new Error('Video source exceeds 150MB limit');
+        chunks.push(chunk);
+      }
+      if (size === 0) throw new Error('Video source is empty');
+      return Buffer.concat(chunks, size);
+    } finally {
+      clearTimeout(timer);
+      body.destroy();
+    }
   }
 
   generateMasterPlaylist(baseVideoUrl: string): string {
@@ -176,7 +235,10 @@ export class VideoTranscodeProcessor implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  private async executeFfmpegHls(data: VideoHlsTranscodeJobData): Promise<{
+  private async executeFfmpegHls(
+    data: VideoHlsTranscodeJobData,
+    sourceBuffer: Buffer,
+  ): Promise<{
     masterPlaylistUrl: string;
     thumbnailUrl?: string;
     blurhash?: string;
@@ -184,7 +246,7 @@ export class VideoTranscodeProcessor implements OnModuleInit, OnModuleDestroy {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'hls-'));
 
     const inputPath = path.join(tempDir, 'input.mp4');
-    await fs.writeFile(inputPath, Buffer.from(data.sourceBufferBase64 || '', 'base64'));
+    await fs.writeFile(inputPath, sourceBuffer);
 
     const thumbPath = path.join(tempDir, 'thumb.jpg');
 

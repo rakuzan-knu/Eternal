@@ -4,6 +4,8 @@ import type { S3Client } from '@aws-sdk/client-s3';
 import type { ConfigService } from '@nestjs/config';
 import type { RedisService } from '../../redis/redis.service';
 import type { QueueService } from '../../queue/queue.service';
+import * as imageProcessor from '../../common/media/image-processor';
+import { Readable } from 'node:stream';
 
 describe('ReelsService', () => {
   let service: ReelsService;
@@ -120,7 +122,53 @@ describe('ReelsService', () => {
         reelId: 'reel-1',
         videoUrl: sampleReel.videoUrl,
       }),
+      { jobId: 'reel-reel-1' },
     );
     expect(result.id).toBe('reel-1');
+  });
+
+  it('queues uploaded videos by storage key without copying their bytes into Redis', async () => {
+    const upload = jest
+      .spyOn(imageProcessor, 'uploadToStorageWithFallback')
+      .mockResolvedValue(sampleReel.videoUrl);
+    const buffer = Buffer.from('video-source');
+    const file: Express.Multer.File = {
+      fieldname: 'video',
+      originalname: 'clip.mp4',
+      encoding: '7bit',
+      mimetype: 'video/mp4',
+      size: buffer.length,
+      stream: Readable.from([buffer]),
+      destination: '',
+      filename: '',
+      path: '',
+      buffer,
+    };
+
+    await service.createReel('author-1', { caption: 'Uploaded clip' }, file);
+
+    expect(mockQueue.addVideoTranscodeJob).toHaveBeenCalledWith(
+      {
+        reelId: 'reel-1',
+        videoUrl: sampleReel.videoUrl,
+        sourceStorageKey: upload.mock.calls[0][1].key,
+      },
+      { jobId: 'reel-reel-1' },
+    );
+    expect(mockQueue.addVideoTranscodeJob.mock.calls[0][0].sourceStorageKey).toMatch(
+      /^reels\/[a-z0-9_-]+\.mp4$/i,
+    );
+    expect(mockQueue.addVideoTranscodeJob.mock.calls[0][0]).not.toHaveProperty(
+      'sourceBufferBase64',
+    );
+    upload.mockRestore();
+  });
+
+  it('does not put a development data URI fallback into Redis', async () => {
+    mockRepo.create.mockResolvedValue({ ...sampleReel, videoUrl: 'data:video/mp4;base64,YQ==' });
+
+    await service.createReel('author-1', { audioUrl: 'https://example.com/source.mp4' });
+
+    expect(mockQueue.addVideoTranscodeJob).not.toHaveBeenCalled();
   });
 });

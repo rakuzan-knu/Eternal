@@ -29,6 +29,7 @@ export class OutboxPublisherService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(OutboxPublisherService.name);
   private isRunning = false;
   private timer?: NodeJS.Timeout;
+  private pollDelayMs = 1000;
 
   constructor(
     @Inject(OUTBOX_REPOSITORY)
@@ -49,6 +50,7 @@ export class OutboxPublisherService implements OnModuleInit, OnModuleDestroy {
       return;
     }
     this.isRunning = true;
+    this.pollDelayMs = 1000;
     this.scheduleNextPoll(1000);
     this.logger.log('OutboxPublisherService initialized and started polling worker.');
   }
@@ -70,7 +72,9 @@ export class OutboxPublisherService implements OnModuleInit, OnModuleDestroy {
         let nextDelay = 1000;
         try {
           if (!this.isRunning) return;
-          await this.processOutboxBatch();
+          const processed = await this.processOutboxBatch();
+          this.pollDelayMs = processed > 0 ? 1000 : Math.min(this.pollDelayMs * 2, 10000);
+          nextDelay = this.pollDelayMs;
           this.hasLoggedPollingError = false;
         } catch (err) {
           if (!this.hasLoggedPollingError) {
