@@ -10,6 +10,7 @@ WORKDIR /app
 
 # Copy monorepo manifests and package manifests only (for maximum layer caching)
 COPY pnpm-lock.yaml package.json pnpm-workspace.yaml tsconfig.base.json ./
+COPY patches ./patches/
 COPY apps/web/package.json ./apps/web/
 COPY packages ./packages/
 COPY scripts ./scripts/
