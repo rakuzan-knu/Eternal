@@ -1,3 +1,4 @@
+import { roleControllers } from '../config/service-role';
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '@common/prisma';
 import { RedisModule } from '../redis';
@@ -9,7 +10,7 @@ import { FEATURE_FLAGS_REPOSITORY } from './interfaces/feature-flags-repository.
 
 @Module({
   imports: [PrismaModule, RedisModule],
-  controllers: [FeatureFlagsController],
+  controllers: roleControllers('core', [FeatureFlagsController]),
   providers: [
     FeatureFlagsRepository,
     {

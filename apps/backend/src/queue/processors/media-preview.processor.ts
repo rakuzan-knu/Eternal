@@ -6,6 +6,7 @@ import { QUEUE_MEDIA_PREVIEWS, MediaJobType } from '../queue.constants';
 import { QueueService } from '../queue.service';
 import sharp from 'sharp';
 import { TraceContext } from '../../common/tracing/trace-context';
+import { runsBackground } from '../../config/service-role';
 
 export interface ImageOptimizeJobData {
   bufferBase64: string;
@@ -32,6 +33,7 @@ export class MediaPreviewProcessor implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit(): void {
+    if (!runsBackground('core')) return;
     const redisUrl = this.configService.get<string>('REDIS_URL');
     if (
       !redisUrl ||

@@ -1,3 +1,4 @@
+import { runsBackground } from '../config/service-role';
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
@@ -63,6 +64,7 @@ export class StoriesRetentionService implements OnModuleDestroy {
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async cleanupExpiredStories(): Promise<void> {
+    if (!runsBackground('core')) return;
     this.logger.log('Starting daily expired stories cleanup job...');
 
     try {

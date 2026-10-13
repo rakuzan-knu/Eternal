@@ -8,6 +8,7 @@ import {
   type SpotifyLiveActivity,
 } from './spotify.service';
 import { Prisma } from '@prisma/client';
+import { runsBackground } from '../config/service-role';
 
 interface GameLiveActivity {
   type?: string;
@@ -32,6 +33,7 @@ type PrimaryActivitySummary = GameLiveActivity | SpotifyLiveActivity;
 export class SpotifyPresenceService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(SpotifyPresenceService.name);
   private pollInterval: NodeJS.Timeout | null = null;
+  private initialPollTimer: NodeJS.Timeout | null = null;
   private isPolling = false;
 
   constructor(
@@ -42,14 +44,19 @@ export class SpotifyPresenceService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit() {
+    if (!runsBackground('messenger')) return;
     // Initial poll after short delay to let sockets and gateway settle
-    setTimeout(() => void this.pollOnlineSpotifyUsers(), 6000);
+    this.initialPollTimer = setTimeout(() => void this.pollOnlineSpotifyUsers(), 6000);
     // Poll every 15 seconds (safe for rate limits with client-side interpolation)
     this.pollInterval = setInterval(() => void this.pollOnlineSpotifyUsers(), 15_000);
     this.logger.log('SpotifyPresenceService initialized: poller scheduled every 15s.');
   }
 
   onModuleDestroy() {
+    if (this.initialPollTimer) {
+      clearTimeout(this.initialPollTimer);
+      this.initialPollTimer = null;
+    }
     if (this.pollInterval) {
       clearInterval(this.pollInterval);
       this.pollInterval = null;
@@ -57,6 +64,7 @@ export class SpotifyPresenceService implements OnModuleInit, OnModuleDestroy {
   }
 
   async pollOnlineSpotifyUsers(): Promise<void> {
+    if (!runsBackground('messenger')) return;
     if (this.isPolling) return;
     this.isPolling = true;
 

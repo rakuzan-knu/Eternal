@@ -13,13 +13,20 @@ const socket = vi.hoisted(() => ({
   connected: true,
   on: vi.fn(),
 }));
-vi.mock('socket.io-client', () => ({ io: () => socket }));
+const connectSocket = vi.hoisted(() => vi.fn());
+vi.mock('socket.io-client', () => ({
+  io: (...args: unknown[]) => {
+    connectSocket(...args);
+    return socket;
+  },
+}));
 vi.mock('socket.io-msgpack-parser', () => ({ default: {} }));
 vi.mock('@social-network/shared-stores', () => ({
   useAuthStore: { getState: () => ({ user: { id: 'listener' }, accessToken: 'test-token' }) },
 }));
 vi.mock('@/shared/api/client', () => ({
-  apiOrigin: 'https://api.example',
+  apiOrigin: 'https://core.example',
+  messengerOrigin: 'https://messenger.example',
   getMobileApi: () => ({ get: vi.fn() }),
 }));
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -97,6 +104,13 @@ async function mount() {
     await act(async () => root.render(<Probe />));
   };
 }
+it('connects Jam to messenger while the API origin remains core', async () => {
+  await mount();
+  expect(connectSocket).toHaveBeenCalledWith(
+    'https://messenger.example/messenger',
+    expect.anything(),
+  );
+});
 it('starts a different host track at its own position without clamping against the old duration', async () => {
   await mount();
   await act(async () => handlers.get('jam:state_update')?.(room()));

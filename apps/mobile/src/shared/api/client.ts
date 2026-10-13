@@ -26,6 +26,11 @@ export function getMobileApi(): AxiosInstance {
   };
   const client = createApiClient({
     baseURL: origin.endsWith('/v1') ? origin : `${origin}/v1`,
+    serviceOrigins: {
+      messenger: process.env.EXPO_PUBLIC_MESSENGER_API_URL ?? '',
+      reels: process.env.EXPO_PUBLIC_REELS_API_URL ?? '',
+      music: process.env.EXPO_PUBLIC_MUSIC_API_URL ?? '',
+    },
     getToken: () => {
       if (!isCurrentSession()) throw new Error('The account session changed');
       if (!onlineManager.isOnline()) throw new Error('An internet connection is required');
@@ -76,3 +81,7 @@ export const webOrigin = (process.env.EXPO_PUBLIC_WEB_URL || 'http://localhost:5
   .replace(/\/+$/, '');
 
 export const apiOrigin = origin.replace(/\/v1$/, '');
+export const messengerOrigin = (process.env.EXPO_PUBLIC_MESSENGER_API_URL || apiOrigin)
+  .trim()
+  .replace(/\/+$/, '')
+  .replace(/\/v1$/, '');

@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import { RedisService } from '../../redis/redis.service';
 import { WS_EVENTS } from '../events/ws-events';
 import type { Server } from 'socket.io';
+import { runsBackground } from '../../config/service-role';
 
 export interface PresenceBatchPayload {
   online: string[];
@@ -51,10 +52,11 @@ export class PresenceEngineService implements OnModuleInit, OnModuleDestroy {
   private visibilityFilter: VisibilityFilterFn | null = null;
 
   constructor(private readonly redisService: RedisService) {
-    this.startTimers();
+    if (runsBackground('messenger')) this.startTimers();
   }
 
   onModuleInit(): void {
+    if (!runsBackground('messenger')) return;
     this.logger.log('PresenceEngineService initialized');
   }
 
@@ -181,6 +183,7 @@ export class PresenceEngineService implements OnModuleInit, OnModuleDestroy {
    * Flushes aggregated in-memory heartbeats to Redis ZSET with sliding timestamp score.
    */
   async flushHeartbeats(): Promise<void> {
+    if (!runsBackground('messenger')) return;
     if (this.heartbeatBuffer.size === 0) return;
 
     const userIds = Array.from(this.heartbeatBuffer);
@@ -216,6 +219,7 @@ export class PresenceEngineService implements OnModuleInit, OnModuleDestroy {
    * Broadcasts compressed batch updates of online/offline status changes every 2.5–3 seconds.
    */
   flushPresenceBatch(): void {
+    if (!runsBackground('messenger')) return;
     if (this.pendingTransitions.size === 0 || !this.server) return;
 
     const transitions = Array.from(this.pendingTransitions.entries());

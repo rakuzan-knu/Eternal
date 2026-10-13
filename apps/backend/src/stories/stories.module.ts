@@ -1,3 +1,4 @@
+import { roleControllers } from '../config/service-role';
 import { Module, forwardRef } from '@nestjs/common';
 import { PrismaModule } from '@common/prisma';
 import { RedisModule } from '../redis/redis.module';
@@ -12,7 +13,7 @@ import { StoryViewsCoalescerService } from './coalescing/story-views-coalescer.s
 
 @Module({
   imports: [PrismaModule, RedisModule, FollowersModule, forwardRef(() => MessengerModule)],
-  controllers: [StoriesController],
+  controllers: roleControllers('core', [StoriesController]),
   providers: [
     StoriesService,
     StoryViewsCoalescerService,

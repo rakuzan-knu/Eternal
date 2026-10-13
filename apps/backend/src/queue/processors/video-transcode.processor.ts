@@ -12,6 +12,7 @@ import { QUEUE_VIDEO_TRANSCODE, VideoJobType } from '../queue.constants';
 import { generateBlurHash } from '../../common/media/image-processor';
 import { PrismaService } from '@common/prisma';
 import { REELS_S3_CLIENT } from '../../reels/s3-provider';
+import { runsBackground } from '../../config/service-role';
 
 export const MAX_VIDEO_SOURCE_BYTES = 150 * 1024 * 1024;
 
@@ -53,6 +54,7 @@ export class VideoTranscodeProcessor implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit(): void {
+    if (!runsBackground('reels')) return;
     const redisUrl = this.configService.get<string>('REDIS_URL');
     if (
       !redisUrl ||

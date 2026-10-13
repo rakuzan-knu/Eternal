@@ -1,3 +1,4 @@
+import { roleControllers } from '../config/service-role';
 import { Module, forwardRef } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
@@ -63,7 +64,7 @@ import { JamService } from '../integrations/jam.service';
     OpenGraphModule,
     SnowflakeModule,
   ],
-  controllers: [
+  controllers: roleControllers('messenger', [
     ConversationsController,
     MessagesController,
     MessengerLinkPreviewController,
@@ -71,7 +72,7 @@ import { JamService } from '../integrations/jam.service';
     FoldersController,
     SearchController,
     PrekeysController,
-  ],
+  ]),
   providers: [
     {
       provide: CONVERSATIONS_REPOSITORY,

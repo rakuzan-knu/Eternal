@@ -6,6 +6,7 @@ import { QUEUE_SEARCH_INDEXING, SearchJobType } from '../queue.constants';
 import { QueueService } from '../queue.service';
 import { RedisService } from '../../redis/redis.service';
 import { TraceContext } from '../../common/tracing/trace-context';
+import { runsBackground } from '../../config/service-role';
 
 export interface SearchIndexJobData {
   id: string;
@@ -27,6 +28,7 @@ export class SearchIndexingProcessor implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit(): void {
+    if (!runsBackground('core')) return;
     const redisUrl = this.configService.get<string>('REDIS_URL');
     if (
       !redisUrl ||

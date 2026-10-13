@@ -59,6 +59,7 @@ import { BloomModule } from './common/bloom/bloom.module';
 import { TextPipelineModule } from './common/text-pipeline/text-pipeline.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { StorageModule } from './common/storage/storage.module';
+import { ServiceRoleGuard } from './config/service-role.guard';
 
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 
@@ -269,6 +270,7 @@ import type { MiddlewareConsumer, NestModule } from '@nestjs/common';
 
   controllers: [],
   providers: [
+    { provide: APP_GUARD, useClass: ServiceRoleGuard },
     {
       provide: APP_FILTER,
       useClass: AllExceptionsFilter,

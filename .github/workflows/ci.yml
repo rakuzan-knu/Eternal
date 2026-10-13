@@ -825,6 +825,58 @@ jobs:
           for pid in "${pids[@]}"; do wait "$pid"; done
           curl --fail --silent --show-error --max-time 10 http://127.0.0.1:3000/health/ready
 
+      - name: Verify all four service roles with shared fixtures
+        run: |
+          set -euo pipefail
+          cleanup_roles() {
+            for role in core messenger reels music; do
+              docker logs --tail 30 "backend-role-$role" || true
+              docker stats --no-stream "backend-role-$role" || true
+              docker rm -f "backend-role-$role" || true
+            done
+            docker rm -f role-smoke-db role-smoke-redis || true
+            docker network rm role-smoke-network || true
+          }
+          trap cleanup_roles EXIT
+          docker network create role-smoke-network
+          docker run -d --name role-smoke-db --network role-smoke-network \
+            -e POSTGRES_USER=smoke -e POSTGRES_PASSWORD=smoke -e POSTGRES_DB=smoke postgres:17-alpine
+          docker run -d --name role-smoke-redis --network role-smoke-network redis:7-alpine
+          for attempt in $(seq 1 30); do
+            if docker exec role-smoke-db pg_isready -U smoke -d smoke; then break; fi
+            sleep 1
+          done
+          docker exec role-smoke-db pg_isready -U smoke -d smoke
+          port=3010
+          for role in core messenger reels music; do
+            migrate=false
+            if [ "$role" = core ]; then migrate=true; fi
+            docker run -d --name "backend-role-$role" --network role-smoke-network \
+              --memory 512m --memory-swap 512m --cpus 0.1 -p "127.0.0.1:$port:3000" \
+              -e PORT=3000 -e SERVICE_ROLE="$role" -e AUTO_MIGRATE="$migrate" -e DATABASE_POOL_LIMIT=5 \
+              -e JWT_ACCESS_SECRET=ci_test_access_secret_key_32_bytes_min \
+              -e JWT_REFRESH_SECRET=ci_test_refresh_secret_key_32_bytes_min \
+              -e JWT_ACCESS_TTL=15m -e JWT_REFRESH_TTL=7d \
+              -e DATABASE_URL=postgresql://smoke:smoke@role-smoke-db:5432/smoke \
+              -e REDIS_URL=redis://role-smoke-redis:6379 social-network-backend:ci-${{ github.sha }}
+            ready=false
+            for attempt in $(seq 1 60); do
+              if curl --fail --silent --max-time 3 "http://127.0.0.1:$port/health/ready" > /dev/null; then
+                ready=true
+                break
+              fi
+              if [ "$(docker inspect -f '{{.State.Running}}' "backend-role-$role")" != true ]; then exit 1; fi
+              sleep 2
+            done
+            test "$ready" = true
+            port=$((port + 1))
+          done
+          node scripts/deploy/smoke-service-split.cjs \
+            http://127.0.0.1:3010 http://127.0.0.1:3011 http://127.0.0.1:3012 http://127.0.0.1:3013
+          clients=$(docker exec role-smoke-redis redis-cli INFO clients | tr -d '\r' | sed -n 's/^connected_clients://p')
+          echo "Shared Redis connections including the probe: $clients (free-tier cap: 30)"
+          test "$clients" -le 30
+
       - name: Install Trivy CLI
         run: |
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin

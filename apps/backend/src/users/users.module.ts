@@ -1,3 +1,4 @@
+import { roleControllers } from '../config/service-role';
 import { Module, forwardRef } from '@nestjs/common';
 import { PrismaModule } from '@common/prisma';
 import { PostsModule } from '../posts/posts.module';
@@ -16,7 +17,7 @@ import { LastSeenCoalescerService } from './coalescing/last-seen-coalescer.servi
 
 @Module({
   imports: [PrismaModule, forwardRef(() => PostsModule)],
-  controllers: [UsersController, SearchController, PrivacyController],
+  controllers: roleControllers('core', [UsersController, SearchController, PrivacyController]),
   providers: [
     UsersService,
     LastSeenCoalescerService,

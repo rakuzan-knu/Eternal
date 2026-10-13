@@ -1,4 +1,5 @@
 import type { JwtService } from '@nestjs/jwt';
+import type { Mock } from 'vitest';
 import type { ConfigService } from '@nestjs/config';
 import type { Socket, Server } from 'socket.io';
 import { MessageType } from '@prisma/client';
@@ -66,6 +67,11 @@ describe('MessengerGateway', () => {
   let mockServer: {
     to: jest.Mock;
     emit: jest.Mock;
+    on: Mock<(event: string, listener: (payload: unknown) => void) => void>;
+    off: jest.Mock;
+    serverSideEmit: jest.Mock;
+    local: { disconnectSockets: jest.Mock };
+    sockets: Map<string, Socket>;
   };
   let mockSocket: {
     id: string;
@@ -162,6 +168,11 @@ describe('MessengerGateway', () => {
     mockServer = {
       to: jest.fn().mockReturnValue({ emit: emitFn }),
       emit: emitFn,
+      on: vi.fn<(event: string, listener: (payload: unknown) => void) => void>(),
+      off: jest.fn(),
+      serverSideEmit: jest.fn(),
+      local: { disconnectSockets: jest.fn() },
+      sockets: new Map(),
     };
 
     mockSocket = {
@@ -391,6 +402,48 @@ describe('MessengerGateway', () => {
   });
 
   describe('showcase & story events and broadcasts', () => {
+    afterEach(() => vi.unstubAllEnvs());
+
+    it('delegates core activity updates to the messenger owner without a local broadcast', () => {
+      vi.stubEnv('SERVICE_ROLE', 'core');
+      const payload = { userId: 'usr-1', activityStatus: { emoji: 'working' } };
+      gateway.handleShowcasePresenceUpdated(payload);
+      expect(mockServer.serverSideEmit).toHaveBeenCalledWith('eternal:showcase-presence', payload);
+      expect(mockServer.to).not.toHaveBeenCalled();
+      gateway.onModuleDestroy();
+      expect(mockServer.local.disconnectSockets).not.toHaveBeenCalled();
+    });
+
+    it('resolves forwarded presence audience on messenger and excludes blocked observers', async () => {
+      vi.stubEnv('SERVICE_ROLE', 'messenger');
+      const allowed = { ...mockSocket, id: 'allowed', emit: jest.fn() };
+      const blocked = { ...mockSocket, id: 'blocked', emit: jest.fn() };
+      mockJwtService.verifyAsync.mockResolvedValueOnce({ sub: 'usr-2', type: 'access' });
+      await gateway.handleConnection(allowed as unknown as Socket);
+      mockJwtService.verifyAsync.mockResolvedValueOnce({ sub: 'usr-3', type: 'access' });
+      await gateway.handleConnection(blocked as unknown as Socket);
+      mockServer.sockets.set('allowed', allowed as unknown as Socket);
+      mockServer.sockets.set('blocked', blocked as unknown as Socket);
+      allowed.emit.mockClear();
+      blocked.emit.mockClear();
+      mockVisibility.resolvePresenceAudience.mockResolvedValue(new Set(['usr-2']));
+      gateway.afterInit();
+      const listener = mockServer.on.mock.calls.find(
+        ([event]) => event === 'eternal:showcase-presence',
+      )?.[1];
+      expect(listener).toBeDefined();
+      if (!listener) throw new Error('Messenger did not register the cluster presence listener');
+      listener({ userId: 'usr-1', activityStatus: { emoji: 'working' } });
+      await vi.waitFor(() =>
+        expect(allowed.emit).toHaveBeenCalledWith('user:activity:changed', expect.anything()),
+      );
+      expect(mockVisibility.resolvePresenceAudience).toHaveBeenCalledWith('usr-1', [
+        'usr-2',
+        'usr-3',
+      ]);
+      expect(blocked.emit).not.toHaveBeenCalled();
+    });
+
     it('showcase subscriptions and presence update event', () => {
       gateway.handleSubscribeShowcase(mockSocket as unknown as Socket, { targetUserId: 'u-1' });
       expect(mockSocket.join).toHaveBeenCalledWith('showcase:u-1');

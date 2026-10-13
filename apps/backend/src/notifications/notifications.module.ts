@@ -1,3 +1,4 @@
+import { roleControllers } from '../config/service-role';
 import { Module, forwardRef } from '@nestjs/common';
 import { NotificationsController } from './notifications.controller';
 import { NotificationsService } from './notifications.service';
@@ -9,7 +10,7 @@ import { MessengerModule } from '../messenger/messenger.module';
 
 @Module({
   imports: [PrismaModule, RedisModule, forwardRef(() => MessengerModule)],
-  controllers: [NotificationsController],
+  controllers: roleControllers('core', [NotificationsController]),
   providers: [
     NotificationsService,
     NotificationsRepository,
