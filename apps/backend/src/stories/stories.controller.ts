@@ -1,5 +1,6 @@
 import {
   Body,
+  BadRequestException,
   Controller,
   Delete,
   Get,
@@ -9,10 +10,11 @@ import {
   Param,
   Post,
   UploadedFile,
+  UploadedFiles,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FastifyFilesInterceptor } from '../common/interceptors/fastify-file.interceptor';
 import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
@@ -59,7 +61,7 @@ export class StoriesController {
 
   @Post()
   @UseGuards(AuthGuard)
-  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 100 * 1024 * 1024, files: 1 } }))
+  @UseInterceptors(FastifyFilesInterceptor('file', 10))
   @ApiBearerAuth()
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Create and publish a new story' })
@@ -74,7 +76,9 @@ export class StoriesController {
       overlays?: string | CreateStoryDto['overlays'];
       privacy?: CreateStoryDto['privacy'];
       backgroundColor?: string;
+      filter?: string;
     },
+    @UploadedFiles() files: Express.Multer.File[] = [],
   ) {
     // Parse overlays and other fields from multipart formData if sent as strings
     let overlays = body?.overlays;
@@ -82,19 +86,31 @@ export class StoriesController {
       const parsed = safeJsonParse<CreateStoryDto['overlays']>(overlays, {
         maxSizeBytes: 256 * 1024,
       });
-      overlays = parsed ?? [];
+      if (!parsed || !Array.isArray(parsed))
+        throw new BadRequestException('Invalid story overlays');
+      overlays = parsed;
     }
 
+    const primary = files.filter((item) => item.fieldname === 'file');
+    if (primary.length > 1) throw new BadRequestException('Use one main story file');
+    // Fastify decorates request.file with a function even when no primary file was uploaded.
+    const primaryFile = primary[0] || (typeof file === 'object' ? file : undefined);
     const rawDto: CreateStoryDto = {
-      mediaType: body?.mediaType || (file ? undefined : 'IMAGE'),
+      mediaType: body?.mediaType || (primaryFile ? undefined : 'IMAGE'),
       caption: body?.caption,
       overlays: Array.isArray(overlays) ? overlays : undefined,
       privacy: body?.privacy || 'ALL_FOLLOWERS',
       backgroundColor: body?.backgroundColor,
+      filter: body?.filter,
     };
 
-    const validatedDto = CreateStoryDtoSchema.parse(rawDto);
-    return this.storiesService.createStory(user.id, validatedDto, file);
+    const parsedDto = CreateStoryDtoSchema.safeParse(rawDto);
+    if (!parsedDto.success) throw new BadRequestException('Invalid story data');
+    const validatedDto = parsedDto.data;
+    const attachments = files.filter((item) => item.fieldname !== 'file');
+    return attachments.length
+      ? this.storiesService.createStory(user.id, validatedDto, primaryFile, attachments)
+      : this.storiesService.createStory(user.id, validatedDto, primaryFile);
   }
 
   @Post(':id/view')

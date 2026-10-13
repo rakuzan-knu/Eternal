@@ -7,6 +7,7 @@ import { PrismaService } from '@common/prisma';
 import { RedisService } from '../../redis/redis.service';
 import { ConversationsService } from '../../messenger/conversations/conversations.service';
 import { MessagesService } from '../../messenger/messages/messages.service';
+import { deleteFromStorage, uploadToStorageWithFallback } from '../../common/media/image-processor';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 const StoryMediaType = {
@@ -22,6 +23,7 @@ const StoryPrivacy = {
 } as const;
 
 jest.mock('../../common/media/image-processor', () => ({
+  deleteFromStorage: jest.fn().mockResolvedValue(undefined),
   optimizePostImage: jest.fn().mockResolvedValue({
     buffer: Buffer.from('opt-image'),
     contentType: 'image/webp',
@@ -51,6 +53,9 @@ describe('StoriesService', () => {
     mediaUrl: 'https://example.com/story.jpg',
     mediaType: StoryMediaType.IMAGE,
     caption: 'Hello World',
+    backgroundColor: null,
+    filter: null,
+    mediaAssets: null,
     overlays: [
       {
         id: 'poll-1',
@@ -97,6 +102,7 @@ describe('StoriesService', () => {
 
   beforeEach(async () => {
     const mockRepo = {
+      canViewStoryAuthor: jest.fn().mockResolvedValue(true),
       createStory: jest.fn().mockResolvedValue(mockStory),
       findActiveFeedStories: jest.fn().mockResolvedValue([mockStory]),
       findActiveUserStories: jest.fn().mockResolvedValue([mockStory]),
@@ -205,6 +211,43 @@ describe('StoriesService', () => {
   });
 
   describe('processUploadedMedia', () => {
+    it('classifies AVIF as an image, including compatible brands', async () => {
+      for (const brand of ['avif', 'avis']) {
+        const buffer = Buffer.alloc(24);
+        buffer.writeUInt32BE(24, 0);
+        buffer.write('ftyp', 4, 'ascii');
+        buffer.write(brand, 8, 'ascii');
+        expect(
+          (await service.processUploadedMedia({ buffer } as Express.Multer.File)).mediaType,
+        ).toBe('IMAGE');
+      }
+      const oversized = Buffer.alloc(11 * 1024 * 1024);
+      oversized.writeUInt32BE(24, 0);
+      oversized.write('ftyp', 4, 'ascii');
+      oversized.write('iso8', 8, 'ascii');
+      oversized.write('avif', 16, 'ascii');
+      await expect(
+        service.processUploadedMedia({ buffer: oversized } as Express.Multer.File),
+      ).rejects.toThrow('Image size exceeds 10MB limit');
+    });
+
+    it('rejects unsupported HEIC before storing bytes under a WebP content type', async () => {
+      jest.mocked(uploadToStorageWithFallback).mockClear();
+      for (const brand of ['heic', 'heix', 'hevc', 'hevx', 'mif1', 'msf1']) {
+        for (const compatible of [false, true]) {
+          const buffer = Buffer.alloc(24);
+          buffer.writeUInt32BE(24, 0);
+          buffer.write('ftyp', 4, 'ascii');
+          buffer.write(compatible ? 'iso8' : brand, 8, 'ascii');
+          if (compatible) buffer.write(brand, 16, 'ascii');
+          await expect(
+            service.processUploadedMedia({ buffer } as Express.Multer.File),
+          ).rejects.toThrow('Convert HEIC photos');
+        }
+      }
+      expect(uploadToStorageWithFallback).not.toHaveBeenCalled();
+    });
+
     it('detects and uploads PNG, WEBP, GIF, WEBM, and Voice audio', async () => {
       const pngBuf = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d]);
       const webpBuf = Buffer.from('RIFF1234WEBPVP8 ');
@@ -420,5 +463,99 @@ describe('StoriesService', () => {
         BadRequestException,
       );
     });
+  });
+  it('persists appearance and distinct server-owned photo sticker URLs', async () => {
+    const main = {
+      fieldname: 'file',
+      buffer: Buffer.from([255, 216, 255]),
+      mimetype: 'image/jpeg',
+    } as Express.Multer.File;
+    const sticker = { ...main, fieldname: 'overlay:sticker' };
+    jest
+      .mocked(uploadToStorageWithFallback)
+      .mockResolvedValueOnce('https://assets.test/stories/main.webp')
+      .mockResolvedValueOnce('https://assets.test/stories/sticker.webp');
+    await service.createStory(
+      'user-1',
+      {
+        backgroundColor: 'linear-gradient(180deg, #181824 0%, #09090b 100%)',
+        filter: 'tokyo',
+        overlays: [
+          { id: 'main', type: 'image', isMainMedia: true, xPercent: 50, yPercent: 50 },
+          { id: 'sticker', type: 'image', xPercent: 30, yPercent: 65 },
+        ],
+      },
+      main,
+      [sticker],
+    );
+    const backgroundColor: unknown = expect.stringContaining('linear-gradient');
+    const overlays: unknown = expect.arrayContaining([
+      expect.objectContaining({ id: 'main', url: 'https://assets.test/stories/main.webp' }),
+      expect.objectContaining({ id: 'sticker', url: 'https://assets.test/stories/sticker.webp' }),
+    ]);
+    expect(repo.createStory).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filter: 'tokyo',
+        backgroundColor,
+        mediaAssets: [
+          'https://assets.test/stories/main.webp',
+          'https://assets.test/stories/sticker.webp',
+        ],
+        overlays,
+      }),
+    );
+  });
+  it('removes every uploaded asset when persistence fails', async () => {
+    jest.mocked(deleteFromStorage).mockClear();
+    repo.createStory.mockRejectedValueOnce(new Error('DB unavailable'));
+    const file = { buffer: Buffer.from([255, 216, 255]), fieldname: 'file' } as Express.Multer.File;
+    await expect(service.createStory('user-1', {}, file)).rejects.toThrow('DB unavailable');
+    expect(deleteFromStorage).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ url: 'https://example.com/uploaded.webp' }),
+    );
+  });
+  it('rejects unknown media and executable MIME headers before storage', async () => {
+    jest.mocked(uploadToStorageWithFallback).mockClear();
+    await expect(
+      service.processUploadedMedia({
+        buffer: Buffer.from('<script>bad()</script>'),
+        mimetype: 'image/jpeg',
+      } as Express.Multer.File),
+    ).rejects.toThrow(BadRequestException);
+    expect(uploadToStorageWithFallback).not.toHaveBeenCalled();
+    await service.processUploadedMedia({
+      buffer: Buffer.from('RIFF1234WAVEdata'),
+      mimetype: 'text/html',
+    } as Express.Multer.File);
+    expect(uploadToStorageWithFallback).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ contentType: 'audio/wav' }),
+    );
+  });
+  it('rejects photo stickers without a matching upload before storing the main file', async () => {
+    jest.mocked(uploadToStorageWithFallback).mockClear();
+    await expect(
+      service.createStory(
+        'user-1',
+        { overlays: [{ id: 'missing', type: 'image', xPercent: 50, yPercent: 50 }] },
+        { buffer: Buffer.from([255, 216, 255]) } as Express.Multer.File,
+      ),
+    ).rejects.toThrow(BadRequestException);
+    expect(uploadToStorageWithFallback).not.toHaveBeenCalled();
+  });
+  it('protects close friends, expired and inaccessible stories on interaction routes', async () => {
+    repo.findById.mockResolvedValueOnce({ ...mockStory, privacy: 'CLOSE_FRIENDS' });
+    await expect(service.recordReaction('story-1', 'user-2', { emoji: '🔥' })).rejects.toThrow(
+      ForbiddenException,
+    );
+    repo.findById.mockResolvedValueOnce({ ...mockStory, expiresAt: new Date(0) });
+    await expect(service.recordView('story-1', 'user-2')).rejects.toThrow('expired');
+    repo.canViewStoryAuthor.mockResolvedValue(false);
+    await expect(service.recordPollVote('story-1', 'user-2', { optionIndex: 0 })).rejects.toThrow(
+      ForbiddenException,
+    );
+    expect(repo.recordPollVote).not.toHaveBeenCalled();
+    expect(await service.getUserStories('user-1', 'user-2')).toBeNull();
   });
 });

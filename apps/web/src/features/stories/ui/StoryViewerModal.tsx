@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -512,36 +512,40 @@ export function StoryViewerModal() {
   }, [activeGroupIndex, activeStoryIndex, isOpen, setMenuOpen]);
 
   // Active Audio Overlay (Music sticker or voice track)
-  const activeAudioOverlay = activeStory?.overlays?.find((o) => o.type === 'audio') as
+  const storedAudioOverlay = activeStory?.overlays?.find((o) => o.type === 'audio') as
     AudioOverlay | undefined;
+  const [resolvedMusic, setResolvedMusic] = useState<{ storyId: string; url: string } | null>(null);
+  const activeMusicTrackId =
+    storedAudioOverlay?.soundCloudTrackId ||
+    storedAudioOverlay?.audioUrl?.match(/\/integrations\/soundcloud\/stream\/([^/?#]+)/)?.[1];
+  const activeAudioOverlay = useMemo(
+    () =>
+      activeMusicTrackId && storedAudioOverlay
+        ? {
+            ...storedAudioOverlay,
+            audioUrl: resolvedMusic?.storyId === activeStory?.id ? resolvedMusic.url : undefined,
+          }
+        : storedAudioOverlay,
+    [activeMusicTrackId, storedAudioOverlay, resolvedMusic, activeStory?.id],
+  );
 
   // Resolve legacy API endpoints on activeAudioOverlay if present
+  const activeStoryId = activeStory?.id;
   useEffect(() => {
-    if (!activeAudioOverlay?.audioUrl) return;
-    const url = activeAudioOverlay.audioUrl;
-    if (!url.includes('/integrations/soundcloud/stream/')) return;
-    const match = url.match(/stream\/([^/?#]+)/);
-    if (!match || !match[1]) return;
+    const trackId = activeMusicTrackId;
+    if (!trackId || !activeStoryId) return;
 
     let cancelled = false;
     (async () => {
-      const streamUrl = await integrationsApi.getSoundCloudStream(match[1]).catch(() => null);
+      const streamUrl = await integrationsApi.getSoundCloudStream(trackId).catch(() => null);
       if (cancelled) return;
-      if (
-        streamUrl?.streamUrl &&
-        audioRef.current &&
-        !audioRef.current.src.includes(streamUrl.streamUrl)
-      ) {
-        audioRef.current.src = streamUrl.streamUrl;
-        if (!isEffectivelyPaused) {
-          audioRef.current.play().catch(() => {});
-        }
-      }
+      if (streamUrl?.streamUrl)
+        setResolvedMusic({ storyId: activeStoryId, url: streamUrl.streamUrl });
     })();
     return () => {
       cancelled = true;
     };
-  }, [activeAudioOverlay?.audioUrl, isEffectivelyPaused]);
+  }, [activeMusicTrackId, activeStoryId]);
 
   // Set initial start time and loop snippet when audio overlay loads
   useEffect(() => {
@@ -588,10 +592,11 @@ export function StoryViewerModal() {
 
     if (video) {
       // If audio overlay exists, balance video volume according to audioOverlay.videoVolume (or mute)
-      const vidVolSetting = activeAudioOverlay ? (activeAudioOverlay.videoVolume ?? 0) : 100;
+      const rawVideoVolume = activeAudioOverlay ? (activeAudioOverlay.videoVolume ?? 0) : 1;
+      const vidVolSetting = rawVideoVolume > 1 ? rawVideoVolume / 100 : rawVideoVolume;
       const shouldMuteVid = isMuted || vidVolSetting === 0;
       video.muted = shouldMuteVid;
-      video.volume = shouldMuteVid ? 0 : (vidVolSetting / 100) * volume;
+      video.volume = shouldMuteVid ? 0 : vidVolSetting * volume;
 
       if (isEffectivelyPaused) {
         video.pause();
@@ -603,9 +608,10 @@ export function StoryViewerModal() {
     if (audio) {
       if (activeAudioOverlay?.audioUrl) {
         const audioUrl = activeAudioOverlay.audioUrl;
-        const musVolSetting = activeAudioOverlay.musicVolume ?? 100;
+        const rawMusicVolume = activeAudioOverlay.musicVolume ?? 1;
+        const musVolSetting = rawMusicVolume > 1 ? rawMusicVolume / 100 : rawMusicVolume;
         audio.muted = isMuted;
-        audio.volume = isMuted ? 0 : (musVolSetting / 100) * volume;
+        audio.volume = isMuted ? 0 : musVolSetting * volume;
 
         const isHls = audioUrl.includes('.m3u8');
 
@@ -652,16 +658,14 @@ export function StoryViewerModal() {
         audio.removeAttribute('src');
       }
     }
-
-    return () => {
-      if (viewerHlsRef.current) {
-        try {
-          viewerHlsRef.current.destroy();
-        } catch {}
-        viewerHlsRef.current = null;
-      }
-    };
   }, [isMuted, volume, isEffectivelyPaused, activeAudioOverlay, activeStory?.id]);
+  useEffect(
+    () => () => {
+      viewerHlsRef.current?.destroy();
+      viewerHlsRef.current = null;
+    },
+    [activeAudioOverlay?.audioUrl, activeStory?.id],
+  );
 
   // Video Time Update & Synchronization
   const handleVideoTimeUpdate = () => {
@@ -1029,6 +1033,7 @@ export function StoryViewerModal() {
                   className="absolute inset-0 w-full h-full rounded-none md:rounded-3xl overflow-hidden border-0 md:border md:border-white/15 shadow-[0_25px_70px_rgba(0,0,0,0.85),inset_0_1px_1px_rgba(255,255,255,0.25)] flex flex-col justify-between select-none"
                   style={{
                     background:
+                      activeStory.backgroundColor ||
                       (
                         activeStory.overlays?.find(
                           (o) => o.type === 'image' && (o as ImageOverlay).isMainMedia,

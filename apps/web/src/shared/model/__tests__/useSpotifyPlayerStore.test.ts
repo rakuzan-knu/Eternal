@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useSpotifyPlayerStore, SpotifyTrack } from '../useSpotifyPlayerStore';
 
 vi.mock('@/shared/api/integrationsApi', () => ({
@@ -54,6 +54,8 @@ describe('useSpotifyPlayerStore', () => {
   };
 
   beforeEach(() => {
+    // jsdom has no media loader; these tests exercise store state, not audio decoding.
+    vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
     useSpotifyPlayerStore.setState({
       currentTrack: null,
       isPlaying: false,
@@ -71,6 +73,10 @@ describe('useSpotifyPlayerStore', () => {
       isLyricsOpen: false,
       isQueueOpen: false,
     });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('should play a track and make the dock visible', () => {

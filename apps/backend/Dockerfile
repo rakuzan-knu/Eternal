@@ -12,6 +12,7 @@ WORKDIR /app
 FROM base AS deps
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json* nx.json* ./
+COPY patches ./patches/
 COPY apps/backend/package.json ./apps/backend/
 COPY packages ./packages/
 COPY apps/backend/prisma ./apps/backend/prisma/
