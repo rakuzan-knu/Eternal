@@ -38,6 +38,8 @@ import { ReelOptionsMenu } from './ReelOptionsMenu';
 import { ReelReportModal } from './ReelReportModal';
 import { ReelProgressBar } from './ReelProgressBar';
 import { ReelSubtitlesOverlay } from './ReelSubtitlesOverlay';
+import type { ReelVideoPool } from '../lib/reelVideoPool';
+import { usePooledReelVideo } from '../lib/usePooledReelVideo';
 import {
   generateCues,
   SUBTITLE_LANGUAGES,
@@ -47,6 +49,7 @@ import {
 
 export interface ReelCardProps {
   reel: ReelItem;
+  videoPool: ReelVideoPool;
   isActive: boolean;
   isMuted: boolean;
   onToggleMute: () => void;
@@ -56,21 +59,18 @@ export interface ReelCardProps {
 
 export const ReelCardComponent: React.FC<ReelCardProps> = ({
   reel,
+  videoPool,
   isActive,
   isMuted,
   onToggleMute,
   onNavigateNext,
   onRemoveReel,
 }) => {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const captionRef = useRef<HTMLParagraphElement | null>(null);
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const currentUserId = useAuthStore((s) => s.userId);
 
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
-  const [hasPlaybackError, setHasPlaybackError] = useState(false);
   const [volume, setVolume] = useState(() => {
     try {
       const saved = localStorage.getItem('reels_volume');
@@ -104,6 +104,35 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
   const recordViewMutation = useRecordReelView();
   const notInterestedMutation = useNotInterestedReel();
   const viewRecordedRef = useRef(false);
+  const {
+    hostRef,
+    videoRef,
+    videoKey,
+    hasVideo,
+    isPlaying,
+    isLoaded: isVideoLoaded,
+    hasError: hasPlaybackError,
+    play: playVideo,
+    pause: pauseVideo,
+    retry: retryVideo,
+    seek: seekVideo,
+  } = usePooledReelVideo({
+    pool: videoPool,
+    reelId: reel.id,
+    src: reel.videoUrl,
+    hlsUrl: reel.hlsUrl,
+    poster: reel.thumbnailUrl,
+    isActive,
+    isMuted,
+    volume,
+    playbackRate,
+    onPlayed: () => {
+      if (!viewRecordedRef.current) {
+        viewRecordedRef.current = true;
+        recordViewMutation.mutate(reel.id);
+      }
+    },
+  });
 
   const [isTranslated, setIsTranslated] = useState(false);
   const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
@@ -166,36 +195,16 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
     }
   }, [quality]);
 
-  const isManuallyPausedRef = useRef(false);
-
   const handleTogglePlay = useCallback(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    if (video.paused) {
-      isManuallyPausedRef.current = false;
-      const playPromise = video.play();
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            setIsPlaying(true);
-            triggerPlayPauseAnimation('play');
-            if (!viewRecordedRef.current) {
-              viewRecordedRef.current = true;
-              recordViewMutation.mutate(reel.id);
-            }
-          })
-          .catch(() => {
-            setIsPlaying(false);
-          });
-      }
+    if (!isPlaying) {
+      void playVideo().then((playing) => {
+        if (playing) triggerPlayPauseAnimation('play');
+      });
     } else {
-      isManuallyPausedRef.current = true;
-      video.pause();
-      setIsPlaying(false);
+      pauseVideo();
       triggerPlayPauseAnimation('pause');
     }
-  }, [reel.id, recordViewMutation]);
+  }, [isPlaying, playVideo, pauseVideo]);
 
   // "Not interested" countdown and auto-scroll (Requirement 9)
   const handleNotInterested = useCallback(() => {
@@ -204,9 +213,7 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
     setNotInterestedCountdown(5);
 
     // Pause video
-    isManuallyPausedRef.current = true;
-    videoRef.current?.pause();
-    setIsPlaying(false);
+    pauseVideo();
 
     if (countdownIntervalRef.current) {
       clearInterval(countdownIntervalRef.current);
@@ -227,7 +234,7 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
         }, 300);
       }
     }, 1000);
-  }, [reel.id, notInterestedMutation, onNavigateNext, onRemoveReel]);
+  }, [reel.id, notInterestedMutation, onNavigateNext, onRemoveReel, pauseVideo]);
 
   const handleCancelNotInterested = useCallback(() => {
     if (countdownIntervalRef.current) {
@@ -236,11 +243,9 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
     }
     setNotInterestedNotice(null);
     setNotInterestedCountdown(5);
-    isManuallyPausedRef.current = false;
-    videoRef.current?.play().catch(() => {});
-    setIsPlaying(true);
+    void playVideo();
     showToast('Action cancelled');
-  }, []);
+  }, [playVideo]);
 
   const handleSkipNow = useCallback(() => {
     if (countdownIntervalRef.current) {
@@ -291,42 +296,8 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isActive, reel.id, reel.isSaved, toggleLikeMutation, toggleSaveMutation, handleTogglePlay]);
 
-  // Play / Pause video based on active slide in viewport
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    if (isActive) {
-      if (!isManuallyPausedRef.current) {
-        const playPromise = video.play();
-        if (playPromise !== undefined) {
-          playPromise
-            .then(() => {
-              setIsPlaying(true);
-              if (!viewRecordedRef.current) {
-                viewRecordedRef.current = true;
-                recordViewMutation.mutate(reel.id);
-              }
-            })
-            .catch(() => {
-              setIsPlaying(false);
-            });
-        }
-      }
-    } else {
-      isManuallyPausedRef.current = false;
-      video.pause();
-      video.currentTime = 0;
-      setIsPlaying(false);
-    }
-  }, [isActive, reel.id, recordViewMutation]);
-
   // Sync mute and volume state with localStorage persistence
   useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.muted = isMuted;
-      videoRef.current.volume = isMuted ? 0 : volume;
-    }
     try {
       localStorage.setItem('reels_volume', String(volume));
       localStorage.setItem('reels_muted', String(isMuted));
@@ -357,8 +328,7 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
       }
       // If the first tap paused, resume playback immediately on double tap
       if (videoRef.current?.paused) {
-        isManuallyPausedRef.current = false;
-        void videoRef.current.play().then(() => setIsPlaying(true));
+        void playVideo();
       }
     } else {
       // Single tap -> toggle play/pause immediately!
@@ -590,46 +560,12 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
           </div>
         )}
 
-        {/* Vertical Video Element */}
-        <video
-          ref={videoRef}
-          src={reel.videoUrl}
+        {/* The pool moves one of three physical video nodes into this host. */}
+        <div
+          ref={hostRef}
+          data-reel-video-host={reel.id}
           style={videoQualityStyle}
-          loop
-          playsInline
-          webkit-playsinline="true"
-          muted={isMuted}
-          onPlay={() => setIsPlaying(true)}
-          onPause={() => {
-            const v = videoRef.current;
-            if (v && v.duration && (v.currentTime >= v.duration - 0.25 || v.currentTime === 0)) {
-              if (!isManuallyPausedRef.current) {
-                v.currentTime = 0;
-                v.play().catch(() => {});
-                setIsPlaying(true);
-                return;
-              }
-            }
-            if (isManuallyPausedRef.current) {
-              setIsPlaying(false);
-            }
-          }}
-          onEnded={() => {
-            if (videoRef.current) {
-              videoRef.current.currentTime = 0;
-              videoRef.current.play().catch(() => {});
-              setIsPlaying(true);
-            }
-          }}
-          preload={isActive ? 'auto' : 'metadata'}
-          onError={() => setHasPlaybackError(true)}
-          onLoadedData={() => {
-            setIsVideoLoaded(true);
-            setHasPlaybackError(false);
-          }}
-          onLoadedMetadata={() => setIsVideoLoaded(true)}
-          onCanPlay={() => setIsVideoLoaded(true)}
-          className="absolute inset-0 w-full h-full object-cover z-0 transition-all duration-300 will-change-transform transform-gpu"
+          className="absolute inset-0 z-0"
         />
 
         {/* Playback Error Recovery State */}
@@ -642,11 +578,7 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                setHasPlaybackError(false);
-                if (videoRef.current) {
-                  videoRef.current.load();
-                  videoRef.current.play().catch(() => {});
-                }
+                void retryVideo();
               }}
               className="flex items-center gap-2 px-4 py-2 bg-white/15 hover:bg-white/25 rounded-xl text-white text-xs font-semibold transition-all active:scale-95 cursor-pointer"
             >
@@ -741,9 +673,7 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
                 e.stopPropagation();
                 if (isMuted) {
                   onToggleMute();
-                  if (videoRef.current) {
-                    videoRef.current.volume = volume > 0 ? volume : 1;
-                  }
+                  if (volume === 0) setVolume(1);
                   showToast('Sound on');
                 } else {
                   onToggleMute();
@@ -776,9 +706,6 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
                   e.stopPropagation();
                   const newVol = parseFloat(e.target.value);
                   setVolume(newVol);
-                  if (videoRef.current) {
-                    videoRef.current.volume = newVol;
-                  }
                   if (newVol > 0 && isMuted) {
                     onToggleMute();
                   } else if (newVol === 0 && !isMuted) {
@@ -797,9 +724,6 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
             playbackRate={playbackRate}
             onSelectPlaybackRate={(rate) => {
               setPlaybackRate(rate);
-              if (videoRef.current) {
-                videoRef.current.playbackRate = rate;
-              }
               showToast(`⚡ Speed: ${rate}x`);
             }}
             quality={quality}
@@ -843,7 +767,14 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
         </div>
 
         {/* Synchronized Subtitles (Isolated, compact, only active during spoken dialogue) */}
-        <ReelSubtitlesOverlay videoRef={videoRef} cues={cues} subtitleLanguage={subtitleLanguage} />
+        {hasVideo && (
+          <ReelSubtitlesOverlay
+            key={`subtitles-${videoKey}`}
+            videoRef={videoRef}
+            cues={cues}
+            subtitleLanguage={subtitleLanguage}
+          />
+        )}
 
         {/* "Not Interested" Feedback Card with 5s countdown, Cancel & Skip now (Requirement 9) */}
         {notInterestedNotice && (
@@ -978,14 +909,9 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
         </div>
 
         {/* Scrubber / Progress Bar (Decoupled – zero parent re-renders during playback) */}
-        <ReelProgressBar
-          videoRef={videoRef}
-          onSeek={(time) => {
-            if (videoRef.current) {
-              videoRef.current.currentTime = time;
-            }
-          }}
-        />
+        {hasVideo && (
+          <ReelProgressBar key={`progress-${videoKey}`} videoRef={videoRef} onSeek={seekVideo} />
+        )}
       </div>
 
       {/* Desktop Action Rail */}
@@ -1030,13 +956,20 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
 export const ReelCard = React.memo(ReelCardComponent, (prev, next) => {
   return (
     prev.reel.id === next.reel.id &&
+    prev.reel.videoUrl === next.reel.videoUrl &&
+    prev.reel.hlsUrl === next.reel.hlsUrl &&
+    prev.reel.thumbnailUrl === next.reel.thumbnailUrl &&
+    prev.videoPool === next.videoPool &&
     prev.reel.isLiked === next.reel.isLiked &&
     prev.reel.likesCount === next.reel.likesCount &&
     prev.reel.isSaved === next.reel.isSaved &&
     prev.reel.commentsCount === next.reel.commentsCount &&
     prev.reel.sharesCount === next.reel.sharesCount &&
     prev.isActive === next.isActive &&
-    prev.isMuted === next.isMuted
+    prev.isMuted === next.isMuted &&
+    prev.onToggleMute === next.onToggleMute &&
+    prev.onNavigateNext === next.onNavigateNext &&
+    prev.onRemoveReel === next.onRemoveReel
   );
 });
 

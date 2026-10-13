@@ -9,6 +9,7 @@ import * as useConversationsModule from '@/features/chat/model/useConversations'
 import { usePresenceStore } from '@/shared/model/usePresenceStore';
 import { useAuthStore } from '@/shared/model/useAuthStore';
 import { chatApi } from '@/features/chat/api/chatApi';
+import { useMediaDetailModalStore } from '@/entities/showcase/model/useMediaDetailModalStore';
 
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', () => ({
@@ -360,5 +361,109 @@ describe('OnlineFriendsSidebar', () => {
 
     // Verify 2+ friends playing Dota 2 triggers the aggregator card
     expect(screen.getByText('2 friends')).toBeInTheDocument();
+  });
+
+  it('navigates to track page when clicking track title or track cover art', () => {
+    usePresenceStore.setState({ onlineUserIds: new Set(['user-music']) });
+
+    vi.spyOn(useSuggestedUsersModule, 'useSuggestedUsers').mockReturnValue({
+      data: [],
+      isLoading: false,
+    } as unknown as ReturnType<typeof useSuggestedUsersModule.useSuggestedUsers>);
+
+    vi.spyOn(useFriendsModule, 'useFriends').mockReturnValue({
+      data: [
+        {
+          id: 'user-music',
+          username: 'nikolajagh',
+          displayName: 'Nikolaj Agh',
+          avatar: null,
+          isFollowing: true,
+          followsYou: true,
+          isFriend: true,
+          activityStatus: {
+            type: 'music',
+            title: 'SOPHIE - VYZ',
+            trackId: 'trk-sophie-vyz',
+            imageUrl: '/sophie.jpg',
+          },
+        },
+      ],
+      isLoading: false,
+    } as unknown as ReturnType<typeof useFriendsModule.useFriends>);
+
+    renderSidebar();
+
+    // Verify track title is present
+    const trackTitle = screen.getByText('SOPHIE - VYZ');
+    expect(trackTitle).toBeInTheDocument();
+    expect(trackTitle).toHaveClass('hover:underline');
+
+    // Clicking track title navigates to track page
+    fireEvent.click(trackTitle);
+    expect(mockNavigate).toHaveBeenCalledWith('/music/track/trk-sophie-vyz');
+
+    mockNavigate.mockClear();
+
+    // Clicking cover art navigates to track page
+    const openTrackElements = screen.getAllByTitle('Open track: SOPHIE - VYZ');
+    expect(openTrackElements.length).toBeGreaterThan(1);
+    fireEvent.click(openTrackElements[1]);
+    expect(mockNavigate).toHaveBeenCalledWith('/music/track/trk-sophie-vyz');
+  });
+
+  it('opens MediaDetailModal when clicking game title, game icon, or game aggregator', () => {
+    usePresenceStore.setState({ onlineUserIds: new Set(['user-game']) });
+    useMediaDetailModalStore.getState().closeMediaDetail();
+
+    vi.spyOn(useSuggestedUsersModule, 'useSuggestedUsers').mockReturnValue({
+      data: [],
+      isLoading: false,
+    } as unknown as ReturnType<typeof useSuggestedUsersModule.useSuggestedUsers>);
+
+    vi.spyOn(useFriendsModule, 'useFriends').mockReturnValue({
+      data: [
+        {
+          id: 'user-game',
+          username: 'nikolajagh',
+          displayName: 'Nikolaj Agh',
+          avatar: null,
+          isFollowing: true,
+          followsYou: true,
+          isFriend: true,
+          activityStatus: {
+            type: 'gaming',
+            title: 'Dota 2',
+            isSteam: true,
+            imageUrl: '/dota2.png',
+          },
+        },
+      ],
+      isLoading: false,
+    } as unknown as ReturnType<typeof useFriendsModule.useFriends>);
+
+    renderSidebar();
+
+    expect(useMediaDetailModalStore.getState().isOpen).toBe(false);
+
+    // Click on game title under username
+    const gameTitles = screen.getAllByText('Dota 2');
+    expect(gameTitles.length).toBeGreaterThan(0);
+    fireEvent.click(gameTitles[0]);
+
+    expect(useMediaDetailModalStore.getState().isOpen).toBe(true);
+    expect(useMediaDetailModalStore.getState().activeItem?.title).toBe('Dota 2');
+    expect(useMediaDetailModalStore.getState().activeItem?.type).toBe('GAME');
+
+    // Close and test clicking the right-side game icon
+    useMediaDetailModalStore.getState().closeMediaDetail();
+    expect(useMediaDetailModalStore.getState().isOpen).toBe(false);
+
+    const gameIcons = screen.getAllByTitle('View Dota 2');
+    expect(gameIcons.length).toBeGreaterThan(0);
+    fireEvent.click(gameIcons[0]);
+
+    expect(useMediaDetailModalStore.getState().isOpen).toBe(true);
+    expect(useMediaDetailModalStore.getState().activeItem?.title).toBe('Dota 2');
   });
 });

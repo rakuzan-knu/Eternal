@@ -1,5 +1,5 @@
 export const VIDEO_EXTENSIONS_REGEX =
-  /\.(mp4|m4v|webm|ogv|mov|mkv|avi|wmv|flv|3gp|3g2|ts|mpeg|mpg)(\?.*)?$/i;
+  /\.(mp4|m4v|webm|ogv|mov|mkv|avi|wmv|flv|3gp|3g2|mpegts|mpeg|mpg)(\?.*)?$/i;
 
 export const IMAGE_EXTENSIONS_REGEX = /\.(png|jpe?g|webp|svg|bmp|heic|avif|ico)(\?.*)?$/i;
 

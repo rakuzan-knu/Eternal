@@ -1,4 +1,5 @@
 import { ProfileFrame } from '@/shared/ui/ProfileFrame';
+import { ProfileEffect } from '@/shared/ui/ProfileEffect';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -28,11 +29,19 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useCurrentUser } from '@/entities/profile/model/useCurrentUser';
 import { useDecorations } from '@/pages/Shop/model/useDecorations';
 import { useNameplates } from '@/pages/Shop/model/useNameplates';
-import type { AvatarDecorationDto, NameplateDto } from '@social-network/shared-contracts';
+import { useProfileEffects } from '@/pages/Shop/model/useProfileEffects';
+import { useProfileFrames } from '@/pages/Shop/model/useProfileFrames';
+import type {
+  AvatarDecorationDto,
+  NameplateDto,
+  ProfileEffectDto,
+  ProfileFrameDto,
+} from '@social-network/shared-contracts';
 import { AvatarWithDecoration } from '@/shared/ui/AvatarDecoration';
 import { Nameplate } from '@/shared/ui/Nameplate';
 import Avatar from '@/shared/ui/Avatar';
 import Banner from '@/shared/ui/Banner';
+import { VerifiedCheckmark } from '@/entities/profile/ui/VerifiedCheckmark';
 import { useMessageToastStore } from '@/shared/model/useMessageToastStore';
 import { useThemeStore } from '@/shared/model/useThemeStore';
 import { useUIStore } from '@/shared/model/useUIStore';
@@ -1315,7 +1324,10 @@ const MiniProfileSilhouette: React.FC = () => {
     <div className="w-[82px] h-[114px] bg-[#111214] rounded-xl border border-white/5 relative overflow-hidden flex flex-col justify-between p-2 select-none shadow-inner">
       <div className="w-full h-8 bg-white/[0.04] rounded-t-lg -mx-2 -mt-2 mb-1" />
       <div className="relative -mt-5 mb-1">
-        <div className="w-6 h-6 rounded-full bg-[#2b2d31] border-2 border-[#111214] flex items-center justify-center">
+        <div
+          data-profile-effect-avatar
+          className="w-6 h-6 rounded-full bg-[#2b2d31] border-2 border-[#111214] flex items-center justify-center"
+        >
           <div className="w-3.5 h-3.5 rounded-full bg-white/20" />
         </div>
       </div>
@@ -1742,40 +1754,78 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
     setPreviewNameplate(currentEquippedNameplate);
   }, [currentEquippedNameplate]);
 
-  const [selectedProfileEffect, setSelectedProfileEffect] = useState<ProfileEffectPreset | null>(
-    () => {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (parsed.effect) {
-            const found = PROFILE_EFFECT_PRESETS.find((p) => p.id === parsed.effect.id);
-            return found || parsed.effect;
-          }
-        }
-      } catch {
-        // ignore
-      }
-      return null;
-    },
+  // Real Profile Effects integration matching Avatar Decorations & Nameplates
+  const {
+    catalog: effectCatalog,
+    inventory: effectInventory,
+    equip: effectEquip,
+  } = useProfileEffects();
+
+  const ownedEffectItems = effectInventory.data?.items || [];
+  const ownedEffectMap = useMemo(
+    () =>
+      new Map<string, ProfileEffectDto>(
+        ownedEffectItems.map((item) => [item.profileEffect.id, item.profileEffect]),
+      ),
+    [ownedEffectItems],
   );
 
-  const [selectedProfileFrame, setSelectedProfileFrame] = useState<ProfileFramePreset | null>(
-    () => {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (parsed.frame) {
-            const found = PROFILE_FRAME_PRESETS.find((p) => p.id === parsed.frame.id);
-            return found || parsed.frame;
-          }
-        }
-      } catch {
-        // ignore
-      }
-      return null;
-    },
+  const activeEffectId = effectInventory.isSuccess
+    ? (effectInventory.data?.activeProfileEffectId ?? null)
+    : currentUser?.activeProfileEffect?.id || currentUser?.activeProfileEffectId || null;
+
+  const currentEquippedEffect: ProfileEffectDto | null = useMemo(() => {
+    if (!activeEffectId) return null;
+    return (
+      ownedEffectMap.get(activeEffectId) ||
+      (currentUser?.activeProfileEffect?.id === activeEffectId
+        ? currentUser.activeProfileEffect
+        : null) ||
+      effectCatalog.data?.find((e) => e.id === activeEffectId) ||
+      null
+    );
+  }, [activeEffectId, ownedEffectMap, currentUser?.activeProfileEffect, effectCatalog.data]);
+
+  const shopEffects = useMemo(
+    () => (effectCatalog.data || []).filter((item) => !ownedEffectMap.has(item.id)),
+    [effectCatalog.data, ownedEffectMap],
+  );
+
+  // Real Profile Frames integration matching Avatar Decorations & Nameplates
+  const {
+    catalog: frameCatalog,
+    inventory: frameInventory,
+    equip: frameEquip,
+  } = useProfileFrames();
+
+  const ownedFrameItems = frameInventory.data?.items || [];
+  const ownedFrameMap = useMemo(
+    () =>
+      new Map<string, ProfileFrameDto>(
+        ownedFrameItems.map((item) => [item.profileFrame.id, item.profileFrame]),
+      ),
+    [ownedFrameItems],
+  );
+
+  const activeFrameId = frameInventory.isSuccess
+    ? (frameInventory.data?.activeProfileFrameId ?? null)
+    : currentUser?.activeProfileFrame?.id || currentUser?.activeProfileFrameId || null;
+
+  const currentEquippedFrame: ProfileFrameDto | null = useMemo(() => {
+    if (!activeFrameId) return null;
+    return (
+      ownedFrameMap.get(activeFrameId) ||
+      (currentUser?.activeProfileFrame?.id === activeFrameId
+        ? currentUser.activeProfileFrame
+        : null) ||
+      frameCatalog.data?.find((f) => f.id === activeFrameId) ||
+      null
+    );
+  }, [activeFrameId, ownedFrameMap, currentUser?.activeProfileFrame, frameCatalog.data]);
+
+  const shopFrames = useMemo(
+    () => (frameCatalog.data || []).filter((item) => !ownedFrameMap.has(item.id)),
+    [frameCatalog.data, ownedFrameMap],
   );
 
   const [nameStyle, setNameStyle] = useState<NameStyleConfig | null>(() => {
@@ -1881,11 +1931,11 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
   }, [activeThemeColorPicker]);
 
   // Preview states for Selection Modals
-  const [previewProfileEffect, setPreviewProfileEffect] = useState<ProfileEffectPreset | null>(
-    selectedProfileEffect,
+  const [previewProfileEffect, setPreviewProfileEffect] = useState<ProfileEffectDto | null>(
+    currentEquippedEffect,
   );
-  const [previewProfileFrame, setPreviewProfileFrame] = useState<ProfileFramePreset | null>(
-    selectedProfileFrame,
+  const [previewProfileFrame, setPreviewProfileFrame] = useState<ProfileFrameDto | null>(
+    currentEquippedFrame,
   );
 
   // Sync modal preview states when modals open or active values change
@@ -1896,16 +1946,22 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
   }, [activePickerModal, currentEquippedNameplate]);
 
   useEffect(() => {
-    if (activePickerModal === 'effect') {
-      setPreviewProfileEffect(selectedProfileEffect);
+    if (activePickerModal === 'decoration') {
+      setPreviewDecoration(currentEquippedDecoration);
     }
-  }, [activePickerModal, selectedProfileEffect]);
+  }, [activePickerModal, currentEquippedDecoration]);
+
+  useEffect(() => {
+    if (activePickerModal === 'effect') {
+      setPreviewProfileEffect(currentEquippedEffect);
+    }
+  }, [activePickerModal, currentEquippedEffect]);
 
   useEffect(() => {
     if (activePickerModal === 'frame') {
-      setPreviewProfileFrame(selectedProfileFrame);
+      setPreviewProfileFrame(currentEquippedFrame);
     }
-  }, [activePickerModal, selectedProfileFrame]);
+  }, [activePickerModal, currentEquippedFrame]);
 
   // Draft states for Change Display Name Style Modal
   const [draftNameFont, setDraftNameFont] = useState<string>(() => nameStyle?.fontId || 'bubble');
@@ -1985,9 +2041,9 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
         } else if (activePickerModal === 'decoration') {
           setPreviewDecoration(currentEquippedDecoration);
         } else if (activePickerModal === 'effect') {
-          setPreviewProfileEffect(selectedProfileEffect);
+          setPreviewProfileEffect(currentEquippedEffect);
         } else if (activePickerModal === 'frame') {
-          setPreviewProfileFrame(selectedProfileFrame);
+          setPreviewProfileFrame(currentEquippedFrame);
         } else if (activePickerModal === 'nameStyle') {
           setShowColorPickerPopover(false);
         }
@@ -2002,8 +2058,8 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
     showColorPickerPopover,
     currentEquippedNameplate,
     currentEquippedDecoration,
-    selectedProfileEffect,
-    selectedProfileFrame,
+    currentEquippedEffect,
+    currentEquippedFrame,
   ]);
 
   const handleGummySliderPointer = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -2244,16 +2300,16 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
     }
   };
 
-  const displayName = currentUser?.displayName || currentUser?.username || 'User';
-  const username = currentUser?.username || 'user';
+  const displayName = currentUser?.displayName || currentUser?.username || '';
+  const username = currentUser?.username || '';
   const avatarUrl = currentUser?.avatar || null;
 
-  // Format user bio with normal character limit
+  // Format user bio with normal character limit (strictly real user data, no mock fallbacks)
   const bioText = currentUser?.bio?.trim()
-    ? currentUser.bio.length > 120
-      ? currentUser.bio.slice(0, 120) + '...'
-      : currentUser.bio
-    : 'No bio yet.';
+    ? currentUser.bio.trim().length > 120
+      ? currentUser.bio.trim().slice(0, 120) + '...'
+      : currentUser.bio.trim()
+    : '';
 
   // Check if preview decoration is owned
   const isPreviewOwned = previewDecoration === null || ownedMap.has(previewDecoration.id);
@@ -2329,48 +2385,79 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
     }
   };
 
-  const handleApplyProfileEffect = () => {
-    if (previewProfileEffect && !previewProfileEffect.isOwned) {
-      handleGoToShop();
+  const isEffectOwned =
+    previewProfileEffect === null || ownedEffectMap.has(previewProfileEffect.id);
+  const isEffectCurrentActive = (previewProfileEffect?.id || null) === (activeEffectId || null);
+
+  const handleApplyProfileEffect = async () => {
+    if (!isEffectOwned) {
+      handleGoToShop('profile-effects');
       return;
     }
-    setSelectedProfileEffect(previewProfileEffect);
-    persistVisualSettings({ effect: previewProfileEffect });
-    useMessageToastStore.getState().addToast({
-      id: `toast-${Date.now()}`,
-      conversationId: '',
-      messageId: '',
-      title: 'Profile Effect Updated',
-      body: previewProfileEffect
-        ? `Equipped ${previewProfileEffect.name}.`
-        : 'Profile effect cleared.',
-      avatar: null,
-      memberAvatars: [],
-      isGroup: false,
-    });
-    setActivePickerModal(null);
+    try {
+      await effectEquip.mutateAsync(previewProfileEffect?.id ?? null);
+      useMessageToastStore.getState().addToast({
+        id: `toast-${Date.now()}`,
+        conversationId: '',
+        messageId: '',
+        title: 'Profile Effect Updated',
+        body: previewProfileEffect
+          ? `Equipped ${previewProfileEffect.name}.`
+          : 'Profile effect cleared.',
+        avatar: null,
+        memberAvatars: [],
+        isGroup: false,
+      });
+      setActivePickerModal(null);
+    } catch {
+      useMessageToastStore.getState().addToast({
+        id: `toast-${Date.now()}`,
+        conversationId: '',
+        messageId: '',
+        title: 'Error',
+        body: 'Failed to equip profile effect. Please try again.',
+        avatar: null,
+        memberAvatars: [],
+        isGroup: false,
+      });
+    }
   };
 
-  const handleApplyProfileFrame = () => {
-    if (previewProfileFrame && !previewProfileFrame.isOwned) {
-      handleGoToShop();
+  const isFrameOwned = previewProfileFrame === null || ownedFrameMap.has(previewProfileFrame.id);
+  const isFrameCurrentActive = (previewProfileFrame?.id || null) === (activeFrameId || null);
+
+  const handleApplyProfileFrame = async () => {
+    if (!isFrameOwned) {
+      handleGoToShop('profile-frames');
       return;
     }
-    setSelectedProfileFrame(previewProfileFrame);
-    persistVisualSettings({ frame: previewProfileFrame });
-    useMessageToastStore.getState().addToast({
-      id: `toast-${Date.now()}`,
-      conversationId: '',
-      messageId: '',
-      title: 'Profile Frame Updated',
-      body: previewProfileFrame
-        ? `Equipped ${previewProfileFrame.name}.`
-        : 'Profile frame cleared.',
-      avatar: null,
-      memberAvatars: [],
-      isGroup: false,
-    });
-    setActivePickerModal(null);
+    try {
+      await frameEquip.mutateAsync(previewProfileFrame?.id ?? null);
+      useMessageToastStore.getState().addToast({
+        id: `toast-${Date.now()}`,
+        conversationId: '',
+        messageId: '',
+        title: 'Profile Frame Updated',
+        body: previewProfileFrame
+          ? `Equipped ${previewProfileFrame.name}.`
+          : 'Profile frame cleared.',
+        avatar: null,
+        memberAvatars: [],
+        isGroup: false,
+      });
+      setActivePickerModal(null);
+    } catch {
+      useMessageToastStore.getState().addToast({
+        id: `toast-${Date.now()}`,
+        conversationId: '',
+        messageId: '',
+        title: 'Error',
+        body: 'Failed to equip profile frame. Please try again.',
+        avatar: null,
+        memberAvatars: [],
+        isGroup: false,
+      });
+    }
   };
 
   return (
@@ -2586,31 +2673,46 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
 
             <div className="grid grid-cols-2 gap-3">
               {/* Card 1: Profile Effect */}
-              {selectedProfileEffect ? (
+              {currentEquippedEffect ? (
                 <div
-                  onClick={() => setActivePickerModal('effect')}
+                  onClick={() => {
+                    void effectCatalog.refetch();
+                    void effectInventory.refetch();
+                    setPreviewProfileEffect(currentEquippedEffect);
+                    setActivePickerModal('effect');
+                  }}
                   className="h-[148px] rounded-2xl bg-white/70 dark:bg-[#1e1f22] border border-black/10 dark:border-white/[0.08] hover:border-black/20 dark:hover:border-white/20 transition-all cursor-pointer flex flex-col items-center justify-center p-2 relative overflow-hidden group shadow-md"
                   title="Profile Effect"
                 >
-                  <div className="relative w-[82px] h-[114px] rounded-xl overflow-hidden bg-[#111214]">
+                  <div className="relative w-[82px] h-[114px] rounded-xl overflow-hidden bg-[#111214] flex items-center justify-center">
                     <MiniProfileSilhouette />
-                    <ProfileEffectVisual
-                      effectKey={selectedProfileEffect.effectKey}
-                      isThumbnail={true}
-                    />
+                    <ProfileEffect effect={currentEquippedEffect} preview priority />
                   </div>
                   <div className="flex items-center justify-between w-full px-1 mt-1">
                     <span className="text-[11px] font-bold text-gray-900 dark:text-white truncate max-w-[70px]">
-                      {selectedProfileEffect.name}
+                      {currentEquippedEffect.name}
                     </span>
                     <button
                       type="button"
-                      onClick={(e) => {
+                      onClick={async (e) => {
                         e.stopPropagation();
-                        setSelectedProfileEffect(null);
-                        persistVisualSettings({ effect: null });
+                        try {
+                          await effectEquip.mutateAsync(null);
+                          useMessageToastStore.getState().addToast({
+                            id: `toast-${Date.now()}`,
+                            conversationId: '',
+                            messageId: '',
+                            title: 'Profile Effect Removed',
+                            body: 'Profile effect cleared.',
+                            avatar: null,
+                            memberAvatars: [],
+                            isGroup: false,
+                          });
+                        } catch {
+                          // ignore
+                        }
                       }}
-                      className="text-gray-400 hover:text-red-400 transition"
+                      className="text-gray-400 hover:text-red-400 transition cursor-pointer p-0.5"
                       title="Remove Effect"
                     >
                       <Trash2 size={12} />
@@ -2619,7 +2721,12 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
                 </div>
               ) : (
                 <div
-                  onClick={() => setActivePickerModal('effect')}
+                  onClick={() => {
+                    void effectCatalog.refetch();
+                    void effectInventory.refetch();
+                    setPreviewProfileEffect(null);
+                    setActivePickerModal('effect');
+                  }}
                   className="h-[148px] rounded-2xl bg-black/[0.02] dark:bg-[#1e1f22] border-2 border-dashed border-black/15 dark:border-white/15 hover:border-black/30 dark:hover:border-white/30 transition-all cursor-pointer flex flex-col items-center justify-center p-2 relative group shadow-sm"
                   title="Add Profile Effect"
                 >
@@ -2635,23 +2742,75 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
                 </div>
               )}
 
-              {/* Server-owned frames are managed by the canonical shop. */}
-              <button
-                type="button"
-                onClick={() => handleGoToShop('profile-frames')}
-                className="h-[148px] rounded-2xl bg-black/[0.02] dark:bg-[#1e1f22] border border-black/15 dark:border-white/15 hover:border-[var(--app-accent-color)] transition-colors cursor-pointer flex flex-col items-center justify-center p-3 gap-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--app-accent-color)]"
-                title="Manage Profile Frame"
-              >
-                <div className="relative w-[66px] h-[88px] rounded-xl bg-black/10 dark:bg-black/30">
-                  <ProfileFrame frame={currentUser?.activeProfileFrame} compact />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <EternalLogoIcon size={22} className="opacity-60" />
+              {/* Card 2: Profile Frame */}
+              {currentEquippedFrame ? (
+                <div
+                  onClick={() => {
+                    void frameCatalog.refetch();
+                    void frameInventory.refetch();
+                    setPreviewProfileFrame(currentEquippedFrame);
+                    setActivePickerModal('frame');
+                  }}
+                  className="h-[148px] rounded-2xl bg-white/70 dark:bg-[#1e1f22] border border-black/10 dark:border-white/[0.08] hover:border-black/20 dark:hover:border-white/20 transition-all cursor-pointer flex flex-col items-center justify-center p-2 relative overflow-hidden group shadow-md"
+                  title="Profile Frame"
+                >
+                  <div className="relative w-[82px] h-[114px] rounded-xl overflow-hidden bg-[#111214] flex items-center justify-center">
+                    <ProfileFrame frame={currentEquippedFrame} compact priority />
+                    <MiniProfileSilhouette />
+                  </div>
+                  <div className="flex items-center justify-between w-full px-1 mt-1">
+                    <span className="text-[11px] font-bold text-gray-900 dark:text-white truncate max-w-[70px]">
+                      {currentEquippedFrame.name}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        try {
+                          await frameEquip.mutateAsync(null);
+                          useMessageToastStore.getState().addToast({
+                            id: `toast-${Date.now()}`,
+                            conversationId: '',
+                            messageId: '',
+                            title: 'Profile Frame Removed',
+                            body: 'Profile frame cleared.',
+                            avatar: null,
+                            memberAvatars: [],
+                            isGroup: false,
+                          });
+                        } catch {
+                          // ignore
+                        }
+                      }}
+                      className="text-gray-400 hover:text-red-400 transition cursor-pointer p-0.5"
+                      title="Remove Frame"
+                    >
+                      <Trash2 size={12} />
+                    </button>
                   </div>
                 </div>
-                <span className="text-[11px] font-semibold truncate max-w-full">
-                  {currentUser?.activeProfileFrame?.name ?? 'Add Frame'}
-                </span>
-              </button>
+              ) : (
+                <div
+                  onClick={() => {
+                    void frameCatalog.refetch();
+                    void frameInventory.refetch();
+                    setPreviewProfileFrame(null);
+                    setActivePickerModal('frame');
+                  }}
+                  className="h-[148px] rounded-2xl bg-black/[0.02] dark:bg-[#1e1f22] border-2 border-dashed border-black/15 dark:border-white/15 hover:border-black/30 dark:hover:border-white/30 transition-all cursor-pointer flex flex-col items-center justify-center p-2 relative group shadow-sm"
+                  title="Add Profile Frame"
+                >
+                  <div className="w-[82px] h-[114px] rounded-xl border border-dashed border-black/20 dark:border-gray-600/70 group-hover:border-gray-400 group-hover:scale-105 transition-all flex flex-col items-center justify-center relative bg-black/5 dark:bg-[#111214]/60 gap-2">
+                    <EternalLogoIcon size={26} className="opacity-50" />
+                    <div className="w-7 h-7 rounded-full bg-black/5 dark:bg-white/10 group-hover:bg-black/10 dark:group-hover:bg-white/20 flex items-center justify-center text-gray-700 dark:text-white font-bold transition shadow-xs">
+                      <Plus size={15} />
+                    </div>
+                  </div>
+                  <span className="text-[11px] text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200 mt-1 font-semibold">
+                    Add Frame
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -2838,9 +2997,7 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
 
               {/* Profile Card Mockup */}
               <div
-                className={`w-full rounded-2xl overflow-hidden shadow-2xl relative transition-all ${
-                  selectedProfileFrame?.borderStyle || 'border border-black/15 dark:border-black/40'
-                }`}
+                className="w-full rounded-2xl overflow-hidden shadow-2xl relative transition-all border border-black/15 dark:border-black/40"
                 style={
                   hasCustomProfileTheme
                     ? {
@@ -2855,7 +3012,11 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
                 }
               >
                 {/* Profile Frame Decorative Embellishments */}
-                <ProfileFrame frame={currentUser?.activeProfileFrame} compact />
+                <ProfileFrame
+                  frame={activePickerModal === 'frame' ? previewProfileFrame : currentEquippedFrame}
+                  compact
+                  priority
+                />
 
                 {/* Banner Area */}
                 <div className="w-full h-28 relative overflow-hidden bg-black/20">
@@ -2870,22 +3031,27 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
                 </div>
 
                 {/* Live Animated Profile Effect Overlay on Card */}
-                {selectedProfileEffect && (
-                  <ProfileEffectVisual
-                    effectKey={selectedProfileEffect.effectKey}
-                    isCardOverlay={true}
-                  />
-                )}
+                <ProfileEffect
+                  effect={
+                    activePickerModal === 'effect' ? previewProfileEffect : currentEquippedEffect
+                  }
+                  preview
+                  priority
+                />
 
                 {/* Avatar & Identity Area */}
                 <div className="px-4 pb-4 -mt-10 relative z-10 flex flex-col gap-3">
                   <div className="flex items-end justify-between">
                     {/* Avatar */}
-                    <div className="relative">
+                    <div className="relative" data-profile-effect-avatar>
                       <AvatarWithDecoration
                         size={76}
                         avatarUrl={avatarUrl}
-                        decoration={currentEquippedDecoration}
+                        decoration={
+                          activePickerModal === 'decoration'
+                            ? previewDecoration
+                            : currentEquippedDecoration
+                        }
                         alt={displayName}
                       />
                       {/* Online Status Indicator */}
@@ -2898,23 +3064,46 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
                     {/* Display Name (Regular font by default, stylized if selected; styled with Nameplate if equipped) */}
                     <div
                       className={`relative rounded-xl transition-all ${
-                        currentEquippedNameplate ? 'nameplate-row px-3 py-2 -mx-1' : ''
+                        (
+                          activePickerModal === 'nameplate'
+                            ? previewNameplate
+                            : currentEquippedNameplate
+                        )
+                          ? 'nameplate-row px-3 py-2 -mx-1'
+                          : ''
                       }`}
                     >
-                      {currentEquippedNameplate && (
-                        <Nameplate nameplate={currentEquippedNameplate} />
+                      {(activePickerModal === 'nameplate'
+                        ? previewNameplate
+                        : currentEquippedNameplate) && (
+                        <Nameplate
+                          nameplate={
+                            activePickerModal === 'nameplate'
+                              ? previewNameplate!
+                              : currentEquippedNameplate!
+                          }
+                        />
                       )}
                       <div data-nameplate-text className="relative z-10">
-                        {nameStyle ? (
-                          renderStyledName(displayName, nameStyle, {
-                            className: 'text-lg font-black truncate select-none block',
-                          })
-                        ) : (
-                          <h3 className="text-base font-bold text-white truncate select-none">
-                            {displayName}
-                          </h3>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          {nameStyle ? (
+                            renderStyledName(displayName, nameStyle, {
+                              className: 'text-lg font-black truncate select-none block',
+                            })
+                          ) : (
+                            <h3 className="text-base font-bold text-white truncate select-none">
+                              {displayName}
+                            </h3>
+                          )}
+                          <VerifiedCheckmark
+                            isVerified={currentUser?.isVerified}
+                            primaryBadge={currentUser?.primaryBadge}
+                            size="sm"
+                          />
+                        </div>
+                        {username && (
+                          <p className="text-xs text-gray-300 font-medium">@{username}</p>
                         )}
-                        <p className="text-xs text-gray-300 font-medium">@{username}</p>
                       </div>
                     </div>
 
@@ -3496,7 +3685,7 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
             data-submodal-open="true"
             onClick={(e) => {
               if (e.target === e.currentTarget) {
-                setPreviewProfileEffect(selectedProfileEffect);
+                setPreviewProfileEffect(currentEquippedEffect);
                 setActivePickerModal(null);
               }
             }}
@@ -3517,7 +3706,7 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    setPreviewProfileEffect(selectedProfileEffect);
+                    setPreviewProfileEffect(currentEquippedEffect);
                     setActivePickerModal(null);
                   }}
                   className="text-gray-500 hover:text-gray-950 dark:text-gray-400 dark:hover:text-white p-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition cursor-pointer"
@@ -3563,7 +3752,7 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
                       {/* Item: Shop */}
                       <button
                         type="button"
-                        onClick={handleGoToShop}
+                        onClick={() => handleGoToShop('profile-effects')}
                         className="h-20 rounded-xl p-2 flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer relative bg-black/5 dark:bg-white/[0.04] hover:bg-black/10 dark:hover:bg-white/[0.08] border border-black/10 dark:border-white/10 hover:border-black/20 dark:hover:border-white/20 group"
                       >
                         <Store
@@ -3575,8 +3764,9 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
                         </span>
                       </button>
 
-                      {/* Owned Effects */}
-                      {PROFILE_EFFECT_PRESETS.filter((eff) => eff.isOwned).map((eff) => {
+                      {/* Owned Effects from Backend Database */}
+                      {ownedEffectItems.map((item) => {
+                        const eff = item.profileEffect;
                         const isSelected = previewProfileEffect?.id === eff.id;
                         return (
                           <button
@@ -3594,8 +3784,12 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
                             }`}
                             title={eff.name}
                           >
-                            <div className="w-10 h-10 rounded-lg overflow-hidden relative mt-0.5">
-                              <ProfileEffectVisual effectKey={eff.effectKey} isThumbnail={true} />
+                            <div className="w-10 h-10 rounded-lg overflow-hidden relative mt-0.5 flex items-center justify-center">
+                              <img
+                                src={eff.previewUrl || eff.assetUrl}
+                                alt={eff.name}
+                                className="w-10 h-10 object-contain pointer-events-none select-none"
+                              />
                             </div>
                             <span className="text-[10px] font-semibold text-gray-700 dark:text-gray-300 truncate w-full text-center">
                               {eff.name}
@@ -3606,54 +3800,58 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Section: See What's in Shop (NO Nitro section!) */}
-                  <div className="pt-2 border-t border-black/10 dark:border-white/10">
-                    <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2.5">
-                      See What&apos;s in Shop
-                    </h4>
+                  {/* Section: See What's in Shop */}
+                  {shopEffects.length > 0 && (
+                    <div className="pt-2 border-t border-black/10 dark:border-white/10">
+                      <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2.5">
+                        See What&apos;s in Shop
+                      </h4>
 
-                    <div className="grid grid-cols-3 gap-2.5">
-                      {PROFILE_EFFECT_PRESETS.filter((eff) => !eff.isOwned).map((eff) => {
-                        const isSelected = previewProfileEffect?.id === eff.id;
-                        return (
-                          <button
-                            key={eff.id}
-                            type="button"
-                            onClick={() => setPreviewProfileEffect(eff)}
-                            style={{
-                              borderColor: isSelected ? accentColor : undefined,
-                              boxShadow: isSelected ? `0 0 0 2px ${accentColor}40` : undefined,
-                            }}
-                            className={`h-20 rounded-xl p-1.5 flex flex-col items-center justify-between transition-all cursor-pointer relative bg-black/5 dark:bg-white/[0.04] hover:bg-black/10 dark:hover:bg-white/[0.08] overflow-hidden ${
-                              isSelected
-                                ? 'border-2 ring-2 bg-black/[0.03] dark:bg-white/[0.06]'
-                                : 'border border-black/10 dark:border-white/10 hover:border-black/20 dark:hover:border-white/20'
-                            }`}
-                            title={`${eff.name} (Shop)`}
-                          >
-                            <Lock
-                              size={12}
-                              className="absolute top-1.5 right-1.5 text-white/90 drop-shadow-md z-10"
-                            />
-                            <div className="w-10 h-10 rounded-lg overflow-hidden relative mt-0.5">
-                              <ProfileEffectVisual effectKey={eff.effectKey} isThumbnail={true} />
-                            </div>
-                            <span className="text-[10px] font-semibold text-gray-600 dark:text-gray-400 truncate w-full text-center">
-                              {eff.name}
-                            </span>
-                          </button>
-                        );
-                      })}
+                      <div className="grid grid-cols-3 gap-2.5">
+                        {shopEffects.map((eff) => {
+                          const isSelected = previewProfileEffect?.id === eff.id;
+                          return (
+                            <button
+                              key={eff.id}
+                              type="button"
+                              onClick={() => setPreviewProfileEffect(eff)}
+                              style={{
+                                borderColor: isSelected ? accentColor : undefined,
+                                boxShadow: isSelected ? `0 0 0 2px ${accentColor}40` : undefined,
+                              }}
+                              className={`h-20 rounded-xl p-1.5 flex flex-col items-center justify-between transition-all cursor-pointer relative bg-black/5 dark:bg-white/[0.04] hover:bg-black/10 dark:hover:bg-white/[0.08] overflow-hidden ${
+                                isSelected
+                                  ? 'border-2 ring-2 bg-black/[0.03] dark:bg-white/[0.06]'
+                                  : 'border border-black/10 dark:border-white/10 hover:border-black/20 dark:hover:border-white/20'
+                              }`}
+                              title={`${eff.name} (Shop)`}
+                            >
+                              <Lock
+                                size={12}
+                                className="absolute top-1.5 right-1.5 text-white/90 drop-shadow-md z-10"
+                              />
+                              <div className="w-10 h-10 rounded-lg overflow-hidden relative mt-0.5 flex items-center justify-center">
+                                <img
+                                  src={eff.previewUrl || eff.assetUrl}
+                                  alt={eff.name}
+                                  className="w-10 h-10 object-contain pointer-events-none select-none"
+                                />
+                              </div>
+                              <span className="text-[10px] font-semibold text-gray-600 dark:text-gray-400 truncate w-full text-center">
+                                {eff.name}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 {/* Right Column: Profile Card with Live Animated Effect */}
                 <div className="flex-1 bg-black/5 dark:bg-black/35 rounded-2xl p-4 flex flex-col justify-between min-w-[280px] border border-black/10 dark:border-white/5">
                   <div
-                    className={`rounded-2xl relative overflow-hidden shadow-2xl p-4 flex flex-col gap-3 min-h-[350px] ${
-                      selectedProfileFrame?.borderStyle || 'border border-white/10'
-                    }`}
+                    className="rounded-2xl relative overflow-hidden shadow-2xl p-4 flex flex-col gap-3 min-h-[350px] border border-white/10"
                     style={
                       hasCustomProfileTheme
                         ? {
@@ -3664,7 +3862,7 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
                     }
                   >
                     {/* Selected Profile Frame Flourishes */}
-                    <ProfileFrame frame={currentUser?.activeProfileFrame} compact />
+                    <ProfileFrame frame={currentEquippedFrame} compact />
 
                     {/* Banner at top */}
                     <div className="w-full h-24 rounded-t-xl -mx-4 -mt-4 mb-1 relative overflow-hidden">
@@ -3679,16 +3877,11 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
                     </div>
 
                     {/* Live Animated Effect Overlay across entire Profile Card! */}
-                    {previewProfileEffect && (
-                      <ProfileEffectVisual
-                        effectKey={previewProfileEffect.effectKey}
-                        isCardOverlay={true}
-                      />
-                    )}
+                    <ProfileEffect effect={previewProfileEffect} preview priority />
 
                     {/* Avatar row with decoration & online status */}
                     <div className="-mt-12 relative z-10 flex items-end justify-between">
-                      <div className="relative">
+                      <div className="relative" data-profile-effect-avatar>
                         <AvatarWithDecoration
                           size={68}
                           avatarUrl={avatarUrl}
@@ -3701,35 +3894,27 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
 
                     {/* User Identity Details */}
                     <div className="flex flex-col gap-0.5 z-10">
-                      <div className="truncate">
-                        {renderStyledName(displayName, nameStyle, {
-                          className: 'text-base font-bold tracking-wide truncate block',
-                        })}
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <div className="truncate">
+                          {renderStyledName(displayName, nameStyle, {
+                            className: 'text-base font-bold tracking-wide truncate block',
+                          })}
+                        </div>
+                        <VerifiedCheckmark
+                          isVerified={currentUser?.isVerified}
+                          primaryBadge={currentUser?.primaryBadge}
+                          size="sm"
+                        />
                       </div>
-                      <span className="text-xs text-gray-300">@{username}</span>
-                      <div className="flex items-center gap-1.5 mt-1 text-xs text-gray-300">
-                        <span className="px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-semibold text-white">
-                          Developer
-                        </span>
-                        <span className="px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-semibold text-white">
-                          Fame
-                        </span>
-                      </div>
+                      {username && <span className="text-xs text-gray-300">@{username}</span>}
                     </div>
 
                     {/* Bio snippet */}
-                    <p className="text-xs text-gray-300 line-clamp-2 z-10 mt-1 leading-relaxed">
-                      {bioText}
-                    </p>
-
-                    {/* Example Button) */}
-                    <button
-                      type="button"
-                      style={{ backgroundColor: accentColor }}
-                      className="w-full py-2.5 rounded-lg text-white font-semibold text-xs text-center shadow-md select-none mt-auto cursor-default z-10"
-                    >
-                      Example Button
-                    </button>
+                    {bioText ? (
+                      <p className="text-xs text-gray-300 line-clamp-2 z-10 mt-1 leading-relaxed">
+                        {bioText}
+                      </p>
+                    ) : null}
                   </div>
 
                   {/* Details Box */}
@@ -3739,9 +3924,9 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
                     </span>
                     <span className="text-xs text-gray-400">
                       {previewProfileEffect
-                        ? previewProfileEffect.isOwned
-                          ? previewProfileEffect.acquiredDate || 'Acquired'
-                          : 'Available in Shop'
+                        ? isEffectOwned
+                          ? 'In your collection'
+                          : previewProfileEffect.description || 'Available in Shop'
                         : 'No profile effect applied'}
                     </span>
                   </div>
@@ -3753,39 +3938,33 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    setPreviewProfileEffect(selectedProfileEffect);
+                    setPreviewProfileEffect(currentEquippedEffect);
                     setActivePickerModal(null);
                   }}
                   className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-600 hover:text-gray-950 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/[0.08] transition cursor-pointer"
                 >
                   Cancel
                 </button>
-                {(() => {
-                  const isOwned = previewProfileEffect === null || previewProfileEffect.isOwned;
-                  const isCurrentActive =
-                    (previewProfileEffect?.id || null) === (selectedProfileEffect?.id || null);
-
-                  return (
-                    <button
-                      type="button"
-                      disabled={isOwned && isCurrentActive}
-                      onClick={handleApplyProfileEffect}
-                      style={{
-                        backgroundColor: isOwned && isCurrentActive ? undefined : accentColor,
-                      }}
-                      className={`px-6 py-2 rounded-xl text-sm font-bold text-white transition cursor-pointer shadow-md active:scale-95 flex items-center gap-2 ${
-                        isOwned && isCurrentActive
-                          ? 'bg-gray-400 dark:bg-gray-600 opacity-50 cursor-not-allowed pointer-events-none'
-                          : 'hover:opacity-90'
-                      }`}
-                    >
-                      {!isOwned && <Store size={15} />}
-                      <span>
-                        {!isOwned ? 'View in Shop' : isCurrentActive ? 'Applied' : 'Apply'}
-                      </span>
-                    </button>
-                  );
-                })()}
+                <button
+                  type="button"
+                  disabled={effectEquip.isPending || (isEffectOwned && isEffectCurrentActive)}
+                  onClick={handleApplyProfileEffect}
+                  style={{
+                    backgroundColor:
+                      isEffectOwned && isEffectCurrentActive ? undefined : accentColor,
+                  }}
+                  className={`px-6 py-2 rounded-xl text-sm font-bold text-white transition cursor-pointer shadow-md active:scale-95 flex items-center gap-2 ${
+                    isEffectOwned && isEffectCurrentActive
+                      ? 'bg-gray-400 dark:bg-gray-600 opacity-50 cursor-not-allowed pointer-events-none'
+                      : 'hover:opacity-90'
+                  }`}
+                >
+                  {effectEquip.isPending && <Loader2 size={16} className="animate-spin" />}
+                  {!isEffectOwned && <Store size={15} />}
+                  <span>
+                    {!isEffectOwned ? 'View in Shop' : isEffectCurrentActive ? 'Applied' : 'Apply'}
+                  </span>
+                </button>
               </div>
             </motion.div>
           </div>
@@ -3801,7 +3980,7 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
             data-submodal-open="true"
             onClick={(e) => {
               if (e.target === e.currentTarget) {
-                setPreviewProfileFrame(selectedProfileFrame);
+                setPreviewProfileFrame(currentEquippedFrame);
                 setActivePickerModal(null);
               }
             }}
@@ -3822,7 +4001,7 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    setPreviewProfileFrame(selectedProfileFrame);
+                    setPreviewProfileFrame(currentEquippedFrame);
                     setActivePickerModal(null);
                   }}
                   className="text-gray-500 hover:text-gray-950 dark:text-gray-400 dark:hover:text-white p-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition cursor-pointer"
@@ -3866,7 +4045,7 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
                       {/* Item: Shop */}
                       <button
                         type="button"
-                        onClick={handleGoToShop}
+                        onClick={() => handleGoToShop('profile-frames')}
                         className="h-20 rounded-xl p-2 flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer relative bg-black/5 dark:bg-white/[0.04] hover:bg-black/10 dark:hover:bg-white/[0.08] border border-black/10 dark:border-white/10 hover:border-black/20 dark:hover:border-white/20 group"
                       >
                         <Store
@@ -3878,8 +4057,9 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
                         </span>
                       </button>
 
-                      {/* Owned Frames */}
-                      {PROFILE_FRAME_PRESETS.filter((frm) => frm.isOwned).map((frm) => {
+                      {/* Owned Frames from Backend Database */}
+                      {ownedFrameItems.map((item) => {
+                        const frm = item.profileFrame;
                         const isSelected = previewProfileFrame?.id === frm.id;
                         return (
                           <button
@@ -3897,12 +4077,17 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
                             }`}
                             title={frm.name}
                           >
-                            <div
-                              className={`w-10 h-10 rounded-lg bg-[#111214] flex items-center justify-center relative mt-0.5 ${
-                                frm.borderStyle || ''
-                              }`}
-                            >
-                              <ProfileFrameVisual frameType={frm.frameType} isThumbnail={true} />
+                            <div className="w-10 h-10 rounded-lg overflow-hidden relative mt-0.5 flex items-center justify-center bg-black/20 dark:bg-black/50">
+                              <ProfileFrame frame={frm} compact />
+                              {frm.crownPreviewUrl || frm.crownUrl ? (
+                                <img
+                                  src={frm.crownPreviewUrl || frm.crownUrl}
+                                  alt={frm.name}
+                                  className="w-7 h-7 object-contain pointer-events-none select-none relative z-10"
+                                />
+                              ) : (
+                                <span className="w-5 h-5 rounded-full border border-white/20" />
+                              )}
                             </div>
                             <span className="text-[10px] font-semibold text-gray-700 dark:text-gray-300 truncate w-full text-center">
                               {frm.name}
@@ -3913,59 +4098,64 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Section: See What's in Shop (NO Nitro section!) */}
-                  <div className="pt-2 border-t border-black/10 dark:border-white/10">
-                    <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2.5">
-                      See What&apos;s in Shop
-                    </h4>
+                  {/* Section: See What's in Shop */}
+                  {shopFrames.length > 0 && (
+                    <div className="pt-2 border-t border-black/10 dark:border-white/10">
+                      <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2.5">
+                        See What&apos;s in Shop
+                      </h4>
 
-                    <div className="grid grid-cols-3 gap-2.5">
-                      {PROFILE_FRAME_PRESETS.filter((frm) => !frm.isOwned).map((frm) => {
-                        const isSelected = previewProfileFrame?.id === frm.id;
-                        return (
-                          <button
-                            key={frm.id}
-                            type="button"
-                            onClick={() => setPreviewProfileFrame(frm)}
-                            style={{
-                              borderColor: isSelected ? accentColor : undefined,
-                              boxShadow: isSelected ? `0 0 0 2px ${accentColor}40` : undefined,
-                            }}
-                            className={`h-20 rounded-xl p-1.5 flex flex-col items-center justify-between transition-all cursor-pointer relative bg-black/5 dark:bg-white/[0.04] hover:bg-black/10 dark:hover:bg-white/[0.08] overflow-hidden ${
-                              isSelected
-                                ? 'border-2 ring-2 bg-black/[0.03] dark:bg-white/[0.06]'
-                                : 'border border-black/10 dark:border-white/10 hover:border-black/20 dark:hover:border-white/20'
-                            }`}
-                            title={`${frm.name} (Shop)`}
-                          >
-                            <Lock
-                              size={12}
-                              className="absolute top-1.5 right-1.5 text-white/90 drop-shadow-md z-10"
-                            />
-                            <div
-                              className={`w-10 h-10 rounded-lg bg-[#111214] flex items-center justify-center relative mt-0.5 ${
-                                frm.borderStyle || ''
+                      <div className="grid grid-cols-3 gap-2.5">
+                        {shopFrames.map((frm) => {
+                          const isSelected = previewProfileFrame?.id === frm.id;
+                          return (
+                            <button
+                              key={frm.id}
+                              type="button"
+                              onClick={() => setPreviewProfileFrame(frm)}
+                              style={{
+                                borderColor: isSelected ? accentColor : undefined,
+                                boxShadow: isSelected ? `0 0 0 2px ${accentColor}40` : undefined,
+                              }}
+                              className={`h-20 rounded-xl p-1.5 flex flex-col items-center justify-between transition-all cursor-pointer relative bg-black/5 dark:bg-white/[0.04] hover:bg-black/10 dark:hover:bg-white/[0.08] overflow-hidden ${
+                                isSelected
+                                  ? 'border-2 ring-2 bg-black/[0.03] dark:bg-white/[0.06]'
+                                  : 'border border-black/10 dark:border-white/10 hover:border-black/20 dark:hover:border-white/20'
                               }`}
+                              title={`${frm.name} (Shop)`}
                             >
-                              <ProfileFrameVisual frameType={frm.frameType} isThumbnail={true} />
-                            </div>
-                            <span className="text-[10px] font-semibold text-gray-600 dark:text-gray-400 truncate w-full text-center">
-                              {frm.name}
-                            </span>
-                          </button>
-                        );
-                      })}
+                              <Lock
+                                size={12}
+                                className="absolute top-1.5 right-1.5 text-white/90 drop-shadow-md z-20"
+                              />
+                              <div className="w-10 h-10 rounded-lg overflow-hidden relative mt-0.5 flex items-center justify-center bg-black/20 dark:bg-black/50">
+                                <ProfileFrame frame={frm} compact />
+                                {frm.crownPreviewUrl || frm.crownUrl ? (
+                                  <img
+                                    src={frm.crownPreviewUrl || frm.crownUrl}
+                                    alt={frm.name}
+                                    className="w-7 h-7 object-contain pointer-events-none select-none relative z-10"
+                                  />
+                                ) : (
+                                  <span className="w-5 h-5 rounded-full border border-white/20" />
+                                )}
+                              </div>
+                              <span className="text-[10px] font-semibold text-gray-600 dark:text-gray-400 truncate w-full text-center">
+                                {frm.name}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 {/* Right Column: Framed Profile Card Preview */}
                 <div className="flex-1 bg-black/5 dark:bg-black/35 rounded-2xl p-4 flex flex-col justify-between min-w-[280px] border border-black/10 dark:border-white/5">
                   {/* Framed Profile Card */}
                   <div
-                    className={`rounded-2xl relative overflow-hidden shadow-2xl p-4 flex flex-col gap-3 min-h-[350px] transition-all duration-300 ${
-                      previewProfileFrame?.borderStyle || 'border border-white/10'
-                    }`}
+                    className="rounded-2xl relative overflow-hidden shadow-2xl p-4 flex flex-col gap-3 min-h-[350px] transition-all duration-300 border border-white/10"
                     style={
                       hasCustomProfileTheme
                         ? {
@@ -3976,9 +4166,7 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
                     }
                   >
                     {/* Frame Decorative Flourishes */}
-                    {previewProfileFrame && (
-                      <ProfileFrameVisual frameType={previewProfileFrame.frameType} />
-                    )}
+                    <ProfileFrame frame={previewProfileFrame} priority compact />
 
                     {/* Banner at top */}
                     <div className="w-full h-24 rounded-t-xl -mx-4 -mt-4 mb-1 relative overflow-hidden">
@@ -3993,16 +4181,11 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
                     </div>
 
                     {/* Active Profile Effect if equipped */}
-                    {selectedProfileEffect && (
-                      <ProfileEffectVisual
-                        effectKey={selectedProfileEffect.effectKey}
-                        isCardOverlay={true}
-                      />
-                    )}
+                    <ProfileEffect effect={currentEquippedEffect} preview />
 
                     {/* Avatar row with decoration & online status */}
                     <div className="-mt-12 relative z-10 flex items-end justify-between">
-                      <div className="relative">
+                      <div className="relative" data-profile-effect-avatar>
                         <AvatarWithDecoration
                           size={68}
                           avatarUrl={avatarUrl}
@@ -4015,35 +4198,27 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
 
                     {/* User Identity Details */}
                     <div className="flex flex-col gap-0.5 z-10">
-                      <div className="truncate">
-                        {renderStyledName(displayName, nameStyle, {
-                          className: 'text-base font-bold tracking-wide truncate block',
-                        })}
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <div className="truncate">
+                          {renderStyledName(displayName, nameStyle, {
+                            className: 'text-base font-bold tracking-wide truncate block',
+                          })}
+                        </div>
+                        <VerifiedCheckmark
+                          isVerified={currentUser?.isVerified}
+                          primaryBadge={currentUser?.primaryBadge}
+                          size="sm"
+                        />
                       </div>
-                      <span className="text-xs text-gray-300">@{username}</span>
-                      <div className="flex items-center gap-1.5 mt-1 text-xs text-gray-300">
-                        <span className="px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-semibold text-white">
-                          Developer
-                        </span>
-                        <span className="px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-semibold text-white">
-                          Fame
-                        </span>
-                      </div>
+                      {username && <span className="text-xs text-gray-300">@{username}</span>}
                     </div>
 
                     {/* Bio snippet */}
-                    <p className="text-xs text-gray-300 line-clamp-2 z-10 mt-1 leading-relaxed">
-                      {bioText}
-                    </p>
-
-                    {/* Example Button */}
-                    <button
-                      type="button"
-                      style={{ backgroundColor: accentColor }}
-                      className="w-full py-2.5 rounded-lg text-white font-semibold text-xs text-center shadow-md select-none mt-auto cursor-default z-10"
-                    >
-                      Example Button
-                    </button>
+                    {bioText ? (
+                      <p className="text-xs text-gray-300 line-clamp-2 z-10 mt-1 leading-relaxed">
+                        {bioText}
+                      </p>
+                    ) : null}
                   </div>
 
                   {/* Details Box */}
@@ -4053,9 +4228,9 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
                     </span>
                     <span className="text-xs text-gray-400">
                       {previewProfileFrame
-                        ? previewProfileFrame.isOwned
-                          ? previewProfileFrame.acquiredDate || 'Acquired'
-                          : 'Available in Shop'
+                        ? isFrameOwned
+                          ? 'In your collection'
+                          : previewProfileFrame.description || 'Available in Shop'
                         : 'No profile frame applied'}
                     </span>
                   </div>
@@ -4067,39 +4242,32 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    setPreviewProfileFrame(selectedProfileFrame);
+                    setPreviewProfileFrame(currentEquippedFrame);
                     setActivePickerModal(null);
                   }}
                   className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-600 hover:text-gray-950 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/[0.08] transition cursor-pointer"
                 >
                   Cancel
                 </button>
-                {(() => {
-                  const isOwned = previewProfileFrame === null || previewProfileFrame.isOwned;
-                  const isCurrentActive =
-                    (previewProfileFrame?.id || null) === (selectedProfileFrame?.id || null);
-
-                  return (
-                    <button
-                      type="button"
-                      disabled={isOwned && isCurrentActive}
-                      onClick={handleApplyProfileFrame}
-                      style={{
-                        backgroundColor: isOwned && isCurrentActive ? undefined : accentColor,
-                      }}
-                      className={`px-6 py-2 rounded-xl text-sm font-bold text-white transition cursor-pointer shadow-md active:scale-95 flex items-center gap-2 ${
-                        isOwned && isCurrentActive
-                          ? 'bg-gray-400 dark:bg-gray-600 opacity-50 cursor-not-allowed pointer-events-none'
-                          : 'hover:opacity-90'
-                      }`}
-                    >
-                      {!isOwned && <Store size={15} />}
-                      <span>
-                        {!isOwned ? 'View in Shop' : isCurrentActive ? 'Applied' : 'Apply'}
-                      </span>
-                    </button>
-                  );
-                })()}
+                <button
+                  type="button"
+                  disabled={frameEquip.isPending || (isFrameOwned && isFrameCurrentActive)}
+                  onClick={handleApplyProfileFrame}
+                  style={{
+                    backgroundColor: isFrameOwned && isFrameCurrentActive ? undefined : accentColor,
+                  }}
+                  className={`px-6 py-2 rounded-xl text-sm font-bold text-white transition cursor-pointer shadow-md active:scale-95 flex items-center gap-2 ${
+                    isFrameOwned && isFrameCurrentActive
+                      ? 'bg-gray-400 dark:bg-gray-600 opacity-50 cursor-not-allowed pointer-events-none'
+                      : 'hover:opacity-90'
+                  }`}
+                >
+                  {frameEquip.isPending && <Loader2 size={16} className="animate-spin" />}
+                  {!isFrameOwned && <Store size={15} />}
+                  <span>
+                    {!isFrameOwned ? 'View in Shop' : isFrameCurrentActive ? 'Applied' : 'Apply'}
+                  </span>
+                </button>
               </div>
             </motion.div>
           </div>
@@ -4804,8 +4972,7 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
                     {/* 1. Profile Header Card */}
                     <div
                       className={`rounded-2xl relative overflow-hidden shadow-lg border transition-all ${
-                        selectedProfileFrame?.borderStyle ||
-                        (draftPreviewMode === 'dark' ? 'border-white/10' : 'border-black/10')
+                        draftPreviewMode === 'dark' ? 'border-white/10' : 'border-black/10'
                       }`}
                       style={
                         hasCustomProfileTheme
@@ -4817,15 +4984,10 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
                       }
                     >
                       {/* Decorative Frame */}
-                      <ProfileFrame frame={currentUser?.activeProfileFrame} compact />
+                      <ProfileFrame frame={currentEquippedFrame} compact />
 
                       {/* Animated Profile Effect */}
-                      {selectedProfileEffect && (
-                        <ProfileEffectVisual
-                          effectKey={selectedProfileEffect.effectKey}
-                          isCardOverlay={true}
-                        />
-                      )}
+                      <ProfileEffect effect={currentEquippedEffect} preview />
 
                       {/* Banner area: 100% full width edge-to-edge */}
                       <div className="w-full h-20 relative overflow-hidden">
@@ -4843,7 +5005,7 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
                       <div className="px-3.5 pb-3.5">
                         {/* Avatar row with decoration & online status */}
                         <div className="-mt-7 relative z-10 flex items-end justify-between">
-                          <div className="relative">
+                          <div className="relative" data-profile-effect-avatar>
                             <AvatarWithDecoration
                               size={56}
                               avatarUrl={avatarUrl}

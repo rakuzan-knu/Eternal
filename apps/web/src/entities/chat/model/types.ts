@@ -89,6 +89,8 @@ export interface ConversationView extends Omit<
   myMutedUntil?: string | null;
   isVerified?: boolean;
   primaryBadge?: string | null;
+  participantCount?: number;
+  hasMoreParticipants?: boolean;
 }
 
 export interface PaginatedMessages extends Omit<BackendPaginatedMessages, 'data'> {
@@ -97,6 +99,17 @@ export interface PaginatedMessages extends Omit<BackendPaginatedMessages, 'data'
 
 export interface InfiniteMessagesData {
   pages: PaginatedMessages[];
+  pageParams: unknown[];
+}
+
+export interface ConversationPage {
+  data: ConversationView[];
+  nextCursor: string | null;
+  hasMore: boolean;
+  order: 'activityAt';
+}
+export interface InfiniteConversationsData {
+  pages: ConversationPage[];
   pageParams: unknown[];
 }
 

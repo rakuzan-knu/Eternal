@@ -8,28 +8,30 @@ export const CallContext = createContext<CallContextValue | null>(null);
 export function useCall(): CallContextValue {
   const context = useContext(CallContext);
   if (!context) {
-    return {
-      initiateCall: () => Promise.resolve(),
-      acceptCall: () => Promise.resolve(),
-      rejectCall: () => {},
-      endCall: () => {},
-      toggleMute: () => {},
-      toggleDeafen: () => {},
-      toggleVideo: () => {},
-      toggleScreenShare: () => Promise.resolve(),
-      sendP2PFile: () => Promise.resolve(),
-      cancelP2PTransfer: () => {},
-      registerVideoTile: () => {},
-      unregisterVideoTile: () => {},
-      unblockAutoplay: () => {},
-      registerMediaElement: () => {},
-      sendReaction: () => {},
-      broadcastSoundboard: () => {},
-      configureSVC: () => {},
-      switchSVCMode: () => {},
-      setSVCLayers: () => {},
-      confirmE2eeSasMatch: () => {},
-    } as unknown as CallContextValue;
+    return idleCallManager;
   }
   return context;
 }
+
+export const idleCallManager = {
+  initiateCall: () => Promise.resolve(),
+  acceptCall: () => Promise.resolve(),
+  rejectCall: () => {},
+  endCall: () => {},
+  toggleMute: () => {},
+  toggleDeafen: () => {},
+  toggleVideo: () => {},
+  toggleScreenShare: () => Promise.resolve(),
+  sendP2PFile: () => Promise.resolve(),
+  cancelP2PTransfer: () => {},
+  registerVideoTile: () => {},
+  unregisterVideoTile: () => {},
+  unblockAutoplay: () => {},
+  registerMediaElement: () => {},
+  sendReaction: () => {},
+  broadcastSoundboard: () => {},
+  configureSVC: () => {},
+  switchSVCMode: () => {},
+  setSVCLayers: () => {},
+  confirmE2eeSasMatch: () => {},
+} as unknown as CallContextValue;

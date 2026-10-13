@@ -1,12 +1,16 @@
-import type { QueryClient } from '@tanstack/react-query';
+import type { ChatCacheClient } from './realtimeChatBatch';
 import { queryKeys } from '@/shared/api/queryKeys';
 import type {
   ConversationView,
+  InfiniteConversationsData,
   InfiniteMessagesData,
   MessageView,
   PaginatedMessages,
 } from '@/entities/chat/model/types';
 import { nextMessageStatus, type MessageDeliveryStatus } from './messageStatus';
+import { useAuthStore } from '@/shared/model/useAuthStore';
+import { historyWindowKey } from './historyWindow';
+import { invalidateHistoryConversation } from './historyColdCache';
 
 /**
  * Enterprise Socket.io ⇄ TanStack Query cache sync layer.
@@ -21,6 +25,58 @@ import { nextMessageStatus, type MessageDeliveryStatus } from './messageStatus';
  */
 
 export const CHAT_CACHE_PAGE_HARD_LIMIT = 200;
+
+/** Patch every bounded list and the legacy cache without altering cursor positions. */
+export function updateConversationLists(
+  queryClient: ChatCacheClient,
+  updater: (rows: ConversationView[]) => ConversationView[] | undefined,
+): void {
+  queryClient.setQueryData<ConversationView[]>(queryKeys.conversations.root, (prev) =>
+    prev ? (updater(prev) ?? prev) : prev,
+  );
+  for (const [key] of queryClient.getQueriesData?.({ queryKey: queryKeys.conversations.pages }) ??
+    []) {
+    if (key[2] !== useAuthStore.getState().userId) continue;
+    queryClient.setQueryData<InfiniteConversationsData>(key, (prev) =>
+      prev
+        ? {
+            ...prev,
+            pages: prev.pages.map((page) => ({ ...page, data: updater(page.data) ?? page.data })),
+          }
+        : prev,
+    );
+  }
+}
+
+export function getCachedConversations(queryClient: ChatCacheClient): ConversationView[] {
+  const rows = queryClient.getQueryData<ConversationView[]>(queryKeys.conversations.root) ?? [];
+  const pages =
+    queryClient
+      .getQueriesData?.<InfiniteConversationsData>({
+        queryKey: queryKeys.conversations.pages,
+      })
+      ?.filter(([key]) => key[2] === useAuthStore.getState().userId) ?? [];
+  const byId = new Map<string, ConversationView>();
+  for (const row of [
+    ...rows,
+    ...pages.flatMap(([, data]) => data?.pages.flatMap((p) => p.data) ?? []),
+  ])
+    byId.set(row.id, row);
+  // Active old dialogs can be outside every loaded list page. Encryption and
+  // call preferences must still resolve their complete, authorized detail.
+  for (const [, detail] of queryClient.getQueriesData?.<ConversationView>({
+    queryKey: queryKeys.conversations.root,
+  }) ?? []) {
+    if (
+      detail &&
+      !Array.isArray(detail) &&
+      typeof detail.id === 'string' &&
+      Array.isArray(detail.participants)
+    )
+      byId.set(detail.id, detail);
+  }
+  return [...byId.values()];
+}
 
 export function messageIdentity(m: Pick<MessageView, 'id' | 'tempId' | 'clientMessageId'>): string {
   return m.id || m.tempId || m.clientMessageId || '';
@@ -75,7 +131,19 @@ function clampPages(pages: PaginatedMessages[]): PaginatedMessages[] {
   if (pages.length === 0) return pages;
   const [head, ...rest] = pages;
   if (head.data.length <= CHAT_CACHE_PAGE_HARD_LIMIT) return pages;
-  return [{ ...head, data: head.data.slice(0, CHAT_CACHE_PAGE_HARD_LIMIT) }, ...rest];
+  const retained = head.data.slice(0, CHAT_CACHE_PAGE_HARD_LIMIT);
+  const oldestServerRow = [...retained]
+    .reverse()
+    .find(
+      (message) =>
+        message.id && !message.id.startsWith('client_') && !message.id.startsWith('fwd_'),
+    );
+  // Trimming creates older rows even when the original REST head was complete.
+  // Resume directly before the retained boundary; its old cursor skips the gap.
+  return [
+    { ...head, data: retained, hasMore: true, nextCursor: oldestServerRow?.id ?? head.nextCursor },
+    ...rest,
+  ];
 }
 
 export function upsertMessageIntoPages(
@@ -156,14 +224,14 @@ export function mergeDeltaIntoPages(
   if (fresh.length === 0) return pages;
   // Pages store newest-first; delta arrives oldest-first — prepend reversed fresh.
   const merged = [...[...fresh].reverse(), ...pages[0].data];
-  const deduped = dedupeMessages(merged).slice(0, CHAT_CACHE_PAGE_HARD_LIMIT);
-  return [{ ...pages[0], data: deduped }, ...pages.slice(1)];
+  const deduped = dedupeMessages(merged);
+  return clampPages([{ ...pages[0], data: deduped }, ...pages.slice(1)]);
 }
 
 // ─── QueryClient-bound helpers ───────────────────────────────────────────────
 
 export function getCachedPages(
-  queryClient: QueryClient,
+  queryClient: ChatCacheClient,
   conversationId: string,
 ): PaginatedMessages[] | undefined {
   return queryClient.getQueryData<InfiniteMessagesData>(
@@ -172,7 +240,7 @@ export function getCachedPages(
 }
 
 export function updateCachedPages(
-  queryClient: QueryClient,
+  queryClient: ChatCacheClient,
   conversationId: string,
   updater: (pages: PaginatedMessages[]) => PaginatedMessages[],
 ): void {
@@ -182,9 +250,62 @@ export function updateCachedPages(
   );
 }
 
+/** Patch rows already loaded in either viewport; live inserts remain head-only. */
+export function updateCachedMessageCopies(
+  queryClient: ChatCacheClient,
+  conversationId: string,
+  updater: (pages: PaginatedMessages[]) => PaginatedMessages[],
+  accountId: string | null = useAuthStore.getState().userId,
+  invalidateCold = true,
+): void {
+  if (invalidateCold) invalidateHistoryConversation(conversationId, accountId);
+  updateCachedPages(queryClient, conversationId, updater);
+  queryClient.setQueryData<InfiniteMessagesData>(
+    historyWindowKey(conversationId, accountId),
+    (prev) =>
+      prev
+        ? { ...prev, pages: updater(prev.pages).map((page) => ({ ...page, cacheable: false })) }
+        : prev,
+  );
+}
+
+export function getCachedMessageCopies(
+  queryClient: ChatCacheClient,
+  conversationId: string,
+): PaginatedMessages[] {
+  return [
+    ...(getCachedPages(queryClient, conversationId) ?? []),
+    ...(queryClient.getQueryData<InfiniteMessagesData>(
+      historyWindowKey(conversationId, useAuthStore.getState().userId),
+    )?.pages ?? []),
+  ];
+}
+
+export function applyMessageEdited(
+  queryClient: ChatCacheClient,
+  conversationId: string,
+  message: MessageView,
+): void {
+  updateCachedMessageCopies(queryClient, conversationId, (pages) =>
+    mapCachedMessages(pages, (row) => (row.id === message.id ? message : row)),
+  );
+}
+
+export function applyMessageDeleted(
+  queryClient: ChatCacheClient,
+  conversationId: string,
+  messageId: string,
+): void {
+  updateCachedMessageCopies(queryClient, conversationId, (pages) =>
+    mapCachedMessages(pages, (row) =>
+      row.id === messageId ? { ...row, isDeleted: true, body: null, attachments: [] } : row,
+    ),
+  );
+}
+
 /** WS `newMessage` → cache. No REST refetch. Emits nothing; caller handles acks. */
 export function applyIncomingMessage(
-  queryClient: QueryClient,
+  queryClient: ChatCacheClient,
   conversationId: string,
   message: MessageView,
   opts?: { status?: MessageDeliveryStatus },
@@ -196,16 +317,21 @@ export function applyIncomingMessage(
 
 /** WS `messageDelivered` → forward-only status promotion. */
 export function applyMessageDelivered(
-  queryClient: QueryClient,
+  queryClient: ChatCacheClient,
   conversationId: string,
   messageId: string,
 ): void {
-  updateCachedPages(queryClient, conversationId, (pages) =>
-    mapCachedMessages(pages, (m) =>
-      m.id === messageId
-        ? { ...m, status: nextMessageStatus(m.status, 'delivered') as MessageView['status'] }
-        : m,
-    ),
+  updateCachedMessageCopies(
+    queryClient,
+    conversationId,
+    (pages) =>
+      mapCachedMessages(pages, (m) =>
+        m.id === messageId
+          ? { ...m, status: nextMessageStatus(m.status, 'delivered') as MessageView['status'] }
+          : m,
+      ),
+    useAuthStore.getState().userId,
+    false,
   );
 }
 
@@ -215,42 +341,46 @@ export function applyMessageDelivered(
  * with explicit messageId, everything at/before readAt is considered read.
  */
 export function applyMessageRead(
-  queryClient: QueryClient,
+  queryClient: ChatCacheClient,
   conversationId: string,
   payload: { userId: string; messageId?: string | null; readAt: string },
 ): void {
   const readTimestamp = payload.readAt ? new Date(payload.readAt).getTime() : Date.now();
-  updateCachedPages(queryClient, conversationId, (pages) =>
-    mapCachedMessages(pages, (m) => {
-      const msgTime = new Date(m.createdAt).getTime();
-      const isUpToWatermark = payload.messageId
-        ? m.id === payload.messageId || msgTime <= readTimestamp
-        : true;
-      if (!isUpToWatermark) return m;
-      let next = m;
-      if (!m.readBy.includes(payload.userId)) {
-        next = { ...next, readBy: [...m.readBy, payload.userId] };
-      }
-      // Own messages become READ once a peer reads them.
-      if (m.sender?.id !== payload.userId && (m.status === 'SENT' || m.status === 'DELIVERED')) {
-        next = { ...next, status: 'READ' as const };
-      }
-      return next;
-    }),
+  updateCachedMessageCopies(
+    queryClient,
+    conversationId,
+    (pages) =>
+      mapCachedMessages(pages, (m) => {
+        const msgTime = new Date(m.createdAt).getTime();
+        const isUpToWatermark = payload.messageId
+          ? m.id === payload.messageId || msgTime <= readTimestamp
+          : true;
+        if (!isUpToWatermark) return m;
+        let next = m;
+        if (!m.readBy.includes(payload.userId)) {
+          next = { ...next, readBy: [...m.readBy, payload.userId] };
+        }
+        // Own messages become READ once a peer reads them.
+        if (m.sender?.id !== payload.userId && (m.status === 'SENT' || m.status === 'DELIVERED')) {
+          next = { ...next, status: 'READ' as const };
+        }
+        return next;
+      }),
+    useAuthStore.getState().userId,
+    false,
   );
 }
 
 /** WS reaction add/remove → replace the full message (server is authoritative). */
 export function applyReactionMessage(
-  queryClient: QueryClient,
+  queryClient: ChatCacheClient,
   conversationId: string,
   message: MessageView,
   currentUserId: string | null,
 ): void {
-  const cachedPages = queryClient.getQueryData<{ pages: PaginatedMessages[] }>(
-    queryKeys.conversations.messages(conversationId),
-  );
-  const prevMsg = cachedPages?.pages?.flatMap((p) => p.data)?.find((m) => m.id === message.id);
+  const prevMsg = getCachedMessageCopies(queryClient, conversationId)
+    .flatMap((p) => p.data)
+    .find((m) => m.id === message.id);
 
   const synced: MessageView = {
     ...message,
@@ -267,18 +397,18 @@ export function applyReactionMessage(
       };
     }),
   };
-  updateCachedPages(queryClient, conversationId, (pages) =>
+  updateCachedMessageCopies(queryClient, conversationId, (pages) =>
     mapCachedMessages(pages, (m) => (m.id === synced.id ? synced : m)),
   );
 }
 
 /** WS `conversationUpdated` and friends → patch the list entry + detail alias. */
 export function applyConversationPatch(
-  queryClient: QueryClient,
+  queryClient: ChatCacheClient,
   updated: Partial<ConversationView> & { id: string },
 ): void {
-  queryClient.setQueryData<ConversationView[]>(queryKeys.conversations.root, (prev) =>
-    prev?.map((c) => (c.id === updated.id ? { ...c, ...updated } : c)),
+  updateConversationLists(queryClient, (prev) =>
+    prev.map((c) => (c.id === updated.id ? { ...c, ...updated } : c)),
   );
   queryClient.setQueryData<ConversationView>(queryKeys.conversations.detail(updated.id), (prev) =>
     prev ? { ...prev, ...updated } : prev,
@@ -291,27 +421,34 @@ export function applyConversationPatch(
 }
 
 /** WS `messagesCleared` → wipe pages AND list preview atomically (no refetch). */
-export function applyMessagesCleared(queryClient: QueryClient, conversationId: string): void {
+export function applyMessagesCleared(queryClient: ChatCacheClient, conversationId: string): void {
+  invalidateHistoryConversation(conversationId);
+  queryClient.setQueryData<InfiniteMessagesData>(
+    historyWindowKey(conversationId, useAuthStore.getState().userId),
+    (prev) => (prev ? { pages: [], pageParams: [] } : prev),
+  );
   queryClient.setQueryData<InfiniteMessagesData>(queryKeys.conversations.messages(conversationId), {
     pages: [{ data: [], hasMore: false, nextCursor: null }],
     pageParams: [undefined],
   });
-  queryClient.setQueryData<ConversationView[]>(queryKeys.conversations.root, (prev) =>
-    prev?.map((c) => (c.id === conversationId ? { ...c, lastMessage: null, unreadCount: 0 } : c)),
+  updateConversationLists(queryClient, (prev) =>
+    prev.map((c) => (c.id === conversationId ? { ...c, lastMessage: null, unreadCount: 0 } : c)),
   );
 }
 
 /** WS `conversationDeleted` → drop list entry + cached pages. */
-export function applyConversationDeleted(queryClient: QueryClient, conversationId: string): void {
-  queryClient.setQueryData<ConversationView[]>(queryKeys.conversations.root, (prev) =>
-    prev?.filter((c) => c.id !== conversationId),
-  );
+export function applyConversationDeleted(
+  queryClient: ChatCacheClient,
+  conversationId: string,
+): void {
+  invalidateHistoryConversation(conversationId);
+  updateConversationLists(queryClient, (prev) => prev.filter((c) => c.id !== conversationId));
   queryClient.removeQueries({ queryKey: queryKeys.conversations.messages(conversationId) });
 }
 
 /** REST gap-fill delta → merge without losing optimistic rows. */
 export function applyRestDelta(
-  queryClient: QueryClient,
+  queryClient: ChatCacheClient,
   conversationId: string,
   delta: MessageView[],
 ): number {
@@ -328,7 +465,7 @@ export function applyRestDelta(
 
 /** Latest local message id (snowflake-ordered REST cursor) for `after` delta. */
 export function getLatestLocalMessageId(
-  queryClient: QueryClient,
+  queryClient: ChatCacheClient,
   conversationId: string,
 ): string | undefined {
   const pages = getCachedPages(queryClient, conversationId);

@@ -14,6 +14,7 @@ interface ChatFolderRailProps {
   onCreate: () => void;
   onContextMenu: (folder: ChatFolder, x: number, y: number) => void;
   onReorder: (orderedIds: string[]) => void;
+  countsComplete?: boolean;
 }
 
 export default function ChatFolderRail({
@@ -25,6 +26,7 @@ export default function ChatFolderRail({
   onCreate,
   onContextMenu,
   onReorder,
+  countsComplete = true,
 }: ChatFolderRailProps) {
   const railRef = useRef<HTMLDivElement>(null);
   const longPressTimer = useRef<number | null>(null);
@@ -316,7 +318,7 @@ export default function ChatFolderRail({
                 </span>
               )}
               <span className="min-w-0 truncate">{folder.name}</span>
-              {unreadCount > 0 && (
+              {countsComplete && unreadCount > 0 && (
                 <span
                   className="ml-0.5 flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5 text-[11px] font-bold leading-none transition-colors duration-300"
                   style={{

@@ -22,13 +22,13 @@ export const Nameplate = memo(function Nameplate({
   const ref = useRef<HTMLSpanElement>(null),
     video = useRef<HTMLVideoElement>(null);
   const assetUrl = nameplate?.assetUrl;
-  const [playing, setPlaying] = useState(Boolean(alwaysPlay)),
+  const [playing, setPlaying] = useState(false),
     [failed, setFailed] = useState<string | null>(null);
   const motionAllowed = useDecorationMotion();
   const eligible = Boolean(
-    nameplate && (alwaysPlay || (motion && motionAllowed)) && failed !== nameplate.assetUrl,
+    nameplate && (alwaysPlay || motion) && motionAllowed && failed !== nameplate.assetUrl,
   );
-  const isPlaying = Boolean(alwaysPlay || playing);
+  const isPlaying = Boolean(playing && motionAllowed);
 
   useEffect(() => {
     setFailed(null);
@@ -41,13 +41,10 @@ export const Nameplate = memo(function Nameplate({
   useEffect(() => {
     if (!ref.current || !assetUrl) return;
 
-    if (alwaysPlay) {
-      setPlaying(true);
-      return;
-    }
-
     const row = ref.current.parentElement;
-    if (playOnHover) {
+    // Forced playback bypasses hover, but still obeys visibility and the
+    // shared decoder budget. A long list must never activate every video.
+    if (playOnHover && !alwaysPlay) {
       if (!row) return;
       const onEnter = () => {
         if (eligible) setPlaying(true);
@@ -111,10 +108,8 @@ export const Nameplate = memo(function Nameplate({
       cancelled = true;
       try {
         media.pause();
-        if (!alwaysPlay) {
-          media.removeAttribute('src');
-          media.load();
-        }
+        media.removeAttribute('src');
+        media.load();
       } catch {
         // ignore
       }
@@ -125,7 +120,8 @@ export const Nameplate = memo(function Nameplate({
   return (
     <span
       ref={ref}
-      className="nameplate-surface"
+      className="nameplate-surface select-none"
+      onContextMenu={(e) => e.preventDefault()}
       aria-hidden="true"
       data-playing={isPlaying && eligible}
       style={{ '--nameplate-shade': nameplate.shadeOpacity } as CSSProperties}
@@ -136,6 +132,8 @@ export const Nameplate = memo(function Nameplate({
         alt=""
         loading="lazy"
         decoding="async"
+        draggable={false}
+        onContextMenu={(e) => e.preventDefault()}
       />
       {isPlaying && eligible && (
         <video
@@ -149,6 +147,8 @@ export const Nameplate = memo(function Nameplate({
           playsInline
           preload="auto"
           disablePictureInPicture
+          controlsList="nodownload nofullscreen noremoteplayback"
+          onContextMenu={(e) => e.preventDefault()}
           onError={(e) => {
             const target = e.currentTarget;
             if (!target.hasAttribute('src') || !target.getAttribute('src')) return;

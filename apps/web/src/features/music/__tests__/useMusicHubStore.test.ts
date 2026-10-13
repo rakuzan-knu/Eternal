@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useMusicHubStore, STARTER_LIKED_TRACKS, detectGenre } from '../model/useMusicHubStore';
 import type { SpotifyTrack } from '@/shared/model/useSpotifyPlayerStore';
 
@@ -20,6 +20,27 @@ describe('useMusicHubStore', () => {
   it('initializes with empty liked tracks and populated playlists', () => {
     const { likedTracks } = useMusicHubStore.getState();
     expect(likedTracks).toEqual([]);
+  });
+
+  it('restores account snapshots without server reads until Music is opened', () => {
+    const store = useMusicHubStore.getState();
+    const liked = vi.spyOn(store, 'fetchUserLikedTracksFromBackend').mockResolvedValue(undefined);
+    const folders = vi.spyOn(store, 'fetchUserFoldersFromBackend').mockResolvedValue(undefined);
+    const playlists = vi.spyOn(store, 'fetchUserPlaylistsFromBackend').mockResolvedValue(undefined);
+    try {
+      store.switchUserLibrary('user-1');
+      expect(liked).not.toHaveBeenCalled();
+      expect(folders).not.toHaveBeenCalled();
+      expect(playlists).not.toHaveBeenCalled();
+      store.switchUserLibrary('user-1', true);
+      expect(liked).toHaveBeenCalledWith('user-1');
+      expect(folders).toHaveBeenCalledWith('user-1');
+      expect(playlists).toHaveBeenCalledWith('user-1');
+    } finally {
+      liked.mockRestore();
+      folders.mockRestore();
+      playlists.mockRestore();
+    }
   });
 
   it('toggles liking and unliking a track', () => {
@@ -173,5 +194,64 @@ describe('useMusicHubStore', () => {
     // Explicit unpin
     store.unpinItem('custom-pl-1');
     expect(useMusicHubStore.getState().isItemPinned('custom-pl-1')).toBe(false);
+  });
+
+  it('saves remote SoundCloud / Spotify playlists to library, persists data, allows folder assignment, and handles deleted state', () => {
+    const remotePlaylist = {
+      id: 'sc-pl-chill-vibes-999',
+      title: 'Chill SoundCloud Waves',
+      description: 'Lofi beats from search',
+      coverUrl: 'https://example.com/art.jpg',
+      creator: 'SoundCloudArtist',
+      tracks: [
+        {
+          id: 'sc-track-1',
+          title: 'Night Walk',
+          artist: 'SoundCloudArtist',
+          albumArt: 'https://example.com/art.jpg',
+          durationMs: 180000,
+          previewUrl: null,
+          spotifyUrl: 'https://soundcloud.com/track-1',
+          source: 'soundcloud' as const,
+        },
+      ],
+      createdAt: new Date().toISOString(),
+    };
+
+    // 1. Initial state: not saved
+    expect(useMusicHubStore.getState().isPlaylistSaved(remotePlaylist.id)).toBe(false);
+
+    // 2. Add to library with full playlist object
+    useMusicHubStore.getState().toggleSavePlaylist(remotePlaylist.id, remotePlaylist);
+
+    expect(useMusicHubStore.getState().isPlaylistSaved(remotePlaylist.id)).toBe(true);
+    expect(useMusicHubStore.getState().savedPlaylistIds).toContain(remotePlaylist.id);
+
+    // Saved playlist must be present in computed playlists array
+    const savedInList = useMusicHubStore
+      .getState()
+      .playlists.find((p) => p.id === remotePlaylist.id);
+    expect(savedInList).toBeDefined();
+    expect(savedInList?.title).toBe('Chill SoundCloud Waves');
+    expect(savedInList?.tracks).toHaveLength(1);
+
+    // 3. Move saved remote playlist into a folder
+    const folder = useMusicHubStore.getState().createMusicFolder('Atmospheric Beats');
+    useMusicHubStore.getState().movePlaylistToFolder(folder.id, remotePlaylist.id);
+    expect(useMusicHubStore.getState().musicFolders[0].playlistIds).toContain(remotePlaylist.id);
+
+    // 4. Mark remote playlist as deleted (e.g. removed from SoundCloud / 404)
+    useMusicHubStore.getState().markPlaylistAsDeleted(remotePlaylist.id);
+    const deletedInList = useMusicHubStore
+      .getState()
+      .playlists.find((p) => p.id === remotePlaylist.id);
+    expect(deletedInList?.isDeleted).toBe(true);
+
+    // 5. User removes deleted playlist from library
+    useMusicHubStore.getState().removePlaylistFromLibrary(remotePlaylist.id);
+    expect(useMusicHubStore.getState().isPlaylistSaved(remotePlaylist.id)).toBe(false);
+    expect(
+      useMusicHubStore.getState().playlists.find((p) => p.id === remotePlaylist.id),
+    ).toBeUndefined();
   });
 });

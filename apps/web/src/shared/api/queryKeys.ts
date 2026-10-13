@@ -74,6 +74,10 @@ const comments = {
 
 const conversations = {
   root: [CONVERSATIONS_KEY] as const,
+  pages: [CONVERSATIONS_KEY, 'pages'] as const,
+  page: (accountId: string, filters: object = {}) =>
+    [CONVERSATIONS_KEY, 'pages', accountId, filters] as const,
+  unreadCount: ['unread-messages-count'] as const,
   detail: (conversationId: string) => [CONVERSATIONS_KEY, conversationId] as const,
   /** Alias kept because some code uses ['conversation', id] literally. */
   detailAlias: (conversationId: string) => ['conversation', conversationId] as const,

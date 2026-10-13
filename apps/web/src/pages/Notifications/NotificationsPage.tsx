@@ -293,6 +293,38 @@ export function NotificationsPage() {
   const muteAuthorMutation = useMuteNotificationAuthor();
   const { toggleFollow, isFollowing, isLoading: isFollowLoading } = useFollowBack();
 
+  const pendingReadIds = useRef<Set<string>>(new Set());
+
+  const handleRowMouseEnter = useCallback(
+    (item: NotificationItem) => {
+      if (
+        !item.isRead &&
+        item.type !== 'COLLABORATE_PLAYLIST' &&
+        !pendingReadIds.current.has(item.id)
+      ) {
+        pendingReadIds.current.add(item.id);
+        markAsReadMutation.mutate(item.id);
+      }
+    },
+    [markAsReadMutation],
+  );
+
+  // When visiting the page, gracefully mark remaining unread notifications after a short viewing delay or when leaving
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (useNotificationStore.getState().unreadCounts.total > 0) {
+        markAllMutation.mutate('all');
+      }
+    }, 3500);
+
+    return () => {
+      clearTimeout(timer);
+      if (useNotificationStore.getState().unreadCounts.total > 0) {
+        markAllMutation.mutate('all');
+      }
+    };
+  }, [markAllMutation]);
+
   useEffect(() => {
     const handleOutsideClick = () => setActiveMenuId(null);
     window.addEventListener('click', handleOutsideClick);
@@ -531,6 +563,7 @@ export function NotificationsPage() {
               return (
                 <div
                   key={item.id}
+                  onMouseEnter={() => handleRowMouseEnter(item)}
                   style={
                     !item.isRead
                       ? {
@@ -539,7 +572,7 @@ export function NotificationsPage() {
                         }
                       : undefined
                   }
-                  className={`group relative flex items-center justify-between p-3 sm:p-4 gap-2.5 sm:gap-3.5 transition-colors duration-150 cursor-pointer ${
+                  className={`group relative flex items-center justify-between p-3 sm:p-4 gap-2.5 sm:gap-3.5 transition-all duration-300 ease-out cursor-pointer ${
                     item.isRead ? 'hover:bg-white/[0.03]' : 'hover:bg-white/[0.06]'
                   }`}
                 >
@@ -550,15 +583,17 @@ export function NotificationsPage() {
                   >
                     {/* Unread Glow Dot */}
                     <div className="w-2 flex-shrink-0 flex items-center justify-center">
-                      {!item.isRead && (
-                        <span
-                          className="w-2 h-2 rounded-full"
-                          style={{
-                            backgroundColor: 'var(--app-accent-color)',
-                            boxShadow: '0 0 8px var(--app-accent-color)',
-                          }}
-                        />
-                      )}
+                      <span
+                        className={`w-2 h-2 rounded-full transition-all duration-300 ease-out ${
+                          !item.isRead
+                            ? 'opacity-100 scale-100'
+                            : 'opacity-0 scale-50 pointer-events-none'
+                        }`}
+                        style={{
+                          backgroundColor: 'var(--app-accent-color)',
+                          boxShadow: '0 0 8px var(--app-accent-color)',
+                        }}
+                      />
                     </div>
 
                     {/* Avatar with Overlay Badge */}

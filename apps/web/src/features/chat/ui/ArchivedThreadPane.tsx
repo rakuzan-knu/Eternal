@@ -13,7 +13,7 @@ import { useMessageActions } from '../model/useMessageActions';
 import { getConversationDisplay } from '../lib/getConversationDisplay';
 import MessageList from './MessageList';
 import MessageComposer from './MessageComposer';
-import ForwardMessageModal from './ForwardMessageModal';
+import { DeferredForwardMessageModal as ForwardMessageModal } from './DeferredChatOverlays';
 import { useSpotifyDockOffset } from '@/shared/model/useSpotifyDockOffset';
 
 interface ArchivedThreadPaneProps {
@@ -37,6 +37,11 @@ export default function ArchivedThreadPane({
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
+    loadNewer,
+    resetToLive,
+    isAnchoredInHistory,
+    hasNewer,
+    isFetchingPreviousPage,
     isLoading: isLoadingMessages,
   } = useMessages(conversation.id);
   const actions = useMessageActions(conversation.id);
@@ -122,6 +127,14 @@ export default function ArchivedThreadPane({
           hasMore={!!hasNextPage}
           isLoading={isLoadingMessages}
           isFetchingMore={isFetchingNextPage}
+          hasNewer={hasNewer}
+          isFetchingNewer={isFetchingPreviousPage}
+          isAnchoredInHistory={isAnchoredInHistory}
+          onLoadOlder={fetchNextPage}
+          onLoadNewer={loadNewer}
+          onResetToLive={() => {
+            void resetToLive().catch(() => {});
+          }}
           typingParticipants={[]}
           isGroup={isGroup}
           onLoadMore={fetchNextPage}

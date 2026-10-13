@@ -202,6 +202,10 @@ export function PostCard({ post, queryKey }: PostCardProps) {
   return (
     <div
       id={`post-${post.id}`}
+      style={{
+        contentVisibility: isMenuOpen ? 'visible' : 'auto',
+        containIntrinsicSize: 'auto 600px',
+      }}
       className={`glass-card border border-white/5 rounded-3xl shadow-lg flex flex-col gap-3 transition-all duration-300 ease-out scroll-mt-20 relative ${
         isCollapsing
           ? 'max-h-0 opacity-0 py-0 -my-2 border-0 pointer-events-none scale-95 overflow-hidden'
@@ -395,6 +399,7 @@ export function PostCard({ post, queryKey }: PostCardProps) {
               {/* Comment Button */}
               <button
                 type="button"
+                aria-label="View comments"
                 onClick={() =>
                   openCommentModal(
                     isCommentsDisabled ? { ...post, isCommentsDisabled: true } : post,

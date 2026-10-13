@@ -42,12 +42,12 @@ export default function MessengerPage() {
       ? queryKeys.conversations.detail(conversationId)
       : ['conversation', 'none'],
     queryFn: () => chatApi.getConversation(conversationId!),
-    enabled: Boolean(conversationId && !conversationInList),
+    enabled: Boolean(conversationId),
     staleTime: queryStaleTimes.conversations,
     retry: 1,
   });
 
-  const activeConversation = conversationInList || fetchedConversation || null;
+  const activeConversation = fetchedConversation || conversationInList || null;
   const isResolvingActiveChat =
     Boolean(conversationId) && !activeConversation && (isLoadingConversations || isLoadingSingle);
 
@@ -64,7 +64,7 @@ export default function MessengerPage() {
 
       <div
         className={`flex flex-1 min-w-0 overflow-hidden transition-all duration-300 ease-in-out ${
-          isSidebarExpanded ? 'ml-[200px]' : 'ml-16'
+          isSidebarExpanded ? 'ml-[220px]' : 'ml-16'
         }`}
       >
         <ChatListPanel

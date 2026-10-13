@@ -4,18 +4,18 @@ import { describe, expect, it, vi } from 'vitest';
 import { AddPollButton } from '../AddPollButton';
 
 describe('AddPollButton', () => {
-  it('renders in the closed (inactive) state by default styling', () => {
+  it('exposes a closed poll editor as an unpressed toggle', () => {
     render(<AddPollButton isOpen={false} onToggle={vi.fn()} />);
 
     const button = screen.getByTitle('Create poll');
-    expect(button).not.toHaveClass('bg-white/10');
+    expect(button).toHaveAttribute('aria-pressed', 'false');
   });
 
-  it('renders in the open (active) state styling when isOpen is true', () => {
+  it('exposes an open poll editor as a pressed toggle', () => {
     render(<AddPollButton isOpen={true} onToggle={vi.fn()} />);
 
     const button = screen.getByTitle('Create poll');
-    expect(button).toHaveClass('bg-white/10');
+    expect(button).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('calls onToggle exactly once per click', async () => {

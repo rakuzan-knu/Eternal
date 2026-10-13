@@ -30,8 +30,10 @@ import { triggerHaptic, cancelHaptic } from '../lib/webrtc/hapticFeedback';
 import { playActionSound } from './useSoundSettingsStore';
 import { globalSpeakerMixerManager } from '../lib/webrtc/perSpeakerMixer';
 import { getCallSession, clearCallSession, saveCallSession } from '../lib/callSessionPersistence';
+import { CallSetupCancelledError } from '../lib/callSetupCancellation';
 
-export function useCallManager() {
+export function useCallManager(initialIncomingCall: IncomingCallData | null = null) {
+  const consumedIncoming = useRef<string | null>(null);
   const socket = getSocket();
   const queryClient = useQueryClient();
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -395,6 +397,7 @@ export function useCallManager() {
           },
         );
       } catch (err) {
+        if (cancelled || err instanceof CallSetupCancelledError) return;
         console.error('[useCallManager] auto-reconnect failed:', err);
         clearCallSession();
         resetCall();
@@ -767,6 +770,11 @@ export function useCallManager() {
     };
 
     socket.on(WS_EVENTS.CALL_INCOMING, handleIncoming);
+    // Replay the event captured by the lightweight provider while this module loaded.
+    if (initialIncomingCall && consumedIncoming.current !== initialIncomingCall.callId) {
+      consumedIncoming.current = initialIncomingCall.callId;
+      void handleIncoming(initialIncomingCall);
+    }
     socket.on(WS_EVENTS.CALL_ACCEPTED, handleAccepted);
     socket.on(WS_EVENTS.CALL_ICE_CANDIDATE, handleIceCandidate);
     socket.on(WS_EVENTS.CALL_ICE_RESTART, handleRemoteIceRestart);
@@ -803,7 +811,15 @@ export function useCallManager() {
       socket.off(WS_EVENTS.CALL_ACTIVITY, handleCallActivity);
       socket.off(WS_EVENTS.CALL_PARTICIPANT_JOINED, handleParticipantJoined);
     };
-  }, [socket, setIncomingCall, setCallStatus, resetCall, queryClient, publishCurrentActivity]);
+  }, [
+    socket,
+    setIncomingCall,
+    setCallStatus,
+    resetCall,
+    queryClient,
+    publishCurrentActivity,
+    initialIncomingCall,
+  ]);
 
   const initiateCall = useCallback(
     async (params: {
@@ -891,7 +907,8 @@ export function useCallManager() {
             }
           },
         );
-      } catch {
+      } catch (err) {
+        if (err instanceof CallSetupCancelledError) return;
         stopRingtone();
         playCallEndSound();
         webRTC.closeConnection();
@@ -993,6 +1010,7 @@ export function useCallManager() {
       );
       setCallStatus('connected');
     } catch (err) {
+      if (err instanceof CallSetupCancelledError) return;
       console.error('[useCallManager] acceptCall error:', err);
       playCallEndSound();
       webRTCRef.current.closeConnection();
@@ -1209,7 +1227,14 @@ export function useCallManager() {
     playActionSound(newVideoOff ? 'camera_off' : 'camera_on');
     triggerHaptic('cameraToggle');
 
-    const success = await webRTC.toggleVideoTrack(newVideoOff);
+    let success: boolean;
+    try {
+      success = await webRTC.toggleVideoTrack(newVideoOff);
+    } catch (error) {
+      if (error instanceof CallSetupCancelledError) return;
+      throw error;
+    }
+    if (useCallStore.getState().callId !== currentCallId) return;
     if (!success && !newVideoOff) {
       setIsVideoOff(true);
       return;

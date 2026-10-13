@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Inject,
   Injectable,
   Logger,
@@ -33,6 +34,10 @@ export const PROTECTED_KEY_PREFIXES = [
   'throttler:',
   'outbox:',
   'idempotency:',
+  'idemp:',
+  'trl:',
+  'oauth-state:',
+  'prekey-quota:',
 ];
 
 function formatBytes(bytes: number): string {
@@ -157,6 +162,9 @@ export class RedisSelfHealingService implements OnModuleInit, OnModuleDestroy {
     const startTime = process.hrtime.bigint();
     const memoryBefore = await this.getRedisMemoryInfo();
 
+    if (customPatterns?.some((pattern) => !DEFAULT_NON_CRITICAL_CACHE_PATTERNS.includes(pattern))) {
+      throw new BadRequestException('Only predefined non-critical cache patterns may be evicted');
+    }
     const patternsToEvict =
       customPatterns && customPatterns.length > 0
         ? customPatterns.filter((p) => !this.isProtectedPattern(p))

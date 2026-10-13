@@ -1,6 +1,8 @@
 import { useMutation, useQueryClient, InfiniteData } from '@tanstack/react-query';
 import { postsApi } from '../api/postsApi';
 import { FeedPage } from '@/entities/post/api/postsApi';
+import { mapPostFeedData } from '@/entities/post/model/mapPostFeedData';
+import { invalidatePostFeedHistory } from '@/entities/post/model/postFeedColdCache';
 import { useMessageToastStore } from '@/shared/model/useMessageToastStore';
 import { useCurrentUser } from '@/entities/profile/model/useCurrentUser';
 import {
@@ -30,22 +32,16 @@ export function useSavePostMutation(
       }
     },
     onMutate: async () => {
+      invalidatePostFeedHistory();
       const nextIsSaved = !isSaved;
       const targetId = String(postId);
 
       const updateFeedData = (old: InfiniteData<FeedPage> | undefined) => {
-        if (!old?.pages) return old;
-        return {
-          ...old,
-          pages: old.pages.map((page) => ({
-            ...page,
-            posts: page.posts.map((p) => {
-              if (String(p.id) !== targetId) return p;
-              if (p.isSaved === nextIsSaved) return p;
-              return { ...p, isSaved: nextIsSaved };
-            }),
-          })),
-        };
+        return mapPostFeedData(old, (p) => {
+          if (String(p.id) !== targetId) return p;
+          if (p.isSaved === nextIsSaved) return p;
+          return { ...p, isSaved: nextIsSaved };
+        });
       };
 
       if (currentQueryKey) {
@@ -118,6 +114,7 @@ export function useSavePostMutation(
       });
     },
     onSettled: () => {
+      invalidatePostFeedHistory();
       if (currentQueryKey) queryClient.invalidateQueries({ queryKey: currentQueryKey });
       queryClient.invalidateQueries({ queryKey: [FEED_KEY] });
       queryClient.invalidateQueries({ queryKey: [USER_POSTS_KEY] });

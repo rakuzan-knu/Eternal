@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 import { StoryEditorModal } from '../StoryEditorModal';
 import { useStoryEditorStore } from '../../model/useStoryEditorStore';
@@ -22,6 +22,18 @@ describe('StoryEditorModal', () => {
   it('does not render when modal is closed', () => {
     const { container } = render(<StoryEditorModal />, { wrapper: createWrapper() });
     expect(container.firstChild).toBeNull();
+  });
+  it('preserves the current story when an invalid file is selected', async () => {
+    const original = new File(['existing'], 'photo.png', { type: 'image/png' });
+    useStoryEditorStore.getState().openEditor();
+    useStoryEditorStore.getState().setMedia(original, 'blob:existing', 'IMAGE');
+    render(<StoryEditorModal />, { wrapper: createWrapper() });
+    fireEvent.change(document.querySelector('input[type="file"]')!, {
+      target: { files: [new File(['MZ'], 'bad.exe', { type: 'application/octet-stream' })] },
+    });
+    await screen.findByRole('alert');
+    await waitFor(() => expect(useStoryEditorStore.getState().mediaFile).toBe(original));
+    expect(useStoryEditorStore.getState().mediaUrl).toBe('blob:existing');
   });
 
   it('renders correctly when opened', () => {

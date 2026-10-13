@@ -464,7 +464,7 @@ describe('MessageComposer', () => {
     fireEvent.click(editThumbnail);
 
     // Expect VideoEditorModal to be open with 'Edit'
-    expect(screen.getByText('Edit')).toBeInTheDocument();
+    expect(await screen.findByText('Edit')).toBeInTheDocument();
 
     // Click Done to save
     const doneBtn = screen.getByText('Done');

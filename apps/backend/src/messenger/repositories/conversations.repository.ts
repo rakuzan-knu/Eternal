@@ -1,16 +1,30 @@
+import { buildConversationPageQuery } from '../conversations/conversation-page.query';
 import { Injectable } from '@nestjs/common';
-import { MuteLevel, ParticipantRole } from '@prisma/client';
+import { MuteLevel, ParticipantRole, Prisma } from '@prisma/client';
 import type { Conversation, ConversationParticipant } from '@prisma/client';
 import { PrismaService } from '@common/prisma';
-import type { IConversationsRepository } from '../interfaces/conversations-repository.interface';
-import type { ConversationWithDetails, ParticipantWithUser } from '../interfaces/types';
+import type {
+  IConversationsRepository,
+  ConversationPageOptions,
+  ConversationPageSelection,
+} from '../interfaces/conversations-repository.interface';
+import type {
+  ConversationWithDetails,
+  ParticipantWithUser,
+  MessageWithDetails,
+} from '../interfaces/types';
 import type { UserSnapshot } from '@common/contracts';
 import {
   DEFAULT_MEMBER_PERMISSIONS,
   DEFAULT_OWNER_PERMISSIONS,
   Permission,
 } from '@common/contracts';
-import { conversationInclude, participantInclude, userSnapshot } from '../interfaces/types';
+import {
+  conversationInclude,
+  participantInclude,
+  userSnapshot,
+  conversationPreviewMessageInclude,
+} from '../interfaces/types';
 
 @Injectable()
 export class ConversationsRepository implements IConversationsRepository {
@@ -85,6 +99,99 @@ export class ConversationsRepository implements IConversationsRepository {
       orderBy: { updatedAt: 'desc' },
       include: conversationInclude,
     });
+  }
+
+  async getPageSnapshot(userId: string): Promise<string> {
+    return this.prisma.$transaction(async (tx) => {
+      // Updates take the shared form of this lock until their transaction commits.
+      // The fence prevents late commits from changing a completed snapshot.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended('conversation-page:' || ${userId}, 0))`;
+      // Preserve database microseconds: Date would truncate the fence to ms.
+      const rows = await tx.$queryRaw<
+        Array<{ snapshot: string }>
+      >`SELECT to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS snapshot`;
+      return rows[0].snapshot;
+    });
+  }
+
+  async findPageForUser(
+    userId: string,
+    options: ConversationPageOptions,
+  ): Promise<ConversationPageSelection> {
+    const selected = await this.prisma.$queryRaw<
+      Array<{ id: string; createdAt: Date; unreadCount: bigint }>
+    >(buildConversationPageQuery(userId, options));
+    const window = selected.slice(0, options.limit);
+    if (!window.length) return { rows: [], hasMore: false, boundary: null };
+    const previewMessageInclude = conversationPreviewMessageInclude(userId);
+    const mapPreview = (
+      message: Prisma.MessageGetPayload<{ include: typeof previewMessageInclude }>,
+    ): MessageWithDetails => ({ ...message, reactions: [], pinnedIn: [] });
+    const [conversations, ownParticipants] = await Promise.all([
+      this.prisma.conversation.findMany({
+        where: {
+          id: { in: window.map((row) => row.id) },
+          participants: { some: { userId, leftAt: null } },
+        },
+        include: {
+          ...conversationInclude,
+          participants: {
+            where: { leftAt: null, userId: { not: userId } },
+            orderBy: { userId: 'asc' },
+            take: 63,
+            include: participantInclude,
+          },
+          _count: { select: { participants: { where: { leftAt: null } } } },
+          messages: { ...conversationInclude.messages, include: previewMessageInclude },
+          pinnedMessages: {
+            ...conversationInclude.pinnedMessages,
+            take: 50,
+            include: { message: { include: previewMessageInclude } },
+          },
+        },
+      }),
+      this.prisma.conversationParticipant.findMany({
+        where: { conversationId: { in: window.map((row) => row.id) }, userId, leftAt: null },
+        include: participantInclude,
+      }),
+    ]);
+    const ownById = new Map(
+      ownParticipants.map((participant) => [participant.conversationId, participant]),
+    );
+    const byId = new Map(
+      conversations.map((conversation) => [
+        conversation.id,
+        {
+          ...conversation,
+          messages: (conversation.messages ?? []).map(mapPreview),
+          pinnedMessages: (conversation.pinnedMessages ?? []).map((pin) => ({
+            ...pin,
+            message: mapPreview(pin.message),
+          })),
+        },
+      ]),
+    );
+    return {
+      rows: window.flatMap((row) => {
+        const conversation = byId.get(row.id);
+        const own = ownById.get(row.id);
+        return conversation
+          ? [
+              {
+                conversation: {
+                  ...conversation,
+                  participants: [...(own ? [own] : []), ...(conversation.participants ?? [])],
+                },
+                unreadCount: Number(row.unreadCount),
+                participantCount:
+                  conversation._count?.participants ?? conversation.participants?.length ?? 0,
+              },
+            ]
+          : [];
+      }),
+      hasMore: selected.length > options.limit,
+      boundary: window[window.length - 1],
+    };
   }
 
   findOneForUser(conversationId: string, userId: string): Promise<ConversationWithDetails | null> {

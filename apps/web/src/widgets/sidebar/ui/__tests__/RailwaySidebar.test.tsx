@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen } from '@testing-library/react';
+import { screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import MessengerSidebar from '../RailwaySidebar';
 import { useUIStore } from '@/shared/model/useUIStore';
@@ -55,11 +55,10 @@ describe('RailwaySidebar (MessengerSidebar)', () => {
   });
 
   it('toggles sidebar expansion on toggle button click', async () => {
-    const user = userEvent.setup();
     renderComponent();
 
     const toggleButton = screen.getByLabelText('Close sidebar');
-    await user.click(toggleButton);
+    fireEvent.click(toggleButton);
 
     expect(useUIStore.getState().isSidebarExpanded).toBe(false);
   });

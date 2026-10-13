@@ -35,10 +35,11 @@ type GithubCallbackQueryDto = z.infer<typeof githubCallbackQuerySchema>;
 export class GithubController {
   constructor(private readonly githubService: GithubService) {}
 
+  @UseGuards(AuthGuard)
   @Get('auth/github')
   @ApiOperation({ summary: 'Initiate GitHub OAuth login flow' })
-  redirectToGithub(@Req() req: Request, @Res() res: Response): void {
-    this.githubService.getAuthorizationUrl(req, res);
+  async redirectToGithub(@Req() req: Request, @Res() res: Response): Promise<void> {
+    await this.githubService.getAuthorizationUrl(req, res);
   }
 
   @Get(['auth/github/callback', 'integrations/github/callback'])

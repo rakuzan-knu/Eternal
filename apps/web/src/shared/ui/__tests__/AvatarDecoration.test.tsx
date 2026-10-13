@@ -128,6 +128,27 @@ describe('Avatar decoration playback', () => {
     act(() => document.dispatchEvent(new Event('visibilitychange')));
     expect(container.firstElementChild).toHaveAttribute('data-playing', 'false');
   });
+  it('bounds 40 visible animations and transfers a slot to an interacted avatar', () => {
+    const { container } = render(
+      <>
+        {Array.from({ length: 40 }, (_, i) => (
+          <div key={i}>
+            <AvatarWithDecoration decoration={decoration} />
+          </div>
+        ))}
+      </>,
+    );
+    const avatars = [...container.querySelectorAll('.decorated-avatar')];
+    act(() =>
+      entries(
+        avatars.map((target) => ({ target, isIntersecting: true })) as IntersectionObserverEntry[],
+        {} as IntersectionObserver,
+      ),
+    );
+    expect(container.querySelectorAll('[data-playing="true"]').length).toBeLessThanOrEqual(8);
+    fireEvent.pointerEnter(avatars[39].parentElement!);
+    expect(avatars[39]).toHaveAttribute('data-playing', 'true');
+  });
   it.each([
     ['sm', 32],
     ['md', 48],

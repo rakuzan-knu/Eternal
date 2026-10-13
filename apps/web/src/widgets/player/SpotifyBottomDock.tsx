@@ -29,6 +29,13 @@ import { useJamStore } from '@/features/music/model/useJamStore';
 import { useJamSession } from '@/features/music/model/useJamSession';
 import { useLiquidGlassTheme } from '@/shared/lib/useLiquidGlassTheme';
 import { getSafeSpotifyTrackUrl, unescapeHtml, isSoundCloudUrl } from '@/shared/lib/spotifyUrl';
+import { useThemeStore } from '@/shared/model/useThemeStore';
+import { SpotifySquareDock } from './SpotifySquareDock';
+import {
+  triggerCallPiPTransition,
+  setPiPLastCenter,
+  getPiPLastCenter,
+} from '@/features/chat/lib/webrtc/callPiPTransition';
 
 export const SpotifyBottomDock: React.FC = () => {
   const {
@@ -87,6 +94,7 @@ export const SpotifyBottomDock: React.FC = () => {
   const setDockMinimized = useSpotifyPlayerStore((s) => s.setDockMinimized);
   const isGameModeOpen = useSpotifyPlayerStore((s) => s.isGameModeOpen);
   const toggleGameMode = useSpotifyPlayerStore((s) => s.toggleGameMode);
+  const setGameModeOpen = useSpotifyPlayerStore((s) => s.setGameModeOpen);
   const needsSpotifyPermissions = useSpotifyPlayerStore((s) => s.needsSpotifyPermissions);
   const reauthorizeSpotify = useSpotifyPlayerStore((s) => s.reauthorizeSpotify);
 
@@ -276,6 +284,39 @@ export const SpotifyBottomDock: React.FC = () => {
       setVolumeOpen(false);
     }, 450);
   };
+
+  const spotifyDockStyle = useThemeStore((s) => s.spotifyDockStyle);
+
+  useEffect(() => {
+    if (spotifyDockStyle !== 'square' && isDockVisible && typeof window !== 'undefined') {
+      setPiPLastCenter({
+        x: Math.round(window.innerWidth / 2),
+        y: Math.max(90, Math.round(window.innerHeight - 48)),
+      });
+    }
+  }, [spotifyDockStyle, isDockVisible]);
+
+  const handleToggleGameMode = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (!isGameModeOpen) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const origin = {
+        x: Math.round(rect.left + rect.width / 2),
+        y: Math.round(rect.top + rect.height / 2),
+      };
+      setPiPLastCenter(origin);
+      triggerCallPiPTransition('expand', origin, () => {
+        setGameModeOpen(true);
+      });
+    } else {
+      triggerCallPiPTransition('minimize', getPiPLastCenter(), () => {
+        setGameModeOpen(false);
+      });
+    }
+  };
+
+  if (spotifyDockStyle === 'square') {
+    return <SpotifySquareDock />;
+  }
 
   return (
     <AnimatePresence initial={false}>
@@ -1039,7 +1080,7 @@ export const SpotifyBottomDock: React.FC = () => {
               <button
                 type="button"
                 data-testid="spotify-game-mode-button"
-                onClick={toggleGameMode}
+                onClick={handleToggleGameMode}
                 className={`p-1.5 rounded-xl transition-all cursor-pointer ${
                   isGameModeOpen
                     ? isSoundCloud

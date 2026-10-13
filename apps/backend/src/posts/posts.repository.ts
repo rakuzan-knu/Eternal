@@ -10,6 +10,7 @@ import {
   type ReportCategory,
 } from '@prisma/client';
 import type { PostWithRelations } from '@common/contracts';
+import { postFeedBoundary, withPostFeedBoundary } from './post-feed-cursor';
 
 type PrismaPostQueryResult = {
   id: string;
@@ -241,12 +242,13 @@ export class PostsRepository implements IPostRepository {
     viewerId?: string,
   ): Promise<PostWithRelations[]> {
     const blockedIds = viewerId ? await this.getBlockedUserIds(viewerId) : [];
+    const boundary = postFeedBoundary(after);
 
     const posts = await this.prisma.post.findMany({
-      ...(blockedIds.length > 0 ? { where: { authorId: { notIn: blockedIds } } } : {}),
+      where: { ...(blockedIds.length > 0 ? { authorId: { notIn: blockedIds } } : {}), ...boundary },
       take: limit + 1,
-      skip: after ? 1 : 0,
-      ...(after ? { cursor: { id: after } } : {}),
+      skip: after && !boundary ? 1 : 0,
+      ...(after && !boundary ? { cursor: { id: after } } : {}),
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       include: this.postInclude(viewerId),
     });
@@ -279,11 +281,12 @@ export class PostsRepository implements IPostRepository {
       if (blockedIds.includes(userId)) return [];
     }
 
+    const boundary = postFeedBoundary(after);
     const posts = await this.prisma.post.findMany({
-      where: { authorId: userId },
+      where: { authorId: userId, ...boundary },
       take: limit + 1,
-      skip: after ? 1 : 0,
-      ...(after ? { cursor: { id: after } } : {}),
+      skip: after && !boundary ? 1 : 0,
+      ...(after && !boundary ? { cursor: { id: after } } : {}),
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       include: this.postInclude(viewerId),
     });
@@ -302,11 +305,12 @@ export class PostsRepository implements IPostRepository {
       if (blockedIds.includes(userId)) return [];
     }
 
+    const boundary = postFeedBoundary(after);
     const reposts = await this.prisma.repost.findMany({
-      where: { userId },
+      where: { userId, ...boundary },
       take: limit + 1,
-      skip: after ? 1 : 0,
-      ...(after ? { cursor: { id: after } } : {}),
+      skip: after && !boundary ? 1 : 0,
+      ...(after && !boundary ? { cursor: { id: after } } : {}),
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       include: {
         post: {
@@ -318,7 +322,7 @@ export class PostsRepository implements IPostRepository {
     const blockedIds = viewerId ? await this.getBlockedUserIds(viewerId) : [];
     return reposts
       .filter((r) => !blockedIds.includes(r.post.authorId))
-      .map((r) => this.mapPost(r.post, viewerId));
+      .map((r) => withPostFeedBoundary(this.mapPost(r.post, viewerId), r));
   }
 
   async getSavedPostsByUserId(
@@ -327,15 +331,17 @@ export class PostsRepository implements IPostRepository {
     after?: string,
   ): Promise<PostWithRelations[]> {
     const blockedIds = await this.getBlockedUserIds(userId);
+    const boundary = postFeedBoundary(after);
 
     const saved = await this.prisma.savedPost.findMany({
       where: {
         userId,
+        ...boundary,
         ...(blockedIds.length > 0 ? { post: { authorId: { notIn: blockedIds } } } : {}),
       },
       take: limit + 1,
-      skip: after ? 1 : 0,
-      ...(after ? { cursor: { id: after } } : {}),
+      skip: after && !boundary ? 1 : 0,
+      ...(after && !boundary ? { cursor: { id: after } } : {}),
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       include: {
         post: {
@@ -344,7 +350,7 @@ export class PostsRepository implements IPostRepository {
       },
     });
 
-    return saved.map((s) => this.mapPost(s.post, userId));
+    return saved.map((s) => withPostFeedBoundary(this.mapPost(s.post, userId), s));
   }
 
   async getExploreMediaPosts(

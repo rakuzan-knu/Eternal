@@ -34,7 +34,7 @@ const TRANSLATIONS: Record<
     introTitle: 'Licenses for OSS used in Eternal are reproduced below',
     subheading: 'Software used in Eternal for Windows, Mac, Web and Mobile',
     disclaimer:
-      'THE FOLLOWING SETS FORTH ATTRIBUTION NOTICES FOR THIRD PARTY SOFTWARE THAT MAY BE CONTAINED IN PORTIONS OF THE ETERNAL PRODUCT.',
+      'THE FOLLOWING SETS FORTH ATTRIBUTION NOTICES FOR THIRD PARTY SOFTWARE THAT MAY BE CONTAINED IN PORTIONS OF THE ETERNAL PRODUCT. These licenses govern the identified third-party materials and do not grant a general license to Eternal proprietary source code.',
     includedIntro: 'The following software may be included in this product:',
     downloadIntro: 'A copy of the source code may be downloaded from',
     licenseNotice: 'This software contains the following license and notice below:',
@@ -56,7 +56,7 @@ const TRANSLATIONS: Record<
     subheading:
       'Програмне забезпечення, що використовується в Eternal для Windows, Mac, Web та Mobile',
     disclaimer:
-      'НИЖЧЕ НАВЕДЕНО ПОВІДОМЛЕННЯ ПРО АВТОРСЬКІ ПРАВА ДЛЯ СТОРОННЬОГО ПРОГРАМНОГО ЗАБЕЗПЕЧЕННЯ, ЩО МІСТИТЬСЯ В ETERNAL.',
+      'НИЖЧЕ НАВЕДЕНО ПОВІДОМЛЕННЯ ПРО АВТОРСЬКІ ПРАВА ДЛЯ СТОРОННЬОГО ПРОГРАМНОГО ЗАБЕЗПЕЧЕННЯ, ЩО МІСТИТЬСЯ В ETERNAL. Ці ліцензії стосуються зазначених сторонніх матеріалів і не надають загальної ліцензії на пропрієтарний вихідний код Eternal.',
     includedIntro: 'Наступне програмне забезпечення може бути включене до цього продукту:',
     downloadIntro: 'Копію вихідного коду можна завантажити за посиланнями:',
     licenseNotice: 'Це програмне забезпечення містить наступну ліцензію та повідомлення:',
@@ -74,9 +74,10 @@ const TRANSLATIONS: Record<
   Deutsch: {
     title: 'Lizenzen',
     subtitle: 'Dies sind die Lizenzen für die von uns verwendeten Bibliotheken und Schriftarten:',
-    introTitle: 'Open-Source-Lizenzen für Eternal',
+    introTitle: 'Open-Source-Lizenzen der in Eternal verwendeten Drittanbieterkomponenten',
     subheading: 'Verwendete Software in Eternal für Windows, Mac, Web und Mobile',
-    disclaimer: 'HINWEISE ZU URHEBERRECHTEN VON DRITTANBIETERN IM ETERNAL-PRODUKT.',
+    disclaimer:
+      'HINWEISE ZU URHEBERRECHTEN VON DRITTANBIETERN IM ETERNAL-PRODUKT. Diese Lizenzen gelten für die genannten Materialien Dritter und gewähren keine allgemeine Lizenz am proprietären Eternal-Quellcode.',
     includedIntro: 'Folgende Software ist im Produkt enthalten:',
     downloadIntro: 'Der Quellcode kann hier heruntergeladen werden:',
     licenseNotice: 'Diese Software enthält die folgende Lizenz und Erklärung:',
@@ -95,7 +96,8 @@ const TRANSLATIONS: Record<
     subtitle: 'Estas son las licencias de las librerías y fuentes que usamos:',
     introTitle: 'Licencias de software libre utilizadas en Eternal',
     subheading: 'Software utilizado en Eternal para Windows, Mac, Web y Móvil',
-    disclaimer: 'AVISOS DE ATRIBUCIÓN DE TERCEROS PARA EL PRODUCTO ETERNAL.',
+    disclaimer:
+      'AVISOS DE ATRIBUCIÓN DE TERCEROS PARA EL PRODUCTO ETERNAL. Estas licencias se aplican a los materiales de terceros identificados y no conceden una licencia general sobre el código propietario de Eternal.',
     includedIntro: 'El siguiente software puede estar incluido en este producto:',
     downloadIntro: 'Una copia del código fuente se puede descargar de:',
     licenseNotice: 'Este software contiene la siguiente licencia y aviso:',
@@ -114,7 +116,8 @@ const TRANSLATIONS: Record<
     subtitle: 'Voici les licences des bibliothèques et polices que nous utilisons :',
     introTitle: 'Licences open source utilisées dans Eternal',
     subheading: 'Logiciels utilisés dans Eternal pour Windows, Mac, Web et Mobile',
-    disclaimer: 'MENTIONS LÉGALES CONCERNANT LES LOGICIELS TIERS DANS ETERNAL.',
+    disclaimer:
+      'MENTIONS LÉGALES CONCERNANT LES LOGICIELS TIERS DANS ETERNAL. Ces licences concernent les éléments de tiers identifiés et ne constituent pas une licence générale sur le code propriétaire Eternal.',
     includedIntro: 'Les logiciels suivants peuvent être inclus dans ce produit :',
     downloadIntro: 'Une copie du code source peut être téléchargée depuis :',
     licenseNotice: 'Ce logiciel contient la licence et l’avis ci-dessous :',
@@ -472,9 +475,6 @@ export const LicensesPage: React.FC = () => {
                         </a>
                         <p className="text-[11px] text-neutral-400/90 font-mono mt-0.5">
                           {f.copyright}
-                        </p>
-                        <p className="text-[10px] text-neutral-500 font-mono">
-                          Portions Copyright 2026 Eternal Inc.
                         </p>
                       </div>
                     ))}

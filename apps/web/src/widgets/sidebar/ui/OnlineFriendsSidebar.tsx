@@ -35,6 +35,9 @@ import { isMusicActivity, isGamingActivity } from '@/shared/ui/activityIcons';
 import { FRIENDS_KEY } from '@/shared/api/queryKeys';
 import { formatShortDuration, useLiveElapsedTimer } from '@/shared/lib/activityTimer';
 import { SteamBrandIcon, DiscordGamepadIcon } from '@/shared/ui/BrandIcons';
+import { useMediaDetailModalStore } from '@/entities/showcase/model/useMediaDetailModalStore';
+import { ShowcaseMediaType } from '@backend/common/contracts';
+import { useMusicHubStore } from '@/features/music/model/useMusicHubStore';
 import type { ParticipantView } from '@/entities/chat/model/types';
 import type {
   FollowUserSummary,
@@ -56,6 +59,7 @@ const FriendRowItem: React.FC<FriendRowItemProps> = ({
   onStartChat,
   onNavigate,
 }) => {
+  const navigate = useNavigate();
   const currentUserId = useAuthStore((s) => s.userId);
   const currentStoreNameplate = useActiveDecorationStore((s) => s.activeNameplate);
   const currentStoreDecoration = useActiveDecorationStore((s) => s.activeDecoration);
@@ -74,6 +78,54 @@ const FriendRowItem: React.FC<FriendRowItemProps> = ({
   const isPlaying = Boolean(isOnline && isGamingActivity(friend.activityStatus));
   const elapsed = useLiveElapsedTimer(isPlaying ? friend.activityStatus?.startedAt : null);
   const displayName = friend.displayName || friend.username;
+
+  const handleTrackClick = (e: React.MouseEvent, activity: any) => {
+    e.stopPropagation();
+    if (!activity) return;
+
+    let trackId = activity.trackId;
+    if (!trackId && activity.externalUrl) {
+      const match = String(activity.externalUrl).match(/\/(?:music\/)?track\/([^/?#]+)/i);
+      if (match) {
+        trackId = match[1];
+      }
+    }
+
+    if (trackId || activity.title) {
+      const resolvedId =
+        trackId ||
+        `trk-${encodeURIComponent(
+          String(activity.title)
+            .toLowerCase()
+            .trim()
+            .replace(/[^a-z0-9]+/g, '-'),
+        )}`;
+
+      useMusicHubStore.getState().cacheTrack({
+        id: resolvedId,
+        title: activity.title || 'Unknown Track',
+        artist: activity.subtitle || activity.artist || 'Unknown Artist',
+        albumArt: activity.imageUrl || activity.albumArt || activity.coverUrl || '',
+        durationMs: activity.durationMs || 180000,
+        previewUrl: activity.previewUrl || null,
+        spotifyUrl: `/music/track/${resolvedId}`,
+        source: (activity.source as any) || 'platform',
+      });
+      navigate(`/music/track/${resolvedId}`);
+    } else {
+      navigate('/music');
+    }
+  };
+
+  const handleGameClick = (e: React.MouseEvent, activity: any) => {
+    e.stopPropagation();
+    if (!activity?.title) return;
+    useMediaDetailModalStore.getState().openMediaDetail({
+      title: activity.title,
+      type: ShowcaseMediaType.GAME,
+      posterUrl: activity.imageUrl || '',
+    });
+  };
 
   return (
     <div
@@ -155,18 +207,52 @@ const FriendRowItem: React.FC<FriendRowItemProps> = ({
             </div>
             {isPlaying ? (
               <span className="text-[10px] text-emerald-400 font-medium truncate flex items-center gap-1">
-                {friend.activityStatus?.title} —{' '}
-                {formatShortDuration(friend.activityStatus?.startedAt)}
+                <span className="text-gray-400 shrink-0">Playing</span>
+                <span
+                  onClick={(e) => handleGameClick(e, friend.activityStatus)}
+                  className="text-white font-semibold hover:underline cursor-pointer truncate"
+                  title={`View ${friend.activityStatus?.title}`}
+                >
+                  {friend.activityStatus?.title}
+                </span>
+                {friend.activityStatus?.startedAt && (
+                  <span className="text-gray-400 font-normal shrink-0">
+                    {' — '}
+                    {formatShortDuration(friend.activityStatus?.startedAt)}
+                  </span>
+                )}
               </span>
             ) : isListening ? (
               <span className="text-[10px] text-[#1DB954] font-medium truncate flex items-center gap-1">
                 {(friend.activityStatus as any)?.isPaused ? (
                   <span className="text-amber-400 flex items-center gap-1 min-w-0">
                     <Pause size={10} className="shrink-0" />
-                    <span className="truncate">Paused: {friend.activityStatus?.title}</span>
+                    <span className="shrink-0">Paused:</span>
+                    <span
+                      onClick={(e) => handleTrackClick(e, friend.activityStatus)}
+                      className="text-white font-semibold hover:underline cursor-pointer truncate"
+                      title={`Open track: ${friend.activityStatus?.title}`}
+                    >
+                      {friend.activityStatus?.title}
+                    </span>
                   </span>
                 ) : (
-                  <span className="truncate">Listening to {friend.activityStatus?.title}</span>
+                  <span className="truncate flex items-center gap-1 min-w-0">
+                    <span className="text-[#1DB954] shrink-0">Listening to</span>
+                    <span
+                      onClick={(e) => handleTrackClick(e, friend.activityStatus)}
+                      className="text-white font-semibold hover:underline cursor-pointer truncate"
+                      title={`Open track: ${friend.activityStatus?.title}`}
+                    >
+                      {friend.activityStatus?.title}
+                    </span>
+                    {friend.activityStatus?.artist || (friend.activityStatus as any)?.subtitle ? (
+                      <span className="text-gray-400 font-normal truncate">
+                        {' — '}
+                        {friend.activityStatus?.artist || (friend.activityStatus as any)?.subtitle}
+                      </span>
+                    ) : null}
+                  </span>
                 )}
               </span>
             ) : (
@@ -181,8 +267,9 @@ const FriendRowItem: React.FC<FriendRowItemProps> = ({
         <div className="flex items-center gap-1.5 shrink-0">
           {isPlaying && (
             <div
-              className="w-5 h-5 rounded-md overflow-hidden bg-black/40 border border-white/10 p-0.5 flex items-center justify-center shrink-0 shadow-xs"
-              title={`Playing ${friend.activityStatus?.title}`}
+              onClick={(e) => handleGameClick(e, friend.activityStatus)}
+              className="w-6 h-6 rounded-md overflow-hidden border border-white/15 hover:border-emerald-500/60 transition-all duration-200 cursor-pointer flex items-center justify-center shrink-0 shadow-xs hover:scale-110 active:scale-95 bg-[#171a21]"
+              title={`View ${friend.activityStatus?.title}`}
             >
               <img
                 src={friend.activityStatus?.imageUrl || '/icons/brands/steam.png'}
@@ -190,14 +277,15 @@ const FriendRowItem: React.FC<FriendRowItemProps> = ({
                 onError={(e) => {
                   (e.currentTarget as HTMLImageElement).src = '/icons/brands/steam.png';
                 }}
-                className="w-full h-full object-contain"
+                className="w-full h-full object-cover"
               />
             </div>
           )}
           {isListening && (
             <div
-              className="w-5 h-5 rounded-md overflow-hidden bg-black/40 border border-[#1DB954]/40 p-0.5 flex items-center justify-center shrink-0 shadow-xs"
-              title={`Listening to ${friend.activityStatus?.title}`}
+              onClick={(e) => handleTrackClick(e, friend.activityStatus)}
+              className="w-6 h-6 rounded-md overflow-hidden border border-[#1DB954]/50 hover:border-[#1DB954] transition-all duration-200 flex items-center justify-center shrink-0 shadow-xs cursor-pointer hover:scale-110 active:scale-95 bg-black/60"
+              title={`Open track: ${friend.activityStatus?.title}`}
             >
               <img
                 src={friend.activityStatus?.imageUrl || '/icons/brands/spotify.png'}
@@ -205,7 +293,7 @@ const FriendRowItem: React.FC<FriendRowItemProps> = ({
                 onError={(e) => {
                   (e.currentTarget as HTMLImageElement).src = '/icons/brands/spotify.png';
                 }}
-                className="w-full h-full object-cover rounded-xs"
+                className="w-full h-full object-cover"
               />
             </div>
           )}
@@ -233,7 +321,11 @@ const FriendRowItem: React.FC<FriendRowItemProps> = ({
 
       {/* Active Game Subcard */}
       {isPlaying && (
-        <div className="mt-1.5 p-2 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center gap-2.5 shadow-xs">
+        <div
+          onClick={(e) => handleGameClick(e, friend.activityStatus)}
+          className="mt-1.5 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] hover:border-white/15 transition-all duration-200 flex items-center gap-2.5 shadow-xs cursor-pointer group/game"
+          title={`View ${friend.activityStatus?.title}`}
+        >
           <div className="relative w-8 h-8 rounded-lg overflow-visible bg-black/40 border border-white/10 shrink-0 flex items-center justify-center">
             <div className="w-full h-full rounded-lg overflow-hidden flex items-center justify-center">
               <img
@@ -242,7 +334,7 @@ const FriendRowItem: React.FC<FriendRowItemProps> = ({
                 onError={(e) => {
                   (e.currentTarget as HTMLImageElement).src = '/icons/brands/steam.png';
                 }}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover group-hover/game:scale-105 transition-transform"
               />
             </div>
             {friend.activityStatus?.isSteam && (
@@ -252,7 +344,7 @@ const FriendRowItem: React.FC<FriendRowItemProps> = ({
             )}
           </div>
           <div data-nameplate-text className="flex flex-col min-w-0 flex-1">
-            <span className="text-[11px] font-bold text-white truncate">
+            <span className="text-[11px] font-bold text-white group-hover/game:underline truncate">
               {friend.activityStatus?.title}
             </span>
             <div className="flex items-center gap-1 mt-0.5 text-[#23a55a]">
@@ -278,7 +370,7 @@ export function OnlineFriendsSidebar() {
   const { data: friends, isLoading: isFriendsLoading } = useFriends();
   const { data: suggestedUsers = [], isLoading: isSuggestedLoading } = useSuggestedUsers(15);
   const dismissMutation = useDismissSuggestedUser();
-  const { data: conversations } = useConversations();
+  const { data: conversations } = useConversations({ enabled: false });
   const friendIds = useMemo(() => (friends ?? []).map((f) => f.id), [friends]);
   useQueryOnlineStatus(friendIds);
   const onlineUserIds = usePresenceStore((s) => s.onlineUserIds);
@@ -703,10 +795,18 @@ export function OnlineFriendsSidebar() {
                   {gameAggregators.map((group) => (
                     <div
                       key={group.title}
-                      className="p-2.5 rounded-2xl bg-gradient-to-r from-indigo-950/40 via-purple-950/20 to-black/50 border border-indigo-500/25 flex items-center justify-between gap-3 mt-1.5 shadow-sm"
+                      onClick={() => {
+                        useMediaDetailModalStore.getState().openMediaDetail({
+                          title: group.title,
+                          type: ShowcaseMediaType.GAME,
+                          posterUrl: group.imageUrl || '',
+                        });
+                      }}
+                      className="p-2.5 rounded-2xl bg-gradient-to-r from-indigo-950/40 via-purple-950/20 to-black/50 hover:from-indigo-950/60 hover:to-black/70 border border-indigo-500/25 hover:border-indigo-400/50 flex items-center justify-between gap-3 mt-1.5 shadow-sm cursor-pointer transition-all duration-200 group/agg"
+                      title={`View ${group.title}`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-7 h-7 rounded-lg overflow-hidden bg-black/50 border border-white/10 p-0.5 shrink-0 flex items-center justify-center">
+                        <div className="w-7 h-7 rounded-lg overflow-hidden border border-white/10 shrink-0 flex items-center justify-center bg-[#171a21] group-hover/agg:scale-105 transition-transform">
                           <img
                             src={group.imageUrl || '/icons/brands/steam.png'}
                             alt={group.title}
@@ -717,7 +817,7 @@ export function OnlineFriendsSidebar() {
                           />
                         </div>
                         <div className="flex flex-col min-w-0">
-                          <span className="text-xs font-bold text-white truncate">
+                          <span className="text-xs font-bold text-white group-hover/agg:underline truncate">
                             {group.title}
                           </span>
                           <span className="text-[10px] text-indigo-300 font-medium truncate">

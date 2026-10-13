@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import type { DisplayNameStyleDto } from '@social-network/shared-contracts';
 import VerifiedCheckmark from './VerifiedCheckmark';
-import UserBadgeIcon from './UserBadgeIcon';
 import StyledDisplayName from '@/shared/ui/StyledDisplayName';
+
+const UserBadgeIcon = lazy(() => import('./UserBadgeIcon'));
 
 interface UserNameWithBadgesProps {
   displayName?: string | null | undefined;
@@ -72,14 +73,23 @@ export function UserNameWithBadges({
         />
       )}
       {primaryBadge && (
-        <UserBadgeIcon
-          badgeId={primaryBadge}
-          size={badgeSizes[size]}
-          prCount={prCount}
-          reportCount={reportCount}
-          subscriptionMonths={subscriptionMonths}
-          subscriptionDate={subscriptionDate}
-        />
+        <Suspense
+          fallback={
+            <span
+              aria-hidden="true"
+              className={size === 'lg' ? 'w-5 h-5 shrink-0' : 'w-4 h-4 shrink-0'}
+            />
+          }
+        >
+          <UserBadgeIcon
+            badgeId={primaryBadge}
+            size={badgeSizes[size]}
+            prCount={prCount}
+            reportCount={reportCount}
+            subscriptionMonths={subscriptionMonths}
+            subscriptionDate={subscriptionDate}
+          />
+        </Suspense>
       )}
     </div>
   );

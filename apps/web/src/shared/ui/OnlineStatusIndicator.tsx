@@ -2,7 +2,7 @@ import React from 'react';
 import { usePresenceStore } from '@/shared/model/usePresenceStore';
 import { useAuthStore } from '@/shared/model/useAuthStore';
 import { DiscordGamepadIcon } from '@/shared/ui/BrandIcons';
-import { Music } from 'lucide-react';
+import { Music, Pause } from 'lucide-react';
 import {
   isMusicActivity,
   isGamingActivity,
@@ -40,13 +40,21 @@ export default function OnlineStatusIndicator({
   if (variant === 'text') {
     if (isListening) {
       const formatted = formatActivityText(activity, 24, 16);
+      const isPaused = Boolean(activity?.isPaused);
       return (
         <span
-          className={`text-[#1DB954] font-medium inline-flex items-center gap-1.5 ${className}`}
-          title={`Listening to ${formatted.fullText}`}
+          className={`${isPaused ? 'text-amber-400' : 'text-[#1DB954]'} font-medium inline-flex items-center gap-1.5 ${className}`}
+          title={`${isPaused ? 'Paused: ' : 'Listening to '}${formatted.fullText}`}
         >
-          {showIcon && getActivityMusicCover(activity, 13)}
-          <span className="truncate max-w-[200px]">Listening to {formatted.title}</span>
+          {showIcon &&
+            (isPaused ? (
+              <Pause size={12} className="text-amber-400 fill-amber-400/40 shrink-0" />
+            ) : (
+              getActivityMusicCover(activity, 13)
+            ))}
+          <span className="truncate max-w-[200px]">
+            {isPaused ? 'Paused' : 'Listening to'} {formatted.title}
+          </span>
         </span>
       );
     }
@@ -73,6 +81,7 @@ export default function OnlineStatusIndicator({
 
   if (isListening) {
     const isStatic = className.includes('static');
+    const isPaused = Boolean(activity?.isPaused);
     const iconSize = size === 'xl' ? 18 : size === 'lg' ? 16 : size === 'sm' ? 12 : 14;
     const badgePadding =
       size === 'xl'
@@ -83,11 +92,15 @@ export default function OnlineStatusIndicator({
     const songDetails = activity?.subtitle || activity?.artist || '';
     return (
       <span
-        aria-label="Listening to Spotify"
-        title={`Listening to ${activity?.title || 'music'}${songDetails ? ` — ${songDetails}` : ''}`}
-        className={`${isStatic ? 'inline-flex' : `absolute ${badgePadding} bg-[#16161a] rounded-full`} flex items-center justify-center pointer-events-none drop-shadow-[0_0_6px_rgba(29,185,84,0.85)] z-10 ${className}`}
+        aria-label={isPaused ? 'Paused on Spotify' : 'Listening to Spotify'}
+        title={`${isPaused ? 'Paused: ' : 'Listening to '}${activity?.title || 'music'}${songDetails ? ` — ${songDetails}` : ''}`}
+        className={`${isStatic ? 'inline-flex' : `absolute ${badgePadding} bg-[#16161a] rounded-full`} flex items-center justify-center pointer-events-none drop-shadow-[0_0_6px_${isPaused ? 'rgba(245,158,11,0.85)' : 'rgba(29,185,84,0.85)'}] z-10 ${className}`}
       >
-        <Music size={isStatic ? 12 : iconSize} className="text-[#1DB954]" />
+        {isPaused ? (
+          <Pause size={isStatic ? 12 : iconSize} className="text-amber-400 fill-amber-400/40" />
+        ) : (
+          <Music size={isStatic ? 12 : iconSize} className="text-[#1DB954]" />
+        )}
       </span>
     );
   }

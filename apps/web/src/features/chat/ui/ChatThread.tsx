@@ -9,7 +9,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AttachmentView, ConversationView, MessageView } from '../../../entities/chat/model/types';
 import { MediaItem } from '../model/chatMediaTypes';
-import MediaLightbox from './MediaLightbox';
+import {
+  DeferredMediaLightbox as MediaLightbox,
+  DeferredBatchDeleteModal as BatchDeleteModal,
+  DeferredForwardMessageModal as ForwardMessageModal,
+  DeferredPinnedMessagesModal as PinnedMessagesModal,
+  DeferredConversationDetailsPanel as ConversationDetailsPanel,
+  DeferredMessageSearchPanel as MessageSearchPanel,
+  DeferredChatDatePicker as ChatDatePicker,
+} from './DeferredChatOverlays';
 import { chatApi } from '../api/chatApi';
 import { getConversationDisplay } from '../lib/getConversationDisplay';
 import { formatMessageTime } from '../lib/groupMessagesByDate';
@@ -24,21 +32,15 @@ import { useMessageActions } from '../model/useMessageActions';
 import { useMessages } from '../model/useMessages';
 import { useQueryOnlineStatus } from '../model/usePresence';
 import { useMeshVoiceRoom } from '../model/useMeshVoiceRoom';
-import BatchDeleteModal from './BatchDeleteModal';
 import BlockedComposerBanner from './BlockedComposerBanner';
 import { CallHandoffBanner } from './Call/CallHandoffBanner';
 import { WatchTogetherActivityBanner } from './Call/WatchTogetherActivityBanner';
-import ChatDatePicker from './ChatDatePicker';
 import ChatThreadHeader from './ChatThreadHeader';
 import { DiscordVoiceChannelBar } from './DiscordVoiceChannelBar';
-import ConversationDetailsPanel from './ConversationDetailsPanel';
-import ForwardMessageModal from './ForwardMessageModal';
 import GlobalMediaPlaybackBar from './GlobalMediaPlaybackBar';
 import MessageComposer from './MessageComposer';
 import MessageList from './MessageList';
-import MessageSearchPanel from './MessageSearchPanel';
 import PinnedMessagesBar from './PinnedMessagesBar';
-import PinnedMessagesModal from './PinnedMessagesModal';
 import ProceduralChatBackground from './ProceduralChatBackground';
 import { ensureMessageIdentityRegistered } from '../lib/e2ee/messageE2ee';
 
@@ -80,6 +82,13 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
+    loadNewer,
+    loadAroundMessage,
+    loadAroundDate,
+    resetToLive,
+    isAnchoredInHistory,
+    hasNewer,
+    isFetchingPreviousPage,
     isLoading: isLoadingMessages,
   } = useMessages(conversation.id);
   const { typingUserIds } = useConversationRealtime(conversation.id);
@@ -110,7 +119,11 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
   const [datePickerInitialDate, setDatePickerInitialDate] = useState<Date | null>(null);
   const [datePickerAnchorRect, setDatePickerAnchorRect] = useState<DOMRect | null>(null);
   const [highlightDateLabel, setHighlightDateLabel] = useState<string | null>(null);
-  const [isAnchoredInHistory, setIsAnchoredInHistory] = useState(false);
+  useEffect(() => {
+    if (!highlightDateLabel) return;
+    const timer = setTimeout(() => setHighlightDateLabel(null), 1600);
+    return () => clearTimeout(timer);
+  }, [highlightDateLabel]);
 
   // Multi-selection state
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -362,14 +375,6 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
     setHighlightMessageId(initialMessageId);
   }
 
-  useEffect(() => {
-    if (!highlightMessageId) return;
-    const alreadyLoaded = messages.some((m) => m.id === highlightMessageId);
-    if (!alreadyLoaded && hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
-    }
-  }, [highlightMessageId, messages, hasNextPage, isFetchingNextPage, fetchNextPage]);
-
   const handleJumpToMessage = (messageId: string) => {
     setRightPanel(null);
     setHighlightMessageId(messageId);
@@ -409,12 +414,10 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
     if (matchingMsg) {
       setHighlightMessageId(matchingMsg.id);
       setHighlightDateLabel(resolvedLabel);
-      setTimeout(() => setHighlightDateLabel(null), 1600);
       return;
     }
 
-    const res = await actions.loadAroundDate(targetDate.toISOString());
-    setIsAnchoredInHistory(true);
+    const res = await loadAroundDate(targetDate.toISOString()).catch(() => undefined);
     if (res && res.data && res.data.length > 0) {
       const firstOnDate =
         res.data.find((m) => {
@@ -424,7 +427,6 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
 
       setHighlightMessageId(firstOnDate.id);
       setHighlightDateLabel(resolvedLabel);
-      setTimeout(() => setHighlightDateLabel(null), 1600);
     }
   };
 
@@ -841,6 +843,8 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
               hasMore={!!hasNextPage}
               isLoading={isLoadingMessages}
               isFetchingMore={isFetchingNextPage}
+              hasNewer={hasNewer}
+              isFetchingNewer={isFetchingPreviousPage}
               typingParticipants={typingParticipants}
               isGroup={conversation.type === 'GROUP'}
               isSelectionMode={isSelectionMode}
@@ -866,21 +870,15 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
               highlightMessageId={highlightMessageId}
               onHighlightHandled={() => setHighlightMessageId(null)}
               onJumpToMessage={handleJumpToMessage}
-              onLoadAround={actions.loadAroundMessages}
+              onLoadAround={loadAroundMessage}
               onOpenDatePicker={handleOpenDatePicker}
               highlightDateLabel={highlightDateLabel}
               isAnchoredInHistory={isAnchoredInHistory}
-              onResetToLive={async () => {
-                setIsAnchoredInHistory(false);
-                await actions.resetToLive();
+              onResetToLive={() => {
+                void resetToLive().catch(() => {});
               }}
-              onLoadOlder={() => {
-                if (messages.length > 0) actions.loadOlderMessages(messages[0].id);
-              }}
-              onLoadNewer={() => {
-                if (messages.length > 0)
-                  actions.loadNewerMessages(messages[messages.length - 1].id);
-              }}
+              onLoadOlder={fetchNextPage}
+              onLoadNewer={loadNewer}
               onRetry={(msgId) => {
                 actions.retrySendMessage(msgId).catch(() => {});
               }}
@@ -1103,14 +1101,16 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
       </aside>
 
       {/* Telegram-style Chat Date Picker Modal / Popover */}
-      <ChatDatePicker
-        conversationId={conversation.id}
-        isOpen={isDatePickerOpen}
-        onClose={() => setIsDatePickerOpen(false)}
-        onSelectDate={handleJumpToDate}
-        initialDate={datePickerInitialDate}
-        anchorRect={datePickerAnchorRect}
-      />
+      {isDatePickerOpen && (
+        <ChatDatePicker
+          conversationId={conversation.id}
+          isOpen={isDatePickerOpen}
+          onClose={() => setIsDatePickerOpen(false)}
+          onSelectDate={handleJumpToDate}
+          initialDate={datePickerInitialDate}
+          anchorRect={datePickerAnchorRect}
+        />
+      )}
     </div>
   );
 }

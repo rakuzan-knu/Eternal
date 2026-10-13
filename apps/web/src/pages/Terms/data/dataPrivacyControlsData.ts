@@ -199,7 +199,7 @@ export const DATA_PRIVACY_CONTROLS_DATA: Record<'en' | 'uk', PrivacyControlsTran
             bullets: [
               'Data Protection Officer (DPO): private-contact-not-provided',
               'Privacy & Legal Operations: privacy@eternal.com',
-              'Company Headquarters: Eternal Inc., Kyiv, Ukraine',
+              'Project operators: the project founders (operator identity not published), Ukraine',
             ],
           },
         ],
@@ -353,7 +353,7 @@ export const DATA_PRIVACY_CONTROLS_DATA: Record<'en' | 'uk', PrivacyControlsTran
             bullets: [
               'Офіцер із захисту даних (DPO): private-contact-not-provided',
               'Юридичний відділ: privacy@eternal.com',
-              'Головний офіс: Eternal Inc., м. Київ, Україна',
+              'Оператори проєкту: засновники проєкту (ідентифікаційні дані операторів не опубліковано), Україна',
             ],
           },
         ],

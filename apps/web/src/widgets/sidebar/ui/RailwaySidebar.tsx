@@ -147,18 +147,20 @@ export default function MessengerSidebar() {
       ? storeNameplate
       : currentUser?.activeNameplate;
 
+  const isNotificationsPage = location.pathname.startsWith('/notifications');
+
   return (
     <aside
       onMouseEnter={() => setIsSidebarHovered(true)}
       onMouseLeave={() => setIsSidebarHovered(false)}
       className={`group/sidebar fixed top-0 left-0 bottom-0 flex flex-col justify-between py-6 glass-sidebar border-r border-black/10 dark:border-white/10 z-50 transition-all duration-300 ease-in-out ${
-        isSidebarExpanded ? 'w-[200px] px-4' : 'w-16 px-0'
+        isSidebarExpanded ? 'w-[220px] px-3' : 'w-16 px-0'
       }`}
     >
       <div className="flex flex-col w-full h-full min-h-0">
         <div
           className={`relative flex items-center h-12 mb-6 w-full shrink-0 transition-all duration-300 ${
-            isSidebarExpanded ? 'px-2 justify-between' : 'justify-center'
+            isSidebarExpanded ? 'px-1 justify-between' : 'justify-center'
           }`}
         >
           <span
@@ -207,7 +209,7 @@ export default function MessengerSidebar() {
         <div className="relative flex-1 min-h-0 w-full flex flex-col">
           <nav
             ref={navRef}
-            className="flex flex-col gap-2 w-full px-2 flex-1 min-h-0 overflow-y-auto overflow-x-hidden sidebar-scrollbar relative py-1"
+            className="flex flex-col gap-1.5 w-full px-0 flex-1 min-h-0 overflow-y-auto overflow-x-hidden sidebar-scrollbar relative py-1"
           >
             {menuItems.map((item) => {
               if (item.isAction) {
@@ -238,15 +240,15 @@ export default function MessengerSidebar() {
                         isCreateMenuOpen
                           ? 'bg-black/10 dark:bg-white/10 text-gray-900 dark:text-white font-semibold'
                           : ''
-                      } ${isSidebarExpanded ? 'w-full px-4 gap-4 justify-start' : 'w-12 justify-center mx-auto'}`}
+                      } ${isSidebarExpanded ? 'w-full px-3 gap-3 justify-start' : 'w-12 justify-center mx-auto'}`}
                     >
-                      <div className="flex-shrink-0 flex items-center justify-center transition-transform duration-200 group-hover:scale-105">
+                      <div className="w-8 h-8 shrink-0 flex items-center justify-center transition-transform duration-200 group-hover:scale-105">
                         <span className="relative flex items-center justify-center text-purple-500 dark:text-purple-400 group-hover:text-purple-600 dark:group-hover:text-purple-300">
                           {item.icon}
                         </span>
                       </div>
                       <span
-                        className={`text-[15px] font-medium transition-all duration-200 whitespace-nowrap ${
+                        className={`text-[15px] font-medium transition-all duration-200 whitespace-nowrap truncate min-w-0 ${
                           isSidebarExpanded
                             ? 'opacity-100 translate-x-0'
                             : 'opacity-0 -translate-x-2 absolute'
@@ -271,10 +273,10 @@ export default function MessengerSidebar() {
                       isActive
                         ? 'bg-black/8 dark:bg-white/10 text-gray-950 dark:text-white font-bold shadow-xs'
                         : 'text-gray-600 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 hover:text-gray-950 dark:hover:text-white'
-                    } ${isSidebarExpanded ? 'w-full px-4 gap-4 justify-start' : 'w-12 justify-center mx-auto'}`
+                    } ${isSidebarExpanded ? 'w-full px-3 gap-3 justify-start' : 'w-12 justify-center mx-auto'}`
                   }
                 >
-                  <div className="flex-shrink-0 flex items-center justify-center transition-transform duration-200 group-hover:scale-105">
+                  <div className="w-8 h-8 shrink-0 flex items-center justify-center transition-transform duration-200 group-hover:scale-105">
                     <span className="relative flex items-center justify-center">
                       {item.icon}
                       {!isSidebarExpanded && item.to === '/messages' && unreadMessagesCount > 0 && (
@@ -284,6 +286,7 @@ export default function MessengerSidebar() {
                       )}
                       {!isSidebarExpanded &&
                         item.to === '/notifications' &&
+                        !isNotificationsPage &&
                         unreadNotificationsCount > 0 && (
                           <span className="absolute left-[18px] top-1/2 -translate-y-1/2 min-w-[18px] h-[18px] px-1 rounded-full bg-purple-500 text-white border-2 border-white dark:border-[#16161a] text-[10px] font-bold leading-none flex items-center justify-center">
                             {unreadNotificationsLabel}
@@ -292,7 +295,7 @@ export default function MessengerSidebar() {
                     </span>
                   </div>
                   <span
-                    className={`text-[15px] font-medium transition-all duration-200 whitespace-nowrap ${
+                    className={`text-[15px] font-medium transition-all duration-200 whitespace-nowrap truncate min-w-0 ${
                       isSidebarExpanded
                         ? 'opacity-100 translate-x-0'
                         : 'opacity-0 -translate-x-2 absolute'
@@ -301,14 +304,15 @@ export default function MessengerSidebar() {
                     {item.label}
                   </span>
                   {isSidebarExpanded && item.to === '/messages' && unreadMessagesCount > 0 && (
-                    <span className="ml-auto min-w-[20px] h-5 px-1.5 rounded-full bg-gray-900 text-white dark:bg-white dark:text-black text-[11px] font-bold leading-none flex items-center justify-center">
+                    <span className="ml-auto shrink-0 min-w-5 h-5 px-1.5 rounded-full bg-gray-900 text-white dark:bg-white dark:text-black text-[11px] font-bold leading-none flex items-center justify-center">
                       {unreadMessagesLabel}
                     </span>
                   )}
                   {isSidebarExpanded &&
                     item.to === '/notifications' &&
+                    !isNotificationsPage &&
                     unreadNotificationsCount > 0 && (
-                      <span className="ml-auto min-w-[20px] h-5 px-1.5 rounded-full bg-purple-500 text-white text-[11px] font-bold leading-none flex items-center justify-center">
+                      <span className="ml-auto shrink-0 min-w-5 h-5 px-1.5 rounded-full bg-purple-500 text-white text-[11px] font-bold leading-none flex items-center justify-center">
                         {unreadNotificationsLabel}
                       </span>
                     )}
@@ -320,25 +324,25 @@ export default function MessengerSidebar() {
         </div>
 
         <div className="w-full shrink-0 mt-auto pt-2 flex flex-col">
-          <div className="w-full px-4">
+          <div className="w-full px-1">
             <div className="h-px w-full bg-black/10 dark:bg-white/10 my-2"></div>
           </div>
 
-          <div className="w-full px-2 mt-2">
-            <ProfileMenu isSidebarExpanded={isSidebarExpanded} />
+          <div className="w-full mt-1">
+            <ProfileMenu isSidebarExpanded={isSidebarExpanded} variant="railway" />
           </div>
 
-          <div className="w-full px-2 mt-2">
+          <div className="w-full mt-2">
             <NavLink
               to={profilePath ?? location.pathname}
               className={`nameplate-row flex items-center rounded-2xl transition-all duration-200 h-12 w-full relative overflow-hidden ${
                 isProfileActive
                   ? 'bg-black/8 dark:bg-white/10 text-gray-950 dark:text-white font-bold'
                   : 'hover:bg-black/5 dark:hover:bg-white/5 text-gray-600 dark:text-gray-400 hover:text-gray-950 dark:hover:text-white'
-              } ${isSidebarExpanded ? 'px-3 gap-3' : 'justify-center mx-auto w-12'}`}
+              } ${isSidebarExpanded ? 'px-3 gap-3 justify-start' : 'justify-center mx-auto w-12'}`}
             >
               {isSidebarExpanded && activeNameplate && <Nameplate nameplate={activeNameplate} />}
-              <div className="relative flex-shrink-0 z-10">
+              <div className="w-8 h-8 relative shrink-0 z-10 flex items-center justify-center">
                 <Avatar
                   size="sm"
                   src={currentUser?.avatar}
@@ -362,7 +366,7 @@ export default function MessengerSidebar() {
                   userId={currentUser?.id}
                   className="text-sm font-semibold whitespace-nowrap truncate text-gray-900 dark:text-white"
                 />
-                <ChevronRight size={18} className="text-gray-500" />
+                <ChevronRight size={18} className="text-gray-500 shrink-0 ml-1" />
               </div>
             </NavLink>
           </div>

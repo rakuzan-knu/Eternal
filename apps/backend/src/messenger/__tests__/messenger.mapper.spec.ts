@@ -148,7 +148,8 @@ describe('MessengerMapper', () => {
 
       expect(mapped.replyTo?.id).toBe('msg-1');
       expect(mapped.forwardedFrom?.id).toBe('orig-msg');
-      expect(mapped.forwardedFrom?.body).toBe('Original forwarded content');
+      // Forwarded content lives in the destination message snapshot; never read a source body.
+      expect(mapped.forwardedFrom?.body).toBeNull();
     });
   });
 
@@ -170,6 +171,8 @@ describe('MessengerMapper', () => {
         archivedAt: null,
         pinnedAt: null,
         leftAt: null,
+        unreadProjectionReady: false,
+        unreadProjectionVerifiedAt: null,
         user: {
           id: 'usr-1',
           username: 'user_1',
@@ -222,6 +225,8 @@ describe('MessengerMapper', () => {
           archivedAt: new Date(),
           pinnedAt: new Date(),
           leftAt: null,
+          unreadProjectionReady: false,
+          unreadProjectionVerifiedAt: null,
           user: {
             id: 'usr-viewer',
             username: 'viewer',
@@ -251,6 +256,8 @@ describe('MessengerMapper', () => {
           archivedAt: null,
           pinnedAt: null,
           leftAt: null,
+          unreadProjectionReady: false,
+          unreadProjectionVerifiedAt: null,
           user: {
             id: 'usr-other',
             username: 'other',

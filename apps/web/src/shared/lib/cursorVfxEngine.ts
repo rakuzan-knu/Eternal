@@ -9,7 +9,7 @@
  * - Automatically idles (0% CPU usage) when no particles are alive
  */
 
-import { CURSOR_PRESETS, MINECRAFT_MATERIALS } from './cursorEngine';
+import { CURSOR_PRESETS, MINECRAFT_MATERIALS } from './cursorPresets';
 
 export interface CursorVfxOptions {
   enabled: boolean;
@@ -494,14 +494,20 @@ class CursorVfxEngine {
     }
 
     this.particles = [];
-    if (this.ctx && this.canvas) {
-      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.lastHoveredElement = null;
+    if (this.canvas) {
+      // Release the full-viewport backing surface, including high-DPR textures.
+      this.canvas.width = 0;
+      this.canvas.height = 0;
+      this.canvas.remove();
+      this.canvas = null;
+      this.ctx = null;
     }
   }
 
   private handleResize(): void {
     if (!this.canvas || !this.ctx) return;
-    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    const dpr = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
     this.canvas.width = Math.round(window.innerWidth * dpr);
     this.canvas.height = Math.round(window.innerHeight * dpr);
     this.ctx.setTransform(1, 0, 0, 1, 0, 0);

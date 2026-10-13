@@ -18,7 +18,10 @@ export function ProfileEffectPreview({
   compact?: boolean;
 }) {
   return (
-    <div className="relative isolate aspect-[4/7] rounded-2xl overflow-hidden bg-gradient-to-b from-[#181526] via-[#111116] to-[#09090d] border border-white/10 text-white">
+    <div
+      className="relative isolate aspect-[4/7] rounded-2xl overflow-hidden bg-gradient-to-b from-[#181526] via-[#111116] to-[#09090d] border border-white/10 text-white select-none"
+      onContextMenu={(e) => e.preventDefault()}
+    >
       <div className="absolute inset-x-0 top-0 h-[23%] bg-gradient-to-br from-indigo-500/20 via-violet-500/10 to-transparent" />
       <div
         data-profile-effect-avatar

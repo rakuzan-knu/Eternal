@@ -6,6 +6,7 @@ import {
 } from '../posts/interfaces/posts-repository.interface';
 import { FeedScoringService } from '../posts/feed-scoring.service';
 import { RedisService } from '../redis/redis.service';
+import { postFeedCursor } from '../posts/post-feed-cursor';
 
 @Injectable()
 export class FeedBffService {
@@ -41,7 +42,8 @@ export class FeedBffService {
 
       const hasMore = rawPosts.length > limit;
       const sliced = hasMore ? rawPosts.slice(0, limit) : rawPosts;
-      const nextCursor = hasMore && sliced.length > 0 ? sliced[sliced.length - 1].id : null;
+      const nextCursor =
+        hasMore && sliced.length > 0 ? postFeedCursor(sliced[sliced.length - 1]) : null;
 
       const items = sliced.map((post) => CompactPostDto.fromPost(post));
 

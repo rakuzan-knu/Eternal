@@ -39,7 +39,7 @@ export default function MusicHubPage() {
   const switchUserLibrary = useMusicHubStore((s) => s.switchUserLibrary);
 
   useEffect(() => {
-    switchUserLibrary(currentUser?.id || null);
+    switchUserLibrary(currentUser?.id || null, true);
   }, [currentUser?.id, switchUserLibrary]);
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -148,7 +148,7 @@ export default function MusicHubPage() {
       {/* Content wrapper with smooth margin transition matching Messenger */}
       <div
         className={`flex-1 min-w-0 flex overflow-hidden transition-all duration-300 ease-in-out ${
-          isSidebarExpanded ? 'ml-[200px]' : 'ml-16'
+          isSidebarExpanded ? 'ml-[220px]' : 'ml-16'
         }`}
       >
         {/* Left Column: Full-Height Library Panel */}

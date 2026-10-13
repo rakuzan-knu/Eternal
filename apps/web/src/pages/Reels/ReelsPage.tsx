@@ -1,21 +1,44 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, {
+  lazy,
+  Suspense,
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useMemo,
+  useCallback,
+} from 'react';
 import { Film, Plus, Sparkles, ChevronUp, ChevronDown } from 'lucide-react';
 import { useReelsFeed } from '@/features/reels/api/reelsApi';
 import { ReelCard } from '@/features/reels/ui/ReelCard';
 import { ReelPlaceholder } from '@/features/reels/ui/ReelPlaceholder';
-import { CreateReelModal } from '@/features/reels/ui/CreateReelModal';
+import { ReelVideoPool } from '@/features/reels/lib/reelVideoPool';
+
+const CreateReelModal = lazy(() =>
+  import('@/features/reels/ui/CreateReelModal').then((module) => ({
+    default: module.CreateReelModal,
+  })),
+);
 
 export const ReelsPage: React.FC = () => {
   const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useReelsFeed(8);
 
   const [activeReelIndex, setActiveReelIndex] = useState(0);
+  const [videoPool] = useState(() => new ReelVideoPool());
+  useEffect(() => () => videoPool.dispose(), [videoPool]);
   const [isMuted, setIsMuted] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const [hiddenReelIds, setHiddenReelIds] = useState<Set<string>>(new Set());
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const reelRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const reelRefs = useRef(new Map<number, HTMLDivElement>());
+  const scrollFrameRef = useRef<number | null>(null);
+  const [viewportIndex, setViewportIndex] = useState(0);
+  const [reelHeight, setReelHeight] = useState(() => Math.max(1, window.innerHeight));
+  const reelHeightRef = useRef(reelHeight);
+  const activeReelIndexRef = useRef(activeReelIndex);
+  activeReelIndexRef.current = activeReelIndex;
 
   const isScrollingRef = useRef(false);
   const scrollLockTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -25,9 +48,73 @@ export const ReelsPage: React.FC = () => {
     return all.filter((r) => !hiddenReelIds.has(r.id));
   }, [data, hiddenReelIds]);
 
-  const handleRemoveReel = useCallback((reelId: string) => {
-    setHiddenReelIds((prev) => new Set([...prev, reelId]));
-  }, []);
+  const handleRemoveReel = useCallback(
+    (reelId: string) => {
+      const removedIndex = reels.findIndex((reel) => reel.id === reelId);
+      if (removedIndex < 0) return;
+      const currentIndex = activeReelIndexRef.current;
+      const nextIndex = Math.max(
+        0,
+        Math.min(reels.length - 2, currentIndex - (removedIndex < currentIndex ? 1 : 0)),
+      );
+      setHiddenReelIds((prev) => new Set([...prev, reelId]));
+      setActiveReelIndex(nextIndex);
+      setViewportIndex(nextIndex);
+      containerRef.current?.scrollTo({ top: nextIndex * reelHeightRef.current, behavior: 'auto' });
+    },
+    [reels],
+  );
+
+  // Only these seven wrappers exist in the DOM. Spacers preserve the full scroll range.
+  const windowCenter = Math.max(0, Math.min(reels.length - 1, viewportIndex));
+  const windowStart = Math.max(0, windowCenter - 3);
+  const windowEnd = Math.min(reels.length, windowCenter + 4);
+  const hasFeed = !isLoading && !isError && reels.length > 0;
+
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!container || !hasFeed) return;
+    const measure = () => {
+      const height = container.clientHeight;
+      if (height <= 0 || height === reelHeightRef.current) return;
+      reelHeightRef.current = height;
+      setReelHeight(height);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [hasFeed]);
+
+  useLayoutEffect(() => {
+    // Align after the resized wrappers commit, so native snap uses the new geometry.
+    if (hasFeed)
+      containerRef.current?.scrollTo({
+        top: activeReelIndexRef.current * reelHeight,
+        behavior: 'auto',
+      });
+  }, [hasFeed, reelHeight]);
+
+  const handleFeedScroll = useCallback(() => {
+    if (scrollFrameRef.current !== null) return;
+    scrollFrameRef.current = requestAnimationFrame(() => {
+      scrollFrameRef.current = null;
+      const container = containerRef.current;
+      if (!container) return;
+      const index = Math.max(
+        0,
+        Math.min(reels.length - 1, Math.round(container.scrollTop / reelHeightRef.current)),
+      );
+      setViewportIndex(index);
+    });
+  }, [reels.length]);
+
+  useEffect(
+    () => () => {
+      if (scrollFrameRef.current !== null) cancelAnimationFrame(scrollFrameRef.current);
+    },
+    [],
+  );
 
   const activeReel = reels[activeReelIndex];
 
@@ -44,12 +131,13 @@ export const ReelsPage: React.FC = () => {
 
   // Track currently active reel via IntersectionObserver
   useEffect(() => {
+    if (!hasFeed) return;
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting) {
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.65) {
             const index = Number(entry.target.getAttribute('data-index'));
-            if (!isNaN(index)) {
+            if (!isNaN(index) && reelRefs.current.get(index) === entry.target) {
               setActiveReelIndex(index);
 
               // Pre-fetch next page when near bottom
@@ -66,50 +154,32 @@ export const ReelsPage: React.FC = () => {
       },
     );
 
-    const currentRefs = reelRefs.current;
-    currentRefs.forEach((el) => {
-      if (el) observer.observe(el);
-    });
+    reelRefs.current.forEach((element) => observer.observe(element));
 
     return () => {
-      currentRefs.forEach((el) => {
-        if (el) observer.unobserve(el);
-      });
+      observer.disconnect();
     };
-  }, [reels.length, hasNextPage, isFetchingNextPage, fetchNextPage]);
-
-  // Pre-fetch next video stream for instant zero-buffering playback
-  useEffect(() => {
-    const nextReel = reels[activeReelIndex + 1];
-    if (nextReel?.videoUrl) {
-      const link = document.createElement('link');
-      link.rel = 'preload';
-      link.as = 'video';
-      link.href = nextReel.videoUrl;
-      document.head.appendChild(link);
-
-      return () => {
-        if (document.head.contains(link)) {
-          document.head.removeChild(link);
-        }
-      };
-    }
-  }, [activeReelIndex, reels]);
-
-  const activeReelIndexRef = useRef(activeReelIndex);
-  activeReelIndexRef.current = activeReelIndex;
+  }, [
+    hasFeed,
+    windowStart,
+    windowEnd,
+    reels.length,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  ]);
 
   const scrollToIndex = useCallback(
     (index: number) => {
       const clamped = Math.max(0, Math.min(reels.length - 1, index));
       const container = containerRef.current;
-      const targetEl = reelRefs.current[clamped];
-      if (container && targetEl) {
+      if (container) {
         container.scrollTo({
-          top: targetEl.offsetTop,
-          behavior: 'smooth',
+          top: clamped * reelHeightRef.current,
+          behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+            ? 'auto'
+            : 'smooth',
         });
-        setActiveReelIndex(clamped);
       }
     },
     [reels.length],
@@ -185,14 +255,21 @@ export const ReelsPage: React.FC = () => {
       el.removeEventListener('wheel', handleWheel);
       if (resetTimer) clearTimeout(resetTimer);
       if (scrollLockTimeoutRef.current) clearTimeout(scrollLockTimeoutRef.current);
+      isScrollingRef.current = false;
     };
-  }, [reels.length, scrollToIndex]);
+  }, [hasFeed, reels.length, scrollToIndex]);
 
   // Keyboard navigation shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't trigger when typing in inputs or textarea
-      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
+      const target = e.target instanceof HTMLElement ? e.target : null;
+      if (
+        isCreateModalOpen ||
+        target?.isContentEditable ||
+        target?.closest('[role="dialog"]') ||
+        ['INPUT', 'TEXTAREA', 'SELECT'].includes(target?.tagName ?? '')
+      ) {
         return;
       }
 
@@ -210,7 +287,7 @@ export const ReelsPage: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleScrollDown, handleScrollUp]);
+  }, [handleScrollDown, handleScrollUp, isCreateModalOpen]);
 
   const handleNavigateNext = useCallback(
     (currentIndex: number) => {
@@ -332,26 +409,38 @@ export const ReelsPage: React.FC = () => {
         /* Vertical Snap Feed Container */
         <div
           ref={containerRef}
+          data-testid="reels-scroller"
+          onScroll={handleFeedScroll}
           className="w-full h-full overflow-y-auto snap-y snap-mandatory scrollbar-none flex flex-col items-center py-0 gap-0"
-          style={{ scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', overflowAnchor: 'none' }}
         >
-          {reels.map((reel, index) => {
-            // DOM Windowing: only mount full interactive ReelCard within ±1 of active index
+          <div
+            aria-hidden="true"
+            data-testid="reels-spacer-before"
+            className="w-full shrink-0"
+            style={{ height: windowStart * reelHeight }}
+          />
+          {reels.slice(windowStart, windowEnd).map((reel, offset) => {
+            const index = windowStart + offset;
+            // Visibility, not a navigation click, owns playback eligibility.
             const distance = Math.abs(index - activeReelIndex);
-            const isInViewportWindow = distance <= 1;
+            const isInViewportWindow = distance <= 1 || Math.abs(index - windowCenter) <= 1;
 
             return (
               <div
                 key={reel.id}
                 data-index={index}
                 ref={(el) => {
-                  reelRefs.current[index] = el;
+                  if (el) reelRefs.current.set(index, el);
+                  else reelRefs.current.delete(index);
                 }}
-                className="w-full h-full flex items-center justify-center snap-center snap-always shrink-0 py-2 sm:py-3"
+                className="w-full flex items-center justify-center snap-center snap-always shrink-0 py-2 sm:py-3"
+                style={{ height: reelHeight }}
               >
                 {isInViewportWindow ? (
                   <ReelCard
                     reel={reel}
+                    videoPool={videoPool}
                     isActive={index === activeReelIndex}
                     isMuted={isMuted}
                     onToggleMute={() => setIsMuted((prev) => !prev)}
@@ -359,11 +448,18 @@ export const ReelsPage: React.FC = () => {
                     onRemoveReel={() => handleRemoveReel(reel.id)}
                   />
                 ) : (
-                  <ReelPlaceholder reel={reel} />
+                  <ReelPlaceholder reel={reel} showPreview={distance <= 2} />
                 )}
               </div>
             );
           })}
+
+          <div
+            aria-hidden="true"
+            data-testid="reels-spacer-after"
+            className="w-full shrink-0"
+            style={{ height: (reels.length - windowEnd) * reelHeight }}
+          />
 
           {isFetchingNextPage && (
             <div className="flex justify-center py-6">
@@ -374,7 +470,11 @@ export const ReelsPage: React.FC = () => {
       )}
 
       {/* Upload/Create Modal */}
-      <CreateReelModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
+      {isCreateModalOpen && (
+        <Suspense fallback={null}>
+          <CreateReelModal isOpen onClose={() => setIsCreateModalOpen(false)} />
+        </Suspense>
+      )}
     </div>
   );
 };

@@ -63,7 +63,8 @@ export const ProfileEffect = memo(function ProfileEffect({
       ref={surface}
       aria-hidden="true"
       data-profile-effect={effect.id}
-      className="absolute inset-0 pointer-events-none overflow-hidden rounded-[inherit] z-30"
+      className="absolute inset-0 pointer-events-none overflow-hidden rounded-[inherit] z-30 select-none"
+      onContextMenu={(e) => e.preventDefault()}
     >
       {(playing || preview) && (
         <img

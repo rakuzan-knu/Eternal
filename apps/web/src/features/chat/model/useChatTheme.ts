@@ -1,3 +1,4 @@
+import { updateConversationLists } from './chatCacheSync';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { ChatThemeConfig, DEFAULT_DARK_THEME_CONFIG } from './chatTheme';
 import { parseChatTheme, serializeChatTheme, dispatchThemeSync } from '../lib/themeUtils';
@@ -231,7 +232,7 @@ export function useChatTheme(
       // 3. Update React Query conversations cache so conversation.myTheme stays in sync
       try {
         const serialized = serializeChatTheme(newConfig);
-        queryClient.setQueryData<ConversationView[]>(queryKeys.conversations.root, (old) => {
+        updateConversationLists(queryClient, (old) => {
           if (!old) return old;
           return old.map((conv) => {
             if (applyToAll || conv.id === conversationId) {
@@ -297,7 +298,7 @@ export function useChatTheme(
 
       // 4. Update React Query conversations cache
       try {
-        queryClient.setQueryData<ConversationView[]>(queryKeys.conversations.root, (old) => {
+        updateConversationLists(queryClient, (old) => {
           if (!old) return old;
           return old.map((conv) => {
             if (applyToAll || conv.id === conversationId) {

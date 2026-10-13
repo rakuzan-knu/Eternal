@@ -35,9 +35,11 @@ describe('Layered profile frames', () => {
     const cancel = vi.spyOn(globalThis, 'cancelAnimationFrame');
     try {
       const { container, rerender } = render(<ProfileFrame frame={racing} />);
-      expect(container.querySelector('.profile-frame-racing svg')).toHaveAttribute(
-        'viewBox',
-        '0 0 240 400',
+      await waitFor(() =>
+        expect(container.querySelector('.profile-frame-racing svg')).toHaveAttribute(
+          'viewBox',
+          '0 0 240 400',
+        ),
       );
       fireEvent.load(container.querySelector('.profile-frame-racing__preload')!);
       expect(container.querySelector('.profile-frame-racing')).toHaveAttribute(
@@ -62,7 +64,7 @@ describe('Layered profile frames', () => {
       cancel.mockRestore();
     }
   });
-  it('does not load the atlas for reduced motion and preserves static racing artwork', () => {
+  it('does not load the atlas for reduced motion and preserves static racing artwork', async () => {
     state.motion = false;
     const { container } = render(<ProfileFrame frame={racing} />);
     expect(container.querySelector('.profile-frame__crown')).toHaveAttribute(
@@ -70,11 +72,16 @@ describe('Layered profile frames', () => {
       racing.crownUrl,
     );
     expect(container.querySelector('.profile-frame-racing__preload')).toBeNull();
-    expect(container.querySelectorAll('.profile-frame-racing__car img')).toHaveLength(2);
+    await waitFor(() =>
+      expect(container.querySelectorAll('.profile-frame-racing__car img')).toHaveLength(2),
+    );
     expect(container.querySelector('[data-profile-frame-motion="true"]')).toBeNull();
   });
-  it('releases motion after an atlas failure while retaining both parked cars', () => {
+  it('releases motion after an atlas failure while retaining both parked cars', async () => {
     const { container } = render(<ProfileFrame frame={racing} />);
+    await waitFor(() =>
+      expect(container.querySelector('.profile-frame-racing__preload')).not.toBeNull(),
+    );
     fireEvent.error(container.querySelector('.profile-frame-racing__preload')!);
     expect(container.querySelector('[data-motion]')).toHaveAttribute('data-motion', 'false');
     expect(container.querySelectorAll('.profile-frame-racing__car img')).toHaveLength(2);

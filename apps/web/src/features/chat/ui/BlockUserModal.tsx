@@ -21,7 +21,12 @@ export default function BlockUserModal({ onClose }: BlockUserModalProps) {
   const [query, setQuery] = useState('');
   const userId = useAuthStore((s) => s.userId);
   const { results, isSearching } = useUserSearch(query);
-  const { data: conversations } = useConversations();
+  const {
+    data: conversations,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = useConversations({ search: query });
   const { data: blockedUsers } = useBlockedUsers();
   const blockUser = useBlockUser();
 
@@ -111,6 +116,16 @@ export default function BlockUserModal({ onClose }: BlockUserModalProps) {
             )}
 
             <div className="flex-1 overflow-y-auto custom-scrollbar px-2 pb-2">
+              {!query.trim() && hasNextPage && (
+                <button
+                  type="button"
+                  disabled={isFetchingNextPage}
+                  onClick={() => void fetchNextPage()}
+                  className="w-full py-2 text-sm text-gray-400"
+                >
+                  {isFetchingNextPage ? 'Loading chats...' : 'Load more chats'}
+                </button>
+              )}
               {isSearching && (
                 <div className="flex items-center justify-center py-8 text-gray-500">
                   <Loader2 size={18} className="animate-spin" />

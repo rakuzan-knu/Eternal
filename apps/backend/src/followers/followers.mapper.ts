@@ -3,6 +3,7 @@ import type {
   PublicUserEntity,
   PublicUserSummary,
 } from './types/followers.types';
+import { profileFrameSchema, profileEffectSchema } from '@common/contracts';
 import type { LiveActivityStatusDto, UserProfileDto } from '@common/contracts';
 
 export function toUserProfileDto(
@@ -33,6 +34,22 @@ export function toUserProfileDto(
       : {}),
     ...('activeNameplate' in user
       ? { activeNameplate: user.activeNameplate, activeNameplateId: user.activeNameplateId }
+      : {}),
+    ...('activeProfileFrame' in user
+      ? {
+          activeProfileFrame: user.activeProfileFrame
+            ? profileFrameSchema.parse(user.activeProfileFrame)
+            : null,
+          activeProfileFrameId: user.activeProfileFrameId,
+        }
+      : {}),
+    ...('activeProfileEffect' in user
+      ? {
+          activeProfileEffect: user.activeProfileEffect
+            ? profileEffectSchema.parse(user.activeProfileEffect)
+            : null,
+          activeProfileEffectId: user.activeProfileEffectId,
+        }
       : {}),
     bio: user.bio,
     isPrivate: user.isPrivate,

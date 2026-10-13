@@ -121,8 +121,8 @@ export function triggerCallPiPTransition(
               clipPath: [`circle(${endRadius}px at ${x}px ${y}px)`, `circle(0px at ${x}px ${y}px)`],
             },
             {
-              duration: 340,
-              easing: 'cubic-bezier(0.2, 0.8, 0.25, 1)',
+              duration: 380,
+              easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
               pseudoElement: '::view-transition-old(root)',
             },
           );

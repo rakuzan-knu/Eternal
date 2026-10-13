@@ -6,7 +6,7 @@ import { MediaAttachment } from './MessageAttachmentPreviews';
 import { AudioMessageBubble } from './AudioMessageBubble';
 import { VideoNoteBubble } from './VideoNoteBubble';
 import FileIconBadge from './FileIconBadge';
-import DocumentPreviewModal from './DocumentPreviewModal';
+import { DeferredDocumentPreviewModal as DocumentPreviewModal } from './DeferredChatEditors';
 import type { ChatThemeConfig } from '../model/chatTheme';
 import type { ContrastTheme } from '../lib/themeUtils';
 import { isVideoAttachment, isImageAttachment } from '../lib/chatMediaUtils';

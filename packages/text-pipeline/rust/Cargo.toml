@@ -3,7 +3,8 @@ name = "text-pipeline-native"
 version = "1.0.0"
 edition = "2021"
 description = "Native accelerator for @social-network/text-pipeline v1 (napi-rs). Behavior-identical to the TS core; vectors/v1.json is the shared contract."
-license = "AGPL-3.0-only"
+license-file = "../../../LICENSE.md"
+publish = false
 
 [lib]
 crate-type = ["cdylib"]

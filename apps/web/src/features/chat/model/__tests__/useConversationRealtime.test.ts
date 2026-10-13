@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useConversationRealtime } from '../useConversationRealtime';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -13,16 +13,19 @@ vi.mock('../useChatSocketEvent', () => ({
     registeredHandlers[event] = handler;
   },
 }));
+vi.mock('../../lib/e2ee/messageE2ee', () => ({ ensureMessageIdentityRegistered: async () => {} }));
 
 describe('useConversationRealtime', () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
+    vi.useFakeTimers();
     queryClient = new QueryClient();
     for (const key in registeredHandlers) {
       delete registeredHandlers[key];
     }
   });
+  afterEach(() => vi.useRealTimers());
 
   const wrapper = ({ children }: { children: React.ReactNode }) =>
     React.createElement(QueryClientProvider, { client: queryClient }, children);
@@ -48,6 +51,7 @@ describe('useConversationRealtime', () => {
         isTyping: true,
       });
     });
+    act(() => vi.advanceTimersByTime(50));
     expect(result.current.typingUserIds.has('u1')).toBe(true);
 
     // Active conversation typing false
@@ -58,6 +62,7 @@ describe('useConversationRealtime', () => {
         isTyping: false,
       });
     });
+    act(() => vi.advanceTimersByTime(50));
     expect(result.current.typingUserIds.has('u1')).toBe(false);
   });
 
@@ -80,6 +85,7 @@ describe('useConversationRealtime', () => {
       });
     });
 
+    act(() => vi.advanceTimersByTime(50));
     let cached = queryClient.getQueryData<ConversationView[]>([CONVERSATIONS_KEY]);
     expect(cached?.[0].sharedTheme).toBe('preset:cyberpunk');
 
@@ -90,6 +96,7 @@ describe('useConversationRealtime', () => {
       });
     });
 
+    act(() => vi.advanceTimersByTime(50));
     cached = queryClient.getQueryData<ConversationView[]>([CONVERSATIONS_KEY]);
     expect(cached?.[0].sharedTheme).toBeNull();
   });
@@ -109,6 +116,7 @@ describe('useConversationRealtime', () => {
         isTyping: true,
       });
     });
+    act(() => vi.advanceTimersByTime(50));
     expect(result.current.typingUserIds.has('u1')).toBe(true);
 
     act(() => {
@@ -125,6 +133,7 @@ describe('useConversationRealtime', () => {
       });
     });
 
+    act(() => vi.advanceTimersByTime(50));
     const cached = queryClient.getQueryData<ConversationView[]>([CONVERSATIONS_KEY]);
     expect(cached?.[0].sharedTheme).toBe('preset:retro');
     expect(cached?.[1].sharedTheme).toBeNull();
@@ -157,6 +166,7 @@ describe('useConversationRealtime', () => {
       });
     });
 
+    act(() => vi.advanceTimersByTime(50));
     const msgsAfterPin: any = queryClient.getQueryData([CONVERSATION_MESSAGES_KEY, 'conv-1']);
     expect(msgsAfterPin.pages[0].data[0].isPinned).toBe(true);
 
@@ -168,6 +178,7 @@ describe('useConversationRealtime', () => {
       });
     });
 
+    act(() => vi.advanceTimersByTime(50));
     const msgsAfterUnpin: any = queryClient.getQueryData([CONVERSATION_MESSAGES_KEY, 'conv-1']);
     expect(msgsAfterUnpin.pages[0].data[0].isPinned).toBe(false);
 
@@ -181,6 +192,7 @@ describe('useConversationRealtime', () => {
       });
     });
 
+    act(() => vi.advanceTimersByTime(50));
     const msgsAfterRead: any = queryClient.getQueryData([CONVERSATION_MESSAGES_KEY, 'conv-1']);
     expect(msgsAfterRead.pages[0].data[0].readBy).toContain('usr-reader');
 
@@ -195,6 +207,7 @@ describe('useConversationRealtime', () => {
       });
     });
 
+    act(() => vi.advanceTimersByTime(50));
     const msgsAfterReact: any = queryClient.getQueryData([CONVERSATION_MESSAGES_KEY, 'conv-1']);
     expect(msgsAfterReact.pages[0].data[0].reactions).toHaveLength(1);
   });

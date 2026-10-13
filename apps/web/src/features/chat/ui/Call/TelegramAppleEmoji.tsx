@@ -19,7 +19,7 @@ export const APPLE_PNG_FALLBACK_CDN =
  */
 export const TELEGRAM_ANIMATED_EMOJI_MAP: Record<string, string> = {
   // === Popular Gestures & People ===
-  '👌': 'People/OK Hand.webp',
+  '👌': 'People/Ok Hand.webp',
   '👍': 'People/Thumbs Up.webp',
   '👎': 'People/Thumbs Down.webp',
   '👋': 'People/Waving Hand.webp',
@@ -186,7 +186,6 @@ export const TELEGRAM_ANIMATED_EMOJI_MAP: Record<string, string> = {
   '🥳': 'Smileys/Partying Face.webp',
   '🤩': 'Smileys/Star Struck.webp',
   '🥰': 'Smileys/Smiling Face With Hearts.webp',
-  '😍': 'Smileys/Smiling Face With Heart-Eyes.webp',
   '😘': 'Smileys/Face Blowing A Kiss.webp',
   '😊': 'Smileys/Smiling Face With Smiling Eyes.webp',
   '😀': 'Smileys/Grinning Face.webp',

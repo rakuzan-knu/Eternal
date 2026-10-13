@@ -54,6 +54,7 @@ export function useNotificationRealtime() {
 
       if (payload.unreadCounts) {
         setUnreadCounts(payload.unreadCounts);
+        queryClient.setQueryData([UNREAD_NOTIFICATIONS_COUNT_KEY], payload.unreadCounts);
       }
 
       const isDndActive = Boolean(
@@ -175,7 +176,8 @@ export function useNotificationRealtime() {
         }>({ queryKey: [NOTIFICATIONS_KEY, targetFilter] }, updatePages);
       }
 
-      queryClient.invalidateQueries({ queryKey: [UNREAD_NOTIFICATIONS_COUNT_KEY] });
+      if (!payload.unreadCounts)
+        queryClient.invalidateQueries({ queryKey: [UNREAD_NOTIFICATIONS_COUNT_KEY] });
     };
 
     const handleReadNotification = (payload: {
@@ -186,6 +188,7 @@ export function useNotificationRealtime() {
     }) => {
       if (payload?.unreadCounts) {
         setUnreadCounts(payload.unreadCounts);
+        queryClient.setQueryData([UNREAD_NOTIFICATIONS_COUNT_KEY], payload.unreadCounts);
       }
 
       if (payload?.allRead) {
@@ -219,7 +222,8 @@ export function useNotificationRealtime() {
         });
       }
 
-      queryClient.invalidateQueries({ queryKey: [UNREAD_NOTIFICATIONS_COUNT_KEY] });
+      if (!payload?.unreadCounts)
+        queryClient.invalidateQueries({ queryKey: [UNREAD_NOTIFICATIONS_COUNT_KEY] });
     };
 
     socket.on('notification:new', handleNewNotification);

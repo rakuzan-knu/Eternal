@@ -15,6 +15,8 @@ import {
   addMembersSchema,
   createDirectConversationSchema,
   createGroupConversationSchema,
+  conversationPageQuerySchema,
+  type ConversationPageQuery,
   forAllQuerySchema,
   muteConversationSchema,
   proposeThemeSchema,
@@ -67,6 +69,23 @@ export class ConversationsController {
   @ApiOperation({ summary: 'Get all conversations for the current user' })
   getAll(@CurrentUser() user: RequestUser) {
     return this.service.getConversations(user.id);
+  }
+
+  @Get('page')
+  @ConditionalHttpCache()
+  @ApiOperation({ summary: 'Get a bounded conversation page in snapshot-stable activity order' })
+  getPage(
+    @CurrentUser() user: RequestUser,
+    @Query(new ZodValidationPipe(conversationPageQuerySchema)) query: ConversationPageQuery,
+  ) {
+    return this.service.getConversationPage(user.id, query);
+  }
+
+  @Get('unread-count')
+  @ConditionalHttpCache()
+  @ApiOperation({ summary: 'Get unread message count without loading conversations' })
+  getUnreadCount(@CurrentUser() user: RequestUser) {
+    return this.service.getUnreadCount(user.id);
   }
 
   @Post(':id/attachments')

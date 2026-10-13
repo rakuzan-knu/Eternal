@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient, InfiniteData } from '@tanstack/react-query';
 import { postsApi } from '../api/postsApi';
 import { PostType } from '@/entities/post/model/types';
+import { invalidatePostFeedHistory } from '@/entities/post/model/postFeedColdCache';
 import {
   FEED_KEY,
   USER_POSTS_KEY,
@@ -28,6 +29,7 @@ export function useLikeMutation(postId: string | number, isLiked: boolean, query
       }
     },
     onMutate: async () => {
+      invalidatePostFeedHistory();
       const updater = (old: unknown) => patchFeedData(old, postId, isLiked);
 
       if (queryKey) {
@@ -60,6 +62,7 @@ export function useLikeMutation(postId: string | number, isLiked: boolean, query
       queryClient.invalidateQueries({ queryKey: [SAVED_POSTS_KEY] });
     },
     onSettled: () => {
+      invalidatePostFeedHistory();
       if (queryKey) {
         queryClient.invalidateQueries({ queryKey });
       }

@@ -37,6 +37,7 @@ export function MediaAttachment({
   const [isInView, setIsInView] = useState(true);
   const [isPausedByUser, setIsPausedByUser] = useState(false);
   const [posterFrame, setPosterFrame] = useState<string | null>(null);
+  const [naturalAspect, setNaturalAspect] = useState<string | null>(null);
 
   // IntersectionObserver: automatically halt decoders when out of viewport
   useEffect(() => {
@@ -68,9 +69,12 @@ export function MediaAttachment({
   const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     setLoaded(true);
     setHasError(false);
+    const img = e.currentTarget;
+    if (img.naturalWidth && img.naturalHeight && !aspectRatio) {
+      setNaturalAspect(`${img.naturalWidth} / ${img.naturalHeight}`);
+    }
     if (isGif && !posterFrame) {
       try {
-        const img = e.currentTarget;
         const canvas = document.createElement('canvas');
         canvas.width = img.naturalWidth || 300;
         canvas.height = img.naturalHeight || 200;
@@ -91,6 +95,8 @@ export function MediaAttachment({
       : isGif
         ? '16 / 9'
         : undefined;
+
+  const resolvedAspectRatio = aspectRatio || naturalAspect || '4 / 3';
 
   if (isVideo) {
     const remainingSec = Math.max(0, Math.ceil((videoDuration || 0) - videoCurrentTime));
@@ -119,7 +125,7 @@ export function MediaAttachment({
           }
         }}
         className="relative block w-full min-w-[260px] sm:min-w-[320px] max-w-[440px] sm:max-w-[480px] min-h-[180px] max-h-[460px] overflow-hidden rounded-2xl bg-black group/video shadow-md cursor-pointer select-none"
-        style={{ aspectRatio: aspectRatio || undefined, contain: 'layout paint' }}
+        style={{ aspectRatio: resolvedAspectRatio }}
       >
         {!isLoaded && <SkeletonBone className="absolute inset-0 rounded-2xl" />}
         <video
@@ -139,6 +145,10 @@ export function MediaAttachment({
             const d = e.currentTarget.duration;
             if (d && !isNaN(d) && isFinite(d)) {
               setVideoDuration(d);
+            }
+            const vid = e.currentTarget;
+            if (vid.videoWidth && vid.videoHeight && !aspectRatio) {
+              setNaturalAspect(`${vid.videoWidth} / ${vid.videoHeight}`);
             }
           }}
           onTimeUpdate={(e) => {
@@ -201,7 +211,7 @@ export function MediaAttachment({
         }
       }}
       className="relative block w-full min-w-[260px] sm:min-w-[320px] max-w-[440px] sm:max-w-[480px] min-h-[180px] max-h-[460px] overflow-hidden rounded-2xl group/img bg-black/40 shadow-md cursor-pointer"
-      style={{ aspectRatio: aspectRatio || undefined, contain: 'layout paint' }}
+      style={{ aspectRatio: resolvedAspectRatio }}
     >
       {!isLoaded && !hasError && <SkeletonBone className="absolute inset-0 rounded-2xl" />}
 
@@ -218,7 +228,6 @@ export function MediaAttachment({
         <img
           src={attachment.url}
           alt={attachment.fileName ?? 'attachment'}
-          loading="lazy"
           decoding="async"
           className={`h-full w-full object-cover transition-opacity duration-300 hover:opacity-95 ${
             isLoaded ? 'opacity-100' : 'opacity-0'

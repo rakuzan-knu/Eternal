@@ -1,3 +1,4 @@
+import { issueOAuthState, consumeOAuthState } from '../common/security/oauth-state';
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@common/prisma';
 import type { Prisma } from '@prisma/client';
@@ -259,11 +260,10 @@ export class SpotifyService {
   /**
    * Generates official Spotify OAuth Authorization URL with state (csrf:userId)
    */
-  getAuthorizationUrl(userId: string): string {
+  async getAuthorizationUrl(userId: string): Promise<string> {
     const clientId = this.getClientId();
     const callbackUrl = this.getCallbackUrl();
-    const csrf = crypto.randomBytes(16).toString('hex');
-    const state = `${csrf}:${userId}`;
+    const state = await issueOAuthState(this.redis, 'spotify', userId, callbackUrl);
 
     const scopes = [
       'user-read-private',
@@ -1044,7 +1044,11 @@ export class SpotifyService {
   /**
    * Completes OAuth callback, fetches profile, liked songs, and playlists, then saves to Showcase
    */
-  async handleOAuthCallback(query: Record<string, unknown>, res: Response): Promise<void> {
+  async handleOAuthCallback(
+    query: Record<string, unknown>,
+    res: Response,
+    browserState?: string,
+  ): Promise<void> {
     const code = typeof query.code === 'string' ? query.code : undefined;
     const state = typeof query.state === 'string' ? query.state : '';
 
@@ -1057,15 +1061,13 @@ export class SpotifyService {
       return;
     }
 
-    let userId = typeof query.userId === 'string' ? query.userId : undefined;
-    if (!userId && state && state.includes(':')) {
-      userId = state.split(':')[1];
-    }
-
-    if (!userId) {
-      this.renderHtmlMessage(res, false, 'Could not identify user from OAuth state.');
-      return;
-    }
+    const { userId } = await consumeOAuthState(
+      this.redis,
+      'spotify',
+      state,
+      undefined,
+      browserState,
+    );
 
     try {
       // Exchange code with resilient redirect_uri retry

@@ -131,12 +131,22 @@ export const ProfileShowcaseSidebar: React.FC<ProfileShowcaseSidebarProps> = ({
   // Sync real-time WebSocket live activity presence
   useShowcasePresenceSync(userId || showcase?.userId, username);
 
-  const targetProfileId = userData?.id || userId || showcase?.userId;
+  const targetProfileId = userId || showcase?.userId || userData?.id;
+  const livePresenceActivity = usePresenceStore((s) =>
+    targetProfileId ? s.userActivities[targetProfileId] : undefined,
+  );
+
   useEffect(() => {
-    if (targetProfileId && showcase?.activityStatus !== undefined) {
-      usePresenceStore.getState().setUserActivity(targetProfileId, showcase.activityStatus);
+    if (targetProfileId && showcase?.activityStatus) {
+      const current = usePresenceStore.getState().userActivities[targetProfileId];
+      if (!current) {
+        usePresenceStore.getState().setUserActivity(targetProfileId, showcase.activityStatus);
+      }
     }
   }, [targetProfileId, showcase?.activityStatus]);
+
+  const effectiveActivityStatus =
+    livePresenceActivity !== undefined ? livePresenceActivity : showcase?.activityStatus;
 
   if (isLoading) {
     if (isOwner) {
@@ -191,9 +201,11 @@ export const ProfileShowcaseSidebar: React.FC<ProfileShowcaseSidebarProps> = ({
       )
     : [];
   const hasActivityContent = Boolean(
-    showcase.activityStatus?.type === 'gaming' ||
-    showcase.activityStatus?.isSteam ||
-    showcase.activityStatus?.type === 'spotify' ||
+    effectiveActivityStatus?.type === 'gaming' ||
+    effectiveActivityStatus?.isSteam ||
+    effectiveActivityStatus?.type === 'spotify' ||
+    (effectiveActivityStatus as any)?.type === 'platform_music' ||
+    (effectiveActivityStatus as any)?.isPlatformTrack ||
     (connectedAccounts?.steam as any)?.currentActivity ||
     (connectedAccounts?.spotify as any)?.currentActivity ||
     visibleAccounts.length > 0,
@@ -235,8 +247,8 @@ export const ProfileShowcaseSidebar: React.FC<ProfileShowcaseSidebarProps> = ({
     primaryBadge: userData?.primaryBadge,
   };
 
-  const isSpotifyActive = Boolean(isMusicActivity(showcase?.activityStatus));
-  const isGamingActive = Boolean(isGamingActivity(showcase?.activityStatus));
+  const isSpotifyActive = Boolean(isMusicActivity(effectiveActivityStatus));
+  const isGamingActive = Boolean(isGamingActivity(effectiveActivityStatus));
 
   const tabs: Array<{ id: ShowcaseNavTab; label: string; icon: React.ReactNode }> = [
     { id: 'board', label: 'Board', icon: <LayoutGrid size={13} /> },
@@ -249,7 +261,7 @@ export const ProfileShowcaseSidebar: React.FC<ProfileShowcaseSidebarProps> = ({
           className="text-[#23a55a] drop-shadow-[0_0_5px_rgba(35,165,90,0.8)]"
         />
       ) : isSpotifyActive ? (
-        (showcase?.activityStatus as any)?.isPaused ? (
+        (effectiveActivityStatus as any)?.isPaused ? (
           <Pause
             size={13}
             className="text-amber-400 drop-shadow-[0_0_5px_rgba(245,158,11,0.8)] fill-amber-400/40"
@@ -423,7 +435,10 @@ export const ProfileShowcaseSidebar: React.FC<ProfileShowcaseSidebarProps> = ({
           >
             {isOwner || hasActivityContent ? (
               <LivePresenceWidget
-                showcase={showcase}
+                showcase={{
+                  ...showcase,
+                  activityStatus: effectiveActivityStatus as any,
+                }}
                 isOwner={isOwner}
                 onEditClick={() => openEditor('activity')}
               />

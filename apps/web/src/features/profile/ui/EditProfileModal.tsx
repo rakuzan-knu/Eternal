@@ -61,6 +61,12 @@ import VoiceVideoTab from './voice/VoiceVideoTab';
 import BadgeSettingsSection from './BadgeSettingsSection';
 import { ProfileCustomizeSettingsSection } from './ProfileCustomizeSettingsSection';
 import { compressImage } from '@/shared/lib/compressImage';
+import {
+  MediaUploadError,
+  readUploadDataUrl,
+  validateMediaUpload,
+} from '@/shared/lib/mediaUploadValidation';
+import { IMAGE_UPLOAD_ACCEPT } from '@social-network/shared-contracts';
 import { useShowcase } from '@/entities/showcase/model/useShowcase';
 import { ConfigureIntegrationModal } from './integrations/ConfigureIntegrationModal';
 import { PLATFORMS_LIST, type PlatformConfig } from './integrations/platforms';
@@ -110,6 +116,7 @@ const TABS_CONFIG: MainTab[] = [
     label: 'Appearance',
     subsections: [
       { id: 'sec-theme', label: 'Color Theme' },
+      { id: 'sec-interface-settings', label: 'Interface Settings' },
       { id: 'sec-interface', label: 'Font & Layout' },
       { id: 'sec-cursors', label: 'Custom Cursors' },
     ],
@@ -330,6 +337,22 @@ export default function EditProfileModal() {
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [localBannerPreview, setLocalBannerPreview] = useState<string | null>(null);
   const [localBannerPos, setLocalBannerPos] = useState<number | null>(null);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+  const [bannerError, setBannerError] = useState<string | null>(null);
+  const [isProcessingAvatar, setIsProcessingAvatar] = useState(false);
+  const [isProcessingBanner, setIsProcessingBanner] = useState(false);
+  const avatarSelection = useRef(0);
+  const bannerSelection = useRef(0);
+  useEffect(() => {
+    if (!isEditProfileOpen) {
+      avatarSelection.current++;
+      bannerSelection.current++;
+      setIsProcessingAvatar(false);
+      setIsProcessingBanner(false);
+      setAvatarError(null);
+      setBannerError(null);
+    }
+  }, [isEditProfileOpen]);
 
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef<{ startY: number; startPos: number }>({ startY: 0, startPos: 50 });
@@ -844,76 +867,48 @@ export default function EditProfileModal() {
 
   if (!isEditProfileOpen) return null;
 
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const rawFile = e.target.files[0];
-      const isGif =
-        rawFile.type?.toLowerCase() === 'image/gif' || rawFile.name?.toLowerCase().endsWith('.gif');
-
-      if (isGif) {
-        setAvatarFile(rawFile);
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setLocalAvatarPreview(reader.result as string);
-        };
-        reader.readAsDataURL(rawFile);
-        return;
-      }
-
-      try {
-        const file = await compressImage(rawFile, 1024, 1024, 0.85);
+  const handleProfileImageChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    purpose: 'avatar' | 'banner',
+  ) => {
+    const rawFile = e.target.files?.[0];
+    e.target.value = '';
+    if (!rawFile || isSaving) return;
+    const selection = purpose === 'avatar' ? avatarSelection : bannerSelection;
+    const request = ++selection.current;
+    const setError = purpose === 'avatar' ? setAvatarError : setBannerError;
+    const setProcessing = purpose === 'avatar' ? setIsProcessingAvatar : setIsProcessingBanner;
+    setError(null);
+    setProcessing(true);
+    try {
+      await validateMediaUpload(rawFile, purpose);
+      const file = await compressImage(
+        rawFile,
+        purpose === 'avatar' ? 1024 : 1920,
+        purpose === 'avatar' ? 1024 : 1080,
+        0.85,
+      );
+      if (file !== rawFile) await validateMediaUpload(file, purpose);
+      const preview = await readUploadDataUrl(file);
+      if (request !== selection.current || !useUIStore.getState().isEditProfileOpen) return;
+      if (purpose === 'avatar') {
         setAvatarFile(file);
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setLocalAvatarPreview(reader.result as string);
-        };
-        reader.readAsDataURL(file);
-      } catch {
-        setAvatarFile(rawFile);
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setLocalAvatarPreview(reader.result as string);
-        };
-        reader.readAsDataURL(rawFile);
-      }
-    }
-  };
-
-  const handleBannerChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const rawFile = e.target.files[0];
-      const isGif =
-        rawFile.type?.toLowerCase() === 'image/gif' || rawFile.name?.toLowerCase().endsWith('.gif');
-
-      if (isGif) {
-        setBannerFile(rawFile);
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setLocalBannerPreview(reader.result as string);
-          setLocalBannerPos(50);
-        };
-        reader.readAsDataURL(rawFile);
-        return;
-      }
-
-      try {
-        const file = await compressImage(rawFile, 1920, 1080, 0.85);
+        setLocalAvatarPreview(preview);
+      } else {
         setBannerFile(file);
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setLocalBannerPreview(reader.result as string);
-          setLocalBannerPos(50);
-        };
-        reader.readAsDataURL(file);
-      } catch {
-        setBannerFile(rawFile);
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setLocalBannerPreview(reader.result as string);
-          setLocalBannerPos(50);
-        };
-        reader.readAsDataURL(rawFile);
+        setLocalBannerPreview(preview);
+        setLocalBannerPos(50);
       }
+    } catch (error) {
+      if (request === selection.current) {
+        setError(
+          error instanceof MediaUploadError
+            ? error.message
+            : 'Could not process this image. Choose another file.',
+        );
+      }
+    } finally {
+      if (request === selection.current) setProcessing(false);
     }
   };
 
@@ -939,7 +934,7 @@ export default function EditProfileModal() {
   };
 
   const onSubmit = async (data: ProfileFormValues) => {
-    if (isUsernameTaken || isSaving) return;
+    if (isUsernameTaken || isSaving || isProcessingAvatar || isProcessingBanner) return;
     try {
       if (!currentUser) return;
       setIsSaving(true);
@@ -1284,9 +1279,10 @@ export default function EditProfileModal() {
                         <input
                           type="file"
                           ref={avatarInputRef}
-                          onChange={handleAvatarChange}
+                          onChange={(e) => void handleProfileImageChange(e, 'avatar')}
                           className="hidden"
-                          accept="image/*"
+                          accept={IMAGE_UPLOAD_ACCEPT}
+                          disabled={isSaving}
                         />
                         <button
                           type="button"
@@ -1298,6 +1294,16 @@ export default function EditProfileModal() {
                       </div>
                     </div>
 
+                    {avatarError && (
+                      <p role="alert" className="text-sm text-red-500">
+                        {avatarError}
+                      </p>
+                    )}
+                    {isProcessingAvatar && (
+                      <p role="status" className="text-xs text-gray-500">
+                        Checking profile photo...
+                      </p>
+                    )}
                     <div className="flex flex-col gap-4 pb-6 border-b border-black/10 dark:border-white/[0.06]">
                       <div className="flex items-center justify-between">
                         <div>
@@ -1311,9 +1317,10 @@ export default function EditProfileModal() {
                         <input
                           type="file"
                           ref={bannerInputRef}
-                          onChange={handleBannerChange}
+                          onChange={(e) => void handleProfileImageChange(e, 'banner')}
                           className="hidden"
-                          accept="image/*"
+                          accept={IMAGE_UPLOAD_ACCEPT}
+                          disabled={isSaving}
                         />
                         <button
                           type="button"
@@ -1324,6 +1331,16 @@ export default function EditProfileModal() {
                         </button>
                       </div>
 
+                      {bannerError && (
+                        <p role="alert" className="text-sm text-red-500">
+                          {bannerError}
+                        </p>
+                      )}
+                      {isProcessingBanner && (
+                        <p role="status" className="text-xs text-gray-500">
+                          Checking profile banner...
+                        </p>
+                      )}
                       <div
                         className={`w-full h-32 bg-black/[0.02] dark:bg-white/[0.02] rounded-2xl overflow-hidden border border-black/12 dark:border-white/[0.08] relative group ${
                           bannerPreview
@@ -1463,7 +1480,13 @@ export default function EditProfileModal() {
                     <div className="flex justify-end mt-4">
                       <button
                         type="submit"
-                        disabled={isUsernameTaken || isCheckingUsername || isSaving}
+                        disabled={
+                          isUsernameTaken ||
+                          isCheckingUsername ||
+                          isSaving ||
+                          isProcessingAvatar ||
+                          isProcessingBanner
+                        }
                         className={`bg-gray-950 text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200 px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 cursor-pointer shadow-md ${
                           isUsernameTaken || isCheckingUsername || isSaving
                             ? 'opacity-40 cursor-not-allowed pointer-events-none'

@@ -8,30 +8,11 @@ import {
 } from '../image-processor';
 import type { S3Client } from '@aws-sdk/client-s3';
 
-jest.mock('sharp', () => {
-  const mockSharpInstance = {
-    resize: jest.fn().mockReturnThis(),
-    webp: jest.fn().mockReturnThis(),
-    gif: jest.fn().mockReturnThis(),
-    toBuffer: jest.fn().mockResolvedValue(Buffer.from('optimized-image')),
-  };
-  const sharpFn = Object.assign(
-    jest.fn(() => mockSharpInstance),
-    {
-      concurrency: jest.fn(),
-      cache: jest.fn(),
-      simd: jest.fn(),
-    },
-  );
-  return {
-    __esModule: true,
-    default: sharpFn,
-  };
-});
+import { pngImage, gifImage } from './upload-fixtures';
 
 describe('image-processor', () => {
-  const dummyBuffer = Buffer.from('test-image-content');
-  const gifBuffer = Buffer.from('GIF89a-test-image-content');
+  const dummyBuffer = pngImage;
+  const gifBuffer = gifImage;
 
   describe('optimizations', () => {
     it('optimizes avatar with WebP and GIF', async () => {

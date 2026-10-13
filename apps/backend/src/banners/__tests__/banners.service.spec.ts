@@ -1,3 +1,4 @@
+import { pngImage, gifImage } from '../../common/media/__tests__/upload-fixtures';
 import { Readable } from 'stream';
 import { NotFoundException } from '@nestjs/common';
 import type { S3Client } from '@aws-sdk/client-s3';
@@ -52,12 +53,46 @@ describe('BannersService', () => {
   });
 
   describe('uploadBanner', () => {
+    it('keeps the existing banner and storage object when an invalid image is uploaded', async () => {
+      mockBannerRepo.findById.mockResolvedValue({
+        id: 'usr-1',
+        banner: 'https://s3.example.com/avatars/old.webp',
+      });
+      await expect(
+        service.uploadBanner('usr-1', {
+          buffer: Buffer.from('MZ bad.exe'),
+          mimetype: 'image/png',
+        } as Express.Multer.File),
+      ).rejects.toThrow();
+      expect(mockBannerRepo.updateBanner).not.toHaveBeenCalled();
+      expect(mockS3.send).not.toHaveBeenCalled();
+      expect(mockRedis.del).not.toHaveBeenCalled();
+    });
+    it('uploads to a new key before updating the record and deleting the old image', async () => {
+      mockBannerRepo.findById.mockResolvedValue({
+        id: 'usr-1',
+        banner: 'https://s3.example.com/avatars/old.webp',
+      });
+      mockBannerRepo.updateBanner.mockResolvedValue({ id: 'usr-1', banner: 'new.webp' });
+      await service.uploadBanner('usr-1', {
+        buffer: pngImage,
+        mimetype: 'image/png',
+      } as Express.Multer.File);
+      const calls = mockS3.send.mock.calls as [{ input: { Key: string } }][];
+      expect(calls[0][0].input.Key).toMatch(/banners\/usr-1\/.+\.webp$/);
+      expect(mockS3.send.mock.invocationCallOrder[0]).toBeLessThan(
+        mockBannerRepo.updateBanner.mock.invocationCallOrder[0],
+      );
+      expect(mockBannerRepo.updateBanner.mock.invocationCallOrder[0]).toBeLessThan(
+        mockS3.send.mock.invocationCallOrder[1],
+      );
+    });
     const mockFile: Express.Multer.File = {
       fieldname: 'file',
       originalname: 'banner.png',
       encoding: '7bit',
       mimetype: 'image/png',
-      buffer: Buffer.from('fake-banner-bytes'),
+      buffer: pngImage,
       size: 16,
       stream: new Readable(),
       destination: '',
@@ -95,7 +130,7 @@ describe('BannersService', () => {
         ...mockFile,
         originalname: 'animated-banner.gif',
         mimetype: 'image/gif',
-        buffer: Buffer.from('GIF89a...fake-gif-bytes'),
+        buffer: gifImage,
       };
 
       mockBannerRepo.findById.mockResolvedValueOnce({ id: 'usr-1', banner: null });
@@ -108,7 +143,7 @@ describe('BannersService', () => {
       const result = await service.uploadBanner('usr-1', mockGifFile, 60);
       expect(mockBannerRepo.updateBanner).toHaveBeenCalledWith(
         'usr-1',
-        expect.stringContaining('usr-1.gif'),
+        expect.stringMatching(/usr-1\/.+\.gif$/),
         60,
       );
       expect(result.banner).toContain('usr-1.gif');

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Settings,
@@ -19,12 +19,25 @@ import { useCurrentUser } from '@/entities/profile/model/useCurrentUser';
 import { authApi } from '@/features/auth/api/authApi';
 import Modal from '@/shared/ui/Modal';
 import { MenuItem } from './MenuItem';
-import { ThemeMenuItem } from './ThemeSubmenu';
-import { AccountSwitcherMenuItem } from './AccountSwitcherSubmenu';
-import { ManageAccountsModal } from './ManageAccountsModal';
-import { AddAccountModal } from './AddAccountModal';
-import { ReportProblemModal } from './ReportProblemModal';
-import { ReportDetailsModal } from './ReportDetailsModal';
+import { useExitPresence } from '@/shared/lib/useExitPresence';
+const ThemeMenuItem = lazy(() =>
+  import('./ThemeSubmenu').then((m) => ({ default: m.ThemeMenuItem })),
+);
+const AccountSwitcherMenuItem = lazy(() =>
+  import('./AccountSwitcherSubmenu').then((m) => ({ default: m.AccountSwitcherMenuItem })),
+);
+const ManageAccountsModal = lazy(() =>
+  import('./ManageAccountsModal').then((m) => ({ default: m.ManageAccountsModal })),
+);
+const AddAccountModal = lazy(() =>
+  import('./AddAccountModal').then((m) => ({ default: m.AddAccountModal })),
+);
+const ReportProblemModal = lazy(() =>
+  import('./ReportProblemModal').then((m) => ({ default: m.ReportProblemModal })),
+);
+const ReportDetailsModal = lazy(() =>
+  import('./ReportDetailsModal').then((m) => ({ default: m.ReportDetailsModal })),
+);
 
 type ActiveModal =
   'manageAccounts' | 'addAccount' | 'reportStep1' | 'reportStep2' | 'logoutConfirm' | null;
@@ -32,10 +45,16 @@ type ActiveModal =
 interface ProfileMenuProps {
   isSidebarExpanded: boolean;
   onOpenChange?: (open: boolean) => void;
+  variant?: 'default' | 'railway';
 }
 
-export function ProfileMenu({ isSidebarExpanded, onOpenChange }: ProfileMenuProps) {
+export function ProfileMenu({
+  isSidebarExpanded,
+  onOpenChange,
+  variant = 'default',
+}: ProfileMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const menuPresent = useExitPresence(isOpen);
   const [activeModal, setActiveModal] = useState<ActiveModal>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -120,13 +139,19 @@ export function ProfileMenu({ isSidebarExpanded, onOpenChange }: ProfileMenuProp
           isOpen
             ? 'bg-black/10 dark:bg-white/10 text-gray-900 dark:text-white font-semibold shadow-md'
             : 'text-gray-500 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white'
-        } ${isSidebarExpanded ? 'w-full px-4 gap-4 justify-start' : 'w-12 justify-center mx-auto'}`}
+        } ${
+          isSidebarExpanded
+            ? variant === 'railway'
+              ? 'w-full px-3 gap-3 justify-start'
+              : 'w-full px-4 gap-4 justify-start'
+            : 'w-12 justify-center mx-auto'
+        }`}
       >
-        <div className="shrink-0 flex items-center justify-center transition-transform duration-200 group-hover:scale-105">
-          <Menu size={24} />
+        <div className="w-8 h-8 shrink-0 flex items-center justify-center transition-transform duration-200 group-hover:scale-105">
+          <Menu size={variant === 'railway' ? 22 : 24} />
         </div>
         <span
-          className={`text-[15px] font-medium transition-all duration-200 whitespace-nowrap ${
+          className={`text-[15px] font-medium transition-all duration-200 whitespace-nowrap truncate min-w-0 ${
             isSidebarExpanded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2 absolute'
           }`}
         >
@@ -134,10 +159,13 @@ export function ProfileMenu({ isSidebarExpanded, onOpenChange }: ProfileMenuProp
         </span>
       </button>
 
-      {isOpen && (
+      {menuPresent && (
         <div
           role="menu"
-          className="absolute bottom-full left-0 mb-3 w-72 glass-menu border border-black/10 dark:border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.8)] backdrop-blur-2xl p-2 z-70 animate-menuIn origin-bottom-left overflow-visible"
+          aria-hidden={!isOpen}
+          inert={!isOpen}
+          data-phase={isOpen ? 'open' : 'closing'}
+          className="menu-motion absolute bottom-full left-0 mb-3 w-72 glass-menu border border-black/10 dark:border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.8)] backdrop-blur-2xl p-2 z-70 origin-bottom-left overflow-visible"
         >
           <MenuItem
             icon={Settings}
@@ -159,7 +187,9 @@ export function ProfileMenu({ isSidebarExpanded, onOpenChange }: ProfileMenuProp
               }
             }}
           />
-          <ThemeMenuItem />
+          <Suspense fallback={null}>
+            <ThemeMenuItem />
+          </Suspense>
           <MenuItem
             icon={AlertTriangle}
             label="Problem report"
@@ -195,10 +225,12 @@ export function ProfileMenu({ isSidebarExpanded, onOpenChange }: ProfileMenuProp
 
           <div className="h-px bg-black/10 dark:bg-white/10 my-2" />
 
-          <AccountSwitcherMenuItem
-            onSwitchAccount={handleSwitchAccount}
-            onOpenManageAccounts={() => openModal('manageAccounts')}
-          />
+          <Suspense fallback={null}>
+            <AccountSwitcherMenuItem
+              onSwitchAccount={handleSwitchAccount}
+              onOpenManageAccounts={() => openModal('manageAccounts')}
+            />
+          </Suspense>
 
           <div className="h-px bg-black/10 dark:bg-white/10 my-2" />
 
@@ -211,22 +243,24 @@ export function ProfileMenu({ isSidebarExpanded, onOpenChange }: ProfileMenuProp
         </div>
       )}
 
-      {activeModal === 'manageAccounts' && (
-        <ManageAccountsModal
-          onClose={closeAll}
-          onAddAccount={() => setActiveModal('addAccount')}
-          onSwitchAccount={handleSwitchAccount}
-        />
-      )}
-      {activeModal === 'addAccount' && (
-        <AddAccountModal onClose={closeAll} onBack={() => setActiveModal('manageAccounts')} />
-      )}
-      {activeModal === 'reportStep1' && (
-        <ReportProblemModal onClose={closeAll} onContinue={() => setActiveModal('reportStep2')} />
-      )}
-      {activeModal === 'reportStep2' && (
-        <ReportDetailsModal onClose={closeAll} onBack={() => setActiveModal('reportStep1')} />
-      )}
+      <Suspense fallback={null}>
+        {activeModal === 'manageAccounts' && (
+          <ManageAccountsModal
+            onClose={closeAll}
+            onAddAccount={() => setActiveModal('addAccount')}
+            onSwitchAccount={handleSwitchAccount}
+          />
+        )}
+        {activeModal === 'addAccount' && (
+          <AddAccountModal onClose={closeAll} onBack={() => setActiveModal('manageAccounts')} />
+        )}
+        {activeModal === 'reportStep1' && (
+          <ReportProblemModal onClose={closeAll} onContinue={() => setActiveModal('reportStep2')} />
+        )}
+        {activeModal === 'reportStep2' && (
+          <ReportDetailsModal onClose={closeAll} onBack={() => setActiveModal('reportStep1')} />
+        )}
+      </Suspense>
       {activeModal === 'logoutConfirm' && (
         <Modal onClose={closeAll} className="w-full max-w-sm">
           {(close) => (

@@ -1,3 +1,4 @@
+import { setOAuthCookie } from '../common/security/oauth-state';
 import {
   Controller,
   Get,
@@ -80,15 +81,21 @@ export class IntegrationsController {
     private readonly prisma: PrismaService,
   ) {}
 
+  @UseGuards(AuthGuard)
   @Get('spotify/auth')
-  redirectToSpotify(@Query('userId') userId: string, @Res() res: Response) {
-    const url = this.spotifyService.getAuthorizationUrl(userId);
+  async redirectToSpotify(@CurrentUser() user: RequestUser, @Res() res: Response) {
+    const url = await this.spotifyService.getAuthorizationUrl(user.id);
+    setOAuthCookie(res, 'spotify', new URL(url).searchParams.get('state')!);
     return res.redirect(url);
   }
 
   @Get(['spotify/callback', 'auth/spotify/callback', 'api/auth/spotify/callback'])
-  async handleSpotifyCallback(@Query() query: Record<string, any>, @Res() res: Response) {
-    return this.spotifyService.handleOAuthCallback(query, res);
+  async handleSpotifyCallback(
+    @Query() query: Record<string, any>,
+    @Res() res: Response,
+    @Req() req: Request,
+  ) {
+    return this.spotifyService.handleOAuthCallback(query, res, req.cookies?.spotify_oauth_state);
   }
 
   @UseGuards(AuthGuard)
@@ -381,9 +388,16 @@ export class IntegrationsController {
     );
   }
 
+  @UseGuards(AuthGuard)
   @Get('steam/auth')
-  redirectToSteam(@Query('userId') userId: string, @Req() req: Request, @Res() res: Response) {
-    const url = this.integrationsService.getSteamAuthUrl(userId, req);
+  async redirectToSteam(
+    @CurrentUser() user: RequestUser,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const url = await this.integrationsService.getSteamAuthUrl(user.id, req);
+    const returnTo = new URL(new URL(url).searchParams.get('openid.return_to')!);
+    setOAuthCookie(res, 'steam', returnTo.searchParams.get('state')!);
     return res.redirect(url);
   }
 
@@ -962,18 +976,39 @@ export class IntegrationsController {
   }
 
   @Get('steam/callback')
-  async handleSteamCallback(@Query() query: Record<string, any>, @Res() res: Response) {
-    return this.integrationsService.handleSteamCallback(query, res);
+  async handleSteamCallback(
+    @Query() query: Record<string, any>,
+    @Res() res: Response,
+    @Req() req: Request,
+  ) {
+    return this.integrationsService.handleSteamCallback(query, res, req.cookies?.steam_oauth_state);
   }
 
-  @Get(':platform/auth')
-  redirectToPlatformOAuth(
+  @UseGuards(AuthGuard)
+  @Post(':platform/oauth/start')
+  async startOAuth(
     @Param('platform') platform: string,
-    @Query('userId') userId: string,
+    @CurrentUser() user: RequestUser,
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    return this.integrationsService.handlePlatformOAuthStart(platform, userId, req, res);
+    if (platform === 'spotify') {
+      const url = await this.spotifyService.getAuthorizationUrl(user.id);
+      setOAuthCookie(res, 'spotify', new URL(url).searchParams.get('state')!);
+      return res.send({ url });
+    }
+    return this.integrationsService.handlePlatformOAuthStart(platform, user.id, req, res, true);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get(':platform/auth')
+  redirectToPlatformOAuth(
+    @Param('platform') platform: string,
+    @CurrentUser() user: RequestUser,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    return this.integrationsService.handlePlatformOAuthStart(platform, user.id, req, res);
   }
 
   @Get([':platform/callback', 'auth/:platform/callback', 'api/auth/:platform/callback'])
@@ -983,18 +1018,18 @@ export class IntegrationsController {
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    const combinedQuery = { ...query, reqHost: req.get('host') };
+    const combinedQuery = { ...query, browserState: req.cookies?.[`${platform}_oauth_state`] };
     return this.integrationsService.handlePlatformOAuthCallback(platform, combinedQuery, res);
   }
 
-  @UseGuards(OptionalAuthGuard)
+  @UseGuards(AuthGuard)
   @Post(':platform/exchange-code')
   async exchangeOAuthCode(
     @CurrentUser() user: RequestUser | null,
     @Param('platform') platform: string,
     @Body() body: { code: string; redirectUri?: string; state?: string },
   ) {
-    const targetUserId = user?.id || (body.state ? body.state.replace(/^[a-z]+:/i, '') : '');
+    const targetUserId = user?.id;
     if (!targetUserId) {
       throw new UnauthorizedException('User authentication or valid state parameter required');
     }

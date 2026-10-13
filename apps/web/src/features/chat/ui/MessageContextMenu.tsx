@@ -1,4 +1,5 @@
 import React, { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react';
+import { withObjectUrl } from '@/shared/lib/blobResources';
 import { createPortal } from 'react-dom';
 import {
   Reply,
@@ -174,11 +175,15 @@ export default function MessageContextMenu({
         }
         const img = new Image();
         img.crossOrigin = 'anonymous';
-        await new Promise<void>((resolve, reject) => {
-          img.onload = () => resolve();
-          img.onerror = () => reject();
-          img.src = URL.createObjectURL(blob);
-        });
+        await withObjectUrl(
+          blob,
+          (url) =>
+            new Promise<void>((resolve, reject) => {
+              img.onload = () => resolve();
+              img.onerror = () => reject();
+              img.src = url;
+            }),
+        );
         const canvas = document.createElement('canvas');
         canvas.width = img.naturalWidth || 300;
         canvas.height = img.naturalHeight || 300;

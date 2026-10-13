@@ -7,6 +7,7 @@ import { GradientThemesSection } from './GradientThemesSection';
 import { WallpaperThemesSection } from './WallpaperThemesSection';
 import { ThemeLivePreviewCard } from './ThemeLivePreviewCard';
 import { TypographySection } from './TypographySection';
+import { InterfaceSettingsSection } from './InterfaceSettingsSection';
 import { CursorsSection } from './CursorsSection';
 import { playToggleSound } from '@/shared/lib/themeSoundFx';
 
@@ -207,12 +208,17 @@ export default function AppearanceTab() {
         </div>
       </div>
 
-      {/* Section 2: Typography & Font Layout */}
+      {/* Section 2: Interface Settings */}
+      <div id="sec-interface-settings">
+        <InterfaceSettingsSection />
+      </div>
+
+      {/* Section 3: Typography & Font Layout */}
       <div id="sec-interface">
         <TypographySection />
       </div>
 
-      {/* Section 3: Custom Cursors */}
+      {/* Section 4: Custom Cursors */}
       <CursorsSection />
     </div>
   );

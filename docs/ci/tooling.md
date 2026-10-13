@@ -1,6 +1,6 @@
 # 🛠️ Developer Tooling, Quality Gates & Local Parity
 
-To ensure seamless onboarding for open-source contributors and zero disparity between local development and production environments, the monorepo incorporates unified tooling, automated quality gates, and cross-platform consistency mechanisms.
+To ensure seamless onboarding for authorized contributors and zero disparity between local development and production environments, the monorepo incorporates unified tooling, automated quality gates, and cross-platform consistency mechanisms.
 
 ---
 

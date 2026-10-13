@@ -25,6 +25,8 @@ import { useQueryOnlineStatus } from '@/features/chat/model/usePresence';
 import { useUnreadMessagesCount } from '@/features/chat/model/useUnreadMessagesCount';
 import { useUnreadNotificationsCount } from '../model/useUnreadNotificationsCount';
 import { SidebarScrollbar } from './SidebarScrollbar';
+import { Nameplate } from '@/shared/ui/Nameplate';
+import { useActiveDecorationStore } from '@/shared/model/useActiveDecorationStore';
 
 const menuItems = [
   { to: '/', icon: <Home size={24} />, label: 'Home' },
@@ -234,14 +236,21 @@ export default function Sidebar() {
   const unreadNotificationsLabel =
     unreadNotificationsCount > 99 ? '99+' : String(unreadNotificationsCount);
   const isReels = location.pathname.startsWith('/reels');
+  const isNotificationsPage = location.pathname.startsWith('/notifications');
   useQueryOnlineStatus(currentUser?.id ? [currentUser.id] : []);
+
+  const storeNameplate = useActiveDecorationStore((s) => s.activeNameplate);
+  const activeNameplate =
+    storeNameplate !== undefined && storeNameplate !== null
+      ? storeNameplate
+      : currentUser?.activeNameplate;
 
   return (
     <aside
       onMouseEnter={handleMouseEnter}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      className={`group/sidebar glass-sidebar fixed top-4 left-4 h-[calc(100vh-2rem)] border border-black/10 dark:border-white/8 flex flex-col justify-between py-6 z-50 ease-out transition-[width,padding,border-radius,background-color] duration-200 will-change-[width] ${
+      className={`group/sidebar glass-sidebar fixed top-4 left-4 h-[calc(100vh-2rem)] border border-black/10 dark:border-white/8 flex flex-col justify-between py-6 z-50 ease-out transition-[width,padding,border-radius,background-color] duration-200 motion-reduce:transition-none ${
         isSidebarExpanded ? 'w-[256px] px-4 rounded-4xl' : 'w-20 px-0 rounded-[2.5rem]'
       } ${isReels ? 'max-md:hidden' : ''}`}
     >
@@ -355,6 +364,7 @@ export default function Sidebar() {
                       )}
                       {!isSidebarExpanded &&
                         item.to === '/notifications' &&
+                        !isNotificationsPage &&
                         unreadNotificationsCount > 0 && (
                           <span className="absolute left-4.5 top-1/2 -translate-y-1/2 min-w-4.5 h-4.5 px-1 rounded-full bg-purple-500 text-white border-2 border-white dark:border-[#16161a] text-[10px] font-bold leading-none flex items-center justify-center animate-badgeCollapse pointer-events-none">
                             {unreadNotificationsLabel}
@@ -378,6 +388,7 @@ export default function Sidebar() {
                   )}
                   {isSidebarExpanded &&
                     item.to === '/notifications' &&
+                    !isNotificationsPage &&
                     unreadNotificationsCount > 0 && (
                       <span className="ml-auto min-w-5 h-5 px-1.5 rounded-full bg-purple-500 text-white text-[11px] font-bold leading-none flex items-center justify-center animate-badgeExpand select-none">
                         {unreadNotificationsLabel}
@@ -402,13 +413,14 @@ export default function Sidebar() {
           <div className="w-full px-2 mt-2">
             <NavLink
               to={profilePath ?? location.pathname}
-              className={`flex items-center rounded-2xl transition-all duration-200 h-12 w-full ${
+              className={`nameplate-row flex items-center rounded-2xl transition-all duration-200 h-12 w-full relative overflow-hidden ${
                 isProfileActive
                   ? 'bg-black/8 dark:bg-white/10 text-gray-950 dark:text-white font-bold'
                   : 'hover:bg-black/5 dark:hover:bg-white/5 text-gray-600 dark:text-gray-400 hover:text-gray-950 dark:hover:text-white'
               } ${isSidebarExpanded ? 'px-3 gap-3' : 'justify-center mx-auto w-12'}`}
             >
-              <div className="relative shrink-0">
+              {isSidebarExpanded && activeNameplate && <Nameplate nameplate={activeNameplate} />}
+              <div className="relative shrink-0 z-10">
                 <Avatar
                   size="sm"
                   src={currentUser?.avatar}
@@ -419,7 +431,8 @@ export default function Sidebar() {
               </div>
 
               <div
-                className={`flex items-center justify-between flex-1 transition-all duration-150 overflow-hidden min-w-0 ${
+                data-nameplate-text
+                className={`flex items-center justify-between flex-1 transition-all duration-150 overflow-hidden min-w-0 z-10 ${
                   isSidebarExpanded
                     ? 'opacity-100 translate-x-0'
                     : 'opacity-0 -translate-x-4 hidden duration-100'
@@ -429,9 +442,12 @@ export default function Sidebar() {
                   name={currentUser?.displayName || currentUser?.username || 'Profile'}
                   style={currentUser?.displayNameStyle}
                   userId={currentUser?.id}
-                  className="text-sm font-semibold whitespace-nowrap truncate"
+                  className="text-sm font-semibold whitespace-nowrap truncate text-gray-900 dark:text-white"
                 />
-                <ChevronRight size={18} className="text-gray-500 dark:text-gray-400" />
+                <ChevronRight
+                  size={18}
+                  className="text-gray-500 dark:text-gray-400 shrink-0 ml-1"
+                />
               </div>
             </NavLink>
           </div>

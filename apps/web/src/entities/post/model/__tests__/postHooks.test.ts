@@ -40,7 +40,7 @@ describe('Post Hooks', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data?.pages[0]).toEqual(mockFeed);
-    expect(postsApi.getFeed).toHaveBeenCalledWith(undefined);
+    expect(postsApi.getFeed).toHaveBeenCalledWith(undefined, 10, expect.any(AbortSignal));
   });
 
   it('useUserPosts fetches user posts', async () => {
@@ -51,7 +51,11 @@ describe('Post Hooks', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data?.pages[0]).toEqual(mockPosts);
-    expect(postsApi.getUserPosts).toHaveBeenCalledWith('user-1', undefined);
+    expect(postsApi.getUserPosts).toHaveBeenCalledWith(
+      'user-1',
+      undefined,
+      expect.any(AbortSignal),
+    );
   });
 
   it('useUserReposts fetches user reposts', async () => {
@@ -62,7 +66,11 @@ describe('Post Hooks', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data?.pages[0]).toEqual(mockReposts);
-    expect(postsApi.getUserReposts).toHaveBeenCalledWith('user-1', undefined);
+    expect(postsApi.getUserReposts).toHaveBeenCalledWith(
+      'user-1',
+      undefined,
+      expect.any(AbortSignal),
+    );
   });
 
   it('useSavedPosts fetches saved posts', async () => {
@@ -73,7 +81,7 @@ describe('Post Hooks', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data?.pages[0]).toEqual(mockSaved);
-    expect(postsApi.getSavedPosts).toHaveBeenCalledWith(undefined);
+    expect(postsApi.getSavedPosts).toHaveBeenCalledWith(undefined, 10, expect.any(AbortSignal));
   });
 
   it('usePollVoters fetches voters for a poll', async () => {

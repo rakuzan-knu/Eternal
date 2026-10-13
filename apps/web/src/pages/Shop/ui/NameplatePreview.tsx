@@ -14,7 +14,11 @@ export function NameplatePreview({
   name?: string | undefined;
 }) {
   return (
-    <div className="rounded-2xl bg-black/35 p-4 space-y-2" aria-label="Пример строки пользователя">
+    <div
+      className="rounded-2xl bg-black/35 p-4 space-y-2 select-none"
+      onContextMenu={(e) => e.preventDefault()}
+      aria-label="Пример строки пользователя"
+    >
       {[0, 1, 2].map((row) =>
         row === 1 ? (
           <div key={row} className="nameplate-row rounded-xl flex items-center gap-3 h-14 px-3">

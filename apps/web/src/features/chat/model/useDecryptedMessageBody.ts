@@ -54,9 +54,12 @@ export function useDecryptedMessageBody(
           setDecrypted(res.text);
         } else if (res.status === 'replay' && decryptedBodyCache.has(body)) {
           setDecrypted(decryptedBodyCache.get(body)!);
+        } else if (res.status === 'locked') {
+          // Cryptographically locked (keys mismatch, pin changed, etc.) — permanent, no need to delay retry
+          decryptedBodyCache.set(body, res.text);
+          setDecrypted(res.text);
         } else {
-          // If first attempt returned locked/error, retry once after short delay
-          // in case peer identity key registration just completed
+          // If first attempt returned transient error (e.g. peer identity key registration just completed), retry once
           try {
             await new Promise((r) => setTimeout(r, 600));
             if (cancelled) return;
@@ -74,6 +77,7 @@ export function useDecryptedMessageBody(
           } catch {
             // ignore retry error
           }
+          decryptedBodyCache.set(body, res.text);
           setDecrypted(res.text);
         }
       },

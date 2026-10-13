@@ -10,6 +10,7 @@ import { MentionAutocomplete } from './MentionAutocomplete';
 import { useCurrentUser } from '@/entities/profile/model/useCurrentUser';
 import { PollOptionDraft, MediaDraft } from '../model/types';
 import { compressMediaFiles } from '@/shared/lib/compressImage';
+import { MediaUploadError, validateMediaUpload } from '@/shared/lib/mediaUploadValidation';
 import { PostType, PostMedia } from '@/entities/post/model/types';
 import MarkdownContent from '@/shared/ui/MarkdownContent';
 import {
@@ -62,37 +63,56 @@ export default function CreatePost({ onSubmitFormData, isPending = false }: Crea
     left: number;
   } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const mediaRef = useRef(media);
+  mediaRef.current = media;
+  const isSelectingMedia = useRef(false);
+  const isMounted = useRef(true);
 
   const canAddMore = media.length < MAX_MEDIA;
   const isBusy = isPending || isCompressing;
 
   const handleFilesSelect = async (files: File[]) => {
+    if (isSelectingMedia.current || isPending) return false;
     const room = MAX_MEDIA - media.length;
-    const selected = files.slice(0, room);
-    if (selected.length === 0) return;
+    if (files.length > room) {
+      setErrorMessage('You can attach up to 5 media files per post.');
+      return false;
+    }
+    const selected = files;
+    if (selected.length === 0) return false;
 
+    isSelectingMedia.current = true;
     try {
       setIsCompressing(true);
+      setErrorMessage(null);
+      for (const file of selected) await validateMediaUpload(file, 'post');
       const compressed = await compressMediaFiles(selected);
+      for (let i = 0; i < compressed.length; i++) {
+        if (compressed[i] !== selected[i]) await validateMediaUpload(compressed[i]!, 'post');
+      }
+      if (!isMounted.current) return false;
       const accepted = compressed.map((file) => ({
         file,
         previewUrl: URL.createObjectURL(file),
       }));
       setMedia((prev) => [...prev, ...accepted]);
-    } catch {
-      // Fallback: use original files if compression fails
-      const accepted = selected.map((file) => ({
-        file,
-        previewUrl: URL.createObjectURL(file),
-      }));
-      setMedia((prev) => [...prev, ...accepted]);
+      return true;
+    } catch (error) {
+      if (isMounted.current)
+        setErrorMessage(
+          error instanceof MediaUploadError
+            ? error.message
+            : 'Could not process this media. Choose another file.',
+        );
+      return false;
     } finally {
-      setIsCompressing(false);
+      isSelectingMedia.current = false;
+      if (isMounted.current) setIsCompressing(false);
     }
   };
 
   const handleGifSelect = (gifUrl: string) => {
-    if (!canAddMore) return;
+    if (!canAddMore || isBusy) return;
     setMedia((prev) => [...prev, { gifUrl, previewUrl: gifUrl }]);
     setActiveMenu(null);
   };
@@ -106,12 +126,14 @@ export default function CreatePost({ onSubmitFormData, isPending = false }: Crea
   };
 
   useEffect(() => {
+    isMounted.current = true;
     return () => {
-      media.forEach((m) => {
+      isMounted.current = false;
+      mediaRef.current.forEach((m) => {
         if (m.previewUrl) URL.revokeObjectURL(m.previewUrl);
       });
     };
-  }, [media]);
+  }, []);
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setText(e.target.value);
@@ -250,13 +272,14 @@ export default function CreatePost({ onSubmitFormData, isPending = false }: Crea
     requestAnimationFrame(() => textareaRef.current?.focus());
   };
 
-  const handleAttachSnippetAsFile = () => {
+  const handleAttachSnippetAsFile = async () => {
     if (!detectedSnippet) return;
     const extension = detectedSnippet.extension || 'txt';
     const file = new File([detectedSnippet.rawCode], `snippet.${extension}`, {
       type: 'text/plain;charset=utf-8',
     });
-    handleFilesSelect([file]);
+    const accepted = await handleFilesSelect([file]);
+    if (!accepted) return;
 
     if (text.includes(detectedSnippet.rawCode)) {
       setText((prev) => prev.replace(detectedSnippet.rawCode, '').trim());
@@ -390,6 +413,9 @@ export default function CreatePost({ onSubmitFormData, isPending = false }: Crea
       });
 
       setText('');
+      media.forEach((item) => {
+        if (item.file) URL.revokeObjectURL(item.previewUrl);
+      });
       setMedia([]);
       setShowPoll(false);
       setActiveMenu(null);

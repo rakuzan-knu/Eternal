@@ -140,9 +140,13 @@ export class SpotifyPresenceService implements OnModuleInit, OnModuleDestroy {
 
         const isPlatformMusicActive = Boolean(
           prevPrimary &&
-          prevPrimary.isPlatformTrack &&
-          !prevPrimary.isPaused &&
-          Date.now() - (prevPrimary.updatedAt || 0) < 60_000,
+          (prevPrimary.isPlatformTrack ||
+            (prevPrimary as any).source === 'platform' ||
+            (prevPrimary as any).source === 'soundcloud') &&
+          (prevPrimary.isPaused
+            ? Date.now() - ((prevPrimary as any).pausedAt || prevPrimary.updatedAt || 0) <
+              30 * 60_000
+            : Date.now() - (prevPrimary.updatedAt || 0) < 5 * 60_000),
         );
 
         // Priority resolution: Game always takes priority over Music in single-line status

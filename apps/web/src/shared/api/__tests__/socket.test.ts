@@ -16,7 +16,7 @@ describe('socket', () => {
     expect(io).toHaveBeenCalledWith(
       expect.stringContaining('/messenger'),
       expect.objectContaining({
-        autoConnect: true,
+        autoConnect: false,
         transports: ['websocket'],
         withCredentials: true,
       }),

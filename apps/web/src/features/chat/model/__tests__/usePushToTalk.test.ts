@@ -5,6 +5,13 @@ import { useCallStore } from '../callStore';
 import * as ringtone from '../../lib/callRingtone';
 
 describe('usePushToTalk Hook (Release Tail & Walkie-Talkie Audio)', () => {
+  it('keeps the controller stable across unrelated parent renders', () => {
+    const toggleMuteTrack = vi.fn();
+    const { result, rerender } = renderHook(() => usePushToTalk({ toggleMuteTrack }));
+    const controller = result.current;
+    rerender();
+    expect(result.current).toBe(controller);
+  });
   beforeEach(() => {
     vi.useFakeTimers();
     vi.spyOn(ringtone, 'playPTTPressChirp').mockImplementation(() => {});

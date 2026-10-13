@@ -20,12 +20,15 @@ export default function Modal({
 }: ModalProps) {
   const [isClosing, setIsClosing] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const closingRef = useRef(false);
 
   const requestClose = useCallback(() => {
-    if (isClosing) return;
+    if (closingRef.current) return;
+    closingRef.current = true;
     setIsClosing(true);
-    timerRef.current = setTimeout(onClose, exitDurationMs);
-  }, [isClosing, onClose, exitDurationMs]);
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    timerRef.current = setTimeout(onClose, reduced ? 0 : exitDurationMs);
+  }, [onClose, exitDurationMs]);
 
   useEffect(() => {
     return () => {
@@ -62,19 +65,12 @@ export default function Modal({
       aria-modal="true"
       data-modal-open="true"
       data-submodal-open="true"
+      data-phase={isClosing ? 'closing' : 'open'}
       onClick={requestClose}
-      className={`fixed inset-0 ${zIndex} flex items-center justify-center transition-colors duration-200 ${
-        isClosing ? 'bg-black/0' : 'bg-black/60 backdrop-blur-xs'
-      }`}
+      style={{ '--overlay-exit-duration': `${exitDurationMs}ms` } as React.CSSProperties}
+      className={`modal-motion-overlay fixed inset-0 ${zIndex} flex items-center justify-center bg-black/60`}
     >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className={`transition-all duration-150 ease-in ${
-          isClosing
-            ? 'opacity-0 scale-95 translate-y-1'
-            : 'opacity-100 scale-100 translate-y-0 animate-modalPop'
-        } ${className}`}
-      >
+      <div onClick={(e) => e.stopPropagation()} className={`modal-motion-surface ${className}`}>
         {children(requestClose)}
       </div>
     </div>,

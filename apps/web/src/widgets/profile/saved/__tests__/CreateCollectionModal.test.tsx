@@ -1,5 +1,6 @@
+import { renderWithProviders as render } from '@/test/renderWithProviders';
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent } from '@testing-library/react';
 import { CreateCollectionModal } from '../CreateCollectionModal';
 import { PostType } from '@/entities/post/model/types';
 

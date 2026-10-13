@@ -1,3 +1,4 @@
+import { canViewStory, storyAccess } from './story-access';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@common/prisma';
 import {
@@ -56,6 +57,20 @@ export interface CreateStoryDbData {
 @Injectable()
 export class StoriesRepository {
   constructor(private readonly prisma: PrismaService) {}
+
+  canView(
+    story: { authorId: string; privacy: StoryPrivacy; expiresAt: Date | string },
+    viewerId?: string,
+  ): Promise<boolean> {
+    return canViewStory(this.prisma, story, viewerId);
+  }
+
+  audienceAccess(
+    stories: { authorId: string; privacy: StoryPrivacy; expiresAt: Date | string }[],
+    viewerId?: string,
+  ): Promise<boolean[]> {
+    return storyAccess(this.prisma, stories, viewerId);
+  }
 
   async createStory(data: CreateStoryDbData): Promise<StoryWithDetails> {
     return this.prisma.story.create({

@@ -110,7 +110,9 @@ export default function Avatar({
         <img
           src={src}
           alt={name || alt}
-          className="w-full h-full object-cover"
+          draggable={false}
+          onContextMenu={(e) => e.preventDefault()}
+          className="w-full h-full object-cover pointer-events-none"
           onError={(e) => {
             (e.target as HTMLImageElement).style.display = 'none';
           }}

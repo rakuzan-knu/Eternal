@@ -16,6 +16,7 @@ import { useThemeStore } from '@/shared/model/useThemeStore';
 import { chatApi } from '@/entities/chat';
 import type { ConversationView } from '@/entities/chat/model/types';
 import { queryKeys } from '@/shared/api/queryKeys';
+import { getCachedConversations } from '../../model/chatCacheSync';
 import { TelegramEmojiRow } from './TelegramAppleEmoji';
 
 interface CallHeaderProps {
@@ -82,10 +83,7 @@ export function CallHeader({
     queryKey: queryKeys.conversations.detail(conversationId || ''),
     queryFn: () => chatApi.getConversation(conversationId!),
     enabled: Boolean(conversationId),
-    initialData: () =>
-      queryClient
-        .getQueryData<ConversationView[]>(queryKeys.conversations.root)
-        ?.find((c) => c.id === conversationId),
+    initialData: () => getCachedConversations(queryClient).find((c) => c.id === conversationId),
     staleTime: 15_000,
   });
 

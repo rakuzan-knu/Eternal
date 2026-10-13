@@ -639,7 +639,6 @@ export async function decryptMessageForDisplay(
     }
     return { status: 'decrypted', text };
   } catch (err) {
-    console.error('[e2ee] decrypt failed:', err);
     if (ctx.peerUserId) evictPeerDeviceCache(ctx.peerUserId);
     if (ctx.senderId) evictPeerDeviceCache(ctx.senderId);
     if (err instanceof E2eePinChangedError) {
@@ -648,6 +647,19 @@ export async function decryptMessageForDisplay(
       console.warn('[e2ee] peer device key changed — message locked until the new key is accepted');
       return { status: 'locked', text: LOCKED_LABEL };
     }
+    const isCryptoMismatch =
+      (typeof DOMException !== 'undefined' &&
+        err instanceof DOMException &&
+        err.name === 'OperationError') ||
+      (err instanceof Error &&
+        (err.name === 'OperationError' || err.message?.includes('OperationError')));
+    if (isCryptoMismatch) {
+      console.warn(
+        '[e2ee] decrypt: cannot decrypt envelope with current device keys (message locked)',
+      );
+      return { status: 'locked', text: LOCKED_LABEL };
+    }
+    console.error('[e2ee] decrypt failed:', err);
     return { status: 'error', text: LOCKED_LABEL };
   }
 }

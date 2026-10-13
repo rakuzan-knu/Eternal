@@ -2,7 +2,7 @@
   "name": "@social-network/msg-codec",
   "version": "1.0.0",
   "description": "Portable msg-codec v1 binary framing (web, React Native/Hermes, Electron renderer, Node). Pure Uint8Array, zero dependencies, no Node APIs.",
-  "license": "AGPL-3.0-only",
+  "license": "UNLICENSED",
   "private": true,
   "main": "./dist/index.js",
   "module": "./dist/esm/index.js",

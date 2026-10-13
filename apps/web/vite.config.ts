@@ -248,11 +248,26 @@ export default defineConfig({
     legalComments: 'none',
   },
   optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      'react-dom/client',
+      'react/jsx-runtime',
+      'react/jsx-dev-runtime',
+      'react-router-dom',
+      '@tanstack/react-query',
+      'zustand',
+      'lucide-react',
+      'framer-motion',
+      'axios',
+      'socket.io-client',
+    ],
     esbuildOptions: {
       target: 'es2022',
     },
   },
   resolve: {
+    dedupe: ['react', 'react-dom', 'react-dom/client'],
     alias: {
       zod: path.resolve(__dirname, './node_modules/zod'),
       '@': path.resolve(__dirname, './src'),
@@ -295,12 +310,24 @@ export default defineConfig({
       ),
     },
   },
+  server: {
+    watch: {
+      ignored: [
+        '**/test-results*/**',
+        '**/playwright-report*/**',
+        '**/performance-*.log',
+        '**/performance-*.json',
+      ],
+    },
+  },
   build: {
+    manifest: true,
     target: 'es2022',
     chunkSizeWarningLimit: 600,
     sourcemap: false,
     rollupOptions: {
       output: {
+        onlyExplicitManualChunks: true,
         manualChunks(id) {
           const normalizedId = id.replace(/\\/g, '/');
 
@@ -309,12 +336,6 @@ export default defineConfig({
           }
           if (normalizedId.includes('curatedMediaCatalogPart2')) {
             return 'showcase-catalog-2';
-          }
-          if (
-            normalizedId.includes('/entities/profile/ui/') &&
-            (normalizedId.includes('Badge') || normalizedId.includes('Tier'))
-          ) {
-            return 'profile-badges';
           }
           if (normalizedId.includes('/features/music/model/useMusicHubStore')) {
             return 'music-store';
@@ -325,13 +346,18 @@ export default defineConfig({
               return 'vendor-emoji';
             }
             if (normalizedId.includes('/lucide-react/')) {
-              return 'vendor-icons';
+              return 'ui-vendor';
             }
             if (
               normalizedId.includes('/socket.io-client/') ||
-              normalizedId.includes('/engine.io-client/')
+              normalizedId.includes('/engine.io-client/') ||
+              normalizedId.includes('/socket.io-parser/') ||
+              normalizedId.includes('/socket.io-msgpack-parser/') ||
+              normalizedId.includes('/engine.io-parser/') ||
+              normalizedId.includes('/@socket.io/') ||
+              normalizedId.includes('/notepack.io/')
             ) {
-              return 'vendor-socket';
+              return 'socket-vendor';
             }
             if (normalizedId.includes('/@tanstack/') || normalizedId.includes('/zustand/')) {
               return 'vendor-state';
@@ -347,7 +373,7 @@ export default defineConfig({
               normalizedId.includes('/node_modules/scheduler/') ||
               normalizedId.includes('/node_modules/use-sync-external-store/')
             ) {
-              return 'vendor-react';
+              return 'react-core';
             }
             if (
               normalizedId.includes('/react-hook-form/') ||
@@ -359,33 +385,8 @@ export default defineConfig({
             if (normalizedId.includes('/katex/')) {
               return 'vendor-katex';
             }
-            if (
-              normalizedId.includes('/react-markdown/') ||
-              normalizedId.includes('/remark-') ||
-              normalizedId.includes('/rehype-') ||
-              normalizedId.includes('/micromark') ||
-              normalizedId.includes('/unified') ||
-              normalizedId.includes('/unist-') ||
-              normalizedId.includes('/vfile') ||
-              normalizedId.includes('/mdast-') ||
-              normalizedId.includes('/hast-') ||
-              normalizedId.includes('/property-information') ||
-              normalizedId.includes('/comma-separated-tokens') ||
-              normalizedId.includes('/space-separated-tokens') ||
-              normalizedId.includes('/decode-named-character-reference') ||
-              normalizedId.includes('/character-entities') ||
-              normalizedId.includes('/trough') ||
-              normalizedId.includes('/zwitch') ||
-              normalizedId.includes('/ccount') ||
-              normalizedId.includes('/devlop') ||
-              normalizedId.includes('/trim-lines') ||
-              normalizedId.includes('/bail') ||
-              normalizedId.includes('/longest-streak') ||
-              normalizedId.includes('/is-plain-obj') ||
-              normalizedId.includes('/markdown-table')
-            ) {
-              return 'vendor-markdown';
-            }
+            // Markdown has shared parser dependencies across lazy features.
+            // Let Rollup place its graph to avoid circular manual chunks.
             if (normalizedId.includes('/html-to-image/')) {
               return 'vendor-html-to-image';
             }
@@ -410,7 +411,9 @@ export default defineConfig({
             if (normalizedId.includes('/framer-motion/') || normalizedId.includes('/motion/')) {
               return 'vendor-motion';
             }
-            return 'vendor-libs';
+            // Let Rollup keep feature-only dependencies behind their dynamic entry.
+            // A catch-all vendor chunk pulls every rare dependency into startup.
+            return undefined;
           }
         },
       },
