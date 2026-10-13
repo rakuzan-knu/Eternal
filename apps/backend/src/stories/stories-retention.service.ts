@@ -5,6 +5,7 @@ import { S3Client } from '@aws-sdk/client-s3';
 import { StoriesRepository } from './stories.repository';
 import { deleteFromStorage } from '../common/media/image-processor';
 import { isR2Endpoint } from '../common/storage/storage-url.util';
+import { storyMediaAssets } from './story-media-assets';
 
 @Injectable()
 export class StoriesRetentionService implements OnModuleDestroy {
@@ -76,14 +77,10 @@ export class StoriesRetentionService implements OnModuleDestroy {
       );
 
       for (const story of expired) {
-        if (
-          story.mediaUrl &&
-          !story.mediaUrl.startsWith('color:') &&
-          !story.mediaUrl.startsWith('data:')
-        ) {
+        for (const url of storyMediaAssets(story)) {
           try {
             await deleteFromStorage(this.s3, {
-              url: story.mediaUrl,
+              url,
               bucket: this.bucket,
               publicUrl: this.publicUrl,
             });

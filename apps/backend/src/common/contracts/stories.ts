@@ -104,6 +104,14 @@ export const AudioOverlaySchema = z.object({
   waveform: z.array(z.number()).max(256).optional(),
   videoVolume: z.number().min(0).max(1).optional().default(0),
   musicVolume: z.number().min(0).max(1).optional().default(1),
+  musicStyle: z.enum(['none', 'card', 'cover', 'vinyl']).optional(),
+  stickerColor: z
+    .string()
+    .regex(/^#[\da-f]{6}$/i)
+    .optional(),
+  startTimeMs: z.number().min(0).max(86400000).optional(),
+  clipDurationSeconds: z.number().min(5).max(30).optional(),
+  soundCloudTrackId: z.string().regex(/^\d+$/).max(64).optional(),
   xPercent: z.number().min(0).max(100),
   yPercent: z.number().min(0).max(100),
   scale: z.number().default(1),
@@ -156,7 +164,13 @@ export const CreateStoryDtoSchema = z.object({
   caption: z.string().max(1000).optional(),
   overlays: z.array(StoryOverlaySchema).max(30).optional(),
   privacy: StoryPrivacySchema.optional().default('ALL_FOLLOWERS'),
-  backgroundColor: z.string().max(32).optional(),
+  backgroundColor: z
+    .string()
+    .max(512)
+    .regex(
+      /^(#[\da-f]{3,8}|(?:linear|radial)-gradient\([\da-f#.,()%\sdegRGBAlintocerp-]+\)|rgba?\([\d.,\s]+\))$/i,
+    )
+    .optional(),
   filter: z.string().max(64).optional(),
 });
 
@@ -207,6 +221,8 @@ export interface StoryViewResponse {
   mediaUrl: string;
   mediaType: StoryMediaType;
   caption: string | null;
+  backgroundColor?: string | null;
+  filter?: string | null;
   overlays: StoryOverlay[] | null;
   privacy: StoryPrivacy;
   createdAt: string;

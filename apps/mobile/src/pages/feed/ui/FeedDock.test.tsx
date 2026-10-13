@@ -56,6 +56,7 @@ async function setup(busy = false) {
   const root = createRoot(element);
   const onHome = vi.fn();
   const onProfile = vi.fn();
+  const onMusic = vi.fn();
   const onError = vi.fn();
   await act(async () =>
     root.render(
@@ -65,6 +66,7 @@ async function setup(busy = false) {
         profileOpen={false}
         onHome={onHome}
         onProfile={onProfile}
+        onMusic={onMusic}
         onError={onError}
       />,
     ),
@@ -80,7 +82,7 @@ async function setup(busy = false) {
     if (!button) throw new Error(`Missing navigation action: ${label}`);
     await act(async () => button.click());
   };
-  return { click, onHome, onProfile, onError };
+  return { click, onHome, onProfile, onMusic, onError };
 }
 
 it('opens Home and the native profile menu without leaving the app', async () => {
@@ -92,7 +94,7 @@ it('opens Home and the native profile menu without leaving the app', async () =>
   expect(openURL).not.toHaveBeenCalled();
 });
 
-it('opens the existing web destinations for Reels, Messages and Music Hub', async () => {
+it('opens Reels and Messages on the web and Music Hub natively', async () => {
   openURL.mockResolvedValue(undefined);
   const dock = await setup();
   await dock.click('Reels');
@@ -101,9 +103,9 @@ it('opens the existing web destinations for Reels, Messages and Music Hub', asyn
   expect(openURL.mock.calls.map(([url]) => url)).toEqual([
     'https://eternal.example/reels',
     'https://eternal.example/messages',
-    'https://eternal.example/music',
   ]);
-  expect(dock.onError).toHaveBeenCalledTimes(3);
+  expect(dock.onError).toHaveBeenCalledTimes(2);
+  expect(dock.onMusic).toHaveBeenCalledOnce();
   expect(dock.onError).toHaveBeenLastCalledWith(false);
 });
 

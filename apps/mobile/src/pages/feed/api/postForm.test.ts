@@ -126,4 +126,72 @@ describe('post and story upload contracts', () => {
     expect(body.has('file')).toBe(true);
     expect(body.has('media')).toBe(false);
   });
+  it('validates story size and caption before multipart upload and sends chosen privacy', async () => {
+    await expect(storyForm({ ...photo, fileSize: 11 * 1024 * 1024 }, 'caption')).rejects.toThrow(
+      '10 MB',
+    );
+    await expect(storyForm(photo, 'x'.repeat(1001))).rejects.toThrow();
+    const body = await storyForm(
+      { ...photo, type: undefined, mimeType: 'video/mp4', file: new File(['video'], 'clip.mp4') },
+      'hello',
+      'CLOSE_FRIENDS',
+    );
+    expect(body.get('privacy')).toBe('CLOSE_FRIENDS');
+    expect(body.get('mediaType')).toBe('VIDEO');
+    expect(body.has('file')).toBe(true);
+  });
+});
+
+it('uploads photo stickers separately and strips temporary preview URLs from their layers', async () => {
+  const body = await storyForm(
+    null,
+    '',
+    'CLOSE_FRIENDS',
+    {
+      backgroundColor: 'linear-gradient(180deg, #181824 0%, #09090b 100%)',
+      filter: 'tokyo',
+      overlays: [
+        {
+          id: 'photo',
+          type: 'image',
+          url: 'blob:sticker',
+          isMainMedia: false,
+          xPercent: 40,
+          yPercent: 60,
+        },
+      ],
+    },
+    { photo: { ...photo, file: new File(['sticker'], 'sticker.jpg', { type: 'image/jpeg' }) } },
+  );
+  expect(body.has('file')).toBe(false);
+  expect(body.get('overlay:photo')).toBeInstanceOf(File);
+  expect(body.get('filter')).toBe('tokyo');
+  expect(JSON.parse(String(body.get('overlays')))[0]).not.toHaveProperty('url');
+});
+it('preserves music style, clip and stable track id in multipart JSON', async () => {
+  const body = await storyForm(null, '', 'ALL_FOLLOWERS', {
+    backgroundColor: '#181824',
+    overlays: [
+      {
+        id: 'music',
+        type: 'audio',
+        soundCloudTrackId: '1234',
+        musicStyle: 'vinyl',
+        stickerColor: '#00ffcc',
+        startTimeMs: 20000,
+        clipDurationSeconds: 10,
+        musicVolume: 0.5,
+        videoVolume: 0.25,
+        xPercent: 50,
+        yPercent: 75,
+      },
+    ],
+  });
+  expect(JSON.parse(String(body.get('overlays')))[0]).toMatchObject({
+    soundCloudTrackId: '1234',
+    startTimeMs: 20000,
+    clipDurationSeconds: 10,
+    musicVolume: 0.5,
+    videoVolume: 0.25,
+  });
 });

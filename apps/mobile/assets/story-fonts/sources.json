@@ -1,0 +1,44 @@
+[
+  {
+    "font": "classic",
+    "package": "@expo-google-fonts/montserrat",
+    "version": "0.4.2",
+    "source": "https://registry.npmjs.org/@expo-google-fonts/montserrat/-/montserrat-0.4.2.tgz",
+    "sha256": "45ce93da96fbcff5547cf081bc979cd525c3567bd732f830febde8f29f2bffd2"
+  },
+  {
+    "font": "signature",
+    "package": "@expo-google-fonts/caveat",
+    "version": "0.4.2",
+    "source": "https://registry.npmjs.org/@expo-google-fonts/caveat/-/caveat-0.4.2.tgz",
+    "sha256": "b42cc772f3528d9150c29d6051e2ed3fd472ad4e584c73fe1500ee628d6b1ac0"
+  },
+  {
+    "font": "neon",
+    "package": "@expo-google-fonts/monoton",
+    "version": "0.4.1",
+    "source": "https://registry.npmjs.org/@expo-google-fonts/monoton/-/monoton-0.4.1.tgz",
+    "sha256": "1565b395f454d5c2642d0f411030051e7342fbaf6d5bfc5da5899c47ecd3511e"
+  },
+  {
+    "font": "typewriter",
+    "package": "@expo-google-fonts/courier-prime",
+    "version": "0.4.1",
+    "source": "https://registry.npmjs.org/@expo-google-fonts/courier-prime/-/courier-prime-0.4.1.tgz",
+    "sha256": "88c2d60089ef6a8cd60c816a90d2c5b83dc38adc27aa0b19e02682f01c697a29"
+  },
+  {
+    "font": "cyberpunk",
+    "package": "@expo-google-fonts/orbitron",
+    "version": "0.4.2",
+    "source": "https://registry.npmjs.org/@expo-google-fonts/orbitron/-/orbitron-0.4.2.tgz",
+    "sha256": "69403fffca24d8e5d3c588f89fdc832ed75b9e9d3176850b96ce23b27aeebbb2"
+  },
+  {
+    "font": "poster",
+    "package": "@expo-google-fonts/russo-one",
+    "version": "0.4.1",
+    "source": "https://registry.npmjs.org/@expo-google-fonts/russo-one/-/russo-one-0.4.1.tgz",
+    "sha256": "ba5a79c9a716c4c6cbf88539bbbcd6a60412d4e4b7b9362a252b575e80e6d87a"
+  }
+]

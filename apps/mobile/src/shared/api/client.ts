@@ -74,3 +74,5 @@ export function assertSession(userId: string, refreshToken: string | null) {
 export const webOrigin = (process.env.EXPO_PUBLIC_WEB_URL || 'http://localhost:5173')
   .trim()
   .replace(/\/+$/, '');
+
+export const apiOrigin = origin.replace(/\/v1$/, '');

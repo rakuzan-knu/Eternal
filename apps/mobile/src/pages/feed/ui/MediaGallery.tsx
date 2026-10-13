@@ -9,27 +9,55 @@ export function Video({
   uri,
   active,
   autoPlay = false,
+  label = 'Post video',
+  volume = 1,
+  loop = false,
 }: {
   uri: string;
   active: boolean;
   autoPlay?: boolean;
+  label?: string;
+  volume?: number;
+  loop?: boolean;
 }) {
-  const player = useVideoPlayer(uri, (instance) => {
-    if (autoPlay && active) instance.play();
-  });
+  const player = useVideoPlayer(uri);
+  const attemptedAutoplay = React.useRef(false);
   const [failed, setFailed] = React.useState(false);
   React.useEffect(() => {
-    const subscription = player.addListener('statusChange', ({ status }) =>
-      setFailed(status === 'error'),
-    );
+    player.volume = volume;
+    player.loop = loop;
+  }, [player, volume, loop]);
+  React.useEffect(() => {
+    attemptedAutoplay.current = false;
+  }, [uri]);
+  React.useEffect(() => {
+    function startWhenReady(status = player.status) {
+      if (
+        autoPlay &&
+        active &&
+        !attemptedAutoplay.current &&
+        status === 'readyToPlay' &&
+        AppState.currentState !== 'background' &&
+        AppState.currentState !== 'inactive'
+      ) {
+        attemptedAutoplay.current = true;
+        player.play();
+      }
+    }
+    const subscription = player.addListener('statusChange', ({ status }) => {
+      setFailed(status === 'error');
+      if (status === 'readyToPlay') startWhenReady(status);
+    });
+    startWhenReady();
     const appSubscription = AppState.addEventListener('change', (state) => {
       if (state !== 'active') player.pause();
+      else startWhenReady();
     });
     return () => {
       subscription.remove();
       appSubscription.remove();
     };
-  }, [player]);
+  }, [active, autoPlay, player]);
   React.useEffect(() => {
     if (!active) player.pause();
   }, [active, player]);
@@ -42,7 +70,7 @@ export function Video({
       allowsFullscreen
       contentFit="contain"
       style={s.fill}
-      accessibilityLabel="Post video"
+      accessibilityLabel={label}
     />
   );
 }

@@ -30,6 +30,8 @@ export const storiesApi = {
     if (payload.file) {
       formData.append('file', payload.file);
     }
+    for (const [id, file] of Object.entries(payload.attachments || {}))
+      formData.append(`overlay:${id}`, file);
     if (payload.mediaType) {
       formData.append('mediaType', payload.mediaType);
     }

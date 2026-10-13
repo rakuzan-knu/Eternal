@@ -1,6 +1,13 @@
 import { Platform } from 'react-native';
 import type { ImagePickerAsset } from 'expo-image-picker';
-import { createReelSchema, type CreateReelDto } from '@social-network/shared-contracts';
+import {
+  CreateStoryDtoSchema,
+  createReelSchema,
+  type CreateReelDto,
+  type StoryPrivacy,
+  type CreateStoryDto,
+} from '@social-network/shared-contracts';
+import { storyMediaType, validateStoryAsset } from '../model/story';
 
 // React Native 0.76's FormData accepts file descriptors, unlike the DOM overload.
 declare global {
@@ -10,7 +17,9 @@ declare global {
 }
 
 async function appendAsset(body: FormData, field: string, asset: ImagePickerAsset) {
-  const name = asset.fileName || `attachment.${asset.type === 'video' ? 'mp4' : 'jpg'}`;
+  const video = asset.type === 'video' || asset.mimeType?.toLowerCase().startsWith('video/');
+  const audio = asset.mimeType?.toLowerCase().startsWith('audio/');
+  const name = asset.fileName || `attachment.${audio ? 'mp3' : video ? 'mp4' : 'jpg'}`;
   if (Platform.OS === 'web') {
     if (asset.file) body.append(field, asset.file, name);
     else {
@@ -22,7 +31,7 @@ async function appendAsset(body: FormData, field: string, asset: ImagePickerAsse
     body.append(field, {
       uri: asset.uri,
       name,
-      type: asset.mimeType || (asset.type === 'video' ? 'video/mp4' : 'image/jpeg'),
+      type: asset.mimeType || (video ? 'video/mp4' : 'image/jpeg'),
     });
   }
 }
@@ -39,12 +48,51 @@ export async function postForm(
   return body;
 }
 
-export async function storyForm(asset: ImagePickerAsset, caption: string): Promise<FormData> {
+export async function storyForm(
+  asset: ImagePickerAsset | null,
+  caption: string,
+  privacy: StoryPrivacy = 'ALL_FOLLOWERS',
+  appearance: Pick<CreateStoryDto, 'overlays' | 'backgroundColor' | 'filter'> = {},
+  attachments: Record<string, ImagePickerAsset> = {},
+): Promise<FormData> {
+  const error = asset ? validateStoryAsset(asset) : null;
+  if (error) throw new Error(error);
+  if (!asset && !appearance.backgroundColor) throw new Error('Add media or a background.');
+  if (Object.keys(attachments).length > 9) throw new Error('Use up to 9 photo stickers.');
+  for (const attachment of Object.values(attachments)) {
+    const issue = validateStoryAsset(attachment);
+    if (issue || storyMediaType(attachment) !== 'IMAGE')
+      throw new Error(issue || 'Photo stickers must be images.');
+  }
+  const totalSize = [asset, ...Object.values(attachments)].reduce(
+    (size, item) => size + Math.max(item?.fileSize || 0, item?.file?.size || 0),
+    0,
+  );
+  if (totalSize > 100 * 1024 * 1024) throw new Error('Keep total story media under 100 MB.');
+  const fields = CreateStoryDtoSchema.parse({
+    ...appearance,
+    overlays: appearance.overlays?.map((layer) =>
+      layer.type === 'image' && (layer.isMainMedia || attachments[layer.id])
+        ? { ...layer, url: undefined }
+        : layer,
+    ),
+    caption: caption.trim(),
+    mediaType: asset ? storyMediaType(asset) : 'IMAGE',
+    privacy,
+  });
+  const overlayJson = JSON.stringify(fields.overlays || []);
+  if (new Blob([overlayJson]).size > 256 * 1024)
+    throw new Error('Story layers exceed the upload limit.');
   const body = new FormData();
-  body.append('caption', caption.trim());
-  body.append('mediaType', asset.type === 'video' ? 'VIDEO' : 'IMAGE');
-  body.append('privacy', 'ALL_FOLLOWERS');
-  await appendAsset(body, 'file', asset);
+  body.append('caption', fields.caption || '');
+  body.append('mediaType', fields.mediaType);
+  body.append('privacy', fields.privacy);
+  if (fields.overlays) body.append('overlays', overlayJson);
+  if (fields.backgroundColor) body.append('backgroundColor', fields.backgroundColor);
+  if (fields.filter) body.append('filter', fields.filter);
+  if (asset) await appendAsset(body, 'file', asset);
+  for (const [id, attachment] of Object.entries(attachments))
+    await appendAsset(body, `overlay:${id}`, attachment);
   return body;
 }
 

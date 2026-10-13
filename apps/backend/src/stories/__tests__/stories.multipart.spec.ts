@@ -15,7 +15,8 @@ describe('Story multipart upload on Fastify', () => {
   const payload = Buffer.concat([
     Buffer.from(
       `--${boundary}\r\nContent-Disposition: form-data; name="mediaType"\r\n\r\nIMAGE\r\n` +
-        `--${boundary}\r\nContent-Disposition: form-data; name="caption"\r\n\r\nMy story\r\n` +
+        `--${boundary}\r\nContent-Disposition: form-data; name="caption"\r\n\r\nМоя сторіс ✨\r\n` +
+        `--${boundary}\r\nContent-Disposition: form-data; name="privacy"\r\n\r\nCLOSE_FRIENDS\r\n` +
         `--${boundary}\r\nContent-Disposition: form-data; name="overlays"\r\n\r\n[]\r\n` +
         `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="story.jpg"\r\nContent-Type: image/jpeg\r\n\r\n`,
     ),
@@ -67,7 +68,12 @@ describe('Story multipart upload on Fastify', () => {
     expect(result.json()).toEqual({ id: 'story-1' });
     expect(createStory).toHaveBeenCalledWith(
       'author-1',
-      expect.objectContaining({ caption: 'My story', mediaType: 'IMAGE', overlays: [] }),
+      expect.objectContaining({
+        caption: 'Моя сторіс ✨',
+        mediaType: 'IMAGE',
+        privacy: 'CLOSE_FRIENDS',
+        overlays: [],
+      }),
       expect.objectContaining({
         fieldname: 'file',
         originalname: 'story.jpg',
@@ -88,4 +94,75 @@ describe('Story multipart upload on Fastify', () => {
     expect(result.statusCode).toBe(401);
     expect(createStory).not.toHaveBeenCalled();
   });
+  it('accepts independent sticker files plus background, filter and music clip metadata', async () => {
+    const form = new FormData();
+    form.append('backgroundColor', 'linear-gradient(180deg, #181824 0%, #09090b 100%)');
+    form.append('filter', 'tokyo');
+    form.append(
+      'overlays',
+      JSON.stringify([
+        { id: 'sticker', type: 'image', xPercent: 50, yPercent: 50 },
+        {
+          id: 'music',
+          type: 'audio',
+          soundCloudTrackId: '123',
+          musicStyle: 'vinyl',
+          startTimeMs: 10000,
+          clipDurationSeconds: 10,
+          musicVolume: 0.5,
+          videoVolume: 0,
+          xPercent: 50,
+          yPercent: 70,
+        },
+      ]),
+    );
+    form.append('overlay:sticker', new Blob([image], { type: 'image/jpeg' }), 'sticker.jpg');
+    const request = new Request('http://localhost/stories', { method: 'POST', body: form });
+    const result = await app.inject({
+      method: 'POST',
+      url: '/stories',
+      headers: {
+        authorization: 'Bearer test-session',
+        'content-type': request.headers.get('content-type')!,
+      },
+      payload: Buffer.from(await request.arrayBuffer()),
+    });
+    expect(result.statusCode).toBe(201);
+    expect(createStory).toHaveBeenCalledWith(
+      'author-1',
+      expect.objectContaining({
+        filter: 'tokyo',
+        backgroundColor: expect.stringContaining('linear-gradient'),
+        overlays: expect.arrayContaining([
+          expect.objectContaining({
+            soundCloudTrackId: '123',
+            musicVolume: 0.5,
+            clipDurationSeconds: 10,
+          }),
+        ]),
+      }),
+      undefined,
+      [expect.objectContaining({ fieldname: 'overlay:sticker', buffer: image })],
+    );
+  });
+  it.each(['not JSON', '{}', 'null'])(
+    'returns 400 for malformed overlays: %s',
+    async (overlays) => {
+      const form = new FormData();
+      form.append('backgroundColor', '#181824');
+      form.append('overlays', overlays);
+      const request = new Request('http://localhost/stories', { method: 'POST', body: form });
+      const result = await app.inject({
+        method: 'POST',
+        url: '/stories',
+        headers: {
+          authorization: 'Bearer test-session',
+          'content-type': request.headers.get('content-type')!,
+        },
+        payload: Buffer.from(await request.arrayBuffer()),
+      });
+      expect(result.statusCode).toBe(400);
+      expect(createStory).not.toHaveBeenCalled();
+    },
+  );
 });

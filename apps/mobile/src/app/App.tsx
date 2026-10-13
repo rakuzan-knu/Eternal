@@ -20,6 +20,7 @@ import { SecurityLockScreen } from '@/features/security';
 import { WifiOff } from 'lucide-react-native';
 import { FeedScreen } from '@/pages/feed';
 import { getMobileApi } from '@/shared/api/client';
+import { isNetworkOnline } from '@/shared/lib/network';
 
 // 6. Hold native splash screen until storage rehydration completes
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -28,10 +29,10 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 configureAuthStorage(mobileSecureStorage);
 
 // 4. Offline First & TanStack Query Sync
+if (Platform.OS === 'web') NetInfo.configure({ reachabilityShouldRun: () => false });
 onlineManager.setEventListener((setOnline) => {
   return NetInfo.addEventListener((state) => {
-    const isOnline = Boolean(state.isConnected && state.isInternetReachable !== false);
-    setOnline(isOnline);
+    setOnline(isNetworkOnline(state, Platform.OS));
   });
 });
 
@@ -157,7 +158,7 @@ function AppContent() {
   // Monitor network connectivity
   React.useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
-      setIsOnline(Boolean(state.isConnected && state.isInternetReachable !== false));
+      setIsOnline(isNetworkOnline(state, Platform.OS));
     });
     return () => unsubscribe();
   }, []);
