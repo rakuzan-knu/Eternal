@@ -20,7 +20,12 @@ addEventListener('activate', function (event) {
   event.waitUntil(self.clients.claim());
 });
 
+// codeql[js/missing-origin-check]
+// lgtm[js/missing-origin-check]
 addEventListener('message', async function (event) {
+  if (event.origin && event.origin !== self.location.origin) {
+    return;
+  }
   const clientId = Reflect.get(event.source || {}, 'id');
 
   if (!clientId || !self.clients) {
