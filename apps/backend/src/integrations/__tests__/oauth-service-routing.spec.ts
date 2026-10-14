@@ -12,11 +12,58 @@ import { GITHUB_REPOSITORY } from '../../github/interfaces/github-repository.int
 import { IntegrationsController } from '../integrations.controller';
 import { IntegrationsService } from '../integrations.service';
 import { SpotifyService } from '../spotify.service';
+import { SpotifyCallbackController } from '../spotify-callback.controller';
 import { SoundCloudService } from '../soundcloud.service';
 
 afterEach(() => vi.unstubAllEnvs());
 
 describe('OAuth service transport and ownership', () => {
+  it.each([
+    ['/integrations/spotify/auth', 'https://accounts.spotify.com/authorize'],
+    ['/auth/spotify', 'https://accounts.spotify.com/authorize'],
+    ['/integrations/steam/auth', 'https://steamcommunity.com/openid/login'],
+  ])('uses HTTP 302 for the explicit %s controller route with Fastify', async (path, target) => {
+    vi.stubEnv('SPOTIFY_CLIENT_ID', 'test-client-id');
+    vi.stubEnv('SPOTIFY_CALLBACK_URL', 'https://web.example/api/auth/spotify/callback');
+    const module = await Test.createTestingModule({
+      controllers: [IntegrationsController, SpotifyCallbackController],
+      providers: [
+        IntegrationsService,
+        SpotifyService,
+        ...[PrismaService, RedisService, ShowcaseService, SoundCloudService].map((provide) => ({
+          provide,
+          useValue: {},
+        })),
+      ],
+    }).compile();
+    const app = module.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    await app.init();
+    await app.getHttpAdapter().getInstance().ready();
+    try {
+      const response = await app.inject({
+        method: 'GET',
+        url: `${path}?userId=user-123`,
+        headers: { host: 'music.example' },
+      });
+      expect(response.statusCode).toBe(302);
+      const location = response.headers.location;
+      if (!location) throw new Error('Missing provider redirect');
+      expect(location).toContain(target);
+      const destination = new URL(location);
+      if (path.includes('spotify')) {
+        expect(destination.searchParams.get('redirect_uri')).toBe(
+          'https://web.example/api/auth/spotify/callback',
+        );
+        expect(destination.searchParams.get('state')).toMatch(/^[a-f0-9]+:user-123$/);
+      } else {
+        expect(destination.searchParams.get('openid.return_to')).toContain(
+          'http://music.example/integrations/steam/callback?userId=user-123',
+        );
+      }
+    } finally {
+      await app.close();
+    }
+  });
   it.each([
     ['https://core.example/v1/', 'https://core.example/v1/auth/github'],
     ['', 'http://music.example/auth/github'],

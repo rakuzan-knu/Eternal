@@ -12,7 +12,7 @@ export class SpotifyCallbackController {
   @ApiOperation({ summary: 'Initiate Spotify OAuth authorization flow' })
   redirectToSpotify(@Query('userId') userId: string, @Res() res: Response) {
     const url = this.spotifyService.getAuthorizationUrl(userId);
-    return res.redirect(url);
+    return res.status(302).redirect(url);
   }
 
   @Get(['api/auth/spotify/callback', 'auth/spotify/callback', 'spotify/callback'])

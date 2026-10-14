@@ -16,6 +16,8 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import type { FastifyAdapter } from '@nestjs/platform-fastify';
+import { Readable } from 'node:stream';
 import { AuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OptionalAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -26,6 +28,8 @@ import { SpotifyService } from './spotify.service';
 import { SoundCloudService } from './soundcloud.service';
 import { PrismaService } from '@common/prisma';
 import { isSupportedPlatform, assignPlatformData } from './platform.utils';
+
+type FastifyReply = ReturnType<FastifyAdapter['reply']>;
 
 interface SyncLikedTrackItem {
   id: string;
@@ -83,7 +87,7 @@ export class IntegrationsController {
   @Get('spotify/auth')
   redirectToSpotify(@Query('userId') userId: string, @Res() res: Response) {
     const url = this.spotifyService.getAuthorizationUrl(userId);
-    return res.redirect(url);
+    return res.status(302).redirect(url);
   }
 
   @Get(['spotify/callback', 'auth/spotify/callback', 'api/auth/spotify/callback'])
@@ -301,7 +305,7 @@ export class IntegrationsController {
   ) {
     const result = await this.soundCloudService.getStreamUrl(trackId, bypassCache === 'true');
     if (redirect === 'true' && result?.streamUrl && res) {
-      return res.redirect(result.streamUrl);
+      return res.status(302).redirect(result.streamUrl);
     }
     return result;
   }
@@ -310,11 +314,11 @@ export class IntegrationsController {
   async streamSoundCloudAudio(
     @Param('trackId') trackId: string,
     @Req() req: Request,
-    @Res() res: Response,
+    @Res() res: FastifyReply,
   ) {
     const result = await this.soundCloudService.getStreamUrl(trackId);
     if (!result?.streamUrl) {
-      return res.status(404).json({ error: 'Stream not found' });
+      return res.status(404).send({ error: 'Stream not found' });
     }
 
     try {
@@ -339,26 +343,13 @@ export class IntegrationsController {
         res.header('Accept-Ranges', 'bytes');
       }
 
-      const reader = audioResponse.body?.getReader();
-      if (!reader) {
-        return res.end();
+      if (!audioResponse.body) {
+        return res.send();
       }
 
-      const pump = async () => {
-        try {
-          while (true) {
-            const chunk = (await reader.read()) as { done: boolean; value?: Uint8Array };
-            if (chunk.done) break;
-            if (chunk.value) res.write(chunk.value);
-          }
-          res.end();
-        } catch {
-          res.end();
-        }
-      };
-      void pump();
+      return res.send(Readable.fromWeb(audioResponse.body));
     } catch {
-      return res.redirect(result.streamUrl);
+      return res.status(302).redirect(result.streamUrl);
     }
   }
 
@@ -384,7 +375,7 @@ export class IntegrationsController {
   @Get('steam/auth')
   redirectToSteam(@Query('userId') userId: string, @Req() req: Request, @Res() res: Response) {
     const url = this.integrationsService.getSteamAuthUrl(userId, req);
-    return res.redirect(url);
+    return res.status(302).redirect(url);
   }
 
   // --- Music Hub: User Personal Liked Tracks (Persisted in PostgreSQL) ---
