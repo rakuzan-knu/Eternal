@@ -40,6 +40,7 @@ Deploy the existing desktop web app and Expo Web as separate Vercel projects. Th
 
 ## Rollout and verification
 
+- Production endpoints and the current deployment procedure are listed in [DEPLOYMENTS.md](DEPLOYMENTS.md).
 - Retain the old working revision for rollback. Stage an all-role core with BACKGROUND_ENABLED=false before starting specialty workers, so four complete worker sets do not exceed Redis Cloud's connection limit. Start specialty roles, deploy matching frontend routing, then restrict core to SERVICE_ROLE=core with background work enabled.
 - Current steady-state estimate: core8 + messenger8 + reels4 + music4 =24 Redis connections. Rolling deployments can add connections temporarily; stagger changes and verify actual connections rather than treating this estimate as a guarantee.
 - Run meaningful role routing/auth/privacy/worker/shutdown tests, affected lint/typecheck/build and the Docker CI matrix. It starts all four roles with one isolated PostgreSQL/Redis, 512MiB per role, no swap and0.1CPU each, and asserts at most30 Redis connections including the probe.
