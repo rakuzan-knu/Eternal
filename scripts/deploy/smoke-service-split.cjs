@@ -14,6 +14,7 @@ const statuses = [200, 401, 200, 401];
 
 async function check(origin, path, status, role) {
   const response = await fetch(origin.replace(/\/+$/, '') + path, {
+    redirect: 'manual',
     signal: AbortSignal.timeout(30000),
   });
   if (response.status !== status)
@@ -32,8 +33,12 @@ async function check(origin, path, status, role) {
     if (readiness.services?.database !== 'ok' || readiness.services?.redis !== 'ok')
       throw new Error(`${role}: dependency readiness failed`);
     for (let feature = 0; feature < paths.length; feature++) {
-      await check(origin, paths[feature], feature === index ? statuses[feature] : 404, role);
+      const status = feature === index ? statuses[feature] : 404;
+      await check(origin, paths[feature], status, role);
+      const [pathname, query] = paths[feature].split('?');
+      await check(origin, `${pathname}/${query ? `?${query}` : ''}`, status, role);
     }
+    await check(origin, '/v1/auth/spotify/?userId=smoke', role === 'music' ? 302 : 404, role);
     if (role !== 'messenger') await check(origin, '/socket.io/?EIO=4&transport=polling', 403, role);
     console.log(
       `${role}: readiness, owned routes, wrong-service rejection and socket boundary passed`,
