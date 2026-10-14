@@ -1,5 +1,5 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios';
-import { getServiceBaseUrl } from '@social-network/shared-api-client';
+import { getServiceBaseUrl } from '@social-network/shared-api-client/service-routing';
 import {
   useAccountsStore,
   type AccountsState,
