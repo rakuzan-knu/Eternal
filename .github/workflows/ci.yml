@@ -857,6 +857,7 @@ jobs:
               -e JWT_ACCESS_SECRET=ci_test_access_secret_key_32_bytes_min \
               -e JWT_REFRESH_SECRET=ci_test_refresh_secret_key_32_bytes_min \
               -e JWT_ACCESS_TTL=15m -e JWT_REFRESH_TTL=7d \
+              -e SPOTIFY_CLIENT_ID=ci_service_split_redirect_fixture \
               -e DATABASE_URL=postgresql://smoke:smoke@role-smoke-db:5432/smoke \
               -e REDIS_URL=redis://role-smoke-redis:6379 social-network-backend:ci-${{ github.sha }}
             ready=false
