@@ -53,13 +53,17 @@ const rawApiUrl = (
 ).trim();
 
 const rawBaseUrl = rawApiUrl.replace(/\/api\/?$/, '').replace(/\/+$/, '');
+const coreBaseUrl = rawBaseUrl
+  ? rawBaseUrl.endsWith('/v1')
+    ? rawBaseUrl
+    : `${rawBaseUrl}/v1`
+  : '/v1';
 
 export const apiClient = axios.create({
-  baseURL: rawBaseUrl ? (rawBaseUrl.endsWith('/v1') ? rawBaseUrl : `${rawBaseUrl}/v1`) : '/v1',
+  baseURL: coreBaseUrl,
   timeout: 30000,
   withCredentials: true,
 });
-const coreBaseUrl = apiClient.defaults.baseURL ?? '/v1';
 const serviceOrigins = {
   messenger: import.meta.env.VITE_MESSENGER_API_URL ?? '',
   reels: import.meta.env.VITE_REELS_API_URL ?? '',
