@@ -34,6 +34,8 @@ Web build variables: VITE_API_URL (core), VITE_MESSENGER_API_URL, VITE_REELS_API
 
 Mobile build variables: EXPO_PUBLIC_API_URL (core), EXPO_PUBLIC_MESSENGER_API_URL, EXPO_PUBLIC_REELS_API_URL, EXPO_PUBLIC_MUSIC_API_URL. Mobile Jam uses exported messengerOrigin, not apiOrigin. Missing feature origins preserve the monolith fallback for development and older builds.
 
+Deploy the existing desktop web app and Expo Web as separate Vercel projects. The desktop project uses the repository root and root vercel.json. The Expo project uses Root Directory=apps/mobile, includes files outside that directory, and reads apps/mobile/vercel.json; build with `pnpm build:web` and serve dist. Its EXPO_PUBLIC_WEB_URL points to the desktop website. Expo Web is a browser build; Android and iOS need separate native builds and distribution. Never deploy backend workers or databases to Vercel. Keep production domains in all services' CORS_ORIGIN.
+
 ## Rollout and verification
 
 - Retain the old working revision for rollback. Stage an all-role core with BACKGROUND_ENABLED=false before starting specialty workers, so four complete worker sets do not exceed Redis Cloud's connection limit. Start specialty roles, deploy matching frontend routing, then restrict core to SERVICE_ROLE=core with background work enabled.
