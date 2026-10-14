@@ -106,6 +106,30 @@ describe('image-processor', () => {
       expect(mockS3.send).toHaveBeenCalled();
       expect(url).toBe(`data:image/webp;base64,${dummyBuffer.toString('base64')}`);
     });
+
+    it('prevents path traversal when attempting local storage write', async () => {
+      const origEnv = process.env.NODE_ENV;
+      try {
+        delete (process.env as any).NODE_ENV;
+        delete (process.env as any).JEST_WORKER_ID;
+        const mockS3 = {
+          send: jest.fn().mockRejectedValue(new Error('S3 offline')),
+        };
+
+        const result = await uploadToStorageWithFallback(mockS3 as unknown as S3Client, {
+          bucket: 'test-bucket',
+          key: '../../etc/passwd',
+          buffer: dummyBuffer,
+          contentType: 'image/webp',
+          publicUrl: 'https://cdn.example.com',
+        });
+
+        // Traversal is blocked safely without writing outside uploads directory
+        expect(result).toBe(`data:image/webp;base64,${dummyBuffer.toString('base64')}`);
+      } finally {
+        process.env.NODE_ENV = origEnv;
+      }
+    });
   });
 
   describe('deleteFromStorage', () => {

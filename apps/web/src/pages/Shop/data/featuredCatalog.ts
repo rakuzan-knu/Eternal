@@ -812,6 +812,6 @@ export function buildFeaturedList(
     return false;
   });
 
-  // Cap up to 40 items as requested ("до 40 рандомных элементов")
+  // Cap up to 40 items as requested (up to 40 random elements)
   return filtered.slice(0, 40);
 }

@@ -55,7 +55,7 @@ ALTER TABLE "User" ADD CONSTRAINT "User_active_decoration_owned_fkey"
   DEFERRABLE INITIALLY DEFERRED;
 
 INSERT INTO "avatar_decorations" ("id", "name", "slug", "description", "asset_type", "asset_url", "preview_url", "rarity", "price_cents") VALUES
-('cyber-neon-pulse', 'Cyber Neon Pulse', 'cyber-neon-pulse', 'Хром, электрический свет и орбитальный импульс.', 'css_canvas', '', '/Profile-decorations/Avatar-decorations/cyber-neon-pulse.preview.webp', 'rare', 0),
-('astral-sigil', 'Astral Sigil', 'astral-sigil', 'Серебряная печать с кристаллами и мерцающими звёздами.', 'animated_webp', '/Profile-decorations/Avatar-decorations/astral-sigil.webp', '/Profile-decorations/Avatar-decorations/astral-sigil.preview.webp', 'legendary', 599),
-('obsidian-crown', 'Obsidian Crown', 'obsidian-crown', 'Готическая корона из тёмного металла и аметиста.', 'animated_webp', '/Profile-decorations/Avatar-decorations/obsidian-crown.webp', '/Profile-decorations/Avatar-decorations/obsidian-crown.preview.webp', 'epic', 599),
-('ronin-orbit', 'Ronin Orbit', 'ronin-orbit', 'Кольцо серебряных символов с алым орбитальным светом.', 'animated_webp', '/Profile-decorations/Avatar-decorations/ronin-orbit.webp', '/Profile-decorations/Avatar-decorations/ronin-orbit.preview.webp', 'epic', 499);
+('cyber-neon-pulse', 'Cyber Neon Pulse', 'cyber-neon-pulse', '', 'css_canvas', '', '/Profile-decorations/Avatar-decorations/cyber-neon-pulse.preview.webp', 'rare', 0),
+('astral-sigil', 'Astral Sigil', 'astral-sigil', '', 'animated_webp', '/Profile-decorations/Avatar-decorations/astral-sigil.webp', '/Profile-decorations/Avatar-decorations/astral-sigil.preview.webp', 'legendary', 599),
+('obsidian-crown', 'Obsidian Crown', 'obsidian-crown', '', 'animated_webp', '/Profile-decorations/Avatar-decorations/obsidian-crown.webp', '/Profile-decorations/Avatar-decorations/obsidian-crown.preview.webp', 'epic', 599),
+('ronin-orbit', 'Ronin Orbit', 'ronin-orbit', '', 'animated_webp', '/Profile-decorations/Avatar-decorations/ronin-orbit.webp', '/Profile-decorations/Avatar-decorations/ronin-orbit.preview.webp', 'epic', 499);

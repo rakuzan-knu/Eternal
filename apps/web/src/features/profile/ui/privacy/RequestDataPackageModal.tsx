@@ -15,7 +15,6 @@ import {
   Megaphone,
   LifeBuoy,
 } from 'lucide-react';
-import { useLanguageStore } from '../../../../shared/lib/language/languageStore';
 
 interface RequestDataPackageModalProps {
   isOpen: boolean;
@@ -25,68 +24,68 @@ interface RequestDataPackageModalProps {
 interface DataCategory {
   id: string;
   icon: React.ReactNode;
+  title: string;
   titleEn: string;
-  titleUk: string;
+  description: string;
   descriptionEn: string;
-  descriptionUk: string;
 }
 
 const DATA_CATEGORIES: DataCategory[] = [
   {
     id: 'account',
     icon: <User className="w-4 h-4 text-gray-950 dark:text-white" />,
+    title: 'Account Information',
     titleEn: 'Account Information',
-    titleUk: 'Обліковий запис',
+    description: 'User ID, username, email, avatar history, and account settings.',
     descriptionEn: 'User ID, username, email, avatar history, and account settings.',
-    descriptionUk: 'ID користувача, ім’я, e-mail, історія аватарів та налаштування акаунту.',
   },
   {
     id: 'activity',
     icon: <Activity className="w-4 h-4 text-gray-950 dark:text-white" />,
+    title: 'Your Activity & Analytics',
     titleEn: 'Your Activity & Analytics',
-    titleUk: 'Ваша активність та аналітика',
+    description: 'Telemetry diagnostics, platform navigation logs, and feature usage.',
     descriptionEn: 'Telemetry diagnostics, platform navigation logs, and feature usage.',
-    descriptionUk: 'Діагностична телеметрія, логи навігації та використання функцій.',
   },
   {
     id: 'activities',
     icon: <Gamepad2 className="w-4 h-4 text-gray-950 dark:text-white" />,
+    title: 'Activities & Integrations',
     titleEn: 'Activities & Integrations',
-    titleUk: 'Активності та інтеграції',
+    description: 'Minigames scores, rich presence data (Spotify, Steam, GitHub).',
     descriptionEn: 'Minigames scores, rich presence data (Spotify, Steam, GitHub).',
-    descriptionUk: 'Результати міні-ігор, дані статусів активності (Spotify, Steam, GitHub).',
   },
   {
     id: 'messages',
     icon: <MessageSquare className="w-4 h-4 text-gray-950 dark:text-white" />,
+    title: 'Messages & Media Transcripts',
     titleEn: 'Messages & Media Transcripts',
-    titleUk: 'Повідомлення та медіафайли',
+    description: 'Complete history of sent direct messages and channel posts.',
     descriptionEn: 'Complete history of sent direct messages and channel posts.',
-    descriptionUk: 'Повна історія надісланих особистих повідомлень та дописів у каналах.',
   },
   {
     id: 'servers',
     icon: <Server className="w-4 h-4 text-gray-950 dark:text-white" />,
+    title: 'Servers & Communities',
     titleEn: 'Servers & Communities',
-    titleUk: 'Сервери та спільноти',
+    description: 'Servers you own or belong to, assigned roles, and channel permissions.',
     descriptionEn: 'Servers you own or belong to, assigned roles, and channel permissions.',
-    descriptionUk: 'Сервери, в яких ви перебуваєте, призначені ролі та права доступу.',
   },
   {
     id: 'ads',
     icon: <Megaphone className="w-4 h-4 text-gray-950 dark:text-white" />,
+    title: 'Personalization & Advertising',
     titleEn: 'Personalization & Advertising',
-    titleUk: 'Реклама та персоналізація',
+    description: 'Interactions with featured servers, partner quests, and explore feeds.',
     descriptionEn: 'Interactions with featured servers, partner quests, and explore feeds.',
-    descriptionUk: 'Взаємодія з рекомендованими серверами, квестами та стрічкою огляду.',
   },
   {
     id: 'support',
     icon: <LifeBuoy className="w-4 h-4 text-gray-950 dark:text-white" />,
+    title: 'Support Tickets & Safety Appeals',
     titleEn: 'Support Tickets & Safety Appeals',
-    titleUk: 'Звернення до підтримки та апеляції',
+    description: 'Correspondence with Eternal Customer Support and Trust & Safety tickets.',
     descriptionEn: 'Correspondence with Eternal Customer Support and Trust & Safety tickets.',
-    descriptionUk: 'Листування зі службою підтримки Eternal та апеляції з безпеки.',
   },
 ];
 
@@ -94,9 +93,6 @@ export const RequestDataPackageModal: React.FC<RequestDataPackageModalProps> = (
   isOpen,
   onClose,
 }) => {
-  const { currentLanguage } = useLanguageStore();
-  const isUkrainian = currentLanguage === 'Українська';
-
   const [selectedCategories, setSelectedCategories] = useState<string[]>(
     DATA_CATEGORIES.map((c) => c.id),
   );
@@ -159,14 +155,10 @@ export const RequestDataPackageModal: React.FC<RequestDataPackageModalProps> = (
             </div>
             <div>
               <h3 className="text-lg font-bold text-gray-950 dark:text-white">
-                {isUkrainian
-                  ? 'Запросити архів даних Eternal'
-                  : 'Request Your Eternal Data Package'}
+                Request Your Eternal Data Package
               </h3>
               <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-                {isUkrainian
-                  ? 'Виберіть категорії інформації для включення в ZIP-архів'
-                  : 'Select the information categories you want to include in your ZIP archive'}
+                Select the information categories you want to include in your ZIP archive
               </p>
             </div>
           </div>
@@ -187,13 +179,11 @@ export const RequestDataPackageModal: React.FC<RequestDataPackageModalProps> = (
           <div className="p-4 rounded-2xl bg-black/[0.03] dark:bg-white/[0.04] border border-black/10 dark:border-white/10 flex items-start gap-3 text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
             <Clock className="w-4 h-4 text-gray-950 dark:text-white shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold text-gray-950 dark:text-white">
-                {isUkrainian ? 'Терміни підготовки архіву:' : 'Preparation timeframe:'}
-              </p>
+              <p className="font-semibold text-gray-950 dark:text-white">Preparation timeframe:</p>
               <p className="mt-1 text-gray-600 dark:text-gray-400">
-                {isUkrainian
-                  ? 'Збір та шифрування персонального архіву може тривати до 30 календарних днів. Коли архів буде готовий, ми надішлемо захищене посилання для завантаження на вашу зареєстровану електронну пошту. Посилання буде активним протягом 30 днів.'
-                  : 'Compiling and encrypting your personal data package can take up to 30 calendar days. Once ready, a secure download link will be dispatched to your verified email address. The download link remains active for 30 days.'}
+                Compiling and encrypting your personal data package can take up to 30 calendar days.
+                Once ready, a secure download link will be dispatched to your verified email
+                address. The download link remains active for 30 days.
               </p>
             </div>
           </div>
@@ -201,21 +191,14 @@ export const RequestDataPackageModal: React.FC<RequestDataPackageModalProps> = (
           {/* Select All Toggle Bar */}
           <div className="flex items-center justify-between px-1">
             <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-              {isUkrainian ? 'Категорії даних' : 'Data Categories'} ({selectedCategories.length}/
-              {DATA_CATEGORIES.length})
+              Data Categories ({selectedCategories.length}/{DATA_CATEGORIES.length})
             </span>
             <button
               type="button"
               onClick={toggleAll}
               className="text-xs font-semibold text-gray-950 dark:text-white hover:underline transition-colors cursor-pointer"
             >
-              {selectedCategories.length === DATA_CATEGORIES.length
-                ? isUkrainian
-                  ? 'Зняти всі'
-                  : 'Deselect All'
-                : isUkrainian
-                  ? 'Вибрати всі'
-                  : 'Select All'}
+              {selectedCategories.length === DATA_CATEGORIES.length ? 'Deselect All' : 'Select All'}
             </button>
           </div>
 
@@ -245,11 +228,11 @@ export const RequestDataPackageModal: React.FC<RequestDataPackageModalProps> = (
                     <div className="flex items-center gap-2">
                       {category.icon}
                       <span className="text-xs font-bold text-gray-950 dark:text-white">
-                        {isUkrainian ? category.titleUk : category.titleEn}
+                        {category.title}
                       </span>
                     </div>
                     <p className="text-[11px] text-gray-600 dark:text-gray-400 mt-1 leading-normal">
-                      {isUkrainian ? category.descriptionUk : category.descriptionEn}
+                      {category.description}
                     </p>
                   </div>
                 </div>
@@ -265,7 +248,7 @@ export const RequestDataPackageModal: React.FC<RequestDataPackageModalProps> = (
             onClick={onClose}
             className="px-4 py-2.5 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-950 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
           >
-            {isUkrainian ? 'Я передумав(ла)' : 'I changed my mind'}
+            I changed my mind
           </button>
 
           <button
@@ -283,12 +266,12 @@ export const RequestDataPackageModal: React.FC<RequestDataPackageModalProps> = (
             {isSubmitted ? (
               <>
                 <ShieldCheck className="w-4 h-4" />
-                <span>{isUkrainian ? 'Запит прийнято!' : 'Request Submitted!'}</span>
+                <span>Request Submitted!</span>
               </>
             ) : (
               <>
                 <Download className="w-4 h-4" />
-                <span>{isUkrainian ? 'Запросити мої дані' : 'Request My Data'}</span>
+                <span>Request My Data</span>
               </>
             )}
           </button>

@@ -14,20 +14,20 @@ function VerificationList() {
   const [font, setFont] = useState('inherit');
   return (
     <main className="bg-[var(--app-bg-color)] text-white min-h-screen p-5 max-w-xl mx-auto">
-      <h1 className="text-xl font-bold">Проверка Nameplates: 1000 строк</h1>
+      <h1 className="text-xl font-bold">Nameplates Verification: 1000 rows</h1>
       <p className="text-sm opacity-70 my-3">
-        Тестовые строки, без аккаунтов. Используется тот же компонент, что и в приложении.
+        Test rows, no accounts. Uses the same component as the app.
       </p>
       <button
         type="button"
         onClick={() => setMotion((value) => !value)}
         className="cursor-pointer rounded-lg border border-white/20 px-4 py-2 mb-4 hover:bg-white/10 focus-visible:outline focus-visible:outline-2"
       >
-        {motion ? 'Отключить анимацию' : 'Включить анимацию'}
+        {motion ? 'Disable animation' : 'Enable animation'}
       </button>
       <div className="flex gap-3 mb-4">
         <label className="text-sm min-w-0 flex-1">
-          Имя для проверки
+          Test name
           <input
             value={testName}
             onChange={(event) => setTestName(event.target.value)}
@@ -35,14 +35,14 @@ function VerificationList() {
           />
         </label>
         <label className="text-sm">
-          Шрифт имени
+          Name font
           <select
             value={font}
             onChange={(event) => setFont(event.target.value)}
             className="block rounded border border-white/20 bg-black px-2 py-1"
           >
-            <option value="inherit">Обычный</option>
-            <option value="monospace">Моноширинный</option>
+            <option value="inherit">Default</option>
+            <option value="monospace">Monospace</option>
           </select>
         </label>
       </div>
@@ -64,8 +64,8 @@ function VerificationList() {
               {index === 0
                 ? testName
                 : index === 1
-                  ? 'Очень длинное имя, которое должно обрезаться по ширине строки'
-                  : `Тестовая строка ${index + 1}`}
+                  ? 'Very long name that should be truncated to the row width'
+                  : `Test row ${index + 1}`}
             </span>
             {index < 3 && (
               <span aria-hidden="true" data-test-badge className="text-cyan-400 shrink-0">

@@ -780,14 +780,14 @@ export class CallsService {
         : 'HD CALL';
 
     const names = participants
-      .map((p) => p.user?.displayName || p.user?.username || 'Участник')
+      .map((p) => p.user?.displayName || p.user?.username || 'Participant')
       .slice(0, 3)
       .join(', ');
     const displayTitle = names
       ? participants.length > 3
         ? `${names} +${participants.length - 3}`
         : names
-      : 'Групповой HD-звонок';
+      : 'Group HD Call';
 
     const avatarElements = participants
       .slice(0, 4)
@@ -860,7 +860,7 @@ export class CallsService {
     </text>
 
     <text x="0" y="115" fill="#A1A1AA" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="24" font-weight="500">
-      Защищенный HD-звонок • ${count} ${count === 1 ? 'участник' : count < 5 ? 'участника' : 'участников'} • Присоединиться
+      Secure HD Call • ${count} ${count === 1 ? 'participant' : 'participants'} • Join
     </text>
   </g>
 
@@ -870,7 +870,7 @@ export class CallsService {
 
   <g transform="translate(830, 440)">
     <rect width="250" height="64" rx="32" fill="url(#btnGradient)"/>
-    <text x="125" y="39" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="700" text-anchor="middle" letter-spacing="0.5">Вход в звонок →</text>
+    <text x="125" y="39" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="700" text-anchor="middle" letter-spacing="0.5">Join Call →</text>
   </g>
 
   <g transform="translate(80, 540)">

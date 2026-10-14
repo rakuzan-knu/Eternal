@@ -354,9 +354,11 @@ async function runTest() {
   await remoteMuteIconOnBob.waitFor({ state: 'hidden', timeout: 8000 });
   console.log('✓ Bob observed Alice remote mute badge removed upon unmute');
 
-  // 8.2 Deafen / Undeafen (Наушники)
+  // 8.2 Deafen / Undeafen (Headphones)
   const deafenBtn = pageAlice
-    .locator('button[aria-label="Заглушить всё"], button[aria-label="Включить звук"]')
+    .locator(
+      'button[aria-label="Deafen"], button[aria-label="Undeafen"], button[aria-label="Заглушить всё"], button[aria-label="Включить звук"]',
+    )
     .first();
   if (await deafenBtn.isVisible().catch(() => false)) {
     await deafenBtn.click();
@@ -377,11 +379,15 @@ async function runTest() {
   console.log('✓ Toggled Camera: Video Resumed');
 
   // 8.4 Reactions System
-  const reactionBtn = pageAlice.locator('button[aria-label="Отправить реакцию"]');
+  const reactionBtn = pageAlice
+    .locator('button[aria-label="Send reaction"], button[aria-label="Отправить реакцию"]')
+    .first();
   if (await reactionBtn.isVisible().catch(() => false)) {
     await reactionBtn.click();
     console.log('✓ Opened Reactions Toolbar');
-    const fireEmojiBtn = pageAlice.locator('button[aria-label="Отправить 🔥"]').first();
+    const fireEmojiBtn = pageAlice
+      .locator('button[aria-label="Send 🔥"], button[aria-label="Отправить 🔥"]')
+      .first();
     if (
       await fireEmojiBtn
         .waitFor({ state: 'visible', timeout: 3000 })
@@ -394,7 +400,9 @@ async function runTest() {
   }
 
   // 8.5 Virtual Background Blur
-  const blurBtn = pageAlice.locator('button[aria-label="Размытие фона"]').first();
+  const blurBtn = pageAlice
+    .locator('button[aria-label="Blur background"], button[aria-label="Размытие фона"]')
+    .first();
   if (await blurBtn.isVisible().catch(() => false)) {
     await blurBtn.click();
     console.log('✓ Toggled Virtual Background Blur: ON');
@@ -404,7 +412,9 @@ async function runTest() {
   }
 
   // 8.6 RNNoise AI Noise Suppression
-  const rnnoiseBtn = pageAlice.locator('button[aria-label="AI Шумоподавление"]').first();
+  const rnnoiseBtn = pageAlice
+    .locator('button[aria-label="AI Noise Suppression"], button[aria-label="AI Шумоподавление"]')
+    .first();
   if (await rnnoiseBtn.isVisible().catch(() => false)) {
     await rnnoiseBtn.click();
     console.log('✓ Toggled AI Noise Suppression: ON (RNNoise)');
@@ -418,7 +428,11 @@ async function runTest() {
 
   // 9. Interactive Collaborative Whiteboard
   console.log('\n9. Testing Interactive Collaborative Whiteboard (CRDT Canvas)...');
-  const whiteboardBtn = pageAlice.locator('button[aria-label="Интерактивная доска"]').first();
+  const whiteboardBtn = pageAlice
+    .locator(
+      'button[aria-label="Whiteboard"], button[aria-label="Interactive whiteboard"], button[aria-label="Интерактивная доска"]',
+    )
+    .first();
   let whiteboardOpened = false;
 
   if (await whiteboardBtn.isVisible().catch(() => false)) {
@@ -429,7 +443,9 @@ async function runTest() {
     const moreToolsBtn = pageAlice.locator('button[aria-label="More tools"]');
     if (await moreToolsBtn.isVisible().catch(() => false)) {
       await moreToolsBtn.click();
-      const wbSheetBtn = pageAlice.locator('text=Интерактивная доска');
+      const wbSheetBtn = pageAlice
+        .locator('text=Whiteboard, text=Interactive whiteboard, text=Интерактивная доска')
+        .first();
       if (await wbSheetBtn.isVisible().catch(() => false)) {
         await wbSheetBtn.click();
         whiteboardOpened = true;
@@ -515,7 +531,7 @@ async function runTest() {
     await pageAlice.waitForTimeout(600);
 
     // Click Eco/Traveler mode
-    const ecoBtn = pageAlice.locator('text=Эко-режим');
+    const ecoBtn = pageAlice.locator('text=Eco mode, text=Traveler mode, text=Эко-режим').first();
     if (await ecoBtn.isVisible().catch(() => false)) {
       await ecoBtn.click();
       console.log('✓ Eco-mode (Traveler: 12kbps Opus) toggled');
@@ -538,7 +554,9 @@ async function runTest() {
     await pageAlice.waitForTimeout(800);
 
     const voiceHeading = pageAlice
-      .locator('h3:has-text("Голос"), h2:has-text("Голос и видео")')
+      .locator(
+        'h3:has-text("Voice"), h2:has-text("Voice and video"), h3:has-text("Голос"), h2:has-text("Голос и видео")',
+      )
       .first();
     const isVoiceVisible = await voiceHeading.isVisible().catch(() => false);
     console.log(`✓ Voice & Video Tab rendered inside EditProfileModal: ${isVoiceVisible}`);
@@ -554,7 +572,7 @@ async function runTest() {
   console.log('\n13. Testing In-Call Chat Messaging...');
   const chatInputBob = pageBob.locator('input[type="text"], textarea').last();
   if (await chatInputBob.isVisible().catch(() => false)) {
-    await chatInputBob.fill('Тест чата во время звонка 1-на-1!');
+    await chatInputBob.fill('Testing 1-on-1 in-call chat!');
     await chatInputBob.press('Enter');
     console.log('✓ Bob sent chat message during call');
     await pageBob.waitForTimeout(600);

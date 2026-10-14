@@ -61,12 +61,12 @@ const WORD_THEME_COLORS = [
 
 // Microsoft Word Text Highlighter Colors
 const WORD_HIGHLIGHT_COLORS = [
-  { name: 'Жовтий', color: '#fef08a' },
-  { name: 'Зелений', color: '#bbf7d0' },
-  { name: 'Блакитний', color: '#a5f3fc' },
-  { name: 'Рожевий', color: '#fbcfe8' },
-  { name: 'Помаранчевий', color: '#fed7aa' },
-  { name: 'Фіолетовий', color: '#e9d5ff' },
+  { name: 'Yellow', color: '#fef08a' },
+  { name: 'Green', color: '#bbf7d0' },
+  { name: 'Sky', color: '#a5f3fc' },
+  { name: 'Pink', color: '#fbcfe8' },
+  { name: 'Orange', color: '#fed7aa' },
+  { name: 'Purple', color: '#e9d5ff' },
 ];
 
 const FONT_FAMILIES = [
@@ -115,10 +115,10 @@ export default function WordDocumentEditor({
   const isRepaginatingRef = useRef(false);
 
   // We maintain page content in a ref to avoid React re-rendering contentEditable on every keystroke!
-  // This solves the bug where Backspace / typing drops focus ("снимает статус печати")
-  // and resets scroll to the top ("перекидывает интерфейс вверх").
+  // This solves the bug where Backspace / typing drops focus
+  // and resets scroll to the top.
   const pagesContentRef = useRef<string[]>(
-    initialPages.length > 0 ? [...initialPages] : ['<p>Почніть введення тексту...</p>'],
+    initialPages.length > 0 ? [...initialPages] : ['<p>Start typing text...</p>'],
   );
   const [pageCount, setPageCount] = useState<number>(pagesContentRef.current.length);
   const [activePageIndex, setActivePageIndex] = useState<number>(0);
@@ -1314,7 +1314,7 @@ export default function WordDocumentEditor({
               onMouseDown={(e) => e.preventDefault()}
               onClick={handleUndo}
               className="p-1.5 rounded-lg hover:bg-white/10 text-gray-200 disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer active:scale-95"
-              title="Скасувати (Ctrl+Z)"
+              title="Undo (Ctrl+Z)"
             >
               <Undo size={15} />
             </button>
@@ -1324,7 +1324,7 @@ export default function WordDocumentEditor({
               onMouseDown={(e) => e.preventDefault()}
               onClick={handleRedo}
               className="p-1.5 rounded-lg hover:bg-white/10 text-gray-200 disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer active:scale-95"
-              title="Повторити (Ctrl+Y)"
+              title="Redo (Ctrl+Y)"
             >
               <Redo size={15} />
             </button>
@@ -1337,7 +1337,7 @@ export default function WordDocumentEditor({
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => setIsFontFamilyOpen((prev) => !prev)}
               className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-white/10 text-xs font-medium text-gray-200 transition-colors cursor-pointer"
-              title="Шрифт"
+              title="Font"
             >
               <span className="truncate max-w-[100px]">{selectedFontFamily}</span>
               <ChevronDown size={12} className="text-gray-400" />
@@ -1376,7 +1376,7 @@ export default function WordDocumentEditor({
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => setIsFontSizeOpen((prev) => !prev)}
               className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-white/10 text-xs font-medium text-gray-200 transition-colors cursor-pointer"
-              title="Розмір шрифту"
+              title="Font size"
             >
               <span>{selectedFontSize.replace(' (Word)', '')}</span>
               <ChevronDown size={12} className="text-gray-400" />
@@ -1415,7 +1415,7 @@ export default function WordDocumentEditor({
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => execFormat('formatBlock', '<p>')}
             className="px-1.5 py-1 rounded-lg hover:bg-white/10 text-gray-300 font-semibold text-[11px] transition-colors cursor-pointer"
-            title="Звичайний текст (Paragraph)"
+            title="Normal text (Paragraph)"
           >
             P
           </button>
@@ -1424,7 +1424,7 @@ export default function WordDocumentEditor({
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => execFormat('formatBlock', '<h1>')}
             className="p-1.5 rounded-lg hover:bg-white/10 text-gray-200 transition-colors cursor-pointer"
-            title="Заголовок 1 (H1)"
+            title="Heading 1 (H1)"
           >
             <Heading1 size={16} />
           </button>
@@ -1433,7 +1433,7 @@ export default function WordDocumentEditor({
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => execFormat('formatBlock', '<h2>')}
             className="p-1.5 rounded-lg hover:bg-white/10 text-gray-200 transition-colors cursor-pointer"
-            title="Заголовок 2 (H2)"
+            title="Heading 2 (H2)"
           >
             <Heading2 size={16} />
           </button>
@@ -1442,7 +1442,7 @@ export default function WordDocumentEditor({
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => execFormat('formatBlock', '<h3>')}
             className="p-1.5 rounded-lg hover:bg-white/10 text-gray-200 transition-colors cursor-pointer"
-            title="Заголовок 3 (H3)"
+            title="Heading 3 (H3)"
           >
             <Heading3 size={16} />
           </button>
@@ -1455,7 +1455,7 @@ export default function WordDocumentEditor({
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => execFormat('bold')}
             className="p-1.5 rounded-lg hover:bg-white/10 text-gray-200 transition-colors cursor-pointer"
-            title="Жирний (Ctrl+B)"
+            title="Bold (Ctrl+B)"
           >
             <Bold size={15} />
           </button>
@@ -1464,7 +1464,7 @@ export default function WordDocumentEditor({
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => execFormat('italic')}
             className="p-1.5 rounded-lg hover:bg-white/10 text-gray-200 transition-colors cursor-pointer"
-            title="Курсив (Ctrl+I)"
+            title="Italic (Ctrl+I)"
           >
             <Italic size={15} />
           </button>
@@ -1473,7 +1473,7 @@ export default function WordDocumentEditor({
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => execFormat('underline')}
             className="p-1.5 rounded-lg hover:bg-white/10 text-gray-200 transition-colors cursor-pointer"
-            title="Підкреслений (Ctrl+U)"
+            title="Underline (Ctrl+U)"
           >
             <Underline size={15} />
           </button>
@@ -1482,7 +1482,7 @@ export default function WordDocumentEditor({
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => execFormat('strikeThrough')}
             className="p-1.5 rounded-lg hover:bg-white/10 text-gray-200 transition-colors cursor-pointer"
-            title="Закреслений"
+            title="Strikethrough"
           >
             <Strikethrough size={15} />
           </button>
@@ -1497,7 +1497,7 @@ export default function WordDocumentEditor({
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => applyTextColor(currentTextColor)}
                 className="flex flex-col items-center justify-center px-1.5 py-0.5 cursor-pointer text-gray-200"
-                title={`Колір тексту (${currentTextColor})`}
+                title={`Text color (${currentTextColor})`}
               >
                 <span className="font-serif font-black text-sm leading-none">A</span>
                 <span
@@ -1514,7 +1514,7 @@ export default function WordDocumentEditor({
                   setIsHighlightPickerOpen(false);
                 }}
                 className="p-1 hover:bg-white/15 rounded text-gray-400 hover:text-white cursor-pointer"
-                title="Палітра кольорів тексту"
+                title="Text color palette"
               >
                 <ChevronDown size={11} />
               </button>
@@ -1537,7 +1537,7 @@ export default function WordDocumentEditor({
                 <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
                   <span className="text-xs font-semibold text-gray-200 flex items-center gap-1.5">
                     <Palette size={13} className="text-purple-400" />
-                    <span>Колір тексту</span>
+                    <span>Text color</span>
                   </span>
                   <button
                     type="button"
@@ -1545,7 +1545,7 @@ export default function WordDocumentEditor({
                     onClick={() => applyTextColor('#1e293b')}
                     className="text-[11px] text-gray-400 hover:text-purple-300 underline cursor-pointer"
                   >
-                    Авто
+                    Auto
                   </button>
                 </div>
 
@@ -1572,7 +1572,7 @@ export default function WordDocumentEditor({
 
                 {/* Custom Color Native Picker */}
                 <div className="pt-2 border-t border-white/10 flex items-center justify-between">
-                  <span className="text-[11px] text-gray-300 font-medium">Інший колір...</span>
+                  <span className="text-[11px] text-gray-300 font-medium">More colors...</span>
                   <label className="flex items-center gap-1.5 cursor-pointer">
                     <input
                       type="color"
@@ -1594,7 +1594,7 @@ export default function WordDocumentEditor({
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => applyHighlightColor(currentHighlightColor)}
                 className="flex flex-col items-center justify-center px-1.5 py-0.5 cursor-pointer text-gray-200"
-                title={`Виділити маркером (${currentHighlightColor})`}
+                title={`Highlight color (${currentHighlightColor})`}
               >
                 <Highlighter size={14} />
                 <span
@@ -1611,7 +1611,7 @@ export default function WordDocumentEditor({
                   setIsTextColorPickerOpen(false);
                 }}
                 className="p-1 hover:bg-white/15 rounded text-gray-400 hover:text-white cursor-pointer"
-                title="Палітра кольорів маркера"
+                title="Highlight color palette"
               >
                 <ChevronDown size={11} />
               </button>
@@ -1634,7 +1634,7 @@ export default function WordDocumentEditor({
                 <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
                   <span className="text-xs font-semibold text-gray-200 flex items-center gap-1.5">
                     <Highlighter size={13} className="text-yellow-400" />
-                    <span>Виділення маркером</span>
+                    <span>Highlight color</span>
                   </span>
                   <button
                     type="button"
@@ -1642,7 +1642,7 @@ export default function WordDocumentEditor({
                     onClick={() => applyHighlightColor('transparent')}
                     className="text-[11px] text-gray-400 hover:text-rose-300 underline cursor-pointer"
                   >
-                    Скинути
+                    Reset
                   </button>
                 </div>
 
@@ -1673,7 +1673,7 @@ export default function WordDocumentEditor({
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => applyAlignment('left')}
             className="p-1.5 rounded-lg hover:bg-white/10 text-gray-200 transition-colors cursor-pointer"
-            title="За лівим краєм (Ctrl+L)"
+            title="Align left (Ctrl+L)"
           >
             <AlignLeft size={15} />
           </button>
@@ -1682,7 +1682,7 @@ export default function WordDocumentEditor({
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => applyAlignment('center')}
             className="p-1.5 rounded-lg hover:bg-white/10 text-gray-200 transition-colors cursor-pointer"
-            title="По центру (Ctrl+E)"
+            title="Center (Ctrl+E)"
           >
             <AlignCenter size={15} />
           </button>
@@ -1691,7 +1691,7 @@ export default function WordDocumentEditor({
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => applyAlignment('right')}
             className="p-1.5 rounded-lg hover:bg-white/10 text-gray-200 transition-colors cursor-pointer"
-            title="За правим краєм (Ctrl+R)"
+            title="Align right (Ctrl+R)"
           >
             <AlignRight size={15} />
           </button>
@@ -1700,7 +1700,7 @@ export default function WordDocumentEditor({
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => applyAlignment('justify')}
             className="p-1.5 rounded-lg hover:bg-white/10 text-gray-200 transition-colors cursor-pointer"
-            title="По ширині сторінки (Ctrl+J)"
+            title="Justify (Ctrl+J)"
           >
             <AlignJustify size={15} />
           </button>
@@ -1713,7 +1713,7 @@ export default function WordDocumentEditor({
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => execFormat('insertUnorderedList')}
             className="p-1.5 rounded-lg hover:bg-white/10 text-gray-200 transition-colors cursor-pointer"
-            title="Маркований список"
+            title="Bullet list"
           >
             <List size={15} />
           </button>
@@ -1722,7 +1722,7 @@ export default function WordDocumentEditor({
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => execFormat('insertOrderedList')}
             className="p-1.5 rounded-lg hover:bg-white/10 text-gray-200 transition-colors cursor-pointer"
-            title="Нумерований список"
+            title="Numbered list"
           >
             <ListOrdered size={15} />
           </button>
@@ -1731,7 +1731,7 @@ export default function WordDocumentEditor({
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => execFormat('outdent')}
             className="p-1.5 rounded-lg hover:bg-white/10 text-gray-200 transition-colors cursor-pointer"
-            title="Зменшити відступ"
+            title="Decrease indent"
           >
             <Outdent size={15} />
           </button>
@@ -1740,7 +1740,7 @@ export default function WordDocumentEditor({
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => execFormat('indent')}
             className="p-1.5 rounded-lg hover:bg-white/10 text-gray-200 transition-colors cursor-pointer"
-            title="Збільшити відступ"
+            title="Increase indent"
           >
             <Indent size={15} />
           </button>
@@ -1755,10 +1755,10 @@ export default function WordDocumentEditor({
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => handleExport('save')}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
-              title="Зберегти документ"
+              title="Save document"
             >
               <Save size={14} />
-              <span>Зберегти</span>
+              <span>Save</span>
             </button>
           )}
 
@@ -1769,10 +1769,10 @@ export default function WordDocumentEditor({
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => handleExport('send')}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-400 hover:to-indigo-400 text-white text-xs font-semibold shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
-              title="Надіслати у чат"
+              title="Send to chat"
             >
               <Send size={13} />
-              <span>Надіслати</span>
+              <span>Send</span>
             </button>
           )}
         </div>
@@ -1827,7 +1827,7 @@ export default function WordDocumentEditor({
             {/* Top Sheet Header Indicator */}
             <div className="absolute top-3 right-5 flex items-center gap-2 text-gray-400 select-none text-[11px] font-sans z-10">
               <span>
-                Сторінка {pIdx + 1} з {pageCount}
+                Page {pIdx + 1} of {pageCount}
               </span>
               {pageCount > 1 && (
                 <button
@@ -1835,7 +1835,7 @@ export default function WordDocumentEditor({
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => handleDeletePage(pIdx)}
                   className="p-1 rounded hover:bg-rose-100 text-rose-500 transition-colors cursor-pointer"
-                  title="Видалити цю сторінку"
+                  title="Delete this page"
                 >
                   <Trash2 size={13} />
                 </button>

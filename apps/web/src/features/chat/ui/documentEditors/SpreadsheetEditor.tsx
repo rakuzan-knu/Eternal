@@ -617,7 +617,7 @@ export default function SpreadsheetEditor({
     const nextSheets = [
       ...sheets,
       {
-        name: `Лист ${sheets.length + 1}`,
+        name: `Sheet ${sheets.length + 1}`,
         rows: [
           ['', '', '', '', ''],
           ['', '', '', '', ''],
@@ -689,20 +689,20 @@ export default function SpreadsheetEditor({
             type="button"
             onClick={() => handleAddRow()}
             className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium shadow transition-all active:scale-95 cursor-pointer"
-            title="Додати новий рядок"
+            title="Add new row"
           >
             <Plus size={14} />
-            <span>Рядок</span>
+            <span>Row</span>
           </button>
 
           <button
             type="button"
             onClick={() => handleAddColumn()}
             className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium shadow transition-all active:scale-95 cursor-pointer"
-            title="Додати новий стовпець"
+            title="Add new column"
           >
             <Plus size={14} />
-            <span>Стовпець</span>
+            <span>Column</span>
           </button>
 
           <div className="w-px h-5 bg-white/15 mx-1" />
@@ -720,7 +720,7 @@ export default function SpreadsheetEditor({
               className={`p-1.5 rounded-lg hover:bg-white/10 disabled:opacity-40 text-gray-200 transition-colors cursor-pointer ${
                 isFillPickerOpen ? 'bg-white/20 text-white' : ''
               }`}
-              title="Колір заливки ячейки"
+              title="Cell fill color"
             >
               <PaintBucket size={16} style={{ color: activeStyle.bg || undefined }} />
             </button>
@@ -740,16 +740,16 @@ export default function SpreadsheetEditor({
               >
                 <div className="flex items-center justify-between px-1 border-b border-white/10 pb-1.5">
                   <span className="text-[11px] font-medium text-gray-200">
-                    Заливка{' '}
+                    Fill{' '}
                     {selectedColIndex !== null
-                      ? '(стовпець)'
+                      ? '(column)'
                       : selectedRowIndex !== null
-                        ? '(рядок)'
+                        ? '(row)'
                         : normalizedRange &&
                             (normalizedRange.minRow !== normalizedRange.maxRow ||
                               normalizedRange.minCol !== normalizedRange.maxCol)
-                          ? '(діапазон)'
-                          : '(ячейка)'}
+                          ? '(range)'
+                          : '(cell)'}
                   </span>
                   <button
                     type="button"
@@ -759,7 +759,7 @@ export default function SpreadsheetEditor({
                     }}
                     className="text-[11px] text-gray-400 hover:text-rose-400 underline cursor-pointer"
                   >
-                    Скинути
+                    Reset
                   </button>
                 </div>
                 <div className="grid grid-cols-4 gap-1.5 p-0.5">
@@ -779,13 +779,13 @@ export default function SpreadsheetEditor({
                 </div>
                 {/* Custom Color Input */}
                 <div className="flex items-center justify-between pt-1 border-t border-white/10 px-1 text-[11px] text-gray-300">
-                  <span>Довільний колір:</span>
+                  <span>Custom color:</span>
                   <input
                     type="color"
                     value={activeStyle.bg || '#ffffff'}
                     onChange={(e) => handleApplyFormatting({ bg: e.target.value })}
                     className="w-7 h-6 rounded cursor-pointer border border-white/20 bg-transparent"
-                    title="Вибрати довільний колір заливки"
+                    title="Choose custom fill color"
                   />
                 </div>
               </div>
@@ -805,7 +805,7 @@ export default function SpreadsheetEditor({
               className={`p-1.5 rounded-lg hover:bg-white/10 disabled:opacity-40 text-gray-200 transition-colors cursor-pointer ${
                 isTextColorPickerOpen ? 'bg-white/20 text-white' : ''
               }`}
-              title="Колір тексту"
+              title="Text color"
             >
               <Palette size={16} style={{ color: activeStyle.color || undefined }} />
             </button>
@@ -825,16 +825,16 @@ export default function SpreadsheetEditor({
               >
                 <div className="flex items-center justify-between px-1 border-b border-white/10 pb-1.5">
                   <span className="text-[11px] font-medium text-gray-200">
-                    Колір тексту{' '}
+                    Text color{' '}
                     {selectedColIndex !== null
-                      ? '(стовпець)'
+                      ? '(column)'
                       : selectedRowIndex !== null
-                        ? '(рядок)'
+                        ? '(row)'
                         : normalizedRange &&
                             (normalizedRange.minRow !== normalizedRange.maxRow ||
                               normalizedRange.minCol !== normalizedRange.maxCol)
-                          ? '(діапазон)'
-                          : '(ячейка)'}
+                          ? '(range)'
+                          : '(cell)'}
                   </span>
                   <button
                     type="button"
@@ -844,7 +844,7 @@ export default function SpreadsheetEditor({
                     }}
                     className="text-[11px] text-gray-400 hover:text-rose-400 underline cursor-pointer"
                   >
-                    Скинути
+                    Reset
                   </button>
                 </div>
                 <div className="grid grid-cols-4 gap-1.5 p-0.5">
@@ -864,13 +864,13 @@ export default function SpreadsheetEditor({
                 </div>
                 {/* Custom Color Input */}
                 <div className="flex items-center justify-between pt-1 border-t border-white/10 px-1 text-[11px] text-gray-300">
-                  <span>Довільний колір:</span>
+                  <span>Custom color:</span>
                   <input
                     type="color"
                     value={activeStyle.color || '#000000'}
                     onChange={(e) => handleApplyFormatting({ color: e.target.value })}
                     className="w-7 h-6 rounded cursor-pointer border border-white/20 bg-transparent"
-                    title="Вибрати довільний колір тексту"
+                    title="Choose custom text color"
                   />
                 </div>
               </div>
@@ -887,7 +887,7 @@ export default function SpreadsheetEditor({
             className={`p-1.5 rounded-lg hover:bg-white/10 disabled:opacity-40 text-gray-200 transition-colors cursor-pointer ${
               activeStyle.bold ? 'bg-white/20 text-white font-bold' : ''
             }`}
-            title="Жирний (Ctrl+B)"
+            title="Bold (Ctrl+B)"
           >
             <Bold size={15} />
           </button>
@@ -899,7 +899,7 @@ export default function SpreadsheetEditor({
             className={`p-1.5 rounded-lg hover:bg-white/10 disabled:opacity-40 text-gray-200 transition-colors cursor-pointer ${
               activeStyle.italic ? 'bg-white/20 text-white' : ''
             }`}
-            title="Курсив (Ctrl+I)"
+            title="Italic (Ctrl+I)"
           >
             <Italic size={15} />
           </button>
@@ -912,7 +912,7 @@ export default function SpreadsheetEditor({
             className={`p-1.5 rounded-lg hover:bg-white/10 disabled:opacity-40 text-gray-200 transition-colors cursor-pointer ${
               activeStyle.align === 'left' ? 'bg-white/20 text-white' : ''
             }`}
-            title="Вирівнювання ліворуч"
+            title="Align left"
           >
             <AlignLeft size={15} />
           </button>
@@ -924,7 +924,7 @@ export default function SpreadsheetEditor({
             className={`p-1.5 rounded-lg hover:bg-white/10 disabled:opacity-40 text-gray-200 transition-colors cursor-pointer ${
               activeStyle.align === 'center' ? 'bg-white/20 text-white' : ''
             }`}
-            title="По центру"
+            title="Center"
           >
             <AlignCenter size={15} />
           </button>
@@ -936,7 +936,7 @@ export default function SpreadsheetEditor({
             className={`p-1.5 rounded-lg hover:bg-white/10 disabled:opacity-40 text-gray-200 transition-colors cursor-pointer ${
               activeStyle.align === 'right' ? 'bg-white/20 text-white' : ''
             }`}
-            title="Вирівнювання праворуч"
+            title="Align right"
           >
             <AlignRight size={15} />
           </button>
@@ -950,10 +950,10 @@ export default function SpreadsheetEditor({
               disabled={isSaving}
               onClick={() => handleExport('save')}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
-              title="Зберегти оновлений файл"
+              title="Save updated file"
             >
               <Save size={14} />
-              <span>Зберегти</span>
+              <span>Save</span>
             </button>
           )}
 
@@ -963,10 +963,10 @@ export default function SpreadsheetEditor({
               disabled={isSaving}
               onClick={() => handleExport('send')}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-linear-to-r from-purple-500 to-indigo-500 hover:from-purple-400 hover:to-indigo-400 text-white text-xs font-semibold shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
-              title="Надіслати змінений файл у чат"
+              title="Send modified file to chat"
             >
               <Send size={13} />
-              <span>Надіслати</span>
+              <span>Send</span>
             </button>
           )}
         </div>
@@ -1016,7 +1016,7 @@ export default function SpreadsheetEditor({
                 setEditValue(e.target.value);
               }
             }}
-            placeholder="Введіть значення ячейки..."
+            placeholder="Enter cell value..."
             className="w-full bg-transparent text-white placeholder-gray-500 focus:outline-none font-sans text-xs"
           />
         </div>
@@ -1028,7 +1028,7 @@ export default function SpreadsheetEditor({
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Пошук у листі..."
+            placeholder="Search in sheet..."
             className="w-full pl-7 pr-2 py-1 rounded-md bg-black/30 border border-white/10 text-white placeholder-gray-500 text-xs focus:outline-none focus:border-emerald-500"
           />
         </div>
@@ -1064,7 +1064,7 @@ export default function SpreadsheetEditor({
                   setSelectedRowIndex(null);
                 }}
                 className="w-12 h-7 px-1.5 bg-slate-100 border-r border-b border-slate-300 text-center font-semibold text-[11px] text-slate-600 select-none cursor-pointer hover:bg-slate-200 transition-colors"
-                title="Зняти виділення"
+                title="Clear selection"
               >
                 #
               </th>
@@ -1098,7 +1098,7 @@ export default function SpreadsheetEditor({
                         ? 'bg-slate-300 text-slate-900 border-b-2 border-b-[#107c41]'
                         : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                     }`}
-                    title={`Стовпець ${col}. Клікніть, щоб виділити`}
+                    title={`Column ${col}. Click to select`}
                   >
                     <div className="flex items-center justify-center h-full">
                       <span>{col}</span>
@@ -1114,7 +1114,7 @@ export default function SpreadsheetEditor({
                       }}
                       onClick={(e) => e.stopPropagation()}
                       className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-emerald-500/70 z-30 select-none group"
-                      title="Потягніть, щоб змінити ширину стовпця"
+                      title="Drag to resize column width"
                     >
                       <div className="w-[1.5px] h-full bg-slate-300 group-hover:bg-emerald-500 mx-auto" />
                     </div>
@@ -1166,7 +1166,7 @@ export default function SpreadsheetEditor({
                         ? 'bg-slate-300 text-slate-900 border-r-2 border-r-[#107c41]'
                         : 'bg-slate-50 text-slate-600 hover:bg-slate-200'
                     }`}
-                    title={`Рядок ${rIdx + 1}. Клікніть, щоб виділити`}
+                    title={`Row ${rIdx + 1}. Click to select`}
                   >
                     <span>{rIdx + 1}</span>
 
@@ -1180,7 +1180,7 @@ export default function SpreadsheetEditor({
                       }}
                       onClick={(e) => e.stopPropagation()}
                       className="absolute left-0 right-0 bottom-0 h-2.5 cursor-row-resize hover:bg-emerald-500/70 z-30 select-none group"
-                      title="Потягніть, щоб змінити висоту рядка"
+                      title="Drag to resize row height"
                     >
                       <div className="h-[1.5px] w-full bg-slate-300 group-hover:bg-emerald-500 my-auto" />
                     </div>
@@ -1289,7 +1289,7 @@ export default function SpreadsheetEditor({
                         {isBottomEdge && isRightEdge && (
                           <div
                             className="absolute -bottom-1 -right-1 w-2 h-2 bg-[#107c41] border border-white z-30 cursor-crosshair shadow-xs rounded-[0.5px] transition-transform hover:scale-125"
-                            title="Маркер автозаповнення"
+                            title="Autofill handle"
                           />
                         )}
                       </td>
@@ -1333,15 +1333,15 @@ export default function SpreadsheetEditor({
             type="button"
             onClick={handleAddSheet}
             className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-gray-300 hover:text-white text-xs font-medium transition-all cursor-pointer"
-            title="Створити новий лист"
+            title="Create new sheet"
           >
             <Plus size={14} />
-            <span>Лист</span>
+            <span>Sheet</span>
           </button>
         </div>
 
         <div className="text-[11px] text-gray-400 font-mono">
-          {currentSheet?.rows.length || 0} рядків × {colCount} колонок
+          {currentSheet?.rows.length || 0} rows × {colCount} columns
         </div>
       </div>
 
@@ -1363,7 +1363,7 @@ export default function SpreadsheetEditor({
                 }}
                 className="w-full text-left px-3 py-1.5 hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
               >
-                Вставити рядок вище
+                Insert row above
               </button>
               <button
                 type="button"
@@ -1373,7 +1373,7 @@ export default function SpreadsheetEditor({
                 }}
                 className="w-full text-left px-3 py-1.5 hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
               >
-                Вставити рядок нижче
+                Insert row below
               </button>
               <button
                 type="button"
@@ -1383,7 +1383,7 @@ export default function SpreadsheetEditor({
                 }}
                 className="w-full text-left px-3 py-1.5 text-rose-400 hover:bg-rose-500/20 rounded-lg transition-colors cursor-pointer"
               >
-                Видалити рядок #{contextMenu.index + 1}
+                Delete row #{contextMenu.index + 1}
               </button>
             </>
           )}
@@ -1398,7 +1398,7 @@ export default function SpreadsheetEditor({
                 }}
                 className="w-full text-left px-3 py-1.5 hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
               >
-                Вставити стовпець ліворуч
+                Insert column left
               </button>
               <button
                 type="button"
@@ -1408,7 +1408,7 @@ export default function SpreadsheetEditor({
                 }}
                 className="w-full text-left px-3 py-1.5 hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
               >
-                Вставити стовпець праворуч
+                Insert column right
               </button>
               <button
                 type="button"
@@ -1418,7 +1418,7 @@ export default function SpreadsheetEditor({
                 }}
                 className="w-full text-left px-3 py-1.5 text-rose-400 hover:bg-rose-500/20 rounded-lg transition-colors cursor-pointer"
               >
-                Видалити стовпець {colHeaders[contextMenu.index]}
+                Delete column {colHeaders[contextMenu.index]}
               </button>
             </>
           )}
@@ -1437,7 +1437,7 @@ export default function SpreadsheetEditor({
                 }}
                 className="w-full text-left px-3 py-1.5 hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
               >
-                Очистити вміст
+                Clear content
               </button>
               <button
                 type="button"
@@ -1447,7 +1447,7 @@ export default function SpreadsheetEditor({
                 }}
                 className="w-full text-left px-3 py-1.5 hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
               >
-                Зробити жирним (Ctrl+B)
+                Make bold (Ctrl+B)
               </button>
               <button
                 type="button"
@@ -1457,7 +1457,7 @@ export default function SpreadsheetEditor({
                 }}
                 className="w-full text-left px-3 py-1.5 hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
               >
-                Зробити курсивом (Ctrl+I)
+                Make italic (Ctrl+I)
               </button>
               <button
                 type="button"
@@ -1467,7 +1467,7 @@ export default function SpreadsheetEditor({
                 }}
                 className="w-full text-left px-3 py-1.5 hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
               >
-                Вставити рядок нижче
+                Insert row below
               </button>
               <button
                 type="button"
@@ -1477,7 +1477,7 @@ export default function SpreadsheetEditor({
                 }}
                 className="w-full text-left px-3 py-1.5 text-rose-400 hover:bg-rose-500/20 rounded-lg transition-colors cursor-pointer"
               >
-                Видалити цей рядок
+                Delete this row
               </button>
             </>
           )}

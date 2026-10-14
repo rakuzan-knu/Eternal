@@ -52,6 +52,64 @@ function isPrivateIp(ip: string): boolean {
   return false;
 }
 
+const ALLOWED_CATEGORIES = ['gaming', 'music', 'tech', 'cinema', 'relax', 'entertainment'] as const;
+type AllowedCategory = (typeof ALLOWED_CATEGORIES)[number];
+
+const YOUTUBE_ID_REGEX = /^[a-zA-Z0-9_-]{11}$/;
+
+function extractYouTubeVideoId(parsed: URL): string | null {
+  const host = parsed.hostname.toLowerCase();
+  const isYouTubeHost =
+    host === 'youtube.com' ||
+    host === 'www.youtube.com' ||
+    host === 'm.youtube.com' ||
+    host === 'music.youtube.com';
+  const isShortHost = host === 'youtu.be' || host === 'www.youtu.be';
+
+  if (isShortHost) {
+    const candidate = parsed.pathname.slice(1).split('/')[0] || '';
+    if (YOUTUBE_ID_REGEX.test(candidate)) {
+      return candidate;
+    }
+  }
+
+  if (isYouTubeHost) {
+    const vParam = parsed.searchParams.get('v');
+    if (vParam && YOUTUBE_ID_REGEX.test(vParam)) {
+      return vParam;
+    }
+
+    const segments = parsed.pathname.split('/').filter(Boolean);
+    if (segments.length >= 2 && ['embed', 'v', 'shorts', 'live'].includes(segments[0])) {
+      const candidate = segments[1];
+      if (YOUTUBE_ID_REGEX.test(candidate)) {
+        return candidate;
+      }
+    }
+  }
+
+  return null;
+}
+
+const DANGEROUS_OBJECT_KEYS = new Set([
+  '__proto__',
+  'constructor',
+  'prototype',
+  'tostring',
+  'valueof',
+  'hasownproperty',
+  'isprototypeof',
+  'propertyisenumerable',
+  'tolocalestring',
+]);
+
+function isSafePropertyKey(key: unknown): key is string {
+  if (typeof key !== 'string') return false;
+  const trimmed = key.trim();
+  if (trimmed.length === 0 || trimmed.length > 80) return false;
+  return !DANGEROUS_OBJECT_KEYS.has(trimmed.toLowerCase());
+}
+
 // Resilient default trending items (100% genuine YouTube IDs with real high-res thumbnails & streams)
 const POPULAR_CURATED_VIDEOS: WatchTogetherVideoItem[] = [
   {
@@ -456,14 +514,10 @@ export class WatchTogetherService {
 
     const host = parsed.hostname.toLowerCase();
 
-    // 3. YouTube detection (youtube.com, youtu.be)
-    const ytMatch =
-      trimmed.match(
-        /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/,
-      ) || trimmed.match(/youtube\.com\/shorts\/([^"&?\/\s]{11})/);
+    // 3. Safe YouTube detection (youtube.com, youtu.be) via strict URL parsing without ReDoS
+    const videoId = extractYouTubeVideoId(parsed);
 
-    if (ytMatch && ytMatch[1]) {
-      const videoId = ytMatch[1];
+    if (videoId) {
       let title = 'YouTube Video';
       let channelTitle = 'YouTube';
 
@@ -506,13 +560,19 @@ export class WatchTogetherService {
       }
     }
 
-    // 5. Direct Video Streams (.mp4, .webm, .m3u8, .mpd)
+    // 5. Direct Video Streams (.mp4, .webm, .m3u8, .mpd, .mov, .m4v, .ogg, .ogv)
     const pathname = parsed.pathname.toLowerCase();
-    const isDirectExtension =
-      pathname.endsWith('.mp4') ||
-      pathname.endsWith('.webm') ||
-      pathname.endsWith('.m3u8') ||
-      pathname.endsWith('.mpd');
+    const DIRECT_VIDEO_EXTENSIONS = [
+      '.mp4',
+      '.webm',
+      '.m3u8',
+      '.mpd',
+      '.mov',
+      '.m4v',
+      '.ogg',
+      '.ogv',
+    ];
+    const isDirectExtension = DIRECT_VIDEO_EXTENSIONS.some((ext) => pathname.endsWith(ext));
 
     if (isDirectExtension) {
       const fileName = parsed.pathname.split('/').pop() || 'Video Stream';
@@ -521,34 +581,6 @@ export class WatchTogetherService {
         url: trimmed,
         title: decodeURIComponent(fileName),
       };
-    }
-
-    // 6. Safe Content-Type Verification for unknown paths
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 3000);
-      const headRes = await fetch(trimmed, {
-        method: 'HEAD',
-        signal: controller.signal,
-        headers: { 'User-Agent': 'SocialNetwork-WatchTogether/1.0' },
-      });
-      clearTimeout(timeout);
-
-      const contentType = headRes.headers.get('content-type') || '';
-      if (
-        contentType.includes('video/') ||
-        contentType.includes('application/x-mpegURL') ||
-        contentType.includes('application/vnd.apple.mpegurl')
-      ) {
-        const fileName = parsed.pathname.split('/').pop() || 'Direct Video';
-        return {
-          type: 'direct',
-          url: trimmed,
-          title: decodeURIComponent(fileName),
-        };
-      }
-    } catch {
-      // Rejection
     }
 
     throw new BadRequestException(
@@ -676,7 +708,7 @@ export class WatchTogetherService {
       .toLowerCase()
       .replace(/[^\p{L}\p{N}\s]/gu, ' ')
       .split(/\s+/)
-      .filter((w) => w.length > 2 && !stopWords.has(w))
+      .filter((w) => w.length > 2 && !stopWords.has(w) && isSafePropertyKey(w))
       .slice(0, 5);
   }
 
@@ -705,7 +737,13 @@ export class WatchTogetherService {
     }
 
     // 2. Identify category & extract keywords
-    const category = dto.categoryId || this.inferCategory(dto.title, dto.channelTitle);
+    const rawCategory =
+      typeof dto.categoryId === 'string' ? dto.categoryId.toLowerCase().trim() : '';
+    const category: AllowedCategory = (ALLOWED_CATEGORIES as readonly string[]).includes(
+      rawCategory,
+    )
+      ? (rawCategory as AllowedCategory)
+      : (this.inferCategory(dto.title, dto.channelTitle) as AllowedCategory);
     const keywords = this.extractKeywords(dto.title);
 
     // 3. Calculate WatchDurationFactor: scaled with duration, bonus for completion >= 80%
@@ -719,30 +757,68 @@ export class WatchTogetherService {
 
     // Apply 0.95 time-decay to all existing weights
     for (const k of Object.keys(profile.categories)) {
-      profile.categories[k] = Number((profile.categories[k] * 0.95).toFixed(3));
+      if ((ALLOWED_CATEGORIES as readonly string[]).includes(k)) {
+        profile.categories[k] = Number((profile.categories[k] * 0.95).toFixed(3));
+      }
     }
     for (const k of Object.keys(profile.channels)) {
-      profile.channels[k] = Number((profile.channels[k] * 0.95).toFixed(3));
+      if (isSafePropertyKey(k)) {
+        profile.channels[k] = Number((profile.channels[k] * 0.95).toFixed(3));
+      }
     }
     for (const k of Object.keys(profile.keywords)) {
-      profile.keywords[k] = Number((profile.keywords[k] * 0.95).toFixed(3));
+      if (isSafePropertyKey(k)) {
+        profile.keywords[k] = Number((profile.keywords[k] * 0.95).toFixed(3));
+      }
     }
 
-    // Accumulate new weights
-    profile.categories[category] = Number(
-      ((profile.categories[category] || 0) + watchDurationFactor).toFixed(3),
-    );
+    // Accumulate new weights safely preventing prototype pollution and property injection
+    if ((ALLOWED_CATEGORIES as readonly string[]).includes(category)) {
+      const currentCatWeight = Object.prototype.hasOwnProperty.call(profile.categories, category)
+        ? profile.categories[category]
+        : 0;
+      profile.categories[category] = Number(
+        ((currentCatWeight || 0) + watchDurationFactor).toFixed(3),
+      );
+    }
 
     if (dto.channelTitle) {
-      profile.channels[dto.channelTitle] = Number(
-        ((profile.channels[dto.channelTitle] || 0) + watchDurationFactor).toFixed(3),
-      );
+      const cleanChannel = dto.channelTitle.trim().slice(0, 80);
+      if (
+        cleanChannel.length > 0 &&
+        cleanChannel !== '__proto__' &&
+        cleanChannel !== 'constructor' &&
+        cleanChannel !== 'prototype' &&
+        isSafePropertyKey(cleanChannel)
+      ) {
+        const currentChannelWeight = Object.prototype.hasOwnProperty.call(
+          profile.channels,
+          cleanChannel,
+        )
+          ? profile.channels[cleanChannel]
+          : 0;
+        profile.channels[cleanChannel] = Number(
+          ((currentChannelWeight || 0) + watchDurationFactor).toFixed(3),
+        );
+      }
     }
 
     for (const kw of keywords) {
-      profile.keywords[kw] = Number(
-        ((profile.keywords[kw] || 0) + watchDurationFactor * 0.5).toFixed(3),
-      );
+      const cleanKw = typeof kw === 'string' ? kw.trim().slice(0, 50) : '';
+      if (
+        cleanKw.length > 0 &&
+        cleanKw !== '__proto__' &&
+        cleanKw !== 'constructor' &&
+        cleanKw !== 'prototype' &&
+        isSafePropertyKey(cleanKw)
+      ) {
+        const currentKwWeight = Object.prototype.hasOwnProperty.call(profile.keywords, cleanKw)
+          ? profile.keywords[cleanKw]
+          : 0;
+        profile.keywords[cleanKw] = Number(
+          ((currentKwWeight || 0) + watchDurationFactor * 0.5).toFixed(3),
+        );
+      }
     }
 
     profile.lastUpdated = Date.now();
@@ -800,11 +876,43 @@ export class WatchTogetherService {
       try {
         const parsed = JSON.parse(raw);
         if (parsed && typeof parsed === 'object') {
+          const safeCategories: Record<string, number> = {};
+          const safeChannels: Record<string, number> = {};
+          const safeKeywords: Record<string, number> = {};
+
+          if (parsed.categories && typeof parsed.categories === 'object') {
+            for (const [k, v] of Object.entries(parsed.categories)) {
+              if (
+                (ALLOWED_CATEGORIES as readonly string[]).includes(k) &&
+                typeof v === 'number' &&
+                Number.isFinite(v)
+              ) {
+                safeCategories[k] = v;
+              }
+            }
+          }
+
+          if (parsed.channels && typeof parsed.channels === 'object') {
+            for (const [k, v] of Object.entries(parsed.channels)) {
+              if (isSafePropertyKey(k) && typeof v === 'number' && Number.isFinite(v)) {
+                safeChannels[k] = v;
+              }
+            }
+          }
+
+          if (parsed.keywords && typeof parsed.keywords === 'object') {
+            for (const [k, v] of Object.entries(parsed.keywords)) {
+              if (isSafePropertyKey(k) && typeof v === 'number' && Number.isFinite(v)) {
+                safeKeywords[k] = v;
+              }
+            }
+          }
+
           return {
-            categories: parsed.categories || {},
-            channels: parsed.channels || {},
-            keywords: parsed.keywords || {},
-            lastUpdated: parsed.lastUpdated || Date.now(),
+            categories: safeCategories,
+            channels: safeChannels,
+            keywords: safeKeywords,
+            lastUpdated: typeof parsed.lastUpdated === 'number' ? parsed.lastUpdated : Date.now(),
           };
         }
       } catch {
@@ -872,11 +980,11 @@ export class WatchTogetherService {
    * - Hard Filter: Excludes videos watched within the last 30 days
    * - 70 / 30 Exploitation / Exploration balance
    * - Rails breakdown:
-   *   1. «Рекомендовано вам» (70/30 ranked mix)
-   *   2. «Продолжить просмотр» / «Недавнее в звонках» (watch history with progress)
-   *   3. «Популярное в категории: [Топ-категория]»
-   *   4. «Новое от каналов, которые вы смотрели»
-   *   5. «В тренде прямо сейчас»
+   *   1. "Recommended For You" (70/30 ranked mix)
+   *   2. "Continue Watching" / "Recent in calls" (watch history with progress)
+   *   3. "Popular in category: [Top category]"
+   *   4. "New from channels you watched"
+   *   5. "Trending Right Now"
    */
   async getRecommendedRails(userId: string): Promise<WatchTogetherRailsResponse> {
     const [profile, history, trending] = await Promise.all([
@@ -940,7 +1048,7 @@ export class WatchTogetherService {
       }
     }
 
-    // 3. Interleave for Rail 1 ("Для вас"): 70% Exploitation + 30% Exploration
+    // 3. Interleave for Rail 1 ("For You"): 70% Exploitation + 30% Exploration
     const forYouItems: WatchTogetherVideoItem[] = [];
     const forYouSeen = new Set<string>();
     let expIdx = 0;
@@ -975,10 +1083,10 @@ export class WatchTogetherService {
     // Rail 1: Recommended For You
     rails.push({
       id: 'for-you',
-      title: 'Рекомендовано вам',
+      title: 'Recommended For You',
       subtitle: hasHistory
-        ? '70% любимое + 30% новое на основе ваших просмотров'
-        : 'Популярное и интересное для знакомства с платформой',
+        ? '70% favorites + 30% new based on your watch history'
+        : 'Popular and engaging videos to get you started',
       icon: 'Sparkles',
       items: finalForYou,
     });
@@ -987,8 +1095,8 @@ export class WatchTogetherService {
     if (history.length > 0) {
       rails.push({
         id: 'continue',
-        title: 'Продолжить просмотр',
-        subtitle: 'Недавно просмотренные видео с прогрессом',
+        title: 'Continue Watching',
+        subtitle: 'Recently watched videos with progress',
         icon: 'Clock',
         items: history.slice(0, 12).map((h) => ({
           ...h,
@@ -999,19 +1107,19 @@ export class WatchTogetherService {
 
     // Rail 3: Top Category Deep Dive
     const categoryLabels: Record<string, string> = {
-      gaming: 'Игры и киберспорт',
-      music: 'Музыка и треки',
-      tech: 'Технологии и наука',
-      cinema: 'Кино и трейлеры',
-      relax: 'Релакс и lofi',
-      entertainment: 'Развлечения',
+      gaming: 'Gaming & Esports',
+      music: 'Music & Tracks',
+      tech: 'Tech & Science',
+      cinema: 'Movies & Trailers',
+      relax: 'Relax & Lo-Fi',
+      entertainment: 'Entertainment',
     };
 
     if (topCategoryKey && cleanExploitation.length > 0) {
       rails.push({
         id: `category-${topCategoryKey}`,
-        title: `Популярное: ${categoryLabels[topCategoryKey] || topCategoryKey}`,
-        subtitle: 'Рекомендовано на основе ваших любимых жанров',
+        title: `Popular in: ${categoryLabels[topCategoryKey] || topCategoryKey}`,
+        subtitle: 'Recommended based on your favorite genres',
         category: topCategoryKey,
         icon:
           topCategoryKey === 'gaming'
@@ -1031,8 +1139,8 @@ export class WatchTogetherService {
       if (channelItems.length > 0) {
         rails.push({
           id: 'channels',
-          title: `Новое от: ${topChannel}`,
-          subtitle: 'Свежие видео авторов, которых вы выбирали',
+          title: `New from: ${topChannel}`,
+          subtitle: 'Fresh videos from creators you watch',
           icon: 'Tv',
           items: channelItems.slice(0, 14),
         });
@@ -1043,8 +1151,8 @@ export class WatchTogetherService {
     const filteredTrending = trending.filter((v) => !historyVideoIds.has(v.id));
     rails.push({
       id: 'trending',
-      title: 'В тренде прямо сейчас',
-      subtitle: 'Самые популярные видео в сообществе',
+      title: 'Trending Right Now',
+      subtitle: 'Most popular videos in the community',
       icon: 'Flame',
       items: filteredTrending.length > 0 ? filteredTrending.slice(0, 16) : trending.slice(0, 16),
     });
@@ -1057,16 +1165,16 @@ export class WatchTogetherService {
       ]);
       rails.push({
         id: 'category-music',
-        title: 'Музыка и клипы',
-        subtitle: 'Хиты, клипы и живые выступления',
+        title: 'Music & Music Videos',
+        subtitle: 'Hits, music videos, and live performances',
         icon: 'Music2',
         category: 'music',
         items: musicVids.slice(0, 14),
       });
       rails.push({
         id: 'category-gaming',
-        title: 'Игры и стримы',
-        subtitle: 'Геймплеи, анонсы и популярные игры',
+        title: 'Gaming & Streams',
+        subtitle: 'Gameplay, announcements, and top games',
         icon: 'Gamepad2',
         category: 'gaming',
         items: gamingVids.slice(0, 14),

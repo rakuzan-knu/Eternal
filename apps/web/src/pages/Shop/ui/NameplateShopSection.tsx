@@ -39,16 +39,16 @@ export function NameplateShopSection() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Nameplates</h1>
           <p className="mt-2 text-sm opacity-70">
-            Фон вашей строки в чатах и списках пользователей.
+            Background for your name row in chats and user lists.
           </p>
-          <p className="mt-2 text-sm opacity-60">$1.99 за украшение · Продажи пока закрыты</p>
+          <p className="mt-2 text-sm opacity-60">$1.99 per item · Sales closed for now</p>
         </div>
         <label className="flex items-center gap-2 rounded-xl border border-white/15 px-3 py-2">
           <Search size={17} aria-hidden="true" />
           <input
             ref={input}
-            aria-label="Поиск Nameplates"
-            placeholder="Найти Nameplate"
+            aria-label="Search Nameplates"
+            placeholder="Find Nameplate"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="bg-transparent outline-none w-40 text-sm"
@@ -56,7 +56,7 @@ export function NameplateShopSection() {
           {search && (
             <button
               type="button"
-              aria-label="Очистить поиск Nameplates"
+              aria-label="Clear Nameplate search"
               className={focus + ' rounded p-1 hover:bg-white/10'}
               onClick={() => {
                 setSearch('');
@@ -68,32 +68,32 @@ export function NameplateShopSection() {
           )}
         </label>
       </div>
-      {catalog.isPending && <p role="status">Загружаем Nameplates…</p>}
+      {catalog.isPending && <p role="status">Loading Nameplates…</p>}
       {catalog.isError && (
         <div role="alert">
-          <p>Не удалось загрузить Nameplates.</p>
+          <p>Failed to load Nameplates.</p>
           <button className={focus + ' mt-3 underline'} onClick={() => void catalog.refetch()}>
-            Повторить
+            Retry
           </button>
         </div>
       )}
       {inventory.isError && (
         <div role="alert" className="mb-4 text-sm">
-          <p>Не удалось проверить вашу коллекцию.</p>
+          <p>Failed to verify your collection.</p>
           <button className={focus + ' underline'} onClick={() => void inventory.refetch()}>
-            Повторить загрузку коллекции
+            Retry loading collection
           </button>
         </div>
       )}
       {!catalog.isPending && !catalog.isError && !items.length && (
-        <p role="status">Nameplates не найдены.</p>
+        <p role="status">No Nameplates found.</p>
       )}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
         {items.map((item) => (
           <button
             key={item.id}
             type="button"
-            aria-label={`Открыть Nameplate ${item.name}`}
+            aria-label={`Open ${item.name} Nameplate`}
             onClick={(event) => {
               opener.current = event.currentTarget;
               select(item);
@@ -113,9 +113,9 @@ export function NameplateShopSection() {
             <div className="flex items-center justify-between gap-2 mt-5">
               <h2 className="font-bold text-lg">{item.name}</h2>
               {inventory.data?.activeNameplateId === item.id ? (
-                <Check size={18} aria-label="Применено" />
+                <Check size={18} aria-label="Equipped" />
               ) : owns(item.id) ? (
-                <span className="text-xs opacity-60">В коллекции</span>
+                <span className="text-xs opacity-60">Owned</span>
               ) : null}
             </div>
             <p className="font-semibold mt-5">{price(item.priceCents)}</p>
@@ -190,7 +190,7 @@ function NameplateDialog({
           <button
             type="button"
             autoFocus
-            aria-label="Закрыть Nameplate"
+            aria-label="Close Nameplate"
             onClick={onClose}
             className={focus + ' rounded-full p-2 hover:bg-white/10'}
           >
@@ -203,10 +203,6 @@ function NameplateDialog({
           decoration={user?.activeDecoration}
           name={user?.displayName ?? user?.username}
         />
-        <p className="text-sm leading-relaxed opacity-70 mt-5">
-          Появляется за вашим аватаром и именем в списках чатов, друзей, рекомендаций и участников
-          группы.
-        </p>
         <p className="mt-5 text-lg font-bold">{price(item.priceCents)}</p>
         <button
           type="button"
@@ -219,18 +215,18 @@ function NameplateDialog({
           }
         >
           {pending
-            ? 'Сохраняем…'
+            ? 'Saving…'
             : owned
               ? active
-                ? 'Снять Nameplate'
-                : 'Применить Nameplate'
-              : 'Продажи пока закрыты'}
+                ? 'Unequip Nameplate'
+                : 'Equip Nameplate'
+              : 'Sales closed for now'}
         </button>
         <div className="min-h-6 mt-3 text-sm">
           {error ? (
-            <p role="alert">Не удалось сохранить. Повторите попытку.</p>
+            <p role="alert">Failed to save. Please try again.</p>
           ) : saved ? (
-            <p role="status">{active ? 'Nameplate применён.' : 'Nameplate снят.'}</p>
+            <p role="status">{active ? 'Nameplate equipped.' : 'Nameplate unequipped.'}</p>
           ) : null}
         </div>
       </div>

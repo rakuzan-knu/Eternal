@@ -695,7 +695,7 @@ export const renderStyledName = (
   }
 
   // 4. NEON EFFECT
-  // Requirement 6: у "Neon" не должно быть такой тени, оно просто обводит все буквы легкой линией и всё.
+  // Requirement 6: "Neon" should not have a heavy shadow; it just strokes letters with a clean outline.
   if (effect === 'neon') {
     return (
       <span
@@ -719,7 +719,7 @@ export const renderStyledName = (
   }
 
   // 5. TOON EFFECT
-  // Requirement 7: "Toon" сейчас полностью чёрный, а должен выбранным цветом обычный текст - белый, а выбранным цветом снизу-вверх переливаеться по всему имени плавно.
+  // Requirement 7: "Toon" renders white/black text with the selected color smoothly shimmering from bottom to top.
   if (effect === 'cartoon') {
     const toonTopColor = isLight ? '#000000' : '#ffffff';
     const toonGrad = `linear-gradient(180deg, ${toonTopColor} 0%, ${toonTopColor} 30%, ${activeColor} 65%, ${toonTopColor} 100%)`;
@@ -1470,9 +1470,7 @@ export const DiscordHsvColorPicker: React.FC<DiscordHsvColorPickerProps> = ({
         // User cancelled eyedropper
       }
     } else {
-      alert(
-        'Инструмент "Пипетка" поддерживается в Google Chrome, Microsoft Edge, Opera и Яндекс.Браузере.',
-      );
+      alert('Eyedropper tool is supported in Google Chrome, Microsoft Edge, and Opera.');
     }
   };
 
@@ -1498,14 +1496,14 @@ export const DiscordHsvColorPicker: React.FC<DiscordHsvColorPickerProps> = ({
           <div
             className="w-4 h-4 rounded-md border border-white/20 shadow-xs"
             style={{ backgroundColor: currentHex }}
-            title={`Текущий цвет: ${currentHex}`}
+            title={`Current color: ${currentHex}`}
           />
           {onClose && (
             <button
               type="button"
               onClick={onClose}
               className="text-gray-400 hover:text-white p-0.5 rounded transition cursor-pointer"
-              title="Закрыть выбор цвета"
+              title="Close color picker"
             >
               <X size={14} />
             </button>
@@ -1561,7 +1559,7 @@ export const DiscordHsvColorPicker: React.FC<DiscordHsvColorPickerProps> = ({
         <div
           className="w-5 h-5 rounded-md border border-white/20 shadow-xs shrink-0"
           style={{ backgroundColor: currentHex }}
-          title={`Текущий цвет: ${currentHex}`}
+          title={`Current color: ${currentHex}`}
         />
         <span className="text-gray-400 font-bold text-sm select-none">#</span>
         <input
@@ -1615,7 +1613,7 @@ export const DiscordHsvColorPicker: React.FC<DiscordHsvColorPickerProps> = ({
           type="button"
           onClick={handleEyedropper}
           className="text-gray-400 hover:text-white transition cursor-pointer p-0.5 shrink-0"
-          title="Пипетка (выбрать цвет с экрана)"
+          title="Eyedropper (pick color from screen)"
         >
           <Pipette size={16} />
         </button>
@@ -2913,7 +2911,7 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
                 backgroundRepeat: 'no-repeat',
                 backgroundSize: '100% 100.5%',
               }}
-              title="Нажмите на верхнюю часть для смены верхнего цвета, на нижнюю — для нижнего"
+              title="Click the upper section to change top color, lower section for bottom color"
             >
               {/* Top Color Button: Centered in the top 50% */}
               <button
@@ -2929,7 +2927,7 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
                     : 'border-white shadow-md'
                 }`}
                 style={{ backgroundColor: themePrimary }}
-                title="Primary Color (Верхние 50%)"
+                title="Primary Color (Top 50%)"
               />
 
               {/* Bottom Color Button: Centered in the bottom 50% */}
@@ -2946,7 +2944,7 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
                     : 'border-white/90 shadow-md'
                 }`}
                 style={{ backgroundColor: themeAccent }}
-                title="Accent Color (Нижние 50%)"
+                title="Accent Color (Bottom 50%)"
               />
             </div>
 
@@ -4584,7 +4582,7 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
                     {/* B. GUMMY COLOR PICKER*/}
                     {draftNameEffect === 'gummy' && (
                       <div className="flex flex-col gap-2.5">
-                        {/* Pastel Gradient Slider Track - Only shown when user clicks "Выбрать цвет самому" */}
+                        {/* Pastel Gradient Slider Track - Only shown when user clicks "Custom color" */}
                         <AnimatePresence>
                           {showGummyCustomSlider && (
                             <motion.div
@@ -4637,7 +4635,7 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
                                 ? 'bg-purple-600 border-white ring-2 ring-purple-400 text-white shadow-md'
                                 : 'bg-black/5 dark:bg-[#181922] hover:bg-black/10 dark:hover:bg-[#20222e] border-black/10 dark:border-white/10 text-gray-400 hover:text-white'
                             }`}
-                            title="Выбрать цвет самому"
+                            title="Custom color"
                           >
                             <Pencil size={14} />
                           </button>
@@ -4719,7 +4717,7 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
                                 ? 'bg-purple-600 border-white ring-2 ring-purple-400 text-white shadow-md'
                                 : 'bg-black/5 dark:bg-[#181922] hover:bg-black/10 dark:hover:bg-[#20222e] border-black/10 dark:border-white/10 text-gray-400 hover:text-white'
                             }`}
-                            title="Свой цвет градиента"
+                            title="Custom gradient color"
                           >
                             <Pencil size={12} />
                             <span>Custom</span>
@@ -4740,7 +4738,7 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
                               ? 'bg-purple-600 border-white ring-2 ring-white/50 text-white'
                               : 'bg-black/5 dark:bg-[#181922] hover:bg-black/10 dark:hover:bg-[#20222e] border-black/10 dark:border-white/10 text-gray-400 hover:text-white'
                           }`}
-                          title="Выбрать цвет самому"
+                          title="Custom color"
                         >
                           <Pencil size={14} />
                         </button>
@@ -4790,7 +4788,7 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
                               ? 'bg-purple-600 border-white ring-2 ring-white/50 text-white'
                               : 'bg-black/5 dark:bg-[#181922] hover:bg-black/10 dark:hover:bg-[#20222e] border-black/10 dark:border-white/10 text-gray-400 hover:text-white'
                           }`}
-                          title="Выбрать цвет самому"
+                          title="Custom color"
                         >
                           <Pencil size={14} />
                         </button>
@@ -4839,7 +4837,7 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
                               ? 'bg-purple-600 border-white ring-2 ring-white/50 text-white'
                               : 'bg-black/5 dark:bg-[#181922] hover:bg-black/10 dark:hover:bg-[#20222e] border-black/10 dark:border-white/10 text-gray-400 hover:text-white'
                           }`}
-                          title="Выбрать цвет самому"
+                          title="Custom color"
                         >
                           <Pencil size={14} />
                         </button>
@@ -4891,7 +4889,7 @@ export const ProfileCustomizeSettingsSection: React.FC = () => {
                               ? 'bg-purple-600 border-white ring-2 ring-white/50 text-white'
                               : 'bg-black/5 dark:bg-[#181922] hover:bg-black/10 dark:hover:bg-[#20222e] border-black/10 dark:border-white/10 text-gray-400 hover:text-white'
                           }`}
-                          title="Выбрать цвет самому"
+                          title="Custom color"
                         >
                           <Pencil size={14} />
                         </button>

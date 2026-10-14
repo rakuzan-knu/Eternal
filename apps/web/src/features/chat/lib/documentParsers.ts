@@ -1026,7 +1026,7 @@ export async function parsePptx(buffer: ArrayBuffer): Promise<ParsedPresentation
         const target = rels[r].getAttribute('Target');
         if (id && target) {
           const imgPath = target.startsWith('..')
-            ? target.replace('../', 'ppt/')
+            ? target.replace(/\.\.\//g, 'ppt/')
             : target.startsWith('ppt/')
               ? target
               : `ppt/media/${target.split('/').pop()}`;
@@ -1133,10 +1133,10 @@ export async function parsePptx(buffer: ArrayBuffer): Promise<ParsedPresentation
       layoutType = 'table';
       if (!tableData) {
         tableData = {
-          headers: paragraphs.length > 0 ? paragraphs : ['Колонка 1', 'Колонка 2', 'Колонка 3'],
+          headers: paragraphs.length > 0 ? paragraphs : ['Column 1', 'Column 2', 'Column 3'],
           rows: [
-            ['1', 'Параметр A', '100'],
-            ['2', 'Параметр B', '200'],
+            ['1', 'Parameter A', '100'],
+            ['2', 'Parameter B', '200'],
           ],
         };
         paragraphs.length = 0;
@@ -1144,12 +1144,12 @@ export async function parsePptx(buffer: ArrayBuffer): Promise<ParsedPresentation
     } else if (isChart) {
       layoutType = 'chart';
       chartData = {
-        title: title || 'Графік',
+        title: title || 'Chart',
         type: 'bar',
         categories: ['Q1', 'Q2', 'Q3', 'Q4'],
         series: [
-          { name: 'Показник 1', values: [45, 78, 62, 90] },
-          { name: 'Показник 2', values: [28, 55, 43, 71] },
+          { name: 'Metric 1', values: [45, 78, 62, 90] },
+          { name: 'Metric 2', values: [28, 55, 43, 71] },
         ],
       };
       paragraphs.length = 0;
@@ -1517,8 +1517,8 @@ export async function parseBinaryPpt(buffer: ArrayBuffer): Promise<ParsedPresent
 
   if (extractedSlides.length === 0) {
     extractedSlides.push({
-      title: 'Презентація PowerPoint',
-      paragraphs: ['Документ завантажено'],
+      title: 'PowerPoint Presentation',
+      paragraphs: ['Document loaded'],
       images: contentImages.length > 0 ? [contentImages[0].url] : [],
     });
   }
@@ -1562,8 +1562,8 @@ export async function parseBinaryPpt(buffer: ArrayBuffer): Promise<ParsedPresent
         type: 'bar',
         categories: ['Q1', 'Q2', 'Q3', 'Q4'],
         series: [
-          { name: 'Показник A', values: [45, 78, 62, 90] },
-          { name: 'Показник B', values: [28, 55, 43, 71] },
+          { name: 'Metric A', values: [45, 78, 62, 90] },
+          { name: 'Metric B', values: [28, 55, 43, 71] },
         ],
       };
       finalParagraphs = [];
@@ -1912,7 +1912,7 @@ export async function parseDocument(
         if (data && data.success && Array.isArray(data.slides) && data.slides.length > 0) {
           const slides: PresentationSlide[] = data.slides.map((s: any) => ({
             slideNumber: s.slideNumber,
-            title: s.title || `Слайд ${s.slideNumber}`,
+            title: s.title || `Slide ${s.slideNumber}`,
             paragraphs: s.paragraphs || [],
             images: [],
             slideImageUrl: s.imageUrl,

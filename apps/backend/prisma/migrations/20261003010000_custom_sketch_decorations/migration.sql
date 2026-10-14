@@ -12,11 +12,11 @@ UPDATE avatar_decorations SET price_cents = 199, is_available = FALSE,
   asset_url = '/Profile-decorations/Avatar-decorations/' || slug || '.json'
 WHERE slug IN ('astral-sigil', 'obsidian-crown', 'ronin-orbit');
 UPDATE avatar_decorations SET render_scale = 1.58,
-  description = 'Светлая резная печать: четыре острия плавно входят к центру и возвращаются обратно.'
+  description = ''
 WHERE slug = 'astral-sigil';
 UPDATE avatar_decorations SET render_scale = 1.36,
-  description = 'Чёрный готический орнамент вращается вокруг аватара. Четыре креста остаются неподвижными.'
+  description = ''
 WHERE slug = 'obsidian-crown';
 UPDATE avatar_decorations SET render_scale = 1.2,
-  description = 'Кольцо исходных каллиграфических символов вращается на 360°. На светлой теме символы становятся чёрными.'
+  description = ''
 WHERE slug = 'ronin-orbit';

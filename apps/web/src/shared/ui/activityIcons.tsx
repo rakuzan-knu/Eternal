@@ -74,7 +74,11 @@ export function getActivityGameIcon(activity: any, size = 14): React.ReactNode {
   if (title.includes('roblox')) {
     return <RobloxBrandIcon size={size} className="shrink-0" />;
   }
-  if (title.includes('battle.net') || title.includes('battlenet')) {
+  const normalizedGameTitle = title.replace(/\./g, ' ');
+  if (
+    title.includes('battlenet') ||
+    (normalizedGameTitle.includes('battle') && normalizedGameTitle.includes('net'))
+  ) {
     return <BattleNetBrandIcon size={size} className="shrink-0" />;
   }
   if (activity.isSteam || title.includes('steam')) {

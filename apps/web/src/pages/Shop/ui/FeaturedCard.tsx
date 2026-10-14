@@ -166,7 +166,7 @@ export function FeaturedCard({
           onClick();
         }
       }}
-      aria-label={'Открыть ' + item.name}
+      aria-label={'Open ' + item.name}
       className="group relative flex flex-col rounded-2xl glass-card border border-black/10 dark:border-white/10 hover:border-black/20 dark:hover:border-white/20 text-gray-900 dark:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#8b5cf6] transition-all duration-300 overflow-hidden text-left cursor-pointer select-none hover:shadow-2xl hover:-translate-y-0.5"
     >
       {/* 1. Top-Right "Add to Wishlist" Floating Button (Only visible on hover, HIDDEN if already owned) */}

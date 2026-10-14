@@ -311,8 +311,7 @@ export async function exportPresentationToPptx(
 
   const cleanText = (str: string) =>
     escapeXml(
-      (str || '')
-        .replace(/<[^>]+>/g, '')
+      stripHtmlTags(str || '')
         .replace(/&nbsp;/g, ' ')
         .trim(),
     );
@@ -558,6 +557,25 @@ function colIndexToLetter(idx: number): string {
     temp = Math.floor(temp / 26) - 1;
   }
   return letter;
+}
+
+function stripHtmlTags(input: string): string {
+  if (!input) return '';
+  if (typeof DOMParser !== 'undefined') {
+    try {
+      const doc = new DOMParser().parseFromString(`<div>${input}</div>`, 'text/html');
+      return doc.body.textContent || '';
+    } catch {
+      // Fallback
+    }
+  }
+  let prev = input;
+  let result = prev.replace(/<[^>]*>/g, '');
+  while (result !== prev) {
+    prev = result;
+    result = prev.replace(/<[^>]*>/g, '');
+  }
+  return result;
 }
 
 function escapeXml(str: string): string {

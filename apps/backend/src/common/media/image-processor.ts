@@ -156,8 +156,34 @@ export async function uploadToStorageWithFallback(
         ? path.resolve(process.cwd(), configuredDir)
         : path.resolve(process.cwd(), 'uploads');
       const targetPath = path.resolve(uploadDir, cleanKey);
+      const relativeToUploadDir = path.relative(uploadDir, targetPath);
+      if (relativeToUploadDir.startsWith('..') || path.isAbsolute(relativeToUploadDir)) {
+        throw new Error(`Invalid storage key path: ${cleanKey}`);
+      }
+      const SAFE_MEDIA_EXTENSIONS = new Set([
+        '.webp',
+        '.png',
+        '.jpg',
+        '.jpeg',
+        '.gif',
+        '.svg',
+        '.avif',
+        '.mp4',
+        '.webm',
+        '.ogg',
+        '.wav',
+        '.mp3',
+      ]);
+      const ext = path.extname(targetPath).toLowerCase();
+      if (!SAFE_MEDIA_EXTENSIONS.has(ext)) {
+        throw new Error(`Forbidden file extension for local storage: ${ext}`);
+      }
+      const MAX_LOCAL_WRITE_BYTES = 50 * 1024 * 1024; // 50MB
+      if (buffer.byteLength > MAX_LOCAL_WRITE_BYTES) {
+        throw new Error(`File buffer size exceeds maximum permitted quota: ${buffer.byteLength}`);
+      }
       await fs.mkdir(path.dirname(targetPath), { recursive: true });
-      await fs.writeFile(targetPath, buffer);
+      await fs.writeFile(targetPath, buffer, { mode: 0o644, flag: 'w' });
       const port = process.env.PORT || 3000;
       const configuredUrl = process.env.LOCAL_STORAGE_PUBLIC_URL;
       const baseUrl = (configuredUrl || `http://localhost:${port}`).replace(/\/+$/, '');

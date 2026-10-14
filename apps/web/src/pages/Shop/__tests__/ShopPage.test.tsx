@@ -31,7 +31,7 @@ vi.mock('@/entities/profile/model/useCurrentUser', () => ({
   useCurrentUser: () => ({ data: { avatar: '/avatar.png' } }),
 }));
 vi.mock('@/shared/ui/AvatarDecoration', () => ({
-  AvatarWithDecoration: () => <img alt="Аватар" src="/avatar.png" />,
+  AvatarWithDecoration: () => <img alt="Avatar" src="/avatar.png" />,
 }));
 vi.mock('../model/useDecorations', () => ({
   useDecorations: () => ({
@@ -72,7 +72,7 @@ describe('Real decoration catalog', () => {
   });
   it('shows three paid server items and removes the free showcase and mock catalog', () => {
     renderWithProviders(<ShopPage />);
-    expect(screen.getAllByRole('button', { name: /^Открыть/ })).toHaveLength(3);
+    expect(screen.getAllByRole('button', { name: /^Open/ })).toHaveLength(3);
     expect(screen.getAllByText('$1.99')).toHaveLength(3);
     expect(screen.queryByText('Cyber Neon Pulse')).toBeNull();
     expect(screen.queryByText('Avatar Atelier')).toBeNull();
@@ -82,34 +82,34 @@ describe('Real decoration catalog', () => {
   it('never substitutes mock items when the catalog fails', () => {
     state.error = true;
     renderWithProviders(<ShopPage />);
-    expect(screen.getByRole('alert')).toHaveTextContent('Не удалось загрузить');
-    expect(screen.queryByRole('button', { name: /^Открыть/ })).toBeNull();
+    expect(screen.getByRole('alert')).toHaveTextContent('Failed to load');
+    expect(screen.queryByRole('button', { name: /^Open/ })).toBeNull();
   });
   it('filters only actual frames', async () => {
     renderWithProviders(<ShopPage />);
-    await userEvent.type(screen.getByRole('textbox', { name: 'Поиск рамок' }), 'Ronin');
-    expect(screen.getAllByRole('button', { name: /^Открыть/ })).toHaveLength(1);
-    expect(screen.getByRole('button', { name: 'Открыть Ronin Orbit' })).toBeInTheDocument();
+    await userEvent.type(screen.getByRole('textbox', { name: 'Search the Shop' }), 'Ronin');
+    expect(screen.getAllByRole('button', { name: /^Open/ })).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Open Ronin Orbit' })).toBeInTheDocument();
   });
   it('disables receipt and purchase for an unowned frame', async () => {
     renderWithProviders(<ShopPage />);
-    await userEvent.click(screen.getByRole('button', { name: 'Открыть Astral Sigil' }));
-    expect(screen.getByRole('button', { name: 'Продажи пока закрыты' })).toBeDisabled();
+    await userEvent.click(screen.getByRole('button', { name: 'Open Astral Sigil' }));
+    expect(screen.getByRole('button', { name: 'Sales closed for now' })).toBeDisabled();
     expect(state.mutate).not.toHaveBeenCalled();
   });
   it('saves an owned selection through the server equip mutation', async () => {
     state.owned = true;
     renderWithProviders(<ShopPage />);
-    await userEvent.click(screen.getByRole('button', { name: 'Открыть Astral Sigil' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Применить рамку' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Open Astral Sigil' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Equip frame' }));
     expect(state.mutate).toHaveBeenCalledWith('astral-sigil');
   });
   it('removes the equipped frame without affecting inventory', async () => {
     state.owned = true;
     state.active = true;
     renderWithProviders(<ShopPage />);
-    await userEvent.click(screen.getByRole('button', { name: 'Открыть Astral Sigil' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Снять рамку' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Open Astral Sigil' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Unequip frame' }));
     expect(state.mutate).toHaveBeenCalledWith(null);
   });
 });

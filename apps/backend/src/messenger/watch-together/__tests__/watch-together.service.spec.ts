@@ -139,11 +139,32 @@ describe('WatchTogetherService', () => {
       expect(res.title).toBe('BigBuckBunny.mp4');
     });
 
-    it('resolves Twitch URL correctly', async () => {
-      const res = await service.resolveUrl('https://www.twitch.tv/shroud');
-      expect(res.type).toBe('twitch');
-      expect(res.id).toBe('shroud');
-      expect(res.channelTitle).toBe('shroud');
+    it('resolves alternative YouTube URL formats (youtu.be, shorts, embed)', async () => {
+      const resShort = await service.resolveUrl('https://youtu.be/jfKfPfyJRdk');
+      expect(resShort.type).toBe('youtube');
+      expect(resShort.id).toBe('jfKfPfyJRdk');
+
+      const resShorts = await service.resolveUrl('https://www.youtube.com/shorts/jfKfPfyJRdk');
+      expect(resShorts.type).toBe('youtube');
+      expect(resShorts.id).toBe('jfKfPfyJRdk');
+
+      const resEmbed = await service.resolveUrl('https://www.youtube.com/embed/jfKfPfyJRdk');
+      expect(resEmbed.type).toBe('youtube');
+      expect(resEmbed.id).toBe('jfKfPfyJRdk');
+    });
+
+    it('resists ReDoS attacks on repetitive YouTube path inputs', async () => {
+      const maliciousUrl = 'https://www.youtube.com/' + 'a/'.repeat(50) + 'test';
+      await expect(service.resolveUrl(maliciousUrl)).rejects.toThrow(BadRequestException);
+    });
+
+    it('rejects arbitrary URLs without direct video extensions (SSRF prevention)', async () => {
+      await expect(service.resolveUrl('https://example.com/api/metadata')).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.resolveUrl('https://attacker.com/internal-probe')).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -197,6 +218,31 @@ describe('WatchTogetherService', () => {
       });
 
       expect(res.recorded).toBe(true);
+    });
+
+    it('prevents remote property injection and prototype pollution in interest profile', async () => {
+      const res = await service.recordWatchEvent('user_1', {
+        videoId: 'exploit_v',
+        title: '__proto__ constructor prototype exploit',
+        channelTitle: '__proto__',
+        categoryId: '__proto__',
+        durationSec: 100,
+        watchedSec: 50,
+      });
+
+      expect(res.recorded).toBe(true);
+      // Category falls back to inferred safe category
+      expect(res.category).not.toBe('__proto__');
+      expect((Object.prototype as any).polluted).toBeUndefined();
+
+      // Check the stored profile in redis
+      const savedProfileCall = (mockRedisService.set.mock.calls as any[]).find((call: any) =>
+        call[0].includes('profile:user_1'),
+      );
+      expect(savedProfileCall).toBeDefined();
+      const profile = JSON.parse(savedProfileCall[1]);
+      expect(Object.prototype.hasOwnProperty.call(profile.categories, '__proto__')).toBe(false);
+      expect(Object.prototype.hasOwnProperty.call(profile.channels, '__proto__')).toBe(false);
     });
   });
 
