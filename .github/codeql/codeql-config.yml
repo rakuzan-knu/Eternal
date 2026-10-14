@@ -11,6 +11,8 @@ paths-ignore:
   - '**/dist/**'
   - '**/node_modules/**'
   - 'backend/prisma/migrations/**'
+  - '**/mockServiceWorker.js'
+  - 'apps/web/public/mockServiceWorker.js'
 
 query-filters:
   - exclude:

@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.1](https://github.com/rakuzan-knu/Eternal/compare/v1.7.0...v1.7.1) (2026-10-13)
+
+### 🐛 Bug Fixes
+
+* **security:** resolve Dependabot vulnerabilities and CodeQL/Trivy alerts ([#120](https://github.com/rakuzan-knu/Eternal/issues/120)) ([4f2331f](https://github.com/rakuzan-knu/Eternal/commit/4f2331f0b6e889d50d5fea6a178b9aba2bcdc101)), closes [#184](https://github.com/rakuzan-knu/Eternal/issues/184) [#186](https://github.com/rakuzan-knu/Eternal/issues/186) [#178](https://github.com/rakuzan-knu/Eternal/issues/178) [#183](https://github.com/rakuzan-knu/Eternal/issues/183)
+
+### 🔧 Tooling & Dependencies
+
+* **deps:** bump the dev-dependencies group across 1 directory with 12 updates ([#113](https://github.com/rakuzan-knu/Eternal/issues/113)) ([53d9b72](https://github.com/rakuzan-knu/Eternal/commit/53d9b726e378a68d0c2194c723fb2003244256ed))
+* **infra:** bump the github-actions group across 2 directories with 9 updates ([#111](https://github.com/rakuzan-knu/Eternal/issues/111)) ([adc5681](https://github.com/rakuzan-knu/Eternal/commit/adc56817195a62f267f60fe4814ef24318ec6d3a))
+* **infra:** ignore mobile/expo native packages and align commit scopes in dependabot config ([#117](https://github.com/rakuzan-knu/Eternal/issues/117)) ([6e2a33e](https://github.com/rakuzan-knu/Eternal/commit/6e2a33e03689a274f1a38a9f0dc0e7d7f6d7d326))
+
 ## [1.7.0](https://github.com/rakuzan-knu/Eternal/compare/v1.6.0...v1.7.0) (2026-10-13)
 
 ### ✨ Features
