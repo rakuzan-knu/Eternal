@@ -9,6 +9,7 @@ export function getApiService(url: string): ApiService {
       .replace(/^\/+/, '')
       .replace(/^(?:api\/)?v1(?:\/|$)/, '')
       .replace(/^api(?:\/|$)/, '');
+  if (/^\/integrations\/github\/callback(\/|$)/.test(path)) return 'core';
   if (/^\/(conversations|calls|crypto\/prekeys|e2ee|messenger)(\/|$)/.test(path))
     return 'messenger';
   if (/^\/reels(\/|$)/.test(path)) return 'reels';

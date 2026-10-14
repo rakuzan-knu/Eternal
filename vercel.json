@@ -6,6 +6,22 @@
   "framework": "vite",
   "rewrites": [
     {
+      "source": "/integrations/github/callback/:path*",
+      "destination": "https://social-network-backend-4h47.onrender.com/v1/integrations/github/callback/:path*"
+    },
+    {
+      "source": "/api/integrations/github/callback/:path*",
+      "destination": "https://social-network-backend-4h47.onrender.com/v1/integrations/github/callback/:path*"
+    },
+    {
+      "source": "/v1/integrations/github/callback/:path*",
+      "destination": "https://social-network-backend-4h47.onrender.com/v1/integrations/github/callback/:path*"
+    },
+    {
+      "source": "/api/v1/integrations/github/callback/:path*",
+      "destination": "https://social-network-backend-4h47.onrender.com/v1/integrations/github/callback/:path*"
+    },
+    {
       "source": "/api/v1/conversations/:path*",
       "destination": "https://eternal-messenger.onrender.com/v1/conversations/:path*"
     },

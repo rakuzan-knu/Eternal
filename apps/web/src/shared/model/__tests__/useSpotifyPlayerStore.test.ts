@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useSpotifyPlayerStore, SpotifyTrack } from '../useSpotifyPlayerStore';
+import { useAuthStore } from '../useAuthStore';
+import { getApiUrl } from '../../api/httpClient';
+
+vi.mock('@/shared/api/httpClient', () => ({
+  getApiUrl: vi.fn((path: string) => `https://music.example.test/v1${path}`),
+}));
 
 vi.mock('@/shared/api/integrationsApi', () => ({
   integrationsApi: {
@@ -78,6 +84,35 @@ describe('useSpotifyPlayerStore', () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
+
+  it.each([
+    { userId: 'user /&', encodedUserId: 'user%20%2F%26' },
+    { userId: null, encodedUserId: '' },
+  ])(
+    'routes Spotify reauthorization through the API URL helper for $userId',
+    ({ userId, encodedUserId }) => {
+      const originalUserId = useAuthStore.getState().userId;
+      useAuthStore.setState({ userId });
+      const open = vi.spyOn(window, 'open').mockReturnValue(null);
+      // Keep this URL contract test from installing a persistent popup message listener.
+      const addListener = vi.spyOn(window, 'addEventListener').mockImplementation(() => {});
+
+      try {
+        useSpotifyPlayerStore.getState().reauthorizeSpotify();
+
+        const path = `/integrations/spotify/auth?userId=${encodedUserId}`;
+        expect(getApiUrl).toHaveBeenLastCalledWith(path);
+        expect(open).toHaveBeenCalledWith(
+          `https://music.example.test/v1${path}`,
+          'spotify_oauth_popup',
+          expect.stringContaining('width=640,height=750'),
+        );
+        expect(addListener).toHaveBeenCalledWith('message', expect.any(Function));
+      } finally {
+        useAuthStore.setState({ userId: originalUserId });
+      }
+    },
+  );
 
   it('should play a track and make the dock visible', () => {
     const { playTrack } = useSpotifyPlayerStore.getState();

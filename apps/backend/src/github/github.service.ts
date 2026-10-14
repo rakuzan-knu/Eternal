@@ -17,6 +17,7 @@ import {
   GITHUB_REPOSITORY,
   type IGithubRepository,
 } from './interfaces/github-repository.interface';
+import { setResponseCookie } from '../auth/utils/auth-cookie.util';
 
 const CONTRIBUTOR_TIERS_MAPPING = [
   { count: 100, badgeId: 'CONTRIBUTOR_OPAL' },
@@ -105,19 +106,21 @@ export class GithubService {
 
     const originParam = typeof req.query.origin === 'string' ? req.query.origin : '';
     if (originParam) {
-      res.cookie('github_client_origin', originParam, {
+      setResponseCookie(res, 'github_client_origin', originParam, {
+        path: '/',
         httpOnly: true,
         secure: isSecureRequest,
         sameSite: 'lax',
-        maxAge: 10 * 60 * 1000,
+        maxAge: 10 * 60,
       });
     }
 
-    res.cookie('github_oauth_state', csrf, {
+    setResponseCookie(res, 'github_oauth_state', csrf, {
+      path: '/',
       httpOnly: true,
       secure: isSecureRequest,
       sameSite: 'lax',
-      maxAge: 10 * 60 * 1000,
+      maxAge: 10 * 60,
     });
 
     const targetUrl = new URL('https://github.com/login/oauth/authorize');
@@ -126,7 +129,7 @@ export class GithubService {
     targetUrl.searchParams.set('scope', 'read:user');
     targetUrl.searchParams.set('state', state);
 
-    res.redirect(targetUrl.toString());
+    res.status(302).redirect(targetUrl.toString());
   }
 
   async handleOAuthCallback(
@@ -148,7 +151,7 @@ export class GithubService {
       this.logger.warn(`CSRF state mismatch during GitHub OAuth callback.`);
       res.clearCookie('github_oauth_state');
       res.clearCookie('github_client_origin');
-      return res.redirect(`${effectiveFrontendUrl}/settings?error=csrf_state_mismatch`);
+      return res.status(302).redirect(`${effectiveFrontendUrl}/settings?error=csrf_state_mismatch`);
     }
 
     res.clearCookie('github_oauth_state');
@@ -315,11 +318,11 @@ export class GithubService {
         await this.syncUserGithubContributions(targetUserId);
       }
 
-      return res.redirect(`${effectiveFrontendUrl}/settings?github=connected`);
+      return res.status(302).redirect(`${effectiveFrontendUrl}/settings?github=connected`);
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
       this.logger.error(`GitHub OAuth Callback Exception: ${errMsg}`);
-      return res.redirect(`${effectiveFrontendUrl}/settings?error=oauth_failed`);
+      return res.status(302).redirect(`${effectiveFrontendUrl}/settings?error=oauth_failed`);
     }
   }
 

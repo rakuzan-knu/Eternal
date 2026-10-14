@@ -33,6 +33,7 @@ import { SteamLevelBadge } from '@/shared/ui/SteamLevelBadge';
 import { useCurrentUser } from '@/entities/profile/model/useCurrentUser';
 import { useQueryClient } from '@tanstack/react-query';
 import { USER_KEY } from '@/shared/api/queryKeys';
+import { getApiUrl } from '@/shared/api/httpClient';
 import { UnlinkConfirmationModal } from './UnlinkConfirmationModal';
 import { useSpotifyPlayerStore } from '@/shared/model/useSpotifyPlayerStore';
 import { isSpotifyUrl, isTrustedMessageOrigin, sanitizeImageUrl } from '@/shared/lib/urlSecurity';
@@ -503,10 +504,10 @@ export const ConfigureIntegrationModal: React.FC<ConfigureIntegrationModalProps>
 
   const handleStartOAuth = () => {
     setIsAuthenticating(true);
-    const rawApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-    const baseBackendUrl = rawApiUrl.replace(/\/api\/?$/, '').replace(/\/$/, '');
     const currentOrigin = window.location.origin;
-    const targetUrl = `${baseBackendUrl}/integrations/${platform.id}/auth?userId=${encodeURIComponent(currentUser?.id || '')}&origin=${encodeURIComponent(currentOrigin)}`;
+    const targetUrl = getApiUrl(
+      `/integrations/${platform.id}/auth?userId=${encodeURIComponent(currentUser?.id || '')}&origin=${encodeURIComponent(currentOrigin)}`,
+    );
 
     const width = 640;
     const height = 750;

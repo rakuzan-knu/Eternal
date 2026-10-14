@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { getOAuthSessionState, clearOAuthSessionState } from '@/shared/lib/safeSessionStorage';
+import { getApiUrl } from '@/shared/api/httpClient';
 
 export const OAuthCallbackHandler: React.FC<{ platform?: string }> = ({
   platform: propPlatform,
@@ -60,9 +61,6 @@ export const OAuthCallbackHandler: React.FC<{ platform?: string }> = ({
       return;
     }
 
-    const rawApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-    const baseBackendUrl = rawApiUrl.replace(/\/api\/?$/, '').replace(/\/$/, '');
-
     // Notify parent window that code was received
     if (window.opener) {
       try {
@@ -89,7 +87,7 @@ export const OAuthCallbackHandler: React.FC<{ platform?: string }> = ({
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    fetch(`${baseBackendUrl}/integrations/${effectivePlatform}/exchange-code`, {
+    fetch(getApiUrl(`/integrations/${effectivePlatform}/exchange-code`), {
       method: 'POST',
       headers,
       credentials: 'include',
@@ -123,12 +121,16 @@ export const OAuthCallbackHandler: React.FC<{ platform?: string }> = ({
           // If direct API failed, fallback to native backend callback redirect
           const errData = await res.json().catch(() => ({}));
           console.warn('exchange-code failed, trying backend callback redirect:', errData);
-          window.location.href = `${baseBackendUrl}/integrations/${effectivePlatform}/callback${window.location.search}`;
+          window.location.href = getApiUrl(
+            `/integrations/${effectivePlatform}/callback${window.location.search}`,
+          );
         }
       })
       .catch((err) => {
         console.warn('Network error calling exchange-code, redirecting to backend callback:', err);
-        window.location.href = `${baseBackendUrl}/integrations/${effectivePlatform}/callback${window.location.search}`;
+        window.location.href = getApiUrl(
+          `/integrations/${effectivePlatform}/callback${window.location.search}`,
+        );
       });
   }, [code, effectivePlatform, error, state]);
 

@@ -87,7 +87,7 @@ export class IntegrationsService {
   }
 
   getSteamAuthUrl(userId: string, req: Request): string {
-    const host = req.get('host') || 'localhost:3000';
+    const host = req.headers.host || 'localhost:3000';
     const protocol = req.protocol || 'http';
     const backendUrl = `${protocol}://${host}`;
 
@@ -159,7 +159,7 @@ export class IntegrationsService {
       await this.redis.del(`showcase:user:${userId}`);
     }
 
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.header('Content-Type', 'text/html; charset=utf-8');
     res.send(`<!DOCTYPE html>
 <html>
   <head>
@@ -214,15 +214,20 @@ export class IntegrationsService {
 </html>`);
   }
 
-  handlePlatformOAuthStart(platform: string, userId: string, req: Request, res: Response): void {
-    const host = req.get('host') || 'localhost:3000';
+  handlePlatformOAuthStart(
+    platform: string,
+    userId: string,
+    req: Pick<Request, 'headers' | 'protocol' | 'query'>,
+    res: Pick<Response, 'redirect' | 'header' | 'send' | 'status'>,
+  ): void {
+    const host = req.headers.host || 'localhost:3000';
     const protocol = req.protocol || 'http';
     const backendUrl = `${protocol}://${host}`;
     const p = platform.toLowerCase();
 
     const rawOrigin = req.query['origin'];
     const queryOrigin = typeof rawOrigin === 'string' ? rawOrigin : '';
-    const referer = req.get('referer') || '';
+    const referer = req.headers.referer || '';
     let clientOrigin = queryOrigin;
     if (!clientOrigin && referer) {
       try {
@@ -243,15 +248,20 @@ export class IntegrationsService {
 
     // If GitHub, redirect to /auth/github
     if (p === 'github') {
-      return res.redirect(
-        `${backendUrl}/auth/github?userId=${encodeURIComponent(userId || '')}&origin=${encodeURIComponent(clientOrigin)}`,
-      );
+      const coreApiUrl = (process.env.CORE_API_URL || backendUrl).replace(/\/+$/, '');
+      return res
+        .status(302)
+        .redirect(
+          `${coreApiUrl}/auth/github?userId=${encodeURIComponent(userId || '')}&origin=${encodeURIComponent(clientOrigin)}`,
+        );
     }
 
     if (p === 'steam') {
-      return res.redirect(
-        `${backendUrl}/integrations/steam/auth?userId=${encodeURIComponent(userId || '')}&origin=${encodeURIComponent(clientOrigin)}`,
-      );
+      return res
+        .status(302)
+        .redirect(
+          `${backendUrl}/integrations/steam/auth?userId=${encodeURIComponent(userId || '')}&origin=${encodeURIComponent(clientOrigin)}`,
+        );
     }
 
     if (p === 'spotify' && process.env.SPOTIFY_CLIENT_ID) {
@@ -267,7 +277,7 @@ export class IntegrationsService {
         process.env.SPOTIFY_CALLBACK_URL || `${backendUrl}/api/auth/spotify/callback`,
       );
       spotifyUrl.searchParams.set('state', userId || '');
-      return res.redirect(spotifyUrl.toString());
+      return res.status(302).redirect(spotifyUrl.toString());
     }
 
     if (p === 'twitch' && process.env.TWITCH_CLIENT_ID) {
@@ -279,7 +289,7 @@ export class IntegrationsService {
       twitchUrl.searchParams.set('redirect_uri', redirectUri);
       twitchUrl.searchParams.set('scope', 'user:read:email channel:read:subscriptions');
       twitchUrl.searchParams.set('state', `twitch:${userId || ''}`);
-      return res.redirect(twitchUrl.toString());
+      return res.status(302).redirect(twitchUrl.toString());
     }
 
     if (p === 'youtube' && process.env.GOOGLE_CLIENT_ID) {
@@ -300,11 +310,11 @@ export class IntegrationsService {
       googleUrl.searchParams.set('access_type', 'offline');
       googleUrl.searchParams.set('prompt', 'consent');
       googleUrl.searchParams.set('state', `youtube:${userId || ''}`);
-      return res.redirect(googleUrl.toString());
+      return res.status(302).redirect(googleUrl.toString());
     }
 
     if (p === 'roblox') {
-      res.setHeader('Content-Type', 'text/html');
+      res.header('Content-Type', 'text/html');
       res.send(`
         <!DOCTYPE html>
         <html>
@@ -322,7 +332,7 @@ export class IntegrationsService {
     }
 
     const callbackUrl = `${backendUrl}/integrations/${p}/callback?userId=${encodeURIComponent(userId || '')}`;
-    return res.redirect(callbackUrl);
+    return res.status(302).redirect(callbackUrl);
   }
 
   async exchangeOAuthCode(
@@ -788,7 +798,7 @@ export class IntegrationsService {
           ? query['error_description']
           : null;
     if (error) {
-      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.header('Content-Type', 'text/html; charset=utf-8');
       res.status(400).send(`<!DOCTYPE html>
 <html>
   <head><title>Authentication Failed</title></head>
@@ -805,7 +815,7 @@ export class IntegrationsService {
 
     const code = typeof query['code'] === 'string' ? query['code'] : null;
     if (!code || typeof code !== 'string') {
-      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.header('Content-Type', 'text/html; charset=utf-8');
       res.status(400).send(`<!DOCTYPE html>
 <html>
   <head><title>Authentication Failed</title></head>
@@ -830,7 +840,7 @@ export class IntegrationsService {
     try {
       await this.exchangeOAuthCode(p, code, undefined, userId);
     } catch {
-      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.header('Content-Type', 'text/html; charset=utf-8');
       res.status(400).send(`<!DOCTYPE html>
 <html>
   <head><title>Authentication Failed</title></head>
@@ -845,7 +855,7 @@ export class IntegrationsService {
       return;
     }
 
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.header('Content-Type', 'text/html; charset=utf-8');
     res.send(`<!DOCTYPE html>
 <html>
   <head>

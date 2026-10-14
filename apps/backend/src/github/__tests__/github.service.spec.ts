@@ -90,11 +90,13 @@ describe('GithubService', () => {
       const res = {
         cookie: cookieMock,
         redirect: redirectMock,
+        status: jest.fn().mockReturnThis(),
       } as unknown as Response;
 
       service.getAuthorizationUrl(req, res);
 
       expect(cookieMock).toHaveBeenCalledWith('github_oauth_state', expect.any(String), {
+        path: '/',
         httpOnly: true,
         secure: true,
         sameSite: 'lax',
@@ -112,6 +114,7 @@ describe('GithubService', () => {
       const res = {
         clearCookie: jest.fn(),
         redirect: jest.fn(),
+        status: jest.fn().mockReturnThis(),
       } as unknown as Response;
 
       await service.handleOAuthCallback('code123', 'wrong-csrf', req, res);
@@ -127,6 +130,7 @@ describe('GithubService', () => {
       const res = {
         clearCookie: jest.fn(),
         redirect: jest.fn(),
+        status: jest.fn().mockReturnThis(),
         setHeader: jest.fn(),
         send: jest.fn(),
       } as unknown as Response;
