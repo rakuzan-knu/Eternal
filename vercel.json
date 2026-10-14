@@ -6,6 +6,126 @@
   "framework": "vite",
   "rewrites": [
     {
+      "source": "/api/v1/conversations/:path*",
+      "destination": "https://eternal-messenger.onrender.com/v1/conversations/:path*"
+    },
+    {
+      "source": "/api/conversations/:path*",
+      "destination": "https://eternal-messenger.onrender.com/v1/conversations/:path*"
+    },
+    {
+      "source": "/v1/conversations/:path*",
+      "destination": "https://eternal-messenger.onrender.com/v1/conversations/:path*"
+    },
+    {
+      "source": "/api/v1/calls/:path*",
+      "destination": "https://eternal-messenger.onrender.com/v1/calls/:path*"
+    },
+    {
+      "source": "/api/calls/:path*",
+      "destination": "https://eternal-messenger.onrender.com/v1/calls/:path*"
+    },
+    {
+      "source": "/v1/calls/:path*",
+      "destination": "https://eternal-messenger.onrender.com/v1/calls/:path*"
+    },
+    {
+      "source": "/api/v1/crypto/prekeys/:path*",
+      "destination": "https://eternal-messenger.onrender.com/v1/crypto/prekeys/:path*"
+    },
+    {
+      "source": "/api/crypto/prekeys/:path*",
+      "destination": "https://eternal-messenger.onrender.com/v1/crypto/prekeys/:path*"
+    },
+    {
+      "source": "/v1/crypto/prekeys/:path*",
+      "destination": "https://eternal-messenger.onrender.com/v1/crypto/prekeys/:path*"
+    },
+    {
+      "source": "/api/v1/e2ee/:path*",
+      "destination": "https://eternal-messenger.onrender.com/v1/e2ee/:path*"
+    },
+    {
+      "source": "/api/e2ee/:path*",
+      "destination": "https://eternal-messenger.onrender.com/v1/e2ee/:path*"
+    },
+    {
+      "source": "/v1/e2ee/:path*",
+      "destination": "https://eternal-messenger.onrender.com/v1/e2ee/:path*"
+    },
+    {
+      "source": "/api/v1/messenger/:path*",
+      "destination": "https://eternal-messenger.onrender.com/v1/messenger/:path*"
+    },
+    {
+      "source": "/api/messenger/:path*",
+      "destination": "https://eternal-messenger.onrender.com/v1/messenger/:path*"
+    },
+    {
+      "source": "/v1/messenger/:path*",
+      "destination": "https://eternal-messenger.onrender.com/v1/messenger/:path*"
+    },
+    {
+      "source": "/api/v1/reels/:path*",
+      "destination": "https://eternal-reels.onrender.com/v1/reels/:path*"
+    },
+    {
+      "source": "/api/reels/:path*",
+      "destination": "https://eternal-reels.onrender.com/v1/reels/:path*"
+    },
+    {
+      "source": "/v1/reels/:path*",
+      "destination": "https://eternal-reels.onrender.com/v1/reels/:path*"
+    },
+    {
+      "source": "/api/v1/integrations/:path*",
+      "destination": "https://eternal-music-hub.onrender.com/v1/integrations/:path*"
+    },
+    {
+      "source": "/api/integrations/:path*",
+      "destination": "https://eternal-music-hub.onrender.com/v1/integrations/:path*"
+    },
+    {
+      "source": "/v1/integrations/:path*",
+      "destination": "https://eternal-music-hub.onrender.com/v1/integrations/:path*"
+    },
+    {
+      "source": "/api/v1/spotify/:path*",
+      "destination": "https://eternal-music-hub.onrender.com/v1/spotify/:path*"
+    },
+    {
+      "source": "/api/spotify/:path*",
+      "destination": "https://eternal-music-hub.onrender.com/v1/spotify/:path*"
+    },
+    {
+      "source": "/v1/spotify/:path*",
+      "destination": "https://eternal-music-hub.onrender.com/v1/spotify/:path*"
+    },
+    {
+      "source": "/api/v1/auth/spotify/:path*",
+      "destination": "https://eternal-music-hub.onrender.com/v1/auth/spotify/:path*"
+    },
+    {
+      "source": "/api/auth/spotify/:path*",
+      "destination": "https://eternal-music-hub.onrender.com/v1/auth/spotify/:path*"
+    },
+    {
+      "source": "/v1/auth/spotify/:path*",
+      "destination": "https://eternal-music-hub.onrender.com/v1/auth/spotify/:path*"
+    },
+    {
+      "source": "/integrations/:path*",
+      "destination": "https://eternal-music-hub.onrender.com/v1/integrations/:path*"
+    },
+    {
+      "source": "/spotify/:path*",
+      "destination": "https://eternal-music-hub.onrender.com/v1/spotify/:path*"
+    },
+    {
+      "source": "/auth/spotify/:path*",
+      "destination": "https://eternal-music-hub.onrender.com/v1/auth/spotify/:path*"
+    },
+    {
       "source": "/api/v1/:path*",
       "destination": "https://social-network-backend-4h47.onrender.com/v1/:path*"
     },
@@ -20,10 +140,6 @@
     {
       "source": "/auth/:path*",
       "destination": "https://social-network-backend-4h47.onrender.com/v1/auth/:path*"
-    },
-    {
-      "source": "/integrations/:path*",
-      "destination": "https://social-network-backend-4h47.onrender.com/v1/integrations/:path*"
     },
     {
       "source": "/uploads/:path*",
