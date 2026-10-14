@@ -12,6 +12,7 @@ import {
 import { useAuthStore } from './useAuthStore';
 import { musicEventBridge } from '@/shared/lib/musicEvents';
 import { integrationsApi } from '../api/integrationsApi';
+import { getApiUrl } from '../api/httpClient';
 
 declare global {
   interface Window {
@@ -806,9 +807,9 @@ export const useSpotifyPlayerStore = create<SpotifyPlayerState>()(
        */
       reauthorizeSpotify: () => {
         const userId = useAuthStore.getState().userId;
-        const rawApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-        const baseBackendUrl = rawApiUrl.replace(/\/api\/?$/, '').replace(/\/$/, '');
-        const targetUrl = `${baseBackendUrl}/integrations/spotify/auth?userId=${encodeURIComponent(userId || '')}`;
+        const targetUrl = getApiUrl(
+          `/integrations/spotify/auth?userId=${encodeURIComponent(userId || '')}`,
+        );
 
         const width = 640;
         const height = 750;

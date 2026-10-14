@@ -1273,7 +1273,7 @@ export class SpotifyService {
   }
 
   private renderSuccessHtml(res: Response, username: string) {
-    res.setHeader('Content-Type', 'text/html');
+    res.header('Content-Type', 'text/html');
     res.send(`
       <!DOCTYPE html>
       <html>
@@ -1337,7 +1337,7 @@ export class SpotifyService {
 
   private renderHtmlMessage(res: Response, success: boolean, message: string) {
     const safeMessage = this.escapeHtml(message);
-    res.setHeader('Content-Type', 'text/html');
+    res.header('Content-Type', 'text/html');
     res.send(`
       <!DOCTYPE html>
       <html>

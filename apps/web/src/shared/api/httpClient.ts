@@ -70,6 +70,17 @@ const serviceOrigins = {
   music: import.meta.env.VITE_MUSIC_API_URL ?? '',
 };
 
+// Popup navigation and fetch callers need the same routing as Axios requests.
+export function getApiUrl(path: string): string {
+  if (/^(?:[a-z][a-z\d+.-]*:|\/\/)/i.test(path)) return path;
+  const baseUrl = getServiceBaseUrl(path, serviceOrigins, coreBaseUrl).replace(/\/+$/, '');
+  const relativePath = path
+    .replace(/^\/+/, '')
+    .replace(/^(?:api\/)?v1(?:\/|$)/, '')
+    .replace(/^api(?:\/|$)/, '');
+  return `${baseUrl}/${relativePath}`;
+}
+
 export function isTokenExpired(token: string | null): boolean {
   if (!token) return true;
   try {

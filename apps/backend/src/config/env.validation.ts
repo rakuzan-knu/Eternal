@@ -4,6 +4,7 @@ export const envSchema = z
   .object({
     SERVICE_ROLE: z.enum(['all', 'core', 'messenger', 'reels', 'music']).default('all'),
     BACKGROUND_ENABLED: z.enum(['true', 'false']).default('true'),
+    CORE_API_URL: z.string().url().optional(),
     DATABASE_URL: z.string().min(1),
     REDIS_URL: z.string().min(1),
     JWT_ACCESS_SECRET: z.string().min(32, 'JWT_ACCESS_SECRET must be at least 32 characters long'),

@@ -331,12 +331,12 @@ export class IntegrationsController {
       for (const [key, val] of audioResponse.headers.entries()) {
         const lower = key.toLowerCase();
         if (['content-range', 'accept-ranges', 'content-length', 'content-type'].includes(lower)) {
-          res.setHeader(key, val);
+          res.header(key, val);
         }
       }
 
       if (!res.getHeader('accept-ranges')) {
-        res.setHeader('Accept-Ranges', 'bytes');
+        res.header('Accept-Ranges', 'bytes');
       }
 
       const reader = audioResponse.body?.getReader();
@@ -985,7 +985,7 @@ export class IntegrationsController {
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    const combinedQuery = { ...query, reqHost: req.get('host') };
+    const combinedQuery = { ...query, reqHost: req.headers.host };
     return this.integrationsService.handlePlatformOAuthCallback(platform, combinedQuery, res);
   }
 

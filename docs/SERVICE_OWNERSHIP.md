@@ -14,6 +14,8 @@ Read this before adding or changing a backend module, API route, queue processor
 
 Health and metrics exist on every service. Jam uses the messenger WebSocket, including from Music Hub. API requests and their responses must go directly to the owning service, or through Vercel's matching rewrite. Do not put a core proxy in front of the other APIs: that would consume core bandwidth again.
 
+GitHub OAuth belongs to core, including `/integrations/github/callback`. This exception must precede general `/integrations` routing. Music uses CORE_API_URL (the core origin ending in /v1) to redirect GitHub connections to core. Provider callback URLs must be registered in the provider dashboard; never copy localhost callbacks into production.
+
 ## Add a feature
 
 1. Ordinary features belong to core. The global ServiceRoleGuard defaults unmarked controllers to core, so a new decorations/family/nameplates controller cannot accidentally serve requests from all deployments.
