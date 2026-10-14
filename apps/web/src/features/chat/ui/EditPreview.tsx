@@ -3,7 +3,7 @@ import { Pencil, X, FileText } from 'lucide-react';
 import FileIconBadge from './FileIconBadge';
 import { MessageView, AttachmentView } from '../../../entities/chat/model/types';
 import { useDecryptedMessageBody } from '../model/useDecryptedMessageBody';
-import { extractFirstUrl } from '../../../shared/lib/urlUtils';
+import { extractFirstUrl, sanitizeMediaUrl } from '../../../shared/lib/urlUtils';
 
 interface EditPreviewProps {
   message: MessageView;
@@ -84,10 +84,11 @@ export default function EditPreview({
     (previewBody?.includes('http') || previewBody?.toLowerCase().includes('links:')),
   );
 
-  const displayThumbnail = !isVoice
+  const rawThumbnail = !isVoice
     ? editThumbnail ||
       (isVideoNote ? message.sender.avatar || (message.sender as any).avatarUrl : null)
     : null;
+  const displayThumbnail = sanitizeMediaUrl(rawThumbnail);
 
   const getPreviewText = () => {
     if (isVideoNote) return 'Video message';

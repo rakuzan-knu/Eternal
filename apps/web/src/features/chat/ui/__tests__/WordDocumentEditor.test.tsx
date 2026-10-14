@@ -32,11 +32,11 @@ describe('WordDocumentEditor', () => {
     expect(sheet.style.paddingRight).toBe('70px');
   });
 
-  it('does NOT render the blue "+ Нова сторінка" button in the ribbon toolbar', () => {
+  it('does NOT render the blue "+ New page" button in the ribbon toolbar', () => {
     render(<WordDocumentEditor initialPages={['<p>Testing toolbar</p>']} fileName="test.docx" />);
 
     // The button was removed as requested
-    expect(screen.queryByText('Нова сторінка')).not.toBeInTheDocument();
+    expect(screen.queryByText('New page')).not.toBeInTheDocument();
   });
 
   it('renders footer page number and header indicator', () => {
@@ -44,8 +44,8 @@ describe('WordDocumentEditor', () => {
       <WordDocumentEditor initialPages={['<p>Page 1</p>', '<p>Page 2</p>']} fileName="test.docx" />,
     );
 
-    expect(screen.getByText('Сторінка 1 з 2')).toBeInTheDocument();
-    expect(screen.getByText('Сторінка 2 з 2')).toBeInTheDocument();
+    expect(screen.getByText('Page 1 of 2')).toBeInTheDocument();
+    expect(screen.getByText('Page 2 of 2')).toBeInTheDocument();
     expect(screen.getByText('- 1 -')).toBeInTheDocument();
     expect(screen.getByText('- 2 -')).toBeInTheDocument();
   });

@@ -6,7 +6,7 @@ export function NameplatePreview({
   item,
   avatarUrl,
   decoration,
-  name = 'Ваше имя',
+  name = 'Your Name',
 }: {
   item: NameplateDto;
   avatarUrl?: string | null | undefined;
@@ -17,7 +17,7 @@ export function NameplatePreview({
     <div
       className="rounded-2xl bg-black/35 p-4 space-y-2 select-none"
       onContextMenu={(e) => e.preventDefault()}
-      aria-label="Пример строки пользователя"
+      aria-label="User row preview"
     >
       {[0, 1, 2].map((row) =>
         row === 1 ? (

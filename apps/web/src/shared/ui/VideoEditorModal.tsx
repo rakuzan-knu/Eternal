@@ -1395,7 +1395,7 @@ export default function VideoEditorModal({
         e.stopImmediatePropagation();
 
         // 1. If Discard Changes dialog is already open:
-        // "если нажмёшь в нём Cancel или Esc повторно то оно закроеться и если ещё раз нажмёшь то откроется снова"
+        // Pressing Cancel or Esc closes the dialog; pressing again reopens it
         if (isDiscardModalOpen) {
           setIsDiscardModalOpen(false);
           return;

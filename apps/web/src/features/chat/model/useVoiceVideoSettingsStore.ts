@@ -45,7 +45,7 @@ export interface VoiceVideoSettingsState {
   // Push-to-Talk (PTT)
   isPTTEnabled: boolean;
   pttKey: string; // e.g. 'KeyV', 'Space'
-  pttKeyLabel: string; // e.g. 'V', 'Пробел'
+  pttKeyLabel: string; // e.g. 'V', 'Space'
   pttReleaseTailMs: number; // 100 - 600 ms
   isPTTSoundEnabled: boolean;
   isPTTActive: boolean;

@@ -148,7 +148,10 @@ export function translateCaption(text: string): { translated: string; targetLang
   const trimmed = text.trim();
 
   // 1. Curated exact matches for demo/seed reels
-  if (trimmed.includes('Сосед-авторитет врубил шумит ночью')) {
+  if (
+    trimmed.includes('Сосед-авторитет врубил шумит ночью') ||
+    trimmed.includes('Loud neighbor was blasting music all night')
+  ) {
     return {
       translated:
         'Сусід-авторитет увімкнув музику і шумить уночі, але за безсонну ніч доньки доведеться відповісти...',
@@ -156,7 +159,10 @@ export function translateCaption(text: string): { translated: string; targetLang
     };
   }
 
-  if (trimmed.includes('Нічні вогні великого міста')) {
+  if (
+    trimmed.includes('Нічні вогні великого міста') ||
+    trimmed.includes('Night lights of the big city')
+  ) {
     return {
       translated: 'Night lights of the big city 🌃 Atmospheric walk and cinematic aesthetics',
       targetLang: 'en',

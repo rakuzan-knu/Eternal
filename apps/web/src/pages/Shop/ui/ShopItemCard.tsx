@@ -18,7 +18,7 @@ export function ShopItemCard({
     <button
       type="button"
       onClick={onClick}
-      aria-label={'Открыть ' + item.name}
+      aria-label={'Open ' + item.name}
       className="group text-left overflow-visible rounded-2xl border border-white/10 bg-black/15 hover:border-white/30 focus-visible:outline-2 focus-visible:outline-offset-4 transition-colors"
     >
       <div className="h-72 flex items-center justify-center rounded-t-2xl bg-black/15">
@@ -28,10 +28,9 @@ export function ShopItemCard({
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-lg font-bold">{item.name}</h2>
           <span className="text-xs opacity-70">
-            {active ? 'На аватаре' : owned ? 'В коллекции' : 'Скоро'}
+            {active ? 'Equipped' : owned ? 'Owned' : 'Soon'}
           </span>
         </div>
-        <p className="text-sm opacity-70 mt-2 min-h-16">{item.description}</p>
         <p className="font-bold mt-3">
           {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
             item.priceCents / 100,

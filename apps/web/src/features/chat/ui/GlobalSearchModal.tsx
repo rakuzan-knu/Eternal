@@ -85,8 +85,7 @@ export function getTrackPlatform(track: SpotifyTrack): 'soundcloud' | 'spotify' 
     track.source === 'soundcloud' ||
     track.id.startsWith('sc-') ||
     track.id.startsWith('soundcloud-') ||
-    isSoundCloudUrl(track.spotifyUrl) ||
-    track.spotifyUrl?.includes('soundcloud.com')
+    isSoundCloudUrl(track.spotifyUrl)
   ) {
     return 'soundcloud';
   }

@@ -285,12 +285,8 @@ export default function DocumentPreviewModal({
                 />
               </svg>
             </div>
-            <p className="text-sm font-medium text-gray-300">
-              Завантаження та верифікація документа...
-            </p>
-            <p className="text-xs text-gray-500">
-              Безпечний парсинг безпосередньо у вашому браузері
-            </p>
+            <p className="text-sm font-medium text-gray-300">Loading and verifying document...</p>
+            <p className="text-xs text-gray-500">Secure parsing directly in your browser</p>
           </div>
         )}
 
@@ -421,14 +417,14 @@ export default function DocumentPreviewModal({
               disabled={currentPage <= 1}
               onClick={handlePrevPage}
               className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-white/15 text-gray-200 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer active:scale-95"
-              title="Попередня сторінка"
+              title="Previous page"
               aria-label="Previous page"
             >
               <ChevronLeft size={15} />
             </button>
 
             <span className="text-gray-300">
-              {docData?.type === 'pptx' ? 'Слайд' : docData?.type === 'xlsx' ? 'Аркуш' : 'Сторінка'}
+              {docData?.type === 'pptx' ? 'Slide' : docData?.type === 'xlsx' ? 'Sheet' : 'Page'}
             </span>
 
             <div className="flex items-center gap-1">
@@ -441,8 +437,8 @@ export default function DocumentPreviewModal({
                   if (e.key === 'Enter') handlePageInputCommit();
                 }}
                 className="w-9 sm:w-11 text-center py-0.5 rounded-md bg-white/10 text-white font-semibold outline-none focus:ring-1 focus:ring-purple-400 text-xs sm:text-sm"
-                aria-label="Поточна сторінка"
-                title="Введіть номер сторінки"
+                aria-label="Current page"
+                title="Enter page number"
               />
               <span className="text-gray-400 font-normal">/</span>
               <span className="px-1.5 py-0.5 rounded-md text-white font-semibold">
@@ -455,7 +451,7 @@ export default function DocumentPreviewModal({
               disabled={currentPage >= totalPages}
               onClick={handleNextPage}
               className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-white/15 text-gray-200 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer active:scale-95"
-              title="Наступна сторінка"
+              title="Next page"
               aria-label="Next page"
             >
               <ChevronRight size={15} />

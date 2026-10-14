@@ -39,7 +39,7 @@ describe('DocumentPreviewModal', () => {
     render(<DocumentPreviewModal fileOrUrl={pdfFile} onClose={onClose} />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Сторінок|Сторінка/i)).toBeInTheDocument();
+      expect(screen.getByText(/Page/i)).toBeInTheDocument();
       expect(screen.getByText('100%')).toBeInTheDocument();
       expect(screen.getByTitle(/Zoom in \(\+\)/i)).toBeInTheDocument();
       expect(screen.getByTitle(/Zoom out \(−\)/i)).toBeInTheDocument();
@@ -100,23 +100,23 @@ describe('DocumentPreviewModal', () => {
 
     await waitFor(() => {
       expect(screen.getByText('13')).toBeInTheDocument();
-      expect(screen.getByRole('textbox', { name: /Поточна сторінка/i })).toHaveValue('1');
+      expect(screen.getByRole('textbox', { name: /Current page/i })).toHaveValue('1');
     });
 
     // Next page button
-    const nextBtn = screen.getByTitle(/Наступна сторінка/i);
+    const nextBtn = screen.getByTitle(/Next page/i);
     fireEvent.click(nextBtn);
-    expect(screen.getByRole('textbox', { name: /Поточна сторінка/i })).toHaveValue('2');
+    expect(screen.getByRole('textbox', { name: /Current page/i })).toHaveValue('2');
 
     // Prev page button
-    const prevBtn = screen.getByTitle(/Попередня сторінка/i);
+    const prevBtn = screen.getByTitle(/Previous page/i);
     fireEvent.click(prevBtn);
-    expect(screen.getByRole('textbox', { name: /Поточна сторінка/i })).toHaveValue('1');
+    expect(screen.getByRole('textbox', { name: /Current page/i })).toHaveValue('1');
 
     // Direct input jump
-    const input = screen.getByRole('textbox', { name: /Поточна сторінка/i });
+    const input = screen.getByRole('textbox', { name: /Current page/i });
     fireEvent.change(input, { target: { value: '6' } });
     fireEvent.keyDown(input, { key: 'Enter' });
-    expect(screen.getByRole('textbox', { name: /Поточна сторінка/i })).toHaveValue('6');
+    expect(screen.getByRole('textbox', { name: /Current page/i })).toHaveValue('6');
   });
 });

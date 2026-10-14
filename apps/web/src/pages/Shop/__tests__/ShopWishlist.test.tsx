@@ -50,7 +50,7 @@ vi.mock('@/entities/profile/model/useCurrentUser', () => ({
 vi.mock('@/shared/ui/AvatarDecoration', () => ({
   AvatarWithDecoration: ({ decoration }: any) => (
     <div data-testid="avatar-with-decoration" data-decoration-name={decoration?.name}>
-      <img alt="Аватар" src="/avatar.png" />
+      <img alt="Avatar" src="/avatar.png" />
     </div>
   ),
 }));

@@ -98,7 +98,7 @@ export function ShopBrowseFilterSidebar({
 
   return (
     <aside
-      aria-label="Фильтры каталога"
+      aria-label="Catalog filters"
       className="w-64 shrink-0 sticky top-4 self-start max-h-[calc(100vh-6.5rem)] overflow-y-auto custom-scrollbar overscroll-contain rounded-2xl glass-card border border-black/10 dark:border-white/10 p-4 sm:p-5 pb-6 select-none transition-all duration-200 shadow-xl backdrop-blur-2xl text-gray-900 dark:text-white"
     >
       {/* 1. Show only checkboxes */}

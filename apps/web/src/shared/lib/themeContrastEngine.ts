@@ -182,6 +182,9 @@ export function detectMediaLuminance(file: File): Promise<'dark' | 'light'> {
 
     const isVideo = file.type.startsWith('video/');
     const url = URL.createObjectURL(file);
+    if (!url || !url.startsWith('blob:')) {
+      return resolve('dark');
+    }
 
     let settled = false;
     let timer: ReturnType<typeof setTimeout> | null = null;

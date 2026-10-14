@@ -13,7 +13,7 @@ vi.mock('@/entities/profile/model/useCurrentUser', () => ({
 vi.mock('@/shared/ui/AvatarDecoration', () => ({
   AvatarWithDecoration: ({ decoration }: any) => (
     <div data-testid="avatar-with-decoration" data-decoration-name={decoration?.name}>
-      <img alt="Аватар" src="/avatar.png" />
+      <img alt="Avatar" src="/avatar.png" />
     </div>
   ),
 }));
@@ -30,7 +30,7 @@ describe('Shop Browse view with Discord layout and filters', () => {
       /Avatar Decorations \(\d+\)/,
     );
     // Verify there are 16 cards on the first page
-    const cards = screen.getAllByRole('button', { name: /^Открыть/ });
+    const cards = screen.getAllByRole('button', { name: /^Open/ });
     expect(cards.length).toBe(16);
 
     // Verify Discord pagination is rendered
@@ -42,7 +42,7 @@ describe('Shop Browse view with Discord layout and filters', () => {
   it('displays the Discord-styled filter sidebar with Show only, Colors (no brown), and Themes', () => {
     renderWithProviders(<ShopPage />, { initialEntries: ['/shop?category=avatars'] });
     // "Show only" section inside sidebar
-    const sidebar = screen.getByRole('complementary', { name: 'Фильтры каталога' });
+    const sidebar = screen.getByRole('complementary', { name: 'Catalog filters' });
     expect(within(sidebar).getByText('Show only')).toBeInTheDocument();
     expect(within(sidebar).getByText('Nameplates')).toBeInTheDocument();
     expect(within(sidebar).getByText('Profile Effects')).toBeInTheDocument();

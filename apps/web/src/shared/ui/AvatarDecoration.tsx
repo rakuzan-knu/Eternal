@@ -25,7 +25,7 @@ export const AvatarWithDecoration = memo(function AvatarWithDecoration({
   decoration,
   size = 'md',
   status,
-  alt = 'Аватар',
+  alt = 'Avatar',
   className = '',
   motion = true,
 }: AvatarWithDecorationProps) {
@@ -140,7 +140,7 @@ export const AvatarWithDecoration = memo(function AvatarWithDecoration({
         <span
           className={`decorated-avatar__status decorated-avatar__status--${status}`}
           role="img"
-          aria-label={`Статус: ${status}`}
+          aria-label={`Status: ${status}`}
         />
       )}
     </span>

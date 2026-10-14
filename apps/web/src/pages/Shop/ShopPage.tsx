@@ -879,7 +879,7 @@ export default function ShopPage() {
                     role="alert"
                     className="p-4 mb-6 rounded-xl border border-red-500/30 bg-red-950/20 text-red-200 text-sm"
                   >
-                    <p>Не удалось загрузить коллекцию. • Failed to load collection.</p>
+                    <p>Failed to load collection.</p>
                     <button
                       type="button"
                       className="mt-2 text-xs underline font-semibold cursor-pointer"

@@ -366,8 +366,8 @@ export default function PresentationEditor({
       return [
         {
           slideNumber: 1,
-          title: 'Нова презентація',
-          subtitle: 'Додайте підзаголовок',
+          title: 'New Presentation',
+          subtitle: 'Add a subtitle',
           paragraphs: [],
           layoutType: 'title',
           aspectRatio: defaultAspectRatio,
@@ -392,7 +392,7 @@ export default function PresentationEditor({
 
       return {
         slideNumber: s.slideNumber || idx + 1,
-        title: s.title || (isTitle ? 'Lorem ipsum' : `Слайд ${idx + 1}`),
+        title: s.title || (isTitle ? 'Lorem ipsum' : `Slide ${idx + 1}`),
         subtitle: s.subtitle,
         paragraphs: s.paragraphs ? [...s.paragraphs] : [],
         themeBackground: s.themeBackground,
@@ -414,12 +414,12 @@ export default function PresentationEditor({
           ? { ...s.chartData }
           : isChart
             ? {
-                title: s.title || 'Графік показників',
+                title: s.title || 'Metrics Chart',
                 type: 'bar',
                 categories: ['Q1', 'Q2', 'Q3', 'Q4'],
                 series: [
-                  { name: 'Серія 1', values: [45, 78, 62, 90] },
-                  { name: 'Серія 2', values: [28, 55, 43, 71] },
+                  { name: 'Series 1', values: [45, 78, 62, 90] },
+                  { name: 'Series 2', values: [28, 55, 43, 71] },
                 ],
               }
             : undefined,
@@ -696,7 +696,7 @@ export default function PresentationEditor({
   const handleAddParagraph = () => {
     setSlides((prev) => {
       const next = [...prev];
-      const paras = [...next[activeSlideIndex].paragraphs, 'Новий пункт'];
+      const paras = [...next[activeSlideIndex].paragraphs, 'New item'];
       next[activeSlideIndex] = { ...next[activeSlideIndex], paragraphs: paras };
       return next;
     });
@@ -739,12 +739,12 @@ export default function PresentationEditor({
       let chartData = cur.chartData;
       if (layout === 'chart' && !chartData) {
         chartData = {
-          title: cur.title || 'Графік',
+          title: cur.title || 'Chart',
           type: 'bar',
           categories: ['Q1', 'Q2', 'Q3', 'Q4'],
           series: [
-            { name: 'Серія 1', values: [45, 78, 62, 90] },
-            { name: 'Серія 2', values: [28, 55, 43, 71] },
+            { name: 'Series 1', values: [45, 78, 62, 90] },
+            { name: 'Series 2', values: [28, 55, 43, 71] },
           ],
         };
       }
@@ -802,7 +802,7 @@ export default function PresentationEditor({
       const cur = next[activeSlideIndex];
       if (!cur.tableData) return prev;
       const cols = cur.tableData.headers.length;
-      const newRow = Array(cols).fill('Нові дані');
+      const newRow = Array(cols).fill('New data');
       newRow[0] = String(cur.tableData.rows.length + 1);
       next[activeSlideIndex] = {
         ...cur,
@@ -863,8 +863,8 @@ export default function PresentationEditor({
   const handleAddSlide = () => {
     const newSlide: EditorSlideState = {
       slideNumber: slides.length + 1,
-      title: `Слайд ${slides.length + 1}`,
-      paragraphs: ['Введіть текст слайда...'],
+      title: `Slide ${slides.length + 1}`,
+      paragraphs: ['Enter slide text...'],
       themeBackground: currentSlide?.themeBackground,
       layoutType: 'content',
       aspectRatio: globalAspectRatio,
@@ -886,7 +886,7 @@ export default function PresentationEditor({
     const duplicated: EditorSlideState = {
       ...current,
       slideNumber: next.length + 1,
-      title: `${current.title} (Копія)`,
+      title: `${current.title} (Copy)`,
       paragraphs: [...current.paragraphs],
       tableData: current.tableData
         ? {
@@ -990,20 +990,20 @@ export default function PresentationEditor({
             type="button"
             onClick={handleAddSlide}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-xs font-semibold shadow-sm transition-all active:scale-95 cursor-pointer"
-            title="Створити новий слайд"
+            title="New slide"
           >
             <Plus size={14} />
-            <span>Створити слайд</span>
+            <span>New Slide</span>
           </button>
 
           <button
             type="button"
             onClick={handleDuplicateSlide}
             className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-gray-200 text-xs font-medium transition-all cursor-pointer"
-            title="Дублювати активний слайд"
+            title="Duplicate active slide"
           >
             <Copy size={13} />
-            <span>Дублювати</span>
+            <span>Duplicate</span>
           </button>
 
           <button
@@ -1011,7 +1011,7 @@ export default function PresentationEditor({
             disabled={slides.length <= 1}
             onClick={handleDeleteSlide}
             className="p-1.5 rounded-lg hover:bg-rose-500/20 text-rose-400 disabled:opacity-40 transition-colors cursor-pointer"
-            title="Видалити слайд"
+            title="Delete slide"
           >
             <Trash2 size={15} />
           </button>
@@ -1030,10 +1030,10 @@ export default function PresentationEditor({
                       ? 'bg-orange-500 text-white shadow-xs'
                       : 'text-gray-300 hover:text-white'
                   }`}
-                  title="1:1 Відображення точно як у PowerPoint"
+                  title="1:1 Exact PowerPoint Render"
                 >
                   <Eye size={13} />
-                  <span>1:1 Оригінал</span>
+                  <span>1:1 Original</span>
                 </button>
                 <button
                   type="button"
@@ -1043,10 +1043,10 @@ export default function PresentationEditor({
                       ? 'bg-orange-500 text-white shadow-xs'
                       : 'text-gray-300 hover:text-white'
                   }`}
-                  title="Режим редагування контенту"
+                  title="Content editing mode"
                 >
                   <Sparkles size={13} />
-                  <span>Редагування</span>
+                  <span>Edit</span>
                 </button>
               </div>
               <div className="w-px h-5 bg-white/15 mx-1" />
@@ -1062,17 +1062,17 @@ export default function PresentationEditor({
                 setIsLayoutMenuOpen((prev) => !prev);
               }}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-gray-200 text-xs font-medium transition-all cursor-pointer"
-              title="Змінити макет слайда"
+              title="Change slide layout"
             >
               <Layout size={14} className="text-orange-400" />
               <span className="capitalize">
                 {currentSlide.layoutType === 'title'
-                  ? 'Титульний'
+                  ? 'Title'
                   : currentSlide.layoutType === 'table'
-                    ? 'Таблиця'
+                    ? 'Table'
                     : currentSlide.layoutType === 'chart'
-                      ? 'Діаграма'
-                      : 'Вміст'}
+                      ? 'Chart'
+                      : 'Content'}
               </span>
             </button>
             {isLayoutMenuOpen && (
@@ -1090,7 +1090,7 @@ export default function PresentationEditor({
                   }`}
                 >
                   <Sparkles size={14} />
-                  <span>Титульний слайд</span>
+                  <span>Title Slide</span>
                 </button>
                 <button
                   type="button"
@@ -1102,7 +1102,7 @@ export default function PresentationEditor({
                   }`}
                 >
                   <List size={14} />
-                  <span>Заголовок і список</span>
+                  <span>Title & Content</span>
                 </button>
                 <button
                   type="button"
@@ -1114,7 +1114,7 @@ export default function PresentationEditor({
                   }`}
                 >
                   <TableIcon size={14} />
-                  <span>Таблиця</span>
+                  <span>Table</span>
                 </button>
                 <button
                   type="button"
@@ -1126,7 +1126,7 @@ export default function PresentationEditor({
                   }`}
                 >
                   <BarChart2 size={14} />
-                  <span>Діаграма</span>
+                  <span>Chart</span>
                 </button>
               </div>
             )}
@@ -1137,7 +1137,7 @@ export default function PresentationEditor({
             type="button"
             onClick={() => setGlobalAspectRatio((prev) => (prev === '16:9' ? '4:3' : '16:9'))}
             className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-gray-200 text-xs font-semibold transition-all cursor-pointer"
-            title="Перемкнути співвідношення сторін слайдів"
+            title="Toggle slide aspect ratio"
           >
             <span>{globalAspectRatio}</span>
           </button>
@@ -1155,7 +1155,7 @@ export default function PresentationEditor({
             className={`p-1.5 rounded-lg hover:bg-white/10 text-gray-200 transition-colors cursor-pointer ${
               isBold ? 'bg-white/20 text-white font-bold ring-1 ring-white/30' : ''
             }`}
-            title="Жирний (Ctrl+B)"
+            title="Bold (Ctrl+B)"
           >
             <Bold size={15} />
           </button>
@@ -1170,7 +1170,7 @@ export default function PresentationEditor({
             className={`p-1.5 rounded-lg hover:bg-white/10 text-gray-200 transition-colors cursor-pointer ${
               isItalic ? 'bg-white/20 text-white ring-1 ring-white/30' : ''
             }`}
-            title="Курсив (Ctrl+I)"
+            title="Italic (Ctrl+I)"
           >
             <Italic size={15} />
           </button>
@@ -1185,7 +1185,7 @@ export default function PresentationEditor({
             className={`p-1.5 rounded-lg hover:bg-white/10 text-gray-200 transition-colors cursor-pointer ${
               isUnderline ? 'bg-white/20 text-white ring-1 ring-white/30' : ''
             }`}
-            title="Підкреслений (Ctrl+U)"
+            title="Underline (Ctrl+U)"
           >
             <Underline size={15} />
           </button>
@@ -1198,7 +1198,7 @@ export default function PresentationEditor({
               className={`p-1.5 rounded-lg hover:bg-white/10 text-gray-200 transition-colors cursor-pointer ${
                 currentSlide.isBulleted ? 'bg-orange-500/20 text-orange-400' : ''
               }`}
-              title="Маркований список"
+              title="Bullet list"
             >
               <List size={15} />
             </button>
@@ -1220,7 +1220,7 @@ export default function PresentationEditor({
               className={`p-1.5 rounded-lg hover:bg-white/10 text-gray-200 transition-colors cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
                 isColorPickerOpen ? 'bg-white/20 text-white' : ''
               }`}
-              title="Колір шрифту"
+              title="Font color"
             >
               <Palette size={15} />
               <div
@@ -1234,7 +1234,7 @@ export default function PresentationEditor({
                 className="absolute top-full left-0 mt-2 p-3 rounded-2xl shadow-2xl z-50 flex flex-col gap-2 min-w-[250px] bg-[#1a1c29]/95 border border-white/20 backdrop-blur-2xl select-none"
               >
                 {/* Header */}
-                <div className="text-xs font-semibold text-gray-200 px-1">Колір шрифту</div>
+                <div className="text-xs font-semibold text-gray-200 px-1">Font color</div>
 
                 {/* Auto Color Button */}
                 <button
@@ -1244,13 +1244,13 @@ export default function PresentationEditor({
                   className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-white/10 text-xs text-gray-200 transition-colors cursor-pointer w-full text-left"
                 >
                   <span className="w-4 h-4 rounded-xs bg-black border border-white/40 shrink-0" />
-                  <span>Авто</span>
+                  <span>Auto</span>
                 </button>
 
                 {/* Theme Colors Palette */}
                 <div className="border-t border-white/10 pt-1.5">
                   <div className="text-[10px] text-gray-400 font-medium mb-1.5 px-1">
-                    Лише висока контрастність
+                    High contrast only
                   </div>
                   {/* Base Colors */}
                   <div className="grid grid-cols-10 gap-1 mb-1">
@@ -1287,7 +1287,7 @@ export default function PresentationEditor({
                 {/* Standard Colors */}
                 <div className="border-t border-white/10 pt-1.5">
                   <div className="text-[10px] text-gray-400 font-medium mb-1 px-1">
-                    Стандартні кольори
+                    Standard colors
                   </div>
                   <div className="grid grid-cols-10 gap-1">
                     {OFFICE_STANDARD_COLORS.map((c) => (
@@ -1316,7 +1316,7 @@ export default function PresentationEditor({
                     className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/10 text-xs text-gray-200 w-full transition-colors cursor-pointer text-left"
                   >
                     <Palette size={14} className="text-purple-400 shrink-0" />
-                    <span>Інші кольори...</span>
+                    <span>More colors...</span>
                   </button>
                 </div>
               </div>
@@ -1336,7 +1336,7 @@ export default function PresentationEditor({
             className={`p-1.5 rounded-lg hover:bg-white/10 text-gray-200 transition-colors cursor-pointer ${
               align === 'left' ? 'bg-white/20 text-white font-bold ring-1 ring-white/30' : ''
             }`}
-            title="Вирівняти за лівим краєм"
+            title="Align left"
           >
             <AlignLeft size={15} />
           </button>
@@ -1350,7 +1350,7 @@ export default function PresentationEditor({
             className={`p-1.5 rounded-lg hover:bg-white/10 text-gray-200 transition-colors cursor-pointer ${
               align === 'center' ? 'bg-white/20 text-white font-bold ring-1 ring-white/30' : ''
             }`}
-            title="По центру"
+            title="Center"
           >
             <AlignCenter size={15} />
           </button>
@@ -1364,7 +1364,7 @@ export default function PresentationEditor({
             className={`p-1.5 rounded-lg hover:bg-white/10 text-gray-200 transition-colors cursor-pointer ${
               align === 'right' ? 'bg-white/20 text-white font-bold ring-1 ring-white/30' : ''
             }`}
-            title="Вирівняти за правим краєм"
+            title="Align right"
           >
             <AlignRight size={15} />
           </button>
@@ -1375,10 +1375,10 @@ export default function PresentationEditor({
               type="button"
               onClick={handleAddParagraph}
               className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-gray-200 text-xs font-medium transition-all cursor-pointer ml-1"
-              title="Додати текстовий пункт"
+              title="Add text bullet"
             >
               <Plus size={13} />
-              <span>Пункт</span>
+              <span>Item</span>
             </button>
           )}
 
@@ -1389,19 +1389,19 @@ export default function PresentationEditor({
                 type="button"
                 onClick={handleAddTableRow}
                 className="flex items-center gap-1 px-2 py-1 rounded bg-blue-600/30 hover:bg-blue-600/50 text-blue-200 text-xs font-medium cursor-pointer"
-                title="Додати рядок таблиці"
+                title="Add table row"
               >
                 <Plus size={12} />
-                <span>+ Рядок</span>
+                <span>+ Row</span>
               </button>
               <button
                 type="button"
                 onClick={handleAddTableCol}
                 className="flex items-center gap-1 px-2 py-1 rounded bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-200 text-xs font-medium cursor-pointer"
-                title="Додати стовпчик таблиці"
+                title="Add table column"
               >
                 <Plus size={12} />
-                <span>+ Стовпчик</span>
+                <span>+ Column</span>
               </button>
             </div>
           )}
@@ -1417,7 +1417,7 @@ export default function PresentationEditor({
                     ? 'bg-orange-500 text-white'
                     : 'text-gray-300 hover:text-white'
                 }`}
-                title="Стовпчаста діаграма"
+                title="Bar chart"
               >
                 <BarChart2 size={13} />
               </button>
@@ -1429,7 +1429,7 @@ export default function PresentationEditor({
                     ? 'bg-orange-500 text-white'
                     : 'text-gray-300 hover:text-white'
                 }`}
-                title="Лінійна діаграма"
+                title="Line chart"
               >
                 <TrendingUp size={13} />
               </button>
@@ -1441,7 +1441,7 @@ export default function PresentationEditor({
                     ? 'bg-orange-500 text-white'
                     : 'text-gray-300 hover:text-white'
                 }`}
-                title="Кругова діаграма"
+                title="Pie chart"
               >
                 <PieIcon size={13} />
               </button>
@@ -1456,10 +1456,10 @@ export default function PresentationEditor({
             type="button"
             onClick={() => setIsPresentationMode(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600/80 hover:bg-indigo-600 text-white text-xs font-semibold shadow-sm transition-all active:scale-95 cursor-pointer border border-indigo-400/30"
-            title="Показ слайдів на весь екран (F5)"
+            title="Fullscreen slideshow (F5)"
           >
             <Monitor size={14} />
-            <span className="hidden sm:inline">Показ слайдів</span>
+            <span className="hidden sm:inline">Slideshow</span>
           </button>
 
           {onSave && (
@@ -1472,7 +1472,7 @@ export default function PresentationEditor({
                   ? 'bg-emerald-600 hover:bg-emerald-500'
                   : 'bg-purple-600 hover:bg-purple-500'
               }`}
-              title="Зберегти презентацію"
+              title="Save presentation"
             >
               {isSaving ? (
                 <Loader2 size={14} className="animate-spin" />
@@ -1481,7 +1481,7 @@ export default function PresentationEditor({
               ) : (
                 <Save size={14} />
               )}
-              <span>{isSavedRecently ? 'Збережено!' : 'Зберегти'}</span>
+              <span>{isSavedRecently ? 'Saved!' : 'Save'}</span>
             </button>
           )}
 
@@ -1491,10 +1491,10 @@ export default function PresentationEditor({
               disabled={isSaving}
               onClick={() => handleExport('send')}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-linear-to-r from-purple-500 to-indigo-500 hover:from-purple-400 hover:to-indigo-400 text-white text-xs font-semibold shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
-              title="Надіслати у чат"
+              title="Send to chat"
             >
               <Send size={13} />
-              <span>Надіслати</span>
+              <span>Send</span>
             </button>
           )}
         </div>
@@ -1504,7 +1504,7 @@ export default function PresentationEditor({
       {isSavedRecently && (
         <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600/95 text-white text-xs font-semibold shadow-2xl backdrop-blur-md animate-fadeIn border border-emerald-400/40">
           <Check size={16} className="text-white" />
-          <span>Презентацію збережено успішно</span>
+          <span>Presentation saved successfully</span>
         </div>
       )}
 
@@ -1541,7 +1541,7 @@ export default function PresentationEditor({
                   {s.slideImageUrl ? (
                     <img
                       src={s.slideImageUrl}
-                      alt={s.title || `Слайд ${idx + 1}`}
+                      alt={s.title || `Slide ${idx + 1}`}
                       className="w-full h-full object-contain pointer-events-none select-none"
                     />
                   ) : (
@@ -1564,13 +1564,13 @@ export default function PresentationEditor({
 
                       <div className="z-10 bg-white/70 backdrop-blur-xs px-1 py-0.5 rounded">
                         <span className="text-[8px] font-bold text-gray-900 block truncate leading-tight">
-                          {s.title || `Слайд ${idx + 1}`}
+                          {s.title || `Slide ${idx + 1}`}
                         </span>
                         <span className="text-[7px] text-gray-600 block truncate">
                           {s.layoutType === 'table'
-                            ? 'Таблиця'
+                            ? 'Table'
                             : s.layoutType === 'chart'
-                              ? 'Діаграма'
+                              ? 'Chart'
                               : s.paragraphs[0] || s.subtitle || ''}
                         </span>
                       </div>
@@ -1610,7 +1610,7 @@ export default function PresentationEditor({
               <div className="relative w-full h-full flex items-center justify-center bg-[#13141c] select-none">
                 <img
                   src={currentSlide.slideImageUrl}
-                  alt={currentSlide.title || `Слайд ${activeSlideIndex + 1}`}
+                  alt={currentSlide.title || `Slide ${activeSlideIndex + 1}`}
                   className="w-full h-full object-contain pointer-events-none select-none rounded-2xl"
                 />
               </div>
@@ -1643,7 +1643,7 @@ export default function PresentationEditor({
                           handleUpdateTitle(val);
                           setIsModified(true);
                         }}
-                        placeholder="Введіть заголовок слайда..."
+                        placeholder="Enter slide title..."
                         className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-gray-900 border-b border-gray-300/60 pb-3 bg-transparent w-full"
                       />
 
@@ -1659,7 +1659,7 @@ export default function PresentationEditor({
                                     handleUpdateParagraph(pIdx, val);
                                     setIsModified(true);
                                   }}
-                                  placeholder="Введіть підзаголовок або текст..."
+                                  placeholder="Enter subtitle or text..."
                                   className="text-base sm:text-lg text-gray-700 leading-relaxed font-normal"
                                 />
                               </div>
@@ -1670,7 +1670,7 @@ export default function PresentationEditor({
                                   setIsModified(true);
                                 }}
                                 className="opacity-0 group-hover/item:opacity-100 p-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/80 shadow-xs transition-all cursor-pointer shrink-0 mt-0.5"
-                                title="Видалити абзац"
+                                title="Delete paragraph"
                               >
                                 <Trash2 size={16} />
                               </button>
@@ -1683,7 +1683,7 @@ export default function PresentationEditor({
                               handleUpdateSubtitle(val);
                               setIsModified(true);
                             }}
-                            placeholder="Введіть підзаголовок..."
+                            placeholder="Enter subtitle..."
                             className="text-lg sm:text-xl text-gray-600 leading-relaxed font-normal"
                           />
                         )}
@@ -1700,7 +1700,7 @@ export default function PresentationEditor({
                           handleUpdateTitle(val);
                           setIsModified(true);
                         }}
-                        placeholder="Введіть заголовок слайда..."
+                        placeholder="Enter slide title..."
                         className="text-2xl sm:text-3xl font-extrabold tracking-tight text-gray-900 border-b border-gray-200/80 pb-2 mb-2 bg-transparent w-full"
                       />
 
@@ -1718,7 +1718,7 @@ export default function PresentationEditor({
                                   handleUpdateParagraph(pIdx, val);
                                   setIsModified(true);
                                 }}
-                                placeholder="Введіть текст..."
+                                placeholder="Enter text..."
                                 className="text-base sm:text-lg text-gray-800 leading-relaxed"
                               />
                             </div>
@@ -1729,7 +1729,7 @@ export default function PresentationEditor({
                                 setIsModified(true);
                               }}
                               className="opacity-0 group-hover/item:opacity-100 p-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/80 shadow-xs transition-all cursor-pointer shrink-0 mt-0.5"
-                              title="Видалити пункт"
+                              title="Delete bullet"
                             >
                               <Trash2 size={16} />
                             </button>
@@ -1748,7 +1748,7 @@ export default function PresentationEditor({
                           handleUpdateTitle(val);
                           setIsModified(true);
                         }}
-                        placeholder="Введіть заголовок таблиці..."
+                        placeholder="Enter table title..."
                         className="text-2xl sm:text-3xl font-extrabold tracking-tight text-gray-900 border-b border-gray-200/80 pb-2 mb-1 bg-transparent w-full"
                       />
 
@@ -1799,7 +1799,7 @@ export default function PresentationEditor({
                                     type="button"
                                     onClick={() => handleDeleteTableRow(rowIdx)}
                                     className="p-1 rounded hover:bg-rose-100 text-rose-500 cursor-pointer"
-                                    title="Видалити рядок"
+                                    title="Delete row"
                                   >
                                     <Trash2 size={12} />
                                   </button>
@@ -1821,7 +1821,7 @@ export default function PresentationEditor({
                           handleUpdateTitle(val);
                           setIsModified(true);
                         }}
-                        placeholder="Введіть заголовок діаграми..."
+                        placeholder="Enter chart title..."
                         className="text-2xl sm:text-3xl font-extrabold tracking-tight text-gray-900 border-b border-gray-200/80 pb-2 mb-1 bg-transparent w-full"
                       />
 
@@ -2046,7 +2046,7 @@ export default function PresentationEditor({
                 onPageChange?.(prev + 1);
               }}
               className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center disabled:opacity-20 transition-all cursor-pointer shadow active:scale-95 z-20"
-              title="Попередній слайд"
+              title="Previous slide"
             >
               <ChevronLeft size={18} />
             </button>
@@ -2059,7 +2059,7 @@ export default function PresentationEditor({
                 onPageChange?.(next + 1);
               }}
               className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center disabled:opacity-20 transition-all cursor-pointer shadow active:scale-95 z-20"
-              title="Наступний слайд"
+              title="Next slide"
             >
               <ChevronRight size={18} />
             </button>
@@ -2067,7 +2067,7 @@ export default function PresentationEditor({
 
           {/* Speaker Notes */}
           <div className="w-full mt-3 p-2.5 bg-[#161722]/80 border border-white/10 rounded-xl text-xs text-gray-400 presentation-stage-footer">
-            <span className="font-semibold text-gray-300 block mb-1">Нотатки до слайда:</span>
+            <span className="font-semibold text-gray-300 block mb-1">Slide Notes:</span>
             <input
               type="text"
               value={currentSlide?.notes || ''}
@@ -2079,14 +2079,14 @@ export default function PresentationEditor({
                   return next;
                 });
               }}
-              placeholder="Додайте нотатки для доповідача..."
+              placeholder="Add presenter notes..."
               className="w-full bg-transparent text-gray-300 placeholder-gray-600 outline-none text-xs"
             />
           </div>
         </div>
       </div>
 
-      {/* 3. Fullscreen Presentation Mode (Показ слайдів) */}
+      {/* 3. Fullscreen Presentation Mode (Slideshow) */}
       {isPresentationMode && (
         <div className="fixed inset-0 z-50 bg-[#090a10] flex flex-col items-center justify-center p-4 sm:p-10 select-none animate-fadeIn">
           {/* Main Slide Canvas in Presentation Mode */}
@@ -2111,7 +2111,7 @@ export default function PresentationEditor({
               <div className="relative w-full h-full flex items-center justify-center bg-black/40 select-none">
                 <img
                   src={currentSlide.slideImageUrl}
-                  alt={currentSlide.title || `Слайд ${activeSlideIndex + 1}`}
+                  alt={currentSlide.title || `Slide ${activeSlideIndex + 1}`}
                   className="w-full h-full object-contain pointer-events-none select-none rounded-2xl"
                 />
               </div>
@@ -2281,7 +2281,7 @@ export default function PresentationEditor({
             )}
 
             <div className="absolute right-6 bottom-4 text-xs font-bold text-gray-500 bg-white/80 px-2.5 py-1 rounded-md">
-              Слайд {activeSlideIndex + 1} з {slides.length}
+              Slide {activeSlideIndex + 1} of {slides.length}
             </div>
           </div>
 
@@ -2301,7 +2301,7 @@ export default function PresentationEditor({
                 onPageChange?.(prev + 1);
               }}
               className="p-1.5 rounded-full hover:bg-white/20 text-white disabled:opacity-30 cursor-pointer"
-              title="Попередній (Arrow Left)"
+              title="Previous (Arrow Left)"
             >
               <ChevronLeft size={18} />
             </button>
@@ -2319,7 +2319,7 @@ export default function PresentationEditor({
                 onPageChange?.(next + 1);
               }}
               className="p-1.5 rounded-full hover:bg-white/20 text-white disabled:opacity-30 cursor-pointer"
-              title="Наступний (Arrow Right / Space)"
+              title="Next (Arrow Right / Space)"
             >
               <ChevronRight size={18} />
             </button>
@@ -2330,10 +2330,10 @@ export default function PresentationEditor({
               type="button"
               onClick={() => setIsPresentationMode(false)}
               className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-600/80 hover:bg-rose-500 text-white text-xs font-medium cursor-pointer"
-              title="Вийти з показу (Escape)"
+              title="Exit slideshow (Escape)"
             >
               <X size={14} />
-              <span>Закрити</span>
+              <span>Close</span>
             </button>
           </div>
         </div>
@@ -2353,12 +2353,12 @@ export default function PresentationEditor({
           >
             {/* Header */}
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <h3 className="text-sm font-bold text-gray-100">Спеціальні кольори</h3>
+              <h3 className="text-sm font-bold text-gray-100">Custom Colors</h3>
               <button
                 type="button"
                 onClick={() => setIsCustomColorModalOpen(false)}
                 className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
-                title="Закрити"
+                title="Close"
               >
                 <X size={16} />
               </button>
@@ -2443,7 +2443,7 @@ export default function PresentationEditor({
             {/* Hex & RGB inputs */}
             <div className="grid grid-cols-4 gap-2 text-xs">
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] text-gray-400 font-medium">Шістнадцятковий</label>
+                <label className="text-[10px] text-gray-400 font-medium">Hex</label>
                 <input
                   type="text"
                   value={customHex}
@@ -2460,7 +2460,7 @@ export default function PresentationEditor({
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] text-gray-400 font-medium">Червоний</label>
+                <label className="text-[10px] text-gray-400 font-medium">Red</label>
                 <input
                   type="number"
                   min="0"
@@ -2476,7 +2476,7 @@ export default function PresentationEditor({
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] text-gray-400 font-medium">Зелений</label>
+                <label className="text-[10px] text-gray-400 font-medium">Green</label>
                 <input
                   type="number"
                   min="0"
@@ -2492,7 +2492,7 @@ export default function PresentationEditor({
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] text-gray-400 font-medium">Синій</label>
+                <label className="text-[10px] text-gray-400 font-medium">Blue</label>
                 <input
                   type="number"
                   min="0"
@@ -2516,14 +2516,14 @@ export default function PresentationEditor({
                 onClick={() => setIsCustomColorModalOpen(false)}
                 className="px-4 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-gray-200 transition-colors cursor-pointer"
               >
-                Скасувати
+                Cancel
               </button>
               <button
                 type="button"
                 onClick={() => handleApplyColor(`#${customHex}`)}
                 className="px-5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white shadow-lg shadow-blue-600/30 transition-all cursor-pointer"
               >
-                ОК
+                OK
               </button>
             </div>
           </div>
@@ -2541,7 +2541,7 @@ export default function PresentationEditor({
             {s.slideImageUrl ? (
               <img
                 src={s.slideImageUrl}
-                alt={s.title || `Слайд ${idx + 1}`}
+                alt={s.title || `Slide ${idx + 1}`}
                 className="max-w-[100vw] max-h-[100vh] w-auto h-auto object-contain"
               />
             ) : (

@@ -43,9 +43,7 @@ describe('SpreadsheetEditor', () => {
 
     expect(screen.getByText('B2')).toBeInTheDocument();
 
-    const formulaInput = screen.getByPlaceholderText(
-      'Введіть значення ячейки...',
-    ) as HTMLInputElement;
+    const formulaInput = screen.getByPlaceholderText('Enter cell value...') as HTMLInputElement;
     expect(formulaInput.value).toBe('Alice');
   });
 
@@ -80,7 +78,7 @@ describe('SpreadsheetEditor', () => {
     fireEvent.mouseUp(window);
 
     // Click Bold button in toolbar
-    const boldBtn = screen.getByTitle(/Жирний/i);
+    const boldBtn = screen.getByTitle(/Bold/i);
     fireEvent.click(boldBtn);
 
     // Both Alice and 88 cells should now have font-weight bold
@@ -111,7 +109,7 @@ describe('SpreadsheetEditor', () => {
     render(<SpreadsheetEditor initialSheets={mockSheets} fileName="scores.xlsx" />);
 
     // Click column B header
-    const colBHeader = screen.getByTitle(/Стовпець B/i);
+    const colBHeader = screen.getByTitle(/Column B/i);
     fireEvent.click(colBHeader);
 
     // Column B header should have highlighted class

@@ -208,7 +208,7 @@ export function ShopNavbar({
             aria-hidden="true"
           />
           <input
-            aria-label="Поиск рамок"
+            aria-label="Search the Shop"
             placeholder="Search the Shop"
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}

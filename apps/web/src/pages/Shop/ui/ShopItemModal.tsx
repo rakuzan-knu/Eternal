@@ -477,7 +477,7 @@ export function ShopItemModal({
                   type="button"
                   disabled={!owned || pending}
                   onClick={onEquip}
-                  aria-label="Продажи пока закрыты"
+                  aria-label="Sales closed for now"
                   className="flex-1 py-3 px-4 rounded-xl font-bold text-sm text-white bg-[#8b5cf6] hover:bg-[#7c3aed] active:scale-[0.98] shadow-lg shadow-purple-500/25 transition-all text-center truncate cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {pending ? 'Saving…' : `Buy for ${priceFormatted}`}
@@ -500,7 +500,7 @@ export function ShopItemModal({
                   type="button"
                   disabled={pending}
                   onClick={onEquip}
-                  aria-label={active ? 'Снять рамку' : 'Применить рамку'}
+                  aria-label={active ? 'Unequip frame' : 'Equip frame'}
                   className={
                     'flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all text-center flex items-center justify-center gap-2 cursor-pointer ' +
                     (active

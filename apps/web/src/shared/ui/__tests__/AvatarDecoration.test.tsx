@@ -159,7 +159,7 @@ describe('Avatar decoration playback', () => {
     expect(
       (container.firstElementChild as HTMLElement).style.getPropertyValue('--avatar-size'),
     ).toBe(pixels + 'px');
-    expect(screen.getByRole('img', { name: 'Статус: dnd' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Status: dnd' })).toBeInTheDocument();
   });
   it('destroys Lottie rendering offscreen and never mounts it with reduced motion', async () => {
     const { container } = render(

@@ -103,12 +103,7 @@ export function getTelegramPeerColor(senderKey?: string | null): TelegramPeerCol
 
   const lower = senderKey.toLowerCase();
   if (lower.includes('ayate')) return TELEGRAM_PALETTE[0];
-  if (
-    lower.includes('артем') ||
-    lower.includes('миша') ||
-    lower.includes('artem') ||
-    lower.includes('misha')
-  ) {
+  if (lower.includes('artem') || lower.includes('misha')) {
     return TELEGRAM_PALETTE[1];
   }
 

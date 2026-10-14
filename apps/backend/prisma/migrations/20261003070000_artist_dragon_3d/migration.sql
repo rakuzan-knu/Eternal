@@ -5,6 +5,6 @@ SET asset_type = 'animated_webp',
     asset_url = '/Profile-decorations/Avatar-decorations/' || slug || '.webp?v=5',
     preview_url = '/Profile-decorations/Avatar-decorations/' || slug || '.preview.webp?v=5',
     render_scale = 1.43,
-    description = 'Объёмный дракон с выразительным лицом пролетает через аватар, наклоняет тело и реагирует хвостом и усами на инерцию. Резная китайская рамка неподвижна. Между полётами — 5 секунд.'
+    description = ''
 WHERE slug IN ('dragon-black','dragon-blue','dragon-gold','dragon-silver',
                'dragon-red','dragon-green','dragon-purple');

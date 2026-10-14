@@ -41,18 +41,16 @@ export function ProfileFrameShopSection() {
     <>
       <div className="mb-8 flex flex-wrap items-end justify-between gap-5">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Рамки профиля</h1>
-          <p className="mt-2 text-sm opacity-70">
-            Декоративные рамки вокруг карточки вашего профиля.
-          </p>
-          <p className="mt-2 text-sm opacity-60">$1.99 за украшение · Продажи пока закрыты</p>
+          <h1 className="text-3xl font-bold tracking-tight">Profile Frames</h1>
+          <p className="mt-2 text-sm opacity-70">Decorative frames around your profile card.</p>
+          <p className="mt-2 text-sm opacity-60">$1.99 per item · Sales closed for now</p>
         </div>
         <label className="flex items-center gap-2 rounded-xl border border-white/15 px-3 py-2">
           <Search size={17} aria-hidden="true" />
           <input
             ref={input}
-            aria-label="Поиск рамок профиля"
-            placeholder="Найти рамку"
+            aria-label="Search profile frames"
+            placeholder="Find frame"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="bg-transparent outline-none w-40 text-sm"
@@ -60,7 +58,7 @@ export function ProfileFrameShopSection() {
           {search && (
             <button
               type="button"
-              aria-label="Очистить поиск рамок"
+              aria-label="Clear frame search"
               className={focus + ' rounded p-1 hover:bg-white/10'}
               onClick={() => {
                 setSearch('');
@@ -72,32 +70,32 @@ export function ProfileFrameShopSection() {
           )}
         </label>
       </div>
-      {catalog.isPending && <p role="status">Загружаем рамки…</p>}
+      {catalog.isPending && <p role="status">Loading frames…</p>}
       {catalog.isError && (
         <div role="alert">
-          <p>Не удалось загрузить рамки.</p>
+          <p>Failed to load frames.</p>
           <button className={focus + ' mt-3 underline'} onClick={() => void catalog.refetch()}>
-            Повторить
+            Retry
           </button>
         </div>
       )}
       {inventory.isError && (
         <div role="alert" className="mb-4 text-sm">
-          <p>Не удалось проверить вашу коллекцию.</p>
+          <p>Failed to verify your collection.</p>
           <button className={focus + ' underline'} onClick={() => void inventory.refetch()}>
-            Повторить загрузку коллекции
+            Retry loading collection
           </button>
         </div>
       )}
       {!catalog.isPending && !catalog.isError && !items.length && (
-        <p role="status">Рамки не найдены.</p>
+        <p role="status">No frames found.</p>
       )}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
         {items.map((item) => (
           <button
             key={item.id}
             type="button"
-            aria-label={`Открыть рамку ${item.name}`}
+            aria-label={`Open ${item.name} frame`}
             onClick={(event) => {
               opener.current = event.currentTarget;
               select(item);
@@ -119,9 +117,9 @@ export function ProfileFrameShopSection() {
             <div className="flex items-center justify-between gap-2 mt-5">
               <h2 className="font-bold text-lg">{item.name}</h2>
               {inventory.data?.activeProfileFrameId === item.id ? (
-                <Check size={18} aria-label="Применено" />
+                <Check size={18} aria-label="Equipped" />
               ) : owns(item.id) ? (
-                <span className="text-xs opacity-60">В коллекции</span>
+                <span className="text-xs opacity-60">Owned</span>
               ) : null}
             </div>
             <p className="font-semibold mt-5">{price(item.priceCents)}</p>
@@ -175,7 +173,7 @@ function ProfileFrameDialog({
       titleId="profile-frame-title"
       opener={opener}
       onClose={onClose}
-      closeLabel="Закрыть рамку"
+      closeLabel="Close frame"
     >
       <div className="grid gap-6 sm:grid-cols-[220px_minmax(0,1fr)] items-center">
         <div className="w-[180px] sm:w-full mx-auto">
@@ -188,7 +186,6 @@ function ProfileFrameDialog({
           />
         </div>
         <div className="min-w-0">
-          <p className="text-sm leading-relaxed opacity-70 mt-5">{item.description}</p>
           <p className="mt-5 text-lg font-bold">{price(item.priceCents)}</p>
           <button
             type="button"
@@ -201,18 +198,18 @@ function ProfileFrameDialog({
             }
           >
             {pending
-              ? 'Сохраняем…'
+              ? 'Saving…'
               : owned
                 ? active
-                  ? 'Снять рамку'
-                  : 'Применить рамку'
-                : 'Продажи пока закрыты'}
+                  ? 'Unequip frame'
+                  : 'Equip frame'
+                : 'Sales closed for now'}
           </button>
           <div className="min-h-6 mt-3 text-sm">
             {error ? (
-              <p role="alert">Не удалось сохранить. Повторите попытку.</p>
+              <p role="alert">Failed to save. Please try again.</p>
             ) : saved ? (
-              <p role="status">{active ? 'Рамка применена.' : 'Рамка снята.'}</p>
+              <p role="status">{active ? 'Frame equipped.' : 'Frame unequipped.'}</p>
             ) : null}
           </div>
         </div>
