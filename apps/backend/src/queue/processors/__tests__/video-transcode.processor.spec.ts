@@ -99,7 +99,7 @@ describe('VideoTranscodeProcessor source contract', () => {
         videoUrl: 'https://example.com/clip.mp4',
         sourceStorageKey: 'reels/clip.mp4',
       }),
-    ).rejects.toThrow('Video source exceeds 150MB limit');
+    ).rejects.toThrow('Video source exceeds 20MiB limit');
     expect(body.destroyed).toBe(true);
     expect(fs.writeFile).not.toHaveBeenCalled();
   });
@@ -113,7 +113,7 @@ describe('VideoTranscodeProcessor source contract', () => {
         videoUrl: 'https://example.com/clip.mp4',
         sourceStorageKey: 'reels/clip.mp4',
       }),
-    ).rejects.toThrow('Video source exceeds 150MB limit');
+    ).rejects.toThrow('Video source exceeds 20MiB limit');
     expect(body.destroyed).toBe(true);
     expect(fs.writeFile).not.toHaveBeenCalled();
   });

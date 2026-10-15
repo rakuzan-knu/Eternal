@@ -135,6 +135,22 @@ describe('PostsService', () => {
       mockRedis as unknown as RedisService,
       mockGateway as unknown as MessengerGateway,
     );
+    Object.assign(service, {
+      directUploads: {
+        assertLegacyAllowed: jest.fn(),
+        assertOwnedUrl: jest.fn().mockResolvedValue(undefined),
+        resolve: jest.fn().mockResolvedValue({
+          uploadId: 'completed-id',
+          url: 'https://example.com/source.mp4',
+          contentType: 'video/mp4',
+          sizeBytes: 100,
+          kind: 'VIDEO',
+          duration: 5,
+          width: 640,
+          height: 360,
+        }),
+      },
+    });
   });
 
   describe('getAllPosts & getPostById', () => {
@@ -185,7 +201,7 @@ describe('PostsService', () => {
       const dto = {
         content: 'Check this out @sam_dev #coding',
         media: [{ type: MediaType.IMAGE, url: 'https://cdn.com/img.png', order: 0 }],
-        gifUrls: ['https://cdn.com/a.gif'],
+        gifUrls: ['https://media.tenor.com/a.gif'],
         poll: ['Option A', 'Option B'],
       };
 

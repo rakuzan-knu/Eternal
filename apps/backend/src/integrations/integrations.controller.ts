@@ -14,6 +14,9 @@ import {
   UnauthorizedException,
   NotFoundException,
   BadRequestException,
+  ValidationPipe,
+  Headers,
+  Header,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import type { FastifyAdapter } from '@nestjs/platform-fastify';
@@ -28,6 +31,9 @@ import { SpotifyService } from './spotify.service';
 import { SoundCloudService } from './soundcloud.service';
 import { PrismaService } from '@common/prisma';
 import { isSupportedPlatform, assignPlatformData } from './platform.utils';
+import { SteamAuthStartDto, SteamAuthLaunchDto } from './dto/steam-auth.dto';
+import { STEAM_AUTH_COOKIE } from './steam-auth.service';
+import { steamAccountPreferences } from './steam-account';
 
 type FastifyReply = ReturnType<FastifyAdapter['reply']>;
 
@@ -320,6 +326,9 @@ export class IntegrationsController {
     if (!result?.streamUrl) {
       return res.status(404).send({ error: 'Stream not found' });
     }
+    if (process.env.SOUNDCLOUD_AUDIO_PROXY_ENABLED !== 'true') {
+      return res.status(302).redirect(result.streamUrl);
+    }
 
     try {
       const headers: Record<string, string> = {
@@ -373,9 +382,53 @@ export class IntegrationsController {
   }
 
   @Get('steam/auth')
-  redirectToSteam(@Query('userId') userId: string, @Req() req: Request, @Res() res: Response) {
-    const url = this.integrationsService.getSteamAuthUrl(userId, req);
-    return res.status(302).redirect(url);
+  redirectToSteam(): never {
+    throw new UnauthorizedException('Start Steam authentication with an authenticated POST');
+  }
+
+  @Post('steam/auth')
+  @UseGuards(AuthGuard)
+  @Header('Cache-Control', 'no-store')
+  startSteamAuth(
+    @CurrentUser() user: RequestUser,
+    @Body(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+    body: SteamAuthStartDto,
+  ) {
+    return this.integrationsService.getSteamAuthUrl(user.id, body.origin);
+  }
+
+  @Get('steam/launch')
+  steamLaunchPage(@Res() res: FastifyReply): FastifyReply {
+    return res
+      .header('Cache-Control', 'no-store')
+      .header('Referrer-Policy', 'no-referrer')
+      .header('Cross-Origin-Opener-Policy', 'unsafe-none')
+      .type('text/html; charset=utf-8')
+      .send(this.integrationsService.getSteamLaunchPage());
+  }
+
+  @Post('steam/launch')
+  async launchSteamAuth(
+    @Body(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+    body: SteamAuthLaunchDto,
+    @Res({ passthrough: true }) res: FastifyReply,
+    @Headers('origin') requestOrigin?: string,
+  ) {
+    const result = await this.integrationsService.launchSteamAuth(
+      body.ticket,
+      body.proof,
+      body.origin,
+      requestOrigin,
+    );
+    res.setCookie(STEAM_AUTH_COOKIE, result.browserProof, {
+      httpOnly: true,
+      secure: result.secure,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 600,
+    });
+    res.header('Cache-Control', 'no-store');
+    return { url: result.url };
   }
 
   // --- Music Hub: User Personal Liked Tracks (Persisted in PostgreSQL) ---
@@ -955,8 +1008,22 @@ export class IntegrationsController {
   }
 
   @Get('steam/callback')
-  async handleSteamCallback(@Query() query: Record<string, any>, @Res() res: Response) {
-    return this.integrationsService.handleSteamCallback(query, res);
+  async handleSteamCallback(
+    @Query() query: Record<string, unknown>,
+    @Req() req: { url: string; cookies?: Record<string, unknown> },
+    @Res() res: FastifyReply,
+  ) {
+    res.clearCookie(STEAM_AUTH_COOKIE, { path: '/' });
+    res
+      .header('Cache-Control', 'no-store')
+      .header('Referrer-Policy', 'no-referrer')
+      .header('Cross-Origin-Opener-Policy', 'unsafe-none');
+    const html = await this.integrationsService.handleSteamCallback(
+      query,
+      req.cookies?.[STEAM_AUTH_COOKIE],
+      req.url.split('?')[0] || '',
+    );
+    return res.type('text/html; charset=utf-8').send(html);
   }
 
   @Get(':platform/auth')
@@ -1043,12 +1110,13 @@ export class IntegrationsController {
       throw new BadRequestException('Unsupported or invalid platform');
     }
 
-    const data =
-      body.details ||
-      (await this.integrationsService.getPlatformData(platform, body.handle, body.options));
-
     const showcase = await this.showcaseService.getShowcase(user.username, user.id);
     const existingConnected = (showcase?.connectedAccounts as Record<string, any>) || {};
+    const data =
+      platform.trim().toLowerCase() === 'steam'
+        ? steamAccountPreferences(existingConnected.steam, body.details || {})
+        : body.details ||
+          (await this.integrationsService.getPlatformData(platform, body.handle, body.options));
 
     const updatedConnected = assignPlatformData(existingConnected, platform, data);
 

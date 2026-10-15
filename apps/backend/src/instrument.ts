@@ -1,3 +1,4 @@
+import { redactRequestUrl } from './common/utils/redact-url.util';
 import { EventEmitter } from 'node:events';
 import * as Sentry from '@sentry/nestjs';
 import * as dotenv from 'dotenv';
@@ -32,6 +33,12 @@ Sentry.init({
       : 1.0,
 
   beforeSend(event) {
+    if (event.request) {
+      if (event.request.url?.includes('/integrations/steam')) event.request.data = '[REDACTED]';
+      if (event.request.url) event.request.url = redactRequestUrl(event.request.url);
+      delete event.request.query_string;
+      delete event.request.cookies;
+    }
     if (event.request?.headers) {
       delete event.request.headers['authorization'];
       delete event.request.headers['cookie'];
@@ -39,5 +46,18 @@ Sentry.init({
     return event;
   },
 
+  beforeSendTransaction(event) {
+    if (event.request) {
+      if (event.request.url?.includes('/integrations/steam')) event.request.data = '[REDACTED]';
+      if (event.request.url) event.request.url = redactRequestUrl(event.request.url);
+      delete event.request.query_string;
+      delete event.request.cookies;
+      if (event.request.headers) {
+        delete event.request.headers.authorization;
+        delete event.request.headers.cookie;
+      }
+    }
+    return event;
+  },
   enabled: process.env.NODE_ENV !== 'test',
 });

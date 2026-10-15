@@ -100,10 +100,26 @@ export const ConfigureIntegrationModal: React.FC<ConfigureIntegrationModalProps>
   const [selectedSpotifyPlaylists, setSelectedSpotifyPlaylists] = useState<string[]>([]);
   const [activeData, setActiveData] = useState<Record<string, any> | null>(null);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [oauthError, setOAuthError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showUnlinkConfirm, setShowUnlinkConfirm] = useState(false);
   const [isCustomizingStats, setIsCustomizingStats] = useState(false);
   const popupRef = React.useRef<Window | null>(null);
+  const oauthTimerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
+  const oauthAbortRef = useRef<AbortController | null>(null);
+  const steamLaunchProofRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    setIsAuthenticating(false);
+    setOAuthError(null);
+    return () => {
+      clearInterval(oauthTimerRef.current);
+      oauthAbortRef.current?.abort();
+      popupRef.current?.close();
+      popupRef.current = null;
+      steamLaunchProofRef.current = null;
+    };
+  }, [isOpen, platform?.id]);
 
   // Twitch, YouTube, Roblox settings
   const [showLiveStatus, setShowLiveStatus] = useState<boolean>(true);
@@ -395,12 +411,29 @@ export const ConfigureIntegrationModal: React.FC<ConfigureIntegrationModalProps>
   // Listen for OAuth completion popup postMessage & real-time cache refresh
   useEffect(() => {
     const handleAuthMessage = async (event: MessageEvent) => {
-      if (!isTrustedMessageOrigin(event.origin)) return;
       if (!platform) return;
+      if (platform.id === 'steam') {
+        const musicOrigin = new URL(getApiUrl('/integrations/steam/auth'), window.location.origin)
+          .origin;
+        if (event.origin !== musicOrigin || !popupRef.current || event.source !== popupRef.current)
+          return;
+        if (event.data?.type === 'STEAM_LAUNCH_REQUEST') {
+          if (steamLaunchProofRef.current)
+            popupRef.current.postMessage(
+              { type: 'STEAM_LAUNCH_PROOF', proof: steamLaunchProofRef.current },
+              musicOrigin,
+            );
+          return;
+        }
+      } else if (!isTrustedMessageOrigin(event.origin)) return;
       const authPlatform = (event.data?.platform || '').toLowerCase();
       if (authPlatform !== platform.id.toLowerCase()) return;
 
-      if (event.data?.type === 'OAUTH_CODE_RECEIVED' && event.data?.code) {
+      if (
+        platform.id !== 'steam' &&
+        event.data?.type === 'OAUTH_CODE_RECEIVED' &&
+        event.data?.code
+      ) {
         setIsAuthenticating(true);
         try {
           const exchangeRes = await integrationsApi.exchangeCode(authPlatform, {
@@ -428,6 +461,8 @@ export const ConfigureIntegrationModal: React.FC<ConfigureIntegrationModalProps>
       }
 
       if (event.data?.type === 'INTEGRATION_AUTH_SUCCESS') {
+        steamLaunchProofRef.current = null;
+        clearInterval(oauthTimerRef.current);
         setIsAuthenticating(false);
         try {
           if (popupRef.current && !popupRef.current.closed) {
@@ -502,8 +537,10 @@ export const ConfigureIntegrationModal: React.FC<ConfigureIntegrationModalProps>
     });
   };
 
-  const handleStartOAuth = () => {
+  const handleStartOAuth = async () => {
+    if (isAuthenticating) return;
     setIsAuthenticating(true);
+    setOAuthError(null);
     const currentOrigin = window.location.origin;
     const targetUrl = getApiUrl(
       `/integrations/${platform.id}/auth?userId=${encodeURIComponent(currentUser?.id || '')}&origin=${encodeURIComponent(currentOrigin)}`,
@@ -515,20 +552,58 @@ export const ConfigureIntegrationModal: React.FC<ConfigureIntegrationModalProps>
     const top = window.screenY + (window.outerHeight - height) / 2;
 
     const popup = window.open(
-      targetUrl,
+      platform.id === 'steam' ? 'about:blank' : targetUrl,
       `${platform.id}_oauth_window`,
       `width=${width},height=${height},left=${left},top=${top},status=no,resizable=yes,scrollbars=yes`,
     );
     popupRef.current = popup;
+    if (!popup) {
+      setIsAuthenticating(false);
+      setOAuthError('Allow popups to connect your account, then try again.');
+      return;
+    }
 
-    const timer = setInterval(() => {
-      if (!popup || popup.closed) {
-        clearInterval(timer);
+    oauthTimerRef.current = setInterval(() => {
+      if (popup.closed) {
+        clearInterval(oauthTimerRef.current);
+        oauthAbortRef.current?.abort();
         setIsAuthenticating(false);
         queryClient.invalidateQueries({ queryKey: ['showcase'] });
         queryClient.invalidateQueries({ queryKey: [USER_KEY] });
       }
     }, 1000);
+
+    if (platform.id === 'steam') {
+      const abort = new AbortController();
+      oauthAbortRef.current = abort;
+      try {
+        const result = await integrationsApi.startSteamAuth(currentOrigin, abort.signal);
+        if (abort.signal.aborted || popup.closed) return;
+        const launch = new URL(result.url);
+        const expected = new URL(getApiUrl('/integrations/steam/launch'), currentOrigin);
+        if (
+          launch.origin !== expected.origin ||
+          launch.pathname !== expected.pathname ||
+          launch.search ||
+          launch.username ||
+          launch.password ||
+          !/^#[a-f0-9]{64}$/.test(launch.hash) ||
+          !/^[a-f0-9]{64}$/.test(result.launchProof)
+        )
+          throw new Error('Invalid Steam launch');
+        steamLaunchProofRef.current = result.launchProof;
+        popup.location.replace(launch.href);
+      } catch {
+        if (!abort.signal.aborted) {
+          setIsAuthenticating(false);
+          setOAuthError('Could not start Steam authentication. Close the popup and try again.');
+        }
+        clearInterval(oauthTimerRef.current);
+        popup.close();
+        popupRef.current = null;
+        steamLaunchProofRef.current = null;
+      }
+    }
   };
 
   const handleUnlink = async () => {
@@ -837,6 +912,11 @@ export const ConfigureIntegrationModal: React.FC<ConfigureIntegrationModalProps>
                     </>
                   )}
                 </button>
+                {oauthError && (
+                  <p role="alert" className="text-xs text-red-400">
+                    {oauthError}
+                  </p>
+                )}
 
                 {/* Developer Policy & Compliance Disclaimers */}
                 <div className="text-[10px] text-gray-400/80 leading-relaxed border-t border-white/[0.06] pt-3 mt-1 w-full text-left flex flex-col gap-1.5">

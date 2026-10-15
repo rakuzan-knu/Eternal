@@ -14,6 +14,7 @@ describe('StoriesRetentionService', () => {
         .mockResolvedValue([
           { id: 'expired-1', mediaUrl: 'https://example.com/stories/file-1.jpg' },
         ]),
+      isMediaReferenced: jest.fn().mockResolvedValue(false),
       deleteExpiredStories: jest.fn().mockResolvedValue(1),
     };
 

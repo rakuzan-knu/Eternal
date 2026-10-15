@@ -1,6 +1,7 @@
 import { apiClient as api } from '@/shared/api/httpClient';
 import { CommentType } from '../model/types';
 import { formatRelativeTime } from '@/shared/lib/formatRelativeTime';
+import { prepareDirectUploadForm } from '@shared/api-client';
 
 export interface CommentListPage {
   comments: CommentType[];
@@ -163,7 +164,8 @@ export const commentsApi = {
   uploadMedia: async (file: File, signal?: AbortSignal): Promise<{ url: string }> => {
     const formData = new FormData();
     formData.append('file', file);
-    const res = await api.post<{ url: string }>('/comments/media', formData, {
+    const body = await prepareDirectUploadForm(api, formData, 'comment', { signal });
+    const res = await api.post<{ url: string }>('/comments/media', body, {
       headers: { 'Content-Type': 'multipart/form-data' },
       ...(signal ? { signal } : {}),
     });

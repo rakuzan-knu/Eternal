@@ -13,8 +13,9 @@ import { generateBlurHash } from '../../common/media/image-processor';
 import { PrismaService } from '@common/prisma';
 import { REELS_S3_CLIENT } from '../../reels/s3-provider';
 import { runsBackground } from '../../config/service-role';
+import { MEDIA_POLICY } from '../../common/media/media-policy';
 
-export const MAX_VIDEO_SOURCE_BYTES = 150 * 1024 * 1024;
+export const MAX_VIDEO_SOURCE_BYTES = MEDIA_POLICY.maxVideoBytes;
 
 export interface VideoHlsTranscodeJobData {
   reelId?: string;
@@ -54,7 +55,11 @@ export class VideoTranscodeProcessor implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit(): void {
-    if (!runsBackground('reels')) return;
+    if (
+      !runsBackground('reels') ||
+      this.configService.get<string>('VIDEO_TRANSCODE_ENABLED') !== 'true'
+    )
+      return;
     const redisUrl = this.configService.get<string>('REDIS_URL');
     if (
       !redisUrl ||
@@ -79,7 +84,7 @@ export class VideoTranscodeProcessor implements OnModuleInit, OnModuleDestroy {
         },
         {
           connection: this.connection,
-          concurrency: 2,
+          concurrency: 1,
           skipVersionCheck: true,
         },
       );
@@ -166,11 +171,11 @@ export class VideoTranscodeProcessor implements OnModuleInit, OnModuleDestroy {
     if (!data.sourceStorageKey) {
       const encoded = data.sourceBufferBase64;
       if (!encoded || encoded.length > 4 * Math.ceil(MAX_VIDEO_SOURCE_BYTES / 3)) {
-        throw new Error('Video source exceeds 150MB limit or is missing');
+        throw new Error('Video source exceeds 20MiB limit or is missing');
       }
       const buffer = Buffer.from(encoded, 'base64');
       if (buffer.length > MAX_VIDEO_SOURCE_BYTES) {
-        throw new Error('Video source exceeds 150MB limit');
+        throw new Error('Video source exceeds 20MiB limit');
       }
       return buffer;
     }
@@ -192,7 +197,7 @@ export class VideoTranscodeProcessor implements OnModuleInit, OnModuleDestroy {
     }
     if (response.ContentLength !== undefined && response.ContentLength > MAX_VIDEO_SOURCE_BYTES) {
       body.destroy();
-      throw new Error('Video source exceeds 150MB limit');
+      throw new Error('Video source exceeds 20MiB limit');
     }
     const timer = setTimeout(() => body.destroy(new Error('Video source read timed out')), 30_000);
     const chunks: Buffer[] = [];
@@ -201,7 +206,7 @@ export class VideoTranscodeProcessor implements OnModuleInit, OnModuleDestroy {
       for await (const chunk of body) {
         if (!Buffer.isBuffer(chunk)) throw new Error('Invalid video source stream');
         size += chunk.length;
-        if (size > MAX_VIDEO_SOURCE_BYTES) throw new Error('Video source exceeds 150MB limit');
+        if (size > MAX_VIDEO_SOURCE_BYTES) throw new Error('Video source exceeds 20MiB limit');
         chunks.push(chunk);
       }
       if (size === 0) throw new Error('Video source is empty');
@@ -231,7 +236,7 @@ export class VideoTranscodeProcessor implements OnModuleInit, OnModuleDestroy {
 
   private async checkFfmpegAvailable(): Promise<boolean> {
     return new Promise((resolve) => {
-      const proc = spawn('ffmpeg', ['-version']);
+      const proc = spawn('ffmpeg', ['-version'], { timeout: 3_000 });
       proc.on('error', () => resolve(false));
       proc.on('close', (code) => resolve(code === 0));
     });
@@ -254,15 +259,23 @@ export class VideoTranscodeProcessor implements OnModuleInit, OnModuleDestroy {
 
     // Extract first frame for thumbnail and blurhash
     await new Promise<void>((resolve) => {
-      const proc = spawn('ffmpeg', [
-        '-i',
-        inputPath,
-        '-ss',
-        '00:00:00.500',
-        '-vframes',
-        '1',
-        thumbPath,
-      ]);
+      const proc = spawn(
+        'ffmpeg',
+        [
+          '-threads',
+          '1',
+          '-filter_threads',
+          '1',
+          '-i',
+          inputPath,
+          '-ss',
+          '00:00:00.500',
+          '-vframes',
+          '1',
+          thumbPath,
+        ],
+        { timeout: 15_000 },
+      );
       proc.on('close', () => resolve());
       proc.on('error', () => resolve());
     });

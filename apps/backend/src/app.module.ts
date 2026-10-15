@@ -1,3 +1,5 @@
+import { DirectUploadsModule } from './common/media/direct-uploads.module';
+import { redactRequestUrl } from './common/utils/redact-url.util';
 import { Module, ValidationPipe } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -102,10 +104,10 @@ import type { MiddlewareConsumer, NestModule } from '@nestjs/common';
               res: ServerResponse,
               responseTime: number,
             ) => {
-              return `${req.method || 'GET'} ${req.url || '/'} -> ${res.statusCode} (${Math.round(responseTime)}ms)`;
+              return `${req.method || 'GET'} ${redactRequestUrl(req.url)} -> ${res.statusCode} (${Math.round(responseTime)}ms)`;
             },
             customErrorMessage: (req: IncomingMessage, res: ServerResponse, error: Error) => {
-              return `${req.method || 'GET'} ${req.url || '/'} -> ${res.statusCode} (${error.message})`;
+              return `${req.method || 'GET'} ${redactRequestUrl(req.url)} -> ${res.statusCode} (${error.message})`;
             },
             genReqId: (req: IncomingMessage) => {
               const headerVal =
@@ -140,7 +142,7 @@ import type { MiddlewareConsumer, NestModule } from '@nestjs/common';
               req: (req: IncomingMessage & { id?: string }) => ({
                 id: req.id,
                 method: req.method,
-                url: req.url,
+                url: redactRequestUrl(req.url),
                 ...(isProduction
                   ? {
                       headers: {
@@ -221,6 +223,7 @@ import type { MiddlewareConsumer, NestModule } from '@nestjs/common';
     }),
     ScheduleModule.forRoot(),
     StorageModule,
+    DirectUploadsModule,
     MetricsModule,
     PrismaModule,
     DataLoaderModule,

@@ -105,6 +105,22 @@ describe('CommentsService', () => {
       mockRedis as unknown as RedisService,
       mockEventEmitter as unknown as EventEmitter2,
     );
+    Object.assign(service, {
+      directUploads: {
+        assertLegacyAllowed: jest.fn(),
+        assertOwnedUrl: jest.fn().mockResolvedValue(undefined),
+        resolve: jest.fn().mockResolvedValue({
+          uploadId: 'completed-id',
+          url: 'https://example.com/source.mp4',
+          contentType: 'video/mp4',
+          sizeBytes: 100,
+          kind: 'VIDEO',
+          duration: 5,
+          width: 640,
+          height: 360,
+        }),
+      },
+    });
   });
 
   describe('addComment security & anti-abuse', () => {

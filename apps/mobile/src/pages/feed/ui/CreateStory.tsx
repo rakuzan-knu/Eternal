@@ -40,6 +40,7 @@ import type {
 import { Button } from '@/shared/ui';
 import { assertSession, getMobileApi } from '@/shared/api/client';
 import { storyForm } from '../api/postForm';
+import { prepareMobileUploadForm } from '../api/directUploadForm';
 import { extractStoryPalette } from '../api/storyPalette';
 import { feedKeys } from '../model/queries';
 import { addPublishedStory, storyMediaType, validateStoryAsset } from '../model/story';
@@ -152,7 +153,9 @@ export function CreateStory({
         usedAttachments,
       );
       assertSession(userId, refreshToken);
-      return (await getMobileApi().post<StoryViewResponse>('/stories', body)).data;
+      const prepared = await prepareMobileUploadForm(getMobileApi(), body, 'story');
+      assertSession(userId, refreshToken);
+      return (await getMobileApi().post<StoryViewResponse>('/stories', prepared)).data;
     },
     onSuccess: (story) => {
       client.setQueryData<UserStoriesGroup[]>(feedKeys.stories(userId), (groups) =>

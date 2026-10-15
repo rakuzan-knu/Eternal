@@ -32,6 +32,15 @@ describe('deployment routing', () => {
   it('preserves legacy routing until a feature origin is configured', () => {
     expect(getServiceBaseUrl('/conversations', {}, '/v1')).toBe('/v1');
   });
+  it('normalizes long slash suffixes and preserves nonterminal slashes', () => {
+    expect(
+      getServiceBaseUrl('/reels', { reels: `https://reels.example${'/'.repeat(20_000)}` }, '/v1'),
+    ).toBe('https://reels.example/v1');
+    expect(getServiceBaseUrl('/reels', { reels: '/'.repeat(20_000) }, '/v1')).toBe('/v1');
+    expect(getServiceBaseUrl('/reels', { reels: 'https://reels.example/a//b/' }, '/v1')).toBe(
+      'https://reels.example/a//b/v1',
+    );
+  });
   it('keeps refresh on core when requests alternate between services', () => {
     const origins = { messenger: 'https://messenger.example/v1/', reels: 'https://reels.example' };
     expect(getServiceBaseUrl('/conversations', origins, 'https://core.example/v1')).toBe(

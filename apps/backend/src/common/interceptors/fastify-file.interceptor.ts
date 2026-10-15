@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   CallHandler,
   ExecutionContext,
   Injectable,
@@ -23,7 +24,7 @@ interface FastifyMultipartPart {
 interface FastifyMultipartRequest {
   isMultipart?: () => boolean;
   parts?: () => AsyncIterable<FastifyMultipartPart>;
-  file?: Express.Multer.File | (() => Promise<FastifyMultipartPart>);
+  file?: Express.Multer.File | (() => Promise<FastifyMultipartPart>) | undefined;
   files?: Express.Multer.File[];
   incomingFile?: Express.Multer.File;
   incomingFiles?: Express.Multer.File[];
@@ -52,6 +53,8 @@ export function FastifyFileInterceptor(fieldName = 'file'): Type<NestInterceptor
           if (typeof req.parts === 'function') {
             for await (const part of req.parts()) {
               if (part.file) {
+                if (process.env.DIRECT_UPLOADS_REQUIRED === 'true')
+                  throw new BadRequestException('Use direct media uploads');
                 if (!capturedFile && (!fieldName || part.fieldname === fieldName)) {
                   const buffer = await part.toBuffer();
                   capturedFile = {
@@ -100,6 +103,8 @@ export function FastifyFileInterceptor(fieldName = 'file'): Type<NestInterceptor
             const fileFn = req.file;
             const part = await fileFn();
             if (part) {
+              if (process.env.DIRECT_UPLOADS_REQUIRED === 'true')
+                throw new BadRequestException('Use direct media uploads');
               const buffer = await part.toBuffer();
               capturedFile = {
                 fieldname: part.fieldname || fieldName,
@@ -131,11 +136,14 @@ export function FastifyFileInterceptor(fieldName = 'file'): Type<NestInterceptor
             req.incomingFile = capturedFile;
           }
           req.body = currentBody;
-        } catch {
-          // Keep request alive if file extraction fails
+        } catch (error) {
+          if (error instanceof BadRequestException) throw error;
+          throw new BadRequestException('Invalid multipart upload');
         }
       }
 
+      // Fastify decorates every request with a file() function, including metadata-only forms.
+      if (typeof req.file === 'function') req.file = undefined;
       return next.handle();
     }
   }
@@ -163,6 +171,8 @@ export function FastifyFilesInterceptor(fieldName = 'files', maxCount = 10): Typ
 
           for await (const part of req.parts()) {
             if (part.file) {
+              if (process.env.DIRECT_UPLOADS_REQUIRED === 'true')
+                throw new BadRequestException('Use direct media uploads');
               if (files.length < maxCount) {
                 const buffer = await part.toBuffer();
                 files.push({
@@ -197,8 +207,9 @@ export function FastifyFilesInterceptor(fieldName = 'files', maxCount = 10): Typ
           req.files = files;
           req.incomingFiles = files;
           req.body = currentBody;
-        } catch {
-          // Keep request alive if stream error occurs
+        } catch (error) {
+          if (error instanceof BadRequestException) throw error;
+          throw new BadRequestException('Invalid multipart upload');
         }
       }
 

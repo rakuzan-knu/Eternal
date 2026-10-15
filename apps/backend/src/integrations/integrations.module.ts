@@ -3,6 +3,7 @@ import { Module, forwardRef } from '@nestjs/common';
 import { IntegrationsController } from './integrations.controller';
 import { SpotifyCallbackController } from './spotify-callback.controller';
 import { IntegrationsService } from './integrations.service';
+import { SteamAuthService } from './steam-auth.service';
 import { SteamPresenceService } from './steam-presence.service';
 import { SpotifyService } from './spotify.service';
 import { SpotifyPresenceService } from './spotify-presence.service';
@@ -22,6 +23,7 @@ import { MessengerModule } from '../messenger/messenger.module';
   controllers: roleControllers('music', [IntegrationsController, SpotifyCallbackController]),
   providers: [
     IntegrationsService,
+    SteamAuthService,
     SteamPresenceService,
     SpotifyService,
     SpotifyPresenceService,

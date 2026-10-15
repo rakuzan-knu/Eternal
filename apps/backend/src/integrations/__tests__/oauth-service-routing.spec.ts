@@ -21,7 +21,6 @@ describe('OAuth service transport and ownership', () => {
   it.each([
     ['/integrations/spotify/auth', 'https://accounts.spotify.com/authorize'],
     ['/auth/spotify', 'https://accounts.spotify.com/authorize'],
-    ['/integrations/steam/auth', 'https://steamcommunity.com/openid/login'],
   ])('uses HTTP 302 for the explicit %s controller route with Fastify', async (path, target) => {
     vi.stubEnv('SPOTIFY_CLIENT_ID', 'test-client-id');
     vi.stubEnv('SPOTIFY_CALLBACK_URL', 'https://web.example/api/auth/spotify/callback');

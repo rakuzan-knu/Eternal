@@ -1,3 +1,4 @@
+import { DirectUploadsService } from '../common/media/direct-uploads.service';
 import {
   ForbiddenException,
   GoneException,
@@ -33,6 +34,9 @@ import { FeedScoringService } from './feed-scoring.service';
 
 @Injectable()
 export class PostsService {
+  @Inject(DirectUploadsService)
+  private readonly directUploads!: DirectUploadsService;
+
   private readonly logger = new Logger(PostsService.name);
   private static readonly CACHE_POST_PREFIX = 'posts:';
   private static readonly CACHE_FEED_PATTERN = 'posts:feed:*';
@@ -135,6 +139,11 @@ export class PostsService {
       order: number;
     }[] = [];
 
+    if (files?.length) this.directUploads.assertLegacyAllowed();
+    for (const item of dto.media || []) {
+      await this.directUploads.assertOwnedUrl(authorId, item.url, 'post');
+      if (item.poster) await this.directUploads.assertOwnedUrl(authorId, item.poster, 'post');
+    }
     if (dto.media && dto.media.length > 0) {
       dto.media.forEach(
         (
@@ -156,6 +165,14 @@ export class PostsService {
       );
     }
 
+    for (const value of dto.gifUrls || []) {
+      const host = URL.canParse(value) ? new URL(value).hostname : '';
+      if (
+        !['media.tenor.com', 'media.giphy.com', 'i.giphy.com'].includes(host) &&
+        !/^media[0-9]\.giphy\.com$/.test(host)
+      )
+        throw new ForbiddenException('Unsupported GIF provider');
+    }
     if (dto.gifUrls && dto.gifUrls.length > 0) {
       dto.gifUrls.forEach((gifUrl: string, index: number) => {
         if (typeof gifUrl === 'string' && gifUrl.trim()) {
@@ -680,6 +697,7 @@ export class PostsService {
     totalChunks: number,
     file: Express.Multer.File,
   ) {
+    this.directUploads.assertLegacyAllowed();
     return await this.mediaService.uploadChunk(uploadId, chunkIndex, totalChunks, file);
   }
 

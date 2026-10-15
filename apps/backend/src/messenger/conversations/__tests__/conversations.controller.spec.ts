@@ -107,7 +107,12 @@ describe('ConversationsController', () => {
   it('uploadAttachment delegates to MessagesService', async () => {
     const mockFile = {} as Express.Multer.File;
     await controller.uploadAttachment('conv-1', mockFile, mockUser);
-    expect(mockMessagesService.uploadAttachment).toHaveBeenCalledWith('conv-1', 'usr-1', mockFile);
+    expect(mockMessagesService.uploadAttachment).toHaveBeenCalledWith(
+      'conv-1',
+      'usr-1',
+      mockFile,
+      undefined,
+    );
   });
 
   it('theme operations delegate to ConversationsService', async () => {
