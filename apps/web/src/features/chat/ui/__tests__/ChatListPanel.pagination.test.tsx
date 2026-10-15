@@ -44,4 +44,23 @@ describe('chat keyboard paging', () => {
     fireEvent.keyDown(window, { key: 'ArrowDown', altKey: true });
     await waitFor(() => expect(onSelectConversation).toHaveBeenCalledWith('older'));
   });
+
+  it('navigates back to the previous dialog with Alt+ArrowUp without index drift', async () => {
+    fetchNextPage.mockResolvedValue({
+      data: { pages: [{ data: [{ id: 'first' }] }, { data: [{ id: 'older' }] }] },
+    });
+    const onSelectConversation = vi.fn();
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter>
+          <ChatListPanel onSelectConversation={onSelectConversation} activeConversationId="first" />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    fireEvent.keyDown(window, { key: 'ArrowDown', altKey: true });
+    await waitFor(() => expect(onSelectConversation).toHaveBeenCalledWith('older'));
+
+    fireEvent.keyDown(window, { key: 'ArrowUp', altKey: true });
+    await waitFor(() => expect(onSelectConversation).toHaveBeenCalledWith('first'));
+  });
 });

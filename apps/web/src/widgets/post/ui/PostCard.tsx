@@ -166,13 +166,14 @@ export function PostCard({ post, queryKey }: PostCardProps) {
 
   const handleSaveClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    const willBeSaved = !optimisticSaved;
     startSaveTransition(async () => {
-      setOptimisticSaved(!optimisticSaved);
+      setOptimisticSaved(willBeSaved);
       try {
         if (saveMutation.mutateAsync) {
-          await saveMutation.mutateAsync();
+          await saveMutation.mutateAsync(willBeSaved);
         } else {
-          saveMutation.mutate();
+          saveMutation.mutate(willBeSaved);
         }
       } catch {
         // useOptimistic automatically rolls back when transition settles
@@ -310,7 +311,7 @@ export function PostCard({ post, queryKey }: PostCardProps) {
               hideLikesCount={hideLikesCount}
               isCommentsDisabled={isCommentsDisabled}
               onOpenChange={setIsMenuOpen}
-              onSave={() => saveMutation.mutate()}
+              onSave={() => saveMutation.mutate(!post.isSaved)}
               onTogglePin={() => pinMutation.mutate()}
               onHide={handleHidePost}
               onBlockAuthor={() => {

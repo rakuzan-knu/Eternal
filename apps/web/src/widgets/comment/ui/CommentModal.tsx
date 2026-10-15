@@ -430,16 +430,15 @@ export function CommentModal() {
   };
 
   const handleSavePost = () => {
-    saveMutation.mutate();
-    if (activePostForComments) {
-      const nextSaved = !activePostForComments.isSaved;
-      useUIStore.setState({
-        activePostForComments: {
-          ...activePostForComments,
-          isSaved: nextSaved,
-        },
-      });
-    }
+    if (!activePostForComments) return;
+    const nextSaved = !activePostForComments.isSaved;
+    saveMutation.mutate(nextSaved);
+    useUIStore.setState({
+      activePostForComments: {
+        ...activePostForComments,
+        isSaved: nextSaved,
+      },
+    });
   };
 
   const handlePostMediaDoubleTap = (e: React.MouseEvent | React.TouchEvent) => {

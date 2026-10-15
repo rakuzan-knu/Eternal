@@ -243,8 +243,34 @@ export default function ChatListPanel({
     }
   }, [activeConversationId, activeFolderId, isChatListExpanded, rows, virtualizer]);
 
+  const orderedConversationsRef = useRef(orderedConversations);
+  orderedConversationsRef.current = orderedConversations;
+
+  const activeConversationIdRef = useRef(activeConversationId);
+  activeConversationIdRef.current = activeConversationId;
+
+  const onSelectConversationRef = useRef(onSelectConversation);
+  onSelectConversationRef.current = onSelectConversation;
+
+  const hasNextPageRef = useRef(hasNextPage);
+  hasNextPageRef.current = hasNextPage;
+
+  const isFetchingNextPageRef = useRef(isFetchingNextPage);
+  isFetchingNextPageRef.current = isFetchingNextPage;
+
+  const fetchNextPageRef = useRef(fetchNextPage);
+  fetchNextPageRef.current = fetchNextPage;
+
   // Keyboard Shortcut: Alt+ArrowDown / Alt+ArrowUp to switch chats smoothly
   useEffect(() => {
+    const getCurrentActiveId = () => {
+      if (typeof window !== 'undefined') {
+        const match = window.location.pathname.match(/\/messages\/([^/?#]+)/);
+        if (match && match[1]) return match[1];
+      }
+      return activeConversationIdRef.current;
+    };
+
     const handleKeyDown = async (e: KeyboardEvent) => {
       if (!e.altKey) return;
       if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
@@ -252,44 +278,68 @@ export default function ChatListPanel({
       // Skip if any modal / dialog / full-screen overlay is open
       if (document.querySelector('[role="dialog"], [aria-modal="true"], .glass-modal')) return;
 
-      const ordered = orderedConversations;
-      if (ordered.length === 0) return;
+      let conversations = orderedConversationsRef.current;
+      if (conversations.length === 0) return;
+
+      const activeId = getCurrentActiveId();
 
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         e.stopPropagation();
 
-        if (!activeConversationId) {
-          // When no chat is open yet, Alt+ArrowDown opens the very first chat
-          onSelectConversation(ordered[0].id);
-        } else {
-          const currentIndex = ordered.findIndex((c) => c.id === activeConversationId);
-          if (currentIndex === -1) {
-            onSelectConversation(ordered[0].id);
-          } else {
-            if (currentIndex === ordered.length - 1 && hasNextPage) {
-              if (isFetchingNextPage) return;
-              const next = await fetchNextPage();
-              const nextConversation = next.data?.pages
-                .flatMap((page) => page.data)
-                .find((c) => !ordered.some((loaded) => loaded.id === c.id));
-              if (nextConversation) onSelectConversation(nextConversation.id);
-              return;
-            }
-            const nextIndex = Math.min(ordered.length - 1, currentIndex + 1);
-            onSelectConversation(ordered[nextIndex].id);
+        if (!activeId) {
+          const first = conversations[0];
+          if (first) {
+            activeConversationIdRef.current = first.id;
+            onSelectConversationRef.current(first.id);
           }
+          return;
+        }
+
+        let index = conversations.findIndex((c) => c.id === activeId);
+        if (index === -1) {
+          const first = conversations[0];
+          if (first) {
+            activeConversationIdRef.current = first.id;
+            onSelectConversationRef.current(first.id);
+          }
+          return;
+        }
+
+        if (index >= conversations.length - 1 && hasNextPageRef.current) {
+          if (isFetchingNextPageRef.current) return;
+          const next = await fetchNextPageRef.current();
+          const incoming = (next.data?.pages ?? []).flatMap((page) => page.data);
+
+          const mergedMap = new Map(conversations.map((c) => [c.id, c]));
+          for (const item of incoming) {
+            mergedMap.set(item.id, item);
+          }
+          const merged = Array.from(mergedMap.values());
+          orderedConversationsRef.current = merged;
+          conversations = merged;
+
+          // Recompute index after fetch instead of reusing old index
+          index = conversations.findIndex((c) => c.id === activeId);
+        }
+
+        const nextTarget = index !== -1 ? conversations[index + 1] : undefined;
+        if (nextTarget && nextTarget.id !== activeId) {
+          activeConversationIdRef.current = nextTarget.id;
+          onSelectConversationRef.current(nextTarget.id);
         }
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
         e.stopPropagation();
 
-        // Only switch if already in a chat
-        if (activeConversationId) {
-          const currentIndex = ordered.findIndex((c) => c.id === activeConversationId);
-          if (currentIndex > 0) {
-            const prevIndex = currentIndex - 1;
-            onSelectConversation(ordered[prevIndex].id);
+        if (!activeId) return;
+
+        const index = conversations.findIndex((c) => c.id === activeId);
+        if (index > 0) {
+          const prevTarget = conversations[index - 1];
+          if (prevTarget && prevTarget.id !== activeId) {
+            activeConversationIdRef.current = prevTarget.id;
+            onSelectConversationRef.current(prevTarget.id);
           }
         }
       }
@@ -297,14 +347,7 @@ export default function ChatListPanel({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [
-    orderedConversations,
-    activeConversationId,
-    onSelectConversation,
-    hasNextPage,
-    isFetchingNextPage,
-    fetchNextPage,
-  ]);
+  }, []);
 
   const handleOpenHeaderSection = (section: ChatListHeaderSection) => {
     if (section === 'archive') {
