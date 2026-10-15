@@ -18,10 +18,12 @@ const workerPath = path.join(
   'public',
   'mockServiceWorker.js',
 );
-if (fs.existsSync(workerPath)) {
+try {
   const source = fs.readFileSync(workerPath, 'utf8');
   const guarded = preserveMswOriginGuard(source);
   if (source !== guarded) fs.writeFileSync(workerPath, guarded);
+} catch (err) {
+  if (err && err.code !== 'ENOENT') throw err;
 }
 
 const rootPrismaBin = path.join(__dirname, '..', '..', 'node_modules', '.bin', 'prisma');

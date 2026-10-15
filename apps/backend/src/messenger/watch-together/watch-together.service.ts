@@ -761,14 +761,17 @@ export class WatchTogetherService {
         profile.categories[k] = Number((profile.categories[k] * 0.95).toFixed(3));
       }
     }
-    for (const k of Object.keys(profile.channels)) {
+    const channelMap = new Map<string, number>(Object.entries(profile.channels || {}));
+    for (const [k, v] of channelMap.entries()) {
       if (isSafePropertyKey(k)) {
-        profile.channels[k] = Number((profile.channels[k] * 0.95).toFixed(3));
+        channelMap.set(k, Number((v * 0.95).toFixed(3)));
       }
     }
-    for (const k of Object.keys(profile.keywords)) {
+
+    const keywordMap = new Map<string, number>(Object.entries(profile.keywords || {}));
+    for (const [k, v] of keywordMap.entries()) {
       if (isSafePropertyKey(k)) {
-        profile.keywords[k] = Number((profile.keywords[k] * 0.95).toFixed(3));
+        keywordMap.set(k, Number((v * 0.95).toFixed(3)));
       }
     }
 
@@ -791,14 +794,10 @@ export class WatchTogetherService {
         cleanChannel !== 'prototype' &&
         isSafePropertyKey(cleanChannel)
       ) {
-        const currentChannelWeight = Object.prototype.hasOwnProperty.call(
-          profile.channels,
+        const currentChannelWeight = channelMap.get(cleanChannel) ?? 0;
+        channelMap.set(
           cleanChannel,
-        )
-          ? profile.channels[cleanChannel]
-          : 0;
-        profile.channels[cleanChannel] = Number(
-          ((currentChannelWeight || 0) + watchDurationFactor).toFixed(3),
+          Number((currentChannelWeight + watchDurationFactor).toFixed(3)),
         );
       }
     }
@@ -812,14 +811,13 @@ export class WatchTogetherService {
         cleanKw !== 'prototype' &&
         isSafePropertyKey(cleanKw)
       ) {
-        const currentKwWeight = Object.prototype.hasOwnProperty.call(profile.keywords, cleanKw)
-          ? profile.keywords[cleanKw]
-          : 0;
-        profile.keywords[cleanKw] = Number(
-          ((currentKwWeight || 0) + watchDurationFactor * 0.5).toFixed(3),
-        );
+        const currentKwWeight = keywordMap.get(cleanKw) ?? 0;
+        keywordMap.set(cleanKw, Number((currentKwWeight + watchDurationFactor * 0.5).toFixed(3)));
       }
     }
+
+    profile.channels = Object.fromEntries(channelMap);
+    profile.keywords = Object.fromEntries(keywordMap);
 
     profile.lastUpdated = Date.now();
     await this.redisService.set(
