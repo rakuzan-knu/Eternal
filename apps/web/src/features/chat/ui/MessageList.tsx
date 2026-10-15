@@ -617,7 +617,7 @@ export default function MessageList({
     setUnreadBelowCount(belowCount);
   }, [virtualRows, rows, currentUserId, onMarkRead]);
 
-  if (isLoading) {
+  if (isLoading && messages.length === 0) {
     return (
       <div className="flex-1 overflow-y-auto py-4">
         <MessageThreadSkeleton />

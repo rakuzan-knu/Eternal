@@ -89,7 +89,15 @@ export async function prepareScreen(page: Page, screen: Screen, state: ScreenSta
   await mockApi(page, '/users/suggested?**', { json: [] });
   await mockApi(page, '/users/me/friends', { json: [] });
   await mockApi(page, '/users/online?**', { json: [] });
+  const conversationPageResponse = {
+    data: [conversation],
+    nextCursor: null,
+    hasMore: false,
+    order: 'activityAt' as const,
+  };
   await mockApi(page, '/conversations', { json: [conversation] });
+  await mockApi(page, '/conversations/page**', { json: conversationPageResponse });
+  await mockApi(page, '/conversations/unread-count', { json: { count: 0 } });
   await mockApi(page, '/conversations/folders', { json: [] });
   await mockApi(page, '/posts?**', { json: { posts: [post], nextCursor: null } });
   if (screen === 'feed') {
@@ -129,6 +137,8 @@ export async function prepareScreen(page: Page, screen: Screen, state: ScreenSta
     return '/profile/alexandra';
   }
   await mockApi(page, '/conversations', { json: [conversation] });
+  await mockApi(page, '/conversations/page**', { json: conversationPageResponse });
+  await mockApi(page, '/conversations/unread-count', { json: { count: 0 } });
   await mockApi(page, '/conversations/design-conversation', { json: conversation });
   await mockApi(page, '/conversations/design-conversation/messages/read', { json: {} });
   await mockApi(
@@ -152,4 +162,14 @@ export async function recoverScreen(page: Page, screen: 'feed' | 'chat') {
           : { data: [message], hasMore: false, nextCursor: null },
     },
   );
+  if (screen === 'chat') {
+    await mockApi(page, '/conversations/page**', {
+      json: {
+        data: [conversation],
+        nextCursor: null,
+        hasMore: false,
+        order: 'activityAt',
+      },
+    });
+  }
 }

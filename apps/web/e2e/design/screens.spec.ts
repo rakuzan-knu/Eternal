@@ -128,11 +128,11 @@ test('narrow Messenger returns to list and opens the conversation', async ({
   ).toBeVisible();
   await page.getByRole('button', { name: 'Back to chats', exact: true }).click();
   await expect(page.getByTestId('chat-thread')).not.toBeVisible();
-  await page
-    .getByText('Олександра Коваленко — long display name', { exact: true })
-    .filter({ visible: true })
-    .first()
-    .click();
+  const conversation = page.getByRole('button', {
+    name: /Олександра Коваленко/i,
+  });
+  await expect(conversation).toBeVisible();
+  await conversation.click();
   await expect(
     page.getByTestId('chat-thread').getByText(messageText, { exact: true }),
   ).toBeVisible();

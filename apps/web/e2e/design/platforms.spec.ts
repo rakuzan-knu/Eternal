@@ -51,10 +51,11 @@ for (const screen of ['feed', 'profile', 'chat'] as const) {
         composer.getByRole('button', { name: 'Send message', exact: true }),
       ).toBeInViewport();
       await page.getByRole('button', { name: 'Back to chats', exact: true }).click();
-      await page
-        .getByText('Олександра Коваленко — long display name', { exact: true })
-        .first()
-        .click();
+      const conversation = page.getByRole('button', {
+        name: /Олександра Коваленко/i,
+      });
+      await expect(conversation).toBeVisible();
+      await conversation.click();
       await expect(composer.getByRole('textbox', { name: 'Message', exact: true })).toHaveValue(
         'Draft survives list navigation 👋',
       );

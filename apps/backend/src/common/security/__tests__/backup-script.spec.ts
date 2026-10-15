@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import {
   chmodSync,
+  existsSync,
   mkdtempSync,
   mkdirSync,
   readFileSync,
@@ -24,7 +25,13 @@ describe('encrypted database backup script', () => {
     mkdirSync(backups);
     const dump = join(bin, 'pg_dump');
     const key = 'random-test-only-backup-key-1234567890';
-    const script = shellPath(resolve(process.cwd(), '../../scripts/db/backup-db.sh'));
+    const scriptCandidates = [
+      resolve(__dirname, '../../../../../../scripts/db/backup-db.sh'),
+      resolve(process.cwd(), '../../scripts/db/backup-db.sh'),
+      resolve(process.cwd(), 'scripts/db/backup-db.sh'),
+    ];
+    const foundScript = scriptCandidates.find((c) => existsSync(c)) ?? scriptCandidates[0];
+    const script = shellPath(foundScript);
     const run = (encryptionKey?: string) => {
       const env: NodeJS.ProcessEnv = {
         ...process.env,

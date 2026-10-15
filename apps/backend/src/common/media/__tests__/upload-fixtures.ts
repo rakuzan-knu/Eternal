@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -18,10 +19,22 @@ export const gifImage = Buffer.from(
   'R0lGODlhAgACAIAAAExpcf8zZiH5BAUAAAAALAAAAAACAAIAAAICjFMAOw==',
   'base64',
 );
-export const sampleVideo = () =>
-  readFile(resolve(process.cwd(), '../web/public/videos/sample-reel.mp4'));
-export const sampleAudio = () =>
-  readFile(resolve(process.cwd(), '../web/public/sounds/message-received.wav'));
+
+function findPublicAsset(relativePath: string): string {
+  const candidates = [
+    resolve(__dirname, '../../../../../apps/web/public', relativePath),
+    resolve(__dirname, '../../../../web/public', relativePath),
+    resolve(process.cwd(), 'apps/web/public', relativePath),
+    resolve(process.cwd(), '../web/public', relativePath),
+  ];
+  for (const c of candidates) {
+    if (existsSync(c)) return c;
+  }
+  return candidates[0];
+}
+
+export const sampleVideo = () => readFile(findPublicAsset('videos/sample-reel.mp4'));
+export const sampleAudio = () => readFile(findPublicAsset('sounds/message-received.wav'));
 
 export async function sampleFlacAudio(): Promise<Buffer> {
   const converted = spawnSync(

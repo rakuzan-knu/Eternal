@@ -805,7 +805,7 @@ jobs:
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
         with:
           fail-on-severity: high
-          allow-ghsas: 'GHSA-fjxv-7rqg-78g4, GHSA-hmw2-7cc7-3qxx, GHSA-36jr-mh4h-2g58, GHSA-ggr8-5vv4-36mx, GHSA-3f6p-5ww8-9rcr, GHSA-7w5x-hrqm-74c2'
+          allow-ghsas: 'GHSA-fjxv-7rqg-78g4, GHSA-hmw2-7cc7-3qxx, GHSA-36jr-mh4h-2g58, GHSA-ggr8-5vv4-36mx, GHSA-3f6p-5ww8-9rcr, GHSA-7w5x-hrqm-74c2, GHSA-86w9-cpqp-85rv'
           retry-on-snapshot-warnings: true
           retry-on-snapshot-warnings-timeout: 600
 

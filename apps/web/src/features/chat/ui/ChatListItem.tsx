@@ -134,6 +134,7 @@ export default function ChatListItem({
       <button
         type="button"
         id={`conversation-${conversation.id}`}
+        data-testid={`chat-list-item-${conversation.id}`}
         aria-label={`Open conversation with ${display.title}`}
         onClick={(event) => {
           event.stopPropagation();
