@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import { GithubService } from '../github.service';
+import { encryptOAuthState } from '../../common/security/oauth-state';
 import type { RedisService } from '../../redis/redis.service';
 import type { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
@@ -129,8 +130,9 @@ describe('GithubService', () => {
     });
 
     it('exchanges code for token, links github to user, and syncs contributions', async () => {
+      const state = `github:${'a'.repeat(64)}`;
       const req = {
-        cookies: { github_oauth_state: `github:${'a'.repeat(64)}` },
+        cookies: { github_oauth_state: encryptOAuthState(state) },
       } as unknown as Request;
       const res = {
         clearCookie: jest.fn(),
@@ -160,7 +162,7 @@ describe('GithubService', () => {
           json: jest.fn().mockResolvedValue({ total_count: 5 }),
         });
 
-      await service.handleOAuthCallback('code123', `github:${'a'.repeat(64)}`, req, res, 'usr-1');
+      await service.handleOAuthCallback('code123', state, req, res, 'usr-1');
 
       expect(mockGithubRepo.updateUserGithub).toHaveBeenCalledWith('usr-1', {
         githubId: '12345',

@@ -582,12 +582,12 @@
         "apps/web/src/shared/lib/cursorEngine.ts:578",
         "apps/web/src/shared/lib/cursorEngine.ts:58",
         "apps/web/src/shared/lib/cursorEngine.ts:652",
-        "apps/web/src/shared/lib/themeContrastEngine.ts:143",
         "apps/web/src/shared/lib/themeContrastEngine.ts:145",
-        "apps/web/src/shared/lib/themeContrastEngine.ts:16",
-        "apps/web/src/shared/lib/themeContrastEngine.ts:74",
-        "apps/web/src/shared/lib/themeContrastEngine.ts:77",
-        "apps/web/src/shared/lib/themeContrastEngine.ts:80",
+        "apps/web/src/shared/lib/themeContrastEngine.ts:147",
+        "apps/web/src/shared/lib/themeContrastEngine.ts:18",
+        "apps/web/src/shared/lib/themeContrastEngine.ts:76",
+        "apps/web/src/shared/lib/themeContrastEngine.ts:79",
+        "apps/web/src/shared/lib/themeContrastEngine.ts:82",
         "apps/web/src/shared/model/useThemeStore.ts:122",
         "apps/web/src/shared/model/useThemeStore.ts:97",
         "apps/web/src/shared/ui/BrandIcons.tsx:294",
@@ -976,8 +976,8 @@
         "apps/web/src/pages/Login/LoginPage.tsx:14",
         "apps/web/src/pages/Register/RegisterPage.tsx:13",
         "apps/web/src/shared/design/tokens.css:7",
-        "apps/web/src/shared/lib/themeContrastEngine.ts:127",
         "apps/web/src/shared/lib/themeContrastEngine.ts:129",
+        "apps/web/src/shared/lib/themeContrastEngine.ts:131",
         "apps/web/src/shared/model/useThemeStore.ts:96"
       ]
     },
@@ -1442,7 +1442,7 @@
         "apps/web/src/pages/Download/ui/DownloadDesktopSection.tsx:358",
         "apps/web/src/shared/design/tokens.css:16",
         "apps/web/src/shared/design/tokens.css:8",
-        "apps/web/src/shared/lib/themeContrastEngine.ts:127",
+        "apps/web/src/shared/lib/themeContrastEngine.ts:129",
         "apps/web/src/shared/model/useThemeStore.ts:300",
         "apps/web/src/shared/seo/seoConfig.ts:11",
         "apps/web/src/shared/seo/types.ts:109",
@@ -2047,7 +2047,7 @@
       "references": [
         "apps/web/src/features/stories/ui/StoryMusicStickerView.tsx:194",
         "apps/web/src/index.css:134",
-        "apps/web/src/shared/lib/themeContrastEngine.ts:147",
+        "apps/web/src/shared/lib/themeContrastEngine.ts:149",
         "apps/web/src/widgets/profile/showcase/ExportShowcaseModal.tsx:133"
       ]
     },
@@ -2359,7 +2359,7 @@
         "apps/web/src/pages/Safety/ui/WellbeingIllustrations.tsx:673",
         "apps/web/src/pages/Safety/ui/WellbeingIllustrations.tsx:685",
         "apps/web/src/shared/lib/cursorEngine.ts:541",
-        "apps/web/src/shared/lib/themeContrastEngine.ts:117",
+        "apps/web/src/shared/lib/themeContrastEngine.ts:119",
         "apps/web/src/shared/lib/useLiquidGlassTheme.ts:134",
         "apps/web/src/shared/model/useThemeStore.ts:440",
         "apps/web/src/shared/model/useThemeStore.ts:443",
@@ -2670,7 +2670,7 @@
       "value": "#111111",
       "references": [
         "apps/web/src/index.css:122",
-        "apps/web/src/shared/lib/themeContrastEngine.ts:131"
+        "apps/web/src/shared/lib/themeContrastEngine.ts:133"
       ]
     },
     {
@@ -3045,7 +3045,7 @@
         "apps/web/src/pages/Download/ui/DownloadDesktopSection.tsx:204",
         "apps/web/src/pages/Notifications/NotificationsPage.tsx:640",
         "apps/web/src/pages/Search/SearchPage.tsx:168",
-        "apps/web/src/shared/lib/themeContrastEngine.ts:146",
+        "apps/web/src/shared/lib/themeContrastEngine.ts:148",
         "apps/web/src/widgets/feed/ui/StoriesBar.tsx:133",
         "apps/web/src/widgets/feed/ui/StoriesBar.tsx:136",
         "apps/web/src/widgets/feed/ui/StoriesBar.tsx:181",
@@ -3520,7 +3520,7 @@
         "apps/web/src/index.css:121",
         "apps/web/src/index.css:78",
         "apps/web/src/pages/Chat/Messenger.tsx:93",
-        "apps/web/src/shared/lib/themeContrastEngine.ts:130",
+        "apps/web/src/shared/lib/themeContrastEngine.ts:132",
         "apps/web/src/shared/ui/OnlineStatusIndicator.tsx:121",
         "apps/web/src/shared/ui/OnlineStatusIndicator.tsx:143",
         "apps/web/src/shared/ui/OnlineStatusIndicator.tsx:97",
@@ -5619,7 +5619,7 @@
         "apps/web/src/pages/Safety/ui/TeenCharterIllustrations.tsx:424",
         "apps/web/src/shared/lib/cursorEngine.ts:388",
         "apps/web/src/shared/lib/cursorPresets.ts:66",
-        "apps/web/src/shared/lib/themeContrastEngine.ts:118",
+        "apps/web/src/shared/lib/themeContrastEngine.ts:120",
         "apps/web/src/shared/model/useThemeStore.ts:441",
         "apps/web/src/shared/model/useThemeStore.ts:444",
         "apps/web/src/shared/ui/VideoEditorModal.tsx:602",
@@ -6779,9 +6779,9 @@
         "apps/web/src/pages/Safety/ui/TransparencyIllustrations.tsx:330",
         "apps/web/src/pages/Safety/ui/TransparencyIllustrations.tsx:331",
         "apps/web/src/shared/lib/cursorEngine.ts:384",
-        "apps/web/src/shared/lib/themeContrastEngine.ts:119",
-        "apps/web/src/shared/lib/themeContrastEngine.ts:135",
-        "apps/web/src/shared/lib/themeContrastEngine.ts:151",
+        "apps/web/src/shared/lib/themeContrastEngine.ts:121",
+        "apps/web/src/shared/lib/themeContrastEngine.ts:137",
+        "apps/web/src/shared/lib/themeContrastEngine.ts:153",
         "apps/web/src/shared/model/useThemeStore.ts:442",
         "apps/web/src/shared/model/useThemeStore.ts:445",
         "apps/web/src/shared/model/useThemeStore.ts:447",
@@ -7710,8 +7710,8 @@
         "apps/web/src/shared/lib/cursorEngine.ts:389",
         "apps/web/src/shared/lib/cursorEngine.ts:535",
         "apps/web/src/shared/lib/cursorPresets.ts:65",
-        "apps/web/src/shared/lib/themeContrastEngine.ts:134",
-        "apps/web/src/shared/lib/themeContrastEngine.ts:150",
+        "apps/web/src/shared/lib/themeContrastEngine.ts:136",
+        "apps/web/src/shared/lib/themeContrastEngine.ts:152",
         "apps/web/src/shared/model/useThemeStore.ts:446",
         "apps/web/src/shared/ui/VideoEditorModal.tsx:580"
       ]
@@ -8866,7 +8866,7 @@
         "apps/web/src/pages/Safety/ui/WellbeingIllustrations.tsx:651",
         "apps/web/src/shared/lib/cursorEngine.ts:383",
         "apps/web/src/shared/lib/cursorEngine.ts:525",
-        "apps/web/src/shared/lib/themeContrastEngine.ts:166",
+        "apps/web/src/shared/lib/themeContrastEngine.ts:168",
         "apps/web/src/shared/lib/useLiquidGlassTheme.ts:133",
         "apps/web/src/shared/model/useThemeStore.ts:452",
         "apps/web/src/shared/model/useThemeStore.ts:455",
@@ -9191,7 +9191,7 @@
         "apps/web/src/shared/lib/cursorEngine.ts:336",
         "apps/web/src/shared/lib/cursorEngine.ts:342",
         "apps/web/src/shared/lib/cursorPresets.ts:64",
-        "apps/web/src/shared/lib/themeContrastEngine.ts:165",
+        "apps/web/src/shared/lib/themeContrastEngine.ts:167",
         "apps/web/src/shared/lib/useLiquidGlassTheme.ts:154",
         "apps/web/src/shared/lib/useLiquidGlassTheme.ts:164",
         "apps/web/src/shared/model/useThemeStore.ts:451",
@@ -10997,15 +10997,15 @@
         "apps/web/src/shared/lib/cursorVfxEngine.ts:303",
         "apps/web/src/shared/lib/cursorVfxEngine.ts:705",
         "apps/web/src/shared/lib/cursorVfxEngine.ts:945",
-        "apps/web/src/shared/lib/themeContrastEngine.ts:114",
-        "apps/web/src/shared/lib/themeContrastEngine.ts:115",
-        "apps/web/src/shared/lib/themeContrastEngine.ts:133",
-        "apps/web/src/shared/lib/themeContrastEngine.ts:149",
-        "apps/web/src/shared/lib/themeContrastEngine.ts:16",
-        "apps/web/src/shared/lib/themeContrastEngine.ts:164",
-        "apps/web/src/shared/lib/themeContrastEngine.ts:75",
+        "apps/web/src/shared/lib/themeContrastEngine.ts:116",
+        "apps/web/src/shared/lib/themeContrastEngine.ts:117",
+        "apps/web/src/shared/lib/themeContrastEngine.ts:135",
+        "apps/web/src/shared/lib/themeContrastEngine.ts:151",
+        "apps/web/src/shared/lib/themeContrastEngine.ts:166",
+        "apps/web/src/shared/lib/themeContrastEngine.ts:18",
         "apps/web/src/shared/lib/themeContrastEngine.ts:77",
-        "apps/web/src/shared/lib/themeContrastEngine.ts:80",
+        "apps/web/src/shared/lib/themeContrastEngine.ts:79",
+        "apps/web/src/shared/lib/themeContrastEngine.ts:82",
         "apps/web/src/shared/lib/useLiquidGlassTheme.ts:164",
         "apps/web/src/shared/model/useThemeStore.ts:122",
         "apps/web/src/shared/model/useThemeStore.ts:330",
@@ -11407,7 +11407,7 @@
         "apps/web/src/index.css:550",
         "apps/web/src/index.css:737",
         "apps/web/src/index.css:98",
-        "apps/web/src/shared/lib/themeContrastEngine.ts:116",
+        "apps/web/src/shared/lib/themeContrastEngine.ts:118",
         "apps/web/src/shared/model/useThemeStore.ts:335",
         "apps/web/src/widgets/player/JamRoomPopover.tsx:139",
         "apps/web/src/widgets/player/SpotifyQueuePopover.tsx:138"
@@ -12502,7 +12502,7 @@
         "apps/web/src/index.css:307",
         "apps/web/src/index.css:331",
         "apps/web/src/index.css:385",
-        "apps/web/src/shared/lib/themeContrastEngine.ts:132"
+        "apps/web/src/shared/lib/themeContrastEngine.ts:134"
       ]
     },
     {
@@ -12510,7 +12510,7 @@
       "references": [
         "apps/web/src/features/chat/lib/themeUtils.ts:1279",
         "apps/web/src/index.css:135",
-        "apps/web/src/shared/lib/themeContrastEngine.ts:148"
+        "apps/web/src/shared/lib/themeContrastEngine.ts:150"
       ]
     },
     {
@@ -43794,87 +43794,87 @@
       "colorLiterals": [],
       "presentation": [
         {
-          "line": 129,
+          "line": 131,
           "attribute": "className",
           "expression": "\"group/edit relative w-full flex items-center justify-between gap-2.5 px-3.5 pt-2 pb-1.5 select-none cursor-pointer bg-transparent transition-colors duration-200\""
         },
         {
-          "line": 134,
+          "line": 136,
           "attribute": "className",
           "expression": "\"flex items-center gap-2.5 min-w-0 flex-1 animate-fadeIn duration-150\""
         },
         {
-          "line": 137,
+          "line": 139,
           "attribute": "className",
           "expression": "\"w-5 h-5 flex items-center justify-center shrink-0 text-purple-400\""
         },
         {
-          "line": 138,
+          "line": 140,
           "attribute": "size",
           "expression": "{18}"
         },
         {
-          "line": 138,
+          "line": 140,
           "attribute": "strokeWidth",
           "expression": "{2.4}"
         },
         {
-          "line": 142,
+          "line": 144,
           "attribute": "className",
           "expression": "\"w-[3px] h-[34px] rounded-full shrink-0 bg-purple-500\""
         },
         {
-          "line": 147,
+          "line": 149,
           "attribute": "className",
           "expression": "{`relative w-[34px] h-[34px] shrink-0 overflow-hidden ${\n              isVideoNote\n                ? 'rounded-full bg-black/40 border border-white/10'\n                : isSticker\n                  ? 'rounded-md bg-transparent'\n                  : 'rounded-md bg-black/40 border border-white/10'\n            } shadow-xs flex items-center justify-center`}"
         },
         {
-          "line": 158,
+          "line": 160,
           "attribute": "className",
           "expression": "{`w-full h-full ${isSticker ? 'object-contain' : 'object-cover'}`}"
         },
         {
-          "line": 165,
+          "line": 167,
           "attribute": "className",
           "expression": "\"w-[34px] h-[34px] flex items-center justify-center shrink-0 text-xl select-none\""
         },
         {
-          "line": 169,
+          "line": 171,
           "attribute": "className",
           "expression": "\"w-[34px] h-[34px] rounded-md flex items-center justify-center shrink-0\""
         },
         {
-          "line": 173,
+          "line": 175,
           "attribute": "size",
           "expression": "\"xs\""
         },
         {
-          "line": 179,
+          "line": 181,
           "attribute": "className",
           "expression": "\"min-w-0 flex-1 flex flex-col justify-center leading-tight\""
         },
         {
-          "line": 180,
+          "line": 182,
           "attribute": "className",
           "expression": "\"text-[13px] font-semibold truncate tracking-tight text-purple-400\""
         },
         {
-          "line": 183,
+          "line": 185,
           "attribute": "className",
           "expression": "\"text-[12.5px] text-gray-700 dark:text-white/75 truncate mt-0.5 whitespace-nowrap font-normal\""
         },
         {
-          "line": 196,
+          "line": 198,
           "attribute": "className",
           "expression": "\"w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-full hover:bg-white/10 active:scale-95 transition-all cursor-pointer text-purple-400 hover:text-purple-300\""
         },
         {
-          "line": 199,
+          "line": 201,
           "attribute": "size",
           "expression": "{17}"
         },
         {
-          "line": 199,
+          "line": 201,
           "attribute": "strokeWidth",
           "expression": "{2.4}"
         }
