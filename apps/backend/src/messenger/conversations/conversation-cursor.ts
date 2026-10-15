@@ -21,11 +21,11 @@ export function decodeConversationCursor(
 ): ConversationCursor {
   try {
     const [body, signature, extra] = cursor.split('.');
-    const expected = createHmac('sha256', secret).update(body!).digest();
-    const actual = Buffer.from(signature!, 'base64url');
+    const expected = createHmac('sha256', secret).update(body).digest();
+    const actual = Buffer.from(signature, 'base64url');
     if (extra || actual.length !== expected.length || !timingSafeEqual(actual, expected))
       throw new Error();
-    const value = JSON.parse(Buffer.from(body!, 'base64url').toString('utf8'));
+    const value = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
     if (
       value.v !== 1 ||
       value.scope !== scope ||

@@ -452,6 +452,7 @@ export function useMessageActions(conversationId: string | null) {
             replyToId,
             attachments: resolvedAttachments.length > 0 ? resolvedAttachments : undefined,
             clientMessageId: optimisticId,
+            clientSeq: retryClientSeq,
           });
           if (fallbackRes) {
             const real = { ...(fallbackRes as MessageView), status: 'SENT' as const };

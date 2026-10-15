@@ -30,7 +30,7 @@
     "node": ">=18.0.0"
   },
   "devDependencies": {
-    "sanitize-html": "^2.14.0",
+    "sanitize-html": "^2.18.0",
     "typescript": "^5.9.3"
   }
 }

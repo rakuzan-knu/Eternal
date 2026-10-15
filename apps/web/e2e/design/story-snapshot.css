@@ -1,0 +1,4 @@
+/* Normalize elapsed RAF time before Pause; retain the actual progress track. */
+[data-testid='story-segment-progress'] > div {
+  width: 50% !important;
+}

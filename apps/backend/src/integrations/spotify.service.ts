@@ -1,5 +1,10 @@
 import { issueOAuthState, consumeOAuthState } from '../common/security/oauth-state';
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  BadRequestException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { PrismaService } from '@common/prisma';
 import type { Prisma } from '@prisma/client';
 import { RedisService } from '../redis/redis.service';
@@ -241,11 +246,15 @@ export class SpotifyService {
   ) {}
 
   private getClientId(): string {
-    return process.env.SPOTIFY_CLIENT_ID || 'b3627072f2ec49d48d1ad97f901b24c3';
+    const value = process.env.SPOTIFY_CLIENT_ID;
+    if (!value) throw new ServiceUnavailableException('Spotify integration is not configured.');
+    return value;
   }
 
   private getClientSecret(): string {
-    return process.env.SPOTIFY_CLIENT_SECRET || 'f5b8151538af4b87b3e405351c01a129';
+    const value = process.env.SPOTIFY_CLIENT_SECRET;
+    if (!value) throw new ServiceUnavailableException('Spotify integration is not configured.');
+    return value;
   }
 
   private getCallbackUrl(): string {
@@ -427,6 +436,7 @@ export class SpotifyService {
     try {
       const res = await fetch('https://accounts.spotify.com/api/token', {
         method: 'POST',
+        signal: AbortSignal.timeout(10_000),
         headers: {
           Authorization: this.getBasicAuthHeader(),
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -435,7 +445,7 @@ export class SpotifyService {
       });
 
       if (!res.ok) {
-        throw new Error(`Failed to fetch app token (${res.status}): ${await res.text()}`);
+        throw new ServiceUnavailableException('Spotify catalog authentication is unavailable.');
       }
 
       const data = (await res.json()) as SpotifyTokenResponse;
@@ -444,7 +454,7 @@ export class SpotifyService {
       this.cachedAppTokenExpiresAt = Date.now() + expiresIn * 1000 - 300000; // 55 mins
       return this.cachedAppToken;
     } catch (err) {
-      this.logger.error(`Error acquiring Spotify App Token: ${(err as Error).message}`);
+      this.logger.warn('Spotify catalog authentication failed');
       throw err;
     }
   }
@@ -476,13 +486,15 @@ export class SpotifyService {
         const url = `https://api.spotify.com/v1/search?q=${encodeURIComponent(cleanQuery)}&type=track&limit=10&offset=${off}`;
         const res = await fetch(url, {
           headers: { Authorization: `Bearer ${token}` },
+          signal: AbortSignal.timeout(10_000),
         });
         if (!res.ok) {
-          this.logger.warn(`Spotify search tracks chunk error (offset=${off}): ${res.status}`);
-          return [];
+          throw new ServiceUnavailableException('Spotify search is temporarily unavailable.');
         }
         const data = (await res.json()) as SpotifySearchTracksResponse;
-        return Array.isArray(data.tracks?.items) ? data.tracks.items : [];
+        if (!Array.isArray(data.tracks?.items))
+          throw new ServiceUnavailableException('Spotify returned an invalid search response.');
+        return data.tracks.items;
       });
 
       const chunkResults = await Promise.all(requests);
@@ -513,8 +525,12 @@ export class SpotifyService {
 
       return mapped;
     } catch (err) {
-      this.logger.warn(`Spotify catalog search failed: ${(err as Error).message}`);
-      return [];
+      this.logger.warn(
+        `Spotify catalog search failed: ${err instanceof Error ? err.name : 'upstream error'}`,
+      );
+      throw new ServiceUnavailableException(
+        'Spotify search is temporarily unavailable. Please retry.',
+      );
     }
   }
 
@@ -543,13 +559,17 @@ export class SpotifyService {
         const url = `https://api.spotify.com/v1/search?q=${encodeURIComponent(cleanQuery)}&type=playlist&limit=10&offset=${off}`;
         const res = await fetch(url, {
           headers: { Authorization: `Bearer ${token}` },
+          signal: AbortSignal.timeout(10_000),
         });
         if (!res.ok) {
-          this.logger.warn(`Spotify search playlists chunk error (offset=${off}): ${res.status}`);
-          return [];
+          throw new ServiceUnavailableException(
+            'Spotify playlist search is temporarily unavailable.',
+          );
         }
         const data = (await res.json()) as SpotifySearchPlaylistsResponse;
-        return Array.isArray(data.playlists?.items) ? data.playlists.items : [];
+        if (!Array.isArray(data.playlists?.items))
+          throw new ServiceUnavailableException('Spotify returned an invalid search response.');
+        return data.playlists.items;
       });
 
       const chunkResults = await Promise.all(requests);
@@ -585,8 +605,12 @@ export class SpotifyService {
 
       return mapped;
     } catch (err) {
-      this.logger.warn(`Spotify playlist search failed: ${(err as Error).message}`);
-      return [];
+      this.logger.warn(
+        `Spotify playlist search failed: ${err instanceof Error ? err.name : 'upstream error'}`,
+      );
+      throw new ServiceUnavailableException(
+        'Spotify playlist search is temporarily unavailable. Please retry.',
+      );
     }
   }
 
@@ -2250,7 +2274,9 @@ export class SpotifyService {
       if (mapped.length < 10) {
         const searchQuery = `${artist || ''} ${title || ''}`.trim() || artist || title || '';
         if (searchQuery) {
-          const scSearch = await this.soundCloudService.searchTracks(searchQuery, 15, 0);
+          const scSearch = await this.soundCloudService
+            .searchTracks(searchQuery, 15, 0)
+            .catch(() => []);
           for (const t of scSearch) {
             const trackIdWithPrefix = t.id.startsWith('sc-') ? t.id : `sc-${t.id}`;
             if (

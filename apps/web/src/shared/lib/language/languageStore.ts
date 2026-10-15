@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { syncLanguageCookie } from '@/shared/lib/cookieUtils';
 
 export type SupportedLanguage =
   | 'Deutsch'
@@ -47,7 +48,10 @@ export const useLanguageStore = create<LanguageState>()(
   persist(
     (set) => ({
       currentLanguage: 'English',
-      setLanguage: (lang: SupportedLanguage) => set({ currentLanguage: lang }),
+      setLanguage: (lang: SupportedLanguage) => {
+        syncLanguageCookie(lang);
+        set({ currentLanguage: lang });
+      },
     }),
     {
       name: 'eternal_language_preference',

@@ -6,6 +6,14 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as messagesHookModule from '../../model/useMessages';
 import ChatThread from '../ChatThread';
+import { useChatDraftsStore } from '../../model/useChatDraftsStore';
+
+vi.mock('../ConversationDetailsPanel', () => ({
+  default: ({ onOpenSearch }: { onOpenSearch: () => void }) => (
+    <button onClick={onOpenSearch}>Search</button>
+  ),
+}));
+vi.mock('../MessageSearchPanel', () => ({ default: () => <div>Search</div> }));
 
 vi.mock('../../api/chatApi', () => ({
   chatApi: {
@@ -60,6 +68,7 @@ describe('ChatThread', () => {
   } as unknown as ConversationView;
 
   beforeEach(() => {
+    useChatDraftsStore.setState({ drafts: {} });
     act(() => {
       useSpotifyPlayerStore.setState({
         currentTrack: null,
@@ -272,5 +281,52 @@ describe('ChatThread', () => {
     });
     expect(mockNavigate).toHaveBeenCalledWith('/messages');
     vi.useRealTimers();
+  });
+
+  it('keeps the composer draft and retries a failed message load', () => {
+    const refetch = vi.fn();
+    useChatDraftsStore.getState().setDraft('conv-1', 'Draft survives a load failure');
+    vi.spyOn(messagesHookModule, 'useMessages').mockReturnValue({
+      messages: [],
+      isError: true,
+      isFetching: false,
+      isLoading: false,
+      hasNextPage: false,
+      isFetchingNextPage: false,
+      fetchNextPage: vi.fn(),
+      refetch,
+    } as any);
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <ChatThread conversation={mockConv} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent('Messages could not load');
+    expect(screen.getByRole('textbox', { name: 'Message' })).toHaveValue(
+      'Draft survives a load failure',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Retry messages' }));
+    expect(refetch).toHaveBeenCalledOnce();
+  });
+
+  it('lets the open message menu own Escape without closing the chat', () => {
+    mockNavigate.mockClear();
+    const closeMenu = vi.fn();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <ChatThread conversation={mockConv} />
+          <div role="menu" onKeyDown={closeMenu} tabIndex={0}>
+            Message actions
+          </div>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' });
+    expect(closeMenu).toHaveBeenCalledOnce();
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(screen.getByTestId('chat-thread')).not.toHaveClass('pointer-events-none');
   });
 });

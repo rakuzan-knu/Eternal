@@ -70,6 +70,9 @@ export default function MessageContextMenu({
   const [mounted, setMounted] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const previousFocusRef = useRef(
+    document.activeElement instanceof HTMLElement ? document.activeElement : null,
+  );
 
   const [position, setPosition] = useState<{ top: number; left: number }>(() => ({
     top: coords?.y ?? 100,
@@ -86,10 +89,17 @@ export default function MessageContextMenu({
   }, [isClosing, onClose]);
 
   useEffect(() => {
-    const id = requestAnimationFrame(() => setMounted(true));
+    const previousFocus = previousFocusRef.current;
+    const id = requestAnimationFrame(() => {
+      setMounted(true);
+      menuRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+    });
     return () => {
       cancelAnimationFrame(id);
       if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+      if (previousFocus?.isConnected) {
+        previousFocus.focus({ preventScroll: true });
+      }
     };
   }, []);
 
@@ -335,7 +345,31 @@ export default function MessageContextMenu({
         )}
 
         {/* Main Context Menu Card */}
-        <div className="w-[230px] rounded-2xl bg-[#181926]/95 dark:bg-[#181926]/95 backdrop-blur-2xl border border-white/10 shadow-[0_18px_50px_rgba(0,0,0,0.65)] py-1.5 px-1 flex flex-col">
+        <div
+          role="menu"
+          aria-label="Message actions"
+          onKeyDown={(event) => {
+            if (event.key === 'Tab') {
+              requestClose();
+              return;
+            }
+            if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+            event.preventDefault();
+            const items = Array.from(
+              event.currentTarget.querySelectorAll<HTMLElement>('[role="menuitem"]'),
+            );
+            if (!items.length) return;
+            const current = items.indexOf(document.activeElement as HTMLElement);
+            const next =
+              event.key === 'Home'
+                ? 0
+                : event.key === 'End'
+                  ? items.length - 1
+                  : (current + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+            items[next]?.focus();
+          }}
+          className="w-[230px] rounded-2xl bg-[#181926]/95 dark:bg-[#181926]/95 backdrop-blur-2xl border border-white/10 shadow-[0_18px_50px_rgba(0,0,0,0.65)] py-1.5 px-1 flex flex-col"
+        >
           {/* Status Header: Timestamp & Sent/Delivered/Read indicator */}
           <div className="px-3 py-1.5 flex items-center gap-2.5 text-[12.5px] font-medium text-gray-300 dark:text-gray-200 select-none border-b border-white/10 mb-1">
             <span className="shrink-0 flex items-center justify-center">
@@ -367,6 +401,7 @@ export default function MessageContextMenu({
           {onReply && (
             <button
               type="button"
+              role="menuitem"
               onClick={(e) => {
                 e.stopPropagation();
                 onReply();
@@ -383,6 +418,7 @@ export default function MessageContextMenu({
           {isOwnMessage && (
             <button
               type="button"
+              role="menuitem"
               onClick={(e) => {
                 e.stopPropagation();
                 onEdit();
@@ -399,6 +435,7 @@ export default function MessageContextMenu({
           {isImage && (
             <button
               type="button"
+              role="menuitem"
               onClick={(e) => {
                 e.stopPropagation();
                 handleCopyMedia();
@@ -415,6 +452,7 @@ export default function MessageContextMenu({
           {hasMedia && (
             <button
               type="button"
+              role="menuitem"
               onClick={(e) => {
                 e.stopPropagation();
                 handleDownload();
@@ -431,6 +469,7 @@ export default function MessageContextMenu({
           {Boolean(message.body) && (
             <button
               type="button"
+              role="menuitem"
               onClick={(e) => {
                 e.stopPropagation();
                 handleCopy();
@@ -447,6 +486,7 @@ export default function MessageContextMenu({
           {Boolean(message.body) && (
             <button
               type="button"
+              role="menuitem"
               onClick={(e) => {
                 e.stopPropagation();
                 handleTranslate();
@@ -462,6 +502,7 @@ export default function MessageContextMenu({
           {/* Action: Pin / Unpin */}
           <button
             type="button"
+            role="menuitem"
             onClick={(e) => {
               e.stopPropagation();
               onTogglePin();
@@ -485,6 +526,7 @@ export default function MessageContextMenu({
           {/* Action: Forward */}
           <button
             type="button"
+            role="menuitem"
             onClick={(e) => {
               e.stopPropagation();
               onForward();
@@ -500,6 +542,7 @@ export default function MessageContextMenu({
           {onSelectMessage && (
             <button
               type="button"
+              role="menuitem"
               onClick={(e) => {
                 e.stopPropagation();
                 onSelectMessage();
@@ -515,6 +558,7 @@ export default function MessageContextMenu({
           {/* Action: Delete */}
           <button
             type="button"
+            role="menuitem"
             onClick={(e) => {
               e.stopPropagation();
               onDelete();
@@ -533,6 +577,7 @@ export default function MessageContextMenu({
           {!isOwnMessage && (
             <button
               type="button"
+              role="menuitem"
               onClick={(e) => {
                 e.stopPropagation();
                 onReport();

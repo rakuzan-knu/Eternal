@@ -22,8 +22,76 @@ const posts: PostType[] = Array.from({ length: 10 }, (_, index) => ({
   isSaved: false,
   isReposted: false,
 }));
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
 describe('bounded post scroll anchors', () => {
+  it('keeps the post anchor when the composer above the list resizes', async () => {
+    let scrollY = 1100;
+    let listTop = 200;
+    const observers: {
+      callback: ResizeObserverCallback;
+      targets: Set<Element>;
+      disconnect: ReturnType<typeof vi.fn>;
+    }[] = [];
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        targets = new Set<Element>();
+        disconnect = vi.fn();
+        constructor(public callback: ResizeObserverCallback) {
+          observers.push(this);
+        }
+        observe(target: Element) {
+          this.targets.add(target);
+        }
+        unobserve(target: Element) {
+          this.targets.delete(target);
+        }
+      },
+    );
+    vi.spyOn(window, 'scrollY', 'get').mockImplementation(() => scrollY);
+    vi.spyOn(window, 'scrollTo').mockImplementation((...args: unknown[]) => {
+      scrollY =
+        typeof args[0] === 'number' ? Number(args[1]) : Number((args[0] as ScrollToOptions).top);
+    });
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      const top = this.dataset.testid === 'bounded-post-list' ? listTop - scrollY : 0;
+      return new DOMRect(0, top, 600, 800);
+    });
+    const history = new PostFeedWindow();
+    history.remember(undefined, 10, null);
+    history.scrollY = scrollY;
+    history.anchor = { id: 'post-1', offset: 100 };
+    for (let index = 0; index < 10; index++) history.heights.set(index, 800);
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { getByTestId, unmount } = render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter>
+          <BoundedPostList
+            posts={posts}
+            query={{ window: history, startIndex: 0, knownItemCount: 10 }}
+            queryKey={['feed']}
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    await waitFor(() => expect(scrollY).toBe(1100));
+    const layoutObserver = observers.find((observer) =>
+      observer.targets.has(getByTestId('bounded-post-list').parentElement!),
+    );
+    expect(layoutObserver).toBeDefined();
+    listTop = 350;
+    act(() => layoutObserver!.callback([], {} as ResizeObserver));
+    await waitFor(() => expect(scrollY).toBe(1250));
+    unmount();
+    expect(layoutObserver!.disconnect).toHaveBeenCalledOnce();
+    client.clear();
+  });
+
   it('preserves a distant post anchor while mutation boundaries are rebased', async () => {
     let scrollY = 32900;
     vi.spyOn(window, 'scrollY', 'get').mockImplementation(() => scrollY);
@@ -31,7 +99,9 @@ describe('bounded post scroll anchors', () => {
       scrollY =
         typeof args[0] === 'number' ? Number(args[1]) : Number((args[0] as ScrollToOptions).top);
     });
-    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function () {
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: HTMLElement,
+    ) {
       return new DOMRect(0, -scrollY, 600, 800);
     });
     const history = new PostFeedWindow();
@@ -75,7 +145,9 @@ describe('bounded post scroll anchors', () => {
       scrollY =
         typeof args[0] === 'number' ? Number(args[1]) : Number((args[0] as ScrollToOptions).top);
     });
-    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function () {
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: HTMLElement,
+    ) {
       return new DOMRect(0, -scrollY, 600, 800);
     });
     const history = new PostFeedWindow();

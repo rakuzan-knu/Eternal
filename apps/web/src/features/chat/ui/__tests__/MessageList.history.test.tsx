@@ -32,6 +32,7 @@ vi.mock('@tanstack/react-virtual', () => ({
         start: index * 64,
       })).filter((item) => item.index >= mountedRange.start && item.index < mountedRange.end),
     getTotalSize: () => options.count * 64,
+    takeSnapshot: () => [],
     measureElement: () => {},
     getOffsetForIndex: (index: number) => [index * 64, 'start'],
     scrollToOffset: (offset: number) => {
@@ -80,7 +81,7 @@ describe('history viewport anchoring', () => {
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
       this: HTMLElement,
     ) {
-      const scroller = this.closest('[data-testid="message-scroller"]') as HTMLElement | null;
+      const scroller = this.closest('[data-testid="message-scroll"]') as HTMLElement | null;
       const top = this.hasAttribute('data-index')
         ? Number(this.dataset.index) * 64 +
           (parseFloat(scroller?.style.paddingTop ?? '') || 0) -
@@ -118,7 +119,7 @@ describe('history viewport anchoring', () => {
       onUnreact: vi.fn(),
     };
     const { rerender } = render(<MessageList {...props} messages={messages(201, 280)} />);
-    const scroller = screen.getByTestId('message-scroller');
+    const scroller = screen.getByTestId('message-scroll');
     scroller.style.paddingTop = '8px';
     Object.defineProperties(scroller, {
       clientHeight: { value: 400, configurable: true },
@@ -141,7 +142,7 @@ describe('history viewport anchoring', () => {
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
       this: HTMLElement,
     ) {
-      const scroller = this.closest('[data-testid="message-scroller"]') as HTMLElement | null;
+      const scroller = this.closest('[data-testid="message-scroll"]') as HTMLElement | null;
       const top = this.hasAttribute('data-index')
         ? Number(this.dataset.index) * 64 - (scroller?.scrollTop ?? 0)
         : 0;
@@ -178,7 +179,7 @@ describe('history viewport anchoring', () => {
     };
     mountedRange.start = 60;
     const { rerender } = render(<MessageList {...props} messages={messages(201, 280)} />);
-    const scroller = screen.getByTestId('message-scroller');
+    const scroller = screen.getByTestId('message-scroll');
     Object.defineProperties(scroller, {
       clientHeight: { value: 400, configurable: true },
       scrollHeight: { value: 5184, configurable: true },

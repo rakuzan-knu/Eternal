@@ -44,11 +44,22 @@ const WRAP_PAIRS: Record<string, [string, string]> = {
 interface CreatePostProps {
   onSubmitFormData: (fd: FormData, optimisticPost?: Partial<PostType>) => void | Promise<unknown>;
   isPending?: boolean;
+  draft?: {
+    text: string;
+    setText: React.Dispatch<React.SetStateAction<string>>;
+    onSubmitSuccess?: () => void;
+  };
 }
 
-export default function CreatePost({ onSubmitFormData, isPending = false }: CreatePostProps) {
+export default function CreatePost({
+  onSubmitFormData,
+  isPending = false,
+  draft,
+}: CreatePostProps) {
   const { data: currentUser } = useCurrentUser();
-  const [text, setText] = useState('');
+  const [localText, setLocalText] = useState('');
+  const text = draft?.text ?? localText;
+  const setText = draft?.setText ?? setLocalText;
   const [cursorPos, setCursorPos] = useState(0);
   const [media, setMedia] = useState<MediaDraft[]>([]);
   const [activeMenu, setActiveMenu] = useState<'emoji' | 'gif' | null>(null);
@@ -412,7 +423,10 @@ export default function CreatePost({ onSubmitFormData, isPending = false }: Crea
         poll: optimisticPoll,
       });
 
-      setText('');
+      // A remounted feed can already contain a newer draft when this request
+      // completes. Only clear the text that was actually submitted.
+      if (draft?.onSubmitSuccess) draft.onSubmitSuccess();
+      else setText((current) => (current === text ? '' : current));
       media.forEach((item) => {
         if (item.file) URL.revokeObjectURL(item.previewUrl);
       });
@@ -444,8 +458,8 @@ export default function CreatePost({ onSubmitFormData, isPending = false }: Crea
       )}
 
       {/* Write vs Preview Toggle Bar */}
-      <div className="flex items-center justify-between pb-1 border-b border-white/5">
-        <div className="flex items-center gap-1 bg-white/5 p-0.5 rounded-xl border border-white/5">
+      <div className="flex flex-wrap gap-2 items-center justify-between pb-1 border-b border-white/5">
+        <div className="flex flex-wrap items-center gap-1 bg-white/5 p-0.5 rounded-xl border border-white/5">
           <button
             type="button"
             onClick={() => setActiveTab('write')}
@@ -563,8 +577,8 @@ export default function CreatePost({ onSubmitFormData, isPending = false }: Crea
 
       <div className="h-px bg-white/5 w-full mt-2" />
 
-      <div className="flex justify-between items-center relative">
-        <div className="flex gap-1 -ml-2">
+      <div className="flex flex-wrap gap-2 justify-between items-center relative">
+        <div className="flex flex-wrap gap-1 -ml-2">
           <AddFileButton
             onFilesSelect={handleFilesSelect}
             disabled={!canAddMore || isBusy}

@@ -33,4 +33,7 @@ export const queryKeys = {
     all: ['stories'] as const,
     feed: () => [...queryKeys.stories.all, 'feed'] as const,
   },
+  auth: {
+    checkUsername: (username: string) => ['auth', 'check-username', username] as const,
+  },
 } as const;

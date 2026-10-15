@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { syncThemeCookie } from '@/shared/lib/cookieUtils';
 import {
   getTextOnAccent,
   generateSemanticTokens,
@@ -311,6 +312,7 @@ export function applyThemeToDOM(state: Partial<ThemeState>): void {
       ? effectiveSolid
       : 'dark';
 
+  syncThemeCookie(isLight ? 'light' : 'dark');
   root.setAttribute('data-theme', dataTheme);
   root.setAttribute('data-surface-contrast', isLight ? 'light' : 'dark');
   if (isLight) {

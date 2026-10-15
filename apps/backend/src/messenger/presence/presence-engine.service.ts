@@ -159,7 +159,7 @@ export class PresenceEngineService implements OnModuleInit, OnModuleDestroy {
         try {
           const client = this.redisService.getClient?.();
           if (typeof client?.zrem === 'function') {
-            void client.zrem(PresenceEngineService.PRESENCE_ZSET_KEY, userId);
+            void client.zrem(PresenceEngineService.PRESENCE_ZSET_KEY, userId).catch(() => {});
           }
         } catch {
           // ignore
@@ -181,7 +181,7 @@ export class PresenceEngineService implements OnModuleInit, OnModuleDestroy {
     try {
       const client = this.redisService.getClient?.();
       if (typeof client?.zrem === 'function') {
-        void client.zrem(PresenceEngineService.PRESENCE_ZSET_KEY, userId);
+        void client.zrem(PresenceEngineService.PRESENCE_ZSET_KEY, userId).catch(() => {});
       }
     } catch {
       // ignore

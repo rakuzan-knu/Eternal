@@ -261,6 +261,17 @@ export const SpotifyBottomDock: React.FC = () => {
     [isJamActive, isHost, calculateScrubberPos, seek, emitManualHostSync],
   );
 
+  const spotifyDockStyle = useThemeStore((s) => s.spotifyDockStyle);
+
+  useEffect(() => {
+    if (spotifyDockStyle !== 'square' && isDockVisible && typeof window !== 'undefined') {
+      setPiPLastCenter({
+        x: Math.round(window.innerWidth / 2),
+        y: Math.max(90, Math.round(window.innerHeight - 48)),
+      });
+    }
+  }, [spotifyDockStyle, isDockVisible]);
+
   if (!isDockVisible || !currentTrack) return null;
 
   const formatTime = (ms: number) => {
@@ -284,17 +295,6 @@ export const SpotifyBottomDock: React.FC = () => {
       setVolumeOpen(false);
     }, 450);
   };
-
-  const spotifyDockStyle = useThemeStore((s) => s.spotifyDockStyle);
-
-  useEffect(() => {
-    if (spotifyDockStyle !== 'square' && isDockVisible && typeof window !== 'undefined') {
-      setPiPLastCenter({
-        x: Math.round(window.innerWidth / 2),
-        y: Math.max(90, Math.round(window.innerHeight - 48)),
-      });
-    }
-  }, [spotifyDockStyle, isDockVisible]);
 
   const handleToggleGameMode = (e: React.MouseEvent<HTMLButtonElement>) => {
     if (!isGameModeOpen) {

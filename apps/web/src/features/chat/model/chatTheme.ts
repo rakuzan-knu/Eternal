@@ -1,3 +1,5 @@
+import { designTokens } from '@social-network/shared-ui-primitives';
+
 export type BackgroundType = 'solid' | 'gradient' | 'image' | 'preset' | 'shader';
 export type BubbleType = 'solid' | 'gradient' | 'preset';
 export type BubbleShapeType =
@@ -409,8 +411,8 @@ export const CHAT_FONTS: ChatFontMeta[] = [
   // Row 1
   {
     id: 'default',
-    name: 'Default (GG Sans)',
-    fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    name: 'Default (System)',
+    fontFamily: designTokens.typography.familyWeb.sans,
     sampleText: 'Gg',
     scale: 1,
     lineHeight: '1.4',

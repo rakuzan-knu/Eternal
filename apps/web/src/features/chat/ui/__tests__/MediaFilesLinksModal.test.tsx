@@ -5,6 +5,23 @@ import MediaFilesLinksModal from '../MediaFilesLinksModal';
 import { MessageView } from '@/entities/chat/model/types';
 import React from 'react';
 
+// Keep this suite focused on media selection and close/navigation wiring.
+// MediaLightbox.test.tsx exercises the viewer implementation itself.
+vi.mock('../MediaLightbox', () => ({
+  default: ({
+    items,
+    index,
+    onClose,
+  }: React.ComponentProps<typeof import('../MediaLightbox').default>) => (
+    <div role="dialog" aria-label="Media viewer">
+      <img src={items[index].attachment.url} alt="Selected media" />
+      <button title="Close" onClick={onClose}>
+        Close
+      </button>
+    </div>
+  ),
+}));
+
 function render(ui: React.ReactElement) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return renderUi(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
@@ -64,7 +81,9 @@ describe('MediaFilesLinksModal', () => {
     // Lightbox controls: Go to message button removed per user request
     expect(screen.queryByTitle('Go to message')).not.toBeInTheDocument();
     const closeLightboxBtn = await screen.findByTitle('Close');
+    expect(screen.getByAltText('Selected media')).toHaveAttribute('src', 'https://img.com/1.png');
     fireEvent.click(closeLightboxBtn);
+    expect(screen.queryByRole('dialog', { name: 'Media viewer' })).not.toBeInTheDocument();
 
     // Files Tab
     const filesTab = screen.getByRole('button', { name: /files/i });

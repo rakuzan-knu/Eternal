@@ -402,7 +402,9 @@ export class MessengerGateway
           try {
             const redisClient = this.redisService.getClient?.();
             if (typeof redisClient?.zrem === 'function') {
-              void redisClient.zrem(PresenceEngineService.PRESENCE_ZSET_KEY, userId);
+              void redisClient
+                .zrem(PresenceEngineService.PRESENCE_ZSET_KEY, userId)
+                .catch(() => {});
             }
           } catch {
             // ignore
@@ -1484,8 +1486,7 @@ export class MessengerGateway
 
     const roomSockets = await this.server.in(`showcase:${payload.userId}`).fetchSockets();
     for (const socket of roomSockets) {
-      const viewerId =
-        (socket as unknown as AuthenticatedSocket).userId || (socket.data as any)?.userId;
+      const viewerId = (socket as unknown as AuthenticatedSocket).userId || socket.data?.userId;
       const allowed =
         viewerId === payload.userId ||
         showcase?.privacyActivity === 'PUBLIC' ||

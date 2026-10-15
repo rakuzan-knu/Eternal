@@ -294,7 +294,7 @@ const EN_UI: LegalUITranslation = {
             'We use essential browser storage technologies to keep your session secure and your preferences saved:',
           ],
           bullets: [
-            'Session Tokens & Auth Keys: Stored securely in your browser’s localStorage to keep you logged in across devices and protect against unauthorized access.',
+            'Session Tokens & Auth Keys: Refresh tokens are stored in secure, encrypted, httpOnly cookies protected against XSS, while short-lived access tokens reside in memory during your active session.',
             'App Preferences: We save your chosen interface theme, volume levels, and language selection locally on your device.',
             'No Ad-Tracking Cookies: We do not use third-party tracking cookies to build advertising dossiers on your web browsing history.',
           ],
@@ -708,7 +708,7 @@ const UK_UI: LegalUITranslation = {
             'Ми використовуємо необхідні технології збереження для авторизації та налаштувань:',
           ],
           bullets: [
-            'Токени сесії: Зберігаються в localStorage браузера для швидкого входу та захисту від несанкціонованого доступу.',
+            'Токени сесії: Токени оновлення зберігаються у захищених файлах cookie httpOnly із захистом від XSS, а короткоживучі токени доступу — в пам’яті активної сесії.',
             'Налаштування додатка: Зберігають обрану тему, гучність та вибір мови локально на пристрої.',
             'Без рекламних трекерів: Ми не використовуємо сторонні шпигунські cookie для відстеження вашої активності в інтернеті.',
           ],

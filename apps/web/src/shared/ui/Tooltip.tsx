@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState, useCallback, useId } from 'react';
 import { createPortal } from 'react-dom';
 
 interface TooltipProps {
@@ -17,6 +17,9 @@ export default function Tooltip({
   children,
   className = '',
 }: TooltipProps) {
+  const id = useId();
+  const isHovered = useRef(false);
+  const isFocused = useRef(false);
   const triggerRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLSpanElement>(null);
   const [shouldRender, setShouldRender] = useState(false);
@@ -121,6 +124,7 @@ export default function Tooltip({
   };
 
   const hide = () => {
+    if (hideTimeout.current) clearTimeout(hideTimeout.current);
     setIsEntered(false);
     hideTimeout.current = setTimeout(() => setShouldRender(false), EXIT_DURATION_MS);
   };
@@ -129,7 +133,34 @@ export default function Tooltip({
   useLayoutEffect(() => {
     if (!shouldRender) return;
     updatePosition();
-  }, [shouldRender, updatePosition, label]);
+    const triggers = triggerRef.current?.querySelectorAll<HTMLElement>(
+      'button, a[href], input, select, textarea, [tabindex]',
+    );
+    const originals = Array.from(triggers ?? []).map((trigger) => {
+      const description = trigger.getAttribute('aria-describedby');
+      trigger.setAttribute('aria-describedby', [description, id].filter(Boolean).join(' '));
+      return { trigger, description };
+    });
+    return () => {
+      for (const { trigger, description } of originals) {
+        if (description === null) trigger.removeAttribute('aria-describedby');
+        else trigger.setAttribute('aria-describedby', description);
+      }
+    };
+  }, [shouldRender, updatePosition, label, id]);
+
+  useEffect(() => {
+    if (!shouldRender) return;
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented) return;
+      event.preventDefault();
+      if (hideTimeout.current) clearTimeout(hideTimeout.current);
+      setIsEntered(false);
+      setShouldRender(false);
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [shouldRender]);
 
   useEffect(() => {
     if (!shouldRender) return;
@@ -157,8 +188,27 @@ export default function Tooltip({
     <div
       ref={triggerRef}
       className={`inline-flex ${className}`}
-      onMouseEnter={show}
-      onMouseLeave={hide}
+      onMouseEnter={() => {
+        isHovered.current = true;
+        show();
+      }}
+      onMouseLeave={() => {
+        isHovered.current = false;
+        if (!isFocused.current) hide();
+      }}
+      onFocus={() => {
+        isFocused.current = true;
+        show();
+      }}
+      onBlur={(event) => {
+        if (
+          event.relatedTarget instanceof Node &&
+          event.currentTarget.contains(event.relatedTarget)
+        )
+          return;
+        isFocused.current = false;
+        if (!isHovered.current) hide();
+      }}
     >
       {children}
 
@@ -167,12 +217,21 @@ export default function Tooltip({
           <span
             ref={tooltipRef}
             role="tooltip"
+            id={id}
+            onMouseEnter={() => {
+              isHovered.current = true;
+              show();
+            }}
+            onMouseLeave={() => {
+              isHovered.current = false;
+              if (!isFocused.current) hide();
+            }}
             style={{
               position: 'fixed',
               top: coords.top,
               left: coords.left,
             }}
-            className={`pointer-events-none whitespace-nowrap rounded-lg bg-[#0d0d0f] border border-white/10 px-2.5 py-1.5 text-xs font-medium text-white shadow-lg z-[9999] transition-all duration-150 ${
+            className={`whitespace-nowrap rounded-lg bg-[#0d0d0f] border border-white/10 px-2.5 py-1.5 text-xs font-medium text-white shadow-lg z-(--eternal-layer-tooltip) transition-all duration-(--eternal-motion-duration-fast) ${
               isEntered ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
             }`}
           >

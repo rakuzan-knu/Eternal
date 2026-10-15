@@ -90,6 +90,9 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
     hasNewer,
     isFetchingPreviousPage,
     isLoading: isLoadingMessages,
+    isError: isMessagesError,
+    isFetching: isFetchingMessages,
+    refetch: refetchMessages,
   } = useMessages(conversation.id);
   const { typingUserIds } = useConversationRealtime(conversation.id);
   // Offline-first: on reconnect, fetch the REST `after`-delta for this
@@ -548,7 +551,7 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
         isPinnedModalOpen ||
         isDatePickerOpen ||
         document.querySelector(
-          '[role="dialog"], [aria-modal="true"], [data-modal-open="true"], [data-lightbox-open="true"], .glass-modal, [data-video-editor-open="true"]',
+          '[role="dialog"], [role="menu"], [aria-modal="true"], [data-modal-open="true"], [data-lightbox-open="true"], .glass-modal, [data-video-editor-open="true"]',
         )
       ) {
         return;
@@ -660,7 +663,12 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
         if (!messages || messages.length === 0) return;
 
         // Skip if modal is open
-        if (document.querySelector('[role="dialog"], [aria-modal="true"], .glass-modal')) return;
+        if (
+          document.querySelector(
+            '[role="dialog"], [role="menu"], [aria-modal="true"], .glass-modal',
+          )
+        )
+          return;
 
         // Eligible messages to reply to (exclude deleted)
         const eligible = messages.filter((m) => !m.isDeleted);
@@ -708,13 +716,14 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
 
   return (
     <div
-      className={`flex-1 flex h-full min-w-0 transition-all duration-240 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+      data-testid="chat-thread"
+      className={`flex-1 flex min-h-0 min-w-0 transition-all duration-240 ease-[cubic-bezier(0.16,1,0.3,1)] ${
         isClosingChat
           ? 'opacity-0 scale-[0.985] translate-x-4 pointer-events-none'
           : 'opacity-100 scale-100 translate-x-0'
       }`}
     >
-      <div ref={chatPaneRef} className="flex-1 flex flex-col h-full min-w-0">
+      <div ref={chatPaneRef} className="flex-1 flex flex-col min-h-0 min-w-0">
         <ChatThreadHeader
           conversationId={conversation.id}
           display={display}
@@ -830,60 +839,83 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
             onFilesDropped={staged.addFiles}
             className="relative z-10 flex-1 flex flex-col min-h-0 bg-transparent"
           >
-            <MessageList
-              messages={messages}
-              currentUserId={userId}
-              otherParticipantId={otherParticipant?.userId ?? null}
-              conversationId={conversation.id}
-              contentMaxWidth={composerMaxWidth}
-              horizontalShift={horizontalShift}
-              onThemeAccepted={(themeStr) => applyTheme(parseChatTheme(themeStr))}
-              otherParticipant={otherParticipant}
-              display={display}
-              hasMore={!!hasNextPage}
-              isLoading={isLoadingMessages}
-              isFetchingMore={isFetchingNextPage}
-              hasNewer={hasNewer}
-              isFetchingNewer={isFetchingPreviousPage}
-              typingParticipants={typingParticipants}
-              isGroup={conversation.type === 'GROUP'}
-              isSelectionMode={isSelectionMode}
-              selectedMessageIds={selectedMessageIds}
-              chatTheme={chatTheme}
-              onToggleSelectMessage={handleToggleSelectMessage}
-              onLoadMore={fetchNextPage}
-              onReply={(message) => {
-                setEditingMessage(null);
-                setReplyingTo(message);
-              }}
-              onEdit={(message) => {
-                setReplyingTo(null);
-                setEditingMessage(message);
-              }}
-              onDelete={handleDelete}
-              onForward={setForwardingMessage}
-              onTogglePin={handleTogglePin}
-              onReport={handleReport}
-              onReact={actions.addReaction}
-              onUnreact={actions.removeReaction}
-              onMarkRead={actions.markRead}
-              highlightMessageId={highlightMessageId}
-              onHighlightHandled={() => setHighlightMessageId(null)}
-              onJumpToMessage={handleJumpToMessage}
-              onLoadAround={loadAroundMessage}
-              onOpenDatePicker={handleOpenDatePicker}
-              highlightDateLabel={highlightDateLabel}
-              isAnchoredInHistory={isAnchoredInHistory}
-              onResetToLive={() => {
-                void resetToLive().catch(() => {});
-              }}
-              onLoadOlder={fetchNextPage}
-              onLoadNewer={loadNewer}
-              onRetry={(msgId) => {
-                actions.retrySendMessage(msgId).catch(() => {});
-              }}
-              onOpenMedia={handleOpenMedia}
-            />
+            {isMessagesError && (
+              <div
+                role="alert"
+                className="m-3 p-4 rounded-2xl bg-neutral-900 border border-red-400/30 text-white space-y-2"
+              >
+                <p className="font-semibold">Messages could not load</p>
+                <p className="text-sm text-gray-300">Your draft and loaded messages are kept.</p>
+                <button
+                  type="button"
+                  onClick={() => void refetchMessages()}
+                  disabled={isFetchingMessages}
+                  aria-busy={isFetchingMessages}
+                  className="min-h-11 px-4 rounded-xl bg-white text-black text-sm font-semibold disabled:opacity-50"
+                >
+                  {isFetchingMessages ? 'Retrying…' : 'Retry messages'}
+                </button>
+              </div>
+            )}
+            {(!isMessagesError || messages.length > 0) && (
+              <MessageList
+                messages={messages}
+                currentUserId={userId}
+                otherParticipantId={otherParticipant?.userId ?? null}
+                conversationId={conversation.id}
+                contentMaxWidth={composerMaxWidth}
+                horizontalShift={horizontalShift}
+                onThemeAccepted={(themeStr) => applyTheme(parseChatTheme(themeStr))}
+                otherParticipant={otherParticipant}
+                display={display}
+                hasMore={!!hasNextPage}
+                isLoading={isLoadingMessages}
+                isFetchingMore={isFetchingNextPage}
+                hasNewer={hasNewer}
+                isFetchingNewer={isFetchingPreviousPage}
+                typingParticipants={typingParticipants}
+                isGroup={conversation.type === 'GROUP'}
+                isSelectionMode={isSelectionMode}
+                selectedMessageIds={selectedMessageIds}
+                chatTheme={chatTheme}
+                onToggleSelectMessage={handleToggleSelectMessage}
+                onLoadMore={fetchNextPage}
+                onReply={(message) => {
+                  setEditingMessage(null);
+                  setReplyingTo(message);
+                }}
+                onEdit={(message) => {
+                  setReplyingTo(null);
+                  setEditingMessage(message);
+                }}
+                onDelete={handleDelete}
+                onForward={setForwardingMessage}
+                onTogglePin={handleTogglePin}
+                onReport={handleReport}
+                onReact={actions.addReaction}
+                onUnreact={actions.removeReaction}
+                onMarkRead={actions.markRead}
+                highlightMessageId={highlightMessageId}
+                onHighlightHandled={() => setHighlightMessageId(null)}
+                onJumpToMessage={handleJumpToMessage}
+                onLoadAround={loadAroundMessage}
+                onOpenDatePicker={handleOpenDatePicker}
+                highlightDateLabel={highlightDateLabel}
+                isAnchoredInHistory={isAnchoredInHistory}
+                onResetToLive={() => {
+                  void resetToLive().catch(() => {});
+                }}
+                onLoadOlder={fetchNextPage}
+                onLoadNewer={loadNewer}
+                onRetry={(msgId) => {
+                  actions.retrySendMessage(msgId).catch(() => {});
+                  chatPaneRef.current
+                    ?.querySelector<HTMLTextAreaElement>('textarea[aria-label="Message"]')
+                    ?.focus({ preventScroll: true });
+                }}
+                onOpenMedia={handleOpenMedia}
+              />
+            )}
 
             {/* Copy Toast Feedback */}
             {copyToast && (

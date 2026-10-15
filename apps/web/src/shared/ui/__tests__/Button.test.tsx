@@ -13,13 +13,16 @@ describe('Button', () => {
   it('applies the primary variant classes by default', () => {
     render(<Button>Submit</Button>);
 
-    expect(screen.getByRole('button')).toHaveClass('bg-white', 'text-black');
+    expect(screen.getByRole('button')).toHaveClass(
+      'bg-(--eternal-semantic-action-primary)',
+      'text-(--eternal-semantic-action-primary-text)',
+    );
   });
 
   it('applies the secondary variant classes when requested', () => {
     render(<Button variant="secondary">Cancel</Button>);
 
-    expect(screen.getByRole('button')).toHaveClass('bg-neutral-900/80');
+    expect(screen.getByRole('button')).toHaveClass('bg-(--eternal-semantic-surface-control)');
   });
 
   it('shows a spinner and hides children while loading', () => {
@@ -33,6 +36,28 @@ describe('Button', () => {
     render(<Button loading>Submit</Button>);
 
     expect(screen.getByRole('button')).toBeDisabled();
+  });
+
+  it('announces pending state without relying on spinner motion', () => {
+    render(<Button loading>Submit</Button>);
+
+    expect(screen.getByRole('button', { name: 'Loading' })).toHaveAttribute('aria-busy', 'true');
+    expect(document.querySelector('.animate-spin')).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('keeps a loading button disabled when disabled=false is passed explicitly', async () => {
+    const onClick = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <Button loading disabled={false} onClick={onClick}>
+        Submit
+      </Button>,
+    );
+
+    await user.click(screen.getByRole('button'));
+
+    expect(screen.getByRole('button')).toBeDisabled();
+    expect(onClick).not.toHaveBeenCalled();
   });
 
   it('calls onClick when clicked and not loading', async () => {

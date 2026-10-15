@@ -131,98 +131,59 @@ describe('RegisterForm', () => {
     await waitFor(() => expect(screen.getByText('Email already in use')).toBeInTheDocument());
   });
 
-  it('handles various server error shapes in onError callback', async () => {
-    // 1. 409 without string message
-    let testError: any = { isAxiosError: true, response: { status: 409, data: {} } };
-    setupMutations({
-      mutateImpl: (_payload, options) => options?.onError?.(testError),
-    });
-    const { unmount: u1 } = renderWithProviders(<RegisterForm />);
+  it.each([
+    {
+      shape: '409 without a string message',
+      error: { isAxiosError: true, response: { status: 409, data: {} } },
+      message: 'This Email, phone number or username is already taken.',
+    },
+    {
+      shape: '400 with an array message',
+      error: {
+        isAxiosError: true,
+        response: { status: 400, data: { message: ['Invalid email', 'Password too weak'] } },
+      },
+      message: 'Invalid email, Password too weak',
+    },
+    {
+      shape: '400 with a string message',
+      error: {
+        isAxiosError: true,
+        response: { status: 400, data: { message: 'Invalid payload format' } },
+      },
+      message: 'Invalid payload format',
+    },
+    {
+      shape: '400 with an object message',
+      error: { isAxiosError: true, response: { status: 400, data: { message: {} } } },
+      message: 'Data validation error. Please check the entered fields.',
+    },
+    {
+      shape: '500 with a string message',
+      error: {
+        isAxiosError: true,
+        response: { status: 500, data: { message: 'Database failure' } },
+      },
+      message: 'Database failure',
+    },
+    {
+      shape: '500 without a message',
+      error: { isAxiosError: true, response: { status: 500, data: {} } },
+      message:
+        'The server is unavailable or an internal error has occurred. Please try again later.',
+    },
+    {
+      shape: 'a non-Axios error',
+      error: new Error('Unknown crash'),
+      message: 'An unexpected error occurred.',
+    },
+  ])('handles $shape in the server error callback', async ({ error, message }) => {
+    setupMutations({ mutateImpl: (_payload, options) => options?.onError?.(error) });
+    renderWithProviders(<RegisterForm />);
     fillMinimumValidForm();
     await waitFor(() => expect(getSubmitButton()).not.toBeDisabled());
     fireEvent.click(getSubmitButton());
-    await waitFor(() =>
-      expect(
-        screen.getByText('This Email, phone number or username is already taken.'),
-      ).toBeInTheDocument(),
-    );
-    u1();
-
-    // 2. 400 with array message
-    testError = {
-      isAxiosError: true,
-      response: { status: 400, data: { message: ['Invalid email', 'Password too weak'] } },
-    };
-    const { unmount: u2 } = renderWithProviders(<RegisterForm />);
-    fillMinimumValidForm();
-    await waitFor(() => expect(getSubmitButton()).not.toBeDisabled());
-    fireEvent.click(getSubmitButton());
-    await waitFor(() =>
-      expect(screen.getByText('Invalid email, Password too weak')).toBeInTheDocument(),
-    );
-    u2();
-
-    // 2b. 400 with string message
-    testError = {
-      isAxiosError: true,
-      response: { status: 400, data: { message: 'Invalid payload format' } },
-    };
-    const { unmount: u2b } = renderWithProviders(<RegisterForm />);
-    fillMinimumValidForm();
-    await waitFor(() => expect(getSubmitButton()).not.toBeDisabled());
-    fireEvent.click(getSubmitButton());
-    await waitFor(() => expect(screen.getByText('Invalid payload format')).toBeInTheDocument());
-    u2b();
-
-    // 3. 400 with object message
-    testError = { isAxiosError: true, response: { status: 400, data: { message: {} } } };
-    const { unmount: u3 } = renderWithProviders(<RegisterForm />);
-    fillMinimumValidForm();
-    await waitFor(() => expect(getSubmitButton()).not.toBeDisabled());
-    fireEvent.click(getSubmitButton());
-    await waitFor(() =>
-      expect(
-        screen.getByText('Data validation error. Please check the entered fields.'),
-      ).toBeInTheDocument(),
-    );
-    u3();
-
-    // 4. 500 status with string message & fallback
-    testError = {
-      isAxiosError: true,
-      response: { status: 500, data: { message: 'Database failure' } },
-    };
-    const { unmount: u4 } = renderWithProviders(<RegisterForm />);
-    fillMinimumValidForm();
-    await waitFor(() => expect(getSubmitButton()).not.toBeDisabled());
-    fireEvent.click(getSubmitButton());
-    await waitFor(() => expect(screen.getByText('Database failure')).toBeInTheDocument());
-    u4();
-
-    testError = { isAxiosError: true, response: { status: 500, data: {} } };
-    const { unmount: u5 } = renderWithProviders(<RegisterForm />);
-    fillMinimumValidForm();
-    await waitFor(() => expect(getSubmitButton()).not.toBeDisabled());
-    fireEvent.click(getSubmitButton());
-    await waitFor(() =>
-      expect(
-        screen.getByText(
-          'The server is unavailable or an internal error has occurred. Please try again later.',
-        ),
-      ).toBeInTheDocument(),
-    );
-    u5();
-
-    // 5. Non-axios error
-    testError = new Error('Unknown crash');
-    const { unmount: u6 } = renderWithProviders(<RegisterForm />);
-    fillMinimumValidForm();
-    await waitFor(() => expect(getSubmitButton()).not.toBeDisabled());
-    fireEvent.click(getSubmitButton());
-    await waitFor(() =>
-      expect(screen.getByText('An unexpected error occurred.')).toBeInTheDocument(),
-    );
-    u6();
+    await waitFor(() => expect(screen.getByText(message)).toBeInTheDocument());
   });
 
   it('auto-prefixes the username with @ when the user types without one', async () => {

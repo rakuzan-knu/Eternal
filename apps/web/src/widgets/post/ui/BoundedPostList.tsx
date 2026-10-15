@@ -67,8 +67,14 @@ export function BoundedPostList({ posts, query, queryKey, includePost, initialSc
     },
   });
   useLayoutEffect(() => {
-    if (containerRef.current)
-      setScrollMargin(containerRef.current.getBoundingClientRect().top + window.scrollY);
+    const container = containerRef.current;
+    if (!container) return;
+    const measure = () => setScrollMargin(container.getBoundingClientRect().top + window.scrollY);
+    measure();
+    // Stories and the composer can resize above the list without changing its data.
+    const observer = new ResizeObserver(measure);
+    observer.observe(container.parentElement ?? container);
+    return () => observer.disconnect();
   }, [knownItemCount]);
   useLayoutEffect(() => {
     if (restoreTarget.current !== undefined)

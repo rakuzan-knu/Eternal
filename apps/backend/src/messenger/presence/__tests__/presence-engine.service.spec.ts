@@ -96,6 +96,32 @@ describe('PresenceEngineService', () => {
     expect(service.isLocallyConnected('user-1')).toBe(false);
   });
 
+  it.each(['disconnect', 'force'] as const)(
+    'preserves the offline transition during Redis shutdown: %s',
+    async (mode) => {
+      service.recordUserOnline('user-1', 'sock-1');
+      mockRedisService.getClient.mockReturnValue({
+        ...mockRedisClient,
+        zrem: () => Promise.reject(new Error('Connection is closed.')),
+      });
+      const unhandled: unknown[] = [];
+      const onUnhandled = (error: unknown) => unhandled.push(error);
+      process.on('unhandledRejection', onUnhandled);
+      try {
+        const changed =
+          mode === 'disconnect'
+            ? service.recordUserOffline('user-1', 'sock-1')
+            : service.forceUserOffline('user-1');
+        expect(changed).toBe(true);
+        expect(service.isLocallyConnected('user-1')).toBe(false);
+        await new Promise<void>((resolve) => setImmediate(resolve));
+        expect(unhandled).toEqual([]);
+      } finally {
+        process.off('unhandledRejection', onUnhandled);
+      }
+    },
+  );
+
   it('should batch broadcast presence transitions every 2.5-3 seconds', () => {
     service.recordUserOnline('user-3', 'sock-3');
     service.flushPresenceBatch(); // flush initial connection

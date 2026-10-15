@@ -23,6 +23,7 @@ describe('AllExceptionsFilter', () => {
   let mockResponse: Partial<Response>;
 
   beforeEach(() => {
+    jest.clearAllMocks();
     jest.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
     jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
 

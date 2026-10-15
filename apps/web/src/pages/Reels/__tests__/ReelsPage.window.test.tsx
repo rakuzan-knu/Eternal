@@ -119,16 +119,19 @@ describe('ReelsPage bounded snap window', () => {
         }
       },
     );
-    vi.spyOn(window, 'matchMedia').mockImplementation((query) => ({
-      matches: query.includes('prefers-reduced-motion'),
-      media: query,
-      onchange: null,
-      addListener() {},
-      removeListener() {},
-      addEventListener() {},
-      removeEventListener() {},
-      dispatchEvent: () => true,
-    }));
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn((query: string) => ({
+        matches: query.includes('prefers-reduced-motion'),
+        media: query,
+        onchange: null,
+        addListener() {},
+        removeListener() {},
+        addEventListener() {},
+        removeEventListener() {},
+        dispatchEvent: () => true,
+      })),
+    );
   });
   afterEach(() => {
     vi.useRealTimers();

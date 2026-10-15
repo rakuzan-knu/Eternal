@@ -173,6 +173,10 @@ vite.config.ts.timestamp-*
 
 # Legacy frontend directory
 frontend/
+# Storybook
+frontend/storybook-static/
+apps/web/storybook-static/
+apps/web/test-results/
 
 # Lighthouse
 .lighthouseci/
@@ -185,6 +189,7 @@ AGENTS.md
 
 # SVG
 *.svg
+!apps/web/public/favicon.svg
 
 # Graphify
 graphify-out/
@@ -287,3 +292,9 @@ scratch/
 !frontend/public/Profile-decorations/Profile-frames/**/*.svg
 !frontend/public/Profile-decorations/Profile-effects/**/*.svg
 !frontend/public/Profile-decorations/Nameplates/*.svg
+apps/web/playwright-design-report/
+apps/web/playwright-report/
+apps/web/playwright-platforms-report/
+apps/web/test-results-platforms/
+storybook-static/
+**/storybook-static/

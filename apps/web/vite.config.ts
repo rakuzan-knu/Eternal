@@ -408,9 +408,8 @@ export default defineConfig({
             if (normalizedId.includes('/@radix-ui/')) {
               return 'vendor-radix';
             }
-            if (normalizedId.includes('/framer-motion/') || normalizedId.includes('/motion/')) {
-              return 'vendor-motion';
-            }
+            // Keep lightweight motion context imports separate from lazy animation features.
+            // Grouping the whole package eagerly loads DOM projection at application startup.
             // Let Rollup keep feature-only dependencies behind their dynamic entry.
             // A catch-all vendor chunk pulls every rare dependency into startup.
             return undefined;

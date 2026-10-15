@@ -252,6 +252,23 @@ describe('MessengerGateway', () => {
       expect(mockRedisService.srem).toHaveBeenCalledWith('user:sockets:usr-1', 'sock-1');
       expect(mockUsersService.touchLastSeen).toHaveBeenCalledWith('usr-1');
     });
+
+    it('finishes offline cleanup without an unhandled rejection when Redis is closed', async () => {
+      mockRedisService.getClient.mockReturnValue({
+        zrem: () => Promise.reject(new Error('Connection is closed.')),
+      });
+      const unhandled: unknown[] = [];
+      const onUnhandled = (error: unknown) => unhandled.push(error);
+      process.on('unhandledRejection', onUnhandled);
+      try {
+        await gateway.handleDisconnect(mockSocket as unknown as Socket);
+        await new Promise<void>((resolve) => setImmediate(resolve));
+        expect(unhandled).toEqual([]);
+        expect(mockUsersService.touchLastSeen).toHaveBeenCalledWith('usr-1');
+      } finally {
+        process.off('unhandledRejection', onUnhandled);
+      }
+    });
   });
 
   describe('message events', () => {

@@ -7,6 +7,7 @@ describe('feed video resource ownership', () => {
   let intersect: IntersectionObserverCallback;
   let hidden = false;
   beforeEach(() => {
+    vi.clearAllMocks();
     vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
     vi.stubGlobal(
       'IntersectionObserver',

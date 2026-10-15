@@ -4,13 +4,15 @@ import type { ConfigService } from '@nestjs/config';
 import type { S3Client } from '@aws-sdk/client-s3';
 
 jest.mock('sharp', () => {
-  const mockSharp = jest.fn().mockImplementation(() => ({
-    rotate: jest.fn().mockReturnThis(),
-    resize: jest.fn().mockReturnThis(),
-    webp: jest.fn().mockReturnThis(),
-    gif: jest.fn().mockReturnThis(),
-    toBuffer: jest.fn().mockResolvedValue(Buffer.from('sanitized-image-data')),
-  }));
+  const mockSharp = jest.fn().mockImplementation(function () {
+    return {
+      rotate: jest.fn().mockReturnThis(),
+      resize: jest.fn().mockReturnThis(),
+      webp: jest.fn().mockReturnThis(),
+      gif: jest.fn().mockReturnThis(),
+      toBuffer: jest.fn().mockResolvedValue(Buffer.from('sanitized-image-data')),
+    };
+  });
   return {
     default: mockSharp,
     __esModule: true,

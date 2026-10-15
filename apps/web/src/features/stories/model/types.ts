@@ -112,6 +112,7 @@ export interface AudioOverlay {
   stickerColor?: string;
   startTimeMs?: number;
   clipDurationSeconds?: number;
+  soundCloudTrackId?: string;
   xPercent: number;
   yPercent: number;
   scale?: number;
@@ -187,6 +188,7 @@ export interface StoryViewResponse {
   pollResult: StoryPollResult | null;
   author: StoryViewerUser;
   filter?: string | null;
+  backgroundColor?: string | null;
 }
 
 export interface UserStoriesGroup {
@@ -208,6 +210,7 @@ export interface StoryViewersListResponse {
 }
 
 export interface CreateStoryPayload {
+  attachments?: Record<string, File>;
   file?: File;
   mediaType?: StoryMediaType;
   caption?: string;

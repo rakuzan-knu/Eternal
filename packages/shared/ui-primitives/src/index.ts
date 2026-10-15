@@ -1,3 +1,5 @@
+export { designTokens } from './tokens';
+
 export interface BasePrimitiveProps {
   id?: string;
   className?: string;

@@ -43,12 +43,18 @@ const setStoredItem = (key: string, value: string): void => {
   }
 };
 
-const rawBaseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:3000')
-  .replace(/\/api\/?$/, '')
-  .replace(/\/+$/, '');
+const defaultBaseUrl =
+  typeof window !== 'undefined' && import.meta.env.PROD ? '' : 'http://localhost:3000';
+
+const configuredUrl = import.meta.env.VITE_API_URL;
+const rawApiUrl = (
+  configuredUrl !== undefined && configuredUrl !== '' ? configuredUrl : defaultBaseUrl
+).trim();
+
+const rawBaseUrl = rawApiUrl.replace(/\/api\/?$/, '').replace(/\/+$/, '');
 
 export const apiClient = axios.create({
-  baseURL: rawBaseUrl.endsWith('/v1') ? rawBaseUrl : `${rawBaseUrl}/v1`,
+  baseURL: rawBaseUrl ? (rawBaseUrl.endsWith('/v1') ? rawBaseUrl : `${rawBaseUrl}/v1`) : '/v1',
   timeout: 30000,
   withCredentials: true,
 });
@@ -77,12 +83,11 @@ let refreshPromise: Promise<string> | null = null;
 
 export async function requestTokenRefresh(): Promise<string> {
   const refreshToken = getStoredItem('refreshToken');
-  if (!refreshToken) throw new Error('No refresh token available');
 
   const base = (apiClient.defaults.baseURL || '').replace(/\/+$/, '');
   const refreshUrl = base.endsWith('/v1') ? `${base}/auth/refresh` : `${base}/v1/auth/refresh`;
-  const response = await axios.post(refreshUrl, {
-    refreshToken,
+  const response = await axios.post(refreshUrl, refreshToken ? { refreshToken } : {}, {
+    withCredentials: true,
   });
   const { accessToken, refreshToken: newRefreshToken } = response.data;
   setStoredItem('accessToken', accessToken);
@@ -110,7 +115,8 @@ export async function getValidAccessToken(): Promise<string | null> {
     return token;
   }
   const refreshToken = getStoredItem('refreshToken');
-  if (!refreshToken) return null;
+  const isAuth = useAuthStore.getState().isAuthenticated;
+  if (!refreshToken && !isAuth) return null;
 
   try {
     if (!refreshPromise) {
@@ -152,7 +158,7 @@ apiClient.interceptors.request.use(async (config) => {
   }
 
   let token = getStoredItem('accessToken');
-  if (token && isTokenExpired(token) && getStoredItem('refreshToken')) {
+  if (token && isTokenExpired(token)) {
     const freshToken = await getValidAccessToken();
     if (freshToken) {
       token = freshToken;

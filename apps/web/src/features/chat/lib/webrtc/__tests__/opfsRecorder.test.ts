@@ -39,7 +39,9 @@ describe('OpfsRecorder', () => {
     // Mock Worker constructor
     vi.stubGlobal(
       'Worker',
-      vi.fn().mockImplementation(() => mockWorker),
+      vi.fn().mockImplementation(function () {
+        return mockWorker;
+      }),
     );
 
     // Mock MediaRecorder

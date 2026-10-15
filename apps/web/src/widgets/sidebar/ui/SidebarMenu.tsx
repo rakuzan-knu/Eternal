@@ -72,17 +72,12 @@ export function ProfileMenu({
 
   useEffect(() => {
     if (!currentUser) return;
-    const accessToken = localStorage.getItem('accessToken');
-    const refreshToken = localStorage.getItem('refreshToken');
-    if (!accessToken || !refreshToken) return;
 
     upsertAccount({
       id: currentUser.id,
       username: currentUser.username,
       displayName: currentUser.displayName,
       avatar: currentUser.avatar ?? null,
-      accessToken,
-      refreshToken,
     });
   }, [currentUser, upsertAccount]);
 

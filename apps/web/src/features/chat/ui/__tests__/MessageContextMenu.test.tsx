@@ -78,6 +78,20 @@ describe('MessageContextMenu', () => {
     expect(screen.getByText('Read')).toBeInTheDocument();
 
     // 3. Action buttons: Reply, Edit, Copy, Translate, Pin, Forward, Select, Delete
+    expect(screen.getAllByRole('menuitem').map((item) => item.textContent)).toEqual([
+      'Reply',
+      'Edit',
+      'Copy',
+      'Translate',
+      'Pin',
+      'Forward',
+      'Select',
+      'Delete',
+    ]);
+    const replyItem = screen.getByRole('menuitem', { name: 'Reply' });
+    replyItem.focus();
+    fireEvent.keyDown(replyItem, { key: 'ArrowDown' });
+    expect(screen.getByRole('menuitem', { name: 'Edit' })).toHaveFocus();
     expect(screen.getByText('Reply')).toBeInTheDocument();
     expect(screen.getByText('Edit')).toBeInTheDocument();
     expect(screen.getByText('Copy')).toBeInTheDocument();

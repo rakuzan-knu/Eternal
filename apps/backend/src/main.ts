@@ -34,7 +34,7 @@ let cachedApp: INestApplication | undefined;
 
 async function bootstrap() {
   const fastifyAdapter = new FastifyAdapter({
-    trustProxy: 1,
+    trustProxy: true,
     bodyLimit: 10485760,
   });
 
@@ -104,12 +104,19 @@ async function bootstrap() {
     ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim())
     : ['http://localhost:5173', 'http://localhost:3000'];
 
+  const vercelProjectPattern =
+    /^https:\/\/(eternal|eternalnet)(-[a-z0-9-]+)?(-rakuzan)?\.vercel\.app$/;
+  const customCorsRegex = process.env.CORS_ORIGIN_REGEX
+    ? new RegExp(process.env.CORS_ORIGIN_REGEX)
+    : null;
+
   app.enableCors({
     origin: (origin, callback) => {
       if (
         !origin ||
         allowedOrigins.includes(origin) ||
-        origin.endsWith('.vercel.app') ||
+        vercelProjectPattern.test(origin) ||
+        (customCorsRegex && customCorsRegex.test(origin)) ||
         process.env.NODE_ENV !== 'production'
       ) {
         callback(null, true);
@@ -237,7 +244,7 @@ if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
 export default async function handler(req: Request, res: Response): Promise<void> {
   if (!cachedApp) {
     const fastifyAdapter = new FastifyAdapter({
-      trustProxy: 1,
+      trustProxy: true,
       bodyLimit: 10485760,
     });
     const app = await NestFactory.create<NestFastifyApplication>(AppModule, fastifyAdapter, {

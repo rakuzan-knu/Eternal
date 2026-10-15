@@ -7,21 +7,25 @@ import { NotificationJobType } from '../../queue.constants';
 
 jest.mock('bullmq', () => {
   return {
-    Worker: jest.fn().mockImplementation((name, processor: unknown) => ({
-      on: jest.fn(),
-      close: jest.fn().mockResolvedValue(undefined),
-      process: processor,
-    })),
+    Worker: jest.fn().mockImplementation(function (name, processor: unknown) {
+      return {
+        on: jest.fn(),
+        close: jest.fn().mockResolvedValue(undefined),
+        process: processor,
+      };
+    }),
   };
 });
 
 jest.mock('ioredis', () => {
-  const MockRedis = jest.fn().mockImplementation(() => ({
-    on: jest.fn().mockReturnThis(),
-    status: 'ready',
-    quit: jest.fn().mockResolvedValue('OK'),
-    disconnect: jest.fn(),
-  }));
+  const MockRedis = jest.fn().mockImplementation(function () {
+    return {
+      on: jest.fn().mockReturnThis(),
+      status: 'ready',
+      quit: jest.fn().mockResolvedValue('OK'),
+      disconnect: jest.fn(),
+    };
+  });
   return {
     default: MockRedis,
     Redis: MockRedis,

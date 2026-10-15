@@ -1,0 +1,94 @@
+/* Generated from shared/ui-primitives/src/tokens.ts. Run node scripts/design/generate-tokens.mjs. */
+:root {
+  --eternal-brand-purple: #5822b4;
+  --eternal-brand-glow: #a855f7;
+  --eternal-brand-void: #07050f;
+  --eternal-brand-black: #000000;
+  --eternal-color-canvas-body: #050505;
+  --eternal-color-canvas-app: #070709;
+  --eternal-color-canvas-immersive: #08090d;
+  --eternal-color-text-primary: #ffffff;
+  --eternal-color-text-inverse: #000000;
+  --eternal-semantic-text-primary: #ffffff;
+  --eternal-semantic-text-secondary: #d4d4d4;
+  --eternal-semantic-text-muted: #a3a3a3;
+  --eternal-semantic-text-error: #f87171;
+  --eternal-semantic-surface-canvas: #070709;
+  --eternal-semantic-surface-control: rgb(23 23 23 / 0.8);
+  --eternal-semantic-surface-overlay: rgb(23 23 23 / 0.5);
+  --eternal-semantic-surface-opaque: #171717;
+  --eternal-semantic-border-control: #262626;
+  --eternal-semantic-border-overlay: rgb(38 38 38 / 0.6);
+  --eternal-semantic-border-focus: rgb(173 70 255 / 0.5);
+  --eternal-semantic-action-primary: #ffffff;
+  --eternal-semantic-action-primary-text: #000000;
+  --eternal-semantic-action-primary-hover: #e5e5e5;
+  --eternal-semantic-action-secondary-hover: rgb(38 38 38 / 0.6);
+  --eternal-semantic-action-destructive: #f87171;
+  --eternal-spacing-half: 0.125rem;
+  --eternal-spacing-xs: 0.25rem;
+  --eternal-spacing-sm: 0.5rem;
+  --eternal-spacing-md: 0.75rem;
+  --eternal-spacing-control: 0.875rem;
+  --eternal-spacing-lg: 1rem;
+  --eternal-spacing-xl: 1.25rem;
+  --eternal-spacing-xxl: 1.5rem;
+  --eternal-spacing-section: 2rem;
+  --eternal-radius-sm: 0.25rem;
+  --eternal-radius-md: 0.375rem;
+  --eternal-radius-lg: 0.5rem;
+  --eternal-radius-control: 0.75rem;
+  --eternal-radius-panel: 1rem;
+  --eternal-radius-card: 1.5rem;
+  --eternal-radius-presentation: 2rem;
+  --eternal-typography-family-web-sans:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', 'Noto Sans', Arial,
+    sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  --eternal-typography-family-web-mono:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+  --eternal-typography-family-web-serif:
+    ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+  --eternal-typography-size-xs: 0.75rem;
+  --eternal-typography-size-sm: 0.875rem;
+  --eternal-typography-size-body: 1rem;
+  --eternal-typography-size-lg: 1.125rem;
+  --eternal-typography-size-xl: 1.25rem;
+  --eternal-typography-size-title: 1.5rem;
+  --eternal-typography-line-height-xs: 1rem;
+  --eternal-typography-line-height-sm: 1.25rem;
+  --eternal-typography-line-height-body: 1.5rem;
+  --eternal-typography-line-height-lg: 1.75rem;
+  --eternal-typography-line-height-xl: 1.75rem;
+  --eternal-typography-line-height-title: 2rem;
+  --eternal-typography-weight-normal: 400;
+  --eternal-typography-weight-medium: 500;
+  --eternal-typography-weight-semibold: 600;
+  --eternal-typography-weight-bold: 700;
+  --eternal-motion-duration-fast: 150ms;
+  --eternal-motion-duration-control: 200ms;
+  --eternal-motion-duration-panel: 300ms;
+  --eternal-motion-duration-ripple: 600ms;
+  --eternal-motion-easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --eternal-motion-easing-enter: cubic-bezier(0.16, 1, 0.3, 1);
+  --eternal-motion-easing-ripple: cubic-bezier(0.22, 1, 0.36, 1);
+  --eternal-layer-modal: 300;
+  --eternal-layer-settings: 310;
+  --eternal-layer-menu: 1000;
+  --eternal-layer-submenu: 1010;
+  --eternal-layer-tooltip: 9999;
+  --eternal-web-text-secondary: oklch(87% 0 none);
+  --eternal-web-text-muted: oklch(70.8% 0 none);
+  --eternal-web-text-error: oklch(70.4% 0.191 22.216);
+  --eternal-web-primary-hover: oklch(92.2% 0 none);
+  --eternal-web-secondary-surface: color-mix(in oklab, oklch(20.5% 0 none) 80%, transparent);
+  --eternal-web-control-border: oklch(26.9% 0 none);
+  --eternal-web-secondary-hover: color-mix(in oklab, oklch(26.9% 0 none) 60%, transparent);
+  --eternal-web-glass-surface: color-mix(in oklab, oklch(20.5% 0 none) 50%, transparent);
+  --eternal-web-glass-border: color-mix(in oklab, oklch(26.9% 0 none) 60%, transparent);
+  --eternal-web-input-focus: color-mix(in oklab, oklch(62.7% 0.265 303.9) 50%, transparent);
+  --eternal-web-toggle-off: #333;
+  --eternal-web-toggle-thumb-off: oklch(70.7% 0.022 261.325);
+  --eternal-web-glass-blur: 24px;
+  --eternal-web-glass-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+}

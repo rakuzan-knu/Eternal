@@ -341,7 +341,7 @@ export class PostsRepository implements IPostRepository {
       },
       take: limit + 1,
       skip: after && !boundary ? 1 : 0,
-      ...(after && !boundary ? { cursor: { id: after } } : {}),
+      ...(after && !boundary ? { cursor: { postId_userId: { postId: after, userId } } } : {}),
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       include: {
         post: {

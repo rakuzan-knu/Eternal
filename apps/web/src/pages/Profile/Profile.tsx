@@ -215,8 +215,8 @@ export default function ProfilePage() {
           noindex={true}
         />
         <div className="relative mb-6 flex items-center justify-center">
-          <div className="absolute inset-0 rounded-full bg-red-500/20 blur-xl animate-pulse w-24 h-24" />
-          <div className="relative w-20 h-20 flex items-center justify-center bg-[#0b0b0c] border border-red-500/30 rounded-2xl animate-bounce shadow-2xl">
+          <div className="absolute inset-0 rounded-full bg-red-500/20 blur-xl animate-pulse motion-reduce:animate-none w-24 h-24" />
+          <div className="relative w-20 h-20 flex items-center justify-center bg-[#0b0b0c] border border-red-500/30 rounded-2xl animate-bounce motion-reduce:animate-none shadow-2xl">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
@@ -343,41 +343,50 @@ export default function ProfilePage() {
               setActiveTab={handleTabChange}
               showSavedTab={isOwnProfile}
               hasProfileTheme={Boolean(profileTheme)}
+              idPrefix="profile-tab"
+              panelId="profile-feed-panel"
             />
           </div>
         </ProfileFrameSurface>
 
-        {isOwnProfile && activeTab === 'posts' && (
-          <div className="mb-4">
-            <CreatePost
-              onSubmitFormData={(fd, optimisticPost) =>
-                createPost.mutateAsync({ formData: fd, optimisticPost })
-              }
-              isPending={createPost.isPending}
-            />
-          </div>
-        )}
+        <div
+          id="profile-feed-panel"
+          role="tabpanel"
+          aria-labelledby={`profile-tab-${activeTab}`}
+          tabIndex={0}
+        >
+          {isOwnProfile && activeTab === 'posts' && (
+            <div className="mb-4">
+              <CreatePost
+                onSubmitFormData={(fd, optimisticPost) =>
+                  createPost.mutateAsync({ formData: fd, optimisticPost })
+                }
+                isPending={createPost.isPending}
+              />
+            </div>
+          )}
 
-        {activeTab === 'saved' && isOwnProfile ? (
-          <SavedPostsView userId={user.id} />
-        ) : activeTab === 'reels' ? (
-          <UserReelsView userId={user.id} />
-        ) : activeQuery.isLoading ? (
-          <SkeletonFeed count={4} />
-        ) : activeFeed.length > 0 ? (
-          <BoundedPostList
-            key={JSON.stringify(feedQueryKey)}
-            posts={activeFeed}
-            query={activeQuery}
-            queryKey={feedQueryKey}
-          />
-        ) : (
-          <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-white/5 rounded-4xl bg-white/1">
-            <p className="text-gray-500 font-medium text-base">
-              {activeTab === 'posts' ? 'No posts have been created yet.' : 'No reposts yet'}
-            </p>
-          </div>
-        )}
+          {activeTab === 'saved' && isOwnProfile ? (
+            <SavedPostsView userId={user.id} />
+          ) : activeTab === 'reels' ? (
+            <UserReelsView userId={user.id} />
+          ) : activeQuery.isLoading ? (
+            <SkeletonFeed count={4} />
+          ) : activeFeed.length > 0 ? (
+            <BoundedPostList
+              key={JSON.stringify(feedQueryKey)}
+              posts={activeFeed}
+              query={activeQuery}
+              queryKey={feedQueryKey}
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-white/5 rounded-4xl bg-white/1">
+              <p className="text-gray-500 font-medium text-base">
+                {activeTab === 'posts' ? 'No posts have been created yet.' : 'No reposts yet'}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Desktop Sticky Profile Showcase Sidebar (>= 1024px) */}

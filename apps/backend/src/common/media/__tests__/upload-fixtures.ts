@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { spawnSync } from 'node:child_process';
 import {
   BufferTarget,
   EncodedAudioPacketSource,
@@ -21,6 +22,17 @@ export const sampleVideo = () =>
   readFile(resolve(process.cwd(), '../web/public/videos/sample-reel.mp4'));
 export const sampleAudio = () =>
   readFile(resolve(process.cwd(), '../web/public/sounds/message-received.wav'));
+
+export async function sampleFlacAudio(): Promise<Buffer> {
+  const converted = spawnSync(
+    process.env.FFMPEG_PATH || 'ffmpeg',
+    ['-v', 'error', '-i', 'pipe:0', '-c:a', 'flac', '-f', 'flac', 'pipe:1'],
+    { input: await sampleAudio(), windowsHide: true },
+  );
+  if (converted.error) throw converted.error;
+  if (converted.status !== 0) throw new Error('Unable to create FLAC fixture');
+  return converted.stdout;
+}
 
 export async function voiceWebm(packet = new Uint8Array([0xf8, 0xff, 0xfe])): Promise<Buffer> {
   const target = new BufferTarget();

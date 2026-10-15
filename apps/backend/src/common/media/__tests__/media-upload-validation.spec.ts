@@ -15,6 +15,7 @@ import {
   gifImage,
   sampleVideo,
   sampleAudio,
+  sampleFlacAudio,
   voiceWebm,
   damagedVideoWebm,
 } from './upload-fixtures';
@@ -60,6 +61,31 @@ describe('untrusted media uploads', () => {
       .png()
       .toBuffer();
     await expect(optimizeBanner(wide)).rejects.toThrow(/dimensions/);
+  });
+
+  it('accepts AVIF photos and produces decodable output while rejecting damaged AVIF', async () => {
+    const avif = await sharp(pngImage).avif().toBuffer();
+    expect(await validateUploadedMedia(avif, 'story')).toMatchObject({
+      kind: 'image',
+      mime: 'image/avif',
+    });
+    const output = await optimizePostImage(avif);
+    expect((await sharp(output.buffer).metadata()).width).toBe(2);
+    await expect(optimizePostImage(avif.subarray(0, 24))).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+  });
+
+  it('accepts decodable FLAC voice stories while rejecting truncated FLAC', async () => {
+    const flac = await sampleFlacAudio();
+    expect(await validateUploadedMedia(flac, 'story')).toMatchObject({
+      kind: 'audio',
+      mime: 'audio/flac',
+      ext: 'flac',
+    });
+    await expect(validateUploadedMedia(flac.subarray(0, 8), 'story')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
   });
 
   it('preserves multiple GIF frames', async () => {
