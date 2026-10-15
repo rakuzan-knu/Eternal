@@ -404,7 +404,8 @@ export function PostCard({ post, queryKey }: PostCardProps) {
               {/* Comment Button */}
               <button
                 type="button"
-                aria-label={`Comments, ${post.comments ?? 0}`}
+                aria-label="View comments"
+                title="View comments"
                 onClick={() =>
                   openCommentModal(
                     isCommentsDisabled ? { ...post, isCommentsDisabled: true } : post,
@@ -414,9 +415,10 @@ export function PostCard({ post, queryKey }: PostCardProps) {
               >
                 <MessageSquare
                   size={16}
+                  aria-hidden="true"
                   className="transition-transform duration-200 group-hover:scale-110"
                 />{' '}
-                {post.comments ?? 0}
+                <span>{post.comments ?? 0}</span>
               </button>
 
               {/* Repost Button with Scrolling/Spinning Arrows Animation */}

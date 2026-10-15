@@ -126,7 +126,9 @@ describe('bounded historical browsing', () => {
         }),
       );
     });
-    expect(result.current.isAnchoredInHistory).toBe(true);
+    await waitFor(() => {
+      expect(result.current.isAnchoredInHistory).toBe(true);
+    });
     expect(result.current.messages.some((m) => m.id === 'm601')).toBe(false);
   });
 
