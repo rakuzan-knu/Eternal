@@ -85,7 +85,9 @@ export function setupGracefulShutdown(
       }
 
       // 3. Trigger NestJS module destroy hooks (Database pool end, Redis quit, Queues close, Workers stop)
-      await app.close();
+      if (typeof app?.close === 'function') {
+        await app.close();
+      }
       FdGuard.cleanup();
       logger.log('Application services and database connections cleanly closed.');
 

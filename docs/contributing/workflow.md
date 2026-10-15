@@ -1,6 +1,6 @@
-# 🌿 Open-Source Contribution Workflow
+# 🌿 Authorized Contribution Workflow
 
-This document outlines the standard Git and GitHub workflow for contributing to the **Social Network** repository.
+This document outlines the Git and GitHub workflow for authorized contributors to Eternal. Read Section 7 of LICENSE.md and confirm the contributor terms and your authority to submit before acceptance. Unless a separate written agreement provides otherwise, acceptance activates the contributor license specified in that section. See the [licensing policy](../legal/README.md) and [LICENSE.md](../../LICENSE.md). These workflow instructions grant no additional software license.
 
 ---
 

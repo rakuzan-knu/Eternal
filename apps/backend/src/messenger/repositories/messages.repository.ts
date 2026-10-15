@@ -1,5 +1,5 @@
 import { Injectable, Optional } from '@nestjs/common';
-import { MessageType } from '@prisma/client';
+import { AttachmentType, MessageType, Prisma } from '@prisma/client';
 import type { MessageReaction, ConversationParticipant } from '@prisma/client';
 import { PrismaService } from '@common/prisma';
 import { SnowflakeService } from '../../common/id/snowflake.service';
@@ -7,6 +7,7 @@ import type { IMessagesRepository } from '../interfaces/messages-repository.inte
 import type { MessageWithDetails } from '../interfaces/types';
 import { messageInclude } from '../interfaces/types';
 import type { ChatActivityMap } from '@common/contracts';
+import { withUnreadWriteLock } from '../unread/unread-write-lock';
 
 @Injectable()
 export class MessagesRepository implements IMessagesRepository {
@@ -25,21 +26,57 @@ export class MessagesRepository implements IMessagesRepository {
     replyToId?: string | undefined;
     forwardedFromId?: string | undefined;
     id?: string | undefined;
+    attachments?:
+      | Array<{
+          type: AttachmentType;
+          url: string;
+          fileName?: string | null | undefined;
+          mimeType?: string | null | undefined;
+          size?: number | null | undefined;
+          width?: number | null | undefined;
+          height?: number | null | undefined;
+          duration?: number | null | undefined;
+          waveform?: number[] | any | undefined;
+          thumbnailUrl?: string | null | undefined;
+        }>
+      | undefined;
   }): Promise<MessageWithDetails> {
     const msgId = data.id ?? (this.snowflake ? this.snowflake.generate() : undefined);
-    return this.prisma.message.create({
-      data: {
-        conversationId: data.conversationId,
-        senderId: data.senderId,
-        body: data.body ?? null,
-        clientSeq: data.clientSeq ?? null,
-        messageType: (data.messageType as MessageType) || MessageType.TEXT,
-        replyToId: data.replyToId ?? null,
-        forwardedFromId: data.forwardedFromId ?? null,
-        ...(msgId ? { id: msgId } : {}),
-      },
-      include: messageInclude,
-    });
+    return withUnreadWriteLock(this.prisma, { conversationIds: [data.conversationId] }, (tx) =>
+      tx.message.create({
+        data: {
+          conversationId: data.conversationId,
+          senderId: data.senderId,
+          body: data.body ?? null,
+          clientSeq: data.clientSeq ?? null,
+          messageType: (data.messageType as MessageType) || MessageType.TEXT,
+          replyToId: data.replyToId ?? null,
+          forwardedFromId: data.forwardedFromId ?? null,
+          ...(msgId ? { id: msgId } : {}),
+          ...(data.attachments && data.attachments.length > 0
+            ? {
+                attachments: {
+                  create: data.attachments.map((att) => ({
+                    type: att.type,
+                    url: att.url,
+                    fileName: att.fileName || null,
+                    mimeType: att.mimeType || null,
+                    size: att.size != null ? Math.round(att.size) : null,
+                    width: att.width != null ? Math.round(att.width) : null,
+                    height: att.height != null ? Math.round(att.height) : null,
+                    duration: att.duration != null ? Math.round(att.duration) : null,
+                    waveform: Array.isArray(att.waveform)
+                      ? att.waveform.map((w: number) => Math.min(100, Math.max(0, Math.round(w))))
+                      : [],
+                    thumbnailUrl: att.thumbnailUrl || null,
+                  })),
+                },
+              }
+            : {}),
+        },
+        include: messageInclude,
+      }),
+    );
   }
 
   async findMany(params: {
@@ -291,11 +328,14 @@ export class MessagesRepository implements IMessagesRepository {
     return activityMap;
   }
 
-  findOne(messageId: string, _requestingUserId: string): Promise<MessageWithDetails | null> {
-    void _requestingUserId;
-
-    return this.prisma.message.findUnique({
-      where: { id: messageId },
+  findOne(messageId: string, requestingUserId: string): Promise<MessageWithDetails | null> {
+    return this.prisma.message.findFirst({
+      where: {
+        id: messageId,
+        deletedForAll: false,
+        deletedFor: { none: { userId: requestingUserId } },
+        conversation: { participants: { some: { userId: requestingUserId, leftAt: null } } },
+      },
       include: messageInclude,
     });
   }
@@ -309,23 +349,27 @@ export class MessagesRepository implements IMessagesRepository {
   }
 
   async deleteForAll(messageId: string): Promise<void> {
-    await this.prisma.message.update({
-      where: { id: messageId },
-      data: {
-        body: null,
-        messageType: 'DELETED',
-        deletedAt: new Date(),
-        deletedForAll: true,
-      },
-    });
+    await withUnreadWriteLock(this.prisma, { messageIds: [messageId] }, (tx) =>
+      tx.message.update({
+        where: { id: messageId },
+        data: {
+          body: null,
+          messageType: 'DELETED',
+          deletedAt: new Date(),
+          deletedForAll: true,
+        },
+      }),
+    );
   }
 
   async deleteForMe(messageId: string, userId: string): Promise<void> {
-    await this.prisma.messageDeletion.upsert({
-      where: { messageId_userId: { messageId, userId } },
-      update: { deletedAt: new Date() },
-      create: { messageId, userId },
-    });
+    await withUnreadWriteLock(this.prisma, { messageIds: [messageId] }, (tx) =>
+      tx.messageDeletion.upsert({
+        where: { messageId_userId: { messageId, userId } },
+        update: { deletedAt: new Date() },
+        create: { messageId, userId },
+      }),
+    );
   }
 
   async markRead(messageId: string, userId: string): Promise<ConversationParticipant | null> {
@@ -343,9 +387,26 @@ export class MessagesRepository implements IMessagesRepository {
   }
 
   async markAllRead(conversationId: string, userId: string): Promise<void> {
-    await this.prisma.conversationParticipant.update({
-      where: { conversationId_userId: { conversationId, userId } },
-      data: { lastReadAt: new Date() },
+    await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw(Prisma.sql`
+        SELECT id FROM "ConversationParticipant"
+        WHERE "conversationId" = ${conversationId} AND "userId" = ${userId}
+        FOR UPDATE
+      `);
+      // A separate statement after the lock sees sends which committed while
+      // this acknowledgement waited. A default send can be beyond wall time
+      // after clock skew, so acknowledge the latest visible message as well.
+      await tx.$executeRaw(Prisma.sql`
+        UPDATE "ConversationParticipant" p SET "lastReadAt" = GREATEST(
+          p."lastReadAt", clock_timestamp()::timestamp(3),
+          (SELECT MAX(m."createdAt") FROM "Message" m
+            WHERE m."conversationId" = p."conversationId"
+              AND m."deletedAt" IS NULL AND NOT m."deletedForAll"
+              AND NOT EXISTS (SELECT 1 FROM "MessageDeletion" d
+                WHERE d."messageId" = m.id AND d."userId" = p."userId"))
+        ), "updatedAt" = clock_timestamp()::timestamp(3)
+        WHERE p."conversationId" = ${conversationId} AND p."userId" = ${userId}
+      `);
     });
   }
 

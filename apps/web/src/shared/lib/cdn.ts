@@ -1,7 +1,7 @@
 /**
  * CDN Media Resolution Utility for Eternal
  * Ensures all media files, user avatars, banners, and social graph images
- * resolve to fully-qualified absolute HTTPS URLs (Discord / Telegram standard).
+ * resolve to fully-qualified absolute HTTPS URLs.
  */
 
 export const CDN_BASE_URL =

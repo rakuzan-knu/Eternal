@@ -1,5 +1,6 @@
 import { QueryClient, QueryCache, MutationCache, replaceEqualDeep } from '@tanstack/react-query';
 import { idbPersister } from './idbPersister';
+import { isPersistableQuery } from './queryPersistencePolicy';
 
 /**
  * Enterprise TanStack Query v5 client.
@@ -30,6 +31,9 @@ export const queryStaleTimes = {
   conversations: 1000 * 30,
   /** Notifications: poll lightly → 30 seconds. */
   notifications: 1000 * 30,
+  /** Lightweight global badges and recommendations. Realtime invalidates when needed. */
+  counters: 1000 * 60,
+  recommendations: 1000 * 60 * 5,
   /** Stories/reels: ephemeral → 60 seconds. */
   stories: 1000 * 60,
   /** Search results: highly dynamic → 10 seconds. */
@@ -111,15 +115,14 @@ export const queryClient = new QueryClient({
 
 /**
  * Enterprise persistence configuration for TanStack Query v5 with IndexedDB.
- * Retains successful queries for up to 7 days offline.
+ * Retains a bounded recent snapshot for up to 7 days offline.
  */
 export const offlinePersistOptions = {
   persister: idbPersister,
   maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+  // The snapshot schema is unchanged; keep pending writes from existing installs.
   buster: 'v1.0.0',
   dehydrateOptions: {
-    shouldDehydrateQuery: (query: { state: { status: string } }) => {
-      return query.state.status === 'success';
-    },
+    shouldDehydrateQuery: isPersistableQuery,
   },
 };

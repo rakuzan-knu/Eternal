@@ -15,6 +15,8 @@ import { PrismaService } from '@common/prisma';
 import { SnowflakeService } from '../../common/id/snowflake.service';
 import { uploadToStorageWithFallback } from '../../common/media/image-processor';
 import { isR2Endpoint } from '../../common/storage/storage-url.util';
+import { STORAGE_SERVICE } from '../../common/storage/storage.module';
+import type { IStorageService } from '../../common/storage/storage.interface';
 import { CONVERSATIONS_REPOSITORY } from '../interfaces/conversations-repository.interface';
 import type { IConversationsRepository } from '../interfaces/conversations-repository.interface';
 import { MESSAGES_REPOSITORY } from '../interfaces/messages-repository.interface';
@@ -40,10 +42,13 @@ import {
   DEFAULT_ADMIN_PERMISSIONS,
   DEFAULT_MEMBER_PERMISSIONS,
   DEFAULT_OWNER_PERMISSIONS,
+  getEffectivePermissions,
   isE2eeEnvelopeShape,
 } from '@common/contracts';
 
 import { FastPathChatService } from '../services/fast-path-chat.service';
+import { RedisService } from '../../redis/redis.service';
+import { withUnreadWriteLock } from '../unread/unread-write-lock';
 
 @Injectable()
 export class MessagesService implements OnModuleDestroy {
@@ -65,6 +70,11 @@ export class MessagesService implements OnModuleDestroy {
     private readonly snowflake?: SnowflakeService,
     @Optional()
     private readonly fastPath?: FastPathChatService,
+    @Optional()
+    private readonly redisService?: RedisService,
+    @Optional()
+    @Inject(STORAGE_SERVICE)
+    private readonly storageService?: IStorageService,
   ) {
     const accountId = this.configService.get<string>('R2_ACCOUNT_ID');
     const endpoint =
@@ -188,13 +198,23 @@ export class MessagesService implements OnModuleDestroy {
       finalContentType = finalContentType.split(';')[0].trim();
     }
 
-    const url = await uploadToStorageWithFallback(this.s3, {
-      bucket,
-      key,
-      buffer: file.buffer,
-      contentType: finalContentType,
-      publicUrl,
-    });
+    let url: string;
+    if (this.storageService) {
+      url = await this.storageService.upload({
+        bucket,
+        key,
+        buffer: file.buffer,
+        contentType: finalContentType,
+      });
+    } else {
+      url = await uploadToStorageWithFallback(this.s3, {
+        bucket,
+        key,
+        buffer: file.buffer,
+        contentType: finalContentType,
+        publicUrl,
+      });
+    }
 
     return {
       type: attachmentType,
@@ -205,56 +225,50 @@ export class MessagesService implements OnModuleDestroy {
     };
   }
 
+  async assertCanSend(
+    conversationId: string,
+    userId: string,
+    dto: { text?: string | undefined; attachments?: readonly unknown[] | undefined },
+  ): Promise<void> {
+    const participant = await this.assertMember(conversationId, userId);
+    await this.assertNotBlockedDirect(conversationId, userId);
+    const custom = (participant as unknown as { permissions?: number }).permissions;
+    const permissions =
+      custom !== undefined && custom !== null && custom !== 0
+        ? custom
+        : participant.role === 'OWNER'
+          ? DEFAULT_OWNER_PERMISSIONS
+          : participant.role === 'ADMIN'
+            ? DEFAULT_ADMIN_PERMISSIONS
+            : DEFAULT_MEMBER_PERMISSIONS;
+    if ((permissions & Permission.IS_BANNED) !== 0 || (permissions & Permission.IS_MUTED) !== 0) {
+      throw new ForbiddenException('You are banned or muted in this conversation');
+    }
+    if (dto.text && (permissions & Permission.CAN_SEND_TEXT) === 0)
+      throw new ForbiddenException('You do not have permission to send text messages');
+    if (dto.attachments?.length && (permissions & Permission.CAN_SEND_MEDIA) === 0)
+      throw new ForbiddenException('You do not have permission to send media');
+  }
+
   async send(conversationId: string, senderId: string, dto: SendMessageDto): Promise<MessageView> {
-    const requiredPerm =
-      dto.attachments && dto.attachments.length > 0
-        ? Permission.CAN_SEND_MEDIA
-        : Permission.CAN_SEND_TEXT;
-
-    // Fast-Path: single CPU instruction bitwise check in memory (~0.00001 ms)
-    const fastCheck = this.fastPath?.checkFastPath(conversationId, senderId, requiredPerm);
-
-    if (fastCheck === false) {
-      throw new ForbiddenException(
-        'You do not have permission to send messages in this conversation',
-      );
+    await this.assertCanSend(conversationId, senderId, dto);
+    if (dto.replyToId) {
+      const source = await this.messagesRepo.findOne(dto.replyToId, senderId);
+      if (!source || source.conversationId !== conversationId) {
+        throw new BadRequestException('Reply source is not visible in this conversation');
+      }
+    }
+    if (dto.forwardedFromId && !(await this.messagesRepo.findOne(dto.forwardedFromId, senderId))) {
+      throw new ForbiddenException('Forward source is not accessible');
     }
 
-    if (fastCheck !== true) {
-      // Slow-Path: full DB member, block and role resolution
-      await this.assertMember(conversationId, senderId);
-      await this.assertNotBlockedDirect(conversationId, senderId);
-
-      const senderParticipant = await this.convsRepo.findParticipant(conversationId, senderId);
-      if (senderParticipant) {
-        const rawPerms = (senderParticipant as unknown as { permissions?: number }).permissions;
-        const pFlags =
-          rawPerms !== undefined && rawPerms !== null && rawPerms !== 0
-            ? rawPerms
-            : senderParticipant.role === 'OWNER'
-              ? DEFAULT_OWNER_PERMISSIONS
-              : senderParticipant.role === 'ADMIN'
-                ? DEFAULT_ADMIN_PERMISSIONS
-                : DEFAULT_MEMBER_PERMISSIONS;
-
-        this.fastPath?.setPermissions(conversationId, senderId, pFlags);
-
-        if ((pFlags & Permission.IS_BANNED) !== 0) {
-          throw new ForbiddenException('You are banned from sending messages in this conversation');
-        }
-        if ((pFlags & Permission.IS_MUTED) !== 0) {
-          throw new ForbiddenException('You are muted in this conversation');
-        }
-        if (dto.text && (pFlags & Permission.CAN_SEND_TEXT) === 0) {
-          throw new ForbiddenException('You do not have permission to send text messages');
-        }
-        if (
-          dto.attachments &&
-          dto.attachments.length > 0 &&
-          (pFlags & Permission.CAN_SEND_MEDIA) === 0
-        ) {
-          throw new ForbiddenException('You do not have permission to send media');
-        }
+    if (dto.clientMessageId && this.redisService) {
+      const idempKey = `idemp:msg:${conversationId}:${senderId}:${dto.clientMessageId}`;
+      const cached = await this.redisService.get(idempKey).catch(() => null);
+      if (cached) {
+        try {
+          return JSON.parse(cached) as MessageView;
+        } catch {}
       }
     }
 
@@ -298,69 +312,78 @@ export class MessagesService implements OnModuleDestroy {
     const participantIds = await this.convsRepo.findParticipantIds(conversationId);
     const recipientIds = participantIds.filter((id) => id !== senderId);
 
-    const { mappedMessage } = await this.prisma.$transaction(async (tx) => {
-      const snowflakeId = this.snowflake ? this.snowflake.generate() : undefined;
-      const message = await tx.message.create({
-        data: {
-          conversationId,
-          senderId,
-          body: dto.text || null,
-          clientSeq: dto.clientSeq ?? null,
-          messageType: finalMessageType,
-          replyToId: dto.replyToId || null,
-          forwardedFromId: dto.forwardedFromId || null,
-          ...(snowflakeId ? { id: snowflakeId } : {}),
-          ...(dto.attachments && dto.attachments.length > 0
-            ? {
-                attachments: {
-                  create: dto.attachments.map((att) => ({
-                    type: att.type,
-                    url: att.url,
-                    fileName: att.fileName || null,
-                    mimeType: att.mimeType || null,
-                    size: att.size != null ? Math.round(att.size) : null,
-                    width: att.width != null ? Math.round(att.width) : null,
-                    height: att.height != null ? Math.round(att.height) : null,
-                    duration: att.duration != null ? Math.round(att.duration) : null,
-                    waveform: Array.isArray(att.waveform)
-                      ? att.waveform.map((w) => Math.min(100, Math.max(0, Math.round(w))))
-                      : [],
-                    thumbnailUrl: att.thumbnailUrl || null,
-                  })),
-                },
-              }
-            : {}),
-        },
-        include: messageInclude,
-      });
-
-      await tx.conversation.update({
-        where: { id: conversationId },
-        data: { updatedAt: new Date() },
-      });
-
-      const pinnedIds = await this.convsRepo.findPinnedMessages(conversationId);
-      const pinnedSet = new Set(pinnedIds);
-      const mapped = this.mapper.mapMessage(message, senderId, pinnedSet);
-
-      await tx.outboxEvent.create({
-        data: {
-          aggregateType: 'MESSAGE',
-          aggregateId: message.id,
-          eventType: 'MESSAGE_SENT',
-          payload: {
-            messageId: message.id,
+    const { mappedMessage } = await withUnreadWriteLock(
+      this.prisma,
+      { conversationIds: [conversationId] },
+      async (tx) => {
+        const snowflakeId = this.snowflake ? this.snowflake.generate() : undefined;
+        const message = await tx.message.create({
+          data: {
             conversationId,
             senderId,
-            recipientIds,
-            messageView: JSON.parse(JSON.stringify(mapped)) as Prisma.InputJsonValue,
+            body: dto.text || null,
+            clientSeq: dto.clientSeq ?? null,
+            messageType: finalMessageType,
+            replyToId: dto.replyToId || null,
+            forwardedFromId: dto.forwardedFromId || null,
+            ...(snowflakeId ? { id: snowflakeId } : {}),
+            ...(dto.attachments && dto.attachments.length > 0
+              ? {
+                  attachments: {
+                    create: dto.attachments.map((att) => ({
+                      type: att.type,
+                      url: att.url,
+                      fileName: att.fileName || null,
+                      mimeType: att.mimeType || null,
+                      size: att.size != null ? Math.round(att.size) : null,
+                      width: att.width != null ? Math.round(att.width) : null,
+                      height: att.height != null ? Math.round(att.height) : null,
+                      duration: att.duration != null ? Math.round(att.duration) : null,
+                      waveform: Array.isArray(att.waveform)
+                        ? att.waveform.map((w) => Math.min(100, Math.max(0, Math.round(w))))
+                        : [],
+                      thumbnailUrl: att.thumbnailUrl || null,
+                    })),
+                  },
+                }
+              : {}),
           },
-          status: 'PENDING',
-        },
-      });
+          include: messageInclude,
+        });
 
-      return { message, mappedMessage: mapped };
-    });
+        await tx.conversation.update({
+          where: { id: conversationId },
+          data: { updatedAt: new Date() },
+        });
+
+        const pinnedIds = await this.convsRepo.findPinnedMessages(conversationId);
+        const pinnedSet = new Set(pinnedIds);
+        const mapped = this.mapper.mapMessage(message, senderId, pinnedSet);
+
+        await tx.outboxEvent.create({
+          data: {
+            aggregateType: 'MESSAGE',
+            aggregateId: message.id,
+            eventType: 'MESSAGE_SENT',
+            payload: {
+              messageId: message.id,
+              conversationId,
+              senderId,
+              recipientIds,
+              messageView: JSON.parse(JSON.stringify(mapped)) as Prisma.InputJsonValue,
+            },
+            status: 'PENDING',
+          },
+        });
+
+        return { message, mappedMessage: mapped };
+      },
+    );
+
+    if (dto.clientMessageId && this.redisService) {
+      const idempKey = `idemp:msg:${conversationId}:${senderId}:${dto.clientMessageId}`;
+      await this.redisService.set(idempKey, JSON.stringify(mappedMessage), 120).catch(() => {});
+    }
 
     return mappedMessage;
   }
@@ -501,29 +524,29 @@ export class MessagesService implements OnModuleDestroy {
 
     if (forAll) {
       if (msg.senderId !== userId) {
-        const p = await this.convsRepo.findParticipant(msg.conversationId, userId);
-        const pFlags =
-          (p as unknown as { permissions?: number })?.permissions ??
-          (p?.role === 'OWNER'
-            ? DEFAULT_OWNER_PERMISSIONS
-            : p?.role === 'ADMIN'
-              ? DEFAULT_ADMIN_PERMISSIONS
-              : DEFAULT_MEMBER_PERMISSIONS);
+        const conv = await this.convsRepo.findOneForUser(msg.conversationId, userId);
+        if (conv?.type !== 'DIRECT') {
+          const p = await this.convsRepo.findParticipant(msg.conversationId, userId);
+          const pFlags = getEffectivePermissions(
+            p?.role,
+            (p as unknown as { permissions?: number })?.permissions,
+          );
 
-        if (!p || (p.role !== 'OWNER' && (pFlags & Permission.CAN_DELETE) === 0)) {
-          throw new ForbiddenException('Cannot delete message for everyone');
-        }
-
-        const senderParticipant = await this.convsRepo.findParticipant(
-          msg.conversationId,
-          msg.senderId,
-        );
-        if (senderParticipant) {
-          if (senderParticipant.role === 'OWNER') {
-            throw new ForbiddenException('Cannot delete messages from the group owner');
+          if (!p || (p.role !== 'OWNER' && (pFlags & Permission.CAN_DELETE) === 0)) {
+            throw new ForbiddenException('Cannot delete message for everyone');
           }
-          if (p.role === 'ADMIN' && senderParticipant.role === 'ADMIN') {
-            throw new ForbiddenException('Admins cannot delete messages from other admins');
+
+          const senderParticipant = await this.convsRepo.findParticipant(
+            msg.conversationId,
+            msg.senderId,
+          );
+          if (senderParticipant) {
+            if (senderParticipant.role === 'OWNER') {
+              throw new ForbiddenException('Cannot delete messages from the group owner');
+            }
+            if (p.role === 'ADMIN' && senderParticipant.role === 'ADMIN') {
+              throw new ForbiddenException('Admins cannot delete messages from other admins');
+            }
           }
         }
       }
@@ -561,17 +584,15 @@ export class MessagesService implements OnModuleDestroy {
     const forAll = dto.forAll ?? false;
 
     if (forAll) {
-      const pFlags =
-        (participant as unknown as { permissions?: number }).permissions ??
-        (participant.role === 'OWNER'
-          ? DEFAULT_OWNER_PERMISSIONS
-          : participant.role === 'ADMIN'
-            ? DEFAULT_ADMIN_PERMISSIONS
-            : DEFAULT_MEMBER_PERMISSIONS);
+      const pFlags = getEffectivePermissions(
+        participant.role,
+        (participant as unknown as { permissions?: number }).permissions,
+      );
 
       const isGroupAdminOrOwner =
         conv.type === 'GROUP' &&
         (participant.role === 'OWNER' || (pFlags & Permission.CAN_DELETE) !== 0);
+      const isDirectChat = conv.type === 'DIRECT';
 
       const messages = await this.prisma.message.findMany({
         where: {
@@ -581,16 +602,21 @@ export class MessagesService implements OnModuleDestroy {
         select: { id: true, senderId: true },
       });
 
-      if (!isGroupAdminOrOwner) {
+      if (!isGroupAdminOrOwner && !isDirectChat) {
         const unauthorized = messages.some((m) => m.senderId !== userId);
         if (unauthorized) {
           throw new ForbiddenException('Cannot delete other users messages for everyone');
         }
       }
 
-      await this.prisma.$transaction(async (tx) => {
+      await withUnreadWriteLock(this.prisma, { conversationIds: [conversationId] }, async (tx) => {
         await tx.message.updateMany({
-          where: { id: { in: messageIds }, conversationId },
+          where: {
+            id: { in: messageIds },
+            conversationId,
+            deletedForAll: false,
+            deletedFor: { none: { userId } },
+          },
           data: {
             body: null,
             messageType: 'DELETED',
@@ -600,7 +626,7 @@ export class MessagesService implements OnModuleDestroy {
         });
       });
     } else {
-      await this.prisma.$transaction(async (tx) => {
+      await withUnreadWriteLock(this.prisma, { conversationIds: [conversationId] }, async (tx) => {
         await tx.messageDeletion.createMany({
           data: messageIds.map((id) => ({ messageId: id, userId })),
           skipDuplicates: true,
@@ -629,7 +655,10 @@ export class MessagesService implements OnModuleDestroy {
 
     for (let i = 0; i < totalConvs; i++) {
       const conversationId = dto.conversationIds[i];
-      await this.assertMember(conversationId, userId);
+      await this.assertCanSend(conversationId, userId, {
+        text: original.body ?? undefined,
+        attachments: original.attachments,
+      });
 
       const msg = await this.messagesRepo.create({
         conversationId,
@@ -637,6 +666,21 @@ export class MessagesService implements OnModuleDestroy {
         body: original.body ?? undefined,
         messageType: original.messageType,
         forwardedFromId: dto.hideAuthor ? undefined : messageId,
+        attachments:
+          original.attachments && original.attachments.length > 0
+            ? original.attachments.map((att) => ({
+                type: att.type,
+                url: att.url,
+                fileName: att.fileName,
+                mimeType: att.mimeType,
+                size: att.size,
+                width: att.width,
+                height: att.height,
+                duration: att.duration,
+                waveform: att.waveform,
+                thumbnailUrl: att.thumbnailUrl,
+              }))
+            : undefined,
       });
       await this.convsRepo.touchUpdatedAt(conversationId);
       const pinnedIds = await this.convsRepo.findPinnedMessages(conversationId);
@@ -659,7 +703,12 @@ export class MessagesService implements OnModuleDestroy {
     }
 
     const messages = await this.prisma.message.findMany({
-      where: { id: { in: messageIds }, conversationId },
+      where: {
+        id: { in: messageIds },
+        conversationId,
+        deletedForAll: false,
+        deletedFor: { none: { userId } },
+      },
       include: { attachments: true },
       orderBy: { createdAt: 'asc' },
     });
@@ -674,6 +723,10 @@ export class MessagesService implements OnModuleDestroy {
       const pinnedSet = new Set(pinnedIds);
 
       for (const msg of messages) {
+        await this.assertCanSend(targetConvId, userId, {
+          text: msg.body ?? undefined,
+          attachments: msg.attachments,
+        });
         if (msg.body && isE2eeEnvelopeShape(msg.body)) {
           throw new BadRequestException(
             'Encrypted messages must be re-encrypted client-side before forwarding',
@@ -685,6 +738,21 @@ export class MessagesService implements OnModuleDestroy {
           body: msg.body ?? undefined,
           messageType: msg.messageType,
           forwardedFromId: dto.hideAuthor ? undefined : msg.id,
+          attachments:
+            msg.attachments && msg.attachments.length > 0
+              ? msg.attachments.map((att) => ({
+                  type: att.type,
+                  url: att.url,
+                  fileName: att.fileName,
+                  mimeType: att.mimeType,
+                  size: att.size,
+                  width: att.width,
+                  height: att.height,
+                  duration: att.duration,
+                  waveform: att.waveform,
+                  thumbnailUrl: att.thumbnailUrl,
+                }))
+              : undefined,
         });
         results[resIndex++] = this.mapper.mapMessage(created, userId, pinnedSet);
       }
@@ -705,13 +773,10 @@ export class MessagesService implements OnModuleDestroy {
 
     const p = await this.convsRepo.findParticipant(msg.conversationId, userId);
     if (p) {
-      const pFlags =
-        (p as unknown as { permissions?: number }).permissions ??
-        (p.role === 'OWNER'
-          ? DEFAULT_OWNER_PERMISSIONS
-          : p.role === 'ADMIN'
-            ? DEFAULT_ADMIN_PERMISSIONS
-            : DEFAULT_MEMBER_PERMISSIONS);
+      const pFlags = getEffectivePermissions(
+        p.role,
+        (p as unknown as { permissions?: number }).permissions,
+      );
 
       if ((pFlags & Permission.CAN_ADD_REACTIONS) === 0) {
         throw new ForbiddenException('You do not have permission to react to messages');
@@ -788,11 +853,12 @@ export class MessagesService implements OnModuleDestroy {
     if (messageId) {
       const message = await this.prisma.message.findUnique({
         where: { id: messageId },
-        select: { senderId: true },
+        select: { senderId: true, conversationId: true },
       });
-      if (message) {
-        targetSenderId = message.senderId;
+      if (!message || message.conversationId !== conversationId) {
+        throw new NotFoundException('Message not found in this conversation');
       }
+      targetSenderId = message.senderId;
     } else {
       const lastMessage = await this.prisma.message.findFirst({
         where: { conversationId },
@@ -804,12 +870,10 @@ export class MessagesService implements OnModuleDestroy {
       }
     }
 
-    if (targetSenderId === userId) {
-      return false;
-    }
-
     await this.messagesRepo.markAllRead(conversationId, userId);
-    return true;
+    // Own-message receipts remain suppressed, but an acknowledgement still clears
+    // older incoming unread messages in this conversation.
+    return targetSenderId !== userId;
   }
 
   async search(
@@ -826,12 +890,9 @@ export class MessagesService implements OnModuleDestroy {
     return results.map((m) => this.mapper.mapMessage(m, userId, pinnedSet));
   }
 
-  private async assertMember(conversationId: string, userId: string): Promise<void> {
-    const fast = this.fastPath?.checkFastPath(conversationId, userId, 0);
-    if (fast === true) return;
-
+  private async assertMember(conversationId: string, userId: string) {
     const p = await this.convsRepo.findParticipant(conversationId, userId);
-    if (!p) throw new ForbiddenException('Not a member of this conversation');
+    if (!p || p.leftAt) throw new ForbiddenException('Not an active member of this conversation');
 
     const mask = this.fastPath?.computeMask(
       p.role,
@@ -840,6 +901,7 @@ export class MessagesService implements OnModuleDestroy {
     if (mask !== undefined) {
       this.fastPath?.setPermissions(conversationId, userId, mask);
     }
+    return p;
   }
 
   private async getHiddenUserIds(userId: string): Promise<string[]> {

@@ -199,7 +199,7 @@ export const DATA_PRIVACY_CONTROLS_DATA: Record<'en' | 'uk', PrivacyControlsTran
             bullets: [
               'Data Protection Officer (DPO): aghnikolaj1@gmail.com',
               'Privacy & Legal Operations: privacy@eternal.com',
-              'Company Headquarters: Eternal Inc., Kyiv, Ukraine',
+              'Project operators: Ag Mykola and Ag Mihal, Ukraine',
             ],
           },
         ],
@@ -353,7 +353,7 @@ export const DATA_PRIVACY_CONTROLS_DATA: Record<'en' | 'uk', PrivacyControlsTran
             bullets: [
               'Офіцер із захисту даних (DPO): aghnikolaj1@gmail.com',
               'Юридичний відділ: privacy@eternal.com',
-              'Головний офіс: Eternal Inc., м. Київ, Україна',
+              'Оператори проєкту: Ag Mykola та Ag Mihal, Україна',
             ],
           },
         ],

@@ -23,6 +23,7 @@ export class DirectAudioVisualizer {
   private audioContext: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
   private sourceNode: MediaStreamAudioSourceNode | null = null;
+  private silentGainNode: GainNode | null = null;
   private dataArray: Uint8Array<ArrayBuffer> | null = null;
   private animId: number | null = null;
   private isDestroyed = false;
@@ -34,6 +35,10 @@ export class DirectAudioVisualizer {
   private readonly fftSize: number;
   private readonly minVolumeThreshold: number;
   private readonly onSpeakingChange?: (isSpeaking: boolean) => void;
+  private readonly onVisibilityChange = () => {
+    if (document.hidden) this.stopLoop();
+    else this.startLoop();
+  };
 
   constructor(
     targetElement: HTMLElement,
@@ -46,6 +51,7 @@ export class DirectAudioVisualizer {
     this.onSpeakingChange = options.onSpeakingChange;
 
     this.initAudio(stream);
+    document.addEventListener('visibilitychange', this.onVisibilityChange);
   }
 
   private initAudio(stream: MediaStream): void {
@@ -68,6 +74,15 @@ export class DirectAudioVisualizer {
       this.sourceNode = this.audioContext.createMediaStreamSource(stream);
       this.sourceNode.connect(this.analyser);
 
+      // Chromium pull-path fix for WebRTC tracks:
+      // AnalyserNode must terminate into destination to receive active audio buffers
+      if (typeof this.audioContext.createGain === 'function' && this.audioContext.destination) {
+        this.silentGainNode = this.audioContext.createGain();
+        this.silentGainNode.gain.value = 0;
+        this.analyser.connect(this.silentGainNode);
+        this.silentGainNode.connect(this.audioContext.destination);
+      }
+
       this.dataArray = new Uint8Array(new ArrayBuffer(this.analyser.frequencyBinCount));
       this.startLoop();
     } catch (err) {
@@ -76,10 +91,11 @@ export class DirectAudioVisualizer {
   }
 
   private startLoop = (): void => {
-    if (this.isDestroyed) return;
+    if (this.isDestroyed || this.isPaused || document.hidden || this.animId !== null) return;
 
     const render = () => {
-      if (this.isDestroyed) return;
+      this.animId = null;
+      if (this.isDestroyed || this.isPaused || document.hidden) return;
 
       if (!this.isPaused && this.analyser && this.dataArray) {
         this.analyser.getByteFrequencyData(this.dataArray);
@@ -123,6 +139,7 @@ export class DirectAudioVisualizer {
   public setPaused(paused: boolean): void {
     this.isPaused = paused;
     if (paused) {
+      this.stopLoop();
       this.smoothedVolume = 0;
       this.targetElement.style.setProperty('--volume', '0');
       this.targetElement.style.setProperty('--volume-glow', '0px');
@@ -131,20 +148,25 @@ export class DirectAudioVisualizer {
         this.lastSpeakingState = false;
         this.onSpeakingChange?.(false);
       }
+    } else {
+      this.startLoop();
     }
+  }
+
+  private stopLoop(): void {
+    if (this.animId !== null) cancelAnimationFrame(this.animId);
+    this.animId = null;
   }
 
   public destroy(): void {
     this.isDestroyed = true;
-
-    if (this.animId !== null) {
-      cancelAnimationFrame(this.animId);
-      this.animId = null;
-    }
+    document.removeEventListener('visibilitychange', this.onVisibilityChange);
+    this.stopLoop();
 
     try {
       this.sourceNode?.disconnect();
       this.analyser?.disconnect();
+      this.silentGainNode?.disconnect();
       if (this.audioContext && this.audioContext.state !== 'closed') {
         void this.audioContext.close();
       }
@@ -154,6 +176,7 @@ export class DirectAudioVisualizer {
 
     this.sourceNode = null;
     this.analyser = null;
+    this.silentGainNode = null;
     this.audioContext = null;
     this.dataArray = null;
 

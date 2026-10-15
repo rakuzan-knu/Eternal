@@ -96,6 +96,7 @@ describe('UsersRepository', () => {
 
     expect(mockPrisma.user.create).toHaveBeenCalledWith({
       data: {
+        id: expect.any(String),
         email: 'new@example.com',
         username: 'new_user',
         passwordHash: 'argon2-hash',

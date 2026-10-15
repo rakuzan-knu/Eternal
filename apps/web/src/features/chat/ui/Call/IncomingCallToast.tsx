@@ -21,6 +21,7 @@ export function IncomingCallToast() {
           <Avatar
             src={incomingCall.caller.avatar}
             size="md"
+            suppressDecoration={true}
             className="relative z-10 ring-2 ring-emerald-500/50 shadow-lg"
           />
         </div>

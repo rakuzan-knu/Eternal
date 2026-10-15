@@ -12,20 +12,7 @@ export const SUPPORTED_PLATFORMS: ReadonlySet<string> = new Set([
   'youtube',
   'twitch',
   'roblox',
-  'riot',
-  'battlenet',
-  'x',
-  'twitter',
   'facebook',
-  'epicgames',
-  'epic',
-  'discord',
-  'telegram',
-  'vk',
-  'instagram',
-  'tiktok',
-  'reddit',
-  'kick',
 ]);
 
 const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);

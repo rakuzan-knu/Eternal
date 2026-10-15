@@ -1,150 +1,245 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { ChevronDown } from 'lucide-react';
-import { triggerReactionBurst } from '../lib/reactionBurstEngine';
-import { useRecentReactions } from '../model/useRecentReactions';
+import { createPortal } from 'react-dom';
 import ExpandedReactionPicker from './ExpandedReactionPicker';
+import MessageReactionDock from './MessageReactionDock';
 
-interface MessageReactionPickerProps {
+const isTestEnv = typeof process !== 'undefined' && process.env?.NODE_ENV === 'test';
+
+const DOCK_WIDTH = 295;
+const DOCK_HEIGHT = 46;
+const PADDING = 12;
+
+interface DockPosition {
+  top: number;
+  left: number;
+  placementY: 'above' | 'below';
+  transformOrigin: string;
+}
+
+function calculateDockPosition(
+  anchor: HTMLElement | null,
+  align: 'left' | 'right' = 'left',
+): DockPosition {
+  if (typeof window === 'undefined') {
+    return { top: 0, left: 0, placementY: 'above', transformOrigin: 'bottom right' };
+  }
+
+  const vWidth = window.innerWidth || 1024;
+  const vHeight = window.innerHeight || 768;
+
+  let rect: DOMRect;
+  if (anchor) {
+    rect = anchor.getBoundingClientRect();
+  } else {
+    rect = new DOMRect(
+      align === 'right' ? vWidth - DOCK_WIDTH - PADDING : PADDING,
+      vHeight / 2,
+      DOCK_WIDTH,
+      36,
+    );
+  }
+
+  const spaceAbove = rect.top - PADDING;
+  let placementY: 'above' | 'below' = 'above';
+  let top = 0;
+
+  if (spaceAbove >= DOCK_HEIGHT + 6) {
+    placementY = 'above';
+    top = rect.top - DOCK_HEIGHT - 6;
+  } else {
+    placementY = 'below';
+    top = rect.bottom + 6;
+  }
+
+  const targetLeft = align === 'right' ? rect.right - DOCK_WIDTH : rect.left;
+  const left = Math.max(PADDING, Math.min(targetLeft, vWidth - DOCK_WIDTH - PADDING));
+
+  const triggerCenterX = rect.left + rect.width / 2;
+  const relX = Math.round(((triggerCenterX - left) / DOCK_WIDTH) * 100);
+  const clampedX = Math.max(10, Math.min(90, relX));
+  const transformOrigin = placementY === 'above' ? `${clampedX}% 100%` : `${clampedX}% 0%`;
+
+  return { top, left, placementY, transformOrigin };
+}
+
+export interface MessageReactionPickerProps {
   onPick: (emoji: string, origin?: { x: number; y: number }) => void;
   onClose: () => void;
   align?: 'left' | 'right';
+  anchorEl?: HTMLElement | null;
+  initialExpanded?: boolean;
 }
 
 export default function MessageReactionPicker({
   onPick,
   onClose,
   align = 'left',
+  anchorEl,
+  initialExpanded = false,
 }: MessageReactionPickerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const itemsRef = useRef<Map<string, HTMLButtonElement>>(new Map());
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
+  const [isExpanded, setIsExpanded] = useState(initialExpanded);
+  const [isClosing, setIsClosing] = useState(false);
+  const [isOpen, setIsOpen] = useState(isTestEnv);
+  const isClosingRef = useRef(false);
 
-  const { dockReactions, recordReaction } = useRecentReactions();
+  useEffect(() => {
+    if (!isTestEnv) {
+      const frame = requestAnimationFrame(() => {
+        setIsOpen(true);
+      });
+      return () => cancelAnimationFrame(frame);
+    }
+  }, []);
+
+  const [pos, setPos] = useState<DockPosition>(() =>
+    calculateDockPosition(anchorEl ?? null, align),
+  );
+
+  const updatePosition = useCallback(() => {
+    if (isClosingRef.current) return;
+    const next = calculateDockPosition(anchorEl ?? null, align);
+    setPos((prev) => {
+      if (
+        prev.top === next.top &&
+        prev.left === next.left &&
+        prev.placementY === next.placementY &&
+        prev.transformOrigin === next.transformOrigin
+      ) {
+        return prev;
+      }
+      return next;
+    });
+  }, [anchorEl, align]);
+
+  useEffect(() => {
+    updatePosition();
+    const handleScroll = (e: Event) => {
+      if (containerRef.current && containerRef.current.contains(e.target as Node)) {
+        return;
+      }
+      updatePosition();
+    };
+
+    window.addEventListener('resize', updatePosition, { passive: true });
+    window.addEventListener('scroll', handleScroll, { passive: true, capture: true });
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', handleScroll, { capture: true });
+    };
+  }, [updatePosition]);
+
+  const requestClose = useCallback(() => {
+    if (isClosingRef.current) return;
+    isClosingRef.current = true;
+    setIsClosing(true);
+    const delay = isTestEnv ? 0 : 180;
+    if (delay === 0) {
+      onClose();
+    } else {
+      setTimeout(() => {
+        onClose();
+      }, delay);
+    }
+  }, [onClose]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        onClose();
+        requestClose();
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [onClose]);
+  }, [requestClose]);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    setMousePos({ x: e.clientX, y: e.clientY });
-  }, []);
-
-  const handleMouseLeave = useCallback(() => {
-    setMousePos(null);
-  }, []);
-
-  const handlePick = (
-    emoji: string,
-    buttonElement?: HTMLButtonElement | null,
-    originCoord?: { x: number; y: number },
-  ) => {
-    let origin: { x: number; y: number } | undefined = originCoord;
-    if (!origin && buttonElement) {
-      const rect = buttonElement.getBoundingClientRect();
-      origin = {
-        x: rect.left + rect.width / 2,
-        y: rect.top + rect.height / 2,
-      };
-    }
-    if (origin) {
-      triggerReactionBurst(origin.x, origin.y, emoji);
-    }
-    recordReaction(emoji);
-    onPick(emoji, origin);
-    onClose();
-  };
-
-  const getTransformStyle = (emoji: string) => {
-    if (!mousePos) {
-      return {
-        transform: 'scale(1) translateY(0px)',
-        transition: 'transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1)',
-      };
-    }
-
-    const el = itemsRef.current.get(emoji);
-    if (!el) {
-      return {
-        transform: 'scale(1) translateY(0px)',
-        transition: 'transform 60ms ease-out',
-      };
-    }
-
-    const rect = el.getBoundingClientRect();
-    const itemCenterX = rect.left + rect.width / 2;
-    const distance = Math.abs(mousePos.x - itemCenterX);
-
-    // iOS Dock Magnification curve (Gaussian falloff)
-    const radius = 42;
-    const maxScale = 1.38;
-    const maxLift = 6;
-
-    const factor = Math.exp(-Math.pow(distance / radius, 2));
-    const scale = 1 + (maxScale - 1) * factor;
-    const translateY = -maxLift * factor;
-
-    return {
-      transform: `scale(${scale.toFixed(3)}) translateY(${translateY.toFixed(2)}px)`,
-      transition: 'transform 50ms linear',
-      zIndex: Math.round(factor * 20) + 1,
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        requestClose();
+      }
     };
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
+  }, [requestClose]);
+
+  const handlePick = (emoji: string, origin?: { x: number; y: number }) => {
+    if (isTestEnv) {
+      onPick(emoji, origin);
+      onClose();
+    } else {
+      isClosingRef.current = true;
+      setIsClosing(true);
+      setTimeout(() => {
+        onPick(emoji, origin);
+        onClose();
+      }, 180);
+    }
   };
 
-  return (
+  const isPortaled = Boolean(anchorEl && typeof document !== 'undefined');
+
+  if (isExpanded) {
+    return (
+      <ExpandedReactionPicker
+        anchorEl={anchorEl || containerRef.current}
+        align={align}
+        onPick={(emoji, origin) => handlePick(emoji, origin)}
+        onClose={() => {
+          setIsExpanded(false);
+          requestClose();
+        }}
+      />
+    );
+  }
+
+  const dockNode = (
     <div
       ref={containerRef}
-      className={`absolute bottom-full mb-2 z-50 ${align === 'right' ? 'right-0' : 'left-0'}`}
+      role="dialog"
+      aria-label="Reaction Dock"
+      style={
+        isPortaled
+          ? {
+              position: 'fixed',
+              top: pos.top,
+              left: pos.left,
+              zIndex: 99998,
+              transformOrigin: pos.transformOrigin,
+              transform: isClosing
+                ? `scale(0.85) translateY(${pos.placementY === 'above' ? '4px' : '-4px'}) translateZ(0)`
+                : isOpen
+                  ? 'scale(1) translateY(0) translateZ(0)'
+                  : `scale(0.85) translateY(${pos.placementY === 'above' ? '6px' : '-6px'}) translateZ(0)`,
+              opacity: isClosing ? 0 : isOpen ? 1 : 0,
+              transition: isClosing
+                ? 'transform 180ms cubic-bezier(0.4, 0, 0.2, 1), opacity 180ms ease-in'
+                : 'transform 260ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms cubic-bezier(0.16, 1, 0.3, 1)',
+              pointerEvents: isClosing || !isOpen ? 'none' : 'auto',
+              contain: 'paint layout',
+              willChange: isClosing ? 'transform, opacity' : 'auto',
+            }
+          : undefined
+      }
+      className={`${
+        isPortaled
+          ? ''
+          : `absolute bottom-full mb-2 z-50 ${align === 'right' ? 'right-0' : 'left-0'}`
+      }`}
     >
-      {isExpanded ? (
-        <ExpandedReactionPicker
-          align={align}
-          onPick={(emoji, origin) => handlePick(emoji, null, origin)}
-          onClose={() => setIsExpanded(false)}
-        />
-      ) : (
-        <div
-          onMouseMove={handleMouseMove}
-          onMouseLeave={handleMouseLeave}
-          className="relative flex items-center gap-1.5 bg-[#161522]/90 backdrop-blur-xl border border-white/10 rounded-full px-2.5 py-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.6)] animate-popIn select-none"
-        >
-          {dockReactions.map((emoji, index) => (
-            <button
-              key={`${emoji}-${index}`}
-              ref={(el) => {
-                if (el) itemsRef.current.set(emoji, el);
-                else itemsRef.current.delete(emoji);
-              }}
-              type="button"
-              onClick={(e) => handlePick(emoji, e.currentTarget)}
-              style={{
-                animationDelay: `${index * 20}ms`,
-                ...getTransformStyle(emoji),
-              }}
-              className="relative w-8 h-8 flex items-center justify-center rounded-full text-xl leading-none cursor-pointer hover:bg-white/10 active:scale-95 transition-colors focus:outline-none"
-              title={`React with ${emoji}`}
-            >
-              <span className="pointer-events-none drop-shadow-sm">{emoji}</span>
-            </button>
-          ))}
-
-          {/* Telegram-style Circular Chevron Down Button */}
-          <button
-            type="button"
-            onClick={() => setIsExpanded(true)}
-            title="All reactions"
-            className="w-7 h-7 ml-0.5 flex items-center justify-center rounded-full bg-white/[0.08] hover:bg-white/[0.18] text-white/70 hover:text-white hover:scale-110 active:scale-90 transition-all duration-150 focus:outline-none cursor-pointer"
-          >
-            <ChevronDown size={15} />
-          </button>
-        </div>
-      )}
+      <MessageReactionDock
+        className={!isPortaled ? 'animate-popIn' : ''}
+        onPick={handlePick}
+        onExpand={() => setIsExpanded(true)}
+      />
     </div>
   );
+
+  if (isPortaled) {
+    return createPortal(dockNode, document.body);
+  }
+
+  return dockNode;
 }

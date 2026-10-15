@@ -1,4 +1,5 @@
 import { useMessageToastStore } from '@/shared/model/useMessageToastStore';
+import { useUIStore } from '@/shared/model/useUIStore';
 import {
   Bookmark,
   BookmarkCheck,
@@ -14,8 +15,7 @@ import {
   Trash2,
   UserX,
 } from 'lucide-react';
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useHiddenPostsStore } from '../../../shared/model/useHiddenPostsStore';
 
 interface PostMenuProps {
@@ -55,11 +55,16 @@ export function PostMenu({
   onHide,
   onOpenChange,
 }: PostMenuProps) {
-  const [open, setOpen] = useState(false);
-  const [coords, setCoords] = useState<{ top?: number; bottom?: number; right: number }>({
-    top: 0,
-    right: 12,
-  });
+  const activePostMenuId = useUIStore((s) => s.activePostMenuId);
+  const setActivePostMenuId = useUIStore((s) => s.setActivePostMenuId);
+  const open = activePostMenuId === postId;
+
+  const setOpen = (valOrFn: boolean | ((prev: boolean) => boolean)) => {
+    const nextVal = typeof valOrFn === 'function' ? valOrFn(open) : valOrFn;
+    setActivePostMenuId(nextVal ? postId : null);
+  };
+
+  const [placement, setPlacement] = useState<'bottom' | 'top'>('bottom');
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const hidePost = useHiddenPostsStore((s) => s.hidePost);
@@ -68,44 +73,26 @@ export function PostMenu({
     onOpenChange?.(open);
   }, [open, onOpenChange]);
 
-  const updateCoords = useCallback(() => {
-    if (!buttonRef.current) return;
-    const rect = buttonRef.current.getBoundingClientRect();
-    const measuredHeight = menuRef.current?.offsetHeight;
-    const estimatedHeight =
-      measuredHeight && measuredHeight > 50 ? measuredHeight : isOwner ? 340 : 250;
-    const gap = 6;
-    const spaceBelow = window.innerHeight - rect.bottom - gap;
-    const spaceAbove = rect.top - gap;
-
-    let nextCoords: { top?: number; bottom?: number; right: number };
-
-    // If not enough room below and more space above, open ABOVE the trigger button
-    if (spaceBelow < estimatedHeight && spaceAbove >= spaceBelow) {
-      nextCoords = {
-        bottom: Math.max(12, window.innerHeight - rect.top + gap),
-        right: Math.max(12, Math.min(window.innerWidth - 12, window.innerWidth - rect.right)),
-      };
-    } else {
-      nextCoords = {
-        top: Math.max(12, Math.min(rect.bottom + gap, window.innerHeight - estimatedHeight - 12)),
-        right: Math.max(12, Math.min(window.innerWidth - 12, window.innerWidth - rect.right)),
-      };
-    }
-
-    setCoords(nextCoords);
-  }, [isOwner]);
+  useEffect(() => {
+    return () => {
+      if (useUIStore.getState().activePostMenuId === postId) {
+        useUIStore.getState().setActivePostMenuId(null);
+      }
+    };
+  }, [postId]);
 
   useLayoutEffect(() => {
-    if (open) {
-      updateCoords();
-      // Re-measure after mount to ensure pixel-perfect positioning with actual DOM height
-      const rafId = requestAnimationFrame(() => {
-        updateCoords();
-      });
-      return () => cancelAnimationFrame(rafId);
+    if (open && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const estimatedHeight = isOwner ? 340 : 250;
+      if (spaceBelow < estimatedHeight && rect.top > spaceBelow) {
+        setPlacement('top');
+      } else {
+        setPlacement('bottom');
+      }
     }
-  }, [open, updateCoords]);
+  }, [open, isOwner]);
 
   useEffect(() => {
     if (!open) return;
@@ -121,26 +108,18 @@ export function PostMenu({
       }
     };
 
-    const handleScrollOrResize = () => {
-      updateCoords();
-    };
-
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setOpen(false);
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('keydown', handleEscape);
-    window.addEventListener('scroll', handleScrollOrResize, true);
-    window.addEventListener('resize', handleScrollOrResize);
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleEscape);
-      window.removeEventListener('scroll', handleScrollOrResize, true);
-      window.removeEventListener('resize', handleScrollOrResize);
     };
-  }, [open, updateCoords]);
+  }, [open]);
 
   const handleCopyLink = async () => {
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
@@ -179,8 +158,8 @@ export function PostMenu({
       }}
       className={`flex items-center gap-3 w-full px-3 py-2.5 text-sm rounded-xl transition-colors cursor-pointer text-left ${
         variant === 'danger'
-          ? 'text-red-400 hover:text-red-300 hover:bg-red-500/10'
-          : 'text-gray-200 hover:text-white hover:bg-white/8'
+          ? 'text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-500/10'
+          : 'text-gray-800 dark:text-gray-200 hover:text-gray-950 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10'
       }`}
     >
       <span className="shrink-0">{icon}</span>
@@ -195,82 +174,79 @@ export function PostMenu({
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label="More options"
-        className="text-gray-400 hover:text-white p-1.5 rounded-full hover:bg-white/10 transition-all cursor-pointer"
+        className="text-gray-500 dark:text-gray-400 hover:text-gray-950 dark:hover:text-white p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-all cursor-pointer"
       >
         <MoreHorizontal size={18} />
       </button>
 
-      {open &&
-        coords &&
-        typeof document !== 'undefined' &&
-        createPortal(
-          <div
-            ref={menuRef}
-            style={{
-              position: 'fixed',
-              top: coords.top !== undefined ? `${coords.top}px` : undefined,
-              bottom: coords.bottom !== undefined ? `${coords.bottom}px` : undefined,
-              right: `${coords.right}px`,
-            }}
-            className={`z-99999 w-64 max-h-[calc(100vh-24px)] overflow-y-auto custom-scrollbar bg-[#141418]/95 backdrop-blur-2xl border border-white/12 rounded-2xl shadow-2xl shadow-black/80 p-1.5 animate-fadeIn space-y-0.5 ${
-              coords.bottom !== undefined ? 'origin-bottom-right' : 'origin-top-right'
-            }`}
-          >
-            {isOwner ? (
-              <>
-                {item(
-                  isPinned ? <PinOff size={16} /> : <Pin size={16} />,
-                  isPinned ? 'Unpin from profile' : 'Pin to top of profile',
-                  onTogglePin,
-                )}
-                {item(<Pencil size={16} />, 'Edit post', onEdit)}
-                {item(
-                  <HeartOff size={16} />,
-                  hideLikesCount ? 'Show like count' : 'Hide like count',
-                  onToggleHideLikes,
-                )}
-                {item(
-                  <MessageSquareOff size={16} />,
-                  isCommentsDisabled ? 'Enable commenting' : 'Disable commenting',
-                  onToggleDisableComments,
-                )}
-                {item(
-                  isSaved ? (
-                    <BookmarkCheck size={16} className="text-sky-400" />
-                  ) : (
-                    <Bookmark size={16} />
-                  ),
-                  isSaved ? 'Unsave post' : 'Save post',
-                  onSave,
-                )}
-                {item(<Link2 size={16} />, 'Copy link', handleCopyLink)}
-                {item(
-                  <Trash2 size={16} className="text-red-400" />,
-                  'Delete your post',
-                  onDelete,
-                  'danger',
-                )}
-              </>
-            ) : (
-              <>
-                {item(
-                  isSaved ? (
-                    <BookmarkCheck size={16} className="text-sky-400" />
-                  ) : (
-                    <Bookmark size={16} />
-                  ),
-                  isSaved ? 'Unsave post' : 'Save post',
-                  onSave,
-                )}
-                {item(<EyeOff size={16} />, 'Hide post', onHide ? onHide : () => hidePost(postId))}
-                {item(<UserX size={16} />, 'Block author', onBlockAuthor)}
-                {item(<Link2 size={16} />, 'Copy link', handleCopyLink)}
-                {item(<Flag size={16} className="text-red-400" />, 'Report', onReport, 'danger')}
-              </>
-            )}
-          </div>,
-          document.body,
-        )}
+      {open && (
+        <div
+          ref={menuRef}
+          className={`absolute right-0 ${
+            placement === 'top'
+              ? 'bottom-full mb-1.5 origin-bottom-right'
+              : 'top-full mt-1.5 origin-top-right'
+          } z-50 w-64 max-h-[calc(100vh-24px)] overflow-y-auto custom-scrollbar glass-modal border border-black/10 dark:border-white/12 rounded-2xl shadow-2xl p-1.5 animate-fadeIn space-y-0.5 text-gray-800 dark:text-gray-200`}
+        >
+          {isOwner ? (
+            <>
+              {item(
+                isPinned ? <PinOff size={16} /> : <Pin size={16} />,
+                isPinned ? 'Unpin from profile' : 'Pin to top of profile',
+                onTogglePin,
+              )}
+              {item(<Pencil size={16} />, 'Edit post', onEdit)}
+              {item(
+                <HeartOff size={16} />,
+                hideLikesCount ? 'Show like count' : 'Hide like count',
+                onToggleHideLikes,
+              )}
+              {item(
+                <MessageSquareOff size={16} />,
+                isCommentsDisabled ? 'Enable commenting' : 'Disable commenting',
+                onToggleDisableComments,
+              )}
+              {item(
+                isSaved ? (
+                  <BookmarkCheck size={16} className="text-sky-500 dark:text-sky-400" />
+                ) : (
+                  <Bookmark size={16} />
+                ),
+                isSaved ? 'Unsave post' : 'Save post',
+                onSave,
+              )}
+              {item(<Link2 size={16} />, 'Copy link', handleCopyLink)}
+              {item(
+                <Trash2 size={16} className="text-red-600 dark:text-red-400" />,
+                'Delete your post',
+                onDelete,
+                'danger',
+              )}
+            </>
+          ) : (
+            <>
+              {item(
+                isSaved ? (
+                  <BookmarkCheck size={16} className="text-sky-500 dark:text-sky-400" />
+                ) : (
+                  <Bookmark size={16} />
+                ),
+                isSaved ? 'Unsave post' : 'Save post',
+                onSave,
+              )}
+              {item(<EyeOff size={16} />, 'Hide post', onHide ? onHide : () => hidePost(postId))}
+              {item(<UserX size={16} />, 'Block author', onBlockAuthor)}
+              {item(<Link2 size={16} />, 'Copy link', handleCopyLink)}
+              {item(
+                <Flag size={16} className="text-red-600 dark:text-red-400" />,
+                'Report',
+                onReport,
+                'danger',
+              )}
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

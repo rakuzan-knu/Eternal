@@ -40,13 +40,15 @@ export const integrationsApi = {
     return response.data;
   },
 
-  searchSpotifyCatalog: async (query: string, limit = 20, offset = 0) => {
+  searchSpotifyCatalog: async (query: string, limit = 20, offset = 0, signal?: AbortSignal) => {
     const params = new URLSearchParams({
       q: query,
       limit: limit.toString(),
       offset: offset.toString(),
     });
-    const response = await apiClient.get(`/integrations/spotify/search?${params.toString()}`);
+    const response = await apiClient.get(`/integrations/spotify/search?${params.toString()}`, {
+      signal,
+    });
     return response.data;
   },
 
@@ -171,17 +173,24 @@ export const integrationsApi = {
     return response.data;
   },
 
-  searchSoundCloudCatalog: async (query: string, limit = 20, offset = 0) => {
+  searchSoundCloudCatalog: async (query: string, limit = 20, offset = 0, signal?: AbortSignal) => {
     const params = new URLSearchParams({
       q: query,
       limit: limit.toString(),
       offset: offset.toString(),
     });
-    const response = await apiClient.get(`/integrations/soundcloud/search?${params.toString()}`);
+    const response = await apiClient.get(`/integrations/soundcloud/search?${params.toString()}`, {
+      signal,
+    });
     return response.data;
   },
 
-  searchSoundCloudPlaylists: async (query: string, limit = 20, offset = 0) => {
+  searchSoundCloudPlaylists: async (
+    query: string,
+    limit = 20,
+    offset = 0,
+    signal?: AbortSignal,
+  ) => {
     const params = new URLSearchParams({
       q: query,
       limit: limit.toString(),
@@ -189,6 +198,7 @@ export const integrationsApi = {
     });
     const response = await apiClient.get(
       `/integrations/soundcloud/search/playlists?${params.toString()}`,
+      { signal },
     );
     return response.data;
   },

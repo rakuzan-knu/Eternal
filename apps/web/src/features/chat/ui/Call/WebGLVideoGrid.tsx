@@ -5,6 +5,7 @@ import {
   type VideoStreamItem,
 } from '../../lib/webrtc/webglVideoGridRenderer';
 import { useAuthStore } from '@/shared/model/useAuthStore';
+import { useCurrentUser } from '@/entities/profile/model/useCurrentUser';
 
 interface WebGLVideoGridProps {
   className?: string;
@@ -19,6 +20,7 @@ export function WebGLVideoGrid({ className = '' }: WebGLVideoGridProps) {
     useCallStore();
 
   const currentUserId = useAuthStore((s) => s.userId) || 'me';
+  const { data: currentUser } = useCurrentUser();
 
   // Helper to get or create invisible in-memory video element
   const getVideoElement = (userId: string, stream: MediaStream): HTMLVideoElement => {
@@ -87,7 +89,7 @@ export function WebGLVideoGrid({ className = '' }: WebGLVideoGridProps) {
     if (localStream && !isVideoOff && localStream.getVideoTracks().length > 0) {
       items.push({
         userId: currentUserId,
-        label: 'You',
+        label: currentUser?.displayName || currentUser?.username || 'You',
         videoElement: getVideoElement(currentUserId, localStream),
         isDominant: dominantSpeakerId === currentUserId,
       });

@@ -237,7 +237,7 @@ export const MediaShowcaseWidget: React.FC<MediaShowcaseWidgetProps> = ({
 
   return (
     <div
-      className="relative overflow-hidden rounded-3xl bg-white/3 backdrop-blur-2xl border border-white/8 p-4.5 transition-all duration-300 hover:border-white/16 shadow-xl flex flex-col gap-3.5 group"
+      className="glass-card relative overflow-hidden rounded-3xl border border-white/[0.08] p-4.5 transition-all duration-300 hover:border-white/[0.18] shadow-xl flex flex-col gap-3.5 group"
       style={{ boxShadow: `0 8px 32px 0 rgba(0, 0, 0, 0.37)` }}
     >
       {/* Background Glow */}
@@ -247,15 +247,15 @@ export const MediaShowcaseWidget: React.FC<MediaShowcaseWidgetProps> = ({
       />
 
       {/* Header & Tabs */}
-      <div className="flex items-center justify-between pb-2 border-b border-white/6 relative z-10">
-        <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-black/40 border border-white/6">
+      <div className="flex items-center justify-between pb-2 border-b border-black/10 dark:border-white/6 relative z-10">
+        <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/6">
           <button
             type="button"
             onClick={() => setActiveTab('GAMES')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'GAMES'
-                ? 'bg-white/10 text-white shadow-sm'
-                : 'text-gray-400 hover:text-white'
+                ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm'
+                : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
             }`}
           >
             <Gamepad2 size={13} />
@@ -267,8 +267,8 @@ export const MediaShowcaseWidget: React.FC<MediaShowcaseWidgetProps> = ({
             onClick={() => setActiveTab('ANIME')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'ANIME'
-                ? 'bg-white/10 text-white shadow-sm'
-                : 'text-gray-400 hover:text-white'
+                ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm'
+                : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
             }`}
           >
             <Tv size={13} />
@@ -280,8 +280,8 @@ export const MediaShowcaseWidget: React.FC<MediaShowcaseWidgetProps> = ({
             onClick={() => setActiveTab('CINEMA')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'CINEMA'
-                ? 'bg-white/10 text-white shadow-sm'
-                : 'text-gray-400 hover:text-white'
+                ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm'
+                : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
             }`}
           >
             <Film size={13} />

@@ -422,7 +422,7 @@ export const TrackActionMenu: React.FC<TrackActionMenuProps> = ({
           ref={menuRef}
           data-menu-portal="true"
           style={{ top, left, width: menuWidth }}
-          className="fixed z-[9999] rounded-2xl bg-[#202025]/95 backdrop-blur-2xl border border-white/10 shadow-2xl p-1.5 text-white select-none animate-fadeIn flex flex-col gap-0.5"
+          className="fixed z-[9999] rounded-2xl glass-modal backdrop-blur-2xl border border-black/10 dark:border-white/15 shadow-2xl p-1.5 text-gray-900 dark:text-white select-none animate-fadeIn flex flex-col gap-0.5"
         >
           {/* 1. Add to playlist */}
           <div
@@ -430,28 +430,32 @@ export const TrackActionMenu: React.FC<TrackActionMenuProps> = ({
             onMouseLeave={handleSubmenuLeave}
             className={`group flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer transition-colors text-xs font-semibold ${
               activeSubmenu === 'playlist'
-                ? 'bg-white/15 text-white'
-                : 'hover:bg-white/10 text-gray-200'
+                ? 'bg-black/10 dark:bg-white/15 text-gray-950 dark:text-white'
+                : 'hover:bg-black/5 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200'
             }`}
           >
             <div className="flex items-center gap-3">
-              <Plus size={16} className="text-gray-400" />
+              <Plus size={16} className="text-gray-500 dark:text-gray-400" />
               <span>Add to Playlist</span>
             </div>
             <ChevronRight
               size={14}
-              className="text-gray-500 group-hover:text-white transition-colors"
+              className="text-gray-400 dark:text-gray-500 group-hover:text-gray-950 dark:group-hover:text-white transition-colors"
             />
           </div>
 
           {/* 2. Like / Unlike */}
           <div
             onClick={handleToggleLike}
-            className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/10 cursor-pointer transition-colors text-xs font-semibold text-gray-200"
+            className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer transition-colors text-xs font-semibold text-gray-700 dark:text-gray-200"
           >
             <Heart
               size={16}
-              className={isLiked ? 'text-purple-400 fill-purple-400' : 'text-gray-400'}
+              className={
+                isLiked
+                  ? 'text-purple-600 dark:text-purple-400 fill-purple-600 dark:fill-purple-400'
+                  : 'text-gray-500 dark:text-gray-400'
+              }
             />
             <span>{isLiked ? 'Remove from Liked Songs' : 'Save to your Liked Songs'}</span>
           </div>
@@ -459,38 +463,38 @@ export const TrackActionMenu: React.FC<TrackActionMenuProps> = ({
           {/* 3. Queue */}
           <div
             onClick={handleToggleQueue}
-            className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/10 cursor-pointer transition-colors text-xs font-semibold text-gray-200"
+            className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer transition-colors text-xs font-semibold text-gray-700 dark:text-gray-200"
           >
             {isInQueue ? (
               <>
-                <ListMinus size={16} className="text-purple-400" />
+                <ListMinus size={16} className="text-purple-600 dark:text-purple-400" />
                 <span>Remove from Queue</span>
               </>
             ) : (
               <>
-                <ListMusic size={16} className="text-gray-400" />
+                <ListMusic size={16} className="text-gray-500 dark:text-gray-400" />
                 <span>Add to Queue</span>
               </>
             )}
           </div>
 
-          <div className="h-px bg-white/10 my-0.5 mx-2" />
+          <div className="h-px bg-black/10 dark:bg-white/10 my-0.5 mx-2" />
 
           {/* 4. View track page */}
           <div
             onClick={handleViewTrackPage}
-            className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/10 cursor-pointer transition-colors text-xs font-semibold text-gray-200"
+            className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer transition-colors text-xs font-semibold text-gray-700 dark:text-gray-200"
           >
-            <Disc size={16} className="text-purple-400" />
+            <Disc size={16} className="text-purple-600 dark:text-purple-400" />
             <span>Go to Song</span>
           </div>
 
           {/* 5. Credits */}
           <div
             onClick={handleOpenDetails}
-            className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/10 cursor-pointer transition-colors text-xs font-semibold text-gray-200"
+            className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer transition-colors text-xs font-semibold text-gray-700 dark:text-gray-200"
           >
-            <Info size={16} className="text-gray-400" />
+            <Info size={16} className="text-gray-500 dark:text-gray-400" />
             <span>View Credits</span>
           </div>
 
@@ -500,17 +504,17 @@ export const TrackActionMenu: React.FC<TrackActionMenuProps> = ({
             onMouseLeave={handleSubmenuLeave}
             className={`group flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer transition-colors text-xs font-semibold ${
               activeSubmenu === 'share'
-                ? 'bg-white/15 text-white'
-                : 'hover:bg-white/10 text-gray-200'
+                ? 'bg-black/10 dark:bg-white/15 text-gray-950 dark:text-white'
+                : 'hover:bg-black/5 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200'
             }`}
           >
             <div className="flex items-center gap-3">
-              <Share2 size={16} className="text-gray-400" />
+              <Share2 size={16} className="text-gray-500 dark:text-gray-400" />
               <span>Share</span>
             </div>
             <ChevronRight
               size={14}
-              className="text-gray-500 group-hover:text-white transition-colors"
+              className="text-gray-400 dark:text-gray-500 group-hover:text-gray-950 dark:group-hover:text-white transition-colors"
             />
           </div>
         </div>,
@@ -530,7 +534,7 @@ export const TrackActionMenu: React.FC<TrackActionMenuProps> = ({
               left: playlistSubmenuPos.left,
               width: 240,
             }}
-            className="fixed z-[10000] rounded-2xl bg-[#25252c]/98 backdrop-blur-2xl border border-white/10 shadow-2xl p-2 text-white select-none animate-fadeIn flex flex-col gap-1"
+            className="fixed z-[10000] rounded-2xl glass-modal backdrop-blur-2xl border border-black/10 dark:border-white/15 shadow-2xl p-2 text-gray-900 dark:text-white select-none animate-fadeIn flex flex-col gap-1"
           >
             {/* Search Input */}
             <div className="relative mb-1">
@@ -543,20 +547,20 @@ export const TrackActionMenu: React.FC<TrackActionMenuProps> = ({
                 value={playlistSearch}
                 onChange={(e) => setPlaylistSearch(e.target.value)}
                 placeholder="Search playlist"
-                className="w-full pl-8 pr-2 py-1.5 rounded-lg bg-black/40 border border-white/10 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/60"
+                className="w-full pl-8 pr-2 py-1.5 rounded-lg bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 text-xs text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/60"
               />
             </div>
 
             {/* Create new playlist button */}
             <div
               onClick={handleCreateAndAdd}
-              className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg hover:bg-white/10 cursor-pointer transition-colors text-xs font-medium text-purple-400"
+              className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer transition-colors text-xs font-medium text-purple-600 dark:text-purple-400"
             >
               <FolderPlus size={14} />
               <span>+ New Playlist</span>
             </div>
 
-            <div className="h-px bg-white/10 my-0.5" />
+            <div className="h-px bg-black/10 dark:bg-white/10 my-0.5" />
 
             {/* Existing playlists and folders list */}
             <div className="max-h-48 overflow-y-auto space-y-0.5 pr-1 custom-scrollbar">
@@ -569,11 +573,14 @@ export const TrackActionMenu: React.FC<TrackActionMenuProps> = ({
                     <div
                       key={`root-pl-${pl.id}-${idx}`}
                       onClick={() => handleAddTrackToCustomPlaylist(pl.id, pl.title)}
-                      className="flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-white/10 cursor-pointer transition-colors text-xs font-medium text-gray-200 hover:text-white"
+                      className="flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer transition-colors text-xs font-medium text-gray-700 dark:text-gray-200 hover:text-gray-950 dark:hover:text-white"
                     >
                       <span className="truncate">{pl.title}</span>
                       {pl.tracks.some((t: SpotifyTrack) => t.id === track.id) && (
-                        <Check size={12} className="text-purple-400 shrink-0" />
+                        <Check
+                          size={12}
+                          className="text-purple-600 dark:text-purple-400 shrink-0"
+                        />
                       )}
                     </div>
                   ))}
@@ -584,18 +591,18 @@ export const TrackActionMenu: React.FC<TrackActionMenuProps> = ({
                       key={`fld-${fld.id}-${idx}`}
                       onMouseEnter={(e) => handleFolderEnter(fld.id, e)}
                       onMouseLeave={handleFolderLeave}
-                      className="group flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-white/10 cursor-pointer transition-colors text-xs font-medium text-gray-200 hover:text-white"
+                      className="group flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer transition-colors text-xs font-medium text-gray-700 dark:text-gray-200 hover:text-gray-950 dark:hover:text-white"
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <Folder
                           size={13}
-                          className="text-gray-400 group-hover:text-purple-400 shrink-0"
+                          className="text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400 shrink-0"
                         />
                         <span className="truncate">{fld.name}</span>
                       </div>
                       <ChevronRight
                         size={12}
-                        className="text-gray-500 group-hover:text-white shrink-0"
+                        className="text-gray-400 dark:text-gray-500 group-hover:text-gray-950 dark:group-hover:text-white shrink-0"
                       />
                     </div>
                   ))}
@@ -632,11 +639,11 @@ export const TrackActionMenu: React.FC<TrackActionMenuProps> = ({
               left: folderSubmenuPos.left,
               width: 220,
             }}
-            className="fixed z-[10001] rounded-2xl bg-[#25252c]/98 backdrop-blur-2xl border border-white/10 shadow-2xl p-2 text-white select-none animate-fadeIn flex flex-col gap-1"
+            className="fixed z-[10001] rounded-2xl glass-modal backdrop-blur-2xl border border-black/10 dark:border-white/15 shadow-2xl p-2 text-gray-900 dark:text-white select-none animate-fadeIn flex flex-col gap-1"
           >
             {/* Folder Name Badge */}
-            <div className="px-2 py-1 text-[11px] font-bold text-gray-400 border-b border-white/5 truncate flex items-center gap-1.5">
-              <Folder size={12} className="text-purple-400 shrink-0" />
+            <div className="px-2 py-1 text-[11px] font-bold text-gray-600 dark:text-gray-400 border-b border-black/5 dark:border-white/5 truncate flex items-center gap-1.5">
+              <Folder size={12} className="text-purple-600 dark:text-purple-400 shrink-0" />
               <span className="truncate">{activeHoveredFolder.name}</span>
             </div>
 
@@ -645,13 +652,13 @@ export const TrackActionMenu: React.FC<TrackActionMenuProps> = ({
               onClick={() =>
                 handleCreateAndAddToFolder(activeHoveredFolder.id, activeHoveredFolder.name)
               }
-              className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/10 cursor-pointer transition-colors text-xs font-medium text-purple-400"
+              className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer transition-colors text-xs font-medium text-purple-600 dark:text-purple-400"
             >
               <FolderPlus size={13} />
               <span>+ New Playlist</span>
             </div>
 
-            <div className="h-px bg-white/10 my-0.5" />
+            <div className="h-px bg-black/10 dark:bg-white/10 my-0.5" />
 
             {/* Playlists inside this folder */}
             <div className="max-h-40 overflow-y-auto space-y-0.5 pr-1 custom-scrollbar">
@@ -664,11 +671,11 @@ export const TrackActionMenu: React.FC<TrackActionMenuProps> = ({
                   <div
                     key={`hfld-pl-${pl.id}-${idx}`}
                     onClick={() => handleAddTrackToCustomPlaylist(pl.id, pl.title)}
-                    className="flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-white/10 cursor-pointer transition-colors text-xs font-medium text-gray-200 hover:text-white"
+                    className="flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer transition-colors text-xs font-medium text-gray-700 dark:text-gray-200 hover:text-gray-950 dark:hover:text-white"
                   >
                     <span className="truncate">{pl.title}</span>
                     {pl.tracks.some((t: SpotifyTrack) => t.id === track.id) && (
-                      <Check size={12} className="text-purple-400 shrink-0" />
+                      <Check size={12} className="text-purple-600 dark:text-purple-400 shrink-0" />
                     )}
                   </div>
                 ))
@@ -691,13 +698,13 @@ export const TrackActionMenu: React.FC<TrackActionMenuProps> = ({
               left: shareSubmenuPos.left,
               width: 220,
             }}
-            className="fixed z-[10000] rounded-2xl bg-[#25252c]/98 backdrop-blur-2xl border border-white/10 shadow-2xl p-1.5 text-white select-none animate-fadeIn flex flex-col gap-0.5"
+            className="fixed z-[10000] rounded-2xl glass-modal backdrop-blur-2xl border border-black/10 dark:border-white/15 shadow-2xl p-1.5 text-gray-900 dark:text-white select-none animate-fadeIn flex flex-col gap-0.5"
           >
             <div
               onClick={handleCopyLink}
-              className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 cursor-pointer transition-colors text-xs font-medium text-gray-200"
+              className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer transition-colors text-xs font-medium text-gray-700 dark:text-gray-200 hover:text-gray-950 dark:hover:text-white"
             >
-              <Copy size={14} className="text-gray-400" />
+              <Copy size={14} className="text-gray-500 dark:text-gray-400" />
               <span>Copy Link</span>
             </div>
 
@@ -706,9 +713,9 @@ export const TrackActionMenu: React.FC<TrackActionMenuProps> = ({
                 onClose();
                 setIsShareModalOpen(true);
               }}
-              className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 cursor-pointer transition-colors text-xs font-medium text-gray-200"
+              className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer transition-colors text-xs font-medium text-purple-600 dark:text-purple-400"
             >
-              <MessageCircle size={14} className="text-purple-400" />
+              <MessageCircle size={14} className="shrink-0" />
               <span>Send in Chat</span>
             </div>
           </div>,

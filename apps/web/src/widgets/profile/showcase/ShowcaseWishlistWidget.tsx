@@ -128,7 +128,7 @@ export const ShowcaseWishlistWidget: React.FC<ShowcaseWishlistWidgetProps> = ({
   };
 
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-white/3 backdrop-blur-2xl border border-white/8 p-4.5 transition-all duration-300 hover:border-white/16 shadow-xl flex flex-col gap-3.5 group">
+    <div className="glass-card relative overflow-hidden rounded-3xl border border-white/[0.08] p-4.5 transition-all duration-300 hover:border-white/[0.18] shadow-xl flex flex-col gap-3.5 group">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">

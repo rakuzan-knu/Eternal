@@ -13,6 +13,12 @@ vi.mock('@/entities/notification', async (importOriginal) => {
   };
 });
 
+vi.mock('@/entities/profile/model/useCurrentUser', () => ({
+  useCurrentUser: () => ({
+    data: null,
+  }),
+}));
+
 describe('NotificationsTab', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -97,7 +103,7 @@ describe('NotificationsTab', () => {
   it('sets Do Not Disturb snooze preset in store', () => {
     render(<NotificationsTab />);
 
-    expect(screen.getByText('Do Not Disturb (Snooze)')).toBeInTheDocument();
+    expect(screen.getByText('Do Not Disturb')).toBeInTheDocument();
 
     const oneHourBtn = screen.getByRole('button', { name: '1 hour' });
     fireEvent.click(oneHourBtn);

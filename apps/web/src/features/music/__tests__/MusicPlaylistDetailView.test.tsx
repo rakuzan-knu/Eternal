@@ -191,7 +191,6 @@ describe('MusicPlaylistDetailView', () => {
     const compactBtn = screen.getByRole('button', { name: /compact/i });
     fireEvent.click(compactBtn);
 
-    // Now in Compact mode (matching Screenshot 5):
     // Dedicated "Artist" header exists
     expect(screen.getByRole('columnheader', { name: /artist/i })).toBeInTheDocument();
 

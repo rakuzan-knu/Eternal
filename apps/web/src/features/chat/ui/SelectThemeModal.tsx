@@ -959,7 +959,7 @@ export default function SelectThemeModal({
   return (
     <Modal onClose={onClose} className="w-full max-w-5xl">
       {(close) => (
-        <div className="bg-[#12131b]/95 border border-white/10 rounded-3xl w-full shadow-2xl overflow-hidden backdrop-blur-2xl flex flex-col max-h-[94vh]">
+        <div className="glass-modal border border-white/10 rounded-3xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[94vh]">
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 shrink-0">
             <div className="flex items-center gap-3">
@@ -2392,7 +2392,7 @@ export default function SelectThemeModal({
                 </div>
               )}
 
-              {/* Tab: Text (Discord-Style Custom Typography & Effects) */}
+              {/* Tab: Text ( Custom Typography & Effects) */}
               {activeTab === 'text' && (
                 <div className="space-y-6">
                   {/* 1. Font Selection */}
@@ -2435,7 +2435,7 @@ export default function SelectThemeModal({
                               }`}
                               title={font.name}
                             >
-                              {/* Selection indicator dot matching screenshot */}
+                              {/* Selection indicator dot*/}
                               {isSelected && (
                                 <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-indigo-400 shadow-[0_0_6px_#818cf8]" />
                               )}
@@ -2452,7 +2452,7 @@ export default function SelectThemeModal({
                               </span>
                             </button>
 
-                            {/* Discord-style Tooltip on Hover */}
+                            {/* Tooltip on Hover */}
                             <AnimatePresence>
                               {isHovered && (
                                 <motion.div
@@ -2574,7 +2574,7 @@ export default function SelectThemeModal({
                         )}
                       </div>
 
-                      {/* Custom Color Picker Button (Red / custom square with pen icon matching screenshot) */}
+                      {/* Custom Color Picker Button (Red / custom square with pen icon) */}
                       <div className="relative shrink-0">
                         <button
                           type="button"
@@ -2603,7 +2603,7 @@ export default function SelectThemeModal({
                         />
                       </div>
 
-                      {/* Discord Swatches Horizontal Quick Row */}
+                      {/* Horizontal Quick Row */}
                       <div className="flex items-center gap-1.5 overflow-x-auto py-1 custom-scrollbar">
                         {DISCORD_TEXT_COLORS.map((swatch) => {
                           const isAuto = swatch.color === 'auto';

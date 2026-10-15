@@ -82,9 +82,8 @@ describe('MessageBubble', () => {
       </QueryClientProvider>,
     );
 
-    const emojiElement = screen.getByText('🔥');
+    const emojiElement = screen.getByAltText('🔥');
     expect(emojiElement).toBeInTheDocument();
-    expect(emojiElement.className).toContain('text-4xl');
   });
 
   it('renders system message with Edit group button', () => {

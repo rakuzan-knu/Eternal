@@ -1,6 +1,10 @@
-# 🤝 Open-Source Contributing Guide
+# 🤝 Authorized Contributor Guide
 
-Welcome to the **Social Network** open-source project! We are thrilled to have community contributors join us in building a fast, scalable, and private social platform.
+Eternal is a proprietary social platform. This guide describes the development workflow for authorized maintainers and contributors.
+
+Read Section 7 of LICENSE.md before intentionally submitting code, artwork, documentation, or other material for inclusion. Unless a separate written agreement provides otherwise, acceptance activates the contributor license specified there, including proprietary distribution, commercial use, modification, transfer, and sublicensing. Confirm the contribution terms and your authority to submit in the pull request template, and disclose third-party materials and their licenses.
+
+Read [LICENSE.md](./LICENSE.md), the [third-party attributions](./apps/web/src/pages/Licenses/data/licensesData.ts), and the [licensing and contribution policy](./docs/legal/README.md). This guide grants no additional software licenses.
 
 > [!TIP]
 > **Essential Reading for Contributors:**
@@ -165,4 +169,4 @@ pnpm test
 - Check our [Documentation Portal](./docs/README.md).
 - Open an issue or join our community discussions on GitHub!
 
-Thank you for helping make Social Network better for everyone! 🎉
+Thank you for helping make Eternal Social Network better for everyone! 🎉

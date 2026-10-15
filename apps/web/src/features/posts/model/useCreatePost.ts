@@ -3,6 +3,7 @@ import { postsApi } from '../api/postsApi';
 import { FeedPage } from '@/entities/post/api/postsApi';
 import { PostType } from '@/entities/post/model/types';
 import { useCurrentUser } from '@/entities/profile/model/useCurrentUser';
+import { invalidatePostFeedHistory } from '@/entities/post/model/postFeedColdCache';
 
 export interface CreatePostPayload {
   formData: FormData;
@@ -50,6 +51,7 @@ export function useCreatePost(queryKey: unknown[]) {
       }
     },
     onMutate: async (payload) => {
+      invalidatePostFeedHistory();
       await queryClient.cancelQueries({ queryKey });
       const previousFeed = queryClient.getQueryData<InfiniteData<FeedPage>>(queryKey);
 
@@ -119,6 +121,7 @@ export function useCreatePost(queryKey: unknown[]) {
       );
     },
     onSettled: () => {
+      invalidatePostFeedHistory();
       queryClient.invalidateQueries({ queryKey });
     },
   });

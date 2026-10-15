@@ -243,7 +243,7 @@ export const BlogVisualMockup: React.FC<{ type: BlogPost['previewType'] }> = ({ 
         <div className="w-full h-full p-6 flex items-center justify-center select-none bg-gradient-to-r from-pink-500 via-rose-500 to-purple-600 relative overflow-hidden group">
           {/* Ambient Glow */}
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.2),transparent)]" />
-          {/* Stylized 3D Toolkit / Screwdrivers like Discord Screenshot */}
+          {/* Stylized 3D Toolkit / Screwdrivers */}
           <div className="flex items-end justify-center gap-4 sm:gap-7 relative z-10 group-hover:scale-105 transition-transform duration-300">
             {[
               { height: 'h-24 sm:h-36', color: 'bg-indigo-600', metal: 'h-16' },
@@ -415,7 +415,7 @@ export const BlogVisualMockup: React.FC<{ type: BlogPost['previewType'] }> = ({ 
           <div className="absolute top-8 left-12 w-2 h-2 rounded-full bg-white/40 blur-[1px] animate-pulse" />
           <div className="absolute bottom-10 right-20 w-2.5 h-2.5 rounded-full bg-purple-400/50 blur-[1px] animate-pulse" />
 
-          {/* Floating 3D Artifacts matching Discord HQ screenshot */}
+          {/* Floating 3D Artifacts matching */}
           <div className="relative w-full max-w-2xl h-56 sm:h-72 flex items-center justify-center group-hover:scale-105 transition-transform duration-500">
             {/* Top Center: Giant White Glowing Eternal Logo Crest */}
             <div className="absolute top-2 w-20 h-20 sm:w-28 sm:h-28 rounded-3xl bg-gradient-to-tr from-white/95 to-neutral-200 shadow-[0_0_40px_rgba(255,255,255,0.4)] flex items-center justify-center text-5xl sm:text-7xl font-black text-[#5822b4] select-none border border-white">
@@ -577,7 +577,7 @@ export const BlogVisualMockup: React.FC<{ type: BlogPost['previewType'] }> = ({ 
           {/* Ambient Glow */}
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(124,58,237,0.3),transparent_70%)]" />
 
-          {/* 3D Cyber Console Rig (matching Discord Engineering screenshot) */}
+          {/* 3D Cyber Console Rig */}
           <div className="relative w-full max-w-2xl h-56 sm:h-72 flex items-center justify-center group-hover:scale-105 transition-transform duration-500">
             {/* Center: Futuristic 3D Cyber Console Display */}
             <div className="relative w-64 sm:w-80 h-36 sm:h-44 rounded-3xl bg-gradient-to-b from-[#2a175c] via-[#150a33] to-[#0a041c] border-2 border-purple-400/40 shadow-[0_20px_50px_rgba(0,0,0,0.8)] p-3 flex flex-col justify-between overflow-hidden">
@@ -780,7 +780,7 @@ export const BlogVisualMockup: React.FC<{ type: BlogPost['previewType'] }> = ({ 
           {/* Ambient Glow */}
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.15),transparent_70%)]" />
 
-          {/* 3D Mascot + Desktop App Settings Card matching Discord Screenshot 1 & 2 */}
+          {/* 3D Mascot + Desktop App Settings Card */}
           <div className="relative w-full max-w-2xl h-56 sm:h-72 flex items-center justify-center group-hover:scale-105 transition-transform duration-500">
             {/* Left: 3D Cute Mascot in white quilted jacket */}
             <div className="absolute left-6 sm:left-14 bottom-2 flex flex-col items-center z-20">
@@ -980,7 +980,7 @@ export const BlogVisualMockup: React.FC<{ type: BlogPost['previewType'] }> = ({ 
           {/* Ambient Glow */}
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.15),transparent_70%)]" />
 
-          {/* 3D Glass Crystal Shields with Eternal Crest matching Discord Screenshot 1 & 2 */}
+          {/* 3D Glass Crystal Shields with Eternal Crest */}
           <div className="relative w-full max-w-2xl h-56 sm:h-72 flex items-center justify-center group-hover:scale-105 transition-transform duration-500">
             {/* Left Small Glass Shield */}
             <div className="absolute left-8 sm:left-16 bottom-6 w-20 h-24 sm:w-28 sm:h-32 rounded-2xl bg-gradient-to-br from-purple-500/30 to-indigo-700/40 backdrop-blur-md border border-white/30 shadow-[0_15px_35px_rgba(0,0,0,0.5)] flex items-center justify-center transform -rotate-12 z-10">
@@ -1149,7 +1149,7 @@ export const BlogVisualMockup: React.FC<{ type: BlogPost['previewType'] }> = ({ 
           {/* Ambient Glow */}
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.12),transparent_70%)]" />
 
-          {/* Split Screen Composition matching Discord Screenshot 1 & 2 */}
+          {/* Split Screen Composition matching */}
           <div className="relative w-full max-w-2xl h-56 sm:h-72 flex items-center justify-between gap-2 sm:gap-4 group-hover:scale-105 transition-transform duration-500">
             {/* Left: Eternal #guild-chat window */}
             <div className="flex-1 h-44 sm:h-56 rounded-2xl bg-[#120a28]/90 border border-purple-500/30 shadow-2xl p-2.5 sm:p-3 flex flex-col justify-between overflow-hidden">

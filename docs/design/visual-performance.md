@@ -55,3 +55,20 @@ The local browser check exposed an ordering issue in the installed Lightning CSS
 ## Physical-device protocol
 
 On the available iPhone 11, compare full/simplified modes with the same wallpaper, scroll/typing sequence and brightness. Warm the route, take three samples, note heat/background apps and verify VoiceOver/Reduce Motion separately. Android remains pending until a device is available. Use [platform validation](platform-validation.md) to record actual results and connect actionable issues to a regression.
+
+
+## Combined themes and main build budgets
+
+The themes/settings merge retains the shop, profile cosmetics, media editors,
+WebRTC tools and music routes alongside the main branch. The verified combined
+build contains approximately 10.70 MiB of raw JavaScript and CSS across all routes,
+including copied MediaPipe runtime scripts. The whole-site inventory limit is
+12,000 KiB (11.72 MiB); this leaves a bounded margin without removing optional
+features. This inventory is not the initial download.
+
+The user-facing constraints remain stricter: each JavaScript asset is limited to
+600 KiB, and the application entry plus search static import graph is limited to
+350 KiB gzip. The latter measured 344.4 KiB after removing the broad motion vendor
+chunk that eagerly pulled lazy animation code into the entry graph. Closed chat
+editors and overlays remain independent dynamic entries. These checks run in the
+frontend production assessment job, alongside the resource and data-window tests.

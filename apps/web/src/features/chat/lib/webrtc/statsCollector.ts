@@ -1,11 +1,3 @@
-/**
- * WebRTC Live Stats Collector (Discord-Style HUD Diagnostics)
- *
- * Polls RTCPeerConnection.getStats() every second and maintains rolling time-series
- * buffers for Bitrate (In/Out), Jitter, RTT, Packet Loss, and Framerate.
- * Identifies active video codec (AV1/VP9/VP8/H.264), audio codec, and connection routing (P2P vs TURN).
- */
-
 export interface LiveConnectionStats {
   bitrateInKbps: number;
   bitrateOutKbps: number;

@@ -11,6 +11,7 @@ import {
 } from './types';
 import { useNotificationStore } from './useNotificationStore';
 import { useNotificationSettingsStore } from './useNotificationSettingsStore';
+import { useMessageToastStore } from '@/shared/model/useMessageToastStore';
 import { playMessageNotificationSound } from '../lib/messageNotificationSound';
 import { showBrowserPushNotification } from '@/shared/lib/browserPushNotifications';
 
@@ -53,6 +54,7 @@ export function useNotificationRealtime() {
 
       if (payload.unreadCounts) {
         setUnreadCounts(payload.unreadCounts);
+        queryClient.setQueryData([UNREAD_NOTIFICATIONS_COUNT_KEY], payload.unreadCounts);
       }
 
       const isDndActive = Boolean(
@@ -62,39 +64,62 @@ export function useNotificationRealtime() {
         notif.actorId && settings.mutedActorIds?.includes(notif.actorId),
       );
 
-      // 1. Safe audio playback (if enabled, not DND, and not muted)
-      if (settings.enableNotifications && settings.allowSound && !isDndActive && !isAuthorMuted) {
-        try {
-          playMessageNotificationSound(settings.volume);
-        } catch {
-          // Suppress autoplay policy error
+      const targetFilter = mapTypeToCategory(notif.type);
+      const isCategoryEnabled =
+        targetFilter === 'likes'
+          ? settings.likes
+          : targetFilter === 'comments'
+            ? settings.comments
+            : targetFilter === 'follows'
+              ? settings.followers
+              : targetFilter === 'mentions'
+                ? settings.mentions
+                : targetFilter === 'reposts'
+                  ? settings.reposts
+                  : settings.system;
+
+      const shouldNotify =
+        settings.enableNotifications && !isDndActive && !isAuthorMuted && isCategoryEnabled;
+
+      if (shouldNotify) {
+        // 1. Safe audio playback (if sound enabled)
+        if (settings.allowSound) {
+          try {
+            playMessageNotificationSound(settings.volume);
+          } catch {
+            // Suppress autoplay policy error
+          }
+        }
+
+        const actorName = notif.actor?.displayName || notif.actor?.username || 'Someone';
+        const toastTitle = settings.showName ? actorName : 'Eternal';
+        const toastBody = settings.showText ? notif.actionText : 'You have a new notification';
+        const toastAvatar = settings.showName ? notif.actor?.avatar || null : null;
+
+        // 2. In-app Push Notification (Apple iOS Liquid Glass toast)
+        useMessageToastStore.getState().addToast({
+          id: `notif-${notif.id}-${Date.now()}`,
+          conversationId: '',
+          messageId: notif.id,
+          title: toastTitle,
+          body: toastBody,
+          avatar: toastAvatar,
+          memberAvatars: [],
+          isGroup: false,
+          linkUrl: notif.deepLink || '/notifications',
+        });
+
+        // 3. Native OS Browser Push Notification (when tab is minimized or hidden)
+        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+          showBrowserPushNotification({
+            title: toastTitle,
+            body: toastBody,
+            icon: toastAvatar,
+            url: notif.deepLink || '/notifications',
+            tag: notif.id,
+          }).catch(() => {});
         }
       }
-
-      // 2. Native OS Browser Push Notification (when tab is minimized or hidden)
-      if (
-        settings.enableNotifications &&
-        !isDndActive &&
-        !isAuthorMuted &&
-        typeof document !== 'undefined' &&
-        document.visibilityState === 'hidden'
-      ) {
-        const title = settings.showName
-          ? notif.actor?.displayName || notif.actor?.username || 'Eternal'
-          : 'Eternal';
-        const body = settings.showText ? notif.actionText : 'You have a new notification';
-        const icon = settings.showName ? notif.actor?.avatar || null : null;
-
-        showBrowserPushNotification({
-          title,
-          body,
-          icon,
-          url: notif.deepLink || '/notifications',
-          tag: notif.id,
-        }).catch(() => {});
-      }
-
-      const targetFilter = mapTypeToCategory(notif.type);
 
       const updatePages = (
         old:
@@ -151,7 +176,8 @@ export function useNotificationRealtime() {
         }>({ queryKey: [NOTIFICATIONS_KEY, targetFilter] }, updatePages);
       }
 
-      queryClient.invalidateQueries({ queryKey: [UNREAD_NOTIFICATIONS_COUNT_KEY] });
+      if (!payload.unreadCounts)
+        queryClient.invalidateQueries({ queryKey: [UNREAD_NOTIFICATIONS_COUNT_KEY] });
     };
 
     const handleReadNotification = (payload: {
@@ -162,6 +188,7 @@ export function useNotificationRealtime() {
     }) => {
       if (payload?.unreadCounts) {
         setUnreadCounts(payload.unreadCounts);
+        queryClient.setQueryData([UNREAD_NOTIFICATIONS_COUNT_KEY], payload.unreadCounts);
       }
 
       if (payload?.allRead) {
@@ -195,7 +222,8 @@ export function useNotificationRealtime() {
         });
       }
 
-      queryClient.invalidateQueries({ queryKey: [UNREAD_NOTIFICATIONS_COUNT_KEY] });
+      if (!payload?.unreadCounts)
+        queryClient.invalidateQueries({ queryKey: [UNREAD_NOTIFICATIONS_COUNT_KEY] });
     };
 
     socket.on('notification:new', handleNewNotification);

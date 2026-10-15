@@ -17,15 +17,16 @@ describe('Company Information Page', () => {
       </BrowserRouter>,
     );
 
-    expect(screen.getByText(/Eternal Company Information – Impressum/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/Eternal Inc./i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Kyiv, Ukraine/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Eternal Project Information – Impressum/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Eternal Inc\./i)).not.toBeInTheDocument();
+    expect(screen.getByText(/software and digital communication project/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Ukraine/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/support@eternal.app/i)).toBeInTheDocument();
 
     // Verify Owners in English
-    expect(screen.getByText(/Nikolaj Agh/i)).toBeInTheDocument();
-    expect(screen.getByText(/Mihal Agh/i)).toBeInTheDocument();
-    expect(screen.getByText(/Ilya Podorozhnyi/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Ag Mykola$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Ag Mihal$/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Ilya Podorozhnyi/i)).not.toBeInTheDocument();
   });
 
   it('switches to Ukrainian dynamically and updates owners names and texts', () => {
@@ -42,10 +43,13 @@ describe('Company Information Page', () => {
     const ukraineOption = screen.getByRole('button', { name: /Українська/i });
     fireEvent.click(ukraineOption);
 
-    expect(screen.getByText(/Інформація про компанію Eternal – Impressum/i)).toBeInTheDocument();
-    expect(screen.getByText(/Микола Аг/i)).toBeInTheDocument();
-    expect(screen.getByText(/Міхал Аг/i)).toBeInTheDocument();
-    expect(screen.getByText(/Ілля Подорожній/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/Київ, Україна/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Інформація про проєкт Eternal – Impressum/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Ag Mykola$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Ag Mihal$/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Ілля Подорожній/i)).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/проєкт програмного забезпечення та цифрових комунікацій/i),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText(/Україна/i).length).toBeGreaterThan(0);
   });
 });

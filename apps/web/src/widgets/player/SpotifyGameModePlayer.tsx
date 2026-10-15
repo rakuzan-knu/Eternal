@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -25,6 +25,10 @@ import { extractDominantColors, type AmbientPalette } from '@/shared/lib/extract
 import { unescapeHtml, isSoundCloudUrl } from '@/shared/lib/spotifyUrl';
 import { SpotifyQueuePopover } from './SpotifyQueuePopover';
 import { SpotifyLiquidSearchModal } from './SpotifyLiquidSearchModal';
+import {
+  triggerCallPiPTransition,
+  getPiPLastCenter,
+} from '@/features/chat/lib/webrtc/callPiPTransition';
 
 const formatTime = (ms: number): string => {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -140,6 +144,32 @@ export const SpotifyGameModePlayer: React.FC = () => {
     };
   }, [coverSrc, currentTrack?.id, currentTrack?.title, isGameModeOpen]);
 
+  // Smooth circular collapse exit handler
+  const isExitingRef = useRef(false);
+
+  useEffect(() => {
+    if (isGameModeOpen) {
+      isExitingRef.current = false;
+    }
+  }, [isGameModeOpen]);
+
+  const handleExitGameMode = useCallback(() => {
+    if (isExitingRef.current) return;
+    isExitingRef.current = true;
+
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    }
+
+    triggerCallPiPTransition('minimize', getPiPLastCenter(), () => {
+      setGameModeOpen(false);
+    });
+  }, [setGameModeOpen]);
+
+  const handleClose = useCallback(() => {
+    handleExitGameMode();
+  }, [handleExitGameMode]);
+
   // Global Keyboard handlers (Escape to close submodals first, Cmd+K / Ctrl+K to search)
   useEffect(() => {
     if (!isGameModeOpen) return;
@@ -164,10 +194,7 @@ export const SpotifyGameModePlayer: React.FC = () => {
           toggleQueue();
           return;
         }
-        if (document.fullscreenElement) {
-          document.exitFullscreen().catch(() => {});
-        }
-        setGameModeOpen(false);
+        handleExitGameMode();
       }
     };
 
@@ -175,7 +202,7 @@ export const SpotifyGameModePlayer: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
     isGameModeOpen,
-    setGameModeOpen,
+    handleExitGameMode,
     isSearchOpen,
     isLyricsOpen,
     isQueueOpen,
@@ -237,13 +264,6 @@ export const SpotifyGameModePlayer: React.FC = () => {
     } catch {
       // ignore
     }
-  };
-
-  const handleClose = () => {
-    if (document.fullscreenElement) {
-      document.exitFullscreen().catch(() => {});
-    }
-    setGameModeOpen(false);
   };
 
   const activeProgress = isDragging ? dragProgress : progressMs;
@@ -319,16 +339,22 @@ export const SpotifyGameModePlayer: React.FC = () => {
             </button>
           </div>
 
-          {/* Centered Game Mode HUD Badge (clean, no green dot, no 'Ultra Performance') */}
+          {/* Centered Game Mode HUD Badge (clean, interactive to exit) */}
           <div className="flex justify-center">
-            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 backdrop-blur-2xl text-xs font-semibold text-white/90 shadow-md transition-all">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 backdrop-blur-2xl text-xs font-semibold text-white/90 shadow-md transition-all hover:scale-105 active:scale-95 cursor-pointer"
+              title="Game Mode"
+              aria-label="Game Mode"
+            >
               <Gamepad2
                 className={`w-3.5 h-3.5 transition-colors duration-300 ${
                   isSoundCloud ? 'text-[#FF5500]' : 'text-[#1DB954]'
                 }`}
               />
               <span className="tracking-wide">Game Mode</span>
-            </div>
+            </button>
           </div>
 
           {/* Action cluster: Fullscreen F11 & Close X (Total width matches left side: w-[88px] sm:w-[96px]) */}

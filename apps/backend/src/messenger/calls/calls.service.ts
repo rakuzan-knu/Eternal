@@ -134,6 +134,21 @@ export class CallsService {
     };
   }
 
+  private async assertCallMember(
+    call: CallWithDetails,
+    userId: string,
+    reconnect = false,
+  ): Promise<void> {
+    if (
+      !call.participants.some(
+        (participant) => participant.userId === userId && (reconnect || !participant.leftAt),
+      )
+    ) {
+      throw new ForbiddenException('Not an active participant of this call');
+    }
+    await this.convsService.assertMember(call.conversationId, userId);
+  }
+
   async acceptCall(
     calleeId: string,
     callId: string,
@@ -147,8 +162,13 @@ export class CallsService {
   }> {
     const call = await this.callsRepo.findCallById(callId);
     if (!call) throw new NotFoundException('Call not found');
+    await this.assertCallMember(call, calleeId);
 
-    if (call.status === CallStatus.ENDED || call.status === CallStatus.DECLINED) {
+    if (
+      ([CallStatus.ENDED, CallStatus.DECLINED, CallStatus.MISSED] as CallStatus[]).includes(
+        call.status,
+      )
+    ) {
       throw new BadRequestException('Call is no longer active');
     }
 
@@ -173,6 +193,15 @@ export class CallsService {
   ): Promise<{ call: CallWithDetails; conversationId: string; targetUserIds: string[] }> {
     const call = await this.callsRepo.findCallById(callId);
     if (!call) throw new NotFoundException('Call not found');
+    await this.assertCallMember(call, calleeId);
+
+    if (
+      ([CallStatus.ENDED, CallStatus.DECLINED, CallStatus.MISSED] as CallStatus[]).includes(
+        call.status,
+      )
+    ) {
+      throw new BadRequestException('Call is no longer active');
+    }
 
     const durationMs = 0;
     const updated = await this.callsRepo.updateCallStatus(
@@ -206,12 +235,12 @@ export class CallsService {
   }> {
     const call = await this.callsRepo.findCallById(callId);
     if (!call) throw new NotFoundException('Call not found');
+    const ended = (
+      [CallStatus.ENDED, CallStatus.DECLINED, CallStatus.MISSED] as CallStatus[]
+    ).includes(call.status);
+    await this.assertCallMember(call, actorId, ended);
 
-    if (
-      ([CallStatus.ENDED, CallStatus.DECLINED, CallStatus.MISSED] as CallStatus[]).includes(
-        call.status,
-      )
-    ) {
+    if (ended) {
       return {
         call,
         conversationId: call.conversationId,
@@ -254,6 +283,14 @@ export class CallsService {
   ): Promise<CallWithDetails> {
     const call = await this.callsRepo.findCallById(callId);
     if (!call) throw new NotFoundException('Call not found');
+    await this.assertCallMember(call, userId);
+    if (
+      ([CallStatus.ENDED, CallStatus.DECLINED, CallStatus.MISSED] as CallStatus[]).includes(
+        call.status,
+      )
+    ) {
+      throw new BadRequestException('Call is no longer active');
+    }
 
     const updateData: { muteState?: boolean; videoState?: boolean; screenShare?: boolean } = {};
     if (type === 'mute') updateData.muteState = state;
@@ -496,6 +533,63 @@ export class CallsService {
     return this.mapToView(call);
   }
 
+  async checkCallActive(
+    callId: string,
+    userId: string,
+  ): Promise<{
+    active: boolean;
+    call?: CallSessionView;
+    activeParticipantsCount: number;
+    reason?: string;
+  }> {
+    const call = await this.callsRepo.findCallById(callId);
+    if (!call) {
+      return { active: false, activeParticipantsCount: 0, reason: 'NOT_FOUND' };
+    }
+
+    const isMember = call.participants.some((p) => p.userId === userId);
+    if (!isMember) {
+      return { active: false, activeParticipantsCount: 0, reason: 'FORBIDDEN' };
+    }
+
+    const isActiveStatus = (
+      [CallStatus.INITIATED, CallStatus.RINGING, CallStatus.CONNECTED] as CallStatus[]
+    ).includes(call.status);
+
+    if (!isActiveStatus) {
+      return { active: false, activeParticipantsCount: 0, reason: 'CALL_ENDED' };
+    }
+
+    // A disconnected call participant may rejoin only while still a conversation member.
+    await this.assertCallMember(call, userId, true);
+
+    const otherParticipants = call.participants.filter((p) => p.userId !== userId);
+    const activeOthers = otherParticipants.filter((p) => !p.leftAt);
+
+    if (activeOthers.length === 0) {
+      await this.callsRepo
+        .updateCallStatus(callId, CallStatus.ENDED, CallEndReason.ENDED_BY_USER)
+        .catch(() => {});
+      return { active: false, activeParticipantsCount: 0, reason: 'NO_ACTIVE_PARTICIPANTS' };
+    }
+
+    // Reconnection of this user: reset leftAt and update joinedAt
+    await this.callsRepo
+      .updateParticipantState(callId, userId, {
+        leftAt: null,
+        joinedAt: new Date(),
+      })
+      .catch(() => {});
+
+    const updatedCall = (await this.callsRepo.findCallById(callId)) || call;
+
+    return {
+      active: true,
+      call: this.mapToView(updatedCall),
+      activeParticipantsCount: activeOthers.length,
+    };
+  }
+
   private async createCallLogMessage(
     call: CallWithDetails,
     status: CallStatus,
@@ -633,7 +727,13 @@ export class CallsService {
   ): Promise<WebTransportSessionResponse> {
     const endpointUrl = process.env.WEBTRANSPORT_ENDPOINT_URL;
     if (!endpointUrl) {
-      throw new NotFoundException('WebTransport endpoint is not configured in this environment');
+      return {
+        endpointUrl: '',
+        sessionTicket: '',
+        maxDatagramSize: 1200,
+        quicSupported: false,
+        expiresInSec: 0,
+      };
     }
 
     const sessionTicket = `wt_${callId}_${userId}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
@@ -680,14 +780,14 @@ export class CallsService {
         : 'HD CALL';
 
     const names = participants
-      .map((p) => p.user?.displayName || p.user?.username || 'Участник')
+      .map((p) => p.user?.displayName || p.user?.username || 'Participant')
       .slice(0, 3)
       .join(', ');
     const displayTitle = names
       ? participants.length > 3
         ? `${names} +${participants.length - 3}`
         : names
-      : 'Групповой HD-звонок';
+      : 'Group HD Call';
 
     const avatarElements = participants
       .slice(0, 4)
@@ -734,7 +834,7 @@ export class CallsService {
 
   <g transform="translate(80, 80)">
     <rect width="160" height="40" rx="20" fill="#27272A" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
-    <text x="80" y="25" fill="#E4E4E7" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="600" text-anchor="middle" letter-spacing="1">ANTIGRAVITY</text>
+    <text x="80" y="25" fill="#E4E4E7" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="600" text-anchor="middle" letter-spacing="1">Eternal</text>
 
     <g transform="translate(176, 0)">
       <rect width="${isLive ? 120 : 140}" height="40" rx="20" fill="${isLive ? 'rgba(16, 185, 129, 0.15)' : 'rgba(99, 102, 241, 0.15)'}" stroke="${isLive ? 'rgba(16, 185, 129, 0.3)' : 'rgba(99, 102, 241, 0.3)'}" stroke-width="1"/>
@@ -760,7 +860,7 @@ export class CallsService {
     </text>
 
     <text x="0" y="115" fill="#A1A1AA" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="24" font-weight="500">
-      Защищенный HD-звонок • ${count} ${count === 1 ? 'участник' : count < 5 ? 'участника' : 'участников'} • Присоединиться
+      Secure HD Call • ${count} ${count === 1 ? 'participant' : 'participants'} • Join
     </text>
   </g>
 
@@ -770,7 +870,7 @@ export class CallsService {
 
   <g transform="translate(830, 440)">
     <rect width="250" height="64" rx="32" fill="url(#btnGradient)"/>
-    <text x="125" y="39" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="700" text-anchor="middle" letter-spacing="0.5">Вход в звонок →</text>
+    <text x="125" y="39" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="700" text-anchor="middle" letter-spacing="0.5">Join Call →</text>
   </g>
 
   <g transform="translate(80, 540)">

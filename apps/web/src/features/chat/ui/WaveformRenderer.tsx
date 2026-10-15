@@ -122,13 +122,14 @@ export const WaveformRenderer = React.memo(function WaveformRenderer({
       onPointerCancel={handlePointerCancel}
       onPointerLeave={handlePointerLeave}
       className="group relative flex items-center justify-between gap-0.5 h-6 w-full min-w-0 cursor-pointer select-none touch-none py-1"
+      style={{ contain: 'layout paint' }}
       title={totalDuration > 0 ? `Duration: ${formatVoiceTime(totalDuration)}` : undefined}
     >
       {/* Floating Seek Tooltip on Hover / Drag */}
       {tooltipTime !== null && totalDuration > 0 && (
         <div
           data-testid="waveform-tooltip"
-          className={`absolute -top-6 -translate-x-1/2 z-30 pointer-events-none px-1.5 py-0.5 rounded-md text-[10px] font-mono font-medium shadow-xl backdrop-blur-md whitespace-nowrap animate-fadeIn ${
+          className={`absolute -top-6 -translate-x-1/2 z-30 pointer-events-none px-1.5 py-0.5 rounded-md text-[10px] font-mono font-medium shadow-xl whitespace-nowrap animate-fadeIn ${
             isLightBg
               ? 'bg-white/95 border border-slate-300 text-slate-900 shadow-md'
               : 'bg-[#10121a]/95 border border-purple-400/30 text-purple-200'

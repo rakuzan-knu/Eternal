@@ -112,7 +112,7 @@ export const BubbleDecoration: React.FC<BubbleDecorationProps> = ({
             </div>
           </div>
 
-          {/* Bottom Orange-Red Belly Rim (as in TikTok screenshot) */}
+          {/* Bottom Orange-Red Belly Rim */}
           <div className="absolute -bottom-1.5 left-2 right-2 h-2 rounded-full bg-gradient-to-r from-orange-500 via-amber-400 to-red-500 border border-[#065f46] shadow-sm z-10" />
         </>
       )}

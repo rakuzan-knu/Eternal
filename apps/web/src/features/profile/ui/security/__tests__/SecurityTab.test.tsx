@@ -65,11 +65,7 @@ describe('SecurityTab', () => {
     expect(screen.getByText('Auto-Delete Timer')).toBeInTheDocument();
     expect(screen.getByText('Blocked users')).toBeInTheDocument();
     expect(screen.getByText('Active sessions')).toBeInTheDocument();
-    expect(screen.getByText('Account Deletion')).toBeInTheDocument();
-
-    const deleteBtn = screen.getByRole('button', { name: /delete account/i });
-    fireEvent.click(deleteBtn);
-    expect(screen.getByText('This action cannot be undone.')).toBeInTheDocument();
+    expect(screen.queryByText('Account Deletion')).not.toBeInTheDocument();
 
     // Change password
     fireEvent.click(screen.getByText('Change password'));

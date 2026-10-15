@@ -83,6 +83,7 @@ describe('ConversationsService', () => {
       create: jest.Mock;
     };
     $transaction: jest.Mock;
+    $queryRaw: jest.Mock;
   };
   let mockConfigService: {
     get: jest.Mock;
@@ -150,6 +151,7 @@ describe('ConversationsService', () => {
     };
 
     mockPrisma = {
+      $queryRaw: jest.fn().mockResolvedValue([]),
       user: {
         count: jest.fn().mockResolvedValue(1),
         findUnique: jest.fn().mockResolvedValue({ id: 'usr-1', displayName: 'User One' }),

@@ -2,7 +2,7 @@
   "name": "@social-network/feed-score",
   "version": "1.0.0",
   "description": "Portable recommendation scoring v1: proximity + mutuals + popularity (+ recency decay + interest affinity). Pure math, zero dependencies, no Node APIs — Node, browsers, React Native.",
-  "license": "AGPL-3.0-only",
+  "license": "UNLICENSED",
   "private": true,
   "main": "./dist/index.js",
   "module": "./dist/esm/index.js",

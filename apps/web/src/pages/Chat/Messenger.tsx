@@ -14,6 +14,8 @@ import { chatApi } from '../../features/chat/api/chatApi';
 
 import type { ConversationView } from '../../entities/chat/model/types';
 import { SEOHead } from '../../shared/seo';
+import { recordRecentVisitedChat } from '../../features/chat/lib/recentVisitedChats';
+import { ensureMessageIdentityRegistered } from '../../features/chat/lib/e2ee/messageE2ee';
 
 export default function MessengerPage() {
   const { conversationId } = useParams<{ conversationId?: string }>();
@@ -31,6 +33,16 @@ export default function MessengerPage() {
   const { data: conversations, isLoading: isLoadingConversations } = useConversations();
   usePresenceSync();
 
+  React.useEffect(() => {
+    void ensureMessageIdentityRegistered();
+  }, []);
+
+  React.useEffect(() => {
+    if (conversationId) {
+      recordRecentVisitedChat(conversationId);
+    }
+  }, [conversationId]);
+
   const conversationInList =
     conversations?.find((c: ConversationView) => c.id === conversationId) ?? null;
 
@@ -39,19 +51,19 @@ export default function MessengerPage() {
       ? queryKeys.conversations.detail(conversationId)
       : ['conversation', 'none'],
     queryFn: () => chatApi.getConversation(conversationId!),
-    enabled: Boolean(conversationId && !conversationInList),
+    enabled: Boolean(conversationId),
     staleTime: queryStaleTimes.conversations,
     retry: 1,
   });
 
-  const activeConversation = conversationInList || fetchedConversation || null;
+  const activeConversation = fetchedConversation || conversationInList || null;
   const isResolvingActiveChat =
     Boolean(conversationId) && !activeConversation && (isLoadingConversations || isLoadingSingle);
 
   const handleSelectConversation = (id: string) => navigate(`/messages/${id}`);
 
   return (
-    <div className="fixed inset-0 flex bg-[#0b0b0c] overflow-hidden">
+    <div className="fixed inset-0 flex bg-transparent overflow-hidden">
       <SEOHead
         title="Messages • Direct Chats on Eternal"
         description="Direct and group messaging on Eternal."
@@ -63,7 +75,7 @@ export default function MessengerPage() {
 
       <div
         className={`flex flex-1 min-w-0 overflow-hidden transition-all duration-300 ease-in-out max-md:ml-0 ${
-          isSidebarExpanded ? 'ml-[200px]' : 'ml-16'
+          isSidebarExpanded ? 'ml-[220px]' : 'ml-16'
         }`}
       >
         <ChatListPanel
@@ -106,7 +118,7 @@ export default function MessengerPage() {
               </button>
             </div>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center gap-2 text-gray-500">
+            <div className="flex-1 flex flex-col items-center justify-center gap-2 text-gray-500 animate-fadeIn select-none">
               <MessageSquare size={40} />
               <p className="text-lg font-medium">Select a chat to start messaging</p>
               <a href="/search" className="text-sm font-medium hover:underline text-sky-400">

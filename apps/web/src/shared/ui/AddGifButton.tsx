@@ -10,6 +10,7 @@ interface AddGifButtonProps {
   onGifSelect: (gif: string) => void;
   usePortal?: boolean;
   className?: string;
+  buttonClassName?: string;
 }
 
 const PRESET_GIFS = [
@@ -28,6 +29,7 @@ export const AddGifButton: React.FC<AddGifButtonProps> = ({
   onGifSelect,
   usePortal = false,
   className = '',
+  buttonClassName = '',
 }) => {
   const [direction, setDirection] = useState<'top' | 'bottom'>('top');
   const [portalStyle, setPortalStyle] = useState<React.CSSProperties | null>(null);
@@ -165,8 +167,8 @@ export const AddGifButton: React.FC<AddGifButtonProps> = ({
             ? 'opacity-40 cursor-not-allowed text-gray-500'
             : isOpen
               ? 'bg-purple-500/20 text-purple-300'
-              : 'text-gray-400 hover:bg-white/10 hover:text-white'
-        }`}
+              : 'text-gray-500 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10'
+        } ${buttonClassName}`}
       >
         <FileImage size={18} />
       </button>

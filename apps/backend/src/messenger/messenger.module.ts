@@ -11,6 +11,7 @@ import { CONVERSATIONS_REPOSITORY } from './interfaces/conversations-repository.
 
 import { MessagesController } from './messages/messages.controller';
 import { MessagesService } from './messages/messages.service';
+import { UnreadProjectionModule } from './unread/unread-projection.module';
 import { MessagesRepository } from './repositories/messages.repository';
 import { MESSAGES_REPOSITORY } from './interfaces/messages-repository.interface';
 
@@ -52,10 +53,15 @@ import { PrekeysService } from './crypto/prekeys.service';
 import { PrekeysRepository } from './repositories/prekeys.repository';
 import { PREKEYS_REPOSITORY } from './interfaces/prekeys-repository.interface';
 import { JamService } from '../integrations/jam.service';
+import { SoundboardController } from './soundboard/soundboard.controller';
+import { SoundboardService } from './soundboard/soundboard.service';
+import { WatchTogetherController } from './watch-together/watch-together.controller';
+import { WatchTogetherService } from './watch-together/watch-together.service';
 
 @Module({
   imports: [
     PrismaModule,
+    UnreadProjectionModule,
     RedisModule,
     forwardRef(() => UsersModule),
     ConfigModule,
@@ -71,8 +77,12 @@ import { JamService } from '../integrations/jam.service';
     FoldersController,
     SearchController,
     PrekeysController,
+    SoundboardController,
+    WatchTogetherController,
   ],
   providers: [
+    SoundboardService,
+    WatchTogetherService,
     {
       provide: CONVERSATIONS_REPOSITORY,
       useClass: ConversationsRepository,
@@ -145,6 +155,8 @@ import { JamService } from '../integrations/jam.service';
     K8sPodMigrationService,
     OffHeapBufferPoolService,
     JamService,
+    SoundboardService,
+    WatchTogetherService,
   ],
 })
 export class MessengerModule {}

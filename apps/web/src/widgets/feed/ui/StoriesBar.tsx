@@ -70,7 +70,7 @@ export function StoriesBar() {
       <div
         role="status"
         aria-label="Loading stories"
-        className="w-full bg-[#121216]/60 backdrop-blur-md border border-white/5 rounded-3xl p-3.5 flex items-center gap-4 overflow-hidden"
+        className="glass-card w-full border border-white/5 rounded-3xl p-3.5 flex items-center gap-4 overflow-hidden"
       >
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="flex flex-col items-center gap-1.5 shrink-0 animate-pulse">
@@ -86,10 +86,13 @@ export function StoriesBar() {
     <div
       role="region"
       aria-label="Stories"
-      className="relative w-full bg-[#121216]/60 backdrop-blur-md border border-white/5 rounded-3xl p-3.5 shadow-xl select-none group/bar"
+      className="glass-card relative w-full border border-white/5 rounded-3xl p-3.5 shadow-xl select-none group/bar transition-colors duration-200"
     >
       {isError && (
-        <div role="alert" className="mb-3 flex flex-wrap items-center gap-3 text-sm text-gray-300">
+        <div
+          role="alert"
+          className="mb-3 flex flex-wrap items-center gap-3 text-sm text-gray-700 dark:text-gray-300"
+        >
           <p>Stories could not load</p>
           <button
             type="button"
@@ -162,6 +165,8 @@ export function StoriesBar() {
                 <Avatar
                   src={currentUser?.avatar}
                   alt={currentUser?.displayName || 'Your story'}
+                  suppressDecoration={true}
+                  userId={currentUser?.id}
                   className="w-14 h-14"
                 />
               </div>
@@ -183,7 +188,7 @@ export function StoriesBar() {
             </button>
           </div>
 
-          <span className="text-[11px] font-medium text-gray-300 truncate max-w-[70px] text-center">
+          <span className="text-[11px] font-medium text-gray-700 dark:text-gray-200 truncate max-w-[70px] text-center">
             {hasOwnStories ? 'Your story' : 'Add'}
           </span>
         </div>
@@ -224,6 +229,8 @@ export function StoriesBar() {
                   <Avatar
                     src={author.avatar}
                     alt={author.displayName || author.username}
+                    suppressDecoration={true}
+                    userId={author.id}
                     className="w-14 h-14"
                   />
                 </div>
@@ -239,7 +246,7 @@ export function StoriesBar() {
                 )}
               </div>
 
-              <span className="text-[11px] font-medium text-gray-300 group-hover:text-white transition-colors truncate max-w-[70px] text-center">
+              <span className="text-[11px] font-medium text-gray-700 dark:text-gray-200 group-hover:text-gray-950 dark:group-hover:text-white transition-colors truncate max-w-[70px] text-center">
                 {author.displayName || author.username}
               </span>
             </div>

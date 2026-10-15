@@ -8,6 +8,8 @@ import { AutoDeleteService } from '../auto-delete.service';
 describe('AutoDeleteService', () => {
   let service: AutoDeleteService;
   let mockPrisma: {
+    $transaction: jest.Mock;
+    $queryRaw: jest.Mock;
     user: {
       findMany: jest.Mock;
     };
@@ -28,6 +30,8 @@ describe('AutoDeleteService', () => {
 
   beforeEach(() => {
     mockPrisma = {
+      $transaction: jest.fn(async (fn: (tx: unknown) => unknown) => fn(mockPrisma)),
+      $queryRaw: jest.fn().mockResolvedValue([]),
       user: {
         findMany: jest.fn(),
       },

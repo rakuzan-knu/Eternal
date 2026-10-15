@@ -6,7 +6,7 @@ import { EternalCrown3D, EternalCoin3D } from '../../Company/ui/CompanyIllustrat
 import { EternalTrophy3D, EternalPickaxe3D } from './NewsroomIllustrations';
 
 /**
- * 3D Floating Green Sprout Leaf (Directly above Mascot head matching Discord's banner)
+ * 3D Floating Green Sprout Leaf
  */
 const FloatingGreenLeaf3D: React.FC<{ className?: string }> = ({ className = 'w-16 h-16' }) => {
   return (
@@ -55,7 +55,7 @@ export const BrandKitCalloutSection: React.FC<{
         </p>
       </div>
 
-      {/* Discord-identical Smooth Stadium Pill Banner */}
+      {/* Pill Banner */}
       <div className="relative rounded-[48px] sm:rounded-[56px] bg-gradient-to-r from-[#44309a] via-[#332082] to-[#44309a] border border-purple-400/20 p-8 sm:p-14 shadow-[0_30px_90px_rgba(51,32,130,0.5)] flex flex-col items-center justify-center min-h-[380px] sm:min-h-[420px] overflow-hidden select-none mb-10">
         {/* Soft Ambient Radial Glow */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[340px] bg-purple-500/25 blur-[120px] pointer-events-none rounded-full" />

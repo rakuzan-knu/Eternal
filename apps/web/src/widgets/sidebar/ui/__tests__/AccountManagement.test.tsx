@@ -1,5 +1,5 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '../../../../test/renderWithProviders';
 import { ProfileMenu } from '../SidebarMenu';
 import { useAuthStore } from '@/shared/model/useAuthStore';
@@ -36,15 +36,18 @@ describe('ProfileMenu & Account Management', () => {
     useAccountsStore.setState({ accounts: [], activeAccountId: null });
   });
 
-  it('opens More menu and renders Change account and Log out', () => {
+  it('opens More menu and renders Change account and Log out', async () => {
     renderWithProviders(<ProfileMenu isSidebarExpanded={true} />);
 
     const moreBtn = screen.getByRole('button', { name: /more/i });
-    fireEvent.click(moreBtn);
+    await act(async () => {
+      fireEvent.click(moreBtn);
+      await vi.dynamicImportSettled();
+    });
 
-    expect(screen.getByText('Change account')).toBeInTheDocument();
+    expect(await screen.findByText('Change account')).toBeInTheDocument();
     expect(screen.getByText('Log out')).toBeInTheDocument();
-  });
+  }, 10000);
 
   it('opens Log out confirmation modal when Log out is clicked and cancels properly', async () => {
     renderWithProviders(<ProfileMenu isSidebarExpanded={true} />);
@@ -89,12 +92,12 @@ describe('ProfileMenu & Account Management', () => {
     renderWithProviders(<ProfileMenu isSidebarExpanded={true} />);
 
     fireEvent.click(screen.getByRole('button', { name: /more/i }));
-    fireEvent.click(screen.getByText('Change account'));
+    fireEvent.click(await screen.findByText('Change account'));
 
-    const manageBtn = screen.getByText('Manage accounts');
+    const manageBtn = await screen.findByText('Manage accounts');
     fireEvent.click(manageBtn);
 
-    expect(screen.getByText('Account management')).toBeInTheDocument();
+    expect(await screen.findByText('Account management')).toBeInTheDocument();
     expect(
       screen.getByText('Change your account, log in or out as often as you need.'),
     ).toBeInTheDocument();

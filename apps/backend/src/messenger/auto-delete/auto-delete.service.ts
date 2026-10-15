@@ -12,6 +12,7 @@ import { TraceContext } from '../../common/tracing/trace-context';
 import { chunkQuery } from '../../common/utils/batch-stream.util';
 import { randomUUID } from 'node:crypto';
 import { deleteFromStorage } from '../../common/media/image-processor';
+import { withUnreadWriteLock } from '../unread/unread-write-lock';
 
 const PAGE_SIZE = 200;
 const USER_BATCH_SIZE = 500;
@@ -105,7 +106,11 @@ export class AutoDeleteService implements OnModuleInit, OnModuleDestroy {
       }
 
       const ids = messages.map((m) => m.id);
-      await this.prisma.message.deleteMany({ where: { id: { in: ids } } });
+      await withUnreadWriteLock(
+        this.prisma,
+        { conversationIds: messages.map((message) => message.conversationId) },
+        (tx) => tx.message.deleteMany({ where: { id: { in: ids } } }),
+      );
 
       for (const message of messages) {
         this.gateway.emitMessageDeleted(message.conversationId, message.id, true);

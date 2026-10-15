@@ -132,16 +132,16 @@ export function SpatialAudioMixer2D({
         <div className="flex items-center justify-between pb-4 border-b border-white/10">
           <div className="flex items-center gap-2">
             <Volume2 className="w-5 h-5 text-sky-400" />
-            <h3 className="text-lg font-semibold text-white">2D Пространственный звук</h3>
+            <h3 className="text-lg font-semibold text-white">2D Spatial Audio</h3>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={handleReset}
               className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition"
-              title="Сбросить в авто-режим"
+              title="Reset to auto"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span>Авто</span>
+              <span>Auto</span>
             </button>
             <button
               onClick={onClose}
@@ -153,8 +153,8 @@ export function SpatialAudioMixer2D({
         </div>
 
         <p className="text-xs text-slate-400 mt-2 mb-4">
-          Перетаскивайте иконки участников по звуковой карте, чтобы расположить их голоса в
-          стерео-пространстве комнаты.
+          Drag participant icons across the sound stage to position their voices in the room's
+          stereo field.
         </p>
 
         {/* 2D Acoustic Stage Radar */}
@@ -174,7 +174,7 @@ export function SpatialAudioMixer2D({
           {/* Center: Listener (Headphones facing forward/up) */}
           <div className="relative z-10 flex flex-col items-center justify-center w-12 h-12 rounded-full bg-sky-500/20 border border-sky-400 text-sky-300 shadow-lg shadow-sky-500/20 pointer-events-none">
             <Headphones className="w-5 h-5" />
-            <span className="text-[9px] font-bold mt-0.5">ВЫ</span>
+            <span className="text-[9px] font-bold mt-0.5">YOU</span>
           </div>
 
           {/* Draggable Participant Nodes */}
@@ -217,9 +217,9 @@ export function SpatialAudioMixer2D({
         </div>
 
         <div className="flex justify-between items-center mt-4 text-[11px] text-slate-400">
-          <span>Слева: $X &lt; 0$</span>
-          <span>Впереди: $Z &lt; 0$</span>
-          <span>Справа: $X &gt; 0$</span>
+          <span>Left: $X &lt; 0$</span>
+          <span>Front: $Z &lt; 0$</span>
+          <span>Right: $X &gt; 0$</span>
         </div>
       </div>
     </div>

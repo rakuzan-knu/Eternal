@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { getOAuthSessionState, clearOAuthSessionState } from '@/shared/lib/safeSessionStorage';
@@ -9,6 +9,7 @@ export const OAuthCallbackHandler: React.FC<{ platform?: string }> = ({
   const params = useParams<{ platform?: string }>();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState('');
+  const exchanging = useRef(false);
 
   const searchParams = new URLSearchParams(window.location.search);
   const code = searchParams.get('code');
@@ -43,11 +44,12 @@ export const OAuthCallbackHandler: React.FC<{ platform?: string }> = ({
   }
 
   useEffect(() => {
+    if (exchanging.current) return;
+    exchanging.current = true;
     const savedSessionState = getOAuthSessionState(effectivePlatform);
     if (savedSessionState) {
       clearOAuthSessionState(effectivePlatform);
     }
-
     if (error) {
       setStatus('error');
       setErrorMessage(error);
@@ -62,24 +64,6 @@ export const OAuthCallbackHandler: React.FC<{ platform?: string }> = ({
 
     const rawApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
     const baseBackendUrl = rawApiUrl.replace(/\/api\/?$/, '').replace(/\/$/, '');
-
-    // Notify parent window that code was received
-    if (window.opener) {
-      try {
-        window.opener.postMessage(
-          {
-            type: 'OAUTH_CODE_RECEIVED',
-            platform: effectivePlatform,
-            code,
-            state,
-            search: window.location.search,
-          },
-          '*',
-        );
-      } catch (e) {
-        console.error('Failed to post message to opener:', e);
-      }
-    }
 
     // Call exchange-code endpoint on backend
     const currentOrigin = window.location.origin;
@@ -107,7 +91,7 @@ export const OAuthCallbackHandler: React.FC<{ platform?: string }> = ({
               try {
                 window.opener.postMessage(
                   { type: 'INTEGRATION_AUTH_SUCCESS', platform: effectivePlatform },
-                  '*',
+                  window.location.origin,
                 );
               } catch {}
             }
@@ -120,15 +104,13 @@ export const OAuthCallbackHandler: React.FC<{ platform?: string }> = ({
             window.close();
           }, 1500);
         } else {
-          // If direct API failed, fallback to native backend callback redirect
-          const errData = await res.json().catch(() => ({}));
-          console.warn('exchange-code failed, trying backend callback redirect:', errData);
-          window.location.href = `${baseBackendUrl}/integrations/${effectivePlatform}/callback${window.location.search}`;
+          setStatus('error');
+          setErrorMessage('Could not verify the connection. Please start authentication again.');
         }
       })
-      .catch((err) => {
-        console.warn('Network error calling exchange-code, redirecting to backend callback:', err);
-        window.location.href = `${baseBackendUrl}/integrations/${effectivePlatform}/callback${window.location.search}`;
+      .catch((_err) => {
+        setStatus('error');
+        setErrorMessage('Connection failed. Please start authentication again.');
       });
   }, [code, effectivePlatform, error, state]);
 

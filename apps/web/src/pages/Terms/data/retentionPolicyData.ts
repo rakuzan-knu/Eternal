@@ -39,7 +39,7 @@ export const RETENTION_POLICY_DATA: Record<'en' | 'uk', RetentionPolicyTranslati
       effectiveDate: 'Effective: September 1, 2026 • Last updated: August 30, 2026',
       lastUpdated: 'Last Updated: August 30, 2026',
       description:
-        'This Data Retention Policy describes how long Eternal Inc. (headquartered in Kyiv, Ukraine) retains different categories of personal information and content, the legal and operational reasons for our retention timeframes, and how you can manage or delete your data.',
+        'This Data Retention Policy describes how long the Eternal project retains different categories of personal information and content, the legal and operational reasons for our retention timeframes, and how you can manage or delete your data.',
     },
     toc: {
       contents: 'Table of Contents',
@@ -153,7 +153,7 @@ export const RETENTION_POLICY_DATA: Record<'en' | 'uk', RetentionPolicyTranslati
             bullets: [
               'Data Protection Officer (DPO): dpo@eternal.app',
               'Privacy & Legal Department: privacy@eternal.app',
-              'Corporate Headquarters: Eternal Inc., Kyiv, Ukraine',
+              'Project operators: Ag Mykola and Ag Mihal, Ukraine',
               'Supervisory Inquiries: Secretariat of the Ukrainian Parliament Commissioner for Human Rights or your local European DPA.',
             ],
           },
@@ -168,7 +168,7 @@ export const RETENTION_POLICY_DATA: Record<'en' | 'uk', RetentionPolicyTranslati
       effectiveDate: 'Набуття чинності: 1 вересня 2026 р. • Останнє оновлення: 30 серпня 2026 р.',
       lastUpdated: 'Останнє оновлення: 30 серпня 2026 р.',
       description:
-        'Ця Політика зберігання описує строки та підстави збереження різних категорій персональних даних компанією Eternal Inc. (м. Київ, Україна), умови їх автоматичного видалення та інструменти самостійного керування контентом.',
+        'Ця Політика зберігання описує строки та підстави збереження різних категорій персональних даних проєктом Eternal, яким керують Ag Mykola та Ag Mihal в Україні, умови їх автоматичного видалення та інструменти самостійного керування контентом.',
     },
     toc: {
       contents: 'Зміст документа',
@@ -278,7 +278,7 @@ export const RETENTION_POLICY_DATA: Record<'en' | 'uk', RetentionPolicyTranslati
             bullets: [
               'Офіцер із захисту даних (DPO): dpo@eternal.app',
               'Юридичний департамент: privacy@eternal.app',
-              'Головний офіс: Eternal Inc., м. Київ, Україна',
+              'Оператори проєкту: Ag Mykola та Ag Mihal, Україна',
               'Секретаріат Уповноваженого ВРУ з прав людини: hotline@ombudsman.gov.ua',
             ],
           },

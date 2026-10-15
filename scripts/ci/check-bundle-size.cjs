@@ -11,7 +11,10 @@ const distDir =
 
 // Budgets in Bytes
 const MAX_SINGLE_JS_BYTES = 600 * 1024; // 600 KB
-const MAX_TOTAL_BUNDLE_BYTES = 8000 * 1024; // 8.0 MB
+// The combined theme/shop, media tooling and music routes are loaded on demand.
+// Keep a bounded whole-site inventory while the entry/search graph separately
+// remains capped at 350 KiB gzip by apps/web/scripts/check-startup-chunks.mjs.
+const MAX_TOTAL_BUNDLE_BYTES = 12000 * 1024; // 11.72 MiB across all optional routes
 
 if (!fs.existsSync(distDir)) {
   console.error(`[check-bundle-size] Error: Build output directory not found at ${distDir}`);

@@ -115,7 +115,7 @@ export const COOKIE_POLICY_DATA: Record<'en' | 'uk', CookiePolicyTranslation> = 
             bullets: [
               'Privacy & Legal Operations: privacy@eternal.app',
               'Data Protection Officer: dpo@eternal.app',
-              'Headquarters: Eternal Inc., Kyiv, Ukraine',
+              'Project operators: Ag Mykola and Ag Mihal, Ukraine',
             ],
           },
         ],
@@ -206,7 +206,7 @@ export const COOKIE_POLICY_DATA: Record<'en' | 'uk', CookiePolicyTranslation> = 
             bullets: [
               'Юридичний відділ: privacy@eternal.app',
               'Офіцер із захисту даних (DPO): dpo@eternal.app',
-              'Головний офіс: Eternal Inc., м. Київ, Україна',
+              'Оператори проєкту: Ag Mykola та Ag Mihal, Україна',
             ],
           },
         ],

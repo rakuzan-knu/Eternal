@@ -1,5 +1,6 @@
-import React from 'react';
-import { UserBadgeIcon } from './UserBadgeIcon';
+import React, { lazy, Suspense } from 'react';
+
+const UserBadgeIcon = lazy(() => import('./UserBadgeIcon'));
 
 interface VerifiedCheckmarkProps {
   isVerified?: boolean | undefined;
@@ -49,10 +50,12 @@ export function VerifiedCheckmark({
         </span>
       )}
       {primaryBadge && (
-        <UserBadgeIcon
-          badgeId={primaryBadge}
-          size={size === 'xs' ? 'sm' : (size as 'sm' | 'md' | 'lg')}
-        />
+        <Suspense fallback={<span aria-hidden="true" className={`shrink-0 ${dim}`} />}>
+          <UserBadgeIcon
+            badgeId={primaryBadge}
+            size={size === 'xs' ? 'sm' : (size as 'sm' | 'md' | 'lg')}
+          />
+        </Suspense>
       )}
     </span>
   );

@@ -45,7 +45,7 @@ export const CompanyAboutPage: React.FC = () => {
 
   useEffect(() => {
     const handleScroll = () => {
-      // Crown smooth parallax offset (moves down a few pixels with scroll, 1:1 Discord style)
+      // Crown smooth parallax offset
       setCrownOffset(Math.min(window.scrollY * 0.08, 45));
 
       if (!timelineRef.current) return;
@@ -79,7 +79,7 @@ export const CompanyAboutPage: React.FC = () => {
       {/* Top Navbar */}
       <PrivacyNavbar />
 
-      {/* Hero Section (Deep Indigo/Purple Discord Style) */}
+      {/* Hero Section */}
       <section className="relative pt-36 pb-20 px-6 lg:px-12 bg-gradient-to-b from-[#381a80] via-[#240e5c] to-[#07050f] overflow-hidden">
         {/* Ambient Glows */}
         <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-purple-600/25 blur-[130px] pointer-events-none rounded-full" />
@@ -112,7 +112,7 @@ export const CompanyAboutPage: React.FC = () => {
             {/* Ambient Lighting & Backdrop Elements */}
             <div className="absolute inset-0 bg-radial-gradient opacity-50 pointer-events-none" />
 
-            {/* 3D White/Silver Pink Gem Crown with Smooth Scroll Parallax (1:1 Discord Style) */}
+            {/* 3D White/Silver Pink Gem Crown with Smooth Scroll Parallax*/}
             <div
               className="absolute -top-12 -right-4 sm:-right-8 select-none pointer-events-none z-30 transition-transform duration-100 ease-out"
               style={{ transform: `translateY(${crownOffset}px) rotate(8deg)` }}
@@ -488,12 +488,12 @@ export const CompanyAboutPage: React.FC = () => {
 
           {/* Milestone 1: June 2026 */}
           <div className="relative z-10 flex flex-col items-center md:grid md:grid-cols-2 md:gap-12 lg:gap-16 md:items-center">
-            {/* Mobile Top Node Dot (Discord Style above card) */}
+            {/* Mobile Top Node Dot */}
             <div className="md:hidden flex items-center justify-center w-7 h-7 rounded-full bg-white border-4 border-purple-600 shadow-[0_0_15px_rgba(168,85,247,0.6)] mb-5 z-20 shrink-0" />
 
             {/* Card on Left (Desktop) / Centered (Mobile) */}
             <div className="w-full max-w-[440px] md:max-w-none p-6 sm:p-8 rounded-[28px] sm:rounded-3xl bg-[#0e0a1f] border border-purple-800/40 backdrop-blur-xl shadow-2xl flex flex-col gap-3 md:text-right relative z-10 overflow-visible text-left">
-              {/* Mobile Perched Mascot on Top-Right of Card (Discord Style) */}
+              {/* Mobile Perched Mascot on Top-Right of Card */}
               <div className="md:hidden absolute -top-11 -right-3 sm:-right-4 w-24 h-24 pointer-events-none select-none z-20 drop-shadow-2xl">
                 <DropdownDeveloperMascot className="w-full h-full" />
               </div>
@@ -518,7 +518,7 @@ export const CompanyAboutPage: React.FC = () => {
 
           {/* Milestone 2: July 2026 */}
           <div className="relative z-10 flex flex-col items-center md:grid md:grid-cols-2 md:gap-12 lg:gap-16 md:items-center">
-            {/* Mobile Top Node Dot (Discord Style above card) */}
+            {/* Mobile Top Node Dot */}
             <div className="md:hidden flex items-center justify-center w-7 h-7 rounded-full bg-white border-4 border-purple-600 shadow-[0_0_15px_rgba(168,85,247,0.6)] mb-5 z-20 shrink-0" />
 
             {/* Desktop Mascot on Left */}
@@ -528,7 +528,7 @@ export const CompanyAboutPage: React.FC = () => {
 
             {/* Card on Right (Desktop) / Centered (Mobile) */}
             <div className="w-full max-w-[440px] md:max-w-none p-6 sm:p-8 rounded-[28px] sm:rounded-3xl bg-[#0e0a1f] border border-purple-800/40 backdrop-blur-xl shadow-2xl flex flex-col gap-3 text-left relative z-10 overflow-visible order-2">
-              {/* Mobile Perched Mascot on Top-Right of Card (Discord Style) */}
+              {/* Mobile Perched Mascot on Top-Right of Card */}
               <div className="md:hidden absolute -top-11 -right-3 sm:-right-4 w-24 h-24 pointer-events-none select-none z-20 drop-shadow-2xl">
                 <DropdownSupportMascot className="w-full h-full" />
               </div>
@@ -548,12 +548,12 @@ export const CompanyAboutPage: React.FC = () => {
 
           {/* Milestone 3: August 2026 */}
           <div className="relative z-10 flex flex-col items-center md:grid md:grid-cols-2 md:gap-12 lg:gap-16 md:items-center">
-            {/* Mobile Top Node Dot (Discord Style above card) */}
+            {/* Mobile Top Node Dot*/}
             <div className="md:hidden flex items-center justify-center w-7 h-7 rounded-full bg-white border-4 border-purple-600 shadow-[0_0_15px_rgba(168,85,247,0.6)] mb-5 z-20 shrink-0" />
 
             {/* Card on Left (Desktop) / Centered (Mobile) */}
             <div className="w-full max-w-[440px] md:max-w-none p-6 sm:p-8 rounded-[28px] sm:rounded-3xl bg-[#0e0a1f] border border-purple-800/40 backdrop-blur-xl shadow-2xl flex flex-col gap-3 md:text-right relative z-10 overflow-visible text-left">
-              {/* Mobile Perched Mascot on Top-Right of Card (Discord Style) */}
+              {/* Mobile Perched Mascot on Top-Right of Card */}
               <div className="md:hidden absolute -top-11 -right-3 sm:-right-4 w-24 h-24 pointer-events-none select-none z-20 drop-shadow-2xl">
                 <DropdownSafetyMascot className="w-full h-full" />
               </div>

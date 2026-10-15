@@ -152,7 +152,7 @@ export const ProfileAnthemCard: React.FC<ProfileAnthemCardProps> = ({
       });
 
   return (
-    <div className="group relative overflow-hidden rounded-2xl bg-[#121216]/90 border border-white/10 hover:border-white/20 p-3 mb-4 shadow-xl transition-all animate-fadeIn">
+    <div className="glass-card group relative overflow-hidden rounded-2xl border border-white/10 hover:border-white/20 p-3 mb-4 shadow-xl transition-all animate-fadeIn">
       {/* Ambient Album Glow under art when playing */}
       {isPlayingNow && (
         <div

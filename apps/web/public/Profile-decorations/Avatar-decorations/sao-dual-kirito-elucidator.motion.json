@@ -1,0 +1,45 @@
+{
+  "format": "animated_webp",
+  "width": 384,
+  "height": 384,
+  "authoringWidth": 512,
+  "frames": 300,
+  "fps": 60,
+  "delay": [
+    17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17,
+    17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17,
+    17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17,
+    17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17,
+    17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17,
+    17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17,
+    17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17,
+    17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17,
+    17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17,
+    17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17,
+    17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17,
+    17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17,
+    17, 16, 17, 17, 16, 17, 17, 16, 17, 17, 16, 17
+  ],
+  "revision": 1,
+  "sources": [
+    {
+      "file": "frontend\\public\\Profile-decorations\\3D-Models\\Swords\\sao_kirito_sword_3.glb",
+      "sha256": "64eb852ffc938cc1a1c79eae290eb2943012274306b286bcac031c91e1fa257d",
+      "vertices": 3491,
+      "extractedVertices": null
+    },
+    {
+      "file": "frontend\\public\\Profile-decorations\\3D-Models\\Swords\\elucidator.glb",
+      "sha256": "705a6bcbf02a7255b48af23e622db4d21e7ea9b5416b8d2c0d01482261bcd3e9",
+      "vertices": 6700,
+      "extractedVertices": null
+    }
+  ],
+  "firstHash": "1fe40ad775ab20f71c0e0ea3b6c1d0a552d15422191cf8657206d1fde492cebd",
+  "lastHash": "3441882d44dfdcf408d165df523a9fa34504a16df517bdba58008a46398c5ef4",
+  "maximumEndpointDeviationMetres": 1.4901161193847656e-8,
+  "renderScale": 1.775,
+  "geometry": "Supplied GLB swords, grip pivots, 3D swing/roll/depth and tetrahedral disintegration",
+  "endpointConvention": "Render 1..300; exact return pose at 301; no duplicated endpoint",
+  "vfx": "Actual 3D shards or binary glyphs, alpha-aware two-scale glow"
+}

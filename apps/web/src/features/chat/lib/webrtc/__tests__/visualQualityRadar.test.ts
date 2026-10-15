@@ -14,12 +14,12 @@ describe('visualQualityRadar', () => {
       rttMs: 120,
     };
 
-    const diag = analyzeConnectionQuality(metrics, 'Иван', false);
+    const diag = analyzeConnectionQuality(metrics, 'Ivan', false);
 
     expect(diag.quality).toBe('poor');
     expect(diag.primaryIssue).toBe('packet_loss');
-    expect(diag.plainLanguageHint).toBe('У Иван слабый Wi-Fi (потери пакетов)');
-    expect(diag.headline).toBe('Слабый Wi-Fi');
+    expect(diag.plainLanguageHint).toBe('Ivan has weak Wi-Fi (packet loss)');
+    expect(diag.headline).toBe('Weak Wi-Fi');
     expect(diag.colorHex).toBe('#ef4444');
   });
 
@@ -31,12 +31,12 @@ describe('visualQualityRadar', () => {
       rttMs: 45,
     };
 
-    const diag = analyzeConnectionQuality(metrics, 'Анна', false);
+    const diag = analyzeConnectionQuality(metrics, 'Anna', false);
 
     expect(diag.quality).toBe('poor');
     expect(diag.primaryIssue).toBe('cpu_overload');
-    expect(diag.plainLanguageHint).toBe('У Анна перегружен процессор (просадка FPS)');
-    expect(diag.headline).toBe('Перегружен процессор');
+    expect(diag.plainLanguageHint).toBe("Anna's CPU is overloaded (dropping FPS)");
+    expect(diag.headline).toBe('CPU Overload');
     expect(diag.colorHex).toBe('#f97316');
   });
 
@@ -48,11 +48,11 @@ describe('visualQualityRadar', () => {
       rttMs: 420,
     };
 
-    const diag = analyzeConnectionQuality(metrics, 'Максим', false);
+    const diag = analyzeConnectionQuality(metrics, 'Max', false);
 
     expect(diag.quality).toBe('fair');
     expect(diag.primaryIssue).toBe('high_latency');
-    expect(diag.plainLanguageHint).toBe('У Максим нестабильный интернет (высокая задержка)');
+    expect(diag.plainLanguageHint).toBe('Max has unstable internet (high latency)');
   });
 
   it('identifies low camera lighting', () => {
@@ -64,12 +64,12 @@ describe('visualQualityRadar', () => {
       luminance: 15,
     };
 
-    const diag = analyzeConnectionQuality(metrics, 'Елена', false);
+    const diag = analyzeConnectionQuality(metrics, 'Elena', false);
 
     expect(diag.quality).toBe('fair');
     expect(diag.primaryIssue).toBe('low_light');
-    expect(diag.plainLanguageHint).toBe('У Елена слабое освещение (темная камера)');
-    expect(diag.headline).toBe('Слабое освещение');
+    expect(diag.plainLanguageHint).toBe('Elena has low lighting (dark camera)');
+    expect(diag.headline).toBe('Low Lighting');
   });
 
   it('returns excellent status for healthy network and video parameters', () => {
@@ -81,11 +81,11 @@ describe('visualQualityRadar', () => {
       luminance: 120,
     };
 
-    const diag = analyzeConnectionQuality(metrics, 'Иван', false);
+    const diag = analyzeConnectionQuality(metrics, 'Ivan', false);
 
     expect(diag.quality).toBe('excellent');
     expect(diag.primaryIssue).toBe('none');
-    expect(diag.plainLanguageHint).toBe('Связь стабильная и плавная');
+    expect(diag.plainLanguageHint).toBe('Connection is stable and smooth');
   });
 
   it('handles local user perspectives correctly', () => {
@@ -97,14 +97,14 @@ describe('visualQualityRadar', () => {
     };
 
     const diag = analyzeConnectionQuality(metrics, null, true);
-    expect(diag.plainLanguageHint).toContain('У вас слабый Wi-Fi');
+    expect(diag.plainLanguageHint).toContain('You have weak Wi-Fi');
   });
 
   describe('VisualQualityRadarTracker', () => {
     let tracker: VisualQualityRadarTracker;
 
     beforeEach(() => {
-      tracker = new VisualQualityRadarTracker('Иван', false);
+      tracker = new VisualQualityRadarTracker('Ivan', false);
     });
 
     afterEach(() => {

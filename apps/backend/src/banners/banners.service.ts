@@ -1,5 +1,6 @@
 import { Injectable, Inject, Logger, NotFoundException, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { randomUUID } from 'node:crypto';
 import type { S3Client } from '@aws-sdk/client-s3';
 import { BANNER_S3_CLIENT } from './s3-provider';
 import { BANNER_REPOSITORY } from './interfaces/banners-repository.interface';
@@ -43,18 +44,8 @@ export class BannersService {
       throw new NotFoundException('User not found');
     }
 
-    if (user.banner) {
-      await deleteFromStorage(this.s3, {
-        url: user.banner,
-        bucket: this.bucket,
-        publicUrl: this.publicUrl,
-      }).catch((e) => {
-        this.logger.warn(`Failed to delete old banner storage file for ${userId}: ${String(e)}`);
-      });
-    }
-
     const { buffer: uploadBuffer, contentType, ext } = await optimizeBanner(file.buffer);
-    const key = `banners/${userId}.${ext}`;
+    const key = `banners/${userId}/${randomUUID()}.${ext}`;
 
     const url = await uploadToStorageWithFallback(this.s3, {
       bucket: this.bucket,
@@ -64,7 +55,26 @@ export class BannersService {
       publicUrl: this.publicUrl,
     });
 
-    const view = await this.bannerRepository.updateBanner(userId, url, bannerPosition);
+    let view: BannerView;
+    try {
+      view = await this.bannerRepository.updateBanner(userId, url, bannerPosition);
+    } catch (error) {
+      await deleteFromStorage(this.s3, {
+        url,
+        bucket: this.bucket,
+        publicUrl: this.publicUrl,
+      }).catch(() => undefined);
+      throw error;
+    }
+    if (user.banner) {
+      await deleteFromStorage(this.s3, {
+        url: user.banner,
+        bucket: this.bucket,
+        publicUrl: this.publicUrl,
+      }).catch((e) => {
+        this.logger.warn(`Failed to delete old banner storage file for ${userId}: ${String(e)}`);
+      });
+    }
     try {
       await this.redis?.del(`user:${userId}`);
       await this.redis?.del(`user${userId}`);

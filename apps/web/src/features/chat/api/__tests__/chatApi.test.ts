@@ -8,12 +8,13 @@ describe('chatApi', () => {
     const postSpy = vi.spyOn(apiClient, 'post').mockResolvedValue({ data: { id: 'conv-direct' } });
     const patchSpy = vi.spyOn(apiClient, 'patch').mockResolvedValue({ data: { id: 'conv-1' } });
 
-    const convs = await chatApi.getConversations();
-    expect(getSpy).toHaveBeenCalledWith('/conversations');
+    const signal = new AbortController().signal;
+    const convs = await chatApi.getConversations(signal);
+    expect(getSpy).toHaveBeenCalledWith('/conversations', { signal });
     expect(convs).toEqual([{ id: 'conv-1' }]);
 
-    await chatApi.getConversation('conv-1');
-    expect(getSpy).toHaveBeenCalledWith('/conversations/conv-1');
+    await chatApi.getConversation('conv-1', signal);
+    expect(getSpy).toHaveBeenCalledWith('/conversations/conv-1', { signal });
 
     await chatApi.createDirectConversation('usr-2');
     expect(postSpy).toHaveBeenCalledWith('/conversations/direct', { participantId: 'usr-2' });

@@ -7,8 +7,14 @@ import { useCall } from '../../model/CallContext';
 import { isDocumentPiPSupported } from '../../lib/documentPiP';
 
 function formatDuration(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
+  const s = Math.max(0, Math.floor(seconds || 0));
+  const hrs = Math.floor(s / 3600);
+  const mins = Math.floor((s % 3600) / 60);
+  const secs = s % 60;
+
+  if (hrs > 0) {
+    return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
@@ -164,7 +170,7 @@ export function DocumentPiP() {
 
         {!hasVideo && (
           <div className="flex flex-col items-center gap-2 p-4">
-            <Avatar src={remoteParticipant?.avatar} size="lg" />
+            <Avatar src={remoteParticipant?.avatar} size="lg" suppressDecoration={true} />
             <p className="text-sm font-semibold text-white truncate max-w-50">
               {remoteParticipant?.displayName || remoteParticipant?.username || 'Call Participant'}
             </p>

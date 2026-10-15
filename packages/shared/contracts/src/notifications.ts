@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { AvatarDecorationDto } from './decorations';
 
 export const NotificationTypeEnum = {
   LIKE_POST: 'LIKE_POST',
@@ -47,6 +48,7 @@ export interface NotificationActorDto {
   username: string;
   displayName: string;
   avatar: string | null;
+  activeDecoration?: AvatarDecorationDto | null;
   isVerified?: boolean;
   primaryBadge?: string | null;
 }
@@ -85,6 +87,7 @@ export type NotificationWithRelations = {
     username: string;
     displayName: string | null;
     avatar: string | null;
+    activeDecoration?: AvatarDecorationDto | null;
     isVerified?: boolean;
     primaryBadge?: string | null;
   } | null;
@@ -150,6 +153,7 @@ export class NotificationResponseDto {
         username: n.actor.username,
         displayName: n.actor.displayName || n.actor.username,
         avatar: n.actor.avatar ?? null,
+        activeDecoration: n.actor.activeDecoration ?? null,
         isVerified: Boolean(n.actor.isVerified),
         primaryBadge: n.actor.primaryBadge ?? null,
       };

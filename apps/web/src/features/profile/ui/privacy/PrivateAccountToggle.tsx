@@ -43,12 +43,14 @@ export default function PrivateAccountToggle() {
       {confirmOpen && (
         <Modal onClose={() => setConfirmOpen(false)}>
           {(requestClose) => (
-            <div className="w-full max-w-sm rounded-3xl border border-white/10 bg-[#1a1a1a] shadow-2xl p-7 text-center">
-              <div className="w-14 h-14 mx-auto rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-4">
-                <Lock size={26} className="text-white" />
+            <div className="w-full max-w-sm rounded-3xl border border-black/10 dark:border-white/10 glass-modal shadow-2xl p-7 text-center text-gray-950 dark:text-white backdrop-blur-3xl">
+              <div className="w-14 h-14 mx-auto rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 flex items-center justify-center mb-4 text-gray-950 dark:text-white">
+                <Lock size={26} className="text-gray-950 dark:text-white" />
               </div>
-              <h2 className="text-lg font-bold text-white">Make account private?</h2>
-              <p className="text-sm text-gray-400 mt-2 leading-relaxed">
+              <h2 className="text-lg font-bold text-gray-950 dark:text-white">
+                Make account private?
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 leading-relaxed">
                 People will have to send a follow request that you approve. Your current followers
                 stay. Non-followers will only see your name and photo.
               </p>
@@ -56,7 +58,7 @@ export default function PrivateAccountToggle() {
                 <button
                   type="button"
                   onClick={requestClose}
-                  className="flex-1 h-11 rounded-full text-sm font-semibold bg-white/5 border border-white/10 text-white hover:bg-white/10 transition"
+                  className="flex-1 h-11 rounded-full text-sm font-semibold bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/10 text-gray-950 dark:text-white hover:bg-black/10 dark:hover:bg-white/15 transition cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -66,7 +68,7 @@ export default function PrivateAccountToggle() {
                     confirmPrivate();
                     requestClose();
                   }}
-                  className="flex-1 h-11 rounded-full text-sm font-semibold bg-white text-black hover:bg-white/90 transition"
+                  className="flex-1 h-11 rounded-full text-sm font-semibold bg-gray-950 text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-white/90 transition cursor-pointer shadow-md"
                 >
                   Make private
                 </button>

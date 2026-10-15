@@ -27,11 +27,23 @@ describe('ReactionBadge', () => {
     ],
   };
 
-  it('renders emoji and count', () => {
+  it('renders emoji and connected avatars without count when count is 2', () => {
     render(<ReactionBadge reaction={mockReaction} currentUserId="usr-me" onToggle={vi.fn()} />);
 
     expect(screen.getByText('❤️')).toBeInTheDocument();
-    expect(screen.getByText('2')).toBeInTheDocument();
+    expect(screen.queryByText('2')).not.toBeInTheDocument();
+  });
+
+  it('renders count number and no avatars when count is 3 or more', () => {
+    const threeReactions: ReactionSummary = {
+      ...mockReaction,
+      count: 3,
+    };
+    render(<ReactionBadge reaction={threeReactions} currentUserId="usr-me" onToggle={vi.fn()} />);
+
+    expect(screen.getByText('❤️')).toBeInTheDocument();
+    expect(screen.getByText('3')).toBeInTheDocument();
+    expect(screen.queryByAltText('Alice')).not.toBeInTheDocument();
   });
 
   it('renders user avatars inside the badge capsule', () => {
@@ -124,7 +136,7 @@ describe('ReactionBadge', () => {
     });
 
     // 4. Avatar onError
-    const img = container.querySelector('img')!;
+    const img = screen.getByAltText('Alice');
     fireEvent.error(img);
     expect(img.style.display).toBe('none');
   });

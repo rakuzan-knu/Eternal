@@ -12,6 +12,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { S3Client } from '@aws-sdk/client-s3';
 import { uid } from 'uid';
+import { validateUploadedMedia } from '../common/media/media-upload-validator';
 import { StoryMediaType, StoryPrivacy, NotificationType } from '@prisma/client';
 export { StoryMediaType, StoryPrivacy } from '@prisma/client';
 import { isR2Endpoint } from '../common/storage/storage-url.util';
@@ -187,55 +188,31 @@ export class StoriesService implements OnModuleDestroy {
   async processUploadedMedia(
     file?: Express.Multer.File,
   ): Promise<{ url: string; mediaType: StoryMediaType }> {
-    if (!file || !file.buffer || file.buffer.length === 0) {
+    if (!file || !Buffer.isBuffer(file.buffer) || !file.buffer.length) {
       throw new BadRequestException('No media file provided');
     }
-
-    const { type, mime, ext } = this.detectMimeType(file.buffer);
-
-    // Enforce size limits: 10MB image, 100MB video, 25MB audio
-    const maxImageSize = 10 * 1024 * 1024;
-    const maxVideoSize = 100 * 1024 * 1024;
-    const maxAudioSize = 25 * 1024 * 1024;
-
-    if (type === StoryMediaType.IMAGE && file.buffer.length > maxImageSize) {
-      throw new BadRequestException('Image size exceeds 10MB limit');
-    }
-    if (type === StoryMediaType.VIDEO && file.buffer.length > maxVideoSize) {
-      throw new BadRequestException('Video size exceeds 100MB limit');
-    }
-    if (type === StoryMediaType.VOICE && file.buffer.length > maxAudioSize) {
-      throw new BadRequestException('Audio size exceeds 25MB limit');
-    }
-
-    const fileId = uid(16);
-    let uploadBuffer = file.buffer;
-    let contentType = mime;
-    let fileExt = ext;
-
-    if (type === StoryMediaType.IMAGE) {
-      try {
-        const optimized = await optimizePostImage(file.buffer);
-        uploadBuffer = optimized.buffer;
-        contentType = optimized.contentType;
-        fileExt = optimized.ext;
-      } catch (e) {
-        this.logger.warn(`Failed to optimize story image: ${String(e)}`);
-      }
-    }
-
-    const key = `stories/${fileId}.${fileExt}`;
+    // Keep the explicit HEIC guidance and classify image containers before decoding.
+    this.detectMimeType(file.buffer);
+    const detected = await validateUploadedMedia(file.buffer, 'story');
+    const mediaType =
+      detected.kind === 'image'
+        ? StoryMediaType.IMAGE
+        : detected.kind === 'video'
+          ? StoryMediaType.VIDEO
+          : StoryMediaType.VOICE;
+    const processed =
+      detected.kind === 'image'
+        ? await optimizePostImage(file.buffer)
+        : { buffer: file.buffer, contentType: detected.mime, ext: detected.ext };
     const url = await uploadToStorageWithFallback(this.s3, {
       bucket: this.bucket,
-      key,
-      buffer: uploadBuffer,
-      contentType,
+      key: 'stories/' + uid(16) + '.' + processed.ext,
+      buffer: processed.buffer,
+      contentType: processed.contentType,
       publicUrl: this.publicUrl,
     });
-
-    return { url, mediaType: type };
+    return { url, mediaType };
   }
-
   private mapStoryToResponse(story: StoryWithDetails, viewerId?: string): StoryViewResponse {
     const views = Array.isArray(story.views) ? story.views : [];
     const reactions = Array.isArray(story.reactions) ? story.reactions : [];
@@ -320,6 +297,7 @@ export class StoriesService implements OnModuleDestroy {
         username: story.author.username,
         displayName: story.author.displayName,
         avatar: story.author.avatar,
+        activeDecoration: (story.author as any).activeDecoration ?? null,
         isVerified: story.author.isVerified,
       },
     };
@@ -449,6 +427,7 @@ export class StoriesService implements OnModuleDestroy {
             const author = await this.storiesRepo.findUserBasic(userId);
 
             for (const target of targets) {
+              if (!(await this.storiesRepo.canView(story, target.id))) continue;
               if (target.id !== userId) {
                 // 1. Notification on /notifications
                 this.eventEmitter.emit(
@@ -548,70 +527,90 @@ export class StoriesService implements OnModuleDestroy {
       !(await this.storiesRepo.isCloseFriend(story.authorId, viewerId))
     )
       throw new ForbiddenException('Story is unavailable');
+    if (!(await this.storiesRepo.canView(story, viewerId)))
+      throw new ForbiddenException('Story is not accessible');
   }
 
   async getStoriesFeed(userId: string): Promise<UserStoriesGroup[]> {
     const cacheKey = `stories:feed:${userId}`;
 
-    return this.redis.getOrSetWithProbabilisticEarlyExpiration(cacheKey, 180, async () => {
-      // 1. Get user's following list
-      const followingUserIds = await this.storiesRepo.getFollowingIds(userId, 500);
+    const groups = await this.redis.getOrSetWithProbabilisticEarlyExpiration<UserStoriesGroup[]>(
+      cacheKey,
+      180,
+      async () => {
+        // 1. Get user's following list
+        const followingUserIds = await this.storiesRepo.getFollowingIds(userId, 500);
 
-      // 2. Get author IDs who have added the user as a Close Friend
-      const closeFriendAuthorIds = await this.storiesRepo.getAuthorsWhoAddedViewerAsCloseFriend(
-        userId,
-        followingUserIds,
-      );
-
-      // 3. Find active stories
-      const rawStories = await this.storiesRepo.findActiveFeedStories(
-        userId,
-        followingUserIds,
-        closeFriendAuthorIds,
-      );
-
-      // 4. Group stories by author
-      const groupsMap = new Map<string, StoryViewResponse[]>();
-      for (const story of rawStories) {
-        const mapped = this.mapStoryToResponse(story, userId);
-        const existing = groupsMap.get(story.authorId) || [];
-        existing.push(mapped);
-        groupsMap.set(story.authorId, existing);
-      }
-
-      const userGroups: UserStoriesGroup[] = [];
-      for (const [, stories] of groupsMap.entries()) {
-        if (stories.length === 0) continue;
-        const author = stories[0].author;
-        const hasUnviewed = stories.some((s) => !s.hasViewed);
-        const hasCloseFriendsStory = stories.some((s) => s.privacy === StoryPrivacy.CLOSE_FRIENDS);
-        const latestStoryTimestamp = stories[stories.length - 1].createdAt;
-
-        userGroups.push({
-          user: author,
-          hasUnviewed,
-          hasCloseFriendsStory,
-          stories,
-          latestStoryTimestamp,
-        });
-      }
-
-      // Sort groups:
-      // - Current user first
-      // - Unviewed groups next (sorted by latest timestamp desc)
-      // - Viewed groups last (sorted by latest timestamp desc)
-      userGroups.sort((a, b) => {
-        if (a.user.id === userId) return -1;
-        if (b.user.id === userId) return 1;
-        if (a.hasUnviewed && !b.hasUnviewed) return -1;
-        if (!a.hasUnviewed && b.hasUnviewed) return 1;
-        return (
-          new Date(b.latestStoryTimestamp).getTime() - new Date(a.latestStoryTimestamp).getTime()
+        // 2. Get author IDs who have added the user as a Close Friend
+        const closeFriendAuthorIds = await this.storiesRepo.getAuthorsWhoAddedViewerAsCloseFriend(
+          userId,
+          followingUserIds,
         );
-      });
 
-      return userGroups;
-    });
+        // 3. Find active stories
+        const rawStories = await this.storiesRepo.findActiveFeedStories(
+          userId,
+          followingUserIds,
+          closeFriendAuthorIds,
+        );
+
+        // 4. Group stories by author
+        const groupsMap = new Map<string, StoryViewResponse[]>();
+        for (const story of rawStories) {
+          const mapped = this.mapStoryToResponse(story, userId);
+          const existing = groupsMap.get(story.authorId) || [];
+          existing.push(mapped);
+          groupsMap.set(story.authorId, existing);
+        }
+
+        const userGroups: UserStoriesGroup[] = [];
+        for (const [, stories] of groupsMap.entries()) {
+          if (stories.length === 0) continue;
+          const author = stories[0].author;
+          const hasUnviewed = stories.some((s) => !s.hasViewed);
+          const hasCloseFriendsStory = stories.some(
+            (s) => s.privacy === StoryPrivacy.CLOSE_FRIENDS,
+          );
+          const latestStoryTimestamp = stories[stories.length - 1].createdAt;
+
+          userGroups.push({
+            user: author,
+            hasUnviewed,
+            hasCloseFriendsStory,
+            stories,
+            latestStoryTimestamp,
+          });
+        }
+
+        // Sort groups:
+        // - Current user first
+        // - Unviewed groups next (sorted by latest timestamp desc)
+        // - Viewed groups last (sorted by latest timestamp desc)
+        userGroups.sort((a, b) => {
+          if (a.user.id === userId) return -1;
+          if (b.user.id === userId) return 1;
+          if (a.hasUnviewed && !b.hasUnviewed) return -1;
+          if (!a.hasUnviewed && b.hasUnviewed) return 1;
+          return (
+            new Date(b.latestStoryTimestamp).getTime() - new Date(a.latestStoryTimestamp).getTime()
+          );
+        });
+
+        return userGroups;
+      },
+    );
+    const candidates = groups.flatMap((group) =>
+      group.stories.map((story) => ({
+        authorId: group.user.id,
+        privacy: story.privacy,
+        expiresAt: story.expiresAt,
+      })),
+    );
+    const allowed = await this.storiesRepo.audienceAccess(candidates, userId);
+    let cursor = 0;
+    return groups
+      .map((group) => ({ ...group, stories: group.stories.filter(() => allowed[cursor++]) }))
+      .filter((group) => group.stories.length);
   }
 
   async getUserStories(targetUserId: string, viewerId?: string): Promise<UserStoriesGroup | null> {
@@ -620,13 +619,15 @@ export class StoriesService implements OnModuleDestroy {
       ? await this.storiesRepo.isCloseFriend(targetUserId, viewerId)
       : false;
 
-    const rawStories = await this.storiesRepo.findActiveUserStories(
+    const candidates = await this.storiesRepo.findActiveUserStories(
       targetUserId,
       viewerId,
       isCloseFriend,
     );
 
-    if (!rawStories || rawStories.length === 0) {
+    const allowed = await this.storiesRepo.audienceAccess(candidates ?? [], viewerId);
+    const rawStories = (candidates ?? []).filter((_story, index) => allowed[index]);
+    if (rawStories.length === 0) {
       return null;
     }
 

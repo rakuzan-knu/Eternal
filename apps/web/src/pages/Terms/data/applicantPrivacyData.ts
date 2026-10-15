@@ -40,7 +40,7 @@ export const APPLICANT_PRIVACY_DATA: Record<'en' | 'uk', CandidatePolicyTranslat
       title: 'APPLICANT AND CANDIDATE PRIVACY POLICY',
       effectiveDate: 'Last updated: September 15, 2025 • Effective: September 1, 2026',
       introLead:
-        'This Notice of Data Collection, Processing and Transfer (“Notice”) for Eternal Inc. (the “Company”), located at Kyiv, Ukraine, describes, in the context of your candidacy for employment at Eternal:',
+        'This Notice of Data Collection, Processing and Transfer (“Notice”) for the Eternal project, operated in Ukraine by its founders Ag Mykola and Ag Mihal, describes, in the context of your candidacy for employment at Eternal:',
       introBullets: [
         'What data Eternal collects about you',
         'How Eternal processes your information',
@@ -194,12 +194,12 @@ export const APPLICANT_PRIVACY_DATA: Record<'en' | 'uk', CandidatePolicyTranslat
             id: 'dpo-contacts',
             title: '6.1 Contact Information',
             content: [
-              'Eternal Inc. is headquartered in Kyiv, Ukraine. For any questions, requests, or concerns regarding your candidacy data or this Notice, please contact our Data Protection Officer directly:',
+              'Eternal is a project operated by Ag Mykola and Ag Mihal in Ukraine. For any questions, requests, or concerns regarding your candidacy data or this Notice, please contact our Data Protection Officer directly:',
             ],
             bullets: [
               'Data Protection Officer Email: aghnikolaj1@gmail.com',
               'Privacy & Legal Operations: privacy@eternal.com',
-              'Company Address: Eternal Inc., Kyiv, Ukraine',
+              'Project operators: Ag Mykola and Ag Mihal, Ukraine',
             ],
           },
         ],
@@ -212,7 +212,7 @@ export const APPLICANT_PRIVACY_DATA: Record<'en' | 'uk', CandidatePolicyTranslat
       title: 'ПОЛІТИКА КОНФІДЕНЦІЙНОСТІ ДЛЯ КАНДИДАТІВ ТА ПРЕТЕНДЕНТІВ',
       effectiveDate: 'Останнє оновлення: 15 вересня 2025 р. • Набуття чинності: 1 вересня 2026 р.',
       introLead:
-        'Це Повідомлення про збір, обробку та передачу персональних даних («Повідомлення») для компанії Eternal Inc. («Компанія»), розташованої в м. Київ, Україна, визначає в контексті вашої кандидатури на працевлаштування в Eternal:',
+        'Це Повідомлення про збір, обробку та передачу персональних даних («Повідомлення») для проєкту Eternal, яким керують Ag Mykola та Ag Mihal в Україні, визначає в контексті вашої кандидатури на працевлаштування в Eternal:',
       introBullets: [
         'Які дані Eternal збирає про вас як кандидата',
         'Як саме Eternal обробляє вашу інформацію',
@@ -362,12 +362,12 @@ export const APPLICANT_PRIVACY_DATA: Record<'en' | 'uk', CandidatePolicyTranslat
             id: 'dpo-contacts',
             title: '6.1 Контактна інформація',
             content: [
-              'Компанія Eternal Inc. зареєстрована та здійснює діяльність у м. Київ, Україна. З усіх питань щодо захисту даних кандидатів звертайтеся:',
+              'Проєктом Eternal в Україні керують Ag Mykola та Ag Mihal. З усіх питань щодо захисту даних кандидатів звертайтеся:',
             ],
             bullets: [
               'Електронна пошта DPO: aghnikolaj1@gmail.com',
               'Юридичний відділ: privacy@eternal.com',
-              'Адреса: Eternal Inc., м. Київ, Україна',
+              'Оператори проєкту: Ag Mykola та Ag Mihal, Україна',
             ],
           },
         ],

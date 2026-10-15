@@ -109,6 +109,7 @@ global.IntersectionObserver = class IntersectionObserver {
 
 window.HTMLMediaElement.prototype.play = vi.fn().mockResolvedValue(undefined);
 window.HTMLMediaElement.prototype.pause = vi.fn();
+window.HTMLMediaElement.prototype.load = vi.fn();
 window.scrollTo = vi.fn();
 window.HTMLElement.prototype.scrollTo = vi.fn();
 
@@ -117,8 +118,10 @@ vi.mock('socket.io-client', () => ({
     on: vi.fn(),
     off: vi.fn(),
     emit: vi.fn(),
+    timeout: vi.fn().mockReturnThis(),
     connect: vi.fn(),
     disconnect: vi.fn(),
+    removeAllListeners: vi.fn(),
     connected: true,
   })),
 }));

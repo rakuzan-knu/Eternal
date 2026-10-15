@@ -1,8 +1,11 @@
 import { ConversationView } from '../../../entities/chat/model/types';
+import type { AvatarDecorationDto } from '@social-network/shared-contracts';
 
 export interface ConversationDisplay {
   title: string;
   avatar: string | null;
+  activeDecoration?: AvatarDecorationDto | null;
+  activeNameplate?: import('@social-network/shared-contracts').NameplateDto | null;
   isGroup: boolean;
   otherUserId: string | null;
   otherUsername?: string | null;
@@ -18,6 +21,8 @@ export function getConversationDisplay(
     return {
       title: conversation.name ?? 'Unnamed group',
       avatar: conversation.avatar,
+      activeDecoration: null,
+      activeNameplate: null,
       isGroup: true,
       otherUserId: null,
       otherUsername: null,
@@ -39,6 +44,8 @@ export function getConversationDisplay(
       (other as unknown as { username?: string })?.username ??
       'Unknown user',
     avatar: other?.user?.avatar ?? (other as unknown as { avatar?: string | null })?.avatar ?? null,
+    activeDecoration: other?.user?.activeDecoration ?? null,
+    activeNameplate: other?.user?.activeNameplate ?? null,
     isGroup: false,
     otherUserId: other?.userId ?? (other as unknown as { id?: string })?.id ?? null,
     otherUsername:
@@ -56,8 +63,12 @@ export function getConversationDisplay(
 function formatDurationSec(seconds?: number | null): string {
   if (!seconds || isNaN(seconds) || seconds <= 0) return '';
   const s = Math.round(seconds);
-  const m = Math.floor(s / 60);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
   const remSec = s % 60;
+  if (h > 0) {
+    return `${h}:${m.toString().padStart(2, '0')}:${remSec.toString().padStart(2, '0')}`;
+  }
   return `${m}:${remSec.toString().padStart(2, '0')}`;
 }
 

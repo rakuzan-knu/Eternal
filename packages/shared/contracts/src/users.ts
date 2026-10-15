@@ -1,3 +1,7 @@
+import { profileFrameSchema } from './profile-frames';
+import { profileEffectSchema } from './profile-effects';
+import { nameplateSchema } from './nameplates';
+import { avatarDecorationSchema } from './decorations';
 import { z } from 'zod';
 import { liveActivityStatusSchema } from './showcase';
 export const Visibility = {
@@ -53,7 +57,34 @@ export const FollowStatusView = {
 } as const;
 export type FollowStatusView = (typeof FollowStatusView)[keyof typeof FollowStatusView];
 
+export const displayNameStyleSchema = z
+  .object({
+    fontId: z.string().optional(),
+    fontFamily: z.string(),
+    fontName: z.string(),
+    effect: z
+      .enum(['minimal', 'gradient', 'neon', 'cartoon', 'highlight', 'gummy', 'prism'])
+      .optional(),
+    color: z.string().optional(),
+    gradient: z.string().optional(),
+    glow: z.string().optional(),
+    animation: z.enum(['none', 'pulse', 'wave', 'shimmer', 'float']).optional(),
+    gummyColors: z.array(z.string()).optional(),
+  })
+  .nullable();
+export type DisplayNameStyleDto = z.infer<typeof displayNameStyleSchema>;
+
+export const profileThemeSchema = z
+  .object({
+    primary: z.string(),
+    accent: z.string(),
+  })
+  .nullable();
+export type ProfileThemeDto = z.infer<typeof profileThemeSchema>;
+
 export const updateUserSchema = z.object({
+  displayNameStyle: displayNameStyleSchema.optional(),
+  profileTheme: profileThemeSchema.optional(),
   email: z
     .string()
     .email()
@@ -83,7 +114,10 @@ export const updateUserSchema = z.object({
     .optional(),
   bio: z
     .string()
-    .max(200)
+    .max(1000)
+    .refine((val) => !val || val.split('\n').length <= 50, {
+      message: 'Bio cannot exceed 50 lines',
+    })
     .transform((val) => sanitizeHtml(val) as string)
     .optional(),
   bannerPosition: z.coerce.number().min(0).max(100).optional(),
@@ -197,7 +231,17 @@ export const userProfileSchema = z.object({
   id: z.string(),
   username: z.string(),
   displayName: z.string().nullable(),
+  displayNameStyle: displayNameStyleSchema.optional(),
+  profileTheme: profileThemeSchema.optional(),
   avatar: z.string().nullable(),
+  activeProfileFrameId: z.string().nullable().optional(),
+  activeProfileFrame: profileFrameSchema.nullable().optional(),
+  activeProfileEffectId: z.string().nullable().optional(),
+  activeProfileEffect: profileEffectSchema.nullable().optional(),
+  activeNameplateId: z.string().nullable().optional(),
+  activeNameplate: nameplateSchema.nullable().optional(),
+  activeDecorationId: z.string().nullable().optional(),
+  activeDecoration: avatarDecorationSchema.nullable().optional(),
   banner: z.string().nullable().optional(),
   bannerPosition: z.number().optional(),
   bio: z.string().nullable().optional(),

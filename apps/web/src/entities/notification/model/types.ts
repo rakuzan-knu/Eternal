@@ -18,6 +18,7 @@ export interface NotificationActor {
   username: string;
   displayName: string | null;
   avatar: string | null;
+  activeDecoration?: import('@social-network/shared-contracts').AvatarDecorationDto | null;
   isVerified?: boolean;
   primaryBadge?: string | null;
 }

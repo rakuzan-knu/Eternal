@@ -4,10 +4,12 @@ import {
   type CheckUsernameDto,
   type LoginDto,
   type RegisterDto,
+  type VerifyPasswordDto,
   changePasswordSchema,
   checkUsernameSchema,
   loginSchema,
   registerSchema,
+  verifyPasswordSchema,
 } from '@common/contracts';
 import {
   Body,
@@ -168,6 +170,25 @@ export class AuthController {
   ): Promise<{ success: true }> {
     await this.authService.changePassword(user.id, dto, user.sessionJti);
     return { success: true };
+  }
+
+  @Post('verify-password')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @Throttle({ default: { limit: 10, ttl: 60_000 }, auth: { limit: 10, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Verify current user password' })
+  @ApiResponse({ status: HttpStatus.OK, description: 'Password is valid' })
+  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Password is incorrect' })
+  async verifyPassword(
+    @CurrentUser() user: RequestUser,
+    @Body(new ZodValidationPipe(verifyPasswordSchema)) dto: VerifyPasswordDto,
+  ): Promise<{ valid: boolean }> {
+    const valid = await this.authService.verifyPassword(user.id, dto.password);
+    if (!valid) {
+      throw new UnauthorizedException('Incorrect password');
+    }
+    return { valid: true };
   }
 
   @Post('logout')

@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import MessageSearchPanel from '../MessageSearchPanel';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
 import { chatApi } from '../../api/chatApi';
 
@@ -9,6 +10,25 @@ vi.mock('../../api/chatApi', () => ({
   chatApi: {
     searchMessages: vi.fn(),
   },
+}));
+
+vi.mock('../../model/useConversations', () => ({
+  useConversations: () => ({
+    data: [
+      {
+        id: 'conv-1',
+        type: 'DIRECT',
+        participants: [
+          { userId: 'u1', user: { id: 'u1', username: 'alice', displayName: 'Alice' } },
+        ],
+      },
+      {
+        id: 'conv-2',
+        type: 'DIRECT',
+        participants: [{ userId: 'u2', user: { id: 'u2', username: 'bob', displayName: 'Bob' } }],
+      },
+    ],
+  }),
 }));
 
 describe('MessageSearchPanel', () => {
@@ -36,16 +56,19 @@ describe('MessageSearchPanel', () => {
     vi.mocked(chatApi.searchMessages).mockResolvedValue(mockResults as any);
 
     const { container } = render(
-      <QueryClientProvider client={queryClient}>
-        <MessageSearchPanel
-          conversationId="conv-1"
-          onClose={onClose}
-          onJumpToMessage={onJumpToMessage}
-        />
-      </QueryClientProvider>,
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <MessageSearchPanel
+            conversationId="conv-1"
+            onClose={onClose}
+            onJumpToMessage={onJumpToMessage}
+          />
+        </QueryClientProvider>
+      </MemoryRouter>,
     );
 
-    expect(screen.getByText('Type to search messages in this chat')).toBeInTheDocument();
+    expect(screen.getByText('Search for messages')).toBeInTheDocument();
+    expect(screen.getByText('Search messages in')).toBeInTheDocument();
 
     const input = screen.getByPlaceholderText('Search in chat...');
     fireEvent.change(input, { target: { value: 'meeting' } });
@@ -76,34 +99,58 @@ describe('MessageSearchPanel', () => {
     vi.useRealTimers();
   });
 
+  it('toggles chat selection dropdown smoothly', () => {
+    render(
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <MessageSearchPanel conversationId="conv-1" onClose={vi.fn()} onJumpToMessage={vi.fn()} />
+        </QueryClientProvider>
+      </MemoryRouter>,
+    );
+
+    const triggerBtn = screen.getByText('This Chat');
+    expect(triggerBtn).toBeInTheDocument();
+
+    fireEvent.click(triggerBtn);
+    expect(screen.getByText('Current conversation')).toBeInTheDocument();
+
+    // Click again to close smoothly
+    fireEvent.click(triggerBtn);
+  });
+
   it('shows no messages found when search returns empty', async () => {
     vi.mocked(chatApi.searchMessages).mockResolvedValue([] as any);
 
     render(
-      <QueryClientProvider client={queryClient}>
-        <MessageSearchPanel conversationId="conv-1" onClose={vi.fn()} onJumpToMessage={vi.fn()} />
-      </QueryClientProvider>,
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <MessageSearchPanel conversationId="conv-1" onClose={vi.fn()} onJumpToMessage={vi.fn()} />
+        </QueryClientProvider>
+      </MemoryRouter>,
     );
 
     const input = screen.getByPlaceholderText('Search in chat...');
     fireEvent.change(input, { target: { value: 'nonexistent' } });
 
     await waitFor(() => {
-      expect(screen.getByText('No messages found')).toBeInTheDocument();
+      expect(screen.getByText('No Results')).toBeInTheDocument();
+      expect(screen.getByText(/There were no results for/)).toBeInTheDocument();
     });
   });
 
   it('triggers onOpenDatePicker when date button is clicked', () => {
     const onOpenDatePicker = vi.fn();
     render(
-      <QueryClientProvider client={queryClient}>
-        <MessageSearchPanel
-          conversationId="conv-1"
-          onClose={vi.fn()}
-          onJumpToMessage={vi.fn()}
-          onOpenDatePicker={onOpenDatePicker}
-        />
-      </QueryClientProvider>,
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <MessageSearchPanel
+            conversationId="conv-1"
+            onClose={vi.fn()}
+            onJumpToMessage={vi.fn()}
+            onOpenDatePicker={onOpenDatePicker}
+          />
+        </QueryClientProvider>
+      </MemoryRouter>,
     );
 
     const jumpToDateBtn = screen.getByTitle('Jump to date');

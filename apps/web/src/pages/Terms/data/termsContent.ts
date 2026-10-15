@@ -39,7 +39,7 @@ export const TERMS_SECTIONS: TermsSection[] = [
         id: 'company-details',
         title: '1.2 Who Runs Eternal',
         content: [
-          'When we say "Eternal", "we", "us", or "our", we mean Eternal Inc., located in Kyiv, Ukraine, along with our global affiliates.',
+          'When we say "Eternal", "we", "us", or "our", we mean Ag Mykola and Ag Mihal, the founders operating the Eternal project in Ukraine.',
         ],
       },
     ],
@@ -181,7 +181,7 @@ export const TERMS_SECTIONS: TermsSection[] = [
         id: 'software-license',
         title: '6.1 Client Software License',
         content: [
-          'We grant you a personal, non-exclusive, non-transferable license to download and use the Eternal web, desktop, and mobile applications solely to access our services. You may not reverse engineer, decompile, or modify our software without written permission.',
+          'We grant you a personal, non-exclusive, non-transferable license to download and use the Eternal web, desktop, and mobile applications solely to access our services. You may not copy, distribute, reverse engineer, decompile, or modify our proprietary software without written permission, except where applicable law or a separate applicable license permits it. This client license does not authorize use of proprietary source code, self-hosting, or operation of a separate service. Third-party licenses and valid earlier grants remain unaffected.',
         ],
       },
       {

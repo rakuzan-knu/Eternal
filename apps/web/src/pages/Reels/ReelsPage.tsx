@@ -1,30 +1,120 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { Film, Plus, Sparkles } from 'lucide-react';
+import React, {
+  lazy,
+  Suspense,
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useMemo,
+  useCallback,
+} from 'react';
+import { Film, Plus, Sparkles, ChevronUp, ChevronDown } from 'lucide-react';
 import { useReelsFeed } from '@/features/reels/api/reelsApi';
 import { ReelCard } from '@/features/reels/ui/ReelCard';
 import { ReelPlaceholder } from '@/features/reels/ui/ReelPlaceholder';
-import { CreateReelModal } from '@/features/reels/ui/CreateReelModal';
+import { ReelVideoPool } from '@/features/reels/lib/reelVideoPool';
+
+const CreateReelModal = lazy(() =>
+  import('@/features/reels/ui/CreateReelModal').then((module) => ({
+    default: module.CreateReelModal,
+  })),
+);
 
 export const ReelsPage: React.FC = () => {
   const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useReelsFeed(8);
 
   const [activeReelIndex, setActiveReelIndex] = useState(0);
+  const [videoPool] = useState(() => new ReelVideoPool());
+  useEffect(() => () => videoPool.dispose(), [videoPool]);
   const [isMuted, setIsMuted] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const [hiddenReelIds, setHiddenReelIds] = useState<Set<string>>(new Set());
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const reelRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const reelRefs = useRef(new Map<number, HTMLDivElement>());
+  const scrollFrameRef = useRef<number | null>(null);
+  const [viewportIndex, setViewportIndex] = useState(0);
+  const [reelHeight, setReelHeight] = useState(() => Math.max(1, window.innerHeight));
+  const reelHeightRef = useRef(reelHeight);
+  const activeReelIndexRef = useRef(activeReelIndex);
+  activeReelIndexRef.current = activeReelIndex;
+
+  const isScrollingRef = useRef(false);
+  const scrollLockTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const reels = useMemo(() => {
     const all = data?.pages.flatMap((page) => page.data) ?? [];
     return all.filter((r) => !hiddenReelIds.has(r.id));
   }, [data, hiddenReelIds]);
 
-  const handleRemoveReel = useCallback((reelId: string) => {
-    setHiddenReelIds((prev) => new Set([...prev, reelId]));
-  }, []);
+  const handleRemoveReel = useCallback(
+    (reelId: string) => {
+      const removedIndex = reels.findIndex((reel) => reel.id === reelId);
+      if (removedIndex < 0) return;
+      const currentIndex = activeReelIndexRef.current;
+      const nextIndex = Math.max(
+        0,
+        Math.min(reels.length - 2, currentIndex - (removedIndex < currentIndex ? 1 : 0)),
+      );
+      setHiddenReelIds((prev) => new Set([...prev, reelId]));
+      setActiveReelIndex(nextIndex);
+      setViewportIndex(nextIndex);
+      containerRef.current?.scrollTo({ top: nextIndex * reelHeightRef.current, behavior: 'auto' });
+    },
+    [reels],
+  );
+
+  // Only these seven wrappers exist in the DOM. Spacers preserve the full scroll range.
+  const windowCenter = Math.max(0, Math.min(reels.length - 1, viewportIndex));
+  const windowStart = Math.max(0, windowCenter - 3);
+  const windowEnd = Math.min(reels.length, windowCenter + 4);
+  const hasFeed = !isLoading && !isError && reels.length > 0;
+
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!container || !hasFeed) return;
+    const measure = () => {
+      const height = container.clientHeight;
+      if (height <= 0 || height === reelHeightRef.current) return;
+      reelHeightRef.current = height;
+      setReelHeight(height);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [hasFeed]);
+
+  useLayoutEffect(() => {
+    // Align after the resized wrappers commit, so native snap uses the new geometry.
+    if (hasFeed)
+      containerRef.current?.scrollTo({
+        top: activeReelIndexRef.current * reelHeight,
+        behavior: 'auto',
+      });
+  }, [hasFeed, reelHeight]);
+
+  const handleFeedScroll = useCallback(() => {
+    if (scrollFrameRef.current !== null) return;
+    scrollFrameRef.current = requestAnimationFrame(() => {
+      scrollFrameRef.current = null;
+      const container = containerRef.current;
+      if (!container) return;
+      const index = Math.max(
+        0,
+        Math.min(reels.length - 1, Math.round(container.scrollTop / reelHeightRef.current)),
+      );
+      setViewportIndex(index);
+    });
+  }, [reels.length]);
+
+  useEffect(
+    () => () => {
+      if (scrollFrameRef.current !== null) cancelAnimationFrame(scrollFrameRef.current);
+    },
+    [],
+  );
 
   const activeReel = reels[activeReelIndex];
 
@@ -32,21 +122,22 @@ export const ReelsPage: React.FC = () => {
   useEffect(() => {
     if (activeReel) {
       const authorName = activeReel.author.displayName || activeReel.author.username;
-      const snippet = activeReel.caption ? activeReel.caption.slice(0, 45) : 'Коротке відео';
+      const snippet = activeReel.caption ? activeReel.caption.slice(0, 45) : 'Short video';
       document.title = `${authorName}: "${snippet}" | Reels`;
     } else {
-      document.title = 'Reels — Короткі відео | Social Network';
+      document.title = 'Reels — Short Videos | Social Network';
     }
   }, [activeReel]);
 
   // Track currently active reel via IntersectionObserver
   useEffect(() => {
+    if (!hasFeed) return;
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting) {
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.65) {
             const index = Number(entry.target.getAttribute('data-index'));
-            if (!isNaN(index)) {
+            if (!isNaN(index) && reelRefs.current.get(index) === entry.target) {
               setActiveReelIndex(index);
 
               // Pre-fetch next page when near bottom
@@ -63,52 +154,131 @@ export const ReelsPage: React.FC = () => {
       },
     );
 
-    const currentRefs = reelRefs.current;
-    currentRefs.forEach((el) => {
-      if (el) observer.observe(el);
-    });
+    reelRefs.current.forEach((element) => observer.observe(element));
 
     return () => {
-      currentRefs.forEach((el) => {
-        if (el) observer.unobserve(el);
-      });
+      observer.disconnect();
     };
-  }, [reels.length, hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [
+    hasFeed,
+    windowStart,
+    windowEnd,
+    reels.length,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  ]);
 
-  // Pre-fetch next video stream for instant zero-buffering playback
-  useEffect(() => {
-    const nextReel = reels[activeReelIndex + 1];
-    if (nextReel?.videoUrl) {
-      const link = document.createElement('link');
-      link.rel = 'preload';
-      link.as = 'video';
-      link.href = nextReel.videoUrl;
-      document.head.appendChild(link);
+  const scrollToIndex = useCallback(
+    (index: number) => {
+      const clamped = Math.max(0, Math.min(reels.length - 1, index));
+      const container = containerRef.current;
+      if (container) {
+        container.scrollTo({
+          top: clamped * reelHeightRef.current,
+          behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+            ? 'auto'
+            : 'smooth',
+        });
+      }
+    },
+    [reels.length],
+  );
 
-      return () => {
-        if (document.head.contains(link)) {
-          document.head.removeChild(link);
-        }
-      };
+  const handleScrollUp = useCallback(() => {
+    if (activeReelIndex > 0) {
+      scrollToIndex(activeReelIndex - 1);
     }
-  }, [activeReelIndex, reels]);
+  }, [activeReelIndex, scrollToIndex]);
+
+  const handleScrollDown = useCallback(() => {
+    if (activeReelIndex < reels.length - 1) {
+      scrollToIndex(activeReelIndex + 1);
+    }
+  }, [activeReelIndex, reels.length, scrollToIndex]);
+
+  // Smooth TikTok-style single-flick wheel navigation
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    let accumulatedDelta = 0;
+    let resetTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const handleWheel = (e: WheelEvent) => {
+      // Don't intercept if scrolling inside a modal, popover, or drawer
+      const target = e.target as HTMLElement | null;
+      const innerScrollable = target?.closest(
+        '[data-lenis-prevent], [role="dialog"], [data-menu-portal], .overflow-y-auto',
+      );
+      if (innerScrollable && innerScrollable !== el) {
+        return;
+      }
+
+      e.preventDefault();
+
+      if (isScrollingRef.current) return;
+
+      accumulatedDelta += e.deltaY;
+      if (resetTimer) clearTimeout(resetTimer);
+      resetTimer = setTimeout(() => {
+        accumulatedDelta = 0;
+      }, 120);
+
+      const threshold = 25;
+      const currentIndex = activeReelIndexRef.current;
+      if (accumulatedDelta > threshold) {
+        if (currentIndex < reels.length - 1) {
+          isScrollingRef.current = true;
+          accumulatedDelta = 0;
+          scrollToIndex(currentIndex + 1);
+          if (scrollLockTimeoutRef.current) clearTimeout(scrollLockTimeoutRef.current);
+          scrollLockTimeoutRef.current = setTimeout(() => {
+            isScrollingRef.current = false;
+          }, 450);
+        }
+      } else if (accumulatedDelta < -threshold) {
+        if (currentIndex > 0) {
+          isScrollingRef.current = true;
+          accumulatedDelta = 0;
+          scrollToIndex(currentIndex - 1);
+          if (scrollLockTimeoutRef.current) clearTimeout(scrollLockTimeoutRef.current);
+          scrollLockTimeoutRef.current = setTimeout(() => {
+            isScrollingRef.current = false;
+          }, 450);
+        }
+      }
+    };
+
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      el.removeEventListener('wheel', handleWheel);
+      if (resetTimer) clearTimeout(resetTimer);
+      if (scrollLockTimeoutRef.current) clearTimeout(scrollLockTimeoutRef.current);
+      isScrollingRef.current = false;
+    };
+  }, [hasFeed, reels.length, scrollToIndex]);
 
   // Keyboard navigation shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't trigger when typing in inputs or textarea
-      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
+      const target = e.target instanceof HTMLElement ? e.target : null;
+      if (
+        isCreateModalOpen ||
+        target?.isContentEditable ||
+        target?.closest('[role="dialog"]') ||
+        ['INPUT', 'TEXTAREA', 'SELECT'].includes(target?.tagName ?? '')
+      ) {
         return;
       }
 
       if (e.key === 'ArrowDown' || e.key === 'j') {
         e.preventDefault();
-        const nextIndex = Math.min(reels.length - 1, activeReelIndex + 1);
-        reelRefs.current[nextIndex]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        handleScrollDown();
       } else if (e.key === 'ArrowUp' || e.key === 'k') {
         e.preventDefault();
-        const prevIndex = Math.max(0, activeReelIndex - 1);
-        reelRefs.current[prevIndex]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        handleScrollUp();
       } else if (e.key === 'm' || e.key === 'M') {
         e.preventDefault();
         setIsMuted((prev) => !prev);
@@ -117,22 +287,22 @@ export const ReelsPage: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeReelIndex, reels.length]);
+  }, [handleScrollDown, handleScrollUp, isCreateModalOpen]);
 
   const handleNavigateNext = useCallback(
     (currentIndex: number) => {
       const nextIndex = Math.min(reels.length - 1, currentIndex + 1);
       if (nextIndex > currentIndex) {
-        reelRefs.current[nextIndex]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        scrollToIndex(nextIndex);
       }
     },
-    [reels.length],
+    [reels.length, scrollToIndex],
   );
 
   return (
-    <div className="relative w-full h-[100dvh] sm:h-[calc(100dvh-64px)] flex justify-center bg-zinc-950 overflow-hidden">
+    <div className="relative w-full h-full flex justify-center bg-transparent overflow-hidden select-none">
       {/* Semantic H1 for SEO and Screen Readers (WCAG / A11Y requirement) */}
-      <h1 className="sr-only">Стрічка коротких відео та рілсів</h1>
+      <h1 className="sr-only">Feed of short videos and reels</h1>
 
       {/* Schema.org VideoObject JSON-LD Structured Data for Search Engine Indexing */}
       {activeReel && (
@@ -156,15 +326,48 @@ export const ReelsPage: React.FC = () => {
         />
       )}
 
-      {/* Floating Create Reel Button - smartly positioned so it never overlaps right-side actions on mobile */}
+      {/* Floating Create Reel Button */}
       <button
         onClick={() => setIsCreateModalOpen(true)}
-        className="fixed top-3 right-3 sm:top-4 sm:right-4 md:top-auto md:bottom-8 md:right-8 z-40 flex items-center gap-2 p-2.5 sm:px-5 sm:py-3 rounded-full bg-linear-to-r from-pink-600 via-purple-600 to-indigo-600 text-white font-bold text-xs sm:text-sm shadow-xl hover:opacity-90 active:scale-95 transition-all group backdrop-blur-sm"
+        className="fixed top-3 right-3 sm:top-4 sm:right-4 md:top-auto md:bottom-8 md:right-8 z-40 flex items-center gap-2 p-2.5 sm:px-5 sm:py-3 rounded-full bg-linear-to-r from-pink-600 via-purple-600 to-indigo-600 text-white font-bold text-xs sm:text-sm shadow-xl hover:opacity-90 active:scale-95 transition-all group backdrop-blur-sm cursor-pointer"
         aria-label="Create Reel"
       >
         <Plus className="w-4 h-4 sm:w-5 sm:h-5 group-hover:rotate-90 transition-transform duration-300" />
         <span className="hidden sm:inline">Create Reel</span>
       </button>
+
+      {/* Desktop Vertical Navigation Arrows*/}
+      <div className="hidden min-[880px]:flex flex-col gap-3 fixed right-5 lg:right-8 top-1/2 -translate-y-1/2 z-30 pointer-events-auto">
+        {/* Up Arrow */}
+        <button
+          type="button"
+          onClick={handleScrollUp}
+          disabled={activeReelIndex === 0}
+          aria-label="Previous video"
+          className={`w-12 h-12 rounded-full glass-modal border border-black/10 dark:border-white/15 text-gray-800 dark:text-white shadow-xl backdrop-blur-2xl flex items-center justify-center transition-all ${
+            activeReelIndex === 0
+              ? 'opacity-25 cursor-not-allowed'
+              : 'hover:scale-110 active:scale-90 hover:bg-black/10 dark:hover:bg-white/20 cursor-pointer shadow-purple-500/10'
+          }`}
+        >
+          <ChevronUp className="w-6 h-6" />
+        </button>
+
+        {/* Down Arrow */}
+        <button
+          type="button"
+          onClick={handleScrollDown}
+          disabled={activeReelIndex >= reels.length - 1}
+          aria-label="Next video"
+          className={`w-12 h-12 rounded-full glass-modal border border-black/10 dark:border-white/15 text-gray-800 dark:text-white shadow-xl backdrop-blur-2xl flex items-center justify-center transition-all ${
+            activeReelIndex >= reels.length - 1
+              ? 'opacity-25 cursor-not-allowed'
+              : 'hover:scale-110 active:scale-90 hover:bg-black/10 dark:hover:bg-white/20 cursor-pointer shadow-purple-500/10'
+          }`}
+        >
+          <ChevronDown className="w-6 h-6" />
+        </button>
+      </div>
 
       {/* Loading state */}
       {isLoading ? (
@@ -177,7 +380,7 @@ export const ReelsPage: React.FC = () => {
           <p className="text-base text-red-400">Could not load reels feed</p>
           <button
             onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl text-sm font-medium transition-colors"
+            className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl text-sm font-medium transition-colors cursor-pointer"
           >
             Retry
           </button>
@@ -196,7 +399,7 @@ export const ReelsPage: React.FC = () => {
           </p>
           <button
             onClick={() => setIsCreateModalOpen(true)}
-            className="mt-6 px-6 py-3 rounded-2xl bg-linear-to-r from-pink-600 to-indigo-600 text-white font-bold text-sm shadow-lg hover:from-pink-500 hover:to-indigo-500 transition-all flex items-center gap-2"
+            className="mt-6 px-6 py-3 rounded-2xl bg-linear-to-r from-pink-600 to-indigo-600 text-white font-bold text-sm shadow-lg hover:from-pink-500 hover:to-indigo-500 transition-all flex items-center gap-2 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             Upload First Reel
@@ -206,26 +409,38 @@ export const ReelsPage: React.FC = () => {
         /* Vertical Snap Feed Container */
         <div
           ref={containerRef}
-          className="w-full h-full overflow-y-scroll snap-y snap-mandatory scrollbar-none flex flex-col items-center py-0 sm:py-6 gap-0 sm:gap-6"
-          style={{ scrollBehavior: 'smooth' }}
+          data-testid="reels-scroller"
+          onScroll={handleFeedScroll}
+          className="w-full h-full overflow-y-auto snap-y snap-mandatory scrollbar-none flex flex-col items-center py-0 gap-0"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', overflowAnchor: 'none' }}
         >
-          {reels.map((reel, index) => {
-            // DOM Windowing: only mount full interactive ReelCard within ±1 of active index
+          <div
+            aria-hidden="true"
+            data-testid="reels-spacer-before"
+            className="w-full shrink-0"
+            style={{ height: windowStart * reelHeight }}
+          />
+          {reels.slice(windowStart, windowEnd).map((reel, offset) => {
+            const index = windowStart + offset;
+            // Visibility, not a navigation click, owns playback eligibility.
             const distance = Math.abs(index - activeReelIndex);
-            const isInViewportWindow = distance <= 1;
+            const isInViewportWindow = distance <= 1 || Math.abs(index - windowCenter) <= 1;
 
             return (
               <div
                 key={reel.id}
                 data-index={index}
                 ref={(el) => {
-                  reelRefs.current[index] = el;
+                  if (el) reelRefs.current.set(index, el);
+                  else reelRefs.current.delete(index);
                 }}
-                className="w-full flex justify-center snap-center snap-always shrink-0"
+                className="w-full flex items-center justify-center snap-center snap-always shrink-0 py-2 sm:py-3"
+                style={{ height: reelHeight }}
               >
                 {isInViewportWindow ? (
                   <ReelCard
                     reel={reel}
+                    videoPool={videoPool}
                     isActive={index === activeReelIndex}
                     isMuted={isMuted}
                     onToggleMute={() => setIsMuted((prev) => !prev)}
@@ -233,11 +448,18 @@ export const ReelsPage: React.FC = () => {
                     onRemoveReel={() => handleRemoveReel(reel.id)}
                   />
                 ) : (
-                  <ReelPlaceholder reel={reel} />
+                  <ReelPlaceholder reel={reel} showPreview={distance <= 2} />
                 )}
               </div>
             );
           })}
+
+          <div
+            aria-hidden="true"
+            data-testid="reels-spacer-after"
+            className="w-full shrink-0"
+            style={{ height: (reels.length - windowEnd) * reelHeight }}
+          />
 
           {isFetchingNextPage && (
             <div className="flex justify-center py-6">
@@ -248,7 +470,11 @@ export const ReelsPage: React.FC = () => {
       )}
 
       {/* Upload/Create Modal */}
-      <CreateReelModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
+      {isCreateModalOpen && (
+        <Suspense fallback={null}>
+          <CreateReelModal isOpen onClose={() => setIsCreateModalOpen(false)} />
+        </Suspense>
+      )}
     </div>
   );
 };

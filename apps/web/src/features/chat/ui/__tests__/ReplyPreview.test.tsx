@@ -65,7 +65,7 @@ describe('ReplyPreview', () => {
       attachments: [{ id: 'att-2', type: 'AUDIO', url: 'https://voice.ogg' } as any],
     };
     rerender(<ReplyPreview message={voiceMessage} onCancel={vi.fn()} />);
-    expect(screen.getByText('🎙️ Voice message')).toBeInTheDocument();
+    expect(screen.getByText('Voice message')).toBeInTheDocument();
 
     const fileMessage: MessageView = {
       ...mockMessage,
@@ -76,6 +76,16 @@ describe('ReplyPreview', () => {
     };
     rerender(<ReplyPreview message={fileMessage} onCancel={vi.fn()} />);
     expect(screen.getByText('📄 contract.pdf')).toBeInTheDocument();
+
+    const linkMessage: MessageView = {
+      ...mockMessage,
+      body: 'Check this https://open.spotify.com/track/4rNCvZBSq4ER38uEpJOr3o',
+      attachments: [],
+    };
+    rerender(<ReplyPreview message={linkMessage} onCancel={vi.fn()} />);
+    expect(
+      screen.getByText('Links: Check this https://open.spotify.com/track/4rNCvZBSq4ER38uEpJOr3o'),
+    ).toBeInTheDocument();
 
     const otherAttMessage: MessageView = {
       ...mockMessage,

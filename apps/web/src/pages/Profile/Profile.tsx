@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo, useOptimistic, useTransition, useRef } from 'react';
+import { ProfileFrameSurface } from '@/shared/ui/ProfileFrame';
+import React, { useState, useEffect, useMemo, useOptimistic, useTransition } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
-import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { useUIStore } from '../../shared/model/useUIStore';
 import { useUserByUsername } from '../../entities/profile/model/useUserByUsername';
 import { useCurrentUser } from '../../entities/profile/model/useCurrentUser';
@@ -9,10 +9,11 @@ import { useUserReposts } from '../../entities/post/model/useUserReposts';
 import { useCreatePost } from '@/features/posts/model/useCreatePost';
 import { USER_POSTS_KEY, USER_REPOSTS_KEY } from '@/shared/api/queryKeys';
 import { useUserPosts } from '../../entities/post/model/useUserPosts';
+import { ProfileEffect } from '@/shared/ui/ProfileEffect';
 import ProfileHeader from '@/widgets/profile/ui/ProfileHeader';
 import ProfileTabs, { ProfileTabType } from '../../shared/ui/ProfileTabs';
 import CreatePost from '../../features/posts/ui/CreatePost';
-import { PostCard } from '@/widgets/post/ui/PostCard';
+import { BoundedPostList } from '@/widgets/post/ui/BoundedPostList';
 import { SkeletonFeed } from '../../entities/post/ui/SkeletonPostCard';
 import { SavedPostsView } from '@/widgets/profile';
 import { UserReelsView } from '@/features/reels';
@@ -156,44 +157,25 @@ export default function ProfilePage() {
   const feedQueryKey =
     activeTab === 'posts' ? [USER_POSTS_KEY, user?.id] : [USER_REPOSTS_KEY, user?.id];
 
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [scrollMargin, setScrollMargin] = useState(0);
-
-  useEffect(() => {
-    if (containerRef.current) {
-      setScrollMargin(containerRef.current.offsetTop);
+  const profileTheme = useMemo(() => {
+    if (user?.profileTheme?.primary && user?.profileTheme?.accent) {
+      return user.profileTheme;
     }
-  }, [activeTab]);
-
-  const postVirtualizer = useWindowVirtualizer({
-    count: activeFeed.length,
-    estimateSize: () => 240,
-    overscan: 5,
-    scrollMargin,
-  });
-
-  const virtualItems = postVirtualizer.getVirtualItems();
-  const lastVirtualItem = virtualItems[virtualItems.length - 1];
-
-  const { hasNextPage, isFetchingNextPage, fetchNextPage } = activeQuery;
-  useEffect(() => {
-    if (!lastVirtualItem) return;
-    if (lastVirtualItem.index >= activeFeed.length - 2 && hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
-    }
-  }, [lastVirtualItem, activeFeed.length, hasNextPage, isFetchingNextPage, fetchNextPage]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const hash = window.location.hash;
-    if (hash && hash.startsWith('#post-') && activeFeed.length > 0) {
-      const targetPostId = hash.replace('#post-', '');
-      const targetIndex = activeFeed.findIndex((p) => String(p.id) === targetPostId);
-      if (targetIndex !== -1) {
-        postVirtualizer.scrollToIndex(targetIndex, { align: 'center', behavior: 'smooth' });
+    if (isOwnProfile) {
+      try {
+        const raw = localStorage.getItem('eternal_profile_customizations_v2');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed.themePrimary && parsed.themeAccent) {
+            return { primary: parsed.themePrimary, accent: parsed.themeAccent };
+          }
+        }
+      } catch {
+        // ignore
       }
     }
-  }, [activeFeed, postVirtualizer]);
+    return null;
+  }, [user?.profileTheme, isOwnProfile]);
 
   if (isReserved) {
     return (
@@ -293,52 +275,79 @@ export default function ProfilePage() {
             breadcrumbs: [{ name: profileName, url: `/@${user.username}` }],
           }}
         />
-        <div className="bg-white/2 backdrop-blur-2xl border border-white/5 rounded-[2.5rem] overflow-hidden shadow-[0_12px_40px_rgba(0,0,0,0.6)] mb-6">
-          <ProfileHeader
-            userId={user.id}
-            displayName={user.displayName}
-            username={user.username}
-            bio={user.bio}
-            avatar={user.avatar}
-            banner={user.banner}
-            bannerPosition={user.bannerPosition}
-            createdAt={user.createdAt}
-            isOwnProfile={isOwnProfile}
-            isFollowing={Boolean(user.isFollowing || user.followStatus === 'following')}
-            followStatus={user.followStatus}
-            followsYou={user.followsYou}
-            isVerified={user.isVerified}
-            primaryBadge={user.primaryBadge}
-            badges={user.badges}
-            mergedPrsCount={user.mergedPrsCount}
-            reportCount={user.reportCount}
-            subscriptionMonths={user.subscriptionMonths}
-            subscriptionDate={user.subscriptionDate}
-            followersCount={user.followersCount}
-            followingCount={user.followingCount}
-            onEditClick={() => openEditProfile('account')}
-          />
+        <ProfileFrameSurface
+          frame={user.activeProfileFrame}
+          radius={40}
+          priority
+          reserveHeadroom={false}
+          className="mb-6"
+        >
+          <div
+            className={`border rounded-[2.5rem] overflow-hidden shadow-[0_16px_50px_rgba(0,0,0,0.6)] transition-all duration-300 relative ${
+              profileTheme ? 'border-white/15' : 'glass-card border-white/5'
+            }`}
+            style={
+              profileTheme
+                ? {
+                    backgroundColor: profileTheme.accent,
+                    backgroundImage: `linear-gradient(180deg, ${profileTheme.primary} 0%, ${profileTheme.accent} 100%)`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundSize: '100% 100%',
+                  }
+                : undefined
+            }
+          >
+            <ProfileEffect effect={user.activeProfileEffect} priority />
+            <ProfileHeader
+              userId={user.id}
+              displayName={user.displayName}
+              displayNameStyle={user.displayNameStyle}
+              profileTheme={profileTheme}
+              username={user.username}
+              bio={user.bio}
+              avatar={user.avatar}
+              decoration={user.activeDecoration}
+              banner={user.banner}
+              bannerPosition={user.bannerPosition}
+              createdAt={user.createdAt}
+              isOwnProfile={isOwnProfile}
+              isFollowing={Boolean(user.isFollowing || user.followStatus === 'following')}
+              followStatus={user.followStatus}
+              followsYou={user.followsYou}
+              isVerified={user.isVerified}
+              primaryBadge={user.primaryBadge}
+              badges={user.badges}
+              mergedPrsCount={user.mergedPrsCount}
+              reportCount={user.reportCount}
+              subscriptionMonths={user.subscriptionMonths}
+              subscriptionDate={user.subscriptionDate}
+              followersCount={user.followersCount}
+              followingCount={user.followingCount}
+              onEditClick={() => openEditProfile('account')}
+            />
 
-          {/* Mobile Showcase View (< 1024px) */}
-          <div className="px-6 pt-2 lg:hidden relative z-20">
-            <React.Suspense fallback={null}>
-              <ProfileShowcaseSidebar
-                username={user.username}
-                userId={user.id}
-                isOwner={isOwnProfile}
-                variant="mobile"
-              />
-            </React.Suspense>
+            {/* Mobile Showcase View (< 1024px) */}
+            <div className="px-6 pt-2 lg:hidden relative z-20">
+              <React.Suspense fallback={null}>
+                <ProfileShowcaseSidebar
+                  username={user.username}
+                  userId={user.id}
+                  isOwner={isOwnProfile}
+                  variant="mobile"
+                />
+              </React.Suspense>
+            </div>
+
+            <ProfileTabs
+              activeTab={activeTab}
+              setActiveTab={handleTabChange}
+              showSavedTab={isOwnProfile}
+              hasProfileTheme={Boolean(profileTheme)}
+              idPrefix="profile-tab"
+              panelId="profile-feed-panel"
+            />
           </div>
-
-          <ProfileTabs
-            activeTab={activeTab}
-            setActiveTab={handleTabChange}
-            showSavedTab={isOwnProfile}
-            idPrefix="profile-tab"
-            panelId="profile-feed-panel"
-          />
-        </div>
+        </ProfileFrameSurface>
 
         <div
           id="profile-feed-panel"
@@ -364,36 +373,12 @@ export default function ProfilePage() {
           ) : activeQuery.isLoading ? (
             <SkeletonFeed count={4} />
           ) : activeFeed.length > 0 ? (
-            <div
-              ref={containerRef}
-              style={{
-                height: `${postVirtualizer.getTotalSize()}px`,
-                width: '100%',
-                position: 'relative',
-              }}
-            >
-              {virtualItems.map((virtualItem) => {
-                const post = activeFeed[virtualItem.index];
-                if (!post) return null;
-                return (
-                  <div
-                    key={virtualItem.key}
-                    ref={postVirtualizer.measureElement}
-                    data-index={virtualItem.index}
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                      transform: `translateY(${virtualItem.start - postVirtualizer.options.scrollMargin}px)`,
-                      paddingBottom: '16px',
-                    }}
-                  >
-                    <PostCard post={post} queryKey={feedQueryKey} />
-                  </div>
-                );
-              })}
-            </div>
+            <BoundedPostList
+              key={JSON.stringify(feedQueryKey)}
+              posts={activeFeed}
+              query={activeQuery}
+              queryKey={feedQueryKey}
+            />
           ) : (
             <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-white/5 rounded-4xl bg-white/1">
               <p className="text-gray-500 font-medium text-base">

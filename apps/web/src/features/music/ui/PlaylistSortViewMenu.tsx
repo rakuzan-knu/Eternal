@@ -83,10 +83,10 @@ export const PlaylistSortViewMenu: React.FC<PlaylistSortViewMenuProps> = ({
       ref={menuRef}
       data-menu-portal="true"
       style={{ top, left, width: menuWidth }}
-      className="fixed z-[9999] rounded-2xl bg-[#1c1c24]/95 backdrop-blur-2xl border border-white/10 shadow-2xl p-1.5 text-white select-none animate-fadeIn flex flex-col gap-0.5"
+      className="fixed z-[9999] rounded-2xl glass-modal backdrop-blur-2xl border border-black/10 dark:border-white/10 shadow-2xl p-1.5 text-gray-900 dark:text-white select-none animate-fadeIn flex flex-col gap-0.5"
     >
       {/* Header: Sort by */}
-      <div className="px-3 py-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+      <div className="px-3 py-1.5 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
         Sort by
       </div>
 
@@ -100,22 +100,24 @@ export const PlaylistSortViewMenu: React.FC<PlaylistSortViewMenuProps> = ({
               onSelectSortKey(key);
               onClose();
             }}
-            className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-left transition-colors ${
+            className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-left transition-colors cursor-pointer ${
               isSelected
-                ? 'text-purple-400 font-semibold bg-purple-600/15'
-                : 'text-gray-300 hover:text-white hover:bg-white/5'
+                ? 'text-purple-600 dark:text-purple-400 font-semibold bg-purple-500/15'
+                : 'text-gray-700 hover:text-gray-950 hover:bg-black/5 dark:text-gray-300 dark:hover:text-white dark:hover:bg-white/5'
             }`}
           >
             <span>{SORT_LABELS[key]}</span>
-            {isSelected && <Check size={15} strokeWidth={2.5} className="text-purple-400" />}
+            {isSelected && (
+              <Check size={15} strokeWidth={2.5} className="text-purple-600 dark:text-purple-400" />
+            )}
           </button>
         );
       })}
 
-      <div className="my-1 border-t border-white/10" />
+      <div className="my-1 border-t border-black/10 dark:border-white/10" />
 
       {/* Header: View as */}
-      <div className="px-3 py-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+      <div className="px-3 py-1.5 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
         View as
       </div>
 
@@ -126,21 +128,25 @@ export const PlaylistSortViewMenu: React.FC<PlaylistSortViewMenuProps> = ({
           onSelectViewMode('compact');
           onClose();
         }}
-        className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-left transition-colors ${
+        className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-left transition-colors cursor-pointer ${
           viewMode === 'compact'
-            ? 'text-purple-400 font-semibold bg-purple-600/15'
-            : 'text-gray-300 hover:text-white hover:bg-white/5'
+            ? 'text-purple-600 dark:text-purple-400 font-semibold bg-purple-500/15'
+            : 'text-gray-700 hover:text-gray-950 hover:bg-black/5 dark:text-gray-300 dark:hover:text-white dark:hover:bg-white/5'
         }`}
       >
         <div className="flex items-center gap-2.5">
           <AlignJustify
             size={15}
-            className={viewMode === 'compact' ? 'text-purple-400' : 'text-gray-400'}
+            className={
+              viewMode === 'compact'
+                ? 'text-purple-600 dark:text-purple-400'
+                : 'text-gray-500 dark:text-gray-400'
+            }
           />
           <span>Compact</span>
         </div>
         {viewMode === 'compact' && (
-          <Check size={15} strokeWidth={2.5} className="text-purple-400" />
+          <Check size={15} strokeWidth={2.5} className="text-purple-600 dark:text-purple-400" />
         )}
       </button>
 
@@ -151,17 +157,26 @@ export const PlaylistSortViewMenu: React.FC<PlaylistSortViewMenuProps> = ({
           onSelectViewMode('list');
           onClose();
         }}
-        className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-left transition-colors ${
+        className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-left transition-colors cursor-pointer ${
           viewMode === 'list'
-            ? 'text-purple-400 font-semibold bg-purple-600/15'
-            : 'text-gray-300 hover:text-white hover:bg-white/5'
+            ? 'text-purple-600 dark:text-purple-400 font-semibold bg-purple-500/15'
+            : 'text-gray-700 hover:text-gray-950 hover:bg-black/5 dark:text-gray-300 dark:hover:text-white dark:hover:bg-white/5'
         }`}
       >
         <div className="flex items-center gap-2.5">
-          <List size={15} className={viewMode === 'list' ? 'text-purple-400' : 'text-gray-400'} />
+          <List
+            size={15}
+            className={
+              viewMode === 'list'
+                ? 'text-purple-600 dark:text-purple-400'
+                : 'text-gray-500 dark:text-gray-400'
+            }
+          />
           <span>List</span>
         </div>
-        {viewMode === 'list' && <Check size={15} strokeWidth={2.5} className="text-purple-400" />}
+        {viewMode === 'list' && (
+          <Check size={15} strokeWidth={2.5} className="text-purple-600 dark:text-purple-400" />
+        )}
       </button>
     </div>,
     document.body,

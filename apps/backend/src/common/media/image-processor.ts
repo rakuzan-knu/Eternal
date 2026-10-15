@@ -1,7 +1,18 @@
 import sharp from 'sharp';
 import os from 'os';
+import * as path from 'path';
 import { type S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { isCloudflareStorageDomain } from '../storage/storage-url.util';
+import { BadRequestException } from '@nestjs/common';
+import {
+  MAX_UPLOAD_IMAGE_PIXELS,
+  MAX_UPLOAD_IMAGE_DIMENSION,
+  MAX_UPLOAD_ANIMATION_FRAMES,
+  MAX_UPLOAD_ANIMATION_PIXELS,
+  sniffUploadImageMime,
+  type MediaUploadPurpose,
+} from '../contracts/media-upload';
+import { enforceUploadSize } from './media-upload-validator';
 
 // Configure libvips threadpool and SIMD hardware acceleration for peak throughput
 try {
@@ -19,143 +30,72 @@ export interface ProcessedImageResult {
   ext: string;
 }
 
-/**
- * Optimizes an avatar image: 512x512 cover, WebP/GIF, stripped EXIF metadata
- */
-export async function optimizeAvatar(buffer: Buffer): Promise<ProcessedImageResult> {
-  const isGif = buffer.length >= 6 && buffer.toString('ascii', 0, 3) === 'GIF';
+const IMAGE_INPUT_OPTIONS = {
+  animated: true,
+  failOn: 'warning' as const,
+  limitInputPixels: MAX_UPLOAD_ANIMATION_PIXELS,
+};
+
+async function optimizeImage(
+  buffer: Buffer,
+  purpose: MediaUploadPurpose,
+  width: number,
+  height: number,
+  fit: 'cover' | 'inside',
+): Promise<ProcessedImageResult> {
+  enforceUploadSize(buffer, purpose, 'image');
+  if (!sniffUploadImageMime(buffer)) {
+    throw new BadRequestException('Choose a JPEG, PNG, GIF, WebP or AVIF image');
+  }
   try {
-    if (isGif) {
-      const optimized = await sharp(buffer, { animated: true })
-        .resize(512, 512, { fit: 'cover', withoutEnlargement: true })
-        .gif()
-        .toBuffer();
-      return {
-        buffer: optimized,
-        contentType: 'image/gif',
-        ext: 'gif',
-      };
+    const metadata = await sharp(buffer, IMAGE_INPUT_OPTIONS).metadata();
+    const imageWidth = metadata.width ?? 0;
+    const imageHeight = metadata.pageHeight ?? metadata.height ?? 0;
+    const pages = metadata.pages ?? 1;
+    if (
+      imageWidth <= 0 ||
+      imageHeight <= 0 ||
+      imageWidth > MAX_UPLOAD_IMAGE_DIMENSION ||
+      imageHeight > MAX_UPLOAD_IMAGE_DIMENSION ||
+      imageWidth * imageHeight > MAX_UPLOAD_IMAGE_PIXELS ||
+      pages > MAX_UPLOAD_ANIMATION_FRAMES ||
+      imageWidth * imageHeight * pages > MAX_UPLOAD_ANIMATION_PIXELS
+    ) {
+      throw new BadRequestException('Image dimensions or animation size exceed the upload limits');
     }
-    const optimized = await sharp(buffer)
-      .resize(512, 512, { fit: 'cover', withoutEnlargement: true })
-      .webp({ quality: 85, effort: 4 })
-      .toBuffer();
+    const animated = metadata.format === 'gif' || pages > 1;
+    const pipeline = sharp(buffer, IMAGE_INPUT_OPTIONS);
+    if (!animated) pipeline.rotate();
+    pipeline.resize(width, height, { fit, withoutEnlargement: true });
+    const output = animated
+      ? await pipeline.gif().toBuffer()
+      : await pipeline.webp({ quality: 85, effort: 4 }).toBuffer();
     return {
-      buffer: optimized,
-      contentType: 'image/webp',
-      ext: 'webp',
+      buffer: output,
+      contentType: animated ? 'image/gif' : 'image/webp',
+      ext: animated ? 'gif' : 'webp',
     };
-  } catch {
-    return {
-      buffer,
-      contentType: isGif ? 'image/gif' : 'image/jpeg',
-      ext: isGif ? 'gif' : 'jpg',
-    };
+  } catch (error) {
+    if (error instanceof BadRequestException) throw error;
+    throw new BadRequestException('Unable to process image. Choose a valid, undamaged image');
   }
 }
 
-/**
- * Optimizes a profile banner: max 1920x1080 inside, WebP/GIF, stripped metadata
- */
-export async function optimizeBanner(buffer: Buffer): Promise<ProcessedImageResult> {
-  const isGif = buffer.length >= 6 && buffer.toString('ascii', 0, 3) === 'GIF';
-  try {
-    if (isGif) {
-      const optimized = await sharp(buffer, { animated: true })
-        .resize(1920, 1080, { fit: 'inside', withoutEnlargement: true })
-        .gif()
-        .toBuffer();
-      return {
-        buffer: optimized,
-        contentType: 'image/gif',
-        ext: 'gif',
-      };
-    }
-    const optimized = await sharp(buffer)
-      .resize(1920, 1080, { fit: 'inside', withoutEnlargement: true })
-      .webp({ quality: 85, effort: 4 })
-      .toBuffer();
-    return {
-      buffer: optimized,
-      contentType: 'image/webp',
-      ext: 'webp',
-    };
-  } catch {
-    return {
-      buffer,
-      contentType: isGif ? 'image/gif' : 'image/jpeg',
-      ext: isGif ? 'gif' : 'jpg',
-    };
-  }
+export function optimizeAvatar(buffer: Buffer): Promise<ProcessedImageResult> {
+  return optimizeImage(buffer, 'avatar', 512, 512, 'cover');
 }
 
-/**
- * Optimizes a post image: max 2560x2560 inside, WebP/GIF, stripped GPS/EXIF for privacy
- */
-export async function optimizePostImage(buffer: Buffer): Promise<ProcessedImageResult> {
-  const isGif = buffer.length >= 6 && buffer.toString('ascii', 0, 3) === 'GIF';
-  try {
-    if (isGif) {
-      const optimized = await sharp(buffer, { animated: true }).gif().toBuffer();
-      return {
-        buffer: optimized,
-        contentType: 'image/gif',
-        ext: 'gif',
-      };
-    }
-    const optimized = await sharp(buffer)
-      .resize(2560, 2560, { fit: 'inside', withoutEnlargement: true })
-      .webp({ quality: 85, effort: 4 })
-      .toBuffer();
-    return {
-      buffer: optimized,
-      contentType: 'image/webp',
-      ext: 'webp',
-    };
-  } catch {
-    return {
-      buffer,
-      contentType: isGif ? 'image/gif' : 'image/webp',
-      ext: isGif ? 'gif' : 'webp',
-    };
-  }
+export function optimizeBanner(buffer: Buffer): Promise<ProcessedImageResult> {
+  return optimizeImage(buffer, 'banner', 1920, 1080, 'inside');
 }
 
-/**
- * Optimizes a group conversation avatar: 512x512 cover, WebP/GIF
- */
-export async function optimizeGroupAvatar(buffer: Buffer): Promise<ProcessedImageResult> {
-  const isGif = buffer.length >= 6 && buffer.toString('ascii', 0, 3) === 'GIF';
-  try {
-    if (isGif) {
-      const optimized = await sharp(buffer, { animated: true })
-        .resize(512, 512, { fit: 'cover', withoutEnlargement: true })
-        .gif()
-        .toBuffer();
-      return {
-        buffer: optimized,
-        contentType: 'image/gif',
-        ext: 'gif',
-      };
-    }
-    const optimized = await sharp(buffer)
-      .resize(512, 512, { fit: 'cover', withoutEnlargement: true })
-      .webp({ quality: 85, effort: 4 })
-      .toBuffer();
-    return {
-      buffer: optimized,
-      contentType: 'image/webp',
-      ext: 'webp',
-    };
-  } catch {
-    return {
-      buffer,
-      contentType: isGif ? 'image/gif' : 'image/webp',
-      ext: isGif ? 'gif' : 'webp',
-    };
-  }
+export function optimizePostImage(buffer: Buffer): Promise<ProcessedImageResult> {
+  return optimizeImage(buffer, 'post', 2560, 2560, 'inside');
 }
 
+export function optimizeGroupAvatar(buffer: Buffer): Promise<ProcessedImageResult> {
+  return optimizeImage(buffer, 'avatar', 512, 512, 'cover');
+}
 export async function uploadToStorageWithFallback(
   s3: S3Client,
   params: {

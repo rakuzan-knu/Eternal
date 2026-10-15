@@ -167,7 +167,45 @@ describe('PostsService', () => {
   });
 
   describe('createPost', () => {
+    it('routes JSON media and GIF aliases through validation and never persists failed references', async () => {
+      const dto = {
+        media: [{ type: MediaType.IMAGE, url: 'data:image/png;base64,AAAA', order: 0 }],
+        gifUrls: ['https://media.giphy.com/image.gif'],
+      };
+      mockMediaService.processUploadedFiles.mockRejectedValueOnce(new Error('Invalid reference'));
+      await expect(service.createPost(dto, 'usr-author-1')).rejects.toThrow('Invalid reference');
+      expect(mockMediaService.processUploadedFiles).toHaveBeenCalledWith(
+        [],
+        [
+          { url: dto.media[0].url, kind: 'uploaded' },
+          { url: dto.gifUrls[0], kind: 'gif' },
+        ],
+      );
+      expect(mockPostsRepository.createPost).not.toHaveBeenCalled();
+    });
+    it('propagates attachment errors without creating a post', async () => {
+      mockMediaService.processUploadedFiles.mockRejectedValueOnce(new Error('Invalid upload'));
+      await expect(
+        service.createPost({ content: 'Draft stays intact' }, 'usr-author-1', [
+          {} as Express.Multer.File,
+        ]),
+      ).rejects.toThrow('Invalid upload');
+      expect(mockPostsRepository.createPost).not.toHaveBeenCalled();
+    });
+    it('rejects empty posts while allowing text and valid polls', async () => {
+      await expect(
+        service.createPost({ content: '  ', poll: [' ', ''] }, 'usr-author-1'),
+      ).rejects.toThrow(/Add text/);
+      expect(mockPostsRepository.createPost).not.toHaveBeenCalled();
+      mockPostsRepository.createPost.mockResolvedValue({ ...basePost });
+      await service.createPost({ content: 'hello' }, 'usr-author-1');
+      await service.createPost({ poll: ['Yes', 'No'] }, 'usr-author-1');
+      expect(mockPostsRepository.createPost).toHaveBeenCalledTimes(2);
+    });
     it('creates post with media, poll and notifies mentioned users', async () => {
+      mockMediaService.processUploadedFiles.mockResolvedValueOnce([
+        { type: MediaType.IMAGE, url: 'https://cdn.com/validated.webp', order: 0 },
+      ]);
       mockPostsRepository.createPost.mockResolvedValueOnce({
         ...basePost,
         id: 'post-new-1',
@@ -192,6 +230,13 @@ describe('PostsService', () => {
       const result = await service.createPost(dto, 'usr-author-1');
 
       expect(mockPostsRepository.createPost).toHaveBeenCalledTimes(1);
+      expect(mockPostsRepository.createPost).toHaveBeenCalledWith(
+        expect.objectContaining({
+          media: {
+            create: [{ type: MediaType.IMAGE, url: 'https://cdn.com/validated.webp', order: 0 }],
+          },
+        }),
+      );
       expect(mockPostsRepository.createPollForPost).toHaveBeenCalledTimes(1);
       expect(mockGateway.emitToUser).toHaveBeenCalledWith(
         'usr-sam',
@@ -421,10 +466,10 @@ describe('PostsService', () => {
       mockMediaService.uploadChunk.mockResolvedValueOnce({ complete: true });
       mockMediaService.getChunkStatus.mockReturnValueOnce({ uploadedChunks: [0], totalChunks: 1 });
 
-      const chunkRes = await service.uploadChunk('up-1', 0, 1, {} as Express.Multer.File);
+      const chunkRes = await service.uploadChunk('up-1', 0, 1, {} as Express.Multer.File, 'usr-1');
       expect(chunkRes.complete).toBe(true);
 
-      const statusRes = service.getChunkStatus('up-1');
+      const statusRes = service.getChunkStatus('up-1', 'usr-1');
       expect(statusRes.totalChunks).toBe(1);
     });
   });

@@ -1,3 +1,4 @@
+import { updateConversationLists, getCachedConversations } from './chatCacheSync';
 import { useCallback, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useChatSocket } from './useChatSocket';
@@ -5,7 +6,8 @@ import { useAuthStore } from '@/shared/model/useAuthStore';
 import { queryKeys } from '@/shared/api/queryKeys';
 import { chatApi } from '../api/chatApi';
 import { emitWithAck } from './socketAck';
-import { updateCachedPages, dedupeMessages } from './chatCacheSync';
+import { updateCachedPages, dedupeMessages, applyReactionMessage } from './chatCacheSync';
+import { flushRealtimeChatBatch } from './realtimeChatBatch';
 import { nextMessageStatus } from './messageStatus';
 import {
   decryptMessageForDisplay,
@@ -15,6 +17,7 @@ import {
   type ConversationPeerView,
 } from '../lib/e2ee/messageE2ee';
 import { nextMessageSeq } from '../lib/e2ee/replayStore';
+import { cacheDecryptedBody } from './useDecryptedMessageBody';
 import { e2eeManager, parseEnvelope } from '@/shared/lib/crypto/e2ee';
 import {
   AttachmentView,
@@ -43,6 +46,7 @@ export function useMessageActions(conversationId: string | null) {
   const updatePages = useCallback(
     (updater: (pages: PaginatedMessages[]) => PaginatedMessages[]) => {
       if (!conversationId) return;
+      flushRealtimeChatBatch(queryClient);
       updateCachedPages(queryClient, conversationId, updater);
     },
     [conversationId, queryClient],
@@ -116,7 +120,12 @@ export function useMessageActions(conversationId: string | null) {
   );
 
   const sendMessage = useCallback(
-    async (text: string, replyToId?: string, attachments?: OutgoingAttachment[]) => {
+    async (
+      text: string,
+      replyToId?: string,
+      attachments?: OutgoingAttachment[],
+      opts?: { encrypt?: boolean },
+    ) => {
       if (!conversationId) return;
       if (!text.trim() && (!attachments || attachments.length === 0)) return;
 
@@ -180,16 +189,12 @@ export function useMessageActions(conversationId: string | null) {
         return next;
       });
 
-      // Message-layer E2EE: DIRECT 1:1 + peer message key → ciphertext on
-      // the wire (optimistic bubble stays plaintext locally). Any miss →
-      // plaintext exactly as before; sending must never break — except a
-      // pinned-key change, which throws so the caller blocks loudly.
-      // seq is the per-device persisted counter bound into v2/v3 AAD
-      // (replay/gap detection on the read side).
+      // Standard direct messaging sends clean plaintext/emojis directly (Telegram-style cloud chat).
+      // Only encrypt if explicitly opted-in via opts.encrypt.
       let outgoingText = text;
-      if (text.trim() && userId) {
+      if (opts?.encrypt && text.trim() && userId) {
         const peerId = resolveDirectPeerUserId(
-          queryClient.getQueryData<ConversationPeerView[]>(queryKeys.conversations.root),
+          getCachedConversations(queryClient),
           conversationId,
           userId,
         );
@@ -199,19 +204,26 @@ export function useMessageActions(conversationId: string | null) {
             senderId: userId,
             seq: nextMessageSeq(conversationId),
           });
-          if (encrypted) outgoingText = encrypted;
+          if (encrypted) {
+            outgoingText = encrypted;
+            cacheDecryptedBody(encrypted, text);
+          }
         }
       }
 
-      // Persist mutation into IndexedDB outbox queue
+      // Persist mutation into IndexedDB outbox queue (offline backup, do NOT autoFlush during active send)
       await mutationOutbox
-        .enqueueMessage(optimisticId, {
-          conversationId,
-          text: outgoingText,
-          replyToId,
-          attachments: attachments as unknown[],
-          clientSeq,
-        })
+        .enqueueMessage(
+          optimisticId,
+          {
+            conversationId,
+            text: outgoingText,
+            replyToId,
+            attachments: attachments as unknown[],
+            clientSeq,
+          },
+          false,
+        )
         .catch(() => {});
 
       // Lifecycle: optimistic row is `pending` (SENDING). WS ack advances it
@@ -329,6 +341,7 @@ export function useMessageActions(conversationId: string | null) {
   const retrySendMessage = useCallback(
     async (failedMessageId: string) => {
       if (!conversationId) return;
+      flushRealtimeChatBatch(queryClient);
       const data = queryClient.getQueryData<InfiniteMessagesData>(
         queryKeys.conversations.messages(conversationId),
       );
@@ -349,51 +362,61 @@ export function useMessageActions(conversationId: string | null) {
       const retryClientSeq = targetMessage.clientSeq ?? getNextClientSeq(conversationId);
       const text = targetMessage.body || '';
       const replyToId = targetMessage.replyTo?.id;
-      const attachments = (targetMessage.attachments || []).map((a) => ({
-        type: a.type,
-        url: a.url,
-        fileName: a.fileName || undefined,
-        mimeType: a.mimeType || undefined,
-        size: a.size ?? undefined,
-        width: a.width ?? undefined,
-        height: a.height ?? undefined,
-        duration: a.duration ?? undefined,
-        waveform: a.waveform ?? undefined,
-        isSpoiler: a.isSpoiler ?? undefined,
-        thumbnailUrl: a.thumbnailUrl || undefined,
-      })) as OutgoingAttachment[];
+
+      // If an attachment previously failed with a data: URI, re-upload it properly to server now
+      const resolvedAttachments: OutgoingAttachment[] = [];
+      for (const a of targetMessage.attachments || []) {
+        if (a.url && a.url.startsWith('data:')) {
+          try {
+            const res = await fetch(a.url);
+            const blob = await res.blob();
+            const file = new File([blob], a.fileName || 'attachment.gif', {
+              type: a.mimeType || blob.type || 'image/gif',
+            });
+            const uploaded = await uploadAttachment(file);
+            resolvedAttachments.push({
+              ...uploaded,
+              isSpoiler: a.isSpoiler,
+            });
+            continue;
+          } catch (e) {
+            console.error('Failed to re-upload attachment on retry:', e);
+          }
+        }
+        resolvedAttachments.push({
+          type: a.type,
+          url: a.url,
+          fileName: a.fileName || undefined,
+          mimeType: a.mimeType || undefined,
+          size: a.size ?? undefined,
+          width: a.width ?? undefined,
+          height: a.height ?? undefined,
+          duration: a.duration ?? undefined,
+          waveform: a.waveform ?? undefined,
+          isSpoiler: a.isSpoiler ?? undefined,
+          thumbnailUrl: a.thumbnailUrl || undefined,
+        });
+      }
 
       updatePages((pages) =>
         pages.map((p) => ({
           ...p,
           data: p.data.map((m) =>
             m.id === failedMessageId || m.tempId === failedMessageId
-              ? { ...m, status: 'SENDING' as const }
+              ? {
+                  ...m,
+                  status: 'SENDING' as const,
+                  attachments: (resolvedAttachments.length > 0
+                    ? resolvedAttachments
+                    : m.attachments) as AttachmentView[],
+                }
               : m,
           ),
         })),
       );
 
-      // Same E2EE rule as sendMessage: retry re-encrypts the plaintext body.
-      // Fresh seq (the original seq is not stored): a jump reads as a benign
-      // gap on the peer, never as a replay — retries are rare by design.
-      // Lifecycle: failed → pending on retry, then pending → sent on ack.
-      let outgoingText = text;
-      if (text.trim() && userId) {
-        const peerId = resolveDirectPeerUserId(
-          queryClient.getQueryData<ConversationPeerView[]>(queryKeys.conversations.root),
-          conversationId,
-          userId,
-        );
-        if (peerId) {
-          const encrypted = await encryptMessageForPeer(text, peerId, {
-            conversationId,
-            senderId: userId,
-            seq: nextMessageSeq(conversationId),
-          });
-          if (encrypted) outgoingText = encrypted;
-        }
-      }
+      // Retry sends plain text directly.
+      const outgoingText = text;
 
       try {
         const res = await emitWithAck<MessageView>(socket, 'sendMessage', {
@@ -401,7 +424,7 @@ export function useMessageActions(conversationId: string | null) {
           text: outgoingText || undefined,
           messageType: targetMessage.messageType,
           replyToId,
-          attachments: attachments.length > 0 ? attachments : undefined,
+          attachments: resolvedAttachments.length > 0 ? resolvedAttachments : undefined,
           clientMessageId: optimisticId,
           clientSeq: retryClientSeq,
         });
@@ -427,7 +450,7 @@ export function useMessageActions(conversationId: string | null) {
             text: outgoingText || undefined,
             messageType: targetMessage.messageType,
             replyToId,
-            attachments: attachments.length > 0 ? attachments : undefined,
+            attachments: resolvedAttachments.length > 0 ? resolvedAttachments : undefined,
             clientMessageId: optimisticId,
             clientSeq: retryClientSeq,
           });
@@ -465,47 +488,66 @@ export function useMessageActions(conversationId: string | null) {
   );
 
   const editMessage = useCallback(
-    async (messageId: string, body: string, originalBody?: string | null) => {
-      // Never downgrade: when the stored original was an envelope, the new
-      // body must be re-encrypted for the same peer. Bound envelopes reuse
-      // the ORIGINAL seq (same logical message); v1 mints fresh. If
-      // re-encryption is impossible (key vanished), fail closed — editing
-      // is non-critical, silent plaintext downgrade is not acceptable.
+    async (
+      messageId: string,
+      body: string,
+      originalBody?: string | null,
+      newAttachment?: AttachmentView | null,
+    ) => {
       let outgoing = body;
       if (originalBody && conversationId && userId && e2eeManager.isEncrypted(originalBody)) {
-        const peerId = resolveDirectPeerUserId(
-          queryClient.getQueryData<ConversationPeerView[]>(queryKeys.conversations.root),
-          conversationId,
-          userId,
-        );
-        if (!peerId) throw new Error('Cannot re-encrypt edit: 1:1 peer unknown');
-        // Bound envelopes reuse the ORIGINAL seq (same logical message);
-        // mint fresh only for v1/unparseable. Mint lazily — an unused seq
-        // would read as a phantom gap on the peer.
-        let seq: number | null = null;
         try {
-          const original = parseEnvelope(originalBody);
-          if (original.v !== 1) {
-            if (original.aad.conversationId !== conversationId) {
-              throw new Error('Cannot re-encrypt edit: dialog mismatch');
+          const peerId = resolveDirectPeerUserId(
+            getCachedConversations(queryClient),
+            conversationId,
+            userId,
+          );
+          if (peerId) {
+            let seq: number | null = null;
+            try {
+              const original = parseEnvelope(originalBody);
+              if (original.v !== 1) {
+                if (original.aad.conversationId === conversationId) {
+                  seq = original.aad.seq;
+                }
+              }
+            } catch {
+              // Unparseable
             }
-            seq = original.aad.seq;
+            const encrypted = await encryptMessageForPeer(body, peerId, {
+              conversationId,
+              senderId: userId,
+              seq: seq ?? nextMessageSeq(conversationId),
+            });
+            if (encrypted) outgoing = encrypted;
           }
-        } catch (err) {
-          if (err instanceof Error && err.message.includes('dialog mismatch')) throw err;
-          // Unparseable despite isEncrypted (race): mint fresh seq below.
+        } catch {
+          outgoing = body;
         }
-        const encrypted = await encryptMessageForPeer(body, peerId, {
-          conversationId,
-          senderId: userId,
-          seq: seq ?? nextMessageSeq(conversationId),
-        });
-        if (!encrypted) throw new Error('Cannot re-encrypt edit: peer key unavailable');
-        outgoing = encrypted;
       }
-      return emitWithAck(socket, 'editMessage', { messageId, body: outgoing });
+      updatePages((pages) =>
+        pages.map((p) => ({
+          ...p,
+          data: p.data.map((m) =>
+            m.id === messageId
+              ? {
+                  ...m,
+                  body: outgoing,
+                  attachments: newAttachment ? [newAttachment] : m.attachments,
+                  isEdited: true,
+                  editedAt: new Date().toISOString(),
+                }
+              : m,
+          ),
+        })),
+      );
+      return emitWithAck(socket, 'editMessage', {
+        messageId,
+        body: outgoing,
+        ...(newAttachment ? { attachments: [newAttachment] } : {}),
+      });
     },
-    [socket, conversationId, queryClient, userId],
+    [socket, conversationId, queryClient, userId, updatePages],
   );
 
   const deleteMessage = useCallback(
@@ -529,6 +571,7 @@ export function useMessageActions(conversationId: string | null) {
         body: string | null;
         conversationId: string;
         sender?: { id?: string | null } | null;
+        attachments?: any[];
       },
       conversationIds: string[],
       opts?: { hideAuthor?: boolean },
@@ -548,9 +591,7 @@ export function useMessageActions(conversationId: string | null) {
       // ciphertext in the target dialog. Decrypt with the SOURCE peer, then
       // re-encrypt per TARGET (explicit user-chosen targets without E2EE go
       // plaintext — same rule as the send path).
-      const conversations = queryClient.getQueryData<ConversationPeerView[]>(
-        queryKeys.conversations.root,
-      );
+      const conversations = getCachedConversations(queryClient);
       const sourcePeer = resolveDirectPeerUserId(conversations, message.conversationId, userId);
       const plain = await decryptMessageForDisplay(message.body, {
         peerUserId: sourcePeer,
@@ -590,6 +631,20 @@ export function useMessageActions(conversationId: string | null) {
   const addReaction = useCallback(
     async (messageId: string, emoji: string) => {
       const currentUserId = useAuthStore.getState().userId;
+      const userProfile = currentUserId
+        ? queryClient.getQueryData<{
+            username?: string;
+            displayName?: string | null;
+            avatar?: string | null;
+          }>(queryKeys.user.current(currentUserId))
+        : null;
+      const currentUserSnapshot = {
+        id: currentUserId || 'me',
+        username: userProfile?.username || '',
+        displayName: userProfile?.displayName || userProfile?.username || null,
+        avatar: userProfile?.avatar || null,
+      };
+
       updatePages((pages) =>
         pages.map((p) => ({
           ...p,
@@ -623,10 +678,7 @@ export function useMessageActions(conversationId: string | null) {
                 selfReacted: true,
                 users:
                   currentUserId && !(prev.users || []).some((u) => u.id === currentUserId)
-                    ? [
-                        ...(prev.users || []),
-                        { id: currentUserId, username: '', displayName: null, avatar: null },
-                      ]
+                    ? [...(prev.users || []), currentUserSnapshot]
                     : prev.users || [],
               };
             } else {
@@ -634,9 +686,7 @@ export function useMessageActions(conversationId: string | null) {
                 emoji,
                 count: 1,
                 selfReacted: true,
-                users: currentUserId
-                  ? [{ id: currentUserId, username: '', displayName: null, avatar: null }]
-                  : [],
+                users: currentUserId ? [currentUserSnapshot] : [],
               });
             }
 
@@ -646,12 +696,41 @@ export function useMessageActions(conversationId: string | null) {
       );
 
       try {
-        await emitWithAck(socket, 'addReaction', { messageId, emoji });
+        let applied = false;
+        if (socket && socket.connected) {
+          try {
+            const res = await emitWithAck<{ message?: MessageView }>(socket, 'addReaction', {
+              messageId,
+              emoji,
+            });
+            if (res?.message && conversationId) {
+              flushRealtimeChatBatch(queryClient);
+              applyReactionMessage(
+                queryClient,
+                conversationId,
+                res.message as MessageView,
+                currentUserId,
+              );
+              applied = true;
+            } else if (res?.status === 'ok') {
+              applied = true;
+            }
+          } catch (sockErr) {
+            console.warn('Socket addReaction failed, attempting REST fallback:', sockErr);
+          }
+        }
+        if (!applied && conversationId) {
+          const updated = await chatApi.addReaction(conversationId, messageId, emoji);
+          if (updated) {
+            flushRealtimeChatBatch(queryClient);
+            applyReactionMessage(queryClient, conversationId, updated, currentUserId);
+          }
+        }
       } catch (err) {
         console.error('Failed to add reaction:', err);
       }
     },
-    [socket, updatePages],
+    [socket, updatePages, conversationId, queryClient],
   );
 
   const removeReaction = useCallback(
@@ -684,12 +763,41 @@ export function useMessageActions(conversationId: string | null) {
       );
 
       try {
-        await emitWithAck(socket, 'removeReaction', { messageId, emoji });
+        let applied = false;
+        if (socket && socket.connected) {
+          try {
+            const res = await emitWithAck<{ message?: MessageView }>(socket, 'removeReaction', {
+              messageId,
+              emoji,
+            });
+            if (res?.message && conversationId) {
+              flushRealtimeChatBatch(queryClient);
+              applyReactionMessage(
+                queryClient,
+                conversationId,
+                res.message as MessageView,
+                currentUserId,
+              );
+              applied = true;
+            } else if (res?.status === 'ok') {
+              applied = true;
+            }
+          } catch (sockErr) {
+            console.warn('Socket removeReaction failed, attempting REST fallback:', sockErr);
+          }
+        }
+        if (!applied && conversationId) {
+          const updated = await chatApi.removeReaction(conversationId, messageId, emoji);
+          if (updated) {
+            flushRealtimeChatBatch(queryClient);
+            applyReactionMessage(queryClient, conversationId, updated, currentUserId);
+          }
+        }
       } catch (err) {
         console.error('Failed to remove reaction:', err);
       }
     },
-    [socket, updatePages],
+    [socket, updatePages, conversationId, queryClient],
   );
 
   const pinMessage = useCallback(
@@ -740,14 +848,11 @@ export function useMessageActions(conversationId: string | null) {
       }
 
       markReadTimeoutRef.current = setTimeout(() => {
-        queryClient.setQueryData<ConversationView[]>(
-          queryKeys.conversations.root,
-          (prev: ConversationView[] | undefined) =>
-            prev?.map((conversation: ConversationView) =>
-              conversation.id === conversationId
-                ? { ...conversation, unreadCount: 0 }
-                : conversation,
-            ),
+        flushRealtimeChatBatch(queryClient);
+        updateConversationLists(queryClient, (prev: ConversationView[] | undefined) =>
+          prev?.map((conversation: ConversationView) =>
+            conversation.id === conversationId ? { ...conversation, unreadCount: 0 } : conversation,
+          ),
         );
         socket.emit('markRead', { conversationId, messageId: lastReadMessageId });
         chatApi.markRead?.(conversationId)?.catch?.(() => {});
@@ -779,6 +884,7 @@ export function useMessageActions(conversationId: string | null) {
   const batchForwardMessages = useCallback(
     async (messageIds: string[], conversationIds: string[], hideAuthor = false) => {
       if (!conversationId || messageIds.length === 0 || conversationIds.length === 0) return;
+      flushRealtimeChatBatch(queryClient);
       // Envelopes must never take the server batch path (it copies bodies
       // verbatim): fan out client-side per message when any id is encrypted.
       const data = queryClient.getQueryData<InfiniteMessagesData>(
@@ -811,98 +917,6 @@ export function useMessageActions(conversationId: string | null) {
     [conversationId, queryClient, forwardMessage],
   );
 
-  const loadAroundMessages = useCallback(
-    async (messageId: string) => {
-      if (!conversationId) return;
-      const res = await chatApi.getMessagesAround(conversationId, messageId);
-      if (res && res.data) {
-        updatePages((pages) => {
-          if (pages.length === 0) return [res];
-          const existingIds = new Set(pages.flatMap((p) => p.data.map((m) => m.id)));
-          const newMessages = res.data.filter((m) => !existingIds.has(m.id));
-          if (newMessages.length === 0) return pages;
-          const merged = [...pages[0].data, ...newMessages].sort(
-            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-          );
-          return [{ ...pages[0], data: merged }, ...pages.slice(1)];
-        });
-      }
-      return res;
-    },
-    [conversationId, updatePages],
-  );
-
-  const loadAroundDate = useCallback(
-    async (dateIso: string) => {
-      if (!conversationId) return;
-      const res = await chatApi.getMessagesAroundDate(conversationId, dateIso);
-      if (res && res.data) {
-        updatePages((pages) => {
-          if (pages.length === 0) return [res];
-          const existingIds = new Set(pages.flatMap((p) => p.data.map((m) => m.id)));
-          const newMessages = res.data.filter((m) => !existingIds.has(m.id));
-          if (newMessages.length === 0) return pages;
-          const merged = [...pages[0].data, ...newMessages].sort(
-            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-          );
-          return [{ ...pages[0], data: merged }, ...pages.slice(1)];
-        });
-      }
-      return res;
-    },
-    [conversationId, updatePages],
-  );
-
-  const loadOlderMessages = useCallback(
-    async (beforeMessageId: string) => {
-      if (!conversationId) return;
-      const res = await chatApi.getMessages(conversationId, beforeMessageId, 50);
-      if (res && res.data && res.data.length > 0) {
-        updatePages((pages) => {
-          const existingIds = new Set(pages.flatMap((p) => p.data.map((m) => m.id)));
-          const newMessages = res.data.filter((m) => !existingIds.has(m.id));
-          if (newMessages.length === 0) return pages;
-          const merged = [...pages[0].data, ...newMessages].sort(
-            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-          );
-          return [
-            { ...pages[0], data: merged, hasMore: res.hasMore, nextCursor: res.nextCursor },
-            ...pages.slice(1),
-          ];
-        });
-      }
-      return res;
-    },
-    [conversationId, updatePages],
-  );
-
-  const loadNewerMessages = useCallback(
-    async (afterMessageId: string) => {
-      if (!conversationId) return;
-      const res = await chatApi.getMessages(conversationId, undefined, 50, afterMessageId);
-      if (res && res.data && res.data.length > 0) {
-        updatePages((pages) => {
-          const existingIds = new Set(pages.flatMap((p) => p.data.map((m) => m.id)));
-          const newMessages = res.data.filter((m) => !existingIds.has(m.id));
-          if (newMessages.length === 0) return pages;
-          const merged = [...pages[0].data, ...newMessages].sort(
-            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-          );
-          return [{ ...pages[0], data: merged }, ...pages.slice(1)];
-        });
-      }
-      return res;
-    },
-    [conversationId, updatePages],
-  );
-
-  const resetToLive = useCallback(async () => {
-    if (!conversationId) return;
-    await queryClient.invalidateQueries({
-      queryKey: queryKeys.conversations.messages(conversationId),
-    });
-  }, [conversationId, queryClient]);
-
   return {
     sendMessage,
     retrySendMessage,
@@ -911,11 +925,6 @@ export function useMessageActions(conversationId: string | null) {
     batchDeleteMessages,
     forwardMessage,
     batchForwardMessages,
-    loadAroundMessages,
-    loadAroundDate,
-    loadOlderMessages,
-    loadNewerMessages,
-    resetToLive,
     addReaction,
     removeReaction,
     pinMessage,

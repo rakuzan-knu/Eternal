@@ -74,9 +74,9 @@ function loadReplay(): { highest: Record<string, number>; seen: string[] } {
       disk?.highest && typeof disk.highest === 'object'
         ? (disk.highest as Record<string, number>)
         : {};
-    memSeen = Array.isArray(disk?.seen)
-      ? (disk.seen as string[]).filter((s) => typeof s === 'string')
-      : [];
+    // In-memory seen set is session-scoped so that page reloads or navigating
+    // back into chat history does not falsely reject past messages as replays.
+    memSeen = [];
   }
   return { highest: memHighest, seen: memSeen };
 }
@@ -88,8 +88,8 @@ function pruneScopes(highest: Record<string, number>): void {
   }
 }
 
-function saveReplay(highest: Record<string, number>, seen: string[]): void {
-  writeJson(STORE_KEY, { highest, seen });
+function saveReplay(highest: Record<string, number>, _seen: string[]): void {
+  writeJson(STORE_KEY, { highest });
 }
 
 /**

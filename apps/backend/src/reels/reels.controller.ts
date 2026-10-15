@@ -72,7 +72,7 @@ export class ReelsController {
   }
 
   @Post()
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(AuthGuard)
   @ApiBearerAuth()
   @UseInterceptors(FastifyFileInterceptor('video'))
   @ApiConsumes('multipart/form-data', 'application/json')
@@ -84,18 +84,18 @@ export class ReelsController {
     @UploadedFile() file?: Express.Multer.File,
     @Req() req?: { thumbnailFile?: Express.Multer.File },
   ) {
-    const authorId = user?.id || '3ad07908-d900-43c1-a7e6-ab7f2be6ac4c';
+    const authorId = user!.id;
     return this.reelsService.createReel(authorId, dto, file, req?.thumbnailFile);
   }
 
   @Post(':id/like')
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(AuthGuard)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Toggle like on reel' })
   @ApiResponse({ status: 200, description: 'Like toggled successfully' })
   toggleLike(@Param('id') id: string, @CurrentUser() user?: RequestUser) {
-    const userId = user?.id || '3ad07908-d900-43c1-a7e6-ab7f2be6ac4c';
+    const userId = user!.id;
     return this.reelsService.toggleLike(id, userId);
   }
 
@@ -138,7 +138,7 @@ export class ReelsController {
   }
 
   @Post(':id/comments')
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(AuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Add a comment to a reel' })
   @ApiResponse({ status: 201, description: 'Comment added' })
@@ -147,23 +147,23 @@ export class ReelsController {
     @CurrentUser() user: RequestUser | undefined,
     @Body(new ZodValidationPipe(createReelCommentSchema)) dto: CreateReelCommentDto,
   ) {
-    const userId = user?.id || '3ad07908-d900-43c1-a7e6-ab7f2be6ac4c';
+    const userId = user!.id;
     return this.reelsService.addComment(id, userId, dto.content);
   }
 
   @Post(':id/not-interested')
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(AuthGuard)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Mark a reel as not interesting' })
   @ApiResponse({ status: 200, description: 'Reel preference updated' })
   notInterested(@Param('id') id: string, @CurrentUser() user?: RequestUser) {
-    const userId = user?.id || '3ad07908-d900-43c1-a7e6-ab7f2be6ac4c';
+    const userId = user!.id;
     return this.reelsService.markNotInterested(id, userId);
   }
 
   @Post(':id/report')
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(AuthGuard)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Report a reel' })
@@ -173,7 +173,7 @@ export class ReelsController {
     @CurrentUser() user: RequestUser | undefined,
     @Body(new ZodValidationPipe(reportReelSchema)) dto: ReportReelDto,
   ) {
-    const userId = user?.id || '3ad07908-d900-43c1-a7e6-ab7f2be6ac4c';
+    const userId = user!.id;
     return this.reelsService.reportReel(id, userId, dto.category, dto.details);
   }
 

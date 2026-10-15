@@ -76,7 +76,12 @@ export default function MessageReactionsModal({
                   style={{ animationDelay: `${Math.min(index, 8) * 20}ms` }}
                   className="animate-fadeIn flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/5 transition-colors"
                 >
-                  <Avatar size="sm" src={user.avatar} />
+                  <Avatar
+                    size="sm"
+                    src={user.avatar}
+                    decoration={(user as any).activeDecoration}
+                    userId={user.id}
+                  />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-white truncate">
                       {user.displayName ?? user.username}

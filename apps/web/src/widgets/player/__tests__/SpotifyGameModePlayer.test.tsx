@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { SpotifyGameModePlayer } from '../SpotifyGameModePlayer';
 import { useSpotifyPlayerStore } from '@/shared/model/useSpotifyPlayerStore';
+import * as callPiPTransitionModule from '@/features/chat/lib/webrtc/callPiPTransition';
 
 describe('SpotifyGameModePlayer (Apple Music Liquid Style)', () => {
   const mockTrack = {
@@ -46,21 +47,39 @@ describe('SpotifyGameModePlayer (Apple Music Liquid Style)', () => {
     expect(screen.getByTitle('Playback queue')).toBeInTheDocument();
   });
 
-  it('closes game mode when clicking the close button', () => {
+  it('closes game mode with circular minimize transition when clicking the close button', () => {
+    const spy = vi.spyOn(callPiPTransitionModule, 'triggerCallPiPTransition');
     render(<SpotifyGameModePlayer />);
 
     const closeBtn = screen.getByTitle('Exit Game Mode (Esc)');
     fireEvent.click(closeBtn);
 
+    expect(spy).toHaveBeenCalledWith('minimize', expect.any(Object), expect.any(Function));
     expect(useSpotifyPlayerStore.getState().isGameModeOpen).toBe(false);
+    spy.mockRestore();
+  });
+
+  it('closes game mode when clicking the centered Game Mode header badge', () => {
+    const spy = vi.spyOn(callPiPTransitionModule, 'triggerCallPiPTransition');
+    render(<SpotifyGameModePlayer />);
+
+    const badgeBtn = screen.getByTitle('Game Mode');
+    fireEvent.click(badgeBtn);
+
+    expect(spy).toHaveBeenCalledWith('minimize', expect.any(Object), expect.any(Function));
+    expect(useSpotifyPlayerStore.getState().isGameModeOpen).toBe(false);
+    spy.mockRestore();
   });
 
   it('closes game mode when pressing Escape key', () => {
+    const spy = vi.spyOn(callPiPTransitionModule, 'triggerCallPiPTransition');
     render(<SpotifyGameModePlayer />);
 
     fireEvent.keyDown(window, { key: 'Escape' });
 
+    expect(spy).toHaveBeenCalledWith('minimize', expect.any(Object), expect.any(Function));
     expect(useSpotifyPlayerStore.getState().isGameModeOpen).toBe(false);
+    spy.mockRestore();
   });
 
   it('toggles play/pause when clicking the large hero play/pause button and preserves progress time', () => {

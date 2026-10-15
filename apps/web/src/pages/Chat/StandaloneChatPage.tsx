@@ -15,26 +15,35 @@ import {
   Mic,
   Send,
   MessageSquare,
+  Check,
+  Pencil,
 } from 'lucide-react';
 import Avatar from '@/shared/ui/Avatar';
 import GroupAvatarCollage from '@/shared/ui/GroupAvatarCollage';
 import OnlineStatusIndicator from '@/shared/ui/OnlineStatusIndicator';
 import { useAuthStore } from '@/shared/model/useAuthStore';
 import { useConversations } from '@/features/chat/model/useConversations';
+import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/shared/api/queryKeys';
 import { useMessages } from '@/features/chat/model/useMessages';
 import { useMessageActions } from '@/features/chat/model/useMessageActions';
 import { useConversationRealtime } from '@/features/chat/model/useConversationRealtime';
 import { useChatGapFill } from '@/features/chat/model/useChatGapFill';
 import { useQueryOnlineStatus } from '@/features/chat/model/usePresence';
 import { getConversationDisplay } from '@/features/chat/lib/getConversationDisplay';
-import { promptEditMessage } from '@/features/chat/lib/promptEditMessage';
 import { useDecryptedMessageBody } from '@/features/chat/model/useDecryptedMessageBody';
-import { E2eePinChangedError } from '@/features/chat/lib/e2ee/messageE2ee';
+import {
+  E2eePinChangedError,
+  ensureMessageIdentityRegistered,
+  extractPlainPreview,
+} from '@/features/chat/lib/e2ee/messageE2ee';
 import { VerifiedCheckmark } from '@/entities/profile/ui/VerifiedCheckmark';
 import MessageList from '@/features/chat/ui/MessageList';
-import MessageSearchPanel from '@/features/chat/ui/MessageSearchPanel';
-import ConversationDetailsPanel from '@/features/chat/ui/ConversationDetailsPanel';
-import ForwardMessageModal from '@/features/chat/ui/ForwardMessageModal';
+import {
+  DeferredMessageSearchPanel as MessageSearchPanel,
+  DeferredConversationDetailsPanel as ConversationDetailsPanel,
+  DeferredForwardMessageModal as ForwardMessageModal,
+} from '@/features/chat/ui/DeferredChatOverlays';
 import { MessageView } from '@/entities/chat/model/types';
 import { useNavigate } from 'react-router-dom';
 import { chatApi } from '@/features/chat/api/chatApi';
@@ -50,9 +59,16 @@ export default function StandaloneChatPage() {
   const userId = useAuthStore((s) => s.userId);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const { data: conversations, isLoading: isLoadingConversations } = useConversations();
+  const { data: directConversation, isLoading: isLoadingDirect } = useQuery({
+    queryKey: queryKeys.conversations.detail(conversationId ?? 'none'),
+    queryFn: ({ signal }) => chatApi.getConversation(conversationId!, signal),
+    enabled: Boolean(conversationId && isAuthenticated),
+    retry: 1,
+  });
 
   useEffect(() => {
     initCrossTabSync();
+    void ensureMessageIdentityRegistered();
   }, []);
 
   useEffect(() => {
@@ -65,7 +81,8 @@ export default function StandaloneChatPage() {
     }
   }, [isAuthenticated, userId, navigate]);
 
-  const conversation = conversations?.find((c) => c.id === conversationId) ?? null;
+  const conversation =
+    directConversation ?? conversations?.find((c) => c.id === conversationId) ?? null;
   const display = conversation ? getConversationDisplay(conversation, userId) : null;
   const otherParticipant =
     conversation && conversation.type !== 'GROUP'
@@ -79,6 +96,12 @@ export default function StandaloneChatPage() {
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
+    loadNewer,
+    loadAroundMessage,
+    resetToLive,
+    isAnchoredInHistory,
+    hasNewer,
+    isFetchingPreviousPage,
     isLoading: isLoadingMessages,
   } = useMessages(conversationId ?? '');
   const { typingUserIds } = useConversationRealtime(conversationId ?? null);
@@ -90,11 +113,41 @@ export default function StandaloneChatPage() {
     return useChatDraftsStore.getState().getDraft(conversationId)?.text || '';
   });
   const [rightPanel, setRightPanel] = useState<'details' | 'search' | null>(null);
+  const [renderedPanel, setRenderedPanel] = useState<'details' | 'search' | null>(null);
+  const [isPanelClosing, setIsPanelClosing] = useState(false);
+  const panelCloseTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (rightPanel) {
+      if (panelCloseTimerRef.current) {
+        clearTimeout(panelCloseTimerRef.current);
+        panelCloseTimerRef.current = null;
+      }
+      setIsPanelClosing(false);
+      setRenderedPanel(rightPanel);
+    } else if (renderedPanel) {
+      setIsPanelClosing(true);
+      panelCloseTimerRef.current = setTimeout(() => {
+        setRenderedPanel(null);
+        setIsPanelClosing(false);
+        panelCloseTimerRef.current = null;
+      }, 300);
+    }
+  }, [rightPanel]);
+
+  useEffect(() => {
+    return () => {
+      if (panelCloseTimerRef.current) {
+        clearTimeout(panelCloseTimerRef.current);
+      }
+    };
+  }, []);
   const [highlightMessageId, setHighlightMessageId] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<MessageView | null>(() => {
     if (!conversationId) return null;
     return useChatDraftsStore.getState().getDraft(conversationId)?.replyingTo ?? null;
   });
+  const [editingMessage, setEditingMessage] = useState<MessageView | null>(null);
   const [forwardingMessage, setForwardingMessage] = useState<MessageView | null>(null);
   const [isMaximized, setIsMaximized] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
@@ -108,6 +161,22 @@ export default function StandaloneChatPage() {
   );
 
   const { markRead } = actions;
+
+  // Global Ctrl+F / Cmd+F shortcut to smoothly open/toggle search panel in chat
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isF = e.code === 'KeyF' || e.key?.toLowerCase() === 'f' || e.key?.toLowerCase() === 'а';
+      if ((e.ctrlKey || e.metaKey) && isF) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        setRightPanel((prev) => (prev === 'search' ? null : 'search'));
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
+  }, []);
 
   useEffect(() => {
     if (conversationId) {
@@ -144,10 +213,38 @@ export default function StandaloneChatPage() {
     setReplyingTo(null);
   };
 
+  const handleSaveEdit = () => {
+    if (!editingMessage || !text.trim() || !conversationId) return;
+    actions.editMessage(editingMessage.id, text.trim(), editingMessage.body).catch(() => {});
+    setEditingMessage(null);
+    setText('');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessage(null);
+    setText('');
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Escape') {
+      if (editingMessage) {
+        e.preventDefault();
+        handleCancelEdit();
+        return;
+      }
+      if (replyingTo) {
+        e.preventDefault();
+        setReplyingTo(null);
+        return;
+      }
+    }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSend();
+      if (editingMessage) {
+        handleSaveEdit();
+      } else {
+        handleSend();
+      }
     }
   };
 
@@ -173,7 +270,7 @@ export default function StandaloneChatPage() {
       ? conversation.pinnedMessages[0]
       : null;
 
-  if (isLoadingConversations) {
+  if (!conversation && (isLoadingConversations || isLoadingDirect)) {
     return (
       <div className="fixed inset-0 bg-[#0c1017] flex items-center justify-center text-gray-400">
         <div className="w-8 h-8 rounded-full border-2 border-sky-500 border-t-transparent animate-spin" />
@@ -226,7 +323,12 @@ export default function StandaloneChatPage() {
               )
             ) : (
               <>
-                <Avatar size="sm" src={display.avatar} />
+                <Avatar
+                  size="sm"
+                  src={display.avatar}
+                  decoration={display.activeDecoration}
+                  userId={display.otherUserId}
+                />
                 {display.otherUserId && (
                   <OnlineStatusIndicator userId={display.otherUserId} variant="dot" />
                 )}
@@ -355,6 +457,7 @@ export default function StandaloneChatPage() {
           <div className="flex-1 min-h-0 flex flex-col">
             <MessageList
               messages={messages}
+              conversationId={conversation.id}
               currentUserId={userId}
               otherParticipantId={otherParticipant?.userId ?? null}
               otherParticipant={otherParticipant}
@@ -362,16 +465,26 @@ export default function StandaloneChatPage() {
               hasMore={!!hasNextPage}
               isLoading={isLoadingMessages}
               isFetchingMore={isFetchingNextPage}
+              hasNewer={hasNewer}
+              isFetchingNewer={isFetchingPreviousPage}
+              isAnchoredInHistory={isAnchoredInHistory}
+              onLoadOlder={fetchNextPage}
+              onLoadNewer={loadNewer}
+              onLoadAround={loadAroundMessage}
+              onResetToLive={() => {
+                void resetToLive().catch(() => {});
+              }}
               typingParticipants={typingParticipants}
               isGroup={conversation.type === 'GROUP'}
               onLoadMore={fetchNextPage}
-              onReply={setReplyingTo}
+              onReply={(message) => {
+                setEditingMessage(null);
+                setReplyingTo(message);
+              }}
               onEdit={(message) => {
-                void promptEditMessage(
-                  message,
-                  otherParticipant?.userId ?? null,
-                  actions.editMessage,
-                );
+                setReplyingTo(null);
+                setEditingMessage(message);
+                setText(extractPlainPreview(message.body || ''));
               }}
               onDelete={(messageId, forAll) => {
                 actions.deleteMessage(messageId, forAll).catch(() => {});
@@ -391,11 +504,39 @@ export default function StandaloneChatPage() {
               onMarkRead={actions.markRead}
               highlightMessageId={highlightMessageId}
               onHighlightHandled={() => setHighlightMessageId(null)}
+              onJumpToMessage={(messageId) => {
+                setRightPanel(null);
+                setHighlightMessageId(messageId);
+              }}
             />
           </div>
 
+          {/* Editing banner */}
+          {editingMessage && (
+            <div className="flex items-center justify-between px-4 py-2 bg-[#161a26]/95 border-t border-white/10 text-xs shrink-0 select-none">
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <Pencil size={16} className="text-purple-400 shrink-0" />
+                <div className="w-[3px] h-7 rounded-full shrink-0 bg-purple-500" />
+                <div className="min-w-0">
+                  <span className="text-purple-400 font-semibold block">Editing</span>
+                  <p className="text-gray-300 truncate">
+                    {extractPlainPreview(editingMessage.body || '')}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-white rounded-full cursor-pointer"
+                title="Cancel (Esc)"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
+
           {/* Replying banner */}
-          {replyingTo && (
+          {replyingTo && !editingMessage && (
             <div className="flex items-center justify-between px-4 py-2 bg-[#161a26]/95 border-t border-white/10 text-xs shrink-0">
               <div className="min-w-0">
                 <span className="text-sky-400 font-semibold">
@@ -406,7 +547,7 @@ export default function StandaloneChatPage() {
               <button
                 type="button"
                 onClick={() => setReplyingTo(null)}
-                className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-white rounded-full"
+                className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-white rounded-full cursor-pointer"
               >
                 <X size={14} />
               </button>
@@ -437,8 +578,8 @@ export default function StandaloneChatPage() {
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Write a message..."
-                className="w-full h-10 px-4 rounded-full bg-white/5 border border-white/10 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-sky-500/50 transition-colors"
+                placeholder={editingMessage ? 'Edit message...' : 'Write a message...'}
+                className="w-full h-10 px-4 rounded-full bg-white/5 border border-white/10 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-purple-500/50 transition-colors"
               />
             </div>
 
@@ -450,11 +591,20 @@ export default function StandaloneChatPage() {
               <Smile size={19} />
             </button>
 
-            {text.trim() ? (
+            {editingMessage ? (
+              <button
+                type="button"
+                onClick={handleSaveEdit}
+                className="w-9 h-9 flex items-center justify-center rounded-xl bg-purple-600 hover:bg-purple-500 text-white transition-colors shrink-0 cursor-pointer shadow-[0_0_12px_rgba(168,85,247,0.5)]"
+                title="Save changes (Enter)"
+              >
+                <Check size={18} strokeWidth={2.8} />
+              </button>
+            ) : text.trim() ? (
               <button
                 type="button"
                 onClick={handleSend}
-                className="w-9 h-9 flex items-center justify-center rounded-xl bg-sky-500 text-white hover:bg-sky-400 transition-colors shrink-0"
+                className="w-9 h-9 flex items-center justify-center rounded-xl bg-sky-500 text-white hover:bg-sky-400 transition-colors shrink-0 cursor-pointer"
                 title="Send message"
               >
                 <Send size={16} />
@@ -471,32 +621,47 @@ export default function StandaloneChatPage() {
           </div>
         </div>
 
-        {/* Side Panels */}
-        {rightPanel === 'details' && (
-          <ConversationDetailsPanel
-            conversation={conversation}
-            display={display}
-            otherUserId={otherParticipant?.userId ?? null}
-            messages={messages}
-            onClose={() => setRightPanel(null)}
-            onOpenSearch={() => setRightPanel('search')}
-            onJumpToMessage={(msgId) => {
-              setRightPanel(null);
-              setHighlightMessageId(msgId);
-            }}
-          />
-        )}
+        {/* Smooth Animated Right Drawer Container */}
+        <aside
+          aria-label="Chat side panel"
+          className={`h-full flex-shrink-0 overflow-hidden transition-[width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+            rightPanel && !isPanelClosing ? 'w-[340px]' : 'w-0'
+          }`}
+        >
+          <div
+            className={`w-[340px] h-full flex flex-col flex-shrink-0 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+              rightPanel && !isPanelClosing
+                ? 'opacity-100 translate-x-0'
+                : 'opacity-0 translate-x-4 pointer-events-none'
+            }`}
+          >
+            {renderedPanel === 'details' && (
+              <ConversationDetailsPanel
+                conversation={conversation}
+                display={display}
+                otherUserId={otherParticipant?.userId ?? null}
+                messages={messages}
+                onClose={() => setRightPanel(null)}
+                onOpenSearch={() => setRightPanel('search')}
+                onJumpToMessage={(msgId) => {
+                  setRightPanel(null);
+                  setHighlightMessageId(msgId);
+                }}
+              />
+            )}
 
-        {rightPanel === 'search' && (
-          <MessageSearchPanel
-            conversationId={conversation.id}
-            onClose={() => setRightPanel(null)}
-            onJumpToMessage={(msgId) => {
-              setRightPanel(null);
-              setHighlightMessageId(msgId);
-            }}
-          />
-        )}
+            {renderedPanel === 'search' && (
+              <MessageSearchPanel
+                conversationId={conversation.id}
+                onClose={() => setRightPanel(null)}
+                onJumpToMessage={(msgId) => {
+                  setRightPanel(null);
+                  setHighlightMessageId(msgId);
+                }}
+              />
+            )}
+          </div>
+        </aside>
       </div>
 
       {forwardingMessage && (

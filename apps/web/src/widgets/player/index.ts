@@ -6,3 +6,4 @@ export { SpotifyLiquidSearchModal } from './SpotifyLiquidSearchModal';
 export { SpotifyLyricsModal } from './SpotifyLyricsModal';
 export { SpotifyMobilePlayerSheet } from './SpotifyMobilePlayerSheet';
 export { SpotifyQueuePopover } from './SpotifyQueuePopover';
+export { SpotifySquareDock } from './SpotifySquareDock';

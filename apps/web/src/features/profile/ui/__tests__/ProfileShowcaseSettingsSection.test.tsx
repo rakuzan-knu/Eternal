@@ -33,7 +33,7 @@ describe('ProfileShowcaseSettingsSection', () => {
     vi.clearAllMocks();
   });
 
-  it('renders showcase settings, selects accent color, toggles meta items, and saves', async () => {
+  it('renders redesigned showcase settings, tests custom color picker, custom privacy select, and saves', async () => {
     vi.mocked(showcaseApi.getShowcase).mockResolvedValue({
       id: 'sc-1',
       userId: 'usr-1',
@@ -62,24 +62,45 @@ describe('ProfileShowcaseSettingsSection', () => {
     expect(await screen.findByText('Profile Showcase & Widgets')).toBeInTheDocument();
     expect(screen.getByText('Live Preview Window')).toBeInTheDocument();
 
-    // Toggle Preview Mode (Owner vs Guest)
-    const ownerBtn = screen.getByRole('button', { name: 'Owner View' });
-    fireEvent.click(ownerBtn);
+    // Verify "Listening to music" appears and "Listening on Spotify" does NOT
+    expect(screen.getByText('Listening to music')).toBeInTheDocument();
+    expect(screen.queryByText(/Listening on Spotify/i)).toBeNull();
 
-    // Toggle Checkboxes
-    const showAgeCheckbox = screen.getAllByRole('checkbox')[1];
-    if (showAgeCheckbox) fireEvent.click(showAgeCheckbox);
+    // Verify mini widgets appear
+    expect(screen.getByText('ELDEN RING')).toBeInTheDocument();
+    expect(screen.getByText('Top 5 Slots')).toBeInTheDocument();
+    expect(screen.getByText('Slot 5')).toBeInTheDocument();
 
-    // Change Pronouns input
-    const pronounsInput = screen.getByPlaceholderText('e.g. he/him, they/them');
-    fireEvent.change(pronounsInput, { target: { value: 'they/them' } });
+    // Pick custom RGB color
+    const colorInput = screen.getByLabelText('Custom RGB color picker');
+    fireEvent.change(colorInput, { target: { value: '#ff0055' } });
+
+    // Custom Privacy Select interaction
+    const privacyButtons = screen.getAllByRole('button', { name: /Public \(Everyone\)/i });
+    expect(privacyButtons.length).toBeGreaterThan(0);
+    fireEvent.click(privacyButtons[0]);
+
+    // Select "Only Me"
+    const onlyMeOption = await screen.findByRole('option', { name: /Only Me/i });
+    fireEvent.click(onlyMeOption);
 
     // Save
     const saveBtn = screen.getByRole('button', { name: /Save Showcase Settings/i });
     fireEvent.click(saveBtn);
 
     await waitFor(() => {
-      expect(showcaseApi.updateShowcase).toHaveBeenCalled();
+      expect(showcaseApi.updateShowcase).toHaveBeenCalledWith(
+        expect.objectContaining({
+          accentColor: '#ff0055',
+          privacyMeta: ShowcasePrivacy.PRIVATE,
+          showAge: false,
+          showBirthdate: true,
+          showGender: true,
+          showTimezone: true,
+          pronouns: 'she/her',
+          timezone: 'Europe/Berlin',
+        }),
+      );
     });
   });
 });

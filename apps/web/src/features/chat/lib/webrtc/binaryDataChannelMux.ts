@@ -17,6 +17,8 @@ export const MULTIPLEXED_STREAM_IDS = {
   WEBCODECS: 0x05,
   REACTION_EMOTES: 0x06,
   CONTROL_PTT: 0x07,
+  SOUNDBOARD: 0x08,
+  ACTIVITY: 0x09,
 } as const;
 
 export const FRAME_FLAGS = {
@@ -118,7 +120,10 @@ export class BinaryDataChannelMux {
 
     const payloadLen = payloadBytes.byteLength;
     if (payloadLen > 65535) {
-      throw new Error(`Payload length ${payloadLen} exceeds max 16-bit frame size (65535)`);
+      console.warn(
+        `[BinaryMux] Payload length ${payloadLen} exceeds max 16-bit frame size (65535), skipping binary frame`,
+      );
+      return;
     }
 
     // Allocate 4 bytes header + payload bytes from 16MB slab pool

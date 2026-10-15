@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -12,13 +12,27 @@ import * as useMessageActionsModule from '@/features/chat/model/useMessageAction
 import * as useConversationRealtimeModule from '@/features/chat/model/useConversationRealtime';
 import * as usePresenceModule from '@/features/chat/model/usePresence';
 import { useChatDraftsStore } from '@/features/chat/model/useChatDraftsStore';
+import { chatApi } from '@/features/chat/api/chatApi';
 
 vi.mock('@/shared/lib/broadcastSync', () => ({
   initCrossTabSync: vi.fn(),
 }));
 
 vi.mock('@/features/chat/ui/MessageList', () => ({
-  default: ({ onReply, onEdit, onDelete, onForward, onTogglePin }: any) => (
+  default: ({
+    onReply,
+    onEdit,
+    onDelete,
+    onForward,
+    onTogglePin,
+    onLoadOlder,
+    onLoadNewer,
+    onLoadAround,
+    onResetToLive,
+    isAnchoredInHistory,
+    hasNewer,
+    isFetchingNewer,
+  }: any) => (
     <div data-testid="message-list">
       <button
         onClick={() =>
@@ -37,6 +51,14 @@ vi.mock('@/features/chat/ui/MessageList', () => ({
         Forward Mock
       </button>
       <button onClick={() => onTogglePin({ id: 'msg-1', isPinned: false })}>Pin Mock</button>
+      <button onClick={onLoadOlder}>Older history</button>
+      <button disabled={!hasNewer || isFetchingNewer} onClick={onLoadNewer}>
+        Newer history
+      </button>
+      <button disabled={!isAnchoredInHistory} onClick={onResetToLive}>
+        Live history
+      </button>
+      <button onClick={() => onLoadAround?.('historical-message')}>Jump history</button>
     </div>
   ),
 }));
@@ -76,6 +98,10 @@ describe('StandaloneChatPage', () => {
   const mockPinMessage = vi.fn().mockResolvedValue({});
   const mockEditMessage = vi.fn().mockResolvedValue({});
   const mockDeleteMessage = vi.fn().mockResolvedValue({});
+  const mockLoadOlder = vi.fn().mockResolvedValue(undefined);
+  const mockLoadNewer = vi.fn().mockResolvedValue(undefined);
+  const mockLoadAround = vi.fn().mockResolvedValue(undefined);
+  const mockResetToLive = vi.fn().mockResolvedValue(undefined);
 
   const sampleConversation = {
     id: 'conv-1',
@@ -94,6 +120,10 @@ describe('StandaloneChatPage', () => {
     queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     useAuthStore.setState({ userId: 'user-1', isAuthenticated: true });
     useChatDraftsStore.setState({ drafts: {} });
+    vi.spyOn(chatApi, 'getConversation').mockImplementation(async (id) => {
+      if (id === 'unknown-conv') throw new Error('Conversation not found');
+      return sampleConversation as never;
+    });
 
     vi.spyOn(useConversationsModule, 'useConversations').mockReturnValue({
       data: [sampleConversation as any],
@@ -104,7 +134,13 @@ describe('StandaloneChatPage', () => {
       messages: [],
       hasNextPage: false,
       isFetchingNextPage: false,
-      fetchNextPage: vi.fn(),
+      fetchNextPage: mockLoadOlder,
+      loadNewer: mockLoadNewer,
+      loadAroundMessage: mockLoadAround,
+      resetToLive: mockResetToLive,
+      isAnchoredInHistory: false,
+      hasNewer: false,
+      isFetchingPreviousPage: false,
       isLoading: false,
     } as any);
 
@@ -151,10 +187,20 @@ describe('StandaloneChatPage', () => {
     expect(container.querySelector('.animate-spin')).toBeInTheDocument();
   });
 
-  it('renders "Chat Not Found" when conversation does not exist', () => {
+  it('renders "Chat Not Found" after direct lookup confirms conversation does not exist', async () => {
     renderComponent('unknown-conv');
-    expect(screen.getByText('Chat Not Found')).toBeInTheDocument();
+    expect(await screen.findByText('Chat Not Found', {}, { timeout: 10000 })).toBeInTheDocument();
     expect(screen.getByText('Close Window')).toBeInTheDocument();
+  });
+
+  it('resolves an old dialog directly when it is outside the loaded page', async () => {
+    vi.spyOn(useConversationsModule, 'useConversations').mockReturnValue({
+      data: [],
+      isLoading: false,
+    } as never);
+    renderComponent('older-dialog');
+    expect(await screen.findByText('Bob Jones')).toBeInTheDocument();
+    expect(chatApi.getConversation).toHaveBeenCalledWith('older-dialog', expect.any(AbortSignal));
   });
 
   it('redirects to login when unauthenticated', () => {
@@ -197,13 +243,13 @@ describe('StandaloneChatPage', () => {
     renderComponent();
 
     await user.click(screen.getByTitle('Search'));
-    expect(screen.getByTestId('search-panel')).toBeInTheDocument();
+    expect(await screen.findByTestId('search-panel')).toBeInTheDocument();
 
     await user.click(screen.getByText('Close Search'));
-    expect(screen.queryByTestId('search-panel')).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByTestId('search-panel')).not.toBeInTheDocument());
 
     await user.click(screen.getByTitle('Conversation details'));
-    expect(screen.getByTestId('details-panel')).toBeInTheDocument();
+    expect(await screen.findByTestId('details-panel')).toBeInTheDocument();
   });
 
   it('handles reply and forward flows', async () => {
@@ -214,7 +260,7 @@ describe('StandaloneChatPage', () => {
     expect(screen.getByText('Replying to Bob')).toBeInTheDocument();
 
     await user.click(screen.getByText('Forward Mock'));
-    expect(screen.getByTestId('forward-modal')).toBeInTheDocument();
+    expect(await screen.findByTestId('forward-modal')).toBeInTheDocument();
     await user.click(screen.getByText('Confirm Forward'));
   });
 
@@ -234,5 +280,30 @@ describe('StandaloneChatPage', () => {
     const maxButton = screen.getByTitle('Maximize');
     await user.click(maxButton);
     expect(screen.getByTitle('Restore')).toBeInTheDocument();
+  });
+
+  it('keeps popout history paging, reverse hydration, jumps and live reset with the bounded history owner', async () => {
+    vi.spyOn(useMessagesModule, 'useMessages').mockReturnValue({
+      messages: [],
+      hasNextPage: true,
+      isFetchingNextPage: false,
+      isLoading: false,
+      fetchNextPage: mockLoadOlder,
+      loadNewer: mockLoadNewer,
+      loadAroundMessage: mockLoadAround,
+      resetToLive: mockResetToLive,
+      isAnchoredInHistory: true,
+      hasNewer: true,
+      isFetchingPreviousPage: false,
+    } as any);
+    renderComponent();
+    fireEvent.click(screen.getByText('Older history'));
+    fireEvent.click(screen.getByText('Newer history'));
+    fireEvent.click(screen.getByText('Jump history'));
+    fireEvent.click(screen.getByText('Live history'));
+    expect(mockLoadOlder).toHaveBeenCalledOnce();
+    expect(mockLoadNewer).toHaveBeenCalledOnce();
+    expect(mockLoadAround).toHaveBeenCalledWith('historical-message');
+    await waitFor(() => expect(mockResetToLive).toHaveBeenCalledOnce());
   });
 });

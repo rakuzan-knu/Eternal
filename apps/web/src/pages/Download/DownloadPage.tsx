@@ -127,7 +127,7 @@ export const DownloadPage: React.FC = () => {
         </div>
       )}
 
-      {/* 1. Hero Section (Deep Indigo/Purple Discord Style with Smart OS Button) */}
+      {/* 1. Hero Section */}
       <section className="relative pt-36 pb-20 px-6 lg:px-12 bg-gradient-to-b from-[#381a80] via-[#240e5c] to-[#07050f] overflow-hidden">
         {/* Ambient Glow */}
         <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[900px] h-[450px] bg-purple-600/25 blur-[140px] pointer-events-none rounded-full" />

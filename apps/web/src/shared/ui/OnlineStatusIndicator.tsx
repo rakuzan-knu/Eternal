@@ -2,14 +2,22 @@ import React from 'react';
 import { usePresenceStore } from '@/shared/model/usePresenceStore';
 import { useAuthStore } from '@/shared/model/useAuthStore';
 import { DiscordGamepadIcon } from '@/shared/ui/BrandIcons';
-import { Music } from 'lucide-react';
+import { Music, Pause } from 'lucide-react';
+import {
+  isMusicActivity,
+  isGamingActivity,
+  getActivityGameIcon,
+  getActivityMusicCover,
+  formatActivityText,
+} from './activityIcons';
 
 interface OnlineStatusIndicatorProps {
   userId: string;
   variant?: 'dot' | 'text';
-  size?: 'sm' | 'md';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
   showOfflineDot?: boolean;
+  showIcon?: boolean;
 }
 
 export default function OnlineStatusIndicator({
@@ -18,6 +26,7 @@ export default function OnlineStatusIndicator({
   size = 'sm',
   className = '',
   showOfflineDot = true,
+  showIcon = true,
 }: OnlineStatusIndicatorProps) {
   const currentUserId = useAuthStore((s) => s.userId);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -25,40 +34,39 @@ export default function OnlineStatusIndicator({
   const activity = usePresenceStore((s) => s.userActivities[userId]);
 
   const isOnline = (isAuthenticated && currentUserId === userId) || isOnlineInStore;
-  const isGaming = Boolean(
-    isOnline &&
-    activity &&
-    (activity.type === 'gaming' ||
-      activity.type === 'game' ||
-      activity.isSteam ||
-      (activity.title && activity.type !== 'spotify')),
-  );
-
-  const isListeningSpotify = Boolean(
-    isOnline &&
-    !isGaming &&
-    activity &&
-    (activity.type === 'spotify' || Boolean(activity.trackId && !isGaming)),
-  );
+  const isListening = Boolean(isOnline && isMusicActivity(activity));
+  const isGaming = Boolean(isOnline && isGamingActivity(activity));
 
   if (variant === 'text') {
-    if (isGaming) {
+    if (isListening) {
+      const formatted = formatActivityText(activity, 24, 16);
+      const isPaused = Boolean(activity?.isPaused);
       return (
         <span
-          className={`text-emerald-400 font-medium inline-flex items-center gap-1.5 ${className}`}
+          className={`${isPaused ? 'text-amber-400' : 'text-[#1DB954]'} font-medium inline-flex items-center gap-1.5 ${className}`}
+          title={`${isPaused ? 'Paused: ' : 'Listening to '}${formatted.fullText}`}
         >
-          <DiscordGamepadIcon size={12} className="text-[#23a55a] shrink-0" />
-          <span className="truncate">Playing {activity?.title}</span>
+          {showIcon &&
+            (isPaused ? (
+              <Pause size={12} className="text-amber-400 fill-amber-400/40 shrink-0" />
+            ) : (
+              getActivityMusicCover(activity, 13)
+            ))}
+          <span className="truncate max-w-[200px]">
+            {isPaused ? 'Paused' : 'Listening to'} {formatted.title}
+          </span>
         </span>
       );
     }
-    if (isListeningSpotify) {
+    if (isGaming) {
+      const formatted = formatActivityText(activity, 24, 16);
       return (
         <span
-          className={`text-[#1DB954] font-medium inline-flex items-center gap-1.5 ${className}`}
+          className={`text-emerald-400 font-medium inline-flex items-center gap-1.5 ${className}`}
+          title={`Playing ${formatted.fullText}`}
         >
-          <Music size={12} className="text-[#1DB954] shrink-0" />
-          <span className="truncate">Listening to {activity?.title}</span>
+          {showIcon && getActivityGameIcon(activity, 13)}
+          <span className="truncate max-w-[200px]">Playing {formatted.title}</span>
         </span>
       );
     }
@@ -71,43 +79,68 @@ export default function OnlineStatusIndicator({
 
   if (!isOnline && !showOfflineDot) return null;
 
+  if (isListening) {
+    const isStatic = className.includes('static');
+    const isPaused = Boolean(activity?.isPaused);
+    const iconSize = size === 'xl' ? 18 : size === 'lg' ? 16 : size === 'sm' ? 12 : 14;
+    const badgePadding =
+      size === 'xl'
+        ? 'p-1.5 bottom-1 right-1'
+        : size === 'lg'
+          ? 'p-1 bottom-1 right-1'
+          : 'p-0.5 -bottom-1 -right-1';
+    const songDetails = activity?.subtitle || activity?.artist || '';
+    return (
+      <span
+        aria-label={isPaused ? 'Paused on Spotify' : 'Listening to Spotify'}
+        title={`${isPaused ? 'Paused: ' : 'Listening to '}${activity?.title || 'music'}${songDetails ? ` — ${songDetails}` : ''}`}
+        className={`${isStatic ? 'inline-flex' : `absolute ${badgePadding} bg-[#16161a] rounded-full`} flex items-center justify-center pointer-events-none drop-shadow-[0_0_6px_${isPaused ? 'rgba(245,158,11,0.85)' : 'rgba(29,185,84,0.85)'}] z-10 ${className}`}
+      >
+        {isPaused ? (
+          <Pause size={isStatic ? 12 : iconSize} className="text-amber-400 fill-amber-400/40" />
+        ) : (
+          <Music size={isStatic ? 12 : iconSize} className="text-[#1DB954]" />
+        )}
+      </span>
+    );
+  }
+
   if (isGaming) {
     const isStatic = className.includes('static');
-    const iconSize = size === 'sm' ? 14 : 18;
+    const iconSize = size === 'xl' ? 18 : size === 'lg' ? 16 : size === 'sm' ? 12 : 14;
+    const badgePadding =
+      size === 'xl'
+        ? 'p-1.5 bottom-1 right-1'
+        : size === 'lg'
+          ? 'p-1 bottom-1 right-1'
+          : 'p-0.5 -bottom-1 -right-1';
     return (
       <span
         aria-label="Playing a game"
         title={`Playing ${activity?.title || 'game'}`}
-        className={`${isStatic ? 'inline-flex' : 'absolute -bottom-1 -right-1 p-0.5 bg-[#16161a] rounded-full'} flex items-center justify-center pointer-events-none drop-shadow-[0_0_6px_rgba(35,165,90,0.85)] z-10 ${className}`}
+        className={`${isStatic ? 'inline-flex' : `absolute ${badgePadding} bg-[#16161a] rounded-full`} flex items-center justify-center pointer-events-none drop-shadow-[0_0_6px_rgba(35,165,90,0.85)] z-10 ${className}`}
       >
         <DiscordGamepadIcon size={isStatic ? 12 : iconSize} className="text-[#23a55a]" />
       </span>
     );
   }
 
-  if (isListeningSpotify) {
-    const isStatic = className.includes('static');
-    const iconSize = size === 'sm' ? 13 : 16;
-    const songDetails = activity?.subtitle || activity?.artist || '';
-    return (
-      <span
-        aria-label="Listening to Spotify"
-        title={`Listening to ${activity?.title || 'music'}${songDetails ? ` — ${songDetails}` : ''}`}
-        className={`${isStatic ? 'inline-flex' : 'absolute -bottom-1 -right-1 p-0.5 bg-[#16161a] rounded-full'} flex items-center justify-center pointer-events-none drop-shadow-[0_0_6px_rgba(29,185,84,0.85)] z-10 ${className}`}
-      >
-        <Music size={isStatic ? 12 : iconSize} className="text-[#1DB954]" />
-      </span>
-    );
-  }
+  const dotSize =
+    size === 'xl'
+      ? 'w-6 h-6 border-[3px] bottom-1 right-1'
+      : size === 'lg'
+        ? 'w-5 h-5 border-[2.5px] bottom-1 right-1'
+        : size === 'sm'
+          ? 'w-3 h-3 border-2 bottom-0 right-0'
+          : 'w-3.5 h-3.5 border-2 bottom-0 right-0';
 
-  const dotSize = size === 'sm' ? 'w-3 h-3' : 'w-3.5 h-3.5';
   return (
     <span
       aria-label={isOnline ? 'Online' : 'Offline'}
       title={isOnline ? 'Online' : 'Offline'}
-      className={`absolute bottom-0 right-0 ${dotSize} rounded-full ${
+      className={`absolute ${dotSize} rounded-full ${
         isOnline ? 'bg-emerald-500' : 'bg-gray-500'
-      } border-2 border-[#16161a] ${className}`}
+      } border-[#16161a] ${className}`}
     />
   );
 }

@@ -59,7 +59,7 @@ export const REGIONAL_PRIVACY_DATA: Record<'en' | 'uk', RegionalPolicyTranslatio
             id: 'gdpr-legal-bases',
             title: '1.1 Legal Bases for Processing',
             content: [
-              'If you are located in the EEA, the United Kingdom, or Switzerland, Eternal Inc. (headquartered in Kyiv, Ukraine) acts as the Data Controller for your personal data. We process your data under the following legal bases pursuant to Article 6 of the General Data Protection Regulation (GDPR):',
+              'If you are located in the EEA, the United Kingdom, or Switzerland, Ag Mykola and Ag Mihal, the founders operating the Eternal project in Ukraine, act as the Data Controllers for your personal data. We process your data under the following legal bases pursuant to Article 6 of the General Data Protection Regulation (GDPR):',
             ],
             bullets: [
               'Contractual Necessity: To provide, maintain, and deliver our core services, verify user accounts, process subscriptions, and facilitate real-time chat and voice communications in accordance with our Terms of Service.',
@@ -138,7 +138,7 @@ export const REGIONAL_PRIVACY_DATA: Record<'en' | 'uk', RegionalPolicyTranslatio
             id: 'ukraine-statute-rights',
             title: '3.1 Rights under the Law of Ukraine "On Personal Data Protection"',
             content: [
-              'Eternal Inc. operates in full conformity with the Constitution of Ukraine and the Law of Ukraine "On Personal Data Protection" No. 2297-VI. Pursuant to Article 8 of the Law, data subjects have the right:',
+              'Eternal is operated by Ag Mykola and Ag Mihal in Ukraine. The Constitution of Ukraine and the Law of Ukraine "On Personal Data Protection" No. 2297-VI provide applicable protections for data subjects. Pursuant to Article 8 of the Law, data subjects have the right:',
             ],
             bullets: [
               'To know about the sources of collection, location of their personal data, purpose of processing, and location of the controller/processor.',
@@ -210,7 +210,7 @@ export const REGIONAL_PRIVACY_DATA: Record<'en' | 'uk', RegionalPolicyTranslatio
             bullets: [
               'Data Protection Officer (DPO): aghnikolaj1@gmail.com',
               'Legal & Privacy Operations: privacy@eternal.com',
-              'Headquarters Address: Eternal Inc., Kyiv, Ukraine',
+              'Project operators: Ag Mykola and Ag Mihal, Ukraine',
               'Supervisory Authority (Ukraine): Secretariat of the Ukrainian Parliament Commissioner for Human Rights (hotline@ombudsman.gov.ua).',
               'Supervisory Authority (EU): You may also lodge a complaint with your national Data Protection Authority (DPA) in the EU member state where you reside.',
             ],
@@ -246,7 +246,7 @@ export const REGIONAL_PRIVACY_DATA: Record<'en' | 'uk', RegionalPolicyTranslatio
             id: 'gdpr-legal-bases',
             title: '1.1 Правові підстави обробки даних',
             content: [
-              'Для користувачів з країн ЄЕЗ, Великобританії та Швейцарії компанія Eternal Inc. (м. Київ, Україна) виступає Контролером персональних даних. Ми обробляємо персональні дані відповідно до статті 6 GDPR:',
+              'Для користувачів з країн ЄЕЗ, Великобританії та Швейцарії засновники Ag Mykola та Ag Mihal, які керують проєктом Eternal в Україні, виступають Контролерами персональних даних. Ми обробляємо персональні дані відповідно до статті 6 GDPR:',
             ],
             bullets: [
               'Виконання договору: забезпечення роботи платформи, аутентифікація, надання доступу до чатів, голосових серверів та підписок.',
@@ -299,13 +299,13 @@ export const REGIONAL_PRIVACY_DATA: Record<'en' | 'uk', RegionalPolicyTranslatio
         number: '3',
         title: 'Національне законодавство України (Закон № 2297-VI)',
         iconName: 'FileCheck',
-        tldr: 'Eternal Inc. діє в юрисдикції України та гарантує всі права суб’єктів персональних даних згідно зі ст. 8 Закону «Про захист персональних даних».',
+        tldr: 'Eternal діє в юрисдикції України та гарантує всі права суб’єктів персональних даних згідно зі ст. 8 Закону «Про захист персональних даних».',
         subsections: [
           {
             id: 'ukraine-statute-rights',
             title: '3.1 Права згідно із Законом України «Про захист персональних даних»',
             content: [
-              'Компанія Eternal Inc. зареєстрована та діє в м. Київ, Україна. Відповідно до статті 8 Закону України «Про захист персональних даних» № 2297-VI, суб’єкт персональних даних має право:',
+              'Проєктом Eternal в Україні керують Ag Mykola та Ag Mihal. Відповідно до статті 8 Закону України «Про захист персональних даних» № 2297-VI, суб’єкт персональних даних має право:',
             ],
             bullets: [
               'Знати про джерела збирання, місцезнаходження своїх персональних даних, мету їх обробки та місцезнаходження володільця чи розпорядника.',
@@ -368,7 +368,7 @@ export const REGIONAL_PRIVACY_DATA: Record<'en' | 'uk', RegionalPolicyTranslatio
             bullets: [
               'Офіцер із захисту даних (DPO): aghnikolaj1@gmail.com',
               'Юридичний департамент: privacy@eternal.com',
-              'Місцезнаходження: Eternal Inc., м. Київ, Україна',
+              'Оператори проєкту: Ag Mykola та Ag Mihal, Україна',
               'Національний наглядовий орган: Секретаріат Уповноваженого Верховної Ради України з прав людини (hotline@ombudsman.gov.ua).',
             ],
           },

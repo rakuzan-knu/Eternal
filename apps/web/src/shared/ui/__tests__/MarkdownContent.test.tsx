@@ -163,4 +163,24 @@ describe('MarkdownContent', () => {
     );
     expect(container.querySelector('a')).toBeNull();
   });
+
+  it('preserves multi-line text and newlines with whitespace-pre-wrap', () => {
+    const multiLinePlain = 'Developer\nFame\n\nVeni, Vidi, Vici';
+    const { container: plainContainer } = renderWithProviders(
+      <MarkdownContent content={multiLinePlain} />,
+    );
+
+    const plainP = plainContainer.querySelector('p');
+    expect(plainP).not.toBeNull();
+    expect(plainP).toHaveClass('whitespace-pre-wrap');
+    expect(plainP?.textContent).toContain('Developer\nFame\n\nVeni, Vidi, Vici');
+
+    const multiLineFormatted = '**Developer**\nFame\n\n_Veni, Vidi, Vici_';
+    const { container: formattedContainer } = renderWithProviders(
+      <MarkdownContent content={multiLineFormatted} />,
+    );
+    const formattedP = formattedContainer.querySelector('p');
+    expect(formattedP).not.toBeNull();
+    expect(formattedP).toHaveClass('whitespace-pre-wrap');
+  });
 });
