@@ -1,3 +1,4 @@
+import { PlatformAdminGuard } from '../auth/guards/platform-admin.guard';
 import { Module } from '@nestjs/common';
 import { TerminusModule } from '@nestjs/terminus';
 import { PrismaModule } from '@common/prisma';
@@ -10,7 +11,7 @@ import { roleControllers } from '../config/service-role';
 @Module({
   imports: [TerminusModule, PrismaModule, RedisModule],
   controllers: roleControllers('all', [HealthController]),
-  providers: [HealthRepository, HealthService],
+  providers: [PlatformAdminGuard, HealthRepository, HealthService],
   exports: [HealthService],
 })
 export class HealthModule {}

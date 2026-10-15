@@ -22,11 +22,13 @@ async function unlockAudio() {
 
   try {
     const previousVolume = sound.volume;
+    sound.muted = true;
     sound.volume = 0;
     await sound.play();
     sound.pause();
     sound.currentTime = 0;
     sound.volume = previousVolume;
+    sound.muted = false;
     isUnlocked = true;
   } catch {
     // Browsers may still block autoplay until a stronger user gesture occurs.
@@ -40,6 +42,9 @@ export function initializeMessageNotificationSound() {
 
   const unlock = () => {
     void unlockAudio();
+    window.removeEventListener('pointerdown', unlock);
+    window.removeEventListener('keydown', unlock);
+    window.removeEventListener('touchstart', unlock);
   };
 
   window.addEventListener('pointerdown', unlock, { passive: true });

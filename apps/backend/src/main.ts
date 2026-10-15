@@ -53,6 +53,7 @@ async function bootstrap() {
 
   await app.register(fastifyHelmet, {
     contentSecurityPolicy: false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
   });
 
   await app.register(fastifyCookie);
@@ -87,6 +88,11 @@ async function bootstrap() {
     root: uploadDir,
     prefix: '/uploads/',
     decorateReply: false,
+    setHeaders: (res) => {
+      res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+      res.header('Access-Control-Allow-Origin', '*');
+      res.header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+    },
   });
 
   setupApiVersioning(app);

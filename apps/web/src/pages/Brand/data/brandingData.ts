@@ -109,7 +109,7 @@ export const BRANDING_TRANSLATIONS: Record<string, BrandingTranslations> = {
     ],
     legalHeading: 'LEGAL BRAND GUIDELINES',
     legalIntro:
-      'ETERNAL, the “E” Logo and any other trademark owned by Eternal and its affiliates (the “Eternal Marks”) and other brand materials such as logos, trade dress, the Eternal look and feel, and other aesthetic features unique to the brand (the “Brand Assets”) are the exclusive property of Eternal Inc. You must have permission from Eternal before using any of the Eternal Marks or Brand Assets except as permitted here.',
+      'The Eternal name, the “E” logo, and other brand assets are reserved to Ag Mykola and Ag Mihal only to the extent of their legally held rights. Use requires permission except as expressly allowed by these guidelines or applicable law. These guidelines do not grant rights to proprietary source code or claim rights in third-party assets.',
     dosTitle: 'Do’s',
     dosItems: [
       'Always follow these Brand Guidelines when using the Eternal Marks and Brand Assets.',
@@ -197,7 +197,7 @@ export const BRANDING_TRANSLATIONS: Record<string, BrandingTranslations> = {
     ],
     legalHeading: 'ПРАВИЛА ВИКОРИСТАННЯ БРЕНДУ',
     legalIntro:
-      'ETERNAL, логотип «E» та будь-які інші торгові марки, що належать Eternal та її партнерам («Знаки Eternal»), а також інші матеріали бренду, такі як логотипи, фірмовий стиль, зовнішній вигляд Eternal та інші унікальні естетичні особливості бренду («Матеріали бренду»), є виключною власністю Eternal. Ви повинні отримати дозвіл від Eternal перед використанням будь-яких Знаків Eternal або Матеріалів бренду, за винятком випадків, дозволених тут.',
+      'Назва Eternal, логотип «E» та інші матеріали бренду зберігаються за Ag Mykola та Ag Mihal лише в межах прав, що законно їм належать. Використання потребує дозволу, крім випадків, прямо дозволених цими правилами або законом. Правила не надають прав на пропрієтарний вихідний код або сторонні матеріали.',
     dosTitle: 'Що дозволено (Do’s)',
     dosItems: [
       'Завжди дотримуйтесь цих Правил використання бренду під час застосування Знаків і Матеріалів бренду Eternal.',
@@ -273,7 +273,8 @@ export const BRANDING_TRANSLATIONS: Record<string, BrandingTranslations> = {
       },
     ],
     legalHeading: 'MARKENRICHTLINIEN',
-    legalIntro: 'Die Marken von Eternal sind geschütztes Eigentum.',
+    legalIntro:
+      'Ag Mykola und Ag Mihal behalten die ihnen rechtmäßig zustehenden Rechte an den Eternal-Markenmaterialien. Nutzungen benötigen eine Erlaubnis, soweit diese Richtlinien oder das Gesetz nichts anderes zulassen. Rechte am proprietären Quellcode oder an Materialien Dritter werden nicht eingeräumt.',
     dosTitle: 'Erlaubt (Do’s)',
     dosItems: ['Verwenden Sie die Marken nur gemäß den Richtlinien.'],
     dontsTitle: 'Nicht erlaubt (Don’ts)',
@@ -336,7 +337,8 @@ export const BRANDING_TRANSLATIONS: Record<string, BrandingTranslations> = {
       },
     ],
     legalHeading: 'DIRECTRICES DE MARCA',
-    legalIntro: 'Las marcas de Eternal son propiedad exclusiva.',
+    legalIntro:
+      'Ag Mykola y Ag Mihal conservan únicamente los derechos que legalmente poseen sobre los materiales de marca de Eternal. Se requiere permiso salvo lo autorizado por estas directrices o la ley. No se conceden derechos sobre el código propietario ni sobre materiales de terceros.',
     dosTitle: 'Permitido (Do’s)',
     dosItems: ['Siga siempre estas directrices al usar los recursos.'],
     dontsTitle: 'Prohibido (Don’ts)',
@@ -399,7 +401,8 @@ export const BRANDING_TRANSLATIONS: Record<string, BrandingTranslations> = {
       },
     ],
     legalHeading: 'DIRECTIVES DE MARQUE',
-    legalIntro: 'Les marques et logos d’Eternal sont protégés.',
+    legalIntro:
+      'Ag Mykola et Ag Mihal conservent uniquement les droits qui leur appartiennent légalement sur les éléments de marque Eternal. Une autorisation est requise sauf dans les cas prévus par ces règles ou la loi. Aucun droit sur le code propriétaire ni sur les éléments de tiers n’est accordé.',
     dosTitle: 'À faire (Do’s)',
     dosItems: ['Respectez toujours ces directives.'],
     dontsTitle: 'À ne pas faire (Don’ts)',

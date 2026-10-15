@@ -9,6 +9,7 @@ import { useNotificationStore } from '../useNotificationStore';
 import { playMessageNotificationSound } from '../../lib/messageNotificationSound';
 import { showBrowserPushNotification } from '@/shared/lib/browserPushNotifications';
 import { NOTIFICATIONS_KEY } from '@/shared/api/queryKeys';
+import { useMessageToastStore } from '@/shared/model/useMessageToastStore';
 import type { NotificationItem } from '../types';
 
 vi.mock('@/shared/api/socket', () => ({
@@ -68,6 +69,7 @@ describe('useNotificationRealtime', () => {
       activeFilter: 'all',
       optimisticFollows: {},
     });
+    useMessageToastStore.setState({ toasts: [] });
   });
 
   afterEach(() => {
@@ -368,5 +370,33 @@ describe('useNotificationRealtime', () => {
         });
       });
     }).not.toThrow();
+  });
+
+  it('dispatches in-app push toast with actor avatar and deep link, and respects category settings', () => {
+    renderHook(() => useNotificationRealtime(), { wrapper: createWrapper() });
+
+    act(() => {
+      socketListeners['notification:new']({
+        notification: sampleNotif,
+      });
+    });
+
+    const toasts = useMessageToastStore.getState().toasts;
+    expect(toasts.length).toBe(1);
+    expect(toasts[0].title).toBe('John Doe');
+    expect(toasts[0].body).toBe('liked your post');
+    expect(toasts[0].avatar).toBe('https://avatar.png');
+    expect(toasts[0].linkUrl).toBe('/post/123');
+
+    // If likes are disabled, no toast should be added
+    useNotificationSettingsStore.setState({ likes: false });
+    act(() => {
+      socketListeners['notification:new']({
+        notification: { ...sampleNotif, id: 'notif-2' },
+      });
+    });
+
+    // Still only 1 toast from previous
+    expect(useMessageToastStore.getState().toasts.length).toBe(1);
   });
 });

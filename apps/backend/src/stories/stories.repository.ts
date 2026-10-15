@@ -1,3 +1,4 @@
+import { canViewStory, storyAccess } from './story-access';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@common/prisma';
 import {
@@ -16,7 +17,9 @@ export type StoryWithDetails = Prisma.StoryGetPayload<{
         id: true;
         username: true;
         displayName: true;
+        displayNameStyle: true;
         avatar: true;
+        activeDecoration: true;
         isVerified: true;
       };
     };
@@ -58,6 +61,20 @@ export interface CreateStoryDbData {
 export class StoriesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  canView(
+    story: { authorId: string; privacy: StoryPrivacy; expiresAt: Date | string },
+    viewerId?: string,
+  ): Promise<boolean> {
+    return canViewStory(this.prisma, story, viewerId);
+  }
+
+  audienceAccess(
+    stories: { authorId: string; privacy: StoryPrivacy; expiresAt: Date | string }[],
+    viewerId?: string,
+  ): Promise<boolean[]> {
+    return storyAccess(this.prisma, stories, viewerId);
+  }
+
   async createStory(data: CreateStoryDbData): Promise<StoryWithDetails> {
     return this.prisma.story.create({
       data: {
@@ -78,7 +95,9 @@ export class StoriesRepository {
             id: true,
             username: true,
             displayName: true,
+            displayNameStyle: true,
             avatar: true,
+            activeDecoration: true,
             isVerified: true,
           },
         },
@@ -138,7 +157,9 @@ export class StoriesRepository {
             id: true,
             username: true,
             displayName: true,
+            displayNameStyle: true,
             avatar: true,
+            activeDecoration: true,
             isVerified: true,
           },
         },
@@ -183,7 +204,9 @@ export class StoriesRepository {
             id: true,
             username: true,
             displayName: true,
+            displayNameStyle: true,
             avatar: true,
+            activeDecoration: true,
             isVerified: true,
           },
         },
@@ -221,7 +244,9 @@ export class StoriesRepository {
             id: true,
             username: true,
             displayName: true,
+            displayNameStyle: true,
             avatar: true,
+            activeDecoration: true,
             isVerified: true,
           },
         },
@@ -334,7 +359,9 @@ export class StoriesRepository {
               id: true,
               username: true,
               displayName: true,
+              displayNameStyle: true,
               avatar: true,
+              activeDecoration: true,
               isVerified: true,
             },
           },
@@ -525,7 +552,9 @@ export class StoriesRepository {
         id: true,
         username: true,
         displayName: true,
+        displayNameStyle: true,
         avatar: true,
+        activeDecoration: true,
         isVerified: true,
       },
     });

@@ -89,6 +89,8 @@ export interface ConversationView extends Omit<
   myMutedUntil?: string | null;
   isVerified?: boolean;
   primaryBadge?: string | null;
+  participantCount?: number;
+  hasMoreParticipants?: boolean;
 }
 
 export interface PaginatedMessages extends Omit<BackendPaginatedMessages, 'data'> {
@@ -97,6 +99,17 @@ export interface PaginatedMessages extends Omit<BackendPaginatedMessages, 'data'
 
 export interface InfiniteMessagesData {
   pages: PaginatedMessages[];
+  pageParams: unknown[];
+}
+
+export interface ConversationPage {
+  data: ConversationView[];
+  nextCursor: string | null;
+  hasMore: boolean;
+  order: 'activityAt';
+}
+export interface InfiniteConversationsData {
+  pages: ConversationPage[];
   pageParams: unknown[];
 }
 
@@ -170,6 +183,8 @@ export interface GlobalSearchResult {
     id: string;
     messageId: string;
     conversationId: string;
+    senderId?: string;
+    senderName?: string;
     url: string;
     fileName: string | null;
     mimeType: string | null;
@@ -183,6 +198,7 @@ export interface GlobalSearchResult {
     displayName: string | null;
     avatar: string | null;
     isOnline: boolean;
+    activeNameplate?: import('@social-network/shared-contracts').NameplateDto | null;
   }>;
 }
 

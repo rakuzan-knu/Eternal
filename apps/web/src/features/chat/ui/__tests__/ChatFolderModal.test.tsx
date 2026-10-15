@@ -1,7 +1,16 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render as renderUI, screen, fireEvent } from '@testing-library/react';
 import ChatFolderModal from '../ChatFolderModal';
 import React from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+const render = (ui: React.ReactElement) =>
+  renderUI(
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
+      {ui}
+    </QueryClientProvider>,
+  );
 
 describe('ChatFolderModal', () => {
   it('creates a new folder with name and options', () => {

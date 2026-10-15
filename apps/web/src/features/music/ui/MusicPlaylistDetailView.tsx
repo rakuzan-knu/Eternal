@@ -28,6 +28,7 @@ import Avatar from '@/shared/ui/Avatar';
 import { useMusicHubStore, CATALOG_PLAYLISTS } from '../model/useMusicHubStore';
 import { formatTracksDeclension, canViewPlaylist, type MusicPlaylist } from '../model/types';
 import { useSpotifyPlayerStore, type SpotifyTrack } from '@/shared/model/useSpotifyPlayerStore';
+import { isSameTrackId } from '@/shared/lib/spotifyUrl';
 import { useSpotifyDockOffset } from '@/shared/model/useSpotifyDockOffset';
 import { PlaylistActionMenu } from './PlaylistActionMenu';
 import { TrackActionMenu } from './TrackActionMenu';
@@ -42,6 +43,7 @@ import {
   type ViewMode,
 } from '../model/types';
 import { useCurrentUser } from '@/entities/profile/model/useCurrentUser';
+import { useThemeStore, isCurrentThemeLight } from '@/shared/model/useThemeStore';
 
 interface MusicPlaylistDetailViewProps {
   playlistId: string;
@@ -75,6 +77,9 @@ const getTrackReleaseDateMs = (track: SpotifyTrack, originalIndex: number): numb
 export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = ({ playlistId }) => {
   const navigate = useNavigate();
   const { data: currentUser } = useCurrentUser();
+  const isLight = useThemeStore(isCurrentThemeLight);
+  const wallpaper = useThemeStore((s) => s.wallpaper);
+  const isHeroGradientDisabled = isLight || Boolean(wallpaper?.url);
   const {
     playlists,
     customPlaylists,
@@ -201,6 +206,18 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
   // Fetch remote SoundCloud / Spotify playlists if not found in local store
   useEffect(() => {
     if (isLikedSongs) return;
+
+    // Guard: If remote playlist is already loaded for this playlistId, preserve it without wiping
+    if (
+      remotePlaylist &&
+      (remotePlaylist.id === playlistId ||
+        remotePlaylist.id.includes(playlistId) ||
+        playlistId.includes(remotePlaylist.id))
+    ) {
+      setIsLoadingRemote(false);
+      return;
+    }
+
     const local =
       customPlaylists.find((p) => p.id === playlistId) ||
       playlists.find((p) => p.id === playlistId) ||
@@ -208,13 +225,11 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
       getPlaylistById(playlistId);
 
     if (local) {
-      setRemotePlaylist(null);
       setIsLoadingRemote(false);
       return;
     }
 
     let isMounted = true;
-    setRemotePlaylist(null);
     setIsLoadingRemote(true);
 
     const fetchRemote = async () => {
@@ -245,6 +260,8 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
               createdAt: new Date().toISOString(),
             };
             setRemotePlaylist(pl);
+          } else if (!data && isMounted) {
+            useMusicHubStore.getState().markPlaylistAsDeleted(playlistId);
           }
         } else if (
           playlistId.startsWith('sp-pl-') ||
@@ -276,8 +293,21 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
                 createdAt: new Date().toISOString(),
               };
               setRemotePlaylist(pl);
+            } else if (!data && isMounted) {
+              useMusicHubStore.getState().markPlaylistAsDeleted(playlistId);
             }
-          } catch {}
+          } catch (spErr: any) {
+            const isNotFound =
+              spErr?.status === 404 ||
+              spErr?.response?.status === 404 ||
+              spErr?.statusCode === 404 ||
+              String(spErr?.message || '')
+                .toLowerCase()
+                .includes('not found');
+            if (isNotFound) {
+              useMusicHubStore.getState().markPlaylistAsDeleted(playlistId);
+            }
+          }
         } else {
           // Check if valid UUID for user-created database playlist
           const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
@@ -294,8 +324,24 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
             } catch {}
           }
         }
-      } catch (err) {
+      } catch (err: any) {
         console.warn('Failed to fetch remote playlist:', err);
+        const isNotFound =
+          err?.status === 404 ||
+          err?.response?.status === 404 ||
+          err?.statusCode === 404 ||
+          String(err?.message || '')
+            .toLowerCase()
+            .includes('not found') ||
+          String(err?.message || '')
+            .toLowerCase()
+            .includes('deleted') ||
+          String(err || '')
+            .toLowerCase()
+            .includes('404');
+        if (isNotFound) {
+          useMusicHubStore.getState().markPlaylistAsDeleted(playlistId);
+        }
       } finally {
         if (isMounted) setIsLoadingRemote(false);
       }
@@ -559,7 +605,8 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
   };
 
   const handlePlayRow = (track: SpotifyTrack, index: number) => {
-    const isThisTrackPlaying = isPlaying && currentTrack?.id === track.id;
+    const isThisTrackPlaying =
+      isPlaying && Boolean(currentTrack && isSameTrackId(currentTrack.id, track.id));
     if (isThisTrackPlaying) {
       togglePlay();
     } else {
@@ -596,13 +643,15 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
       {/* Hero Banner with Dark Liquid Purple Glass */}
       <div
         className={`relative p-8 flex flex-col sm:flex-row items-start sm:items-end gap-6 overflow-hidden ${
-          isLikedSongs
-            ? 'bg-gradient-to-b from-purple-900/60 via-[#180e2b]/40 to-transparent'
-            : 'bg-gradient-to-b from-[#2d0f55]/50 via-[#140a24]/30 to-transparent'
+          isHeroGradientDisabled
+            ? 'bg-transparent'
+            : isLikedSongs
+              ? 'bg-gradient-to-b from-purple-900/60 via-[#180e2b]/40 to-transparent'
+              : 'bg-gradient-to-b from-[#2d0f55]/50 via-[#140a24]/30 to-transparent'
         }`}
       >
         {/* Cover Art - Grey square for new playlists with Music2 icon */}
-        <div className="relative w-44 h-44 sm:w-52 sm:h-52 rounded-2xl overflow-hidden shrink-0 shadow-2xl border border-white/10 group bg-[#282828] flex items-center justify-center">
+        <div className="relative w-44 h-44 sm:w-52 sm:h-52 rounded-2xl overflow-hidden shrink-0 shadow-2xl border border-black/10 dark:border-white/10 group bg-black/5 dark:bg-[#282828] flex items-center justify-center">
           {isLikedSongs ? (
             <div className="w-full h-full bg-gradient-to-br from-purple-600 via-indigo-600 to-purple-800 flex items-center justify-center shadow-2xl shadow-purple-900/40">
               <Heart size={68} className="text-white fill-white drop-shadow-xl" />
@@ -614,7 +663,7 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full bg-[#282828] flex items-center justify-center text-[#737373] group-hover:text-white transition-colors">
+            <div className="w-full h-full bg-black/5 dark:bg-[#282828] flex items-center justify-center text-gray-500 dark:text-[#737373] group-hover:text-purple-600 dark:group-hover:text-white transition-colors">
               <Music2 size={68} strokeWidth={1.5} />
             </div>
           )}
@@ -637,22 +686,22 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
         <div className="flex-1 min-w-0 z-10">
           <div className="flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-widest">
             {isLikedSongs ? (
-              <span className="text-purple-300/80">Collection</span>
+              <span className="text-purple-600 dark:text-purple-300">Collection</span>
             ) : playlist.isPrivate ? (
-              <span className="inline-flex items-center gap-1.5 text-purple-300 bg-purple-500/15 border border-purple-500/30 px-2.5 py-0.5 rounded-full">
-                <Lock size={11} className="text-purple-400" />
+              <span className="inline-flex items-center gap-1.5 text-purple-700 dark:text-purple-300 bg-purple-500/15 border border-purple-500/30 px-2.5 py-0.5 rounded-full">
+                <Lock size={11} className="text-purple-600 dark:text-purple-400" />
                 <span>Private playlist</span>
               </span>
             ) : (
-              <span className="text-purple-300/80">Public playlist</span>
+              <span className="text-purple-600 dark:text-purple-300/80">Public playlist</span>
             )}
           </div>
 
           <h1
             onClick={() => canEdit && !isLikedSongs && setIsEditDetailsModalOpen(true)}
-            className={`text-3xl sm:text-5xl font-black text-white tracking-tight mt-1 mb-3 truncate drop-shadow-md ${
+            className={`text-3xl sm:text-5xl font-black text-gray-900 dark:text-white tracking-tight mt-1 mb-3 truncate drop-shadow-md ${
               canEdit && !isLikedSongs
-                ? 'hover:text-purple-300 cursor-pointer transition-colors'
+                ? 'hover:text-purple-600 dark:hover:text-purple-300 cursor-pointer transition-colors'
                 : ''
             }`}
             title={canEdit && !isLikedSongs ? 'Click to edit playlist details' : undefined}
@@ -661,12 +710,12 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
           </h1>
 
           {playlist.description && (
-            <p className="text-xs sm:text-sm text-gray-300 font-medium mb-3 max-w-xl line-clamp-2 leading-relaxed">
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 font-medium mb-3 max-w-xl line-clamp-2 leading-relaxed">
               {playlist.description}
             </p>
           )}
 
-          <div className="flex items-center gap-2 text-xs font-semibold text-gray-300 flex-wrap">
+          <div className="flex items-center gap-2 text-xs font-semibold text-gray-600 dark:text-gray-300 flex-wrap">
             <div
               onClick={() => {
                 const targetUsername =
@@ -704,9 +753,9 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
                 }
                 name={playlist.creator}
                 size="xs"
-                className="w-6 h-6 border border-white/20 transition-transform group-hover:scale-105"
+                className="w-6 h-6 border border-black/10 dark:border-white/20 transition-transform group-hover:scale-105"
               />
-              <span className="text-white font-bold group-hover:text-purple-300 transition-colors">
+              <span className="text-gray-900 dark:text-white font-bold group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors">
                 {playlist.creator}
               </span>
             </div>
@@ -804,7 +853,7 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
             <button
               type="button"
               onClick={() => respondToPlaylistInvite(pendingInvite.id, false)}
-              className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/15 text-gray-300 text-xs font-semibold transition-all active:scale-95 cursor-pointer"
+              className="px-4 py-2 rounded-full bg-black/5 hover:bg-black/10 text-gray-700 dark:bg-white/10 dark:hover:bg-white/15 dark:text-gray-300 text-xs font-semibold transition-all active:scale-95 cursor-pointer"
             >
               Decline
             </button>
@@ -824,7 +873,7 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
                 el?.focus();
                 el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
               }}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white text-black hover:bg-gray-200 text-xs font-bold transition-all hover:scale-105 active:scale-95 shadow-lg cursor-pointer"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-gray-900 text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200 text-xs font-bold transition-all hover:scale-105 active:scale-95 shadow-lg cursor-pointer"
             >
               <Plus size={15} strokeWidth={3} />
               <span>Find tracks</span>
@@ -834,7 +883,7 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
               <button
                 type="button"
                 onClick={() => setIsEditDetailsModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/10 hover:bg-white/15 text-white text-xs font-bold border border-white/15 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-black/5 hover:bg-black/10 text-gray-900 border border-black/10 dark:bg-white/10 dark:hover:bg-white/15 dark:text-white dark:border-white/15 text-xs font-bold transition-all hover:scale-105 active:scale-95 cursor-pointer"
               >
                 <Edit3 size={15} />
                 <span>Edit details</span>
@@ -847,7 +896,7 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
                   type="button"
                   onClick={() => setIsCollaboratorsModalOpen(true)}
                   aria-label="Invite collaborators"
-                  className="p-2.5 rounded-full text-gray-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+                  className="p-2.5 rounded-full text-gray-600 hover:text-gray-950 hover:bg-black/5 dark:text-gray-400 dark:hover:text-white dark:hover:bg-white/5 transition-colors cursor-pointer"
                 >
                   <UserPlus size={20} />
                 </button>
@@ -870,8 +919,8 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
                 }}
                 className={`p-2.5 rounded-full transition-colors cursor-pointer ${
                   isActionMenuOpen
-                    ? 'bg-purple-600/20 text-purple-400'
-                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    ? 'bg-purple-600/20 text-purple-600 dark:text-purple-400'
+                    : 'text-gray-600 hover:text-gray-950 hover:bg-black/5 dark:text-gray-400 dark:hover:text-white dark:hover:bg-white/5'
                 }`}
               >
                 <MoreHorizontal size={22} />
@@ -957,30 +1006,72 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
               </button>
             </Tooltip>
 
-            {/* 4. Like / Add to Library Button */}
+            {/* 4. Like / Add to Library Button with slick checkmark drawing animation */}
             {!isLikedSongs && (
               <Tooltip
                 label={isPlaylistSaved(playlist.id) ? 'Remove from library' : 'Add to library'}
                 position="top"
               >
-                <button
+                <motion.button
                   type="button"
+                  whileHover={{ scale: 1.08 }}
+                  whileTap={{ scale: 0.92 }}
                   aria-label={
                     isPlaylistSaved(playlist.id) ? 'Remove from library' : 'Add to library'
                   }
-                  onClick={() => toggleSavePlaylist(playlist.id)}
-                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 cursor-pointer ${
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleSavePlaylist(playlist.id, playlist);
+                  }}
+                  className={`relative w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 cursor-pointer overflow-hidden ${
                     isPlaylistSaved(playlist.id)
-                      ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30 border border-purple-500'
-                      : 'border border-white/40 text-gray-300 hover:border-white hover:text-white'
+                      ? 'bg-gradient-to-tr from-purple-600 to-indigo-500 text-white shadow-lg shadow-purple-600/40 border border-purple-400/50'
+                      : 'border border-white/30 text-gray-300 hover:border-white hover:text-white bg-white/5 hover:bg-white/10'
                   }`}
                 >
-                  {isPlaylistSaved(playlist.id) ? (
-                    <Check size={16} strokeWidth={3} />
-                  ) : (
-                    <Plus size={18} strokeWidth={2.5} />
-                  )}
-                </button>
+                  <AnimatePresence mode="wait" initial={false}>
+                    {isPlaylistSaved(playlist.id) ? (
+                      <motion.div
+                        key="saved-check"
+                        initial={{ scale: 0.4, rotate: -45, opacity: 0 }}
+                        animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                        exit={{ scale: 0.4, rotate: 45, opacity: 0 }}
+                        transition={{ type: 'spring', stiffness: 450, damping: 25 }}
+                        className="flex items-center justify-center"
+                      >
+                        <motion.svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="3.2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <motion.path
+                            d="M4.5 12.5l5 5L19.5 7"
+                            initial={{ pathLength: 0 }}
+                            animate={{ pathLength: 1 }}
+                            transition={{ duration: 0.35, ease: 'easeOut' }}
+                          />
+                        </motion.svg>
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="add-plus"
+                        initial={{ scale: 0.4, rotate: 45, opacity: 0 }}
+                        animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                        exit={{ scale: 0.4, rotate: 45, opacity: 0 }}
+                        transition={{ type: 'spring', stiffness: 450, damping: 25 }}
+                        className="flex items-center justify-center"
+                      >
+                        <Plus size={18} strokeWidth={2.5} />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.button>
               </Tooltip>
             )}
 
@@ -1040,7 +1131,7 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
                     animate={{ width: 220, opacity: 1 }}
                     exit={{ width: 0, opacity: 0 }}
                     transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-                    className="flex items-center overflow-hidden bg-white/10 border border-white/15 rounded-full px-3 py-1.5 text-xs text-white shadow-inner backdrop-blur-md"
+                    className="flex items-center overflow-hidden bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/15 rounded-full px-3 py-1.5 text-xs text-gray-900 dark:text-white shadow-inner backdrop-blur-md"
                   >
                     <Search size={14} className="text-gray-400 mr-2 shrink-0" />
                     <input
@@ -1050,13 +1141,13 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search in playlist..."
                       autoFocus
-                      className="bg-transparent border-none outline-none text-xs text-white placeholder:text-gray-500 w-full min-w-0"
+                      className="bg-transparent border-none outline-none text-xs text-gray-900 dark:text-white placeholder:text-gray-500 w-full min-w-0"
                     />
                     {searchQuery && (
                       <button
                         type="button"
                         onClick={() => setSearchQuery('')}
-                        className="p-0.5 text-gray-400 hover:text-white shrink-0 ml-1 cursor-pointer"
+                        className="p-0.5 text-gray-400 hover:text-gray-900 dark:hover:text-white shrink-0 ml-1 cursor-pointer"
                       >
                         <X size={13} />
                       </button>
@@ -1075,7 +1166,7 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
                         type="button"
                         aria-label="Search in this playlist"
                         onClick={() => setIsSearchOpen(true)}
-                        className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-full transition-colors cursor-pointer"
+                        className="p-2 text-gray-500 hover:text-gray-900 hover:bg-black/5 dark:text-gray-400 dark:hover:text-white dark:hover:bg-white/5 rounded-full transition-colors cursor-pointer"
                       >
                         <Search size={18} />
                       </button>
@@ -1102,22 +1193,30 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
                 }}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold select-none cursor-pointer transition-colors duration-150 ${
                   sortKey !== 'default'
-                    ? 'text-purple-300 bg-purple-500/15 hover:bg-purple-500/25'
+                    ? 'text-purple-600 dark:text-purple-300 bg-purple-500/15 hover:bg-purple-500/25'
                     : isSortViewMenuOpen
-                      ? 'text-white bg-white/10'
-                      : 'text-gray-400 hover:text-white hover:bg-white/5'
+                      ? 'text-gray-900 dark:text-white bg-black/10 dark:bg-white/10'
+                      : 'text-gray-600 hover:text-gray-950 hover:bg-black/5 dark:text-gray-400 dark:hover:text-white dark:hover:bg-white/5'
                 }`}
               >
                 <span>{SORT_LABELS[sortKey]}</span>
                 {viewMode === 'compact' ? (
                   <AlignJustify
                     size={14}
-                    className={sortKey !== 'default' ? 'text-purple-400' : 'text-gray-400'}
+                    className={
+                      sortKey !== 'default'
+                        ? 'text-purple-600 dark:text-purple-400'
+                        : 'text-gray-400'
+                    }
                   />
                 ) : (
                   <List
                     size={14}
-                    className={sortKey !== 'default' ? 'text-purple-400' : 'text-gray-400'}
+                    className={
+                      sortKey !== 'default'
+                        ? 'text-purple-600 dark:text-purple-400'
+                        : 'text-gray-400'
+                    }
                   />
                 )}
               </button>
@@ -1129,13 +1228,16 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
       {/* Main Content: Tracklist Table OR Empty Playlist Recommendations */}
       {rawTracks.length === 0 && !isLikedSongs ? (
         /* Rich Empty Playlist Section: "Let's find some songs for your playlist" */
-        <div id="empty-playlist-suggestions" className="px-8 py-6 border-t border-white/10 mt-2">
+        <div
+          id="empty-playlist-suggestions"
+          className="px-8 py-6 border-t border-black/10 dark:border-white/10 mt-2"
+        >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div>
-              <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+              <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tracking-tight">
                 Let's find some songs for your playlist
               </h2>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 Search for your favorite tracks or add recommended songs with one click
               </p>
             </div>
@@ -1151,18 +1253,18 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
                 value={emptyStateSearch}
                 onChange={(e) => setEmptyStateSearch(e.target.value)}
                 placeholder="Search for songs or artists"
-                className="w-full bg-[#1e1e24] border border-white/10 rounded-full pl-10 pr-10 py-2.5 text-xs text-white placeholder:text-gray-500 focus:outline-none focus:border-purple-500/50 shadow-inner"
+                className="w-full bg-black/5 dark:bg-[#1e1e24] border border-black/10 dark:border-white/10 rounded-full pl-10 pr-10 py-2.5 text-xs text-gray-900 dark:text-white placeholder:text-gray-500 focus:outline-none focus:border-purple-500/50 shadow-inner"
               />
               {isSearchingEmptyState ? (
                 <Loader2
                   size={15}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-purple-400 animate-spin"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-purple-600 dark:text-purple-400 animate-spin"
                 />
               ) : emptyStateSearch ? (
                 <button
                   type="button"
                   onClick={() => setEmptyStateSearch('')}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white cursor-pointer"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900 dark:hover:text-white cursor-pointer"
                 >
                   <X size={14} />
                 </button>
@@ -1177,10 +1279,10 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
               return (
                 <div
                   key={`empty-trk-${trk.id}-${idx}`}
-                  className="group flex items-center justify-between p-2.5 rounded-xl hover:bg-white/[0.06] transition-colors border border-transparent hover:border-white/[0.04]"
+                  className="group flex items-center justify-between p-2.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/[0.06] transition-colors border border-transparent hover:border-black/5 dark:hover:border-white/[0.04]"
                 >
                   <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                    <div className="relative w-11 h-11 rounded-lg overflow-hidden shrink-0 border border-white/10 bg-black/40">
+                    <div className="relative w-11 h-11 rounded-lg overflow-hidden shrink-0 border border-black/10 dark:border-white/10 bg-black/5 dark:bg-black/40">
                       {trk.albumArt ? (
                         <img
                           src={trk.albumArt}
@@ -1188,7 +1290,7 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-500">
+                        <div className="w-full h-full flex items-center justify-center text-gray-400">
                           <Music2 size={18} />
                         </div>
                       )}
@@ -1203,14 +1305,16 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
                     </div>
 
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold text-white group-hover:text-purple-300 transition-colors truncate">
+                      <p className="text-sm font-bold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors truncate">
                         {trk.title}
                       </p>
-                      <p className="text-xs text-gray-400 truncate mt-0.5">{trk.artist}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                        {trk.artist}
+                      </p>
                     </div>
 
                     {trk.album && (
-                      <div className="hidden md:block w-48 text-xs text-gray-400 truncate px-4">
+                      <div className="hidden md:block w-48 text-xs text-gray-500 dark:text-gray-400 truncate px-4">
                         {trk.album}
                       </div>
                     )}
@@ -1226,13 +1330,13 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
                       disabled={isAdded}
                       className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                         isAdded
-                          ? 'bg-white/10 text-gray-400 cursor-default border border-white/10'
-                          : 'border border-white/20 hover:border-white text-white hover:bg-white/10 hover:scale-105 active:scale-95'
+                          ? 'bg-black/5 dark:bg-white/10 text-gray-400 cursor-default border border-black/10 dark:border-white/10'
+                          : 'border border-black/20 hover:border-black/40 text-gray-900 hover:bg-black/5 dark:border-white/20 dark:hover:border-white dark:text-white dark:hover:bg-white/10 hover:scale-105 active:scale-95'
                       }`}
                     >
                       {isAdded ? (
                         <>
-                          <Check size={14} className="text-purple-400" />
+                          <Check size={14} className="text-purple-600 dark:text-purple-400" />
                           <span>Added</span>
                         </>
                       ) : (
@@ -1265,11 +1369,11 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
             </colgroup>
 
             <thead>
-              <tr className="border-b border-white/10 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+              <tr className="border-b border-black/10 dark:border-white/10 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 {/* # Column */}
                 <th
                   onClick={() => setSortKey('default')}
-                  className="py-2.5 px-3 text-center cursor-pointer hover:text-white"
+                  className="py-2.5 px-3 text-center cursor-pointer hover:text-gray-900 dark:hover:text-white transition-colors"
                   title="Reset sort"
                 >
                   #
@@ -1278,12 +1382,12 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
                 {/* Title Column */}
                 <th
                   onClick={() => handleColumnSortClick('title')}
-                  className="py-2.5 px-3 cursor-pointer hover:text-white"
+                  className="py-2.5 px-3 cursor-pointer hover:text-gray-900 dark:hover:text-white transition-colors"
                 >
                   <div className="flex items-center gap-1.5">
                     <span>Title</span>
                     {sortKey === 'title' && (
-                      <span className="text-purple-400">
+                      <span className="text-purple-600 dark:text-purple-400">
                         {sortDirection === 'asc' ? (
                           <ChevronUp size={13} />
                         ) : (
@@ -1294,16 +1398,16 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
                   </div>
                 </th>
 
-                {/* Artist Column (Visible only in Compact Mode as separate column, matching Screenshot 5) */}
+                {/* Artist Column*/}
                 {viewMode === 'compact' && (
                   <th
                     onClick={() => handleColumnSortClick('artist')}
-                    className="py-2.5 px-3 cursor-pointer hover:text-white"
+                    className="py-2.5 px-3 cursor-pointer hover:text-gray-900 dark:hover:text-white transition-colors"
                   >
                     <div className="flex items-center gap-1.5">
                       <span>Artist</span>
                       {sortKey === 'artist' && (
-                        <span className="text-purple-400">
+                        <span className="text-purple-600 dark:text-purple-400">
                           {sortDirection === 'asc' ? (
                             <ChevronUp size={13} />
                           ) : (
@@ -1318,12 +1422,12 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
                 {/* Album Column */}
                 <th
                   onClick={() => handleColumnSortClick('album')}
-                  className="py-2.5 px-3 cursor-pointer hover:text-white"
+                  className="py-2.5 px-3 cursor-pointer hover:text-gray-900 dark:hover:text-white transition-colors"
                 >
                   <div className="flex items-center gap-1.5">
                     <span>Album</span>
                     {sortKey === 'album' && (
-                      <span className="text-purple-400">
+                      <span className="text-purple-600 dark:text-purple-400">
                         {sortDirection === 'asc' ? (
                           <ChevronUp size={13} />
                         ) : (
@@ -1337,12 +1441,12 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
                 {/* Date Added Column */}
                 <th
                   onClick={() => handleColumnSortClick('dateAdded')}
-                  className="py-2.5 px-3 cursor-pointer hover:text-white"
+                  className="py-2.5 px-3 cursor-pointer hover:text-gray-900 dark:hover:text-white transition-colors"
                 >
                   <div className="flex items-center gap-1.5">
                     <span>Date added</span>
                     {sortKey === 'dateAdded' && (
-                      <span className="text-purple-400">
+                      <span className="text-purple-600 dark:text-purple-400">
                         {sortDirection === 'asc' ? (
                           <ChevronUp size={13} />
                         ) : (
@@ -1356,12 +1460,12 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
                 {/* Duration Column */}
                 <th
                   onClick={() => handleColumnSortClick('duration')}
-                  className="py-2.5 px-3 text-right cursor-pointer hover:text-white"
+                  className="py-2.5 px-3 text-right cursor-pointer hover:text-gray-900 dark:hover:text-white transition-colors"
                 >
                   <div className="flex items-center justify-end gap-1.5">
                     <Clock size={14} />
                     {sortKey === 'duration' && (
-                      <span className="text-purple-400">
+                      <span className="text-purple-600 dark:text-purple-400">
                         {sortDirection === 'asc' ? (
                           <ChevronUp size={13} />
                         ) : (
@@ -1379,17 +1483,17 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
                 <tr>
                   <td colSpan={viewMode === 'compact' ? 6 : 5} className="py-16 text-center">
                     <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
-                      <div className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-purple-400 mb-3 shadow-inner">
+                      <div className="w-14 h-14 rounded-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 flex items-center justify-center text-purple-600 dark:text-purple-400 mb-3 shadow-inner">
                         <Heart size={28} />
                       </div>
-                      <p className="text-base font-bold text-white mb-1">
+                      <p className="text-base font-bold text-gray-900 dark:text-white mb-1">
                         {searchQuery.trim()
                           ? 'No tracks found matching your query'
                           : isLikedSongs
                             ? 'Songs you like will appear here'
                             : 'There are no songs in this playlist yet'}
                       </p>
-                      <p className="text-xs text-gray-400 leading-relaxed">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
                         {searchQuery.trim()
                           ? 'Try changing your search query.'
                           : isLikedSongs
@@ -1401,7 +1505,9 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
                 </tr>
               ) : (
                 processedTracks.map(({ track }, idx) => {
-                  const isCurrent = currentTrack?.id === track.id;
+                  const isCurrent = Boolean(
+                    currentTrack && isSameTrackId(currentTrack.id, track.id),
+                  );
                   const isThisPlaying = isCurrent && isPlaying;
                   const liked = isTrackLiked(track.id);
 
@@ -1410,8 +1516,8 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
                       key={`${track.id}-${idx}`}
                       onClick={() => handlePlayRow(track, idx)}
                       onContextMenu={(e) => handleTrackContextMenu(e, track)}
-                      className={`group border-b border-white/[0.03] hover:bg-white/[0.06] rounded-xl transition-colors cursor-pointer ${
-                        isCurrent ? 'bg-white/[0.07]' : ''
+                      className={`group border-b border-black/[0.04] dark:border-white/[0.03] hover:bg-black/5 dark:hover:bg-white/[0.06] rounded-xl transition-colors cursor-pointer ${
+                        isCurrent ? 'bg-black/5 dark:bg-white/[0.07]' : ''
                       }`}
                     >
                       {/* # or Play Button or Equalizer (Fixed width) */}
@@ -1424,14 +1530,16 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
                           <span className="group-hover:hidden flex items-center justify-center">
                             {isThisPlaying ? (
                               <div className="flex items-end justify-center gap-0.5 h-3.5 w-3.5">
-                                <span className="w-0.5 bg-purple-400 animate-pulse h-full rounded-full" />
-                                <span className="w-0.5 bg-purple-400 animate-pulse h-2/3 rounded-full [animation-delay:150ms]" />
-                                <span className="w-0.5 bg-purple-400 animate-pulse h-4/5 rounded-full [animation-delay:300ms]" />
+                                <span className="w-0.5 bg-purple-500 animate-pulse h-full rounded-full" />
+                                <span className="w-0.5 bg-purple-500 animate-pulse h-2/3 rounded-full [animation-delay:150ms]" />
+                                <span className="w-0.5 bg-purple-500 animate-pulse h-4/5 rounded-full [animation-delay:300ms]" />
                               </div>
                             ) : (
                               <span
                                 className={
-                                  isCurrent ? 'text-purple-400 font-bold' : 'text-gray-400'
+                                  isCurrent
+                                    ? 'text-purple-600 dark:text-purple-400 font-bold'
+                                    : 'text-gray-500 dark:text-gray-400'
                                 }
                               >
                                 {idx + 1}
@@ -1444,7 +1552,7 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
                               e.stopPropagation();
                               handlePlayRow(track, idx);
                             }}
-                            className="hidden group-hover:flex items-center justify-center text-white hover:text-purple-400 transition-colors cursor-pointer"
+                            className="hidden group-hover:flex items-center justify-center text-gray-900 dark:text-white hover:text-purple-600 dark:hover:text-purple-400 transition-colors cursor-pointer"
                           >
                             {isThisPlaying ? (
                               <Pause size={15} className="fill-current" />
@@ -1455,14 +1563,14 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
                         </div>
                       </td>
 
-                      {/* Track Title (+ Cover Art in List mode, NO cover in Compact mode matching Screenshot 5) */}
+                      {/* Track Title*/}
                       <td
                         className={`min-w-0 ${viewMode === 'compact' ? 'py-2 px-3' : 'py-3 px-3'}`}
                       >
                         <div className="flex items-center gap-3 min-w-0">
                           {/* Cover thumbnail only in List view */}
                           {viewMode === 'list' && (
-                            <div className="relative w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-white/10 bg-black/40">
+                            <div className="relative w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-black/10 dark:border-white/10 bg-black/5 dark:bg-black/40">
                               {track.albumArt ? (
                                 <img
                                   src={track.albumArt}
@@ -1470,7 +1578,7 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
                                   className="w-full h-full object-cover"
                                 />
                               ) : (
-                                <div className="w-full h-full flex items-center justify-center text-gray-600">
+                                <div className="w-full h-full flex items-center justify-center text-gray-500">
                                   <Music size={16} />
                                 </div>
                               )}
@@ -1485,8 +1593,8 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
                               }}
                               className={`text-sm font-bold truncate hover:underline cursor-pointer ${
                                 isCurrent
-                                  ? 'text-purple-400'
-                                  : 'text-white group-hover:text-purple-300 transition-colors'
+                                  ? 'text-purple-600 dark:text-purple-400'
+                                  : 'text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors'
                               }`}
                             >
                               {track.title}
@@ -1494,8 +1602,8 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
 
                             {/* Artist underneath title only in List mode */}
                             {viewMode === 'list' && (
-                              <p className="text-xs text-gray-400 truncate mt-0.5 flex items-center gap-1.5">
-                                <span className="px-1 py-0.5 rounded bg-white/10 text-[9px] font-bold text-gray-300">
+                              <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5 flex items-center gap-1.5">
+                                <span className="px-1 py-0.5 rounded bg-black/5 dark:bg-white/10 text-[9px] font-bold text-gray-700 dark:text-gray-300">
                                   E
                                 </span>
                                 <span className="truncate">{track.artist}</span>
@@ -1505,9 +1613,9 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
                         </div>
                       </td>
 
-                      {/* Separate Artist Column in Compact Mode (Screenshot 5) */}
+                      {/* Separate Artist Column in Compact Mode*/}
                       {viewMode === 'compact' && (
-                        <td className="py-2 px-3 text-xs text-gray-300 min-w-0">
+                        <td className="py-2 px-3 text-xs text-gray-700 dark:text-gray-300 min-w-0">
                           <span className="truncate block hover:underline cursor-pointer">
                             {track.artist}
                           </span>
@@ -1516,7 +1624,7 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
 
                       {/* Album Column */}
                       <td
-                        className={`text-xs text-gray-400 min-w-0 ${
+                        className={`text-xs text-gray-500 dark:text-gray-400 min-w-0 ${
                           viewMode === 'compact' ? 'py-2 px-3' : 'py-3 px-3'
                         }`}
                       >
@@ -1527,7 +1635,7 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
 
                       {/* Date Added Column */}
                       <td
-                        className={`text-xs text-gray-400 min-w-0 ${
+                        className={`text-xs text-gray-500 dark:text-gray-400 min-w-0 ${
                           viewMode === 'compact' ? 'py-2 px-3' : 'py-3 px-3'
                         }`}
                       >
@@ -1550,13 +1658,17 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
                             title={liked ? 'Remove from liked' : 'Save to liked'}
                             className={`p-1 rounded-full hover:scale-110 transition-all cursor-pointer ${
                               liked
-                                ? 'text-purple-400 opacity-100'
-                                : 'text-gray-400 hover:text-white opacity-0 group-hover:opacity-100'
+                                ? 'text-purple-600 dark:text-purple-400 opacity-100'
+                                : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white opacity-0 group-hover:opacity-100'
                             }`}
                           >
                             <Heart
                               size={15}
-                              className={liked ? 'fill-purple-400 text-purple-400' : ''}
+                              className={
+                                liked
+                                  ? 'fill-purple-600 dark:fill-purple-400 text-purple-600 dark:text-purple-400'
+                                  : ''
+                              }
                             />
                           </button>
 
@@ -1566,12 +1678,12 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
                             data-menu-trigger="true"
                             onClick={(e) => handleTrackThreeDots(e, track)}
                             title="More options"
-                            className="p-1 rounded-full text-gray-400 hover:text-white opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
+                            className="p-1 rounded-full text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
                           >
                             <MoreHorizontal size={15} />
                           </button>
 
-                          <span className="text-xs text-gray-400 font-mono w-10 text-right">
+                          <span className="text-xs text-gray-500 dark:text-gray-400 font-mono w-10 text-right">
                             {formatDuration(track.durationMs)}
                           </span>
                         </div>
@@ -1604,7 +1716,7 @@ export const MusicPlaylistDetailView: React.FC<MusicPlaylistDetailViewProps> = (
         />
       )}
 
-      {/* Spotify Sort & View Dropdown Menu via React Portal (Screenshots 4 & 5) */}
+      {/* Spotify Sort & View Dropdown Menu via React Portal*/}
       <PlaylistSortViewMenu
         isOpen={isSortViewMenuOpen}
         onClose={() => setIsSortViewMenuOpen(false)}

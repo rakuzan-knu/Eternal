@@ -1,3 +1,4 @@
+import { issueOAuthState, consumeOAuthState } from '../common/security/oauth-state';
 import {
   Injectable,
   Logger,
@@ -268,11 +269,10 @@ export class SpotifyService {
   /**
    * Generates official Spotify OAuth Authorization URL with state (csrf:userId)
    */
-  getAuthorizationUrl(userId: string): string {
+  async getAuthorizationUrl(userId: string): Promise<string> {
     const clientId = this.getClientId();
     const callbackUrl = this.getCallbackUrl();
-    const csrf = crypto.randomBytes(16).toString('hex');
-    const state = `${csrf}:${userId}`;
+    const state = await issueOAuthState(this.redis, 'spotify', userId, callbackUrl);
 
     const scopes = [
       'user-read-private',
@@ -1068,7 +1068,11 @@ export class SpotifyService {
   /**
    * Completes OAuth callback, fetches profile, liked songs, and playlists, then saves to Showcase
    */
-  async handleOAuthCallback(query: Record<string, unknown>, res: Response): Promise<void> {
+  async handleOAuthCallback(
+    query: Record<string, unknown>,
+    res: Response,
+    browserState?: string,
+  ): Promise<void> {
     const code = typeof query.code === 'string' ? query.code : undefined;
     const state = typeof query.state === 'string' ? query.state : '';
 
@@ -1081,15 +1085,13 @@ export class SpotifyService {
       return;
     }
 
-    let userId = typeof query.userId === 'string' ? query.userId : undefined;
-    if (!userId && state && state.includes(':')) {
-      userId = state.split(':')[1];
-    }
-
-    if (!userId) {
-      this.renderHtmlMessage(res, false, 'Could not identify user from OAuth state.');
-      return;
-    }
+    const { userId } = await consumeOAuthState(
+      this.redis,
+      'spotify',
+      state,
+      undefined,
+      browserState,
+    );
 
     try {
       // Exchange code with resilient redirect_uri retry
@@ -1789,7 +1791,7 @@ export class SpotifyService {
         }
 
         const res = await fetch(url.toString(), {
-          headers: { 'User-Agent': 'AntigravitySocialMedia/1.0' },
+          headers: { 'User-Agent': 'SocialMedia/1.0' },
         });
 
         if (res.ok) {
@@ -1828,7 +1830,7 @@ export class SpotifyService {
       try {
         const searchRes = await fetch(
           `https://lrclib.net/api/search?q=${encodeURIComponent(query)}`,
-          { headers: { 'User-Agent': 'AntigravitySocialMedia/1.0' } },
+          { headers: { 'User-Agent': 'SocialMedia/1.0' } },
         );
         if (searchRes.ok) {
           const items = (await searchRes.json()) as LrclibLyricsResponse[];
@@ -1913,7 +1915,7 @@ export class SpotifyService {
       try {
         const res = await fetch(
           `https://api.lyrics.ovh/v1/${encodeURIComponent(artistName)}/${encodeURIComponent(trackName)}`,
-          { headers: { 'User-Agent': 'AntigravitySocialMedia/1.0' } },
+          { headers: { 'User-Agent': 'SocialMedia/1.0' } },
         );
         if (res.ok) {
           const data = (await res.json()) as LyricsOvhResponse;

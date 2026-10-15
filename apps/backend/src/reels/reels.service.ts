@@ -89,6 +89,7 @@ export class ReelsService {
         username: reel.author.username,
         displayName: reel.author.displayName,
         avatar: reel.author.avatar,
+        activeDecoration: reel.author.activeDecoration ?? null,
         isVerified: reel.author.isVerified,
         isFollowing,
       },
@@ -107,6 +108,7 @@ export class ReelsService {
         username: comment.user.username,
         displayName: comment.user.displayName,
         avatar: comment.user.avatar,
+        activeDecoration: comment.user.activeDecoration ?? null,
         isVerified: comment.user.isVerified,
       },
     };
@@ -125,7 +127,7 @@ export class ReelsService {
       {
         id: 'reel-profkino-1',
         authorId: 'user-profkino',
-        caption: 'Сосед-авторитет врубил шумит ночью, но за бессонную ночь дочери',
+        caption: 'Loud neighbor was blasting music all night, until the unexpected happened',
         videoUrl: '/videos/sample-reel.mp4',
         hlsUrl: null,
         thumbnailUrl: null,
@@ -134,7 +136,7 @@ export class ReelsService {
         duration: 15,
         width: 720,
         height: 1280,
-        audioTitle: 'Монтувати тепер легко · CapCut Sound',
+        audioTitle: 'Editing made easy · CapCut Sound',
         audioArtist: 'CapCut',
         audioUrl: null,
         viewsCount: 1250000,
@@ -156,7 +158,7 @@ export class ReelsService {
       {
         id: 'reel-city-2',
         authorId: 'user-anna',
-        caption: 'Нічні вогні великого міста 🌃 Атмосферна прогулянка та кінематографічна естетика',
+        caption: 'Night lights of the big city 🌃 Atmospheric walk and cinematic aesthetics',
         videoUrl: '/videos/sample-reel-2.mp4',
         hlsUrl: null,
         thumbnailUrl: null,

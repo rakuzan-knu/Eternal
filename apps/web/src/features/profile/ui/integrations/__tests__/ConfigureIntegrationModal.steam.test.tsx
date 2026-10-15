@@ -3,10 +3,14 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConfigureIntegrationModal, type PlatformConfig } from '../ConfigureIntegrationModal';
 
-const { startSteamAuth, invalidateQueries } = vi.hoisted(() => ({
+const { startSteamAuth, startOAuth, invalidateQueries } = vi.hoisted(() => ({
   startSteamAuth:
     vi.fn<
       (origin: string, signal?: AbortSignal) => Promise<{ url: string; launchProof: string }>
+    >(),
+  startOAuth:
+    vi.fn<
+      (platform: string, signal?: AbortSignal) => Promise<{ url: string; launchProof: string }>
     >(),
   invalidateQueries: vi.fn(),
 }));
@@ -14,14 +18,15 @@ vi.mock('@/entities/showcase', () => ({
   DotaRankMedal: () => null,
   CS2PremierBadge: () => null,
   ShowcaseIntegrationCard: () => null,
-  integrationsApi: { startSteamAuth },
+  integrationsApi: { startSteamAuth, startOAuth },
 }));
 vi.mock('@/entities/profile/model/useCurrentUser', () => ({
   useCurrentUser: () => ({ data: { id: 'current-user', username: 'owner' } }),
 }));
 vi.mock('@tanstack/react-query', () => ({ useQueryClient: () => ({ invalidateQueries }) }));
 vi.mock('@/shared/api/httpClient', () => ({
-  getApiUrl: (path: string) => `https://music.example/v1${path}`,
+  getApiUrl: (path: string) =>
+    `https://${path.startsWith('/auth/github') ? 'core' : 'music'}.example/v1${path}`,
 }));
 vi.mock('@/shared/model/useSpotifyPlayerStore', () => ({
   useSpotifyPlayerStore: { getState: vi.fn() },
@@ -60,11 +65,11 @@ describe('Steam integration popup', () => {
     vi.unstubAllGlobals();
   });
 
-  function show() {
+  function show(selectedPlatform = platform) {
     return render(
       <ConfigureIntegrationModal
         isOpen
-        platform={platform}
+        platform={selectedPlatform}
         onClose={vi.fn()}
         onSaveSuccess={save}
       />,
@@ -154,6 +159,30 @@ describe('Steam integration popup', () => {
       window.dispatchEvent(success);
     });
     expect(save).toHaveBeenCalledWith('steam', data.data);
+  });
+
+  it('starts GitHub on core and shares its generic proof only with the exact launch popup', async () => {
+    const result = {
+      url: 'https://core.example/v1/auth/github/oauth/launch#' + 'c'.repeat(64),
+      launchProof: 'd'.repeat(64),
+    };
+    startOAuth.mockResolvedValue(result);
+    show({ ...platform, id: 'github', name: 'GitHub', authProviderName: 'GitHub' });
+    fireEvent.click(screen.getByRole('button', { name: /Sign in through GitHub/ }));
+    await waitFor(() => expect(popup.location.replace).toHaveBeenCalledWith(result.url));
+    expect(startOAuth).toHaveBeenCalledWith('github', expect.any(AbortSignal));
+    const data = { type: 'OAUTH_LAUNCH_REQUEST' };
+    const untrusted = new MessageEvent('message', { origin: 'https://attacker.vercel.app', data });
+    Object.defineProperty(untrusted, 'source', { value: popup });
+    window.dispatchEvent(untrusted);
+    expect(popup.postMessage).not.toHaveBeenCalled();
+    const message = new MessageEvent('message', { origin: 'https://core.example', data });
+    Object.defineProperty(message, 'source', { value: popup });
+    window.dispatchEvent(message);
+    expect(popup.postMessage).toHaveBeenCalledWith(
+      { type: 'OAUTH_LAUNCH_PROOF', proof: result.launchProof },
+      'https://core.example',
+    );
   });
 
   it('shares the launch proof only with the exact Music popup and never in its URL', async () => {

@@ -2,7 +2,7 @@
   "name": "@social-network/text-pipeline",
   "version": "1.0.0",
   "description": "Portable text pipeline v1: HTML sanitize, linkify, @mention/#hashtag extraction, spam scoring. Pure string scanning, zero dependencies, no Node APIs — web, React Native/Hermes, Electron, Node.",
-  "license": "AGPL-3.0-only",
+  "license": "UNLICENSED",
   "private": true,
   "main": "./dist/index.js",
   "module": "./dist/esm/index.js",

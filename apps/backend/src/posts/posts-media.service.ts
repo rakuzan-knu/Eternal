@@ -4,6 +4,11 @@ import type { S3Client } from '@aws-sdk/client-s3';
 import { MediaType } from '@prisma/client';
 import { POSTS_S3_CLIENT } from './s3-provider';
 import { uid } from 'uid';
+import { validateUploadedMedia } from '../common/media/media-upload-validator';
+import {
+  readPostMediaReference,
+  type PostMediaReference,
+} from '../common/media/post-media-reference';
 import {
   optimizePostImage,
   uploadToStorageWithFallback,
@@ -49,119 +54,69 @@ export class PostsMediaService implements OnModuleDestroy {
     );
   }
 
-  private detectMimeType(buffer: Buffer): { type: MediaType; mime: string; ext: string } {
-    if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
-      return { type: MediaType.IMAGE, mime: 'image/jpeg', ext: 'jpg' };
-    }
-    if (
-      buffer.length >= 4 &&
-      buffer[0] === 0x89 &&
-      buffer[1] === 0x50 &&
-      buffer[2] === 0x4e &&
-      buffer[3] === 0x47
-    ) {
-      return { type: MediaType.IMAGE, mime: 'image/png', ext: 'png' };
-    }
-    if (
-      buffer.length >= 12 &&
-      buffer.toString('ascii', 0, 4) === 'RIFF' &&
-      buffer.toString('ascii', 8, 12) === 'WEBP'
-    ) {
-      return { type: MediaType.IMAGE, mime: 'image/webp', ext: 'webp' };
-    }
-    if (buffer.length >= 6 && buffer.toString('ascii', 0, 3) === 'GIF') {
-      return { type: MediaType.IMAGE, mime: 'image/gif', ext: 'gif' };
-    }
-    if (buffer.length >= 8 && buffer.toString('ascii', 4, 8) === 'ftyp') {
-      return { type: MediaType.VIDEO, mime: 'video/mp4', ext: 'mp4' };
-    }
-    if (
-      buffer.length >= 4 &&
-      buffer[0] === 0x1a &&
-      buffer[1] === 0x45 &&
-      buffer[2] === 0xdf &&
-      buffer[3] === 0xa3
-    ) {
-      return { type: MediaType.VIDEO, mime: 'video/webm', ext: 'webm' };
-    }
-
-    throw new BadRequestException('Unsupported or invalid file format');
+  private async prepareUploadedFile(file: Express.Multer.File) {
+    if (!this.isValidUploadedFile(file)) throw new BadRequestException('Invalid media file');
+    const detected = await validateUploadedMedia(file.buffer, 'post');
+    const type = detected.kind === 'image' ? MediaType.IMAGE : MediaType.VIDEO;
+    const processed =
+      type === MediaType.IMAGE
+        ? await optimizePostImage(file.buffer)
+        : { buffer: file.buffer, contentType: detected.mime, ext: detected.ext };
+    return { type, ...processed };
   }
 
-  async processUploadedFile(file: Express.Multer.File, order: number): Promise<ProcessedMedia> {
-    if (!this.isValidUploadedFile(file)) {
-      throw new BadRequestException('Invalid media file');
-    }
-
-    const { type, ext } = this.detectMimeType(file.buffer);
-
-    // Enforce size limits: 10MB images, 100MB videos
-    const maxImageSize = 10 * 1024 * 1024;
-    const maxVideoSize = 100 * 1024 * 1024;
-
-    if (type === MediaType.IMAGE && file.buffer.length > maxImageSize) {
-      throw new BadRequestException('Image size exceeds 10MB limit');
-    }
-    if (type === MediaType.VIDEO && file.buffer.length > maxVideoSize) {
-      throw new BadRequestException('Video size exceeds 100MB limit');
-    }
-
-    const fileId = uid(16);
-    let uploadBuffer = file.buffer;
-    let contentType = file.mimetype;
-    let fileExt = ext;
-
-    if (type === MediaType.IMAGE) {
-      // Re-encode all images through Sharp for safety, compression, and privacy
-      const optimized = await optimizePostImage(file.buffer);
-      uploadBuffer = optimized.buffer;
-      contentType = optimized.contentType;
-      fileExt = optimized.ext;
-    }
-
-    const key = `posts/${fileId}.${fileExt}`;
-
+  private async storePreparedFile(
+    prepared: Awaited<ReturnType<PostsMediaService['prepareUploadedFile']>>,
+    order: number,
+  ): Promise<ProcessedMedia> {
+    const { buffer, contentType, ext, type } = prepared;
     const url = await uploadToStorageWithFallback(this.s3, {
       bucket: this.bucket,
-      key,
-      buffer: uploadBuffer,
+      key: 'posts/' + uid(16) + '.' + ext,
+      buffer,
       contentType,
       publicUrl: this.publicUrl,
     });
-
-    let blurhash: string | undefined;
-    if (type === MediaType.IMAGE) {
-      const bh = await generateBlurHash(uploadBuffer);
-      blurhash = bh.blurhash;
-    }
-
-    return {
-      type,
-      url,
-      ...(blurhash ? { blurhash } : {}),
-      order,
-    };
+    const blurhash =
+      type === MediaType.IMAGE ? (await generateBlurHash(buffer)).blurhash : undefined;
+    return { type, url, ...(blurhash ? { blurhash } : {}), order };
   }
 
-  async processUploadedFiles(files: Express.Multer.File[]): Promise<ProcessedMedia[]> {
-    if (!Array.isArray(files)) {
-      throw new BadRequestException('Invalid media files payload');
-    }
+  async processUploadedFile(file: Express.Multer.File, order: number): Promise<ProcessedMedia> {
+    return this.storePreparedFile(await this.prepareUploadedFile(file), order);
+  }
 
-    if (files.length > 5) {
+  async processUploadedFiles(
+    files: Express.Multer.File[],
+    references: PostMediaReference[] = [],
+  ): Promise<ProcessedMedia[]> {
+    if (!Array.isArray(files)) throw new BadRequestException('Invalid media files payload');
+    if (files.length + references.length > 5)
       throw new BadRequestException('Maximum 5 media files allowed per post');
+    // Validate the entire selection before writing any of its files to storage.
+    const prepared = [];
+    for (const file of files) prepared.push(await this.prepareUploadedFile(file));
+    for (const reference of references) {
+      const buffer = await readPostMediaReference(reference, {
+        s3: this.s3,
+        bucket: this.bucket,
+        publicUrl: this.publicUrl,
+      });
+      const media = await this.prepareUploadedFile({
+        buffer,
+        mimetype: 'application/octet-stream',
+      } as Express.Multer.File);
+      if (reference.kind === 'gif' && media.type !== MediaType.IMAGE) {
+        throw new BadRequestException('Choose a valid image from the GIF picker');
+      }
+      prepared.push(media);
     }
-
-    if (!files.every((file) => this.isValidUploadedFile(file))) {
-      throw new BadRequestException('Invalid media file payload');
-    }
-
-    return Promise.all(files.map((file, i) => this.processUploadedFile(file, i)));
+    return Promise.all(prepared.map((file, order) => this.storePreparedFile(file, order)));
   }
-
   private readonly chunkStore = new Map<
     string,
     {
+      ownerId: string;
       chunks: Map<number, Buffer>;
       totalChunks: number;
       fileName: string;
@@ -169,11 +124,16 @@ export class PostsMediaService implements OnModuleDestroy {
     }
   >();
 
-  private readonly CHUNK_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours TTL for incomplete upload sessions
+  private readonly CHUNK_TTL_MS = 15 * 60 * 1000; // 15 minutes TTL for incomplete upload sessions
   private readonly MAX_CONCURRENT_SESSIONS = 100;
-  private readonly MAX_TOTAL_CHUNKS = 50; // 50 * 5MB = 250MB max video assembly
+  private readonly MAX_TOTAL_CHUNKS = 4; // 4 * 5 MiB = 20 MiB max video assembly
+
+  private readonly chunkCleanup = setInterval(() => this.cleanupAbandonedChunks(), 60000).unref();
+  private assemblyBytes = 0;
+  private readonly MAX_BUFFERED_BYTES = 256 * 1024 * 1024;
 
   onModuleDestroy(): void {
+    clearInterval(this.chunkCleanup);
     this.chunkStore.clear();
   }
 
@@ -191,10 +151,12 @@ export class PostsMediaService implements OnModuleDestroy {
     chunkIndex: number,
     totalChunks: number,
     file: Express.Multer.File,
+    ownerId: string,
   ): Promise<{ complete: boolean; media?: ProcessedMedia; uploadedChunks: number[] }> {
     this.cleanupAbandonedChunks();
 
-    if (!uploadId || typeof uploadId !== 'string') {
+    if (!ownerId) throw new BadRequestException('Upload owner required');
+    if (!uploadId || typeof uploadId !== 'string' || uploadId.length > 128) {
       throw new BadRequestException('Invalid uploadId');
     }
 
@@ -214,19 +176,29 @@ export class PostsMediaService implements OnModuleDestroy {
     if (!this.isValidUploadedFile(file)) {
       throw new BadRequestException('Invalid chunk buffer');
     }
+    if (file.buffer.length > 5 * 1024 * 1024) {
+      throw new BadRequestException('Chunk size exceeds 5MB limit');
+    }
 
-    if (file.buffer.length > 5 * 1024 * 1024 || totalChunks > 4)
-      throw new BadRequestException('Chunk upload exceeds 20 MiB limit');
     const existingSession = this.chunkStore.get(uploadId);
     if (existingSession && existingSession.totalChunks !== totalChunks)
       throw new BadRequestException('Chunk count cannot change');
+    const existing = this.chunkStore.get(uploadId);
+    if (existing && existing.ownerId !== ownerId)
+      throw new BadRequestException('Upload belongs to another user');
     if (!this.chunkStore.has(uploadId)) {
+      if (
+        Array.from(this.chunkStore.values()).filter((session) => session.ownerId === ownerId)
+          .length >= 3
+      )
+        throw new BadRequestException('Too many active uploads');
       if (this.chunkStore.size >= this.MAX_CONCURRENT_SESSIONS) {
         throw new BadRequestException(
           'Server chunk upload capacity reached. Please try again later.',
         );
       }
       this.chunkStore.set(uploadId, {
+        ownerId,
         chunks: new Map(),
         totalChunks,
         fileName: file.originalname || 'upload',
@@ -235,6 +207,34 @@ export class PostsMediaService implements OnModuleDestroy {
     }
 
     const session = this.chunkStore.get(uploadId)!;
+    if (session.totalChunks !== totalChunks) {
+      throw new BadRequestException('Chunk count does not match the upload session');
+    }
+    const totalBytes =
+      Array.from(session.chunks.values()).reduce((sum, chunk) => sum + chunk.length, 0) -
+      (session.chunks.get(chunkIndex)?.length ?? 0) +
+      file.buffer.length;
+    if (totalBytes > 100 * 1024 * 1024) {
+      this.chunkStore.delete(uploadId);
+      throw new BadRequestException('Media file is too large');
+    }
+    let globalBytes = this.assemblyBytes;
+    let userBytes = 0;
+    for (const stored of this.chunkStore.values()) {
+      const bytes = Array.from(stored.chunks.values()).reduce(
+        (sum, chunk) => sum + chunk.length,
+        0,
+      );
+      globalBytes += bytes;
+      if (stored.ownerId === ownerId) userBytes += bytes;
+    }
+    const added = file.buffer.length - (session.chunks.get(chunkIndex)?.length ?? 0);
+    if (
+      globalBytes + added + totalBytes > this.MAX_BUFFERED_BYTES ||
+      userBytes + added > 100 * 1024 * 1024
+    ) {
+      throw new BadRequestException('Upload memory budget exceeded; retry later');
+    }
     session.chunks.set(chunkIndex, file.buffer);
 
     const uploadedChunks = Array.from(session.chunks.keys()).sort((a, b) => a - b);
@@ -255,15 +255,26 @@ export class PostsMediaService implements OnModuleDestroy {
         size: fullBuffer.length,
       };
 
-      const media = await this.processUploadedFile(assembledFile, 0);
-      return { complete: true, media, uploadedChunks };
+      this.assemblyBytes += 2 * totalBytes;
+      try {
+        const media = await this.processUploadedFile(assembledFile, 0);
+        return { complete: true, media, uploadedChunks };
+      } finally {
+        this.assemblyBytes -= 2 * totalBytes;
+      }
     }
 
     return { complete: false, uploadedChunks };
   }
 
-  getChunkStatus(uploadId: string): { uploadedChunks: number[]; totalChunks: number } {
+  getChunkStatus(
+    uploadId: string,
+    ownerId: string,
+  ): { uploadedChunks: number[]; totalChunks: number } {
+    this.cleanupAbandonedChunks();
     const session = this.chunkStore.get(uploadId);
+    if (session && session.ownerId !== ownerId)
+      throw new BadRequestException('Upload belongs to another user');
     if (!session) return { uploadedChunks: [], totalChunks: 0 };
     return {
       uploadedChunks: Array.from(session.chunks.keys()).sort((a, b) => a - b),

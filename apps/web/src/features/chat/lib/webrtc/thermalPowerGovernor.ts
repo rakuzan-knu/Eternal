@@ -101,7 +101,7 @@ export class ThermalPowerGovernor {
 
       if (!charging && level <= 0.15) {
         shouldThrottle = true;
-        reason = `Низкий заряд батареи (${Math.round(level * 100)}%)`;
+        reason = `Low battery (${Math.round(level * 100)}%)`;
       }
     }
 
@@ -110,7 +110,7 @@ export class ThermalPowerGovernor {
       this.consecutiveLowFpsCount++;
       if (this.consecutiveLowFpsCount >= 3) {
         shouldThrottle = true;
-        reason = reason || `Просадка FPS (${this.measuredFps} кадр/с)`;
+        reason = reason || `FPS drop (${this.measuredFps} fps)`;
       }
     } else {
       this.consecutiveLowFpsCount = 0;

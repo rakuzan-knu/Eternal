@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { updateConversationLists } from './chatCacheSync';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useChatSocket } from './useChatSocket';
 import { useChatSocketEvent } from './useChatSocketEvent';
@@ -6,16 +7,23 @@ import { queryKeys } from '@/shared/api/queryKeys';
 import {
   applyConversationPatch,
   applyIncomingMessage,
+  applyMessageEdited,
+  applyMessageDeleted,
   applyMessageDelivered,
   applyMessageRead,
   applyMessagesCleared,
   applyConversationDeleted,
   applyReactionMessage,
   mapCachedMessages,
-  updateCachedPages,
+  updateCachedMessageCopies,
+  getCachedMessageCopies,
 } from './chatCacheSync';
 import type { ConversationView, MessageView } from '../../../entities/chat/model/types';
 import { useAuthStore } from '@/shared/model/useAuthStore';
+import { ensureMessageIdentityRegistered } from '../lib/e2ee/messageE2ee';
+import { getRealtimeChatBatch, type ChatCacheClient } from './realtimeChatBatch';
+import { createSocketStateBatch } from './socketStateBatch';
+import { registerSessionResetHandler } from '@/shared/model/resetSession';
 
 /**
  * Per-conversation realtime binding (Socket.io → TanStack Query cache).
@@ -31,8 +39,76 @@ export function useConversationRealtime(conversationId: string | null) {
   const socket = useChatSocket();
   const queryClient = useQueryClient();
   const userId = useAuthStore((s) => s.userId);
+  const cacheBatch = useMemo(
+    () => getRealtimeChatBatch(queryClient, userId),
+    [queryClient, userId],
+  );
   const [typingUserIds, setTypingUserIds] = useState<Set<string>>(new Set());
   const typingTimerRef = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  const typingBatchRef = useRef<ReturnType<
+    typeof createSocketStateBatch<{ userId: string; isTyping: boolean }>
+  > | null>(null);
+
+  useEffect(() => {
+    const batch = createSocketStateBatch<{ userId: string; isTyping: boolean }>((updates) => {
+      for (const update of updates.values()) {
+        if (!update.isTyping) continue;
+        const timer = setTimeout(() => {
+          setTypingUserIds((prev) => {
+            if (!prev.has(update.userId)) return prev;
+            const next = new Set(prev);
+            next.delete(update.userId);
+            return next;
+          });
+          typingTimerRef.current.delete(update.userId);
+        }, 3500);
+        typingTimerRef.current.set(update.userId, timer);
+      }
+      setTypingUserIds((prev) => {
+        const next = new Set(prev);
+        let changed = false;
+        for (const update of updates.values()) {
+          if (next.has(update.userId) === update.isTyping) continue;
+          changed = true;
+          if (update.isTyping) next.add(update.userId);
+          else next.delete(update.userId);
+        }
+        return changed ? next : prev;
+      });
+    });
+    typingBatchRef.current = batch;
+    const unregisterReset = registerSessionResetHandler(() => {
+      batch.dispose();
+      typingTimerRef.current.forEach((timer) => clearTimeout(timer));
+      typingTimerRef.current.clear();
+      setTypingUserIds(new Set());
+    });
+    socket.on('disconnect', batch.flush);
+    return () => {
+      unregisterReset();
+      socket.off('disconnect', batch.flush);
+      batch.dispose();
+      typingBatchRef.current = null;
+    };
+  }, [conversationId, socket, userId]);
+
+  useEffect(() => {
+    const release = cacheBatch.retain();
+    const flush = () => cacheBatch.flush();
+    socket.on('disconnect', flush);
+    socket.on('connect', flush);
+    return () => {
+      socket.off('disconnect', flush);
+      socket.off('connect', flush);
+      if (useAuthStore.getState().userId !== userId) cacheBatch.cancel();
+      release();
+    };
+  }, [cacheBatch, socket, userId]);
+
+  // Bootstrap E2EE message identity on mount
+  useEffect(() => {
+    void ensureMessageIdentityRegistered();
+  }, []);
 
   // Reset typing indicators when switching conversations (effect, not render).
   useEffect(() => {
@@ -64,21 +140,24 @@ export function useConversationRealtime(conversationId: string | null) {
     };
   }, [conversationId, socket]);
 
-  const findLoadedMessage = (messageId: string): MessageView | undefined => {
+  const findLoadedMessage = (
+    cache: ChatCacheClient,
+    messageId: string,
+  ): MessageView | undefined => {
     if (!conversationId) return undefined;
-    const data = queryClient.getQueryData<{ pages: { data: MessageView[] }[] }>(
-      queryKeys.conversations.messages(conversationId),
-    );
-    return data?.pages.flatMap((p) => p.data).find((m) => m.id === messageId);
+    return getCachedMessageCopies(cache, conversationId)
+      .flatMap((p) => p.data)
+      .find((m) => m.id === messageId);
   };
 
-  const syncConversationPinned = (updater: (pinned: MessageView[]) => MessageView[]) => {
-    queryClient.setQueryData<ConversationView[]>(
-      queryKeys.conversations.root,
-      (prev: ConversationView[] | undefined) =>
-        prev?.map((c: ConversationView) =>
-          c.id === conversationId ? { ...c, pinnedMessages: updater(c.pinnedMessages) } : c,
-        ),
+  const syncConversationPinned = (
+    cache: ChatCacheClient,
+    updater: (pinned: MessageView[]) => MessageView[],
+  ) => {
+    updateConversationLists(cache, (prev: ConversationView[] | undefined) =>
+      prev?.map((c: ConversationView) =>
+        c.id === conversationId ? { ...c, pinnedMessages: updater(c.pinnedMessages) } : c,
+      ),
     );
   };
 
@@ -93,9 +172,11 @@ export function useConversationRealtime(conversationId: string | null) {
         payload.clientMessageId && !payload.message.clientMessageId
           ? { ...payload.message, clientMessageId: payload.clientMessageId }
           : payload.message;
-      applyIncomingMessage(queryClient, conversationId, messageToApply, {
-        status: isOwn ? 'sent' : 'sent',
-      });
+      cacheBatch.enqueue((cache) =>
+        applyIncomingMessage(cache, conversationId, messageToApply, {
+          status: isOwn ? 'sent' : 'sent',
+        }),
+      );
       if (!isOwn) {
         socket.emit('messageDelivered', { conversationId, messageId: payload.message.id });
         socket.emit('markRead', { conversationId });
@@ -107,7 +188,9 @@ export function useConversationRealtime(conversationId: string | null) {
     'messageDelivered',
     (payload) => {
       if (payload.conversationId !== conversationId || !conversationId) return;
-      applyMessageDelivered(queryClient, conversationId, payload.messageId);
+      cacheBatch.enqueue((cache) =>
+        applyMessageDelivered(cache, conversationId, payload.messageId),
+      );
     },
   );
 
@@ -115,34 +198,30 @@ export function useConversationRealtime(conversationId: string | null) {
     'messageEdited',
     (payload) => {
       if (payload.conversationId !== conversationId || !conversationId) return;
-      updateCachedPages(queryClient, conversationId, (pages) =>
-        mapCachedMessages(pages, (m) => (m.id === payload.message.id ? payload.message : m)),
-      );
+      cacheBatch.enqueue((cache) => applyMessageEdited(cache, conversationId, payload.message));
     },
   );
 
   useChatSocketEvent<{ conversationId: string; messageId: string }>('messageDeleted', (payload) => {
     if (payload.conversationId !== conversationId || !conversationId) return;
-    updateCachedPages(queryClient, conversationId, (pages) =>
-      mapCachedMessages(pages, (m) =>
-        m.id === payload.messageId ? { ...m, isDeleted: true, body: null } : m,
-      ),
-    );
+    cacheBatch.enqueue((cache) => applyMessageDeleted(cache, conversationId, payload.messageId));
   });
 
   useChatSocketEvent<{ conversationId: string }>('messagesCleared', (payload) => {
     if (payload.conversationId !== conversationId || !conversationId) return;
-    applyMessagesCleared(queryClient, conversationId);
+    cacheBatch.enqueue((cache) => applyMessagesCleared(cache, conversationId));
   });
 
   useChatSocketEvent<{ conversationId: string }>('conversationDeleted', (payload) => {
     if (payload.conversationId !== conversationId || !conversationId) return;
-    applyConversationDeleted(queryClient, conversationId);
+    cacheBatch.enqueue((cache) => applyConversationDeleted(cache, conversationId));
   });
 
   const handleReaction = (payload: { conversationId: string; message: MessageView }) => {
     if (payload.conversationId !== conversationId || !conversationId) return;
-    applyReactionMessage(queryClient, conversationId, payload.message, userId);
+    cacheBatch.enqueue((cache) =>
+      applyReactionMessage(cache, conversationId, payload.message, userId),
+    );
   };
 
   useChatSocketEvent<{ conversationId: string; message: MessageView }>(
@@ -156,25 +235,29 @@ export function useConversationRealtime(conversationId: string | null) {
 
   useChatSocketEvent<{ conversationId: string; messageId: string }>('messagePinned', (p) => {
     if (p.conversationId !== conversationId || !conversationId) return;
-    updateCachedPages(queryClient, conversationId, (pages) =>
-      mapCachedMessages(pages, (m) => (m.id === p.messageId ? { ...m, isPinned: true } : m)),
-    );
+    cacheBatch.enqueue((cache) => {
+      updateCachedMessageCopies(cache, conversationId, (pages) =>
+        mapCachedMessages(pages, (m) => (m.id === p.messageId ? { ...m, isPinned: true } : m)),
+      );
 
-    const message = findLoadedMessage(p.messageId);
-    if (message) {
-      syncConversationPinned((pinned) => [
-        ...pinned.filter((m) => m.id !== p.messageId),
-        { ...message, isPinned: true },
-      ]);
-    }
+      const message = findLoadedMessage(cache, p.messageId);
+      if (message) {
+        syncConversationPinned(cache, (pinned) => [
+          ...pinned.filter((m) => m.id !== p.messageId),
+          { ...message, isPinned: true },
+        ]);
+      }
+    });
   });
 
   useChatSocketEvent<{ conversationId: string; messageId: string }>('messageUnpinned', (p) => {
     if (p.conversationId !== conversationId || !conversationId) return;
-    updateCachedPages(queryClient, conversationId, (pages) =>
-      mapCachedMessages(pages, (m) => (m.id === p.messageId ? { ...m, isPinned: false } : m)),
-    );
-    syncConversationPinned((pinned) => pinned.filter((m) => m.id !== p.messageId));
+    cacheBatch.enqueue((cache) => {
+      updateCachedMessageCopies(cache, conversationId, (pages) =>
+        mapCachedMessages(pages, (m) => (m.id === p.messageId ? { ...m, isPinned: false } : m)),
+      );
+      syncConversationPinned(cache, (pinned) => pinned.filter((m) => m.id !== p.messageId));
+    });
   });
 
   useChatSocketEvent<{
@@ -184,11 +267,13 @@ export function useConversationRealtime(conversationId: string | null) {
     readAt: string;
   }>('messageRead', (payload) => {
     if (payload.conversationId !== conversationId || !conversationId) return;
-    applyMessageRead(queryClient, conversationId, {
-      userId: payload.userId,
-      messageId: payload.messageId,
-      readAt: payload.readAt,
-    });
+    cacheBatch.enqueue((cache) =>
+      applyMessageRead(cache, conversationId, {
+        userId: payload.userId,
+        messageId: payload.messageId,
+        readAt: payload.readAt,
+      }),
+    );
   });
 
   useChatSocketEvent<{ conversationId: string; userId: string; isTyping: boolean }>(
@@ -202,27 +287,7 @@ export function useConversationRealtime(conversationId: string | null) {
         typingTimerRef.current.delete(payload.userId);
       }
 
-      setTypingUserIds((prev) => {
-        const next = new Set(prev);
-        if (payload.isTyping) {
-          next.add(payload.userId);
-        } else {
-          next.delete(payload.userId);
-        }
-        return next;
-      });
-
-      if (payload.isTyping) {
-        const timer = setTimeout(() => {
-          setTypingUserIds((prev) => {
-            const next = new Set(prev);
-            next.delete(payload.userId);
-            return next;
-          });
-          typingTimerRef.current.delete(payload.userId);
-        }, 3500);
-        typingTimerRef.current.set(payload.userId, timer);
-      }
+      typingBatchRef.current?.enqueue(payload.userId, () => payload);
     },
   );
 
@@ -232,22 +297,26 @@ export function useConversationRealtime(conversationId: string | null) {
     sharedThemeUpdatedAt: string;
   }>('conversationSharedThemeUpdated', (payload) => {
     if (payload.conversationId !== conversationId) return;
-    applyConversationPatch(queryClient, {
-      id: payload.conversationId,
-      sharedTheme: payload.sharedTheme,
-      sharedThemeUpdatedAt: payload.sharedThemeUpdatedAt,
-    } as Partial<ConversationView> & { id: string });
+    cacheBatch.enqueue((cache) =>
+      applyConversationPatch(cache, {
+        id: payload.conversationId,
+        sharedTheme: payload.sharedTheme,
+        sharedThemeUpdatedAt: payload.sharedThemeUpdatedAt,
+      } as Partial<ConversationView> & { id: string }),
+    );
   });
 
   useChatSocketEvent<{
     conversationId: string;
   }>('conversationSharedThemeUnlinked', (payload) => {
     if (payload.conversationId !== conversationId) return;
-    applyConversationPatch(queryClient, {
-      id: payload.conversationId,
-      sharedTheme: null,
-      sharedThemeUpdatedAt: null,
-    } as unknown as Partial<ConversationView> & { id: string });
+    cacheBatch.enqueue((cache) =>
+      applyConversationPatch(cache, {
+        id: payload.conversationId,
+        sharedTheme: null,
+        sharedThemeUpdatedAt: null,
+      } as unknown as Partial<ConversationView> & { id: string }),
+    );
   });
 
   return { typingUserIds };

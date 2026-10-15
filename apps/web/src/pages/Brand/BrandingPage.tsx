@@ -54,7 +54,7 @@ export const BrandingPage: React.FC = () => {
       {/* Top Navbar */}
       <PrivacyNavbar />
 
-      {/* 1. Hero Section (Deep Indigo/Purple Discord Style with 3 3D Mascots) */}
+      {/* 1. Hero Section */}
       <section className="relative pt-36 pb-20 px-6 lg:px-12 bg-gradient-to-b from-[#381a80] via-[#240e5c] to-[#07050f] overflow-hidden">
         {/* Ambient Purple Glow */}
         <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[850px] h-[450px] bg-purple-600/25 blur-[140px] pointer-events-none rounded-full" />

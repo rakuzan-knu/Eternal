@@ -44,3 +44,7 @@ Follow [DIRECT_MEDIA_UPLOADS.md](DIRECT_MEDIA_UPLOADS.md). Disable Auto-assign C
 Render uses DIRECT_UPLOADS_REQUIRED=true, VIDEO_TRANSCODE_ENABLED=false and SOUNDCLOUD_AUDIO_PROXY_ENABLED=false. Music's STEAM_CALLBACK_URL is its canonical `/v1/integrations/steam/callback`; Steam starts through an authenticated POST and first-party popup launch. Preserve the popup's COOP unsafe-none response header and exact origin/source proof checks. Do not reintroduce a GET start with userId/state selected by the caller.
 
 Free quota diagnostics run hourly on Core using existing connections: PostgreSQL warns at400MB, Redis at80% memory and26 connections. Media admission warns at80%; these are server log warnings, not a configured email paging service. Provider billing dashboards remain authoritative for monthly Render outbound bandwidth and R2 operations. Do not describe application counters as a provider spending cap.
+
+### Generic OAuth popup state
+
+GitHub starts with authenticated `POST /auth/github/oauth/start` on Core; other provider starts use `POST /integrations/:platform/oauth/start` on Music. Starts return a 60-second first-party launch URL with a ticket fragment and a separate `launchProof`. The opener checks exact origin and source before sharing the proof; the backend popup sets the encrypted HttpOnly Secure SameSite=Lax provider cookie before redirecting to the provider. Keep launch bodies out of error telemetry. Steam retains its separate OpenID signed-field/nonce verification.

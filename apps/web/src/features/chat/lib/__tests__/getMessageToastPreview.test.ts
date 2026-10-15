@@ -36,6 +36,38 @@ describe('getMessageToastPreview', () => {
     ).toBe('note: {"e2ee":true} is the marker');
   });
 
+  it('never leaks CALL_LOG or call metadata JSON into notifications', () => {
+    const callLogBody = JSON.stringify({
+      callId: '2c80d204-b113-418a-a4d6-692612229ede',
+      callType: 'AUDIO',
+      status: 'ENDED',
+      endedReason: 'NORMAL',
+      durationMs: 42000,
+    });
+    expect(
+      getMessageToastPreview({
+        isDeleted: false,
+        body: callLogBody,
+        messageType: 'CALL_LOG',
+        attachments: [],
+      } as unknown as MessageView),
+    ).toBe('Voice call ended');
+
+    const missedCallBody = JSON.stringify({
+      callId: 'missed-123',
+      callType: 'VIDEO',
+      status: 'MISSED',
+    });
+    expect(
+      getMessageToastPreview({
+        isDeleted: false,
+        body: missedCallBody,
+        messageType: 'CALL_LOG',
+        attachments: [],
+      } as unknown as MessageView),
+    ).toBe('Missed video call');
+  });
+
   it('returns appropriate string when message has no attachments and empty body', () => {
     expect(
       getMessageToastPreview({

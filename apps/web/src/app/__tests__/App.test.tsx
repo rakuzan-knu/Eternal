@@ -18,6 +18,23 @@ vi.mock('@/features/chat/ui/MessageToastViewport', () => ({
   default: () => null,
 }));
 
+// Route ownership is tested here; page copy and form behavior have their own suites.
+vi.mock('@/pages/Login/LoginPage', () => ({
+  LoginPage: () => <div>Login Page Content</div>,
+}));
+
+vi.mock('@/pages/Register/RegisterPage', () => ({
+  RegisterPage: () => <div>Register Page Content</div>,
+}));
+
+vi.mock('@/pages/Forgot-Password/ForgotPasswordPage', () => ({
+  ForgotPasswordPage: () => <div>Forgot Password Page Content</div>,
+}));
+
+vi.mock('@/pages/NotFound/NotFoundPage', () => ({
+  default: () => <div>Not Found Page Content</div>,
+}));
+
 vi.mock('@/pages/Feed/Feed', () => ({
   default: () => <div>Feed Content</div>,
 }));
@@ -54,43 +71,43 @@ describe('App', () => {
   it('renders the login page at /login', async () => {
     renderWithProviders(<App />, { initialEntries: ['/login'] });
 
-    expect(await screen.findByText('Welcome back')).toBeInTheDocument();
+    expect(await screen.findByText('Login Page Content')).toBeInTheDocument();
   });
 
   it('renders the register page at /register', async () => {
     renderWithProviders(<App />, { initialEntries: ['/register'] });
 
-    expect(await screen.findByText('Get started on Eternal')).toBeInTheDocument();
+    expect(await screen.findByText('Register Page Content')).toBeInTheDocument();
   });
 
   it('renders the forgot-password page at /forgot-password', async () => {
     renderWithProviders(<App />, { initialEntries: ['/forgot-password'] });
 
-    expect(await screen.findByText('Find your account')).toBeInTheDocument();
+    expect(await screen.findByText('Forgot Password Page Content')).toBeInTheDocument();
   });
 
   it('redirects to login for the root route while unauthenticated', async () => {
     renderWithProviders(<App />, { initialEntries: ['/'] });
 
-    expect(await screen.findByText('Welcome back')).toBeInTheDocument();
+    expect(await screen.findByText('Login Page Content')).toBeInTheDocument();
   });
 
   it('redirects to login for an arbitrary unknown route while unauthenticated', async () => {
     renderWithProviders(<App />, { initialEntries: ['/some/deep/unknown/route'] });
 
-    expect(await screen.findByText('Welcome back')).toBeInTheDocument();
+    expect(await screen.findByText('Login Page Content')).toBeInTheDocument();
   });
 
   it('redirects to login for an unauthenticated user on /:username', async () => {
     renderWithProviders(<App />, { initialEntries: ['/some_user'] });
 
-    expect(await screen.findByText('Welcome back')).toBeInTheDocument();
+    expect(await screen.findByText('Login Page Content')).toBeInTheDocument();
   });
 
   it('renders the not-found page for /404 route while unauthenticated', async () => {
     renderWithProviders(<App />, { initialEntries: ['/404'] });
 
-    expect(await screen.findByText(/LOST IN THE MILKY WAY/i)).toBeInTheDocument();
+    expect(await screen.findByText('Not Found Page Content')).toBeInTheDocument();
   });
 
   it('redirects /login to the home/feed route when authenticated', async () => {

@@ -34,7 +34,11 @@ Sentry.init({
 
   beforeSend(event) {
     if (event.request) {
-      if (event.request.url?.includes('/integrations/steam')) event.request.data = '[REDACTED]';
+      if (
+        event.request.url &&
+        /\/(?:integrations\/steam|oauth\/launch)(?:[/?#]|$)/.test(event.request.url)
+      )
+        event.request.data = '[REDACTED]';
       if (event.request.url) event.request.url = redactRequestUrl(event.request.url);
       delete event.request.query_string;
       delete event.request.cookies;
@@ -48,7 +52,11 @@ Sentry.init({
 
   beforeSendTransaction(event) {
     if (event.request) {
-      if (event.request.url?.includes('/integrations/steam')) event.request.data = '[REDACTED]';
+      if (
+        event.request.url &&
+        /\/(?:integrations\/steam|oauth\/launch)(?:[/?#]|$)/.test(event.request.url)
+      )
+        event.request.data = '[REDACTED]';
       if (event.request.url) event.request.url = redactRequestUrl(event.request.url);
       delete event.request.query_string;
       delete event.request.cookies;

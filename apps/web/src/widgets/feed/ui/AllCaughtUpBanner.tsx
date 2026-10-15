@@ -12,7 +12,7 @@ export function AllCaughtUpBanner({ showCarousel = true }: AllCaughtUpBannerProp
   return (
     <div className="w-full flex flex-col gap-6 pt-6 pb-12 animate-fadeIn select-none">
       {/* All Caught Up Indicator Card */}
-      <div className="w-full rounded-3xl bg-white/[0.02] border border-white/[0.06] backdrop-blur-2xl p-6 sm:p-8 flex flex-col items-center text-center shadow-2xl relative overflow-hidden group">
+      <div className="w-full rounded-3xl glass-card border border-black/10 dark:border-white/[0.06] backdrop-blur-2xl p-6 sm:p-8 flex flex-col items-center text-center shadow-2xl relative overflow-hidden group">
         {/* Subtle Background Glow */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -24,10 +24,10 @@ export function AllCaughtUpBanner({ showCarousel = true }: AllCaughtUpBannerProp
         </div>
 
         {/* Text Details */}
-        <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">
+        <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white tracking-tight">
           You're all caught up
         </h3>
-        <p className="text-xs sm:text-sm text-gray-400 mt-1 max-w-sm">
+        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1 max-w-sm">
           You've seen all new posts from the past 3 days.
         </p>
       </div>

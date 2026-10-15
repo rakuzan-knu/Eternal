@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { mergeIntegrationSettings } from '../../common/security/public-integration-data';
 import { PrismaService } from '@common/prisma';
 import { FollowStatus, ShowcasePrivacy, type Prisma } from '@prisma/client';
 import type { UpdateShowcaseDto } from '@common/contracts';
@@ -85,7 +86,7 @@ export class ShowcaseRepository implements IShowcaseRepository {
       const newConnectedAccounts: Record<string, unknown> | undefined =
         dto.connectedAccounts !== undefined
           ? {
-              ...(dto.connectedAccounts || {}),
+              ...mergeIntegrationSettings(existingConnected, dto.connectedAccounts || {}),
               ...(dto.personalInfo !== undefined
                 ? { _personalInfo: dto.personalInfo }
                 : existingConnected._personalInfo

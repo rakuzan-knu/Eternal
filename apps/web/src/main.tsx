@@ -16,7 +16,9 @@ import { initializeVisualEffects } from '@/shared/model/useVisualEffects';
 
 initSentry();
 initCrossTabSync();
-void ensureDevAccounts();
+if (import.meta.env.DEV && import.meta.env.VITE_SEED_DEV_ACCOUNTS === 'true') {
+  void ensureDevAccounts();
+}
 const disposeVisualEffects = initializeVisualEffects();
 if (import.meta.hot) import.meta.hot.dispose(disposeVisualEffects);
 

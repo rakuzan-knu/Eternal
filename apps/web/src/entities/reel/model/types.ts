@@ -3,6 +3,8 @@ export interface ReelAuthor {
   username: string;
   displayName: string | null;
   avatar: string | null;
+  activeDecoration?: import('@social-network/shared-contracts').AvatarDecorationDto | null;
+  displayNameStyle?: import('@social-network/shared-contracts').DisplayNameStyleDto | null;
   isVerified?: boolean;
   isFollowing?: boolean;
 }
@@ -37,7 +39,7 @@ export const DEFAULT_SEED_REELS: ReelItem[] = [
   {
     id: 'reel-profkino-1',
     authorId: 'user-profkino',
-    caption: 'Сосед-авторитет врубил шумит ночью, но за бессонную ночь дочери',
+    caption: 'Loud neighbor was blasting music all night, until the unexpected happened',
     videoUrl: '/videos/sample-reel.mp4',
     hlsUrl: null,
     thumbnailUrl: null,
@@ -68,7 +70,7 @@ export const DEFAULT_SEED_REELS: ReelItem[] = [
   {
     id: 'reel-profkino-2',
     authorId: 'user-profkino',
-    caption: 'Когда понял, кто на самом деле держит район 🎬 Неожиданный финал',
+    caption: 'When you realize who actually runs the neighborhood 🎬 Unexpected ending',
     videoUrl: '/videos/sample-reel.mp4',
     hlsUrl: null,
     thumbnailUrl: null,

@@ -16,6 +16,7 @@ import {
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomUUID } from 'node:crypto';
+import { Readable } from 'node:stream';
 import { z } from 'zod';
 import { RedisService } from '../../redis/redis.service';
 import { StorageService } from '../storage/storage.service';
@@ -30,6 +31,8 @@ import {
 import { MediaAccessRepository } from './media-access.repository';
 import { inspectMedia } from './media-metadata';
 import { MEDIA_POLICY } from './media-policy';
+import { validateUploadedMedia } from './media-upload-validator';
+import { optimizeAvatar, optimizeBanner, optimizePostImage } from './image-processor';
 
 const receiptSchema = z.object({
   uploadId: z.string().uuid(),
@@ -55,6 +58,7 @@ const mimeExtensions: Record<string, string> = {
   'image/png': 'png',
   'image/webp': 'webp',
   'image/gif': 'gif',
+  'image/avif': 'avif',
   'video/mp4': 'mp4',
   'video/webm': 'webm',
   'video/quicktime': 'mov',
@@ -63,11 +67,13 @@ const mimeExtensions: Record<string, string> = {
   'audio/webm': 'webm',
   'audio/ogg': 'ogg',
   'audio/wav': 'wav',
+  'audio/flac': 'flac',
   'application/octet-stream': 'bin',
 };
 
 @Injectable()
 export class DirectUploadsService {
+  private validating = false;
   constructor(
     private readonly storage: StorageService,
     private readonly r2: R2StorageService,
@@ -173,29 +179,11 @@ export class DirectUploadsService {
         !head.ETag
       )
         throw new BadRequestException('Uploaded object does not match its reservation');
-      const metadataDeadline = AbortSignal.timeout(45_000);
-      const metadata =
-        intent.contentType === 'application/octet-stream'
-          ? {}
-          : await inspectMedia(
-              intent.contentType,
-              intent.sizeBytes,
-              async (start, end) => {
-                const response = await s3.send(
-                  new GetObjectCommand({
-                    Bucket,
-                    Key: intent.tempKey,
-                    Range: `bytes=${start}-${end}`,
-                    IfMatch: head.ETag,
-                  }),
-                  { abortSignal: AbortSignal.any([AbortSignal.timeout(10_000), metadataDeadline]) },
-                );
-                if (!response.Body || response.ContentLength !== end - start + 1)
-                  throw new BadRequestException('Invalid media range');
-                return Buffer.from(await response.Body.transformToByteArray());
-              },
-              intent.purpose === 'reel' ? 60 : 3600,
-            );
+      const prepared = await this.validateStaging(intent, head.ETag);
+      const metadata = prepared.metadata;
+      const finalKey = prepared.extension
+        ? intent.finalKey.slice(0, intent.finalKey.lastIndexOf('.') + 1) + prepared.extension
+        : intent.finalKey;
       const objectMetadata: Record<string, string> = {
         ownerid: userId,
         uploadid: uploadId,
@@ -204,27 +192,36 @@ export class DirectUploadsService {
       };
       for (const [key, value] of Object.entries(metadata))
         if (value !== undefined) objectMetadata[key] = String(value);
-      await s3.send(
-        new CopyObjectCommand({
-          Bucket,
-          Key: intent.finalKey,
-          CopySource: `${Bucket}/${intent.tempKey}`,
-          CopySourceIfMatch: head.ETag,
-          MetadataDirective: 'REPLACE',
-          Metadata: objectMetadata,
-          ContentType: intent.contentType,
-          ContentDisposition: this.kind(intent.contentType) === 'FILE' ? 'attachment' : 'inline',
-          CacheControl: 'public, max-age=31536000, immutable',
-        }),
-        { abortSignal: AbortSignal.timeout(15_000) },
-      );
+      const publication = {
+        Bucket,
+        Key: finalKey,
+        Metadata: objectMetadata,
+        ContentType: prepared.contentType,
+        ContentDisposition: this.kind(prepared.contentType) === 'FILE' ? 'attachment' : 'inline',
+        CacheControl: 'public, max-age=31536000, immutable',
+      };
+      if (prepared.buffer) {
+        await s3.send(new PutObjectCommand({ ...publication, Body: prepared.buffer }), {
+          abortSignal: AbortSignal.timeout(15_000),
+        });
+      } else {
+        await s3.send(
+          new CopyObjectCommand({
+            ...publication,
+            CopySource: `${Bucket}/${intent.tempKey}`,
+            CopySourceIfMatch: head.ETag,
+            MetadataDirective: 'REPLACE',
+          }),
+          { abortSignal: AbortSignal.timeout(15_000) },
+        );
+      }
       const receipt: CompletedUpload = {
         uploadId,
         filename: intent.filename,
-        url: this.storage.getPublicUrl(intent.finalKey),
-        contentType: intent.contentType,
-        sizeBytes: intent.sizeBytes,
-        kind: this.kind(intent.contentType),
+        url: this.storage.getPublicUrl(finalKey),
+        contentType: prepared.contentType,
+        sizeBytes: prepared.sizeBytes,
+        kind: this.kind(prepared.contentType),
         ...metadata,
       };
       await client.set(this.key(uploadId), JSON.stringify({ ...intent, receipt }), 'EX', 86400);
@@ -241,6 +238,109 @@ export class DirectUploadsService {
           lock,
         )
         .catch(() => undefined);
+    }
+  }
+
+  private async validateStaging(
+    intent: Intent,
+    etag: string,
+  ): Promise<{
+    metadata: Awaited<ReturnType<typeof inspectMedia>>;
+    contentType: string;
+    sizeBytes: number;
+    buffer?: Buffer;
+    extension?: string;
+  }> {
+    const unchanged = {
+      metadata: {},
+      contentType: intent.contentType,
+      sizeBytes: intent.sizeBytes,
+    };
+    // Ciphertext and generic chat files are downloadable attachments, never interpreted as media.
+    if (intent.contentType === 'application/octet-stream') return unchanged;
+    if (this.validating)
+      throw new ServiceUnavailableException(
+        'Another media file is being verified. Try again shortly',
+      );
+    this.validating = true;
+    try {
+      const response = await this.storage.getS3Client().send(
+        new GetObjectCommand({
+          Bucket: this.r2.getDefaultBucket(),
+          Key: intent.tempKey,
+          IfMatch: etag,
+        }),
+        { abortSignal: AbortSignal.timeout(15_000) },
+      );
+      const body = response.Body;
+      if (!(body instanceof Readable)) throw new BadRequestException('Invalid media stream');
+      const chunks: Buffer[] = [];
+      let bytes = 0;
+      const timer = setTimeout(() => body.destroy(new Error('Media read timed out')), 15_000);
+      let buffer: Buffer;
+      try {
+        if (response.ContentLength !== intent.sizeBytes)
+          throw new BadRequestException('Invalid media size');
+        for await (const chunk of body) {
+          if (!Buffer.isBuffer(chunk)) throw new BadRequestException('Invalid media stream');
+          bytes += chunk.length;
+          if (bytes > intent.sizeBytes || bytes > MEDIA_POLICY.maxAttachmentBytes)
+            throw new BadRequestException('Media exceeds upload reservation');
+          chunks.push(chunk);
+        }
+        if (bytes !== intent.sizeBytes) throw new BadRequestException('Incomplete media object');
+        buffer = Buffer.concat(chunks, bytes);
+      } finally {
+        clearTimeout(timer);
+        body.destroy();
+      }
+      // Preserve the same container, packet and bounded full-decode validation as proxy uploads.
+      const detected = await validateUploadedMedia(buffer, 'story');
+      if (detected.mime !== intent.contentType)
+        throw new BadRequestException('Media bytes do not match the reserved type');
+      if (detected.kind === 'image') {
+        await inspectMedia(
+          intent.contentType,
+          intent.sizeBytes,
+          (start, end) => Promise.resolve(buffer.subarray(start, end + 1)),
+          3600,
+        );
+        const optimized =
+          intent.purpose === 'avatar'
+            ? await optimizeAvatar(buffer)
+            : intent.purpose === 'banner'
+              ? await optimizeBanner(buffer)
+              : await optimizePostImage(buffer);
+        if (
+          optimized.buffer.length > intent.sizeBytes ||
+          optimized.buffer.length > MEDIA_POLICY.maxImageBytes
+        )
+          throw new BadRequestException(
+            'Normalized image exceeds its reservation. Compress the image and upload again',
+          );
+        const metadata = await inspectMedia(
+          optimized.contentType,
+          optimized.buffer.length,
+          (start, end) => Promise.resolve(optimized.buffer.subarray(start, end + 1)),
+          3600,
+        );
+        return {
+          metadata,
+          buffer: optimized.buffer,
+          contentType: optimized.contentType,
+          extension: optimized.ext,
+          sizeBytes: optimized.buffer.length,
+        };
+      }
+      const metadata = await inspectMedia(
+        intent.contentType,
+        intent.sizeBytes,
+        (start, end) => Promise.resolve(buffer.subarray(start, end + 1)),
+        intent.purpose === 'reel' ? 60 : 3600,
+      );
+      return { ...unchanged, metadata };
+    } finally {
+      this.validating = false;
     }
   }
 
@@ -274,6 +374,11 @@ export class DirectUploadsService {
       throw new ForbiddenException('Completed upload does not belong to this operation');
     await this.assertOwnedUrl(userId, intent.receipt.url, purpose, conversationId);
     return intent.receipt;
+  }
+
+  isDirectUploadUrl(url: string, purpose: UploadPurpose): boolean {
+    const path = purpose === 'reel' ? 'reels/' : `media/${purpose}/`;
+    return url.startsWith(this.storage.getPublicUrl(path));
   }
 
   async assertOwnedUrl(

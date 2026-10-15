@@ -8,13 +8,13 @@ export interface SubtitleCue {
 }
 
 export const SUBTITLE_LANGUAGES: { id: SubtitleLanguage; label: string; flag: string }[] = [
-  { id: 'off', label: 'Вимкнено', flag: '🚫' },
-  { id: 'uk', label: 'Українська', flag: '🇺🇦' },
+  { id: 'off', label: 'Off', flag: '🚫' },
+  { id: 'uk', label: 'Ukrainian', flag: '🇺🇦' },
   { id: 'en', label: 'English', flag: '🇬🇧' },
-  { id: 'de', label: 'Deutsch', flag: '🇩🇪' },
-  { id: 'es', label: 'Español', flag: '🇪🇸' },
-  { id: 'fr', label: 'Français', flag: '🇫🇷' },
-  { id: 'pl', label: 'Polski', flag: '🇵🇱' },
+  { id: 'de', label: 'German', flag: '🇩🇪' },
+  { id: 'es', label: 'Spanish', flag: '🇪🇸' },
+  { id: 'fr', label: 'French', flag: '🇫🇷' },
+  { id: 'pl', label: 'Polish', flag: '🇵🇱' },
 ];
 
 /**
@@ -148,7 +148,10 @@ export function translateCaption(text: string): { translated: string; targetLang
   const trimmed = text.trim();
 
   // 1. Curated exact matches for demo/seed reels
-  if (trimmed.includes('Сосед-авторитет врубил шумит ночью')) {
+  if (
+    trimmed.includes('Сосед-авторитет врубил шумит ночью') ||
+    trimmed.includes('Loud neighbor was blasting music all night')
+  ) {
     return {
       translated:
         'Сусід-авторитет увімкнув музику і шумить уночі, але за безсонну ніч доньки доведеться відповісти...',
@@ -156,7 +159,10 @@ export function translateCaption(text: string): { translated: string; targetLang
     };
   }
 
-  if (trimmed.includes('Нічні вогні великого міста')) {
+  if (
+    trimmed.includes('Нічні вогні великого міста') ||
+    trimmed.includes('Night lights of the big city')
+  ) {
     return {
       translated: 'Night lights of the big city 🌃 Atmospheric walk and cinematic aesthetics',
       targetLang: 'en',

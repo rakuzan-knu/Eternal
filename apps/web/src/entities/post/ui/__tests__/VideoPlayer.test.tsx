@@ -17,14 +17,25 @@ describe('VideoPlayer', () => {
 
     const video = container.querySelector('video') as HTMLVideoElement;
     expect(video).toBeInTheDocument();
-    expect(video.src).toContain('https://video.mp4');
+    expect(video.getAttribute('src')).toBeNull();
     expect(video.poster).toContain('https://poster.jpg');
     expect(video.muted).toBe(true);
   });
 
   it('toggles play/pause on click', () => {
+    let onIntersection!: IntersectionObserverCallback;
+    vi.spyOn(window, 'IntersectionObserver').mockImplementation(function (callback) {
+      onIntersection = callback;
+      return { observe: vi.fn(), disconnect: vi.fn() } as unknown as IntersectionObserver;
+    });
     const { container } = render(<VideoPlayer src="https://video.mp4" />);
     const video = container.querySelector('video') as HTMLVideoElement;
+    act(() =>
+      onIntersection(
+        [{ isIntersecting: true, intersectionRatio: 1 } as IntersectionObserverEntry],
+        {} as IntersectionObserver,
+      ),
+    );
 
     // Simulate play state
     Object.defineProperty(video, 'paused', { value: true, configurable: true });

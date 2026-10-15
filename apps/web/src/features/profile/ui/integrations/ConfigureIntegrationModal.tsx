@@ -36,7 +36,7 @@ import { USER_KEY } from '@/shared/api/queryKeys';
 import { getApiUrl } from '@/shared/api/httpClient';
 import { UnlinkConfirmationModal } from './UnlinkConfirmationModal';
 import { useSpotifyPlayerStore } from '@/shared/model/useSpotifyPlayerStore';
-import { isSpotifyUrl, isTrustedMessageOrigin, sanitizeImageUrl } from '@/shared/lib/urlSecurity';
+import { isSpotifyUrl, sanitizeImageUrl } from '@/shared/lib/urlSecurity';
 import type { PlatformConfig } from './platforms';
 
 export type { PlatformConfig };
@@ -108,6 +108,7 @@ export const ConfigureIntegrationModal: React.FC<ConfigureIntegrationModalProps>
   const oauthTimerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
   const oauthAbortRef = useRef<AbortController | null>(null);
   const steamLaunchProofRef = useRef<string | null>(null);
+  const oauthLaunchProofRef = useRef<string | null>(null);
 
   useEffect(() => {
     setIsAuthenticating(false);
@@ -118,6 +119,7 @@ export const ConfigureIntegrationModal: React.FC<ConfigureIntegrationModalProps>
       popupRef.current?.close();
       popupRef.current = null;
       steamLaunchProofRef.current = null;
+      oauthLaunchProofRef.current = null;
     };
   }, [isOpen, platform?.id]);
 
@@ -425,43 +427,31 @@ export const ConfigureIntegrationModal: React.FC<ConfigureIntegrationModalProps>
             );
           return;
         }
-      } else if (!isTrustedMessageOrigin(event.origin)) return;
+      } else {
+        const startPath =
+          platform.id === 'github' ? '/auth/github/oauth/launch' : '/integrations/oauth/launch';
+        const serviceOrigin = new URL(getApiUrl(startPath), window.location.origin).origin;
+        if (
+          !popupRef.current ||
+          event.source !== popupRef.current ||
+          (event.origin !== serviceOrigin && event.origin !== window.location.origin)
+        )
+          return;
+        if (event.data?.type === 'OAUTH_LAUNCH_REQUEST') {
+          if (event.origin === serviceOrigin && oauthLaunchProofRef.current)
+            popupRef.current.postMessage(
+              { type: 'OAUTH_LAUNCH_PROOF', proof: oauthLaunchProofRef.current },
+              serviceOrigin,
+            );
+          return;
+        }
+      }
       const authPlatform = (event.data?.platform || '').toLowerCase();
       if (authPlatform !== platform.id.toLowerCase()) return;
 
-      if (
-        platform.id !== 'steam' &&
-        event.data?.type === 'OAUTH_CODE_RECEIVED' &&
-        event.data?.code
-      ) {
-        setIsAuthenticating(true);
-        try {
-          const exchangeRes = await integrationsApi.exchangeCode(authPlatform, {
-            code: event.data.code,
-            redirectUri: event.origin || window.location.origin,
-            state: event.data.state || currentUser?.id,
-          });
-          if (exchangeRes?.data) {
-            setActiveData(exchangeRes.data);
-            onSaveSuccess(platform.id, exchangeRes.data);
-            setIsAuthenticating(false);
-            queryClient.invalidateQueries({ queryKey: [USER_KEY] });
-            queryClient.invalidateQueries({ queryKey: ['showcase'] });
-            queryClient.invalidateQueries({ queryKey: ['user'] });
-            queryClient.invalidateQueries({ queryKey: ['profile'] });
-            try {
-              if (popupRef.current && !popupRef.current.closed) {
-                popupRef.current.close();
-              }
-            } catch {}
-          }
-        } catch (err) {
-          console.error('Failed to exchange OAuth code in opener:', err);
-        }
-      }
-
       if (event.data?.type === 'INTEGRATION_AUTH_SUCCESS') {
         steamLaunchProofRef.current = null;
+        oauthLaunchProofRef.current = null;
         clearInterval(oauthTimerRef.current);
         setIsAuthenticating(false);
         try {
@@ -542,9 +532,6 @@ export const ConfigureIntegrationModal: React.FC<ConfigureIntegrationModalProps>
     setIsAuthenticating(true);
     setOAuthError(null);
     const currentOrigin = window.location.origin;
-    const targetUrl = getApiUrl(
-      `/integrations/${platform.id}/auth?userId=${encodeURIComponent(currentUser?.id || '')}&origin=${encodeURIComponent(currentOrigin)}`,
-    );
 
     const width = 640;
     const height = 750;
@@ -552,7 +539,7 @@ export const ConfigureIntegrationModal: React.FC<ConfigureIntegrationModalProps>
     const top = window.screenY + (window.outerHeight - height) / 2;
 
     const popup = window.open(
-      platform.id === 'steam' ? 'about:blank' : targetUrl,
+      'about:blank',
       `${platform.id}_oauth_window`,
       `width=${width},height=${height},left=${left},top=${top},status=no,resizable=yes,scrollbars=yes`,
     );
@@ -567,6 +554,8 @@ export const ConfigureIntegrationModal: React.FC<ConfigureIntegrationModalProps>
       if (popup.closed) {
         clearInterval(oauthTimerRef.current);
         oauthAbortRef.current?.abort();
+        oauthLaunchProofRef.current = null;
+        steamLaunchProofRef.current = null;
         setIsAuthenticating(false);
         queryClient.invalidateQueries({ queryKey: ['showcase'] });
         queryClient.invalidateQueries({ queryKey: [USER_KEY] });
@@ -602,6 +591,37 @@ export const ConfigureIntegrationModal: React.FC<ConfigureIntegrationModalProps>
         popup.close();
         popupRef.current = null;
         steamLaunchProofRef.current = null;
+      }
+    } else {
+      const abort = new AbortController();
+      oauthAbortRef.current = abort;
+      try {
+        const result = await integrationsApi.startOAuth(platform.id, abort.signal);
+        if (abort.signal.aborted || popup.closed) return;
+        const path =
+          platform.id === 'github' ? '/auth/github/oauth/launch' : '/integrations/oauth/launch';
+        const expected = new URL(getApiUrl(path), currentOrigin);
+        const launch = new URL(result.url);
+        if (
+          launch.origin !== expected.origin ||
+          launch.pathname !== expected.pathname ||
+          launch.search ||
+          launch.username ||
+          launch.password ||
+          !/^#[a-f0-9]{64}$/.test(launch.hash) ||
+          !/^[a-f0-9]{64}$/.test(result.launchProof)
+        )
+          throw new Error('Invalid OAuth launch');
+        oauthLaunchProofRef.current = result.launchProof;
+        popup.location.replace(launch.href);
+      } catch {
+        if (!abort.signal.aborted) {
+          setIsAuthenticating(false);
+          setOAuthError('Could not start authentication. Close the popup and try again.');
+        }
+        clearInterval(oauthTimerRef.current);
+        popup.close();
+        popupRef.current = null;
       }
     }
   };
@@ -1407,7 +1427,7 @@ export const ConfigureIntegrationModal: React.FC<ConfigureIntegrationModalProps>
                 </div>
               )}
 
-              {/* GITHUB CONFIGURATION (Discord-Style) */}
+              {/* GITHUB CONFIGURATION */}
               {platform.id === 'github' && (
                 <div className="flex flex-col gap-3.5">
                   {/* Master Toggle: Display on profile */}

@@ -6,6 +6,7 @@
 .Trashes
 Thumbs.db
 Desktop.ini
+.ppt_render_cache/
 
 # Logs
 logs
@@ -161,12 +162,17 @@ vite.config.ts.timestamp-*
 # Claude Code local settings
 .claude/
 
+# Presentation render cache
+.ppt_render_cache/
+
 # Prisma generated client (regenerated on install)
 **/src/generated/
 
 # Husky
 .husky/_/
 
+# Legacy frontend directory
+frontend/
 # Storybook
 frontend/storybook-static/
 apps/web/storybook-static/
@@ -214,7 +220,7 @@ crash.log
 crash.*.log
 
 # React Native / mobile (apps/mobile roadmap) — NEVER commit signing
-# credentials or push-notification keys in the open-source repo. When you need
+# credentials or push-notification keys in the repository. When you need
 # a template, commit NAME.example (e.g. google-services.json.example) instead.
 *.keystore
 *.jks
@@ -242,6 +248,21 @@ packages/native/prebuilds/
 heapdumps/
 *.heapsnapshot
 
+# Local browser traces and performance runner outputs. Durable summaries live in docs/performance.
+/apps/web/test-results*/
+/apps/web/playwright-report*/
+/apps/web/performance-*.json
+/apps/backend/performance-*.json
+# Generated SQL plans, pgbench samples and raw performance measurements.
+# Keep these local; commit benchmark scripts and durable report summaries instead.
+/docs/performance/artifacts/
+# Local snapshots; durable measurements are summarized in the Markdown reports.
+/docs/performance/search-network-budget.json
+/docs/performance/search-startup-budget.json
+/docs/performance/validation.json
+# Session-specific agent checklists, retained locally for continuing work.
+/docs/superpowers/plans/
+
 # Vercel (frontend hosting — local deploy state, no secrets in repo)
 .vercel/
 
@@ -257,6 +278,20 @@ packages/feed-score/rust/target/
 
 scratch/
 **/scratch/
+
+# Offline decoration production inputs and regenerated intermediate renders.
+# Published media in both public delivery roots must remain versioned.
+/scripts/decorations/
+/scripts/profile-effects/
+/scripts/profile-frames/
+/scripts/nameplates/
+/frontend/public/Profile-decorations/3D-Models/
+/frontend/public/Profile-decorations/Nameplates/sketches/
+!apps/web/public/Profile-decorations/**/*.svg
+!frontend/public/Profile-decorations/Avatar-decorations/**/*.svg
+!frontend/public/Profile-decorations/Profile-frames/**/*.svg
+!frontend/public/Profile-decorations/Profile-effects/**/*.svg
+!frontend/public/Profile-decorations/Nameplates/*.svg
 apps/web/playwright-design-report/
 apps/web/playwright-report/
 apps/web/playwright-platforms-report/

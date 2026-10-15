@@ -3,7 +3,15 @@ import { useLocation, Navigate, Routes, Route } from 'react-router-dom';
 
 import Sidebar from '../widgets/sidebar/ui/Sidebar';
 import DeviceLockGate from '../features/profile/ui/security/DeviceLockGate';
-import MessageToastViewport from '../features/chat/ui/MessageToastViewport';
+import { GlobalMessengerEvents } from './GlobalMessengerEvents';
+import { useStoryViewerStore } from '../features/stories/model/useStoryViewerStore';
+import { useStoryEditorStore } from '../features/stories/model/useStoryEditorStore';
+import { useHiddenUndoStore } from '../features/posts/model/useHiddenUndoStore';
+import { useClearHistoryUndoStore } from '../features/chat/model/useClearHistoryUndoStore';
+import { useCallStore } from '../features/chat/model/callStore';
+import { useActiveMediaPlaybackStore } from '../shared/model/useActiveMediaPlaybackStore';
+import { useMessageToastStore } from '../shared/model/useMessageToastStore';
+const MessageToastViewport = lazy(() => import('../features/chat/ui/MessageToastViewport'));
 import { CallProvider } from '../features/chat/model/CallProvider';
 import { OfflineBanner } from '../shared/ui/OfflineBanner';
 import { lazyWithRetry } from '../shared/lib/lazyWithRetry';
@@ -11,6 +19,14 @@ import { lazyWithRetry } from '../shared/lib/lazyWithRetry';
 import { useUIStore } from '../shared/model/useUIStore';
 import { useAuthStore } from '../shared/model/useAuthStore';
 import { useSpotifyPlayerStore } from '../shared/model/useSpotifyPlayerStore';
+import {
+  useThemeStore,
+  GRADIENT_PRESETS,
+  rehydrateWallpaperBlob,
+  applyThemeToDOM,
+} from '../shared/model/useThemeStore';
+import { GlobalThemeBackgroundLayer } from '../features/profile/ui/appearance/GlobalThemeBackgroundLayer';
+import { CursorVfxOverlay } from '../shared/ui/CursorVfxOverlay';
 const SpotifyBottomDock = lazyWithRetry(() =>
   import('../widgets/player/SpotifyBottomDock').then((m) => ({ default: m.SpotifyBottomDock })),
 );
@@ -38,6 +54,9 @@ const CommentModal = lazyWithRetry(() =>
 const CreateReelModal = lazyWithRetry(() =>
   import('../features/reels/ui/CreateReelModal').then((m) => ({ default: m.CreateReelModal })),
 );
+const GlobalSearchModal = lazyWithRetry(() =>
+  import('../features/chat/ui/GlobalSearchModal').then((m) => ({ default: m.default })),
+);
 const StoryViewerModal = lazy(() =>
   import('../features/stories/ui/StoryViewerModal').then((m) => ({ default: m.StoryViewerModal })),
 );
@@ -53,7 +72,7 @@ const UndoClearHistorySnackbar = lazy(() =>
   })),
 );
 const FloatingVideoNotePiP = lazy(() => import('../features/chat/ui/FloatingVideoNotePiP'));
-const ReactionBurstCanvas = lazy(() => import('../features/chat/ui/ReactionBurstCanvas'));
+const ReactionBurstCanvas = lazyWithRetry(() => import('../features/chat/ui/ReactionBurstCanvas'));
 const CallModal = lazy(() =>
   import('../features/chat/ui/Call/CallModal').then((m) => ({ default: m.CallModal })),
 );
@@ -67,11 +86,17 @@ const PictureInPicture = lazy(() =>
     default: m.PictureInPicture,
   })),
 );
+const VoiceWarningBanner = lazy(() =>
+  import('../features/chat/ui/Call/VoiceWarningBanner').then((m) => ({
+    default: m.VoiceWarningBanner,
+  })),
+);
 
 const FeedPage = lazy(() => import('../pages/Feed/Feed'));
 const ProfilePage = lazy(() => import('../pages/Profile/Profile'));
 const MessengerPage = lazy(() => import('../pages/Chat/Messenger'));
 const MusicHubPage = lazy(() => import('../pages/Music/MusicHubPage'));
+const ShopPage = lazy(() => import('../pages/Shop/ShopPage'));
 const StandaloneChatPage = lazy(() => import('../pages/Chat/StandaloneChatPage'));
 const SearchPage = lazy(() => import('../pages/Search/SearchPage'));
 const ReelsPage = lazy(() => import('../pages/Reels/ReelsPage'));
@@ -153,7 +178,13 @@ const OnlineFriendsSidebar = lazy(() =>
     default: m.OnlineFriendsSidebar,
   })),
 );
+const MediaDetailModal = lazy(() =>
+  import('../widgets/showcase').then((m) => ({
+    default: m.MediaDetailModal,
+  })),
+);
 import { usePresenceSync } from '../features/chat/model/usePresence';
+import { usePlatformMusicPresence } from '../features/music/model/usePlatformMusicPresence';
 import { useDynamicTabBadge, useNotificationRealtime } from '@/entities/notification';
 import { ScrollToTop } from '../shared/lib/ScrollToTop';
 import { useStoriesRealtime } from '../features/stories/model/useStoriesRealtime';
@@ -197,25 +228,103 @@ export default function App() {
   const isCommentModalOpen = useUIStore((state) => state.isCommentModalOpen);
   const isCreateReelOpen = useUIStore((state) => state.isCreateReelOpen);
   const closeCreateReel = useUIStore((state) => state.closeCreateReel);
+  const isGlobalSearchOpen = useUIStore((state) => state.isGlobalSearchOpen);
+  const closeGlobalSearch = useUIStore((state) => state.closeGlobalSearch);
+  const toggleGlobalSearch = useUIStore((state) => state.toggleGlobalSearch);
   const location = useLocation();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
+  // Global Ctrl+K / Cmd+K listener to open global search from anywhere across the platform
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isK = e.code === 'KeyK' || e.key?.toLowerCase() === 'k' || e.key?.toLowerCase() === 'л';
+
+      if ((e.ctrlKey || e.metaKey) && isK) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        toggleGlobalSearch();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
+  }, [toggleGlobalSearch]);
+
   usePresenceSync();
+  usePlatformMusicPresence();
   useDynamicTabBadge();
   useNotificationRealtime();
   useStoriesRealtime();
 
-  // Initialize Spotify Web Playback SDK lazily only if user was actively playing across session restore
+  React.useEffect(() => {
+    applyThemeToDOM(useThemeStore.getState());
+    void rehydrateWallpaperBlob();
+  }, []);
+
+  // Initialize Spotify Web Playback SDK lazily only if user was actively playing an authentic Spotify track across session restore
   React.useEffect(() => {
     const store = useSpotifyPlayerStore.getState();
-    if (isAuthenticated && store.currentTrack && store.isPlaying) {
+    const isSoundCloud = Boolean(
+      store.currentTrack &&
+      (store.currentTrack.source === 'soundcloud' ||
+        store.currentTrack.source === 'platform' ||
+        store.currentTrack.source !== 'spotify' ||
+        store.currentTrack.id.startsWith('sc-') ||
+        store.currentTrack.id.startsWith('soundcloud-')),
+    );
+    if (
+      isAuthenticated &&
+      store.currentTrack &&
+      store.isPlaying &&
+      !isSoundCloud &&
+      store.currentTrack.source === 'spotify'
+    ) {
       store.initSpotifySDK();
     }
   }, [isAuthenticated]);
 
+  const isStoryViewerOpen = useStoryViewerStore((s) => s.isOpen);
+  const isStoryEditorOpen = useStoryEditorStore((s) => s.isOpen);
+  const hasHideUndo = useHiddenUndoStore((s) => Boolean(s.activeUndo));
+  const hasClearUndo = useClearHistoryUndoStore((s) => Boolean(s.activeUndo));
+  const hasToasts = useMessageToastStore((s) => s.toasts.length > 0);
+  const hasVideoNote = useActiveMediaPlaybackStore((s) =>
+    Boolean(s.activeMediaId && s.mediaType === 'video'),
+  );
+  const callStatus = useCallStore((s) => s.callStatus);
+  const hasIncomingCall = useCallStore((s) => Boolean(s.incomingCall));
+  const isCallPiP = useCallStore((s) => s.isPiP);
+  const isLyricsOpen = useSpotifyPlayerStore((s) => s.isLyricsOpen);
+  const isMobileExpanded = useSpotifyPlayerStore((s) => s.isMobileExpanded);
   const isSpotifyDockVisible = useSpotifyPlayerStore((s) => s.isDockVisible);
   const isSpotifyDockMinimized = useSpotifyPlayerStore((s) => s.isDockMinimized);
   const isGameModeOpen = useSpotifyPlayerStore((s) => s.isGameModeOpen);
+
+  const themeMode = useThemeStore((s) => s.themeMode);
+  const solidTheme = useThemeStore((s) => s.solidTheme);
+  const customSolidColor = useThemeStore((s) => s.customSolidColor);
+  const gradientPresetId = useThemeStore((s) => s.gradientPresetId);
+  const customGradient = useThemeStore((s) => s.customGradient);
+  const wallpaper = useThemeStore((s) => s.wallpaper);
+
+  const appBackgroundStyle = useMemo(() => {
+    if (themeMode === 'wallpaper' && wallpaper?.url) {
+      return { backgroundColor: 'transparent' };
+    }
+    if (themeMode === 'gradient') {
+      if (gradientPresetId === 'custom') {
+        return {
+          backgroundImage: `linear-gradient(${customGradient.angle}deg, ${customGradient.from}, ${customGradient.to})`,
+        };
+      }
+      const preset = GRADIENT_PRESETS.find((p) => p.id === gradientPresetId);
+      if (preset) return { backgroundImage: preset.gradient };
+    }
+    if (solidTheme === 'custom' && customSolidColor) {
+      return { backgroundColor: customSolidColor };
+    }
+    return { backgroundColor: 'var(--app-bg-color, #070709)' };
+  }, [themeMode, solidTheme, customSolidColor, gradientPresetId, customGradient, wallpaper]);
 
   // Preserve scroll position when entering/leaving Game Mode
   const savedScrollYRef = React.useRef(0);
@@ -255,6 +364,7 @@ export default function App() {
 
   const isStandaloneRoute = useMemo(() => {
     return (
+      location.pathname.startsWith('/shop') ||
       location.pathname.startsWith('/music') ||
       location.pathname.startsWith('/playlist') ||
       location.pathname.startsWith('/track') ||
@@ -310,6 +420,17 @@ export default function App() {
     return location.pathname.startsWith('/reels');
   }, [location.pathname]);
 
+  React.useEffect(() => {
+    if (isReelsRoute) {
+      document.documentElement.classList.add('reels-mode-active');
+      document.body.classList.add('reels-mode-active');
+      return () => {
+        document.documentElement.classList.remove('reels-mode-active');
+        document.body.classList.remove('reels-mode-active');
+      };
+    }
+  }, [isReelsRoute]);
+
   if (showOAuthCallback) {
     return (
       <div className="relative min-h-screen bg-[#070709] text-white flex items-center justify-center">
@@ -323,6 +444,7 @@ export default function App() {
   if (!isAuthenticated) {
     return (
       <div className="relative min-h-screen bg-[#070709] text-white">
+        <CursorVfxOverlay />
         <ScrollToTop />
         <Suspense fallback={<PageFallback />}>
           <Routes>
@@ -412,6 +534,8 @@ export default function App() {
             <Route path="/auth/:platform/callback" element={<OAuthCallbackHandler />} />
             <Route path="/oauth/callback" element={<OAuthCallbackHandler />} />
             <Route path="/callback" element={<OAuthCallbackHandler />} />
+            <Route path="/shop" element={<ShopPage />} />
+            <Route path="/shop/:category" element={<ShopPage />} />
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="/404" element={<NotFoundPage />} />
             <Route path="*" element={<Navigate to="/login" replace />} />
@@ -424,14 +548,18 @@ export default function App() {
   return (
     <DeviceLockGate>
       <CallProvider>
+        <GlobalMessengerEvents />
         <div
-          className={`relative ${isGameModeOpen ? 'h-screen overflow-hidden' : 'min-h-screen'} bg-[#070709] text-white`}
+          className={`relative ${isGameModeOpen || isReelsRoute ? 'h-screen overflow-hidden' : 'min-h-screen'} text-white transition-colors duration-200`}
+          style={appBackgroundStyle}
         >
+          <GlobalThemeBackgroundLayer />
+          <CursorVfxOverlay />
           <ScrollToTop />
           {isGameModeOpen ? (
             <Suspense fallback={null}>
               <SpotifyGameModePlayer />
-              <SpotifyLyricsModal />
+              {isLyricsOpen && <SpotifyLyricsModal />}
             </Suspense>
           ) : (
             <>
@@ -443,26 +571,35 @@ export default function App() {
                 {isCreateReelOpen && (
                   <CreateReelModal isOpen={isCreateReelOpen} onClose={closeCreateReel} />
                 )}
-                <StoryViewerModal />
-                <StoryEditorModal />
-                <CallModal />
-                <IncomingCallToast />
-                <PictureInPicture />
+                {isGlobalSearchOpen && (
+                  <GlobalSearchModal isOpen={isGlobalSearchOpen} onClose={closeGlobalSearch} />
+                )}
+                {isStoryViewerOpen && <StoryViewerModal />}
+                {isStoryEditorOpen && <StoryEditorModal />}
+                {callStatus !== 'idle' && <CallModal />}
+                {hasIncomingCall && <IncomingCallToast />}
+                {isCallPiP && <PictureInPicture />}
+                {callStatus === 'connected' && <VoiceWarningBanner />}
+                <MediaDetailModal />
               </Suspense>
-              <UndoHideSnackbar />
-              <UndoClearHistorySnackbar />
               <Suspense fallback={null}>
-                <FloatingVideoNotePiP />
-                <ReactionBurstCanvas />
-                {!isMessengerRoute && <MessageToastViewport />}
+                {hasHideUndo && <UndoHideSnackbar />}
+                {hasClearUndo && <UndoClearHistorySnackbar />}
+              </Suspense>
+              <Suspense fallback={null}>
+                {hasVideoNote && <FloatingVideoNotePiP />}
+                {isMessengerRoute && <ReactionBurstCanvas />}
+                {!isMessengerRoute && hasToasts && <MessageToastViewport />}
               </Suspense>
 
               {/* Global Spotify Apple Liquid Glass Player Dock & Overlays */}
-              <Suspense fallback={null}>
-                <SpotifyBottomDock />
-                <SpotifyLyricsModal />
-                <SpotifyMobilePlayerSheet />
-              </Suspense>
+              {!isReelsRoute && (
+                <Suspense fallback={null}>
+                  {isSpotifyDockVisible && <SpotifyBottomDock />}
+                  {isLyricsOpen && <SpotifyLyricsModal />}
+                  {isMobileExpanded && <SpotifyMobilePlayerSheet />}
+                </Suspense>
+              )}
 
               <main
                 className={
@@ -471,10 +608,10 @@ export default function App() {
                         isSpotifyDockVisible ? (isSpotifyDockMinimized ? 'pb-14' : 'pb-28') : ''
                       }`
                     : isReelsRoute
-                      ? `min-h-screen flex-1 transition-[padding-left,padding-bottom] duration-200 ease-out will-change-[padding-left] ${
+                      ? `h-screen overflow-hidden flex-1 transition-[padding-left] duration-200 ease-out motion-reduce:transition-none ${
                           isSidebarExpanded ? 'pl-72' : 'pl-24'
-                        } max-md:pl-0 ${isSpotifyDockVisible ? (isSpotifyDockMinimized ? 'pb-14' : 'pb-28') : ''}`
-                      : `flex min-h-screen flex-1 justify-center py-8 transition-[padding-left,padding-bottom] duration-300 ${
+                        } max-md:pl-0`
+                      : `flex min-h-screen flex-1 justify-center py-8 transition-[padding-left,padding-bottom] duration-300 motion-reduce:transition-none ${
                           isSidebarExpanded ? 'pl-72' : 'pl-24'
                         } max-md:pl-0 max-md:pt-20 ${isSpotifyDockVisible ? (isSpotifyDockMinimized ? 'pb-14' : 'pb-28') : ''}`
                 }
@@ -628,6 +765,8 @@ export default function App() {
                       }
                     />
 
+                    <Route path="/shop" element={<ShopPage />} />
+                    <Route path="/shop/:category" element={<ShopPage />} />
                     <Route path="/music" element={<MusicHubPage />} />
                     <Route path="/music/content-feed" element={<MusicHubPage />} />
                     <Route path="/music/feed" element={<MusicHubPage />} />

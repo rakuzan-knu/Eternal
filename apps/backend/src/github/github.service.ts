@@ -1,4 +1,15 @@
 import {
+  issueOAuthLaunch,
+  consumeOAuthLaunch,
+  oauthLaunchPage,
+} from '../common/security/oauth-launch';
+import {
+  issueOAuthState,
+  consumeOAuthState,
+  setOAuthCookie,
+  readOAuthCookieState,
+} from '../common/security/oauth-state';
+import {
   Inject,
   Injectable,
   UnauthorizedException,
@@ -8,7 +19,6 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { RedisService } from '../redis/redis.service';
 import { CircuitBreaker } from '../common/resilience/circuit-breaker';
-import { safeJsonParse } from '../common/utils/json.util';
 import { TraceContext } from '../common/tracing/trace-context';
 import * as crypto from 'crypto';
 import { timingSafeEqual } from '../common/crypto/timing-safe';
@@ -17,7 +27,6 @@ import {
   GITHUB_REPOSITORY,
   type IGithubRepository,
 } from './interfaces/github-repository.interface';
-import { setResponseCookie } from '../auth/utils/auth-cookie.util';
 
 const CONTRIBUTOR_TIERS_MAPPING = [
   { count: 100, badgeId: 'CONTRIBUTOR_OPAL' },
@@ -68,7 +77,10 @@ export class GithubService {
 
   private get frontendRedirectUrl(): string {
     const raw = this.config.get<string>('CORS_ORIGIN') || 'http://localhost:5173';
-    return raw.split(',')[0].trim().replace(/\/+$/, '');
+    const first = raw.split(',')[0].trim();
+    let end = first.length;
+    while (end > 0 && first.charCodeAt(end - 1) === 47) end--;
+    return first.slice(0, end);
   }
 
   private get systemToken(): string {
@@ -79,57 +91,39 @@ export class GithubService {
     return this.config.get<string>('GITHUB_WEBHOOK_SECRET') || '';
   }
 
-  getAuthorizationUrl(req: Request, res: Response): void {
-    const csrf = crypto.randomBytes(32).toString('hex');
-    let userIdParam = typeof req.query.userId === 'string' ? req.query.userId : '';
-    const rawToken = typeof req.query.token === 'string' ? req.query.token : undefined;
-    if (!userIdParam && rawToken) {
-      try {
-        const parts = rawToken.split('.');
-        if (parts.length === 3) {
-          const payload = safeJsonParse<{ sub?: string }>(Buffer.from(parts[1], 'base64url'));
-          if (payload?.sub) userIdParam = String(payload.sub);
-        }
-      } catch (e) {
-        this.logger.debug(`Could not parse optional token in getAuthorizationUrl: ${String(e)}`);
-      }
-    }
-
-    const state = userIdParam ? `${csrf}:${userIdParam}` : csrf;
-
-    const forwardedProtoHeader = req.headers['x-forwarded-proto'];
-    const forwardedProto = Array.isArray(forwardedProtoHeader)
-      ? forwardedProtoHeader[0]
-      : forwardedProtoHeader?.split(',')[0];
-    const isSecureRequest =
-      req.secure || forwardedProto?.trim() === 'https' || process.env.NODE_ENV === 'production';
-
-    const originParam = typeof req.query.origin === 'string' ? req.query.origin : '';
-    if (originParam) {
-      setResponseCookie(res, 'github_client_origin', originParam, {
-        path: '/',
-        httpOnly: true,
-        secure: isSecureRequest,
-        sameSite: 'lax',
-        maxAge: 10 * 60,
-      });
-    }
-
-    setResponseCookie(res, 'github_oauth_state', csrf, {
-      path: '/',
-      httpOnly: true,
-      secure: isSecureRequest,
-      sameSite: 'lax',
-      maxAge: 10 * 60,
-    });
-
+  async getAuthorizationUrl(req: Request, res: Response, asJson = false): Promise<void> {
+    const userId = (req as Request & { user?: { id: string } }).user?.id;
+    if (!userId) throw new UnauthorizedException('Authentication required');
+    const state = await issueOAuthState(this.redis, 'github', userId, this.callbackUrl);
+    if (!asJson) setOAuthCookie(res, 'github', state);
     const targetUrl = new URL('https://github.com/login/oauth/authorize');
     targetUrl.searchParams.set('client_id', this.clientId);
     targetUrl.searchParams.set('redirect_uri', this.callbackUrl);
     targetUrl.searchParams.set('scope', 'read:user');
     targetUrl.searchParams.set('state', state);
 
-    res.status(302).redirect(targetUrl.toString());
+    if (asJson)
+      res.send(
+        await issueOAuthLaunch(
+          this.redis,
+          targetUrl.toString(),
+          String(req.headers.origin || ''),
+          this.oauthLaunchUrl(),
+        ),
+      );
+    else res.redirect(targetUrl.toString());
+  }
+
+  private oauthLaunchUrl(): string {
+    return new URL('/v1/auth/github/oauth/launch', this.callbackUrl).href;
+  }
+
+  getOAuthLaunchPage(): string {
+    return oauthLaunchPage();
+  }
+
+  async launchOAuth(body: unknown, requestOrigin?: string) {
+    return consumeOAuthLaunch(this.redis, body, requestOrigin, this.oauthLaunchUrl());
   }
 
   async handleOAuthCallback(
@@ -139,24 +133,14 @@ export class GithubService {
     res: Response,
     userId?: string,
   ): Promise<void> {
-    const [csrfFromState, userIdFromState] = (state || '').split(':');
-    const cookieState = (req.cookies as Record<string, string> | undefined)?.github_oauth_state;
-
-    const clientOriginCookie = (req.cookies as Record<string, string> | undefined)
-      ?.github_client_origin;
-    const effectiveFrontendUrl = clientOriginCookie || this.frontendRedirectUrl;
-
-    // Resilient state check: Allow if cookie matches OR if userIdFromState was provided in signed state
-    if (cookieState && csrfFromState && csrfFromState !== cookieState && !userIdFromState) {
-      this.logger.warn(`CSRF state mismatch during GitHub OAuth callback.`);
-      res.clearCookie('github_oauth_state');
-      res.clearCookie('github_client_origin');
-      return res.status(302).redirect(`${effectiveFrontendUrl}/settings?error=csrf_state_mismatch`);
-    }
-
-    res.clearCookie('github_oauth_state');
-    res.clearCookie('github_client_origin');
-
+    const identity = await consumeOAuthState(
+      this.redis,
+      'github',
+      state,
+      userId,
+      readOAuthCookieState(req, 'github'),
+    );
+    const effectiveFrontendUrl = this.frontendRedirectUrl;
     try {
       const abortSignal = TraceContext.getAbortSignal();
       let tokenRes = await fetch('https://github.com/login/oauth/access_token', {
@@ -228,11 +212,7 @@ export class GithubService {
       const githubId = ghUser.id ? String(ghUser.id) : '';
       const githubUsername = ghUser.login || 'GitHubUser';
 
-      let targetUserId = userId || userIdFromState;
-      if (!targetUserId && githubId) {
-        const existing = await this.githubRepo.findUserByGithubId(githubId);
-        if (existing) targetUserId = existing.id;
-      }
+      const targetUserId = identity.userId;
 
       // Fetch user repos and stars
       let repos: {

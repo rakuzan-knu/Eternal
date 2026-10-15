@@ -46,7 +46,6 @@ export function DiscordVoiceChannelBar({
         <div className="flex flex-col min-w-0 leading-tight">
           <div className="flex items-center gap-1.5 truncate">
             <span className="font-semibold text-emerald-400 tracking-wide">Voice Connected</span>
-            <span className="text-gray-500 text-[10px] font-mono">/ P2P Mesh (UDP)</span>
           </div>
           <div className="flex items-center gap-2 text-[11px] text-gray-400 truncate">
             <span className="truncate max-w-36 text-gray-300 font-medium">{roomName}</span>

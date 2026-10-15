@@ -63,18 +63,21 @@ export default function RadioGroup<T extends string>({
               buttons.current[nextIndex]?.focus();
               onChange(options[nextIndex].value);
             }}
-            className={`flex items-center justify-between gap-3 px-4 py-3 rounded-(--eternal-radius-control) text-left transition-colors duration-(--eternal-motion-duration-fast) ${
-              active ? 'bg-white/10' : 'hover:bg-white/5'
+            className={`flex items-center justify-between gap-3 px-4 py-3 rounded-(--eternal-radius-control) text-left cursor-pointer transition-colors duration-(--eternal-motion-duration-fast) ${
+              active ? 'bg-black/10 dark:bg-white/10' : 'hover:bg-black/5 dark:hover:bg-white/5'
             }`}
           >
             <span className="min-w-0">
-              <span id={`${id}-${index}-label`} className="block text-sm font-medium text-white">
+              <span
+                id={`${id}-${index}-label`}
+                className="block text-sm font-medium text-gray-950 dark:text-white"
+              >
                 {opt.label}
               </span>
               {opt.description && (
                 <span
                   id={`${id}-${index}-description`}
-                  className="block text-xs text-gray-400 mt-0.5"
+                  className="block text-xs text-gray-600 dark:text-gray-400 mt-0.5"
                 >
                   {opt.description}
                 </span>
@@ -82,7 +85,9 @@ export default function RadioGroup<T extends string>({
             </span>
             <span
               className={`flex-shrink-0 w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${
-                active ? 'bg-white border-white text-black' : 'border-white/25 text-transparent'
+                active
+                  ? 'bg-gray-950 border-gray-950 text-white dark:bg-white dark:border-white dark:text-black'
+                  : 'border-black/20 dark:border-white/25 text-transparent'
               }`}
             >
               <Check aria-hidden="true" size={13} strokeWidth={3} />

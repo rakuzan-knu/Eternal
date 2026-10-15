@@ -89,7 +89,7 @@ export const PrivacyNavbar: React.FC = () => {
             </span>
           </div>
 
-          {/* Desktop Center Navigation with 1:1 Discord Style Dropdowns (>= 1280px) */}
+          {/* Desktop Center Navigation with */}
           <nav className="hidden xl:flex items-center gap-2.5 xl:gap-4 2xl:gap-5">
             {/* Download Link */}
             <Link
@@ -617,7 +617,7 @@ export const PrivacyNavbar: React.FC = () => {
         </div>
       </header>
 
-      {/* Discord-Style Fullscreen Backdrop Blur & Slide-Out Drawer Overlay (< 1280px) */}
+      {/* Fullscreen Backdrop Blur & Slide-Out Drawer Overlay (< 1280px) */}
       {isMobileMenuOpen && (
         <div
           className="fixed inset-0 z-[100] animate-fadeInOverlay select-none"
@@ -629,7 +629,7 @@ export const PrivacyNavbar: React.FC = () => {
             className="absolute inset-0 bg-black/60 backdrop-blur-xl transition-all duration-300 cursor-pointer"
           />
 
-          {/* Slide-out Drawer Panel (Matching Discord 1:1) */}
+          {/* Slide-out Drawer Panel */}
           <aside
             className="absolute top-0 right-0 h-[100dvh] w-full min-[500px]:w-[380px] sm:min-[500px]:w-[420px] bg-[#5822b4] text-white shadow-[-20px_0_60px_rgba(0,0,0,0.85)] flex flex-col justify-between animate-slideInRight z-10 overscroll-contain min-[500px]:rounded-l-[36px] overflow-hidden"
             style={{
@@ -652,7 +652,7 @@ export const PrivacyNavbar: React.FC = () => {
                 <span className="text-2xl font-black tracking-tight text-white">Eternal</span>
               </div>
 
-              {/* Close 'X' Button (Discord Style) */}
+              {/* Close 'X' Button */}
               <button
                 type="button"
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -663,7 +663,7 @@ export const PrivacyNavbar: React.FC = () => {
               </button>
             </div>
 
-            {/* Drawer Navigation Body (Scrollable with natural Discord hierarchy & shrink-0) */}
+            {/* Drawer Navigation Body */}
             <div className="min-h-0 flex-1 overflow-y-auto px-4 sm:px-6 py-4 flex flex-col gap-1 custom-scrollbar overscroll-contain">
               {/* Download */}
               <Link
@@ -993,7 +993,7 @@ export const PrivacyNavbar: React.FC = () => {
               </Link>
             </div>
 
-            {/* Drawer Bottom Action Buttons (Discord-Style Dual Buttons) */}
+            {/* Drawer Bottom Action Buttons*/}
             <div className="p-5 border-t border-white/10 bg-black/20 flex flex-col gap-3 shrink-0">
               <button
                 type="button"

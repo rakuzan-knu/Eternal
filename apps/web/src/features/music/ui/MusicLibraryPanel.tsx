@@ -33,6 +33,7 @@ import { useNavigate } from 'react-router-dom';
 import Tooltip from '@/shared/ui/Tooltip';
 import { useMusicHubStore } from '../model/useMusicHubStore';
 import { useSpotifyPlayerStore } from '@/shared/model/useSpotifyPlayerStore';
+import { isSameTrackId } from '@/shared/lib/spotifyUrl';
 import { useSpotifyDockOffset } from '@/shared/model/useSpotifyDockOffset';
 import { useCurrentUser } from '@/entities/profile/model/useCurrentUser';
 import { PlaylistActionMenu } from './PlaylistActionMenu';
@@ -74,6 +75,7 @@ export const MusicLibraryPanel: React.FC = () => {
     setLibraryViewMode,
     isItemPinned,
     togglePinItem,
+    removePlaylistFromLibrary,
   } = useMusicHubStore();
 
   const navigate = useNavigate();
@@ -119,7 +121,7 @@ export const MusicLibraryPanel: React.FC = () => {
     rect: DOMRect;
   } | null>(null);
 
-  // Liked Songs dedicated context menu (Screenshot 4: ONLY Pin/Unpin)
+  // Liked Songs dedicated context menu
   const [likedSongsMenu, setLikedSongsMenu] = useState<{ x: number; y: number } | null>(null);
 
   // Folder and Track context menu for Library
@@ -138,6 +140,24 @@ export const MusicLibraryPanel: React.FC = () => {
   const [isActiveFolderMenuOpen, setIsActiveFolderMenuOpen] = useState(false);
   const folderMenuButtonRef = useRef<HTMLButtonElement>(null);
   const activeFolderMenuRef = useRef<HTMLDivElement>(null);
+
+  // Dissolving IDs for deleted playlist smooth fade-out removal
+  const [dissolvingIds, setDissolvingIds] = useState<Set<string>>(new Set());
+
+  const handleDeletedPlaylistClick = (e: React.MouseEvent, plId: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (dissolvingIds.has(plId)) return;
+    setDissolvingIds((prev) => new Set(prev).add(plId));
+    setTimeout(() => {
+      removePlaylistFromLibrary(plId);
+      setDissolvingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(plId);
+        return next;
+      });
+    }, 450);
+  };
 
   // Synchronize playlists and folders freshly with backend on mount
   useEffect(() => {
@@ -561,11 +581,9 @@ export const MusicLibraryPanel: React.FC = () => {
           width: isLibraryFullWidth ? '100%' : isLibraryExpanded ? libraryWidth : 72,
           transition: isLibraryResizing ? 'none' : 'width 300ms cubic-bezier(0.16,1,0.3,1)',
         }}
-        className="relative h-full flex flex-col bg-[#121216]/85 backdrop-blur-2xl border-r border-white/5 select-none overflow-hidden z-10 flex-shrink-0"
+        className="relative h-full flex flex-col glass-sidebar border-r border-white/10 select-none overflow-hidden z-10 flex-shrink-0"
       >
-        {/* ========================================================= */}
-        {/* 1. COLLAPSED VIEW HEADER (Width 72px, 1-to-1 with Spotify) */}
-        {/* ========================================================= */}
+        {/* 1. COLLAPSED VIEW HEADER*/}
         {!isLibraryExpanded ? (
           <div className="h-16 flex items-center justify-center w-full shrink-0 border-b border-white/5">
             {/* Top Library Expand Button */}
@@ -587,9 +605,7 @@ export const MusicLibraryPanel: React.FC = () => {
             </Tooltip>
           </div>
         ) : (
-          /* ========================================================= */
-          /* 2. EXPANDED VIEW HEADER                                   */
-          /* ========================================================= */
+          /* 2. EXPANDED VIEW HEADER*/
           <div
             className={`flex items-center justify-between border-b border-white/5 shrink-0 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] h-16 ${
               isLibraryFullWidth ? 'px-6' : 'px-4'
@@ -603,17 +619,20 @@ export const MusicLibraryPanel: React.FC = () => {
                   onClick={toggleLibraryExpanded}
                   onMouseEnter={() => setIsBookHovered(true)}
                   onMouseLeave={() => setIsBookHovered(false)}
-                  className="group p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-all cursor-pointer active:scale-95 shrink-0 flex items-center justify-center"
+                  className="group p-2 rounded-xl bg-black/5 hover:bg-black/10 text-gray-700 hover:text-gray-950 dark:bg-white/5 dark:hover:bg-white/10 dark:text-gray-300 dark:hover:text-white transition-all cursor-pointer active:scale-95 shrink-0 flex items-center justify-center"
                 >
                   {isBookHovered ? (
-                    <PanelLeftClose size={18} className="text-purple-400 transition-transform" />
+                    <PanelLeftClose
+                      size={18}
+                      className="text-purple-600 dark:text-purple-400 transition-transform"
+                    />
                   ) : (
                     <BookOpen size={18} className="transition-transform" />
                   )}
                 </button>
               </Tooltip>
               <h2
-                className={`font-bold text-white tracking-tight truncate ${
+                className={`font-bold text-gray-900 dark:text-white tracking-tight truncate ${
                   isLibraryFullWidth ? 'text-lg' : 'text-base'
                 }`}
               >
@@ -630,14 +649,16 @@ export const MusicLibraryPanel: React.FC = () => {
                   onClick={() => setIsCreateMenuOpen((prev) => !prev)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all hover:scale-105 active:scale-95 cursor-pointer ${
                     isCreateMenuOpen
-                      ? 'bg-white/20 text-white shadow-lg'
-                      : 'bg-white/10 hover:bg-white/15 text-white'
+                      ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
+                      : 'bg-black/5 hover:bg-black/10 text-gray-900 border border-black/10 dark:bg-white/10 dark:hover:bg-white/15 dark:text-white dark:border-white/10'
                   }`}
                 >
                   <Plus
                     size={14}
                     className={`transition-transform duration-300 ease-out transform ${
-                      isCreateMenuOpen ? 'rotate-90 text-purple-400' : 'rotate-0'
+                      isCreateMenuOpen
+                        ? 'rotate-90 text-white'
+                        : 'rotate-0 text-gray-800 dark:text-white'
                     }`}
                   />
                   <span>Create</span>
@@ -648,7 +669,7 @@ export const MusicLibraryPanel: React.FC = () => {
                   <div
                     ref={createMenuRef}
                     data-menu-portal="true"
-                    className="absolute right-0 top-10 w-64 rounded-2xl bg-[#222228]/98 backdrop-blur-2xl border border-white/10 shadow-2xl p-2 z-[70] text-white animate-fadeIn select-none flex flex-col gap-1 origin-top-right"
+                    className="absolute right-0 top-10 w-64 rounded-2xl glass-modal backdrop-blur-2xl border border-black/10 dark:border-white/15 shadow-2xl p-2 z-[70] text-gray-900 dark:text-white animate-fadeIn select-none flex flex-col gap-1 origin-top-right"
                   >
                     <button
                       type="button"
@@ -669,16 +690,16 @@ export const MusicLibraryPanel: React.FC = () => {
                         if (isLibraryFullWidth) setLibraryFullWidth(false);
                         navigate(`/music/playlist/${newPl.id}`);
                       }}
-                      className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/10 transition-colors text-left group w-full cursor-pointer"
+                      className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-left group w-full cursor-pointer"
                     >
-                      <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-gray-300 group-hover:text-white group-hover:bg-purple-600/30 shrink-0 transition-colors">
+                      <div className="w-10 h-10 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center text-gray-700 dark:text-gray-300 group-hover:text-purple-600 dark:group-hover:text-white group-hover:bg-purple-500/20 shrink-0 transition-colors">
                         <ListPlus size={18} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="text-sm font-bold text-white group-hover:text-purple-300 transition-colors">
+                        <div className="text-sm font-bold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors">
                           Playlist
                         </div>
-                        <div className="text-xs text-gray-400 leading-snug">
+                        <div className="text-xs text-gray-500 dark:text-gray-400 leading-snug">
                           Create a playlist with songs
                         </div>
                       </div>
@@ -690,16 +711,16 @@ export const MusicLibraryPanel: React.FC = () => {
                         setIsCreateMenuOpen(false);
                         createMusicFolder();
                       }}
-                      className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/10 transition-colors text-left group w-full cursor-pointer"
+                      className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-left group w-full cursor-pointer"
                     >
-                      <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-gray-300 group-hover:text-white group-hover:bg-purple-600/30 shrink-0 transition-colors">
+                      <div className="w-10 h-10 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center text-gray-700 dark:text-gray-300 group-hover:text-purple-600 dark:group-hover:text-white group-hover:bg-purple-500/20 shrink-0 transition-colors">
                         <Folder size={18} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="text-sm font-bold text-white group-hover:text-purple-300 transition-colors">
+                        <div className="text-sm font-bold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors">
                           Folder
                         </div>
-                        <div className="text-xs text-gray-400 leading-snug">
+                        <div className="text-xs text-gray-500 dark:text-gray-400 leading-snug">
                           Organize your playlists
                         </div>
                       </div>
@@ -719,7 +740,7 @@ export const MusicLibraryPanel: React.FC = () => {
                     isLibraryFullWidth ? 'Collapse library panel' : 'Expand library panel'
                   }
                   onClick={toggleLibraryFullWidth}
-                  className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+                  className="p-2 rounded-xl text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
                 >
                   {isLibraryFullWidth ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
                 </button>
@@ -728,16 +749,11 @@ export const MusicLibraryPanel: React.FC = () => {
           </div>
         )}
 
-        {/* ========================================================= */}
-        {/* 3. FILTERS, SEARCH & PRESENTATION CONTROLS (EXPANDED)    */}
-        {/* ========================================================= */}
+        {/* 3. FILTERS, SEARCH & PRESENTATION CONTROLS (EXPANDED)*/}
         {isLibraryExpanded && (
           <>
             {isLibraryFullWidth ? (
-              /* ----------------------------------------------------- */
-              /* FULL-WIDTH TOOLBAR (1-to-1 with Spotify Screenshot 1) */
-              /* ----------------------------------------------------- */
-              <div className="px-6 py-3 flex items-center justify-between gap-4 shrink-0 border-b border-white/5">
+              <div className="px-6 py-3 flex items-center justify-between gap-4 shrink-0 border-b border-black/5 dark:border-white/5">
                 {/* Left: Filter Buttons (Larger, more balanced pills) */}
                 <div className="flex items-center gap-2.5">
                   <button
@@ -745,8 +761,8 @@ export const MusicLibraryPanel: React.FC = () => {
                     onClick={() => setLibraryFilter('all')}
                     className={`px-4 py-2 rounded-full text-sm font-semibold transition-all cursor-pointer ${
                       libraryFilter === 'all'
-                        ? 'bg-white text-black font-bold shadow-md'
-                        : 'bg-white/10 hover:bg-white/15 text-white'
+                        ? 'bg-gray-900 text-white dark:bg-white dark:text-black font-bold shadow-sm'
+                        : 'bg-black/5 hover:bg-black/10 text-gray-700 hover:text-gray-950 dark:bg-white/10 dark:hover:bg-white/15 dark:text-white'
                     }`}
                   >
                     All
@@ -756,8 +772,8 @@ export const MusicLibraryPanel: React.FC = () => {
                     onClick={() => setLibraryFilter('playlists')}
                     className={`px-4 py-2 rounded-full text-sm font-semibold transition-all cursor-pointer ${
                       libraryFilter === 'playlists'
-                        ? 'bg-white text-black font-bold shadow-md'
-                        : 'bg-white/10 hover:bg-white/15 text-white'
+                        ? 'bg-gray-900 text-white dark:bg-white dark:text-black font-bold shadow-sm'
+                        : 'bg-black/5 hover:bg-black/10 text-gray-700 hover:text-gray-950 dark:bg-white/10 dark:hover:bg-white/15 dark:text-white'
                     }`}
                   >
                     Playlists
@@ -767,8 +783,8 @@ export const MusicLibraryPanel: React.FC = () => {
                     onClick={() => setLibraryFilter('tracks')}
                     className={`px-4 py-2 rounded-full text-sm font-semibold transition-all cursor-pointer ${
                       libraryFilter === 'tracks'
-                        ? 'bg-white text-black font-bold shadow-md'
-                        : 'bg-white/10 hover:bg-white/15 text-white'
+                        ? 'bg-gray-900 text-white dark:bg-white dark:text-black font-bold shadow-sm'
+                        : 'bg-black/5 hover:bg-black/10 text-gray-700 hover:text-gray-950 dark:bg-white/10 dark:hover:bg-white/15 dark:text-white'
                     }`}
                   >
                     Tracks
@@ -778,7 +794,7 @@ export const MusicLibraryPanel: React.FC = () => {
                 {/* Right: Always Active Open Search Input + Sort & View Button */}
                 <div className="flex items-center gap-3 shrink-0">
                   {/* Open search input */}
-                  <div className="relative flex items-center w-60 sm:w-72 h-9 px-3.5 rounded-full bg-white/5 border border-white/10 focus-within:border-purple-500/50 focus-within:bg-white/10 transition-all text-white shadow-inner">
+                  <div className="relative flex items-center w-60 sm:w-72 h-9 px-3.5 rounded-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 focus-within:border-purple-500/50 focus-within:bg-black/10 dark:focus-within:bg-white/10 transition-all text-gray-900 dark:text-white shadow-inner">
                     <Search size={15} className="text-gray-400 shrink-0 mr-2" />
                     <input
                       type="text"
@@ -786,14 +802,14 @@ export const MusicLibraryPanel: React.FC = () => {
                       onChange={(e) => setLibrarySearchQuery(e.target.value)}
                       placeholder="Search in Your Library"
                       data-no-panel-context="true"
-                      className="bg-transparent border-none text-xs text-white placeholder-gray-400 focus:outline-none w-full min-w-0"
+                      className="bg-transparent border-none text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none w-full min-w-0"
                     />
                     {librarySearchQuery && (
                       <button
                         type="button"
                         onClick={() => setLibrarySearchQuery('')}
                         aria-label="Clear search"
-                        className="text-gray-400 hover:text-white p-0.5 rounded-full hover:bg-white/10 shrink-0 transition-colors cursor-pointer ml-1"
+                        className="text-gray-400 hover:text-gray-950 dark:hover:text-white p-0.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 shrink-0 transition-colors cursor-pointer ml-1"
                       >
                         <X size={13} />
                       </button>
@@ -811,8 +827,8 @@ export const MusicLibraryPanel: React.FC = () => {
                       }}
                       className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-95 cursor-pointer ${
                         isSortViewMenuOpen
-                          ? 'bg-white/20 text-white shadow-md'
-                          : 'text-gray-300 hover:text-white hover:bg-white/10'
+                          ? 'bg-black/10 dark:bg-white/20 text-gray-900 dark:text-white shadow-md'
+                          : 'text-gray-700 hover:text-gray-950 hover:bg-black/5 dark:text-gray-300 dark:hover:text-white dark:hover:bg-white/10'
                       }`}
                     >
                       <span className="truncate max-w-[120px]">
@@ -826,10 +842,10 @@ export const MusicLibraryPanel: React.FC = () => {
                       <div
                         ref={sortViewMenuRef}
                         data-menu-portal="true"
-                        className="absolute right-0 top-10 w-64 rounded-2xl bg-[#222228]/98 backdrop-blur-2xl border border-white/10 shadow-2xl p-2 z-50 text-white animate-fadeIn select-none flex flex-col gap-0.5 origin-top-right"
+                        className="absolute right-0 top-10 w-64 rounded-2xl glass-modal backdrop-blur-2xl border border-black/10 dark:border-white/10 shadow-2xl p-2 z-50 text-gray-900 dark:text-white animate-fadeIn select-none flex flex-col gap-0.5 origin-top-right"
                       >
                         {/* 1. Sorting Header */}
-                        <div className="px-3 pt-1 pb-1 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                        <div className="px-3 pt-1 pb-1 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                           Sort by
                         </div>
                         {sortOptions.map((opt) => {
@@ -843,32 +859,36 @@ export const MusicLibraryPanel: React.FC = () => {
                                 handleSelectSort(opt.key);
                                 setIsSortViewMenuOpen(false);
                               }}
-                              className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-white/10 transition-colors text-xs font-semibold cursor-pointer w-full text-left"
+                              className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-xs font-semibold cursor-pointer w-full text-left"
                             >
                               <span
                                 className={
-                                  isSelected ? 'text-purple-400 font-bold' : 'text-gray-200'
+                                  isSelected
+                                    ? 'text-purple-600 dark:text-purple-400 font-bold'
+                                    : 'text-gray-800 dark:text-gray-200'
                                 }
                               >
                                 {opt.label}
                               </span>
-                              {isSelected && <Check size={16} className="text-purple-400" />}
+                              {isSelected && (
+                                <Check size={16} className="text-purple-600 dark:text-purple-400" />
+                              )}
                             </button>
                           );
                         })}
 
-                        <div className="border-t border-white/10 my-1" />
+                        <div className="border-t border-black/10 dark:border-white/10 my-1" />
 
                         {/* 2. Presentation Header */}
-                        <div className="flex items-center justify-between px-3 py-1 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                        <div className="flex items-center justify-between px-3 py-1 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                           <span>View</span>
-                          <span className="text-gray-300 font-semibold normal-case">
+                          <span className="text-gray-700 dark:text-gray-300 font-semibold normal-case">
                             {viewModeLabels[libraryViewMode]}
                           </span>
                         </div>
 
                         {/* Segmented Liquid Glass Bubble Switcher (4 Options) */}
-                        <div className="relative flex items-center justify-between bg-black/40 border border-white/5 rounded-xl p-1 gap-1 my-1">
+                        <div className="relative flex items-center justify-between bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/5 rounded-xl p-1 gap-1 my-1">
                           {viewOptions.map((opt) => {
                             const isActive = libraryViewMode === opt.key;
                             return (
@@ -877,7 +897,7 @@ export const MusicLibraryPanel: React.FC = () => {
                                 type="button"
                                 title={opt.label}
                                 onClick={() => handleSelectViewMode(opt.key)}
-                                className="relative flex-1 flex items-center justify-center p-2 rounded-lg text-gray-400 hover:text-white transition-colors cursor-pointer z-10"
+                                className="relative flex-1 flex items-center justify-center p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors cursor-pointer z-10"
                               >
                                 {isActive && (
                                   <motion.div
@@ -887,7 +907,7 @@ export const MusicLibraryPanel: React.FC = () => {
                                   />
                                 )}
                                 <span
-                                  className={`relative z-20 ${isActive ? 'text-purple-400' : ''}`}
+                                  className={`relative z-20 ${isActive ? 'text-purple-600 dark:text-purple-400' : ''}`}
                                 >
                                   {opt.icon}
                                 </span>
@@ -901,9 +921,7 @@ export const MusicLibraryPanel: React.FC = () => {
                 </div>
               </div>
             ) : (
-              /* ----------------------------------------------------- */
-              /* SIDEBAR TOOLBAR (Width 340px)                         */
-              /* ----------------------------------------------------- */
+              /* SIDEBAR TOOLBAR (Width 340px)*/
               <div className="px-4 pt-3 pb-2 space-y-2 shrink-0">
                 {/* Filter Pills */}
                 <div className="flex items-center gap-2">
@@ -912,8 +930,8 @@ export const MusicLibraryPanel: React.FC = () => {
                     onClick={() => setLibraryFilter('all')}
                     className={`px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                       libraryFilter === 'all'
-                        ? 'bg-white text-black font-bold'
-                        : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'
+                        ? 'bg-gray-900 text-white dark:bg-white dark:text-black font-bold shadow-sm'
+                        : 'bg-black/5 text-gray-600 hover:text-gray-950 hover:bg-black/10 dark:bg-white/5 dark:text-gray-400 dark:hover:text-white dark:hover:bg-white/10'
                     }`}
                   >
                     All
@@ -923,8 +941,8 @@ export const MusicLibraryPanel: React.FC = () => {
                     onClick={() => setLibraryFilter('playlists')}
                     className={`px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                       libraryFilter === 'playlists'
-                        ? 'bg-white text-black font-bold'
-                        : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'
+                        ? 'bg-gray-900 text-white dark:bg-white dark:text-black font-bold shadow-sm'
+                        : 'bg-black/5 text-gray-600 hover:text-gray-950 hover:bg-black/10 dark:bg-white/5 dark:text-gray-400 dark:hover:text-white dark:hover:bg-white/10'
                     }`}
                   >
                     Playlists
@@ -934,8 +952,8 @@ export const MusicLibraryPanel: React.FC = () => {
                     onClick={() => setLibraryFilter('tracks')}
                     className={`px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                       libraryFilter === 'tracks'
-                        ? 'bg-white text-black font-bold'
-                        : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'
+                        ? 'bg-gray-900 text-white dark:bg-white dark:text-black font-bold shadow-sm'
+                        : 'bg-black/5 text-gray-600 hover:text-gray-950 hover:bg-black/10 dark:bg-white/5 dark:text-gray-400 dark:hover:text-white dark:hover:bg-white/10'
                     }`}
                   >
                     Tracks
@@ -955,7 +973,7 @@ export const MusicLibraryPanel: React.FC = () => {
                           animate={{ width: '100%', opacity: 1 }}
                           exit={{ width: 36, opacity: 0 }}
                           transition={{ type: 'spring', damping: 25, stiffness: 320 }}
-                          className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-white shadow-inner max-w-full"
+                          className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/5 dark:bg-white/10 backdrop-blur-md border border-black/10 dark:border-white/15 text-gray-900 dark:text-white shadow-inner max-w-full"
                         >
                           <Search size={14} className="text-gray-400 shrink-0" />
                           <input
@@ -965,14 +983,14 @@ export const MusicLibraryPanel: React.FC = () => {
                             onChange={(e) => setLibrarySearchQuery(e.target.value)}
                             placeholder="Search in Your Library..."
                             data-no-panel-context="true"
-                            className="bg-transparent border-none text-xs text-white placeholder-gray-400 focus:outline-none w-full min-w-0"
+                            className="bg-transparent border-none text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none w-full min-w-0"
                             autoFocus
                           />
                           {librarySearchQuery && (
                             <button
                               type="button"
                               onClick={() => setLibrarySearchQuery('')}
-                              className="text-gray-400 hover:text-white p-0.5 rounded-full hover:bg-white/10 shrink-0 transition-colors cursor-pointer"
+                              className="text-gray-400 hover:text-gray-950 dark:hover:text-white p-0.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 shrink-0 transition-colors cursor-pointer"
                             >
                               <X size={12} />
                             </button>
@@ -987,7 +1005,7 @@ export const MusicLibraryPanel: React.FC = () => {
                             setIsSearchOpen(true);
                             setIsSortViewMenuOpen(false);
                           }}
-                          className="p-2 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer flex items-center justify-center shrink-0"
+                          className="p-2 rounded-full text-gray-600 hover:text-gray-950 hover:bg-black/5 dark:text-gray-400 dark:hover:text-white dark:hover:bg-white/10 transition-colors cursor-pointer flex items-center justify-center shrink-0"
                         >
                           <Search size={16} />
                         </motion.button>
@@ -1006,8 +1024,8 @@ export const MusicLibraryPanel: React.FC = () => {
                       }}
                       className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-95 cursor-pointer ${
                         isSortViewMenuOpen
-                          ? 'bg-white/20 text-white'
-                          : 'text-gray-300 hover:text-white hover:bg-white/5'
+                          ? 'bg-black/10 dark:bg-white/20 text-gray-900 dark:text-white'
+                          : 'text-gray-700 hover:text-gray-950 hover:bg-black/5 dark:text-gray-300 dark:hover:text-white dark:hover:bg-white/5'
                       }`}
                     >
                       <span className="truncate max-w-[85px]">
@@ -1021,10 +1039,10 @@ export const MusicLibraryPanel: React.FC = () => {
                       <div
                         ref={sortViewMenuRef}
                         data-menu-portal="true"
-                        className="absolute right-0 top-10 w-60 rounded-2xl bg-[#222228]/98 backdrop-blur-2xl border border-white/10 shadow-2xl p-2 z-50 text-white animate-fadeIn select-none flex flex-col gap-0.5"
+                        className="absolute right-0 top-10 w-60 rounded-2xl glass-modal backdrop-blur-2xl border border-black/10 dark:border-white/10 shadow-2xl p-2 z-50 text-gray-900 dark:text-white animate-fadeIn select-none flex flex-col gap-0.5"
                       >
                         {/* 1. Sorting Header */}
-                        <div className="px-3 pt-1 pb-1 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                        <div className="px-3 pt-1 pb-1 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                           Sort by
                         </div>
                         {sortOptions.map((opt) => {
@@ -1038,32 +1056,36 @@ export const MusicLibraryPanel: React.FC = () => {
                                 handleSelectSort(opt.key);
                                 setIsSortViewMenuOpen(false);
                               }}
-                              className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-white/10 transition-colors text-xs font-semibold cursor-pointer w-full text-left"
+                              className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-xs font-semibold cursor-pointer w-full text-left"
                             >
                               <span
                                 className={
-                                  isSelected ? 'text-purple-400 font-bold' : 'text-gray-200'
+                                  isSelected
+                                    ? 'text-purple-600 dark:text-purple-400 font-bold'
+                                    : 'text-gray-800 dark:text-gray-200'
                                 }
                               >
                                 {opt.label}
                               </span>
-                              {isSelected && <Check size={16} className="text-purple-400" />}
+                              {isSelected && (
+                                <Check size={16} className="text-purple-600 dark:text-purple-400" />
+                              )}
                             </button>
                           );
                         })}
 
-                        <div className="border-t border-white/10 my-1" />
+                        <div className="border-t border-black/10 dark:border-white/10 my-1" />
 
                         {/* 2. Presentation Header */}
-                        <div className="flex items-center justify-between px-3 py-1 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                        <div className="flex items-center justify-between px-3 py-1 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                           <span>View</span>
-                          <span className="text-gray-300 font-semibold normal-case">
+                          <span className="text-gray-700 dark:text-gray-300 font-semibold normal-case">
                             {viewModeLabels[libraryViewMode]}
                           </span>
                         </div>
 
                         {/* Segmented Liquid Glass Bubble Switcher (4 Options) */}
-                        <div className="relative flex items-center justify-between bg-black/40 border border-white/5 rounded-xl p-1 gap-1 my-1">
+                        <div className="relative flex items-center justify-between bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/5 rounded-xl p-1 gap-1 my-1">
                           {viewOptions.map((opt) => {
                             const isActive = libraryViewMode === opt.key;
                             return (
@@ -1072,7 +1094,7 @@ export const MusicLibraryPanel: React.FC = () => {
                                 type="button"
                                 title={opt.label}
                                 onClick={() => handleSelectViewMode(opt.key)}
-                                className="relative flex-1 flex items-center justify-center p-2 rounded-lg text-gray-400 hover:text-white transition-colors cursor-pointer z-10"
+                                className="relative flex-1 flex items-center justify-center p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors cursor-pointer z-10"
                               >
                                 {isActive && (
                                   <motion.div
@@ -1082,7 +1104,7 @@ export const MusicLibraryPanel: React.FC = () => {
                                   />
                                 )}
                                 <span
-                                  className={`relative z-20 ${isActive ? 'text-purple-400' : ''}`}
+                                  className={`relative z-20 ${isActive ? 'text-purple-600 dark:text-purple-400' : ''}`}
                                 >
                                   {opt.icon}
                                 </span>
@@ -1098,14 +1120,9 @@ export const MusicLibraryPanel: React.FC = () => {
             )}
           </>
         )}
-
-        {/* ========================================================= */}
-        {/* 4. CONTENT AREA (FULL-WIDTH vs COLLAPSED vs EXPANDED)     */}
-        {/* ========================================================= */}
+        {/* 4. CONTENT AREA (FULL-WIDTH vs COLLAPSED vs EXPANDED)*/}
         {!isLibraryExpanded ? (
-          /* --------------------------------------------------------- */
-          /* COLLAPSED LIST VIEW (Width 72px, 1-to-1 with Spotify)     */
-          /* --------------------------------------------------------- */
+          /* COLLAPSED LIST VIEW*/
           <div
             style={{ paddingBottom: `${dockOffset + 16}px` }}
             className="flex-1 w-full overflow-y-auto custom-scrollbar flex flex-col items-center gap-2.5 py-3 px-0 select-none"
@@ -1143,7 +1160,7 @@ export const MusicLibraryPanel: React.FC = () => {
                       : 60,
                     left: 78,
                   }}
-                  className="fixed w-64 rounded-2xl bg-[#222228]/98 backdrop-blur-2xl border border-white/10 shadow-2xl p-2 z-[9999] text-white animate-fadeIn select-none flex flex-col gap-1 origin-top-left"
+                  className="fixed w-64 rounded-2xl glass-modal backdrop-blur-2xl border border-black/10 dark:border-white/15 shadow-2xl p-2 z-[9999] text-gray-900 dark:text-white animate-fadeIn select-none flex flex-col gap-1 origin-top-left"
                 >
                   <button
                     type="button"
@@ -1164,16 +1181,16 @@ export const MusicLibraryPanel: React.FC = () => {
                       if (isLibraryFullWidth) setLibraryFullWidth(false);
                       navigate(`/music/playlist/${newPl.id}`);
                     }}
-                    className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/10 transition-colors text-left group w-full cursor-pointer"
+                    className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-left group w-full cursor-pointer"
                   >
-                    <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-gray-300 group-hover:text-white group-hover:bg-purple-600/30 shrink-0 transition-colors">
+                    <div className="w-10 h-10 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center text-gray-700 dark:text-gray-300 group-hover:text-purple-600 dark:group-hover:text-white group-hover:bg-purple-500/20 shrink-0 transition-colors">
                       <ListPlus size={18} />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="text-sm font-bold text-white group-hover:text-purple-300 transition-colors">
+                      <div className="text-sm font-bold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors">
                         Playlist
                       </div>
-                      <div className="text-xs text-gray-400 leading-snug">
+                      <div className="text-xs text-gray-500 dark:text-gray-400 leading-snug">
                         Create a playlist with songs
                       </div>
                     </div>
@@ -1185,16 +1202,16 @@ export const MusicLibraryPanel: React.FC = () => {
                       setIsCreateMenuOpen(false);
                       createMusicFolder();
                     }}
-                    className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/10 transition-colors text-left group w-full cursor-pointer"
+                    className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-left group w-full cursor-pointer"
                   >
-                    <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-gray-300 group-hover:text-white group-hover:bg-purple-600/30 shrink-0 transition-colors">
+                    <div className="w-10 h-10 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center text-gray-700 dark:text-gray-300 group-hover:text-purple-600 dark:group-hover:text-white group-hover:bg-purple-500/20 shrink-0 transition-colors">
                       <Folder size={18} />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="text-sm font-bold text-white group-hover:text-purple-300 transition-colors">
+                      <div className="text-sm font-bold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors">
                         Folder
                       </div>
-                      <div className="text-xs text-gray-400 leading-snug">
+                      <div className="text-xs text-gray-500 dark:text-gray-400 leading-snug">
                         Organize your playlists
                       </div>
                     </div>
@@ -1244,37 +1261,64 @@ export const MusicLibraryPanel: React.FC = () => {
             ))}
 
             {/* 3. Playlists Tiles */}
-            {playlists.map((pl, idx) => (
-              <Tooltip
-                key={`lib-col-pl-${pl.id}-${idx}`}
-                label={`${pl.title} • Playlist • ${pl.creator || 'Eternal'}`}
-                position="right"
-              >
-                <div
-                  onClick={() => {
-                    setSelectedPlaylistId(pl.id);
-                    navigate(`/music/playlist/${pl.id}`);
-                  }}
-                  onContextMenu={(e) => handlePlaylistContextMenu(e, pl)}
-                  className={`w-12 h-12 rounded-xl bg-[#282828] border border-white/5 overflow-hidden flex items-center justify-center shadow-md cursor-pointer transition-all hover:scale-105 active:scale-95 shrink-0 ${
-                    selectedPlaylistId === pl.id
-                      ? 'ring-2 ring-purple-500 shadow-purple-500/40'
-                      : ''
-                  }`}
+            {playlists.map((pl, idx) => {
+              const isDissolving = dissolvingIds.has(pl.id);
+              return (
+                <Tooltip
+                  key={`lib-col-pl-${pl.id}-${idx}`}
+                  label={
+                    pl.isDeleted
+                      ? `${pl.title} • Deleted (Click to remove)`
+                      : `${pl.title} • Playlist • ${pl.creator || 'Eternal'}`
+                  }
+                  position="right"
                 >
-                  {pl.coverUrl ? (
-                    <img src={pl.coverUrl} alt={pl.title} className="w-full h-full object-cover" />
-                  ) : (
-                    <Music2 size={22} className="text-[#b3b3b3]" />
-                  )}
-                </div>
-              </Tooltip>
-            ))}
+                  <div
+                    onClick={(e) => {
+                      if (pl.isDeleted) {
+                        handleDeletedPlaylistClick(e, pl.id);
+                        return;
+                      }
+                      setSelectedPlaylistId(pl.id);
+                      navigate(`/music/playlist/${pl.id}`);
+                    }}
+                    onContextMenu={(e) => !pl.isDeleted && handlePlaylistContextMenu(e, pl)}
+                    className={`relative w-12 h-12 rounded-xl bg-[#282828] border border-white/5 overflow-hidden flex items-center justify-center shadow-md cursor-pointer transition-all duration-300 shrink-0 ${
+                      isDissolving
+                        ? 'opacity-0 scale-75 blur-sm pointer-events-none'
+                        : pl.isDeleted
+                          ? 'opacity-60 grayscale hover:opacity-85 hover:border-red-500/40'
+                          : selectedPlaylistId === pl.id
+                            ? 'ring-2 ring-purple-500 shadow-purple-500/40 hover:scale-105 active:scale-95'
+                            : 'hover:scale-105 active:scale-95'
+                    }`}
+                  >
+                    {pl.coverUrl ? (
+                      <img
+                        src={pl.coverUrl}
+                        alt={pl.title}
+                        className={`w-full h-full object-cover ${pl.isDeleted ? 'grayscale' : ''}`}
+                      />
+                    ) : (
+                      <Music2
+                        size={22}
+                        className={pl.isDeleted ? 'text-gray-500' : 'text-[#b3b3b3]'}
+                      />
+                    )}
+                    {pl.isDeleted && (
+                      <div className="absolute inset-0 bg-black/60 backdrop-blur-[1px] flex items-center justify-center">
+                        <span className="text-[9px] font-black uppercase tracking-wider text-red-400 bg-red-950/70 px-1 py-0.5 rounded border border-red-500/40">
+                          Del
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </Tooltip>
+              );
+            })}
           </div>
         ) : (
-          /* --------------------------------------------------------- */
-          /* EXPANDED & FULL-WIDTH PRESENTATION MODES (4 MODES)        */
-          /* --------------------------------------------------------- */
+          /* EXPANDED & FULL-WIDTH PRESENTATION MODES (4 MODES)*/
           <div
             style={{ paddingBottom: `${dockOffset + 24}px` }}
             className={`flex-1 overflow-y-auto custom-scrollbar select-none transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
@@ -1305,10 +1349,7 @@ export const MusicLibraryPanel: React.FC = () => {
                 </p>
               </div>
             )}
-
-            {/* ======================================================= */}
             {/* MODE 1: COMPACT */}
-            {/* ======================================================= */}
             {hasAnyItems && libraryViewMode === 'compact' && (
               <div className="space-y-1">
                 {/* Liked Songs Entry */}
@@ -1384,41 +1425,62 @@ export const MusicLibraryPanel: React.FC = () => {
                   const isSelected = selectedPlaylistId === pl.id;
                   const isPlayingThis =
                     isPlaying && currentTrack && pl.tracks.some((t) => t.id === currentTrack.id);
+                  const isDissolving = dissolvingIds.has(pl.id);
                   return (
                     <div
                       key={`lib-compact-pl-${pl.id}-${idx}`}
-                      onClick={() => {
+                      onClick={(e) => {
+                        if (pl.isDeleted) {
+                          handleDeletedPlaylistClick(e, pl.id);
+                          return;
+                        }
                         if (isLibraryFullWidth) setLibraryFullWidth(false);
                         setSelectedPlaylistId(pl.id);
                         navigate(`/music/playlist/${pl.id}`);
                       }}
-                      onContextMenu={(e) => handlePlaylistContextMenu(e, pl)}
-                      className={`group flex items-center justify-between px-3.5 py-2.5 rounded-xl cursor-pointer transition-all ${
-                        isSelected
-                          ? 'bg-purple-600/20 border border-purple-500/30'
-                          : 'hover:bg-white/5 text-gray-200'
+                      onContextMenu={(e) => !pl.isDeleted && handlePlaylistContextMenu(e, pl)}
+                      className={`group flex items-center justify-between px-3.5 py-2.5 rounded-xl cursor-pointer transition-all duration-300 ${
+                        isDissolving
+                          ? 'opacity-0 -translate-x-4 blur-sm pointer-events-none'
+                          : pl.isDeleted
+                            ? 'opacity-60 grayscale hover:opacity-85 hover:bg-red-500/5 border border-dashed border-red-500/20'
+                            : isSelected
+                              ? 'bg-purple-600/20 border border-purple-500/30'
+                              : 'hover:bg-white/5 text-gray-200'
                       }`}
                     >
                       <div className="min-w-0 flex-1 flex items-center gap-3">
                         <Music2
                           size={16}
-                          className="text-gray-400 group-hover:text-purple-300 shrink-0 transition-colors"
+                          className={`${
+                            pl.isDeleted
+                              ? 'text-gray-500'
+                              : 'text-gray-400 group-hover:text-purple-300'
+                          } shrink-0 transition-colors`}
                         />
                         <div className="min-w-0 flex-1">
                           <span
                             className={`text-sm font-semibold truncate block ${
-                              isPlayingThis
-                                ? 'text-purple-400 font-bold'
-                                : 'text-white group-hover:text-purple-300 transition-colors'
+                              pl.isDeleted
+                                ? 'text-gray-400 line-through'
+                                : isPlayingThis
+                                  ? 'text-purple-400 font-bold'
+                                  : 'text-white group-hover:text-purple-300 transition-colors'
                             }`}
                           >
                             {pl.title}
                           </span>
-                          <p className="text-xs text-gray-400 truncate flex items-center gap-1">
+                          <p className="text-xs text-gray-400 truncate flex items-center gap-1.5 mt-0.5">
                             {isItemPinned(pl.id) && (
                               <Pin size={11} className="text-purple-400 shrink-0 rotate-45" />
                             )}
-                            <span>Playlist • {pl.creator || 'Eternal'}</span>
+                            {pl.isDeleted ? (
+                              <span className="px-1.5 py-0.2 rounded text-[10px] font-bold uppercase tracking-wider bg-red-500/20 text-red-400 border border-red-500/30">
+                                Deleted
+                              </span>
+                            ) : (
+                              <span>Playlist • {pl.creator || 'Eternal'}</span>
+                            )}
                           </p>
                         </div>
                       </div>
@@ -1450,7 +1512,9 @@ export const MusicLibraryPanel: React.FC = () => {
                 {/* Tracks list when filter is 'tracks' */}
                 {libraryFilter === 'tracks' &&
                   filteredTracks.map((trk, idx) => {
-                    const isCurrent = currentTrack?.id === trk.id;
+                    const isCurrent = Boolean(
+                      currentTrack && isSameTrackId(currentTrack.id, trk.id),
+                    );
                     return (
                       <div
                         key={`lib-compact-trk-${trk.id}-${idx}`}
@@ -1493,10 +1557,7 @@ export const MusicLibraryPanel: React.FC = () => {
                   })}
               </div>
             )}
-
-            {/* ======================================================= */}
             {/* MODE 2: LIST */}
-            {/* ======================================================= */}
             {hasAnyItems && libraryViewMode === 'list' && (
               <div className="space-y-1.5">
                 {/* Liked Songs Entry */}
@@ -1600,50 +1661,81 @@ export const MusicLibraryPanel: React.FC = () => {
                   const isSelected = selectedPlaylistId === pl.id;
                   const isPlayingThis =
                     isPlaying && currentTrack && pl.tracks.some((t) => t.id === currentTrack.id);
+                  const isDissolving = dissolvingIds.has(pl.id);
 
                   return (
                     <div
                       key={`lib-list-pl-${pl.id}-${idx}`}
-                      onClick={() => {
+                      onClick={(e) => {
+                        if (pl.isDeleted) {
+                          handleDeletedPlaylistClick(e, pl.id);
+                          return;
+                        }
                         if (isLibraryFullWidth) setLibraryFullWidth(false);
                         setSelectedPlaylistId(pl.id);
                         navigate(`/music/playlist/${pl.id}`);
                       }}
-                      onContextMenu={(e) => handlePlaylistContextMenu(e, pl)}
-                      className={`group relative flex items-center justify-between gap-3 p-2.5 rounded-2xl cursor-pointer transition-all ${
-                        isSelected
-                          ? 'bg-purple-600/20 border border-purple-500/30'
-                          : 'hover:bg-white/5 text-gray-200'
+                      onContextMenu={(e) => !pl.isDeleted && handlePlaylistContextMenu(e, pl)}
+                      className={`group relative flex items-center justify-between gap-3 p-2.5 rounded-2xl cursor-pointer transition-all duration-300 ${
+                        isDissolving
+                          ? 'opacity-0 scale-95 blur-sm pointer-events-none'
+                          : pl.isDeleted
+                            ? 'opacity-60 grayscale hover:opacity-85 hover:bg-red-500/5 border border-dashed border-red-500/20'
+                            : isSelected
+                              ? 'bg-purple-600/20 border border-purple-500/30'
+                              : 'hover:bg-white/5 text-gray-200'
                       }`}
                     >
                       <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                        <div className="relative w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-white/5 bg-[#282828] flex items-center justify-center text-[#b3b3b3] group-hover:scale-105 transition-transform">
+                        <div
+                          className={`relative w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-white/5 bg-[#282828] flex items-center justify-center text-[#b3b3b3] group-hover:scale-105 transition-transform ${
+                            pl.isDeleted ? 'grayscale' : ''
+                          }`}
+                        >
                           {pl.coverUrl ? (
                             <img
                               src={pl.coverUrl}
                               alt={pl.title}
-                              className="w-full h-full object-cover"
+                              className={`w-full h-full object-cover ${pl.isDeleted ? 'grayscale' : ''}`}
                             />
                           ) : (
-                            <Music2 size={22} className="text-[#b3b3b3]" />
+                            <Music2
+                              size={22}
+                              className={pl.isDeleted ? 'text-gray-500' : 'text-[#b3b3b3]'}
+                            />
+                          )}
+                          {pl.isDeleted && (
+                            <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px] flex items-center justify-center">
+                              <span className="text-[9px] font-black uppercase tracking-wider text-red-400 bg-red-950/80 px-1 py-0.5 rounded border border-red-500/40">
+                                Del
+                              </span>
+                            </div>
                           )}
                         </div>
 
                         <div className="min-w-0 flex-1">
                           <p
                             className={`text-sm font-bold truncate ${
-                              isPlayingThis
-                                ? 'text-purple-400 font-bold'
-                                : 'text-white group-hover:text-purple-300 transition-colors'
+                              pl.isDeleted
+                                ? 'text-gray-400 line-through'
+                                : isPlayingThis
+                                  ? 'text-purple-400 font-bold'
+                                  : 'text-white group-hover:text-purple-300 transition-colors'
                             }`}
                           >
                             {pl.title}
                           </p>
-                          <p className="text-xs text-gray-400 truncate mt-0.5 flex items-center gap-1">
+                          <p className="text-xs text-gray-400 truncate mt-0.5 flex items-center gap-1.5">
                             {isItemPinned(pl.id) && (
                               <Pin size={11} className="text-purple-400 shrink-0 rotate-45" />
                             )}
-                            <span>Playlist • {pl.creator || 'Eternal'}</span>
+                            {pl.isDeleted ? (
+                              <span className="px-1.5 py-0.2 rounded text-[10px] font-bold uppercase tracking-wider bg-red-500/20 text-red-400 border border-red-500/30">
+                                Deleted
+                              </span>
+                            ) : (
+                              <span>Playlist • {pl.creator || 'Eternal'}</span>
+                            )}
                           </p>
                         </div>
                       </div>
@@ -1692,7 +1784,9 @@ export const MusicLibraryPanel: React.FC = () => {
                 {/* Tracks list when filter is 'tracks' */}
                 {libraryFilter === 'tracks' &&
                   filteredTracks.map((trk, idx) => {
-                    const isCurrent = currentTrack?.id === trk.id;
+                    const isCurrent = Boolean(
+                      currentTrack && isSameTrackId(currentTrack.id, trk.id),
+                    );
                     return (
                       <div
                         key={`lib-list-trk-${trk.id}-${idx}`}
@@ -1755,10 +1849,7 @@ export const MusicLibraryPanel: React.FC = () => {
                   })}
               </div>
             )}
-
-            {/* ======================================================= */}
             {/* MODE 3: GRID COVERS */}
-            {/* ======================================================= */}
             {hasAnyItems && libraryViewMode === 'grid-covers' && (
               <div
                 className={`grid gap-3.5 ${
@@ -1819,45 +1910,73 @@ export const MusicLibraryPanel: React.FC = () => {
                 ))}
 
                 {/* Playlists */}
-                {filteredPlaylists.map((pl, idx) => (
-                  <Tooltip
-                    key={`lib-grid-pl-${pl.id}-${idx}`}
-                    label={`${pl.title} • Playlist`}
-                    position="top"
-                  >
-                    <div
-                      onClick={() => {
-                        if (isLibraryFullWidth) setLibraryFullWidth(false);
-                        setSelectedPlaylistId(pl.id);
-                        navigate(`/music/playlist/${pl.id}`);
-                      }}
-                      onContextMenu={(e) => handlePlaylistContextMenu(e, pl)}
-                      className={`w-full aspect-square rounded-2xl bg-[#282828] border border-white/5 overflow-hidden flex items-center justify-center shadow-lg cursor-pointer group hover:scale-[1.03] transition-all relative ${
-                        selectedPlaylistId === pl.id
-                          ? 'ring-2 ring-purple-500 shadow-purple-500/40'
-                          : ''
-                      }`}
+                {filteredPlaylists.map((pl, idx) => {
+                  const isDissolving = dissolvingIds.has(pl.id);
+                  return (
+                    <Tooltip
+                      key={`lib-grid-pl-${pl.id}-${idx}`}
+                      label={
+                        pl.isDeleted
+                          ? `${pl.title} • Deleted (Click to remove)`
+                          : `${pl.title} • Playlist`
+                      }
+                      position="top"
                     >
-                      {pl.coverUrl ? (
-                        <img
-                          src={pl.coverUrl}
-                          alt={pl.title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <Music2 size={30} className="text-[#b3b3b3]" />
-                      )}
-                      {isItemPinned(pl.id) && (
-                        <div className="absolute top-2 left-2 z-10 w-5 h-5 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center shadow-md">
-                          <Pin size={11} className="text-purple-400 rotate-45" />
-                        </div>
-                      )}
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                        <Play size={24} className="fill-white text-white ml-0.5" />
+                      <div
+                        onClick={(e) => {
+                          if (pl.isDeleted) {
+                            handleDeletedPlaylistClick(e, pl.id);
+                            return;
+                          }
+                          if (isLibraryFullWidth) setLibraryFullWidth(false);
+                          setSelectedPlaylistId(pl.id);
+                          navigate(`/music/playlist/${pl.id}`);
+                        }}
+                        onContextMenu={(e) => !pl.isDeleted && handlePlaylistContextMenu(e, pl)}
+                        className={`w-full aspect-square rounded-2xl bg-[#282828] border border-white/5 overflow-hidden flex items-center justify-center shadow-lg cursor-pointer group transition-all duration-300 relative ${
+                          isDissolving
+                            ? 'opacity-0 scale-75 blur-sm pointer-events-none'
+                            : pl.isDeleted
+                              ? 'opacity-60 grayscale hover:opacity-85 hover:border-red-500/30'
+                              : selectedPlaylistId === pl.id
+                                ? 'ring-2 ring-purple-500 shadow-purple-500/40 hover:scale-[1.03]'
+                                : 'hover:scale-[1.03]'
+                        }`}
+                      >
+                        {pl.coverUrl ? (
+                          <img
+                            src={pl.coverUrl}
+                            alt={pl.title}
+                            className={`w-full h-full object-cover ${pl.isDeleted ? 'grayscale' : ''}`}
+                          />
+                        ) : (
+                          <Music2
+                            size={30}
+                            className={pl.isDeleted ? 'text-gray-500' : 'text-[#b3b3b3]'}
+                          />
+                        )}
+                        {pl.isDeleted ? (
+                          <div className="absolute inset-0 bg-black/60 backdrop-blur-[1px] flex flex-col items-center justify-center gap-1 p-2">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-red-400 bg-red-950/80 px-1.5 py-0.5 rounded border border-red-500/40">
+                              Deleted
+                            </span>
+                          </div>
+                        ) : (
+                          <>
+                            {isItemPinned(pl.id) && (
+                              <div className="absolute top-2 left-2 z-10 w-5 h-5 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center shadow-md">
+                                <Pin size={11} className="text-purple-400 rotate-45" />
+                              </div>
+                            )}
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                              <Play size={24} className="fill-white text-white ml-0.5" />
+                            </div>
+                          </>
+                        )}
                       </div>
-                    </div>
-                  </Tooltip>
-                ))}
+                    </Tooltip>
+                  );
+                })}
 
                 {/* Tracks */}
                 {libraryFilter === 'tracks' &&
@@ -1894,10 +2013,7 @@ export const MusicLibraryPanel: React.FC = () => {
                   ))}
               </div>
             )}
-
-            {/* ======================================================= */}
             {/* MODE 4: GRID CARDS */}
-            {/* ======================================================= */}
             {hasAnyItems && libraryViewMode === 'grid-cards' && (
               <div
                 className={`grid gap-4 ${
@@ -1982,28 +2098,51 @@ export const MusicLibraryPanel: React.FC = () => {
                 {filteredPlaylists.map((pl, idx) => {
                   const isPlayingThis =
                     isPlaying && currentTrack && pl.tracks.some((t) => t.id === currentTrack.id);
+                  const isDissolving = dissolvingIds.has(pl.id);
                   return (
                     <div
                       key={`lib-card-pl-${pl.id}-${idx}`}
-                      onClick={() => {
+                      onClick={(e) => {
+                        if (pl.isDeleted) {
+                          handleDeletedPlaylistClick(e, pl.id);
+                          return;
+                        }
                         if (isLibraryFullWidth) setLibraryFullWidth(false);
                         setSelectedPlaylistId(pl.id);
                         navigate(`/music/playlist/${pl.id}`);
                       }}
-                      onContextMenu={(e) => handlePlaylistContextMenu(e, pl)}
-                      className="group flex flex-col p-3 rounded-2xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/5 hover:border-white/10 cursor-pointer transition-all hover:shadow-xl"
+                      onContextMenu={(e) => !pl.isDeleted && handlePlaylistContextMenu(e, pl)}
+                      className={`group flex flex-col p-3 rounded-2xl cursor-pointer transition-all duration-300 ${
+                        isDissolving
+                          ? 'opacity-0 scale-90 blur-sm pointer-events-none'
+                          : pl.isDeleted
+                            ? 'opacity-60 grayscale hover:opacity-85 bg-red-500/5 border border-dashed border-red-500/20'
+                            : 'bg-white/[0.03] hover:bg-white/[0.08] border border-white/5 hover:border-white/10 hover:shadow-xl'
+                      }`}
                     >
                       <div className="w-full aspect-square rounded-xl bg-[#282828] border border-white/5 relative shadow-md overflow-hidden mb-2.5 flex items-center justify-center">
                         {pl.coverUrl ? (
                           <img
                             src={pl.coverUrl}
                             alt={pl.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            className={`w-full h-full object-cover transition-transform duration-300 ${
+                              pl.isDeleted ? 'grayscale' : 'group-hover:scale-105'
+                            }`}
                           />
                         ) : (
-                          <Music2 size={40} className="text-[#b3b3b3]" />
+                          <Music2
+                            size={40}
+                            className={pl.isDeleted ? 'text-gray-500' : 'text-[#b3b3b3]'}
+                          />
                         )}
-                        {pl.tracks.length > 0 && (
+                        {pl.isDeleted && (
+                          <div className="absolute inset-0 bg-black/60 backdrop-blur-[1px] flex items-center justify-center">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-red-400 bg-red-950/80 px-2 py-0.5 rounded border border-red-500/40">
+                              Deleted
+                            </span>
+                          </div>
+                        )}
+                        {!pl.isDeleted && pl.tracks.length > 0 && (
                           <div className="absolute right-2 bottom-2 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
                             <button
                               type="button"
@@ -2023,14 +2162,26 @@ export const MusicLibraryPanel: React.FC = () => {
                           </div>
                         )}
                       </div>
-                      <p className="text-sm font-bold text-white truncate group-hover:text-purple-300 transition-colors">
+                      <p
+                        className={`text-sm font-bold truncate transition-colors ${
+                          pl.isDeleted
+                            ? 'text-gray-400 line-through'
+                            : 'text-white group-hover:text-purple-300'
+                        }`}
+                      >
                         {pl.title}
                       </p>
-                      <p className="text-xs text-gray-400 truncate mt-0.5 flex items-center gap-1">
+                      <p className="text-xs text-gray-400 truncate mt-1 flex items-center gap-1.5">
                         {isItemPinned(pl.id) && (
                           <Pin size={11} className="text-purple-400 shrink-0 rotate-45" />
                         )}
-                        <span>Playlist • {pl.creator || 'Eternal'}</span>
+                        {pl.isDeleted ? (
+                          <span className="px-1.5 py-0.2 rounded text-[10px] font-bold uppercase tracking-wider bg-red-500/20 text-red-400 border border-red-500/30">
+                            Deleted
+                          </span>
+                        ) : (
+                          <span>Playlist • {pl.creator || 'Eternal'}</span>
+                        )}
                       </p>
                     </div>
                   );
@@ -2087,9 +2238,7 @@ export const MusicLibraryPanel: React.FC = () => {
           </div>
         )}
 
-        {/* ========================================================= */}
-        {/* 5. SLIDE-IN FOLDER PANEL (Spotify UI: Screenshot 1)       */}
-        {/* ========================================================= */}
+        {/* 5. SLIDE-IN FOLDER PANEL*/}
         <AnimatePresence>
           {activeFolder && (
             <motion.div
@@ -2098,10 +2247,10 @@ export const MusicLibraryPanel: React.FC = () => {
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: '-100%', opacity: 0 }}
               transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-              className="absolute inset-0 z-40 flex flex-col bg-[#121216] border-r border-white/5 select-none overflow-hidden"
+              className="absolute inset-0 z-40 flex flex-col glass-panel border-r border-black/10 dark:border-white/10 select-none overflow-hidden text-gray-900 dark:text-white"
             >
               {/* Folder Header */}
-              <div className="h-16 flex items-center justify-between px-4 border-b border-white/5 shrink-0">
+              <div className="h-16 flex items-center justify-between px-4 border-b border-black/10 dark:border-white/10 shrink-0">
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   {/* Back button */}
                   <Tooltip label="Back to Your Library" position="bottom">
@@ -2109,7 +2258,7 @@ export const MusicLibraryPanel: React.FC = () => {
                       type="button"
                       aria-label="Back"
                       onClick={() => setActiveFolderId(null)}
-                      className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-all cursor-pointer active:scale-95 shrink-0 flex items-center justify-center"
+                      className="p-2 rounded-xl bg-black/5 hover:bg-black/10 text-gray-700 hover:text-gray-950 dark:bg-white/5 dark:hover:bg-white/10 dark:text-gray-300 dark:hover:text-white transition-all cursor-pointer active:scale-95 shrink-0 flex items-center justify-center"
                     >
                       <ChevronLeft size={18} />
                     </button>
@@ -2120,14 +2269,14 @@ export const MusicLibraryPanel: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setRenameModalFolder(activeFolder)}
-                      className="flex items-center gap-2 group max-w-[170px] sm:max-w-[200px] text-left hover:bg-white/5 px-2 py-1 rounded-xl transition-colors cursor-pointer"
+                      className="flex items-center gap-2 group max-w-[170px] sm:max-w-[200px] text-left hover:bg-black/5 dark:hover:bg-white/5 px-2 py-1 rounded-xl transition-colors cursor-pointer"
                     >
-                      <span className="text-base font-bold text-white truncate group-hover:text-purple-300 transition-colors">
+                      <span className="text-base font-bold text-gray-900 dark:text-white truncate group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors">
                         {activeFolder.name}
                       </span>
                       <FolderEdit
                         size={14}
-                        className="text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                        className="text-gray-500 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
                       />
                     </button>
                   </Tooltip>
@@ -2155,7 +2304,7 @@ export const MusicLibraryPanel: React.FC = () => {
                         if (isLibraryFullWidth) setLibraryFullWidth(false);
                         navigate(`/music/playlist/${newPl.id}`);
                       }}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold bg-white/10 hover:bg-white/20 text-white transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold bg-black/5 hover:bg-black/10 text-gray-900 border border-black/10 dark:bg-white/10 dark:hover:bg-white/20 dark:text-white dark:border-white/10 transition-all hover:scale-105 active:scale-95 cursor-pointer"
                     >
                       <Plus size={14} />
                       <span>Create</span>
@@ -2169,7 +2318,7 @@ export const MusicLibraryPanel: React.FC = () => {
                       type="button"
                       aria-label="Folder options"
                       onClick={() => setIsActiveFolderMenuOpen((prev) => !prev)}
-                      className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+                      className="p-2 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-black/5 dark:text-gray-400 dark:hover:text-white dark:hover:bg-white/5 transition-colors cursor-pointer"
                     >
                       <MoreHorizontal size={18} />
                     </button>
@@ -2177,7 +2326,7 @@ export const MusicLibraryPanel: React.FC = () => {
                     {isActiveFolderMenuOpen && (
                       <div
                         ref={activeFolderMenuRef}
-                        className="absolute right-0 top-10 w-48 rounded-2xl bg-[#24242b]/98 backdrop-blur-2xl border border-white/10 shadow-2xl p-1.5 text-white select-none animate-fadeIn flex flex-col gap-0.5 z-50 origin-top-right text-xs"
+                        className="absolute right-0 top-10 w-48 rounded-2xl glass-modal backdrop-blur-2xl border border-black/10 dark:border-white/15 shadow-2xl p-1.5 text-gray-900 dark:text-white select-none animate-fadeIn flex flex-col gap-0.5 z-50 origin-top-right text-xs"
                       >
                         <button
                           type="button"
@@ -2185,11 +2334,11 @@ export const MusicLibraryPanel: React.FC = () => {
                             setIsActiveFolderMenuOpen(false);
                             setRenameModalFolder(activeFolder);
                           }}
-                          className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-white/10 cursor-pointer transition-colors text-xs font-semibold text-gray-200 hover:text-white group w-full text-left"
+                          className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer transition-colors text-xs font-semibold text-gray-700 dark:text-gray-200 hover:text-gray-950 dark:hover:text-white group w-full text-left"
                         >
                           <FolderEdit
                             size={14}
-                            className="text-gray-400 group-hover:text-purple-400 shrink-0"
+                            className="text-gray-500 dark:text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400 shrink-0"
                           />
                           <span>Rename</span>
                         </button>
@@ -2199,9 +2348,9 @@ export const MusicLibraryPanel: React.FC = () => {
                             setIsActiveFolderMenuOpen(false);
                             setFolderToDelete(activeFolder);
                           }}
-                          className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-red-500/10 cursor-pointer transition-colors text-xs font-semibold text-red-400 group w-full text-left"
+                          className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-red-500/10 cursor-pointer transition-colors text-xs font-semibold text-red-600 dark:text-red-400 group w-full text-left"
                         >
-                          <Trash2 size={14} className="text-red-400 shrink-0" />
+                          <Trash2 size={14} className="text-red-600 dark:text-red-400 shrink-0" />
                           <span>Delete folder</span>
                         </button>
                       </div>
@@ -2216,10 +2365,12 @@ export const MusicLibraryPanel: React.FC = () => {
                 className="flex-1 overflow-y-auto custom-scrollbar p-3 select-none"
               >
                 {folderPlaylists.length === 0 ? (
-                  /* Empty State (1-to-1 with Screenshot 1) */
+                  /* Empty State */
                   <div className="h-full min-h-[300px] flex flex-col items-center justify-center text-center px-6 py-12">
-                    <h3 className="text-xl font-bold text-white mb-2">This folder is empty</h3>
-                    <p className="text-sm text-gray-400 max-w-xs leading-relaxed mb-6">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                      This folder is empty
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 max-w-xs leading-relaxed mb-6">
                       Start adding playlists by creating a new one or moving existing playlists from
                       the playlist menu
                     </p>
@@ -2242,7 +2393,7 @@ export const MusicLibraryPanel: React.FC = () => {
                         if (isLibraryFullWidth) setLibraryFullWidth(false);
                         navigate(`/music/playlist/${newPl.id}`);
                       }}
-                      className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white text-black hover:bg-gray-200 font-bold text-xs shadow-xl transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-gray-900 text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200 font-bold text-xs shadow-xl transition-all hover:scale-105 active:scale-95 cursor-pointer"
                     >
                       <Plus size={15} />
                       <span>Create playlist</span>
@@ -2257,45 +2408,76 @@ export const MusicLibraryPanel: React.FC = () => {
                         isPlaying &&
                         currentTrack &&
                         pl.tracks.some((t) => t.id === currentTrack.id);
+                      const isDissolving = dissolvingIds.has(pl.id);
                       return (
                         <div
                           key={`lib-fld-pl-${pl.id}-${idx}`}
-                          onClick={() => {
+                          onClick={(e) => {
+                            if (pl.isDeleted) {
+                              handleDeletedPlaylistClick(e, pl.id);
+                              return;
+                            }
                             if (isLibraryFullWidth) setLibraryFullWidth(false);
                             setSelectedPlaylistId(pl.id);
                             navigate(`/music/playlist/${pl.id}`);
                           }}
-                          onContextMenu={(e) => handlePlaylistContextMenu(e, pl)}
-                          className={`group relative flex items-center justify-between gap-3 p-2.5 rounded-2xl cursor-pointer transition-all ${
-                            isSelected
-                              ? 'bg-purple-600/20 border border-purple-500/30'
-                              : 'hover:bg-white/5 text-gray-200'
+                          onContextMenu={(e) => !pl.isDeleted && handlePlaylistContextMenu(e, pl)}
+                          className={`group relative flex items-center justify-between gap-3 p-2.5 rounded-2xl cursor-pointer transition-all duration-300 ${
+                            isDissolving
+                              ? 'opacity-0 scale-95 blur-sm pointer-events-none'
+                              : pl.isDeleted
+                                ? 'opacity-60 grayscale hover:opacity-85 hover:bg-red-500/5 border border-dashed border-red-500/20'
+                                : isSelected
+                                  ? 'bg-purple-600/20 border border-purple-500/30'
+                                  : 'hover:bg-black/5 dark:hover:bg-white/5 text-gray-700 dark:text-gray-200'
                           }`}
                         >
                           <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                            <div className="relative w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-white/5 bg-[#282828] flex items-center justify-center text-[#b3b3b3]">
+                            <div
+                              className={`relative w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-black/5 dark:border-white/5 bg-black/5 dark:bg-[#282828] flex items-center justify-center text-[#b3b3b3] ${
+                                pl.isDeleted ? 'grayscale' : ''
+                              }`}
+                            >
                               {pl.coverUrl ? (
                                 <img
                                   src={pl.coverUrl}
                                   alt={pl.title}
-                                  className="w-full h-full object-cover"
+                                  className={`w-full h-full object-cover ${pl.isDeleted ? 'grayscale' : ''}`}
                                 />
                               ) : (
-                                <Music2 size={22} className="text-[#b3b3b3]" />
+                                <Music2
+                                  size={22}
+                                  className={pl.isDeleted ? 'text-gray-500' : 'text-[#b3b3b3]'}
+                                />
+                              )}
+                              {pl.isDeleted && (
+                                <div className="absolute inset-0 bg-black/60 backdrop-blur-[1px] flex items-center justify-center">
+                                  <span className="text-[9px] font-black uppercase tracking-wider text-red-400 bg-red-950/80 px-1 py-0.5 rounded border border-red-500/40">
+                                    Del
+                                  </span>
+                                </div>
                               )}
                             </div>
                             <div className="min-w-0 flex-1">
                               <p
                                 className={`text-sm font-bold truncate ${
-                                  isPlayingThis
-                                    ? 'text-purple-400'
-                                    : 'text-white group-hover:text-purple-300 transition-colors'
+                                  pl.isDeleted
+                                    ? 'text-gray-400 line-through'
+                                    : isPlayingThis
+                                      ? 'text-purple-600 dark:text-purple-400'
+                                      : 'text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors'
                                 }`}
                               >
                                 {pl.title}
                               </p>
-                              <p className="text-xs text-gray-400 truncate mt-0.5">
-                                Playlist • {formatTracksDeclension(pl.tracks.length)}
+                              <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5 flex items-center gap-1.5">
+                                {pl.isDeleted ? (
+                                  <span className="px-1.5 py-0.2 rounded text-[10px] font-bold uppercase tracking-wider bg-red-500/20 text-red-400 border border-red-500/30">
+                                    Deleted
+                                  </span>
+                                ) : (
+                                  <span>Playlist • {formatTracksDeclension(pl.tracks.length)}</span>
+                                )}
                               </p>
                             </div>
                           </div>

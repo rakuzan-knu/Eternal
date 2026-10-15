@@ -1,27 +1,33 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 interface BannerProps {
   src?: string | null | undefined;
   positionY?: number | undefined;
   alt?: string | undefined;
+  fallbackGradient?: string | undefined;
 }
 
-export default function Banner({ src, positionY = 50, alt = 'User profile banner' }: BannerProps) {
+export default function Banner({
+  src,
+  positionY = 50,
+  alt = 'User profile banner',
+  fallbackGradient,
+}: BannerProps) {
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
   return (
     <div className="w-full h-full relative border-b border-white/[0.05] overflow-hidden bg-[#111]">
-      {src ? (
-        <>
-          <img
-            src={src}
-            alt={alt}
-            className="w-full h-full object-cover select-none pointer-events-none"
-            style={{ objectPosition: `50% ${positionY}%` }}
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = 'none';
-            }}
-          />
-          <div className="absolute inset-0 bg-white/[0.01] backdrop-blur-[1px]"></div>
-        </>
+      {src && src !== failedSrc ? (
+        <img
+          src={src}
+          alt={alt}
+          className="w-full h-full object-cover select-none pointer-events-none"
+          style={{ objectPosition: `50% ${positionY}%` }}
+          onError={() => setFailedSrc(src)}
+        />
+      ) : fallbackGradient ? (
+        <div className="w-full h-full relative" style={{ background: fallbackGradient }}>
+          <div className="absolute inset-0 bg-black/20 backdrop-blur-[1px]"></div>
+        </div>
       ) : (
         <div className="w-full h-full bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-pink-500/20 relative">
           <div className="absolute inset-0 bg-white/[0.01] backdrop-blur-[2px]"></div>

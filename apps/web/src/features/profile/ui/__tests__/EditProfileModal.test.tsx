@@ -1,11 +1,21 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  MediaUploadError,
+  validateMediaUpload,
+} from '../../../../shared/lib/mediaUploadValidation';
 import EditProfileModal from '../EditProfileModal';
 import { useUIStore } from '../../../../shared/model/useUIStore';
 import { useAuthStore } from '../../../../shared/model/useAuthStore';
 import { resetUIStore } from '../../../../test/resetUIStore';
 import { renderWithProviders } from '../../../../test/renderWithProviders';
+import { server } from '../../../../test/mocks/server';
+import { http, HttpResponse } from 'msw';
+vi.mock('../../../../shared/lib/mediaUploadValidation', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../../shared/lib/mediaUploadValidation')>()),
+  validateMediaUpload: vi.fn().mockResolvedValue('image'),
+}));
 
 class MockFileReader {
   result: string | null = null;
@@ -53,6 +63,12 @@ describe('EditProfileModal', () => {
   let originalFileReader: typeof FileReader;
 
   beforeEach(() => {
+    server.use(
+      http.get('*/v1/nameplates', () => HttpResponse.json([])),
+      http.get('*/v1/nameplates/me', () =>
+        HttpResponse.json({ activeNameplateId: null, owned: [] }),
+      ),
+    );
     originalFileReader = global.FileReader;
     // @ts-expect-error - simplified mock, not a full FileReader implementation
     global.FileReader = MockFileReader;
@@ -95,7 +111,15 @@ describe('EditProfileModal', () => {
 
     await user.click(screen.getAllByRole('button')[0]);
 
-    expect(useUIStore.getState().isEditProfileOpen).toBe(false);
+    await waitFor(() => expect(useUIStore.getState().isEditProfileOpen).toBe(false));
+  });
+
+  it('closes the modal with animation when Escape key is pressed', async () => {
+    await openAndWaitForProfile();
+
+    fireEvent.keyDown(window, { key: 'Escape', code: 'Escape' });
+
+    await waitFor(() => expect(useUIStore.getState().isEditProfileOpen).toBe(false));
   });
 
   it('shows a validation error and keeps the modal open when the username is too short', async () => {
@@ -158,6 +182,35 @@ describe('EditProfileModal', () => {
     await user.upload(avatarInput, file);
 
     expect(screen.getByAltText('Avatar')).toHaveAttribute('src', 'data:image/png;base64,mock');
+  });
+
+  it('rejects a file without replacing the existing avatar or banner', async () => {
+    await openAndWaitForProfile();
+    const inputs = document.querySelectorAll('input[type="file"]');
+    for (const input of inputs) {
+      fireEvent.change(input, {
+        target: { files: [new File(['valid fixture'], 'photo.png', { type: 'image/png' })] },
+      });
+    }
+    await waitFor(() =>
+      expect(screen.getByAltText('Avatar')).toHaveAttribute('src', 'data:image/png;base64,mock'),
+    );
+    await waitFor(() =>
+      expect(screen.getByAltText('Banner')).toHaveAttribute('src', 'data:image/png;base64,mock'),
+    );
+    const beforeAvatar = screen.getByAltText('Avatar').getAttribute('src');
+    const beforeBanner = screen.queryByAltText('Banner')?.getAttribute('src');
+    for (const [index, input] of Array.from(inputs).entries()) {
+      vi.mocked(validateMediaUpload).mockRejectedValueOnce(
+        new MediaUploadError('Choose a JPG, PNG, GIF or WebP image.'),
+      );
+      fireEvent.change(input, {
+        target: { files: [new File(['MZ'], 'bad.exe', { type: 'application/octet-stream' })] },
+      });
+      await waitFor(() => expect(screen.getAllByRole('alert')).toHaveLength(index + 1));
+    }
+    expect(screen.getByAltText('Avatar')).toHaveAttribute('src', beforeAvatar);
+    expect(screen.queryByAltText('Banner')?.getAttribute('src')).toBe(beforeBanner);
   });
 
   it('shows a banner preview after uploading a file and repositions it when dragged', async () => {

@@ -262,6 +262,11 @@ export const authResponseSchema = z.object({
 });
 export type AuthResponse = z.infer<typeof authResponseSchema>;
 
+export const verifyPasswordSchema = z.object({
+  password: z.string().min(1).max(256),
+});
+export type VerifyPasswordDto = z.infer<typeof verifyPasswordSchema>;
+
 export const forgotPasswordSchema = z.object({
   email: z
     .string({ required_error: 'Email or mobile phone number is required' })

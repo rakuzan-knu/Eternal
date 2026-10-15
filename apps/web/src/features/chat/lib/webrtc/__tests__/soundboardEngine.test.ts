@@ -209,4 +209,18 @@ describe('SoundboardEngine', () => {
     engine.destroy();
     expect(mockAudioContext.close).toHaveBeenCalled();
   });
+
+  it('cancels active sound sources when play is called again to restart from 0', () => {
+    const engine = new SoundboardEngine(mockAudioContext);
+    engine.play('airhorn');
+
+    // Sources created
+    expect(mockAudioContext.createOscillator.mock.calls.length).toBeGreaterThan(0);
+
+    // Calling play again should invoke stop on active sources
+    engine.play('quack');
+    expect(mockOscillator.stop).toHaveBeenCalled();
+
+    engine.destroy();
+  });
 });

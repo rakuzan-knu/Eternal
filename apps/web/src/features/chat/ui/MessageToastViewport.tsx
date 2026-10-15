@@ -58,7 +58,7 @@ export default function MessageToastViewport() {
         <button
           type="button"
           onClick={dismissAll}
-          className="pointer-events-auto h-9 px-4 rounded-2xl border border-white/[0.12] bg-[#12141e]/75 text-xs font-semibold text-white/80 shadow-[0_10px_25px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-2xl transition-all duration-200 hover:bg-[#181a28]/85 hover:text-white hover:border-white/20 active:scale-95 mx-auto"
+          className="pointer-events-auto h-9 px-4 rounded-2xl border border-black/10 dark:border-white/[0.15] glass-modal text-xs font-semibold text-gray-800 dark:text-white/90 shadow-[0_10px_25px_rgba(0,0,0,0.15),inset_0_1px_1px_rgba(255,255,255,0.2)] dark:shadow-[0_10px_25px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-2xl transition-all duration-200 hover:bg-black/5 dark:hover:bg-white/10 hover:text-gray-950 dark:hover:text-white hover:border-black/20 dark:hover:border-white/20 active:scale-95 mx-auto"
         >
           Dismiss all
         </button>
@@ -76,7 +76,7 @@ export default function MessageToastViewport() {
               openToast(toast);
             }
           }}
-          className="pointer-events-auto group relative flex min-h-[76px] items-center gap-3.5 rounded-[22px] border border-white/[0.14] bg-[#12141e]/72 px-4 py-3 shadow-[0_16px_42px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.16)] backdrop-blur-2xl transition-all duration-300 ease-out animate-slideInRight hover:bg-[#181a28]/82 hover:border-white/[0.22] hover:shadow-[0_20px_48px_rgba(0,0,0,0.62),inset_0_1px_0_rgba(255,255,255,0.22)] cursor-pointer"
+          className="pointer-events-auto group relative flex min-h-[76px] items-center gap-3.5 rounded-[22px] border border-black/10 dark:border-white/[0.16] glass-modal px-4 py-3 shadow-[0_16px_42px_rgba(0,0,0,0.18),inset_0_1px_1px_rgba(255,255,255,0.35)] dark:shadow-[0_20px_48px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.16)] backdrop-blur-3xl transition-all duration-300 ease-out animate-slideInRight hover:border-black/20 dark:hover:border-white/[0.25] hover:shadow-[0_22px_52px_rgba(0,0,0,0.22),inset_0_1px_1px_rgba(255,255,255,0.4)] dark:hover:shadow-[0_24px_56px_rgba(0,0,0,0.7),inset_0_1px_1px_rgba(255,255,255,0.22)] cursor-pointer"
         >
           <div className="flex-shrink-0">
             {toast.isGroup ? (
@@ -99,22 +99,24 @@ export default function MessageToastViewport() {
           </div>
 
           <div className="min-w-0 flex-1 pr-6">
-            <p className="truncate text-[13.5px] font-semibold text-white/95 tracking-tight">
+            <p className="truncate text-[13.5px] font-bold text-gray-950 dark:text-white tracking-tight">
               {toast.title}
             </p>
-            <p className="line-clamp-2 text-[12.5px] leading-snug text-white/70 mt-0.5">
+            <p className="line-clamp-2 text-[12.5px] leading-snug text-gray-600 dark:text-gray-300 mt-0.5">
               {toast.body}
             </p>
           </div>
 
           {toast.linkUrl && (
-            <span className="flex-shrink-0 text-[11px] font-semibold text-sky-400 group-hover:underline pr-4">
+            <span className="flex-shrink-0 text-[11px] font-semibold text-purple-600 dark:text-purple-400 group-hover:underline pr-4">
               View
             </span>
           )}
 
           <div className="absolute right-3.5 top-3 flex items-center gap-1.5">
-            <span className="text-[10px] font-medium text-white/40 select-none">now</span>
+            <span className="text-[10px] font-medium text-gray-400 dark:text-white/40 select-none">
+              now
+            </span>
             <button
               type="button"
               aria-label="Close notification"
@@ -122,7 +124,7 @@ export default function MessageToastViewport() {
                 e.stopPropagation();
                 removeToast(toast.id);
               }}
-              className="flex h-5 w-5 items-center justify-center rounded-full text-white/40 transition-colors hover:bg-white/15 hover:text-white"
+              className="flex h-5 w-5 items-center justify-center rounded-full text-gray-400 dark:text-white/40 transition-colors hover:bg-black/5 dark:hover:bg-white/15 hover:text-gray-900 dark:hover:text-white"
             >
               <X size={13} />
             </button>

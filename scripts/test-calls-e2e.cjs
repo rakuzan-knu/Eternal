@@ -17,7 +17,7 @@ const playwrightPath =
 const { chromium } = require(playwrightPath);
 
 const API_URL = 'http://localhost:3000/v1';
-const CONVERSATION_ID = '0a1de6ca-ef62-4045-837f-bf236d627416';
+const CONVERSATION_ID = '70806b25-5dad-4e0c-ace5-5ecbcb697bef';
 const FRONTEND_URL = `http://localhost:5173/messages/${CONVERSATION_ID}`;
 
 // Create test-results directory for visual artifact snapshots
@@ -334,19 +334,31 @@ async function runTest() {
   // 8. Testing In-Call Controls
   console.log('\n8. Testing In-Call Controls (Audio, Video, Deafen, Reactions)...');
 
-  // 8.1 Microphone Mute / Unmute
+  // 8.1 Microphone Mute / Unmute & Remote Indicator Sync
   const muteBtn = pageAlice
     .locator('button[aria-label="Mute microphone"], button[aria-label="Unmute microphone"]')
     .first();
   await muteBtn.click();
-  console.log('✓ Toggled Microphone: Muted');
-  await pageAlice.waitForTimeout(500);
-  await muteBtn.click();
-  console.log('✓ Toggled Microphone: Unmuted');
+  console.log('✓ Toggled Microphone: Muted locally on Alice');
 
-  // 8.2 Deafen / Undeafen (Наушники)
+  // Verify Bob sees Alice is muted
+  const remoteMuteIconOnBob = pageBob
+    .locator('[data-testid="participant-muted-badge"], div[title*="muted"]')
+    .first();
+  await remoteMuteIconOnBob.waitFor({ state: 'visible', timeout: 8000 });
+  console.log('✓ Bob successfully observed Alice remote mute badge');
+
+  await pageAlice.waitForTimeout(600);
+  await muteBtn.click();
+  console.log('✓ Toggled Microphone: Unmuted locally on Alice');
+  await remoteMuteIconOnBob.waitFor({ state: 'hidden', timeout: 8000 });
+  console.log('✓ Bob observed Alice remote mute badge removed upon unmute');
+
+  // 8.2 Deafen / Undeafen (Headphones)
   const deafenBtn = pageAlice
-    .locator('button[aria-label="Заглушить всё"], button[aria-label="Включить звук"]')
+    .locator(
+      'button[aria-label="Deafen"], button[aria-label="Undeafen"], button[aria-label="Заглушить всё"], button[aria-label="Включить звук"]',
+    )
     .first();
   if (await deafenBtn.isVisible().catch(() => false)) {
     await deafenBtn.click();
@@ -367,11 +379,15 @@ async function runTest() {
   console.log('✓ Toggled Camera: Video Resumed');
 
   // 8.4 Reactions System
-  const reactionBtn = pageAlice.locator('button[aria-label="Отправить реакцию"]');
+  const reactionBtn = pageAlice
+    .locator('button[aria-label="Send reaction"], button[aria-label="Отправить реакцию"]')
+    .first();
   if (await reactionBtn.isVisible().catch(() => false)) {
     await reactionBtn.click();
     console.log('✓ Opened Reactions Toolbar');
-    const fireEmojiBtn = pageAlice.locator('button[aria-label="Отправить 🔥"]').first();
+    const fireEmojiBtn = pageAlice
+      .locator('button[aria-label="Send 🔥"], button[aria-label="Отправить 🔥"]')
+      .first();
     if (
       await fireEmojiBtn
         .waitFor({ state: 'visible', timeout: 3000 })
@@ -384,7 +400,9 @@ async function runTest() {
   }
 
   // 8.5 Virtual Background Blur
-  const blurBtn = pageAlice.locator('button[aria-label="Размытие фона"]').first();
+  const blurBtn = pageAlice
+    .locator('button[aria-label="Blur background"], button[aria-label="Размытие фона"]')
+    .first();
   if (await blurBtn.isVisible().catch(() => false)) {
     await blurBtn.click();
     console.log('✓ Toggled Virtual Background Blur: ON');
@@ -394,7 +412,9 @@ async function runTest() {
   }
 
   // 8.6 RNNoise AI Noise Suppression
-  const rnnoiseBtn = pageAlice.locator('button[aria-label="AI Шумоподавление"]').first();
+  const rnnoiseBtn = pageAlice
+    .locator('button[aria-label="AI Noise Suppression"], button[aria-label="AI Шумоподавление"]')
+    .first();
   if (await rnnoiseBtn.isVisible().catch(() => false)) {
     await rnnoiseBtn.click();
     console.log('✓ Toggled AI Noise Suppression: ON (RNNoise)');
@@ -408,7 +428,11 @@ async function runTest() {
 
   // 9. Interactive Collaborative Whiteboard
   console.log('\n9. Testing Interactive Collaborative Whiteboard (CRDT Canvas)...');
-  const whiteboardBtn = pageAlice.locator('button[aria-label="Интерактивная доска"]').first();
+  const whiteboardBtn = pageAlice
+    .locator(
+      'button[aria-label="Whiteboard"], button[aria-label="Interactive whiteboard"], button[aria-label="Интерактивная доска"]',
+    )
+    .first();
   let whiteboardOpened = false;
 
   if (await whiteboardBtn.isVisible().catch(() => false)) {
@@ -419,7 +443,9 @@ async function runTest() {
     const moreToolsBtn = pageAlice.locator('button[aria-label="More tools"]');
     if (await moreToolsBtn.isVisible().catch(() => false)) {
       await moreToolsBtn.click();
-      const wbSheetBtn = pageAlice.locator('text=Интерактивная доска');
+      const wbSheetBtn = pageAlice
+        .locator('text=Whiteboard, text=Interactive whiteboard, text=Интерактивная доска')
+        .first();
       if (await wbSheetBtn.isVisible().catch(() => false)) {
         await wbSheetBtn.click();
         whiteboardOpened = true;
@@ -481,6 +507,10 @@ async function runTest() {
     }
   }
 
+  // Dismiss any lingering tools sheet / backdrop before clicking top HUD
+  await pageAlice.keyboard.press('Escape');
+  await pageAlice.waitForTimeout(400);
+
   // 10. WebRTC Stats HUD
   console.log('\n10. Testing WebRTC Stats HUD...');
   const statsHudBtn = pageAlice.locator('button[aria-label="WebRTC Live Stream Stats HUD"]');
@@ -501,7 +531,7 @@ async function runTest() {
     await pageAlice.waitForTimeout(600);
 
     // Click Eco/Traveler mode
-    const ecoBtn = pageAlice.locator('text=Эко-режим');
+    const ecoBtn = pageAlice.locator('text=Eco mode, text=Traveler mode, text=Эко-режим').first();
     if (await ecoBtn.isVisible().catch(() => false)) {
       await ecoBtn.click();
       console.log('✓ Eco-mode (Traveler: 12kbps Opus) toggled');
@@ -513,31 +543,36 @@ async function runTest() {
     console.log('✓ More Tools sheet dismissed via Escape key (A11Y compliant)');
   }
 
-  // 12. Call Settings Dialog
+  // 12. Call Settings Dialog (EditProfileModal Voice & Video Tab)
   console.log('\n12. Testing Call Settings Modal...');
   const settingsBtn = pageAlice
     .locator('button[aria-label="Call & Audio Settings"], button[aria-label="Device settings"]')
     .first();
   if (await settingsBtn.isVisible().catch(() => false)) {
     await settingsBtn.click();
-    console.log('✓ Call Settings modal opened');
+    console.log('✓ Call Settings modal opened (EditProfileModal triggered)');
     await pageAlice.waitForTimeout(800);
-    const closeSettings = pageAlice
-      .locator('button[aria-label="Close"], button[title="Close"]')
+
+    const voiceHeading = pageAlice
+      .locator(
+        'h3:has-text("Voice"), h2:has-text("Voice and video"), h3:has-text("Голос"), h2:has-text("Голос и видео")',
+      )
       .first();
-    if (await closeSettings.isVisible().catch(() => false)) {
-      await closeSettings.click();
-      console.log('✓ Call Settings modal closed');
-    } else {
-      await pageAlice.keyboard.press('Escape');
-    }
+    const isVoiceVisible = await voiceHeading.isVisible().catch(() => false);
+    console.log(`✓ Voice & Video Tab rendered inside EditProfileModal: ${isVoiceVisible}`);
+
+    await safeScreenshot(pageAlice, '06-voice-video-settings-modal.png');
+
+    await pageAlice.keyboard.press('Escape');
+    await pageAlice.waitForTimeout(400);
+    console.log('✓ Call Settings modal closed via Escape');
   }
 
   // 13. In-Call Chat Messaging
   console.log('\n13. Testing In-Call Chat Messaging...');
   const chatInputBob = pageBob.locator('input[type="text"], textarea').last();
   if (await chatInputBob.isVisible().catch(() => false)) {
-    await chatInputBob.fill('Тест чата во время звонка 1-на-1!');
+    await chatInputBob.fill('Testing 1-on-1 in-call chat!');
     await chatInputBob.press('Enter');
     console.log('✓ Bob sent chat message during call');
     await pageBob.waitForTimeout(600);

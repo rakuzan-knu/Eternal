@@ -61,7 +61,12 @@ export default function PinnedMessagesModal({
                     }}
                     className="flex items-start gap-3 flex-1 min-w-0 text-left"
                   >
-                    <Avatar size="sm" src={message.sender.avatar} />
+                    <Avatar
+                      size="sm"
+                      src={message.sender.avatar}
+                      decoration={message.sender.activeDecoration}
+                      userId={message.sender.id}
+                    />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
                         <span className="text-sm font-semibold text-white truncate">

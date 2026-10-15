@@ -61,7 +61,8 @@ export class StoriesController {
 
   @Post()
   @UseGuards(AuthGuard)
-  @UseInterceptors(FastifyFilesInterceptor('file', 10))
+  // Stories bind the main "file" and each "overlay:<id>" upload in the service.
+  @UseInterceptors(FastifyFilesInterceptor('', 10))
   @ApiBearerAuth()
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Create and publish a new story' })

@@ -14,6 +14,7 @@ interface ChatFolderRailProps {
   onCreate: () => void;
   onContextMenu: (folder: ChatFolder, x: number, y: number) => void;
   onReorder: (orderedIds: string[]) => void;
+  countsComplete?: boolean;
 }
 
 export default function ChatFolderRail({
@@ -25,6 +26,7 @@ export default function ChatFolderRail({
   onCreate,
   onContextMenu,
   onReorder,
+  countsComplete = true,
 }: ChatFolderRailProps) {
   const railRef = useRef<HTMLDivElement>(null);
   const longPressTimer = useRef<number | null>(null);
@@ -277,10 +279,10 @@ export default function ChatFolderRail({
                 const y = Math.min(window.innerHeight - menuHeight - 8, rect.bottom + 6);
                 onContextMenu(folder, x, y);
               }}
-              className={`group relative flex h-9 max-w-39.5 shrink-0 touch-none select-none items-center gap-1.5 rounded-full border px-3 text-[13px] font-semibold transition-all duration-200 ease-out ${
+              className={`group relative flex h-9 max-w-39.5 shrink-0 touch-none select-none items-center gap-1.5 rounded-full border px-3 text-[13px] font-semibold transition-all duration-200 ease-out cursor-pointer ${
                 isActive
                   ? 'scale-[1.02] border-transparent'
-                  : 'border-white/10 bg-white/4.5 hover:bg-white/8'
+                  : 'glass-card border-white/10 hover:border-white/20'
               } ${
                 isDragging
                   ? 'scale-95 border-white/20 bg-white/2.5 shadow-inner'
@@ -316,7 +318,7 @@ export default function ChatFolderRail({
                 </span>
               )}
               <span className="min-w-0 truncate">{folder.name}</span>
-              {unreadCount > 0 && (
+              {countsComplete && unreadCount > 0 && (
                 <span
                   className="ml-0.5 flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5 text-[11px] font-bold leading-none transition-colors duration-300"
                   style={{
@@ -335,7 +337,7 @@ export default function ChatFolderRail({
       </div>
 
       {isOverflowing && (
-        <div className="pointer-events-none absolute right-5 top-0 flex h-9 items-center bg-linear-to-l from-[#16161a] via-[#16161a]/95 to-transparent pl-8">
+        <div className="pointer-events-none absolute right-5 top-0 flex h-9 items-center bg-gradient-to-l from-[var(--app-glass-sidebar-bg,rgba(16,16,20,0.9))] via-[var(--app-glass-sidebar-bg,rgba(16,16,20,0.7))] to-transparent pl-8">
           <CreateFolderButton onCreate={onCreate} className="pointer-events-auto" />
         </div>
       )}

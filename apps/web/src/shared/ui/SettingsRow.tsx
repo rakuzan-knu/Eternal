@@ -23,27 +23,35 @@ export default function SettingsRow({
     <button
       type="button"
       onClick={onClick}
-      className={`w-full flex items-center gap-3 py-4 text-left group transition-colors ${
-        last ? '' : 'border-b border-white/[0.06]'
+      className={`w-full flex items-center gap-3 py-4 text-left group transition-colors cursor-pointer ${
+        last ? '' : 'border-b border-black/10 dark:border-white/[0.06]'
       }`}
     >
       <span
-        className={`w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-full bg-white/5 border border-white/10 ${
-          danger ? 'text-red-400' : 'text-gray-200'
+        className={`w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 ${
+          danger ? 'text-red-500 dark:text-red-400' : 'text-gray-950 dark:text-white'
         }`}
       >
         {icon}
       </span>
       <div className="flex-1 min-w-0">
-        <h4 className={`font-medium ${danger ? 'text-red-400' : 'text-gray-200'}`}>{title}</h4>
-        {subtitle && <p className="text-sm text-gray-500 truncate">{subtitle}</p>}
+        <h4
+          className={`font-medium text-sm ${danger ? 'text-red-500 dark:text-red-400' : 'text-gray-950 dark:text-white'}`}
+        >
+          {title}
+        </h4>
+        {subtitle && (
+          <p className="text-xs text-gray-600 dark:text-gray-400 truncate mt-0.5">{subtitle}</p>
+        )}
       </div>
       {value !== undefined && (
-        <span className="text-sm text-[#7ab8ff] flex-shrink-0 max-w-[160px] truncate">{value}</span>
+        <span className="text-sm text-sky-600 dark:text-[#7ab8ff] font-medium flex-shrink-0 max-w-[160px] truncate">
+          {value}
+        </span>
       )}
       <ChevronRight
         size={18}
-        className="text-gray-600 group-hover:text-gray-300 transition-colors flex-shrink-0"
+        className="text-gray-400 dark:text-gray-600 group-hover:text-gray-950 dark:group-hover:text-gray-300 transition-colors flex-shrink-0"
       />
     </button>
   );

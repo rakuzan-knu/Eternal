@@ -256,7 +256,7 @@ export function useAddReelComment() {
           user: {
             id: 'local-user',
             username: 'you',
-            displayName: 'Ви',
+            displayName: 'You',
             avatar: null,
           },
         };
@@ -275,7 +275,7 @@ export function useAddReelComment() {
         user: {
           id: 'local-user',
           username: 'you',
-          displayName: 'Ви',
+          displayName: 'You',
           avatar: null,
         },
       };
@@ -387,7 +387,7 @@ export function useReportReel() {
         );
         return data;
       } catch {
-        return { success: true, message: 'Скаргу успішно зареєстровано' };
+        return { success: true, message: 'Report submitted successfully' };
       }
     },
   });

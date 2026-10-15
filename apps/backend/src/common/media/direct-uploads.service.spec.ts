@@ -1,4 +1,9 @@
 import { Test } from '@nestjs/testing';
+import { BadRequestException } from '@nestjs/common';
+import { Readable } from 'node:stream';
+import sharp from 'sharp';
+import * as mediaDecode from './media-decode-validator';
+import { pngImage, voiceWebm } from './__tests__/upload-fixtures';
 import { ConfigService } from '@nestjs/config';
 import {
   CopyObjectCommand,
@@ -6,6 +11,7 @@ import {
   GetObjectCommand,
   HeadObjectCommand,
   ListObjectsV2Command,
+  PutObjectCommand,
 } from '@aws-sdk/client-s3';
 import { createInMemoryRedisClient } from '../../../test/in-memory-db';
 import { RedisService } from '../../redis/redis.service';
@@ -24,7 +30,7 @@ describe('direct upload ownership and immutable promotion', () => {
   let client: ReturnType<typeof createInMemoryRedisClient>;
   let redis: RedisService;
   let service: DirectUploadsService;
-  const send = vi.fn();
+  const send = vi.fn<(command: unknown) => Promise<unknown>>();
   const access = { assertConversationAccess: vi.fn() };
   const input: DirectUploadInput = {
     purpose: 'chat',
@@ -35,24 +41,36 @@ describe('direct upload ownership and immutable promotion', () => {
   };
   let metadata: Record<string, string>;
   let size: number;
+  let mime: string;
+  let objectBytes: Buffer;
+  let publicBase: string;
 
   beforeEach(async () => {
     client = createInMemoryRedisClient();
     await client.flushdb();
     Object.defineProperty(client, 'status', { value: 'ready', configurable: true });
     redis = new RedisService(client);
+    publicBase = 'https://cdn.test/';
     metadata = {};
     size = 5;
+    mime = 'application/octet-stream';
+    objectBytes = Buffer.from('12345');
     vi.clearAllMocks();
     send.mockImplementation(async (command: unknown) => {
       if (command instanceof ListObjectsV2Command) return { Contents: [], IsTruncated: false };
       if (command instanceof HeadObjectCommand)
         return {
           ContentLength: size,
-          ContentType: 'application/octet-stream',
+          ContentType: mime,
           ETag: '"unchanged"',
           Metadata: metadata,
         };
+      if (command instanceof GetObjectCommand)
+        return { Body: Readable.from([objectBytes]), ContentLength: objectBytes.length };
+      if (command instanceof PutObjectCommand) {
+        metadata = command.input.Metadata || {};
+        return {};
+      }
       if (command instanceof CopyObjectCommand) {
         metadata = command.input.Metadata || {};
         return {};
@@ -69,7 +87,7 @@ describe('direct upload ownership and immutable promotion', () => {
             isLocal: () => false,
             isR2: () => true,
             getS3Client: () => ({ send }),
-            getPublicUrl: (key: string) => `https://cdn.test/${key}`,
+            getPublicUrl: (key: string) => `${publicBase}${key}`,
           },
         },
         { provide: R2StorageService, useValue: { getDefaultBucket: () => 'media' } },
@@ -84,7 +102,20 @@ describe('direct upload ownership and immutable promotion', () => {
     }).compile();
     service = module.get(DirectUploadsService);
   });
-  afterEach(() => redis.onModuleDestroy());
+  afterEach(() => {
+    vi.restoreAllMocks();
+    redis.onModuleDestroy();
+  });
+
+  it('classifies only canonical direct keys beneath a configured storage path prefix', () => {
+    publicBase = 'https://cdn.test/bucket/';
+    expect(service.isDirectUploadUrl(`${publicBase}media/post/id.webp`, 'post')).toBe(true);
+    expect(service.isDirectUploadUrl('https://cdn.test/media/post/id.webp', 'post')).toBe(false);
+    expect(service.isDirectUploadUrl(`${publicBase}media/chat/id.webp`, 'post')).toBe(false);
+    expect(
+      service.isDirectUploadUrl('https://foreign.test/bucket/media/post/id.webp', 'post'),
+    ).toBe(false);
+  });
 
   async function start() {
     const result = await service.start('alice', input);
@@ -169,5 +200,56 @@ describe('direct upload ownership and immutable promotion', () => {
     send.mockClear();
     await service.abort('alice', result.uploadId);
     expect(send).not.toHaveBeenCalled();
+  });
+  it('runs full media decoding before publishing direct media and propagates rejection', async () => {
+    objectBytes = await voiceWebm();
+    size = objectBytes.length;
+    mime = 'audio/webm';
+    const decode = vi
+      .spyOn(mediaDecode, 'validateMediaDecoding')
+      .mockRejectedValueOnce(new BadRequestException('Damaged encoded packet'));
+    const result = await service.start('alice', {
+      purpose: 'story',
+      filename: 'voice.webm',
+      contentType: mime,
+      sizeBytes: size,
+    });
+    if (result.mode !== 'direct') throw new Error('Expected direct mode');
+    await expect(service.complete('alice', result.uploadId)).rejects.toMatchObject({ status: 400 });
+    expect(decode).toHaveBeenCalledWith(objectBytes);
+    expect(
+      send.mock.calls.some(
+        ([command]) => command instanceof CopyObjectCommand || command instanceof PutObjectCommand,
+      ),
+    ).toBe(false);
+  });
+
+  it('reencodes direct images and strips source metadata before publication', async () => {
+    objectBytes = await sharp(pngImage).jpeg().withMetadata().toBuffer();
+    size = objectBytes.length;
+    mime = 'image/jpeg';
+    const result = await service.start('alice', {
+      purpose: 'post',
+      filename: 'photo.jpg',
+      contentType: mime,
+      sizeBytes: size,
+    });
+    if (result.mode !== 'direct') throw new Error('Expected direct mode');
+    const receipt = await service.complete('alice', result.uploadId);
+    expect(receipt).toMatchObject({
+      contentType: 'image/webp',
+      kind: 'IMAGE',
+      width: 2,
+      height: 2,
+    });
+    const put = send.mock.calls
+      .map(([command]) => command)
+      .find((command) => command instanceof PutObjectCommand);
+    if (!(put instanceof PutObjectCommand) || !Buffer.isBuffer(put.input.Body))
+      throw new Error('Missing normalized image');
+    const image = await sharp(put.input.Body).metadata();
+    expect(image.exif).toBeUndefined();
+    expect(put.input.Body).not.toEqual(objectBytes);
+    expect(send.mock.calls.some(([command]) => command instanceof CopyObjectCommand)).toBe(false);
   });
 });

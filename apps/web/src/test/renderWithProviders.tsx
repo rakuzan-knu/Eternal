@@ -1,11 +1,15 @@
 import { render, RenderOptions } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
-import { ReactElement } from 'react';
+import { ReactElement, ReactNode } from 'react';
 
 export function renderWithProviders(
   ui: ReactElement,
-  { initialEntries = ['/'], ...options }: { initialEntries?: string[] } & RenderOptions = {},
+  {
+    initialEntries = ['/'],
+    wrapper: Wrapper,
+    ...options
+  }: { initialEntries?: string[] } & RenderOptions = {},
 ) {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -14,10 +18,14 @@ export function renderWithProviders(
     },
   });
 
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={initialEntries}>{ui}</MemoryRouter>
-    </QueryClientProvider>,
-    options,
-  );
+  function Providers({ children }: { children: ReactNode }) {
+    const content = (
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
+      </QueryClientProvider>
+    );
+    return Wrapper ? <Wrapper>{content}</Wrapper> : content;
+  }
+
+  return render(ui, { ...options, wrapper: Providers });
 }

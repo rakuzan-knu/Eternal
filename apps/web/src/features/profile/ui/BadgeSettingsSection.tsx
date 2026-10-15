@@ -155,20 +155,23 @@ export function BadgeSettingsSection({
   };
 
   return (
-    <div className="flex flex-col gap-6 text-white animate-fadeIn" id="sec-badges">
+    <div
+      className="flex flex-col gap-6 text-gray-950 dark:text-white animate-fadeIn"
+      id="sec-badges"
+    >
       <div>
-        <h3 className="text-xl font-bold tracking-wide flex items-center gap-2">
-          <Award className="text-purple-400" size={22} />
+        <h3 className="text-xl font-bold tracking-wide flex items-center gap-2 text-gray-950 dark:text-white">
+          <Award className="text-purple-600 dark:text-purple-400" size={22} />
           Profile Badges
         </h3>
-        <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 leading-relaxed">
           Select one primary badge to be displayed next to your name in posts, messages, and member
           lists. Click evolving badges to view all 7 tier levels and progress.
         </p>
       </div>
 
-      <div className="rounded-3xl bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-xl overflow-hidden flex flex-col">
-        <div className="h-24 w-full relative bg-gradient-to-r from-purple-900/40 via-indigo-900/40 to-slate-900/40 border-b border-white/[0.06]">
+      <div className="rounded-3xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/[0.08] shadow-sm backdrop-blur-xl overflow-hidden flex flex-col">
+        <div className="h-24 w-full relative bg-gradient-to-r from-purple-900/40 via-indigo-900/40 to-slate-900/40 border-b border-black/10 dark:border-white/[0.06]">
           {activeBanner ? (
             <img
               src={activeBanner}
@@ -187,7 +190,7 @@ export function BadgeSettingsSection({
         </div>
 
         <div className="p-5 flex items-center gap-4 -mt-7 relative z-10">
-          <div className="p-1 bg-[#09090b] rounded-full shadow-2xl shrink-0">
+          <div className="p-1 bg-white dark:bg-[#09090b] rounded-full shadow-xl shrink-0 border border-black/10 dark:border-transparent">
             <Avatar src={activeAvatar} size="lg" />
           </div>
           <div className="flex flex-col min-w-0 pt-5">
@@ -200,7 +203,7 @@ export function BadgeSettingsSection({
               subscriptionMonths={subMonths}
               size="lg"
             />
-            <span className="text-xs text-gray-400 font-medium mt-0.5">
+            <span className="text-xs text-gray-600 dark:text-gray-400 font-medium mt-0.5">
               @{currentUser?.username || 'username'}
             </span>
           </div>
@@ -208,20 +211,22 @@ export function BadgeSettingsSection({
       </div>
 
       {errorMessage && (
-        <div className="flex items-center gap-3 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs">
-          <ShieldAlert size={18} className="shrink-0 text-red-400" />
+        <div className="flex items-center gap-3 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 dark:text-red-300 text-xs">
+          <ShieldAlert size={18} className="shrink-0 text-red-500 dark:text-red-400" />
           <span>{errorMessage}</span>
         </div>
       )}
 
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <h4 className="text-sm font-semibold text-gray-300">Your Available Badges:</h4>
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-300">
+            Your Available Badges:
+          </h4>
           {draftPrimaryBadge && (
             <button
               type="button"
               onClick={() => setDraftPrimaryBadge(null)}
-              className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 px-3 py-1.5 rounded-xl border border-red-500/20 transition-all duration-200"
+              className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400 hover:text-red-500 dark:hover:text-red-300 hover:bg-red-500/10 px-3 py-1.5 rounded-xl border border-red-500/25 dark:border-red-500/20 transition-all duration-200"
             >
               <Trash2 size={13} />
               Remove Badge
@@ -230,7 +235,7 @@ export function BadgeSettingsSection({
         </div>
 
         {ownedBadges.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[340px] overflow-y-auto pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[340px] overflow-y-auto pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-black/10 dark:[&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full">
             {ownedBadges.map((badge) => {
               const isPremium = badge.id.toUpperCase().startsWith('PREMIUM');
               const isContributor = badge.id.toUpperCase().startsWith('CONTRIBUTOR');
@@ -252,17 +257,17 @@ export function BadgeSettingsSection({
                   onClick={() => setDraftPrimaryBadge(badge.id)}
                   className={`group relative flex items-center gap-4 p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer ${
                     isSelected
-                      ? 'bg-purple-500/10 border-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.25)]'
-                      : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.06] hover:border-white/[0.12]'
+                      ? 'bg-purple-500/15 border-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.25)]'
+                      : 'bg-black/[0.02] dark:bg-white/[0.02] border-black/10 dark:border-white/[0.06] hover:bg-black/[0.04] dark:hover:bg-white/[0.06] hover:border-black/20 dark:hover:border-white/[0.12]'
                   }`}
                 >
-                  <div className="flex items-center justify-center min-w-[48px] h-12 rounded-xl bg-white/[0.04] border border-white/[0.08] shadow-inner group-hover:scale-105 transition-transform duration-200">
+                  <div className="flex items-center justify-center min-w-[48px] h-12 rounded-xl bg-black/[0.03] dark:bg-white/[0.04] border border-black/10 dark:border-white/[0.08] shadow-xs group-hover:scale-105 transition-transform duration-200">
                     <UserBadgeIcon badgeId={badge.id} size="lg" showTooltip={false} />
                   </div>
 
                   <div className="flex flex-col justify-center min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-white font-semibold text-sm truncate group-hover:text-purple-200 transition-colors">
+                      <span className="text-gray-950 dark:text-white font-semibold text-sm truncate group-hover:text-purple-600 dark:group-hover:text-purple-200 transition-colors">
                         {badge.name}
                       </span>
                       {(isPremium || isContributor) && (
@@ -273,14 +278,16 @@ export function BadgeSettingsSection({
                             if (isPremium) setIsPremiumModalOpen(true);
                             if (isContributor) setIsContributorModalOpen(true);
                           }}
-                          className="text-gray-400 hover:text-cyan-300 p-0.5 transition-colors"
+                          className="text-gray-500 dark:text-gray-400 hover:text-cyan-600 dark:hover:text-cyan-300 p-0.5 transition-colors"
                           title="View 7 Tier Levels"
                         >
                           <Info size={14} />
                         </button>
                       )}
                     </div>
-                    <span className="text-gray-400 text-xs truncate mt-0.5">{dynamicDesc}</span>
+                    <span className="text-gray-600 dark:text-gray-400 text-xs truncate mt-0.5">
+                      {dynamicDesc}
+                    </span>
                   </div>
 
                   {isSelected && (
@@ -293,13 +300,15 @@ export function BadgeSettingsSection({
             })}
           </div>
         ) : (
-          <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/[0.06] flex flex-col items-center text-center gap-4">
-            <div className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-400">
+          <div className="p-6 rounded-3xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/[0.06] flex flex-col items-center text-center gap-4">
+            <div className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-500 dark:text-purple-400">
               <Award size={28} />
             </div>
             <div className="flex flex-col gap-1 max-w-sm">
-              <h5 className="text-base font-bold text-white">No Badges Unlocked Yet</h5>
-              <p className="text-xs text-gray-400 leading-relaxed">
+              <h5 className="text-base font-bold text-gray-950 dark:text-white">
+                No Badges Unlocked Yet
+              </h5>
+              <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
                 You haven't earned or unlocked any profile badges yet. Badges can be unlocked by
                 subscribing to Premium, contributing code, or participating on the platform.
               </p>
@@ -308,14 +317,14 @@ export function BadgeSettingsSection({
               <button
                 type="button"
                 onClick={() => setIsPremiumModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 text-purple-300 text-xs font-semibold transition"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 text-purple-600 dark:text-purple-300 text-xs font-semibold transition"
               >
                 <Sparkles size={14} /> Preview Premium Badges
               </button>
               <button
                 type="button"
                 onClick={() => setIsContributorModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-semibold transition"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-600 dark:text-emerald-300 text-xs font-semibold transition"
               >
                 <GitPullRequest size={14} /> Preview Contributor Badges
               </button>
@@ -324,15 +333,15 @@ export function BadgeSettingsSection({
         )}
       </div>
 
-      <div className="flex justify-end pt-4 border-t border-white/[0.06]">
+      <div className="flex justify-end pt-4 border-t border-black/10 dark:border-white/[0.06]">
         <button
           type="button"
           onClick={handleSave}
           disabled={!isChanged || isSaving}
           className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all duration-200 ${
             isChanged && !isSaving
-              ? 'bg-white text-black hover:bg-gray-200 shadow-lg hover:scale-[1.02] active:scale-[0.98]'
-              : 'bg-white/10 text-gray-500 cursor-not-allowed opacity-50'
+              ? 'bg-gray-950 text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200 shadow-lg hover:scale-[1.02] active:scale-[0.98]'
+              : 'bg-black/10 text-gray-400 dark:bg-white/10 dark:text-gray-500 cursor-not-allowed opacity-50'
           }`}
         >
           <Check size={16} />

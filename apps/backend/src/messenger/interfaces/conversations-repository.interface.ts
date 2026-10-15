@@ -5,7 +5,22 @@ import type {
   ParticipantRole,
 } from '@prisma/client';
 import type { ConversationWithDetails, ParticipantWithUser } from './types';
-import type { UserSnapshot } from '@common/contracts';
+import type { UserSnapshot, ConversationPageQuery } from '@common/contracts';
+
+export interface ConversationPageSelection {
+  rows: Array<{
+    conversation: ConversationWithDetails;
+    unreadCount: number;
+    participantCount: number;
+  }>;
+  hasMore: boolean;
+  boundary: { id: string; createdAt: Date } | null;
+}
+export type ConversationPageOptions = ConversationPageQuery & {
+  cutoff: string;
+  before?: { id: string; createdAt: Date };
+  useUnreadProjection?: boolean;
+};
 
 export const CONVERSATIONS_REPOSITORY = 'CONVERSATIONS_REPOSITORY';
 
@@ -22,6 +37,11 @@ export interface IConversationsRepository {
   }): Promise<ConversationWithDetails>;
 
   findAllForUser(userId: string): Promise<ConversationWithDetails[]>;
+  getPageSnapshot(userId: string): Promise<string>;
+  findPageForUser(
+    userId: string,
+    options: ConversationPageOptions,
+  ): Promise<ConversationPageSelection>;
 
   findOneForUser(conversationId: string, userId: string): Promise<ConversationWithDetails | null>;
 

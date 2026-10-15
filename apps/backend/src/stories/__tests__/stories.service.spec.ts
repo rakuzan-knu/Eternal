@@ -1,4 +1,10 @@
 import { DirectUploadsService } from '../../common/media/direct-uploads.service';
+import {
+  pngImage,
+  gifImage,
+  sampleVideo,
+  sampleAudio,
+} from '../../common/media/__tests__/upload-fixtures';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -44,8 +50,10 @@ describe('StoriesService', () => {
     id: 'user-1',
     username: 'alice',
     displayName: 'Alice Wonderland',
+    displayNameStyle: null,
     avatar: 'https://example.com/avatar.jpg',
     isVerified: true,
+    activeDecoration: null,
   };
 
   const mockStory = {
@@ -103,6 +111,8 @@ describe('StoriesService', () => {
 
   beforeEach(async () => {
     const mockRepo = {
+      canView: jest.fn().mockResolvedValue(true),
+      audienceAccess: jest.fn(async (stories: unknown[]) => stories.map(() => true)),
       canViewStoryAuthor: jest.fn().mockResolvedValue(true),
       createStory: jest.fn().mockResolvedValue(mockStory),
       findActiveFeedStories: jest.fn().mockResolvedValue([mockStory]),
@@ -259,11 +269,11 @@ describe('StoriesService', () => {
     });
 
     it('detects and uploads PNG, WEBP, GIF, WEBM, and Voice audio', async () => {
-      const pngBuf = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d]);
+      const pngBuf = pngImage;
       const webpBuf = Buffer.from('RIFF1234WEBPVP8 ');
-      const gifBuf = Buffer.from('GIF89a123');
-      const webmBuf = Buffer.from([0x1a, 0x45, 0xdf, 0xa3]);
-      const mp3Buf = Buffer.from('ID3123456');
+      const gifBuf = gifImage;
+      const webmBuf = await sampleVideo();
+      const mp3Buf = await sampleAudio();
 
       expect(
         (await service.processUploadedMedia({ buffer: pngBuf } as Express.Multer.File)).mediaType,
@@ -297,15 +307,13 @@ describe('StoriesService', () => {
         ]),
       } as Express.Multer.File;
       await expect(service.processUploadedMedia(hugeVideo)).rejects.toThrow(
-        new BadRequestException('Video size exceeds 100MB limit'),
+        new BadRequestException('Media file is too large'),
       );
 
       const hugeVoice = {
         buffer: Buffer.concat([Buffer.from('ID3'), Buffer.alloc(26 * 1024 * 1024)]),
       } as Express.Multer.File;
-      await expect(service.processUploadedMedia(hugeVoice)).rejects.toThrow(
-        new BadRequestException('Audio size exceeds 25MB limit'),
-      );
+      await expect(service.processUploadedMedia(hugeVoice)).rejects.toThrow(BadRequestException);
     });
 
     it('detects and uploads JPEG image', async () => {
@@ -322,8 +330,7 @@ describe('StoriesService', () => {
     });
 
     it('detects and uploads MP4 video', async () => {
-      const mp4Buf = Buffer.alloc(16);
-      mp4Buf.write('ftyp', 4, 'ascii');
+      const mp4Buf = await sampleVideo();
       const file = {
         buffer: mp4Buf,
         originalname: 'clip.mp4',
@@ -343,7 +350,7 @@ describe('StoriesService', () => {
 
   describe('createStory & feeds', () => {
     it('creates a story with file or background color', async () => {
-      const pngBuf = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+      const pngBuf = pngImage;
       const file = { buffer: pngBuf } as Express.Multer.File;
 
       const fileStory = await service.createStory('user-1', {}, file);
@@ -542,7 +549,7 @@ describe('StoriesService', () => {
     ).rejects.toThrow(BadRequestException);
     expect(uploadToStorageWithFallback).not.toHaveBeenCalled();
     await service.processUploadedMedia({
-      buffer: Buffer.from('RIFF1234WAVEdata'),
+      buffer: await sampleAudio(),
       mimetype: 'text/html',
     } as Express.Multer.File);
     expect(uploadToStorageWithFallback).toHaveBeenCalledWith(

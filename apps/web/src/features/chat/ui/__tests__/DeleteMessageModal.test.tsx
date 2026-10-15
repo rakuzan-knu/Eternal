@@ -4,27 +4,67 @@ import DeleteMessageModal from '../DeleteMessageModal';
 import React from 'react';
 
 describe('DeleteMessageModal', () => {
-  it('renders options for own message and confirms delete for everyone', () => {
+  it('renders with "Also delete for [User]" checkbox checked by default and deletes for everyone', () => {
     const onClose = vi.fn();
     const onConfirm = vi.fn();
 
-    render(<DeleteMessageModal isOwnMessage={true} onClose={onClose} onConfirm={onConfirm} />);
+    render(
+      <DeleteMessageModal
+        isOwnMessage={true}
+        peerName="Nikolaj"
+        canDeleteForAll={true}
+        onClose={onClose}
+        onConfirm={onConfirm}
+      />,
+    );
 
     expect(screen.getByText('Delete message')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Delete for everyone' })).toBeInTheDocument();
+    const checkbox = screen.getByRole('checkbox');
+    expect(checkbox).toBeChecked();
+    expect(screen.getByText('Also delete for Nikolaj')).toBeInTheDocument();
 
-    const deleteForAllBtn = screen.getByRole('button', { name: 'Delete for everyone' });
-    fireEvent.click(deleteForAllBtn);
+    const deleteBtn = screen.getByRole('button', { name: 'Delete' });
+    fireEvent.click(deleteBtn);
     expect(onConfirm).toHaveBeenCalledWith(true);
   });
 
-  it('renders for non-own message and confirms delete for self only', () => {
+  it('unchecking the checkbox confirms delete for self only', () => {
     const onClose = vi.fn();
     const onConfirm = vi.fn();
 
-    render(<DeleteMessageModal isOwnMessage={false} onClose={onClose} onConfirm={onConfirm} />);
+    render(
+      <DeleteMessageModal
+        isOwnMessage={true}
+        peerName="Nikolaj"
+        canDeleteForAll={true}
+        onClose={onClose}
+        onConfirm={onConfirm}
+      />,
+    );
 
-    expect(screen.queryByRole('button', { name: 'Delete for everyone' })).not.toBeInTheDocument();
+    const checkbox = screen.getByRole('checkbox');
+    fireEvent.click(checkbox);
+    expect(checkbox).not.toBeChecked();
+
+    const deleteBtn = screen.getByRole('button', { name: 'Delete' });
+    fireEvent.click(deleteBtn);
+    expect(onConfirm).toHaveBeenCalledWith(false);
+  });
+
+  it('renders for non-deletable-for-all message and confirms delete for self only', () => {
+    const onClose = vi.fn();
+    const onConfirm = vi.fn();
+
+    render(
+      <DeleteMessageModal
+        isOwnMessage={false}
+        canDeleteForAll={false}
+        onClose={onClose}
+        onConfirm={onConfirm}
+      />,
+    );
+
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
 
     const deleteBtn = screen.getByRole('button', { name: 'Delete' });
     fireEvent.click(deleteBtn);

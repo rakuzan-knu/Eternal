@@ -19,13 +19,14 @@ export function useStoriesRealtime() {
     if (!socket) return;
 
     // 1. When a new story is created by any followed user or friend
-    const handleNewStory = (payload: { authorId: string; story: StoryViewResponse }) => {
+    const handleNewStory = (payload: { authorId: string; story?: StoryViewResponse }) => {
       if (!payload?.authorId) return;
 
       // Invalidate feed so StoriesBar and glowing StoryAvatar rings light up immediately
       void queryClient.invalidateQueries({ queryKey: [STORIES_FEED_KEY] });
       void queryClient.invalidateQueries({ queryKey: [USER_STORIES_KEY, payload.authorId] });
 
+      if (!payload.story) return;
       // Optimistically update viewer store groups if already loaded
       const currentGroups = useStoryViewerStore.getState().groups;
       if (currentGroups.length > 0) {
@@ -80,7 +81,12 @@ export function useStoriesRealtime() {
       userId: string;
       pollResult: any;
     }) => {
-      if (!payload?.storyId || !payload?.pollResult) return;
+      if (!payload?.storyId) return;
+      if (!payload.pollResult) {
+        void queryClient.invalidateQueries({ queryKey: [STORIES_FEED_KEY] });
+        void queryClient.invalidateQueries({ queryKey: [USER_STORIES_KEY] });
+        return;
+      }
 
       queryClient.setQueryData<UserStoriesGroup[]>([STORIES_FEED_KEY], (oldGroups) => {
         if (!oldGroups) return oldGroups;

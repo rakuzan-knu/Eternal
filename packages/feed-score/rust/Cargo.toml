@@ -3,7 +3,8 @@ name = "feed-score-native"
 version = "1.0.0"
 edition = "2021"
 description = "Native accelerator for @social-network/feed-score v1 (napi-rs). Math-identical to the TS core; vectors/v1.json is the shared contract (floats compared with 1e-9 tolerance)."
-license = "AGPL-3.0-only"
+license-file = "../../../LICENSE.md"
+publish = false
 
 [lib]
 crate-type = ["cdylib"]

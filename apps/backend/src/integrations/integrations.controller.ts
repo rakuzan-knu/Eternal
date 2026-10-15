@@ -1,3 +1,4 @@
+import { setOAuthCookie, readOAuthCookieState } from '../common/security/oauth-state';
 import {
   Controller,
   Get,
@@ -90,15 +91,26 @@ export class IntegrationsController {
     private readonly prisma: PrismaService,
   ) {}
 
+  @UseGuards(AuthGuard)
   @Get('spotify/auth')
-  redirectToSpotify(@Query('userId') userId: string, @Res() res: Response) {
-    const url = this.spotifyService.getAuthorizationUrl(userId);
+  async redirectToSpotify(@CurrentUser() user: RequestUser, @Res() res: Response) {
+    const url = await this.spotifyService.getAuthorizationUrl(user.id);
+    setOAuthCookie(res, 'spotify', new URL(url).searchParams.get('state')!);
     return res.status(302).redirect(url);
   }
 
+  @Header('Cross-Origin-Opener-Policy', 'unsafe-none')
   @Get(['spotify/callback', 'auth/spotify/callback', 'api/auth/spotify/callback'])
-  async handleSpotifyCallback(@Query() query: Record<string, any>, @Res() res: Response) {
-    return this.spotifyService.handleOAuthCallback(query, res);
+  async handleSpotifyCallback(
+    @Query() query: Record<string, any>,
+    @Res() res: Response,
+    @Req() req: Request,
+  ) {
+    return this.spotifyService.handleOAuthCallback(
+      query,
+      res,
+      readOAuthCookieState(req, 'spotify'),
+    );
   }
 
   @UseGuards(AuthGuard)
@@ -381,6 +393,7 @@ export class IntegrationsController {
     );
   }
 
+  @UseGuards(AuthGuard)
   @Get('steam/auth')
   redirectToSteam(): never {
     throw new UnauthorizedException('Start Steam authentication with an authenticated POST');
@@ -1026,16 +1039,56 @@ export class IntegrationsController {
     return res.type('text/html; charset=utf-8').send(html);
   }
 
-  @Get(':platform/auth')
-  redirectToPlatformOAuth(
+  @Get('oauth/launch')
+  @Header('Cache-Control', 'no-store')
+  @Header('Referrer-Policy', 'no-referrer')
+  @Header('Cross-Origin-Opener-Policy', 'unsafe-none')
+  oauthLaunchPage(@Res() res: FastifyReply): FastifyReply {
+    return res.type('text/html; charset=utf-8').send(this.integrationsService.getOAuthLaunchPage());
+  }
+
+  @Post('oauth/launch')
+  @Header('Cache-Control', 'no-store')
+  async launchOAuth(
+    @Body() body: unknown,
+    @Headers('origin') origin: string | undefined,
+    @Res() res: Response,
+  ) {
+    const result = await this.integrationsService.launchOAuth(body, origin);
+    setOAuthCookie(res, result.provider, result.state);
+    return res.send({ url: result.url });
+  }
+
+  @UseGuards(AuthGuard)
+  @Post(':platform/oauth/start')
+  @Header('Cache-Control', 'no-store')
+  async startOAuth(
     @Param('platform') platform: string,
-    @Query('userId') userId: string,
+    @CurrentUser() user: RequestUser,
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    return this.integrationsService.handlePlatformOAuthStart(platform, userId, req, res);
+    if (platform === 'spotify') {
+      const url = await this.spotifyService.getAuthorizationUrl(user.id);
+      return res.send(
+        await this.integrationsService.prepareOAuthLaunch(url, String(req.headers.origin || '')),
+      );
+    }
+    return this.integrationsService.handlePlatformOAuthStart(platform, user.id, req, res, true);
   }
 
+  @UseGuards(AuthGuard)
+  @Get(':platform/auth')
+  redirectToPlatformOAuth(
+    @Param('platform') platform: string,
+    @CurrentUser() user: RequestUser,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    return this.integrationsService.handlePlatformOAuthStart(platform, user.id, req, res);
+  }
+
+  @Header('Cross-Origin-Opener-Policy', 'unsafe-none')
   @Get([':platform/callback', 'auth/:platform/callback', 'api/auth/:platform/callback'])
   async handlePlatformOAuthCallback(
     @Param('platform') platform: string,
@@ -1043,18 +1096,18 @@ export class IntegrationsController {
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    const combinedQuery = { ...query, reqHost: req.headers.host };
+    const combinedQuery = { ...query, browserState: readOAuthCookieState(req, platform) };
     return this.integrationsService.handlePlatformOAuthCallback(platform, combinedQuery, res);
   }
 
-  @UseGuards(OptionalAuthGuard)
+  @UseGuards(AuthGuard)
   @Post(':platform/exchange-code')
   async exchangeOAuthCode(
     @CurrentUser() user: RequestUser | null,
     @Param('platform') platform: string,
     @Body() body: { code: string; redirectUri?: string; state?: string },
   ) {
-    const targetUserId = user?.id || (body.state ? body.state.replace(/^[a-z]+:/i, '') : '');
+    const targetUserId = user?.id;
     if (!targetUserId) {
       throw new UnauthorizedException('User authentication or valid state parameter required');
     }

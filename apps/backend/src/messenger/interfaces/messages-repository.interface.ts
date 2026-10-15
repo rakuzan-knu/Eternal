@@ -1,4 +1,4 @@
-import type { MessageReaction, ConversationParticipant } from '@prisma/client';
+import type { AttachmentType, MessageReaction, ConversationParticipant } from '@prisma/client';
 import type { MessageWithDetails } from './types';
 import type { ChatActivityMap } from '@common/contracts';
 
@@ -13,6 +13,21 @@ export interface IMessagesRepository {
     messageType?: string | undefined;
     replyToId?: string | undefined;
     forwardedFromId?: string | undefined;
+    id?: string | undefined;
+    attachments?:
+      | Array<{
+          type: AttachmentType;
+          url: string;
+          fileName?: string | null | undefined;
+          mimeType?: string | null | undefined;
+          size?: number | null | undefined;
+          width?: number | null | undefined;
+          height?: number | null | undefined;
+          duration?: number | null | undefined;
+          waveform?: number[] | any | undefined;
+          thumbnailUrl?: string | null | undefined;
+        }>
+      | undefined;
   }): Promise<MessageWithDetails>;
 
   findMany(params: {

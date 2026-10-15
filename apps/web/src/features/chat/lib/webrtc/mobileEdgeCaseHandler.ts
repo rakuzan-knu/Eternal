@@ -70,14 +70,15 @@ export class MobileEdgeCaseHandler {
   public registerMediaElement(element: HTMLMediaElement): void {
     this.registeredMediaElements.add(element);
 
-    // Attempt to play and catch Safari NotAllowedError
-    const playPromise = element.play();
-    if (playPromise !== undefined) {
-      playPromise.catch((err: Error) => {
-        if (err.name === 'NotAllowedError' || err.name === 'AbortError') {
-          this.setAutoplayBlocked(true);
-        }
-      });
+    if (element.paused !== false) {
+      const playPromise = element.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((err: Error) => {
+          if (err.name === 'NotAllowedError') {
+            this.setAutoplayBlocked(true);
+          }
+        });
+      }
     }
   }
 
@@ -159,6 +160,23 @@ export class MobileEdgeCaseHandler {
       }
     }
     return false;
+  }
+
+  public async setAllAudioOutputs(deviceId: string): Promise<void> {
+    for (const el of this.registeredMediaElements) {
+      await this.setAudioOutputDevice(el, deviceId);
+    }
+  }
+
+  public setAllAudioVolume(volume: number): void {
+    const norm = Math.max(0, Math.min(1, volume));
+    for (const el of this.registeredMediaElements) {
+      try {
+        el.volume = norm;
+      } catch {
+        // Safe
+      }
+    }
   }
 
   public destroy(): void {

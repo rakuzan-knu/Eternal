@@ -7,6 +7,7 @@ import rehypeKatex from 'rehype-katex';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import { Link } from 'react-router-dom';
 import CodeBlock from './CodeBlock';
+import { TelegramAppleEmoji, parseEmojiSegments } from '@/features/chat/ui/Call/TelegramAppleEmoji';
 import { CpuCircuitBreaker } from '@/shared/lib/v8/cpuCircuitBreaker';
 import 'katex/dist/katex.min.css';
 
@@ -68,11 +69,11 @@ function splitTrailingPunct(raw: string): { clean: string; punct: string } {
 function preprocessDiscordMarkdown(raw: string): string {
   if (!raw) return '';
 
-  // 1. Discord Subtext: lines starting with "-# "
+  // 1. Subtext: lines starting with "-# "
   let processed = raw.replace(/(^|\n)-#\s+([^\n]+)/g, '$1\uE000SUBTEXT:$2\uE001');
 
   // 2. Escape double underscores in text segments outside of codeblocks
-  // This prevents CommonMark from turning __ into <strong> and enables Discord-style __underline__
+  // This prevents CommonMark from turning __ into <strong> and enables  __underline__
   const codeBlockRegex = /(```[\s\S]*?```|`[^`\n]+`)/g;
   const segments = processed.split(codeBlockRegex);
   processed = segments
@@ -81,7 +82,7 @@ function preprocessDiscordMarkdown(raw: string): string {
         return segment;
       }
       let s = segment;
-      // Normalization of compound Discord formats:
+      // Normalization of compound formats:
       // __***text***__ or ***__text__*** -> ***\_\_text\_\_*** (bold italic underline)
       s = s.replace(/__\*\*\*(.+?)\*\*\*__/gs, '***\\_\\_$1\\_\\_***');
       s = s.replace(/\*\*\*__(.+?)__\*\*\*/gs, '***\\_\\_$1\\_\\_***');
@@ -99,6 +100,29 @@ function preprocessDiscordMarkdown(raw: string): string {
     .join('');
 
   return processed;
+}
+
+function renderEmojiAndText(rawText: string): React.ReactNode {
+  if (!rawText) return null;
+  if (!/\p{Extended_Pictographic}/u.test(rawText)) {
+    return rawText;
+  }
+  const segments = parseEmojiSegments(rawText);
+  return segments.map((seg, idx) => {
+    if (seg.type === 'emoji') {
+      return (
+        <TelegramAppleEmoji
+          key={idx}
+          emoji={seg.content}
+          size={18}
+          playOnce={true}
+          durationMs={2400}
+          className="inline-flex align-[-0.28em] mx-[1.5px] select-text"
+        />
+      );
+    }
+    return <React.Fragment key={idx}>{seg.content}</React.Fragment>;
+  });
 }
 
 function renderTextWithMentionsAndSpoilers(
@@ -166,12 +190,12 @@ function renderTextWithMentionsAndSpoilers(
 
   // 4. Process Mentions (@handle) and Hashtags (#tag)
   if (!enableMentions && !enableHashtags) {
-    return text;
+    return renderEmojiAndText(text);
   }
 
   const tokenRegex = /((?:@|#)[a-zA-Z0-9_\u0400-\u04FF]+(?:\.[a-zA-Z0-9_\u0400-\u04FF]+)*)/g;
   if (!tokenRegex.test(text)) {
-    return text;
+    return renderEmojiAndText(text);
   }
 
   const parts = text.split(tokenRegex);
@@ -181,7 +205,7 @@ function renderTextWithMentionsAndSpoilers(
       const { clean: cleanHandle, punct: trailingPunct } = splitTrailingPunct(rawHandle);
 
       if (!cleanHandle) {
-        return <React.Fragment key={index}>{part}</React.Fragment>;
+        return <React.Fragment key={index}>{renderEmojiAndText(part)}</React.Fragment>;
       }
 
       return (
@@ -203,7 +227,7 @@ function renderTextWithMentionsAndSpoilers(
       const { clean: cleanTag, punct: trailingPunct } = splitTrailingPunct(rawTag);
 
       if (!cleanTag) {
-        return <React.Fragment key={index}>{part}</React.Fragment>;
+        return <React.Fragment key={index}>{renderEmojiAndText(part)}</React.Fragment>;
       }
 
       return (
@@ -220,7 +244,7 @@ function renderTextWithMentionsAndSpoilers(
       );
     }
 
-    return <React.Fragment key={index}>{part}</React.Fragment>;
+    return <React.Fragment key={index}>{renderEmojiAndText(part)}</React.Fragment>;
   });
 }
 
@@ -269,7 +293,7 @@ export function MarkdownContent({
       <div
         className={`markdown-content w-full min-w-0 max-w-full leading-relaxed select-text wrap-anywhere ${className}`}
       >
-        <p className="my-1 text-white/90">{content}</p>
+        <p className="my-1 whitespace-pre-wrap break-words">{renderEmojiAndText(content)}</p>
       </div>
     );
   }
@@ -285,7 +309,7 @@ export function MarkdownContent({
       <div
         className={`markdown-content w-full min-w-0 max-w-full leading-relaxed select-text wrap-anywhere ${className}`}
       >
-        <p className="my-1 text-white/80 whitespace-pre-wrap">{content}</p>
+        <p className="my-1 whitespace-pre-wrap break-words">{content}</p>
       </div>
     );
   }
@@ -408,7 +432,7 @@ export function MarkdownContent({
     // Paragraph
     p({ children }) {
       return (
-        <p className="leading-relaxed my-1 wrap-anywhere first:mt-0 last:mb-0">
+        <p className="leading-relaxed my-1 wrap-anywhere whitespace-pre-wrap break-words first:mt-0 last:mb-0">
           {processChildren(children, enableMentions, enableHashtags)}
         </p>
       );

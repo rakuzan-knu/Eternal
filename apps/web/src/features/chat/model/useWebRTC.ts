@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useCallStore } from './callStore';
 import { apiClient } from '@/shared/api/httpClient';
 import type { IceServersResponse } from '@common/contracts';
@@ -63,17 +63,25 @@ import { CallAlarming } from '../lib/webrtc/callAlarming';
 import { ReactionParticleEngine } from '../lib/webrtc/reactionParticleEngine';
 import { BinaryDataChannelMux, MULTIPLEXED_STREAM_IDS } from '../lib/webrtc/binaryDataChannelMux';
 import { PerfectNegotiationFSM } from '../lib/webrtc/perfectNegotiationFSM';
+import { LocalAudioPipeline } from '../lib/webrtc/localAudioPipeline';
+import { globalSpeakerMixerManager } from '../lib/webrtc/perSpeakerMixer';
+import { globalSoundboardEngine } from '../lib/webrtc/soundboardEngine';
 import { useAuthStore } from '@/shared/model/useAuthStore';
+import { usePresenceStore } from '@/shared/model/usePresenceStore';
+import { useSoundboardStore } from './soundboardStore';
+import { getSocket } from '@/shared/api/socket';
+import { CallSetupCancelledError } from '../lib/callSetupCancellation';
 
 const DEFAULT_STUN = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }];
 
 export interface WebRTCOptions {
   onSendIceRestart?: (offer: RTCSessionDescriptionInit) => void;
   onConnectionFailed?: () => void;
+  onScreenShareStopped?: () => void;
 }
 
 export function useWebRTC(options: WebRTCOptions = {}) {
-  const { onSendIceRestart, onConnectionFailed } = options;
+  const { onSendIceRestart, onConnectionFailed, onScreenShareStopped } = options;
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const queuedCandidatesRef = useRef<RTCIceCandidateInit[]>([]);
   const bandwidthAdapterRef = useRef<BandwidthAdapter | null>(null);
@@ -99,14 +107,51 @@ export function useWebRTC(options: WebRTCOptions = {}) {
   const liveStatsCollectorRef = useRef<LiveStatsCollector | null>(null);
   const transformedSendersRef = useRef<WeakSet<RTCRtpSender>>(new WeakSet());
   const transformedReceiversRef = useRef<WeakSet<RTCRtpReceiver>>(new WeakSet());
+  const ensureReceiverTracksRef = useRef<((userId?: string) => void) | null>(null);
   const currentAuthUserId = useAuthStore((s) => s.userId);
   const whiteboardEngineRef = useRef<WhiteboardCRDTEngine | null>(null);
-  if (!whiteboardEngineRef.current) {
-    whiteboardEngineRef.current = new WhiteboardCRDTEngine({
-      userId: currentAuthUserId || undefined,
-      userName: currentAuthUserId ? `User ${currentAuthUserId.slice(0, 4)}` : 'You',
+  const [whiteboardEngine, setWhiteboardEngine] = useState<WhiteboardCRDTEngine | null>(null);
+  const mountedRef = useRef(false);
+  const disposeConnectionRef = useRef<(() => void) | null>(null);
+  const setupGenerationRef = useRef(0);
+  const ensureCurrentSetup = useCallback((generation: number, stream?: MediaStream) => {
+    if (!mountedRef.current || generation !== setupGenerationRef.current) {
+      stream?.getTracks().forEach((track) => track.stop());
+      throw new CallSetupCancelledError();
+    }
+  }, []);
+  const awaitCurrentSetup = useCallback(
+    async <T>(generation: number, operation: Promise<T>, stream?: MediaStream): Promise<T> => {
+      try {
+        return await operation;
+      } finally {
+        // A rejected browser operation is also stale after teardown. Classify it
+        // before a caller can mistake it for a failure of a newer call.
+        ensureCurrentSetup(generation, stream);
+      }
+    },
+    [ensureCurrentSetup],
+  );
+
+  // The CRDT engine owns a timer. Allocate it only after commit, with a paired
+  // teardown; an abandoned render must never leave a Y.Doc/interval alive.
+  useEffect(() => {
+    mountedRef.current = true;
+    const userId = useAuthStore.getState().userId;
+    const engine = new WhiteboardCRDTEngine({
+      userId: userId || undefined,
+      userName: userId ? `User ${userId.slice(0, 4)}` : 'You',
     });
-  }
+    whiteboardEngineRef.current = engine;
+    superResEngineRef.current ??= new WebGPUSuperResEngine();
+    webCodecsManagerRef.current ??= new WebCodecsStreamManager(superResEngineRef.current);
+    peerRelayManagerRef.current ??= new P2PTurnRelayManager();
+    setWhiteboardEngine(engine);
+    return () => {
+      mountedRef.current = false;
+      disposeConnectionRef.current?.();
+    };
+  }, []);
 
   useEffect(() => {
     if (whiteboardEngineRef.current && currentAuthUserId) {
@@ -142,25 +187,194 @@ export function useWebRTC(options: WebRTCOptions = {}) {
   const reactionChannelRef = useRef<RTCDataChannel | null>(null);
   const binaryMuxRef = useRef<BinaryDataChannelMux>(new BinaryDataChannelMux());
   const perfectNegotiationRef = useRef<PerfectNegotiationFSM | null>(null);
+  const callAudioPipelineRef = useRef<LocalAudioPipeline | null>(null);
 
-  const setupMuxChannels = useCallback((mux: BinaryDataChannelMux) => {
-    const reactionStream = mux.getStream(MULTIPLEXED_STREAM_IDS.REACTION_EMOTES);
-    reactionStream.onmessage = (event) => {
-      try {
-        const data = typeof event.data === 'string' ? JSON.parse(event.data) : null;
-        if (data && data.type === 'EMOTE_REACTION' && data.emoji) {
-          reactionEngineRef.current?.spawn(
-            data.emoji,
-            typeof window !== 'undefined' ? window.innerWidth : 800,
-            typeof window !== 'undefined' ? window.innerHeight : 600,
-            data.x,
-          );
-        }
-      } catch {
-        // Ignore
+  const soundboardPendingTransfersRef = useRef<
+    Map<
+      string,
+      {
+        meta: {
+          soundId: string;
+          name: string;
+          emoji: string;
+          volume: number;
+          durationMs: number;
+          senderUserId: string;
+        };
+        chunks: string[];
+        received: number;
+        totalChunks: number;
       }
-    };
+    >
+  >(new Map());
+
+  const lastHandledSoundboardRef = useRef<{ key: string; time: number }>({ key: '', time: 0 });
+
+  const handleSoundboardIncomingMessage = useCallback((data: any) => {
+    if (!data || typeof data !== 'object') return;
+
+    const currentUserId = useAuthStore.getState().userId || 'me';
+    const senderId = data.senderUserId || 'remote';
+
+    // 1. NEVER process own messages (prevents loopback/self-echo)
+    if (
+      senderId === currentUserId ||
+      (currentUserId !== 'remote' && currentUserId !== 'me' && senderId === currentUserId)
+    ) {
+      return;
+    }
+
+    // 2. Deduplicate messages arriving via multiple channels (binaryMux + reactionChannel)
+    const eventKey = `${data.soundId || ''}_${senderId}_${data.timestamp || ''}`;
+    const now = Date.now();
+    if (
+      eventKey &&
+      lastHandledSoundboardRef.current.key === eventKey &&
+      now - lastHandledSoundboardRef.current.time < 1500
+    ) {
+      return;
+    }
+    lastHandledSoundboardRef.current = { key: eventKey, time: now };
+
+    // 3. Check if recipient has muted soundboards from this specific sender
+    const remoteUserId = useCallStore.getState().remoteParticipant?.id;
+    const isSenderSoundboardMuted =
+      globalSpeakerMixerManager.isSoundboardMuted(senderId) ||
+      (senderId !== 'remote' && globalSpeakerMixerManager.isSoundboardMuted('remote')) ||
+      (Boolean(remoteUserId) && globalSpeakerMixerManager.isSoundboardMuted(remoteUserId!));
+
+    if (isSenderSoundboardMuted) {
+      // User has checked "Заглушить звуковую панель" for this sender!
+      // COMPLETELY SILENT! Do not play audio, do not show badge.
+      return;
+    }
+
+    // 4. Check global soundboard mute and deafened status
+    const isGlobalMuted = useSoundboardStore.getState().isSoundboardMuted;
+    const isDeafened = useCallStore.getState().isDeafened;
+
+    // 5. Play sound locally for the recipient strictly into local speakers (isolated playback)
+    if (!isGlobalMuted && !isDeafened && data.soundId) {
+      const peerProfile = globalSpeakerMixerManager.getProfile(senderId);
+      const peerVol = peerProfile.volume ?? 1.0;
+      const globalSbVol = useSoundboardStore.getState().soundboardVolume ?? 1.0;
+      const effectiveVol = (data.volume ?? 1.0) * globalSbVol * peerVol;
+
+      // isPreview = true guarantees it outputs ONLY to local speakers and is NEVER injected into mic track
+      globalSoundboardEngine.play(data.soundId, data.audioData, effectiveVol, true);
+    }
+
+    if (
+      (data.type === 'SOUNDBOARD_BADGE' ||
+        data.type === 'SOUNDBOARD_PLAY' ||
+        data.type === 'SOUNDBOARD_AUDIO_START') &&
+      data.soundId
+    ) {
+      useCallStore.getState().triggerSoundboardEvent({
+        soundId: data.soundId,
+        name: data.name || data.soundId,
+        emoji: data.emoji || '🔊',
+        senderUserId: senderId,
+      });
+      if (senderId !== 'remote') {
+        useCallStore.getState().triggerSoundboardEvent({
+          soundId: data.soundId,
+          name: data.name || data.soundId,
+          emoji: data.emoji || '🔊',
+          senderUserId: 'remote',
+        });
+      }
+
+      useCallStore.getState().setRemoteIsSpeaking(true);
+      setTimeout(
+        () => {
+          useCallStore.getState().setRemoteIsSpeaking(false);
+        },
+        Math.max(1500, data.durationMs || 2000),
+      );
+    }
   }, []);
+
+  // Listen to socket-relayed soundboard events
+  useEffect(() => {
+    const socket = getSocket();
+    const handleSocketSoundboard = (data: any) => {
+      handleSoundboardIncomingMessage(data);
+    };
+    socket.on('soundboard:play', handleSocketSoundboard);
+    return () => {
+      socket.off('soundboard:play', handleSocketSoundboard);
+    };
+  }, [handleSoundboardIncomingMessage]);
+
+  const setupMuxChannels = useCallback(
+    (mux: BinaryDataChannelMux) => {
+      const reactionStream = mux.getStream(MULTIPLEXED_STREAM_IDS.REACTION_EMOTES);
+      reactionStream.onmessage = (event) => {
+        try {
+          const data = typeof event.data === 'string' ? JSON.parse(event.data) : null;
+          if (data && data.type === 'EMOTE_REACTION' && data.emoji) {
+            reactionEngineRef.current?.spawn(
+              data.emoji,
+              typeof window !== 'undefined' ? window.innerWidth : 800,
+              typeof window !== 'undefined' ? window.innerHeight : 600,
+              data.x,
+            );
+          }
+        } catch {
+          // Ignore
+        }
+      };
+
+      const controlPttStream = mux.getStream(MULTIPLEXED_STREAM_IDS.CONTROL_PTT);
+      controlPttStream.onmessage = (event) => {
+        try {
+          const data = typeof event.data === 'string' ? JSON.parse(event.data) : null;
+          if (data && data.type === 'SPEAKING_STATE') {
+            useCallStore.getState().setRemoteIsSpeaking(Boolean(data.isSpeaking));
+          }
+        } catch {
+          // Ignore
+        }
+      };
+
+      const soundboardStream = mux.getStream(MULTIPLEXED_STREAM_IDS.SOUNDBOARD);
+      soundboardStream.onmessage = (event) => {
+        try {
+          const data = typeof event.data === 'string' ? JSON.parse(event.data) : null;
+          handleSoundboardIncomingMessage(data);
+        } catch {
+          // Ignore
+        }
+      };
+
+      const activityStream = mux.getStream(MULTIPLEXED_STREAM_IDS.ACTIVITY);
+      activityStream.onmessage = (event) => {
+        try {
+          const data = typeof event.data === 'string' ? JSON.parse(event.data) : null;
+          if (data && data.type === 'CALL_ACTIVITY') {
+            const senderId = data.senderUserId || 'remote';
+            const normalized = data.activity
+              ? {
+                  ...data.activity,
+                  type:
+                    data.activity.type === 'music' || data.activity.trackId
+                      ? 'spotify'
+                      : data.activity.type,
+                }
+              : null;
+            useCallStore.getState().setParticipantActivity(senderId, normalized);
+            if (senderId !== 'remote' && senderId !== 'me' && normalized) {
+              usePresenceStore.getState().setUserActivity(senderId, normalized);
+            }
+          }
+        } catch {
+          // Ignore
+        }
+      };
+    },
+    [handleSoundboardIncomingMessage],
+  );
 
   const {
     localStream,
@@ -172,7 +386,13 @@ export function useWebRTC(options: WebRTCOptions = {}) {
     setIsScreenSharing,
     setConnectionQuality,
     selectedAudioInput,
+    selectedAudioOutput,
     selectedVideoInput,
+    inputVolume,
+    isPTTEnabled,
+    isPTTActive,
+    pttReleaseTailMs,
+    isMuted,
     isNoiseSuppressionEnabled,
     setE2EEInfo,
     setNetworkStats,
@@ -227,10 +447,109 @@ export function useWebRTC(options: WebRTCOptions = {}) {
     return DEFAULT_STUN;
   }, []);
 
-  // Update RNNoise state dynamically if toggled
+  // 1. Dynamic Real-Time Microphone Input Volume (0-200%)
   useEffect(() => {
+    callAudioPipelineRef.current?.setInputVolume(inputVolume);
+
+    const isAudioEffectivelyMuted = isMuted || inputVolume === 0;
+    const shouldBeEnabled = isPTTEnabled ? isPTTActive : !isAudioEffectivelyMuted;
+
+    const storeStream = useCallStore.getState().localStream;
+    storeStream?.getAudioTracks().forEach((track) => {
+      track.enabled = shouldBeEnabled;
+    });
+
+    rawStreamRef.current?.getAudioTracks().forEach((track) => {
+      track.enabled = shouldBeEnabled;
+    });
+
+    const procTrack = callAudioPipelineRef.current?.getProcessedTrack();
+    if (procTrack) {
+      procTrack.enabled = shouldBeEnabled;
+    }
+
+    const pc = pcRef.current;
+    if (pc) {
+      pc.getSenders().forEach((sender) => {
+        if (sender.track && sender.track.kind === 'audio') {
+          sender.track.enabled = shouldBeEnabled;
+        }
+      });
+    }
+
+    if (inputVolume === 0) {
+      setLocalIsSpeaking(false);
+      callAudioPipelineRef.current?.setGateOpen(false, 0);
+    }
+  }, [inputVolume, isMuted, isPTTEnabled, isPTTActive, setLocalIsSpeaking]);
+
+  // 2. Real-Time Push-to-Talk (PTT) Gate & Track Enablement
+  useEffect(() => {
+    callAudioPipelineRef.current?.setPTTMode(isPTTEnabled, isPTTActive, pttReleaseTailMs);
+    const storeStream = useCallStore.getState().localStream;
+    const isAudioEffectivelyMuted = useCallStore.getState().isMuted || inputVolume === 0;
+    const shouldBeEnabled = isPTTEnabled ? isPTTActive : !isAudioEffectivelyMuted;
+    storeStream?.getAudioTracks().forEach((track) => {
+      track.enabled = shouldBeEnabled;
+    });
+
+    const pc = pcRef.current;
+    if (pc) {
+      pc.getSenders().forEach((sender) => {
+        if (sender.track && sender.track.kind === 'audio') {
+          sender.track.enabled = shouldBeEnabled;
+        }
+      });
+    }
+  }, [isPTTEnabled, isPTTActive, pttReleaseTailMs, inputVolume]);
+
+  // 3. Dynamic Voice Activity Detection & Noise Gate Threshold
+  useEffect(() => {
+    callAudioPipelineRef.current?.setVAD(isVADEnabled, noiseGateThreshold, (speaking) => {
+      if (inputVolume === 0 || isMuted) {
+        setLocalIsSpeaking(false);
+      } else {
+        setLocalIsSpeaking(speaking);
+      }
+    });
+  }, [isVADEnabled, noiseGateThreshold, setLocalIsSpeaking, inputVolume, isMuted]);
+
+  // 4. Dynamic Noise Suppression Filter
+  useEffect(() => {
+    callAudioPipelineRef.current?.setDenoiseEnabled(isNoiseSuppressionEnabled);
     denoisedHandleRef.current?.setDenoiseEnabled(isNoiseSuppressionEnabled);
   }, [isNoiseSuppressionEnabled]);
+
+  // 5. Dynamic Voice FX (Robot / Radio / Deep / Cosmic / None)
+  useEffect(() => {
+    callAudioPipelineRef.current?.setVoiceFX(voiceFX);
+    const pc = pcRef.current;
+    if (pc && rawStreamRef.current) {
+      const rawAudioTrack = rawStreamRef.current.getAudioTracks()[0];
+      const processedTrack = callAudioPipelineRef.current?.getProcessedTrack();
+      const targetTrack = processedTrack || rawAudioTrack;
+      if (targetTrack) {
+        const transceivers = typeof pc.getTransceivers === 'function' ? pc.getTransceivers() : [];
+        const matchingTransceiver = transceivers.find(
+          (t) => t.sender.track?.kind === 'audio' || t.receiver.track.kind === 'audio',
+        );
+        const isAudioEffectivelyMuted =
+          useCallStore.getState().isMuted || useCallStore.getState().inputVolume === 0;
+        const shouldEnableAudio = useCallStore.getState().isPTTEnabled
+          ? useCallStore.getState().isPTTActive
+          : !isAudioEffectivelyMuted;
+        targetTrack.enabled = shouldEnableAudio;
+        if (matchingTransceiver && matchingTransceiver.sender.track?.id !== targetTrack.id) {
+          void matchingTransceiver.sender.replaceTrack(targetTrack);
+        } else {
+          const audioSender = pc.getSenders().find((s) => s.track?.kind === 'audio');
+          if (audioSender && audioSender.track?.id !== targetTrack.id) {
+            void audioSender.replaceTrack(targetTrack);
+          }
+        }
+      }
+    }
+  }, [voiceFX]);
 
   // Voice Activity Detection & Noise Gate for local microphone
   useEffect(() => {
@@ -238,13 +557,19 @@ export function useWebRTC(options: WebRTCOptions = {}) {
       vadEngineRef.current?.destroy();
       vadEngineRef.current = new VADEngine(localStream, {
         thresholdDb: noiseGateThreshold,
-        enabled: isVADEnabled,
+        enabled: isVADEnabled && inputVolume > 0 && !isMuted,
         onSpeakingChange: (speaking) => {
-          setLocalIsSpeaking(speaking);
+          if (inputVolume === 0 || isMuted) {
+            setLocalIsSpeaking(false);
+          } else {
+            setLocalIsSpeaking(speaking);
+          }
         },
         onVolumeChange: (_db, percent) => {
           if (useCallStore.getState().isSettingsOpen) {
-            setCurrentAudioLevel(percent);
+            setCurrentAudioLevel(
+              inputVolume === 0 || isMuted ? 0 : Math.round(percent * (inputVolume / 100)),
+            );
           }
         },
       });
@@ -253,14 +578,47 @@ export function useWebRTC(options: WebRTCOptions = {}) {
       vadEngineRef.current?.destroy();
       vadEngineRef.current = null;
     };
-  }, [localStream, isVADEnabled, noiseGateThreshold, setLocalIsSpeaking, setCurrentAudioLevel]);
+  }, [
+    localStream,
+    isVADEnabled,
+    noiseGateThreshold,
+    setLocalIsSpeaking,
+    setCurrentAudioLevel,
+    inputVolume,
+    isMuted,
+  ]);
+
+  // Broadcast speaking state directly to peer via WebRTC DataChannel (0ms latency Tier-1)
+  useEffect(() => {
+    try {
+      const pttStream = binaryMuxRef.current?.getStream(MULTIPLEXED_STREAM_IDS.CONTROL_PTT);
+      if (pttStream && pttStream.readyState === 'open') {
+        pttStream.send(
+          JSON.stringify({
+            type: 'SPEAKING_STATE',
+            isSpeaking: localIsSpeaking,
+          }),
+        );
+      }
+    } catch {
+      // Ignore transient DC state error
+    }
+  }, [localIsSpeaking]);
 
   // VAD listener for incoming remote audio
   useEffect(() => {
     const remoteList = Object.values(remoteStreams);
-    if (remoteList.length > 0 && remoteList[0].getAudioTracks().length > 0) {
+    const audioStream =
+      remoteList.find(
+        (s) =>
+          s &&
+          s.getAudioTracks().length > 0 &&
+          s.getAudioTracks().some((t) => t.readyState === 'live'),
+      ) || remoteList.find((s) => s && s.getAudioTracks().length > 0);
+
+    if (audioStream) {
       remoteVadEngineRef.current?.destroy();
-      remoteVadEngineRef.current = new VADEngine(remoteList[0], {
+      remoteVadEngineRef.current = new VADEngine(audioStream, {
         thresholdDb: -45,
         enabled: true,
         onSpeakingChange: (speaking) => {
@@ -302,6 +660,21 @@ export function useWebRTC(options: WebRTCOptions = {}) {
       spatialAudioRef.current.setEnabled(isSpatialAudioEnabled);
     }
   }, [isSpatialAudioEnabled]);
+
+  // Dynamic native noise suppression update
+  useEffect(() => {
+    if (rawStreamRef.current) {
+      rawStreamRef.current.getAudioTracks().forEach((track) => {
+        void track
+          .applyConstraints({
+            noiseSuppression: isNoiseSuppressionEnabled,
+            echoCancellation: true,
+            autoGainControl: true,
+          })
+          .catch(() => {});
+      });
+    }
+  }, [isNoiseSuppressionEnabled]);
 
   // Sync remote streams to spatial audio manager
   useEffect(() => {
@@ -447,25 +820,68 @@ export function useWebRTC(options: WebRTCOptions = {}) {
   const triggerIceRestart = useCallback(async (): Promise<void> => {
     const pc = pcRef.current;
     if (!pc || pc.signalingState === 'closed') return;
+    if (pc.signalingState !== 'stable') {
+      console.warn('[useWebRTC] triggerIceRestart deferred: signalingState is', pc.signalingState);
+      return;
+    }
     try {
-      if (typeof pc.restartIce === 'function') {
-        pc.restartIce();
+      const isScreenShareActive =
+        useCallStore.getState().isScreenSharing || useCallStore.getState().isRemoteScreenSharing;
+      const codecPref = isScreenShareActive ? 'vp8' : useCallStore.getState().preferredVideoCodec;
+
+      // Prioritize VP8 on video transceivers via standard W3C API for flawless screen sharing across all browsers
+      if (
+        isScreenShareActive &&
+        typeof RTCRtpReceiver.getCapabilities === 'function' &&
+        typeof pc.getTransceivers === 'function'
+      ) {
+        try {
+          const capabilities = RTCRtpReceiver.getCapabilities('video');
+          if (capabilities?.codecs) {
+            const vp8Codecs = capabilities.codecs.filter(
+              (c) => c.mimeType.toLowerCase() === 'video/vp8',
+            );
+            const otherCodecs = capabilities.codecs.filter(
+              (c) => c.mimeType.toLowerCase() !== 'video/vp8',
+            );
+            pc.getTransceivers().forEach((t) => {
+              if (
+                t.receiver.track.kind === 'video' &&
+                typeof t.setCodecPreferences === 'function'
+              ) {
+                try {
+                  t.setCodecPreferences([...vp8Codecs, ...otherCodecs]);
+                } catch {}
+              }
+            });
+          }
+        } catch {}
       }
-      const offer = await pc.createOffer({ iceRestart: true });
-      const codecPref = useCallStore.getState().preferredVideoCodec;
+
+      // Standard track renegotiation without dropping existing ICE state
+      const offer = await pc.createOffer();
       if (offer.sdp) {
-        offer.sdp = mungeSDP(offer.sdp, codecPref);
+        offer.sdp = mungeSDP(offer.sdp, codecPref, false, isScreenShareActive);
       }
       await pc.setLocalDescription(offer);
       onSendIceRestart?.(offer);
     } catch (err) {
-      console.warn('Auto ICE-restart negotiation failed', err);
+      console.warn('Auto renegotiation failed', err);
     }
   }, [onSendIceRestart]);
 
   const attachE2eeToTransceivers = useCallback((pc: RTCPeerConnection, key: CryptoKey) => {
+    const isScreenShareActive =
+      useCallStore.getState().isScreenSharing || useCallStore.getState().isRemoteScreenSharing;
+    const isVideoCall = useCallStore.getState().callType === 'video';
+    if (isScreenShareActive || !isVideoCall) return;
+
     for (const sender of pc.getSenders()) {
-      if (sender.track && !transformedSendersRef.current.has(sender)) {
+      if (
+        sender.track &&
+        sender.track.kind === 'video' &&
+        !transformedSendersRef.current.has(sender)
+      ) {
         try {
           if (attachSenderScriptTransform(sender, { cryptoKey: key })) {
             transformedSendersRef.current.add(sender);
@@ -476,7 +892,11 @@ export function useWebRTC(options: WebRTCOptions = {}) {
       }
     }
     for (const receiver of pc.getReceivers()) {
-      if (receiver.track && !transformedReceiversRef.current.has(receiver)) {
+      if (
+        receiver.track &&
+        receiver.track.kind === 'video' &&
+        !transformedReceiversRef.current.has(receiver)
+      ) {
         try {
           if (attachReceiverScriptTransform(receiver, { cryptoKey: key })) {
             transformedReceiversRef.current.add(receiver);
@@ -493,12 +913,16 @@ export function useWebRTC(options: WebRTCOptions = {}) {
       onIceCandidate: (candidate: RTCIceCandidate) => void,
       targetUserId?: string,
     ): Promise<RTCPeerConnection> => {
+      const generation = setupGenerationRef.current;
+      ensureCurrentSetup(generation);
       if (pcRef.current) {
         return pcRef.current;
       }
 
       console.log('[initPeerConnection] fetching ICE servers...');
       const iceServers = await fetchIceServers();
+      ensureCurrentSetup(generation);
+      if (pcRef.current) return pcRef.current;
       console.log('[initPeerConnection] creating RTCPeerConnection...');
       const pc = new RTCPeerConnection({
         iceServers,
@@ -507,6 +931,23 @@ export function useWebRTC(options: WebRTCOptions = {}) {
       pcRef.current = pc;
       if (typeof window !== 'undefined') {
         (window as unknown as { __PC__?: RTCPeerConnection }).__PC__ = pc;
+      }
+
+      // Pre-allocate audio and video transceivers with sendrecv so that
+      // SDP offer/answer always contains both m=audio and m=video sections.
+      // This allows instant video/screen-share track replacement without renegotiation glitches.
+      try {
+        if (typeof pc.addTransceiver === 'function') {
+          const transceivers = pc.getTransceivers();
+          if (!transceivers.some((t) => t.receiver.track.kind === 'audio')) {
+            pc.addTransceiver('audio', { direction: 'sendrecv' });
+          }
+          if (!transceivers.some((t) => t.receiver.track.kind === 'video')) {
+            pc.addTransceiver('video', { direction: 'sendrecv' });
+          }
+        }
+      } catch (err) {
+        console.warn('[initPeerConnection] failed to pre-add transceivers:', err);
       }
 
       // E2EE session keys are established by the explicit handshake
@@ -557,40 +998,113 @@ export function useWebRTC(options: WebRTCOptions = {}) {
       };
 
       pc.ontrack = (event) => {
-        console.log('[ontrack] fired! track:', event.track?.kind, 'receiver:', !!event.receiver);
-        if (event.streams && event.streams[0]) {
-          const remoteStream = event.streams[0];
-          const streamId = targetUserId || 'remote';
+        const streamId = targetUserId || 'remote';
+        console.log(
+          '[ontrack] fired! track:',
+          event.track?.kind,
+          'streamId:',
+          streamId,
+          'receiver:',
+          !!event.receiver,
+        );
 
-          // Attach RTCRtpScriptTransform / Insertable Streams receiver decryption if key exists and signaling is stable
-          if (
-            event.receiver &&
-            !transformedReceiversRef.current.has(event.receiver) &&
-            pc.signalingState === 'stable'
-          ) {
-            if (cryptoKeyRef.current) {
-              console.log('[ontrack] attaching receiver script transform...');
-              try {
-                if (
-                  attachReceiverScriptTransform(event.receiver, {
-                    cryptoKey: cryptoKeyRef.current,
-                  })
-                ) {
-                  transformedReceiversRef.current.add(event.receiver);
+        let remoteStream = event.streams?.[0];
+        if (!remoteStream) {
+          const currentRemote = useCallStore.getState().remoteStreams[streamId];
+          if (currentRemote) {
+            if (event.track.kind === 'video') {
+              // Replace any older/dummy video tracks so the newly incoming live video track is ALWAYS primary
+              currentRemote.getVideoTracks().forEach((oldTrack) => {
+                if (oldTrack.id !== event.track.id) {
+                  currentRemote.removeTrack(oldTrack);
                 }
-                console.log('[ontrack] receiver script transform attached');
-              } catch (e) {
-                console.warn('[ontrack] attachReceiverScriptTransform error:', e);
+              });
+              if (!currentRemote.getTracks().some((t) => t.id === event.track.id)) {
+                currentRemote.addTrack(event.track);
+              }
+            } else if (event.track.kind === 'audio') {
+              if (!currentRemote.getTracks().some((t) => t.id === event.track.id)) {
+                currentRemote.addTrack(event.track);
+              }
+            }
+            remoteStream = currentRemote;
+          } else {
+            remoteStream = new MediaStream([event.track]);
+          }
+        } else {
+          const currentRemote = useCallStore.getState().remoteStreams[streamId];
+          if (currentRemote) {
+            for (const t of currentRemote.getTracks()) {
+              if (t.kind === 'video' && event.track.kind === 'video' && t.id !== event.track.id) {
+                continue;
+              }
+              if (!remoteStream.getTracks().some((rt) => rt.id === t.id)) {
+                remoteStream.addTrack(t);
               }
             }
           }
-
-          console.log('[ontrack] scheduling remote stream in Zustand...');
-          setTimeout(() => {
-            setRemoteStream(streamId, remoteStream);
-            console.log('[ontrack] setRemoteStream done');
-          }, 0);
         }
+
+        // Attach RTCRtpScriptTransform receiver decryption for video tracks if key exists, signaling is stable,
+        // and track is NOT a screen share track (screen share uses native DTLS-SRTP for line-rate 60 FPS decoding)
+        const isScreenShareActive =
+          useCallStore.getState().isScreenSharing || useCallStore.getState().isRemoteScreenSharing;
+        if (
+          !isScreenShareActive &&
+          event.receiver &&
+          event.track.kind === 'video' &&
+          event.track.contentHint !== 'motion' &&
+          !transformedReceiversRef.current.has(event.receiver) &&
+          pc.signalingState === 'stable'
+        ) {
+          if (cryptoKeyRef.current) {
+            console.log('[ontrack] attaching video receiver script transform...');
+            try {
+              if (
+                attachReceiverScriptTransform(event.receiver, {
+                  cryptoKey: cryptoKeyRef.current,
+                })
+              ) {
+                transformedReceiversRef.current.add(event.receiver);
+              }
+              console.log('[ontrack] video receiver script transform attached');
+            } catch (e) {
+              console.warn('[ontrack] attachReceiverScriptTransform error:', e);
+            }
+          }
+        }
+
+        const updateRemoteStore = () => {
+          if (ensureReceiverTracksRef.current) {
+            ensureReceiverTracksRef.current(streamId);
+          } else if (remoteStream) {
+            setRemoteStream(streamId, new MediaStream(remoteStream.getTracks()));
+            if (targetUserId) {
+              setRemoteStream('remote', new MediaStream(remoteStream.getTracks()));
+            }
+          }
+        };
+
+        if (event.track) {
+          event.track.enabled = true;
+          event.track.onunmute = () => {
+            console.log('[ontrack] track unmuted:', event.track.kind);
+            updateRemoteStore();
+          };
+
+          event.track.onmute = () => {
+            console.log('[ontrack] track muted:', event.track.kind);
+            updateRemoteStore();
+          };
+
+          event.track.onended = () => {
+            console.log('[ontrack] track ended:', event.track.kind);
+            updateRemoteStore();
+          };
+        }
+
+        console.log('[ontrack] updating remote stream in Zustand...');
+        updateRemoteStore();
       };
 
       const currentUserId = useAuthStore.getState().userId;
@@ -604,6 +1118,11 @@ export function useWebRTC(options: WebRTCOptions = {}) {
           }
         },
       });
+      // CRITICAL: Disable automatic onnegotiationneeded on the peer connection.
+      // Negotiation is explicitly driven by useWebRTC / useCallManager signaling handlers.
+      // Having an untargeted pc.onnegotiationneeded calling pc.setLocalDescription() behind the scenes
+      // causes Offer Collision / Glare and "Called in wrong state: stable" crashes!
+      pc.onnegotiationneeded = null;
 
       // Receivers for P2P DataChannels (Unified Mux, File transfer, Gossip relay, SyncPlay)
       pc.ondatachannel = (event) => {
@@ -649,6 +1168,8 @@ export function useWebRTC(options: WebRTCOptions = {}) {
                   typeof window !== 'undefined' ? window.innerHeight : 600,
                   data.x,
                 );
+              } else if (data.type?.startsWith('SOUNDBOARD_')) {
+                handleSoundboardIncomingMessage(data);
               }
             } catch {
               // Ignore malformed emote payload
@@ -761,7 +1282,6 @@ export function useWebRTC(options: WebRTCOptions = {}) {
       );
       adapter.start(2000);
       bandwidthAdapterRef.current = adapter;
-      // Start Discord-Style Live Stats Collector (1s polling)
       if (liveStatsCollectorRef.current) {
         liveStatsCollectorRef.current.stop();
       }
@@ -792,11 +1312,14 @@ export function useWebRTC(options: WebRTCOptions = {}) {
       setIsPeerRelayActive,
       isSatelliteModeEnabled,
       setupMuxChannels,
+      ensureCurrentSetup,
     ],
   );
 
   const acquireLocalMedia = useCallback(
     async (callType: 'audio' | 'video'): Promise<MediaStream> => {
+      const generation = setupGenerationRef.current;
+      ensureCurrentSetup(generation);
       const type = ((callType as unknown as string) || 'audio').toLowerCase() as 'audio' | 'video';
       console.log('[acquireLocalMedia] started. type:', type);
       // If we already have an active local stream with required tracks, return it
@@ -813,9 +1336,14 @@ export function useWebRTC(options: WebRTCOptions = {}) {
           ? {
               deviceId: { exact: selectedAudioInput },
               echoCancellation: true,
-              noiseSuppression: true,
+              noiseSuppression: isNoiseSuppressionEnabled,
+              autoGainControl: true,
             }
-          : { echoCancellation: true, noiseSuppression: true },
+          : {
+              echoCancellation: true,
+              noiseSuppression: isNoiseSuppressionEnabled,
+              autoGainControl: true,
+            },
         video:
           type === 'video'
             ? selectedVideoInput
@@ -830,16 +1358,9 @@ export function useWebRTC(options: WebRTCOptions = {}) {
 
       let rawStream: MediaStream;
       try {
-        console.log(
-          '[acquireLocalMedia] calling getUserMedia with constraints:',
-          JSON.stringify(constraints),
-        );
         rawStream = await navigator.mediaDevices.getUserMedia(constraints);
-        console.log(
-          '[acquireLocalMedia] getUserMedia succeeded! tracks:',
-          rawStream.getTracks().map((t) => t.kind),
-        );
       } catch (err) {
+        ensureCurrentSetup(generation);
         console.error('[acquireLocalMedia] getUserMedia FAILED:', err);
         void CallAlarming.captureCallAlarm({
           callId: callId || 'initiation',
@@ -850,8 +1371,16 @@ export function useWebRTC(options: WebRTCOptions = {}) {
         // Fallback to audio-only if camera request fails
         if (type === 'video') {
           try {
-            rawStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+            rawStream = await navigator.mediaDevices.getUserMedia({
+              audio: {
+                echoCancellation: true,
+                noiseSuppression: isNoiseSuppressionEnabled,
+                autoGainControl: true,
+              },
+              video: false,
+            });
           } catch (audioErr) {
+            ensureCurrentSetup(generation);
             void CallAlarming.captureCallAlarm({
               callId: callId || 'initiation',
               error: audioErr,
@@ -864,32 +1393,52 @@ export function useWebRTC(options: WebRTCOptions = {}) {
         }
       }
 
+      ensureCurrentSetup(generation, rawStream);
       rawStreamRef.current = rawStream;
 
-      // Filter microphone audio through in-browser RNNoise Neural AudioWorklet
-      let finalStream = rawStream;
-      if (rawStream.getAudioTracks().length > 0) {
-        try {
-          console.log('[acquireLocalMedia] filtering via rnnoise...');
-          const denoisedHandle = await rnnoiseManager.createDenoisedStream(
-            rawStream,
-            isNoiseSuppressionEnabled,
-          );
-          console.log('[acquireLocalMedia] rnnoise filtering finished!');
-          denoisedHandleRef.current = denoisedHandle;
-
-          const tracks = [...denoisedHandle.cleanStream.getAudioTracks()];
-          if (rawStream.getVideoTracks().length > 0) {
-            tracks.push(...rawStream.getVideoTracks());
-          }
-          finalStream = new MediaStream(tracks);
-        } catch (denoiseErr) {
-          console.warn('[acquireLocalMedia] rnnoise error, fallback to rawStream:', denoiseErr);
-          finalStream = rawStream;
-        }
+      if (callAudioPipelineRef.current) {
+        callAudioPipelineRef.current.destroy();
+        callAudioPipelineRef.current = null;
       }
 
-      console.log('[acquireLocalMedia] calling setLocalStream and returning finalStream...');
+      const currentCallState = useCallStore.getState();
+      const pipeline = new LocalAudioPipeline(rawStream, {
+        inputVolume: currentCallState.inputVolume,
+        isDenoiseEnabled: currentCallState.isNoiseSuppressionEnabled,
+        sampleRate: 48000,
+        voiceFX: currentCallState.voiceFX,
+        isPTT: currentCallState.isPTTEnabled,
+        isPTTTalking: currentCallState.isPTTActive,
+        vadThresholdDb: currentCallState.noiseGateThreshold,
+        onSpeakingChange: (speaking) => {
+          setLocalIsSpeaking(speaking);
+        },
+      });
+      callAudioPipelineRef.current = pipeline;
+
+      const rawAudioTrack = rawStream.getAudioTracks()[0];
+      const processedAudioTrack = pipeline.getProcessedTrack();
+      const outgoingAudioTrack = processedAudioTrack || rawAudioTrack;
+
+      const isAudioEffectivelyMuted =
+        currentCallState.isMuted || currentCallState.inputVolume === 0;
+      const shouldEnableAudio = currentCallState.isPTTEnabled
+        ? currentCallState.isPTTActive
+        : !isAudioEffectivelyMuted;
+      if (rawAudioTrack) {
+        rawAudioTrack.enabled = shouldEnableAudio;
+      }
+      if (processedAudioTrack) {
+        processedAudioTrack.enabled = shouldEnableAudio;
+      }
+      if (!shouldEnableAudio) {
+        pipeline.setGateOpen(false, 0);
+      }
+
+      const finalTracks: MediaStreamTrack[] = [outgoingAudioTrack];
+      rawStream.getVideoTracks().forEach((vt) => finalTracks.push(vt));
+      const finalStream = new MediaStream(finalTracks);
+
       setLocalStream(finalStream);
       return finalStream;
     },
@@ -900,22 +1449,52 @@ export function useWebRTC(options: WebRTCOptions = {}) {
       setLocalStream,
       isNoiseSuppressionEnabled,
       callId,
+      ensureCurrentSetup,
     ],
   );
 
   const attachLocalStream = useCallback((pc: RTCPeerConnection, stream: MediaStream) => {
-    const existingSenders = pc.getSenders();
     stream.getTracks().forEach((track) => {
-      const alreadyAdded = existingSenders.some((s) => s.track?.id === track.id);
-      if (!alreadyAdded) {
-        const sender = pc.addTrack(track, stream);
-
-        // Attach RTCRtpScriptTransform only if signaling is already stable (e.g. dynamic screen share track)
-        // Initial tracks are attached right after setLocalDescription in handleOffer / completeE2eeHandshake
-        if (cryptoKeyRef.current && sender && pc.signalingState === 'stable') {
-          attachSenderScriptTransform(sender, {
+      const transceivers = typeof pc.getTransceivers === 'function' ? pc.getTransceivers() : [];
+      const matchingTransceiver = transceivers.find(
+        (t) =>
+          t.sender.track?.id === track.id ||
+          t.sender.track?.kind === track.kind ||
+          (!t.sender.track && t.receiver.track.kind === track.kind),
+      );
+      if (matchingTransceiver) {
+        matchingTransceiver.direction = 'sendrecv';
+        if (matchingTransceiver.sender.track?.id !== track.id) {
+          void matchingTransceiver.sender.replaceTrack(track);
+        }
+        if (track.kind === 'video' && cryptoKeyRef.current && pc.signalingState === 'stable') {
+          attachSenderScriptTransform(matchingTransceiver.sender, {
             cryptoKey: cryptoKeyRef.current,
           });
+        }
+      } else {
+        const existingSenders = pc.getSenders();
+        const existingSenderForKind = existingSenders.find(
+          (s) => s.track?.id === track.id || s.track?.kind === track.kind,
+        );
+        if (existingSenderForKind) {
+          if (existingSenderForKind.track?.id !== track.id) {
+            void existingSenderForKind.replaceTrack(track);
+          }
+        } else {
+          const sender = pc.addTrack(track, stream);
+
+          // Attach RTCRtpScriptTransform only to video tracks if signaling is already stable
+          if (
+            track.kind === 'video' &&
+            cryptoKeyRef.current &&
+            sender &&
+            pc.signalingState === 'stable'
+          ) {
+            attachSenderScriptTransform(sender, {
+              cryptoKey: cryptoKeyRef.current,
+            });
+          }
         }
       }
     });
@@ -927,8 +1506,11 @@ export function useWebRTC(options: WebRTCOptions = {}) {
       onIceCandidate: (candidate: RTCIceCandidate) => void,
       targetUserId?: string,
     ): Promise<RTCSessionDescriptionInit> => {
+      const generation = setupGenerationRef.current;
       const pc = await initPeerConnection(onIceCandidate, targetUserId);
+      ensureCurrentSetup(generation);
       const stream = await acquireLocalMedia(callType);
+      ensureCurrentSetup(generation, stream);
       attachLocalStream(pc, stream);
 
       globalCallExternalStore.transition('CALLING');
@@ -1023,6 +1605,8 @@ export function useWebRTC(options: WebRTCOptions = {}) {
                 typeof window !== 'undefined' ? window.innerHeight : 600,
                 data.x,
               );
+            } else if (data.type?.startsWith('SOUNDBOARD_')) {
+              handleSoundboardIncomingMessage(data);
             }
           } catch {
             // Ignore malformed emote payload
@@ -1032,20 +1616,27 @@ export function useWebRTC(options: WebRTCOptions = {}) {
         console.warn('[Reactions] Failed to create data channel on offer:', err);
       }
 
-      const offer = await pc.createOffer({
-        offerToReceiveAudio: true,
-        offerToReceiveVideo: callType === 'video',
-      });
+      const offer = await awaitCurrentSetup(
+        generation,
+        pc.createOffer({
+          offerToReceiveAudio: true,
+          offerToReceiveVideo: true,
+        }),
+      );
+      ensureCurrentSetup(generation);
       const codecPref = useCallStore.getState().preferredVideoCodec;
       if (offer.sdp && callType === 'video') {
-        offer.sdp = mungeSDP(offer.sdp, codecPref);
+        offer.sdp = mungeSDP(offer.sdp, codecPref, false);
       }
-      await pc.setLocalDescription(offer);
+      await awaitCurrentSetup(generation, pc.setLocalDescription(offer));
+      ensureCurrentSetup(generation);
       return offer;
     },
     [
       initPeerConnection,
       acquireLocalMedia,
+      ensureCurrentSetup,
+      awaitCurrentSetup,
       attachLocalStream,
       upsertFileTransfer,
       setSyncPlayMetrics,
@@ -1061,11 +1652,14 @@ export function useWebRTC(options: WebRTCOptions = {}) {
       onIceCandidate: (candidate: RTCIceCandidate) => void,
       callerUserId?: string,
     ): Promise<RTCSessionDescriptionInit> => {
+      const generation = setupGenerationRef.current;
       console.log('[handleOffer] STEP 1: acquireLocalMedia...');
       const stream = await acquireLocalMedia(type);
+      ensureCurrentSetup(generation, stream);
 
       console.log('[handleOffer] STEP 2: initPeerConnection...');
       const pc = await initPeerConnection(onIceCandidate, callerUserId);
+      ensureCurrentSetup(generation, stream);
 
       console.log('[handleOffer] STEP 2.5: attachLocalStream...');
       attachLocalStream(pc, stream);
@@ -1077,7 +1671,11 @@ export function useWebRTC(options: WebRTCOptions = {}) {
         offer?.sdp ? offer.sdp.slice(0, 40) : 'NO_SDP',
       );
       try {
-        await pc.setRemoteDescription(new RTCSessionDescription(offer));
+        await awaitCurrentSetup(
+          generation,
+          pc.setRemoteDescription(new RTCSessionDescription(offer)),
+        );
+        ensureCurrentSetup(generation);
         console.log('[handleOffer] STEP 3 setRemoteDescription SUCCEEDED!');
       } catch (e) {
         console.error('[handleOffer] STEP 3 setRemoteDescription EXCEPTION:', e);
@@ -1107,19 +1705,20 @@ export function useWebRTC(options: WebRTCOptions = {}) {
         receivers: pc.getReceivers().length,
       });
       try {
-        const answer = await Promise.race([
-          pc.createAnswer(),
-          new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error('pc.createAnswer timed out after 10000ms')), 10000),
-          ),
-        ]);
+        const answer = await awaitCurrentSetup(
+          generation,
+          Promise.race([
+            pc.createAnswer(),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error('pc.createAnswer timed out after 10000ms')), 10000),
+            ),
+          ]),
+        );
+        ensureCurrentSetup(generation);
         console.log('[handleOffer] STEP 5.5: createAnswer succeeded!');
-        const codecPref = useCallStore.getState().preferredVideoCodec;
-        if (answer.sdp && type === 'video') {
-          answer.sdp = mungeSDP(answer.sdp, codecPref);
-        }
         console.log('[handleOffer] STEP 6: setLocalDescription...');
-        await pc.setLocalDescription(answer);
+        await awaitCurrentSetup(generation, pc.setLocalDescription(answer));
+        ensureCurrentSetup(generation);
         console.log('[handleOffer] STEP 7: attaching E2EE transforms...');
         if (cryptoKeyRef.current) {
           attachE2eeToTransceivers(pc, cryptoKeyRef.current);
@@ -1131,18 +1730,26 @@ export function useWebRTC(options: WebRTCOptions = {}) {
         throw e;
       }
     },
-    [initPeerConnection, acquireLocalMedia, attachLocalStream, attachE2eeToTransceivers, callId],
+    [
+      initPeerConnection,
+      acquireLocalMedia,
+      attachLocalStream,
+      attachE2eeToTransceivers,
+      callId,
+      ensureCurrentSetup,
+      awaitCurrentSetup,
+    ],
   );
 
   const handleAnswer = useCallback(async (answer: RTCSessionDescriptionInit): Promise<void> => {
     const pc = pcRef.current;
     if (!pc) return;
 
-    if (pc.signalingState !== 'stable') {
-      const codecPref = useCallStore.getState().preferredVideoCodec;
-      if (answer.sdp) {
-        answer.sdp = mungeSDP(answer.sdp, codecPref);
-      }
+    if (pc.signalingState === 'stable' || pc.signalingState === 'closed') {
+      return;
+    }
+
+    try {
       await pc.setRemoteDescription(new RTCSessionDescription(answer));
 
       // Flush queued candidates
@@ -1152,6 +1759,17 @@ export function useWebRTC(options: WebRTCOptions = {}) {
           await pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(() => {});
         }
       }
+
+      ensureReceiverTracksRef.current?.();
+    } catch (err: any) {
+      if (err?.name === 'InvalidStateError' || err?.message?.includes('Called in wrong state')) {
+        console.warn(
+          '[useWebRTC] handleAnswer ignored: peer connection already in state',
+          pc.signalingState,
+        );
+        return;
+      }
+      throw err;
     }
   }, []);
 
@@ -1321,37 +1939,150 @@ export function useWebRTC(options: WebRTCOptions = {}) {
     setE2EEInfo('verified', state.e2eeFingerprint, state.sasCode, state.sasEmojis);
   }, [setE2EEInfo]);
 
-  const handleRemoteIceRestart = useCallback(
-    async (offer: RTCSessionDescriptionInit): Promise<RTCSessionDescriptionInit> => {
+  const ensureReceiverTracks = useCallback(
+    (userId?: string) => {
       const pc = pcRef.current;
-      if (!pc) throw new Error('PeerConnection not active during ICE restart');
+      if (!pc) return;
+      const isScreenShareActive =
+        useCallStore.getState().isScreenSharing || useCallStore.getState().isRemoteScreenSharing;
 
-      const codecPref = useCallStore.getState().preferredVideoCodec;
-      if (offer.sdp) {
-        offer.sdp = mungeSDP(offer.sdp, codecPref);
+      // When screen sharing, ensure receivers have any previous script transforms cleared
+      // so hardware decoding delivers uncorrupted 60 FPS video
+      if (isScreenShareActive) {
+        pc.getReceivers().forEach((r) => {
+          if (r.track && r.track.kind === 'video') {
+            if ('transform' in r) {
+              try {
+                (r as { transform?: unknown }).transform = null;
+              } catch {}
+            }
+          }
+        });
       }
+
+      const streamId = userId || 'remote';
+      const receivers = pc.getReceivers();
+
+      const audioTracks = receivers
+        .map((r) => r.track)
+        .filter((t): t is MediaStreamTrack =>
+          Boolean(t && t.kind === 'audio' && t.readyState !== 'ended'),
+        );
+
+      const videoReceivers = receivers.filter(
+        (r): r is RTCRtpReceiver & { track: MediaStreamTrack } =>
+          Boolean(r.track && r.track.kind === 'video' && r.track.readyState !== 'ended'),
+      );
+
+      // CRITICAL: When screen sharing or when multiple video transceivers exist (dummy transceiver + screen share),
+      // we MUST prioritize the unmuted active video track (which is decoding live RTP frames).
+      // Placing dead/dummy video tracks into the stream causes HTMLVideoElement to render pure black.
+      const activeVideoReceiver =
+        videoReceivers.find((r) => !r.track.muted && r.track.readyState === 'live') ||
+        videoReceivers.find((r) => r.track.readyState === 'live') ||
+        (videoReceivers.length > 0 ? videoReceivers[videoReceivers.length - 1] : null);
+
+      const activeVideoTrack = activeVideoReceiver?.track || null;
+      if (activeVideoTrack) {
+        activeVideoTrack.enabled = true;
+      }
+
+      const activeReceiverTracks: MediaStreamTrack[] = [
+        ...audioTracks,
+        ...(activeVideoTrack ? [activeVideoTrack] : []),
+      ];
+
+      if (activeReceiverTracks.length > 0) {
+        const stream = new MediaStream(activeReceiverTracks);
+        setRemoteStream(streamId, stream);
+        if (userId && userId !== streamId) {
+          setRemoteStream(userId, new MediaStream(activeReceiverTracks));
+        }
+        setRemoteStream('remote', new MediaStream(activeReceiverTracks));
+      }
+
+      receivers.forEach((r) => {
+        if (r.track) {
+          r.track.enabled = true;
+          const handleTrackEvent = () => {
+            // Re-sync on unmute/mute/ended to dynamically update the active video track in Zustand
+            ensureReceiverTracksRef.current?.(userId);
+          };
+          r.track.onunmute = handleTrackEvent;
+          r.track.onmute = handleTrackEvent;
+          r.track.onended = handleTrackEvent;
+        }
+      });
+    },
+    [setRemoteStream],
+  );
+  ensureReceiverTracksRef.current = ensureReceiverTracks;
+
+  const handleRemoteIceRestart = useCallback(
+    async (
+      offer: RTCSessionDescriptionInit,
+      senderUserId?: string,
+    ): Promise<RTCSessionDescriptionInit> => {
+      const pc = pcRef.current;
+      if (!pc || pc.signalingState === 'closed') {
+        throw new Error('PeerConnection not active during ICE restart');
+      }
+
+      // Handle glare / unexpected offer collision
+      if (pc.signalingState !== 'stable' && pc.signalingState !== 'have-remote-offer') {
+        try {
+          await pc.setLocalDescription({ type: 'rollback' });
+        } catch {
+          // Ignore rollback failure if not supported
+        }
+      }
+
       await pc.setRemoteDescription(new RTCSessionDescription(offer));
-      const answer = await pc.createAnswer();
-      if (answer.sdp) {
-        answer.sdp = mungeSDP(answer.sdp, codecPref);
+
+      // CRITICAL: Ensure local video transceivers are set to 'recvonly' if not already sendrecv
+      // so createAnswer() generates a=recvonly instead of a=inactive, allowing video RTP packets to flow!
+      if (typeof pc.getTransceivers === 'function') {
+        pc.getTransceivers().forEach((t) => {
+          if (t.receiver.track.kind === 'video' && t.direction !== 'sendrecv') {
+            t.direction = 'recvonly';
+          }
+        });
       }
-      await pc.setLocalDescription(answer);
+
+      const answer = await pc.createAnswer();
+
+      if (pc.signalingState === 'have-remote-offer') {
+        await pc.setLocalDescription(answer);
+      }
+
+      // Collect all receiver tracks and ensure they are populated in remoteStreams
+      ensureReceiverTracks(senderUserId);
+      if (senderUserId) {
+        ensureReceiverTracks();
+      }
+
       return answer;
     },
-    [],
+    [ensureReceiverTracks],
   );
 
   const handleIceRestartAnswer = useCallback(
     async (answer: RTCSessionDescriptionInit): Promise<void> => {
       const pc = pcRef.current;
       if (!pc || pc.signalingState === 'stable') return;
-      const codecPref = useCallStore.getState().preferredVideoCodec;
-      if (answer.sdp) {
-        answer.sdp = mungeSDP(answer.sdp, codecPref);
-      }
       await pc.setRemoteDescription(new RTCSessionDescription(answer));
+
+      // Flush queued candidates
+      while (queuedCandidatesRef.current.length > 0) {
+        const candidate = queuedCandidatesRef.current.shift();
+        if (candidate) {
+          await pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(() => {});
+        }
+      }
+
+      ensureReceiverTracks();
     },
-    [],
+    [ensureReceiverTracks],
   );
 
   const addIceCandidate = useCallback(async (candidate: RTCIceCandidateInit): Promise<void> => {
@@ -1365,24 +2096,210 @@ export function useWebRTC(options: WebRTCOptions = {}) {
 
   const toggleMuteTrack = useCallback(
     (mute: boolean) => {
-      if (localStream) {
-        localStream.getAudioTracks().forEach((track) => {
-          track.enabled = !mute;
+      if (!mute) {
+        callAudioPipelineRef.current?.resume();
+      }
+
+      const currentInputVol = useCallStore.getState().inputVolume;
+      const shouldBeEnabled = !mute && currentInputVol > 0;
+
+      // 0. Update LocalAudioPipeline software gate
+      callAudioPipelineRef.current?.setGateOpen(shouldBeEnabled, 0);
+
+      // 1. Mute localStream in Zustand store
+      const storeStream = useCallStore.getState().localStream;
+      storeStream?.getAudioTracks().forEach((track) => {
+        track.enabled = shouldBeEnabled;
+      });
+
+      // 2. Mute raw hardware microphone stream
+      rawStreamRef.current?.getAudioTracks().forEach((track) => {
+        track.enabled = shouldBeEnabled;
+      });
+
+      const procTrack = callAudioPipelineRef.current?.getProcessedTrack();
+      if (procTrack) {
+        procTrack.enabled = shouldBeEnabled;
+      }
+
+      // 3. Directly mute all active audio senders on the RTCPeerConnection
+      const pc = pcRef.current;
+      if (pc) {
+        pc.getSenders().forEach((sender) => {
+          if (sender.track && sender.track.kind === 'audio') {
+            sender.track.enabled = shouldBeEnabled;
+          }
         });
       }
+
+      if (!shouldBeEnabled) {
+        setLocalIsSpeaking(false);
+      }
     },
-    [localStream],
+    [setLocalIsSpeaking],
   );
 
   const toggleVideoTrack = useCallback(
-    (videoOff: boolean) => {
-      if (localStream) {
-        localStream.getVideoTracks().forEach((track) => {
-          track.enabled = !videoOff;
+    async (videoOff: boolean): Promise<boolean> => {
+      const generation = setupGenerationRef.current;
+      const pc = pcRef.current;
+      const currentStream = useCallStore.getState().localStream;
+
+      if (videoOff) {
+        // Turning camera OFF:
+        // 1. Disable and stop all camera video tracks so hardware webcam turns off
+        currentStream?.getVideoTracks().forEach((track) => {
+          track.enabled = false;
+          try {
+            track.stop();
+          } catch {}
         });
+        rawStreamRef.current?.getVideoTracks().forEach((track) => {
+          track.enabled = false;
+          try {
+            track.stop();
+          } catch {}
+        });
+
+        // 2. Remove video track from localStream in store
+        if (currentStream) {
+          const audioOnlyTracks = currentStream.getAudioTracks();
+          setLocalStream(new MediaStream(audioOnlyTracks));
+        }
+
+        // 3. Clear video sender on RTCPeerConnection
+        if (pc) {
+          const videoSender = pc.getSenders().find((s) => s.track && s.track.kind === 'video');
+          if (videoSender) {
+            await videoSender.replaceTrack(null);
+          }
+          // Renegotiate so remote peer knows video stopped
+          void triggerIceRestart();
+        }
+        return true;
+      } else {
+        // Turning camera ON:
+        try {
+          ensureCurrentSetup(generation);
+          const constraints: MediaStreamConstraints = {
+            audio: false,
+            video: selectedVideoInput
+              ? {
+                  deviceId: { exact: selectedVideoInput },
+                  width: { ideal: 1280, max: 1920 },
+                  height: { ideal: 720, max: 1080 },
+                  frameRate: { ideal: 30, max: 30 },
+                }
+              : {
+                  width: { ideal: 1280, max: 1920 },
+                  height: { ideal: 720, max: 1080 },
+                  frameRate: { ideal: 30, max: 30 },
+                },
+          };
+
+          const cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+          ensureCurrentSetup(generation, cameraStream);
+          const cameraTrack = cameraStream.getVideoTracks()[0];
+          if (!cameraTrack) {
+            throw new Error('No video track returned from camera');
+          }
+
+          cameraTrack.enabled = true;
+
+          // Keep rawStreamRef updated
+          if (rawStreamRef.current) {
+            rawStreamRef.current.getVideoTracks().forEach((t) => {
+              try {
+                t.stop();
+              } catch {}
+              rawStreamRef.current?.removeTrack(t);
+            });
+            rawStreamRef.current.addTrack(cameraTrack);
+          }
+
+          // Attach to localStream in Zustand store
+          const existingAudioTracks = currentStream ? currentStream.getAudioTracks() : [];
+          const newLocalStream = new MediaStream([...existingAudioTracks, cameraTrack]);
+          setLocalStream(newLocalStream);
+
+          // Attach or replace track on RTCPeerConnection
+          if (pc) {
+            const videoTransceiver =
+              typeof pc.getTransceivers === 'function'
+                ? pc.getTransceivers().find((t) => t.receiver.track.kind === 'video')
+                : null;
+            const videoSender =
+              videoTransceiver?.sender ||
+              pc
+                .getSenders()
+                .find(
+                  (s) => s.track?.kind === 'video' || (!s.track && videoTransceiver?.sender === s),
+                );
+
+            if (videoSender) {
+              await awaitCurrentSetup(
+                generation,
+                videoSender.replaceTrack(cameraTrack),
+                cameraStream,
+              );
+              ensureCurrentSetup(generation, cameraStream);
+              if (videoTransceiver) {
+                videoTransceiver.direction = 'sendrecv';
+              }
+            } else {
+              pc.addTrack(cameraTrack, newLocalStream);
+            }
+
+            try {
+              const sender =
+                videoSender || pc.getSenders().find((s) => s.track?.id === cameraTrack.id);
+              if (sender) {
+                const params = sender.getParameters();
+                if (!params.encodings || params.encodings.length === 0) {
+                  params.encodings = [{}];
+                }
+                for (const enc of params.encodings) {
+                  enc.active = true;
+                  enc.maxBitrate = 2_500_000;
+                  enc.maxFramerate = 30;
+                  (enc as { priority?: string; networkPriority?: string }).priority = 'low';
+                  (enc as { priority?: string; networkPriority?: string }).networkPriority = 'low';
+                }
+                params.degradationPreference = 'balanced';
+                await sender.setParameters(params);
+              }
+            } catch {}
+
+            // Ensure audio senders always retain high network priority
+            try {
+              const audioSender = pc.getSenders().find((s) => s.track && s.track.kind === 'audio');
+              if (audioSender) {
+                const aParams = audioSender.getParameters();
+                if (aParams.encodings && aParams.encodings.length > 0) {
+                  (
+                    aParams.encodings[0] as { priority?: string; networkPriority?: string }
+                  ).priority = 'high';
+                  (
+                    aParams.encodings[0] as { priority?: string; networkPriority?: string }
+                  ).networkPriority = 'high';
+                  await audioSender.setParameters(aParams);
+                }
+              }
+            } catch {}
+
+            // Renegotiate track with peer so remote side receives camera video
+            void triggerIceRestart();
+          }
+
+          return true;
+        } catch (err) {
+          if (err instanceof CallSetupCancelledError) throw err;
+          console.error('[toggleVideoTrack] Failed to acquire camera:', err);
+          return false;
+        }
       }
     },
-    [localStream],
+    [selectedVideoInput, setLocalStream, triggerIceRestart, ensureCurrentSetup, awaitCurrentSetup],
   );
 
   const stopScreenShare = useCallback(async (): Promise<void> => {
@@ -1394,21 +2311,32 @@ export function useWebRTC(options: WebRTCOptions = {}) {
     setIsScreenAudioSharing(false);
 
     const pc = pcRef.current;
-    if (pc && originalVideoTrackRef.current) {
-      const sender = pc.getSenders().find((s) => s.track && s.track.kind === 'video');
-      if (sender) {
-        await sender.replaceTrack(originalVideoTrackRef.current);
-      }
-      originalVideoTrackRef.current = null;
-    }
+    if (pc) {
+      const videoTransceiver =
+        typeof pc.getTransceivers === 'function'
+          ? pc.getTransceivers().find((t) => t.receiver.track.kind === 'video')
+          : null;
+      const videoSender =
+        videoTransceiver?.sender ||
+        pc.getSenders().find((s) => s.track && s.track.kind === 'video');
 
-    // Restore original microphone audio track if screen audio was mixed
-    if (pc && originalAudioTrackRef.current) {
-      const audioSender = pc.getSenders().find((s) => s.track && s.track.kind === 'audio');
-      if (audioSender) {
-        await audioSender.replaceTrack(originalAudioTrackRef.current);
+      if (videoSender) {
+        const restoreTrack = originalVideoTrackRef.current || null;
+        await videoSender.replaceTrack(restoreTrack);
+        if (!restoreTrack && videoTransceiver) {
+          videoTransceiver.direction = 'sendrecv';
+        }
+        originalVideoTrackRef.current = null;
       }
-      originalAudioTrackRef.current = null;
+
+      // Restore original microphone audio track if screen audio was mixed
+      if (originalAudioTrackRef.current) {
+        const audioSender = pc.getSenders().find((s) => s.track && s.track.kind === 'audio');
+        if (audioSender) {
+          await audioSender.replaceTrack(originalAudioTrackRef.current);
+        }
+        originalAudioTrackRef.current = null;
+      }
     }
 
     if (audioMixerRef.current) {
@@ -1417,13 +2345,27 @@ export function useWebRTC(options: WebRTCOptions = {}) {
     }
 
     setIsScreenSharing(false);
-  }, [setScreenShareStream, setIsScreenSharing, setIsScreenAudioSharing]);
+    onScreenShareStopped?.();
+    void triggerIceRestart();
+  }, [
+    setScreenShareStream,
+    setIsScreenSharing,
+    setIsScreenAudioSharing,
+    onScreenShareStopped,
+    triggerIceRestart,
+  ]);
 
   const startScreenShare = useCallback(async (): Promise<MediaStream> => {
+    const generation = setupGenerationRef.current;
+    ensureCurrentSetup(generation);
     let screenStream: MediaStream;
     try {
       screenStream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
+        video: {
+          width: { ideal: 1920, max: 1920 },
+          height: { ideal: 1080, max: 1080 },
+          frameRate: { ideal: 60, max: 60 },
+        },
         audio: {
           autoGainControl: false,
           echoCancellation: false,
@@ -1431,44 +2373,164 @@ export function useWebRTC(options: WebRTCOptions = {}) {
         },
       });
     } catch {
-      screenStream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
-        audio: false,
-      });
+      ensureCurrentSetup(generation);
+      try {
+        screenStream = await navigator.mediaDevices.getDisplayMedia({
+          video: {
+            frameRate: { ideal: 60, max: 60 },
+          },
+          audio: true,
+        });
+      } catch {
+        ensureCurrentSetup(generation);
+        screenStream = await navigator.mediaDevices.getDisplayMedia({
+          video: true,
+        });
+      }
     }
 
+    ensureCurrentSetup(generation, screenStream);
     const screenTrack = screenStream.getVideoTracks()[0];
     const screenAudioTrack = screenStream.getAudioTracks()[0];
-    const pc = pcRef.current;
+    if (screenTrack) {
+      screenTrack.enabled = true;
+      if ('contentHint' in screenTrack) {
+        screenTrack.contentHint = 'motion';
+      }
+      try {
+        await screenTrack.applyConstraints({
+          frameRate: { ideal: 60, max: 60 },
+          width: { ideal: 1920, max: 1920 },
+          height: { ideal: 1080, max: 1080 },
+        });
+      } catch {
+        // Advisory
+      }
+    }
+    ensureCurrentSetup(generation, screenStream);
 
+    const pc = pcRef.current;
     if (pc && screenTrack) {
-      const sender = pc.getSenders().find((s) => s.track && s.track.kind === 'video');
-      if (sender) {
-        originalVideoTrackRef.current = sender.track;
-        await sender.replaceTrack(screenTrack);
+      const videoTransceiver =
+        typeof pc.getTransceivers === 'function'
+          ? pc.getTransceivers().find((t) => t.receiver.track.kind === 'video')
+          : null;
+      const videoSender =
+        videoTransceiver?.sender ||
+        pc.getSenders().find((s) => s.track && s.track.kind === 'video');
+
+      if (videoSender) {
+        if (
+          !originalVideoTrackRef.current &&
+          videoSender.track &&
+          videoSender.track !== screenTrack
+        ) {
+          originalVideoTrackRef.current = videoSender.track;
+        }
+        if (videoTransceiver) {
+          videoTransceiver.direction = 'sendrecv';
+        }
+        if (
+          typeof pc.getTransceivers === 'function' &&
+          typeof RTCRtpReceiver.getCapabilities === 'function'
+        ) {
+          try {
+            const capabilities = RTCRtpReceiver.getCapabilities('video');
+            if (capabilities?.codecs) {
+              const vp8Codecs = capabilities.codecs.filter(
+                (c) => c.mimeType.toLowerCase() === 'video/vp8',
+              );
+              const otherCodecs = capabilities.codecs.filter(
+                (c) => c.mimeType.toLowerCase() !== 'video/vp8',
+              );
+              pc.getTransceivers().forEach((t) => {
+                if (
+                  t.receiver.track.kind === 'video' &&
+                  typeof t.setCodecPreferences === 'function'
+                ) {
+                  try {
+                    t.setCodecPreferences([...vp8Codecs, ...otherCodecs]);
+                  } catch {}
+                }
+              });
+            }
+          } catch {}
+        }
+        await awaitCurrentSetup(generation, videoSender.replaceTrack(screenTrack), screenStream);
+
+        try {
+          const params = videoSender.getParameters();
+          if (!params.encodings || params.encodings.length === 0) {
+            params.encodings = [{}];
+          }
+          for (const enc of params.encodings) {
+            enc.active = true;
+            enc.maxBitrate = 8_000_000;
+            enc.maxFramerate = 60;
+            enc.scaleResolutionDownBy = 1.0;
+          }
+          params.degradationPreference = 'maintain-framerate';
+          await videoSender.setParameters(params);
+        } catch (e) {
+          console.warn('[ScreenShare] setParameters failed:', e);
+        }
+
+        // Screen share streams must bypass application-layer transform to prevent frame corruption
+        if ('transform' in videoSender) {
+          try {
+            (videoSender as { transform?: unknown }).transform = null;
+          } catch {}
+        }
       } else {
         const newSender = pc.addTrack(screenTrack, screenStream);
-        if (cryptoKeyRef.current && newSender) {
-          attachSenderEncryption(newSender, cryptoKeyRef.current);
+        try {
+          const params = newSender.getParameters();
+          if (!params.encodings || params.encodings.length === 0) {
+            params.encodings = [{}];
+          }
+          for (const enc of params.encodings) {
+            enc.active = true;
+            enc.maxBitrate = 8_000_000;
+            enc.maxFramerate = 60;
+            enc.scaleResolutionDownBy = 1.0;
+          }
+          params.degradationPreference = 'maintain-framerate';
+          await newSender.setParameters(params);
+        } catch (e) {
+          console.warn('[ScreenShare] setParameters on newSender failed:', e);
         }
       }
+
+      // CRITICAL: Set screen share active in Zustand BEFORE renegotiating SDP
+      // so triggerIceRestart / triggerRenegotiation recognizes that screen sharing is active!
+      ensureCurrentSetup(generation, screenStream);
+      setScreenShareStream(screenStream);
+      setIsScreenSharing(true);
+
+      // CRITICAL: Renegotiate SDP when screen share starts so the remote peer
+      // updates its video transceiver direction to sendrecv and begins receiving video RTP packets
+      void triggerIceRestart();
     }
 
     // If system / tab audio is captured, mix it with current mic track
     if (pc && screenAudioTrack) {
       const audioSender = pc.getSenders().find((s) => s.track && s.track.kind === 'audio');
       if (audioSender && audioSender.track) {
-        originalAudioTrackRef.current = audioSender.track;
+        if (!originalAudioTrackRef.current) {
+          originalAudioTrackRef.current = audioSender.track;
+        }
         const mixer = new AudioMixer(audioSender.track, screenAudioTrack);
         audioMixerRef.current = mixer;
         const mixedTrack = mixer.getMixedTrack();
         if (mixedTrack) {
-          await audioSender.replaceTrack(mixedTrack);
+          await awaitCurrentSetup(generation, audioSender.replaceTrack(mixedTrack), screenStream);
+          ensureCurrentSetup(generation, screenStream);
           setIsScreenAudioSharing(true);
         }
       }
     }
 
+    ensureCurrentSetup(generation, screenStream);
     screenTrack.onended = () => {
       void stopScreenShare();
     };
@@ -1476,7 +2538,15 @@ export function useWebRTC(options: WebRTCOptions = {}) {
     setScreenShareStream(screenStream);
     setIsScreenSharing(true);
     return screenStream;
-  }, [setScreenShareStream, setIsScreenSharing, setIsScreenAudioSharing, stopScreenShare]);
+  }, [
+    setScreenShareStream,
+    setIsScreenSharing,
+    setIsScreenAudioSharing,
+    stopScreenShare,
+    triggerIceRestart,
+    ensureCurrentSetup,
+    awaitCurrentSetup,
+  ]);
 
   const sendP2PFile = useCallback(async (file: File): Promise<string> => {
     if (!p2pFileManagerRef.current) {
@@ -1498,6 +2568,7 @@ export function useWebRTC(options: WebRTCOptions = {}) {
   }, []);
 
   const closeConnection = useCallback(() => {
+    setupGenerationRef.current += 1;
     stopReconnectingChime();
     if (reconnectCountdownTimerRef.current) {
       clearInterval(reconnectCountdownTimerRef.current);
@@ -1520,6 +2591,10 @@ export function useWebRTC(options: WebRTCOptions = {}) {
     if (audioMixerRef.current) {
       audioMixerRef.current.stop();
       audioMixerRef.current = null;
+    }
+    if (callAudioPipelineRef.current) {
+      callAudioPipelineRef.current.destroy();
+      callAudioPipelineRef.current = null;
     }
     spatialAudioRef.current?.destroy();
     spatialAudioRef.current = null;
@@ -1546,16 +2621,25 @@ export function useWebRTC(options: WebRTCOptions = {}) {
     syncPlayEngineRef.current?.destroy();
     syncPlayEngineRef.current = null;
     whiteboardEngineRef.current?.destroy();
-    whiteboardEngineRef.current = new WhiteboardCRDTEngine({
-      userId: useAuthStore.getState().userId || undefined,
-      userName: useAuthStore.getState().userId
-        ? `User ${useAuthStore.getState().userId!.slice(0, 4)}`
-        : 'You',
-    });
+    whiteboardEngineRef.current = mountedRef.current
+      ? new WhiteboardCRDTEngine({
+          userId: useAuthStore.getState().userId || undefined,
+          userName: useAuthStore.getState().userId
+            ? `User ${useAuthStore.getState().userId!.slice(0, 4)}`
+            : 'You',
+        })
+      : null;
+    if (mountedRef.current) setWhiteboardEngine(whiteboardEngineRef.current);
     webCodecsManagerRef.current?.destroy();
-    webCodecsManagerRef.current = new WebCodecsStreamManager(superResEngineRef.current!);
+    webCodecsManagerRef.current = mountedRef.current
+      ? new WebCodecsStreamManager(superResEngineRef.current!)
+      : null;
     peerRelayManagerRef.current?.destroy();
-    peerRelayManagerRef.current = new P2PTurnRelayManager();
+    peerRelayManagerRef.current = mountedRef.current ? new P2PTurnRelayManager() : null;
+    if (!mountedRef.current) {
+      superResEngineRef.current?.destroy();
+      superResEngineRef.current = null;
+    }
 
     headTrackerRef.current?.stop();
     headTrackerRef.current = null;
@@ -1619,9 +2703,32 @@ export function useWebRTC(options: WebRTCOptions = {}) {
     transformedSendersRef.current = new WeakSet();
     transformedReceiversRef.current = new WeakSet();
     terminateScriptTransformWorker();
-    globalCallExternalStore.transition('ENDED');
+    if (globalCallExternalStore.getSnapshot().fsmState !== 'IDLE') {
+      globalCallExternalStore.transition('ENDED');
+    }
     globalCallExternalStore.reset();
   }, [setIsReconnecting, localStream, screenShareStream, remoteStreams]);
+  disposeConnectionRef.current = closeConnection;
+
+  const resetPeerConnectionOnly = useCallback(() => {
+    if (pcRef.current) {
+      const pc = pcRef.current;
+      pc.onicecandidate = null;
+      pc.ontrack = null;
+      pc.ondatachannel = null;
+      pc.oniceconnectionstatechange = null;
+      pc.onconnectionstatechange = null;
+      pc.onsignalingstatechange = null;
+      try {
+        pc.close();
+      } catch {
+        // Ignored
+      }
+      pcRef.current = null;
+    }
+    queuedCandidatesRef.current = [];
+    perfectNegotiationRef.current = null;
+  }, []);
 
   // Traveler Mode / Eco-Mode: suspend incoming video track decoding and throttle Opus audio bitrate
   useEffect(() => {
@@ -1680,6 +2787,147 @@ export function useWebRTC(options: WebRTCOptions = {}) {
     }
   }, []);
 
+  // Dynamic video input device switch via sender.replaceTrack
+  const prevVideoInputRef = useRef(selectedVideoInput);
+  useEffect(() => {
+    if (prevVideoInputRef.current === selectedVideoInput) return;
+    prevVideoInputRef.current = selectedVideoInput;
+
+    const pc = pcRef.current;
+    if (!pc || !localStream || pc.connectionState === 'closed') return;
+    if (localStream.getVideoTracks().length === 0) return;
+
+    const switchVideo = async () => {
+      const generation = setupGenerationRef.current;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: selectedVideoInput
+            ? {
+                deviceId: { exact: selectedVideoInput },
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+              }
+            : { width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false,
+        });
+        ensureCurrentSetup(generation, stream);
+        const newTrack = stream.getVideoTracks()[0];
+        if (newTrack) {
+          const sender = pc.getSenders().find((s) => s.track?.kind === 'video');
+          if (sender) {
+            await awaitCurrentSetup(generation, sender.replaceTrack(newTrack), stream);
+            ensureCurrentSetup(generation, stream);
+          }
+          const oldTrack = localStream.getVideoTracks()[0];
+          if (oldTrack) {
+            oldTrack.stop();
+            localStream.removeTrack(oldTrack);
+          }
+          localStream.addTrack(newTrack);
+        }
+      } catch (err) {
+        console.warn('[useWebRTC] Dynamic video device switch failed:', err);
+      }
+    };
+    void switchVideo();
+  }, [selectedVideoInput, localStream, ensureCurrentSetup, awaitCurrentSetup]);
+
+  // Dynamic audio input device switch via sender.replaceTrack (real-time microphone change)
+  const prevAudioInputRef = useRef(selectedAudioInput);
+  useEffect(() => {
+    if (prevAudioInputRef.current === selectedAudioInput) return;
+    prevAudioInputRef.current = selectedAudioInput;
+
+    const pc = pcRef.current;
+    if (!pc || !localStream || pc.connectionState === 'closed') return;
+    if (localStream.getAudioTracks().length === 0) return;
+
+    const switchAudio = async () => {
+      const generation = setupGenerationRef.current;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: selectedAudioInput
+            ? {
+                deviceId: { exact: selectedAudioInput },
+                echoCancellation: true,
+                noiseSuppression: isNoiseSuppressionEnabled,
+                autoGainControl: true,
+              }
+            : {
+                echoCancellation: true,
+                noiseSuppression: isNoiseSuppressionEnabled,
+                autoGainControl: true,
+              },
+          video: false,
+        });
+        ensureCurrentSetup(generation, stream);
+        rawStreamRef.current = stream;
+
+        if (callAudioPipelineRef.current) {
+          callAudioPipelineRef.current.switchSourceStream(stream);
+          const rawTrack = stream.getAudioTracks()[0];
+          const isVoiceFXActive = Boolean(
+            useCallStore.getState().voiceFX && useCallStore.getState().voiceFX !== 'none',
+          );
+          const targetTrack = isVoiceFXActive
+            ? callAudioPipelineRef.current.getProcessedTrack()
+            : rawTrack;
+          const shouldEnable = useCallStore.getState().isPTTEnabled
+            ? useCallStore.getState().isPTTActive
+            : !useCallStore.getState().isMuted;
+          if (targetTrack) {
+            targetTrack.enabled = shouldEnable;
+          }
+
+          const sender = pc.getSenders().find((s) => s.track?.kind === 'audio');
+          if (sender && targetTrack) {
+            await awaitCurrentSetup(generation, sender.replaceTrack(targetTrack), stream);
+            ensureCurrentSetup(generation, stream);
+          }
+          const oldTrack = localStream.getAudioTracks()[0];
+          if (oldTrack && oldTrack !== targetTrack) {
+            oldTrack.stop();
+            localStream.removeTrack(oldTrack);
+            if (targetTrack) {
+              localStream.addTrack(targetTrack);
+            }
+          }
+        } else {
+          const newTrack = stream.getAudioTracks()[0];
+          if (newTrack) {
+            const sender = pc.getSenders().find((s) => s.track?.kind === 'audio');
+            if (sender) {
+              await awaitCurrentSetup(generation, sender.replaceTrack(newTrack), stream);
+              ensureCurrentSetup(generation, stream);
+            }
+            const oldTrack = localStream.getAudioTracks()[0];
+            if (oldTrack) {
+              oldTrack.stop();
+              localStream.removeTrack(oldTrack);
+            }
+            localStream.addTrack(newTrack);
+          }
+        }
+      } catch (err) {
+        console.warn('[useWebRTC] Dynamic audio device switch failed:', err);
+      }
+    };
+    void switchAudio();
+  }, [
+    selectedAudioInput,
+    localStream,
+    isNoiseSuppressionEnabled,
+    ensureCurrentSetup,
+    awaitCurrentSetup,
+  ]);
+
+  // Dynamic audio output dispatching via setSinkId
+  useEffect(() => {
+    if (selectedAudioOutput && mobileHandlerRef.current) {
+      void mobileHandlerRef.current.setAllAudioOutputs(selectedAudioOutput);
+    }
+  }, [selectedAudioOutput]);
+
   const sendReaction = useCallback((emoji: string) => {
     // 1. Spawn locally
     reactionEngineRef.current?.spawn(
@@ -1707,6 +2955,165 @@ export function useWebRTC(options: WebRTCOptions = {}) {
     }
   }, []);
 
+  const broadcastSoundboard = useCallback(
+    (sound: {
+      soundId: string;
+      name: string;
+      emoji: string;
+      audioData?: string;
+      volume?: number;
+      durationMs?: number;
+    }) => {
+      // 0. Ensure mic is unmuted if needed so outgoing track is active
+      if (useCallStore.getState().isMuted) {
+        useCallStore.getState().setIsMuted(false);
+        toggleMuteTrack(false);
+      }
+
+      // 0. Ensure audio pipeline is active
+      if (callAudioPipelineRef.current) {
+        callAudioPipelineRef.current.resume();
+      }
+
+      // 1. Play locally in pure stereo (isPreview = true -> strictly outputs to local speakers, never into mic track)
+      globalSoundboardEngine.play(sound.soundId, sound.audioData, sound.volume ?? 1.0, true);
+
+      const currentUserId = useAuthStore.getState().userId || 'me';
+
+      // 2. Trigger local visual feedback for both currentUserId and 'me' fallback
+      useCallStore.getState().triggerSoundboardEvent({
+        soundId: sound.soundId,
+        name: sound.name,
+        emoji: sound.emoji,
+        senderUserId: currentUserId,
+      });
+      if (currentUserId !== 'me') {
+        useCallStore.getState().triggerSoundboardEvent({
+          soundId: sound.soundId,
+          name: sound.name,
+          emoji: sound.emoji,
+          senderUserId: 'me',
+        });
+      }
+
+      // 3. Activate green speaking indicator on sender
+      useCallStore.getState().setLocalIsSpeaking(true);
+      setTimeout(
+        () => {
+          useCallStore.getState().setLocalIsSpeaking(false);
+        },
+        Math.max(1500, sound.durationMs || 2000),
+      );
+
+      // 4. Broadcast play payload to remote peers via DataChannel and Socket
+      const payload = JSON.stringify({
+        type: 'SOUNDBOARD_PLAY',
+        soundId: sound.soundId,
+        name: sound.name,
+        emoji: sound.emoji,
+        durationMs: sound.durationMs || 2000,
+        audioData: sound.audioData,
+        volume: sound.volume ?? 1.0,
+        senderUserId: currentUserId,
+        timestamp: Date.now(),
+      });
+
+      if (binaryMuxRef.current) {
+        binaryMuxRef.current.sendFrame(MULTIPLEXED_STREAM_IDS.SOUNDBOARD, payload);
+      }
+      if (reactionChannelRef.current && reactionChannelRef.current.readyState === 'open') {
+        try {
+          reactionChannelRef.current.send(payload);
+        } catch {
+          // DataChannel send error
+        }
+      }
+
+      const activeCallId = useCallStore.getState().callId;
+      const conversationId = useCallStore.getState().conversationId;
+      try {
+        const socket = getSocket();
+        if (socket?.connected && (conversationId || activeCallId)) {
+          socket.emit('soundboard:play', {
+            conversationId: conversationId || activeCallId,
+            soundId: sound.soundId,
+            name: sound.name,
+            emoji: sound.emoji,
+            durationMs: sound.durationMs || 2000,
+            audioData: sound.audioData,
+            volume: sound.volume ?? 1.0,
+            senderUserId: currentUserId,
+            timestamp: Date.now(),
+          });
+        }
+      } catch {
+        // Socket emit error
+      }
+    },
+    [],
+  );
+
+  const sendCallActivity = useCallback((activity: any) => {
+    const currentUserId = useAuthStore.getState().userId || 'me';
+    const payload = JSON.stringify({
+      type: 'CALL_ACTIVITY',
+      activity,
+      senderUserId: currentUserId,
+      timestamp: Date.now(),
+    });
+    if (binaryMuxRef.current) {
+      binaryMuxRef.current.sendFrame(MULTIPLEXED_STREAM_IDS.ACTIVITY, payload);
+    }
+    if (reactionChannelRef.current && reactionChannelRef.current.readyState === 'open') {
+      try {
+        reactionChannelRef.current.send(payload);
+      } catch {
+        // DataChannel send error
+      }
+    }
+  }, []);
+
+  const unblockAutoplay = useCallback(async () => {
+    globalSpeakerMixerManager.resumeAll();
+    callAudioPipelineRef.current?.resume();
+    return (await mobileHandlerRef.current?.unblockAutoplay()) ?? false;
+  }, []);
+
+  const registerMediaElement = useCallback((el: HTMLMediaElement) => {
+    mobileHandlerRef.current?.registerMediaElement(el);
+  }, []);
+
+  const setTransceiverDirection = useCallback(
+    (kind: 'audio' | 'video', direction: RTCRtpTransceiverDirection) => {
+      return perfectNegotiationRef.current?.setTransceiverDirection(kind, direction) ?? false;
+    },
+    [],
+  );
+
+  const configureSVC = useCallback(async (options?: Partial<SVCOptions>) => {
+    const pc = pcRef.current;
+    if (!pc) return false;
+    const videoSender = pc.getSenders().find((s) => s.track && s.track.kind === 'video');
+    if (!videoSender) return false;
+    return configureSenderSVC(videoSender, options);
+  }, []);
+
+  const switchSVCMode = useCallback(async (mode: SVCScalabilityMode, maxBitrate?: number) => {
+    const pc = pcRef.current;
+    if (!pc) return false;
+    const videoSender = pc.getSenders().find((s) => s.track && s.track.kind === 'video');
+    if (!videoSender) return false;
+    return switchSVCScalabilityMode(videoSender, mode, maxBitrate);
+  }, []);
+
+  const setSVCLayers = useCallback(async (active: boolean) => {
+    const pc = pcRef.current;
+    if (!pc) return false;
+    const videoSender = pc.getSenders().find((s) => s.track && s.track.kind === 'video');
+    if (!videoSender) return false;
+    return setSVCLayerActive(videoSender, active);
+  }, []);
+
   return {
     pcRef,
     initPeerConnection,
@@ -1726,15 +3133,19 @@ export function useWebRTC(options: WebRTCOptions = {}) {
     toggleVideoTrack,
     startScreenShare,
     stopScreenShare,
+    ensureReceiverTracks,
     sendP2PFile,
     cancelP2PTransfer,
     registerVideoTile,
     unregisterVideoTile,
     closeConnection,
+    resetPeerConnectionOnly,
     sendReaction,
+    broadcastSoundboard,
+    sendCallActivity,
     reactionEngine: reactionEngineRef.current,
     syncPlayEngine: syncPlayEngineRef.current,
-    whiteboardEngine: whiteboardEngineRef.current,
+    whiteboardEngine,
     superResEngine: superResEngineRef.current,
     webCodecsManager: webCodecsManagerRef.current,
     peerRelayManager: peerRelayManagerRef.current,
@@ -1743,37 +3154,17 @@ export function useWebRTC(options: WebRTCOptions = {}) {
     webTransportClient: webTransportClientRef.current,
     chaosEngine: chaosEngineRef.current,
     mobileHandler: mobileHandlerRef.current,
-    unblockAutoplay: async () => {
-      return (await mobileHandlerRef.current?.unblockAutoplay()) ?? false;
-    },
-    registerMediaElement: (el: HTMLMediaElement) => {
-      mobileHandlerRef.current?.registerMediaElement(el);
-    },
+    unblockAutoplay,
+    registerMediaElement,
     binaryMux: binaryMuxRef.current,
     perfectNegotiation: perfectNegotiationRef.current,
-    setTransceiverDirection: (kind: 'audio' | 'video', direction: RTCRtpTransceiverDirection) => {
-      return perfectNegotiationRef.current?.setTransceiverDirection(kind, direction) ?? false;
-    },
-    configureSVC: async (options?: Partial<SVCOptions>) => {
-      const pc = pcRef.current;
-      if (!pc) return false;
-      const videoSender = pc.getSenders().find((s) => s.track && s.track.kind === 'video');
-      if (!videoSender) return false;
-      return configureSenderSVC(videoSender, options);
-    },
-    switchSVCMode: async (mode: SVCScalabilityMode, maxBitrate?: number) => {
-      const pc = pcRef.current;
-      if (!pc) return false;
-      const videoSender = pc.getSenders().find((s) => s.track && s.track.kind === 'video');
-      if (!videoSender) return false;
-      return switchSVCScalabilityMode(videoSender, mode, maxBitrate);
-    },
-    setSVCLayers: async (active: boolean) => {
-      const pc = pcRef.current;
-      if (!pc) return false;
-      const videoSender = pc.getSenders().find((s) => s.track && s.track.kind === 'video');
-      if (!videoSender) return false;
-      return setSVCLayerActive(videoSender, active);
+    setTransceiverDirection,
+    configureSVC,
+    switchSVCMode,
+    setSVCLayers,
+    resumeAudioContext: () => {
+      callAudioPipelineRef.current?.resume();
+      globalSpeakerMixerManager.resumeAll();
     },
     callExternalStore: globalCallExternalStore,
   };

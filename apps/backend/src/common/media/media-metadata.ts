@@ -27,6 +27,7 @@ export async function inspectMedia(
       png: 'image/png',
       webp: 'image/webp',
       gif: 'image/gif',
+      avif: 'image/avif',
     };
     if (
       !meta.format ||
@@ -164,15 +165,18 @@ export async function inspectMedia(
       contentType === 'audio/mpeg'
         ? prefix.toString('ascii', 0, 3) === 'ID3' ||
           (prefix[0] === 255 && (prefix[1] & 224) === 224)
-        : contentType === 'audio/wav'
-          ? prefix.toString('ascii', 0, 4) === 'RIFF' && prefix.toString('ascii', 8, 12) === 'WAVE'
-          : contentType === 'audio/ogg'
-            ? prefix.toString('ascii', 0, 4) === 'OggS'
-            : contentType === 'audio/mp4'
-              ? prefix.toString('ascii', 4, 8) === 'ftyp'
-              : contentType === 'audio/webm'
-                ? prefix.length >= 4 && prefix.readUInt32BE(0) === 0x1a45dfa3
-                : false;
+        : contentType === 'audio/flac'
+          ? prefix.toString('ascii', 0, 4) === 'fLaC'
+          : contentType === 'audio/wav'
+            ? prefix.toString('ascii', 0, 4) === 'RIFF' &&
+              prefix.toString('ascii', 8, 12) === 'WAVE'
+            : contentType === 'audio/ogg'
+              ? prefix.toString('ascii', 0, 4) === 'OggS'
+              : contentType === 'audio/mp4'
+                ? prefix.toString('ascii', 4, 8) === 'ftyp'
+                : contentType === 'audio/webm'
+                  ? prefix.length >= 4 && prefix.readUInt32BE(0) === 0x1a45dfa3
+                  : false;
     if (!valid) invalid();
   }
   return {};

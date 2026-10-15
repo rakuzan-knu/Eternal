@@ -1,5 +1,6 @@
 import { queryClient } from '@/shared/api/queryClient';
 import { disconnectSocket } from '@/shared/api/socket';
+import { idbPersister } from '@/shared/api/idbPersister';
 import { usePresenceStore } from '@/shared/model/usePresenceStore';
 import { useMessageToastStore } from '@/shared/model/useMessageToastStore';
 import { useHiddenPostsStore } from '@/shared/model/useHiddenPostsStore';
@@ -78,6 +79,15 @@ const UI_INITIAL_STATE = {
  * RAM state without requiring destructive full-page reloads.
  */
 export function resetSessionStores() {
+  // Cancel feature-owned queues before clearing data or disconnecting transports.
+  // A disconnect callback must never flush old session data into an empty cache.
+  getResetHandlers().forEach((handler) => {
+    try {
+      handler();
+    } catch {
+      /* One slice must not block the remaining reset. */
+    }
+  });
   // 1. Cancel ongoing queries and wipe React Query cache
   try {
     queryClient.cancelQueries();
@@ -85,6 +95,9 @@ export function resetSessionStores() {
   } catch {
     // Graceful fallback for test environments without queryClient active
   }
+  // Cancel a scheduled snapshot and let deletion follow any in-flight write.
+  // This shared boundary also covers account switches and cross-tab logout.
+  void idbPersister.removeClient();
 
   // 2. Terminate gateway / WebSocket connection and discard listeners
   try {
@@ -103,13 +116,4 @@ export function resetSessionStores() {
   } catch {
     // Ignore in tests
   }
-
-  // 4. Run feature-registered reset handlers (session-scoped slices).
-  getResetHandlers().forEach((handler) => {
-    try {
-      handler();
-    } catch {
-      // Ignore handler errors — one bad slice must not block the rest
-    }
-  });
 }

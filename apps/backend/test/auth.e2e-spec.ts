@@ -36,4 +36,25 @@ describe('Auth (e2e)', () => {
       .send({ email: 'nonexistent@example.com', password: 'Password123!' })
       .expect(401);
   });
+
+  it('POST /auth/register creates a UUID account and sets the refresh cookie', async () => {
+    const suffix = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    const res = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        email: `merge-auth-${suffix}@example.com`,
+        username: `mergeauth${suffix}`,
+        password: 'Password123!',
+      })
+      .expect(201);
+    const body = res.body as { user: { id: string }; accessToken: string };
+    expect(body.user.id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+    );
+    expect(body.accessToken).toEqual(expect.any(String));
+    const cookies = res.headers['set-cookie'] as unknown as string[];
+    expect(cookies).toEqual(
+      expect.arrayContaining([expect.stringMatching(/^refreshToken=.*; HttpOnly/i)]),
+    );
+  });
 });

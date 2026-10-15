@@ -38,7 +38,9 @@ async function check(origin, path, status, role) {
       const [pathname, query] = paths[feature].split('?');
       await check(origin, `${pathname}/${query ? `?${query}` : ''}`, status, role);
     }
-    await check(origin, '/v1/auth/spotify/?userId=smoke', role === 'music' ? 302 : 404, role);
+    await check(origin, '/v1/auth/spotify/?userId=smoke', role === 'music' ? 401 : 404, role);
+    await check(origin, '/v1/soundboard/my', role === 'messenger' ? 401 : 404, role);
+    await check(origin, '/v1/watch-together/history', role === 'messenger' ? 401 : 404, role);
     if (role !== 'messenger') await check(origin, '/socket.io/?EIO=4&transport=polling', 403, role);
     console.log(
       `${role}: readiness, owned routes, wrong-service rejection and socket boundary passed`,

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import Hls from 'hls.js';
+import type Hls from 'hls.js';
 import { registerSessionResetHandler } from './resetSession';
 import { audioCoordinator } from '@/shared/lib/audioCoordinator';
 import {
@@ -13,6 +13,7 @@ import { useAuthStore } from './useAuthStore';
 import { musicEventBridge } from '@/shared/lib/musicEvents';
 import { integrationsApi } from '../api/integrationsApi';
 import { getApiUrl } from '../api/httpClient';
+import { getSocket } from '@/shared/api/socket';
 
 declare global {
   interface Window {
@@ -112,16 +113,25 @@ let sdkPlayerInstance: any = null;
 let sdkDeviceId: string | null = null;
 let globalAudio: HTMLAudioElement | null = null;
 let activeHlsInstance: Hls | null = null;
+let streamGeneration = 0;
 let isRetryingSoundCloud = false;
 let progressInterval: any = null;
 let sdkScriptLoading = false;
 let isTransitioningTrack = false;
 let activeQueuePromise: Promise<void> | null = null;
+let pendingAudioSeekCleanup: (() => void) | null = null;
+let streamRetryTimer: ReturnType<typeof setTimeout> | null = null;
 
 export const getGlobalAudioElement = (): HTMLAudioElement | null => globalAudio;
 export const getSdkPlayerInstance = (): any => sdkPlayerInstance;
 
 const teardownSoundCloudAudio = () => {
+  streamGeneration += 1;
+  pendingAudioSeekCleanup?.();
+  pendingAudioSeekCleanup = null;
+  if (streamRetryTimer !== null) clearTimeout(streamRetryTimer);
+  streamRetryTimer = null;
+  isRetryingSoundCloud = false;
   if (activeHlsInstance) {
     try {
       activeHlsInstance.destroy();
@@ -131,6 +141,7 @@ const teardownSoundCloudAudio = () => {
   if (globalAudio) {
     try {
       globalAudio.pause();
+      globalAudio.srcObject = null;
       globalAudio.removeAttribute('src');
       globalAudio.load();
     } catch {}
@@ -141,7 +152,9 @@ const handleSoundCloudTokenExpiration = async (trackId?: string) => {
   const state = useSpotifyPlayerStore.getState();
   const cur = state.currentTrack;
   const targetId = trackId || cur?.id;
-  if (!targetId || isRetryingSoundCloud) return;
+  if (!targetId || cur?.id !== targetId || !state.isPlaying || isRetryingSoundCloud) return;
+  const generation = streamGeneration;
+  let cooldownGeneration = generation;
 
   isRetryingSoundCloud = true;
   try {
@@ -149,20 +162,37 @@ const handleSoundCloudTokenExpiration = async (trackId?: string) => {
       '[SoundCloud Player] Stream token expired (403/network error). Requesting fresh stream URL...',
     );
     const fresh = await integrationsApi.getSoundCloudStream(targetId, true);
-    if (fresh?.streamUrl) {
+    if (
+      fresh?.streamUrl &&
+      generation === streamGeneration &&
+      useSpotifyPlayerStore.getState().currentTrack?.id === targetId &&
+      useSpotifyPlayerStore.getState().isPlaying
+    ) {
       const pos = state.progressMs;
-      startSoundCloudPlayback(targetId, fresh.streamUrl, fresh.isHls, pos);
+      const restarting = startSoundCloudPlayback(targetId, fresh.streamUrl, fresh.isHls, pos);
+      cooldownGeneration = streamGeneration;
+      isRetryingSoundCloud = true;
+      await restarting;
     }
   } catch (err) {
     console.warn('[SoundCloud Player] Failed to refresh stream token:', err);
   } finally {
-    setTimeout(() => {
-      isRetryingSoundCloud = false;
-    }, 3000);
+    if (cooldownGeneration === streamGeneration) {
+      if (!useSpotifyPlayerStore.getState().isPlaying) {
+        isRetryingSoundCloud = false;
+      } else {
+        streamRetryTimer = setTimeout(() => {
+          streamRetryTimer = null;
+          isRetryingSoundCloud = false;
+        }, 3000);
+      }
+    }
   }
 };
 
 const setAudioTimeWhenReady = (audio: HTMLAudioElement, timeSec: number) => {
+  pendingAudioSeekCleanup?.();
+  pendingAudioSeekCleanup = null;
   if (timeSec <= 0) return;
   if (audio.readyState >= 1) {
     try {
@@ -174,89 +204,112 @@ const setAudioTimeWhenReady = (audio: HTMLAudioElement, timeSec: number) => {
         audio.currentTime = timeSec;
       } catch {}
       audio.removeEventListener('loadedmetadata', onLoaded);
+      pendingAudioSeekCleanup = null;
     };
+    pendingAudioSeekCleanup = () => audio.removeEventListener('loadedmetadata', onLoaded);
     audio.addEventListener('loadedmetadata', onLoaded, { once: true });
   }
 };
 
-const startSoundCloudPlayback = (
+const startSoundCloudPlayback = async (
   trackId: string,
   url: string,
   isHlsStream: boolean,
   startTimeMs: number = 0,
 ) => {
+  teardownSoundCloudAudio();
+  const generation = ++streamGeneration;
   const audio = getOrCreateAudio();
   const store = useSpotifyPlayerStore.getState();
   audio.volume = store.isMuted ? 0 : store.volume;
-
-  // Strictly tear down any previously active Hls.js instance before new stream
-  if (activeHlsInstance) {
-    try {
-      activeHlsInstance.destroy();
-    } catch {}
-    activeHlsInstance = null;
-  }
+  const ownsStream = () =>
+    generation === streamGeneration &&
+    useSpotifyPlayerStore.getState().currentTrack?.id === trackId;
+  const wantsPlayback = () => ownsStream() && useSpotifyPlayerStore.getState().isPlaying;
+  const play = () => {
+    if (!wantsPlayback()) return;
+    setAudioTimeWhenReady(audio, startTimeMs / 1000);
+    audioCoordinator.play(audio, 'spotify-bottom-dock');
+    void audio.play().catch(() => {
+      if (wantsPlayback()) void handleSoundCloudTokenExpiration(trackId);
+    });
+  };
 
   if (isHlsStream) {
     // 1. Native HLS for Safari (iOS / macOS WebKit)
     if (audio.canPlayType('application/vnd.apple.mpegurl')) {
       audio.src = url;
-      setAudioTimeWhenReady(audio, startTimeMs / 1000);
-      audioCoordinator.play(audio, 'spotify-bottom-dock');
-      audio.play().catch(() => {
-        handleSoundCloudTokenExpiration(trackId);
-      });
-    } else if (Hls.isSupported()) {
-      // 2. Chrome, Firefox, Edge via hls.js
-      const hls = new Hls({ enableWorker: true });
-      hls.loadSource(url);
-      hls.attachMedia(audio);
-      activeHlsInstance = hls;
+      play();
+    } else {
+      let HlsRuntime: typeof import('hls.js').default;
+      try {
+        HlsRuntime = (await import('hls.js')).default;
+      } catch {
+        if (generation === streamGeneration) useSpotifyPlayerStore.setState({ isPlaying: false });
+        return;
+      }
+      if (!wantsPlayback()) return;
+      if (HlsRuntime.isSupported()) {
+        // 2. Chrome, Firefox, Edge via hls.js
+        let hls: Hls;
+        try {
+          hls = new HlsRuntime({
+            enableWorker: true,
+            backBufferLength: 10,
+            maxBufferLength: 30,
+            maxMaxBufferLength: 60,
+            maxBufferSize: 8 * 1024 * 1024,
+          });
+        } catch {
+          if (ownsStream()) useSpotifyPlayerStore.setState({ isPlaying: false });
+          return;
+        }
+        activeHlsInstance = hls;
 
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        setAudioTimeWhenReady(audio, startTimeMs / 1000);
-        audioCoordinator.play(audio, 'spotify-bottom-dock');
-        audio.play().catch(() => {
-          handleSoundCloudTokenExpiration(trackId);
+        hls.on(HlsRuntime.Events.MANIFEST_PARSED, () => {
+          if (!wantsPlayback() || activeHlsInstance !== hls) return;
+          play();
         });
-      });
 
-      hls.on(Hls.Events.ERROR, async (_event, data) => {
-        const isNetworkErr =
-          (data as any).type === Hls.ErrorTypes.NETWORK_ERROR ||
-          (data as any).response?.code === 403 ||
-          (data as any).response?.code === 410;
+        hls.on(HlsRuntime.Events.ERROR, async (_event, data) => {
+          if (!wantsPlayback() || activeHlsInstance !== hls) return;
+          const isNetworkErr =
+            (data as any).type === HlsRuntime.ErrorTypes.NETWORK_ERROR ||
+            (data as any).response?.code === 403 ||
+            (data as any).response?.code === 410;
 
-        if (isNetworkErr) {
-          handleSoundCloudTokenExpiration(trackId);
-        } else if (data.fatal) {
-          switch (data.type) {
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              hls.recoverMediaError();
-              break;
-            default:
-              hls.destroy();
-              activeHlsInstance = null;
-              break;
+          if (isNetworkErr) {
+            handleSoundCloudTokenExpiration(trackId);
+          } else if (data.fatal) {
+            switch (data.type) {
+              case HlsRuntime.ErrorTypes.MEDIA_ERROR:
+                hls.recoverMediaError();
+                break;
+              default:
+                hls.destroy();
+                activeHlsInstance = null;
+                break;
+            }
+          }
+        });
+        try {
+          hls.loadSource(url);
+          hls.attachMedia(audio);
+        } catch {
+          if (ownsStream() && activeHlsInstance === hls) {
+            teardownSoundCloudAudio();
+            useSpotifyPlayerStore.setState({ isPlaying: false });
           }
         }
-      });
-    } else {
-      audio.src = url;
-      setAudioTimeWhenReady(audio, startTimeMs / 1000);
-      audioCoordinator.play(audio, 'spotify-bottom-dock');
-      audio.play().catch(() => {
-        handleSoundCloudTokenExpiration(trackId);
-      });
+      } else {
+        audio.src = url;
+        play();
+      }
     }
   } else {
     // Progressive MP3 direct playback
     audio.src = url;
-    setAudioTimeWhenReady(audio, startTimeMs / 1000);
-    audioCoordinator.play(audio, 'spotify-bottom-dock');
-    audio.play().catch(() => {
-      handleSoundCloudTokenExpiration(trackId);
-    });
+    play();
   }
 };
 
@@ -293,7 +346,10 @@ const getOrCreateAudio = (): HTMLAudioElement => {
           return;
         }
         if (state.isPlaying) {
-          useSpotifyPlayerStore.setState({ progressMs: posMs });
+          // Micro-throttle: Avoid spamming store updates faster than 250ms unless seeking/looping back
+          if (Math.abs(posMs - state.progressMs) >= 250 || posMs < state.progressMs) {
+            useSpotifyPlayerStore.setState({ progressMs: posMs });
+          }
         }
       }
     });
@@ -520,7 +576,7 @@ export const useSpotifyPlayerStore = create<SpotifyPlayerState>()(
           if (!window.Spotify || !window.Spotify.Player) return;
 
           const player = new window.Spotify.Player({
-            name: 'Antigravity Liquid Player',
+            name: 'Eternal Player',
             getOAuthToken: async (cb: (token: string) => void) => {
               try {
                 const data = await integrationsApi.getSpotifyUserToken();
@@ -549,7 +605,21 @@ export const useSpotifyPlayerStore = create<SpotifyPlayerState>()(
             }
 
             const state = get();
-            if (state.currentTrack && state.isPlaying) {
+            const isSoundCloud = Boolean(
+              state.currentTrack &&
+              (state.currentTrack.source === 'soundcloud' ||
+                state.currentTrack.source === 'platform' ||
+                state.currentTrack.source !== 'spotify' ||
+                state.currentTrack.id.startsWith('sc-') ||
+                state.currentTrack.id.startsWith('soundcloud-')),
+            );
+
+            if (
+              state.currentTrack &&
+              state.isPlaying &&
+              !isSoundCloud &&
+              state.currentTrack.source === 'spotify'
+            ) {
               if (globalAudio) {
                 globalAudio.pause();
                 globalAudio.src = '';
@@ -585,6 +655,28 @@ export const useSpotifyPlayerStore = create<SpotifyPlayerState>()(
               dur,
               track: state.track_window?.current_track?.name,
             });
+
+            // If user is currently playing or loaded on SoundCloud/platform,
+            // the Spotify Web Playback SDK must never hijack or overwrite active player session!
+            const activeTrack = get().currentTrack;
+            const isSoundCloudActive = Boolean(
+              activeTrack &&
+              (activeTrack.source === 'soundcloud' ||
+                activeTrack.source === 'platform' ||
+                activeTrack.source !== 'spotify' ||
+                activeTrack.id.startsWith('sc-') ||
+                activeTrack.id.startsWith('soundcloud-')),
+            );
+
+            if (isSoundCloudActive) {
+              // Silence rogue audio playback on Spotify SDK device if any
+              if (!isPaused && sdkPlayerInstance) {
+                try {
+                  sdkPlayerInstance.pause().catch(() => {});
+                } catch {}
+              }
+              return;
+            }
 
             // If track transition is actively occurring, ignore transient SDK paused state!
             if (isTransitioningTrack) {
@@ -849,6 +941,9 @@ export const useSpotifyPlayerStore = create<SpotifyPlayerState>()(
       },
 
       playTrack: (track, newQueue, contextName, addToHistory = true) => {
+        // Retire the old stream/metadata callbacks before resolving the next URL.
+        teardownSoundCloudAudio();
+        const lookupGeneration = streamGeneration;
         const isSoundCloud = Boolean(
           track.source === 'soundcloud' ||
           track.id.startsWith('sc-') ||
@@ -984,6 +1079,8 @@ export const useSpotifyPlayerStore = create<SpotifyPlayerState>()(
             integrationsApi
               .getSoundCloudStream(safeTrackId)
               .then((streamData) => {
+                if (lookupGeneration !== streamGeneration || get().currentTrack?.id !== safeTrackId)
+                  return;
                 if (streamData?.streamUrl) {
                   const cur = get().currentTrack;
                   if (cur && cur.id === safeTrackId) {
@@ -993,7 +1090,14 @@ export const useSpotifyPlayerStore = create<SpotifyPlayerState>()(
                         streamUrl: streamData.streamUrl,
                       },
                     });
-                    startSoundCloudPlayback(safeTrackId, streamData.streamUrl, streamData.isHls, 0);
+                    if (get().isPlaying) {
+                      void startSoundCloudPlayback(
+                        safeTrackId,
+                        streamData.streamUrl,
+                        streamData.isHls,
+                        0,
+                      );
+                    }
                   }
                 } else {
                   console.warn('[SoundCloud Play] Failed to resolve stream URL for:', safeTrackId);
@@ -1002,6 +1106,8 @@ export const useSpotifyPlayerStore = create<SpotifyPlayerState>()(
                 }
               })
               .catch((err) => {
+                if (lookupGeneration !== streamGeneration || get().currentTrack?.id !== safeTrackId)
+                  return;
                 console.warn('[SoundCloud Play] Stream fetch error:', err);
                 set({ isPlaying: false });
                 stopProgressTimer();
@@ -1091,6 +1197,7 @@ export const useSpotifyPlayerStore = create<SpotifyPlayerState>()(
       },
 
       pause: () => {
+        activeHlsInstance?.stopLoad();
         if (sdkPlayerInstance && sdkDeviceId) {
           sdkPlayerInstance.pause().catch(() => {});
         }
@@ -1137,10 +1244,13 @@ export const useSpotifyPlayerStore = create<SpotifyPlayerState>()(
         );
 
         if (isSoundCloud) {
+          set({ isPlaying: true });
+          activeHlsInstance?.startLoad(-1);
           if (sdkPlayerInstance) {
             sdkPlayerInstance.pause().catch(() => {});
           }
           if (globalAudio && globalAudio.src) {
+            const resumeGeneration = streamGeneration;
             audioCoordinator.play(globalAudio, 'spotify-bottom-dock');
             // Restore progress position if audio drifted or reset
             const savedProgressSec = get().progressMs / 1000;
@@ -1153,9 +1263,11 @@ export const useSpotifyPlayerStore = create<SpotifyPlayerState>()(
               } catch {}
             }
             globalAudio.play().catch(() => {
-              handleSoundCloudTokenExpiration(currentTrack.id);
+              if (resumeGeneration === streamGeneration && get().isPlaying) {
+                void handleSoundCloudTokenExpiration(currentTrack.id);
+              }
             });
-          } else if (currentTrack.id) {
+          } else if (currentTrack.id && !activeHlsInstance) {
             handleSoundCloudTokenExpiration(currentTrack.id);
           }
           set({ isPlaying: true });
@@ -1454,6 +1566,8 @@ export const useSpotifyPlayerStore = create<SpotifyPlayerState>()(
           try {
             const isSoundCloud = Boolean(
               currentTrack.source === 'soundcloud' ||
+              currentTrack.source === 'platform' ||
+              currentTrack.source !== 'spotify' ||
               currentTrack.id.startsWith('sc-') ||
               currentTrack.id.startsWith('soundcloud-'),
             );
@@ -1530,6 +1644,12 @@ export const useSpotifyPlayerStore = create<SpotifyPlayerState>()(
               return;
             }
 
+            // Strictly forbid calling Spotify queue unless track is an authentic Spotify track
+            if (currentTrack.source !== 'spotify') {
+              set({ isLoadingQueue: false });
+              return;
+            }
+
             const cleanTrackId = extractSpotifyTrackId(currentTrack) || currentTrack.id;
             const historyIds = get()
               .history.slice(0, 10)
@@ -1601,13 +1721,60 @@ export const useSpotifyPlayerStore = create<SpotifyPlayerState>()(
       },
 
       closeDock: () => {
-        get().pause();
+        // 1. Pause and teardown all audio instances
+        try {
+          get().pause();
+        } catch {}
+        try {
+          teardownSoundCloudAudio();
+        } catch {}
+        if (sdkPlayerInstance) {
+          try {
+            sdkPlayerInstance.pause();
+          } catch {}
+        }
+        if (globalAudio) {
+          try {
+            globalAudio.pause();
+            globalAudio.currentTime = 0;
+            globalAudio.removeAttribute('src');
+            globalAudio.load();
+          } catch {}
+        }
+        if (progressInterval) {
+          clearInterval(progressInterval);
+          progressInterval = null;
+        }
+
+        // 2. Notify Music Hub to smoothly collapse Now Playing panel
+        try {
+          musicEventBridge.emitPlayerClosed();
+        } catch {}
+
+        // 3. Clear network platform music presence immediately
+        try {
+          const socket = getSocket();
+          if (socket && socket.connected) {
+            socket.emit('user:activity:platform_music', {
+              track: null,
+              isPlaying: false,
+              progressMs: 0,
+              durationMs: 0,
+            });
+          }
+        } catch {}
+
+        // 4. Reset player state so it doesn't reopen upon page reload
         set({
+          currentTrack: null,
+          isPlaying: false,
+          progressMs: 0,
           isDockVisible: false,
           isDockMinimized: false,
           isGameModeOpen: false,
           isLyricsOpen: false,
           isQueueOpen: false,
+          isVolumeOpen: false,
           isMobileExpanded: false,
         });
       },
@@ -1667,8 +1834,8 @@ export const useSpotifyPlayerStore = create<SpotifyPlayerState>()(
         if (state) {
           // Strictly guarantee playback is paused on page reload with saved progress
           state.isPlaying = false;
-          if (state.currentTrack) {
-            state.isDockVisible = true;
+          if (!state.currentTrack || !state.isDockVisible) {
+            state.isDockVisible = false;
           }
         }
       },
@@ -1697,6 +1864,7 @@ if (typeof window !== 'undefined') {
  * relogin never resumes another account's queue.
  */
 registerSessionResetHandler(() => {
+  teardownSoundCloudAudio();
   try {
     useSpotifyPlayerStore.getState().pause();
   } catch {

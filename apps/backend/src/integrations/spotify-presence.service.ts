@@ -137,15 +137,38 @@ export class SpotifyPresenceService implements OnModuleInit, OnModuleDestroy {
           }
         }
 
+        // Check if there is an active in-app platform music playback currently active
+        const prevPrimary = sc.activityStatus as
+          | (PrimaryActivitySummary & {
+              isPlatformTrack?: boolean;
+              updatedAt?: number;
+              isPaused?: boolean;
+            })
+          | null;
+
+        const isPlatformMusicActive = Boolean(
+          prevPrimary &&
+          (prevPrimary.isPlatformTrack ||
+            (prevPrimary as any).source === 'platform' ||
+            (prevPrimary as any).source === 'soundcloud') &&
+          (prevPrimary.isPaused
+            ? Date.now() - ((prevPrimary as any).pausedAt || prevPrimary.updatedAt || 0) <
+              30 * 60_000
+            : Date.now() - (prevPrimary.updatedAt || 0) < 5 * 60_000),
+        );
+
         // Priority resolution: Game always takes priority over Music in single-line status
         const activeGame = steamActivity && steamActivity.title ? steamActivity : null;
-        const activeMusic = spotify.currentActivity;
+        // In-app platform music (SoundCloud / Music Hub) takes priority over external background Spotify
+        // so listening to music inside the application is never preempted by external Spotify desktop/mobile polling!
+        const activeMusic = isPlatformMusicActive
+          ? prevPrimary
+          : (liveTrack ?? spotify.currentActivity ?? null);
 
         const effectivePrimaryActivity: PrimaryActivitySummary | null =
           activeGame ?? activeMusic ?? null;
 
         // Check if primary activityStatus changed
-        const prevPrimary = sc.activityStatus as PrimaryActivitySummary | null;
         const isPauseChangedInPrimary =
           Boolean(prevPrimary?.isPaused) !== Boolean(effectivePrimaryActivity?.isPaused);
 

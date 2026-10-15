@@ -1,16 +1,9 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent } from '@testing-library/react';
+import { renderWithProviders as render } from '@/test/renderWithProviders';
 import React from 'react';
 import { SuggestedUsersCarousel } from '../SuggestedUsersCarousel';
 import * as useSuggestedUsersModule from '@/entities/user/model/useSuggestedUsers';
-
-vi.mock('react-router-dom', () => ({
-  Link: ({ children, to, ...props }: { children: React.ReactNode; to: string }) => (
-    <a href={to} {...props}>
-      {children}
-    </a>
-  ),
-}));
 
 vi.mock('@/widgets/profile', () => ({
   MiniProfileHoverCard: ({ children }: { children: React.ReactNode }) => <>{children}</>,

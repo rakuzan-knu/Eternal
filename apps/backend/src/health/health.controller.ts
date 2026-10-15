@@ -1,3 +1,5 @@
+import { AuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PlatformAdminGuard } from '../auth/guards/platform-admin.guard';
 import {
   Body,
   Controller,
@@ -6,6 +8,7 @@ import {
   HttpStatus,
   Post,
   Query,
+  UseGuards,
   Res,
   VERSION_NEUTRAL,
 } from '@nestjs/common';
@@ -88,6 +91,7 @@ export class HealthController {
     return this.healthService.getLiveness();
   }
 
+  @UseGuards(AuthGuard, PlatformAdminGuard)
   @Get(['health/redis-memory', 'api/health/redis-memory'])
   @ApiOperation({ summary: 'Inspect Redis memory stats and threshold utilization ratio' })
   @ApiResponse({ status: 200, description: 'Redis memory statistics', type: RedisMemoryInfoDto })
@@ -95,6 +99,7 @@ export class HealthController {
     return this.healthService.getRedisMemoryInfo();
   }
 
+  @UseGuards(AuthGuard, PlatformAdminGuard)
   @Post(['health/self-heal', 'api/health/self-heal'])
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Trigger automated self-healing non-critical cache eviction runbook' })
@@ -107,17 +112,19 @@ export class HealthController {
     return this.healthService.triggerSelfHealing(body);
   }
 
+  @UseGuards(AuthGuard, PlatformAdminGuard)
   @Get(['health/self-heal', 'api/health/self-heal'])
-  @ApiOperation({ summary: 'Inspect or trigger self-healing runbook via GET' })
+  @ApiOperation({ summary: 'Inspect self-healing memory status' })
   @ApiResponse({
     status: 200,
-    description: 'Self-healing runbook execution results',
-    type: SelfHealResponseDto,
+    description: 'Current Redis memory status',
+    type: RedisMemoryInfoDto,
   })
-  async triggerSelfHealGet(@Query() query?: SelfHealTriggerDto): Promise<SelfHealResponseDto> {
-    return this.healthService.triggerSelfHealing(query);
+  async triggerSelfHealGet(): Promise<RedisMemoryInfoDto> {
+    return this.healthService.getRedisMemoryInfo();
   }
 
+  @UseGuards(AuthGuard, PlatformAdminGuard)
   @Get('health/debug-sentry')
   @ApiOperation({ summary: 'Trigger Sentry test error' })
   @ApiResponse({ status: 500, description: 'Internal Server Error (Sentry Test)' })

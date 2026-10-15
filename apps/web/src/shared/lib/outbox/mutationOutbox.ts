@@ -214,11 +214,14 @@ export class MutationOutboxEngine {
 
   /**
    * Enqueues a message mutation into IndexedDB outbox with status 'pending'.
+   * Note: autoFlush defaults to false because active message sends are handled by
+   * the primary sender (useMessageActions). The outbox serves as a durable offline backup
+   * that flushes when connection is restored, preventing parallel transmission race conditions.
    */
   public async enqueueMessage(
     clientMessageId: string,
     payload: OutboxChatMessagePayload,
-    autoFlush = true,
+    autoFlush = false,
   ): Promise<OutboxMutation> {
     const mutation: OutboxMutation = {
       id: clientMessageId,
@@ -263,6 +266,10 @@ export class MutationOutboxEngine {
         if (pendingList.length === 0) break;
 
         const item = pendingList[0];
+        const freshItem = await mutationOutboxDb.get(item.id);
+        if (!freshItem || freshItem.status === 'sent') {
+          continue;
+        }
         await mutationOutboxDb.updateStatus(item.id, 'sending');
 
         try {

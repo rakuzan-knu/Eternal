@@ -1,13 +1,13 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
 import { postsApi, FeedPage } from '../api/postsApi';
 import { USER_REPOSTS_KEY } from '@/shared/api/queryKeys';
+import { useBoundedPostFeed } from './useBoundedPostFeed';
 
 export function useUserReposts(userId: string) {
-  return useInfiniteQuery<FeedPage>({
+  return useBoundedPostFeed<FeedPage>({
     queryKey: [USER_REPOSTS_KEY, userId],
-    queryFn: ({ pageParam }) => postsApi.getUserReposts(userId, pageParam as string | undefined),
-    initialPageParam: undefined,
-    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    fetchPage: (cursor, signal) => postsApi.getUserReposts(userId, cursor, signal),
+    getCount: (page) => page.posts.length,
+    getNextCursor: (page) => page.nextCursor,
     enabled: !!userId,
   });
 }

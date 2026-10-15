@@ -114,7 +114,7 @@ export function ConnectionRadarBadge({
       <button
         type="button"
         onClick={() => setIsExpanded((prev) => !prev)}
-        aria-label={`Состояние связи: ${diagnosis.headline}`}
+        aria-label={`Connection status: ${diagnosis.headline}`}
         className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-[11px] font-medium transition-all backdrop-blur-md border shadow-lg cursor-pointer ${
           diagnosis.quality === 'poor'
             ? 'bg-rose-950/70 border-rose-500/50 text-rose-200 hover:bg-rose-900/80 shadow-[0_0_12px_rgba(244,63,94,0.3)]'
@@ -153,7 +153,9 @@ export function ConnectionRadarBadge({
               {diagnosis.plainLanguageHint}
             </span>
           ) : (
-            <span className="hidden sm:inline text-[10px] text-emerald-300/90">Связь отличная</span>
+            <span className="hidden sm:inline text-[10px] text-emerald-300/90">
+              Connection Good
+            </span>
           )}
         </div>
       </button>
@@ -185,10 +187,10 @@ export function ConnectionRadarBadge({
               }}
             >
               {diagnosis.quality === 'excellent'
-                ? 'Отлично'
+                ? 'Good'
                 : diagnosis.quality === 'fair'
-                  ? 'Внимание'
-                  : 'Проблема'}
+                  ? 'Fair'
+                  : 'Poor'}
             </span>
           </div>
 

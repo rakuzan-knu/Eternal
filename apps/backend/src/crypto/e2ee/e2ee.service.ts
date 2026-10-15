@@ -170,13 +170,13 @@ export class E2eeService {
     userId: string,
     purpose: string = 'call',
   ): Promise<PublicKeyResponseDto | null> {
-    const slot = purpose === 'message' ? 'message' : 'call';
+    const slot = E2eeService.normalizePurpose(purpose);
     const keysToTry = [`e2ee:public_key:${userId}:${slot}`, `e2ee:public_key:${userId}`];
     for (const redisKey of keysToTry) {
       const raw = await this.redisService.get(redisKey);
       if (raw) {
         const parsed = E2eeService.normalizeStoredRecord(raw);
-        if (parsed) {
+        if (parsed && (slot !== 'message' || parsed.purpose !== 'call')) {
           this.localKeyStore.set(`${userId}:${slot}`, parsed);
           return parsed;
         }
@@ -184,7 +184,15 @@ export class E2eeService {
       }
     }
 
-    return this.localKeyStore.get(`${userId}:${slot}`) ?? this.localKeyStore.get(userId) ?? null;
+    const local = this.localKeyStore.get(`${userId}:${slot}`);
+    if (local && (slot !== 'message' || local.purpose !== 'call')) {
+      return local;
+    }
+    const unslotted = this.localKeyStore.get(userId);
+    if (unslotted && (slot !== 'message' || unslotted.purpose !== 'call')) {
+      return unslotted;
+    }
+    return null;
   }
 
   private static normalizeStoredRecord(raw: string): PublicKeyResponseDto | null {
@@ -237,7 +245,7 @@ export class E2eeService {
     }
 
     const legacy = await this.getPublicKey(userId, slot);
-    if (legacy && legacy.publicKey) {
+    if (legacy && legacy.publicKey && (slot !== 'message' || legacy.purpose === 'message')) {
       const id = legacy.deviceId || 'legacy';
       if (!out.has(id)) out.set(id, legacy);
     }

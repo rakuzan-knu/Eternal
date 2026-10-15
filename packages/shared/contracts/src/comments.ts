@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { AvatarDecorationDto } from './decorations';
 
 export interface Comment {
   id: string;
@@ -69,6 +70,7 @@ export type CommentWithUser = Comment & {
     avatar: string | null;
     isVerified?: boolean;
     primaryBadge?: string | null;
+    activeDecoration?: AvatarDecorationDto | null;
   } | null;
   replyToUser?: {
     id: string;
@@ -94,6 +96,7 @@ export class CommentResponseDto {
   author!: string;
   handle!: string;
   avatar!: string | null;
+  activeDecoration?: AvatarDecorationDto | null;
   isVerified!: boolean;
   primaryBadge!: string | null;
   parentId!: string | null;
@@ -120,6 +123,7 @@ export class CommentResponseDto {
     const avatar = comment.user?.avatar || null;
     const isVerified = Boolean(comment.user?.isVerified);
     const primaryBadge = comment.user?.primaryBadge ?? null;
+    const activeDecoration = comment.user?.activeDecoration ?? null;
 
     const likesCount =
       comment.likesCount ??
@@ -154,6 +158,7 @@ export class CommentResponseDto {
       author: displayName,
       handle,
       avatar,
+      activeDecoration,
       isVerified,
       primaryBadge,
       parentId: comment.parentId ?? null,
