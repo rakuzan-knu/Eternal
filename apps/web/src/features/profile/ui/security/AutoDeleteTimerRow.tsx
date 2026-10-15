@@ -63,7 +63,12 @@ export default function AutoDeleteTimerRow() {
 
       {panelOpen && (
         <SlideOverPanel title="Auto-Delete Timer" onClose={() => setPanelOpen(false)}>
-          <RadioGroup value={current} options={OPTIONS} onChange={handleSelect} />
+          <RadioGroup
+            aria-label="Auto-Delete Timer"
+            value={current}
+            options={OPTIONS}
+            onChange={handleSelect}
+          />
         </SlideOverPanel>
       )}
 

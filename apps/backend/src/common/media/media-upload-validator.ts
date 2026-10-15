@@ -14,6 +14,7 @@ import {
   Input,
   MP4,
   MP3,
+  FLAC,
   OGG,
   QTFF,
   WAVE,
@@ -62,7 +63,7 @@ export async function validateUploadedMedia(
   if (buffer.length > maxSize) throw new BadRequestException('Media file is too large');
   const input = new Input({
     source: new BufferSource(buffer),
-    formats: [MP4, QTFF, WEBM, MP3, OGG, WAVE],
+    formats: [MP4, QTFF, WEBM, MP3, OGG, WAVE, FLAC],
   });
   const deadline = Date.now() + 10_000;
   const timeout = setTimeout(() => input.dispose(), 10_000);
@@ -119,6 +120,7 @@ export async function validateUploadedMedia(
       'audio/ogg': 'ogg',
       'audio/mpeg': 'mp3',
       'audio/wav': 'wav',
+      'audio/flac': 'flac',
     };
     const ext = extensions[mime];
     if (!ext) throw new Error('Unsupported media container');

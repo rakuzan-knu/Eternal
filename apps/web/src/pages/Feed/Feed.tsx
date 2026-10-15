@@ -1,5 +1,4 @@
 import React from 'react';
-import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import CreatePost from '../../features/posts/ui/CreatePost';
 import { StoriesBar } from '@/widgets/feed/ui/StoriesBar';
 import { BoundedPostList } from '@/widgets/post/ui/BoundedPostList';
@@ -11,12 +10,17 @@ import { FEED_KEY } from '@/shared/api/queryKeys';
 import { AllCaughtUpBanner } from '@/widgets/feed/ui/AllCaughtUpBanner';
 import { SuggestedUsersCarousel } from '@/widgets/feed/ui/SuggestedUsersCarousel';
 import { SEOHead } from '@/shared/seo';
-import { usePredictivePrefetch } from '@/shared/lib/usePredictivePrefetch';
+import { usePostDraftStore } from '@/features/posts';
 
 export default function FeedPage() {
   const feedQuery = usePostsFeed();
-  const { data, isLoading, hasNextPage, isFetchingNextPage } = feedQuery;
+  const { data, isLoading, isError, isFetching, refetch, hasNextPage, isFetchingNextPage } =
+    feedQuery;
   const createPost = useCreatePost([FEED_KEY]);
+  const draftText = usePostDraftStore((state) => state.text);
+  const setDraftText = usePostDraftStore((state) => state.setText);
+  const draftRevision = usePostDraftStore((state) => state.revision);
+  const clearSubmittedDraft = usePostDraftStore((state) => state.clearIfUnchanged);
   const hiddenIds = useHiddenPostsStore((s) => s.hiddenIds);
 
   const posts = data?.pages.flatMap((p) => p.posts) ?? [];
@@ -36,12 +40,34 @@ export default function FeedPage() {
       <StoriesBar />
 
       <CreatePost
+        draft={{
+          text: draftText,
+          setText: setDraftText,
+          onSubmitSuccess: () => clearSubmittedDraft(draftRevision),
+        }}
         onSubmitFormData={(fd, optimisticPost) =>
           createPost.mutateAsync({ formData: fd, optimisticPost })
         }
         isPending={createPost.isPending}
       />
 
+      {isError && (
+        <div role="alert" className="glass-card rounded-2xl border border-red-400/30 p-5 space-y-3">
+          <p className="font-semibold text-gray-950 dark:text-white">Your feed could not load</p>
+          <p className="text-sm text-gray-700 dark:text-gray-300">
+            Try again. Your draft and loaded posts are kept.
+          </p>
+          <button
+            type="button"
+            onClick={() => void refetch()}
+            disabled={isFetching}
+            aria-busy={isFetching}
+            className="min-h-11 px-4 rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-black text-sm font-semibold disabled:opacity-50"
+          >
+            {isFetching ? 'Retrying…' : 'Retry feed'}
+          </button>
+        </div>
+      )}
       {isLoading ? (
         <SkeletonFeed count={10} />
       ) : visiblePosts.length > 0 ? (
@@ -61,19 +87,19 @@ export default function FeedPage() {
 
           {!hasNextPage && visiblePosts.length > 0 && <AllCaughtUpBanner showCarousel={true} />}
         </>
-      ) : (
+      ) : !isError ? (
         <div className="flex flex-col gap-6">
           <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-white/5 rounded-3xl bg-white/[0.01]">
             <p className="text-gray-400 font-semibold text-sm sm:text-base">
               There's nothing here yet...
             </p>
-            <p className="text-xs text-gray-500 mt-1 max-w-xs">
+            <p className="text-xs text-gray-400 mt-1 max-w-xs">
               Follow interesting creators below to see their posts and updates here.
             </p>
           </div>
           <SuggestedUsersCarousel title="Discover Creators" limit={8} />
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

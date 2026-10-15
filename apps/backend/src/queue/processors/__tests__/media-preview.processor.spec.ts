@@ -17,21 +17,25 @@ jest.mock('sharp', () => {
 
 jest.mock('bullmq', () => {
   return {
-    Worker: jest.fn().mockImplementation(() => ({
-      on: jest.fn(),
-      close: jest.fn().mockResolvedValue(undefined),
-    })),
+    Worker: jest.fn().mockImplementation(function () {
+      return {
+        on: jest.fn(),
+        close: jest.fn().mockResolvedValue(undefined),
+      };
+    }),
   };
 });
 
 jest.mock('ioredis', () => {
   return {
-    default: jest.fn().mockImplementation(() => ({
-      on: jest.fn().mockReturnThis(),
-      status: 'ready',
-      quit: jest.fn().mockResolvedValue('OK'),
-      disconnect: jest.fn(),
-    })),
+    default: jest.fn().mockImplementation(function () {
+      return {
+        on: jest.fn().mockReturnThis(),
+        status: 'ready',
+        quit: jest.fn().mockResolvedValue('OK'),
+        disconnect: jest.fn(),
+      };
+    }),
     __esModule: true,
   };
 });

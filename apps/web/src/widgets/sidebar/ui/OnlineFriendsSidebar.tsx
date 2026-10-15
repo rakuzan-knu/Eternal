@@ -682,7 +682,7 @@ export function OnlineFriendsSidebar() {
             )}
           </div>
         ) : (
-          <div className="text-xs text-gray-500 text-center py-4">
+          <div className="text-xs text-gray-400 text-center py-4">
             No suggestions available right now.
           </div>
         )}
@@ -765,7 +765,7 @@ export function OnlineFriendsSidebar() {
               ))}
             </div>
           ) : onlineFriends.length === 0 && offlineFriends.length === 0 ? (
-            <div className="text-xs text-gray-500 text-center py-6">
+            <div className="text-xs text-gray-400 text-center py-6">
               {hasFilter
                 ? `No friends found matching "${searchQuery}"`
                 : 'No friends yet. Follow creators above to start chatting!'}

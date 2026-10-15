@@ -73,7 +73,9 @@ test.describe('Search network budget', () => {
     await writeFile(testInfo.outputPath('network-budget.json'), report);
     await testInfo.attach('network-budget.json', { body: report, contentType: 'application/json' });
     console.info('SEARCH_NETWORK_BUDGET', JSON.stringify({ count: requests.length, requests }));
-    expect(requests.filter((path) => /^\/(?:v1\/)?conversations(?:\?|$)/.test(path))).toEqual([]);
+    expect(
+      requests.filter((path) => /^\/(?:v1\/)?conversations(?:\/page)?(?:\?|$)/.test(path)),
+    ).toEqual([]);
     expect(requests.filter((path) => /\/users\/recent\d+$/.test(path))).toEqual([]);
     expect(requests.filter((path) => /\/integrations\/music\//.test(path))).toEqual([]);
     expect(requests.length).toBeLessThanOrEqual(15);
@@ -169,20 +171,27 @@ test.describe('Search network budget', () => {
   test('1000 dialogs only mount the visible rows when Messenger is opened', async ({
     authenticatedPage: page,
   }) => {
-    await page.route(/:3000\/(?:v1\/)?conversations(?:\?|$)/, (route) =>
+    await page.route(/:3000\/(?:v1\/)?conversations\/page(?:\?|$)/, (route) =>
       fulfillApi(route, {
-        json: Array.from({ length: 1000 }, (_, index) => ({
-          id: `dialog-${index}`,
-          type: 'GROUP',
-          name: `Dialog ${index}`,
-          participants: [],
-          unreadCount: 0,
-          lastMessage: null,
-          isArchived: false,
-          myMuteLevel: 'NONE',
-          createdAt: '2026-10-01T00:00:00.000Z',
-          updatedAt: '2026-10-01T00:00:00.000Z',
-        })),
+        json: {
+          data: Array.from({ length: 1000 }, (_, index) => ({
+            id: `dialog-${index}`,
+            type: 'GROUP',
+            name: `Dialog ${index}`,
+            participants: [],
+            participantCount: 0,
+            hasMoreParticipants: false,
+            unreadCount: 0,
+            lastMessage: null,
+            isArchived: false,
+            myMuteLevel: 'NONE',
+            createdAt: '2026-10-01T00:00:00.000Z',
+            updatedAt: '2026-10-01T00:00:00.000Z',
+          })),
+          hasMore: false,
+          nextCursor: null,
+          order: 'activityAt',
+        },
       }),
     );
     await page.goto('/messages');

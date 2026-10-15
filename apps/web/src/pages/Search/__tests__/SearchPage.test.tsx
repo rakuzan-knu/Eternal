@@ -6,11 +6,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import SearchPage from '../SearchPage';
 
 // Mock IntersectionObserver
-global.IntersectionObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-}));
+global.IntersectionObserver = vi.fn().mockImplementation(function () {
+  return {
+    observe: vi.fn(),
+    unobserve: vi.fn(),
+    disconnect: vi.fn(),
+  };
+});
 
 // Mock API client
 vi.mock('@/shared/api/httpClient', () => ({

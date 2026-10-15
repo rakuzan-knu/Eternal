@@ -1,4 +1,4 @@
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 import { AuthController } from '../auth.controller';
 import type { AuthService } from '../auth.service';
 import type { TurnstileService } from '../turnstile.service';
@@ -141,5 +141,92 @@ describe('AuthController', () => {
     await controller.logout(user, { refreshToken: 'refresh-token-to-invalidate' });
 
     expect(mockAuthService.logout).toHaveBeenCalledWith('usr-1', 'refresh-token-to-invalidate');
+  });
+
+  it('sets httpOnly refreshToken cookie upon successful login when response is provided', async () => {
+    const loginDto = {
+      email: 'user@example.com',
+      password: 'Password123!',
+    };
+    const mockRequest = { ip: '10.0.0.1' } as Request;
+    const mockSetCookie = vi.fn();
+    const mockResponse = {
+      setCookie: mockSetCookie,
+      cookie: vi.fn(),
+    } as unknown as Response;
+    const authResponse = {
+      accessToken: 'access-token-123',
+      refreshToken: 'cookie-refresh-token',
+      user: { id: 'usr-1', email: 'user@example.com', username: 'user_one' },
+    };
+    mockAuthService.login.mockResolvedValueOnce(authResponse);
+
+    const result = await controller.login(
+      loginDto,
+      mockRequest,
+      '10.0.0.1',
+      'Chrome',
+      mockResponse,
+    );
+
+    expect(result).toEqual(authResponse);
+    expect(mockSetCookie).toHaveBeenCalledWith(
+      'refreshToken',
+      'cookie-refresh-token',
+      expect.objectContaining({
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+      }),
+    );
+  });
+
+  it('exchanges refresh token when token is passed exclusively via cookie', async () => {
+    mockAuthService.refresh.mockResolvedValueOnce({ accessToken: 'refreshed-token' });
+    const mockReq = {
+      cookies: { refreshToken: 'cookie-provided-token' },
+    } as unknown as Request;
+
+    const result = await controller.refresh(undefined, mockReq);
+
+    expect(mockAuthService.refresh).toHaveBeenCalledWith('cookie-provided-token');
+    expect(result).toEqual({ accessToken: 'refreshed-token' });
+  });
+
+  it('throws UnauthorizedException when refresh token is completely missing from body and cookies', async () => {
+    const mockReq = { cookies: {} } as unknown as Request;
+
+    await expect(controller.refresh({}, mockReq)).rejects.toThrow(
+      'Refresh token is missing or expired',
+    );
+  });
+
+  it('clears refreshToken cookie upon logout when response object is provided', async () => {
+    const user: RequestUser = {
+      id: 'usr-1',
+      email: 'user@example.com',
+      username: 'user_one',
+      sessionJti: 'session-jti-current',
+    };
+    const mockClearCookie = vi.fn();
+    const mockResponse = {
+      clearCookie: mockClearCookie,
+      setCookie: vi.fn(),
+    } as unknown as Response;
+    const mockReq = {
+      cookies: { refreshToken: 'cookie-refresh' },
+    } as unknown as Request;
+
+    await controller.logout(user, undefined, mockReq, mockResponse);
+
+    expect(mockAuthService.logout).toHaveBeenCalledWith('usr-1', 'cookie-refresh');
+    expect(mockClearCookie).toHaveBeenCalledWith(
+      'refreshToken',
+      expect.objectContaining({
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+      }),
+    );
   });
 });

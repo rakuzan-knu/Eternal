@@ -852,6 +852,9 @@ model Story {
   mediaType StoryMediaType @default(IMAGE) @map("media_type")
   caption   String?        @db.Text
   overlays  Json?
+  backgroundColor String? @db.VarChar(512) @map("background_color")
+  filter String? @db.VarChar(64)
+  mediaAssets Json? @map("media_assets")
   privacy   StoryPrivacy   @default(ALL_FOLLOWERS)
   createdAt DateTime       @default(now()) @map("created_at")
   expiresAt DateTime       @map("expires_at")

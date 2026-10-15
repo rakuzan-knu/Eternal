@@ -675,6 +675,12 @@ export default function MessageComposer({
   };
 
   const handleTextChange = (value: string) => {
+    if (conversationId && !editingMessage) {
+      // Commit the latest input before navigation can cancel the reply-state debounce.
+      useChatDraftsStore
+        .getState()
+        .setDraft(conversationId, value.slice(0, MAX_MESSAGE_LENGTH), replyingTo);
+    }
     if (value.length > MAX_MESSAGE_LENGTH) {
       setText(value.slice(0, MAX_MESSAGE_LENGTH));
       triggerShake();
@@ -722,7 +728,10 @@ export default function MessageComposer({
       if (recorder.recordState !== 'idle') return;
 
       // 5. Skip if any modal / dialog / popover is open on page
-      if (document.querySelector('[role="dialog"], [aria-modal="true"], .glass-modal')) return;
+      if (
+        document.querySelector('[role="dialog"], [role="menu"], [aria-modal="true"], .glass-modal')
+      )
+        return;
 
       // 6. Skip if external prop forbids auto-focus (e.g. selection mode, search panel open)
       if (!canAutoFocus) return;
@@ -1106,7 +1115,10 @@ export default function MessageComposer({
         if (active.getAttribute('role') === 'textbox') return;
       }
 
-      if (document.querySelector('[role="dialog"], [aria-modal="true"], .glass-modal')) return;
+      if (
+        document.querySelector('[role="dialog"], [role="menu"], [aria-modal="true"], .glass-modal')
+      )
+        return;
       if (!canAutoFocus) return;
       if (!e.clipboardData) return;
 
@@ -1541,7 +1553,7 @@ export default function MessageComposer({
           </div>
 
           {/* Main Input Row */}
-          <div className="relative w-full flex items-center gap-1.5 sm:gap-2 p-1.5 sm:px-3 sm:py-1.5 min-h-11.5">
+          <div className="relative w-full flex max-md:flex-wrap items-center gap-1.5 sm:gap-2 p-1.5 sm:px-3 sm:py-1.5 min-h-11.5">
             <div className="relative shrink-0 flex items-center">
               {editingHasMedia ? (
                 <div className="relative animate-fadeIn duration-200">
@@ -1666,9 +1678,10 @@ export default function MessageComposer({
               )}
             </div>
 
-            <div className="relative flex-1 self-center min-h-[36px] flex items-center">
+            <div className="relative flex-1 min-w-0 max-md:basis-full max-md:order-first max-md:w-full self-center min-h-[36px] flex items-center">
               <textarea
                 ref={textareaRef}
+                aria-label="Message"
                 value={text}
                 onChange={(e) => handleTextChange(e.target.value)}
                 onScroll={handleTextareaScroll}
@@ -1719,7 +1732,7 @@ export default function MessageComposer({
               )}
             </div>
 
-            <div className="flex items-center gap-1 shrink-0">
+            <div className="flex max-md:flex-wrap items-center gap-1 shrink-0 max-md:ml-auto max-md:max-w-full">
               {/* Twitter-Style Progress Ring Limit Indicator */}
               {text.length >= WARN_THRESHOLD && (
                 <div

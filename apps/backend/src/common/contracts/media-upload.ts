@@ -32,5 +32,14 @@ export function sniffUploadImageMime(bytes: Uint8Array): string | null {
   if (bytes.length >= 8 && startsWith([0x89, 0x50, 0x4e, 0x47, 13, 10, 26, 10])) return 'image/png';
   if (bytes.length >= 6 && ['GIF87a', 'GIF89a'].includes(ascii(0, 6))) return 'image/gif';
   if (bytes.length >= 12 && ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WEBP') return 'image/webp';
+  if (bytes.length >= 12 && ascii(4, 8) === 'ftyp') {
+    const boxSize = bytes[0] * 0x1000000 + bytes[1] * 0x10000 + bytes[2] * 0x100 + bytes[3];
+    const boxEnd = Math.min(boxSize || bytes.length, bytes.length, 128);
+    const brands = [ascii(8, 12)];
+    for (let offset = 16; offset + 4 <= boxEnd; offset += 4) {
+      brands.push(ascii(offset, offset + 4));
+    }
+    if (brands.some((brand) => brand === 'avif' || brand === 'avis')) return 'image/avif';
+  }
   return null;
 }

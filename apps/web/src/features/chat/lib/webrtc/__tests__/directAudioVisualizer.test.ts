@@ -54,7 +54,9 @@ describe('DirectAudioVisualizer (Zero-Re-render CSS Variables via rAF)', () => {
 
     vi.stubGlobal(
       'AudioContext',
-      vi.fn().mockImplementation(() => mockAudioContext),
+      vi.fn().mockImplementation(function () {
+        return mockAudioContext;
+      }),
     );
     vi.stubGlobal(
       'requestAnimationFrame',

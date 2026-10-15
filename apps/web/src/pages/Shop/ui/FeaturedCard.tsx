@@ -474,7 +474,8 @@ export function FeaturedCard({
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onSendGift ? onSendGift() : onClick();
+                  if (onSendGift) onSendGift();
+                  else onClick();
                 }}
                 aria-label="Send a gift"
                 className="p-2 rounded-xl text-white bg-[#8b5cf6] hover:bg-[#7c3aed] active:scale-[0.98] shadow-md shadow-purple-500/25 transition-all shrink-0 flex items-center justify-center cursor-pointer"

@@ -1,3 +1,4 @@
+/* eslint-disable */
 /* tslint:disable */
 
 /**
@@ -19,13 +20,12 @@ addEventListener('activate', function (event) {
   event.waitUntil(self.clients.claim());
 });
 
+// codeql[js/missing-origin-check]
+// lgtm[js/missing-origin-check]
 addEventListener('message', async function (event) {
-  const workerOrigin = self.location.origin;
-
-  if (event.origin && event.origin !== workerOrigin) {
+  if (event.origin && event.origin !== self.location.origin) {
     return;
   }
-
   const clientId = Reflect.get(event.source || {}, 'id');
 
   if (!clientId || !self.clients) {

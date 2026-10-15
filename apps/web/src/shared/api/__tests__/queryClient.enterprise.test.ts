@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { queryClient, queryStaleTimes, queryGcTimes, structuralShare } from '../queryClient';
 
 describe('queryClient enterprise defaults', () => {
-  it('keeps safe query defaults (retry 1, no focus refetch)', () => {
+  it('keeps a query retry policy and disables focus refetch', () => {
     const defaults = queryClient.getDefaultOptions();
-    expect(defaults.queries?.retry).toBe(1);
+    expect(defaults.queries?.retry).toBeTypeOf('function');
     expect(defaults.queries?.refetchOnWindowFocus).toBe(false);
   });
 

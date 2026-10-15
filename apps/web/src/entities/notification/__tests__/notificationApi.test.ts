@@ -26,8 +26,8 @@ describe('notificationApi', () => {
     vi.clearAllMocks();
   });
 
-  it('fetchNotifications calls GET /notifications with query parameters and handles errors gracefully', async () => {
-    (apiClient.get as any).mockResolvedValueOnce({
+  it('fetchNotifications preserves query parameters and propagates failures for retry', async () => {
+    vi.mocked(apiClient.get).mockResolvedValueOnce({
       data: {
         items: [],
         nextCursor: null,
@@ -51,11 +51,8 @@ describe('notificationApi', () => {
     });
     expect(result.items).toEqual([]);
 
-    // Test error catch
-    (apiClient.get as any).mockRejectedValueOnce(new Error('Network error'));
-    const fallbackResult = await fetchNotifications();
-    expect(fallbackResult.items).toEqual([]);
-    expect(fallbackResult.hasMore).toBe(false);
+    vi.mocked(apiClient.get).mockRejectedValueOnce(new Error('Network error'));
+    await expect(fetchNotifications()).rejects.toThrow('Network error');
   });
 
   it('fetchUnreadNotificationCounts calls GET /notifications/unread-count and handles errors', async () => {

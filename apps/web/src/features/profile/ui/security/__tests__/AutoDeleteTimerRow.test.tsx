@@ -54,6 +54,7 @@ describe('AutoDeleteTimerRow', () => {
     fireEvent.click(screen.getByText('Auto-Delete Timer'));
 
     // SlideOverPanel is open
+    expect(screen.getByRole('radiogroup', { name: 'Auto-Delete Timer' })).toBeInTheDocument();
     expect(screen.getByText('After 1 day')).toBeInTheDocument();
     fireEvent.click(screen.getByText('After 1 day'));
 

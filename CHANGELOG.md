@@ -2,6 +2,99 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.1](https://github.com/rakuzan-knu/Eternal/compare/v1.7.0...v1.7.1) (2026-10-13)
+
+### 🐛 Bug Fixes
+
+* **security:** resolve Dependabot vulnerabilities and CodeQL/Trivy alerts ([#120](https://github.com/rakuzan-knu/Eternal/issues/120)) ([4f2331f](https://github.com/rakuzan-knu/Eternal/commit/4f2331f0b6e889d50d5fea6a178b9aba2bcdc101)), closes [#184](https://github.com/rakuzan-knu/Eternal/issues/184) [#186](https://github.com/rakuzan-knu/Eternal/issues/186) [#178](https://github.com/rakuzan-knu/Eternal/issues/178) [#183](https://github.com/rakuzan-knu/Eternal/issues/183)
+
+### 🔧 Tooling & Dependencies
+
+* **deps:** bump the dev-dependencies group across 1 directory with 12 updates ([#113](https://github.com/rakuzan-knu/Eternal/issues/113)) ([53d9b72](https://github.com/rakuzan-knu/Eternal/commit/53d9b726e378a68d0c2194c723fb2003244256ed))
+* **infra:** bump the github-actions group across 2 directories with 9 updates ([#111](https://github.com/rakuzan-knu/Eternal/issues/111)) ([adc5681](https://github.com/rakuzan-knu/Eternal/commit/adc56817195a62f267f60fe4814ef24318ec6d3a))
+* **infra:** ignore mobile/expo native packages and align commit scopes in dependabot config ([#117](https://github.com/rakuzan-knu/Eternal/issues/117)) ([6e2a33e](https://github.com/rakuzan-knu/Eternal/commit/6e2a33e03689a274f1a38a9f0dc0e7d7f6d7d326))
+
+## [1.7.0](https://github.com/rakuzan-knu/Eternal/compare/v1.6.0...v1.7.0) (2026-10-13)
+
+### ✨ Features
+
+* **frontend:** add mobile feed, stories, search and music hub ([#91](https://github.com/rakuzan-knu/Eternal/issues/91)) ([1697b3d](https://github.com/rakuzan-knu/Eternal/commit/1697b3d1083c605ae43ba2a0a1def008f20e4789)), closes [#1159](https://github.com/rakuzan-knu/Eternal/issues/1159)
+
+## [1.6.0](https://github.com/rakuzan-knu/Eternal/compare/v1.5.0...v1.6.0) (2026-10-05)
+
+### ✨ Features
+
+* **security:** harden storage isolation, websocket auth refresh, and CORS policy ([#109](https://github.com/rakuzan-knu/Eternal/issues/109)) ([0cc9f23](https://github.com/rakuzan-knu/Eternal/commit/0cc9f236a02d3aa749a3165e3cc57f266b69142c))
+
+## [1.5.0](https://github.com/rakuzan-knu/Eternal/compare/v1.4.0...v1.5.0) (2026-10-05)
+
+### ✨ Features
+
+* **auth:** harden token cookies, add safeSessionStorage, and mirror preferences ([#108](https://github.com/rakuzan-knu/Eternal/issues/108)) ([e379fee](https://github.com/rakuzan-knu/Eternal/commit/e379fee3fdec889ceca490a2f06477ba2bf805e9))
+
+## [1.4.0](https://github.com/rakuzan-knu/Eternal/compare/v1.3.6...v1.4.0) (2026-10-05)
+
+### ✨ Features
+
+* **frontend:** document reusable design and preserve interaction continuity ([#106](https://github.com/rakuzan-knu/Eternal/issues/106)) ([3efae12](https://github.com/rakuzan-knu/Eternal/commit/3efae12456896f8efb3c28c4c697d9e152b76309))
+
+## [1.3.6](https://github.com/rakuzan-knu/Eternal/compare/v1.3.5...v1.3.6) (2026-10-05)
+
+### 🐛 Bug Fixes
+
+* **infra:** resolve pipeline failures across docker, storybook, sentry, and chaos suite ([#107](https://github.com/rakuzan-knu/Eternal/issues/107)) ([5afe1d7](https://github.com/rakuzan-knu/Eternal/commit/5afe1d72fb100dd90682582f1327e57f85f5492e))
+
+### 🔧 Tooling & Dependencies
+
+* **deps:** bump github-actions group (docker/login-action, sbom-action) ([#105](https://github.com/rakuzan-knu/Eternal/issues/105)) ([1e26b72](https://github.com/rakuzan-knu/Eternal/commit/1e26b72efc0b41f6b8d0e8970beed2968b168f70))
+* **deps:** bump production-dependencies (aws-sdk, framer-motion, katex) ([#104](https://github.com/rakuzan-knu/Eternal/issues/104)) ([87f3652](https://github.com/rakuzan-knu/Eternal/commit/87f3652926ff6b22cbb0857e4291fd4560749ef4))
+
+## [1.3.5](https://github.com/rakuzan-knu/social-network/compare/v1.3.4...v1.3.5) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* **security:** resolve all dependabot and code scanning vulnerabilities ([#102](https://github.com/rakuzan-knu/social-network/issues/102)) ([d5a2a11](https://github.com/rakuzan-knu/social-network/commit/d5a2a11c20fb88593d9ea4a43c43dbc6f8405922))
+
+## [1.3.4](https://github.com/rakuzan-knu/social-network/compare/v1.3.3...v1.3.4) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* **security:** resolve dependabot lockfile indexing and code scanning sarif pipelines ([#99](https://github.com/rakuzan-knu/social-network/issues/99)) ([3f19263](https://github.com/rakuzan-knu/social-network/commit/3f1926379027c3e872cffb60e484f500d72b128f))
+
+## [1.3.3](https://github.com/rakuzan-knu/social-network/compare/v1.3.2...v1.3.3) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* **security:** resolve dependabot and code scanning vulnerabilities ([#98](https://github.com/rakuzan-knu/social-network/issues/98)) ([440c94a](https://github.com/rakuzan-knu/social-network/commit/440c94a6e9190cd1291d4fa52a36a82f0fa3763c))
+
+## [1.3.2](https://github.com/rakuzan-knu/social-network/compare/v1.3.1...v1.3.2) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* **backend:** align RedisIoAdapter logger visibility with IoAdapter ([516bf74](https://github.com/rakuzan-knu/social-network/commit/516bf74b6c988faade15ba3a04ad34c63ece918b))
+
+### 🔧 Tooling & Dependencies
+
+* **ci)(deps:** bump the github-actions group across 1 directory with 4 updates ([f66b5b6](https://github.com/rakuzan-knu/social-network/commit/f66b5b6279d9e61c61ffdf284ae6a4a39ec47f1d))
+* **ci:** merge PR [#95](https://github.com/rakuzan-knu/social-network/issues/95) github-actions updates ([2650bc5](https://github.com/rakuzan-knu/social-network/commit/2650bc5c4e89d0789fe4edde5783761d4d0c81d2))
+* **deps)(deps-dev:** bump the dev-dependencies group with 23 updates ([075c9e7](https://github.com/rakuzan-knu/social-network/commit/075c9e7523949b3d6c80765eb06cb3754025e4fd))
+* **deps)(deps:** bump the production-dependencies group with 24 updates ([fdc5ed2](https://github.com/rakuzan-knu/social-network/commit/fdc5ed23afaa02ba32d86b9b3a3b30a4cfb1afcb))
+* **deps:** bump production-dependencies group with 24 updates (PR [#96](https://github.com/rakuzan-knu/social-network/issues/96)) ([6ab1eed](https://github.com/rakuzan-knu/social-network/commit/6ab1eed6dc6683efd95fcd3e302f74893b1af96a))
+* **deps:** merge PR [#97](https://github.com/rakuzan-knu/social-network/issues/97) dev-dependencies updates with types resilience fix ([bd68a85](https://github.com/rakuzan-knu/social-network/commit/bd68a854bd6798c0c53447e1feaca939bfc43a51))
+
+## [1.3.1](https://github.com/rakuzan-knu/social-network/compare/v1.3.0...v1.3.1) (2026-10-03)
+
+### 🐛 Bug Fixes
+
+* **deps:** align react with react-dom 19.3.0 and pin react-native to expo 52 ([17f9a63](https://github.com/rakuzan-knu/social-network/commit/17f9a6314705743113cbf7c1368d50f6c7673e38))
+
+### 🔧 Tooling & Dependencies
+
+* **ci)(deps:** bump the github-actions group across 2 directories with 28 updates ([6619cb3](https://github.com/rakuzan-knu/social-network/commit/6619cb3cd3a62ef95b02366a420294e7474d5dbc))
+* **ci:** merge PR [#88](https://github.com/rakuzan-knu/social-network/issues/88) github-actions updates ([a5a9e97](https://github.com/rakuzan-knu/social-network/commit/a5a9e97b3bb17d2a2ef6d1a45eb190e3616ac04a))
+* **deps)(deps:** bump the production-dependencies group across 1 directory with 18 updates ([feaccb6](https://github.com/rakuzan-knu/social-network/commit/feaccb6274e446c8f30445fbc85d99f0b855cac3))
+* **deps:** ignore major updates and expo-managed dependencies in dependabot ([1cbbad0](https://github.com/rakuzan-knu/social-network/commit/1cbbad060f6f0f07bb0bfe75bcfa2c0f54736937))
+
 ## [1.3.0](https://github.com/rakuzan-knu/social-network/compare/v1.2.0...v1.3.0) (2026-09-17)
 
 ### ✨ Features

@@ -68,7 +68,9 @@ describe('PerSpeakerMixerManager (Per-Participant EQ, Volume & Pan)', () => {
 
     vi.stubGlobal(
       'AudioContext',
-      vi.fn().mockImplementation(() => mockAudioContext),
+      vi.fn().mockImplementation(function () {
+        return mockAudioContext;
+      }),
     );
 
     const mockAudioTrack = { kind: 'audio', id: 'track-1' } as MediaStreamTrack;

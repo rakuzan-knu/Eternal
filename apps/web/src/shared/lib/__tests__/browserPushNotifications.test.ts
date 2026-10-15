@@ -151,7 +151,7 @@ describe('browserPushNotifications', () => {
       });
 
       const notifInstance: any = {};
-      const NotifConstructor = vi.fn().mockImplementation((title, options) => {
+      const NotifConstructor = vi.fn().mockImplementation(function (title, options) {
         notifInstance.title = title;
         notifInstance.options = options;
         return notifInstance;
@@ -199,7 +199,7 @@ describe('browserPushNotifications', () => {
         configurable: true,
       });
 
-      const NotifConstructor = vi.fn().mockImplementation(() => {
+      const NotifConstructor = vi.fn().mockImplementation(function () {
         throw new Error('Not allowed');
       });
       (NotifConstructor as any).permission = 'granted';
@@ -219,7 +219,9 @@ describe('browserPushNotifications', () => {
       });
 
       const notifInstance: any = {};
-      const NotifConstructor = vi.fn().mockImplementation(() => notifInstance);
+      const NotifConstructor = vi.fn().mockImplementation(function () {
+        return notifInstance;
+      });
       (NotifConstructor as any).permission = 'granted';
       vi.stubGlobal('Notification', NotifConstructor);
 
@@ -244,7 +246,9 @@ describe('browserPushNotifications', () => {
       });
 
       const notifInstance: any = {};
-      const NotifConstructor = vi.fn().mockImplementation(() => notifInstance);
+      const NotifConstructor = vi.fn().mockImplementation(function () {
+        return notifInstance;
+      });
       (NotifConstructor as any).permission = 'granted';
       vi.stubGlobal('Notification', NotifConstructor);
 

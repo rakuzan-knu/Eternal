@@ -93,25 +93,19 @@ export function PostCard({ post, queryKey }: PostCardProps) {
   const [, startLikeTransition] = useTransition();
   const [optimisticLikes, setOptimisticLikes] = useOptimistic(
     { isLiked: !!post.isLiked, count: post.likes ?? 0 },
-    (state, _update: 'toggle') => ({
-      isLiked: !state.isLiked,
-      count: state.isLiked ? Math.max(0, state.count - 1) : state.count + 1,
-    }),
+    (_state, next: { isLiked: boolean; count: number }) => next,
   );
 
   const [, startRepostTransition] = useTransition();
   const [optimisticReposts, setOptimisticReposts] = useOptimistic(
     { isReposted: !!post.isReposted, count: post.reposts ?? 0 },
-    (state, _update: 'toggle') => ({
-      isReposted: !state.isReposted,
-      count: state.isReposted ? Math.max(0, state.count - 1) : state.count + 1,
-    }),
+    (_state, next: { isReposted: boolean; count: number }) => next,
   );
 
   const [, startSaveTransition] = useTransition();
   const [optimisticSaved, setOptimisticSaved] = useOptimistic(
     !!post.isSaved,
-    (state, _update: 'toggle') => !state,
+    (_state, next: boolean) => next,
   );
 
   const isHidden = hiddenIds.has(post.id);
@@ -128,7 +122,13 @@ export function PostCard({ post, queryKey }: PostCardProps) {
     if (likeTimerRef.current) clearTimeout(likeTimerRef.current);
     likeTimerRef.current = setTimeout(() => setIsLikePopping(false), 400);
     startLikeTransition(async () => {
-      setOptimisticLikes('toggle');
+      // The query cache also updates optimistically; rebasing must not toggle twice.
+      setOptimisticLikes({
+        isLiked: !optimisticLikes.isLiked,
+        count: optimisticLikes.isLiked
+          ? Math.max(0, optimisticLikes.count - 1)
+          : optimisticLikes.count + 1,
+      });
       try {
         if (likeMutation.mutateAsync) {
           await likeMutation.mutateAsync();
@@ -146,7 +146,12 @@ export function PostCard({ post, queryKey }: PostCardProps) {
     if (repostTimerRef.current) clearTimeout(repostTimerRef.current);
     repostTimerRef.current = setTimeout(() => setIsRepostSpinning(false), 400);
     startRepostTransition(async () => {
-      setOptimisticReposts('toggle');
+      setOptimisticReposts({
+        isReposted: !optimisticReposts.isReposted,
+        count: optimisticReposts.isReposted
+          ? Math.max(0, optimisticReposts.count - 1)
+          : optimisticReposts.count + 1,
+      });
       try {
         if (repostMutation.mutateAsync) {
           await repostMutation.mutateAsync();
@@ -162,7 +167,7 @@ export function PostCard({ post, queryKey }: PostCardProps) {
   const handleSaveClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     startSaveTransition(async () => {
-      setOptimisticSaved('toggle');
+      setOptimisticSaved(!optimisticSaved);
       try {
         if (saveMutation.mutateAsync) {
           await saveMutation.mutateAsync();
@@ -209,7 +214,7 @@ export function PostCard({ post, queryKey }: PostCardProps) {
       className={`glass-card border border-white/5 rounded-3xl shadow-lg flex flex-col gap-3 transition-all duration-300 ease-out scroll-mt-20 relative ${
         isCollapsing
           ? 'max-h-0 opacity-0 py-0 -my-2 border-0 pointer-events-none scale-95 overflow-hidden'
-          : 'max-h-[3000px] opacity-100 p-5 hover:border-white/20'
+          : 'max-h-[3000px] opacity-100 p-3 sm:p-5 hover:border-white/20'
       } ${isMenuOpen ? 'z-30' : 'z-0'}`}
     >
       {post.isPinned && (
@@ -228,7 +233,7 @@ export function PostCard({ post, queryKey }: PostCardProps) {
         </div>
       )}
 
-      <div className="flex gap-4 items-start">
+      <div className="flex gap-2 sm:gap-4 items-start">
         <MiniProfileHoverCard username={post.handle}>
           <Link to={`/profile/${post.handle}`}>
             <StoryAvatar
@@ -242,12 +247,12 @@ export function PostCard({ post, queryKey }: PostCardProps) {
         </MiniProfileHoverCard>
         <div className="flex flex-col flex-1 gap-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="flex items-center gap-1.5 min-w-0 flex-nowrap shrink-0">
-                <MiniProfileHoverCard username={post.handle}>
+            <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 min-w-0 max-w-full">
+                <MiniProfileHoverCard username={post.handle} className="min-w-0 max-w-full">
                   <Link
                     to={`/profile/${post.handle}`}
-                    className="hover:underline font-semibold text-sm text-gray-900 dark:text-white truncate inline-flex items-center"
+                    className="hover:underline font-semibold text-sm text-gray-900 dark:text-white truncate block max-w-full"
                   >
                     <StyledDisplayName
                       name={post.author || post.handle}
@@ -267,8 +272,8 @@ export function PostCard({ post, queryKey }: PostCardProps) {
                   className="self-center"
                 />
               </div>
-              <span className="text-xs text-gray-500 shrink-0 inline-flex items-center gap-1">
-                <span>
+              <span className="text-xs text-gray-400 inline-flex items-center gap-1 min-w-0">
+                <span className="break-all">
                   @{post.handle} • {formatRelativeTime(post.createdAt)}
                 </span>
                 {post.editedAt && (
@@ -394,18 +399,18 @@ export function PostCard({ post, queryKey }: PostCardProps) {
             </>
           )}
 
-          <div className="flex justify-between items-center text-gray-500 text-xs mt-4">
-            <div className="flex items-center gap-5 sm:gap-6">
+          <div className="flex flex-wrap gap-2 justify-between items-center text-gray-400 text-xs mt-4">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-6">
               {/* Comment Button */}
               <button
                 type="button"
-                aria-label="View comments"
+                aria-label={`Comments, ${post.comments ?? 0}`}
                 onClick={() =>
                   openCommentModal(
                     isCommentsDisabled ? { ...post, isCommentsDisabled: true } : post,
                   )
                 }
-                className="flex items-center gap-1.5 cursor-pointer hover:text-blue-400 transition-colors group"
+                className="min-h-8 min-w-8 flex items-center gap-1.5 cursor-pointer hover:text-blue-400 transition-colors group"
               >
                 <MessageSquare
                   size={16}
@@ -418,7 +423,7 @@ export function PostCard({ post, queryKey }: PostCardProps) {
               <button
                 type="button"
                 onClick={handleRepost}
-                className={`flex items-center gap-1.5 cursor-pointer hover:text-green-400 transition-colors group ${
+                className={`min-h-8 min-w-8 flex items-center gap-1.5 cursor-pointer hover:text-green-400 transition-colors group ${
                   optimisticReposts.isReposted ? 'text-green-400 font-semibold' : ''
                 }`}
                 title={optimisticReposts.isReposted ? 'Undo repost' : 'Repost'}
@@ -438,7 +443,7 @@ export function PostCard({ post, queryKey }: PostCardProps) {
               <button
                 type="button"
                 onClick={handleLike}
-                className={`flex items-center gap-1.5 cursor-pointer hover:text-pink-500 transition-colors group relative ${
+                className={`min-h-8 min-w-8 flex items-center gap-1.5 cursor-pointer hover:text-pink-500 transition-colors group relative ${
                   optimisticLikes.isLiked ? 'text-pink-500' : ''
                 }`}
                 title={optimisticLikes.isLiked ? 'Unlike' : 'Like'}
@@ -460,7 +465,7 @@ export function PostCard({ post, queryKey }: PostCardProps) {
                 type="button"
                 onClick={() => openShareModal(post)}
                 title="Share post"
-                className="flex items-center gap-1.5 cursor-pointer hover:text-gray-300 transition-colors group"
+                className="min-h-8 min-w-8 flex items-center gap-1.5 cursor-pointer hover:text-gray-300 transition-colors group"
               >
                 <Share
                   size={16}
@@ -483,7 +488,7 @@ export function PostCard({ post, queryKey }: PostCardProps) {
                   type="button"
                   onClick={handleSaveClick}
                   title={optimisticSaved ? 'Remove from Saved' : 'Save post (Hold for collections)'}
-                  className="p-1 cursor-pointer text-gray-500 hover:text-white transition-colors"
+                  className="min-h-8 min-w-8 flex items-center justify-center p-1 cursor-pointer text-gray-400 hover:text-white transition-colors"
                 >
                   <Bookmark
                     size={17}
@@ -500,7 +505,7 @@ export function PostCard({ post, queryKey }: PostCardProps) {
                     setIsPopoverOpen((v) => !v);
                   }}
                   title="Save to collection"
-                  className="p-0.5 text-gray-500 hover:text-white transition-colors cursor-pointer"
+                  className="min-h-8 min-w-8 flex items-center justify-center p-0.5 text-gray-400 hover:text-white transition-colors cursor-pointer"
                 >
                   <ChevronDown size={12} />
                 </button>

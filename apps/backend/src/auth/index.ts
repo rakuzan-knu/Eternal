@@ -6,4 +6,5 @@ export * from './decorators/current-user.decorator';
 export * from './interfaces/jwt-payload.interface';
 export * from './interfaces/public-user.interface';
 export * from './interfaces/token-pair.interface';
+export * from './utils/auth-cookie.util';
 export * from './auth.module';

@@ -27,6 +27,7 @@ import {
   ChatThemeConfig,
   DEFAULT_DARK_THEME_CONFIG,
   BUILT_IN_PRESETS,
+  CHAT_FONTS,
 } from '../../model/chatTheme';
 
 describe('themeUtils', () => {
@@ -42,6 +43,26 @@ describe('themeUtils', () => {
       expect(getLuminance('#000000')).toBeCloseTo(0, 1);
       expect(getLuminance('#fef08a')).toBeGreaterThan(0.7); // Light pastel yellow
       expect(getLuminance('#0b0b0c')).toBeLessThan(0.1); // Deep dark
+    });
+
+    it('linearizes equivalent hex, RGB and percentage channels before calculating luminance', () => {
+      const gray = getLuminance('#808080');
+      expect(gray).toBeCloseTo(0.21586, 4);
+      expect(getLuminance('rgb(128, 128, 128)')).toBeCloseTo(gray, 6);
+      expect(getLuminance('rgba(128, 128, 128, 0.5)')).toBeCloseTo(gray, 6);
+      expect(getLuminance('rgb(50% 50% 50% / 0.5)')).toBeCloseTo(0.21404, 4);
+      expect(getLuminance('rgb(10.5, 20.5, 30.5)')).toBeLessThan(0.01);
+    });
+
+    it('keeps the persisted default font ID and uses the system stack without remote loading', () => {
+      const append = vi.spyOn(document.head, 'appendChild');
+      const font = CHAT_FONTS.find((item) => item.id === 'default');
+      expect(font?.name).toBe('Default (System)');
+      expect(font?.fontFamily).toContain('Segoe UI');
+      expect(font?.googleFontName).toBeUndefined();
+      getThemeTextStyle({ ...DEFAULT_DARK_THEME_CONFIG, textFont: 'default' });
+      expect(append).not.toHaveBeenCalled();
+      append.mockRestore();
     });
   });
 
@@ -334,6 +355,25 @@ describe('themeUtils', () => {
   });
 
   describe('getBubbleContrastTheme (WCAG Smart Contrast)', () => {
+    it.each(['#777777', '#808080', '#aaaaaa', 'rgb(128, 128, 128)'])(
+      'keeps auto body text readable on medium solid %s',
+      (bubbleColor) => {
+        const contrast = getBubbleContrastTheme(
+          {
+            ...DEFAULT_DARK_THEME_CONFIG,
+            bubbleType: 'solid',
+            bubbleColor,
+            bubbleTextColor: 'auto',
+          },
+          true,
+        );
+        const foreground = getLuminance(contrast.textColor);
+        const background = getLuminance(bubbleColor);
+        expect(
+          (Math.max(foreground, background) + 0.05) / (Math.min(foreground, background) + 0.05),
+        ).toBeGreaterThanOrEqual(4.5);
+      },
+    );
     it('returns dark text for light bubbles', () => {
       const lightTheme: ChatThemeConfig = {
         ...DEFAULT_DARK_THEME_CONFIG,

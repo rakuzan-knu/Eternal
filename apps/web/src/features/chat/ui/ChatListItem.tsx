@@ -110,8 +110,14 @@ export default function ChatListItem({
     <div
       ref={itemRef}
       onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseLeave={(event) => {
+        if (!event.currentTarget.contains(document.activeElement)) setIsHovered(false);
+      }}
       onClick={() => onSelect(conversation.id)}
+      onFocusCapture={() => setIsHovered(true)}
+      onBlurCapture={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setIsHovered(false);
+      }}
       className={`nameplate-row group relative flex items-center gap-3 px-3 py-2.5 rounded-2xl cursor-pointer select-none transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
         isActive
           ? 'glass-card bg-white/12 dark:bg-white/10 shadow-[0_4px_24px_rgba(0,0,0,0.25),inset_0_1px_1px_rgba(255,255,255,0.45),0_0_18px_rgba(56,189,248,0.15)] border border-white/20 dark:border-white/15 scale-[1.012]'
@@ -125,83 +131,92 @@ export default function ChatListItem({
       {isActive && (
         <div className="absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent pointer-events-none rounded-t-full" />
       )}
-      <div className="relative flex-shrink-0">
-        {display.isGroup ? (
-          display.avatar ? (
-            <Avatar size="md" src={display.avatar} />
+      <button
+        type="button"
+        id={`conversation-${conversation.id}`}
+        aria-label={`Open conversation with ${display.title}`}
+        onClick={(event) => {
+          event.stopPropagation();
+          onSelect(conversation.id);
+        }}
+        className="relative flex flex-1 min-w-0 items-center gap-3 text-left rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-400"
+      >
+        <div className="relative flex-shrink-0">
+          {display.isGroup ? (
+            display.avatar ? (
+              <Avatar size="md" src={display.avatar} />
+            ) : (
+              <GroupAvatarCollage
+                avatars={conversation.participants.map((p) => p.user.avatar)}
+                size={40}
+              />
+            )
           ) : (
-            <GroupAvatarCollage
-              avatars={conversation.participants.map((p) => p.user.avatar)}
-              size={40}
-            />
-          )
-        ) : (
-          <>
-            <Avatar
-              size="md"
-              src={display.avatar}
-              decoration={display.activeDecoration}
-              userId={display.otherUserId}
-            />
-            {display.otherUserId && (
-              <OnlineStatusIndicator userId={display.otherUserId} variant="dot" />
-            )}
-          </>
-        )}
-      </div>
-
-      <div data-nameplate-text className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <span
-            data-nameplate-label
-            className={`text-[15px] truncate ${
-              hasUnread
-                ? 'text-white font-semibold'
-                : isMuted
-                  ? 'text-gray-400 font-medium'
-                  : 'text-gray-200 font-medium'
-            }`}
-          >
-            {renderChatListSnippet(display.title, 18)}
-          </span>
-          <VerifiedCheckmark
-            isVerified={display.isVerified}
-            primaryBadge={display.primaryBadge}
-            size="sm"
-          />
-          {isMuted && <BellOff size={13} className="text-gray-400 flex-shrink-0" />}
-          {isPinnedLocally && <Pin size={12} className="text-gray-400 flex-shrink-0" />}
+            <>
+              <Avatar
+                size="md"
+                src={display.avatar}
+                decoration={display.activeDecoration}
+                userId={display.otherUserId}
+              />
+              {display.otherUserId && (
+                <OnlineStatusIndicator userId={display.otherUserId} variant="dot" />
+              )}
+            </>
+          )}
         </div>
-        {hasDraft ? (
-          <p className="text-[13px] truncate flex items-center gap-1">
-            <span className="text-red-400 font-semibold drop-shadow-[0_0_8px_rgba(248,113,113,0.4)] flex-shrink-0">
-              Draft:
+
+        <div data-nameplate-text className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span
+              data-nameplate-label
+              className={`text-[15px] truncate ${
+                hasUnread
+                  ? 'text-white font-semibold'
+                  : isMuted
+                    ? 'text-gray-400 font-medium'
+                    : 'text-gray-200 font-medium'
+              }`}
+            >
+              {renderChatListSnippet(display.title, 18)}
             </span>
-            <span className="text-gray-300 truncate">{renderChatListSnippet(draft!.text, 16)}</span>
-          </p>
-        ) : isTyping ? (
-          <div className="flex items-center gap-1.5 text-[13px] text-sky-400 font-medium animate-fadeIn">
-            <span className="flex gap-0.5 items-center">
-              <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-bounce [animation-delay:-0.3s]" />
-              <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-bounce [animation-delay:-0.15s]" />
-              <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-bounce" />
-            </span>
-            <span className="truncate">
-              {display.isGroup && firstTypistUsername
-                ? `${firstTypistUsername} is typing...`
-                : 'typing...'}
-            </span>
+            <VerifiedCheckmark
+              isVerified={display.isVerified}
+              primaryBadge={display.primaryBadge}
+              size="sm"
+            />
+            {isMuted && <BellOff size={13} className="text-gray-400 flex-shrink-0" />}
+            {isPinnedLocally && <Pin size={12} className="text-gray-400 flex-shrink-0" />}
           </div>
-        ) : (
-          <p
-            className={`text-[13px] truncate ${
-              hasUnread ? 'text-gray-200' : isMuted ? 'text-gray-500' : 'text-gray-400'
-            }`}
-          >
-            {renderChatListSnippet(getMessagePreview(conversation, currentUserId), 16)}
-          </p>
-        )}
-      </div>
+          {hasDraft ? (
+            <p className="text-[13px] truncate flex items-center gap-1">
+              <span className="text-red-400 font-semibold drop-shadow-[0_0_8px_rgba(248,113,113,0.4)] flex-shrink-0">
+                Draft:
+              </span>
+              <span className="text-gray-300 truncate">
+                {renderChatListSnippet(draft!.text, 16)}
+              </span>
+            </p>
+          ) : isTyping ? (
+            <div className="flex items-center gap-1.5 text-[13px] text-sky-400 font-medium animate-fadeIn">
+              <span className="flex gap-0.5 items-center">
+                <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-bounce [animation-delay:-0.3s]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-bounce [animation-delay:-0.15s]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-bounce" />
+              </span>
+              <span className="truncate">
+                {display.isGroup && firstTypistUsername
+                  ? `${firstTypistUsername} is typing...`
+                  : 'typing...'}
+              </span>
+            </div>
+          ) : (
+            <p className={`text-[13px] truncate ${hasUnread ? 'text-gray-200' : 'text-gray-400'}`}>
+              {renderChatListSnippet(getMessagePreview(conversation, currentUserId), 16)}
+            </p>
+          )}
+        </div>
+      </button>
 
       <div className="flex-shrink-0 flex items-center w-12 justify-end">
         {!isHovered && !isMenuOpen && (
@@ -222,6 +237,8 @@ export default function ChatListItem({
         {(isHovered || isMenuOpen) && (
           <div className="relative">
             <button
+              type="button"
+              aria-label={`Conversation actions for ${display.title}`}
               onClick={(e) => {
                 e.stopPropagation();
                 setMenuOpen((v) => !v);

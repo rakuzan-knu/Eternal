@@ -68,4 +68,14 @@ describe('useUnreadMessagesCount', () => {
     const { result } = renderHook(() => useUnreadMessagesCount(null), { wrapper: createWrapper() });
     expect(result.current).toBe(0);
   });
+
+  it('keeps the authoritative counter if cached conversation metadata is not an array', () => {
+    vi.spyOn(convHookModule, 'useConversations').mockReturnValue({
+      data: { conversations: [] },
+    } as any);
+    const { result } = renderHook(() => useUnreadMessagesCount('c1'), {
+      wrapper: createWrapper(23),
+    });
+    expect(result.current).toBe(23);
+  });
 });

@@ -1,7 +1,8 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { withObjectUrl, downloadBlob } from '../blobResources';
 
 describe('temporary blob ownership', () => {
+  beforeEach(() => vi.clearAllMocks());
   afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();

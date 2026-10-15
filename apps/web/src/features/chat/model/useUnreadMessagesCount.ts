@@ -21,7 +21,9 @@ export function useUnreadMessagesCount(
   });
   // The scalar includes every dialog. Paged metadata cannot reconstruct it;
   // realtime events update/invalidate the scalar independently of loaded pages.
-  const active = conversations?.find((c) => c.id === activeConversationId);
+  const active = Array.isArray(conversations)
+    ? conversations.find((c) => c.id === activeConversationId)
+    : undefined;
   return Math.max(
     0,
     (data?.count ?? 0) - (active && !active.isArchived ? Math.max(0, active.unreadCount || 0) : 0),

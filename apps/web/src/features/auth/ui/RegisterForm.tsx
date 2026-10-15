@@ -218,15 +218,13 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     registerMutation.mutate(payload, {
       onSuccess: (responseData: AuthResponse) => {
         localStorage.setItem('accessToken', responseData.accessToken);
-        localStorage.setItem('refreshToken', responseData.refreshToken);
+        localStorage.removeItem('refreshToken');
         useAuthStore.getState().setAuth(responseData.user.id);
         useAccountsStore.getState().upsertAccount({
           id: responseData.user.id,
           username: responseData.user.username,
           displayName: responseData.user.displayName,
           avatar: responseData.user.avatar ?? null,
-          accessToken: responseData.accessToken,
-          refreshToken: responseData.refreshToken,
         });
         onSuccess?.(responseData);
         if (redirectOnSuccess) {

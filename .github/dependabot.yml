@@ -10,12 +10,22 @@ updates:
     versioning-strategy: increase
     commit-message:
       prefix: "chore(deps)"
-      include: scope
     labels:
       - deps
       - automated
     reviewers:
       - subvincdebian
+    ignore:
+      - dependency-name: "react-native"
+      - dependency-name: "react-native-*"
+      - dependency-name: "@react-native*"
+      - dependency-name: "expo"
+      - dependency-name: "expo-*"
+      - dependency-name: "expo-status-bar"
+      - dependency-name: "lucide-react-native"
+      - dependency-name: "*"
+        update-types:
+          - "version-update:semver-major"
     groups:
       production-dependencies:
         dependency-type: production
@@ -27,11 +37,6 @@ updates:
         update-types:
           - "minor"
           - "patch"
-      major-dependencies:
-        patterns:
-          - "*"
-        update-types:
-          - "major"
 
 
   - package-ecosystem: github-actions
@@ -44,8 +49,7 @@ updates:
       time: "04:00"
     open-pull-requests-limit: 5
     commit-message:
-      prefix: "chore(ci)"
-      include: scope
+      prefix: "chore(infra)"
     labels:
       - ci
       - automated
@@ -55,8 +59,8 @@ updates:
 
   - package-ecosystem: docker
     directories:
-      - "/backend"
-      - "/frontend"
+      - "/apps/backend"
+      - "/apps/web"
     schedule:
       interval: weekly
       day: monday
@@ -64,7 +68,6 @@ updates:
     open-pull-requests-limit: 5
     commit-message:
       prefix: "chore(infra)"
-      include: scope
     labels:
       - infra
       - automated

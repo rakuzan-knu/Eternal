@@ -7,6 +7,12 @@ export function triggerCircularRippleTransition(
   origin: RippleOrigin | null | undefined,
   applyTheme: () => void,
 ): void {
+  const isBrowser = typeof window !== 'undefined' && typeof document !== 'undefined';
+  if (isBrowser && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+    applyTheme();
+    return;
+  }
+
   // Trigger subtle haptic feedback on supported mobile devices
   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
     try {
@@ -16,7 +22,6 @@ export function triggerCircularRippleTransition(
     }
   }
 
-  const isBrowser = typeof window !== 'undefined' && typeof document !== 'undefined';
   const x = origin?.x ?? (isBrowser ? Math.round(window.innerWidth / 2) : 0);
   const y = origin?.y ?? (isBrowser ? Math.round(window.innerHeight / 2) : 0);
 

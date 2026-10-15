@@ -40,12 +40,6 @@ export default defineConfig({
     passWithNoTests: true,
     setupFiles: ['./src/test/polyfills.ts', './src/test/setup.ts'],
     pool: 'forks',
-    poolOptions: {
-      forks: {
-        maxForks: undefined,
-        minForks: 1,
-      },
-    },
     fileParallelism: true,
     maxConcurrency: 16,
     server: {

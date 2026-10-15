@@ -379,7 +379,12 @@ export default function SearchPage() {
   const isHashtagSearch = debouncedTerm.startsWith('#');
   const cleanSearchTerm = debouncedTerm.replace(/^#+/, '');
 
-  const { data: searchUsers = [] } = useQuery<SearchUserItem[]>({
+  const {
+    data: searchUsers = [],
+    isLoading: isLoadingUsers,
+    isError: isUsersError,
+    refetch: refetchUsers,
+  } = useQuery<SearchUserItem[]>({
     queryKey: queryKeys.user.search(debouncedTerm),
     queryFn: async ({ signal }) => {
       if (!debouncedTerm || isHashtagSearch) return [];
@@ -979,7 +984,22 @@ export default function SearchPage() {
               {/* Tab: PEOPLE */}
               {activeTab === 'People' && (
                 <div className="glass-card border border-white/10 rounded-3xl p-5 shadow-2xl flex flex-col gap-3">
-                  {searchUsers.length === 0 ? (
+                  {isLoadingUsers ? (
+                    <div role="status" className="text-center py-12 text-gray-400 text-sm">
+                      Searching people...
+                    </div>
+                  ) : isUsersError ? (
+                    <div role="alert" className="text-center py-12 text-gray-300 text-sm">
+                      <p>People search could not load</p>
+                      <button
+                        type="button"
+                        onClick={() => void refetchUsers()}
+                        className="mt-3 rounded-xl bg-purple-600 px-4 py-2 text-white"
+                      >
+                        Retry people search
+                      </button>
+                    </div>
+                  ) : searchUsers.length === 0 ? (
                     <div className="text-center py-12 text-gray-400 text-sm">
                       No users found matching "{debouncedTerm}"
                     </div>

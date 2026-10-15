@@ -9,6 +9,7 @@ describe('Modal', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.unstubAllGlobals();
   });
 
   it('renders modal content in portal and closes on backdrop click', () => {
@@ -55,8 +56,25 @@ describe('Modal', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it.each([false, true])(
+    'honors closeOnInputEscape=%s while retaining dialog focus',
+    (closeOnInputEscape) => {
+      const onClose = vi.fn();
+      render(
+        <Modal onClose={onClose} closeOnInputEscape={closeOnInputEscape}>
+          {() => <input aria-label="Draft" autoFocus />}
+        </Modal>,
+      );
+      const input = screen.getByRole('textbox', { name: 'Draft' });
+      expect(input).toHaveFocus();
+      fireEvent.keyDown(input, { key: 'Escape' });
+      act(() => vi.advanceTimersByTime(200));
+      expect(onClose).toHaveBeenCalledTimes(closeOnInputEscape ? 1 : 0);
+    },
+  );
+
   it('closes immediately with reduced motion', () => {
-    vi.spyOn(window, 'matchMedia').mockReturnValue({ matches: true } as MediaQueryList);
+    vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: true } as MediaQueryList));
     const onClose = vi.fn();
     const view = render(
       <Modal onClose={onClose}>{(close) => <button onClick={close}>Close</button>}</Modal>,

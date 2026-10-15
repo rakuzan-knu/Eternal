@@ -46,7 +46,7 @@ async function optimizeImage(
 ): Promise<ProcessedImageResult> {
   enforceUploadSize(buffer, purpose, 'image');
   if (!sniffUploadImageMime(buffer)) {
-    throw new BadRequestException('Choose a JPEG, PNG, GIF or WebP image');
+    throw new BadRequestException('Choose a JPEG, PNG, GIF, WebP or AVIF image');
   }
   try {
     const metadata = await sharp(buffer, IMAGE_INPUT_OPTIONS).metadata();

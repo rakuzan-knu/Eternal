@@ -1,9 +1,20 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useThemeStore } from '../useThemeStore';
+import { COOKIE_KEYS, getCookie, deleteCookie } from '@/shared/lib/cookieUtils';
 
 describe('useThemeStore', () => {
   beforeEach(() => {
     useThemeStore.setState({ theme: 'dark' });
+  });
+
+  it('mirrors the effective custom theme to the preference cookie', () => {
+    deleteCookie(COOKIE_KEYS.THEME);
+    useThemeStore.getState().setSolidTheme('light');
+    expect(getCookie(COOKIE_KEYS.THEME)).toBe('light');
+    useThemeStore.getState().setGradientPreset('sunset-mirage');
+    expect(getCookie(COOKIE_KEYS.THEME)).toBe('dark');
+    useThemeStore.getState().setSolidTheme('ash');
+    expect(getCookie(COOKIE_KEYS.THEME)).toBe('dark');
   });
 
   it('updates theme correctly', () => {

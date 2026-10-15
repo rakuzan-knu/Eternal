@@ -175,7 +175,7 @@ export default function ProfileHeader({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 justify-end pt-4">
+        <div className="flex flex-wrap items-center gap-2 justify-end pt-4 max-md:pt-20">
           {isOwnProfile ? (
             <button
               type="button"
@@ -326,14 +326,14 @@ export default function ProfileHeader({
           <div
             className={
               hasProfileTheme
-                ? 'flex items-center gap-6 mt-1 pt-3 border-t border-white/10'
-                : 'flex items-center gap-6 mt-5'
+                ? 'flex flex-wrap items-center gap-x-6 gap-y-2 mt-1 pt-3 border-t border-white/10'
+                : 'flex flex-wrap items-center gap-x-6 gap-y-2 mt-5'
             }
           >
             <button
               type="button"
               onClick={() => setOpenList('followers')}
-              className="group flex items-center gap-1.5 cursor-pointer transition-all duration-200"
+              className="group min-h-8 flex items-center gap-1.5 cursor-pointer transition-all duration-200"
             >
               <span
                 className={
@@ -358,7 +358,7 @@ export default function ProfileHeader({
             <button
               type="button"
               onClick={() => setOpenList('following')}
-              className="group flex items-center gap-1.5 cursor-pointer transition-all duration-200"
+              className="group min-h-8 flex items-center gap-1.5 cursor-pointer transition-all duration-200"
             >
               <span
                 className={

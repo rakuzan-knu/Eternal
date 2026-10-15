@@ -18,7 +18,9 @@ describe('LawEnforcementPage', () => {
 
     expect(screen.getByText('GUIDELINES FOR LAW ENFORCEMENT')).toBeInTheDocument();
     expect(screen.getByText(/Effective: September 1, 2026/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/Kyiv, Ukraine/i).length).toBeGreaterThanOrEqual(1);
+    expect(
+      screen.getByText(/Eternal project, operated by Ag Mykola and Ag Mihal/i),
+    ).toBeInTheDocument();
   });
 
   it('renders all 5 law enforcement sections in TOC and main content', () => {

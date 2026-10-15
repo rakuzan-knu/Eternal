@@ -2,20 +2,22 @@ import { RedisIoAdapter } from '../redis-io.adapter';
 import type { INestApplication } from '@nestjs/common';
 
 jest.mock('ioredis', () => {
-  const MockRedis = jest.fn().mockImplementation(() => ({
-    duplicate: jest.fn().mockReturnThis(),
-    on: jest.fn().mockReturnThis(),
-    once: jest.fn((event: string, cb: () => void) => {
-      if (event === 'ready') {
-        setTimeout(() => {
-          cb();
-        }, 5);
-      }
-    }),
-    status: 'ready',
-    quit: jest.fn().mockResolvedValue('OK'),
-    disconnect: jest.fn(),
-  }));
+  const MockRedis = jest.fn().mockImplementation(function () {
+    return {
+      duplicate: jest.fn().mockReturnThis(),
+      on: jest.fn().mockReturnThis(),
+      once: jest.fn((event: string, cb: () => void) => {
+        if (event === 'ready') {
+          setTimeout(() => {
+            cb();
+          }, 5);
+        }
+      }),
+      status: 'ready',
+      quit: jest.fn().mockResolvedValue('OK'),
+      disconnect: jest.fn(),
+    };
+  });
   return {
     default: MockRedis,
     Redis: MockRedis,

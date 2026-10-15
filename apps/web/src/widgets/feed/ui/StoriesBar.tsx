@@ -9,7 +9,7 @@ import type { UserStoriesGroup } from '@/features/stories/model/types';
 
 export function StoriesBar() {
   const { data: currentUser } = useCurrentUser();
-  const { data: feed = [], isLoading } = useStoriesFeed();
+  const { data: feed = [], isLoading, isError, isFetching, refetch } = useStoriesFeed();
   const openEditor = useStoryEditorStore((s) => s.openEditor);
   const openViewer = useStoryViewerStore((s) => s.openViewer);
 
@@ -67,7 +67,11 @@ export function StoriesBar() {
 
   if (isLoading && feed.length === 0) {
     return (
-      <div className="glass-card w-full border border-white/5 rounded-3xl p-3.5 flex items-center gap-4 overflow-hidden">
+      <div
+        role="status"
+        aria-label="Loading stories"
+        className="glass-card w-full border border-white/5 rounded-3xl p-3.5 flex items-center gap-4 overflow-hidden"
+      >
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="flex flex-col items-center gap-1.5 shrink-0 animate-pulse">
             <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10" />
@@ -79,7 +83,27 @@ export function StoriesBar() {
   }
 
   return (
-    <div className="glass-card relative w-full border border-white/5 rounded-3xl p-3.5 shadow-xl select-none group/bar transition-colors duration-200">
+    <div
+      role="region"
+      aria-label="Stories"
+      className="glass-card relative w-full border border-white/5 rounded-3xl p-3.5 shadow-xl select-none group/bar transition-colors duration-200"
+    >
+      {isError && (
+        <div
+          role="alert"
+          className="mb-3 flex flex-wrap items-center gap-3 text-sm text-gray-700 dark:text-gray-300"
+        >
+          <p>Stories could not load</p>
+          <button
+            type="button"
+            onClick={() => void refetch()}
+            disabled={isFetching}
+            className="rounded-xl bg-purple-600 px-3 py-2 text-white disabled:opacity-50"
+          >
+            Retry stories
+          </button>
+        </div>
+      )}
       {/* Scroll Left Button */}
       {canScrollLeft && (
         <button
@@ -120,56 +144,49 @@ export function StoriesBar() {
       >
         {/* Current User Item */}
         <div className="relative flex flex-col items-center gap-1.5 shrink-0">
-          <button
-            type="button"
-            onClick={handleOwnAvatarClick}
-            className="group relative flex items-center justify-center rounded-full p-[2.5px] transition-transform duration-200 active:scale-95 cursor-pointer"
-            style={
-              hasOwnStories
-                ? {
-                    background: ownGroup?.hasCloseFriendsStory
-                      ? 'linear-gradient(135deg, #10b981 0%, #22c55e 50%, #14b8a6 100%)'
-                      : 'linear-gradient(135deg, #8b5cf6 0%, #d946ef 50%, #6366f1 100%)',
-                    filter: 'drop-shadow(0 0 8px rgba(139, 92, 246, 0.45))',
-                  }
-                : undefined
-            }
-          >
-            <div className="rounded-full bg-[#09090b] p-[2px]">
-              <Avatar
-                src={currentUser?.avatar}
-                alt={currentUser?.displayName || 'Your story'}
-                suppressDecoration={true}
-                userId={currentUser?.id}
-                className="w-14 h-14"
-              />
-            </div>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={handleOwnAvatarClick}
+              aria-label={hasOwnStories ? 'View your story' : 'Add story'}
+              className="group relative flex items-center justify-center rounded-full p-[2.5px] transition-transform duration-200 active:scale-95 cursor-pointer"
+              style={
+                hasOwnStories
+                  ? {
+                      background: ownGroup?.hasCloseFriendsStory
+                        ? 'linear-gradient(135deg, #10b981 0%, #22c55e 50%, #14b8a6 100%)'
+                        : 'linear-gradient(135deg, #8b5cf6 0%, #d946ef 50%, #6366f1 100%)',
+                      filter: 'drop-shadow(0 0 8px rgba(139, 92, 246, 0.45))',
+                    }
+                  : undefined
+              }
+            >
+              <div className="rounded-full bg-[#09090b] p-[2px]">
+                <Avatar
+                  src={currentUser?.avatar}
+                  alt={currentUser?.displayName || 'Your story'}
+                  suppressDecoration={true}
+                  userId={currentUser?.id}
+                  className="w-14 h-14"
+                />
+              </div>
+            </button>
 
             {/* Bottom-right Plus Icon Badge (Click directly creates story) */}
-            <div
-              role="button"
-              tabIndex={0}
-              onClick={(e) => {
-                e.stopPropagation();
-                openEditor();
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.stopPropagation();
-                  openEditor();
-                }
-              }}
+            <button
+              type="button"
+              onClick={() => openEditor()}
               aria-label="Create story"
               title="Create story"
-              className={`absolute bottom-0 right-0 w-5 h-5 rounded-full flex items-center justify-center border-2 border-[#121216] shadow-md transition-all duration-200 hover:scale-115 active:scale-90 cursor-pointer z-10 ${
+              className={`absolute bottom-0 right-0 w-6 h-6 rounded-full flex items-center justify-center border-2 border-[#121216] shadow-md transition-all duration-200 hover:scale-115 active:scale-90 cursor-pointer z-10 ${
                 hasOwnStories
                   ? 'bg-purple-600 text-white hover:bg-purple-500'
                   : 'bg-gradient-to-tr from-purple-600 to-indigo-500 text-white hover:brightness-110'
               }`}
             >
               <Plus size={12} className="stroke-[3]" />
-            </div>
-          </button>
+            </button>
+          </div>
 
           <span className="text-[11px] font-medium text-gray-700 dark:text-gray-200 truncate max-w-[70px] text-center">
             {hasOwnStories ? 'Your story' : 'Add'}

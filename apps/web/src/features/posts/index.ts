@@ -4,6 +4,7 @@ export { useCreatePost } from './model/useCreatePost';
 export { useDeletePostMutation } from './model/useDeletePostMutation';
 export { useEditPostMutation } from './model/useEditPostMutation';
 export { useHiddenUndoStore } from './model/useHiddenUndoStore';
+export { usePostDraftStore } from './model/usePostDraftStore';
 export { useLikeMutation } from './model/useLikeMutation';
 export { usePinPostMutation } from './model/usePinPostMutation';
 export { useRepostMutation } from './model/useRepostMutation';

@@ -95,21 +95,22 @@ const wrapTestFn = (fn: unknown): unknown => {
 
 const createTestWrapper = <T extends AnyFn>(orig: T): T => {
   if (!orig) return orig;
-  const wrapped = ((name: string, fn: unknown, timeout?: number) =>
-    orig(name, wrapTestFn(fn), timeout)) as unknown as T;
-  Object.assign(wrapped, orig);
-  const origAny = orig as unknown as Record<string, unknown>;
-  const wrappedAny = wrapped as unknown as Record<string, unknown>;
-  if (typeof origAny.only === 'function') {
-    wrappedAny.only = (name: string, fn: unknown, timeout?: number) =>
-      (origAny.only as AnyFn)(name, wrapTestFn(fn), timeout);
-  }
-  if (origAny.skip) wrappedAny.skip = origAny.skip;
-  if (typeof origAny.concurrent === 'function') {
-    wrappedAny.concurrent = (name: string, fn: unknown, timeout?: number) =>
-      (origAny.concurrent as AnyFn)(name, wrapTestFn(fn), timeout);
-  }
-  return wrapped;
+  return new Proxy(orig, {
+    apply(target: T, thisArg: unknown, args: unknown[]) {
+      const [name, fn, timeout] = args;
+      return Reflect.apply(target, thisArg, [name, wrapTestFn(fn), timeout]);
+    },
+    get(target: T, prop: string | symbol, receiver: unknown) {
+      if (prop === 'only' || prop === 'concurrent') {
+        const origMethod = Reflect.get(target, prop, receiver) as unknown;
+        if (typeof origMethod === 'function') {
+          return (name: string, fn: unknown, timeout?: number): unknown =>
+            origMethod.call(target, name, wrapTestFn(fn), timeout);
+        }
+      }
+      return Reflect.get(target, prop, receiver) as unknown;
+    },
+  });
 };
 
 if (typeof globalObj.it === 'function') {

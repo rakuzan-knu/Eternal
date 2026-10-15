@@ -2,6 +2,9 @@
 
 The frontend is a modern Single Page Application (SPA) built with **React 19**, **Vite 8**, and **Tailwind CSS 4**, architected according to the **Feature-Sliced Design (FSD)** methodology.
 
+The [design reference](../design/README.md) documents the implemented visual language, component
+recipes, custom themes and adaptation guidance for future mobile/desktop clients.
+
 ---
 
 ## 🏛️ Feature-Sliced Design (FSD) Hierarchy
