@@ -105,16 +105,25 @@ export function useMessages(conversationId: string | null) {
       if (!data?.pages.length) {
         const live = client.getQueryData<InfiniteMessagesData>(headKey)?.pages[0];
         if (!live || !live.hasMore || !live.nextCursor) return;
-        // The live head can grow to its realtime cap. Copy only its oldest
-        // page into the historical viewport at the edge the reader reached.
-        data = {
+        const seeded: InfiniteData<HistoryPage, HistoryPageParam> = {
           pages: [
-            historyPage({ ...live, data: live.data.slice(-HISTORY_PAGE_SIZE) }, 'head', false),
+            historyPage(
+              {
+                ...live,
+                data: live.data.slice(-HISTORY_PAGE_SIZE),
+              },
+              'head',
+              false,
+            ),
           ],
           pageParams: [{ direction: 'head' }],
         };
-        client.setQueryData(windowKey, data);
+        client.setQueryData(windowKey, seeded);
+        // Read back the query data so the fetch uses the same state that the
+        // observer will render.
+        data = client.getQueryData<InfiniteData<HistoryPage, HistoryPageParam>>(windowKey);
       }
+      if (!data?.pages.length) return;
       if (!olderHistoryParam(data.pages.at(-1)!)) return;
       return await fetchHistoryOlder({ cancelRefetch: false });
     } finally {
@@ -178,7 +187,7 @@ export function useMessages(conversationId: string | null) {
     return await refetchHead();
   }, [client, windowKey, headKey, refetchHead]);
 
-  const isAnchoredInHistory = !!window.data?.pages.length;
+  const isAnchoredInHistory = Boolean(window.data?.pages?.length);
   const visible = isAnchoredInHistory ? window.data : head.data;
   const messages = useMemo<MessageView[]>(
     () =>

@@ -1,4 +1,9 @@
-import { issueOAuthState, consumeOAuthState, setOAuthCookie } from '../common/security/oauth-state';
+import {
+  issueOAuthState,
+  consumeOAuthState,
+  setOAuthCookie,
+  readOAuthCookieState,
+} from '../common/security/oauth-state';
 import {
   Inject,
   Injectable,
@@ -106,7 +111,7 @@ export class GithubService {
       'github',
       state,
       userId,
-      (req.cookies as Record<string, string> | undefined)?.github_oauth_state,
+      readOAuthCookieState(req, 'github'),
     );
     const effectiveFrontendUrl = this.frontendRedirectUrl;
     try {

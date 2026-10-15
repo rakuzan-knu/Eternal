@@ -569,13 +569,8 @@ function stripHtmlTags(input: string): string {
       // Fallback
     }
   }
-  let prev = input;
-  let result = prev.replace(/<[^>]*>/g, '');
-  while (result !== prev) {
-    prev = result;
-    result = prev.replace(/<[^>]*>/g, '');
-  }
-  return result;
+  // Fallback: remove tag delimiters directly to avoid incomplete multi-character regex sanitization.
+  return input.replace(/[<>]/g, '');
 }
 
 function escapeXml(str: string): string {

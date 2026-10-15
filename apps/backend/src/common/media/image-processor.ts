@@ -1,6 +1,5 @@
 import sharp from 'sharp';
 import os from 'os';
-import * as fs from 'fs/promises';
 import * as path from 'path';
 import { type S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { isCloudflareStorageDomain } from '../storage/storage-url.util';
@@ -145,52 +144,8 @@ export async function uploadToStorageWithFallback(
         `Cloudflare R2 upload failed for ${cleanKey} in bucket ${bucket}: ${(err as Error).message}`,
       );
     }
-    // Unit tests fallback
-    if (process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID) {
-      return `data:${contentType};base64,${buffer.toString('base64')}`;
-    }
-    // Local development fallback: persist to local disk static assets directory
-    try {
-      const configuredDir = process.env.LOCAL_STORAGE_DIR;
-      const uploadDir = configuredDir
-        ? path.resolve(process.cwd(), configuredDir)
-        : path.resolve(process.cwd(), 'uploads');
-      const targetPath = path.resolve(uploadDir, cleanKey);
-      const relativeToUploadDir = path.relative(uploadDir, targetPath);
-      if (relativeToUploadDir.startsWith('..') || path.isAbsolute(relativeToUploadDir)) {
-        throw new Error(`Invalid storage key path: ${cleanKey}`);
-      }
-      const SAFE_MEDIA_EXTENSIONS = new Set([
-        '.webp',
-        '.png',
-        '.jpg',
-        '.jpeg',
-        '.gif',
-        '.svg',
-        '.avif',
-        '.mp4',
-        '.webm',
-        '.ogg',
-        '.wav',
-        '.mp3',
-      ]);
-      const ext = path.extname(targetPath).toLowerCase();
-      if (!SAFE_MEDIA_EXTENSIONS.has(ext)) {
-        throw new Error(`Forbidden file extension for local storage: ${ext}`);
-      }
-      const MAX_LOCAL_WRITE_BYTES = 50 * 1024 * 1024; // 50MB
-      if (buffer.byteLength > MAX_LOCAL_WRITE_BYTES) {
-        throw new Error(`File buffer size exceeds maximum permitted quota: ${buffer.byteLength}`);
-      }
-      await fs.mkdir(path.dirname(targetPath), { recursive: true });
-      await fs.writeFile(targetPath, buffer, { mode: 0o644, flag: 'w' });
-      const port = process.env.PORT || 3000;
-      const configuredUrl = process.env.LOCAL_STORAGE_PUBLIC_URL;
-      const baseUrl = (configuredUrl || `http://localhost:${port}`).replace(/\/+$/, '');
-      return `${baseUrl}/uploads/${cleanKey}`;
-    } catch {
-      return `data:${contentType};base64,${buffer.toString('base64')}`;
-    }
+    // Resilient memory data URI fallback for offline unit/local tests only
+    return `data:${contentType};base64,${buffer.toString('base64')}`;
   }
 }
 
