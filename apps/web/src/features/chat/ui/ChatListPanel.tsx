@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import {
   ArrowLeft,
   Search,
@@ -22,23 +23,21 @@ import { ChatFolder, useChatFoldersStore } from '../../../features/chat/model/us
 import { useChatDraftsStore } from '../../../features/chat/model/useChatDraftsStore';
 import ChatListItem from './ChatListItem';
 import ChatListHeaderMenu, { ChatListHeaderSection } from './ChatListHeaderMenu';
-import NewGroupModal from './NewGroupModal';
-import ChatFolderModal from './ChatFolderModal';
+const NewGroupModal = lazy(() => import('./NewGroupModal'));
+const ChatFolderModal = lazy(() => import('./ChatFolderModal'));
 import ChatFolderRail from './ChatFolderRail';
 import ChatFolderContextMenu from './ChatFolderContextMenu';
-import DeleteChatFolderModal from './DeleteChatFolderModal';
-import ArchivedChatsModal from './ArchivedChatsModal';
-import RestrictedAccountsPanel from './RestrictedAccountsPanel';
-import GlobalSearchModal from './GlobalSearchModal';
+const DeleteChatFolderModal = lazy(() => import('./DeleteChatFolderModal'));
+const ArchivedChatsModal = lazy(() => import('./ArchivedChatsModal'));
+const RestrictedAccountsPanel = lazy(() => import('./RestrictedAccountsPanel'));
 import { initializeAndPublishPrekeys } from '../lib/e2ee/x3dhRatchet';
-import { ChatListSkeleton, ChatListMoreSkeleton } from './ChatListSkeletons';
-import { chatApi } from '../api/chatApi';
+import { ChatListSkeleton } from './ChatListSkeletons';
+import { conversationFolderQuery } from '../lib/conversationPageFilters';
 
 const MIN_WIDTH = 280;
 const MAX_WIDTH = 480;
 const DEFAULT_WIDTH = 360;
 const COLLAPSED_WIDTH = 64;
-const CHAT_RENDER_BATCH_SIZE = 20;
 
 function getConversationActivityTime(conversation: ConversationView) {
   const activityAt =
@@ -65,7 +64,6 @@ export default function ChatListPanel({
   const toggleChatList = useUIStore((s) => s.toggleChatList);
   const openEditProfile = useUIStore((s) => s.openEditProfile);
   const userId = useAuthStore((s) => s.userId);
-  const { data: conversations, isLoading, isError } = useConversations();
   // Folder mirror slices: subscribe per-field to avoid full-store rerenders.
   const systemFolders = useChatFoldersStore((s) => s.systemFolders);
   const folders = useChatFoldersStore((s) => s.folders);
@@ -85,18 +83,16 @@ export default function ChatListPanel({
     const remaining = baseFolders.filter((folder) => !order.includes(folder.id));
     return [...ordered, ...remaining];
   }, [folderOrderOwnerId, folderOrders, folders, systemFolders]);
-  const visibleDirectUserIds = useMemo<string[]>(
-    () =>
-      conversations
-        ?.filter((c: ConversationView) => c.type === 'DIRECT')
-        .map((c: ConversationView) => getConversationDisplay(c, userId).otherUserId)
-        .filter((id: string | null | undefined): id is string => Boolean(id)) ?? [],
-    [conversations, userId],
-  );
-  useQueryOnlineStatus(visibleDirectUserIds);
-
-  const [isGlobalSearchOpen, setGlobalSearchOpen] = useState(false);
   const [activeFolderId, setActiveFolderId] = useState('all');
+  const activeFolder = useMemo(
+    () =>
+      allFolders.find(
+        (folder) =>
+          folder.id === activeFolderId ||
+          (activeFolderId === 'all' && (folder.id === 'all' || folder.filterType === 'ALL')),
+      ) ?? allFolders[0],
+    [activeFolderId, allFolders],
+  );
   const [isHeaderMenuOpen, setHeaderMenuOpen] = useState(false);
   const [isNewGroupModalOpen, setNewGroupModalOpen] = useState(false);
   const [isArchiveModalOpen, setArchiveModalOpen] = useState(false);
@@ -109,7 +105,6 @@ export default function ChatListPanel({
     y: number;
   } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ChatFolder | null>(null);
-  const [visibleConversationCount, setVisibleConversationCount] = useState(CHAT_RENDER_BATCH_SIZE);
 
   useEffect(() => {
     if (userId) {
@@ -117,17 +112,6 @@ export default function ChatListPanel({
       void initializeAndPublishPrekeys(userId).catch(() => {});
     }
   }, [userId]);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        setGlobalSearchOpen((prev) => !prev);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
 
   const {
     pinnedLocally,
@@ -137,6 +121,19 @@ export default function ChatListPanel({
     toggleUnreadLocally,
     markConversationsRead,
   } = useLocalConversationOverrides();
+  const {
+    data: conversations,
+    isLoading,
+    isError,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+    refetch,
+  } = useConversations({
+    ...conversationFolderQuery(activeFolder),
+    forcedUnreadIds: [...forcedUnreadLocally].sort(),
+    locallyReadIds: [...locallyReadConversations].sort(),
+  });
 
   const handleTogglePinLocally = (conversationId: string) => {
     togglePinLocally(conversationId, () => {
@@ -166,16 +163,6 @@ export default function ChatListPanel({
     [conversations, locallyReadConversations],
   );
 
-  const activeFolder = useMemo(
-    () =>
-      allFolders.find(
-        (folder) =>
-          folder.id === activeFolderId ||
-          (activeFolderId === 'all' && (folder.id === 'all' || folder.filterType === 'ALL')),
-      ) ?? allFolders[0],
-    [activeFolderId, allFolders],
-  );
-
   const drafts = useChatDraftsStore((s) => s.drafts);
 
   const filteredConversations = useMemo(() => {
@@ -187,35 +174,180 @@ export default function ChatListPanel({
         if (hasDraftA !== hasDraftB) {
           return hasDraftA ? -1 : 1;
         }
-        return getConversationActivityTime(b) - getConversationActivityTime(a);
+        return 0; // Keep the server snapshot positions across realtime updates.
       },
     );
   }, [activeFolder, drafts, effectiveConversations, forcedUnreadLocally]);
 
-  const visibleConversations = filteredConversations.slice(0, visibleConversationCount);
-  const visiblePinnedConversations = visibleConversations.filter((c) => pinnedLocally.has(c.id));
-  const visibleUnpinnedConversations = visibleConversations.filter((c) => !pinnedLocally.has(c.id));
-  const hasMoreVisibleConversations = visibleConversationCount < filteredConversations.length;
-
-  const [visibleCountResetKey, setVisibleCountResetKey] = useState(activeFolderId);
-  const currentVisibleCountKey = activeFolderId;
-  if (currentVisibleCountKey !== visibleCountResetKey) {
-    setVisibleCountResetKey(currentVisibleCountKey);
-    setVisibleConversationCount(CHAT_RENDER_BATCH_SIZE);
-  }
-
-  const handleChatListScroll = (event: React.UIEvent<HTMLDivElement>) => {
-    const el = event.currentTarget;
-    if (el.scrollHeight - el.scrollTop - el.clientHeight > 160) return;
-    setVisibleConversationCount((count) =>
-      Math.min(count + CHAT_RENDER_BATCH_SIZE, filteredConversations.length),
-    );
-  };
-
-  const archivedCount = useMemo(
-    () => conversations?.filter((c: ConversationView) => c.isArchived).length ?? 0,
-    [conversations],
+  const orderedConversations = useMemo(
+    () => [
+      ...filteredConversations.filter((c) => pinnedLocally.has(c.id)),
+      ...filteredConversations.filter((c) => !pinnedLocally.has(c.id)),
+    ],
+    [filteredConversations, pinnedLocally],
   );
+  const rows = useMemo(() => {
+    const pinned = orderedConversations.filter((c) => pinnedLocally.has(c.id));
+    const unpinned = orderedConversations.filter((c) => !pinnedLocally.has(c.id));
+    return [
+      ...(pinned.length
+        ? [
+            { key: 'pinned-heading', conversation: null },
+            ...pinned.map((conversation) => ({ key: conversation.id, conversation })),
+          ]
+        : []),
+      ...unpinned.map((conversation) => ({ key: conversation.id, conversation })),
+    ];
+  }, [orderedConversations, pinnedLocally]);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const virtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: (index) => (rows[index].conversation ? 88 : 32),
+    getItemKey: (index) => rows[index].key,
+    overscan: 5,
+    enabled: isChatListExpanded,
+  });
+  const virtualItems = virtualizer.getVirtualItems();
+  useEffect(() => {
+    if (
+      hasNextPage &&
+      !isFetchingNextPage &&
+      virtualItems.some((item) => item.index >= rows.length - 5)
+    )
+      void fetchNextPage();
+  }, [virtualItems, rows.length, hasNextPage, isFetchingNextPage, fetchNextPage]);
+  const visibleDirectUserIds = virtualItems.flatMap((item) => {
+    const conversation = rows[item.index].conversation;
+    const id =
+      conversation?.type === 'DIRECT'
+        ? getConversationDisplay(conversation, userId).otherUserId
+        : null;
+    return id ? [id] : [];
+  });
+  useQueryOnlineStatus(visibleDirectUserIds);
+  const lastScrolledSelection = useRef<string | null>(null);
+  useEffect(() => {
+    if (!isChatListExpanded) {
+      lastScrolledSelection.current = null;
+      return;
+    }
+    if (activeConversationId && isChatListExpanded) {
+      const selection = `${activeFolderId}:${activeConversationId}`;
+      if (lastScrolledSelection.current === selection) return;
+      const index = rows.findIndex((row) => row.conversation?.id === activeConversationId);
+      if (index >= 0) {
+        virtualizer.scrollToIndex(index, { align: 'auto' });
+        lastScrolledSelection.current = selection;
+      }
+    }
+  }, [activeConversationId, activeFolderId, isChatListExpanded, rows, virtualizer]);
+
+  const orderedConversationsRef = useRef(orderedConversations);
+  orderedConversationsRef.current = orderedConversations;
+
+  const activeConversationIdRef = useRef(activeConversationId);
+  activeConversationIdRef.current = activeConversationId;
+
+  const onSelectConversationRef = useRef(onSelectConversation);
+  onSelectConversationRef.current = onSelectConversation;
+
+  const hasNextPageRef = useRef(hasNextPage);
+  hasNextPageRef.current = hasNextPage;
+
+  const isFetchingNextPageRef = useRef(isFetchingNextPage);
+  isFetchingNextPageRef.current = isFetchingNextPage;
+
+  const fetchNextPageRef = useRef(fetchNextPage);
+  fetchNextPageRef.current = fetchNextPage;
+
+  // Keyboard Shortcut: Alt+ArrowDown / Alt+ArrowUp to switch chats smoothly
+  useEffect(() => {
+    const getCurrentActiveId = () => {
+      if (typeof window !== 'undefined') {
+        const match = window.location.pathname.match(/\/messages\/([^/?#]+)/);
+        if (match && match[1]) return match[1];
+      }
+      return activeConversationIdRef.current;
+    };
+
+    const handleKeyDown = async (e: KeyboardEvent) => {
+      if (!e.altKey) return;
+      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+
+      // Skip if any modal / dialog / full-screen overlay is open
+      if (document.querySelector('[role="dialog"], [aria-modal="true"], .glass-modal')) return;
+
+      let conversations = orderedConversationsRef.current;
+      if (conversations.length === 0) return;
+
+      const activeId = getCurrentActiveId();
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (!activeId) {
+          const first = conversations[0];
+          if (first) {
+            activeConversationIdRef.current = first.id;
+            onSelectConversationRef.current(first.id);
+          }
+          return;
+        }
+
+        let index = conversations.findIndex((c) => c.id === activeId);
+        if (index === -1) {
+          const first = conversations[0];
+          if (first) {
+            activeConversationIdRef.current = first.id;
+            onSelectConversationRef.current(first.id);
+          }
+          return;
+        }
+
+        if (index >= conversations.length - 1 && hasNextPageRef.current) {
+          if (isFetchingNextPageRef.current) return;
+          const next = await fetchNextPageRef.current();
+          const incoming = (next.data?.pages ?? []).flatMap((page) => page.data);
+
+          const mergedMap = new Map(conversations.map((c) => [c.id, c]));
+          for (const item of incoming) {
+            mergedMap.set(item.id, item);
+          }
+          const merged = Array.from(mergedMap.values());
+          orderedConversationsRef.current = merged;
+          conversations = merged;
+
+          // Recompute index after fetch instead of reusing old index
+          index = conversations.findIndex((c) => c.id === activeId);
+        }
+
+        const nextTarget = index !== -1 ? conversations[index + 1] : undefined;
+        if (nextTarget && nextTarget.id !== activeId) {
+          activeConversationIdRef.current = nextTarget.id;
+          onSelectConversationRef.current(nextTarget.id);
+        }
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (!activeId) return;
+
+        const index = conversations.findIndex((c) => c.id === activeId);
+        if (index > 0) {
+          const prevTarget = conversations[index - 1];
+          if (prevTarget && prevTarget.id !== activeId) {
+            activeConversationIdRef.current = prevTarget.id;
+            onSelectConversationRef.current(prevTarget.id);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handleOpenHeaderSection = (section: ChatListHeaderSection) => {
     if (section === 'archive') {
@@ -283,7 +415,7 @@ export default function ChatListPanel({
         width: isChatListExpanded ? width : COLLAPSED_WIDTH,
         transitionDuration: isResizing ? '0ms' : '300ms',
       }}
-      className={`relative h-full shrink-0 flex flex-col bg-[#16161a]/60 backdrop-blur-2xl border-r border-white/5 py-6 transition-[width] ease-in-out overflow-hidden ${className}`}
+      className={`relative h-full shrink-0 flex flex-col glass-sidebar border-r border-white/10 py-6 transition-[width] ease-in-out overflow-hidden ${className}`}
     >
       {onBack && (
         <button
@@ -333,7 +465,6 @@ export default function ChatListPanel({
               {isHeaderMenuOpen && (
                 <ChatListHeaderMenu
                   onClose={() => setHeaderMenuOpen(false)}
-                  archivedCount={archivedCount}
                   onOpen={handleOpenHeaderSection}
                 />
               )}
@@ -350,7 +481,7 @@ export default function ChatListPanel({
 
           <div className="px-5 mb-4">
             <div
-              onClick={() => setGlobalSearchOpen(true)}
+              onClick={() => useUIStore.getState().openGlobalSearch()}
               className="relative cursor-pointer group"
             >
               <Search
@@ -371,80 +502,98 @@ export default function ChatListPanel({
             conversations={effectiveConversations}
             activeFolderId={activeFolder?.id ?? 'all'}
             forcedUnreadIds={forcedUnreadLocally}
+            countsComplete={
+              !hasNextPage &&
+              conversationFolderQuery(activeFolder).filter === 'ALL' &&
+              !activeFolder?.excludeIds.length
+            }
             onSelect={setActiveFolderId}
             onCreate={handleCreateFolder}
             onContextMenu={(folder, x, y) => setContextMenu({ folder, x, y })}
             onReorder={(orderedIds) => reorderFolders(folderOrderOwnerId, orderedIds)}
           />
 
-          <div className="flex-1 overflow-y-auto px-3" onScroll={handleChatListScroll}>
+          <div
+            ref={scrollRef}
+            onScroll={(event) => {
+              const el = event.currentTarget;
+              if (
+                hasNextPage &&
+                !isFetchingNextPage &&
+                el.scrollHeight - el.scrollTop - el.clientHeight < 300
+              )
+                void fetchNextPage();
+            }}
+            className="flex-1 min-h-0 overflow-y-auto px-3"
+            role="list"
+            aria-label="Conversations"
+          >
             {isLoading && <ChatListSkeleton />}
             {isError && (
               <p className="text-center text-sm text-red-400 mt-8">
-                Couldn't load chats. Try again.
+                Couldn't load chats. <button onClick={() => void refetch()}>Try again</button>.
               </p>
             )}
 
             {!isLoading && !isError && (
-              <>
-                {visiblePinnedConversations.length > 0 && (
-                  <>
-                    <div className="flex items-center gap-3 px-2 pb-2 pt-1">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500">
-                        Pinned
-                      </span>
-                      <div className="h-px flex-1 bg-white/8" />
-                    </div>
-                    <div className="flex flex-col gap-0.5 mb-3">
-                      {visiblePinnedConversations.map((c) => (
-                        <div key={c.id} className="animate-fadeIn">
-                          <ChatListItem
-                            conversation={c}
-                            currentUserId={userId}
-                            isActive={activeConversationId === c.id}
-                            isPinnedLocally={pinnedLocally.has(c.id)}
-                            isForcedUnread={forcedUnreadLocally.has(c.id)}
-                            onSelect={onSelectConversation}
-                            onTogglePinLocally={handleTogglePinLocally}
-                            onToggleUnreadLocally={toggleUnreadLocally}
-                            onMarkReadLocally={(id) => markConversationsRead([id])}
-                            onCreateFolder={() => {
-                              setEditingFolder(null);
-                              setFolderModalOpen(true);
-                            }}
-                          />
+              <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
+                {virtualItems.map((item) => {
+                  const conversation = rows[item.index].conversation;
+                  return (
+                    <div
+                      key={item.key}
+                      data-index={item.index}
+                      role={conversation ? 'listitem' : 'presentation'}
+                      ref={virtualizer.measureElement}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        transform: `translateY(${item.start}px)`,
+                      }}
+                    >
+                      {conversation ? (
+                        <ChatListItem
+                          conversation={conversation}
+                          currentUserId={userId}
+                          isActive={activeConversationId === conversation.id}
+                          isPinnedLocally={pinnedLocally.has(conversation.id)}
+                          isForcedUnread={forcedUnreadLocally.has(conversation.id)}
+                          onSelect={onSelectConversation}
+                          onTogglePinLocally={handleTogglePinLocally}
+                          onToggleUnreadLocally={toggleUnreadLocally}
+                          onMarkReadLocally={(id) => markConversationsRead([id])}
+                          onCreateFolder={() => {
+                            setEditingFolder(null);
+                            setFolderModalOpen(true);
+                          }}
+                        />
+                      ) : (
+                        <div className="flex items-center gap-3 px-2 pb-2 pt-1">
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500">
+                            Pinned
+                          </span>
+                          <div className="h-px flex-1 bg-white/8" />
                         </div>
-                      ))}
+                      )}
                     </div>
-                  </>
+                  );
+                })}
+                {filteredConversations.length === 0 && (
+                  <p className="text-center text-sm text-gray-500 mt-8">No chats found</p>
                 )}
-
-                <div className="flex flex-col gap-0.5">
-                  {visibleUnpinnedConversations.map((c) => (
-                    <div key={c.id} className="animate-fadeIn">
-                      <ChatListItem
-                        conversation={c}
-                        currentUserId={userId}
-                        isActive={activeConversationId === c.id}
-                        isPinnedLocally={pinnedLocally.has(c.id)}
-                        isForcedUnread={forcedUnreadLocally.has(c.id)}
-                        onSelect={onSelectConversation}
-                        onTogglePinLocally={handleTogglePinLocally}
-                        onToggleUnreadLocally={toggleUnreadLocally}
-                        onMarkReadLocally={(id) => markConversationsRead([id])}
-                        onCreateFolder={() => {
-                          setEditingFolder(null);
-                          setFolderModalOpen(true);
-                        }}
-                      />
-                    </div>
-                  ))}
-                  {filteredConversations.length === 0 && (
-                    <p className="text-center text-sm text-gray-500 mt-8">No chats found</p>
-                  )}
-                  {hasMoreVisibleConversations && <ChatListMoreSkeleton />}
-                </div>
-              </>
+              </div>
+            )}
+            {hasNextPage && (
+              <button
+                type="button"
+                className="w-full py-3 text-sm text-gray-400"
+                disabled={isFetchingNextPage}
+                onClick={() => void fetchNextPage()}
+              >
+                {isFetchingNextPage ? 'Loading chats...' : 'Load more chats'}
+              </button>
             )}
           </div>
 
@@ -464,76 +613,61 @@ export default function ChatListPanel({
         </>
       )}
 
-      {isNewGroupModalOpen && (
-        <NewGroupModal
-          onClose={() => setNewGroupModalOpen(false)}
-          onCreated={(conversationId) => {
-            setNewGroupModalOpen(false);
-            onSelectConversation(conversationId);
-          }}
-        />
-      )}
+      <Suspense fallback={null}>
+        {isNewGroupModalOpen && (
+          <NewGroupModal
+            onClose={() => setNewGroupModalOpen(false)}
+            onCreated={(conversationId) => {
+              setNewGroupModalOpen(false);
+              onSelectConversation(conversationId);
+            }}
+          />
+        )}
 
-      {isArchiveModalOpen && <ArchivedChatsModal onClose={() => setArchiveModalOpen(false)} />}
+        {isArchiveModalOpen && <ArchivedChatsModal onClose={() => setArchiveModalOpen(false)} />}
 
-      {contextMenu && (
-        <ChatFolderContextMenu
-          folder={contextMenu.folder}
-          x={contextMenu.x}
-          y={contextMenu.y}
-          onClose={() => setContextMenu(null)}
-          onEdit={() => handleEditFolder(contextMenu.folder)}
-          onMarkRead={() => handleMarkFolderRead(contextMenu.folder)}
-          onDelete={() => {
-            setDeleteTarget(contextMenu.folder);
-            setContextMenu(null);
-          }}
-        />
-      )}
+        {contextMenu && (
+          <ChatFolderContextMenu
+            folder={contextMenu.folder}
+            x={contextMenu.x}
+            y={contextMenu.y}
+            onClose={() => setContextMenu(null)}
+            onEdit={() => handleEditFolder(contextMenu.folder)}
+            onMarkRead={() => handleMarkFolderRead(contextMenu.folder)}
+            onDelete={() => {
+              setDeleteTarget(contextMenu.folder);
+              setContextMenu(null);
+            }}
+          />
+        )}
 
-      {isFolderModalOpen && (
-        <ChatFolderModal
-          folder={editingFolder}
-          conversations={effectiveConversations}
-          currentUserId={userId}
-          onClose={() => {
-            setFolderModalOpen(false);
-            setEditingFolder(null);
-          }}
-          onSave={handleSaveFolder}
-        />
-      )}
+        {isFolderModalOpen && (
+          <ChatFolderModal
+            folder={editingFolder}
+            conversations={effectiveConversations}
+            currentUserId={userId}
+            onClose={() => {
+              setFolderModalOpen(false);
+              setEditingFolder(null);
+            }}
+            onSave={handleSaveFolder}
+          />
+        )}
 
-      {deleteTarget && (
-        <DeleteChatFolderModal
-          folderName={deleteTarget.name}
-          onClose={() => setDeleteTarget(null)}
-          onConfirm={() => {
-            deleteFolder(deleteTarget.id);
-            if (activeFolderId === deleteTarget.id) setActiveFolderId('all');
-            setDeleteTarget(null);
-          }}
-        />
-      )}
+        {deleteTarget && (
+          <DeleteChatFolderModal
+            folderName={deleteTarget.name}
+            onClose={() => setDeleteTarget(null)}
+            onConfirm={() => {
+              deleteFolder(deleteTarget.id);
+              if (activeFolderId === deleteTarget.id) setActiveFolderId('all');
+              setDeleteTarget(null);
+            }}
+          />
+        )}
 
-      {isRestrictedOpen && <RestrictedAccountsPanel onClose={() => setRestrictedOpen(false)} />}
-
-      <GlobalSearchModal
-        isOpen={isGlobalSearchOpen}
-        onClose={() => setGlobalSearchOpen(false)}
-        onSelectConversation={onSelectConversation}
-        onStartDirectChat={async (targetUserId) => {
-          try {
-            const conv = await chatApi.createDirectConversation(targetUserId);
-            onSelectConversation(conv.id);
-          } catch {
-            const existing = conversations?.find(
-              (c) => c.type === 'DIRECT' && c.participants.some((p) => p.userId === targetUserId),
-            );
-            if (existing) onSelectConversation(existing.id);
-          }
-        }}
-      />
+        {isRestrictedOpen && <RestrictedAccountsPanel onClose={() => setRestrictedOpen(false)} />}
+      </Suspense>
     </div>
   );
 }

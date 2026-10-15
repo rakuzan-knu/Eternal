@@ -17,30 +17,71 @@ export function VideoPlayer({ src, poster, active = true }: VideoPlayerProps) {
   const [duration, setDuration] = useState(0);
   const [showSlider, setShowSlider] = useState(false);
   const hideTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const playbackRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     const el = containerRef.current;
     const video = videoRef.current;
     if (!el || !video) return;
 
-    if (!active) {
+    let visible = false;
+    let disposed = false;
+    let resumeAt = 0;
+    let manuallyPaused = false;
+    const release = () => {
+      if (video.getAttribute('src')) resumeAt = video.currentTime;
       video.pause();
-      return;
-    }
-
+      video.srcObject = null;
+      video.removeAttribute('src');
+      video.load();
+    };
+    const eligible = () => active && visible && !document.hidden && !disposed;
+    const play = () => {
+      if (!eligible() || manuallyPaused) return;
+      if (video.getAttribute('src') !== src) video.src = src;
+      void Promise.resolve(video.play())
+        .then(() => {
+          if (!eligible() && (!disposed || !video.getAttribute('src'))) video.pause();
+        })
+        .catch(() => {});
+    };
+    const restorePosition = () => {
+      if (eligible() && resumeAt > 0 && Number.isFinite(video.duration)) {
+        video.currentTime = Math.min(resumeAt, video.duration);
+      }
+    };
+    const onVisibility = () => {
+      if (eligible()) play();
+      else release();
+    };
+    playbackRef.current = () => {
+      if (!eligible()) return;
+      manuallyPaused = !video.paused;
+      if (manuallyPaused) video.pause();
+      else play();
+    };
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting && entry.intersectionRatio >= 0.6) {
-          video.play().catch(() => {});
-        } else {
-          video.pause();
-        }
+        visible = entry.isIntersecting && entry.intersectionRatio >= 0.5;
+        onVisibility();
       },
-      { threshold: [0, 0.6, 1.0] },
+      { threshold: [0, 0.5, 1] },
     );
     observer.observe(el);
-    return () => observer.disconnect();
-  }, [active]);
+    video.addEventListener('loadedmetadata', restorePosition);
+    document.addEventListener('visibilitychange', onVisibility);
+    if (!active) release();
+    return () => {
+      disposed = true;
+      observer.disconnect();
+      document.removeEventListener('visibilitychange', onVisibility);
+      video.removeEventListener('loadedmetadata', restorePosition);
+      playbackRef.current = null;
+      release();
+    };
+  }, [active, src]);
+
+  useEffect(() => () => clearTimeout(hideTimeout.current), []);
 
   useEffect(() => {
     if (videoRef.current) {
@@ -68,12 +109,7 @@ export function VideoPlayer({ src, poster, active = true }: VideoPlayerProps) {
 
   const togglePlay = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!videoRef.current) return;
-    if (videoRef.current.paused) {
-      videoRef.current.play().catch(() => {});
-    } else {
-      videoRef.current.pause();
-    }
+    playbackRef.current?.();
   };
 
   const handleMouseEnter = () => {
@@ -92,12 +128,11 @@ export function VideoPlayer({ src, poster, active = true }: VideoPlayerProps) {
     >
       <video
         ref={videoRef}
-        src={src}
         poster={poster}
         muted={muted}
         loop
         playsInline
-        autoPlay
+        preload="none"
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
         onTimeUpdate={handleTimeUpdate}

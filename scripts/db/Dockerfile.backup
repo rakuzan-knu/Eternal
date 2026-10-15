@@ -1,0 +1,4 @@
+FROM postgres:16-alpine
+RUN apk add --no-cache bash openssl
+WORKDIR /scripts
+COPY scripts/db/backup-db.sh /scripts/backup-db.sh

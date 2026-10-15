@@ -68,7 +68,7 @@ export function HoverFlyout({ trigger, children, align = 'auto' }: HoverFlyoutPr
         <div
           onMouseEnter={cancelClose}
           onMouseLeave={scheduleClose}
-          className={`absolute left-full ml-2 w-64 bg-[#16161a]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl p-2 z-[60] animate-menuIn ${
+          className={`absolute left-full ml-2 w-64 glass-menu border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl backdrop-blur-2xl p-2 z-[60] animate-menuIn ${
             placement === 'bottom' ? 'bottom-0 origin-bottom-left' : 'top-0 origin-top-left'
           }`}
         >

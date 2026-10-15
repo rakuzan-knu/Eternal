@@ -9,12 +9,15 @@ import React, {
   useRef,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { resolveOverlayLayer } from '@/shared/lib/overlayLayer';
 
 interface ModalProps {
   onClose: () => void;
   children: (requestClose: () => void) => React.ReactNode;
   className?: string;
+  zIndex?: string;
   exitDurationMs?: number;
+  closeOnInputEscape?: boolean;
   'aria-label'?: string;
   'aria-labelledby'?: string;
   'aria-describedby'?: string;
@@ -45,7 +48,9 @@ export default function Modal({
   onClose,
   children,
   className = '',
+  zIndex,
   exitDurationMs = 180,
+  closeOnInputEscape = false,
   'aria-label': ariaLabel,
   'aria-labelledby': ariaLabelledBy,
   'aria-describedby': ariaDescribedBy,
@@ -57,6 +62,7 @@ export default function Modal({
   const [opener] = useState(() =>
     document.activeElement instanceof HTMLElement ? document.activeElement : null,
   );
+  const [baseLayer] = useState(() => resolveOverlayLayer(opener, '--eternal-layer-modal', 300));
   const closingRef = useRef(false);
   const [hasChildDialog, setHasChildDialog] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
@@ -66,7 +72,8 @@ export default function Modal({
     if (closingRef.current) return;
     closingRef.current = true;
     setIsClosing(true);
-    timerRef.current = setTimeout(onClose, exitDurationMs);
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    timerRef.current = setTimeout(onClose, reduced ? 0 : exitDurationMs);
   }, [onClose, exitDurationMs]);
 
   useLayoutEffect(() => {
@@ -154,6 +161,13 @@ export default function Modal({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (topModal()?.element !== content || e.defaultPrevented) return;
       if (e.key === 'Escape') {
+        const target = e.target as HTMLElement | null;
+        if (
+          !closeOnInputEscape &&
+          target &&
+          (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')
+        )
+          return;
         e.preventDefault();
         requestClose();
       }
@@ -196,15 +210,21 @@ export default function Modal({
       window.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('focusin', handleFocus);
     };
-  }, [requestClose, id]);
+  }, [requestClose, id, closeOnInputEscape]);
 
   return createPortal(
     <div
+      data-modal-open="true"
+      data-submodal-open="true"
+      data-phase={isClosing ? 'closing' : 'open'}
       onClick={requestClose}
-      style={{ zIndex: `calc(var(--eternal-layer-modal, 300) + ${depth})` }}
-      className={`fixed inset-0 z-(--eternal-layer-modal) flex items-center justify-center transition-colors duration-(--eternal-motion-duration-control) ${
-        isClosing ? 'bg-black/0' : 'bg-black/60'
-      }`}
+      style={
+        {
+          zIndex: zIndex ? undefined : baseLayer + depth,
+          '--overlay-exit-duration': `${exitDurationMs}ms`,
+        } as React.CSSProperties
+      }
+      className={`modal-motion-overlay fixed inset-0 flex items-center justify-center bg-black/60 ${zIndex ?? ''}`}
     >
       <div
         ref={contentRef}
@@ -213,11 +233,7 @@ export default function Modal({
         aria-modal={hasChildDialog ? undefined : true}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
-        className={`transition-all duration-(--eternal-motion-duration-fast) ease-in ${
-          isClosing
-            ? 'opacity-0 scale-95 translate-y-1'
-            : 'opacity-100 scale-100 translate-y-0 animate-modalPop'
-        } ${className}`}
+        className={`modal-motion-surface ${className}`}
       >
         <ModalDepth.Provider value={depth + 1}>{children(requestClose)}</ModalDepth.Provider>
       </div>

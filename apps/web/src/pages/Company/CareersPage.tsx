@@ -70,7 +70,7 @@ export const CareersPage: React.FC = () => {
       {/* Top Navbar */}
       <PrivacyNavbar />
 
-      {/* 1. Hero Section (Deep Indigo/Purple Discord Style) */}
+      {/* 1. Hero Section */}
       <section className="relative pt-36 pb-16 px-6 lg:px-12 bg-gradient-to-b from-[#381a80] via-[#240e5c] to-[#07050f] overflow-hidden">
         {/* Ambient Glow */}
         <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-purple-600/25 blur-[130px] pointer-events-none rounded-full" />
@@ -199,7 +199,7 @@ export const CareersPage: React.FC = () => {
         </div>
       </section>
 
-      {/* 4. Open Job Openings Section (#all-jobs) (1:1 Discord Style) */}
+      {/* 4. Open Job Openings Section */}
       <section id="all-jobs" className="py-24 px-6 lg:px-12 max-w-6xl mx-auto w-full relative z-10">
         <div className="relative text-center mb-14">
           {/* Mascot on Left */}
@@ -233,7 +233,7 @@ export const CareersPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Job Cards Grid (2-column layout matching Discord 1:1) */}
+        {/* Job Cards Grid*/}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 select-text">
           {filteredJobs.map((job) => (
             <div

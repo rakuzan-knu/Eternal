@@ -39,7 +39,7 @@ export default function MusicHubPage() {
   const switchUserLibrary = useMusicHubStore((s) => s.switchUserLibrary);
 
   useEffect(() => {
-    switchUserLibrary(currentUser?.id || null);
+    switchUserLibrary(currentUser?.id || null, true);
   }, [currentUser?.id, switchUserLibrary]);
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -139,7 +139,7 @@ export default function MusicHubPage() {
   const seoImage = currentTargetTrack?.albumArt || currentPlaylist?.coverUrl || undefined;
 
   return (
-    <div className="fixed inset-0 flex bg-[#070709] overflow-hidden text-white select-none">
+    <div className="fixed inset-0 flex bg-transparent overflow-hidden text-gray-900 dark:text-white select-none">
       <SEOHead title={seoTitle} description={seoDescription} ogImage={seoImage} noindex={false} />
 
       {/* Left Railway Sidebar */}
@@ -148,10 +148,10 @@ export default function MusicHubPage() {
       {/* Content wrapper with smooth margin transition matching Messenger */}
       <div
         className={`flex-1 min-w-0 flex overflow-hidden transition-all duration-300 ease-in-out ${
-          isSidebarExpanded ? 'ml-[200px]' : 'ml-16'
+          isSidebarExpanded ? 'ml-[220px]' : 'ml-16'
         }`}
       >
-        {/* Left Column: Full-Height Library Panel (flush from y=0 to bottom, adjacent to RailwaySidebar like Discord/Apple) */}
+        {/* Left Column: Full-Height Library Panel */}
         <MusicLibraryPanel />
 
         {/* Right Column: Top Navbar + Main Content Area + Now Playing Sidebar */}
@@ -172,7 +172,7 @@ export default function MusicHubPage() {
           />
 
           {/* Main content + Now Playing */}
-          <div className="flex-1 min-w-0 flex overflow-hidden bg-gradient-to-br from-[#0c0c12]/60 via-[#0a0a0e]/80 to-[#07070a] backdrop-blur-3xl">
+          <div className="flex-1 min-w-0 flex overflow-hidden bg-transparent">
             <main className="flex-1 min-w-0 overflow-hidden flex flex-col">
               {isContentFeed ? (
                 <MusicContentFeedView />

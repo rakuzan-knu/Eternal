@@ -1,7 +1,6 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
 import { CompactFeedResponse, postsApi } from '../api/postsApi';
 import { queryKeys } from '@/shared/api/queryKeys';
-import { queryStaleTimes, queryGcTimes } from '@/shared/api/queryClient';
+import { useBoundedPostFeed } from './useBoundedPostFeed';
 
 export interface UseCompactFeedOptions {
   algorithm?: 'latest' | 'ml';
@@ -16,14 +15,11 @@ export function useCompactFeed(options: UseCompactFeedOptions = {}) {
   const algorithm = options.algorithm ?? 'latest';
   const limit = options.limit ?? 20;
 
-  const query = useInfiniteQuery<CompactFeedResponse>({
-    queryKey: queryKeys.feed.compact(algorithm),
-    queryFn: ({ pageParam, signal }) =>
-      postsApi.getCompactFeed(pageParam as string | undefined, limit, algorithm, signal),
-    initialPageParam: undefined,
-    getNextPageParam: (lastPage) => lastPage.meta.nextCursor ?? undefined,
-    staleTime: queryStaleTimes.feed,
-    gcTime: queryGcTimes.default,
+  const query = useBoundedPostFeed<CompactFeedResponse>({
+    queryKey: [...queryKeys.feed.compact(algorithm), limit],
+    fetchPage: (cursor, signal) => postsApi.getCompactFeed(cursor, limit, algorithm, signal),
+    getCount: (page) => page.data.length,
+    getNextCursor: (page) => page.meta.nextCursor,
   });
 
   const allItems = query.data?.pages.flatMap((page) => page.data) ?? [];

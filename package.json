@@ -1,7 +1,7 @@
 {
   "name": "social-network",
   "private": true,
-  "license": "AGPL-3.0",
+  "license": "UNLICENSED",
   "type": "module",
   "packageManager": "pnpm@10.5.2",
   "scripts": {
@@ -30,7 +30,7 @@
     "test": "vitest run",
     "test:backend": "vitest run --project=backend",
     "test:frontend": "vitest run --project=frontend",
-    "test:security": "node --test scripts/security/node-forge.test.mjs",
+    "test:security": "node --test scripts/security/node-forge.test.mjs scripts/utils/__tests__/msw-origin-guard.test.mjs",
     "test:cov": "vitest run --coverage",
     "test:e2e": "pnpm --filter backend test:e2e",
     "format": "prettier --write . --ignore-unknown --no-error-on-unmatched-pattern",

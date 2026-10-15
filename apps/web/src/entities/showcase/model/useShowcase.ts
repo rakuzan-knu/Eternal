@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { showcaseApi } from '../api/showcaseApi';
 import { getSocket } from '@/shared/api/socket';
+import { usePresenceStore } from '@/shared/model/usePresenceStore';
 import type {
   ProfileShowcaseDto,
   UpdateShowcaseDto,
@@ -144,6 +145,13 @@ export function useShowcasePresenceSync(targetUserId?: string, targetUsername?: 
       connectedAccounts?: any;
     }) => {
       if (payload.userId === targetUserId) {
+        if (!('activityStatus' in payload)) {
+          void queryClient.invalidateQueries({ queryKey: [SHOWCASE_QUERY_KEY, targetUsername] });
+          return;
+        }
+        usePresenceStore
+          .getState()
+          .setUserActivity(targetUserId, (payload.activityStatus as any) ?? null);
         queryClient.setQueryData<ProfileShowcaseDto>(
           [SHOWCASE_QUERY_KEY, targetUsername],
           (old) => {

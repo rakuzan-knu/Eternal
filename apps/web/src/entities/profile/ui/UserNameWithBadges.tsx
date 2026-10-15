@@ -1,10 +1,16 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
+import type { DisplayNameStyleDto } from '@social-network/shared-contracts';
 import VerifiedCheckmark from './VerifiedCheckmark';
-import UserBadgeIcon from './UserBadgeIcon';
+import StyledDisplayName from '@/shared/ui/StyledDisplayName';
+
+const UserBadgeIcon = lazy(() => import('./UserBadgeIcon'));
 
 interface UserNameWithBadgesProps {
   displayName?: string | null | undefined;
   username: string;
+  nameStyle?: DisplayNameStyleDto | null | undefined;
+  userId?: string | null | undefined;
+  isCurrentUser?: boolean | undefined;
   isVerified?: boolean | undefined;
   primaryBadge?: string | null | undefined;
   size?: ('sm' | 'md' | 'lg') | undefined;
@@ -19,6 +25,9 @@ interface UserNameWithBadgesProps {
 export function UserNameWithBadges({
   displayName,
   username,
+  nameStyle,
+  userId,
+  isCurrentUser,
   isVerified = false,
   primaryBadge = null,
   size = 'md',
@@ -47,20 +56,40 @@ export function UserNameWithBadges({
     <div
       className={`inline-flex items-center gap-1.5 min-w-0 max-w-full leading-none ${className}`}
     >
-      <span className={`truncate text-white ${fontSizes[size]} ${nameClassName}`}>
-        {nameToDisplay}
-      </span>
+      <StyledDisplayName
+        name={nameToDisplay}
+        nameStyle={nameStyle}
+        userId={userId}
+        isCurrentUser={isCurrentUser}
+        className={fontSizes[size]}
+        nameClassName={nameClassName}
+      />
 
-      {isVerified && <VerifiedCheckmark size={badgeSizes[size]} />}
-      {primaryBadge && (
-        <UserBadgeIcon
-          badgeId={primaryBadge}
+      {isVerified && (
+        <VerifiedCheckmark
+          isVerified={isVerified}
           size={badgeSizes[size]}
-          prCount={prCount}
-          reportCount={reportCount}
-          subscriptionMonths={subscriptionMonths}
-          subscriptionDate={subscriptionDate}
+          className="self-center"
         />
+      )}
+      {primaryBadge && (
+        <Suspense
+          fallback={
+            <span
+              aria-hidden="true"
+              className={size === 'lg' ? 'w-5 h-5 shrink-0' : 'w-4 h-4 shrink-0'}
+            />
+          }
+        >
+          <UserBadgeIcon
+            badgeId={primaryBadge}
+            size={badgeSizes[size]}
+            prCount={prCount}
+            reportCount={reportCount}
+            subscriptionMonths={subscriptionMonths}
+            subscriptionDate={subscriptionDate}
+          />
+        </Suspense>
       )}
     </div>
   );

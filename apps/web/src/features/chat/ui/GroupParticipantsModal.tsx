@@ -1,3 +1,4 @@
+import { Nameplate } from '@/shared/ui/Nameplate';
 import React, { useState } from 'react';
 import { X, Crown, ShieldCheck, SlidersHorizontal } from 'lucide-react';
 import Avatar from '../../../shared/ui/Avatar';
@@ -37,7 +38,7 @@ export default function GroupParticipantsModal({
     <>
       <Modal onClose={onClose} className="w-full max-w-sm max-h-[70vh] flex flex-col">
         {(close) => (
-          <div className="bg-[#181926]/95 border border-white/10 rounded-3xl shadow-2xl flex flex-col max-h-[70vh] backdrop-blur-2xl">
+          <div className="glass-modal border border-white/10 rounded-3xl shadow-2xl flex flex-col max-h-[70vh]">
             <div className="flex items-center justify-between px-5 pt-5 pb-4 flex-shrink-0">
               <h2 className="text-lg font-bold text-white">
                 {roleFilter === 'ADMINS'
@@ -61,8 +62,9 @@ export default function GroupParticipantsModal({
                   <div
                     key={p.userId}
                     style={{ animationDelay: `${Math.min(index, 8) * 20}ms` }}
-                    className="animate-fadeIn w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-all group"
+                    className="nameplate-row animate-fadeIn w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-all group"
                   >
+                    <Nameplate nameplate={p.user.activeNameplate} />
                     <button
                       type="button"
                       onClick={() => {
@@ -72,12 +74,22 @@ export default function GroupParticipantsModal({
                       className="flex items-center gap-3 min-w-0 flex-1 text-left cursor-pointer"
                     >
                       <div className="relative">
-                        <Avatar size="sm" src={p.user.avatar} />
+                        <Avatar
+                          size="sm"
+                          src={p.user.avatar}
+                          decoration={p.user.activeDecoration}
+                          userId={p.userId}
+                        />
                         <OnlineStatusIndicator userId={p.userId} variant="dot" />
                       </div>
-                      <div className="min-w-0 flex-1">
+                      <div data-nameplate-text className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 min-w-0">
-                          <p className="text-sm font-semibold text-white truncate">{name}</p>
+                          <p
+                            data-nameplate-label
+                            className="text-sm font-semibold text-white truncate"
+                          >
+                            {name}
+                          </p>
                           <VerifiedCheckmark
                             isVerified={p.user.isVerified}
                             primaryBadge={p.user.primaryBadge}

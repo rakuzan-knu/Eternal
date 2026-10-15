@@ -53,7 +53,7 @@ export const ReelProgressBar: React.FC<ReelProgressBarProps> = React.memo(
       <div
         className="absolute bottom-0 inset-x-0 h-1 hover:h-2.5 bg-white/20 z-30 cursor-pointer group transition-all"
         onClick={handleScrubberClick}
-        aria-label="Перемотування відео"
+        aria-label="Seek video"
         role="progressbar"
       >
         <div

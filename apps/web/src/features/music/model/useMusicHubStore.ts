@@ -1268,9 +1268,28 @@ export const STARTER_RECOMMENDED_TRACKS: SpotifyTrack[] = [
 const computeSavedPlaylists = (
   customPlaylists: MusicPlaylist[],
   savedPlaylistIds: string[],
+  extraGlobalPlaylists?: Record<string, MusicPlaylist>,
 ): MusicPlaylist[] => {
-  const savedCatalog = CATALOG_PLAYLISTS.filter((p) => savedPlaylistIds.includes(p.id));
-  return [...customPlaylists, ...savedCatalog];
+  const globalPlaylists = extraGlobalPlaylists || loadGlobalPlaylists();
+  const list: MusicPlaylist[] = [...customPlaylists];
+  const seenIds = new Set(list.map((p) => p.id));
+
+  for (const id of savedPlaylistIds) {
+    if (seenIds.has(id)) continue;
+    if (globalPlaylists[id]) {
+      list.push(globalPlaylists[id]);
+      seenIds.add(id);
+      continue;
+    }
+    const savedCatalog = CATALOG_PLAYLISTS.find((p) => p.id === id);
+    if (savedCatalog) {
+      list.push(savedCatalog);
+      seenIds.add(id);
+      continue;
+    }
+  }
+
+  return list;
 };
 
 const resolveUserPlaylists = (
@@ -1354,9 +1373,10 @@ interface MusicHubState {
   toggleLikeTrack: (track: SpotifyTrack) => void;
   isTrackLiked: (trackId: string) => boolean;
   isPlaylistSaved: (playlistId: string) => boolean;
-  toggleSavePlaylist: (playlistId: string) => void;
-  addPlaylistToLibrary: (playlistId: string) => void;
+  toggleSavePlaylist: (playlistId: string, playlistData?: MusicPlaylist) => void;
+  addPlaylistToLibrary: (playlistId: string, playlistData?: MusicPlaylist) => void;
   removePlaylistFromLibrary: (playlistId: string) => void;
+  markPlaylistAsDeleted: (playlistId: string) => void;
   toggleLibraryFullWidth: () => void;
   setLibraryFullWidth: (full: boolean) => void;
   createPlaylist: (
@@ -1413,7 +1433,7 @@ interface MusicHubState {
   deleteMusicFolder: (id: string) => void;
   movePlaylistToFolder: (folderId: string, playlistId: string) => void;
   removePlaylistFromFolder: (folderId: string, playlistId: string) => void;
-  switchUserLibrary: (userId: string | null) => void;
+  switchUserLibrary: (userId: string | null, refreshFromServer?: boolean) => void;
   fetchUserLikedTracksFromBackend: (userId?: string | null) => Promise<void>;
   fetchUserFoldersFromBackend: (userId?: string | null) => Promise<void>;
   fetchUserPlaylistsFromBackend: (userId?: string | null) => Promise<void>;
@@ -1573,20 +1593,36 @@ export const useMusicHubStore = create<MusicHubState>()((set, get) => ({
     );
   },
 
-  toggleSavePlaylist: (playlistId) => {
-    const { savedPlaylistIds, customPlaylists } = get();
+  toggleSavePlaylist: (playlistId, playlistData) => {
+    const { savedPlaylistIds, customPlaylists, playlists } = get();
     const isSaved = savedPlaylistIds.includes(playlistId);
     let updatedSaved: string[];
 
     if (isSaved) {
       updatedSaved = savedPlaylistIds.filter((id) => id !== playlistId);
+      const activeId = getActiveUserId();
+      const currentGlobal = loadGlobalPlaylists();
+      const pl = customPlaylists.find((p) => p.id === playlistId) || currentGlobal[playlistId];
+      if (pl && pl.creatorId !== activeId) {
+        deleteGlobalPlaylist(playlistId);
+      }
     } else {
       updatedSaved = [playlistId, ...savedPlaylistIds];
+      const dataToSave =
+        playlistData ||
+        playlists.find((p) => p.id === playlistId) ||
+        get().getPlaylistById(playlistId);
+      if (dataToSave) {
+        saveGlobalPlaylist(dataToSave);
+      }
     }
+
+    const currentGlobal = loadGlobalPlaylists();
+    const updatedPlaylists = computeSavedPlaylists(customPlaylists, updatedSaved, currentGlobal);
 
     set({
       savedPlaylistIds: updatedSaved,
-      playlists: computeSavedPlaylists(customPlaylists, updatedSaved),
+      playlists: updatedPlaylists,
     });
 
     const activeId = getActiveUserId();
@@ -1594,18 +1630,29 @@ export const useMusicHubStore = create<MusicHubState>()((set, get) => ({
     saveUserLibrary(activeId, { ...lib, savedPlaylistIds: updatedSaved });
   },
 
-  addPlaylistToLibrary: (playlistId) => {
-    const { savedPlaylistIds, customPlaylists } = get();
+  addPlaylistToLibrary: (playlistId, playlistData) => {
+    const { savedPlaylistIds, customPlaylists, playlists } = get();
     if (!savedPlaylistIds.includes(playlistId)) {
-      const updated = [playlistId, ...savedPlaylistIds];
+      const updatedSaved = [playlistId, ...savedPlaylistIds];
+      const dataToSave =
+        playlistData ||
+        playlists.find((p) => p.id === playlistId) ||
+        get().getPlaylistById(playlistId);
+      if (dataToSave) {
+        saveGlobalPlaylist(dataToSave);
+      }
+
+      const currentGlobal = loadGlobalPlaylists();
+      const updatedPlaylists = computeSavedPlaylists(customPlaylists, updatedSaved, currentGlobal);
+
       set({
-        savedPlaylistIds: updated,
-        playlists: computeSavedPlaylists(customPlaylists, updated),
+        savedPlaylistIds: updatedSaved,
+        playlists: updatedPlaylists,
       });
 
       const activeId = getActiveUserId();
       const lib = loadUserLibrary(activeId);
-      saveUserLibrary(activeId, { ...lib, savedPlaylistIds: updated });
+      saveUserLibrary(activeId, { ...lib, savedPlaylistIds: updatedSaved });
     }
   },
 
@@ -1613,19 +1660,50 @@ export const useMusicHubStore = create<MusicHubState>()((set, get) => ({
     const { savedPlaylistIds, customPlaylists, selectedPlaylistId } = get();
     const updatedSaved = savedPlaylistIds.filter((id) => id !== playlistId);
     const updatedCustom = customPlaylists.filter((p) => p.id !== playlistId);
+
+    const activeId = getActiveUserId();
+    const currentGlobal = loadGlobalPlaylists();
+    const pl = customPlaylists.find((p) => p.id === playlistId) || currentGlobal[playlistId];
+    if (!pl || pl.creatorId !== activeId) {
+      deleteGlobalPlaylist(playlistId);
+    }
+
+    const nextGlobal = loadGlobalPlaylists();
     set({
       savedPlaylistIds: updatedSaved,
       customPlaylists: updatedCustom,
-      playlists: computeSavedPlaylists(updatedCustom, updatedSaved),
+      playlists: computeSavedPlaylists(updatedCustom, updatedSaved, nextGlobal),
       selectedPlaylistId: selectedPlaylistId === playlistId ? null : selectedPlaylistId,
     });
 
-    const activeId = getActiveUserId();
     const lib = loadUserLibrary(activeId);
     saveUserLibrary(activeId, {
       ...lib,
       savedPlaylistIds: updatedSaved,
       userPlaylistIds: lib.userPlaylistIds.filter((id) => id !== playlistId),
+    });
+  },
+
+  markPlaylistAsDeleted: (playlistId) => {
+    const globalPlaylists = loadGlobalPlaylists();
+    if (globalPlaylists[playlistId]) {
+      globalPlaylists[playlistId] = {
+        ...globalPlaylists[playlistId],
+        isDeleted: true,
+      };
+      saveGlobalPlaylist(globalPlaylists[playlistId]);
+    }
+    set((state) => {
+      const updatedCustom = state.customPlaylists.map((p) =>
+        p.id === playlistId ? { ...p, isDeleted: true } : p,
+      );
+      const updatedPlaylists = state.playlists.map((p) =>
+        p.id === playlistId ? { ...p, isDeleted: true } : p,
+      );
+      return {
+        customPlaylists: updatedCustom,
+        playlists: updatedPlaylists,
+      };
     });
   },
 
@@ -2225,7 +2303,7 @@ export const useMusicHubStore = create<MusicHubState>()((set, get) => ({
     saveUserLibrary(activeId, { ...lib, musicFolders: updatedFolders });
   },
 
-  switchUserLibrary: (userId) => {
+  switchUserLibrary: (userId, refreshFromServer = false) => {
     const userLib = loadUserLibrary(userId);
     const globalPlaylists = loadGlobalPlaylists();
     const custom = resolveUserPlaylists(userId, userLib, globalPlaylists);
@@ -2244,7 +2322,7 @@ export const useMusicHubStore = create<MusicHubState>()((set, get) => ({
       pinnedItemIds: userLib.pinnedItemIds || [],
     });
 
-    if (userId) {
+    if (userId && refreshFromServer) {
       get().fetchUserLikedTracksFromBackend(userId);
       get().fetchUserFoldersFromBackend(userId);
       get().fetchUserPlaylistsFromBackend(userId);
@@ -2458,6 +2536,10 @@ if (typeof window !== 'undefined') {
     }
   });
 
+  musicEventBridge.onPlayerClosed(() => {
+    useMusicHubStore.getState().setNowPlayingPanelOpen(false);
+  });
+
   // Listen for invite updates across tabs or custom events
   window.addEventListener('eternal_playlist_invite_updated', () => {
     useMusicHubStore.setState({ playlistInvites: loadGlobalInvites() });
@@ -2472,14 +2554,6 @@ if (typeof window !== 'undefined') {
       useMusicHubStore.getState().switchUserLibrary(newUserId);
     }
   });
-
-  if (initialUserId) {
-    setTimeout(() => {
-      useMusicHubStore.getState().fetchUserLikedTracksFromBackend(initialUserId);
-      useMusicHubStore.getState().fetchUserFoldersFromBackend(initialUserId);
-      useMusicHubStore.getState().fetchUserPlaylistsFromBackend(initialUserId);
-    }, 100);
-  }
 }
 
 registerSessionResetHandler(() => {

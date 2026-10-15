@@ -266,6 +266,9 @@ jobs:
           key: ${{ needs.setup.outputs.cache-key }}
           fail-on-cache-miss: true
 
+      - name: Install FFmpeg for media validation
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+
       - name: Run backend unit tests
         if: github.event_name == 'pull_request'
         working-directory: apps/backend
@@ -275,6 +278,11 @@ jobs:
         if: github.event_name != 'pull_request'
         working-directory: apps/backend
         run: pnpm test:cov:ci
+
+      - name: Verify unread projection against isolated PostgreSQL
+        run: |
+          docker pull postgres:16-alpine
+          node scripts/test-unread-projection.mjs
 
       - name: Upload backend coverage
         if: always() && github.event_name != 'pull_request'
@@ -422,9 +430,12 @@ jobs:
         working-directory: apps/backend
         run: pnpm exec prisma migrate deploy
 
+      - name: Install FFmpeg for media validation
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+
       - name: Run E2E tests (${{ matrix.module }})
         working-directory: apps/backend
-        run: pnpm exec jest --config ./test/jest-e2e.json --runInBand --forceExit --detectOpenHandles --testTimeout=30000 test/${{ matrix.module }}.e2e-spec.ts
+        run: pnpm exec vitest run --config vitest.config.e2e.ts test/${{ matrix.module }}.e2e-spec.ts
 
   backend-contract-test:
     name: Backend — API Contract Verification
@@ -720,6 +731,58 @@ jobs:
       - name: Enforce bundle size budget
         run: node scripts/ci/check-bundle-size.cjs
 
+      - name: Enforce search startup imports and transfer budget
+        working-directory: apps/web
+        run: pnpm check:startup
+
+      - name: Cache performance benchmark browser
+        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install performance benchmark browser
+        working-directory: apps/web
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Verify production search request budget
+        working-directory: apps/web
+        run: pnpm test:performance
+        env:
+          CI: 'true'
+
+      - name: Verify recycled media and bounded chat history
+        working-directory: apps/web
+        run: pnpm test:media-performance
+        env:
+          CI: 'true'
+
+      - name: Verify idle and overlay resource cleanup
+        working-directory: apps/web
+        run: pnpm test:memory
+        env:
+          CI: 'true'
+          MEMORY_IDLE_SECONDS: '60'
+          MEMORY_WALLPAPER: '1'
+
+      - name: Verify ordinary feed window and messenger pagination
+        working-directory: apps/web
+        run: pnpm test:data-window
+        env:
+          CI: 'true'
+
+      - name: Retain performance measurements
+        if: always()
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: frontend-production-performance
+          path: |
+            apps/web/test-results-production/
+            apps/web/test-results-media-performance/
+            apps/web/test-results-memory/
+            apps/web/test-results-data-window/
+          retention-days: 14
+
       - name: Check bundle size changes
         uses: preactjs/compressed-size-action@f322c295dde06a1cb7ccaef105732dd8a726d1d9 # v2.10.0
         with:
@@ -742,7 +805,7 @@ jobs:
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
         with:
           fail-on-severity: high
-          allow-ghsas: 'GHSA-fjxv-7rqg-78g4, GHSA-hmw2-7cc7-3qxx, GHSA-36jr-mh4h-2g58, GHSA-ggr8-5vv4-36mx, GHSA-3f6p-5ww8-9rcr, GHSA-7w5x-hrqm-74c2'
+          allow-ghsas: 'GHSA-fjxv-7rqg-78g4, GHSA-hmw2-7cc7-3qxx, GHSA-36jr-mh4h-2g58, GHSA-ggr8-5vv4-36mx, GHSA-3f6p-5ww8-9rcr, GHSA-7w5x-hrqm-74c2, GHSA-86w9-cpqp-85rv'
           retry-on-snapshot-warnings: true
           retry-on-snapshot-warnings-timeout: 600
 

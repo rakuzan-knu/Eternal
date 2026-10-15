@@ -15,7 +15,9 @@ import {
   mergeDeltaIntoPages,
   sortMessagesChronologically,
   upsertMessageIntoPages,
+  updateCachedMessageCopies,
 } from '../chatCacheSync';
+import { historyPage, historyWindowKey } from '../historyWindow';
 import type {
   ConversationView,
   InfiniteMessagesData,
@@ -60,6 +62,37 @@ describe('chatCacheSync', () => {
   let client: QueryClient;
   beforeEach(() => {
     client = new QueryClient();
+  });
+
+  it('patches existing historical copies without inserting incoming live messages into history', () => {
+    seedMessages(client, [msg({ id: 'new' })]);
+    const key = historyWindowKey('conv-1', 'me');
+    client.setQueryData(key, {
+      pages: [
+        historyPage({ data: [msg({ id: 'old' })], hasMore: true, nextCursor: 'old' }, 'before'),
+      ],
+      pageParams: [{ direction: 'before', cursor: 'new' }],
+    });
+    updateCachedMessageCopies(
+      client,
+      'conv-1',
+      (pages) =>
+        pages.map((p) => ({
+          ...p,
+          data: p.data.map((m) => (m.id === 'old' ? { ...m, body: 'edited' } : m)),
+        })),
+      'me',
+    );
+    expect(client.getQueryData<InfiniteMessagesData>(key)?.pages[0].data[0].body).toBe('edited');
+    expect(client.getQueryData<{ pages: { cacheable: boolean }[] }>(key)?.pages[0].cacheable).toBe(
+      false,
+    );
+    applyIncomingMessage(client, 'conv-1', msg({ id: 'newer' }));
+    expect(client.getQueryData<InfiniteMessagesData>(key)?.pages[0].data.map((m) => m.id)).toEqual([
+      'old',
+    ]);
+    updateCachedMessageCopies(client, 'missing', (pages) => pages, 'me');
+    expect(client.getQueryData(historyWindowKey('missing', 'me'))).toBeUndefined();
   });
 
   it('upserts incoming messages idempotently (dedupe by id/clientMessageId)', () => {
@@ -130,6 +163,22 @@ describe('chatCacheSync', () => {
     expect(ids).toContain('m2');
     expect(ids).toContain('m3');
     expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('keeps the older-page cursor at the retained boundary when realtime truncates the head', () => {
+    const pages = [
+      {
+        data: Array.from({ length: 200 }, (_, index) => msg({ id: String(400 - index) })),
+        hasMore: false,
+        nextCursor: '100',
+      },
+    ];
+    const updated = upsertMessageIntoPages(pages, msg({ id: '401' }));
+    expect(updated[0].data).toHaveLength(200);
+    expect(updated[0]).toMatchObject({ hasMore: true, nextCursor: '202' });
+    const merged = mergeDeltaIntoPages(pages, [msg({ id: '401' }), msg({ id: '402' })]);
+    expect(merged[0].data).toHaveLength(200);
+    expect(merged[0]).toMatchObject({ hasMore: true, nextCursor: '203' });
   });
 
   it('applyRestDelta writes through the QueryClient', () => {

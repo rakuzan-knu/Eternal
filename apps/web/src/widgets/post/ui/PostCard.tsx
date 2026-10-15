@@ -33,6 +33,7 @@ import { MiniProfileHoverCard } from '@/widgets/profile';
 import { useAuthStore } from '@/shared/model/useAuthStore';
 import { useCurrentUser } from '@/entities/profile/model/useCurrentUser';
 import { useMessageToastStore } from '@/shared/model/useMessageToastStore';
+import StyledDisplayName from '@/shared/ui/StyledDisplayName';
 
 interface PostCardProps {
   post: PostType;
@@ -165,13 +166,14 @@ export function PostCard({ post, queryKey }: PostCardProps) {
 
   const handleSaveClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    const willBeSaved = !optimisticSaved;
     startSaveTransition(async () => {
-      setOptimisticSaved(!optimisticSaved);
+      setOptimisticSaved(willBeSaved);
       try {
         if (saveMutation.mutateAsync) {
-          await saveMutation.mutateAsync();
+          await saveMutation.mutateAsync(willBeSaved);
         } else {
-          saveMutation.mutate();
+          saveMutation.mutate(willBeSaved);
         }
       } catch {
         // useOptimistic automatically rolls back when transition settles
@@ -206,10 +208,14 @@ export function PostCard({ post, queryKey }: PostCardProps) {
   return (
     <div
       id={`post-${post.id}`}
-      className={`bg-white/2 backdrop-blur-xl border border-white/5 rounded-3xl shadow-lg flex flex-col gap-3 transition-all duration-300 ease-out scroll-mt-20 relative ${
+      style={{
+        contentVisibility: isMenuOpen ? 'visible' : 'auto',
+        containIntrinsicSize: 'auto 600px',
+      }}
+      className={`glass-card border border-white/5 rounded-3xl shadow-lg flex flex-col gap-3 transition-all duration-300 ease-out scroll-mt-20 relative ${
         isCollapsing
           ? 'max-h-0 opacity-0 py-0 -my-2 border-0 pointer-events-none scale-95 overflow-hidden'
-          : 'max-h-[3000px] opacity-100 p-3 sm:p-5 hover:bg-white/3'
+          : 'max-h-[3000px] opacity-100 p-3 sm:p-5 hover:border-white/20'
       } ${isMenuOpen ? 'z-30' : 'z-0'}`}
     >
       {post.isPinned && (
@@ -236,6 +242,7 @@ export function PostCard({ post, queryKey }: PostCardProps) {
               src={post.avatar}
               userId={post.authorId}
               username={post.handle}
+              decoration={post.activeDecoration}
             />
           </Link>
         </MiniProfileHoverCard>
@@ -246,15 +253,24 @@ export function PostCard({ post, queryKey }: PostCardProps) {
                 <MiniProfileHoverCard username={post.handle} className="min-w-0 max-w-full">
                   <Link
                     to={`/profile/${post.handle}`}
-                    className="hover:underline font-semibold text-sm text-white truncate block max-w-full"
+                    className="hover:underline font-semibold text-sm text-gray-900 dark:text-white truncate block max-w-full"
                   >
-                    {post.author || post.handle}
+                    <StyledDisplayName
+                      name={post.author || post.handle}
+                      nameStyle={
+                        post.displayNameStyle || (post as any).authorUser?.displayNameStyle
+                      }
+                      userId={post.authorId}
+                      className="inline-flex items-center"
+                      nameClassName="hover:underline text-sm font-semibold truncate inline-flex items-center"
+                    />
                   </Link>
                 </MiniProfileHoverCard>
                 <VerifiedCheckmark
                   isVerified={post.isVerified}
                   primaryBadge={post.primaryBadge}
                   size="sm"
+                  className="self-center"
                 />
               </div>
               <span className="text-xs text-gray-400 inline-flex items-center gap-1 min-w-0">
@@ -295,7 +311,7 @@ export function PostCard({ post, queryKey }: PostCardProps) {
               hideLikesCount={hideLikesCount}
               isCommentsDisabled={isCommentsDisabled}
               onOpenChange={setIsMenuOpen}
-              onSave={() => saveMutation.mutate()}
+              onSave={() => saveMutation.mutate(!post.isSaved)}
               onTogglePin={() => pinMutation.mutate()}
               onHide={handleHidePost}
               onBlockAuthor={() => {
@@ -389,7 +405,8 @@ export function PostCard({ post, queryKey }: PostCardProps) {
               {/* Comment Button */}
               <button
                 type="button"
-                aria-label={`Comments, ${post.comments ?? 0}`}
+                aria-label="View comments"
+                title="View comments"
                 onClick={() =>
                   openCommentModal(
                     isCommentsDisabled ? { ...post, isCommentsDisabled: true } : post,
@@ -399,9 +416,10 @@ export function PostCard({ post, queryKey }: PostCardProps) {
               >
                 <MessageSquare
                   size={16}
+                  aria-hidden="true"
                   className="transition-transform duration-200 group-hover:scale-110"
                 />{' '}
-                {post.comments ?? 0}
+                <span>{post.comments ?? 0}</span>
               </button>
 
               {/* Repost Button with Scrolling/Spinning Arrows Animation */}

@@ -7,6 +7,7 @@ interface ProfileTabsProps {
   activeTab: ProfileTabType;
   setActiveTab: (tab: ProfileTabType) => void;
   showSavedTab?: boolean;
+  hasProfileTheme?: boolean;
   idPrefix?: string;
   panelId?: string;
 }
@@ -15,9 +16,24 @@ export default function ProfileTabs({
   activeTab,
   setActiveTab,
   showSavedTab = false,
+  hasProfileTheme = false,
   idPrefix,
   panelId,
 }: ProfileTabsProps) {
+  const getTabButtonClass = (tab: ProfileTabType) => {
+    const isActive = activeTab === tab;
+    if (hasProfileTheme) {
+      return isActive ? 'text-white font-bold' : 'text-gray-300 hover:text-white font-medium';
+    }
+    return isActive
+      ? 'text-gray-900 dark:text-white font-semibold'
+      : 'text-gray-500 hover:text-gray-900 dark:hover:text-gray-300 font-semibold';
+  };
+
+  const indicatorClass = hasProfileTheme
+    ? 'absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-0.75 bg-white rounded-full transition-all shadow-[0_0_8px_rgba(255,255,255,0.5)]'
+    : 'absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-0.75 bg-gray-900 dark:bg-white rounded-full transition-all';
+
   const generatedId = useId();
   const prefix = idPrefix ?? generatedId;
   const buttons = useRef(new Map<ProfileTabType, HTMLButtonElement>());
@@ -51,51 +67,45 @@ export default function ProfileTabs({
     <div
       role="tablist"
       aria-label="Profile content"
-      className="flex overflow-x-auto tabs-scrollbar border-t border-white/5"
+      className={`flex overflow-x-auto tabs-scrollbar ${hasProfileTheme ? 'bg-black/35 backdrop-blur-xl border-t border-white/10' : 'border-t border-black/10 dark:border-white/5'}`}
     >
       <button
         type="button"
         {...tabProps('posts')}
         onClick={() => setActiveTab('posts')}
-        className={`flex-1 shrink-0 whitespace-nowrap py-4 cursor-pointer text-center text-sm font-semibold relative flex items-center justify-center gap-2 transition-colors ${
-          activeTab === 'posts' ? 'text-white' : 'text-gray-400 hover:text-gray-300'
-        }`}
+        className={`flex-1 shrink-0 whitespace-nowrap py-4 cursor-pointer text-center text-sm relative flex items-center justify-center gap-2 transition-colors ${getTabButtonClass(
+          'posts',
+        )}`}
       >
         <Grid size={15} />
         <span>Posts</span>
-        {activeTab === 'posts' && (
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-0.75 bg-white rounded-full transition-all" />
-        )}
+        {activeTab === 'posts' && <div className={indicatorClass} />}
       </button>
 
       <button
         type="button"
         {...tabProps('reposts')}
         onClick={() => setActiveTab('reposts')}
-        className={`flex-1 shrink-0 whitespace-nowrap py-4 cursor-pointer text-center text-sm font-semibold relative flex items-center justify-center gap-2 transition-colors ${
-          activeTab === 'reposts' ? 'text-white' : 'text-gray-400 hover:text-gray-300'
-        }`}
+        className={`flex-1 shrink-0 whitespace-nowrap py-4 cursor-pointer text-center text-sm relative flex items-center justify-center gap-2 transition-colors ${getTabButtonClass(
+          'reposts',
+        )}`}
       >
         <Repeat size={15} />
         <span>Reposts</span>
-        {activeTab === 'reposts' && (
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-0.75 bg-white rounded-full transition-all" />
-        )}
+        {activeTab === 'reposts' && <div className={indicatorClass} />}
       </button>
 
       <button
         type="button"
         {...tabProps('reels')}
         onClick={() => setActiveTab('reels')}
-        className={`flex-1 shrink-0 whitespace-nowrap py-4 cursor-pointer text-center text-sm font-semibold relative flex items-center justify-center gap-2 transition-colors ${
-          activeTab === 'reels' ? 'text-white' : 'text-gray-400 hover:text-gray-300'
-        }`}
+        className={`flex-1 shrink-0 whitespace-nowrap py-4 cursor-pointer text-center text-sm relative flex items-center justify-center gap-2 transition-colors ${getTabButtonClass(
+          'reels',
+        )}`}
       >
         <Film size={15} />
         <span>Reels</span>
-        {activeTab === 'reels' && (
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-0.75 bg-white rounded-full transition-all" />
-        )}
+        {activeTab === 'reels' && <div className={indicatorClass} />}
       </button>
 
       {showSavedTab && (
@@ -103,15 +113,22 @@ export default function ProfileTabs({
           type="button"
           {...tabProps('saved')}
           onClick={() => setActiveTab('saved')}
-          className={`flex-1 shrink-0 whitespace-nowrap py-4 cursor-pointer text-center text-sm font-semibold relative flex items-center justify-center gap-2 transition-colors ${
-            activeTab === 'saved' ? 'text-white' : 'text-gray-400 hover:text-gray-300'
-          }`}
+          className={`flex-1 shrink-0 whitespace-nowrap py-4 cursor-pointer text-center text-sm relative flex items-center justify-center gap-2 transition-colors ${getTabButtonClass(
+            'saved',
+          )}`}
         >
-          <Bookmark size={15} className={activeTab === 'saved' ? 'fill-white' : ''} />
+          <Bookmark
+            size={15}
+            className={
+              activeTab === 'saved'
+                ? hasProfileTheme
+                  ? 'fill-white'
+                  : 'fill-gray-900 dark:fill-white'
+                : ''
+            }
+          />
           <span>Saved</span>
-          {activeTab === 'saved' && (
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-0.75 bg-white rounded-full transition-all" />
-          )}
+          {activeTab === 'saved' && <div className={indicatorClass} />}
         </button>
       )}
     </div>

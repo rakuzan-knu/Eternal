@@ -95,31 +95,40 @@ export class VideoTranscodeProcessor implements OnModuleInit, OnModuleDestroy {
 
     const output = await this.transcodeToAdaptiveHls(data);
 
+    if (!output.masterPlaylistUrl) {
+      this.logger.warn(
+        `Adaptive HLS is unavailable for reel=${data.reelId ?? 'n/a'}; retaining original media`,
+      );
+    }
+    if (!output.masterPlaylistUrl && !output.thumbnailUrl && !output.blurhash) return;
+
     // Persist processed HLS & BlurHash metadata in database
     if (data.reelId) {
       await this.prisma.reel.update({
         where: { id: data.reelId },
         data: {
-          hlsUrl: output.masterPlaylistUrl,
-          thumbnailUrl: output.thumbnailUrl ?? null,
-          blurhash: output.blurhash ?? null,
+          ...(output.masterPlaylistUrl ? { hlsUrl: output.masterPlaylistUrl } : {}),
+          ...(output.thumbnailUrl ? { thumbnailUrl: output.thumbnailUrl } : {}),
+          ...(output.blurhash ? { blurhash: output.blurhash } : {}),
         },
       });
     } else if (data.mediaId) {
       await this.prisma.postMedia.update({
         where: { id: data.mediaId },
         data: {
-          hlsUrl: output.masterPlaylistUrl,
-          blurhash: output.blurhash ?? null,
+          ...(output.masterPlaylistUrl ? { hlsUrl: output.masterPlaylistUrl } : {}),
+          ...(output.blurhash ? { blurhash: output.blurhash } : {}),
         },
       });
     }
 
-    this.logger.log(`Adaptive HLS transcode completed for reel=${data.reelId ?? 'n/a'}`);
+    if (output.masterPlaylistUrl) {
+      this.logger.log(`Adaptive HLS transcode completed for reel=${data.reelId ?? 'n/a'}`);
+    }
   }
 
   async transcodeToAdaptiveHls(data: VideoHlsTranscodeJobData): Promise<{
-    masterPlaylistUrl: string;
+    masterPlaylistUrl: string | null;
     thumbnailUrl?: string;
     blurhash?: string;
   }> {
@@ -129,26 +138,9 @@ export class VideoTranscodeProcessor implements OnModuleInit, OnModuleDestroy {
       return this.executeFfmpegHls(data);
     }
 
-    // High-performance fallback: build master HLS manifest with adaptive resolution variants
-    const baseVideoUrl = data.videoUrl;
-    const masterPlaylistUrl = `${baseVideoUrl}#master.m3u8`;
-
-    let blurhash = 'L6PZfSi_.AyE_3t7t7R**0o#DgR4';
-    if (data.sourceBufferBase64) {
-      try {
-        const buf = Buffer.from(data.sourceBufferBase64, 'base64');
-        const bhRes = await generateBlurHash(buf);
-        blurhash = bhRes.blurhash;
-      } catch {
-        // use fallback
-      }
-    }
-
-    return {
-      masterPlaylistUrl,
-      thumbnailUrl: baseVideoUrl.replace(/\.mp4$/i, '-thumb.webp'),
-      blurhash,
-    };
+    // A URL fragment cannot turn the original MP4 into an HLS manifest.
+    // Keep progressive playback until variants and segments are uploaded.
+    return { masterPlaylistUrl: null };
   }
 
   generateMasterPlaylist(baseVideoUrl: string): string {
@@ -177,7 +169,7 @@ export class VideoTranscodeProcessor implements OnModuleInit, OnModuleDestroy {
   }
 
   private async executeFfmpegHls(data: VideoHlsTranscodeJobData): Promise<{
-    masterPlaylistUrl: string;
+    masterPlaylistUrl: string | null;
     thumbnailUrl?: string;
     blurhash?: string;
   }> {
@@ -203,7 +195,7 @@ export class VideoTranscodeProcessor implements OnModuleInit, OnModuleDestroy {
       proc.on('error', () => resolve());
     });
 
-    let blurhash = 'L6PZfSi_.AyE_3t7t7R**0o#DgR4';
+    let blurhash: string | undefined;
     try {
       const thumbBuf = await fs.readFile(thumbPath);
       const res = await generateBlurHash(thumbBuf);
@@ -220,9 +212,9 @@ export class VideoTranscodeProcessor implements OnModuleInit, OnModuleDestroy {
     }
 
     return {
-      masterPlaylistUrl: `${data.videoUrl}#master.m3u8`,
-      thumbnailUrl: `${data.videoUrl}#thumb.jpg`,
-      blurhash,
+      // This worker only extracted a local frame; it did not publish HLS assets.
+      masterPlaylistUrl: null,
+      ...(blurhash ? { blurhash } : {}),
     };
   }
 

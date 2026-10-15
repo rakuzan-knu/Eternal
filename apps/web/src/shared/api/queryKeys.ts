@@ -74,6 +74,10 @@ const comments = {
 
 const conversations = {
   root: [CONVERSATIONS_KEY] as const,
+  pages: [CONVERSATIONS_KEY, 'pages'] as const,
+  page: (accountId: string, filters: object = {}) =>
+    [CONVERSATIONS_KEY, 'pages', accountId, filters] as const,
+  unreadCount: ['unread-messages-count'] as const,
   detail: (conversationId: string) => [CONVERSATIONS_KEY, conversationId] as const,
   /** Alias kept because some code uses ['conversation', id] literally. */
   detailAlias: (conversationId: string) => ['conversation', conversationId] as const,
@@ -129,6 +133,22 @@ const featureFlags = {
 } as const;
 
 export const queryKeys = {
+  profileFrames: {
+    catalog: ['profile-frame-catalog'] as const,
+    inventory: (userId: string | null) => ['profile-frame-inventory', userId] as const,
+  },
+  profileEffects: {
+    catalog: ['profile-effect-catalog'] as const,
+    inventory: (userId: string | null) => ['profile-effect-inventory', userId] as const,
+  },
+  nameplates: {
+    catalog: ['nameplate-catalog'] as const,
+    inventory: (userId: string | null) => ['nameplate-inventory', userId] as const,
+  },
+  decorations: {
+    catalog: ['decoration-catalog'] as const,
+    inventory: (userId: string | null) => ['decoration-inventory', userId] as const,
+  },
   user,
   feed,
   comments,

@@ -128,7 +128,7 @@ describe('shared control accessibility', () => {
         <>
           <button onClick={() => setOpen(true)}>Open account form</button>
           {open && (
-            <Modal onClose={() => setOpen(false)} exitDurationMs={0}>
+            <Modal onClose={() => setOpen(false)} exitDurationMs={0} closeOnInputEscape>
               {(close) => (
                 <>
                   <h2>Account form</h2>
@@ -204,7 +204,7 @@ describe('shared control accessibility', () => {
               <h2>Parent</h2>
               <button onClick={() => setNested(true)}>Open child</button>
               {nested && (
-                <Modal onClose={() => setNested(false)} exitDurationMs={0}>
+                <Modal onClose={() => setNested(false)} exitDurationMs={0} closeOnInputEscape>
                   {() => (
                     <>
                       <h2>Child</h2>

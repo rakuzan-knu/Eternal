@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Phone, Video, Info, Music, Radio, Shield } from 'lucide-react';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Phone, Video, Info, Radio, Search } from 'lucide-react';
 import Avatar from '../../../shared/ui/Avatar';
 import GroupAvatarCollage from '../../../shared/ui/GroupAvatarCollage';
 import OnlineStatusIndicator from '../../../shared/ui/OnlineStatusIndicator';
@@ -7,8 +8,16 @@ import { ConversationDisplay } from '../lib/getConversationDisplay';
 import { VerifiedCheckmark } from '@/entities/profile/ui/VerifiedCheckmark';
 import { useCallPrewarmer } from '../lib/webrtc/webrtcPrewarmer';
 import { usePresenceStore } from '@/shared/model/usePresenceStore';
-import { DiscordGamepadIcon } from '@/shared/ui/BrandIcons';
-import { SecretChatVerificationModal } from './SecretChatVerificationModal';
+import { useMediaDetailModalStore } from '@/entities/showcase/model/useMediaDetailModalStore';
+import { ShowcaseMediaType } from '@backend/common/contracts';
+import { useMusicHubStore } from '@/features/music/model/useMusicHubStore';
+import {
+  isMusicActivity,
+  isGamingActivity,
+  getActivityGameIcon,
+  getActivityMusicCover,
+  formatActivityText,
+} from '../../../shared/ui/activityIcons';
 
 interface ChatThreadHeaderProps {
   conversationId?: string;
@@ -17,6 +26,8 @@ interface ChatThreadHeaderProps {
   isOtherTyping: boolean;
   isDetailsOpen: boolean;
   onToggleDetails: () => void;
+  isSearchOpen?: boolean;
+  onToggleSearch?: () => void;
   isGroup?: boolean;
   memberAvatars?: (string | null)[];
   memberCount?: number;
@@ -32,6 +43,8 @@ export default function ChatThreadHeader({
   isOtherTyping,
   isDetailsOpen,
   onToggleDetails,
+  isSearchOpen = false,
+  onToggleSearch,
   isGroup,
   memberAvatars = [],
   memberCount = 0,
@@ -39,34 +52,67 @@ export default function ChatThreadHeader({
   onStartVoiceMesh,
   isVoiceMeshActive = false,
 }: ChatThreadHeaderProps) {
+  const navigate = useNavigate();
   const callKey = otherUserId || 'default';
   const prewarmer = useCallPrewarmer(callKey);
 
   const otherActivity = usePresenceStore((s) =>
     otherUserId ? s.userActivities[otherUserId] : null,
   );
-  const isOtherGaming = Boolean(
-    !isGroup &&
-    otherUserId &&
-    otherActivity &&
-    (otherActivity.type === 'gaming' ||
-      otherActivity.type === 'game' ||
-      otherActivity.isSteam ||
-      (otherActivity.title && otherActivity.type !== 'spotify')),
-  );
+  const isOtherListening = Boolean(!isGroup && otherUserId && isMusicActivity(otherActivity));
+  const isOtherGaming = Boolean(!isGroup && otherUserId && isGamingActivity(otherActivity));
+  const formattedActivity = formatActivityText(otherActivity, 28, 18);
 
-  const isOtherListening = Boolean(
-    !isGroup &&
-    !isOtherGaming &&
-    otherUserId &&
-    otherActivity &&
-    (otherActivity.type === 'spotify' || Boolean(otherActivity.trackId)),
-  );
+  const handleTrackClick = (e: React.MouseEvent, activity: any) => {
+    e.stopPropagation();
+    if (!activity) return;
 
-  const [isE2eeModalOpen, setIsE2eeModalOpen] = useState(false);
+    let trackId = activity.trackId;
+    if (!trackId && activity.externalUrl) {
+      const match = String(activity.externalUrl).match(/\/(?:music\/)?track\/([^/?#]+)/i);
+      if (match) {
+        trackId = match[1];
+      }
+    }
+
+    if (trackId || activity.title) {
+      const resolvedId =
+        trackId ||
+        `trk-${encodeURIComponent(
+          String(activity.title)
+            .toLowerCase()
+            .trim()
+            .replace(/[^a-z0-9]+/g, '-'),
+        )}`;
+
+      useMusicHubStore.getState().cacheTrack({
+        id: resolvedId,
+        title: activity.title || 'Unknown Track',
+        artist: activity.subtitle || activity.artist || 'Unknown Artist',
+        albumArt: activity.imageUrl || activity.albumArt || activity.coverUrl || '',
+        durationMs: activity.durationMs || 180000,
+        previewUrl: activity.previewUrl || null,
+        spotifyUrl: `/music/track/${resolvedId}`,
+        source: (activity.source as any) || 'platform',
+      });
+      navigate(`/music/track/${resolvedId}`);
+    } else {
+      navigate('/music');
+    }
+  };
+
+  const handleGameClick = (e: React.MouseEvent, activity: any) => {
+    e.stopPropagation();
+    if (!activity?.title) return;
+    useMediaDetailModalStore.getState().openMediaDetail({
+      title: activity.title,
+      type: ShowcaseMediaType.GAME,
+      posterUrl: activity.imageUrl || '',
+    });
+  };
 
   return (
-    <div className="flex flex-wrap gap-y-2 items-center justify-between px-5 max-md:px-3 min-h-16 py-2 border-b border-white/5 shrink-0">
+    <div className="flex flex-wrap gap-y-2 items-center justify-between px-5 max-md:px-3 min-h-16 py-2 border-b border-white/10 shrink-0 glass-panel z-10">
       <div className="flex items-center gap-3 min-w-0">
         <div className="relative">
           {isGroup ? (
@@ -77,7 +123,12 @@ export default function ChatThreadHeader({
             )
           ) : (
             <>
-              <Avatar size="sm" src={display.avatar} />
+              <Avatar
+                size="sm"
+                src={display.avatar}
+                decoration={display.activeDecoration}
+                userId={otherUserId}
+              />
               {otherUserId && <OnlineStatusIndicator userId={otherUserId} variant="dot" />}
             </>
           )}
@@ -95,48 +146,63 @@ export default function ChatThreadHeader({
             <p className="text-[12px] truncate text-blue-400">Typing…</p>
           ) : isGroup ? (
             <p className="text-[12px] truncate text-gray-400">{memberCount} members</p>
-          ) : isOtherGaming ? (
-            <div className="flex items-center gap-1.5 min-w-0 text-[12px] text-gray-300 font-medium">
-              <DiscordGamepadIcon
-                size={13}
-                className="text-[#23a55a] shrink-0 drop-shadow-[0_0_4px_rgba(35,165,90,0.6)]"
-              />
-              <span className="truncate">
-                Playing <span className="text-white font-semibold">{otherActivity?.title}</span>
+          ) : isOtherListening ? (
+            <div
+              className="flex items-center gap-1.5 min-w-0 text-[12px] text-gray-300 font-medium"
+              title={`Listening to ${formattedActivity.fullText}`}
+            >
+              <span
+                onClick={(e) => handleTrackClick(e, otherActivity)}
+                className="cursor-pointer hover:scale-110 transition-transform shrink-0"
+                title={`Open track: ${formattedActivity.title}`}
+              >
+                {getActivityMusicCover(otherActivity, 14)}
+              </span>
+              <span className="truncate max-w-[280px] sm:max-w-[420px]">
+                Listening to{' '}
+                <span
+                  onClick={(e) => handleTrackClick(e, otherActivity)}
+                  className="text-white font-semibold hover:underline cursor-pointer"
+                  title={`Open track: ${formattedActivity.title}`}
+                >
+                  {formattedActivity.title}
+                </span>
+                {formattedActivity.subtitle ? (
+                  <span className="text-gray-400 font-normal"> — {formattedActivity.subtitle}</span>
+                ) : null}
               </span>
             </div>
-          ) : isOtherListening ? (
-            <div className="flex items-center gap-1.5 min-w-0 text-[12px] text-gray-300 font-medium">
-              <Music
-                size={13}
-                className="text-[#1DB954] shrink-0 drop-shadow-[0_0_4px_rgba(29,185,84,0.6)]"
-              />
-              <span className="truncate">
-                Listening to{' '}
-                <span className="text-white font-semibold">{otherActivity?.title}</span>
-                {otherActivity?.subtitle || otherActivity?.artist ? (
-                  <span className="text-gray-400 font-normal">
-                    {' '}
-                    — {otherActivity.subtitle || otherActivity.artist}
-                  </span>
-                ) : null}
+          ) : isOtherGaming ? (
+            <div
+              className="flex items-center gap-1.5 min-w-0 text-[12px] text-gray-300 font-medium"
+              title={`Playing ${formattedActivity.fullText}`}
+            >
+              <span
+                onClick={(e) => handleGameClick(e, otherActivity)}
+                className="cursor-pointer hover:scale-110 transition-transform shrink-0"
+                title={`View ${formattedActivity.title}`}
+              >
+                {getActivityGameIcon(otherActivity, 14)}
+              </span>
+              <span className="truncate max-w-[280px] sm:max-w-[420px]">
+                Playing{' '}
+                <span
+                  onClick={(e) => handleGameClick(e, otherActivity)}
+                  className="text-white font-semibold hover:underline cursor-pointer"
+                  title={`View ${formattedActivity.title}`}
+                >
+                  {formattedActivity.title}
+                </span>
               </span>
             </div>
           ) : (
             otherUserId && (
-              <span className="flex items-center gap-1.5 min-w-0">
-                <OnlineStatusIndicator
-                  userId={otherUserId}
-                  variant="dot"
-                  className="static shrink-0 border-0! w-2! h-2!"
-                  showOfflineDot={false}
-                />
-                <OnlineStatusIndicator
-                  userId={otherUserId}
-                  variant="text"
-                  className="text-[12px] truncate block"
-                />
-              </span>
+              <OnlineStatusIndicator
+                userId={otherUserId}
+                variant="text"
+                showIcon={false}
+                className="text-[12px] truncate block"
+              />
             )
           )}
         </div>
@@ -147,7 +213,7 @@ export default function ChatThreadHeader({
           <button
             type="button"
             onClick={onStartVoiceMesh}
-            title={isVoiceMeshActive ? 'Voice Channel Active' : 'Join Voice Channel (Discord P2P)'}
+            title={isVoiceMeshActive ? 'Voice Channel Active' : 'Join Voice Channel'}
             aria-label="Join Voice Channel"
             className={`w-9 h-9 max-md:w-[44px] max-md:h-[44px] flex items-center justify-center rounded-full transition-colors cursor-pointer ${
               isVoiceMeshActive
@@ -156,18 +222,6 @@ export default function ChatThreadHeader({
             }`}
           >
             <Radio size={19} className={isVoiceMeshActive ? 'animate-pulse' : ''} />
-          </button>
-        )}
-
-        {!isGroup && otherUserId && (
-          <button
-            type="button"
-            onClick={() => setIsE2eeModalOpen(true)}
-            title="End-to-End Encryption / Secret Chat"
-            aria-label="E2EE Security"
-            className="w-9 h-9 max-md:w-[44px] max-md:h-[44px] flex items-center justify-center rounded-full text-gray-400 hover:bg-white/5 hover:text-emerald-400 transition-colors cursor-pointer"
-          >
-            <Shield size={18} />
           </button>
         )}
 
@@ -201,6 +255,21 @@ export default function ChatThreadHeader({
           <Video size={19} />
         </button>
 
+        {onToggleSearch && (
+          <button
+            onClick={onToggleSearch}
+            title="Search messages (Ctrl+F)"
+            aria-label="Search messages"
+            className={`w-9 h-9 max-md:w-[44px] max-md:h-[44px] flex items-center justify-center rounded-full transition-colors cursor-pointer ${
+              isSearchOpen
+                ? 'bg-white/10 text-white'
+                : 'text-gray-400 hover:bg-white/5 hover:text-white'
+            }`}
+          >
+            <Search size={18} />
+          </button>
+        )}
+
         <button
           onClick={onToggleDetails}
           title="Conversation info"
@@ -213,15 +282,6 @@ export default function ChatThreadHeader({
           <Info size={19} />
         </button>
       </div>
-
-      {!isGroup && otherUserId && (
-        <SecretChatVerificationModal
-          isOpen={isE2eeModalOpen}
-          onClose={() => setIsE2eeModalOpen(false)}
-          peerUserId={otherUserId}
-          peerDisplayName={display.title}
-        />
-      )}
     </div>
   );
 }

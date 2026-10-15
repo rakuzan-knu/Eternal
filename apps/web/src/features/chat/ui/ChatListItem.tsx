@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import { Nameplate } from '@/shared/ui/Nameplate';
+import React, { useEffect, useRef, useState } from 'react';
 import { MoreHorizontal, Pin, BellOff } from 'lucide-react';
 import Avatar from '../../../shared/ui/Avatar';
 import GroupAvatarCollage from '../../../shared/ui/GroupAvatarCollage';
@@ -12,6 +13,29 @@ import OnlineStatusIndicator from '../../../shared/ui/OnlineStatusIndicator';
 import { useTypingStore } from '../model/useTypingStore';
 import { useChatDraftsStore } from '../model/useChatDraftsStore';
 import { VerifiedCheckmark } from '@/entities/profile/ui/VerifiedCheckmark';
+import { TelegramAppleEmoji, parseEmojiSegments } from './Call/TelegramAppleEmoji';
+
+function renderChatListSnippet(rawText: string, emojiSize = 16): React.ReactNode {
+  if (!rawText) return null;
+  if (!/\p{Extended_Pictographic}/u.test(rawText)) {
+    return rawText;
+  }
+  const segments = parseEmojiSegments(rawText);
+  return segments.map((seg, idx) => {
+    if (seg.type === 'emoji') {
+      return (
+        <TelegramAppleEmoji
+          key={idx}
+          emoji={seg.content}
+          size={emojiSize}
+          playAnimation={false}
+          className="inline-flex align-[-0.22em] mx-[1px] select-none"
+        />
+      );
+    }
+    return <React.Fragment key={idx}>{seg.content}</React.Fragment>;
+  });
+}
 
 interface ChatListItemProps {
   conversation: ConversationView;
@@ -74,8 +98,17 @@ export default function ChatListItem({
   const visibleUnreadCount = Math.max(conversation.unreadCount, isForcedUnread ? 1 : 0);
   const unreadLabel = visibleUnreadCount > 99 ? '99+' : String(visibleUnreadCount);
 
+  const itemRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isActive) {
+      itemRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }, [isActive]);
+
   return (
     <div
+      ref={itemRef}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={(event) => {
         if (!event.currentTarget.contains(document.activeElement)) setIsHovered(false);
@@ -85,19 +118,29 @@ export default function ChatListItem({
       onBlurCapture={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) setIsHovered(false);
       }}
-      className={`relative flex items-center gap-3 px-3 py-2.5 rounded-2xl cursor-pointer transition-colors duration-150 ${
-        isActive ? 'bg-white/10' : isHovered ? 'bg-white/5' : ''
+      className={`nameplate-row group relative flex items-center gap-3 px-3 py-2.5 rounded-2xl cursor-pointer select-none transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+        isActive
+          ? 'glass-card bg-white/12 dark:bg-white/10 shadow-[0_4px_24px_rgba(0,0,0,0.25),inset_0_1px_1px_rgba(255,255,255,0.45),0_0_18px_rgba(56,189,248,0.15)] border border-white/20 dark:border-white/15 scale-[1.012]'
+          : isHovered
+            ? 'bg-white/5 border border-white/5'
+            : 'border border-transparent'
       }`}
     >
+      <Nameplate nameplate={display.activeNameplate} />
+      {/* Specular Liquid Glass Top Reflection Sweep */}
+      {isActive && (
+        <div className="absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent pointer-events-none rounded-t-full" />
+      )}
       <button
         type="button"
         id={`conversation-${conversation.id}`}
+        data-testid={`chat-list-item-${conversation.id}`}
         aria-label={`Open conversation with ${display.title}`}
         onClick={(event) => {
           event.stopPropagation();
           onSelect(conversation.id);
         }}
-        className="flex flex-1 min-w-0 items-center gap-3 text-left rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-400"
+        className="relative flex flex-1 min-w-0 items-center gap-3 text-left rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-400"
       >
         <div className="relative flex-shrink-0">
           {display.isGroup ? (
@@ -111,7 +154,12 @@ export default function ChatListItem({
             )
           ) : (
             <>
-              <Avatar size="md" src={display.avatar} />
+              <Avatar
+                size="md"
+                src={display.avatar}
+                decoration={display.activeDecoration}
+                userId={display.otherUserId}
+              />
               {display.otherUserId && (
                 <OnlineStatusIndicator userId={display.otherUserId} variant="dot" />
               )}
@@ -119,9 +167,10 @@ export default function ChatListItem({
           )}
         </div>
 
-        <div className="flex-1 min-w-0">
+        <div data-nameplate-text className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 min-w-0">
             <span
+              data-nameplate-label
               className={`text-[15px] truncate ${
                 hasUnread
                   ? 'text-white font-semibold'
@@ -130,7 +179,7 @@ export default function ChatListItem({
                     : 'text-gray-200 font-medium'
               }`}
             >
-              {display.title}
+              {renderChatListSnippet(display.title, 18)}
             </span>
             <VerifiedCheckmark
               isVerified={display.isVerified}
@@ -145,7 +194,9 @@ export default function ChatListItem({
               <span className="text-red-400 font-semibold drop-shadow-[0_0_8px_rgba(248,113,113,0.4)] flex-shrink-0">
                 Draft:
               </span>
-              <span className="text-gray-300 truncate">{draft!.text}</span>
+              <span className="text-gray-300 truncate">
+                {renderChatListSnippet(draft!.text, 16)}
+              </span>
             </p>
           ) : isTyping ? (
             <div className="flex items-center gap-1.5 text-[13px] text-sky-400 font-medium animate-fadeIn">
@@ -161,12 +212,8 @@ export default function ChatListItem({
               </span>
             </div>
           ) : (
-            <p
-              className={`text-[13px] truncate ${
-                hasUnread ? 'text-gray-200' : isMuted ? 'text-gray-400' : 'text-gray-400'
-              }`}
-            >
-              {getMessagePreview(conversation, currentUserId)}
+            <p className={`text-[13px] truncate ${hasUnread ? 'text-gray-200' : 'text-gray-400'}`}>
+              {renderChatListSnippet(getMessagePreview(conversation, currentUserId), 16)}
             </p>
           )}
         </div>
@@ -176,7 +223,7 @@ export default function ChatListItem({
         {!isHovered && !isMenuOpen && (
           <div className="flex flex-col items-end gap-1">
             {conversation.lastMessage && (
-              <span className="text-[12px] leading-none text-gray-400 whitespace-nowrap">
+              <span className="text-[12px] leading-none text-gray-500 whitespace-nowrap">
                 {formatChatListTime(conversation.lastMessage.createdAt)}
               </span>
             )}

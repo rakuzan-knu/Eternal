@@ -47,8 +47,8 @@ export class PrekeysController {
 
   @Get(':userId')
   @ApiOperation({ summary: 'Consume and fetch target user Prekey bundle for X3DH handshake' })
-  getPrekeyBundle(@Param('userId') targetUserId: string) {
-    return this.prekeysService.getPrekeyBundle(targetUserId);
+  getPrekeyBundle(@Param('userId') targetUserId: string, @CurrentUser() user: RequestUser) {
+    return this.prekeysService.getPrekeyBundle(targetUserId, user.id);
   }
 
   @Post('replenish')

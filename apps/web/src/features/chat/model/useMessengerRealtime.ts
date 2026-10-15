@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useChatSocket } from './useChatSocket';
 import { useChatSocketEvent } from './useChatSocketEvent';
@@ -11,19 +11,28 @@ import {
   useNotificationSettingsStore,
 } from '@/entities/notification';
 import { useMessageToastStore } from '@/shared/model/useMessageToastStore';
-import { useTypingStore } from './useTypingStore';
+import { retainTypingExpiration, useTypingStore, type TypingUpdate } from './useTypingStore';
 import { getConversationDisplay } from '../lib/getConversationDisplay';
 import { getMessageToastPreview } from '../lib/getMessageToastPreview';
 import {
   applyConversationDeleted,
   applyIncomingMessage,
+  applyMessageEdited,
+  applyMessageDeleted,
+  applyMessageDelivered,
+  applyMessageRead,
   applyMessagesCleared,
   applyReactionMessage,
   applyConversationPatch,
   getLatestLocalMessageId,
   applyRestDelta,
+  getCachedConversations,
+  updateConversationLists,
 } from './chatCacheSync';
 import { chatApi } from '../api/chatApi';
+import { getRealtimeChatBatch } from './realtimeChatBatch';
+import { createSocketStateBatch } from './socketStateBatch';
+import { registerSessionResetHandler } from '@/shared/model/resetSession';
 
 /**
  * Global messenger realtime binding (Socket.io → TanStack Query cache).
@@ -69,6 +78,28 @@ function rememberPlayed(played: Set<string>, id: string): void {
   }
 }
 
+function isCoveredByPreview(
+  message: MessageView,
+  preview: MessageView | null | undefined,
+): boolean {
+  if (!preview) return false;
+  if (preview.id === message.id) return true;
+  const incomingTime = Date.parse(message.createdAt);
+  const previewTime = Date.parse(preview.createdAt);
+  if (
+    Number.isFinite(incomingTime) &&
+    Number.isFinite(previewTime) &&
+    incomingTime !== previewTime
+  ) {
+    return incomingTime < previewTime;
+  }
+  // Snowflakes disambiguate messages created within the same millisecond.
+  if (/^\d+$/.test(message.id) && /^\d+$/.test(preview.id)) {
+    return BigInt(message.id) <= BigInt(preview.id);
+  }
+  return false;
+}
+
 function pruneSocialBatches(
   batches: Map<string, { firstActor: string; count: number; lastTimestamp: number }>,
 ): void {
@@ -86,8 +117,15 @@ export function useMessengerRealtime(
   const socket = useChatSocket();
   const queryClient = useQueryClient();
   const userId = useAuthStore((s) => s.userId);
+  const cacheBatch = useMemo(
+    () => getRealtimeChatBatch(queryClient, userId),
+    [queryClient, userId],
+  );
   const addToast = useMessageToastStore((s) => s.addToast);
-  const setTypist = useTypingStore((s) => s.setTypist);
+  const applyTypingUpdates = useTypingStore((s) => s.applyTypingUpdates);
+  const typingBatchRef = useRef<ReturnType<typeof createSocketStateBatch<TypingUpdate>> | null>(
+    null,
+  );
   const enableNotifications = useNotificationSettingsStore((s) => s.enableNotifications);
   const allowSound = useNotificationSettingsStore((s) => s.allowSound);
   const volume = useNotificationSettingsStore((s) => s.volume);
@@ -107,6 +145,7 @@ export function useMessengerRealtime(
 
   const joinedRef = useRef<Set<string>>(new Set());
   const playedMessageIdsRef = useRef<Set<string>>(new Set());
+  const processedMessageIdsRef = useRef<Set<string>>(new Set());
   const socialBatchRef = useRef<
     Map<string, { firstActor: string; count: number; lastTimestamp: number }>
   >(new Map());
@@ -129,10 +168,39 @@ export function useMessengerRealtime(
   conversationIdsRef.current = conversationIds;
 
   useEffect(() => {
+    const release = cacheBatch.retain();
+    return () => {
+      if (useAuthStore.getState().userId !== userId) cacheBatch.cancel();
+      release();
+    };
+  }, [cacheBatch, userId]);
+
+  useEffect(() => {
+    const releaseExpiration = retainTypingExpiration();
+    const batch = createSocketStateBatch<TypingUpdate>(applyTypingUpdates);
+    typingBatchRef.current = batch;
+    const unregisterReset = registerSessionResetHandler(batch.dispose);
+    socket.on('disconnect', batch.flush);
+    return () => {
+      unregisterReset();
+      socket.off('disconnect', batch.flush);
+      batch.dispose();
+      releaseExpiration();
+      typingBatchRef.current = null;
+    };
+  }, [socket, applyTypingUpdates, userId]);
+
+  useEffect(() => {
     initializeMessageNotificationSound();
   }, []);
 
   useEffect(() => {
+    let disposed = false;
+    const controller = new AbortController();
+    const unregisterReset = registerSessionResetHandler(() => {
+      disposed = true;
+      controller.abort();
+    });
     const handleGatewayReady = (data: { sessionId: string; seq: number }) => {
       sessionIdRef.current = data.sessionId;
       lastSeqRef.current = data.seq;
@@ -146,24 +214,30 @@ export function useMessengerRealtime(
     };
 
     const fillViaRest = async () => {
+      cacheBatch.flush();
       // REST delta fallback: per-conversation `after=<latest snowflake>`.
       const ids = [...new Set(conversationIdsRef.current)];
+      if (ids.length === 0) return;
       await Promise.allSettled(
         ids.map(async (id) => {
           const after = getLatestLocalMessageId(queryClient, id);
           if (!after) return;
           try {
-            const page = await chatApi.getMessages(id, undefined, 50, after);
-            if (page?.data?.length) applyRestDelta(queryClient, id, page.data);
+            const page = await chatApi.getMessages(id, undefined, 50, after, controller.signal);
+            if (!disposed && useAuthStore.getState().userId === userId && page?.data?.length) {
+              cacheBatch.flush();
+              applyRestDelta(queryClient, id, page.data);
+            }
           } catch {
             // offline — background TQ refetch reconciles later
           }
         }),
       );
-      void queryClient.invalidateQueries({ queryKey: queryKeys.conversations.root });
+      if (!disposed) void queryClient.invalidateQueries({ queryKey: queryKeys.conversations.root });
     };
 
     const handleConnect = () => {
+      cacheBatch.flush();
       if (sessionIdRef.current && lastSeqRef.current > 0) {
         socket.emit(
           'gatewayResume',
@@ -173,6 +247,7 @@ export function useMessengerRealtime(
             events?: Array<{ seq: number; event: string; payload: unknown }>;
             currentSeq?: number;
           }) => {
+            if (disposed) return;
             if (res?.status === 'ok' && res.events) {
               res.events.forEach(replayEvent);
               if (typeof res.currentSeq === 'number') {
@@ -208,18 +283,24 @@ export function useMessengerRealtime(
       void fillViaRest();
     };
 
+    const handleDisconnect = () => cacheBatch.flush();
+
     socket.on('gatewayReady', handleGatewayReady);
     socket.on('connect', handleConnect);
     socket.on('resyncRequired', handleResyncRequired);
+    socket.on('disconnect', handleDisconnect);
 
     return () => {
+      disposed = true;
+      controller.abort();
+      unregisterReset();
       socket.off('gatewayReady', handleGatewayReady);
       socket.off('connect', handleConnect);
       socket.off('resyncRequired', handleResyncRequired);
+      socket.off('disconnect', handleDisconnect);
     };
-  }, [socket, queryClient]);
+  }, [socket, queryClient, cacheBatch, userId]);
 
-  // Periodic lightweight heartbeat ping (Discord model) every 25s
   useEffect(() => {
     const interval = setInterval(() => {
       if (socket.connected) {
@@ -236,6 +317,12 @@ export function useMessengerRealtime(
   }, []);
 
   useEffect(() => {
+    const desired = new Set(conversationIds);
+    joinedRef.current.forEach((id) => {
+      if (desired.has(id)) return;
+      socket.emit('leaveConversation', { conversationId: id });
+      joinedRef.current.delete(id);
+    });
     conversationIds.forEach((id) => {
       if (joinedRef.current.has(id)) return;
       socket.emit('joinConversation', { conversationId: id });
@@ -243,44 +330,76 @@ export function useMessengerRealtime(
     });
   }, [conversationIds, socket]);
 
-  const handleNewMessage = (payload: {
+  useEffect(
+    () => () => {
+      joinedRef.current.forEach((id) => socket.emit('leaveConversation', { conversationId: id }));
+      joinedRef.current.clear();
+    },
+    [socket],
+  );
+
+  // The scalar counts every dialog, including those outside the loaded pages.
+  // Reconcile all relevant events once per burst rather than summing metadata.
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const schedule = () => {
+      if (timer) return;
+      timer = setTimeout(() => {
+        timer = undefined;
+        void queryClient.invalidateQueries({ queryKey: queryKeys.conversations.unreadCount });
+      }, 1000);
+    };
+    const events = [
+      'newMessage',
+      'messageRead',
+      'messageDeleted',
+      'messagesCleared',
+      'conversationUpdated',
+      'conversationDeleted',
+    ];
+    events.forEach((event) => socket.on(event, schedule));
+    return () => {
+      if (timer) clearTimeout(timer);
+      events.forEach((event) => socket.off(event, schedule));
+    };
+  }, [socket, queryClient]);
+
+  const handleNewMessage = async (payload: {
     conversationId: string;
     message: MessageView;
     clientMessageId?: string;
   }) => {
+    if (useAuthStore.getState().userId !== userId) return;
     const message =
       payload.clientMessageId && !payload.message.clientMessageId
         ? { ...payload.message, clientMessageId: payload.clientMessageId }
         : payload.message;
-    const conversations = queryClient.getQueryData<ConversationView[]>(
-      queryKeys.conversations.root,
-    );
-    const conversation = conversations?.find((c) => c.id === message.conversationId);
-    const isGroup = conversation?.type === 'GROUP';
-    const isMessengerPage = window.location.pathname.startsWith('/messages');
-    const isSenderMuted = Boolean(message.sender?.id && mutedActorIds?.includes(message.sender.id));
-
-    const shouldNotify =
-      (isGroup ? groups : privateChats) &&
-      Boolean(message.sender?.id && message.sender.id !== userId) &&
-      message.conversationId !== activeConversationId &&
-      conversation?.myMuteLevel !== 'MESSAGES' &&
-      conversation?.myMuteLevel !== 'MESSAGES_AND_CALLS' &&
-      !isSenderMuted &&
-      !isDndActive &&
-      !playedMessageIdsRef.current.has(message.id);
-
-    // Realtime cache sync first (no REST): message tail + list preview.
-    applyIncomingMessage(queryClient, message.conversationId, message, { status: 'sent' });
-    queryClient.setQueryData<ConversationView[]>(
-      queryKeys.conversations.root,
-      (prev: ConversationView[] | undefined) => {
+    if (processedMessageIdsRef.current.has(message.id)) return;
+    rememberPlayed(processedMessageIdsRef.current, message.id);
+    const conversations = getCachedConversations(queryClient);
+    let conversation = conversations?.find((c) => c.id === message.conversationId);
+    cacheBatch.enqueue((cache) => {
+      // Preserve unopened histories and coalesce list writes with thread events.
+      if (cache.getQueryData(queryKeys.conversations.messages(message.conversationId))) {
+        applyIncomingMessage(cache, message.conversationId, message, { status: 'sent' });
+      }
+      const cachedConversations = getCachedConversations(cache);
+      if (
+        cachedConversations &&
+        !cachedConversations.some((c) => c.id === message.conversationId)
+      ) {
+        cacheBatch.invalidate(queryKeys.conversations.root);
+        return;
+      }
+      const committedPreview = getCachedConversations(queryClient).find(
+        (c) => c.id === message.conversationId,
+      )?.lastMessage;
+      // A REST list result can land while socket events wait. Its preview and
+      // unread count already include these messages; retain them without
+      // counting the queued burst again or regressing the preview.
+      if (isCoveredByPreview(message, committedPreview)) return;
+      updateConversationLists(cache, (prev: ConversationView[] | undefined) => {
         if (!prev) return prev;
-        const exists = prev.some((c: ConversationView) => c.id === message.conversationId);
-        if (!exists) {
-          queryClient.invalidateQueries({ queryKey: queryKeys.conversations.root });
-          return prev;
-        }
         return prev.map((c: ConversationView) =>
           c.id === message.conversationId
             ? {
@@ -294,8 +413,47 @@ export function useMessengerRealtime(
               }
             : c,
         );
-      },
-    );
+      });
+    });
+
+    // Fetch one dialog only on an incoming event to honor group/mute preferences.
+    // The global badge and initial /search still never fetch the full list.
+    if (!conversation && message.sender?.id !== userId && enableNotifications) {
+      try {
+        conversation = await queryClient.fetchQuery({
+          queryKey: queryKeys.conversations.detail(message.conversationId),
+          queryFn: ({ signal }) => chatApi.getConversation(message.conversationId, signal),
+          staleTime: 60_000,
+          gcTime: 60_000,
+        });
+      } catch {
+        /* offline: respect unknown mute/privacy settings by suppressing the toast */
+      }
+    }
+    if (useAuthStore.getState().userId !== userId) return;
+    const isGroup = conversation?.type === 'GROUP';
+    const isSenderMuted = Boolean(message.sender?.id && mutedActorIds?.includes(message.sender.id));
+
+    // Suppress push notification toasts for call end/log events upon any call outcome
+    const isCallMessage =
+      message.messageType === 'CALL_LOG' ||
+      (message.messageType as unknown) === 'CALL' ||
+      Boolean(
+        typeof message.body === 'string' &&
+        (message.body.includes('"callId"') || message.body.includes('"callType"')),
+      );
+
+    const shouldNotify =
+      !isCallMessage &&
+      Boolean(conversation) &&
+      (isGroup ? groups : privateChats) &&
+      Boolean(message.sender?.id && message.sender.id !== userId) &&
+      message.conversationId !== activeConversationId &&
+      conversation?.myMuteLevel !== 'MESSAGES' &&
+      conversation?.myMuteLevel !== 'MESSAGES_AND_CALLS' &&
+      !isSenderMuted &&
+      !isDndActive &&
+      !playedMessageIdsRef.current.has(message.id);
 
     if (shouldNotify) {
       rememberPlayed(playedMessageIdsRef.current, message.id);
@@ -303,15 +461,38 @@ export function useMessengerRealtime(
         playMessageNotificationSound(volume);
       }
 
-      // If user is on the Messenger page, audio plays for other chats, but push toast is suppressed
-      if (!isMessengerPage && showPushNotifications && enableNotifications && conversation) {
-        const display = getConversationDisplay(conversation, userId);
-        const toastTitle = showName ? display.title : 'Eternal';
-        const toastBody = showName
-          ? showText
-            ? getMessageToastPreview(message)
-            : 'You have a new message'
-          : 'You have a new message';
+      // Push notification toast (suppressed only in the active conversation)
+      if (showPushNotifications && enableNotifications) {
+        let toastTitle = 'Eternal';
+        let toastBody = 'You have a new message';
+        let toastAvatar: string | null = null;
+        let memberAvatars: (string | null)[] = [];
+        let isGroupDisplay = false;
+
+        if (conversation) {
+          const display = getConversationDisplay(conversation, userId);
+          toastTitle = showName ? display.title : 'Eternal';
+          toastBody = showName
+            ? showText
+              ? getMessageToastPreview(message)
+              : 'You have a new message'
+            : 'You have a new message';
+          toastAvatar = showName ? display.avatar : null;
+          memberAvatars = showName
+            ? conversation.participants.map((participant) => participant.user.avatar)
+            : [];
+          isGroupDisplay = showName ? display.isGroup : false;
+        } else {
+          toastTitle = showName
+            ? message.sender?.displayName || message.sender?.username || 'New message'
+            : 'Eternal';
+          toastBody = showName
+            ? showText
+              ? getMessageToastPreview(message)
+              : 'You have a new message'
+            : 'You have a new message';
+          toastAvatar = showName ? message.sender?.avatar || null : null;
+        }
 
         addToast({
           id: message.id,
@@ -319,11 +500,9 @@ export function useMessengerRealtime(
           messageId: message.id,
           title: toastTitle,
           body: toastBody,
-          avatar: showName ? display.avatar : null,
-          memberAvatars: showName
-            ? conversation.participants.map((participant) => participant.user.avatar)
-            : [],
-          isGroup: showName ? display.isGroup : false,
+          avatar: toastAvatar,
+          memberAvatars,
+          isGroup: isGroupDisplay,
         });
       }
     }
@@ -332,7 +511,14 @@ export function useMessengerRealtime(
   useEffect(() => {
     handleNewMessageRef.current = handleNewMessage;
     handleReplayEventRef.current = (evt) => {
-      const payload = evt.payload as { conversationId?: string; message?: MessageView };
+      const payload = evt.payload as {
+        conversationId?: string;
+        message?: MessageView;
+        messageId?: string;
+        userId?: string;
+        readAt?: string;
+        id?: string;
+      };
       if (!payload) return;
       if (evt.event === 'newMessage' && payload.message) {
         handleNewMessageRef.current?.({
@@ -343,14 +529,50 @@ export function useMessengerRealtime(
         return;
       }
       // Replayed non-message events patch the cache directly (same as live).
-      if (!payload.conversationId) return;
-      const convId = payload.conversationId;
-      if (evt.event === 'messageReactionAdded' || evt.event === 'messageReactionRemoved') {
-        if (payload.message) applyReactionMessage(queryClient, convId, payload.message, userId);
+      if (evt.event === 'conversationUpdated' && payload.id) {
+        cacheBatch.enqueue((cache) =>
+          applyConversationPatch(cache, payload as Partial<ConversationView> & { id: string }),
+        );
         return;
       }
-      if (evt.event === 'conversationUpdated' && payload) {
-        applyConversationPatch(queryClient, payload as Partial<ConversationView> & { id: string });
+      if (!payload.conversationId) return;
+      const convId = payload.conversationId;
+      if (evt.event === 'messageEdited' && payload.message) {
+        cacheBatch.enqueue((cache) => applyMessageEdited(cache, convId, payload.message!));
+        return;
+      }
+      if (evt.event === 'messageDeleted' && payload.messageId) {
+        cacheBatch.enqueue((cache) => applyMessageDeleted(cache, convId, payload.messageId!));
+        return;
+      }
+      if (evt.event === 'messageDelivered' && payload.messageId) {
+        cacheBatch.enqueue((cache) => applyMessageDelivered(cache, convId, payload.messageId!));
+        return;
+      }
+      if (evt.event === 'messageRead' && payload.userId && payload.readAt) {
+        cacheBatch.enqueue((cache) =>
+          applyMessageRead(cache, convId, {
+            userId: payload.userId!,
+            messageId: payload.messageId,
+            readAt: payload.readAt!,
+          }),
+        );
+        return;
+      }
+      if (evt.event === 'messagesCleared') {
+        cacheBatch.enqueue((cache) => applyMessagesCleared(cache, convId));
+        return;
+      }
+      if (evt.event === 'conversationDeleted') {
+        cacheBatch.enqueue((cache) => applyConversationDeleted(cache, convId));
+        return;
+      }
+      if (evt.event === 'messageReactionAdded' || evt.event === 'messageReactionRemoved') {
+        if (payload.message)
+          cacheBatch.enqueue((cache) =>
+            applyReactionMessage(cache, convId, payload.message!, userId),
+          );
+        return;
       }
     };
   });
@@ -362,15 +584,10 @@ export function useMessengerRealtime(
     conversationId: string;
     message: MessageView;
   }) => {
-    // Patch message cache immediately (no REST); toast is best-effort.
-    applyReactionMessage(queryClient, conversationId, message, userId);
+    cacheBatch.enqueue((cache) => applyReactionMessage(cache, conversationId, message, userId));
     if (!reactions || isDndActive) return;
-    const conversations = queryClient.getQueryData<ConversationView[]>(
-      queryKeys.conversations.root,
-    );
+    const conversations = getCachedConversations(queryClient);
     const conversation = conversations?.find((c) => c.id === conversationId);
-    const isMessengerPage = window.location.pathname.startsWith('/messages');
-
     const latestReaction = message.reactions?.[message.reactions.length - 1];
     if (!latestReaction) return;
 
@@ -386,7 +603,7 @@ export function useMessengerRealtime(
         playMessageNotificationSound(volume);
       }
 
-      if (!isMessengerPage && showPushNotifications && enableNotifications) {
+      if (showPushNotifications && enableNotifications) {
         const reactorName = reactor.displayName || reactor.username;
         const toastTitle = showName && reactorName ? reactorName : 'Eternal';
         const toastBody = showName
@@ -409,8 +626,18 @@ export function useMessengerRealtime(
     }
   };
 
+  const handleReactionRemoved = ({
+    conversationId,
+    message,
+  }: {
+    conversationId: string;
+    message: MessageView;
+  }) => {
+    cacheBatch.enqueue((cache) => applyReactionMessage(cache, conversationId, message, userId));
+  };
+
   const handleConversationUpdated = (updated: Partial<ConversationView> & { id: string }) => {
-    applyConversationPatch(queryClient, updated);
+    cacheBatch.enqueue((cache) => applyConversationPatch(cache, updated));
   };
 
   const handleNewFollower = ({
@@ -523,17 +750,22 @@ export function useMessengerRealtime(
     isTyping: boolean;
   }) => {
     if (payload.userId === userId) return;
-    const conversations = queryClient.getQueryData<ConversationView[]>(
-      queryKeys.conversations.root,
-    );
+    const conversations = getCachedConversations(queryClient);
     const conversation = conversations?.find((c) => c.id === payload.conversationId);
     const participant = conversation?.participants.find((p) => p.userId === payload.userId);
     const username = participant?.user.displayName || participant?.user.username;
-    setTypist(payload.conversationId, payload.userId, payload.isTyping, username);
+    typingBatchRef.current?.enqueue(
+      JSON.stringify([payload.conversationId, payload.userId]),
+      () => ({
+        ...payload,
+        username,
+        timestamp: Date.now(),
+      }),
+    );
   };
 
   const handleConversationDeleted = (payload: { conversationId: string }) => {
-    applyConversationDeleted(queryClient, payload.conversationId);
+    cacheBatch.enqueue((cache) => applyConversationDeleted(cache, payload.conversationId));
     if (activeConversationId === payload.conversationId) {
       if (window.location.pathname.startsWith('/messages')) {
         window.history.pushState(null, '', '/messages');
@@ -543,7 +775,7 @@ export function useMessengerRealtime(
 
   const handleMessagesCleared = (payload: { conversationId: string }) => {
     // Atomic wipe via sync layer (no follow-up REST refetch: the clear IS the state).
-    applyMessagesCleared(queryClient, payload.conversationId);
+    cacheBatch.enqueue((cache) => applyMessagesCleared(cache, payload.conversationId));
   };
 
   useChatSocketEvent<{ conversationId: string; message: MessageView; clientMessageId?: string }>(
@@ -551,8 +783,25 @@ export function useMessengerRealtime(
     handleNewMessage,
   );
   useChatSocketEvent<{ conversationId: string; message: MessageView }>(
+    'messageEdited',
+    (payload) => {
+      cacheBatch.enqueue((cache) =>
+        applyMessageEdited(cache, payload.conversationId, payload.message),
+      );
+    },
+  );
+  useChatSocketEvent<{ conversationId: string; messageId: string }>('messageDeleted', (payload) => {
+    cacheBatch.enqueue((cache) =>
+      applyMessageDeleted(cache, payload.conversationId, payload.messageId),
+    );
+  });
+  useChatSocketEvent<{ conversationId: string; message: MessageView }>(
     'messageReactionAdded',
     handleReactionAdded,
+  );
+  useChatSocketEvent<{ conversationId: string; message: MessageView }>(
+    'messageReactionRemoved',
+    handleReactionRemoved,
   );
   useChatSocketEvent<Partial<ConversationView> & { id: string }>(
     'conversationUpdated',

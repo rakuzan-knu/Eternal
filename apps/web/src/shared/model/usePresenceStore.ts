@@ -24,6 +24,12 @@ interface PresenceState {
   applyBatch: (onlineUserIds: string[], offlineUserIds: string[]) => void;
   setUserActivity: (userId: string, activityStatus: any) => void;
   setUserActivities: (activities: Record<string, any>) => void;
+  applyUserUpdates: (updates: ReadonlyMap<string, PresenceUpdate>) => void;
+}
+
+export interface PresenceUpdate {
+  online?: boolean;
+  activity?: UserActivityStatus | null;
 }
 
 export const usePresenceStore = create<PresenceState>((set) => ({
@@ -73,4 +79,28 @@ export const usePresenceStore = create<PresenceState>((set) => ({
         ...activities,
       },
     })),
+  applyUserUpdates: (updates) =>
+    set((state) => {
+      let onlineUserIds = state.onlineUserIds;
+      let userActivities = state.userActivities;
+      for (const [userId, update] of updates) {
+        if (update.online !== undefined && onlineUserIds.has(userId) !== update.online) {
+          if (onlineUserIds === state.onlineUserIds) onlineUserIds = new Set(onlineUserIds);
+          if (update.online) onlineUserIds.add(userId);
+          else onlineUserIds.delete(userId);
+        }
+        if (update.activity === undefined) continue;
+        if (update.activity === null) {
+          if (!(userId in userActivities)) continue;
+          if (userActivities === state.userActivities) userActivities = { ...userActivities };
+          delete userActivities[userId];
+        } else if (userActivities[userId] !== update.activity) {
+          if (userActivities === state.userActivities) userActivities = { ...userActivities };
+          userActivities[userId] = update.activity;
+        }
+      }
+      if (onlineUserIds === state.onlineUserIds && userActivities === state.userActivities)
+        return state;
+      return { onlineUserIds, userActivities };
+    }),
 }));

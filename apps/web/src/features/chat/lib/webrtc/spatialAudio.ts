@@ -33,8 +33,19 @@ export class SpatialAudioManager {
   }
 
   public setEnabled(enabled: boolean): void {
+    if (this.isEnabled === enabled) return;
     this.isEnabled = enabled;
-    this.recalculatePanners();
+    if (!enabled) {
+      this.nodes.forEach((entry) => {
+        try {
+          entry.source.disconnect();
+          entry.panner.disconnect();
+          entry.gain.disconnect();
+        } catch {}
+      });
+      this.nodes.clear();
+      this.manualPositions.clear();
+    }
   }
 
   public getIsEnabled(): boolean {
@@ -47,6 +58,7 @@ export class SpatialAudioManager {
     }
 
     if (!stream || stream.getAudioTracks().length === 0) return;
+    if (!this.isEnabled) return;
 
     try {
       const ctx = this.getAudioContext();
@@ -61,7 +73,7 @@ export class SpatialAudioManager {
       panner.coneInnerAngle = 360;
 
       const gain = ctx.createGain();
-      gain.gain.value = 1.0;
+      gain.gain.value = this.isEnabled ? 1.0 : 0.0;
 
       source.connect(panner);
       panner.connect(gain);

@@ -33,7 +33,7 @@ export default function RestrictUserModal({ userId, onClose }: RestrictUserModal
   return (
     <Modal onClose={onClose} className="w-full max-w-sm">
       {(close) => (
-        <div className="bg-[#181a22] border border-white/10 rounded-3xl w-full shadow-2xl overflow-hidden backdrop-blur-2xl p-5">
+        <div className="glass-modal border border-white/10 rounded-3xl w-full shadow-2xl overflow-hidden p-5">
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-full bg-amber-500/20 border border-amber-400/30 flex items-center justify-center text-amber-300">

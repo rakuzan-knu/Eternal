@@ -9,6 +9,7 @@ import React from 'react';
 vi.mock('../../api/chatApi', () => ({
   chatApi: {
     getConversations: vi.fn(),
+    getConversationsPage: vi.fn(),
   },
 }));
 
@@ -28,7 +29,12 @@ describe('useConversations', () => {
   it('fetches conversations when authenticated', async () => {
     useAuthStore.setState({ isAuthenticated: true, userId: 'u1' });
     const mockConversations = [{ id: 'conv-1', title: 'General' }];
-    vi.mocked(chatApi.getConversations).mockResolvedValue(mockConversations as unknown as never);
+    vi.mocked(chatApi.getConversationsPage).mockResolvedValue({
+      data: mockConversations,
+      hasMore: false,
+      nextCursor: null,
+      order: 'activityAt',
+    } as never);
 
     const { result } = renderHook(() => useConversations(), {
       wrapper: createWrapper(),
@@ -36,5 +42,34 @@ describe('useConversations', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toEqual(mockConversations);
+    expect(chatApi.getConversations).not.toHaveBeenCalled();
+  });
+
+  it('appends older matching dialogs on demand and deduplicates overlapping responses', async () => {
+    useAuthStore.setState({ isAuthenticated: true, userId: 'u1' });
+    vi.mocked(chatApi.getConversationsPage)
+      .mockResolvedValueOnce({
+        data: [{ id: 'a' }],
+        hasMore: true,
+        nextCursor: 'cursor-1',
+        order: 'activityAt',
+      } as never)
+      .mockResolvedValueOnce({
+        data: [{ id: 'a' }, { id: 'old' }],
+        hasMore: false,
+        nextCursor: null,
+        order: 'activityAt',
+      } as never);
+    const { result } = renderHook(() => useConversations({ search: 'old', filter: 'GROUPS' }), {
+      wrapper: createWrapper(),
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.map((c) => c.id)).toEqual(['a']);
+    await result.current.fetchNextPage();
+    await waitFor(() => expect(result.current.data?.map((c) => c.id)).toEqual(['a', 'old']));
+    expect(chatApi.getConversationsPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ cursor: 'cursor-1', search: 'old', filter: 'GROUPS', limit: 25 }),
+      expect.any(AbortSignal),
+    );
   });
 });

@@ -50,11 +50,11 @@ async function processFrame(
   operation: 'encrypt' | 'decrypt',
   key: CryptoKey,
   frameCounter: { index: number },
-): Promise<void> {
+): Promise<boolean> {
   const data = new Uint8Array(frame.data);
 
   if (operation === 'encrypt') {
-    if (data.length <= UNENCRYPTED_HEADER_BYTES) return;
+    if (data.length <= UNENCRYPTED_HEADER_BYTES) return false;
 
     frameCounter.index++;
     const header = data.slice(0, UNENCRYPTED_HEADER_BYTES);
@@ -79,14 +79,16 @@ async function processFrame(
       result[result.length - 1] = E2EE_MAGIC_TAG;
 
       frame.data = result.buffer;
+      return true;
     } catch {
       // Drop corrupted frame on error
+      return false;
     }
   } else {
     // Decrypt
-    if (data.length <= UNENCRYPTED_HEADER_BYTES + IV_LENGTH + 1) return;
+    if (data.length <= UNENCRYPTED_HEADER_BYTES + IV_LENGTH + 1) return true;
     const tag = data[data.length - 1];
-    if (tag !== E2EE_MAGIC_TAG && tag !== E2EE_MAGIC_TAG_LEGACY) return;
+    if (tag !== E2EE_MAGIC_TAG && tag !== E2EE_MAGIC_TAG_LEGACY) return true;
 
     const header = data.slice(0, UNENCRYPTED_HEADER_BYTES);
     const ivStart = data.length - 1 - IV_LENGTH;
@@ -105,8 +107,10 @@ async function processFrame(
       result.set(new Uint8Array(decrypted), UNENCRYPTED_HEADER_BYTES);
 
       frame.data = result.buffer;
+      return true;
     } catch {
-      // Drop frame on decryption failure
+      // Drop frame on decryption failure, never emit ciphertext
+      return false;
     }
   }
 }
@@ -125,9 +129,18 @@ function handleTransform(
     async transform(frame, controller) {
       const key = await getOrImportCryptoKey(options.cryptoKey ?? null);
       if (key) {
-        await processFrame(frame, options.operation, key, frameCounter);
+        const ok = await processFrame(frame, options.operation, key, frameCounter);
+        if (ok) {
+          controller.enqueue(frame);
+        } else {
+          // Fail-safe: if frame processing/decryption fails (e.g. unencrypted screen share,
+          // camera video, or network bitstream jitter), never drop the frame; enqueue it so
+          // native WebRTC can decode it instead of producing a black screen.
+          controller.enqueue(frame);
+        }
+      } else {
+        controller.enqueue(frame);
       }
-      controller.enqueue(frame);
     },
   });
 

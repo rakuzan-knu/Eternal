@@ -10,7 +10,7 @@ import {
   markNotificationAsRead,
   muteNotificationAuthor,
 } from '../api/notificationApi';
-import { NotificationFilter, PaginatedNotificationsResponse } from './types';
+import { NotificationFilter, NotificationType, PaginatedNotificationsResponse } from './types';
 import { useNotificationStore } from './useNotificationStore';
 import { useSpotifyPlayerStore } from '@/shared/model/useSpotifyPlayerStore';
 import { useEffect } from 'react';
@@ -69,8 +69,8 @@ export function useUnreadCountsQuery() {
     },
     enabled: isEnabled,
     retry: 1,
-    staleTime: queryStaleTimes.notifications,
-    refetchOnWindowFocus: !isGameModeOpen,
+    staleTime: queryStaleTimes.counters,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -82,6 +82,9 @@ export function useMarkNotificationAsRead() {
     onMutate: async (id: string) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.notifications.root });
 
+      let foundType: NotificationType | undefined;
+      let wasUnread = false;
+
       queryClient.setQueriesData<{
         pages: PaginatedNotificationsResponse[];
         pageParams: (string | undefined)[];
@@ -91,10 +94,26 @@ export function useMarkNotificationAsRead() {
           ...old,
           pages: old.pages.map((page) => ({
             ...page,
-            items: page.items.map((item) => (item.id === id ? { ...item, isRead: true } : item)),
+            items: page.items.map((item) => {
+              if (item.id === id) {
+                foundType = item.type;
+                if (!item.isRead) wasUnread = true;
+                return { ...item, isRead: true };
+              }
+              return item;
+            }),
           })),
         };
       });
+
+      if (wasUnread) {
+        useNotificationStore.getState().decrementUnreadCount(foundType);
+      }
+    },
+    onSuccess: (data) => {
+      if (data && (data as any).unreadCounts) {
+        useNotificationStore.getState().setUnreadCounts((data as any).unreadCounts);
+      }
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.notifications.unreadCount });

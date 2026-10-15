@@ -47,8 +47,8 @@ describe('Select', () => {
     await user.click(screen.getByRole('combobox'));
 
     const list = within(screen.getByRole('listbox'));
-    expect(list.getByText('Beta').closest('li')).toHaveAttribute('aria-selected', 'true');
-    expect(list.getByText('Alpha').closest('li')).toHaveAttribute('aria-selected', 'false');
+    expect(list.getByRole('option', { name: 'Beta' })).toHaveAttribute('aria-selected', 'true');
+    expect(list.getByRole('option', { name: 'Alpha' })).toHaveAttribute('aria-selected', 'false');
   });
 
   it('closes the list and calls onBlur when clicking outside', async () => {

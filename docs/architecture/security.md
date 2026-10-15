@@ -88,7 +88,7 @@ The backend integrates `@nestjs/throttler` with a distributed **Redis** store to
 
 ## 📦 Supply Chain & Artifact Security
 
-As an open-source project, supply chain integrity is safeguarded through automated CI controls (see [ADR 003](../adr/003-supply-chain-security-and-cosign.md)):
+For the Eternal project, supply chain integrity is safeguarded through automated CI controls (see [ADR 003](../adr/003-supply-chain-security-and-cosign.md)):
 
 ```mermaid
 graph TD

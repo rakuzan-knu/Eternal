@@ -1,6 +1,8 @@
 import { useMutation, useQueryClient, InfiniteData } from '@tanstack/react-query';
 import { postsApi } from '../api/postsApi';
 import { FeedPage } from '@/entities/post/api/postsApi';
+import { mapPostFeedData } from '@/entities/post/model/mapPostFeedData';
+import { invalidatePostFeedHistory } from '@/entities/post/model/postFeedColdCache';
 import {
   FEED_KEY,
   USER_POSTS_KEY,
@@ -27,27 +29,21 @@ export function useRepostMutation(
       }
     },
     onMutate: async () => {
+      invalidatePostFeedHistory();
       const nextIsReposted = !isReposted;
       const targetId = String(postId);
 
       const updateFeedData = (old: InfiniteData<FeedPage> | undefined) => {
-        if (!old?.pages) return old;
-        return {
-          ...old,
-          pages: old.pages.map((page) => ({
-            ...page,
-            posts: page.posts.map((p) => {
-              if (String(p.id) !== targetId) return p;
-              // Guard against double increment/decrement across matching queries
-              if (p.isReposted === nextIsReposted) return p;
-              return {
-                ...p,
-                isReposted: nextIsReposted,
-                reposts: Math.max(0, (p.reposts ?? 0) + (nextIsReposted ? 1 : -1)),
-              };
-            }),
-          })),
-        };
+        return mapPostFeedData(old, (p) => {
+          if (String(p.id) !== targetId) return p;
+          // Guard against double increment/decrement across matching queries
+          if (p.isReposted === nextIsReposted) return p;
+          return {
+            ...p,
+            isReposted: nextIsReposted,
+            reposts: Math.max(0, (p.reposts ?? 0) + (nextIsReposted ? 1 : -1)),
+          };
+        });
       };
 
       if (currentQueryKey) {
@@ -83,6 +79,7 @@ export function useRepostMutation(
       queryClient.invalidateQueries({ queryKey: [SAVED_POSTS_KEY] });
     },
     onSettled: () => {
+      invalidatePostFeedHistory();
       if (currentQueryKey) queryClient.invalidateQueries({ queryKey: currentQueryKey });
       queryClient.invalidateQueries({ queryKey: [FEED_KEY] });
       queryClient.invalidateQueries({ queryKey: [USER_POSTS_KEY] });

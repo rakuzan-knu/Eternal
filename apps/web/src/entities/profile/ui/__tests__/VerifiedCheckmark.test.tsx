@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { VerifiedCheckmark } from '../VerifiedCheckmark';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
@@ -24,15 +24,17 @@ describe('VerifiedCheckmark', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('falls back to default size when unknown size is passed, and renders primaryBadge', () => {
+  it('falls back to default size when unknown size is passed, and renders primaryBadge', async () => {
     const { container } = renderWithClient(
       <VerifiedCheckmark size={'custom' as any} primaryBadge="DEVELOPER" />,
     );
-    expect(container.querySelector('svg')).toBeInTheDocument();
+    await waitFor(() => expect(container.querySelector('svg')).toBeInTheDocument(), {
+      timeout: 5000,
+    });
 
     const { container: cXs } = renderWithClient(
       <VerifiedCheckmark size="xs" primaryBadge="DEVELOPER" />,
     );
-    expect(cXs.querySelector('svg')).toBeInTheDocument();
+    await waitFor(() => expect(cXs.querySelector('svg')).toBeInTheDocument(), { timeout: 5000 });
   });
 });

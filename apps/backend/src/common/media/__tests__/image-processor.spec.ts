@@ -8,30 +8,11 @@ import {
 } from '../image-processor';
 import type { S3Client } from '@aws-sdk/client-s3';
 
-jest.mock('sharp', () => {
-  const mockSharpInstance = {
-    resize: jest.fn().mockReturnThis(),
-    webp: jest.fn().mockReturnThis(),
-    gif: jest.fn().mockReturnThis(),
-    toBuffer: jest.fn().mockResolvedValue(Buffer.from('optimized-image')),
-  };
-  const sharpFn = Object.assign(
-    jest.fn(() => mockSharpInstance),
-    {
-      concurrency: jest.fn(),
-      cache: jest.fn(),
-      simd: jest.fn(),
-    },
-  );
-  return {
-    __esModule: true,
-    default: sharpFn,
-  };
-});
+import { pngImage, gifImage } from './upload-fixtures';
 
 describe('image-processor', () => {
-  const dummyBuffer = Buffer.from('test-image-content');
-  const gifBuffer = Buffer.from('GIF89a-test-image-content');
+  const dummyBuffer = pngImage;
+  const gifBuffer = gifImage;
 
   describe('optimizations', () => {
     it('optimizes avatar with WebP and GIF', async () => {
@@ -124,6 +105,30 @@ describe('image-processor', () => {
 
       expect(mockS3.send).toHaveBeenCalled();
       expect(url).toBe(`data:image/webp;base64,${dummyBuffer.toString('base64')}`);
+    });
+
+    it('prevents path traversal when attempting local storage write', async () => {
+      const origEnv = process.env.NODE_ENV;
+      try {
+        delete (process.env as any).NODE_ENV;
+        delete (process.env as any).JEST_WORKER_ID;
+        const mockS3 = {
+          send: jest.fn().mockRejectedValue(new Error('S3 offline')),
+        };
+
+        const result = await uploadToStorageWithFallback(mockS3 as unknown as S3Client, {
+          bucket: 'test-bucket',
+          key: '../../etc/passwd',
+          buffer: dummyBuffer,
+          contentType: 'image/webp',
+          publicUrl: 'https://cdn.example.com',
+        });
+
+        // Traversal is blocked safely without writing outside uploads directory
+        expect(result).toBe(`data:image/webp;base64,${dummyBuffer.toString('base64')}`);
+      } finally {
+        process.env.NODE_ENV = origEnv;
+      }
     });
   });
 

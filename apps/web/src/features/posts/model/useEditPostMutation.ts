@@ -2,6 +2,8 @@ import { useMutation, useQueryClient, InfiniteData } from '@tanstack/react-query
 import { postsApi } from '../api/postsApi';
 import { FeedPage } from '@/entities/post/api/postsApi';
 import { PostType } from '@/entities/post/model/types';
+import { mapPostFeedData } from '@/entities/post/model/mapPostFeedData';
+import { invalidatePostFeedHistory } from '@/entities/post/model/postFeedColdCache';
 import { useMessageToastStore } from '@/shared/model/useMessageToastStore';
 import {
   FEED_KEY,
@@ -16,17 +18,11 @@ export function useEditPostMutation(postId: string | number, currentQueryKey?: u
   return useMutation({
     mutationFn: (newContent: string) => postsApi.editPost(postId, newContent),
     onMutate: async (newContent: string) => {
+      invalidatePostFeedHistory();
       const updateFeedData = (old: InfiniteData<FeedPage> | undefined) => {
-        if (!old?.pages) return old;
-        return {
-          ...old,
-          pages: old.pages.map((page) => ({
-            ...page,
-            posts: page.posts.map((p: PostType) =>
-              p.id === postId ? { ...p, text: newContent } : p,
-            ),
-          })),
-        };
+        return mapPostFeedData(old, (p: PostType) =>
+          String(p.id) === String(postId) ? { ...p, text: newContent } : p,
+        );
       };
 
       if (currentQueryKey) {
@@ -71,9 +67,11 @@ export function useEditPostMutation(postId: string | number, currentQueryKey?: u
       });
     },
     onSettled: () => {
+      invalidatePostFeedHistory();
       if (currentQueryKey) queryClient.invalidateQueries({ queryKey: currentQueryKey });
       queryClient.invalidateQueries({ queryKey: [FEED_KEY] });
       queryClient.invalidateQueries({ queryKey: [USER_POSTS_KEY] });
+      queryClient.invalidateQueries({ queryKey: [USER_REPOSTS_KEY] });
       queryClient.invalidateQueries({ queryKey: [SAVED_POSTS_KEY] });
     },
   });

@@ -1,9 +1,11 @@
 import type { CommentResponseDto } from '@backend/common/contracts';
+import type { AvatarDecorationDto } from '@social-network/shared-contracts';
 
 export interface CommentType extends Omit<Partial<CommentResponseDto>, 'id' | 'replyToUser'> {
   id: string;
   author: string;
   avatar?: string | null;
+  activeDecoration?: AvatarDecorationDto | null;
   handle: string;
   text: string;
   time?: string;

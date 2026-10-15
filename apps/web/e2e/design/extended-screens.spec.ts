@@ -25,10 +25,13 @@ async function openSurface(page: Page, screen: ExtendedScreen, state: ExtendedSt
   if (screen === 'reels') {
     if ((page.viewportSize()?.width ?? 1280) < 640) {
       await expect(
-        page.getByText('Помилка відтворення відео', { exact: true }).first(),
+        page.getByText(/Помилка відтворення відео|Video playback error/i).first(),
       ).toBeVisible();
     }
-    await page.getByRole('button', { name: 'Переглянути коментарі', exact: true }).first().click();
+    await page
+      .getByRole('button', { name: /Переглянути коментарі|View comments/i })
+      .first()
+      .click();
     await expect(page.getByRole('heading', { name: /Comments/ })).toBeVisible();
   }
   if (screen === 'settings') {

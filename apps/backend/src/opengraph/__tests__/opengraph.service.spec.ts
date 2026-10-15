@@ -1,3 +1,6 @@
+jest.mock('../pinned-http-fetch', () => ({
+  fetchPinned: (url: string, init: RequestInit) => global.fetch(url, init),
+}));
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import * as dns from 'dns';

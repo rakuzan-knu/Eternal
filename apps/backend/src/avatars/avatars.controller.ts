@@ -13,7 +13,7 @@ import {
   UseInterceptors,
   ForbiddenException,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FastifyFileInterceptor } from '../common/interceptors/fastify-file.interceptor';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -39,7 +39,7 @@ export class AvatarsController {
   @HttpCode(HttpStatus.OK)
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
-  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_FILE_SIZE_BYTES, files: 1 } }))
+  @UseInterceptors(FastifyFileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {

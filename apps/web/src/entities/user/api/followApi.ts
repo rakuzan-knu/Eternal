@@ -1,4 +1,5 @@
 import { apiClient as api } from '@/shared/api/httpClient';
+import { nameplateSchema } from '@social-network/shared-contracts';
 import type {
   RecommendationMutualFriendDto,
   RecommendationReasonDto,
@@ -19,6 +20,8 @@ export type FollowUserSummary = Omit<Partial<UserProfileDto>, 'recommendationRea
   isFriend?: boolean;
   isVerified?: boolean;
   primaryBadge?: string | null;
+  activeDecoration?: import('@social-network/shared-contracts').AvatarDecorationDto | null;
+  activeNameplate?: import('@social-network/shared-contracts').NameplateDto | null;
   recommendationReason?: RecommendationReason | null;
   activityStatus?: any;
 };
@@ -26,6 +29,17 @@ export type FollowUserSummary = Omit<Partial<UserProfileDto>, 'recommendationRea
 export interface FollowListPage {
   items: FollowUserSummary[];
   nextCursor?: string | null;
+}
+
+function readNameplate(
+  value: unknown,
+): import('@social-network/shared-contracts').NameplateDto | null {
+  if (!value || typeof value !== 'object') return null;
+  const v = value as Record<string, unknown>;
+  if (typeof v.assetUrl === 'string' && typeof v.previewUrl === 'string') {
+    return v as unknown as import('@social-network/shared-contracts').NameplateDto;
+  }
+  return null;
 }
 
 export function normalizeFollowListPage(
@@ -54,6 +68,8 @@ export function normalizeFollowListPage(
         (u.username as string | undefined) ??
         'User',
       avatar: (u.avatar as string | null | undefined) ?? null,
+      activeDecoration: (u.activeDecoration as any) ?? null,
+      activeNameplate: readNameplate(u.activeNameplate),
       isFollowing: Boolean(u.isFollowing),
       followsYou: Boolean(u.followsYou),
       isVerified: Boolean(u.isVerified),
@@ -96,7 +112,10 @@ export const followApi = {
         (u.displayName as string | null | undefined) ??
         (u.username as string | undefined) ??
         'User',
+      displayNameStyle: (u.displayNameStyle as any) ?? null,
       avatar: (u.avatar as string | null | undefined) ?? null,
+      activeDecoration: (u.activeDecoration as any) ?? null,
+      activeNameplate: readNameplate(u.activeNameplate),
       isFollowing: true,
       followsYou: true,
       isFriend: true,

@@ -25,7 +25,7 @@ describe('PrivacyPage', () => {
     expect(screen.getAllByText(/Briefly about this/i).length).toBeGreaterThan(0);
   });
 
-  it('renders the Discord-identical footer with Eternal branding', () => {
+  it('renders footer with Eternal branding', () => {
     render(
       <BrowserRouter>
         <PrivacyPage />

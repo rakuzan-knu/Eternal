@@ -13,7 +13,7 @@ describe('useCallStore', () => {
     expect(state.activeCall).toBeNull();
     expect(state.incomingCall).toBeNull();
     expect(state.isMuted).toBe(false);
-    expect(state.isVideoOff).toBe(false);
+    expect(state.isVideoOff).toBe(true);
     expect(state.isScreenSharing).toBe(false);
     expect(state.isPiP).toBe(false);
     expect(state.durationSec).toBe(0);
@@ -88,5 +88,53 @@ describe('useCallStore', () => {
     expect(state.callStatus).toBe('idle');
     expect(state.isMuted).toBe(false);
     expect(state.durationSec).toBe(0);
+  });
+
+  it('manages local and remote speaking states with mute suppression like Discord', () => {
+    const { setLocalIsSpeaking, setRemoteIsSpeaking, setRemoteParticipantMuted, setIsMuted } =
+      useCallStore.getState();
+
+    // Local speaking
+    setLocalIsSpeaking(true);
+    expect(useCallStore.getState().localIsSpeaking).toBe(true);
+
+    // Muting locally cancels local speaking immediately
+    setIsMuted(true);
+    expect(useCallStore.getState().localIsSpeaking).toBe(false);
+
+    // Cannot speak while muted locally
+    setLocalIsSpeaking(true);
+    expect(useCallStore.getState().localIsSpeaking).toBe(false);
+
+    // Unmute restores ability to speak
+    setIsMuted(false);
+    setLocalIsSpeaking(true);
+    expect(useCallStore.getState().localIsSpeaking).toBe(true);
+
+    // Remote speaking
+    useCallStore.setState({
+      remoteParticipant: {
+        id: 'user-bob',
+        username: 'bob',
+        displayName: 'Bob',
+        avatar: null,
+      },
+    });
+
+    setRemoteIsSpeaking(true);
+    expect(useCallStore.getState().remoteIsSpeaking).toBe(true);
+
+    // Muting remote participant cancels their speaking state immediately
+    setRemoteParticipantMuted('user-bob', true);
+    expect(useCallStore.getState().remoteIsSpeaking).toBe(false);
+
+    // Remote speaking cannot turn on while remote is muted
+    setRemoteIsSpeaking(true);
+    expect(useCallStore.getState().remoteIsSpeaking).toBe(false);
+
+    // Unmuting remote participant allows speaking indicator again
+    setRemoteParticipantMuted('user-bob', false);
+    setRemoteIsSpeaking(true);
+    expect(useCallStore.getState().remoteIsSpeaking).toBe(true);
   });
 });

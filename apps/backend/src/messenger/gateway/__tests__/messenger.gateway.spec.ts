@@ -19,6 +19,7 @@ describe('MessengerGateway', () => {
     get: jest.Mock;
   };
   let mockMessagesService: {
+    assertCanSend: jest.Mock;
     send: jest.Mock;
     markRead: jest.Mock;
     edit: jest.Mock;
@@ -52,6 +53,8 @@ describe('MessengerGateway', () => {
     zrangebyscore: jest.Mock;
     expire: jest.Mock;
     exists: jest.Mock;
+    acquireLock: jest.Mock;
+    releaseLock: jest.Mock;
     getClient: jest.Mock;
   };
   let mockUsersService: {
@@ -98,6 +101,7 @@ describe('MessengerGateway', () => {
     };
 
     mockMessagesService = {
+      assertCanSend: jest.fn().mockResolvedValue(undefined),
       send: jest.fn().mockResolvedValue(sampleMsg),
       markRead: jest.fn().mockResolvedValue(true),
       edit: jest.fn().mockResolvedValue({ ...sampleMsg, body: 'Edited' }),
@@ -136,6 +140,8 @@ describe('MessengerGateway', () => {
       zrangebyscore: jest.fn().mockResolvedValue([]),
       expire: jest.fn().mockResolvedValue(1),
       exists: jest.fn().mockResolvedValue(0),
+      acquireLock: jest.fn().mockResolvedValue('token-123'),
+      releaseLock: jest.fn().mockResolvedValue(true),
       getClient: jest.fn().mockReturnValue({
         multi: jest.fn().mockReturnValue({
           zremrangebyscore: jest.fn().mockReturnThis(),
@@ -245,6 +251,23 @@ describe('MessengerGateway', () => {
 
       expect(mockRedisService.srem).toHaveBeenCalledWith('user:sockets:usr-1', 'sock-1');
       expect(mockUsersService.touchLastSeen).toHaveBeenCalledWith('usr-1');
+    });
+
+    it('finishes offline cleanup without an unhandled rejection when Redis is closed', async () => {
+      mockRedisService.getClient.mockReturnValue({
+        zrem: () => Promise.reject(new Error('Connection is closed.')),
+      });
+      const unhandled: unknown[] = [];
+      const onUnhandled = (error: unknown) => unhandled.push(error);
+      process.on('unhandledRejection', onUnhandled);
+      try {
+        await gateway.handleDisconnect(mockSocket as unknown as Socket);
+        await new Promise<void>((resolve) => setImmediate(resolve));
+        expect(unhandled).toEqual([]);
+        expect(mockUsersService.touchLastSeen).toHaveBeenCalledWith('usr-1');
+      } finally {
+        process.off('unhandledRejection', onUnhandled);
+      }
     });
   });
 
@@ -391,26 +414,42 @@ describe('MessengerGateway', () => {
   });
 
   describe('showcase & story events and broadcasts', () => {
-    it('showcase subscriptions and presence update event', () => {
+    it('showcase subscriptions and presence update event', async () => {
       gateway.handleSubscribeShowcase(mockSocket as unknown as Socket, { targetUserId: 'u-1' });
       expect(mockSocket.join).toHaveBeenCalledWith('showcase:u-1');
 
       gateway.handleUnsubscribeShowcase(mockSocket as unknown as Socket, { targetUserId: 'u-1' });
       expect(mockSocket.leave).toHaveBeenCalledWith('showcase:u-1');
 
-      gateway.handleShowcasePresenceUpdated({ userId: 'u-1', activityStatus: {} });
+      await gateway.handleShowcasePresenceUpdated({ userId: 'u-1', activityStatus: {} });
       expect(mockServer.to).toHaveBeenCalledWith('showcase:u-1');
     });
 
-    it('story subscriptions and onEvent handlers', () => {
-      gateway.handleSubscribeStory(mockSocket as unknown as Socket, { storyId: 's-1' });
+    it('story subscriptions and onEvent handlers', async () => {
+      Object.assign(gateway, {
+        prisma: {
+          story: {
+            findUnique: jest.fn().mockResolvedValue({
+              authorId: 'usr-1',
+              expiresAt: new Date(Date.now() + 60000),
+              privacy: 'ALL_FOLLOWERS',
+            }),
+          },
+          follow: { findMany: jest.fn().mockResolvedValue([]) },
+          closeFriend: { findMany: jest.fn().mockResolvedValue([]) },
+          userBlock: { findMany: jest.fn().mockResolvedValue([]) },
+        },
+      });
+      const ownerEmit = jest.spyOn(gateway, 'emitToUser');
+      await gateway.handleSubscribeStory(mockSocket as unknown as Socket, { storyId: 's-1' });
       expect(mockSocket.join).toHaveBeenCalledWith('story:s-1');
 
       gateway.handleUnsubscribeStory(mockSocket as unknown as Socket, { storyId: 's-1' });
       expect(mockSocket.leave).toHaveBeenCalledWith('story:s-1');
 
-      gateway.handleStoryCreated({ authorId: 'a-1', story: {} });
-      expect(mockServer.emit).toHaveBeenCalledWith('story:new', expect.any(Object));
+      await gateway.handleStoryCreated({ authorId: 'a-1', story: {} });
+      expect(ownerEmit).toHaveBeenCalledWith('a-1', 'story:new', expect.any(Object));
+      expect(mockServer.to).toHaveBeenCalledWith('user:a-1');
 
       gateway.handleStoryViewed({
         storyId: 's-1',
@@ -419,7 +458,11 @@ describe('MessengerGateway', () => {
         viewer: {},
         viewedAt: '2026-08-28',
       });
-      expect(mockServer.to).toHaveBeenCalledWith('story:s-1');
+      expect(ownerEmit).toHaveBeenCalledWith(
+        'a-1',
+        expect.stringMatching(/^story:/),
+        expect.any(Object),
+      );
 
       gateway.handleStoryReacted({
         storyId: 's-1',
@@ -429,7 +472,11 @@ describe('MessengerGateway', () => {
         emoji: '🔥',
         createdAt: '2026-08-28',
       });
-      expect(mockServer.to).toHaveBeenCalledWith('story:s-1');
+      expect(ownerEmit).toHaveBeenCalledWith(
+        'a-1',
+        expect.stringMatching(/^story:/),
+        expect.any(Object),
+      );
 
       gateway.handleStoryPollVoted({
         storyId: 's-1',
@@ -490,6 +537,59 @@ describe('MessengerGateway', () => {
       expect(mockRedisService.del).toHaveBeenCalledWith('user:hibernated:usr-1:sock-1');
       expect(mockRedisService.set).toHaveBeenCalledWith('user:presence:usr-1', 'online', 60);
       expect(cbWake).toHaveBeenCalledWith({ status: 'ok', currentSeq: 42 });
+    });
+
+    it('handleSendMessage sends message, caches idempotency key, and broadcasts NEW_MESSAGE', async () => {
+      mockRedisService.get.mockResolvedValueOnce(null);
+      const cb = jest.fn();
+      await gateway.handleSendMessage(
+        mockSocket as unknown as AuthenticatedSocket,
+        {
+          conversationId: 'c1111111-1111-1111-1111-111111111111',
+          text: 'Hello world',
+          clientMessageId: 'client-msg-123',
+          messageType: MessageType.TEXT,
+        },
+        cb,
+      );
+
+      expect(mockMessagesService.send).toHaveBeenCalledTimes(1);
+      expect(mockRedisService.set).toHaveBeenCalledWith(
+        'idemp:msg:c1111111-1111-1111-1111-111111111111:usr-1:client-msg-123',
+        JSON.stringify(sampleMsg),
+        120,
+      );
+      expect(cb).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'ok',
+          message: sampleMsg,
+          clientMessageId: 'client-msg-123',
+        }),
+      );
+    });
+
+    it('handleSendMessage returns cached message and skips duplicate creation when clientMessageId is repeated', async () => {
+      mockRedisService.get.mockResolvedValueOnce(JSON.stringify(sampleMsg));
+      const cb = jest.fn();
+      await gateway.handleSendMessage(
+        mockSocket as unknown as AuthenticatedSocket,
+        {
+          conversationId: 'c1111111-1111-1111-1111-111111111111',
+          text: 'Hello world duplicate',
+          clientMessageId: 'client-msg-123',
+          messageType: MessageType.TEXT,
+        },
+        cb,
+      );
+
+      expect(mockMessagesService.send).not.toHaveBeenCalled();
+      expect(cb).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'ok',
+          message: sampleMsg,
+          clientMessageId: 'client-msg-123',
+        }),
+      );
     });
   });
 });

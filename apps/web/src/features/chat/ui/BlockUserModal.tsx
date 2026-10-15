@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { X, Search, Ban, Loader2 } from 'lucide-react';
 import Avatar from '../../../shared/ui/Avatar';
 import Modal from '../../../shared/ui/Modal';
+import { Nameplate } from '@/shared/ui/Nameplate';
 import { useUserSearch } from '../model/useUserSearch';
 import { useConversations } from '../model/useConversations';
 import { useBlockedUsers } from '../model/useBlockedUsers';
@@ -20,7 +21,12 @@ export default function BlockUserModal({ onClose }: BlockUserModalProps) {
   const [query, setQuery] = useState('');
   const userId = useAuthStore((s) => s.userId);
   const { results, isSearching } = useUserSearch(query);
-  const { data: conversations } = useConversations();
+  const {
+    data: conversations,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = useConversations({ search: query });
   const { data: blockedUsers } = useBlockedUsers();
   const blockUser = useBlockUser();
 
@@ -40,6 +46,8 @@ export default function BlockUserModal({ onClose }: BlockUserModalProps) {
             username: p.user.username,
             displayName: p.user.displayName,
             avatar: p.user.avatar,
+            activeNameplate: (p.user as any).activeNameplate,
+            activeDecoration: (p.user as any).activeDecoration,
           });
         }
       }
@@ -58,6 +66,8 @@ export default function BlockUserModal({ onClose }: BlockUserModalProps) {
           username: u.username,
           displayName: u.displayName,
           avatar: u.avatar,
+          activeNameplate: u.activeNameplate,
+          activeDecoration: (u as any).activeDecoration,
         }))
       : chattedWith;
     return source.filter((u: BlockCandidate) => u.id !== userId && !blockedIds.has(u.id));
@@ -106,6 +116,16 @@ export default function BlockUserModal({ onClose }: BlockUserModalProps) {
             )}
 
             <div className="flex-1 overflow-y-auto custom-scrollbar px-2 pb-2">
+              {!query.trim() && hasNextPage && (
+                <button
+                  type="button"
+                  disabled={isFetchingNextPage}
+                  onClick={() => void fetchNextPage()}
+                  className="w-full py-2 text-sm text-gray-400"
+                >
+                  {isFetchingNextPage ? 'Loading chats...' : 'Load more chats'}
+                </button>
+              )}
               {isSearching && (
                 <div className="flex items-center justify-center py-8 text-gray-500">
                   <Loader2 size={18} className="animate-spin" />
@@ -121,11 +141,21 @@ export default function BlockUserModal({ onClose }: BlockUserModalProps) {
               {candidates.map((user) => (
                 <div
                   key={user.id}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors"
+                  className="nameplate-row w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors"
                 >
-                  <Avatar size="sm" src={user.avatar} alt={user.displayName ?? user.username} />
-                  <span className="flex-1 text-left min-w-0">
-                    <span className="block text-sm font-semibold text-white truncate">
+                  <Nameplate nameplate={user.activeNameplate} alwaysPlay={true} />
+                  <Avatar
+                    size="sm"
+                    src={user.avatar}
+                    decoration={user.activeDecoration}
+                    userId={user.id}
+                    alt={user.displayName ?? user.username}
+                  />
+                  <span data-nameplate-text className="flex-1 text-left min-w-0">
+                    <span
+                      data-nameplate-label
+                      className="block text-sm font-semibold text-white truncate"
+                    >
                       {user.displayName ?? user.username}
                     </span>
                     <span className="block text-xs text-gray-500 truncate">@{user.username}</span>

@@ -90,6 +90,18 @@ export function normalizePost(raw: Record<string, unknown> | null | undefined): 
     (authorObj?.primaryBadge as string | null | undefined) ??
     (raw.primaryBadge as string | null | undefined) ??
     null;
+  const activeDecoration =
+    (authorObj?.activeDecoration as
+      import('@social-network/shared-contracts').AvatarDecorationDto | null | undefined) ??
+    (raw.activeDecoration as
+      import('@social-network/shared-contracts').AvatarDecorationDto | null | undefined) ??
+    null;
+  const displayNameStyle =
+    (authorObj?.displayNameStyle as
+      import('@social-network/shared-contracts').DisplayNameStyleDto | null | undefined) ??
+    (raw.displayNameStyle as
+      import('@social-network/shared-contracts').DisplayNameStyleDto | null | undefined) ??
+    null;
   const text = (raw.text as string | undefined) ?? (raw.content as string | undefined) ?? '';
 
   const rawMedia = raw.media;
@@ -108,10 +120,12 @@ export function normalizePost(raw: Record<string, unknown> | null | undefined): 
 
   return {
     id: (raw.id as string) ?? '',
-    authorId: (raw.authorId as string) ?? '',
+    authorId: (raw.authorId as string) ?? (authorObj?.id as string) ?? '',
     author: authorName,
     handle,
     avatar,
+    activeDecoration,
+    displayNameStyle,
     text,
     createdAt: (raw.createdAt as string) ?? new Date().toISOString(),
     editedAt:

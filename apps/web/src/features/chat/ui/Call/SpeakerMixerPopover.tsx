@@ -28,6 +28,10 @@ export function SpeakerMixerPopover({
     };
 
     const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest('[data-speaker-mixer-trigger]')) {
+        return;
+      }
       if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
         onClose();
       }
@@ -75,6 +79,7 @@ export function SpeakerMixerPopover({
           <button
             type="button"
             onClick={onClose}
+            title="Close"
             className="p-1 rounded-md text-zinc-400 hover:text-white hover:bg-white/10 transition"
           >
             <X size={13} />
@@ -136,66 +141,6 @@ export function SpeakerMixerPopover({
           <span>Left</span>
           <span>Center</span>
           <span>Right</span>
-        </div>
-      </div>
-
-      {/* 3-Band Parametric Equalizer */}
-      <div className="mt-4 pt-3 border-t border-white/10">
-        <div className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-2.5">
-          3-Band EQ (BiquadFilter)
-        </div>
-
-        <div className="grid grid-cols-3 gap-2 text-center">
-          {/* Low Band (250 Hz) */}
-          <div className="flex flex-col items-center gap-1.5 bg-zinc-900/60 p-2 rounded-xl border border-white/5">
-            <span className="text-[10px] text-zinc-400 font-medium">Low 250Hz</span>
-            <input
-              type="range"
-              min="-12"
-              max="12"
-              step="1"
-              value={profile.eqLow}
-              onChange={(e) => update({ eqLow: parseInt(e.target.value, 10) })}
-              className="w-full h-1.5 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-blue-400"
-            />
-            <span className="font-mono text-[10px] text-blue-300">
-              {profile.eqLow > 0 ? `+${profile.eqLow}` : profile.eqLow} dB
-            </span>
-          </div>
-
-          {/* Mid Band (1500 Hz) */}
-          <div className="flex flex-col items-center gap-1.5 bg-zinc-900/60 p-2 rounded-xl border border-white/5">
-            <span className="text-[10px] text-zinc-400 font-medium">Mid 1.5kHz</span>
-            <input
-              type="range"
-              min="-12"
-              max="12"
-              step="1"
-              value={profile.eqMid}
-              onChange={(e) => update({ eqMid: parseInt(e.target.value, 10) })}
-              className="w-full h-1.5 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-amber-400"
-            />
-            <span className="font-mono text-[10px] text-amber-300">
-              {profile.eqMid > 0 ? `+${profile.eqMid}` : profile.eqMid} dB
-            </span>
-          </div>
-
-          {/* High Band (4000 Hz) */}
-          <div className="flex flex-col items-center gap-1.5 bg-zinc-900/60 p-2 rounded-xl border border-white/5">
-            <span className="text-[10px] text-zinc-400 font-medium">High 4kHz</span>
-            <input
-              type="range"
-              min="-12"
-              max="12"
-              step="1"
-              value={profile.eqHigh}
-              onChange={(e) => update({ eqHigh: parseInt(e.target.value, 10) })}
-              className="w-full h-1.5 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-purple-400"
-            />
-            <span className="font-mono text-[10px] text-purple-300">
-              {profile.eqHigh > 0 ? `+${profile.eqHigh}` : profile.eqHigh} dB
-            </span>
-          </div>
         </div>
       </div>
     </div>

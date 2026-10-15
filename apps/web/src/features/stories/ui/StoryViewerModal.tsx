@@ -34,6 +34,7 @@ import {
 import { useCurrentUser } from '@/entities/profile/model/useCurrentUser';
 import { useBodyScrollLock } from '@/shared/lib/useBodyScrollLock';
 import Avatar from '@/shared/ui/Avatar';
+import StyledDisplayName from '@/shared/ui/StyledDisplayName';
 import { reactionBurstEngine } from '@/shared/lib/animations/reactionBurstEngine';
 import { formatRelativeTime } from '@/shared/lib/formatRelativeTime';
 import { getSocket } from '@/shared/api/socket';
@@ -449,8 +450,18 @@ export function StoryViewerModal() {
       }
     };
 
-    const handleLivePoll = (payload: { storyId: string; pollResult: any }) => {
-      if (payload.storyId !== storyId || !payload.pollResult) return;
+    const handleLivePoll = async (payload: { storyId: string; pollResult?: any }) => {
+      if (payload.storyId !== storyId) return;
+      if (!payload.pollResult) {
+        try {
+          const group = await storiesApi.getUserStories(activeStory.authorId);
+          const refreshed = group?.stories.find((story) => story.id === storyId);
+          if (refreshed?.pollResult) payload = { ...payload, pollResult: refreshed.pollResult };
+          else return;
+        } catch {
+          return;
+        }
+      }
       const currentGroups = useStoryViewerStore.getState().groups;
       const updated = currentGroups.map((g, gIdx) => {
         if (gIdx !== activeGroupIndex) return g;
@@ -478,7 +489,7 @@ export function StoryViewerModal() {
       socket.off('story:reacted', handleLiveReaction);
       socket.off('story:poll_voted', handleLivePoll);
     };
-  }, [activeStory?.id, activeGroupIndex, activeStoryIndex]);
+  }, [activeStory?.id, activeStory?.authorId, activeGroupIndex, activeStoryIndex]);
 
   // Media Prefetching: prefetch next 1-2 stories in background
   useEffect(() => {
@@ -976,6 +987,8 @@ export function StoryViewerModal() {
                         <Avatar
                           src={group.user.avatar}
                           alt={group.user.displayName || group.user.username}
+                          decoration={group.user.activeDecoration}
+                          userId={group.user.id}
                           className="w-13 h-13"
                         />
                       </div>
@@ -1367,14 +1380,27 @@ export function StoryViewerModal() {
                               : 'linear-gradient(135deg, #8b5cf6, #d946ef)',
                           }}
                         >
-                          <Avatar src={currentGroup.user.avatar} size="xs" />
+                          <Avatar
+                            src={currentGroup.user.avatar}
+                            decoration={currentGroup.user.activeDecoration}
+                            userId={currentGroup.user.id}
+                            size="xs"
+                          />
                         </div>
 
                         <div className="flex flex-col min-w-0">
                           <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-bold text-white truncate max-w-[130px]">
-                              {currentGroup.user.displayName || currentGroup.user.username}
-                            </span>
+                            <StyledDisplayName
+                              name={
+                                currentGroup.user.displayName ||
+                                currentGroup.user.username ||
+                                'User'
+                              }
+                              style={currentGroup.user.displayNameStyle}
+                              userId={currentGroup.user.id}
+                              themeMode="dark"
+                              className="text-xs font-bold text-white truncate max-w-[130px]"
+                            />
                             {activeStory.privacy === 'CLOSE_FRIENDS' && (
                               <div
                                 className="w-3.5 h-3.5 rounded-full bg-emerald-500 text-black flex items-center justify-center text-[8px] font-black"
@@ -1721,6 +1747,8 @@ export function StoryViewerModal() {
                         <Avatar
                           src={group.user.avatar}
                           alt={group.user.displayName || group.user.username}
+                          decoration={group.user.activeDecoration}
+                          userId={group.user.id}
                           className="w-13 h-13"
                         />
                       </div>
@@ -1767,11 +1795,20 @@ export function StoryViewerModal() {
                     className="flex items-center justify-between py-2 px-3 rounded-2xl bg-white/[0.03] border border-white/5"
                   >
                     <div className="flex items-center gap-2.5">
-                      <Avatar src={item.user.avatar} size="sm" />
+                      <Avatar
+                        src={item.user.avatar}
+                        decoration={item.user.activeDecoration}
+                        userId={item.user.id}
+                        size="sm"
+                      />
                       <div className="flex flex-col min-w-0">
-                        <span className="text-xs font-bold text-white truncate">
-                          {item.user.displayName || item.user.username}
-                        </span>
+                        <StyledDisplayName
+                          name={item.user.displayName || item.user.username || 'User'}
+                          style={item.user.displayNameStyle}
+                          userId={item.user.id}
+                          themeMode="dark"
+                          className="text-xs font-bold text-white truncate"
+                        />
                         <span className="text-[10px] text-gray-400">
                           {formatRelativeTime(item.viewedAt)}
                         </span>

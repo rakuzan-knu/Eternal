@@ -1,3 +1,4 @@
+import { profileFrameSchema } from '../common/contracts/profile-frames';
 import {
   BadRequestException,
   ConflictException,
@@ -12,7 +13,17 @@ import {
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import * as argon2 from 'argon2';
 import * as geoip from 'geoip-lite';
-import { NotificationType, PrivacyDimension, Prisma, User } from '@prisma/client';
+import { profileEffectSchema } from '../common/contracts/profile-effects';
+import {
+  NotificationType,
+  PrivacyDimension,
+  Prisma,
+  User,
+  type AvatarDecoration,
+  type Nameplate,
+  type ProfileEffect,
+  type ProfileFrame,
+} from '@prisma/client';
 import {
   CreateNotificationEvent,
   NOTIFICATION_EVENTS,
@@ -49,9 +60,19 @@ import { TextPipelineService } from '../common/text-pipeline/text-pipeline.servi
 const MAX_SEARCH_TERM_LENGTH = 64;
 
 type RawProfile = {
+  activeDecorationId?: string | null;
+  activeDecoration?: AvatarDecoration | null;
+  activeProfileEffect?: ProfileEffect | null;
+  activeProfileFrame?: ProfileFrame | null;
+  activeProfileFrameId?: string | null;
+  activeProfileEffectId?: string | null;
+  activeNameplate?: Nameplate | null;
+  activeNameplateId?: string | null;
   id: string;
   username: string;
   displayName: string | null;
+  displayNameStyle?: any;
+  profileTheme?: any;
   avatar: string | null;
   banner: string | null;
   bannerPosition: number;
@@ -312,6 +333,8 @@ export class UsersService {
       dto.email ||
       dto.username ||
       dto.displayName !== undefined ||
+      dto.displayNameStyle !== undefined ||
+      dto.profileTheme !== undefined ||
       dto.bio !== undefined ||
       dto.bannerPosition !== undefined;
     if (!hasFields) {
@@ -346,6 +369,8 @@ export class UsersService {
     if (dto.email !== undefined) data.email = dto.email;
     if (dto.username !== undefined) data.username = dto.username;
     if (dto.displayName !== undefined) data.displayName = dto.displayName;
+    if (dto.displayNameStyle !== undefined) data.displayNameStyle = dto.displayNameStyle as any;
+    if (dto.profileTheme !== undefined) data.profileTheme = dto.profileTheme as any;
     if (dto.bio !== undefined) data.bio = dto.bio;
     if (dto.bannerPosition !== undefined) data.bannerPosition = dto.bannerPosition;
 
@@ -850,6 +875,13 @@ export class UsersService {
 
   private toRawProfile(
     user: User & {
+      activeDecoration?: AvatarDecoration | null;
+      activeProfileEffect?: ProfileEffect | null;
+      activeProfileFrame?: ProfileFrame | null;
+      activeProfileFrameId?: string | null;
+      activeProfileEffectId?: string | null;
+      activeNameplate?: Nameplate | null;
+      activeNameplateId?: string | null;
       _count?: { followers?: number; following?: number; posts?: number };
     },
     badges: string[] = [],
@@ -858,7 +890,17 @@ export class UsersService {
       id: user.id,
       username: user.username,
       displayName: user.displayName,
+      displayNameStyle: (user as any).displayNameStyle ?? null,
+      profileTheme: (user as any).profileTheme ?? null,
       avatar: user.avatar,
+      activeDecorationId: user.activeDecorationId ?? null,
+      activeDecoration: user.activeDecoration ?? null,
+      activeProfileFrame: user.activeProfileFrame ?? null,
+      activeProfileFrameId: user.activeProfileFrameId ?? null,
+      activeProfileEffect: user.activeProfileEffect ?? null,
+      activeProfileEffectId: user.activeProfileEffectId ?? null,
+      activeNameplate: user.activeNameplate ?? null,
+      activeNameplateId: user.activeNameplateId ?? null,
       banner: user.banner,
       bannerPosition: user.bannerPosition,
       bio: user.bio,
@@ -905,7 +947,21 @@ export class UsersService {
       id: raw.id,
       username: raw.username,
       displayName: raw.displayName,
+      displayNameStyle: raw.displayNameStyle ?? null,
+      profileTheme: raw.profileTheme ?? null,
       avatar: raw.avatar,
+      activeDecorationId: raw.activeDecorationId ?? null,
+      activeDecoration: raw.activeDecoration ?? null,
+      activeProfileFrame: raw.activeProfileFrame
+        ? profileFrameSchema.parse(raw.activeProfileFrame)
+        : null,
+      activeProfileFrameId: raw.activeProfileFrameId ?? null,
+      activeProfileEffect: raw.activeProfileEffect
+        ? profileEffectSchema.parse(raw.activeProfileEffect)
+        : null,
+      activeProfileEffectId: raw.activeProfileEffectId ?? null,
+      activeNameplate: raw.activeNameplate ?? null,
+      activeNameplateId: raw.activeNameplateId ?? null,
       bio: null,
       isPrivate: raw.isPrivate,
       isVerified: raw.isVerified ?? false,

@@ -1,5 +1,6 @@
 import { MessageView } from '../../../entities/chat/model/types';
 import { MediaItem, LinkItem, GroupedSection } from '../model/chatMediaTypes';
+import { isVideoAttachment, isImageAttachment } from './chatMediaUtils';
 
 const URL_REGEX = /https?:\/\/[^\s<>"')\]]+/gi;
 
@@ -22,7 +23,13 @@ export function extractMediaItems(messages: MessageView[]): MediaItem[] {
       ) {
         continue;
       }
-      if (attachment.type === 'IMAGE' || attachment.type === 'VIDEO' || attachment.type === 'GIF') {
+      if (
+        attachment.type === 'IMAGE' ||
+        attachment.type === 'VIDEO' ||
+        attachment.type === 'GIF' ||
+        isVideoAttachment(attachment) ||
+        isImageAttachment(attachment)
+      ) {
         items.push({ message, attachment });
       }
     }
@@ -40,7 +47,8 @@ export function extractFileItems(messages: MessageView[]): MediaItem[] {
     }
     for (const attachment of message.attachments) {
       if (attachment.fileName?.startsWith('story_reply_')) continue;
-      if (attachment.type === 'FILE' || attachment.type === 'AUDIO') {
+      const isMedia = isVideoAttachment(attachment) || isImageAttachment(attachment);
+      if ((attachment.type === 'FILE' || attachment.type === 'AUDIO') && !isMedia) {
         items.push({ message, attachment });
       }
     }

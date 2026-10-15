@@ -1,8 +1,31 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render as renderUi, screen, fireEvent } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import MediaFilesLinksModal from '../MediaFilesLinksModal';
 import { MessageView } from '@/entities/chat/model/types';
 import React from 'react';
+
+// Keep this suite focused on media selection and close/navigation wiring.
+// MediaLightbox.test.tsx exercises the viewer implementation itself.
+vi.mock('../MediaLightbox', () => ({
+  default: ({
+    items,
+    index,
+    onClose,
+  }: React.ComponentProps<typeof import('../MediaLightbox').default>) => (
+    <div role="dialog" aria-label="Media viewer">
+      <img src={items[index].attachment.url} alt="Selected media" />
+      <button title="Close" onClick={onClose}>
+        Close
+      </button>
+    </div>
+  ),
+}));
+
+function render(ui: React.ReactElement) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return renderUi(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
+}
 
 describe('MediaFilesLinksModal', () => {
   const mockMessages: MessageView[] = [
@@ -35,7 +58,7 @@ describe('MediaFilesLinksModal', () => {
     } as unknown as MessageView,
   ];
 
-  it('renders media, files, and links tabs and handles interaction', () => {
+  it('renders media, files, and links tabs and handles interaction', async () => {
     const onClose = vi.fn();
     const onJumpToMessage = vi.fn();
 
@@ -55,15 +78,12 @@ describe('MediaFilesLinksModal', () => {
     expect(mediaImg).toBeInTheDocument();
     fireEvent.click(mediaImg);
 
-    // Lightbox controls
-    const goToMessageBtn = screen.getByTitle('Go to message');
-    fireEvent.click(goToMessageBtn);
-    expect(onJumpToMessage).toHaveBeenCalledWith('m1');
-
-    // Reopen and close lightbox
-    fireEvent.click(mediaImg);
-    const closeLightboxBtn = screen.getByTitle('Close');
+    // Lightbox controls: Go to message button removed per user request
+    expect(screen.queryByTitle('Go to message')).not.toBeInTheDocument();
+    const closeLightboxBtn = await screen.findByTitle('Close');
+    expect(screen.getByAltText('Selected media')).toHaveAttribute('src', 'https://img.com/1.png');
     fireEvent.click(closeLightboxBtn);
+    expect(screen.queryByRole('dialog', { name: 'Media viewer' })).not.toBeInTheDocument();
 
     // Files Tab
     const filesTab = screen.getByRole('button', { name: /files/i });

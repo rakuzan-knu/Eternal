@@ -37,6 +37,6 @@ describe('SettingsRow', () => {
 
     const button = screen.getByRole('button');
     expect(button).not.toHaveClass('border-b');
-    expect(screen.getByText('Delete Account')).toHaveClass('text-red-400');
+    expect(screen.getByText('Delete Account')).toHaveClass('text-red-500', 'dark:text-red-400');
   });
 });

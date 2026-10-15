@@ -1,6 +1,6 @@
 # 🌐 Social Network — Documentation Portal
 
-Welcome to the technical documentation repository for the **Social Network** platform! This project is an open-source, full-stack monorepo application engineered for high-concurrency social feeds, real-time messaging, ephemeral stories, interactive polls, and privacy.
+Welcome to the technical documentation repository for the **Social Network** platform! This project is a proprietary, full-stack monorepo application engineered for high-concurrency social feeds, real-time messaging, ephemeral stories, interactive polls, and privacy.
 
 ---
 
@@ -37,7 +37,7 @@ docs/
 │   ├── websocket.md           # Real-time Socket.IO event protocol & client reference
 │   └── contracts.md           # Single-source-of-truth Zod schemas & shared types
 │
-├── 🤝 contributing/           # Open-Source Contributor Guides
+├── 🤝 contributing/           # Authorized Contributor Guides
 │   ├── README.md              # Contributor hub, values & onboarding roadmap
 │   ├── getting-started.md     # 5-minute local environment setup
 │   ├── coding-standards.md    # Architectural invariants & Conventional Commits
@@ -134,10 +134,10 @@ graph LR
 
 ## 🤝 Contributing & Community
 
-We are an open-source project and enthusiastically welcome contributions of all kinds — whether you are fixing bugs, proposing features, writing documentation, or enhancing performance.
+Eternal welcomes issue reports and feature discussions. Authorized code, documentation, and creative contributions are subject to the contributor terms in Section 7 of LICENSE.md. Confirm those terms and your authority to submit before acceptance. Read the [licensing policy](legal/README.md) and [LICENSE.md](../LICENSE.md) before starting work. Technical instructions in these documents grant no additional software license.
 
 1. Review the [Code of Conduct](../CODE_OF_CONDUCT.md).
 2. Set up your local machine using the [Getting Started Guide](contributing/getting-started.md).
 3. Follow the [Coding Standards](contributing/coding-standards.md) and [Contribution Workflow](contributing/workflow.md).
 4. Run tests with the [Testing Guide](contributing/testing.md).
-5. Submit a Pull Request following Conventional Commits!
+5. After confirming contributor terms and authorization, submit a Pull Request following Conventional Commits!

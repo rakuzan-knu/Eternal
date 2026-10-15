@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { X, Send, MessageCircle } from 'lucide-react';
 import { useReelComments, useAddReelComment } from '../api/reelsApi';
 import { Link } from 'react-router-dom';
+import Avatar from '@/shared/ui/Avatar';
+import StyledDisplayName from '@/shared/ui/StyledDisplayName';
 
 interface ReelCommentsDrawerProps {
   reelId: string;
@@ -48,20 +50,23 @@ export const ReelCommentsDrawer: React.FC<ReelCommentsDrawerProps> = ({
     >
       <div
         data-testid="reel-comments-drawer"
-        className="w-full sm:max-w-md bg-zinc-900 border border-zinc-800 rounded-t-2xl sm:rounded-2xl flex flex-col h-[75dvh] sm:h-[min(600px,80dvh)] max-h-[95dvh] overflow-hidden shadow-2xl animate-in slide-in-from-bottom duration-300"
+        className="w-full sm:max-w-md glass-modal border-t sm:border border-black/10 dark:border-white/15 rounded-t-2xl sm:rounded-2xl flex flex-col h-[75dvh] sm:h-[min(600px,80dvh)] max-h-[95dvh] overflow-hidden shadow-2xl animate-in slide-in-from-bottom duration-300 text-gray-900 dark:text-white"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-black/10 dark:border-white/10">
           <div className="flex items-center gap-2">
-            <MessageCircle className="w-5 h-5 text-indigo-400" />
-            <h3 className="font-semibold text-white text-base">
-              Comments <span className="text-zinc-400 text-sm font-normal">({commentsCount})</span>
+            <MessageCircle className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
+            <h3 className="font-semibold text-gray-900 dark:text-white text-base">
+              Comments{' '}
+              <span className="text-gray-500 dark:text-zinc-400 text-sm font-normal">
+                ({commentsCount})
+              </span>
             </h3>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+            className="p-1 rounded-full text-gray-500 hover:text-gray-950 dark:text-zinc-400 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
             aria-label="Close comments"
           >
             <X className="w-5 h-5" />
@@ -69,7 +74,7 @@ export const ReelCommentsDrawer: React.FC<ReelCommentsDrawerProps> = ({
         </div>
 
         {/* Comment list */}
-        <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 custom-scrollbar">
           {isLoading ? (
             <div
               role="status"
@@ -81,7 +86,7 @@ export const ReelCommentsDrawer: React.FC<ReelCommentsDrawerProps> = ({
           ) : isError ? (
             <div
               role="alert"
-              className="flex flex-col items-center justify-center h-48 gap-3 text-zinc-300 text-sm"
+              className="flex flex-col items-center justify-center h-48 gap-3 text-gray-700 dark:text-zinc-300 text-sm"
             >
               <p>Comments could not load</p>
               <button
@@ -94,10 +99,12 @@ export const ReelCommentsDrawer: React.FC<ReelCommentsDrawerProps> = ({
               </button>
             </div>
           ) : !comments || comments.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-48 text-zinc-500 text-sm">
-              <MessageCircle className="w-10 h-10 mb-2 stroke-1 text-zinc-600" />
+            <div className="flex flex-col items-center justify-center h-48 text-gray-500 dark:text-zinc-400 text-sm">
+              <MessageCircle className="w-10 h-10 mb-2 stroke-1 text-gray-400 dark:text-zinc-600" />
               <p>No comments yet.</p>
-              <p className="text-xs text-zinc-600">Be the first to share your thoughts!</p>
+              <p className="text-xs text-gray-400 dark:text-zinc-500">
+                Be the first to share your thoughts!
+              </p>
             </div>
           ) : (
             comments.map((comment) => (
@@ -106,34 +113,36 @@ export const ReelCommentsDrawer: React.FC<ReelCommentsDrawerProps> = ({
                   to={`/profile/${comment.user.username || comment.user.id}`}
                   className="shrink-0"
                 >
-                  {comment.user.avatar ? (
-                    <img
-                      src={comment.user.avatar}
-                      alt={comment.user.username}
-                      className="w-8 h-8 rounded-full object-cover ring-1 ring-zinc-700"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-linear-to-tr from-indigo-600 to-purple-600 flex items-center justify-center font-bold text-white text-xs">
-                      {comment.user.username.slice(0, 2).toUpperCase()}
-                    </div>
-                  )}
+                  <Avatar
+                    src={comment.user.avatar}
+                    name={comment.user.displayName || comment.user.username}
+                    userId={comment.user.id}
+                    decoration={comment.user.activeDecoration}
+                    size="sm"
+                    className="w-8 h-8 ring-1 ring-black/10 dark:ring-zinc-700"
+                  />
                 </Link>
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-baseline gap-2">
                     <Link
                       to={`/profile/${comment.user.username || comment.user.id}`}
-                      className="font-semibold text-white hover:underline text-xs wrap-anywhere"
+                      className="hover:underline text-xs wrap-anywhere"
                     >
-                      {comment.user.displayName || comment.user.username}
+                      <StyledDisplayName
+                        name={comment.user.displayName || comment.user.username || 'User'}
+                        style={comment.user.displayNameStyle}
+                        userId={comment.user.id}
+                        className="font-semibold text-gray-900 dark:text-white"
+                      />
                     </Link>
-                    <span className="text-[10px] text-zinc-500">
+                    <span className="text-[10px] text-gray-500 dark:text-zinc-500">
                       {new Date(comment.createdAt).toLocaleDateString(undefined, {
                         month: 'short',
                         day: 'numeric',
                       })}
                     </span>
                   </div>
-                  <p className="text-zinc-300 text-sm mt-0.5 wrap-break-word whitespace-pre-wrap">
+                  <p className="text-gray-700 dark:text-zinc-300 text-sm mt-0.5 wrap-break-word whitespace-pre-wrap">
                     {comment.content}
                   </p>
                 </div>
@@ -145,7 +154,7 @@ export const ReelCommentsDrawer: React.FC<ReelCommentsDrawerProps> = ({
         {/* Comment Input */}
         <form
           onSubmit={handleSubmit}
-          className="p-3 border-t border-zinc-800 bg-zinc-950 flex items-center gap-2"
+          className="p-3 border-t border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-black/30 flex items-center gap-2"
         >
           <input
             type="text"
@@ -154,7 +163,7 @@ export const ReelCommentsDrawer: React.FC<ReelCommentsDrawerProps> = ({
             onChange={(e) => setContent(e.target.value)}
             maxLength={1000}
             aria-label="Comment"
-            className="flex-1 min-w-0 bg-zinc-900 border border-zinc-700 rounded-full px-4 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500 transition-colors"
+            className="flex-1 min-w-0 bg-black/5 dark:bg-white/[0.06] border border-black/10 dark:border-white/10 rounded-full px-4 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors"
           />
           <button
             type="submit"

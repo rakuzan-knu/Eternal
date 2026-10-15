@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { lazy, Suspense, useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { getBadgeById } from '../model/badges';
 import {
@@ -9,8 +9,8 @@ import {
 } from '../model/badgeTiers';
 import PremiumTierBadge from './PremiumTierBadge';
 import ContributorTierBadge from './ContributorTierBadge';
-import PremiumBadgeModal from './PremiumBadgeModal';
-import ContributorBadgeModal from './ContributorBadgeModal';
+const PremiumBadgeModal = lazy(() => import('./PremiumBadgeModal'));
+const ContributorBadgeModal = lazy(() => import('./ContributorBadgeModal'));
 
 interface UserBadgeIconProps {
   badgeId?: string | null;
@@ -239,25 +239,29 @@ export function UserBadgeIcon({
         )}
 
       {/* Level Modals */}
-      {isPremium && (
-        <PremiumBadgeModal
-          isOpen={isPremiumModalOpen}
-          onClose={() => setIsPremiumModalOpen(false)}
-          subscriptionMonths={
-            subscriptionMonths || (explicitPremiumTier ? explicitPremiumTier.monthsRequired : 0)
-          }
-          subscriptionDate={subscriptionDate}
-        />
-      )}
+      <Suspense fallback={null}>
+        {isPremium && isPremiumModalOpen && (
+          <PremiumBadgeModal
+            isOpen={isPremiumModalOpen}
+            onClose={() => setIsPremiumModalOpen(false)}
+            subscriptionMonths={
+              subscriptionMonths || (explicitPremiumTier ? explicitPremiumTier.monthsRequired : 0)
+            }
+            subscriptionDate={subscriptionDate}
+          />
+        )}
 
-      {isContributor && (
-        <ContributorBadgeModal
-          isOpen={isContributorModalOpen}
-          onClose={() => setIsContributorModalOpen(false)}
-          prCount={prCount || (explicitContributorTier ? explicitContributorTier.countRequired : 0)}
-          reportCount={reportCount || 0}
-        />
-      )}
+        {isContributor && isContributorModalOpen && (
+          <ContributorBadgeModal
+            isOpen={isContributorModalOpen}
+            onClose={() => setIsContributorModalOpen(false)}
+            prCount={
+              prCount || (explicitContributorTier ? explicitContributorTier.countRequired : 0)
+            }
+            reportCount={reportCount || 0}
+          />
+        )}
+      </Suspense>
     </>
   );
 }

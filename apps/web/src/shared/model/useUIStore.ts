@@ -36,6 +36,14 @@ interface UIState {
   isCreateReelOpen: boolean;
   openCreateReel: () => void;
   closeCreateReel: () => void;
+
+  activePostMenuId: string | number | null;
+  setActivePostMenuId: (id: string | number | null) => void;
+
+  isGlobalSearchOpen: boolean;
+  openGlobalSearch: () => void;
+  closeGlobalSearch: () => void;
+  toggleGlobalSearch: () => void;
 }
 
 export const useUIStore = create<UIState>((set, get) => ({
@@ -72,6 +80,14 @@ export const useUIStore = create<UIState>((set, get) => ({
   isCreateReelOpen: false,
   openCreateReel: () => set({ isCreateReelOpen: true }),
   closeCreateReel: () => set({ isCreateReelOpen: false }),
+
+  activePostMenuId: null,
+  setActivePostMenuId: (id) => set({ activePostMenuId: id }),
+
+  isGlobalSearchOpen: false,
+  openGlobalSearch: () => set({ isGlobalSearchOpen: true }),
+  closeGlobalSearch: () => set({ isGlobalSearchOpen: false }),
+  toggleGlobalSearch: () => set({ isGlobalSearchOpen: !get().isGlobalSearchOpen }),
 }));
 
 export type PostType = ActivePostItem;

@@ -103,4 +103,16 @@ export const musicEventBridge = {
     window.addEventListener('eternal:music-track-played', listener);
     return () => window.removeEventListener('eternal:music-track-played', listener);
   },
+
+  emitPlayerClosed: () => {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(new CustomEvent('eternal:music-player-closed'));
+  },
+
+  onPlayerClosed: (handler: () => void) => {
+    if (typeof window === 'undefined') return () => {};
+    const listener = () => handler();
+    window.addEventListener('eternal:music-player-closed', listener);
+    return () => window.removeEventListener('eternal:music-player-closed', listener);
+  },
 };

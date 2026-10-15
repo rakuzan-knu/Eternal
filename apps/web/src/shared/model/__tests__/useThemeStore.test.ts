@@ -1,9 +1,20 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useThemeStore } from '../useThemeStore';
+import { COOKIE_KEYS, getCookie, deleteCookie } from '@/shared/lib/cookieUtils';
 
 describe('useThemeStore', () => {
   beforeEach(() => {
     useThemeStore.setState({ theme: 'dark' });
+  });
+
+  it('mirrors the effective custom theme to the preference cookie', () => {
+    deleteCookie(COOKIE_KEYS.THEME);
+    useThemeStore.getState().setSolidTheme('light');
+    expect(getCookie(COOKIE_KEYS.THEME)).toBe('light');
+    useThemeStore.getState().setGradientPreset('sunset-mirage');
+    expect(getCookie(COOKIE_KEYS.THEME)).toBe('dark');
+    useThemeStore.getState().setSolidTheme('ash');
+    expect(getCookie(COOKIE_KEYS.THEME)).toBe('dark');
   });
 
   it('updates theme correctly', () => {
@@ -14,5 +25,48 @@ describe('useThemeStore', () => {
 
     useThemeStore.getState().setTheme('dark');
     expect(useThemeStore.getState().theme).toBe('dark');
+  });
+
+  it('correctly updates data-theme and contrast when switching from light theme to gradient preset', () => {
+    // 1. Switch to light solid theme
+    useThemeStore.getState().setSolidTheme('light');
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+    expect(document.documentElement.getAttribute('data-surface-contrast')).toBe('light');
+    expect(document.documentElement.classList.contains('light')).toBe(true);
+    expect(document.documentElement.classList.contains('dark')).toBe(false);
+
+    // 2. Switch to Sunset Mirage gradient (dark warm tone)
+    useThemeStore.getState().setGradientPreset('sunset-mirage');
+    expect(useThemeStore.getState().themeMode).toBe('gradient');
+    expect(useThemeStore.getState().gradientPresetId).toBe('sunset-mirage');
+
+    // Crucial check: data-theme MUST be 'dark', NOT remain 'light'!
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+    expect(document.documentElement.getAttribute('data-surface-contrast')).toBe('dark');
+    expect(document.documentElement.classList.contains('dark')).toBe(true);
+    expect(document.documentElement.classList.contains('light')).toBe(false);
+    expect(useThemeStore.getState().theme).toBe('dark');
+    expect(useThemeStore.getState().solidTheme).toBe('dark');
+
+    // 3. Switch back to light
+    useThemeStore.getState().setSolidTheme('light');
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+    expect(document.documentElement.getAttribute('data-surface-contrast')).toBe('light');
+    expect(document.documentElement.classList.contains('light')).toBe(true);
+    expect(document.documentElement.classList.contains('dark')).toBe(false);
+
+    // 4. Switch to Ash base theme
+    useThemeStore.getState().setSolidTheme('ash');
+    expect(document.documentElement.getAttribute('data-theme')).toBe('ash');
+    expect(document.documentElement.getAttribute('data-surface-contrast')).toBe('dark');
+    expect(document.documentElement.classList.contains('dark')).toBe(true);
+    expect(document.documentElement.classList.contains('light')).toBe(false);
+
+    // 5. Reset to defaults (fresh account state)
+    useThemeStore.getState().resetToDefaults();
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+    expect(document.documentElement.getAttribute('data-surface-contrast')).toBe('dark');
+    expect(document.documentElement.classList.contains('dark')).toBe(true);
+    expect(document.documentElement.classList.contains('light')).toBe(false);
   });
 });
