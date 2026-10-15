@@ -148,6 +148,10 @@ test('500 ordinary posts retain a bounded reversible window and mutation state w
           })!.id,
       );
       const row = page.locator(`#${id}`);
+      await expect(row).toBeVisible();
+      await expect(row.getByRole('button', { name: 'View comments', exact: true })).toBeVisible({
+        timeout: 5_000,
+      });
       await row.getByRole('button', { name: 'View comments', exact: true }).click();
       await expect(page.getByTitle('Close (Esc)', { exact: true })).toBeVisible();
       await page.getByTitle('Close (Esc)', { exact: true }).click();
