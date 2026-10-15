@@ -8,6 +8,13 @@ let activeDecoders = 0;
 
 /** Decode all audio/video packets in a bounded child process before persisting uploads. */
 export async function validateMediaDecoding(buffer: Buffer): Promise<void> {
+  if (!Buffer.isBuffer(buffer) || buffer.byteLength === 0) {
+    throw new BadRequestException('This media file is damaged or cannot be decoded');
+  }
+  const MAX_VALIDATION_BYTES = 100 * 1024 * 1024; // 100MB
+  if (buffer.byteLength > MAX_VALIDATION_BYTES) {
+    throw new BadRequestException('Media payload exceeds maximum permitted size');
+  }
   if (activeDecoders >= 2) {
     throw new ServiceUnavailableException('Media processing is busy. Please try again.');
   }

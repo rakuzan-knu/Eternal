@@ -134,7 +134,7 @@ export function setOAuthCookie(res: Response, provider: string, state: string): 
     reply.setCookie(`${provider}_oauth_state`, encryptedState, {
       httpOnly: true,
       secure,
-      sameSite: secure ? 'none' : 'lax',
+      sameSite: 'lax',
       path: '/',
       maxAge: 600,
     });
@@ -142,7 +142,7 @@ export function setOAuthCookie(res: Response, provider: string, state: string): 
     res.cookie(`${provider}_oauth_state`, encryptedState, {
       httpOnly: true,
       secure,
-      sameSite: secure ? 'none' : 'lax',
+      sameSite: 'lax',
       path: '/',
       maxAge: 600000,
     });
