@@ -21,19 +21,20 @@ export function useSavePostMutation(
   const { data: currentUser } = useCurrentUser();
 
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (targetSaved?: boolean) => {
+      const shouldSave = targetSaved !== undefined ? targetSaved : !isSaved;
       try {
-        return await (isSaved ? postsApi.unsave(postId) : postsApi.save(postId));
+        return await (shouldSave ? postsApi.save(postId) : postsApi.unsave(postId));
       } catch (err: unknown) {
         const status = (err as { response?: { status?: number } })?.response?.status;
-        if (!isSaved && status === 409) return { success: true };
-        if (isSaved && status === 404) return { success: true };
+        if (shouldSave && status === 409) return { success: true };
+        if (!shouldSave && status === 404) return { success: true };
         throw err;
       }
     },
-    onMutate: async () => {
+    onMutate: async (targetSaved?: boolean) => {
       invalidatePostFeedHistory();
-      const nextIsSaved = !isSaved;
+      const nextIsSaved = targetSaved !== undefined ? targetSaved : !isSaved;
       const targetId = String(postId);
 
       const updateFeedData = (old: InfiniteData<FeedPage> | undefined) => {
