@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.8.0](https://github.com/rakuzan-knu/Eternal/compare/v1.7.1...v1.8.0) (2026-10-15)
+
+### ✨ Features
+
+* **frontend:** add themes settings, shop system. alot improvements ([#94](https://github.com/rakuzan-knu/Eternal/issues/94)) ([f2e87a4](https://github.com/rakuzan-knu/Eternal/commit/f2e87a4032862e24d74f456c4380a673b8531375))
+
 ## [1.7.1](https://github.com/rakuzan-knu/Eternal/compare/v1.7.0...v1.7.1) (2026-10-13)
 
 ### 🐛 Bug Fixes
