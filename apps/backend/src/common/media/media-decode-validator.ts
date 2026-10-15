@@ -44,37 +44,28 @@ export async function validateMediaDecoding(buffer: Buffer): Promise<void> {
           '-i',
           input,
           '-map',
-          '0:v?',
+          '0:v:0?',
           '-map',
-          '0:a?',
+          '0:a:0?',
           '-sn',
           '-dn',
           '-threads',
           '1',
-          '-progress',
-          'pipe:1',
+          '-filter_threads',
+          '1',
           '-f',
           'null',
           '-',
         ],
         { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] },
       );
-      let decodedDuration = 0;
-      let pending = '';
-      child.stdout.setEncoding('utf8');
-      child.stdout.on('data', (chunk: string) => {
-        pending += chunk;
-        const lines = pending.split(/\r?\n/);
-        pending = lines.pop() ?? '';
-        for (const line of lines) {
-          if (line.startsWith('out_time_us=')) {
-            decodedDuration = Math.max(decodedDuration, Number(line.slice(12)) || 0);
-          }
-        }
-        if (pending.length > 4096) pending = '';
-      });
       // Drain diagnostics without retaining untrusted file data or server paths.
-      child.stderr.resume();
+      let stderr = '';
+      child.stdout.resume();
+      child.stderr.setEncoding('utf8');
+      child.stderr.on('data', (chunk) => {
+        stderr += chunk;
+      });
       const timeout = setTimeout(() => child.kill('SIGKILL'), 30_000);
       child.once('error', () => {
         clearTimeout(timeout);
@@ -84,8 +75,16 @@ export async function validateMediaDecoding(buffer: Buffer): Promise<void> {
       });
       child.once('close', (code) => {
         clearTimeout(timeout);
-        if (code === 0 && decodedDuration > 0) resolve();
-        else reject(new BadRequestException('This media file is damaged or cannot be decoded'));
+        if (
+          code === 0 &&
+          !stderr.includes('Error') &&
+          !stderr.includes('corrupt') &&
+          !stderr.includes('invalid')
+        ) {
+          resolve();
+        } else {
+          reject(new BadRequestException('This media file is damaged or cannot be decoded'));
+        }
       });
     });
   } finally {
