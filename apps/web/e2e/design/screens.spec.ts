@@ -90,6 +90,8 @@ for (const screen of ['feed', 'profile', 'chat'] as const) {
         .toBeLessThanOrEqual(layout.width);
       await expect(page).toHaveScreenshot(`${screen}-${layout.name}.png`, {
         fullPage: screen !== 'chat',
+        animations: 'disabled',
+        caret: 'hide',
       });
     });
   }

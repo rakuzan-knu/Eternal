@@ -5,7 +5,7 @@ import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { PlatformAdminGuard } from '../../../auth/guards/platform-admin.guard';
 import { AuthGuard } from '../../../auth/guards/jwt-auth.guard';
 import { publicIntegrationData } from '../public-integration-data';
-import { issueOAuthState, consumeOAuthState } from '../oauth-state';
+import { issueOAuthState, consumeOAuthState, encryptOAuthState } from '../oauth-state';
 import { storyAccess } from '../../../stories/story-access';
 import { fetchPinned } from '../../../opengraph/pinned-http-fetch';
 import { isPrivateIPv6 } from '../../../opengraph/opengraph.service';
@@ -303,9 +303,10 @@ describe('security boundaries', () => {
     await expect(
       consumeOAuthState(redis, 'youtube', state, undefined, 'wrong-cookie'),
     ).rejects.toThrow();
-    expect((await consumeOAuthState(redis, 'youtube', state, undefined, state)).userId).toBe(
-      'alice',
-    );
+    expect(
+      (await consumeOAuthState(redis, 'youtube', state, undefined, encryptOAuthState(state)))
+        .userId,
+    ).toBe('alice');
     await expect(consumeOAuthState(redis, 'youtube', state, 'alice')).rejects.toThrow();
   });
 

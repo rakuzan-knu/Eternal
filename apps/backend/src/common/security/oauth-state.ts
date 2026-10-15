@@ -1,4 +1,10 @@
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  randomBytes,
+  timingSafeEqual,
+} from 'node:crypto';
 import { UnauthorizedException } from '@nestjs/common';
 import type { RedisService } from '../../redis/redis.service';
 import type { Response } from 'express';
@@ -32,6 +38,14 @@ export async function issueOAuthState(
   return state;
 }
 
+function safeStateCompare(a?: string | null, b?: string | null): boolean {
+  if (!a || !b) return false;
+  const bufA = Buffer.from(a, 'utf8');
+  const bufB = Buffer.from(b, 'utf8');
+  if (bufA.length !== bufB.length) return false;
+  return timingSafeEqual(bufA, bufB);
+}
+
 export async function consumeOAuthState(
   redis: RedisService,
   provider: string,
@@ -39,15 +53,14 @@ export async function consumeOAuthState(
   expectedUserId?: string,
   browserState?: string,
 ): Promise<OAuthState> {
-  const effectiveBrowserState = browserState ? decryptOAuthState(browserState) : undefined;
   if (
     !/^[a-z]+$/.test(provider) ||
     !state ||
-    !new RegExp(`^${provider}:[a-f0-9]{64}$`).test(state) ||
-    (!expectedUserId && effectiveBrowserState !== state)
+    !new RegExp(`^${provider}:[a-f0-9]{64}$`).test(state)
   ) {
     throw new UnauthorizedException('Invalid OAuth state');
   }
+
   const client = redis.getClient();
   const key = `oauth-state:${state}`;
   const raw = await client.get(key);
@@ -68,6 +81,14 @@ export async function consumeOAuthState(
   ) {
     throw new UnauthorizedException('Expired, mismatched or reused OAuth state');
   }
+
+  if (!expectedUserId || browserState) {
+    const effectiveBrowserState = decryptOAuthState(browserState);
+    if (!effectiveBrowserState || !safeStateCompare(effectiveBrowserState, state)) {
+      throw new UnauthorizedException('Invalid or missing OAuth session cookie');
+    }
+  }
+
   // Compare-and-delete makes verification and consumption safe under concurrent callbacks.
   const consumed = await client.eval(
     `
@@ -100,28 +121,24 @@ export function encryptOAuthState(state: string): string {
   return `${iv.toString('hex')}:${tag.toString('hex')}:${encrypted.toString('hex')}`;
 }
 
-export function decryptOAuthState(raw: string): string {
-  if (!raw || typeof raw !== 'string') return '';
-  if (/^[a-z]+:[a-f0-9]{64}$/.test(raw)) {
-    return raw;
-  }
+export function decryptOAuthState(raw?: string | null): string | null {
+  if (!raw || typeof raw !== 'string') return null;
   const parts = raw.split(':');
-  if (parts.length === 3) {
-    try {
-      const [ivHex, tagHex, dataHex] = parts;
-      const iv = Buffer.from(ivHex, 'hex');
-      const tag = Buffer.from(tagHex, 'hex');
-      const decipher = createDecipheriv('aes-256-gcm', getOAuthEncryptionKey(), iv);
-      decipher.setAuthTag(tag);
-      return Buffer.concat([
-        decipher.update(Buffer.from(dataHex, 'hex')),
-        decipher.final(),
-      ]).toString('utf8');
-    } catch {
-      return raw;
-    }
+  if (parts.length !== 3) return null;
+  try {
+    const [ivHex, tagHex, dataHex] = parts;
+    if (!ivHex || !tagHex || !dataHex) return null;
+    const iv = Buffer.from(ivHex, 'hex');
+    const tag = Buffer.from(tagHex, 'hex');
+    if (iv.length !== 12 || tag.length !== 16) return null;
+    const decipher = createDecipheriv('aes-256-gcm', getOAuthEncryptionKey(), iv);
+    decipher.setAuthTag(tag);
+    return Buffer.concat([decipher.update(Buffer.from(dataHex, 'hex')), decipher.final()]).toString(
+      'utf8',
+    );
+  } catch {
+    return null;
   }
-  return raw;
 }
 
 export function setOAuthCookie(res: Response, provider: string, state: string): void {
@@ -153,7 +170,5 @@ export function readOAuthCookieState(
   req: { cookies?: Record<string, string> },
   provider: string,
 ): string | undefined {
-  const raw = req?.cookies?.[`${provider}_oauth_state`];
-  if (!raw) return undefined;
-  return decryptOAuthState(raw);
+  return req?.cookies?.[`${provider}_oauth_state`];
 }

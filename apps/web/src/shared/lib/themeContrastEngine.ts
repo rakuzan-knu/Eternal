@@ -3,6 +3,8 @@
  * Calculates relative luminance, generates perceptual contrast tokens,
  * and ensures guaranteed text legibility on custom canvas colors and accent buttons.
  */
+import DOMPurify from 'dompurify';
+import { sanitizeMediaUrl } from './urlUtils';
 
 export interface SemanticThemeTokens {
   surfaceBase: string;
@@ -181,8 +183,24 @@ export function detectMediaLuminance(file: File): Promise<'dark' | 'light'> {
     }
 
     const isVideo = file.type.startsWith('video/');
-    const url = URL.createObjectURL(file);
-    if (!url || !url.startsWith('blob:')) {
+    const rawUrl = URL.createObjectURL(file);
+    const sanitizedUrl = sanitizeMediaUrl(rawUrl);
+    if (!sanitizedUrl) {
+      try {
+        URL.revokeObjectURL(rawUrl);
+      } catch {
+        // Ignore
+      }
+      return resolve('dark');
+    }
+
+    const safeUrl = DOMPurify.sanitize(sanitizedUrl);
+    if (!safeUrl) {
+      try {
+        URL.revokeObjectURL(rawUrl);
+      } catch {
+        // Ignore
+      }
       return resolve('dark');
     }
 
@@ -192,7 +210,7 @@ export function detectMediaLuminance(file: File): Promise<'dark' | 'light'> {
     const cleanup = () => {
       if (timer) clearTimeout(timer);
       try {
-        URL.revokeObjectURL(url);
+        URL.revokeObjectURL(rawUrl);
       } catch {
         // Ignore
       }
@@ -244,7 +262,7 @@ export function detectMediaLuminance(file: File): Promise<'dark' | 'light'> {
       video.muted = true;
       video.playsInline = true;
       video.crossOrigin = 'anonymous';
-      video.src = url;
+      video.src = safeUrl;
       video.onloadeddata = () => {
         processCanvas(video);
       };
@@ -252,9 +270,24 @@ export function detectMediaLuminance(file: File): Promise<'dark' | 'light'> {
         done('dark');
       };
     } else {
+      if (typeof createImageBitmap === 'function') {
+        createImageBitmap(file)
+          .then((bitmap) => {
+            processCanvas(bitmap);
+            try {
+              bitmap.close();
+            } catch {
+              // Ignore
+            }
+          })
+          .catch(() => {
+            done('dark');
+          });
+        return;
+      }
       const img = new Image();
       img.crossOrigin = 'anonymous';
-      img.src = url;
+      img.src = safeUrl;
       img.onload = () => {
         processCanvas(img);
       };

@@ -1,4 +1,5 @@
 import React from 'react';
+import DOMPurify from 'dompurify';
 import { Pencil, X, FileText } from 'lucide-react';
 import FileIconBadge from './FileIconBadge';
 import { MessageView, AttachmentView } from '../../../entities/chat/model/types';
@@ -88,7 +89,8 @@ export default function EditPreview({
     ? editThumbnail ||
       (isVideoNote ? message.sender.avatar || (message.sender as any).avatarUrl : null)
     : null;
-  const displayThumbnail = sanitizeMediaUrl(rawThumbnail);
+  const sanitizedThumbnail = sanitizeMediaUrl(rawThumbnail);
+  const displayThumbnail = sanitizedThumbnail ? DOMPurify.sanitize(sanitizedThumbnail) : null;
 
   const getPreviewText = () => {
     if (isVideoNote) return 'Video message';

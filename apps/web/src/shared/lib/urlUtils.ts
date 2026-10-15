@@ -33,28 +33,47 @@ export function extractFirstUrl(text?: string | null): string | null {
  * Validates and sanitizes media URLs (images, videos, thumbnails) for safe DOM embedding.
  * Permits only safe schemes (https:, http:, blob:, data:image/) or clean relative paths.
  * Blocks dangerous schemes such as javascript:, vbscript:, data:text/html, etc.
+ * Rejects and escapes meta-characters to prevent DOM XSS through attribute injection.
  */
 export function sanitizeMediaUrl(url?: string | null): string | null {
   if (!url || typeof url !== 'string') return null;
   const trimmed = url.trim();
   if (!trimmed) return null;
 
+  // Reject unescaped HTML/DOM meta-characters that could break attribute contexts
+  if (/[<>"'`\\]/.test(trimmed)) {
+    return null;
+  }
+
+  // Strictly validate browser-generated blob URLs: blob:<origin>/<uuid>
   if (trimmed.startsWith('blob:')) {
-    return trimmed;
+    if (/^blob:(?:https?:\/\/[a-zA-Z0-9.:_-]+|null)\/[a-zA-Z0-9-]+$/i.test(trimmed)) {
+      return encodeURI(trimmed);
+    }
+    return null;
   }
 
+  // Strictly validate base64 raster image data URLs (never SVG/HTML)
   if (trimmed.startsWith('data:image/')) {
-    return trimmed;
+    if (/^data:image\/(?:png|jpeg|jpg|webp|gif|bmp);base64,[a-zA-Z0-9+/=]+$/i.test(trimmed)) {
+      return trimmed;
+    }
+    return null;
   }
 
+  // Clean relative paths
   if (trimmed.startsWith('/') && !trimmed.startsWith('//')) {
-    return trimmed;
+    if (/^\/[a-zA-Z0-9_.~!$&*+=;:@%/-]*$/.test(trimmed)) {
+      return encodeURI(trimmed);
+    }
+    return null;
   }
 
+  // Validate standard external HTTP/HTTPS URLs
   try {
     const parsed = new URL(trimmed);
     if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
-      return parsed.href;
+      return encodeURI(parsed.href);
     }
   } catch {
     return null;
