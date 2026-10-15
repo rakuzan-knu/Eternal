@@ -21,7 +21,11 @@ export function getApiService(url: string): ApiService {
 export function getServiceBaseUrl(url: string, origins: ServiceOrigins, fallback: string): string {
   // Absolute requests retain their explicit destination; only relative API paths are routed.
   if (/^(?:[a-z][a-z\d+.-]*:|\/\/)/i.test(url)) return fallback;
-  const origin = origins[getApiService(url)]?.trim().replace(/\/+$/, '');
+  const configured = origins[getApiService(url)]?.trim();
+  if (!configured) return fallback;
+  let end = configured.length;
+  while (end > 0 && configured.charCodeAt(end - 1) === 47) end--;
+  const origin = configured.slice(0, end);
   if (!origin) return fallback;
   return origin.endsWith('/v1') ? origin : `${origin}/v1`;
 }

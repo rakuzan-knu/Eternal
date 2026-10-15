@@ -1,3 +1,4 @@
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   type AddMembersDto,
   type CreateDirectConversationDto,
@@ -41,7 +42,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FastifyFileInterceptor } from '../../common/interceptors/fastify-file.interceptor';
 import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
@@ -71,15 +72,16 @@ export class ConversationsController {
 
   @Post(':id/attachments')
   @Throttle({ sensitive: { limit: 30, ttl: 60_000 } })
-  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 25 * 1024 * 1024, files: 1 } }))
+  @UseInterceptors(FastifyFileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload attachment for conversation message' })
   uploadAttachment(
     @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser() user: RequestUser,
+    @Body('uploadId') uploadId?: string,
   ) {
-    return this.messagesService.uploadAttachment(id, user.id, file);
+    return this.messagesService.uploadAttachment(id, user.id, file, uploadId);
   }
 
   @Get(':id')

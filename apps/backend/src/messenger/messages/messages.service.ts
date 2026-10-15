@@ -1,3 +1,4 @@
+import { DirectUploadsService } from '../../common/media/direct-uploads.service';
 import {
   BadRequestException,
   ForbiddenException,
@@ -47,6 +48,9 @@ import { FastPathChatService } from '../services/fast-path-chat.service';
 
 @Injectable()
 export class MessagesService implements OnModuleDestroy {
+  @Inject(DirectUploadsService)
+  private readonly directUploads!: DirectUploadsService;
+
   private readonly s3: S3Client;
 
   onModuleDestroy(): void {
@@ -99,6 +103,7 @@ export class MessagesService implements OnModuleDestroy {
     conversationId: string,
     userId: string,
     file: Express.Multer.File,
+    uploadId?: string,
   ): Promise<{
     type: AttachmentType;
     url: string;
@@ -111,13 +116,26 @@ export class MessagesService implements OnModuleDestroy {
     await this.assertMember(conversationId, userId);
     await this.assertNotBlockedDirect(conversationId, userId);
 
+    if (uploadId) {
+      const media = await this.directUploads.resolve(userId, uploadId, 'chat', conversationId);
+      return {
+        type: media.contentType === 'image/gif' ? AttachmentType.GIF : AttachmentType[media.kind],
+        url: media.url,
+        fileName: media.filename || 'attachment',
+        mimeType: media.contentType,
+        size: media.sizeBytes,
+        ...(media.width ? { width: media.width } : {}),
+        ...(media.height ? { height: media.height } : {}),
+      };
+    }
+    this.directUploads.assertLegacyAllowed();
     if (!file || !file.buffer) {
       throw new BadRequestException('No file provided');
     }
 
-    const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB
+    const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024;
     if (file.buffer.length > MAX_FILE_SIZE_BYTES) {
-      throw new BadRequestException('File size exceeds 25 MB limit');
+      throw new BadRequestException('File size exceeds 20 MiB limit');
     }
 
     const mimetype = (file.mimetype || '').toLowerCase();
@@ -206,6 +224,24 @@ export class MessagesService implements OnModuleDestroy {
   }
 
   async send(conversationId: string, senderId: string, dto: SendMessageDto): Promise<MessageView> {
+    return this.sendMessage(conversationId, senderId, dto, false);
+  }
+
+  /** Internal only: StoriesService has already resolved the story and its visibility. */
+  async sendStoryReference(
+    conversationId: string,
+    senderId: string,
+    dto: SendMessageDto,
+  ): Promise<MessageView> {
+    return this.sendMessage(conversationId, senderId, dto, true);
+  }
+
+  private async sendMessage(
+    conversationId: string,
+    senderId: string,
+    dto: SendMessageDto,
+    authorizedStoryReference: boolean,
+  ): Promise<MessageView> {
     const requiredPerm =
       dto.attachments && dto.attachments.length > 0
         ? Permission.CAN_SEND_MEDIA
@@ -266,6 +302,15 @@ export class MessagesService implements OnModuleDestroy {
       (!dto.text || !dto.text.trim())
     ) {
       finalMessageType = dto.attachments[0].type as unknown as MessageType;
+    }
+
+    for (const attachment of authorizedStoryReference ? [] : dto.attachments || []) {
+      const host = URL.canParse(attachment.url) ? new URL(attachment.url).hostname : '';
+      const gifProvider =
+        attachment.type === AttachmentType.GIF &&
+        ['media.tenor.com', 'media.giphy.com', 'i.giphy.com'].includes(host);
+      if (!gifProvider)
+        await this.directUploads.assertOwnedUrl(senderId, attachment.url, 'chat', conversationId);
     }
 
     // Backend validation against circle spoofing & duration limits (max 60s for video circles, max 60m for audio/video)

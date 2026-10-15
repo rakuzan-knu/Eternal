@@ -6,6 +6,7 @@ import type {
 } from '@social-network/shared-contracts';
 import { getMobileApi } from '@/shared/api/client';
 import type { FeedMode, Page, PostAction } from '../model/feed';
+import { prepareMobileUploadForm } from './directUploadForm';
 
 const postPath = (id: string) => `/posts/${encodeURIComponent(id)}`;
 
@@ -42,8 +43,14 @@ export const feedApi = {
     if (active) await getMobileApi().post(path);
     else await getMobileApi().delete(path);
   },
-  create: async (body: FormData) =>
-    (await getMobileApi().post<PostResponseDto>('/posts', body)).data,
+  create: async (body: FormData, signal?: AbortSignal) => {
+    const prepared = await prepareMobileUploadForm(getMobileApi(), body, 'post', signal);
+    return (
+      await getMobileApi().post<PostResponseDto>('/posts', prepared, {
+        ...(signal ? { signal } : {}),
+      })
+    ).data;
+  },
   vote: async (id: string, optionId: string) => {
     const api = getMobileApi();
     await api.post(`${postPath(id)}/poll/vote`, { optionId });

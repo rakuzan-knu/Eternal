@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Delete,
   HttpCode,
@@ -13,7 +14,7 @@ import {
   UseInterceptors,
   ForbiddenException,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FastifyFileInterceptor } from '../common/interceptors/fastify-file.interceptor';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -28,7 +29,7 @@ import type { AvatarView } from './interfaces/avatars-repository.interface';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/interfaces/jwt-payload.interface';
 
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 
 @ApiTags('Avatars')
 @Controller('users/:id/avatar')
@@ -39,7 +40,7 @@ export class AvatarsController {
   @HttpCode(HttpStatus.OK)
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
-  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_FILE_SIZE_BYTES, files: 1 } }))
+  @UseInterceptors(FastifyFileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -58,6 +59,7 @@ export class AvatarsController {
     @CurrentUser() user: RequestUser,
     @UploadedFile(
       new ParseFilePipe({
+        fileIsRequired: false,
         validators: [
           new MaxFileSizeValidator({ maxSize: MAX_FILE_SIZE_BYTES }),
           new FileTypeValidator({ fileType: /^image\/(jpeg|jpg|png|gif|webp)$/ }),
@@ -65,8 +67,10 @@ export class AvatarsController {
       }),
     )
     file: Express.Multer.File,
+    @Body('uploadId') uploadId?: string,
   ): Promise<AvatarView> {
     if (user.id !== userId) throw new ForbiddenException('You can only upload your own avatar');
+    if (uploadId) return this.avatarsService.useDirectAvatar(userId, uploadId);
     return this.avatarsService.uploadAvatar(userId, file);
   }
 

@@ -1,9 +1,18 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+  Optional,
+  ServiceUnavailableException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { RedisService } from '../redis/redis.service';
 import { PrismaService } from '@common/prisma';
 import type { Prisma } from '@prisma/client';
 import { removePlatformData } from './platform.utils';
+import { SteamAuthService } from './steam-auth.service';
 import type {
   TwitchUsersResponse,
   TwitchFollowersResponse,
@@ -54,6 +63,7 @@ export class IntegrationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
+    @Optional() private readonly steamAuth?: SteamAuthService,
   ) {}
 
   private async getTwitchAppToken(): Promise<string | null> {
@@ -86,52 +96,36 @@ export class IntegrationsService {
     return null;
   }
 
-  getSteamAuthUrl(userId: string, req: Request): string {
-    const host = req.headers.host || 'localhost:3000';
-    const protocol = req.protocol || 'http';
-    const backendUrl = `${protocol}://${host}`;
-
-    const returnTo = `${backendUrl}/integrations/steam/callback?userId=${encodeURIComponent(userId || '')}`;
-    const steamUrl = new URL('https://steamcommunity.com/openid/login');
-    steamUrl.searchParams.set('openid.ns', 'http://specs.openid.net/auth/2.0');
-    steamUrl.searchParams.set('openid.mode', 'checkid_setup');
-    steamUrl.searchParams.set('openid.return_to', returnTo);
-    steamUrl.searchParams.set('openid.realm', backendUrl);
-    steamUrl.searchParams.set(
-      'openid.identity',
-      'http://specs.openid.net/auth/2.0/identifier_select',
-    );
-    steamUrl.searchParams.set(
-      'openid.claimed_id',
-      'http://specs.openid.net/auth/2.0/identifier_select',
-    );
-    return steamUrl.toString();
+  private requireSteamAuth(): SteamAuthService {
+    if (!this.steamAuth) throw new ServiceUnavailableException('Steam authentication unavailable');
+    return this.steamAuth;
   }
 
-  async handleSteamCallback(query: Record<string, unknown>, res: Response): Promise<void> {
-    const claimedId =
-      typeof query['openid.claimed_id'] === 'string'
-        ? query['openid.claimed_id']
-        : typeof query['openid.identity'] === 'string'
-          ? query['openid.identity']
-          : null;
-    const userId = typeof query['userId'] === 'string' ? query['userId'] : null;
+  getSteamAuthUrl(userId: string, origin: string) {
+    return this.requireSteamAuth().start(userId, origin);
+  }
 
-    if (!claimedId) {
-      res.status(400).send('Invalid OpenID response from Steam');
-      return;
-    }
+  getSteamLaunchPage(): string {
+    return this.requireSteamAuth().launchPage();
+  }
 
-    // Extract 64-bit Steam ID strictly validating digits
-    const match = claimedId.match(/\/id\/(\d{15,25})$/);
-    if (!match) {
-      res.status(400).send('Invalid Steam OpenID claimed ID format');
-      return;
-    }
-    const steamId = match[1];
+  launchSteamAuth(ticket: string, proof: string, openerOrigin: string, requestOrigin?: string) {
+    return this.requireSteamAuth().launch(ticket, proof, openerOrigin, requestOrigin);
+  }
+
+  async handleSteamCallback(
+    query: Record<string, unknown>,
+    browserProof: unknown,
+    callbackPath: string,
+  ): Promise<string> {
+    const { userId, origin, steamId } = await this.requireSteamAuth().verify(
+      query,
+      browserProof,
+      callbackPath,
+    );
 
     // Fetch verified Steam data
-    const steamData = await this.fetchSteam(steamId, { featuredGame: 'dota2' });
+    const steamData = await this.getPlatformData('steam', steamId, { featuredGame: 'dota2' });
 
     if (userId) {
       const showcase = await this.prisma.profileShowcase.findUnique({
@@ -159,8 +153,7 @@ export class IntegrationsService {
       await this.redis.del(`showcase:user:${userId}`);
     }
 
-    res.header('Content-Type', 'text/html; charset=utf-8');
-    res.send(`<!DOCTYPE html>
+    return `<!DOCTYPE html>
 <html>
   <head>
     <title>Steam Account Connected</title>
@@ -186,7 +179,7 @@ export class IntegrationsService {
       function broadcast() {
         if (window.opener) {
           try {
-            window.opener.postMessage({ type: 'INTEGRATION_AUTH_SUCCESS', platform: 'steam' }, '*');
+            window.opener.postMessage({ type: 'INTEGRATION_AUTH_SUCCESS', platform: 'steam' }, ${JSON.stringify(origin)});
           } catch(e) {}
         }
       }
@@ -205,13 +198,13 @@ export class IntegrationsService {
           if (window.opener) {
             window.close();
           } else {
-            window.location.href = '/settings';
+            window.location.href = ${JSON.stringify(origin + '/settings')};
           }
         }
       }, 1000);
     </script>
   </body>
-</html>`);
+</html>`;
   }
 
   handlePlatformOAuthStart(
@@ -248,7 +241,10 @@ export class IntegrationsService {
 
     // If GitHub, redirect to /auth/github
     if (p === 'github') {
-      const coreApiUrl = (process.env.CORE_API_URL || backendUrl).replace(/\/+$/, '');
+      const rawCoreApiUrl = process.env.CORE_API_URL || backendUrl;
+      let end = rawCoreApiUrl.length;
+      while (end > 0 && rawCoreApiUrl.charCodeAt(end - 1) === 47) end--;
+      const coreApiUrl = rawCoreApiUrl.slice(0, end);
       return res
         .status(302)
         .redirect(
@@ -257,11 +253,7 @@ export class IntegrationsService {
     }
 
     if (p === 'steam') {
-      return res
-        .status(302)
-        .redirect(
-          `${backendUrl}/integrations/steam/auth?userId=${encodeURIComponent(userId || '')}&origin=${encodeURIComponent(clientOrigin)}`,
-        );
+      throw new UnauthorizedException('Start Steam authentication with an authenticated POST');
     }
 
     if (p === 'spotify' && process.env.SPOTIFY_CLIENT_ID) {

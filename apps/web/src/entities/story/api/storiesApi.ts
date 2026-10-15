@@ -1,4 +1,5 @@
 import { apiClient } from '@/shared/api/httpClient';
+import { prepareDirectUploadForm } from '@shared/api-client';
 import type {
   CreateStoryPayload,
   StoryPollResult,
@@ -51,7 +52,8 @@ export const storiesApi = {
       formData.append('filter', payload.filter);
     }
 
-    const res = await apiClient.post<StoryViewResponse>('/stories', formData, {
+    const body = await prepareDirectUploadForm(apiClient, formData, 'story', { signal });
+    const res = await apiClient.post<StoryViewResponse>('/stories', body, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },

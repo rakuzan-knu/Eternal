@@ -56,9 +56,13 @@ describe('CommentsController', () => {
 
   it('uploadCommentMedia delegates to CommentsMediaService', async () => {
     const mockFile = { buffer: Buffer.from('test') } as Express.Multer.File;
-    const res = await controller.uploadCommentMedia(mockFile);
+    const res = await controller.uploadCommentMedia(mockFile, mockUser);
 
-    expect(mockMediaService.processCommentImage).toHaveBeenCalledWith(mockFile);
+    expect(mockMediaService.processCommentImage).toHaveBeenCalledWith(
+      mockFile,
+      mockUser.id,
+      undefined,
+    );
     expect(res.url).toBe('http://cdn/image.webp');
   });
 

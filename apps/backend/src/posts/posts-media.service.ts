@@ -215,6 +215,11 @@ export class PostsMediaService implements OnModuleDestroy {
       throw new BadRequestException('Invalid chunk buffer');
     }
 
+    if (file.buffer.length > 5 * 1024 * 1024 || totalChunks > 4)
+      throw new BadRequestException('Chunk upload exceeds 20 MiB limit');
+    const existingSession = this.chunkStore.get(uploadId);
+    if (existingSession && existingSession.totalChunks !== totalChunks)
+      throw new BadRequestException('Chunk count cannot change');
     if (!this.chunkStore.has(uploadId)) {
       if (this.chunkStore.size >= this.MAX_CONCURRENT_SESSIONS) {
         throw new BadRequestException(

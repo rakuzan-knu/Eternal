@@ -1,3 +1,4 @@
+import { redactRequestUrl } from '../utils/redact-url.util';
 import { Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import type { ArgumentsHost } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
@@ -78,7 +79,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request>();
     const response = ctx.getResponse<Response>();
 
-    const path = String(httpAdapter.getRequestUrl(request));
+    const path = redactRequestUrl(String(httpAdapter.getRequestUrl(request)));
     const rawTraceId =
       request?.traceId ||
       request?.correlationId ||

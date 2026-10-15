@@ -1,4 +1,12 @@
-import { Injectable, Inject, Logger, NotFoundException, Optional } from '@nestjs/common';
+import { DirectUploadsService } from '../common/media/direct-uploads.service';
+import {
+  BadRequestException,
+  Injectable,
+  Inject,
+  Logger,
+  NotFoundException,
+  Optional,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { S3Client } from '@aws-sdk/client-s3';
 import { S3_CLIENT } from './s3-provider';
@@ -13,6 +21,9 @@ import {
 
 @Injectable()
 export class AvatarsService {
+  @Inject(DirectUploadsService)
+  private readonly directUploads!: DirectUploadsService;
+
   private readonly logger = new Logger(AvatarsService.name);
   private readonly bucket: string;
   private readonly publicUrl: string;
@@ -34,6 +45,8 @@ export class AvatarsService {
   }
 
   async uploadAvatar(userId: string, file: Express.Multer.File): Promise<AvatarView> {
+    this.directUploads.assertLegacyAllowed();
+    if (!file?.buffer) throw new BadRequestException('An image upload is required');
     const user = await this.avatarRepository.findById(userId);
     if (!user) {
       throw new NotFoundException('User not found');
@@ -67,6 +80,22 @@ export class AvatarsService {
     } catch (e) {
       this.logger.warn(`Failed to invalidate user avatar cache for ${userId}: ${String(e)}`);
     }
+    return updated;
+  }
+
+  async useDirectAvatar(userId: string, uploadId: string): Promise<AvatarView> {
+    const media = await this.directUploads.resolve(userId, uploadId, 'avatar');
+    const user = await this.avatarRepository.findById(userId);
+    if (!user) throw new NotFoundException('User not found');
+    const updated = await this.avatarRepository.updateAvatar(userId, media.url);
+    await this.redis?.del(`user:${userId}`);
+    await this.redis?.del(`user${userId}`);
+    if (user.avatar && user.avatar !== media.url)
+      await deleteFromStorage(this.s3, {
+        url: user.avatar,
+        bucket: this.bucket,
+        publicUrl: this.publicUrl,
+      }).catch(() => this.logger.warn('Previous profile media cleanup deferred'));
     return updated;
   }
 

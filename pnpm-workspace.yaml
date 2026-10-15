@@ -8,6 +8,12 @@ packages:
 # These libraries import React types without declaring their peer dependency.
 # Keep web React 19 types separate from the native React 18 workspace.
 packageExtensions:
+  'react-native-safe-area-context@4':
+    peerDependencies:
+      '@types/react': '^18.2.6'
+  'lucide-react-native@0.475.0':
+    peerDependencies:
+      '@types/react': '^18.2.6'
   '@storybook/react@8':
     peerDependencies:
       '@types/react': '*'

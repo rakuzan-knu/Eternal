@@ -1,12 +1,18 @@
 import { apiClient as api } from '@/shared/api/httpClient';
 import { PostType } from '@/entities/post/model/types';
 import { normalizePost } from '@/entities/post/api/postsApi';
+import { prepareDirectUploadForm } from '@shared/api-client';
 
 export const postsApi = {
-  createPost: (data: FormData, signal?: AbortSignal): Promise<PostType> =>
-    api
-      .post<Record<string, unknown>>('/posts', data, ...(signal ? [{ signal }] : []))
-      .then((r) => normalizePost(r.data)),
+  createPost: async (data: FormData, signal?: AbortSignal): Promise<PostType> => {
+    const body = await prepareDirectUploadForm(api, data, 'post', { signal });
+    const response = await api.post<Record<string, unknown>>(
+      '/posts',
+      body,
+      ...(signal ? [{ signal }] : []),
+    );
+    return normalizePost(response.data);
+  },
 
   editPost: (postId: string | number, content: string, signal?: AbortSignal): Promise<PostType> =>
     api

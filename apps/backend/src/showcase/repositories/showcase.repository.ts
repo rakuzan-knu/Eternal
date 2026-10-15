@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@common/prisma';
 import { FollowStatus, ShowcasePrivacy, type Prisma } from '@prisma/client';
 import type { UpdateShowcaseDto } from '@common/contracts';
+import { steamAccountPreferences } from '../../integrations/steam-account';
 import type {
   IShowcaseRepository,
   ProfileShowcaseWithMedia,
@@ -101,6 +102,11 @@ export class ShowcaseRepository implements IShowcaseRepository {
                     : {}),
               }
             : undefined;
+
+      if (newConnectedAccounts) {
+        const steam = steamAccountPreferences(existingConnected.steam, newConnectedAccounts.steam);
+        if (steam !== undefined) newConnectedAccounts.steam = steam;
+      }
 
       if (dto.showZodiac !== undefined && newConnectedAccounts) {
         const pInfo = (newConnectedAccounts._personalInfo as Record<string, unknown>) || {};

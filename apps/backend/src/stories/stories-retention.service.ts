@@ -78,9 +78,11 @@ export class StoriesRetentionService implements OnModuleDestroy {
         `Found ${expired.length} expired stories. Purging files and database records...`,
       );
 
+      const expiredIds = expired.map((story) => story.id);
       for (const story of expired) {
         for (const url of storyMediaAssets(story)) {
           try {
+            if (await this.storiesRepo.isMediaReferenced(url, expiredIds)) continue;
             await deleteFromStorage(this.s3, {
               url,
               bucket: this.bucket,

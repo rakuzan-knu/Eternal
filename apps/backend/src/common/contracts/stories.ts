@@ -160,6 +160,11 @@ export type DrawingOverlay = z.infer<typeof DrawingOverlaySchema>;
 export type DrawingStroke = z.infer<typeof DrawingStrokeSchema>;
 
 export const CreateStoryDtoSchema = z.object({
+  uploadId: z.string().uuid().optional(),
+  overlayUploads: z
+    .record(z.string().max(128), z.string().uuid())
+    .refine((value) => Object.keys(value).length <= 9)
+    .optional(),
   mediaType: StoryMediaTypeSchema.optional().default('IMAGE'),
   caption: z.string().max(1000).optional(),
   overlays: z.array(StoryOverlaySchema).max(30).optional(),

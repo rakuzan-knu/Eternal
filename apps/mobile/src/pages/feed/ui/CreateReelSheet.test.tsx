@@ -207,7 +207,7 @@ it('rejects files over the actual backend upload limit before uploading', async 
   });
   const editor = await setup();
   await editor.click('Choose reel video');
-  expect(editor.element.textContent).toContain('smaller than 100 MB');
+  expect(editor.element.textContent).toContain('smaller than 20 MiB');
   expect(editor.button('Publish reel').disabled).toBe(true);
   expect(mocks.post).not.toHaveBeenCalled();
 });

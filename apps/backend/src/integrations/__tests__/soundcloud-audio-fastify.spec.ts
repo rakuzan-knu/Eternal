@@ -16,6 +16,7 @@ describe('SoundCloud audio transport with NestFastify', () => {
   const streamUrl = 'https://cf-media.sndcdn.com/test-audio.mp3';
 
   beforeEach(async () => {
+    vi.stubEnv('SOUNDCLOUD_AUDIO_PROXY_ENABLED', 'true');
     getStreamUrl.mockReset().mockResolvedValue({
       streamUrl,
       isHls: false,
@@ -41,6 +42,7 @@ describe('SoundCloud audio transport with NestFastify', () => {
   afterEach(async () => {
     await app.close();
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
   });
 
   it('forwards Range and delivers exact streamed bytes with upstream 206 and media headers', async () => {
@@ -97,6 +99,14 @@ describe('SoundCloud audio transport with NestFastify', () => {
     expect(response.statusCode).toBe(200);
     expect(response.body).toBe('audio');
     expect(response.headers['accept-ranges']).toBe('bytes');
+  });
+
+  it('redirects to the resolved stream without proxying audio by default', async () => {
+    vi.stubEnv('SOUNDCLOUD_AUDIO_PROXY_ENABLED', undefined);
+    const response = await app.inject('/integrations/soundcloud/stream/123/audio');
+    expect(response.statusCode).toBe(302);
+    expect(response.headers.location).toBe(streamUrl);
+    expect(upstreamFetch).not.toHaveBeenCalled();
   });
 
   it('returns JSON 404 without fetching when no stream URL was resolved', async () => {

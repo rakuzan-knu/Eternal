@@ -1,6 +1,18 @@
 import { apiClient } from '@/shared/api/httpClient';
 
 export const integrationsApi = {
+  startSteamAuth: async (
+    origin: string,
+    signal?: AbortSignal,
+  ): Promise<{ url: string; launchProof: string }> => {
+    const response = await apiClient.post<{ url: string; launchProof: string }>(
+      '/integrations/steam/auth',
+      { origin },
+      signal ? { signal } : {},
+    );
+    return response.data;
+  },
+
   preview: async (
     platform: string,
     handle: string,

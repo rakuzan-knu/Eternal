@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/shared/api/queryKeys';
 import { apiClient } from '@/shared/api/httpClient';
+import { prepareDirectUploadForm } from '@shared/api-client';
 
 interface UploadBannerPayload {
   userId: string;
@@ -22,7 +23,8 @@ export function useUploadBanner() {
       formData.append('file', file);
       formData.append('bannerPosition', positionY.toString());
 
-      const response = await apiClient.post(`/users/${userId}/banner`, formData, { signal });
+      const body = await prepareDirectUploadForm(apiClient, formData, 'banner', { signal });
+      const response = await apiClient.post(`/users/${userId}/banner`, body, { signal });
 
       return response.data;
     },

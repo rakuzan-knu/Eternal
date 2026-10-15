@@ -65,7 +65,11 @@ describe('ReelsService', () => {
 
     mockS3 = {} as unknown as jest.Mocked<S3Client>;
     mockConfig = {
-      get: jest.fn().mockReturnValue('test-value'),
+      get: jest
+        .fn()
+        .mockImplementation((key: string) =>
+          key === 'VIDEO_TRANSCODE_ENABLED' ? 'true' : 'test-value',
+        ),
     } as unknown as jest.Mocked<ConfigService>;
 
     const mockRedisClient = {
@@ -81,6 +85,22 @@ describe('ReelsService', () => {
     } as unknown as jest.Mocked<QueueService>;
 
     service = new ReelsService(mockRepo, mockS3, mockConfig, mockRedis, mockQueue);
+    Object.assign(service, {
+      directUploads: {
+        assertLegacyAllowed: jest.fn(),
+        assertOwnedUrl: jest.fn().mockResolvedValue(undefined),
+        resolve: jest.fn().mockResolvedValue({
+          uploadId: 'completed-id',
+          url: 'https://example.com/source.mp4',
+          contentType: 'video/mp4',
+          sizeBytes: 100,
+          kind: 'VIDEO',
+          duration: 5,
+          width: 640,
+          height: 360,
+        }),
+      },
+    });
   });
 
   it('getFeed returns paginated reels with mapped DTO fields', async () => {
@@ -113,7 +133,7 @@ describe('ReelsService', () => {
   it('createReel saves reel and dispatches BullMQ transcode job', async () => {
     const result = await service.createReel('author-1', {
       caption: 'Brand new short',
-      audioUrl: 'https://example.com/source.mp4',
+      uploadId: '11111111-1111-4111-8111-111111111111',
     });
 
     expect(mockRepo.create).toHaveBeenCalled();
@@ -167,7 +187,7 @@ describe('ReelsService', () => {
   it('does not put a development data URI fallback into Redis', async () => {
     mockRepo.create.mockResolvedValue({ ...sampleReel, videoUrl: 'data:video/mp4;base64,YQ==' });
 
-    await service.createReel('author-1', { audioUrl: 'https://example.com/source.mp4' });
+    await service.createReel('author-1', { uploadId: '11111111-1111-4111-8111-111111111111' });
 
     expect(mockQueue.addVideoTranscodeJob).not.toHaveBeenCalled();
   });

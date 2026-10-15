@@ -1,3 +1,4 @@
+import { DirectUploadsService } from '../common/media/direct-uploads.service';
 import {
   BadRequestException,
   ForbiddenException,
@@ -30,6 +31,9 @@ import { paginate, type Paginated } from '../common/pagination';
 
 @Injectable()
 export class ReelsService {
+  @Inject(DirectUploadsService)
+  private readonly directUploads!: DirectUploadsService;
+
   private readonly logger = new Logger(ReelsService.name);
   private static readonly FEED_CACHE_PREFIX = 'reels:feed:';
   private readonly bucket: string;
@@ -266,7 +270,11 @@ export class ReelsService {
     file?: Express.Multer.File,
     thumbnailFile?: Express.Multer.File,
   ): Promise<ReelResponseDto> {
-    let videoUrl = dto.audioUrl; // fallback if needed
+    const direct = dto.uploadId
+      ? await this.directUploads.resolve(authorId, dto.uploadId, 'reel')
+      : undefined;
+    let videoUrl = direct?.url;
+    if (file) this.directUploads.assertLegacyAllowed();
     let sourceStorageKey: string | undefined;
     let thumbnailUrl: string | null = null;
     let blurhash: string | null = null;
@@ -275,9 +283,9 @@ export class ReelsService {
       if (!file.mimetype.startsWith('video/')) {
         throw new BadRequestException('Uploaded file must be a video');
       }
-      const maxVideoSize = 150 * 1024 * 1024; // 150MB for short reels
+      const maxVideoSize = 20 * 1024 * 1024;
       if (file.buffer.length > maxVideoSize) {
-        throw new BadRequestException('Video size exceeds 150MB limit');
+        throw new BadRequestException('Video size exceeds 20 MiB limit');
       }
 
       const fileId = uid(16);
@@ -331,15 +339,19 @@ export class ReelsService {
       audioTitle: dto.audioTitle ?? null,
       audioArtist: dto.audioArtist ?? null,
       audioUrl: dto.audioUrl ?? null,
-      duration: dto.duration ?? null,
-      width: dto.width ?? null,
-      height: dto.height ?? null,
+      duration: direct?.duration ?? dto.duration ?? null,
+      width: direct?.width ?? dto.width ?? null,
+      height: direct?.height ?? dto.height ?? null,
     });
 
     await this.invalidateFeedCache();
 
     // Trigger BullMQ adaptive HLS transcode worker in background
-    if (this.queueService && !reel.videoUrl.startsWith('data:')) {
+    if (
+      this.configService.get<string>('VIDEO_TRANSCODE_ENABLED') === 'true' &&
+      this.queueService &&
+      !reel.videoUrl.startsWith('data:')
+    ) {
       await this.queueService.addVideoTranscodeJob(
         {
           reelId: reel.id,

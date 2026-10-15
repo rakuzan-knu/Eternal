@@ -1,4 +1,12 @@
-import { Injectable, Inject, Logger, NotFoundException, Optional } from '@nestjs/common';
+import { DirectUploadsService } from '../common/media/direct-uploads.service';
+import {
+  BadRequestException,
+  Injectable,
+  Inject,
+  Logger,
+  NotFoundException,
+  Optional,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { S3Client } from '@aws-sdk/client-s3';
 import { BANNER_S3_CLIENT } from './s3-provider';
@@ -13,6 +21,9 @@ import {
 
 @Injectable()
 export class BannersService {
+  @Inject(DirectUploadsService)
+  private readonly directUploads!: DirectUploadsService;
+
   private readonly logger = new Logger(BannersService.name);
   private readonly bucket: string;
   private readonly publicUrl: string;
@@ -38,6 +49,8 @@ export class BannersService {
     file: Express.Multer.File,
     bannerPosition?: number,
   ): Promise<BannerView> {
+    this.directUploads.assertLegacyAllowed();
+    if (!file?.buffer) throw new BadRequestException('An image upload is required');
     const user = await this.bannerRepository.findById(userId);
     if (!user) {
       throw new NotFoundException('User not found');
@@ -72,6 +85,26 @@ export class BannersService {
       this.logger.warn(`Failed to invalidate user banner cache for ${userId}: ${String(e)}`);
     }
     return view;
+  }
+
+  async useDirectBanner(
+    userId: string,
+    uploadId: string,
+    bannerPosition?: number,
+  ): Promise<BannerView> {
+    const media = await this.directUploads.resolve(userId, uploadId, 'banner');
+    const user = await this.bannerRepository.findById(userId);
+    if (!user) throw new NotFoundException('User not found');
+    const updated = await this.bannerRepository.updateBanner(userId, media.url, bannerPosition);
+    await this.redis?.del(`user:${userId}`);
+    await this.redis?.del(`user${userId}`);
+    if (user.banner && user.banner !== media.url)
+      await deleteFromStorage(this.s3, {
+        url: user.banner,
+        bucket: this.bucket,
+        publicUrl: this.publicUrl,
+      }).catch(() => this.logger.warn('Previous profile media cleanup deferred'));
+    return updated;
   }
 
   async deleteBanner(userId: string): Promise<BannerView> {

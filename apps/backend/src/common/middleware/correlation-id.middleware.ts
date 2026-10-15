@@ -1,3 +1,4 @@
+import { redactRequestUrl } from '../utils/redact-url.util';
 import { Injectable, type NestMiddleware } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import type { Request, Response, NextFunction } from 'express';
@@ -54,7 +55,7 @@ export class CorrelationIdMiddleware implements NestMiddleware {
         traceId,
         correlationId: traceId,
         reqMethod: req.method,
-        reqUrl: req.originalUrl || req.url,
+        reqUrl: redactRequestUrl(req.originalUrl || req.url),
         startTime: Date.now(),
         startHrTime: process.hrtime.bigint(),
       },
