@@ -1,3 +1,4 @@
+import { publicIntegrationData } from '../common/security/public-integration-data';
 import {
   Inject,
   Injectable,
@@ -320,11 +321,11 @@ export class ShowcaseService {
 
     const connectedAccounts: ConnectedAccountsDto | null = linksAllowed
       ? {
-          ...cleanConnected,
+          ...publicIntegrationData(cleanConnected),
           github: user.githubUsername
             ? typeof cleanConnected.github === 'object' && cleanConnected.github !== null
               ? {
-                  ...(cleanConnected.github as Record<string, unknown>),
+                  ...publicIntegrationData(cleanConnected.github as Record<string, unknown>),
                   username: user.githubUsername,
                 }
               : user.githubUsername

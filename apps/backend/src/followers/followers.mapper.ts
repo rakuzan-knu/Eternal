@@ -3,6 +3,7 @@ import type {
   PublicUserEntity,
   PublicUserSummary,
 } from './types/followers.types';
+import { profileFrameSchema, profileEffectSchema } from '@common/contracts';
 import type { LiveActivityStatusDto, UserProfileDto } from '@common/contracts';
 
 export function toUserProfileDto(
@@ -25,7 +26,31 @@ export function toUserProfileDto(
     id: user.id,
     username: user.username,
     displayName: user.displayName,
+    displayNameStyle: 'displayNameStyle' in user ? (user.displayNameStyle as any) : undefined,
+    profileTheme: 'profileTheme' in user ? (user.profileTheme as any) : undefined,
     avatar: user.avatar,
+    ...('activeDecoration' in user
+      ? { activeDecoration: user.activeDecoration, activeDecorationId: user.activeDecorationId }
+      : {}),
+    ...('activeNameplate' in user
+      ? { activeNameplate: user.activeNameplate, activeNameplateId: user.activeNameplateId }
+      : {}),
+    ...('activeProfileFrame' in user
+      ? {
+          activeProfileFrame: user.activeProfileFrame
+            ? profileFrameSchema.parse(user.activeProfileFrame)
+            : null,
+          activeProfileFrameId: user.activeProfileFrameId,
+        }
+      : {}),
+    ...('activeProfileEffect' in user
+      ? {
+          activeProfileEffect: user.activeProfileEffect
+            ? profileEffectSchema.parse(user.activeProfileEffect)
+            : null,
+          activeProfileEffectId: user.activeProfileEffectId,
+        }
+      : {}),
     bio: user.bio,
     isPrivate: user.isPrivate,
     isVerified: user.isVerified ?? false,

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark" data-theme="dark" data-surface-contrast="dark">
   <head>
     <meta charset="UTF-8" />
     <!-- Global Error Shield: Suppresses crashes from third-party extensions (e.g. Web Vitals, React DevTools, MetaMask) -->
@@ -50,6 +50,192 @@
           },
           true,
         );
+      })();
+    </script>
+    <!-- Eternal FOUC & Theme Shield: Immediately restores theme mode and CSS custom properties before first paint -->
+    <script>
+      (function () {
+        try {
+          var raw = localStorage.getItem('eternal-theme');
+          var parsed = null;
+          if (raw) {
+            try {
+              parsed = JSON.parse(raw);
+            } catch (e) {}
+          }
+          var state = parsed && parsed.state ? parsed.state : {};
+          var root = document.documentElement;
+          var solid = state.solidTheme || (state.theme === 'light' ? 'light' : 'dark');
+          var hasWallpaper = !!(state.wallpaper && state.wallpaper.url);
+          var isWallpaperLight = hasWallpaper && state.wallpaper.themeMode === 'light';
+          var isLight = !hasWallpaper && solid === 'light';
+
+          if (isLight) {
+            root.classList.remove('dark');
+            root.classList.add('light');
+            root.setAttribute('data-theme', 'light');
+            root.setAttribute('data-surface-contrast', 'light');
+          } else {
+            root.classList.add('dark');
+            root.classList.remove('light');
+            root.setAttribute('data-theme', solid || 'dark');
+            root.setAttribute('data-surface-contrast', 'dark');
+          }
+
+          root.style.setProperty('--app-accent-color', state.accentColor || '#8B5CF6');
+          root.style.setProperty('--text-on-accent', state.textOnAccent || '#ffffff');
+          if (state.customSolidColor) {
+            root.style.setProperty('--app-bg-custom', state.customSolidColor);
+          }
+          var opacity =
+            typeof state.glassmorphismOpacity === 'number' ? state.glassmorphismOpacity : 0.0;
+          root.style.setProperty('--app-glass-opacity', String(opacity));
+
+          var isDefaultDark =
+            !hasWallpaper &&
+            solid === 'dark' &&
+            (!state.themeMode || state.themeMode === 'solid') &&
+            !state.customSolidColor;
+          var baseRgb =
+            isWallpaperLight || isLight
+              ? '255, 255, 255'
+              : isDefaultDark
+                ? '5, 5, 5'
+                : '12, 12, 14';
+          var cardRgb =
+            isWallpaperLight || isLight
+              ? '248, 250, 252'
+              : isDefaultDark
+                ? '17, 17, 17'
+                : '18, 18, 22';
+          var sidebarRgb =
+            isWallpaperLight || isLight
+              ? '255, 255, 255'
+              : isDefaultDark
+                ? '22, 22, 26'
+                : '16, 16, 20';
+          if (!hasWallpaper && !isLight && !isDefaultDark) {
+            // Theme surface color resolution helper for hex (supports gradients, custom, ash, dark, midnight)
+            var hex = state.customSolidColor;
+            if (state.themeMode === 'gradient') {
+              var gradMap = {
+                'midnight-violet': '#180728',
+                'cyber-neon': '#022c43',
+                'sunset-mirage': '#431407',
+                'emerald-aurora': '#022c22',
+                'deep-space': '#090a0f',
+              };
+              hex =
+                gradMap[state.gradientPresetId] ||
+                (state.customGradient && state.customGradient.from) ||
+                '#180728';
+            } else if (!hex) {
+              hex = solid === 'ash' ? '#26262b' : solid === 'midnight' ? '#000000' : '#050505';
+            }
+            var clean = hex.replace(/^#/, '');
+            if (clean.length === 6) {
+              var num = parseInt(clean, 16);
+              var r = (num >> 16) & 255;
+              var g = (num >> 8) & 255;
+              var b = num & 255;
+              var cr = Math.min(255, Math.round(r + (255 - r) * 0.07));
+              var cg = Math.min(255, Math.round(g + (255 - g) * 0.07));
+              var cb = Math.min(255, Math.round(b + (255 - b) * 0.07));
+              var sr = Math.min(255, Math.round(r + (255 - r) * 0.04));
+              var sg = Math.min(255, Math.round(g + (255 - g) * 0.04));
+              var sb = Math.min(255, Math.round(b + (255 - b) * 0.04));
+              cardRgb = cr + ', ' + cg + ', ' + cb;
+              sidebarRgb = sr + ', ' + sg + ', ' + sb;
+              baseRgb = r + ', ' + g + ', ' + b;
+            }
+          }
+          var minCardAlpha = hasWallpaper ? 0.38 : 0.24;
+          var minSidebarAlpha = hasWallpaper ? 0.44 : 0.28;
+          var minModalAlpha = hasWallpaper ? 0.5 : 0.32;
+          var modalAlpha =
+            opacity === 0 ? '1.0' : (0.98 - opacity * (0.98 - minModalAlpha)).toFixed(3);
+          var cardAlpha =
+            opacity === 0 ? '1.0' : (0.96 - opacity * (0.96 - minCardAlpha)).toFixed(3);
+          var sidebarAlpha =
+            opacity === 0 ? '1.0' : (0.98 - opacity * (0.98 - minSidebarAlpha)).toFixed(3);
+          var blurPx = Math.round(opacity * 32);
+          var glassSaturation = Math.round(100 + opacity * 95);
+          var specularRimAlpha = (opacity * 0.45).toFixed(3);
+          var specularInnerAlpha = (opacity * 0.12).toFixed(3);
+          var specularBottomAlpha = (opacity * 0.08).toFixed(3);
+          var borderGlassAlpha = (0.05 + opacity * 0.15).toFixed(3);
+          var shadowBlur = Math.round(16 + opacity * 24);
+          var shadowDepthAlpha = (0.15 + opacity * 0.35).toFixed(3);
+
+          root.style.setProperty(
+            '--app-glass-modal-bg',
+            'rgba(' + baseRgb + ', ' + modalAlpha + ')',
+          );
+          root.style.setProperty('--app-glass-card-bg', 'rgba(' + cardRgb + ', ' + cardAlpha + ')');
+          root.style.setProperty(
+            '--app-glass-sidebar-bg',
+            'rgba(' + sidebarRgb + ', ' + sidebarAlpha + ')',
+          );
+          root.style.setProperty('--app-glass-blur', blurPx + 'px');
+          root.style.setProperty('--app-glass-saturate', glassSaturation + '%');
+          root.style.setProperty(
+            '--app-glass-border-color',
+            'rgba(255, 255, 255, ' + borderGlassAlpha + ')',
+          );
+          root.style.setProperty(
+            '--app-glass-shadow',
+            opacity === 0
+              ? 'none'
+              : 'inset 0 1px 1px 0 rgba(255, 255, 255, ' +
+                  specularRimAlpha +
+                  '), inset 0 0 0 1px rgba(255, 255, 255, ' +
+                  specularInnerAlpha +
+                  '), inset 0 -1px 1px 0 rgba(255, 255, 255, ' +
+                  specularBottomAlpha +
+                  '), 0 16px ' +
+                  shadowBlur +
+                  'px -6px rgba(0, 0, 0, ' +
+                  shadowDepthAlpha +
+                  ')',
+          );
+          if (isLight) {
+            root.style.setProperty('--app-text-primary', '#0f172a');
+            root.style.setProperty('--app-text-secondary', '#334155');
+            root.style.setProperty('--app-text-muted', '#64748b');
+          } else {
+            root.style.setProperty('--app-text-primary', '#ffffff');
+            root.style.setProperty('--app-text-secondary', '#cbd5e1');
+            root.style.setProperty('--app-text-muted', '#94a3b8');
+          }
+          var themeColorMeta = document.querySelector('meta[name="theme-color"]');
+          if (themeColorMeta) {
+            if (solid === 'light') themeColorMeta.setAttribute('content', '#f8fafc');
+            else if (solid === 'midnight') themeColorMeta.setAttribute('content', '#000000');
+            else if (solid === 'ash') themeColorMeta.setAttribute('content', '#26262b');
+            else if (solid === 'custom' && state.customSolidColor)
+              themeColorMeta.setAttribute('content', state.customSolidColor);
+            else themeColorMeta.setAttribute('content', '#070709');
+          }
+          // Eternal Typography & Font Scope Shield (FOUT/CLS Prevention)
+          var appFontScope = state.appFontScope || 'none';
+          root.setAttribute('data-font-scope', appFontScope);
+          if (appFontScope !== 'none' && state.appFontFamily) {
+            root.style.setProperty('--app-custom-font', state.appFontFamily);
+            root.style.setProperty('--font-heading', state.appFontFamily);
+          }
+          if (state.appTextEffect) {
+            root.setAttribute('data-font-effect', state.appTextEffect);
+          }
+          if (state.appTextColor && state.appTextColor !== 'auto') {
+            root.setAttribute('data-has-custom-color', 'true');
+            root.style.setProperty('--app-custom-text-color', state.appTextColor);
+          }
+          // Eternal Custom Cursor Shield
+          if (state.customCursorEnabled && state.customCursorId) {
+            root.setAttribute('data-custom-cursor', 'true');
+            root.setAttribute('data-cursor-id', state.customCursorId);
+          }
+        } catch (e) {}
       })();
     </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />

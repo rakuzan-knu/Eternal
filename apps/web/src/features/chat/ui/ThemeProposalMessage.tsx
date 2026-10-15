@@ -92,11 +92,11 @@ export const ThemeProposalMessage: React.FC<ThemeProposalMessageProps> = ({
 
   return (
     <div
-      className="my-3 w-full max-w-85 mx-auto rounded-3xl overflow-hidden border border-white/15 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-white/25"
+      className="my-3 w-full max-w-85 mx-auto rounded-3xl overflow-hidden border border-white/15 shadow-2xl transition-all duration-300 hover:border-white/25"
       style={{
         background:
-          'linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%)',
-        boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
+          'linear-gradient(135deg, rgba(22, 23, 34, 0.95) 0%, rgba(16, 17, 26, 0.98) 100%)',
+        boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
       }}
     >
       {/* Header with Title & Badge */}

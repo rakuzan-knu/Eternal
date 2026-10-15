@@ -1,3 +1,5 @@
+import type { NameplateDto } from './nameplates';
+import type { AvatarDecorationDto } from './decorations';
 import { z } from 'zod';
 export const AttachmentType = {
   IMAGE: 'IMAGE',
@@ -41,7 +43,7 @@ export type ConversationIdDto = z.infer<typeof conversationIdSchema>;
 
 export const attachmentSchema = z.object({
   type: z.nativeEnum(AttachmentType),
-  url: z.string().min(1).max(2048),
+  url: z.string().min(1).max(10_000_000),
   fileName: z.string().max(255).optional(),
   mimeType: z.string().max(128).optional(),
   size: z.coerce.number().min(0).optional(),
@@ -50,7 +52,7 @@ export const attachmentSchema = z.object({
   duration: z.coerce.number().min(0).optional(),
   waveform: z.array(z.number()).max(256).optional(),
   isSpoiler: z.boolean().optional(),
-  thumbnailUrl: z.string().max(2048).optional(),
+  thumbnailUrl: z.string().max(10_000_000).optional(),
 });
 export type AttachmentDto = z.infer<typeof attachmentSchema>;
 
@@ -368,6 +370,8 @@ export const promoteMemberSchema = z.object({
 export type PromoteMemberDto = z.infer<typeof promoteMemberSchema>;
 
 export interface UserSnapshot {
+  activeDecoration?: AvatarDecorationDto | null;
+  activeNameplate?: NameplateDto | null;
   id: string;
   username: string;
   displayName: string | null;
@@ -536,8 +540,8 @@ export interface ChatFolderView {
 }
 
 export const globalSearchSchema = z.object({
-  q: z.string().min(1).max(200),
-  type: z.enum(['all', 'messages', 'media', 'files', 'links', 'people']).default('all'),
+  q: z.string().max(200).default(''),
+  type: z.enum(['all', 'messages', 'media', 'music', 'files', 'links', 'people']).default('all'),
   conversationId: z.string().uuid().optional(),
   limit: z.coerce.number().min(1).max(50).default(20),
   offset: z.coerce.number().min(0).default(0),
@@ -562,6 +566,8 @@ export interface GlobalSearchResult {
     id: string;
     messageId: string;
     conversationId: string;
+    senderId?: string;
+    senderName?: string;
     url: string;
     fileName: string | null;
     mimeType: string | null;
@@ -575,6 +581,7 @@ export interface GlobalSearchResult {
     displayName: string | null;
     avatar: string | null;
     isOnline: boolean;
+    activeNameplate?: NameplateDto | null;
   }>;
 }
 

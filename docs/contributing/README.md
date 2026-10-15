@@ -1,8 +1,8 @@
 # 🤝 Contributing to Social Network
 
-Welcome! Social Network is a 100% open-source, full-stack application built for real-time scale, privacy, and community. We believe in open collaboration and warmly welcome contributions from developers, designers, technical writers, and testers around the globe.
+Eternal is a proprietary, full-stack application built for real-time scale, privacy, and community. This handbook is for authorized maintainers and contributors. Read [LICENSE.md](../../LICENSE.md) and the [licensing policy](../legal/README.md). Unless a separate written agreement provides otherwise, intentionally submitted contributions accepted under Section 7 of LICENSE.md grant the contributor license specified there. Confirm those terms and your authority to submit in the pull request template.
 
-Whether you are fixing a typo in the documentation, optimizing a SQL query, or implementing a new social feed feature, your contribution matters.
+Issue reports and feature discussions are welcome. Access to this handbook does not authorize copying, modifying, running, or redistributing proprietary materials. Existing legal permissions and third-party licenses remain unaffected.
 
 ---
 
@@ -10,7 +10,7 @@ Whether you are fixing a typo in the documentation, optimizing a SQL query, or i
 
 ```mermaid
 graph LR
-    Find[1. Find an Issue<br/>'good first issue'] --> Setup[2. Local Setup<br/>5-minute dev boot]
+    Find[1. Read Contributor Terms<br/>and Confirm Authorization] --> Setup[2. Local Setup<br/>5-minute dev boot]
     Setup --> Code[3. Develop & Test<br/>FSD + 4-tier layer rules]
     Code --> PR[4. Open Pull Request<br/>Automated CI validation]
     PR --> Merge[5. Review & Merge<br/>Semantic release tag]

@@ -2,7 +2,7 @@
   "name": "@social-network/blinded-crypto",
   "version": "1.0.0",
   "description": "Portable blind-signature crypto v1 (RSA modpow): windowed modular exponentiation, blind sign/verify over hex. Pure BigInt, zero dependencies, no Node APIs.",
-  "license": "AGPL-3.0-only",
+  "license": "UNLICENSED",
   "private": true,
   "main": "./dist/index.js",
   "module": "./dist/esm/index.js",

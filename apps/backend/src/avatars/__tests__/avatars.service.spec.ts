@@ -1,3 +1,4 @@
+import { pngImage, gifImage } from '../../common/media/__tests__/upload-fixtures';
 import { Readable } from 'stream';
 import { NotFoundException } from '@nestjs/common';
 import type { S3Client } from '@aws-sdk/client-s3';
@@ -68,12 +69,46 @@ describe('AvatarsService', () => {
   });
 
   describe('uploadAvatar', () => {
+    it('keeps the existing avatar and storage object when an invalid image is uploaded', async () => {
+      mockAvatarRepo.findById.mockResolvedValue({
+        id: 'usr-1',
+        avatar: 'https://s3.example.com/avatars/old.webp',
+      });
+      await expect(
+        service.uploadAvatar('usr-1', {
+          buffer: Buffer.from('MZ bad.exe'),
+          mimetype: 'image/png',
+        } as Express.Multer.File),
+      ).rejects.toThrow();
+      expect(mockAvatarRepo.updateAvatar).not.toHaveBeenCalled();
+      expect(mockS3.send).not.toHaveBeenCalled();
+      expect(mockRedis.del).not.toHaveBeenCalled();
+    });
+    it('uploads to a new key before updating the record and deleting the old image', async () => {
+      mockAvatarRepo.findById.mockResolvedValue({
+        id: 'usr-1',
+        avatar: 'https://s3.example.com/avatars/old.webp',
+      });
+      mockAvatarRepo.updateAvatar.mockResolvedValue({ id: 'usr-1', avatar: 'new.webp' });
+      await service.uploadAvatar('usr-1', {
+        buffer: pngImage,
+        mimetype: 'image/png',
+      } as Express.Multer.File);
+      const calls = mockS3.send.mock.calls as [{ input: { Key: string } }][];
+      expect(calls[0][0].input.Key).toMatch(/avatars\/usr-1\/.+\.webp$/);
+      expect(mockS3.send.mock.invocationCallOrder[0]).toBeLessThan(
+        mockAvatarRepo.updateAvatar.mock.invocationCallOrder[0],
+      );
+      expect(mockAvatarRepo.updateAvatar.mock.invocationCallOrder[0]).toBeLessThan(
+        mockS3.send.mock.invocationCallOrder[1],
+      );
+    });
     const mockFile: Express.Multer.File = {
       fieldname: 'file',
       originalname: 'avatar.png',
       encoding: '7bit',
       mimetype: 'image/png',
-      buffer: Buffer.from('fake-image-bytes'),
+      buffer: pngImage,
       size: 16,
       stream: new Readable(),
       destination: '',
@@ -109,7 +144,7 @@ describe('AvatarsService', () => {
         ...mockFile,
         originalname: 'animated.gif',
         mimetype: 'image/gif',
-        buffer: Buffer.from('GIF89a...fake-gif-bytes'),
+        buffer: gifImage,
       };
 
       mockAvatarRepo.findById.mockResolvedValueOnce({ id: 'usr-1', avatar: null });
@@ -121,7 +156,7 @@ describe('AvatarsService', () => {
       const result = await service.uploadAvatar('usr-1', mockGifFile);
       expect(mockAvatarRepo.updateAvatar).toHaveBeenCalledWith(
         'usr-1',
-        expect.stringContaining('usr-1.gif'),
+        expect.stringMatching(/usr-1\/.+\.gif$/),
       );
       expect(result.avatar).toContain('usr-1.gif');
     });

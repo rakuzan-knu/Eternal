@@ -2,6 +2,8 @@ import { useMutation, useQueryClient, InfiniteData } from '@tanstack/react-query
 import { postsApi } from '../api/postsApi';
 import { FeedPage } from '@/entities/post/api/postsApi';
 import { PostType } from '@/entities/post/model/types';
+import { mapPostFeedData } from '@/entities/post/model/mapPostFeedData';
+import { invalidatePostFeedHistory } from '@/entities/post/model/postFeedColdCache';
 import { useMessageToastStore } from '@/shared/model/useMessageToastStore';
 import { FEED_KEY, USER_POSTS_KEY } from '@/shared/api/queryKeys';
 
@@ -15,34 +17,28 @@ export function usePinPostMutation(
   return useMutation({
     mutationFn: () => (isPinned ? postsApi.unpin(postId) : postsApi.pin(postId)),
     onMutate: async () => {
+      invalidatePostFeedHistory();
       const nextIsPinned = !isPinned;
 
       const updateFeedData = (old: InfiniteData<FeedPage> | undefined) => {
-        if (!old?.pages) return old;
-        return {
-          ...old,
-          pages: old.pages.map((page) => ({
-            ...page,
-            posts: page.posts.map((p: PostType) => {
-              if (p.id === postId) {
-                return {
-                  ...p,
-                  isPinned: nextIsPinned,
-                  pinnedAt: nextIsPinned ? new Date().toISOString() : null,
-                };
-              }
-              // If pinning this post, unpin any other post of the same author (1 pinned post limit)
-              if (nextIsPinned && p.isPinned) {
-                return {
-                  ...p,
-                  isPinned: false,
-                  pinnedAt: null,
-                };
-              }
-              return p;
-            }),
-          })),
-        };
+        return mapPostFeedData(old, (p: PostType) => {
+          if (p.id === postId) {
+            return {
+              ...p,
+              isPinned: nextIsPinned,
+              pinnedAt: nextIsPinned ? new Date().toISOString() : null,
+            };
+          }
+          // If pinning this post, unpin any other post of the same author (1 pinned post limit)
+          if (nextIsPinned && p.isPinned) {
+            return {
+              ...p,
+              isPinned: false,
+              pinnedAt: null,
+            };
+          }
+          return p;
+        });
       };
 
       if (currentQueryKey) {
@@ -80,6 +76,7 @@ export function usePinPostMutation(
       });
     },
     onSettled: () => {
+      invalidatePostFeedHistory();
       if (currentQueryKey) queryClient.invalidateQueries({ queryKey: currentQueryKey });
       queryClient.invalidateQueries({ queryKey: [FEED_KEY] });
       queryClient.invalidateQueries({ queryKey: [USER_POSTS_KEY] });

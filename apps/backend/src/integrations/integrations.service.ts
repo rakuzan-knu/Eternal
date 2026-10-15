@@ -1,18 +1,23 @@
 import {
+  issueOAuthLaunch,
+  consumeOAuthLaunch,
+  oauthLaunchPage,
+} from '../common/security/oauth-launch';
+import { issueOAuthState, consumeOAuthState, setOAuthCookie } from '../common/security/oauth-state';
+import {
   Injectable,
   Logger,
   NotFoundException,
   BadRequestException,
   Optional,
   ServiceUnavailableException,
-  UnauthorizedException,
 } from '@nestjs/common';
+import { SteamAuthService } from './steam-auth.service';
 import type { Request, Response } from 'express';
 import { RedisService } from '../redis/redis.service';
 import { PrismaService } from '@common/prisma';
 import type { Prisma } from '@prisma/client';
 import { removePlatformData } from './platform.utils';
-import { SteamAuthService } from './steam-auth.service';
 import type {
   TwitchUsersResponse,
   TwitchFollowersResponse,
@@ -207,12 +212,13 @@ export class IntegrationsService {
 </html>`;
   }
 
-  handlePlatformOAuthStart(
+  async handlePlatformOAuthStart(
     platform: string,
     userId: string,
-    req: Pick<Request, 'headers' | 'protocol' | 'query'>,
-    res: Pick<Response, 'redirect' | 'header' | 'send' | 'status'>,
-  ): void {
+    req: Request,
+    res: Response,
+    asJson = false,
+  ): Promise<void> {
     const host = req.headers.host || 'localhost:3000';
     const protocol = req.protocol || 'http';
     const backendUrl = `${protocol}://${host}`;
@@ -239,22 +245,15 @@ export class IntegrationsService {
       isVercel = false;
     }
 
-    // If GitHub, redirect to /auth/github
-    if (p === 'github') {
-      const rawCoreApiUrl = process.env.CORE_API_URL || backendUrl;
-      let end = rawCoreApiUrl.length;
-      while (end > 0 && rawCoreApiUrl.charCodeAt(end - 1) === 47) end--;
-      const coreApiUrl = rawCoreApiUrl.slice(0, end);
-      return res
-        .status(302)
-        .redirect(
-          `${coreApiUrl}/auth/github?userId=${encodeURIComponent(userId || '')}&origin=${encodeURIComponent(clientOrigin)}`,
-        );
+    const finish = async (url: string) => {
+      if (asJson) res.send(await this.prepareOAuthLaunch(url, String(req.headers.origin || '')));
+      else res.status(302).redirect(url);
+    };
+    if (p === 'github' || p === 'steam') {
+      throw new BadRequestException('Use the dedicated authenticated provider start endpoint');
     }
-
-    if (p === 'steam') {
-      throw new UnauthorizedException('Start Steam authentication with an authenticated POST');
-    }
+    const state = await issueOAuthState(this.redis, p, userId);
+    if (!asJson) setOAuthCookie(res, p, state);
 
     if (p === 'spotify' && process.env.SPOTIFY_CLIENT_ID) {
       const spotifyUrl = new URL('https://accounts.spotify.com/authorize');
@@ -268,8 +267,8 @@ export class IntegrationsService {
         'redirect_uri',
         process.env.SPOTIFY_CALLBACK_URL || `${backendUrl}/api/auth/spotify/callback`,
       );
-      spotifyUrl.searchParams.set('state', userId || '');
-      return res.status(302).redirect(spotifyUrl.toString());
+      spotifyUrl.searchParams.set('state', state);
+      return finish(spotifyUrl.toString());
     }
 
     if (p === 'twitch' && process.env.TWITCH_CLIENT_ID) {
@@ -280,8 +279,8 @@ export class IntegrationsService {
         process.env.TWITCH_CALLBACK_URL || `${backendUrl}/integrations/twitch/callback`;
       twitchUrl.searchParams.set('redirect_uri', redirectUri);
       twitchUrl.searchParams.set('scope', 'user:read:email channel:read:subscriptions');
-      twitchUrl.searchParams.set('state', `twitch:${userId || ''}`);
-      return res.status(302).redirect(twitchUrl.toString());
+      twitchUrl.searchParams.set('state', state);
+      return finish(twitchUrl.toString());
     }
 
     if (p === 'youtube' && process.env.GOOGLE_CLIENT_ID) {
@@ -301,8 +300,8 @@ export class IntegrationsService {
       googleUrl.searchParams.set('scope', 'https://www.googleapis.com/auth/youtube.readonly');
       googleUrl.searchParams.set('access_type', 'offline');
       googleUrl.searchParams.set('prompt', 'consent');
-      googleUrl.searchParams.set('state', `youtube:${userId || ''}`);
-      return res.status(302).redirect(googleUrl.toString());
+      googleUrl.searchParams.set('state', state);
+      return finish(googleUrl.toString());
     }
 
     if (p === 'roblox') {
@@ -323,8 +322,27 @@ export class IntegrationsService {
       return;
     }
 
-    const callbackUrl = `${backendUrl}/integrations/${p}/callback?userId=${encodeURIComponent(userId || '')}`;
-    return res.status(302).redirect(callbackUrl);
+    throw new BadRequestException('Unsupported OAuth provider');
+  }
+
+  private oauthLaunchUrl(): string {
+    const origin =
+      process.env.RENDER_EXTERNAL_URL ||
+      (process.env.NODE_ENV !== 'production' ? 'http://localhost:3000' : '');
+    if (!origin) throw new ServiceUnavailableException('OAuth callback host is not configured');
+    return new URL('/v1/integrations/oauth/launch', origin).href;
+  }
+
+  prepareOAuthLaunch(url: string, origin: string) {
+    return issueOAuthLaunch(this.redis, url, origin, this.oauthLaunchUrl());
+  }
+
+  getOAuthLaunchPage(): string {
+    return oauthLaunchPage();
+  }
+
+  launchOAuth(body: unknown, origin?: string) {
+    return consumeOAuthLaunch(this.redis, body, origin, this.oauthLaunchUrl());
   }
 
   async exchangeOAuthCode(
@@ -333,10 +351,11 @@ export class IntegrationsService {
     redirectUri?: string,
     userId?: string,
     state?: string,
+    browserState?: string,
   ): Promise<{ success: boolean; data: Record<string, unknown> | null }> {
     const p = platform.toLowerCase();
-    const rawTarget = userId || state || '';
-    const targetUserId = rawTarget.replace(/^[a-z]+:/i, '');
+    const identity = await consumeOAuthState(this.redis, p, state, userId, browserState);
+    const targetUserId = identity.userId;
     let data: Record<string, unknown> | null = null;
 
     if (p === 'youtube' && process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
@@ -822,15 +841,16 @@ export class IntegrationsService {
       return;
     }
 
-    const userId =
-      typeof query['userId'] === 'string'
-        ? query['userId']
-        : typeof query['state'] === 'string'
-          ? query['state']
-          : '';
-
+    const state = typeof query.state === 'string' ? query.state : '';
     try {
-      await this.exchangeOAuthCode(p, code, undefined, userId);
+      await this.exchangeOAuthCode(
+        p,
+        code,
+        undefined,
+        undefined,
+        state,
+        typeof query.browserState === 'string' ? query.browserState : undefined,
+      );
     } catch {
       res.header('Content-Type', 'text/html; charset=utf-8');
       res.status(400).send(`<!DOCTYPE html>
@@ -874,7 +894,7 @@ export class IntegrationsService {
       function broadcast() {
         if (window.opener) {
           try {
-            window.opener.postMessage({ type: 'INTEGRATION_AUTH_SUCCESS' }, '*');
+            window.opener.postMessage({ type: 'INTEGRATION_AUTH_SUCCESS', platform: ${JSON.stringify(p)} }, '*');
           } catch(e) {}
         }
       }

@@ -1,6 +1,8 @@
 import { useMutation, useQueryClient, InfiniteData } from '@tanstack/react-query';
 import { postsApi } from '../api/postsApi';
 import { FeedPage } from '@/entities/post/api/postsApi';
+import { mapPostFeedData } from '@/entities/post/model/mapPostFeedData';
+import { invalidatePostFeedHistory } from '@/entities/post/model/postFeedColdCache';
 import { useMessageToastStore } from '@/shared/model/useMessageToastStore';
 import { useCurrentUser } from '@/entities/profile/model/useCurrentUser';
 import {
@@ -19,33 +21,28 @@ export function useSavePostMutation(
   const { data: currentUser } = useCurrentUser();
 
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (targetSaved?: boolean) => {
+      const shouldSave = targetSaved !== undefined ? targetSaved : !isSaved;
       try {
-        return await (isSaved ? postsApi.unsave(postId) : postsApi.save(postId));
+        return await (shouldSave ? postsApi.save(postId) : postsApi.unsave(postId));
       } catch (err: unknown) {
         const status = (err as { response?: { status?: number } })?.response?.status;
-        if (!isSaved && status === 409) return { success: true };
-        if (isSaved && status === 404) return { success: true };
+        if (shouldSave && status === 409) return { success: true };
+        if (!shouldSave && status === 404) return { success: true };
         throw err;
       }
     },
-    onMutate: async () => {
-      const nextIsSaved = !isSaved;
+    onMutate: async (targetSaved?: boolean) => {
+      invalidatePostFeedHistory();
+      const nextIsSaved = targetSaved !== undefined ? targetSaved : !isSaved;
       const targetId = String(postId);
 
       const updateFeedData = (old: InfiniteData<FeedPage> | undefined) => {
-        if (!old?.pages) return old;
-        return {
-          ...old,
-          pages: old.pages.map((page) => ({
-            ...page,
-            posts: page.posts.map((p) => {
-              if (String(p.id) !== targetId) return p;
-              if (p.isSaved === nextIsSaved) return p;
-              return { ...p, isSaved: nextIsSaved };
-            }),
-          })),
-        };
+        return mapPostFeedData(old, (p) => {
+          if (String(p.id) !== targetId) return p;
+          if (p.isSaved === nextIsSaved) return p;
+          return { ...p, isSaved: nextIsSaved };
+        });
       };
 
       if (currentQueryKey) {
@@ -118,6 +115,7 @@ export function useSavePostMutation(
       });
     },
     onSettled: () => {
+      invalidatePostFeedHistory();
       if (currentQueryKey) queryClient.invalidateQueries({ queryKey: currentQueryKey });
       queryClient.invalidateQueries({ queryKey: [FEED_KEY] });
       queryClient.invalidateQueries({ queryKey: [USER_POSTS_KEY] });

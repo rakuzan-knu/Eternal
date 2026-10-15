@@ -39,3 +39,10 @@ export function groupMessagesByDate(messages: MessageView[]): MessageGroup[] {
 export function formatMessageTime(iso: string | Date): string {
   return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
+
+export function formatFullMessageDate(iso: string | Date): string {
+  const date = new Date(iso);
+  const label = dayLabel(date);
+  const time = formatMessageTime(date);
+  return `${label} at ${time}`;
+}

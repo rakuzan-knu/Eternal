@@ -59,11 +59,23 @@ describe('profileSchema', () => {
     }
   });
 
-  it('rejects bio exceeding 200 characters', () => {
+  it('rejects bio exceeding 1000 characters', () => {
     const result = profileSchema.safeParse({
       displayName: 'Test',
       username: 'valid_user',
-      bio: 'a'.repeat(201),
+      bio: 'a'.repeat(1001),
+      onlineStatus: true,
+      notifMain: true,
+      notifSound: true,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects bio exceeding 50 lines', () => {
+    const result = profileSchema.safeParse({
+      displayName: 'Test',
+      username: 'valid_user',
+      bio: Array(51).fill('line').join('\n'),
       onlineStatus: true,
       notifMain: true,
       notifSound: true,

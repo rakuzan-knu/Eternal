@@ -1,5 +1,6 @@
 import { DirectUploadsService } from '../common/media/direct-uploads.service';
 import {
+  BadRequestException,
   ForbiddenException,
   GoneException,
   Inject,
@@ -15,6 +16,7 @@ import { POSTS_REPOSITORY } from './interfaces/posts-repository.interface';
 import type { IPostRepository } from './interfaces/posts-repository.interface';
 import type { Paginated } from '../common/pagination';
 import { paginate } from '../common/pagination';
+import { paginatePostFeed } from './post-feed-cursor';
 import { RedisService } from '../redis/redis.service';
 import { PostsMediaService, type ProcessedMedia } from './posts-media.service';
 import { MessengerGateway } from '../messenger/gateway/messenger.gateway';
@@ -97,18 +99,18 @@ export class PostsService {
       const candidateLimit = Math.max(limit * 3, 40);
       const candidates = await this.postsRepository.getAllPosts(candidateLimit, after, viewerId);
       const ranked = this.feedScoringService.rankPostCandidates(candidates, viewerId);
-      return paginate(ranked, limit, PostResponseDto.fromPrisma);
+      return paginatePostFeed(ranked, limit, PostResponseDto.fromPrisma);
     }
 
     if (viewerId) {
       const posts = await this.postsRepository.getAllPosts(limit, after, viewerId);
-      return paginate(posts, limit, PostResponseDto.fromPrisma);
+      return paginatePostFeed(posts, limit, PostResponseDto.fromPrisma);
     }
 
     const key = `posts:feed:${limit}:${after ?? 'first'}`;
     return this.redis.getOrSet(key, 30, async () => {
       const posts = await this.postsRepository.getAllPosts(limit, after);
-      return paginate(posts, limit, PostResponseDto.fromPrisma);
+      return paginatePostFeed(posts, limit, PostResponseDto.fromPrisma);
     });
   }
 
@@ -140,61 +142,35 @@ export class PostsService {
     }[] = [];
 
     if (files?.length) this.directUploads.assertLegacyAllowed();
-    for (const item of dto.media || []) {
+    const directMedia = [];
+    const legacyReferences = [];
+    for (const item of dto.media ?? []) {
+      if (!this.directUploads.isDirectUploadUrl(item.url, 'post')) {
+        legacyReferences.push({ url: item.url, kind: 'uploaded' as const });
+        continue;
+      }
       await this.directUploads.assertOwnedUrl(authorId, item.url, 'post');
       if (item.poster) await this.directUploads.assertOwnedUrl(authorId, item.poster, 'post');
+      directMedia.push(item);
     }
-    if (dto.media && dto.media.length > 0) {
-      dto.media.forEach(
-        (
-          item: {
-            type: MediaType;
-            url: string;
-            poster?: string | undefined;
-            order?: number | undefined;
-          },
-          index: number,
-        ) => {
-          mediaItems.push({
-            type: item.type,
-            url: item.url,
-            ...(item.poster ? { poster: item.poster } : {}),
-            order: item.order ?? index,
-          });
-        },
-      );
+    const references = [
+      ...legacyReferences,
+      ...(dto.gifUrls ?? []).map((url) => ({ url, kind: 'gif' as const })),
+    ];
+    if ((files?.length ?? 0) + references.length + directMedia.length > 5)
+      throw new BadRequestException('Maximum 5 media files allowed per post');
+    if (files?.length || references.length) {
+      const processed = await this.mediaService.processUploadedFiles(files ?? [], references);
+      processed.forEach((item: ProcessedMedia) => mediaItems.push(item));
     }
-
-    for (const value of dto.gifUrls || []) {
-      const host = URL.canParse(value) ? new URL(value).hostname : '';
-      if (
-        !['media.tenor.com', 'media.giphy.com', 'i.giphy.com'].includes(host) &&
-        !/^media[0-9]\.giphy\.com$/.test(host)
-      )
-        throw new ForbiddenException('Unsupported GIF provider');
+    for (const item of directMedia) {
+      mediaItems.push({ ...item, order: mediaItems.length });
     }
-    if (dto.gifUrls && dto.gifUrls.length > 0) {
-      dto.gifUrls.forEach((gifUrl: string, index: number) => {
-        if (typeof gifUrl === 'string' && gifUrl.trim()) {
-          mediaItems.push({
-            type: MediaType.IMAGE,
-            url: gifUrl.trim(),
-            order: mediaItems.length + index,
-          });
-        }
-      });
-    }
-
-    if (files && files.length > 0) {
-      try {
-        const processed = await this.mediaService.processUploadedFiles(files);
-        processed.forEach((item: ProcessedMedia) => mediaItems.push(item));
-      } catch (e) {
-        this.logger.warn(`Failed to process uploaded files during post creation: ${String(e)}`);
-      }
-    }
-
     const contentText = (dto.content ?? '').trim();
+    const pollOptions = dto.poll?.map((option) => String(option).trim()).filter(Boolean) ?? [];
+    if (!contentText && mediaItems.length === 0 && pollOptions.length < 2) {
+      throw new BadRequestException('Add text, media or a poll before publishing');
+    }
 
     const post = await this.postsRepository.createPost({
       content: contentText,
@@ -229,6 +205,10 @@ export class PostsService {
           post.poll = createdPoll ?? null;
         }
       } catch (e) {
+        if (!contentText && mediaItems.length === 0) {
+          await this.postsRepository.deletePost(post.id);
+          throw e;
+        }
         this.logger.warn(`Non-blocking poll creation failure for post ${post.id}: ${String(e)}`);
       }
     }
@@ -421,7 +401,7 @@ export class PostsService {
     after?: string,
   ): Promise<Paginated<PostResponseDto>> {
     const posts = await this.postsRepository.getSavedPostsByUserId(userId, limit, after);
-    return paginate(posts, limit, PostResponseDto.fromPrisma);
+    return paginatePostFeed(posts, limit, PostResponseDto.fromPrisma);
   }
 
   async repost(postId: string, userId: string): Promise<{ success: true }> {
@@ -502,7 +482,7 @@ export class PostsService {
       }
     }
 
-    return paginate(mapped, limit, PostResponseDto.fromPrisma);
+    return paginatePostFeed(mapped, limit, PostResponseDto.fromPrisma);
   }
 
   async pinPost(postId: string, userId: string): Promise<PostResponseDto> {
@@ -551,7 +531,7 @@ export class PostsService {
     viewerId?: string,
   ): Promise<Paginated<PostResponseDto>> {
     const posts = await this.postsRepository.getRepostsByUserId(userId, limit, after, viewerId);
-    return paginate(posts, limit, PostResponseDto.fromPrisma);
+    return paginatePostFeed(posts, limit, PostResponseDto.fromPrisma);
   }
 
   async reportPost(
@@ -696,12 +676,13 @@ export class PostsService {
     chunkIndex: number,
     totalChunks: number,
     file: Express.Multer.File,
+    ownerId: string,
   ) {
     this.directUploads.assertLegacyAllowed();
-    return await this.mediaService.uploadChunk(uploadId, chunkIndex, totalChunks, file);
+    return await this.mediaService.uploadChunk(uploadId, chunkIndex, totalChunks, file, ownerId);
   }
 
-  getChunkStatus(uploadId: string) {
-    return this.mediaService.getChunkStatus(uploadId);
+  getChunkStatus(uploadId: string, ownerId: string) {
+    return this.mediaService.getChunkStatus(uploadId, ownerId);
   }
 }

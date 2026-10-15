@@ -5,10 +5,10 @@
  * into intuitive, plain-language diagnostics and an animated visual radar status.
  *
  * Examples:
- * - "У Ивана слабый Wi-Fi (потери пакетов)"
- * - "У Анны перегружен процессор (просадка FPS)"
- * - "Слабое освещение (темная камера)"
- * - "Нестабильный интернет (высокий пинг)"
+ * - "Ivan has weak Wi-Fi (packet loss)"
+ * - "Anna's CPU is overloaded (dropping FPS)"
+ * - "Low lighting (dark camera)"
+ * - "Unstable internet (high latency)"
  */
 
 export type ConnectionQualityLevel = 'excellent' | 'fair' | 'poor';
@@ -60,24 +60,24 @@ export function analyzeConnectionQuality(
   isLocal: boolean = false,
 ): RadarDiagnosticResult {
   const { packetLossPercent, fps, jitterMs, rttMs, luminance } = metrics;
-  const name = userName?.trim() || (isLocal ? 'вас' : 'собеседника');
+  const name = userName?.trim() || (isLocal ? 'You' : 'Participant');
 
   // 1. Check Severe Network Packet Loss (Wi-Fi dropouts)
   if (packetLossPercent >= QUALITY_THRESHOLDS.PACKET_LOSS_POOR) {
     const hint = isLocal
-      ? `У вас слабый Wi-Fi (потери пакетов ${Math.round(packetLossPercent)}%)`
-      : `У ${name} слабый Wi-Fi (потери пакетов)`;
+      ? `You have weak Wi-Fi (${Math.round(packetLossPercent)}% packet loss)`
+      : `${name} has weak Wi-Fi (packet loss)`;
 
     return {
       quality: 'poor',
       healthScore: Math.max(10, Math.round(100 - packetLossPercent * 2.5)),
       primaryIssue: 'packet_loss',
-      headline: 'Слабый Wi-Fi',
+      headline: 'Weak Wi-Fi',
       plainLanguageHint: hint,
-      technicalDetails: `Потери: ${packetLossPercent.toFixed(1)}% • Пинг: ${Math.round(rttMs)} мс`,
+      technicalDetails: `Loss: ${packetLossPercent.toFixed(1)}% • Ping: ${Math.round(rttMs)} ms`,
       recommendation: isLocal
-        ? 'Подойдите ближе к роутеру или переключитесь на проводной интернет'
-        : 'У собеседника прерывается сигнал беспроводной сети',
+        ? 'Move closer to your router or switch to a wired connection'
+        : 'Participant has an unstable wireless network signal',
       colorHex: '#ef4444', // Red-500
       pulseSpeedSec: 0.8,
     };
@@ -90,19 +90,19 @@ export function analyzeConnectionQuality(
     packetLossPercent < QUALITY_THRESHOLDS.PACKET_LOSS_FAIR
   ) {
     const hint = isLocal
-      ? `У вас перегружен процессор (просадка до ${Math.round(fps)} FPS)`
-      : `У ${name} перегружен процессор (просадка FPS)`;
+      ? `CPU is overloaded (dropping to ${Math.round(fps)} FPS)`
+      : `${name}'s CPU is overloaded (dropping FPS)`;
 
     return {
       quality: 'poor',
       healthScore: Math.max(15, Math.round((fps / 30) * 50)),
       primaryIssue: 'cpu_overload',
-      headline: 'Перегружен процессор',
+      headline: 'CPU Overload',
       plainLanguageHint: hint,
-      technicalDetails: `FPS: ${Math.round(fps)} • Пакеты в норме`,
+      technicalDetails: `FPS: ${Math.round(fps)} • Packets normal`,
       recommendation: isLocal
-        ? 'Закройте тяжелые фоновые вкладки и программы'
-        : 'Устройство собеседника испытывает высокую нагрузку',
+        ? 'Close resource-heavy background tabs and applications'
+        : "Participant's device is experiencing high workload",
       colorHex: '#f97316', // Orange-500
       pulseSpeedSec: 1.0,
     };
@@ -111,17 +111,17 @@ export function analyzeConnectionQuality(
   // 3. Check Moderate Packet Loss
   if (packetLossPercent >= QUALITY_THRESHOLDS.PACKET_LOSS_FAIR) {
     const hint = isLocal
-      ? `Нестабильный Wi-Fi (потери ${Math.round(packetLossPercent)}%)`
-      : `У ${name} слабый Wi-Fi (потери пакетов)`;
+      ? `Unstable Wi-Fi (${Math.round(packetLossPercent)}% loss)`
+      : `${name} has weak Wi-Fi (packet loss)`;
 
     return {
       quality: 'fair',
       healthScore: Math.max(40, Math.round(100 - packetLossPercent * 3.5)),
       primaryIssue: 'packet_loss',
-      headline: 'Нестабильный Wi-Fi',
+      headline: 'Unstable Wi-Fi',
       plainLanguageHint: hint,
-      technicalDetails: `Потери: ${packetLossPercent.toFixed(1)}% • Jitter: ${Math.round(jitterMs)} мс`,
-      recommendation: 'Возможны кратковременные задержки аудио и артефакты видео',
+      technicalDetails: `Loss: ${packetLossPercent.toFixed(1)}% • Jitter: ${Math.round(jitterMs)} ms`,
+      recommendation: 'Brief audio stutter and video artifacts may occur',
       colorHex: '#f59e0b', // Amber-500
       pulseSpeedSec: 1.4,
     };
@@ -133,17 +133,17 @@ export function analyzeConnectionQuality(
     packetLossPercent < QUALITY_THRESHOLDS.PACKET_LOSS_FAIR
   ) {
     const hint = isLocal
-      ? `Небольшая просадка FPS (${Math.round(fps)} к/с)`
-      : `У ${name} перегружен процессор (просадка FPS)`;
+      ? `Minor FPS drop (${Math.round(fps)} fps)`
+      : `${name}'s CPU is overloaded (dropping FPS)`;
 
     return {
       quality: 'fair',
       healthScore: Math.max(50, Math.round((fps / 30) * 75)),
       primaryIssue: 'cpu_overload',
-      headline: 'Просадка FPS',
+      headline: 'FPS Drop',
       plainLanguageHint: hint,
-      technicalDetails: `FPS: ${Math.round(fps)} • Задержка: ${Math.round(rttMs)} мс`,
-      recommendation: 'Снизьте разрешение видео или отключите энергосбережение',
+      technicalDetails: `FPS: ${Math.round(fps)} • Latency: ${Math.round(rttMs)} ms`,
+      recommendation: 'Lower video resolution or disable power-saving mode',
       colorHex: '#f59e0b',
       pulseSpeedSec: 1.5,
     };
@@ -152,17 +152,17 @@ export function analyzeConnectionQuality(
   // 5. Check High Latency / Bufferbloat
   if (rttMs >= QUALITY_THRESHOLDS.RTT_POOR_MS || jitterMs >= QUALITY_THRESHOLDS.JITTER_POOR_MS) {
     const hint = isLocal
-      ? `Высокая задержка сети (${Math.round(rttMs)} мс)`
-      : `У ${name} нестабильный интернет (высокая задержка)`;
+      ? `High network latency (${Math.round(rttMs)} ms)`
+      : `${name} has unstable internet (high latency)`;
 
     return {
       quality: 'fair',
       healthScore: 55,
       primaryIssue: 'high_latency',
-      headline: 'Высокая задержка',
+      headline: 'High Latency',
       plainLanguageHint: hint,
-      technicalDetails: `RTT: ${Math.round(rttMs)} мс • Jitter: ${Math.round(jitterMs)} мс`,
-      recommendation: 'Присутствует заметное эхо или задержка ответа',
+      technicalDetails: `RTT: ${Math.round(rttMs)} ms • Jitter: ${Math.round(jitterMs)} ms`,
+      recommendation: 'Noticeable audio echo or response delay present',
       colorHex: '#eab308', // Yellow-500
       pulseSpeedSec: 1.6,
     };
@@ -174,18 +174,16 @@ export function analyzeConnectionQuality(
     luminance !== null &&
     luminance < QUALITY_THRESHOLDS.LUMINANCE_DARK
   ) {
-    const hint = isLocal
-      ? 'Слабое освещение (темная камера)'
-      : `У ${name} слабое освещение (темная камера)`;
+    const hint = isLocal ? 'Low lighting (dark camera)' : `${name} has low lighting (dark camera)`;
 
     return {
       quality: 'fair',
       healthScore: 78,
       primaryIssue: 'low_light',
-      headline: 'Слабое освещение',
+      headline: 'Low Lighting',
       plainLanguageHint: hint,
-      technicalDetails: `Освещенность: ${Math.round((luminance / 255) * 100)}% • Связь 100%`,
-      recommendation: 'Включите дополнительный источник света или лампу',
+      technicalDetails: `Illumination: ${Math.round((luminance / 255) * 100)}% • Connection 100%`,
+      recommendation: 'Turn on an extra light source or desk lamp',
       colorHex: '#a855f7', // Purple-500
       pulseSpeedSec: 2.0,
     };
@@ -196,10 +194,10 @@ export function analyzeConnectionQuality(
     quality: 'excellent',
     healthScore: 98,
     primaryIssue: 'none',
-    headline: 'Отличное качество',
-    plainLanguageHint: 'Связь стабильная и плавная',
-    technicalDetails: `Пинг: ${Math.round(rttMs)} мс • ${Math.round(fps)} FPS • Без потерь`,
-    recommendation: 'Все параметры видео и звука на высшем уровне',
+    headline: 'Excellent Quality',
+    plainLanguageHint: 'Connection is stable and smooth',
+    technicalDetails: `Ping: ${Math.round(rttMs)} ms • ${Math.round(fps)} FPS • Zero loss`,
+    recommendation: 'All video and audio metrics are optimal',
     colorHex: '#10b981', // Emerald-500
     pulseSpeedSec: 2.5,
   };

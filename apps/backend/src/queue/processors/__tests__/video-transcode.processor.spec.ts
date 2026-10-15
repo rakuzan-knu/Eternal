@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConfigService } from '@nestjs/config';
+import type { Job } from 'bullmq';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import type * as S3Sdk from '@aws-sdk/client-s3';
 import { EventEmitter } from 'node:events';
@@ -185,5 +186,28 @@ describe('VideoTranscodeProcessor source contract', () => {
     });
     expect(send).not.toHaveBeenCalled();
     expect(fs.writeFile).not.toHaveBeenCalled();
+  });
+});
+
+describe('VideoTranscodeProcessor media availability', () => {
+  it('does not advertise media that was never produced', async () => {
+    const prisma = { reel: { update: vi.fn() }, postMedia: { update: vi.fn() } };
+    const processor = new VideoTranscodeProcessor(
+      new ConfigService(),
+      prisma as unknown as PrismaService,
+      new S3Client({ region: 'us-east-1' }),
+    );
+    spawnMock.mockImplementation(() => {
+      const child = new EventEmitter();
+      queueMicrotask(() => child.emit('error', new Error('ENOENT')));
+      return child;
+    });
+    const data = { reelId: 'reel-1', videoUrl: 'https://media.example/video.mp4' };
+    const result = await processor.transcodeToAdaptiveHls(data);
+    expect(result.masterPlaylistUrl).toBeNull();
+    expect(result.thumbnailUrl).toBeUndefined();
+    await processor.processJob({ name: 'video_hls_transcode', data } as Job);
+    expect(prisma.reel.update).not.toHaveBeenCalled();
+    expect(prisma.postMedia.update).not.toHaveBeenCalled();
   });
 });

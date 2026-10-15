@@ -1,3 +1,4 @@
+import { fetchPinned } from './pinned-http-fetch';
 import { Injectable, Logger } from '@nestjs/common';
 import * as dns from 'dns';
 import * as net from 'net';
@@ -156,6 +157,13 @@ export function isPrivateIPv4(ip: string): boolean {
 }
 
 export function isPrivateIPv6(ip: string): boolean {
+  try {
+    ip = new URL(`http://[${ip}]`).hostname.slice(1, -1).toLowerCase();
+  } catch {
+    return true;
+  }
+  if (!/^[23][0-9a-f]{3}:/.test(ip)) return true;
+
   const normalized = ip.toLowerCase().trim();
 
   // IPv4-mapped IPv6 (e.g. ::ffff:127.0.0.1)
@@ -374,8 +382,18 @@ export class OpenGraphService {
       if (isNaN(port) || !ALLOWED_PORTS.has(port)) return null;
     }
 
-    const isSafe = await this.validateDnsResolution(parsed.hostname);
-    if (!isSafe) return null;
+    const hostname = parsed.hostname.replace(/^\[|\]$/g, '');
+    let addresses: Awaited<ReturnType<typeof dns.promises.lookup>>[];
+    try {
+      const resolved = net.isIP(hostname)
+        ? [{ address: hostname, family: net.isIP(hostname) }]
+        : await dns.promises.lookup(hostname, { all: true, verbatim: true });
+      if (!resolved.length || resolved.some((address) => isPrivateOrForbiddenIp(address.address)))
+        return null;
+      addresses = resolved;
+    } catch {
+      return null;
+    }
 
     const safeScheme = parsed.protocol === 'https:' ? 'https:' : 'http:';
     const safeHost = parsed.hostname.toLowerCase();
@@ -401,17 +419,22 @@ export class OpenGraphService {
         const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
         try {
-          const res = await fetch(safeTargetUrl, {
-            signal: controller.signal,
-            redirect: 'manual',
-            headers: {
-              'User-Agent':
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 (compatible; SocialBot/1.0)',
-              Accept:
-                'application/json,text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-              ...headers,
+          const res = await fetchPinned(
+            safeTargetUrl,
+            {
+              signal: controller.signal,
+              redirect: 'manual',
+              headers: {
+                'User-Agent':
+                  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 (compatible; SocialBot/1.0)',
+                Accept:
+                  'application/json,text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                ...headers,
+              },
             },
-          });
+            addresses,
+            MAX_BUFFER_BYTES,
+          );
           return res;
         } finally {
           clearTimeout(timeoutId);

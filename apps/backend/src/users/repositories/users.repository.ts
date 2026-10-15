@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import type { Prisma, User } from '@prisma/client';
 import { PrismaService } from '@common/prisma';
 import type { CreateUserDto } from '@common/contracts';
@@ -23,6 +24,8 @@ export class UsersRepository implements IUsersRepository {
   create(dto: CreateUserDto): Promise<User> {
     return this.prisma.user.create({
       data: {
+        // Prisma omits the UUID default when this ID also backs optional composite relations.
+        id: randomUUID(),
         email: dto.email,
         username: dto.username,
         passwordHash: dto.passwordHash,
@@ -103,6 +106,10 @@ export class UsersRepository implements IUsersRepository {
     return this.prisma.user.findUnique({
       where: { id },
       include: {
+        activeDecoration: true,
+        activeNameplate: true,
+        activeProfileEffect: true,
+        activeProfileFrame: true,
         badges: true,
         _count: {
           select: {
@@ -193,6 +200,10 @@ export class UsersRepository implements IUsersRepository {
       },
       take: takeLimit,
       include: {
+        activeDecoration: true,
+        activeNameplate: true,
+        activeProfileEffect: true,
+        activeProfileFrame: true,
         badges: true,
         _count: {
           select: {
@@ -277,6 +288,10 @@ export class UsersRepository implements IUsersRepository {
         username: { notIn: reservedUsernames },
       },
       include: {
+        activeDecoration: true,
+        activeNameplate: true,
+        activeProfileEffect: true,
+        activeProfileFrame: true,
         badges: true,
         privacy: {
           select: { allowNearbyRecommendations: true },
@@ -299,6 +314,10 @@ export class UsersRepository implements IUsersRepository {
                 id: true,
                 username: true,
                 avatar: true,
+                activeDecoration: true,
+                activeNameplate: true,
+                activeProfileEffect: true,
+                activeProfileFrame: true,
               },
             },
           },
@@ -316,6 +335,10 @@ export class UsersRepository implements IUsersRepository {
       },
       take: 50,
       include: {
+        activeDecoration: true,
+        activeNameplate: true,
+        activeProfileEffect: true,
+        activeProfileFrame: true,
         badges: true,
         privacy: {
           select: { allowNearbyRecommendations: true },

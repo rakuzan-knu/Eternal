@@ -10,7 +10,11 @@ export function getApiService(url: string): ApiService {
       .replace(/^(?:api\/)?v1(?:\/|$)/, '')
       .replace(/^api(?:\/|$)/, '');
   if (/^\/integrations\/github\/callback(\/|$)/.test(path)) return 'core';
-  if (/^\/(conversations|calls|crypto\/prekeys|e2ee|messenger)(\/|$)/.test(path))
+  if (
+    /^\/(conversations|calls|crypto\/prekeys|e2ee|messenger|soundboard|watch-together)(\/|$)/.test(
+      path,
+    )
+  )
     return 'messenger';
   if (/^\/reels(\/|$)/.test(path)) return 'reels';
   if (/^\/(integrations|spotify)(\/|$)/.test(path) || /^\/auth\/spotify(\/|$)/.test(path))

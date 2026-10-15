@@ -1,11 +1,26 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import CreatePost from '../CreatePost';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 describe('CreatePost', () => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
+  });
+  it('does not create an attachment or enable publication for an EXE disguised as an image', async () => {
+    const submit = vi.fn();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <CreatePost onSubmitFormData={submit} />
+      </QueryClientProvider>,
+    );
+    fireEvent.change(document.querySelector('input[type="file"]')!, {
+      target: { files: [new File(['MZ invalid'], 'fake.png', { type: 'image/png' })] },
+    });
+    await screen.findByText('Choose a supported image, video or audio file.');
+    await waitFor(() => expect(screen.getByRole('button', { name: /^publish$/i })).toBeDisabled());
+    expect(submit).not.toHaveBeenCalled();
+    expect(document.querySelector('img[src^="blob:"]')).toBeNull();
   });
 
   it('renders composer textarea and publish button disabled when empty', () => {

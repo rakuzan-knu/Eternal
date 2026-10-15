@@ -39,19 +39,21 @@ export function ReportDetailsModal({ onClose, onBack }: ReportDetailsModalProps)
     return (
       <Modal onClose={onClose} className="w-full max-w-md">
         {(close) => (
-          <div className="bg-[#1c1c20] border border-white/10 rounded-3xl shadow-2xl p-5">
+          <div className="glass-modal border border-black/10 dark:border-white/10 rounded-3xl shadow-2xl backdrop-blur-2xl p-5 text-gray-950 dark:text-white">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-white">Problem report</h2>
+              <h2 className="text-lg font-bold text-gray-950 dark:text-white">Problem report</h2>
               <button
                 type="button"
                 onClick={close}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white transition-colors active:scale-90"
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-black/5 hover:bg-black/10 dark:bg-white/5 text-gray-600 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-white transition-colors active:scale-90"
                 aria-label="Close"
               >
                 <XIcon size={16} />
               </button>
             </div>
-            <p className="text-sm text-gray-300 py-6 text-center">Thank you! Report sent.</p>
+            <p className="text-sm text-gray-700 dark:text-gray-300 py-6 text-center">
+              Thank you! Report sent.
+            </p>
           </div>
         )}
       </Modal>
@@ -61,23 +63,23 @@ export function ReportDetailsModal({ onClose, onBack }: ReportDetailsModalProps)
   return (
     <Modal onClose={onClose} className="w-full max-w-md">
       {(close) => (
-        <div className="bg-[#1c1c20] border border-white/10 rounded-3xl shadow-2xl p-5">
+        <div className="glass-modal border border-black/10 dark:border-white/10 rounded-3xl shadow-2xl backdrop-blur-2xl p-5 text-gray-950 dark:text-white">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={onBack}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white transition-colors active:scale-90"
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-black/5 hover:bg-black/10 dark:bg-white/5 text-gray-600 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-white transition-colors active:scale-90"
                 aria-label="Go back"
               >
                 <ArrowLeft size={16} />
               </button>
-              <h2 className="text-lg font-bold text-white">Report details</h2>
+              <h2 className="text-lg font-bold text-gray-950 dark:text-white">Report details</h2>
             </div>
             <button
               type="button"
               onClick={close}
-              className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white transition-colors active:scale-90"
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-black/5 hover:bg-black/10 dark:bg-white/5 text-gray-600 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-white transition-colors active:scale-90"
               aria-label="Close"
             >
               <XIcon size={16} />
@@ -91,7 +93,7 @@ export function ReportDetailsModal({ onClose, onBack }: ReportDetailsModalProps)
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Explain what exactly isn't working."
-                className="w-full bg-[#111] border border-[#333] rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500 transition resize-none"
+                className="w-full bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 rounded-xl px-4 py-2.5 text-gray-950 dark:text-white placeholder:text-gray-500 text-sm focus:outline-none focus:border-purple-500 transition resize-none"
               />
               <p className="text-xs text-gray-500 mt-1">
                 You can also insert an image directly here.
@@ -113,7 +115,7 @@ export function ReportDetailsModal({ onClose, onBack }: ReportDetailsModalProps)
                 onChange={(e) => setScreenshot(e.target.files?.[0] ?? null)}
               />
               {screenshot ? (
-                <div className="flex items-center justify-between bg-[#111] border border-[#333] rounded-xl px-4 py-2.5 text-sm text-gray-300">
+                <div className="flex items-center justify-between bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-gray-800 dark:text-gray-300">
                   <span className="truncate">{screenshot.name}</span>
                   <button
                     type="button"
@@ -127,7 +129,7 @@ export function ReportDetailsModal({ onClose, onBack }: ReportDetailsModalProps)
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full flex items-center gap-2 bg-[#111] border border-[#333] hover:border-neutral-600 rounded-xl px-4 py-2.5 text-sm text-gray-400 transition-colors"
+                  className="w-full flex items-center gap-2 bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 hover:border-neutral-500 rounded-xl px-4 py-2.5 text-sm text-gray-600 dark:text-gray-400 transition-colors"
                 >
                   <Upload size={14} /> Upload a screenshot or video
                 </button>

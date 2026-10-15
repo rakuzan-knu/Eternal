@@ -3,7 +3,8 @@
 # PostgreSQL Backup Script with AES-256-CBC Encryption at Rest
 # Usage: ./scripts/db/backup-db.sh
 
-set -e
+set -euo pipefail
+umask 077
 
 BACKUP_DIR="${BACKUP_DIR:-/backups}"
 DB_NAME="${POSTGRES_DB:-social}"
@@ -12,7 +13,12 @@ DB_HOST="${POSTGRES_HOST:-postgres}"
 DB_PORT="${POSTGRES_PORT:-5432}"
 RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-7}"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-BACKUP_ENCRYPTION_KEY="${BACKUP_ENCRYPTION_KEY:-default_dev_backup_key_32_bytes_min}"
+: "${BACKUP_ENCRYPTION_KEY:?BACKUP_ENCRYPTION_KEY is required}"
+if [ "${#BACKUP_ENCRYPTION_KEY}" -lt 32 ]; then
+  echo "BACKUP_ENCRYPTION_KEY must contain at least 32 characters" >&2
+  exit 1
+fi
+export BACKUP_ENCRYPTION_KEY
 
 # File path for encrypted archive
 BACKUP_FILE="${BACKUP_DIR}/backup_${DB_NAME}_${TIMESTAMP}.sql.gz.enc"
@@ -36,10 +42,10 @@ log "Encryption Standard: AES-256-CBC (PBKDF2 iter: 100,000)"
 # Perform backup with inline stream compression and AES-256-CBC encryption
 if pg_dump -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" --no-password | \
    gzip | \
-   openssl enc -aes-256-cbc -pbkdf2 -iter 100000 -pass pass:"${BACKUP_ENCRYPTION_KEY}" > "${BACKUP_FILE}"; then
+   openssl enc -aes-256-cbc -pbkdf2 -iter 100000 -pass env:BACKUP_ENCRYPTION_KEY > "${BACKUP_FILE}"; then
 
   # Test archive integrity via streaming decryption and gzip test
-  if ! openssl enc -d -aes-256-cbc -pbkdf2 -iter 100000 -pass pass:"${BACKUP_ENCRYPTION_KEY}" -in "${BACKUP_FILE}" | gzip -t 2>/dev/null; then
+  if ! openssl enc -d -aes-256-cbc -pbkdf2 -iter 100000 -pass env:BACKUP_ENCRYPTION_KEY -in "${BACKUP_FILE}" | gzip -t 2>/dev/null; then
     log "❌ Backup file integrity check failed! Encrypted archive is corrupted or key mismatch."
     rm -f "${BACKUP_FILE}"
     exit 1
@@ -60,12 +66,12 @@ if pg_dump -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" --no-password
   log "Cleaned up old backups. Total backups: $NEW_COUNT (removed $((OLD_COUNT - NEW_COUNT)))"
 
   # Optional Cross-Region Replication to S3/GCS
-  if [ -n "${BACKUP_S3_BUCKET}" ]; then
+  if [ -n "${BACKUP_S3_BUCKET:-}" ]; then
     log "Replicating backups to Cross-Region Storage: ${BACKUP_S3_BUCKET}..."
     if command -v rclone &> /dev/null; then
-      rclone sync "${BACKUP_DIR}" "${BACKUP_S3_BUCKET}" --fast-list || log "⚠️ rclone replication warning"
+      rclone sync "${BACKUP_DIR}" "${BACKUP_S3_BUCKET:-}" --fast-list || log "⚠️ rclone replication warning"
     elif command -v aws &> /dev/null; then
-      aws s3 sync "${BACKUP_DIR}" "${BACKUP_S3_BUCKET}" --delete || log "⚠️ AWS S3 sync warning"
+      aws s3 sync "${BACKUP_DIR}" "${BACKUP_S3_BUCKET:-}" --delete || log "⚠️ AWS S3 sync warning"
     else
       log "ℹ️ Neither rclone nor aws CLI found. Skipping remote bucket sync."
     fi
@@ -82,6 +88,7 @@ if pg_dump -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" --no-password
   echo "# TYPE backups_total_count gauge"
   echo "backups_total_count $NEW_COUNT"
 else
+  rm -f -- "${BACKUP_FILE}"
   log "❌ Backup failed!"
   echo "# HELP backup_success_time_seconds Timestamp of last successful backup"
   echo "# TYPE backup_success_time_seconds gauge"

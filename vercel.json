@@ -82,6 +82,30 @@
       "destination": "https://eternal-messenger.onrender.com/v1/messenger/:path*"
     },
     {
+      "source": "/api/v1/soundboard/:path*",
+      "destination": "https://eternal-messenger.onrender.com/v1/soundboard/:path*"
+    },
+    {
+      "source": "/api/soundboard/:path*",
+      "destination": "https://eternal-messenger.onrender.com/v1/soundboard/:path*"
+    },
+    {
+      "source": "/v1/soundboard/:path*",
+      "destination": "https://eternal-messenger.onrender.com/v1/soundboard/:path*"
+    },
+    {
+      "source": "/api/v1/watch-together/:path*",
+      "destination": "https://eternal-messenger.onrender.com/v1/watch-together/:path*"
+    },
+    {
+      "source": "/api/watch-together/:path*",
+      "destination": "https://eternal-messenger.onrender.com/v1/watch-together/:path*"
+    },
+    {
+      "source": "/v1/watch-together/:path*",
+      "destination": "https://eternal-messenger.onrender.com/v1/watch-together/:path*"
+    },
+    {
       "source": "/api/v1/reels/:path*",
       "destination": "https://eternal-reels.onrender.com/v1/reels/:path*"
     },

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { AvatarDecorationDto } from './decorations';
 
 export const createReelSchema = z.object({
   uploadId: z.string().uuid().optional(),
@@ -38,6 +39,7 @@ export interface ReelAuthorDto {
   username: string;
   displayName: string | null;
   avatar: string | null;
+  activeDecoration?: AvatarDecorationDto | null | undefined;
   isVerified?: boolean | undefined;
   isFollowing?: boolean | undefined;
 }

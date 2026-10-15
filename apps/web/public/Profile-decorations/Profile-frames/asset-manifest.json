@@ -1,0 +1,560 @@
+[
+  {
+    "id": "profile-frame-dragon-jade",
+    "files": [
+      {
+        "name": "profile-frame-dragon-jade.corner.svg",
+        "bytes": 917,
+        "sha256": "cbe1e27584090c40d2c86aedd051d2ea5cecf7c9ede172c21e3e0ee7237de3a3"
+      },
+      {
+        "name": "profile-frame-dragon-jade.rail.svg",
+        "bytes": 801,
+        "sha256": "52d9a33c6ff309c36a3a2f54a44c16d675ab50ffe5199efa3ee17d57c788d034"
+      },
+      {
+        "name": "profile-frame-dragon-jade.footer.svg",
+        "bytes": 1094,
+        "sha256": "d349dcc2041e5b5dc895243e0e93a5fd2ab963921d933c2d8346dfa7ae9535ae"
+      },
+      {
+        "name": "profile-frame-dragon-jade.crown.webp",
+        "bytes": 4021716,
+        "sha256": "7de8a82a1a5c891c6d2f7e6ff8543c33057420142d2561ce05c23b10b8616d94"
+      },
+      {
+        "name": "profile-frame-dragon-jade.crown.preview.webp",
+        "bytes": 38400,
+        "sha256": "9771b15371411ab794742a11f9cefc0c55de59e411d73000aae059ac0d7e0556"
+      }
+    ],
+    "sources": [
+      {
+        "path": "C:\\Users\\Ayate\\Desktop\\SocialMedia\\social-network\\scripts\\decorations\\blender\\assets\\artist-dragon\\dragon.obj",
+        "sha256": "d34ffb7cd32d2aaba8a962691031acf807d1624ab4b71e18e39227c3b74a9b74"
+      }
+    ],
+    "seamMetres": 1.4901161193847656e-8,
+    "fps": 60,
+    "durationMs": 3000
+  },
+  {
+    "id": "profile-frame-dragon-sapphire",
+    "files": [
+      {
+        "name": "profile-frame-dragon-sapphire.corner.svg",
+        "bytes": 917,
+        "sha256": "58c5e914458958788b2dfbf6964ea0acdfed61877df9d52486aac11818305192"
+      },
+      {
+        "name": "profile-frame-dragon-sapphire.rail.svg",
+        "bytes": 801,
+        "sha256": "84a8842b528c1bed6d0c36c9290fe31d4339dd686579c555edaeed8a29e7a226"
+      },
+      {
+        "name": "profile-frame-dragon-sapphire.footer.svg",
+        "bytes": 1094,
+        "sha256": "aaee46981d0a98522e71d4486f2103b426dad2703709617f384e44cc1f810c25"
+      },
+      {
+        "name": "profile-frame-dragon-sapphire.crown.webp",
+        "bytes": 4277694,
+        "sha256": "6b53b2b1b6bdb6bccc4cc650aa5c0c7e1285d5c890e7f096f6f0046a6edb52f4"
+      },
+      {
+        "name": "profile-frame-dragon-sapphire.crown.preview.webp",
+        "bytes": 41782,
+        "sha256": "07acc8c13b8aceb42b252008ce7ee65423b6a7a8bbe9ce42b2811ca40249d51d"
+      }
+    ],
+    "sources": [
+      {
+        "path": "C:\\Users\\Ayate\\Desktop\\SocialMedia\\social-network\\scripts\\decorations\\blender\\assets\\artist-dragon\\dragon.obj",
+        "sha256": "d34ffb7cd32d2aaba8a962691031acf807d1624ab4b71e18e39227c3b74a9b74"
+      }
+    ],
+    "seamMetres": 1.4901161193847656e-8,
+    "fps": 60,
+    "durationMs": 3000
+  },
+  {
+    "id": "profile-frame-dragon-gold",
+    "files": [
+      {
+        "name": "profile-frame-dragon-gold.corner.svg",
+        "bytes": 917,
+        "sha256": "51204d9d5aa7a933ad88083651ac557fa4f8e7fc905a64f0a01bed598080ce80"
+      },
+      {
+        "name": "profile-frame-dragon-gold.rail.svg",
+        "bytes": 801,
+        "sha256": "f4ff646b9494542234757f691e00535abf7cd3b945c50bc36435c287f6428756"
+      },
+      {
+        "name": "profile-frame-dragon-gold.footer.svg",
+        "bytes": 1094,
+        "sha256": "196cfc86ff9f13b9ebcc06e8d51340bb38964ae3fda6af3b8be6b98e5eb8bf18"
+      },
+      {
+        "name": "profile-frame-dragon-gold.crown.webp",
+        "bytes": 4248870,
+        "sha256": "3bbf1498dced39d07394d421514eef428d6b2b7fe5f3c8c38e26f8b775407246"
+      },
+      {
+        "name": "profile-frame-dragon-gold.crown.preview.webp",
+        "bytes": 41040,
+        "sha256": "86afa457271bf1f7fba0a83bd9299ea0d517ce4ab4f06ed2301a5814b6c44f58"
+      }
+    ],
+    "sources": [
+      {
+        "path": "C:\\Users\\Ayate\\Desktop\\SocialMedia\\social-network\\scripts\\decorations\\blender\\assets\\artist-dragon\\dragon.obj",
+        "sha256": "d34ffb7cd32d2aaba8a962691031acf807d1624ab4b71e18e39227c3b74a9b74"
+      }
+    ],
+    "seamMetres": 1.4901161193847656e-8,
+    "fps": 60,
+    "durationMs": 3000
+  },
+  {
+    "id": "profile-frame-rose-ivory",
+    "files": [
+      {
+        "name": "profile-frame-rose-ivory.corner.svg",
+        "bytes": 917,
+        "sha256": "6bcd68057ea7d34364f066b48c7e838949b32283f9f481e34b5f1fe8b156e462"
+      },
+      {
+        "name": "profile-frame-rose-ivory.rail.svg",
+        "bytes": 801,
+        "sha256": "b2f870768b30a341d6ee391c32e67be74ccb38acb55c2f2f69ef7f0e16560d22"
+      },
+      {
+        "name": "profile-frame-rose-ivory.footer.svg",
+        "bytes": 1094,
+        "sha256": "5d9c8fee076245242670e30a68f2b2e55cbdd9ec65988a5957593a81d46180b3"
+      },
+      {
+        "name": "profile-frame-rose-ivory.crown.webp",
+        "bytes": 1939584,
+        "sha256": "f9b500c3b677acbd6b609d001e1ec694a306902d0db08008b2de35c6bb8e83c2"
+      },
+      {
+        "name": "profile-frame-rose-ivory.crown.preview.webp",
+        "bytes": 19858,
+        "sha256": "2d9e6b5df68052e1192c3e440c77315309eb4e81a43e549de3cd04950e19c9f4"
+      }
+    ],
+    "sources": [],
+    "seamMetres": 0,
+    "fps": 60,
+    "durationMs": 3000
+  },
+  {
+    "id": "profile-frame-rose-crimson",
+    "files": [
+      {
+        "name": "profile-frame-rose-crimson.corner.svg",
+        "bytes": 917,
+        "sha256": "1f4d32cd5eb48b381a836f99b09c9d19545547d1cae31b9c71d7d7d7a880c148"
+      },
+      {
+        "name": "profile-frame-rose-crimson.rail.svg",
+        "bytes": 801,
+        "sha256": "08ef019dccc3c55d8a0257e6126303ab7f6e205f12f356f3353afa4d85c4c13e"
+      },
+      {
+        "name": "profile-frame-rose-crimson.footer.svg",
+        "bytes": 1094,
+        "sha256": "8755aeb68b9b8c860dc6ea3b9e73e83337a07d009160db0f5761a460a82d3b13"
+      },
+      {
+        "name": "profile-frame-rose-crimson.crown.webp",
+        "bytes": 2071418,
+        "sha256": "0a37ac6e0c377bfa85992f0658e847ce1f39ef8964bcf19fbdb5018daad36cf9"
+      },
+      {
+        "name": "profile-frame-rose-crimson.crown.preview.webp",
+        "bytes": 21608,
+        "sha256": "fb3054fa5adf0c34f88a3a8baf02d63388e8af6132ba7085c08ea72e1f6cb2f3"
+      }
+    ],
+    "sources": [],
+    "seamMetres": 0,
+    "fps": 60,
+    "durationMs": 3000
+  },
+  {
+    "id": "profile-frame-rose-amethyst",
+    "files": [
+      {
+        "name": "profile-frame-rose-amethyst.corner.svg",
+        "bytes": 917,
+        "sha256": "2ca4398195295f6ae50182490711f95fc370f9d1dd29d9b95624bf4851a1b586"
+      },
+      {
+        "name": "profile-frame-rose-amethyst.rail.svg",
+        "bytes": 801,
+        "sha256": "526f50f9718fa9a667e4b79b60714824eb334c6ac07b9f93abc6bf67b3658693"
+      },
+      {
+        "name": "profile-frame-rose-amethyst.footer.svg",
+        "bytes": 1094,
+        "sha256": "9f34dc50f97b970ccc5eca78195677c772084220ff121da688cdfa70f43057e9"
+      },
+      {
+        "name": "profile-frame-rose-amethyst.crown.webp",
+        "bytes": 1981750,
+        "sha256": "62dc92b4e1618f74e492da864704b72210db2805e842ae86d03605948804f2c6"
+      },
+      {
+        "name": "profile-frame-rose-amethyst.crown.preview.webp",
+        "bytes": 21292,
+        "sha256": "bb003cc07931d989a3b9aa4cf915b3766c09dc8ebf7e18bf0b699e5438604ed6"
+      }
+    ],
+    "sources": [],
+    "seamMetres": 0,
+    "fps": 60,
+    "durationMs": 3000
+  },
+  {
+    "id": "profile-frame-blade-jade",
+    "files": [
+      {
+        "name": "profile-frame-blade-jade.corner.svg",
+        "bytes": 995,
+        "sha256": "0438957fe4dee112d5c1fe8141aabc8f469a8b1d3e94d6d075df429242496d72"
+      },
+      {
+        "name": "profile-frame-blade-jade.rail.svg",
+        "bytes": 783,
+        "sha256": "1cb61f0bca7c7229b95ab9b54e998283394b8ec113f87c3ef1db6a36f787a1f7"
+      },
+      {
+        "name": "profile-frame-blade-jade.footer.svg",
+        "bytes": 1094,
+        "sha256": "7a6e6b42566c48e1a4800126ee1b2b4a7d86d2fefd7a029659d1cd6a3740e11b"
+      },
+      {
+        "name": "profile-frame-blade-jade.crown.webp",
+        "bytes": 1995610,
+        "sha256": "b9dc0aa1b94ded31c93e5a3ff344a66593d6a6d9ebc2aab447451cf7c6468efe"
+      },
+      {
+        "name": "profile-frame-blade-jade.crown.preview.webp",
+        "bytes": 20222,
+        "sha256": "9cc03d12c1adcb501763a5a0fa0b6d2ac17f19b6d1d8d75261c918dcf912ebef"
+      }
+    ],
+    "sources": [
+      {
+        "path": "C:\\Users\\Ayate\\Desktop\\SocialMedia\\social-network\\frontend\\public\\Profile-decorations\\3D-Models\\Swords\\sao_kirito_sword_3.glb",
+        "sha256": "64eb852ffc938cc1a1c79eae290eb2943012274306b286bcac031c91e1fa257d"
+      },
+      {
+        "path": "C:\\Users\\Ayate\\Desktop\\SocialMedia\\social-network\\frontend\\public\\Profile-decorations\\3D-Models\\Swords\\elucidator.glb",
+        "sha256": "705a6bcbf02a7255b48af23e622db4d21e7ea9b5416b8d2c0d01482261bcd3e9"
+      }
+    ],
+    "seamMetres": 0,
+    "fps": 60,
+    "durationMs": 3000
+  },
+  {
+    "id": "profile-frame-blade-frost",
+    "files": [
+      {
+        "name": "profile-frame-blade-frost.corner.svg",
+        "bytes": 995,
+        "sha256": "8ad3a3202a923e719970a05576930859d558bd3acd21d91db28e8ab566ce2600"
+      },
+      {
+        "name": "profile-frame-blade-frost.rail.svg",
+        "bytes": 783,
+        "sha256": "7866b52a4ef0548908f30819f53e014ea3354c518316dcf2a945a51ffe738bb6"
+      },
+      {
+        "name": "profile-frame-blade-frost.footer.svg",
+        "bytes": 1094,
+        "sha256": "124088908817755fde0416b80be8774542e4f7c2cc808bedc9f919edc5372e8e"
+      },
+      {
+        "name": "profile-frame-blade-frost.crown.webp",
+        "bytes": 2391724,
+        "sha256": "4110b58ed3d7d530b8ce75c14b8444f3cd4183ca1c6e40fdee358739de629663"
+      },
+      {
+        "name": "profile-frame-blade-frost.crown.preview.webp",
+        "bytes": 23782,
+        "sha256": "0c4f7bc607f53b12498343bdc6504b3e224f693d228d4fe5b1d194957c9fb158"
+      }
+    ],
+    "sources": [
+      {
+        "path": "C:\\Users\\Ayate\\Desktop\\SocialMedia\\social-network\\frontend\\public\\Profile-decorations\\3D-Models\\Swords\\blue_rose_sword.glb",
+        "sha256": "cb53b3ca62fcc50eac6b287e5bcaab6adfde64a6e3b2bd8fada966df15f96f05"
+      },
+      {
+        "path": "C:\\Users\\Ayate\\Desktop\\SocialMedia\\social-network\\frontend\\public\\Profile-decorations\\3D-Models\\Swords\\excalibur_-_sword_art_online.glb",
+        "sha256": "79b3128db16b5a8dc46ad2d96f909c87b86d0c52822e7e052e0c06729c4199c1"
+      }
+    ],
+    "seamMetres": 0,
+    "fps": 60,
+    "durationMs": 3000
+  },
+  {
+    "id": "profile-frame-crystal-aurora",
+    "files": [
+      {
+        "name": "profile-frame-crystal-aurora.corner.svg",
+        "bytes": 1094,
+        "sha256": "714a955fec1caa62157466edb201473834a17417bedf2206f3d728676fc17536"
+      },
+      {
+        "name": "profile-frame-crystal-aurora.rail.svg",
+        "bytes": 801,
+        "sha256": "72b84d4685d9cf2d319ac8d38ae0e73d496c9034b1b2880efc1767dd8f01770b"
+      },
+      {
+        "name": "profile-frame-crystal-aurora.footer.svg",
+        "bytes": 1094,
+        "sha256": "f6c4fb51be46b57fe2dbc6d3c7983d22f87d515a7263c1f1887cde47e915fce9"
+      },
+      {
+        "name": "profile-frame-crystal-aurora.crown.webp",
+        "bytes": 284218,
+        "sha256": "61e40d5de4a752e5aa81758a3b60f52a6cbf94117ac103ab6aee8c878f6822a3"
+      },
+      {
+        "name": "profile-frame-crystal-aurora.crown.preview.webp",
+        "bytes": 2694,
+        "sha256": "62f9403c4662deef93e7067e6a37c9b26b23aafa74473bf512c24872410bea2c"
+      }
+    ],
+    "sources": [
+      {
+        "path": "C:\\Users\\Ayate\\Desktop\\SocialMedia\\social-network\\frontend\\public\\Profile-decorations\\3D-Models\\Crystals\\the_sims_plumbob.glb",
+        "sha256": "bef01ed9515ce26ec2269ca7389876f1b3754c3a140c69210e670ffc40de964b"
+      }
+    ],
+    "seamMetres": 4.542678161699067e-8,
+    "fps": 60,
+    "durationMs": 3000
+  },
+  {
+    "id": "profile-frame-celestial-midnight",
+    "files": [
+      {
+        "name": "profile-frame-celestial-midnight.corner.svg",
+        "bytes": 1094,
+        "sha256": "1b391cea38f037ccb1f1c82bda5edd88a42197b52c9612142012c8b4d83cb3c9"
+      },
+      {
+        "name": "profile-frame-celestial-midnight.rail.svg",
+        "bytes": 801,
+        "sha256": "d67b4e188ccc730383a23dbe547482730119c5447198aa72a0d44b4bf7b24aaf"
+      },
+      {
+        "name": "profile-frame-celestial-midnight.footer.svg",
+        "bytes": 1094,
+        "sha256": "8a7e2b07f2371731773fdbacbcf2004e1c2a2e0a5cbf3eca7b402c71415f1ed6"
+      },
+      {
+        "name": "profile-frame-celestial-midnight.crown.svg",
+        "bytes": 1707,
+        "sha256": "113d32cb1568374927dc1aa61309fffd3c67db2375e6e8fd0ac6df870c20eccf"
+      },
+      {
+        "name": "profile-frame-celestial-midnight.crown.preview.webp",
+        "bytes": 23104,
+        "sha256": "8f887ab3b6d02994d2113de83add411aa49752c1b5dcf907c93c745e9e9b7b32"
+      }
+    ],
+    "sources": [],
+    "seamMetres": 0,
+    "fps": 0,
+    "durationMs": 6000
+  },
+  {
+    "id": "profile-frame-cat-ivory",
+    "files": [
+      {
+        "name": "profile-frame-cat-ivory.corner.svg",
+        "bytes": 873,
+        "sha256": "0fe10d0917a031547234b9799f2bf0d1037e22725d529dc704c58e07fc17a976"
+      },
+      {
+        "name": "profile-frame-cat-ivory.rail.svg",
+        "bytes": 801,
+        "sha256": "217dbfe0c144335412fb513f62c4218cebcea2373b70b40b6c8d98ef9377d2e2"
+      },
+      {
+        "name": "profile-frame-cat-ivory.footer.svg",
+        "bytes": 978,
+        "sha256": "fd62bf3181517a26455b62649bcfeead598ec5e7b1db8706aa3eb4f734e707d5"
+      },
+      {
+        "name": "profile-frame-cat-ivory.crown.svg",
+        "bytes": 1715,
+        "sha256": "b3f398b43a6e3d66e7f068bf260e41a9e449143a3836b0832cd31edd15e49b19"
+      },
+      {
+        "name": "profile-frame-cat-ivory.crown.preview.webp",
+        "bytes": 9068,
+        "sha256": "8430f5f12f967f0b515c082583c8b1fca7d7da658470d1d0aad72aad3ef18593"
+      }
+    ],
+    "sources": [],
+    "seamMetres": 0,
+    "fps": 0,
+    "durationMs": 6000
+  },
+  {
+    "id": "profile-frame-cat-midnight",
+    "files": [
+      {
+        "name": "profile-frame-cat-midnight.corner.svg",
+        "bytes": 873,
+        "sha256": "1cf1c0b36ee002cf24a88dcec83bcabdef3d508e78acdcd940490934e6572908"
+      },
+      {
+        "name": "profile-frame-cat-midnight.rail.svg",
+        "bytes": 801,
+        "sha256": "b2f476179a10bcc9198444617f8e4fbabd0fdba883f707eff6af5ca036d5c99a"
+      },
+      {
+        "name": "profile-frame-cat-midnight.footer.svg",
+        "bytes": 978,
+        "sha256": "5b38ae5c48ea37fa324ca0e3cb1ae523a2287c65d004032e4d87aeaa15ff8e6a"
+      },
+      {
+        "name": "profile-frame-cat-midnight.crown.svg",
+        "bytes": 1715,
+        "sha256": "42f5037d8691ab3ac90f538a49e98a3c8518412a17bc8bb183510785df073f8e"
+      },
+      {
+        "name": "profile-frame-cat-midnight.crown.preview.webp",
+        "bytes": 8826,
+        "sha256": "f7468391768b65cd90c2164475b20929c793f19a59769e0db853a69d3d5c5491"
+      }
+    ],
+    "sources": [],
+    "seamMetres": 0,
+    "fps": 0,
+    "durationMs": 6000
+  },
+  {
+    "id": "profile-frame-racing-formula",
+    "files": [
+      {
+        "name": "profile-frame-racing-formula.corner.svg",
+        "bytes": 1541,
+        "sha256": "51f7b24a84b00daba84a5377dab3efadeebb3fa4661841c641a656cbb5a61f72"
+      },
+      {
+        "name": "profile-frame-racing-formula.rail.svg",
+        "bytes": 703,
+        "sha256": "15c4b258160e638e32dafae1622bdb99a3bc5cd480b951dd69d3c73c19302250"
+      },
+      {
+        "name": "profile-frame-racing-formula.footer.svg",
+        "bytes": 1871,
+        "sha256": "a3de237ba7d07067aa3c7c88339d12cdad4d43135f7993980368b820a20e24df"
+      },
+      {
+        "name": "profile-frame-racing-formula.crown.svg",
+        "bytes": 2404,
+        "sha256": "3b53721a5e45095b62c08421e6a34a69b7a035edcb614e2a665ba2f19c836ac7"
+      },
+      {
+        "name": "profile-frame-racing-formula.crown.preview.webp",
+        "bytes": 15618,
+        "sha256": "a7d310ae2072febc221dfa62384b3dffbce99c671e9edc1e6ee3c5a481af203a"
+      },
+      {
+        "name": "profile-frame-racing-formula.vehicle-atlas.webp",
+        "bytes": 851124,
+        "sha256": "10237fe90b8db20fa797c1f571568274766c0d44129acd6df29b86fa716abf50"
+      },
+      {
+        "name": "profile-frame-racing-formula.vehicle.preview.webp",
+        "bytes": 7674,
+        "sha256": "1585b2b088116f4673e8cb2d968738bf591b705d79cbf9cb6640d5fff8f327f7"
+      }
+    ],
+    "sources": [
+      {
+        "path": "C:\\Users\\Ayate\\Desktop\\SocialMedia\\social-network\\frontend\\public\\Profile-decorations\\3D-Models\\Formula\\free__formula_one_lp-830_sdc.glb",
+        "sha256": "76feab051dd1b2cf4d79434897f40d7c40d17ba1474543728851d3a0d63264fd"
+      }
+    ],
+    "seamMetres": 0,
+    "fps": 60,
+    "durationMs": 8000,
+    "atlas": {
+      "headings": 64,
+      "wheelPhases": 2,
+      "tile": 224,
+      "columns": 16,
+      "rows": 8
+    }
+  },
+  {
+    "id": "profile-frame-racing-kart",
+    "files": [
+      {
+        "name": "profile-frame-racing-kart.corner.svg",
+        "bytes": 1541,
+        "sha256": "f84964d348ce010a4cb836bedadcde5a73c1c250f697153dca5c676c2918c97e"
+      },
+      {
+        "name": "profile-frame-racing-kart.rail.svg",
+        "bytes": 703,
+        "sha256": "f7342521ebd54e0180e512dcb207b0996c555eeb46fb11c06d6fdbb1a996bf79"
+      },
+      {
+        "name": "profile-frame-racing-kart.footer.svg",
+        "bytes": 1871,
+        "sha256": "d4c983a99bb5611b7fde0629f1173f4c7d57b2ace91998b8d2bba03a8299b897"
+      },
+      {
+        "name": "profile-frame-racing-kart.crown.svg",
+        "bytes": 2404,
+        "sha256": "42e3248eb2942f0f3803a7ba57d34de1e9970f4ba6451fced8821043a836142e"
+      },
+      {
+        "name": "profile-frame-racing-kart.crown.preview.webp",
+        "bytes": 15120,
+        "sha256": "c13062330c17d5270d8dbb150c3d7beec4e30acfd6434164622b73bb6dd5dc04"
+      },
+      {
+        "name": "profile-frame-racing-kart.vehicle-atlas.webp",
+        "bytes": 975388,
+        "sha256": "c9f0786b85517bb6ac8eb54c385b16c13f52000ba2dd6bba36316c64c67026a4"
+      },
+      {
+        "name": "profile-frame-racing-kart.vehicle.preview.webp",
+        "bytes": 8676,
+        "sha256": "103d637bc53cc8574c4f754d1c479165c7aed2f295d7c6a6c1ac44f74d3c23d0"
+      }
+    ],
+    "sources": [
+      {
+        "path": "C:\\Users\\Ayate\\Desktop\\SocialMedia\\social-network\\frontend\\public\\Profile-decorations\\3D-Models\\Kart\\go-kart.glb",
+        "sha256": "e9ba5b933db649aec59b2fc5373a88b2dbaae8022b192e0c8f51ec6de35bdc9c"
+      }
+    ],
+    "seamMetres": 0,
+    "fps": 60,
+    "durationMs": 8000,
+    "atlas": {
+      "headings": 64,
+      "wheelPhases": 2,
+      "tile": 224,
+      "columns": 16,
+      "rows": 8
+    }
+  }
+]

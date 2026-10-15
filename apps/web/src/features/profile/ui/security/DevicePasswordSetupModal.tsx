@@ -39,7 +39,7 @@ export default function DevicePasswordSetupModal({ onClose }: SetupModalProps) {
   };
 
   const inputCls =
-    'w-full h-11 pl-4 pr-11 rounded-full bg-white/5 border border-white/10 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-white/25 transition-colors';
+    'w-full h-11 pl-4 pr-11 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-sm text-gray-950 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:border-black/25 dark:focus:border-white/25 transition-colors';
 
   return (
     <Modal onClose={onClose}>
@@ -47,16 +47,16 @@ export default function DevicePasswordSetupModal({ onClose }: SetupModalProps) {
         <form
           key={shakeKey}
           onSubmit={submit(requestClose)}
-          className={`w-full max-w-sm rounded-3xl border border-white/10 bg-[#1a1a1a] shadow-2xl p-7 ${
+          className={`w-full max-w-sm rounded-3xl border border-black/10 dark:border-white/10 glass-modal shadow-2xl p-7 relative text-gray-950 dark:text-white backdrop-blur-3xl ${
             error ? 'animate-shake' : ''
           }`}
         >
           <div className="flex flex-col items-center text-center mb-6">
-            <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-4">
-              <Lock size={26} className="text-white" />
+            <div className="w-14 h-14 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 flex items-center justify-center mb-4 text-gray-950 dark:text-white">
+              <Lock size={26} className="text-gray-950 dark:text-white" />
             </div>
-            <h2 className="text-lg font-bold text-white">Device passcode</h2>
-            <p className="text-xs text-gray-400 mt-1.5 leading-relaxed">
+            <h2 className="text-lg font-bold text-gray-950 dark:text-white">Device passcode</h2>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1.5 leading-relaxed">
               Require a passcode to open the app on this device. Stored only here, secured with Web
               Crypto.
             </p>
@@ -80,7 +80,7 @@ export default function DevicePasswordSetupModal({ onClose }: SetupModalProps) {
                 type="button"
                 onClick={() => setShow((v) => !v)}
                 aria-label={show ? 'Hide' : 'Show'}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-950 dark:hover:text-white transition-colors cursor-pointer"
               >
                 {show ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
@@ -98,17 +98,19 @@ export default function DevicePasswordSetupModal({ onClose }: SetupModalProps) {
             />
           </div>
 
-          {error && <p className="text-xs text-red-400 mt-3 text-center">{error}</p>}
+          {error && (
+            <p className="text-xs text-red-500 dark:text-red-400 mt-3 text-center">{error}</p>
+          )}
 
           <button
             type="submit"
             disabled={busy}
-            className="w-full h-11 mt-5 rounded-full text-sm font-semibold bg-white text-black hover:bg-white/90 transition-all active:scale-[0.98] disabled:opacity-40 flex items-center justify-center gap-2"
+            className="w-full h-11 mt-5 rounded-full text-sm font-semibold bg-gray-950 text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-white/90 transition-all active:scale-[0.98] disabled:opacity-40 flex items-center justify-center gap-2 cursor-pointer shadow-md"
           >
             {busy ? <Loader2 size={16} className="animate-spin" /> : 'Set passcode'}
           </button>
 
-          <p className="flex items-center justify-center gap-1.5 text-[11px] text-gray-600 mt-5">
+          <p className="flex items-center justify-center gap-1.5 text-[11px] text-gray-500 dark:text-gray-400 mt-5">
             <ShieldCheck size={13} />
             Stored only on this device
           </p>

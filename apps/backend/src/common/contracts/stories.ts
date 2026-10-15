@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import type { AvatarDecorationDto } from './decorations';
+import type { DisplayNameStyleDto } from './users';
 
 export const StoryMediaTypeSchema = z.enum(['IMAGE', 'VIDEO', 'VOICE']);
 export type StoryMediaType = z.infer<typeof StoryMediaTypeSchema>;
@@ -204,6 +206,8 @@ export interface StoryViewerUser {
   username: string;
   displayName: string | null;
   avatar: string | null;
+  activeDecoration?: AvatarDecorationDto | null | undefined;
+  displayNameStyle?: DisplayNameStyleDto | null | undefined;
   isVerified?: boolean;
 }
 

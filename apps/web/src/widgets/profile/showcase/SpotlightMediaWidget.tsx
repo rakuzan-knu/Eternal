@@ -48,7 +48,7 @@ export const SpotlightMediaWidget: React.FC<SpotlightMediaWidgetProps> = ({
 
   return (
     <div
-      className="relative overflow-hidden rounded-3xl bg-[#121216]/90 border border-white/[0.08] p-4.5 transition-all duration-300 hover:border-white/[0.18] shadow-xl flex flex-col gap-3.5 group"
+      className="glass-card relative overflow-hidden rounded-3xl border border-white/[0.08] p-4.5 transition-all duration-300 hover:border-white/[0.18] shadow-xl flex flex-col gap-3.5 group"
       style={{ boxShadow: `0 8px 32px 0 rgba(0, 0, 0, 0.37)` }}
     >
       {/* Adaptive Ambient Glow (Poster-Driven or Accent-Driven) */}
@@ -62,17 +62,19 @@ export const SpotlightMediaWidget: React.FC<SpotlightMediaWidgetProps> = ({
       />
 
       {/* Widget Header */}
-      <div className="flex items-center justify-between pb-3 border-b border-white/[0.06] relative z-10">
+      <div className="flex items-center justify-between pb-3 border-b border-black/10 dark:border-white/[0.06] relative z-10">
         <div className="flex items-center gap-2">
           <Flame size={15} className="text-amber-400" />
-          <span className="text-xs font-bold text-gray-300 uppercase tracking-wider">Favorite</span>
+          <span className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+            Favorite
+          </span>
         </div>
 
         {isOwner && (
           <button
             type="button"
             onClick={onEditClick}
-            className="opacity-0 group-hover:opacity-100 p-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-gray-400 hover:text-white transition-all cursor-pointer"
+            className="opacity-0 group-hover:opacity-100 p-1.5 rounded-xl bg-black/5 hover:bg-black/10 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-all cursor-pointer"
             title="Edit Favorite"
           >
             <Pencil size={13} />
@@ -101,14 +103,17 @@ export const SpotlightMediaWidget: React.FC<SpotlightMediaWidgetProps> = ({
               onError={() => setImageError(true)}
               className="relative w-full h-full object-cover transition-transform duration-500 group-hover/hero:scale-105"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent flex flex-col justify-end p-3.5">
+            <div
+              data-media-overlay="true"
+              className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent flex flex-col justify-end p-3.5 z-10"
+            >
               <div className="flex items-center justify-between gap-2">
                 <div className="flex flex-col min-w-0">
-                  <h4 className="text-sm font-extrabold text-white truncate drop-shadow-md">
+                  <h4 className="text-sm font-extrabold text-white text-on-media !text-white truncate drop-shadow-md">
                     {spotlightMedia.title}
                   </h4>
                   {spotlightMedia.subtitle && (
-                    <span className="text-[11px] font-semibold text-gray-300 drop-shadow-sm truncate">
+                    <span className="text-[11px] font-semibold text-gray-200 text-on-media !text-gray-200 drop-shadow-sm truncate">
                       {spotlightMedia.subtitle}
                     </span>
                   )}

@@ -1,4 +1,5 @@
 import React, { useContext, useMemo } from 'react';
+import type { AvatarDecorationDto } from '@social-network/shared-contracts';
 import Avatar from '@/shared/ui/Avatar';
 import { useStoryViewerStore } from '../model/useStoryViewerStore';
 import { QueryClientContext } from '@tanstack/react-query';
@@ -13,6 +14,7 @@ export interface StoryAvatarProps {
   name?: string | undefined;
   userId?: string | undefined;
   username?: string | undefined;
+  decoration?: AvatarDecorationDto | null | undefined;
   hasStory?: boolean | undefined;
   hasUnviewed?: boolean | undefined;
   hasCloseFriendsStory?: boolean | undefined;
@@ -29,6 +31,7 @@ export default function StoryAvatar({
   name,
   userId,
   username,
+  decoration,
   hasStory = false,
   hasUnviewed = false,
   hasCloseFriendsStory = false,
@@ -48,20 +51,41 @@ export default function StoryAvatar({
     let resolvedHasStory = hasStory;
     let resolvedHasUnviewed = hasUnviewed;
     let resolvedHasCloseFriends = hasCloseFriendsStory;
+    let resolvedDecoration = decoration;
 
     if (feed && (userId || username)) {
       const userGroup = feed.find(
         (g) => (userId && g.user.id === userId) || (username && g.user.username === username),
       );
-      if (userGroup && userGroup.stories.length > 0) {
-        resolvedHasStory = true;
-        resolvedHasUnviewed = userGroup.hasUnviewed;
-        resolvedHasCloseFriends = userGroup.hasCloseFriendsStory;
+      if (userGroup) {
+        if (resolvedDecoration === undefined && userGroup.user.activeDecoration !== undefined) {
+          resolvedDecoration = userGroup.user.activeDecoration;
+        }
+        if (userGroup.stories.length > 0) {
+          resolvedHasStory = true;
+          resolvedHasUnviewed = userGroup.hasUnviewed;
+          resolvedHasCloseFriends = userGroup.hasCloseFriendsStory;
+        }
       }
     }
 
-    return { resolvedHasStory, resolvedHasUnviewed, resolvedHasCloseFriends, feed };
-  }, [queryClient, storeGroups, hasStory, hasUnviewed, hasCloseFriendsStory, userId, username]);
+    return {
+      resolvedHasStory,
+      resolvedHasUnviewed,
+      resolvedHasCloseFriends,
+      resolvedDecoration,
+      feed,
+    };
+  }, [
+    queryClient,
+    storeGroups,
+    hasStory,
+    hasUnviewed,
+    hasCloseFriendsStory,
+    decoration,
+    userId,
+    username,
+  ]);
 
   const handleClick = (e: React.MouseEvent) => {
     if (onClick) {
@@ -128,6 +152,8 @@ export default function StoryAvatar({
         alt={alt}
         className={className}
         name={name}
+        userId={userId}
+        decoration={resolvedData.resolvedDecoration}
       />
     );
   }
@@ -147,8 +173,15 @@ export default function StoryAvatar({
           : undefined
       }
     >
-      <div className="rounded-full bg-[#09090b] p-[1.5px] flex items-center justify-center overflow-hidden">
-        <Avatar src={src} size={size === '2xl' ? 'xl' : size} alt={alt} name={name} />
+      <div className="rounded-full bg-[#09090b] p-[1.5px] flex items-center justify-center">
+        <Avatar
+          src={src}
+          size={size === '2xl' ? 'xl' : size}
+          alt={alt}
+          name={name}
+          userId={userId}
+          decoration={resolvedData.resolvedDecoration}
+        />
       </div>
 
       {/* Optional Close Friends mini green star badge */}

@@ -54,7 +54,12 @@ export default function NicknamesModal({ conversation, onClose }: NicknamesModal
                   key={participant.userId}
                   className="flex items-center gap-3 px-5 py-3 border-t border-white/5"
                 >
-                  <Avatar size="sm" src={participant.user.avatar} />
+                  <Avatar
+                    size="sm"
+                    src={participant.user.avatar}
+                    decoration={(participant.user as any).activeDecoration}
+                    userId={participant.userId}
+                  />
 
                   {isEditing ? (
                     <>

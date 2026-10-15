@@ -137,19 +137,20 @@ export class PostsController {
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
   @Throttle({ sensitive: { limit: 60, ttl: 60_000 } })
-  @UseInterceptors(FastifyFileInterceptor('chunk'))
+  @UseInterceptors(FastifyFileInterceptor('chunk', 5 * 1024 * 1024))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload a 5MB chunk of a media file (resumable upload)' })
   uploadChunk(
+    @CurrentUser() user: RequestUser,
     @Body(new ZodValidationPipe(uploadChunkSchema)) dto: UploadChunkDto,
     @UploadedFile() file: Express.Multer.File,
-    @CurrentUser() user: RequestUser,
   ) {
     return this.postsService.uploadChunk(
-      `${user.id}:${dto.uploadId}`,
+      dto.uploadId,
       dto.chunkIndex,
       dto.totalChunks,
       file,
+      user.id,
     );
   }
 
@@ -158,7 +159,7 @@ export class PostsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get list of uploaded chunks for session resume' })
   getChunkStatus(@Param('uploadId') uploadId: string, @CurrentUser() user: RequestUser) {
-    return this.postsService.getChunkStatus(`${user.id}:${uploadId}`);
+    return this.postsService.getChunkStatus(uploadId, user.id);
   }
 
   @Patch(':id')

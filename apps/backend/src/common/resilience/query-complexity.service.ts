@@ -6,7 +6,7 @@ export interface ComplexityOptions {
 }
 
 export const DEFAULT_MAX_QUERY_DEPTH = 5;
-export const DEFAULT_MAX_QUERY_COMPLEXITY = 500;
+export const DEFAULT_MAX_QUERY_COMPLEXITY = 2500;
 
 @Injectable()
 export class QueryComplexityService {

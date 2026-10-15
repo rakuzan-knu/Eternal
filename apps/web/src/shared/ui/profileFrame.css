@@ -1,0 +1,244 @@
+.profile-frame-surface {
+  min-width: 0;
+}
+.profile-frame-surface[data-framed='true'] {
+  padding-bottom: 18px;
+}
+.profile-frame-headroom {
+  width: 94%;
+  max-width: 690px;
+  aspect-ratio: 1024 / 174;
+}
+.profile-frame-card {
+  position: relative;
+  isolation: isolate;
+  border-radius: var(--pf-radius, 26px);
+}
+.profile-frame {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  z-index: 40;
+  pointer-events: none;
+  user-select: none;
+}
+.profile-frame *,
+.profile-frame img {
+  pointer-events: none;
+}
+.profile-frame[data-family='racing'] .profile-frame__rim {
+  border-width: 4px;
+  border-color: #252c39;
+  opacity: 1;
+  box-shadow:
+    inset 0 0 0 1px var(--pf-color),
+    0 0 0 1px var(--pf-color),
+    0 0 12px color-mix(in srgb, var(--pf-color) 20%, transparent);
+}
+.profile-frame[data-family='racing'] .profile-frame__spark {
+  display: none;
+}
+.profile-frame-racing {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+.profile-frame-racing__preload {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.profile-frame-racing__trails {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  opacity: 0;
+}
+.profile-frame-racing__trails[data-visible='true'] {
+  opacity: 1;
+}
+.profile-frame-racing__car {
+  position: absolute;
+  left: 0;
+  top: 0;
+  background-size: 1600% 800%;
+  background-repeat: no-repeat;
+  will-change: transform;
+}
+.profile-frame-racing__car img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.profile-frame-racing[data-profile-frame-motion='false'] .profile-frame-racing__car {
+  will-change: auto;
+}
+.profile-frame__rim {
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  border: 2px solid var(--pf-color);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--pf-accent) 45%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--pf-color) 35%, transparent),
+    0 0 14px color-mix(in srgb, var(--pf-color) 12%, transparent);
+  opacity: 0.72;
+}
+.profile-frame__corner {
+  position: absolute;
+  width: min(22%, 108px);
+  height: auto;
+}
+.profile-frame__corner--tl {
+  top: -13px;
+  left: -13px;
+}
+.profile-frame__corner--tr {
+  top: -13px;
+  right: -13px;
+  transform: scaleX(-1);
+}
+.profile-frame__corner--bl {
+  bottom: -13px;
+  left: -13px;
+  transform: scaleY(-1);
+}
+.profile-frame__corner--br {
+  bottom: -13px;
+  right: -13px;
+  transform: scale(-1);
+}
+.profile-frame__rail {
+  position: absolute;
+  top: 72px;
+  bottom: 72px;
+  width: 14px;
+  background-size: 14px 105px;
+  background-repeat: repeat-y;
+  opacity: 0.8;
+}
+.profile-frame__rail--left {
+  left: -8px;
+}
+.profile-frame__rail--right {
+  right: -8px;
+  transform: scaleX(-1);
+}
+.profile-frame__crown {
+  position: absolute;
+  width: 94%;
+  max-width: 690px;
+  height: auto;
+  left: 50%;
+  top: 0;
+  transform: translate(-50%, -68%);
+  object-fit: contain;
+}
+.profile-frame__footer {
+  position: absolute;
+  width: 68%;
+  max-width: 400px;
+  height: auto;
+  left: 50%;
+  bottom: 0;
+  transform: translate(-50%, 46%);
+}
+.profile-frame__spark {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  background: var(--pf-accent);
+  clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
+  opacity: 0.4;
+  animation: profile-frame-glint 6s ease-in-out infinite;
+  animation-play-state: paused;
+}
+.profile-frame__spark--one {
+  left: 4%;
+  top: 22%;
+}
+.profile-frame__spark--two {
+  right: 3%;
+  top: 68%;
+  animation-delay: -2s;
+}
+.profile-frame__spark--three {
+  left: 51%;
+  bottom: -4px;
+  animation-delay: -4s;
+}
+.profile-frame[data-motion='true'] .profile-frame__spark {
+  animation-play-state: running;
+}
+.profile-frame[data-compact='true'] .profile-frame__crown {
+  transform: translate(-50%, -8%);
+}
+.profile-frame[data-compact='true'] .profile-frame__corner {
+  inset: auto;
+}
+.profile-frame[data-compact='true'] .profile-frame__corner--tl {
+  top: 0;
+  left: 0;
+}
+.profile-frame[data-compact='true'] .profile-frame__corner--tr {
+  top: 0;
+  right: 0;
+}
+.profile-frame[data-compact='true'] .profile-frame__corner--bl {
+  bottom: 0;
+  left: 0;
+}
+.profile-frame[data-compact='true'] .profile-frame__corner--br {
+  bottom: 0;
+  right: 0;
+}
+.profile-frame[data-compact='true'] .profile-frame__footer {
+  transform: translate(-50%, 10%);
+}
+@keyframes profile-frame-glint {
+  0%,
+  35%,
+  100% {
+    opacity: 0.18;
+    transform: scale(0.65);
+  }
+  48% {
+    opacity: 1;
+    transform: scale(1.7);
+  }
+  60% {
+    opacity: 0.35;
+    transform: scale(0.9);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .profile-frame__spark {
+    animation: none;
+  }
+}
+@media (max-width: 480px) {
+  .profile-frame__corner {
+    max-width: 72px;
+  }
+  .profile-frame__corner--tl,
+  .profile-frame__corner--bl {
+    left: -7px;
+  }
+  .profile-frame__corner--tr,
+  .profile-frame__corner--br {
+    right: -7px;
+  }
+  .profile-frame__rail {
+    width: 10px;
+    background-size: 10px 85px;
+  }
+  .profile-frame__rail--left {
+    left: -6px;
+  }
+  .profile-frame__rail--right {
+    right: -6px;
+  }
+}

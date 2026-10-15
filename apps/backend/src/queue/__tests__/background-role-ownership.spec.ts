@@ -43,7 +43,9 @@ describe('Background process ownership with shared providers', () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] });
     vi.stubEnv('ENABLE_OUTBOX_POLLER_IN_TEST', 'true');
     config = new ConfigService();
-    vi.spyOn(config, 'get').mockReturnValue(undefined);
+    vi.spyOn(config, 'get').mockImplementation((key: string) =>
+      key === 'VIDEO_TRANSCODE_ENABLED' ? 'true' : undefined,
+    );
   });
 
   afterEach(async () => {

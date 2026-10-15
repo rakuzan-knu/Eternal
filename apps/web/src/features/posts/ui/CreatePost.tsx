@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { isAxiosError } from 'axios';
 import { X, Loader2, AlertCircle, Eye, Edit3 } from 'lucide-react';
 import Avatar from '../../../shared/ui/Avatar';
@@ -11,6 +11,7 @@ import { MentionAutocomplete } from './MentionAutocomplete';
 import { useCurrentUser } from '@/entities/profile/model/useCurrentUser';
 import { PollOptionDraft, MediaDraft } from '../model/types';
 import { compressMediaFiles } from '@/shared/lib/compressImage';
+import { MediaUploadError, validateMediaUpload } from '@/shared/lib/mediaUploadValidation';
 import { PostType, PostMedia } from '@/entities/post/model/types';
 import MarkdownContent from '@/shared/ui/MarkdownContent';
 import {
@@ -18,7 +19,11 @@ import {
   FloatingSelectionToolbar,
   type SelectionFormatType,
 } from '@/shared/ui/editor';
-import { detectCodeSnippet, type DetectedCodeSnippet } from '@/shared/lib/editor';
+import {
+  detectCodeSnippet,
+  type DetectedCodeSnippet,
+  getTextareaSelectionCoordinates,
+} from '@/shared/lib/editor';
 
 const MAX_MEDIA = 5;
 
@@ -70,37 +75,56 @@ export default function CreatePost({
     left: number;
   } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const mediaRef = useRef(media);
+  mediaRef.current = media;
+  const isSelectingMedia = useRef(false);
+  const isMounted = useRef(true);
 
   const canAddMore = media.length < MAX_MEDIA;
   const isBusy = isPending || isCompressing;
 
   const handleFilesSelect = async (files: File[]) => {
+    if (isSelectingMedia.current || isPending) return false;
     const room = MAX_MEDIA - media.length;
-    const selected = files.slice(0, room);
-    if (selected.length === 0) return;
+    if (files.length > room) {
+      setErrorMessage('You can attach up to 5 media files per post.');
+      return false;
+    }
+    const selected = files;
+    if (selected.length === 0) return false;
 
+    isSelectingMedia.current = true;
     try {
       setIsCompressing(true);
+      setErrorMessage(null);
+      for (const file of selected) await validateMediaUpload(file, 'post');
       const compressed = await compressMediaFiles(selected);
+      for (let i = 0; i < compressed.length; i++) {
+        if (compressed[i] !== selected[i]) await validateMediaUpload(compressed[i]!, 'post');
+      }
+      if (!isMounted.current) return false;
       const accepted = compressed.map((file) => ({
         file,
         previewUrl: URL.createObjectURL(file),
       }));
       setMedia((prev) => [...prev, ...accepted]);
-    } catch {
-      // Fallback: use original files if compression fails
-      const accepted = selected.map((file) => ({
-        file,
-        previewUrl: URL.createObjectURL(file),
-      }));
-      setMedia((prev) => [...prev, ...accepted]);
+      return true;
+    } catch (error) {
+      if (isMounted.current)
+        setErrorMessage(
+          error instanceof MediaUploadError
+            ? error.message
+            : 'Could not process this media. Choose another file.',
+        );
+      return false;
     } finally {
-      setIsCompressing(false);
+      isSelectingMedia.current = false;
+      if (isMounted.current) setIsCompressing(false);
     }
   };
 
   const handleGifSelect = (gifUrl: string) => {
-    if (!canAddMore) return;
+    if (!canAddMore || isBusy) return;
     setMedia((prev) => [...prev, { gifUrl, previewUrl: gifUrl }]);
     setActiveMenu(null);
   };
@@ -114,12 +138,14 @@ export default function CreatePost({
   };
 
   useEffect(() => {
+    isMounted.current = true;
     return () => {
-      media.forEach((m) => {
+      isMounted.current = false;
+      mediaRef.current.forEach((m) => {
         if (m.previewUrl) URL.revokeObjectURL(m.previewUrl);
       });
     };
-  }, [media]);
+  }, []);
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setText(e.target.value);
@@ -133,29 +159,47 @@ export default function CreatePost({
     updateSelectionToolbar();
   };
 
-  const updateSelectionToolbar = () => {
+  const updateSelectionToolbar = useCallback(() => {
     const el = textareaRef.current;
     if (!el) {
       setFloatingToolbarPos(null);
       return;
     }
-    const start = el.selectionStart;
-    const end = el.selectionEnd;
-    if (
-      start !== null &&
-      end !== null &&
-      start !== end &&
-      el.value.slice(start, end).trim().length > 0
-    ) {
-      const rect = el.getBoundingClientRect();
-      setFloatingToolbarPos({
-        top: rect.top - 46,
-        left: rect.left + rect.width / 2,
-      });
-    } else {
-      setFloatingToolbarPos(null);
-    }
-  };
+    const coords = getTextareaSelectionCoordinates(el);
+    setFloatingToolbarPos(coords);
+  }, []);
+
+  useEffect(() => {
+    const handleSelectionChange = () => {
+      const el = textareaRef.current;
+      if (!el) return;
+      if (document.activeElement !== el) {
+        setFloatingToolbarPos(null);
+        return;
+      }
+      if (el.selectionStart === el.selectionEnd) {
+        setFloatingToolbarPos(null);
+        return;
+      }
+      updateSelectionToolbar();
+    };
+
+    const handleScrollOrResize = () => {
+      if (floatingToolbarPos) {
+        updateSelectionToolbar();
+      }
+    };
+
+    document.addEventListener('selectionchange', handleSelectionChange);
+    window.addEventListener('resize', handleScrollOrResize);
+    window.addEventListener('scroll', handleScrollOrResize, true);
+
+    return () => {
+      document.removeEventListener('selectionchange', handleSelectionChange);
+      window.removeEventListener('resize', handleScrollOrResize);
+      window.removeEventListener('scroll', handleScrollOrResize, true);
+    };
+  }, [floatingToolbarPos, updateSelectionToolbar]);
 
   const handleFormattingHotkey = (prefix: string, suffix: string, defaultPlaceholder = '') => {
     const el = textareaRef.current;
@@ -240,13 +284,14 @@ export default function CreatePost({
     requestAnimationFrame(() => textareaRef.current?.focus());
   };
 
-  const handleAttachSnippetAsFile = () => {
+  const handleAttachSnippetAsFile = async () => {
     if (!detectedSnippet) return;
     const extension = detectedSnippet.extension || 'txt';
     const file = new File([detectedSnippet.rawCode], `snippet.${extension}`, {
       type: 'text/plain;charset=utf-8',
     });
-    handleFilesSelect([file]);
+    const accepted = await handleFilesSelect([file]);
+    if (!accepted) return;
 
     if (text.includes(detectedSnippet.rawCode)) {
       setText((prev) => prev.replace(detectedSnippet.rawCode, '').trim());
@@ -383,6 +428,9 @@ export default function CreatePost({
       // completes. Only clear the text that was actually submitted.
       if (draft?.onSubmitSuccess) draft.onSubmitSuccess();
       else setText((current) => (current === text ? '' : current));
+      media.forEach((item) => {
+        if (item.file) URL.revokeObjectURL(item.previewUrl);
+      });
       setMedia([]);
       setShowPoll(false);
       setActiveMenu(null);
@@ -401,7 +449,7 @@ export default function CreatePost({
   };
 
   return (
-    <div className="w-full bg-[#111111] border border-white/[0.05] rounded-3xl p-4 flex flex-col gap-3 relative">
+    <div className="glass-card w-full border border-white/[0.05] rounded-3xl p-4 flex flex-col gap-3 relative transition-colors duration-200">
       {errorMessage && (
         <div className="flex items-center justify-between bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2 text-xs text-red-400">
           <div className="flex items-center gap-2">
@@ -423,10 +471,10 @@ export default function CreatePost({
           <button
             type="button"
             onClick={() => setActiveTab('write')}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
               activeTab === 'write'
-                ? 'bg-purple-600/70 text-white shadow-sm'
-                : 'text-gray-400 hover:text-white'
+                ? 'bg-purple-600 text-white shadow-sm'
+                : 'text-gray-600 dark:text-gray-300 hover:text-gray-950 dark:hover:text-white'
             }`}
           >
             <Edit3 size={12} />
@@ -435,10 +483,10 @@ export default function CreatePost({
           <button
             type="button"
             onClick={() => setActiveTab('preview')}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
               activeTab === 'preview'
-                ? 'bg-purple-600/70 text-white shadow-sm'
-                : 'text-gray-400 hover:text-white'
+                ? 'bg-purple-600 text-white shadow-sm'
+                : 'text-gray-600 dark:text-gray-300 hover:text-gray-950 dark:hover:text-white'
             }`}
           >
             <Eye size={12} />
@@ -479,7 +527,7 @@ export default function CreatePost({
                 onClick={handleCursorMove}
                 placeholder="What's new?"
                 disabled={isBusy}
-                className="w-full bg-transparent resize-none text-white placeholder-gray-500 focus:outline-none text-[15px] min-h-[65px] pt-2 disabled:opacity-60 leading-relaxed"
+                className="w-full bg-transparent resize-none text-gray-950 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-400 focus:outline-none text-[15px] min-h-[65px] pt-2 disabled:opacity-60 leading-relaxed"
               />
               <MentionAutocomplete
                 text={text}
@@ -488,7 +536,7 @@ export default function CreatePost({
               />
             </>
           ) : (
-            <div className="min-h-[65px] p-3 rounded-2xl bg-white/[0.02] border border-white/5 text-gray-200 text-[15px] leading-relaxed">
+            <div className="min-h-[65px] p-3 rounded-2xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/5 text-gray-800 dark:text-gray-200 text-[15px] leading-relaxed">
               {text.trim() ? (
                 <MarkdownContent content={text} />
               ) : (
@@ -565,7 +613,7 @@ export default function CreatePost({
           type="button"
           onClick={handleSubmit}
           disabled={(!text.trim() && media.length === 0) || isBusy}
-          className="flex items-center gap-1.5 bg-white text-black font-bold px-5 py-1.5 rounded-full hover:bg-gray-200 disabled:opacity-40 transition-all text-sm cursor-pointer disabled:cursor-not-allowed"
+          className="flex items-center gap-1.5 bg-neutral-900 text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-gray-200 font-bold px-5 py-1.5 rounded-full disabled:opacity-40 transition-all text-sm cursor-pointer disabled:cursor-not-allowed shadow-sm active:scale-95"
         >
           {isBusy && <Loader2 size={14} className="animate-spin" />}
           {isBusy ? 'Publishing...' : 'Publish'}

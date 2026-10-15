@@ -1,8 +1,7 @@
-import React, { useEffect, useLayoutEffect, useCallback, useRef, useState } from 'react';
-import { useWindowVirtualizer } from '@tanstack/react-virtual';
+import React from 'react';
 import CreatePost from '../../features/posts/ui/CreatePost';
 import { StoriesBar } from '@/widgets/feed/ui/StoriesBar';
-import { PostCard } from '@/widgets/post/ui/PostCard';
+import { BoundedPostList } from '@/widgets/post/ui/BoundedPostList';
 import { SkeletonFeed } from '../../entities/post/ui/SkeletonPostCard';
 import { useHiddenPostsStore } from '@/shared/model/useHiddenPostsStore';
 import { usePostsFeed } from '@/entities/post/model/usePostsFeed';
@@ -11,20 +10,12 @@ import { FEED_KEY } from '@/shared/api/queryKeys';
 import { AllCaughtUpBanner } from '@/widgets/feed/ui/AllCaughtUpBanner';
 import { SuggestedUsersCarousel } from '@/widgets/feed/ui/SuggestedUsersCarousel';
 import { SEOHead } from '@/shared/seo';
-import { usePredictivePrefetch } from '@/shared/lib/usePredictivePrefetch';
 import { usePostDraftStore } from '@/features/posts';
 
 export default function FeedPage() {
-  const {
-    data,
-    isLoading,
-    isError,
-    isFetching,
-    refetch,
-    hasNextPage,
-    isFetchingNextPage,
-    fetchNextPage,
-  } = usePostsFeed();
+  const feedQuery = usePostsFeed();
+  const { data, isLoading, isError, isFetching, refetch, hasNextPage, isFetchingNextPage } =
+    feedQuery;
   const createPost = useCreatePost([FEED_KEY]);
   const draftText = usePostDraftStore((state) => state.text);
   const setDraftText = usePostDraftStore((state) => state.setText);
@@ -34,81 +25,6 @@ export default function FeedPage() {
 
   const posts = data?.pages.flatMap((p) => p.posts) ?? [];
   const visiblePosts = posts.filter((p) => !hiddenIds.has(p.id));
-  const hasVisiblePosts = visiblePosts.length > 0;
-
-  // Extract upcoming media URLs from tail of the feed for speculative RAM pre-decoding
-  const getUpcomingMediaUrls = useCallback(() => {
-    const urls: string[] = [];
-    const tail = visiblePosts.slice(-5);
-    for (const post of tail) {
-      const mediaUrl = post?.media?.[0]?.url || post?.image;
-      if (mediaUrl) urls.push(mediaUrl);
-    }
-    return urls;
-  }, [visiblePosts]);
-
-  // Enterprise Predictive Viewport Pre-fetching: triggers 600px before end of screen
-  const { sentinelRef, predecodeUrls } = usePredictivePrefetch({
-    enabled: visiblePosts.length > 0,
-    hasNextPage,
-    isFetchingNextPage,
-    fetchNextPage,
-    getUpcomingMediaUrls,
-    rootMargin: '600px 0px',
-  });
-
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [scrollMargin, setScrollMargin] = useState(0);
-
-  useLayoutEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-    const measure = () => setScrollMargin(container.offsetTop);
-    measure();
-    // The editor/stories above the virtual list can change height after mount.
-    const observer = new ResizeObserver(measure);
-    observer.observe(container.parentElement ?? container);
-    return () => observer.disconnect();
-  }, [isLoading, hasVisiblePosts]);
-
-  const postVirtualizer = useWindowVirtualizer({
-    count: visiblePosts.length,
-    estimateSize: () => 240,
-    overscan: 5,
-    scrollMargin,
-  });
-
-  const virtualItems = postVirtualizer.getVirtualItems();
-  const lastVirtualItem = virtualItems[virtualItems.length - 1];
-
-  useEffect(() => {
-    if (!lastVirtualItem) return;
-
-    // Speculative lookahead: pre-decode next 3 posts in virtualizer window
-    for (
-      let i = lastVirtualItem.index + 1;
-      i <= lastVirtualItem.index + 3 && i < visiblePosts.length;
-      i++
-    ) {
-      const post = visiblePosts[i];
-      const mediaUrl = post?.media?.[0]?.url || post?.image;
-      if (mediaUrl) {
-        predecodeUrls([mediaUrl]);
-      }
-    }
-
-    // Direct virtualizer threshold fallback (if scrolling faster than IO event loop)
-    if (lastVirtualItem.index >= visiblePosts.length - 2 && hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
-    }
-  }, [
-    lastVirtualItem,
-    visiblePosts,
-    hasNextPage,
-    isFetchingNextPage,
-    fetchNextPage,
-    predecodeUrls,
-  ]);
 
   return (
     <div className="w-full flex flex-col gap-6 animate-fadeIn">
@@ -136,18 +52,17 @@ export default function FeedPage() {
       />
 
       {isError && (
-        <div
-          role="alert"
-          className="rounded-2xl border border-red-400/30 bg-neutral-900 p-5 space-y-3"
-        >
-          <p className="font-semibold text-white">Your feed could not load</p>
-          <p className="text-sm text-gray-300">Try again. Your draft and loaded posts are kept.</p>
+        <div role="alert" className="glass-card rounded-2xl border border-red-400/30 p-5 space-y-3">
+          <p className="font-semibold text-gray-950 dark:text-white">Your feed could not load</p>
+          <p className="text-sm text-gray-700 dark:text-gray-300">
+            Try again. Your draft and loaded posts are kept.
+          </p>
           <button
             type="button"
             onClick={() => void refetch()}
             disabled={isFetching}
             aria-busy={isFetching}
-            className="min-h-11 px-4 rounded-xl bg-white text-black text-sm font-semibold disabled:opacity-50"
+            className="min-h-11 px-4 rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-black text-sm font-semibold disabled:opacity-50"
           >
             {isFetching ? 'Retrying…' : 'Retry feed'}
           </button>
@@ -157,51 +72,12 @@ export default function FeedPage() {
         <SkeletonFeed count={10} />
       ) : visiblePosts.length > 0 ? (
         <>
-          <div
-            ref={containerRef}
-            style={{
-              height: `${postVirtualizer.getTotalSize()}px`,
-              width: '100%',
-              position: 'relative',
-            }}
-          >
-            {/* Predictive Viewport Pre-fetching Sentinel: positioned ~3 posts (1440px) above bottom */}
-            {visiblePosts.length >= 3 && (
-              <div
-                ref={sentinelRef}
-                data-testid="predictive-prefetch-sentinel"
-                style={{
-                  position: 'absolute',
-                  top: `${Math.max(0, postVirtualizer.getTotalSize() - 1440)}px`,
-                  height: '2px',
-                  width: '100%',
-                  pointerEvents: 'none',
-                  visibility: 'hidden',
-                }}
-              />
-            )}
-            {virtualItems.map((virtualItem) => {
-              const post = visiblePosts[virtualItem.index];
-              if (!post) return null;
-              return (
-                <div
-                  key={virtualItem.key}
-                  ref={postVirtualizer.measureElement}
-                  data-index={virtualItem.index}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    transform: `translateY(${virtualItem.start - postVirtualizer.options.scrollMargin}px)`,
-                    paddingBottom: '16px',
-                  }}
-                >
-                  <PostCard post={post} queryKey={[FEED_KEY]} />
-                </div>
-              );
-            })}
-          </div>
+          <BoundedPostList
+            posts={posts}
+            query={feedQuery}
+            queryKey={[FEED_KEY]}
+            includePost={(post) => !hiddenIds.has(post.id)}
+          />
 
           {isFetchingNextPage && (
             <div className="py-6 flex justify-center">

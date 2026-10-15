@@ -6,6 +6,7 @@ import { chatHandlers } from './handlers/chat.handlers';
 import { notificationsHandlers } from './handlers/notifications.handlers';
 import { storiesHandlers } from './handlers/stories.handlers';
 import { musicHandlers } from './handlers/music.handlers';
+import { familyHandlers } from './handlers/family.handlers';
 
 export const server = setupServer(
   ...profileHandlers,
@@ -15,4 +16,5 @@ export const server = setupServer(
   ...notificationsHandlers,
   ...storiesHandlers,
   ...musicHandlers,
+  ...familyHandlers,
 );

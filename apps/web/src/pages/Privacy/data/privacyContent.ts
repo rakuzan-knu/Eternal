@@ -47,7 +47,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
         id: 'who-we-are',
         title: '1.3 Who Runs Eternal',
         content: [
-          'Eternal is operated by Eternal Inc. When you use our services, we act as the data controller of your personal information under applicable global data protection regulations.',
+          'Eternal is operated in Ukraine by its founders Ag Mykola and Ag Mihal. When you use our services, we act as the data controller of your personal information under applicable global data protection regulations.',
         ],
       },
     ],

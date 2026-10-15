@@ -18,7 +18,7 @@ interface HolographicCallModalProps {
 export function HolographicCallModal({
   isOpen,
   onClose,
-  userName = 'Собеседник',
+  userName = 'Peer',
   dataChannel: _dataChannel,
 }: HolographicCallModalProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -175,14 +175,14 @@ export function HolographicCallModal({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-base font-semibold text-white tracking-wide">
-                  3D Голографический вызов (WebXR Gaussian Splatting)
+                  3D Holographic Call (WebXR Gaussian Splatting)
                 </h3>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-400/30">
                   LiDAR 3D Stream
                 </span>
               </div>
               <p className="text-xs text-zinc-400 mt-0.5">
-                Объемный 3D-аватар {userName} с честным параллаксом при повороте головы
+                Volumetric 3D avatar of {userName} with true head-tracking parallax
               </p>
             </div>
           </div>
@@ -196,7 +196,7 @@ export function HolographicCallModal({
               >
                 <Glasses size={15} />
                 <span>
-                  {isXrActive ? 'WebXR Сессия активна' : 'Войти в WebXR (Vision Pro / Quest)'}
+                  {isXrActive ? 'WebXR Session Active' : 'Enter WebXR (Vision Pro / Quest)'}
                 </span>
               </button>
             ) : (
@@ -209,7 +209,7 @@ export function HolographicCallModal({
             <button
               type="button"
               onClick={handleResetParallax}
-              title="Сбросить ракурс"
+              title="Reset angle"
               className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white border border-white/10 transition-colors"
             >
               <RotateCcw size={16} />
@@ -271,7 +271,7 @@ export function HolographicCallModal({
             <div className="flex items-center gap-3">
               <span className="text-xs text-zinc-400 font-medium flex items-center gap-1.5">
                 <Sliders size={13} />
-                <span>Плотность сплэтов:</span>
+                <span>Splat Density:</span>
               </span>
               <input
                 type="range"
@@ -286,7 +286,7 @@ export function HolographicCallModal({
             </div>
 
             <div className="flex items-center gap-3">
-              <span className="text-xs text-zinc-400 font-medium">Зум:</span>
+              <span className="text-xs text-zinc-400 font-medium">Zoom:</span>
               <input
                 type="range"
                 min={0.6}

@@ -192,7 +192,6 @@ export const AudioEmbedCard: React.FC<AudioEmbedCardProps> = ({
 
   if (shouldShowExpanded) {
     const isTrack = audioType === 'track';
-    // Discord Spotify compact player standard: 80px for tracks, 152px for playlists/albums
     const height = isSpotify ? (isTrack ? 80 : 152) : isSoundCloud ? 120 : 80;
 
     return (

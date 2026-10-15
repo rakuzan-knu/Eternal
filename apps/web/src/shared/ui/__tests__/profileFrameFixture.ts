@@ -1,0 +1,22 @@
+import type { ProfileFrameDto } from '@social-network/shared-contracts';
+export const profileFrameFixture: ProfileFrameDto = {
+  id: 'sky',
+  slug: 'sky',
+  name: 'Glowing Sky',
+  description: 'Sky',
+  family: 'dragon',
+  variant: 'jade',
+  color: '#428879',
+  accent: '#bafbdc',
+  crownUrl: '/sky.crown.webp',
+  crownPreviewUrl: '/sky.poster.webp',
+  cornerUrl: '/sky.corner.svg',
+  railUrl: '/sky.rail.svg',
+  footerUrl: '/sky.footer.svg',
+  animated: true,
+  fps: 60,
+  durationMs: 3000,
+  rarity: 'epic',
+  priceCents: 199,
+  isAvailable: false,
+};

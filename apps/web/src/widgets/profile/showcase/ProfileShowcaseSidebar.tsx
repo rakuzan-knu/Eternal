@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { Share2, LayoutGrid, Radio, Bookmark, Music, Pause } from 'lucide-react';
 import { DiscordGamepadIcon } from '@/shared/ui/BrandIcons';
+import { isMusicActivity, isGamingActivity } from '@/shared/ui/activityIcons';
 import { usePresenceStore } from '@/shared/model/usePresenceStore';
 import {
   useShowcase,
@@ -130,12 +131,22 @@ export const ProfileShowcaseSidebar: React.FC<ProfileShowcaseSidebarProps> = ({
   // Sync real-time WebSocket live activity presence
   useShowcasePresenceSync(userId || showcase?.userId, username);
 
-  const targetProfileId = userData?.id || userId || showcase?.userId;
+  const targetProfileId = userId || showcase?.userId || userData?.id;
+  const livePresenceActivity = usePresenceStore((s) =>
+    targetProfileId ? s.userActivities[targetProfileId] : undefined,
+  );
+
   useEffect(() => {
-    if (targetProfileId && showcase?.activityStatus !== undefined) {
-      usePresenceStore.getState().setUserActivity(targetProfileId, showcase.activityStatus);
+    if (targetProfileId && showcase?.activityStatus) {
+      const current = usePresenceStore.getState().userActivities[targetProfileId];
+      if (!current) {
+        usePresenceStore.getState().setUserActivity(targetProfileId, showcase.activityStatus);
+      }
     }
   }, [targetProfileId, showcase?.activityStatus]);
+
+  const effectiveActivityStatus =
+    livePresenceActivity !== undefined ? livePresenceActivity : showcase?.activityStatus;
 
   if (isLoading) {
     if (isOwner) {
@@ -190,9 +201,11 @@ export const ProfileShowcaseSidebar: React.FC<ProfileShowcaseSidebarProps> = ({
       )
     : [];
   const hasActivityContent = Boolean(
-    showcase.activityStatus?.type === 'gaming' ||
-    showcase.activityStatus?.isSteam ||
-    showcase.activityStatus?.type === 'spotify' ||
+    effectiveActivityStatus?.type === 'gaming' ||
+    effectiveActivityStatus?.isSteam ||
+    effectiveActivityStatus?.type === 'spotify' ||
+    (effectiveActivityStatus as any)?.type === 'platform_music' ||
+    (effectiveActivityStatus as any)?.isPlatformTrack ||
     (connectedAccounts?.steam as any)?.currentActivity ||
     (connectedAccounts?.spotify as any)?.currentActivity ||
     visibleAccounts.length > 0,
@@ -234,18 +247,8 @@ export const ProfileShowcaseSidebar: React.FC<ProfileShowcaseSidebarProps> = ({
     primaryBadge: userData?.primaryBadge,
   };
 
-  const isGamingActive = Boolean(
-    showcase?.activityStatus &&
-    (showcase.activityStatus.type === 'gaming' ||
-      showcase.activityStatus.isSteam ||
-      (showcase.activityStatus.title && showcase.activityStatus.type !== 'spotify')),
-  );
-
-  const isSpotifyActive = Boolean(
-    showcase?.activityStatus &&
-    !isGamingActive &&
-    (showcase.activityStatus.type === 'spotify' || Boolean(showcase.activityStatus.trackId)),
-  );
+  const isSpotifyActive = Boolean(isMusicActivity(effectiveActivityStatus));
+  const isGamingActive = Boolean(isGamingActivity(effectiveActivityStatus));
 
   const tabs: Array<{ id: ShowcaseNavTab; label: string; icon: React.ReactNode }> = [
     { id: 'board', label: 'Board', icon: <LayoutGrid size={13} /> },
@@ -258,7 +261,7 @@ export const ProfileShowcaseSidebar: React.FC<ProfileShowcaseSidebarProps> = ({
           className="text-[#23a55a] drop-shadow-[0_0_5px_rgba(35,165,90,0.8)]"
         />
       ) : isSpotifyActive ? (
-        (showcase?.activityStatus as any)?.isPaused ? (
+        (effectiveActivityStatus as any)?.isPaused ? (
           <Pause
             size={13}
             className="text-amber-400 drop-shadow-[0_0_5px_rgba(245,158,11,0.8)] fill-amber-400/40"
@@ -340,8 +343,8 @@ export const ProfileShowcaseSidebar: React.FC<ProfileShowcaseSidebarProps> = ({
         onEditClick={() => openEditor('anthem')}
       />
 
-      {/* 3. Discord-Grade 3-Tab Selector with Framer Motion Sliding Pill */}
-      <div className="relative flex flex-wrap items-center p-1 rounded-2xl bg-[#111116] border border-white/8 shadow-inner mb-2">
+      {/* 3. 3-Tab Selector with Framer Motion Sliding Pill */}
+      <div className="glass-panel relative flex flex-wrap items-center p-1 rounded-2xl border border-black/10 dark:border-white/8 shadow-inner mb-2">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
@@ -350,14 +353,16 @@ export const ProfileShowcaseSidebar: React.FC<ProfileShowcaseSidebarProps> = ({
               type="button"
               onClick={() => setActiveTab(tab.id)}
               className={`relative flex-1 min-w-max flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-xs font-bold transition-colors z-10 cursor-pointer ${
-                isActive ? 'text-white' : 'text-gray-400 hover:text-gray-200'
+                isActive
+                  ? 'text-gray-900 dark:text-white'
+                  : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'
               }`}
             >
               {isActive && (
                 <motion.div
                   layoutId="activeShowcaseTab"
                   transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-                  className="absolute inset-0 rounded-xl bg-white/[0.14] border border-white/20 shadow-md"
+                  className="absolute inset-0 rounded-xl bg-white shadow-sm border border-black/10 dark:bg-white/[0.14] dark:border-white/20 dark:shadow-md"
                 />
               )}
               <span className="relative z-10">{tab.icon}</span>
@@ -367,18 +372,18 @@ export const ProfileShowcaseSidebar: React.FC<ProfileShowcaseSidebarProps> = ({
         })}
       </div>
 
-      {/* Discord Header Row: Your Widgets & Add Widget Action */}
+      {/* Header Row: Your Widgets & Add Widget Action */}
       {isOwner && (
         <div className="flex items-center justify-between px-1 mb-1">
-          <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+          <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
             Your Widgets
           </span>
           <button
             type="button"
             onClick={() => openEditor(activeTab === 'wishlist' ? 'wishlist' : 'media')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/6 hover:bg-white/12 border border-white/8 hover:border-white/20 text-xs font-semibold text-white transition-all cursor-pointer shadow-sm hover:scale-102 active:scale-98"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/5 hover:bg-black/10 dark:bg-white/6 dark:hover:bg-white/12 border border-black/10 dark:border-white/8 hover:border-black/20 dark:hover:border-white/20 text-xs font-semibold text-gray-900 dark:text-white transition-all cursor-pointer shadow-sm hover:scale-102 active:scale-98"
           >
-            <span className="text-indigo-400 font-bold">+</span>
+            <span className="text-indigo-500 dark:text-indigo-400 font-bold">+</span>
             <span>Add Widget</span>
           </button>
         </div>
@@ -430,7 +435,10 @@ export const ProfileShowcaseSidebar: React.FC<ProfileShowcaseSidebarProps> = ({
           >
             {isOwner || hasActivityContent ? (
               <LivePresenceWidget
-                showcase={showcase}
+                showcase={{
+                  ...showcase,
+                  activityStatus: effectiveActivityStatus as any,
+                }}
                 isOwner={isOwner}
                 onEditClick={() => openEditor('activity')}
               />
@@ -482,14 +490,14 @@ export const ProfileShowcaseSidebar: React.FC<ProfileShowcaseSidebarProps> = ({
         <button
           type="button"
           onClick={() => setIsExportOpen(true)}
-          className="w-full py-2.5 rounded-2xl bg-white/3 hover:bg-white/8 border border-white/8 text-xs font-semibold text-gray-300 hover:text-white flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm hover:border-white/20 mt-1"
+          className="glass-card w-full py-2.5 rounded-2xl border border-black/10 dark:border-white/10 hover:border-black/20 dark:hover:border-white/20 text-xs font-semibold text-gray-800 dark:text-gray-200 hover:text-gray-950 dark:hover:text-white flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm mt-1"
         >
-          <Share2 size={13} className="text-indigo-400" />
+          <Share2 size={13} className="text-indigo-600 dark:text-indigo-400" />
           <span>Share Showcase Card</span>
         </button>
       )}
 
-      {/* Discord-style Floating Bottom Unsaved Changes Bar */}
+      {/* Floating Bottom Unsaved Changes Bar */}
       <UnsavedChangesBar
         isVisible={isOwner && hasUnsavedChanges}
         onReset={handleResetOrder}

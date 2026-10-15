@@ -62,17 +62,18 @@ export class MessengerMapper {
       body: isMessageHidden ? null : (msg.body ?? null),
       clientSeq: msg.clientSeq != null ? msg.clientSeq | 0 : null,
       messageType: msg.messageType,
-      replyTo: msg.replyTo
-        ? this.mapMessage(
-            msg.replyTo as unknown as MessageWithDetails,
-            requestingUserId,
-            pinnedMessageIds,
-          )
-        : null,
+      replyTo:
+        msg.replyTo && msg.replyTo.conversationId === msg.conversationId
+          ? this.mapMessage(
+              msg.replyTo as unknown as MessageWithDetails,
+              requestingUserId,
+              pinnedMessageIds,
+            )
+          : null,
       forwardedFrom: msg.forwardedFrom
         ? {
             id: msg.forwardedFrom.id,
-            body: msg.forwardedFrom.body ?? null,
+            body: null,
             sender: (msg.forwardedFrom as unknown as { sender: MessageWithDetails['sender'] })
               .sender,
           }

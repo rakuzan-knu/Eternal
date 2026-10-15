@@ -18,9 +18,7 @@ describe('RetentionPolicyPage', () => {
 
     expect(screen.getByText('DATA RETENTION POLICY')).toBeInTheDocument();
     expect(screen.getByText(/Effective: September 1, 2026/i)).toBeInTheDocument();
-    expect(
-      screen.getByText(/how long Eternal Inc. \(headquartered in Kyiv, Ukraine\) retains/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/how long the Eternal project retains/i)).toBeInTheDocument();
   });
 
   it('renders all 5 retention policy sections in TOC and main content', () => {

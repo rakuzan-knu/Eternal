@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Download,
@@ -14,7 +15,6 @@ import {
   Megaphone,
   LifeBuoy,
 } from 'lucide-react';
-import { useLanguageStore } from '../../../../shared/lib/language/languageStore';
 
 interface RequestDataPackageModalProps {
   isOpen: boolean;
@@ -24,68 +24,68 @@ interface RequestDataPackageModalProps {
 interface DataCategory {
   id: string;
   icon: React.ReactNode;
+  title: string;
   titleEn: string;
-  titleUk: string;
+  description: string;
   descriptionEn: string;
-  descriptionUk: string;
 }
 
 const DATA_CATEGORIES: DataCategory[] = [
   {
     id: 'account',
-    icon: <User className="w-4 h-4 text-purple-400" />,
+    icon: <User className="w-4 h-4 text-gray-950 dark:text-white" />,
+    title: 'Account Information',
     titleEn: 'Account Information',
-    titleUk: 'Обліковий запис',
+    description: 'User ID, username, email, avatar history, and account settings.',
     descriptionEn: 'User ID, username, email, avatar history, and account settings.',
-    descriptionUk: 'ID користувача, ім’я, e-mail, історія аватарів та налаштування акаунту.',
   },
   {
     id: 'activity',
-    icon: <Activity className="w-4 h-4 text-blue-400" />,
+    icon: <Activity className="w-4 h-4 text-gray-950 dark:text-white" />,
+    title: 'Your Activity & Analytics',
     titleEn: 'Your Activity & Analytics',
-    titleUk: 'Ваша активність та аналітика',
+    description: 'Telemetry diagnostics, platform navigation logs, and feature usage.',
     descriptionEn: 'Telemetry diagnostics, platform navigation logs, and feature usage.',
-    descriptionUk: 'Діагностична телеметрія, логи навігації та використання функцій.',
   },
   {
     id: 'activities',
-    icon: <Gamepad2 className="w-4 h-4 text-pink-400" />,
+    icon: <Gamepad2 className="w-4 h-4 text-gray-950 dark:text-white" />,
+    title: 'Activities & Integrations',
     titleEn: 'Activities & Integrations',
-    titleUk: 'Активності та інтеграції',
+    description: 'Minigames scores, rich presence data (Spotify, Steam, GitHub).',
     descriptionEn: 'Minigames scores, rich presence data (Spotify, Steam, GitHub).',
-    descriptionUk: 'Результати міні-ігор, дані статусів активності (Spotify, Steam, GitHub).',
   },
   {
     id: 'messages',
-    icon: <MessageSquare className="w-4 h-4 text-emerald-400" />,
+    icon: <MessageSquare className="w-4 h-4 text-gray-950 dark:text-white" />,
+    title: 'Messages & Media Transcripts',
     titleEn: 'Messages & Media Transcripts',
-    titleUk: 'Повідомлення та медіафайли',
+    description: 'Complete history of sent direct messages and channel posts.',
     descriptionEn: 'Complete history of sent direct messages and channel posts.',
-    descriptionUk: 'Повна історія надісланих особистих повідомлень та дописів у каналах.',
   },
   {
     id: 'servers',
-    icon: <Server className="w-4 h-4 text-amber-400" />,
+    icon: <Server className="w-4 h-4 text-gray-950 dark:text-white" />,
+    title: 'Servers & Communities',
     titleEn: 'Servers & Communities',
-    titleUk: 'Сервери та спільноти',
+    description: 'Servers you own or belong to, assigned roles, and channel permissions.',
     descriptionEn: 'Servers you own or belong to, assigned roles, and channel permissions.',
-    descriptionUk: 'Сервери, в яких ви перебуваєте, призначені ролі та права доступу.',
   },
   {
     id: 'ads',
-    icon: <Megaphone className="w-4 h-4 text-indigo-400" />,
+    icon: <Megaphone className="w-4 h-4 text-gray-950 dark:text-white" />,
+    title: 'Personalization & Advertising',
     titleEn: 'Personalization & Advertising',
-    titleUk: 'Реклама та персоналізація',
+    description: 'Interactions with featured servers, partner quests, and explore feeds.',
     descriptionEn: 'Interactions with featured servers, partner quests, and explore feeds.',
-    descriptionUk: 'Взаємодія з рекомендованими серверами, квестами та стрічкою огляду.',
   },
   {
     id: 'support',
-    icon: <LifeBuoy className="w-4 h-4 text-rose-400" />,
+    icon: <LifeBuoy className="w-4 h-4 text-gray-950 dark:text-white" />,
+    title: 'Support Tickets & Safety Appeals',
     titleEn: 'Support Tickets & Safety Appeals',
-    titleUk: 'Звернення до підтримки та апеляції',
+    description: 'Correspondence with Eternal Customer Support and Trust & Safety tickets.',
     descriptionEn: 'Correspondence with Eternal Customer Support and Trust & Safety tickets.',
-    descriptionUk: 'Листування зі службою підтримки Eternal та апеляції з безпеки.',
   },
 ];
 
@@ -93,13 +93,24 @@ export const RequestDataPackageModal: React.FC<RequestDataPackageModalProps> = (
   isOpen,
   onClose,
 }) => {
-  const { currentLanguage } = useLanguageStore();
-  const isUkrainian = currentLanguage === 'Українська';
-
   const [selectedCategories, setSelectedCategories] = useState<string[]>(
     DATA_CATEGORIES.map((c) => c.id),
   );
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -125,28 +136,29 @@ export const RequestDataPackageModal: React.FC<RequestDataPackageModalProps> = (
     }, 1200);
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+  return createPortal(
+    <div
+      data-modal-open="true"
+      data-submodal-open="true"
+      onClick={onClose}
+      className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn"
+    >
       <div
-        className="relative w-full max-w-xl bg-[#110e22] border border-purple-500/30 rounded-[28px] shadow-[0_25px_60px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[90vh]"
+        className="relative w-full max-w-xl glass-modal border border-black/10 dark:border-white/10 rounded-[28px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] text-gray-950 dark:text-white backdrop-blur-3xl animate-modalPop"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="p-6 border-b border-white/10 flex items-start justify-between gap-4 bg-[#16122d]">
+        <div className="p-6 border-b border-black/10 dark:border-white/10 flex items-start justify-between gap-4 bg-black/[0.03] dark:bg-white/[0.03]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-purple-600/30 border border-purple-500/40 flex items-center justify-center text-purple-300 shrink-0 shadow-[0_0_15px_rgba(168,85,247,0.3)]">
+            <div className="w-10 h-10 rounded-2xl bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/10 flex items-center justify-center text-gray-950 dark:text-white shrink-0 shadow-xs">
               <Download className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white">
-                {isUkrainian
-                  ? 'Запросити архів даних Eternal'
-                  : 'Request Your Eternal Data Package'}
+              <h3 className="text-lg font-bold text-gray-950 dark:text-white">
+                Request Your Eternal Data Package
               </h3>
-              <p className="text-xs text-purple-300/80 mt-0.5">
-                {isUkrainian
-                  ? 'Виберіть категорії інформації для включення в ZIP-архів'
-                  : 'Select the information categories you want to include in your ZIP archive'}
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                Select the information categories you want to include in your ZIP archive
               </p>
             </div>
           </div>
@@ -154,47 +166,39 @@ export const RequestDataPackageModal: React.FC<RequestDataPackageModalProps> = (
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-xl text-neutral-400 hover:text-white hover:bg-white/10 transition-colors"
+            aria-label="Close"
+            className="p-1.5 rounded-xl text-gray-400 hover:text-gray-950 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 overflow-y-auto space-y-5 flex-1">
+        <div className="p-6 overflow-y-auto space-y-5 flex-1 custom-scrollbar">
           {/* Timeline & Processing Notice Box */}
-          <div className="p-4 rounded-2xl bg-purple-950/30 border border-purple-500/25 flex items-start gap-3 text-xs text-neutral-300 leading-relaxed">
-            <Clock className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+          <div className="p-4 rounded-2xl bg-black/[0.03] dark:bg-white/[0.04] border border-black/10 dark:border-white/10 flex items-start gap-3 text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
+            <Clock className="w-4 h-4 text-gray-950 dark:text-white shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold text-purple-200">
-                {isUkrainian ? 'Терміни підготовки архіву:' : 'Preparation timeframe:'}
-              </p>
-              <p className="mt-1">
-                {isUkrainian
-                  ? 'Збір та шифрування персонального архіву може тривати до 30 календарних днів. Коли архів буде готовий, ми надішлемо захищене посилання для завантаження на вашу зареєстровану електронну пошту. Посилання буде активним протягом 30 днів.'
-                  : 'Compiling and encrypting your personal data package can take up to 30 calendar days. Once ready, a secure download link will be dispatched to your verified email address. The download link remains active for 30 days.'}
+              <p className="font-semibold text-gray-950 dark:text-white">Preparation timeframe:</p>
+              <p className="mt-1 text-gray-600 dark:text-gray-400">
+                Compiling and encrypting your personal data package can take up to 30 calendar days.
+                Once ready, a secure download link will be dispatched to your verified email
+                address. The download link remains active for 30 days.
               </p>
             </div>
           </div>
 
           {/* Select All Toggle Bar */}
           <div className="flex items-center justify-between px-1">
-            <span className="text-xs font-bold uppercase tracking-wider text-neutral-400">
-              {isUkrainian ? 'Категорії даних' : 'Data Categories'} ({selectedCategories.length}/
-              {DATA_CATEGORIES.length})
+            <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+              Data Categories ({selectedCategories.length}/{DATA_CATEGORIES.length})
             </span>
             <button
               type="button"
               onClick={toggleAll}
-              className="text-xs font-semibold text-purple-400 hover:text-purple-300 transition-colors"
+              className="text-xs font-semibold text-gray-950 dark:text-white hover:underline transition-colors cursor-pointer"
             >
-              {selectedCategories.length === DATA_CATEGORIES.length
-                ? isUkrainian
-                  ? 'Зняти всі'
-                  : 'Deselect All'
-                : isUkrainian
-                  ? 'Вибрати всі'
-                  : 'Select All'}
+              {selectedCategories.length === DATA_CATEGORIES.length ? 'Deselect All' : 'Select All'}
             </button>
           </div>
 
@@ -208,27 +212,27 @@ export const RequestDataPackageModal: React.FC<RequestDataPackageModalProps> = (
                   onClick={() => toggleCategory(category.id)}
                   className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-start gap-3 select-none ${
                     isSelected
-                      ? 'bg-purple-600/15 border-purple-500/40 shadow-sm'
-                      : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.04]'
+                      ? 'bg-black/10 dark:bg-white/10 border-black/20 dark:border-white/20 shadow-xs'
+                      : 'bg-black/[0.02] dark:bg-white/[0.02] border-black/5 dark:border-white/5 hover:bg-black/[0.05] dark:hover:bg-white/[0.05]'
                   }`}
                 >
-                  <div className="mt-0.5 text-purple-400 shrink-0">
+                  <div className="mt-0.5 text-gray-950 dark:text-white shrink-0">
                     {isSelected ? (
-                      <CheckSquare className="w-5 h-5 text-purple-400" />
+                      <CheckSquare className="w-5 h-5 text-gray-950 dark:text-white" />
                     ) : (
-                      <Square className="w-5 h-5 text-neutral-500" />
+                      <Square className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                     )}
                   </div>
 
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       {category.icon}
-                      <span className="text-xs font-bold text-white">
-                        {isUkrainian ? category.titleUk : category.titleEn}
+                      <span className="text-xs font-bold text-gray-950 dark:text-white">
+                        {category.title}
                       </span>
                     </div>
-                    <p className="text-[11px] text-neutral-400 mt-1 leading-normal">
-                      {isUkrainian ? category.descriptionUk : category.descriptionEn}
+                    <p className="text-[11px] text-gray-600 dark:text-gray-400 mt-1 leading-normal">
+                      {category.description}
                     </p>
                   </div>
                 </div>
@@ -238,41 +242,42 @@ export const RequestDataPackageModal: React.FC<RequestDataPackageModalProps> = (
         </div>
 
         {/* Modal Footer Actions */}
-        <div className="p-5 border-t border-white/10 bg-[#16122d] flex items-center justify-end gap-3">
+        <div className="p-5 border-t border-black/10 dark:border-white/10 bg-black/[0.03] dark:bg-white/[0.03] flex items-center justify-end gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2.5 rounded-xl text-xs font-semibold text-neutral-300 hover:text-white hover:bg-white/10 transition-colors"
+            className="px-4 py-2.5 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-950 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
           >
-            {isUkrainian ? 'Я передумав(ла)' : 'I changed my mind'}
+            I changed my mind
           </button>
 
           <button
             type="button"
             onClick={handleSubmit}
             disabled={selectedCategories.length === 0 || isSubmitted}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md ${
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               isSubmitted
                 ? 'bg-emerald-600 text-white'
                 : selectedCategories.length === 0
-                  ? 'bg-neutral-800 text-neutral-500 cursor-not-allowed'
-                  : 'bg-purple-600 hover:bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]'
+                  ? 'bg-black/10 dark:bg-white/10 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                  : 'bg-gray-950 text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-white/90 shadow-md'
             }`}
           >
             {isSubmitted ? (
               <>
                 <ShieldCheck className="w-4 h-4" />
-                <span>{isUkrainian ? 'Запит прийнято!' : 'Request Submitted!'}</span>
+                <span>Request Submitted!</span>
               </>
             ) : (
               <>
                 <Download className="w-4 h-4" />
-                <span>{isUkrainian ? 'Запросити мої дані' : 'Request My Data'}</span>
+                <span>Request My Data</span>
               </>
             )}
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };

@@ -2,9 +2,29 @@ import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
+import { preserveMswOriginGuard } from './msw-origin-guard.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// MSW regenerates this file during installation. Retain the origin protection
+// from both branches in the actual worker copied into production builds.
+const workerPath = path.join(
+  __dirname,
+  '..',
+  '..',
+  'apps',
+  'web',
+  'public',
+  'mockServiceWorker.js',
+);
+try {
+  const source = fs.readFileSync(workerPath, 'utf8');
+  const guarded = preserveMswOriginGuard(source);
+  if (source !== guarded) fs.writeFileSync(workerPath, guarded);
+} catch (err) {
+  if (err && err.code !== 'ENOENT') throw err;
+}
 
 const rootPrismaBin = path.join(__dirname, '..', '..', 'node_modules', '.bin', 'prisma');
 const backendPrismaBin = path.join(

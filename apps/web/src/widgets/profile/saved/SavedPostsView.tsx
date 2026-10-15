@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Bookmark, Plus, ArrowLeft, Trash2, Lock, Layers } from 'lucide-react';
 import { useSavedPosts } from '@/entities/post/model/useSavedPosts';
 import { useSavedCollectionsStore } from '@/entities/post/model/useSavedCollectionsStore';
-import { PostCard } from '@/widgets/post/ui/PostCard';
+import { BoundedPostList } from '@/widgets/post/ui/BoundedPostList';
 import { SkeletonFeed } from '@/entities/post/ui/SkeletonPostCard';
 import { CreateCollectionModal } from './CreateCollectionModal';
 import { CollectionCardCover } from './CollectionCardCover';
@@ -16,9 +16,6 @@ export function SavedPostsView({ userId }: SavedPostsViewProps) {
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-  const { data, isLoading } = useSavedPosts();
-  const allSavedPosts = data?.pages.flatMap((p) => p.posts) ?? [];
-
   const allCollections = useSavedCollectionsStore((s) => s.collections);
   const collections = React.useMemo(
     () => allCollections.filter((c) => c.userId === userId),
@@ -26,6 +23,12 @@ export function SavedPostsView({ userId }: SavedPostsViewProps) {
   );
   const createCollection = useSavedCollectionsStore((s) => s.createCollection);
   const deleteCollection = useSavedCollectionsStore((s) => s.deleteCollection);
+  const selectedCollection = collections.find(
+    (collection) => collection.id === selectedCollectionId,
+  );
+  const savedQuery = useSavedPosts(selectedCollection);
+  const { data, isLoading } = savedQuery;
+  const allSavedPosts = data?.pages.flatMap((p) => p.posts) ?? [];
 
   const handleCreateCollection = (name: string, selectedPostIds: string[]) => {
     const col = createCollection(userId, name);
@@ -112,12 +115,18 @@ export function SavedPostsView({ userId }: SavedPostsViewProps) {
         </div>
 
         {/* Collection Posts Feed */}
-        {activePosts.length > 0 ? (
-          <div className="flex flex-col gap-4">
-            {activePosts.map((post) => (
-              <PostCard key={post.id} post={post} queryKey={[SAVED_POSTS_KEY]} />
-            ))}
-          </div>
+        {activePosts.length > 0 || savedQuery.hasNextPage || savedQuery.hasPreviousPage ? (
+          <BoundedPostList
+            key={selectedCollectionId}
+            posts={allSavedPosts}
+            query={savedQuery}
+            queryKey={
+              selectedCollection
+                ? [SAVED_POSTS_KEY, 'collection', selectedCollection.id, selectedCollection.postIds]
+                : [SAVED_POSTS_KEY]
+            }
+            initialScrollY={isAll ? undefined : 0}
+          />
         ) : (
           <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-white/10 rounded-[2rem] bg-white/[0.01]">
             <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-4 text-gray-400">

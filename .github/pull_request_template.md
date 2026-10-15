@@ -37,3 +37,7 @@
 
 - [ ] Removed all `console.log` statements and commented-out dead code
 - [ ] Verified no secrets, tokens, or credentials are left in the code or `.env` files
+
+### Contribution Terms
+
+- [ ] I have read and agree to the contribution terms in Section 7 of LICENSE.md. I intentionally submit these contributions for inclusion in Eternal and grant the copyright and patent licenses specified there upon acceptance, unless a separately executed contributor agreement governs them. I have authority to grant those rights, including any required employer or third-party authorization, and have identified all third-party materials and applicable licenses.

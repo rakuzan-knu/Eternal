@@ -14,6 +14,8 @@ describe('conversations-repository.interface', () => {
       createDirect: jest.fn().mockResolvedValue({ id: 'conv-1' }),
       createGroup: jest.fn().mockResolvedValue({ id: 'grp-1' }),
       findAllForUser: jest.fn().mockResolvedValue([]),
+      getPageSnapshot: jest.fn().mockResolvedValue('2026-10-11T00:00:00.000000Z'),
+      findPageForUser: jest.fn().mockResolvedValue({ rows: [], hasMore: false, boundary: null }),
       findOneForUser: jest.fn().mockResolvedValue(null),
       updateGroup: jest.fn().mockResolvedValue({ id: 'grp-1' }),
       findParticipant: jest.fn().mockResolvedValue(null),

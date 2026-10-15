@@ -55,7 +55,7 @@ export class E2eeController {
     return key;
   }
 
-  @Get('keys/:userId/devices')
+  @Get(['keys/:userId/devices', 'devices/:userId'])
   @ApiOperation({
     summary: 'List all E2EE device keys for a user (multi-device fan-out)',
   })

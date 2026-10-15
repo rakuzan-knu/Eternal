@@ -18,6 +18,7 @@ import {
   updateFeatureFlagSchema,
 } from '@common/contracts';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { PlatformAdminGuard } from '../auth/guards/platform-admin.guard';
 import { AuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import type { RequestUser } from '../auth/interfaces/jwt-payload.interface';
@@ -51,7 +52,7 @@ export class FeatureFlagsController {
   // ─── Admin Endpoints ────────────────────────────────────────────────────────
 
   @Get('admin/list')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, PlatformAdminGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List all feature flag definitions (Admin)' })
   async listAdmin() {
@@ -59,7 +60,7 @@ export class FeatureFlagsController {
   }
 
   @Post('admin')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, PlatformAdminGuard)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new feature flag (Admin)' })
@@ -70,7 +71,7 @@ export class FeatureFlagsController {
   }
 
   @Patch('admin/:key')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, PlatformAdminGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update an existing feature flag configuration (Admin)' })
   async updateFlag(
@@ -81,7 +82,7 @@ export class FeatureFlagsController {
   }
 
   @Delete('admin/:key')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, PlatformAdminGuard)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a feature flag (Admin)' })

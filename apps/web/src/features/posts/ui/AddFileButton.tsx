@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { Paperclip } from 'lucide-react';
+import { POST_UPLOAD_ACCEPT } from '@social-network/shared-contracts';
 
 interface AddFileButtonProps {
   onFilesSelect: (files: File[]) => void;
@@ -27,7 +28,7 @@ export const AddFileButton: React.FC<AddFileButtonProps> = ({
         type="file"
         ref={fileInputRef}
         onChange={handleFilesChange}
-        accept="image/*,video/*"
+        accept={POST_UPLOAD_ACCEPT}
         multiple={multiple}
         className="hidden"
       />
@@ -35,7 +36,7 @@ export const AddFileButton: React.FC<AddFileButtonProps> = ({
         onClick={() => fileInputRef.current?.click()}
         disabled={disabled}
         title="Attach a photo or video"
-        className="p-2.5 rounded-xl text-gray-400 hover:bg-white/5 hover:text-white transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed"
+        className="p-2.5 rounded-xl text-gray-500 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
       >
         <Paperclip size={18} />
       </button>

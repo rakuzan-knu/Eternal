@@ -1,0 +1,76 @@
+import { existsSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { spawnSync } from 'node:child_process';
+import {
+  BufferTarget,
+  EncodedAudioPacketSource,
+  EncodedVideoPacketSource,
+  EncodedPacket,
+  Output,
+  WebMOutputFormat,
+} from 'mediabunny';
+
+export const pngImage = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAEklEQVQImWP4b5z23ziNAUIBAC8SBmFRgYV9AAAAAElFTkSuQmCC',
+  'base64',
+);
+export const gifImage = Buffer.from(
+  'R0lGODlhAgACAIAAAExpcf8zZiH5BAUAAAAALAAAAAACAAIAAAICjFMAOw==',
+  'base64',
+);
+
+function findPublicAsset(relativePath: string): string {
+  const candidates = [
+    resolve(__dirname, '../../../../../apps/web/public', relativePath),
+    resolve(__dirname, '../../../../web/public', relativePath),
+    resolve(process.cwd(), 'apps/web/public', relativePath),
+    resolve(process.cwd(), '../web/public', relativePath),
+  ];
+  for (const c of candidates) {
+    if (existsSync(c)) return c;
+  }
+  return candidates[0];
+}
+
+export const sampleVideo = () => readFile(findPublicAsset('videos/sample-reel.mp4'));
+export const sampleAudio = () => readFile(findPublicAsset('sounds/message-received.wav'));
+
+export async function sampleFlacAudio(): Promise<Buffer> {
+  const converted = spawnSync(
+    process.env.FFMPEG_PATH || 'ffmpeg',
+    ['-v', 'error', '-i', 'pipe:0', '-c:a', 'flac', '-f', 'flac', 'pipe:1'],
+    { input: await sampleAudio(), windowsHide: true },
+  );
+  if (converted.error) throw converted.error;
+  if (converted.status !== 0) throw new Error('Unable to create FLAC fixture');
+  return converted.stdout;
+}
+
+export async function voiceWebm(packet = new Uint8Array([0xf8, 0xff, 0xfe])): Promise<Buffer> {
+  const target = new BufferTarget();
+  const output = new Output({ target, format: new WebMOutputFormat() });
+  const source = new EncodedAudioPacketSource('opus');
+  output.addAudioTrack(source);
+  await output.start();
+  await source.add(new EncodedPacket(packet, 'key', 0, 0.02), {
+    decoderConfig: { codec: 'opus', sampleRate: 48000, numberOfChannels: 1 },
+  });
+  source.close();
+  await output.finalize();
+  return Buffer.from(target.buffer!);
+}
+
+export async function damagedVideoWebm(): Promise<Buffer> {
+  const target = new BufferTarget();
+  const output = new Output({ target, format: new WebMOutputFormat() });
+  const source = new EncodedVideoPacketSource('vp8');
+  output.addVideoTrack(source);
+  await output.start();
+  await source.add(new EncodedPacket(new Uint8Array([0xff]), 'key', 0, 0.04), {
+    decoderConfig: { codec: 'vp8', codedWidth: 2, codedHeight: 2 },
+  });
+  source.close();
+  await output.finalize();
+  return Buffer.from(target.buffer!);
+}

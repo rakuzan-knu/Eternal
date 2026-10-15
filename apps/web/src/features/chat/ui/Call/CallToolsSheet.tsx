@@ -1,18 +1,5 @@
 import React, { useEffect } from 'react';
-import {
-  Wand2,
-  Sparkles,
-  Compass,
-  UploadCloud,
-  Film,
-  PenTool,
-  Radio,
-  Bot,
-  Camera,
-  Boxes,
-  Settings,
-  X,
-} from 'lucide-react';
+import { Compass, UploadCloud, Film, PenTool, Radio, Bot, Settings, X } from 'lucide-react';
 import { useCallStore } from '../../model/callStore';
 
 interface CallToolsSheetProps {
@@ -23,10 +10,6 @@ interface CallToolsSheetProps {
 
 export function CallToolsSheet({ isOpen, onClose, onOpenSettings }: CallToolsSheetProps) {
   const {
-    virtualBackground,
-    setVirtualBackground,
-    isNoiseSuppressionEnabled,
-    setIsNoiseSuppressionEnabled,
     isTravelerModeEnabled,
     setIsTravelerModeEnabled,
     fileTransfers,
@@ -40,10 +23,6 @@ export function CallToolsSheet({ isOpen, onClose, onOpenSettings }: CallToolsShe
     toggleSoundboard,
     isLiveSummaryOpen,
     toggleLiveSummary,
-    isDualCameraOpen,
-    toggleDualCamera,
-    isHolographicCallOpen,
-    toggleHolographicCall,
   } = useCallStore();
 
   const activeTransfersCount = Object.keys(fileTransfers).length;
@@ -62,29 +41,9 @@ export function CallToolsSheet({ isOpen, onClose, onOpenSettings }: CallToolsShe
 
   const tools = [
     {
-      id: 'blur',
-      title: 'Размытие фона',
-      desc: virtualBackground === 'blur' ? 'Включено' : 'Выключено',
-      active: virtualBackground === 'blur',
-      icon: Wand2,
-      activeColor:
-        'bg-violet-500/20 text-violet-300 border-violet-500/40 shadow-[0_0_12px_rgba(139,92,246,0.25)]',
-      onClick: () => setVirtualBackground(virtualBackground === 'blur' ? 'none' : 'blur'),
-    },
-    {
-      id: 'rnnoise',
-      title: 'AI Шумоподавление',
-      desc: isNoiseSuppressionEnabled ? 'RNNoise AI вкл' : 'Выключено',
-      active: isNoiseSuppressionEnabled,
-      icon: Sparkles,
-      activeColor:
-        'bg-cyan-500/20 text-cyan-300 border-cyan-500/40 shadow-[0_0_12px_rgba(6,182,212,0.25)]',
-      onClick: () => setIsNoiseSuppressionEnabled(!isNoiseSuppressionEnabled),
-    },
-    {
       id: 'traveler',
-      title: 'Эко-режим (Батарея)',
-      desc: isTravelerModeEnabled ? '12kbps Opus' : 'Стандарт',
+      title: 'Battery Saver (Eco)',
+      desc: isTravelerModeEnabled ? '12kbps Opus' : 'Standard',
       active: isTravelerModeEnabled,
       icon: Compass,
       activeColor:
@@ -93,8 +52,8 @@ export function CallToolsSheet({ isOpen, onClose, onOpenSettings }: CallToolsShe
     },
     {
       id: 'whiteboard',
-      title: 'Интерактивная доска',
-      desc: isWhiteboardOpen ? 'Открыта' : 'CRDT Canvas',
+      title: 'Whiteboard',
+      desc: isWhiteboardOpen ? 'Open' : 'CRDT Canvas',
       active: isWhiteboardOpen,
       icon: PenTool,
       activeColor:
@@ -106,8 +65,8 @@ export function CallToolsSheet({ isOpen, onClose, onOpenSettings }: CallToolsShe
     },
     {
       id: 'syncplay',
-      title: 'Смотреть вместе',
-      desc: isSyncPlayOpen ? 'Активно' : 'SyncPlay P2P',
+      title: 'Watch Together',
+      desc: isSyncPlayOpen ? 'Active' : 'SyncPlay P2P',
       active: isSyncPlayOpen,
       icon: Film,
       activeColor:
@@ -119,8 +78,8 @@ export function CallToolsSheet({ isOpen, onClose, onOpenSettings }: CallToolsShe
     },
     {
       id: 'p2pfiles',
-      title: 'P2P Передача файлов',
-      desc: activeTransfersCount > 0 ? `${activeTransfersCount} файлов` : 'Прямая передача',
+      title: 'P2P File Transfer',
+      desc: activeTransfersCount > 0 ? `${activeTransfersCount} files` : 'Direct P2P',
       active: isFileTransferOpen || activeTransfersCount > 0,
       icon: UploadCloud,
       activeColor:
@@ -133,8 +92,8 @@ export function CallToolsSheet({ isOpen, onClose, onOpenSettings }: CallToolsShe
     },
     {
       id: 'soundboard',
-      title: 'Саундборд и мемы',
-      desc: isSoundboardOpen ? 'Открыт' : 'Звуковые эффекты',
+      title: 'Soundboard & Memes',
+      desc: isSoundboardOpen ? 'Open' : 'Audio Effects',
       active: isSoundboardOpen,
       icon: Radio,
       activeColor:
@@ -146,8 +105,8 @@ export function CallToolsSheet({ isOpen, onClose, onOpenSettings }: CallToolsShe
     },
     {
       id: 'summary',
-      title: 'AI Саммари звонка',
-      desc: isLiveSummaryOpen ? 'Генерируется' : 'Что я пропустил?',
+      title: 'AI Call Summary',
+      desc: isLiveSummaryOpen ? 'Generating...' : 'What did I miss?',
       active: isLiveSummaryOpen,
       icon: Bot,
       activeColor:
@@ -158,35 +117,9 @@ export function CallToolsSheet({ isOpen, onClose, onOpenSettings }: CallToolsShe
       },
     },
     {
-      id: 'dualcamera',
-      title: 'Двойная камера',
-      desc: isDualCameraOpen ? 'Включена' : 'Студийный режим',
-      active: isDualCameraOpen,
-      icon: Camera,
-      activeColor:
-        'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.25)]',
-      onClick: () => {
-        toggleDualCamera();
-        onClose();
-      },
-    },
-    {
-      id: 'holographic',
-      title: '3D Голограмма',
-      desc: isHolographicCallOpen ? 'WebXR LiDAR' : 'Gaussian Splatting',
-      active: isHolographicCallOpen,
-      icon: Boxes,
-      activeColor:
-        'bg-cyan-500/25 text-cyan-300 border-cyan-400/50 shadow-[0_0_15px_rgba(6,182,212,0.3)]',
-      onClick: () => {
-        toggleHolographicCall();
-        onClose();
-      },
-    },
-    {
       id: 'settings',
-      title: 'Настройки звука и видео',
-      desc: 'Микрофон, камера, спикеры',
+      title: 'Audio & Video Settings',
+      desc: 'Microphone, camera, speakers',
       active: false,
       icon: Settings,
       activeColor: 'bg-white/15 text-white border-white/20',
@@ -201,7 +134,7 @@ export function CallToolsSheet({ isOpen, onClose, onOpenSettings }: CallToolsShe
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Дополнительные инструменты звонка"
+      aria-label="Call tools and features"
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-md animate-fadeIn select-none"
       onClick={onClose}
     >
@@ -215,13 +148,13 @@ export function CallToolsSheet({ isOpen, onClose, onOpenSettings }: CallToolsShe
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/10 shrink-0">
           <div>
-            <h3 className="text-base font-semibold text-white">Инструменты звонка</h3>
-            <p className="text-xs text-zinc-400">Быстрое переключение функций и эффектов</p>
+            <h3 className="text-base font-semibold text-white">Call Tools</h3>
+            <p className="text-xs text-zinc-400">Quick toggles for media features and effects</p>
           </div>
           <button
             onClick={onClose}
-            className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white transition-colors"
-            aria-label="Закрыть"
+            className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white transition-colors cursor-pointer"
+            aria-label="Close"
           >
             <X size={18} />
           </button>

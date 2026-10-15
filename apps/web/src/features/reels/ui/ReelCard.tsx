@@ -20,6 +20,8 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import Avatar from '@/shared/ui/Avatar';
+import StyledDisplayName from '@/shared/ui/StyledDisplayName';
 import type { ReelItem } from '../api/reelsApi';
 import {
   useToggleLikeReel,
@@ -36,6 +38,8 @@ import { ReelOptionsMenu } from './ReelOptionsMenu';
 import { ReelReportModal } from './ReelReportModal';
 import { ReelProgressBar } from './ReelProgressBar';
 import { ReelSubtitlesOverlay } from './ReelSubtitlesOverlay';
+import type { ReelVideoPool } from '../lib/reelVideoPool';
+import { usePooledReelVideo } from '../lib/usePooledReelVideo';
 import {
   generateCues,
   SUBTITLE_LANGUAGES,
@@ -45,6 +49,7 @@ import {
 
 export interface ReelCardProps {
   reel: ReelItem;
+  videoPool: ReelVideoPool;
   isActive: boolean;
   isMuted: boolean;
   onToggleMute: () => void;
@@ -54,21 +59,18 @@ export interface ReelCardProps {
 
 export const ReelCardComponent: React.FC<ReelCardProps> = ({
   reel,
+  videoPool,
   isActive,
   isMuted,
   onToggleMute,
   onNavigateNext,
   onRemoveReel,
 }) => {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const captionRef = useRef<HTMLParagraphElement | null>(null);
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const currentUserId = useAuthStore((s) => s.userId);
 
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
-  const [hasPlaybackError, setHasPlaybackError] = useState(false);
   const [volume, setVolume] = useState(() => {
     try {
       const saved = localStorage.getItem('reels_volume');
@@ -79,7 +81,7 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
   });
   const [isVolumeHovered, setIsVolumeHovered] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
-  const [quality, setQuality] = useState('Авто');
+  const [quality, setQuality] = useState('Auto');
   const [subtitleLanguage, setSubtitleLanguage] = useState<SubtitleLanguage>('off');
 
   const [showHeartAnimation, setShowHeartAnimation] = useState(false);
@@ -102,8 +104,38 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
   const recordViewMutation = useRecordReelView();
   const notInterestedMutation = useNotInterestedReel();
   const viewRecordedRef = useRef(false);
+  const {
+    hostRef,
+    videoRef,
+    videoKey,
+    hasVideo,
+    isPlaying,
+    isLoaded: isVideoLoaded,
+    hasError: hasPlaybackError,
+    play: playVideo,
+    pause: pauseVideo,
+    retry: retryVideo,
+    seek: seekVideo,
+  } = usePooledReelVideo({
+    pool: videoPool,
+    reelId: reel.id,
+    src: reel.videoUrl,
+    hlsUrl: reel.hlsUrl,
+    poster: reel.thumbnailUrl,
+    isActive,
+    isMuted,
+    volume,
+    playbackRate,
+    onPlayed: () => {
+      if (!viewRecordedRef.current) {
+        viewRecordedRef.current = true;
+        recordViewMutation.mutate(reel.id);
+      }
+    },
+  });
 
   const [isTranslated, setIsTranslated] = useState(false);
+  const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
   const [playPauseEffect, setPlayPauseEffect] = useState<'play' | 'pause' | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -122,7 +154,7 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
     return translateCaption(reel.caption || '');
   }, [reel.caption]);
 
-  // Genuine DOM overflow measurement for "ще" button (Requirement 7)
+  // Genuine DOM overflow measurement for "more" button (Requirement 7)
   useEffect(() => {
     const el = captionRef.current;
     if (!el) return;
@@ -154,7 +186,7 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
           filter: 'blur(0.3px)',
         };
       case '1080p':
-      case 'Авто':
+      case 'Auto':
       default:
         return {
           filter: 'none',
@@ -163,47 +195,25 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
     }
   }, [quality]);
 
-  const isManuallyPausedRef = useRef(false);
-
   const handleTogglePlay = useCallback(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    if (video.paused) {
-      isManuallyPausedRef.current = false;
-      const playPromise = video.play();
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            setIsPlaying(true);
-            triggerPlayPauseAnimation('play');
-            if (!viewRecordedRef.current) {
-              viewRecordedRef.current = true;
-              recordViewMutation.mutate(reel.id);
-            }
-          })
-          .catch(() => {
-            setIsPlaying(false);
-          });
-      }
+    if (!isPlaying) {
+      void playVideo().then((playing) => {
+        if (playing) triggerPlayPauseAnimation('play');
+      });
     } else {
-      isManuallyPausedRef.current = true;
-      video.pause();
-      setIsPlaying(false);
+      pauseVideo();
       triggerPlayPauseAnimation('pause');
     }
-  }, [reel.id, recordViewMutation]);
+  }, [isPlaying, playVideo, pauseVideo]);
 
-  // "Не цікаво" countdown and auto-scroll (Requirement 9)
+  // "Not interested" countdown and auto-scroll (Requirement 9)
   const handleNotInterested = useCallback(() => {
     notInterestedMutation.mutate(reel.id);
-    setNotInterestedNotice('Дякуємо! Ми показуватимемо менше схожого контенту.');
+    setNotInterestedNotice("Thanks! We'll show less content like this.");
     setNotInterestedCountdown(5);
 
     // Pause video
-    isManuallyPausedRef.current = true;
-    videoRef.current?.pause();
-    setIsPlaying(false);
+    pauseVideo();
 
     if (countdownIntervalRef.current) {
       clearInterval(countdownIntervalRef.current);
@@ -224,7 +234,7 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
         }, 300);
       }
     }, 1000);
-  }, [reel.id, notInterestedMutation, onNavigateNext, onRemoveReel]);
+  }, [reel.id, notInterestedMutation, onNavigateNext, onRemoveReel, pauseVideo]);
 
   const handleCancelNotInterested = useCallback(() => {
     if (countdownIntervalRef.current) {
@@ -233,11 +243,9 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
     }
     setNotInterestedNotice(null);
     setNotInterestedCountdown(5);
-    isManuallyPausedRef.current = false;
-    videoRef.current?.play().catch(() => {});
-    setIsPlaying(true);
-    showToast('Дію скасовано');
-  }, []);
+    void playVideo();
+    showToast('Action cancelled');
+  }, [playVideo]);
 
   const handleSkipNow = useCallback(() => {
     if (countdownIntervalRef.current) {
@@ -275,7 +283,7 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
       } else if (e.key === 'b' || e.key === 'B') {
         e.preventDefault();
         toggleSaveMutation.mutate(reel.id);
-        showToast(reel.isSaved ? 'Видалено зі збереженого' : '🔖 Збережено у вибране');
+        showToast(reel.isSaved ? 'Removed from saved' : '🔖 Saved to favorites');
       } else if (e.key === 'c' || e.key === 'C') {
         e.preventDefault();
         setShowComments((prev) => !prev);
@@ -288,42 +296,8 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isActive, reel.id, reel.isSaved, toggleLikeMutation, toggleSaveMutation, handleTogglePlay]);
 
-  // Play / Pause video based on active slide in viewport
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    if (isActive) {
-      if (!isManuallyPausedRef.current) {
-        const playPromise = video.play();
-        if (playPromise !== undefined) {
-          playPromise
-            .then(() => {
-              setIsPlaying(true);
-              if (!viewRecordedRef.current) {
-                viewRecordedRef.current = true;
-                recordViewMutation.mutate(reel.id);
-              }
-            })
-            .catch(() => {
-              setIsPlaying(false);
-            });
-        }
-      }
-    } else {
-      isManuallyPausedRef.current = false;
-      video.pause();
-      video.currentTime = 0;
-      setIsPlaying(false);
-    }
-  }, [isActive, reel.id, recordViewMutation]);
-
   // Sync mute and volume state with localStorage persistence
   useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.muted = isMuted;
-      videoRef.current.volume = isMuted ? 0 : volume;
-    }
     try {
       localStorage.setItem('reels_volume', String(volume));
       localStorage.setItem('reels_muted', String(isMuted));
@@ -354,8 +328,7 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
       }
       // If the first tap paused, resume playback immediately on double tap
       if (videoRef.current?.paused) {
-        isManuallyPausedRef.current = false;
-        void videoRef.current.play().then(() => setIsPlaying(true));
+        void playVideo();
       }
     } else {
       // Single tap -> toggle play/pause immediately!
@@ -400,171 +373,178 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
   };
 
   // Render vertical actions column (both for desktop side rail and mobile overlay)
-  const renderActionRail = (isMobile: boolean) => (
-    <div className={`flex flex-col items-center ${isMobile ? 'gap-3' : 'gap-4 sm:gap-4.5'}`}>
-      {/* 1. Author Avatar with Red "+" Follow Badge */}
-      <div className="relative mb-0.5 sm:mb-1 flex flex-col items-center">
-        <Link
-          to={`/profile/${reel.author.username || reel.author.id}`}
-          onClick={(e) => e.stopPropagation()}
-          className="block group"
-        >
-          {reel.author.avatar ? (
-            <img
-              src={reel.author.avatar}
-              alt={reel.author.username}
-              className="w-11 h-11 sm:w-12 sm:h-12 rounded-full object-cover ring-2 ring-white/60 group-hover:scale-105 transition-transform"
-            />
-          ) : (
-            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-linear-to-tr from-pink-500 to-indigo-500 flex items-center justify-center font-bold text-white text-sm ring-2 ring-white/60">
-              {reel.author.username.slice(0, 2).toUpperCase()}
-            </div>
-          )}
-        </Link>
-        {!isFollowing && !isOwnReel && (
-          <button
-            type="button"
-            onClick={handleFollowAuthor}
-            className={`absolute -bottom-1.5 left-1/2 -translate-x-1/2 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 z-30 cursor-pointer ${
-              isFollowAnimating
-                ? 'w-5 h-5 bg-emerald-500 scale-125'
-                : 'w-5 h-5 bg-[#fe2c55] hover:scale-110 active:scale-95 text-white'
-            }`}
-            aria-label={`Підписатися на @${reel.author.username}`}
+  const renderActionRail = (isMobile: boolean) => {
+    const unselectedBtnClass = isMobile
+      ? 'bg-zinc-800/80 hover:bg-zinc-700/80 text-white'
+      : 'glass-modal border border-black/10 dark:border-white/15 text-gray-800 dark:text-white hover:bg-black/10 dark:hover:bg-white/20';
+
+    const countBadgeClass = isMobile
+      ? 'text-[11px] sm:text-xs font-bold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] tracking-tight mt-1'
+      : 'text-[11px] sm:text-xs font-extrabold tracking-tight mt-1 px-2 py-0.5 rounded-full bg-white/80 dark:bg-black/70 backdrop-blur-xl border border-black/10 dark:border-white/15 text-gray-900 dark:text-white shadow-xs select-none';
+
+    return (
+      <div className={`flex flex-col items-center ${isMobile ? 'gap-3' : 'gap-4 sm:gap-4.5'}`}>
+        {/* 1. Author Avatar with Red "+" Follow Badge */}
+        <div className="relative mb-0.5 sm:mb-1 flex flex-col items-center">
+          <Link
+            to={`/profile/${reel.author.username || reel.author.id}`}
+            onClick={(e) => e.stopPropagation()}
+            className="block group"
           >
-            {isFollowAnimating ? (
-              <Check className="w-3 h-3 text-white stroke-[3]" />
-            ) : (
-              <Plus className="w-3.5 h-3.5 text-white stroke-[3]" />
-            )}
-          </button>
-        )}
-      </div>
-
-      {/* 2. Like Button with Heart and Count */}
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          toggleLikeMutation.mutate(reel.id);
-        }}
-        className="flex flex-col items-center group cursor-pointer"
-        aria-label={reel.isLiked ? 'Прибрати вподобайку' : 'Поставити лайк'}
-      >
-        <div
-          className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center backdrop-blur-md transition-all group-hover:scale-110 active:scale-90 shadow-lg ${
-            reel.isLiked
-              ? 'bg-[#fe2c55]/20 text-[#fe2c55]'
-              : 'bg-zinc-800/80 hover:bg-zinc-700/80 text-white'
-          }`}
-        >
-          <Heart
-            className={`w-6 h-6 transition-transform duration-200 ${
-              reel.isLiked ? 'fill-[#fe2c55] text-[#fe2c55] scale-110' : 'text-white'
-            }`}
-          />
-        </div>
-        <span className="text-[11px] sm:text-xs font-bold text-white drop-shadow tracking-tight mt-1">
-          {formatCount(reel.likesCount)}
-        </span>
-      </button>
-
-      {/* 3. Comment Button with Count */}
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          setShowComments(true);
-        }}
-        className="flex flex-col items-center group cursor-pointer"
-        aria-label="Переглянути коментарі"
-      >
-        <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-zinc-800/80 hover:bg-zinc-700/80 backdrop-blur-md text-white flex items-center justify-center transition-all group-hover:scale-110 active:scale-90 shadow-lg">
-          <MessageCircle className="w-6 h-6 text-white fill-white/20" />
-        </div>
-        <span className="text-[11px] sm:text-xs font-bold text-white drop-shadow tracking-tight mt-1">
-          {formatCount(reel.commentsCount)}
-        </span>
-      </button>
-
-      {/* 4. Bookmark / Favorite Button with Count */}
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          toggleSaveMutation.mutate(reel.id);
-        }}
-        className="flex flex-col items-center group cursor-pointer"
-        aria-label={reel.isSaved ? 'Видалити зі збереженого' : 'Зберегти у вибране'}
-      >
-        <div
-          className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center backdrop-blur-md transition-all group-hover:scale-110 active:scale-90 shadow-lg ${
-            reel.isSaved
-              ? 'bg-amber-500/20 text-amber-400'
-              : 'bg-zinc-800/80 hover:bg-zinc-700/80 text-white'
-          }`}
-        >
-          <Bookmark
-            className={`w-6 h-6 transition-transform duration-200 ${
-              reel.isSaved ? 'fill-amber-400 text-amber-400 scale-110' : 'text-white'
-            }`}
-          />
-        </div>
-        <span className="text-[11px] sm:text-xs font-bold text-white drop-shadow tracking-tight mt-1">
-          {formatCount(reel.savedCount ?? 98600)}
-        </span>
-      </button>
-
-      {/* 5. Share Button with Count */}
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          setIsShareModalOpen(true);
-        }}
-        className="flex flex-col items-center group cursor-pointer"
-        aria-label="Поділитися"
-      >
-        <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-zinc-800/80 hover:bg-zinc-700/80 backdrop-blur-md text-white flex items-center justify-center transition-all group-hover:scale-110 active:scale-90 shadow-lg">
-          <Share2 className="w-6 h-6 text-white" />
-        </div>
-        <span className="text-[11px] sm:text-xs font-bold text-white drop-shadow tracking-tight mt-1">
-          {formatCount(reel.sharesCount)}
-        </span>
-      </button>
-
-      {/* 6. Rotating Audio Vinyl Disc */}
-      <div className="pt-1.5 flex flex-col items-center">
-        <div
-          className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-zinc-950 border-[3px] border-zinc-800 p-1 flex items-center justify-center shadow-xl relative overflow-hidden ${
-            isPlaying ? 'animate-[spin_4s_linear_infinite]' : ''
-          }`}
-        >
-          <div className="absolute inset-0 rounded-full border border-zinc-700/40 pointer-events-none" />
-          <div className="absolute inset-1.5 rounded-full border border-zinc-700/30 pointer-events-none" />
-          {reel.author.avatar ? (
-            <img
+            <Avatar
               src={reel.author.avatar}
-              alt="Sound"
-              className="w-full h-full rounded-full object-cover"
+              name={reel.author.displayName || reel.author.username}
+              userId={reel.author.id}
+              decoration={reel.author.activeDecoration}
+              size="md"
+              className={`w-11 h-11 sm:w-12 sm:h-12 group-hover:scale-105 transition-transform ring-2 ${
+                isMobile ? 'ring-white/80' : 'ring-black/15 dark:ring-white/60'
+              }`}
             />
-          ) : (
-            <div className="w-full h-full rounded-full bg-linear-to-tr from-emerald-500 to-teal-700 flex items-center justify-center">
-              <Music className="w-3.5 h-3.5 text-white" />
-            </div>
+          </Link>
+          {!isFollowing && !isOwnReel && (
+            <button
+              type="button"
+              onClick={handleFollowAuthor}
+              className={`absolute -bottom-1.5 left-1/2 -translate-x-1/2 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 z-30 cursor-pointer ${
+                isFollowAnimating
+                  ? 'w-5 h-5 bg-emerald-500 scale-125'
+                  : 'w-5 h-5 bg-[#fe2c55] hover:scale-110 active:scale-95 text-white'
+              }`}
+              aria-label={`Follow @${reel.author.username}`}
+            >
+              {isFollowAnimating ? (
+                <Check className="w-3 h-3 text-white stroke-[3]" />
+              ) : (
+                <Plus className="w-3.5 h-3.5 text-white stroke-[3]" />
+              )}
+            </button>
           )}
         </div>
+
+        {/* 2. Like Button with Heart and Count */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleLikeMutation.mutate(reel.id);
+          }}
+          className="flex flex-col items-center group cursor-pointer"
+          aria-label={reel.isLiked ? 'Unlike' : 'Like'}
+        >
+          <div
+            className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center backdrop-blur-md transition-all group-hover:scale-110 active:scale-90 shadow-lg ${
+              reel.isLiked
+                ? 'bg-[#fe2c55]/20 text-[#fe2c55] border border-[#fe2c55]/40'
+                : unselectedBtnClass
+            }`}
+          >
+            <Heart
+              className={`w-6 h-6 transition-transform duration-200 ${
+                reel.isLiked ? 'fill-[#fe2c55] text-[#fe2c55] scale-110' : 'text-current'
+              }`}
+            />
+          </div>
+          <span className={countBadgeClass}>{formatCount(reel.likesCount)}</span>
+        </button>
+
+        {/* 3. Comment Button with Count */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowComments(true);
+          }}
+          className="flex flex-col items-center group cursor-pointer"
+          aria-label="View comments"
+        >
+          <div
+            className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full backdrop-blur-md flex items-center justify-center transition-all group-hover:scale-110 active:scale-90 shadow-lg ${unselectedBtnClass}`}
+          >
+            <MessageCircle className="w-6 h-6 text-current fill-current/15" />
+          </div>
+          <span className={countBadgeClass}>{formatCount(reel.commentsCount)}</span>
+        </button>
+
+        {/* 4. Bookmark / Favorite Button with Count */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleSaveMutation.mutate(reel.id);
+          }}
+          className="flex flex-col items-center group cursor-pointer"
+          aria-label={reel.isSaved ? 'Remove from saved' : 'Save to favorites'}
+        >
+          <div
+            className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center backdrop-blur-md transition-all group-hover:scale-110 active:scale-90 shadow-lg ${
+              reel.isSaved
+                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
+                : unselectedBtnClass
+            }`}
+          >
+            <Bookmark
+              className={`w-6 h-6 transition-transform duration-200 ${
+                reel.isSaved ? 'fill-amber-400 text-amber-400 scale-110' : 'text-current'
+              }`}
+            />
+          </div>
+          <span className={countBadgeClass}>{formatCount(reel.savedCount ?? 98600)}</span>
+        </button>
+
+        {/* 5. Share Button with Count */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsShareModalOpen(true);
+          }}
+          className="flex flex-col items-center group cursor-pointer"
+          aria-label="Share"
+        >
+          <div
+            className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full backdrop-blur-md flex items-center justify-center transition-all group-hover:scale-110 active:scale-90 shadow-lg ${unselectedBtnClass}`}
+          >
+            <Share2 className="w-6 h-6 text-current" />
+          </div>
+          <span className={countBadgeClass}>{formatCount(reel.sharesCount)}</span>
+        </button>
+
+        {/* 6. Rotating Audio Vinyl Disc */}
+        <div className="pt-1.5 flex flex-col items-center">
+          <div
+            className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-zinc-950 border-[3px] ${
+              isMobile ? 'border-zinc-800' : 'border-black/15 dark:border-zinc-800'
+            } p-1 flex items-center justify-center shadow-xl relative overflow-hidden ${
+              isPlaying ? 'animate-[spin_4s_linear_infinite]' : ''
+            }`}
+          >
+            <div className="absolute inset-0 rounded-full border border-zinc-700/40 pointer-events-none" />
+            <div className="absolute inset-1.5 rounded-full border border-zinc-700/30 pointer-events-none" />
+            {reel.author.avatar ? (
+              <img
+                src={reel.author.avatar}
+                alt="Sound"
+                className="w-full h-full rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full rounded-full bg-linear-to-tr from-emerald-500 to-teal-700 flex items-center justify-center">
+                <Music className="w-3.5 h-3.5 text-white" />
+              </div>
+            )}
+          </div>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div
       ref={containerRef}
-      className="relative flex flex-row items-end justify-center gap-3 sm:gap-4 md:gap-5 h-[100dvh] sm:h-[clamp(520px,calc(100dvh-3rem),860px)] w-full max-w-[min(100vw,calc(100dvh*9/16+110px))] mx-auto select-none"
+      className="relative flex flex-row items-end justify-center gap-3 sm:gap-4 md:gap-5 h-full max-h-full w-auto max-w-full mx-auto select-none"
     >
       {/* Vertical Video Frame */}
-      <div className="relative aspect-9/16 h-full max-w-[min(100vw,calc(100dvh*9/16))] bg-black rounded-none sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col justify-end border border-zinc-900/80 shrink-0">
+      <div className="group/card relative aspect-9/16 h-full max-h-full max-w-[calc(100vw-16px)] sm:max-w-[calc(100vw-120px)] bg-black rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col justify-end border border-white/10 shrink-0">
         {/* Background BlurHash placeholder until video frames ready */}
         {reel.blurhash && (
           <div
@@ -580,70 +560,30 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
           </div>
         )}
 
-        {/* Vertical Video Element */}
-        <video
-          ref={videoRef}
-          src={reel.videoUrl}
+        {/* The pool moves one of three physical video nodes into this host. */}
+        <div
+          ref={hostRef}
+          data-reel-video-host={reel.id}
           style={videoQualityStyle}
-          loop
-          playsInline
-          webkit-playsinline="true"
-          muted={isMuted}
-          onPlay={() => setIsPlaying(true)}
-          onPause={() => {
-            const v = videoRef.current;
-            if (v && v.duration && (v.currentTime >= v.duration - 0.25 || v.currentTime === 0)) {
-              if (!isManuallyPausedRef.current) {
-                v.currentTime = 0;
-                v.play().catch(() => {});
-                setIsPlaying(true);
-                return;
-              }
-            }
-            if (isManuallyPausedRef.current) {
-              setIsPlaying(false);
-            }
-          }}
-          onEnded={() => {
-            if (videoRef.current) {
-              videoRef.current.currentTime = 0;
-              videoRef.current.play().catch(() => {});
-              setIsPlaying(true);
-            }
-          }}
-          preload={isActive ? 'auto' : 'metadata'}
-          onError={() => setHasPlaybackError(true)}
-          onLoadedData={() => {
-            setIsVideoLoaded(true);
-            setHasPlaybackError(false);
-          }}
-          onLoadedMetadata={() => setIsVideoLoaded(true)}
-          onCanPlay={() => setIsVideoLoaded(true)}
-          className="absolute inset-0 w-full h-full object-cover z-0 transition-all duration-300 will-change-transform transform-gpu"
+          className="absolute inset-0 z-0"
         />
 
         {/* Playback Error Recovery State */}
         {hasPlaybackError && (
           <div className="absolute inset-0 z-35 bg-black/85 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center animate-in fade-in">
             <AlertCircle className="w-12 h-12 text-red-400 mb-3" />
-            <p className="text-white font-bold text-sm mb-1">Помилка відтворення відео</p>
-            <p className="text-zinc-400 text-xs mb-4">
-              Перевірте з'єднання або спробуйте завантажити знову
-            </p>
+            <p className="text-white font-bold text-sm mb-1">Video playback error</p>
+            <p className="text-zinc-400 text-xs mb-4">Check your connection or try reloading</p>
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                setHasPlaybackError(false);
-                if (videoRef.current) {
-                  videoRef.current.load();
-                  videoRef.current.play().catch(() => {});
-                }
+                void retryVideo();
               }}
               className="flex items-center gap-2 px-4 py-2 bg-white/15 hover:bg-white/25 rounded-xl text-white text-xs font-semibold transition-all active:scale-95 cursor-pointer"
             >
               <RefreshCw className="w-4 h-4" />
-              Повторити
+              Retry
             </button>
           </div>
         )}
@@ -652,7 +592,7 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
         <div
           onClick={handleContainerClick}
           className="absolute inset-0 z-10 cursor-pointer"
-          aria-label={isPlaying ? 'Поставити на паузу' : 'Відтворити'}
+          aria-label={isPlaying ? 'Pause' : 'Play'}
           role="button"
           tabIndex={0}
           onKeyDown={(e) => {
@@ -673,7 +613,7 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
                 handleTogglePlay();
               }}
               className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-black/65 hover:bg-black/85 border border-white/40 flex items-center justify-center text-white shadow-[0_12px_48px_rgba(0,0,0,0.85)] hover:scale-105 active:scale-95 transition-all duration-200 pointer-events-auto cursor-pointer animate-in zoom-in-75 fade-in duration-200 group/play"
-              aria-label="Продовжити відтворення"
+              aria-label="Resume playback"
             >
               <div className="flex items-center justify-center w-full h-full">
                 <Play className="w-10 h-10 sm:w-12 sm:h-12 fill-white text-white drop-shadow-lg group-hover/play:scale-105 transition-transform" />
@@ -713,7 +653,14 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
         )}
 
         {/* Top Controls Overlay: Volume with hover slider on left, Three Dots on right */}
-        <div className="absolute top-0 inset-x-0 h-24 bg-linear-to-b from-black/60 to-transparent pointer-events-none z-20 flex items-start justify-between p-3 sm:p-4">
+        {/* Smoothly appears on hover on >=880px, stays visible on mobile, or when volume/menu open */}
+        <div
+          className={`absolute top-0 inset-x-0 h-24 bg-linear-to-b from-black/60 to-transparent z-20 flex items-start justify-between p-3 sm:p-4 transition-opacity duration-300 ${
+            isVolumeHovered || isOptionsMenuOpen
+              ? 'opacity-100 pointer-events-auto'
+              : 'max-[879px]:opacity-100 min-[880px]:opacity-0 min-[880px]:pointer-events-none min-[880px]:group-hover/card:opacity-100 min-[880px]:group-hover/card:pointer-events-auto'
+          }`}
+        >
           {/* Top-Left: Volume button with expandable hover slider */}
           <div
             className="flex items-center bg-black/40 backdrop-blur-md rounded-full transition-all duration-200 pointer-events-auto p-1.5 shadow-lg group hover:bg-black/70"
@@ -726,17 +673,15 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
                 e.stopPropagation();
                 if (isMuted) {
                   onToggleMute();
-                  if (videoRef.current) {
-                    videoRef.current.volume = volume > 0 ? volume : 1;
-                  }
-                  showToast('Звук увімкнено');
+                  if (volume === 0) setVolume(1);
+                  showToast('Sound on');
                 } else {
                   onToggleMute();
-                  showToast('Звук вимкнено');
+                  showToast('Sound off');
                 }
               }}
               className="p-1 rounded-full text-white hover:text-pink-400 transition-colors cursor-pointer"
-              aria-label={isMuted ? 'Увімкнути звук' : 'Вимкнути звук'}
+              aria-label={isMuted ? 'Unmute sound' : 'Mute sound'}
             >
               {isMuted || volume === 0 ? (
                 <VolumeX className="w-5 h-5 text-white" />
@@ -761,9 +706,6 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
                   e.stopPropagation();
                   const newVol = parseFloat(e.target.value);
                   setVolume(newVol);
-                  if (videoRef.current) {
-                    videoRef.current.volume = newVol;
-                  }
                   if (newVol > 0 && isMuted) {
                     onToggleMute();
                   } else if (newVol === 0 && !isMuted) {
@@ -771,55 +713,53 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
                   }
                 }}
                 className="w-full h-1 bg-white/30 accent-pink-500 rounded-full cursor-pointer appearance-none"
-                aria-label="Гучність"
+                aria-label="Volume"
               />
             </div>
           </div>
 
           {/* Top-Right: Three Dots Menu (Speed, Quality, PiP, Subtitles, Not Interested, Report) */}
           <ReelOptionsMenu
+            onOpenChange={setIsOptionsMenuOpen}
             playbackRate={playbackRate}
             onSelectPlaybackRate={(rate) => {
               setPlaybackRate(rate);
-              if (videoRef.current) {
-                videoRef.current.playbackRate = rate;
-              }
-              showToast(`⚡ Швидкість: ${rate}x`);
+              showToast(`⚡ Speed: ${rate}x`);
             }}
             quality={quality}
-            availableQualities={['Авто', '1080p', '720p', '480p', '360p']}
+            availableQualities={['Auto', '1080p', '720p', '480p', '360p']}
             onSelectQuality={(q) => {
               setQuality(q);
-              showToast(`🎬 Якість відео: ${q}`);
+              showToast(`🎬 Video quality: ${q}`);
             }}
             onTogglePictureInPicture={async () => {
               if (videoRef.current) {
                 try {
                   if (document.pictureInPictureElement) {
                     await document.exitPictureInPicture();
-                    showToast('Floating Player вимкнено');
+                    showToast('Floating Player disabled');
                   } else if (videoRef.current.requestPictureInPicture) {
                     await videoRef.current.requestPictureInPicture();
-                    showToast('📺 Floating Player увімкнено');
+                    showToast('📺 Floating Player enabled');
                   } else {
                     window.open(
                       `/reels?id=${reel.id}&floating=1`,
                       '_blank',
                       'width=380,height=680',
                     );
-                    showToast('📺 Вікно відкрито');
+                    showToast('📺 Window opened');
                   }
                 } catch {
                   window.open(`/reels?id=${reel.id}&floating=1`, '_blank', 'width=380,height=680');
-                  showToast('📺 Вікно відкрито');
+                  showToast('📺 Window opened');
                 }
               }
             }}
             subtitleLanguage={subtitleLanguage}
             onSelectSubtitleLanguage={(lang) => {
               setSubtitleLanguage(lang);
-              const label = SUBTITLE_LANGUAGES.find((l) => l.id === lang)?.label || 'Вимкнено';
-              showToast(`💬 Субтитри: ${label}`);
+              const label = SUBTITLE_LANGUAGES.find((l) => l.id === lang)?.label || 'Off';
+              showToast(`💬 Subtitles: ${label}`);
             }}
             onNotInterested={handleNotInterested}
             onOpenReport={() => setIsReportModalOpen(true)}
@@ -827,7 +767,14 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
         </div>
 
         {/* Synchronized Subtitles (Isolated, compact, only active during spoken dialogue) */}
-        <ReelSubtitlesOverlay videoRef={videoRef} cues={cues} subtitleLanguage={subtitleLanguage} />
+        {hasVideo && (
+          <ReelSubtitlesOverlay
+            key={`subtitles-${videoKey}`}
+            videoRef={videoRef}
+            cues={cues}
+            subtitleLanguage={subtitleLanguage}
+          />
+        )}
 
         {/* "Not Interested" Feedback Card with 5s countdown, Cancel & Skip now (Requirement 9) */}
         {notInterestedNotice && (
@@ -836,21 +783,21 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
               <EyeOff className="w-7 h-7" />
             </div>
             <h3 className="text-white font-black text-base sm:text-lg mb-1 tracking-tight">
-              Відео приховано
+              Video hidden
             </h3>
             <p className="text-zinc-400 text-xs sm:text-sm max-w-xs mb-4 leading-relaxed">
-              Алгоритм оновлено: показуватимемо менше схожого контенту у вашій стрічці.
+              Algorithm updated: we will show less content like this in your feed.
             </p>
 
             {/* Countdown Badge */}
             <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/15 text-xs font-semibold text-zinc-200 mb-5">
               <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
               <span>
-                Перехід до наступного відео через{' '}
+                Next video in{' '}
                 <strong className="text-white font-black text-sm font-mono">
                   {notInterestedCountdown}
                 </strong>{' '}
-                с
+                s
               </span>
             </div>
 
@@ -862,14 +809,14 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-white font-bold text-xs sm:text-sm transition-all cursor-pointer"
               >
                 <Undo2 className="w-4 h-4" />
-                <span>Скасувати</span>
+                <span>Cancel</span>
               </button>
               <button
                 type="button"
                 onClick={handleSkipNow}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-pink-600 to-indigo-600 hover:opacity-90 active:scale-95 text-white font-bold text-xs sm:text-sm transition-all cursor-pointer shadow-lg"
               >
-                <span>Перейти зараз</span>
+                <span>Skip now</span>
                 <ChevronDown className="w-4 h-4" />
               </button>
             </div>
@@ -879,66 +826,81 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
         {/* Bottom Gradient Shadow for legibility */}
         <div className="absolute bottom-0 inset-x-0 h-48 sm:h-56 bg-linear-to-t from-black/90 via-black/40 to-transparent pointer-events-none z-10" />
 
-        {/* Bottom-Left Information (CapCut pill, Author, Caption with 'ще', Translation) */}
+        {/* Bottom-Left Information (CapCut pill, Author, Caption with 'more', Translation) */}
         <div className="relative z-20 flex flex-col p-4 pb-5 pr-14 sm:pr-4 w-full">
-          {/* CapCut Sound Pill (Matching Screenshot) */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-md border border-white/10 text-white/95 text-[11px] font-medium w-fit mb-2 shadow-sm">
-            <div className="w-3.5 h-3.5 rounded-xs bg-white flex items-center justify-center text-black font-black text-[9px] leading-none">
-              ✂
+          {/* CapCut / Sound Pill (Omitted if no audio info) */}
+          {(reel.audioTitle || reel.audioArtist) && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-md border border-white/10 text-white/95 text-[11px] font-medium w-fit mb-2 shadow-sm">
+              <div className="w-3.5 h-3.5 rounded-xs bg-white flex items-center justify-center text-black font-black text-[9px] leading-none">
+                ✂
+              </div>
+              <span className="truncate max-w-[210px]">
+                {reel.audioArtist === 'CapCut' || reel.audioTitle?.includes('CapCut')
+                  ? 'CapCut · Editing is easy now'
+                  : reel.audioTitle || 'Original Audio'}
+              </span>
             </div>
-            <span className="truncate max-w-[210px]">
-              {reel.audioArtist === 'CapCut' || reel.audioTitle?.includes('CapCut')
-                ? 'CapCut · Монтувати тепер легко'
-                : reel.audioTitle || 'Оригінальний звук'}
-            </span>
-          </div>
+          )}
 
           {/* Author Name */}
           <div className="flex items-center gap-1.5 mb-1">
             <Link
               to={`/profile/${reel.author.username || reel.author.id}`}
-              className="font-black text-white text-base sm:text-lg hover:underline truncate drop-shadow tracking-wide"
+              className="hover:underline truncate drop-shadow tracking-wide"
               onClick={(e) => e.stopPropagation()}
             >
-              {reel.author.displayName || reel.author.username}
+              <StyledDisplayName
+                name={reel.author.displayName || reel.author.username || 'User'}
+                style={reel.author.displayNameStyle}
+                userId={reel.author.id}
+                themeMode="dark"
+                className="font-black text-white text-base sm:text-lg"
+              />
             </Link>
             {reel.author.isVerified && (
               <CheckCircle2 className="w-4 h-4 text-blue-400 fill-blue-400 shrink-0" />
             )}
           </div>
 
-          {/* Caption with genuine DOM overflow "ще" */}
-          <div className="text-white text-xs sm:text-sm leading-relaxed drop-shadow font-normal max-w-[95%]">
-            <span ref={captionRef} className={isCaptionExpanded ? 'inline' : 'line-clamp-2 inline'}>
-              {isTranslated ? translationInfo.translated : reel.caption}
-            </span>
-            {(isCaptionOverflowing || isCaptionExpanded) && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsCaptionExpanded(!isCaptionExpanded);
-                }}
-                className="ml-1.5 font-bold text-white hover:text-zinc-300 inline-block cursor-pointer underline-offset-2 hover:underline"
+          {/* Caption with genuine DOM overflow "more" (only when caption exists) */}
+          {Boolean(reel.caption && reel.caption.trim()) && (
+            <div className="text-white text-xs sm:text-sm leading-relaxed drop-shadow font-normal max-w-[95%]">
+              <span
+                ref={captionRef}
+                className={isCaptionExpanded ? 'inline' : 'line-clamp-2 inline'}
               >
-                {isCaptionExpanded ? 'менше' : 'ще'}
-              </button>
-            )}
-          </div>
+                {isTranslated ? translationInfo.translated : reel.caption}
+              </span>
+              {(isCaptionOverflowing || isCaptionExpanded) && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsCaptionExpanded(!isCaptionExpanded);
+                  }}
+                  className="ml-1.5 font-bold text-white hover:text-zinc-300 inline-block cursor-pointer underline-offset-2 hover:underline"
+                >
+                  {isCaptionExpanded ? 'less' : 'more'}
+                </button>
+              )}
+            </div>
+          )}
 
-          {/* Translation toggle button */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsTranslated(!isTranslated);
-            }}
-            className="text-[11px] font-medium text-zinc-300 hover:text-white cursor-pointer mt-1 drop-shadow transition-colors block text-left"
-          >
-            {isTranslated
-              ? 'Показати оригінал'
-              : `Переклад (${translationInfo.targetLang.toUpperCase()})`}
-          </button>
+          {/* Translation toggle button (only when caption exists) */}
+          {Boolean(reel.caption && reel.caption.trim()) && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsTranslated(!isTranslated);
+              }}
+              className="text-[11px] font-medium text-zinc-300 hover:text-white cursor-pointer mt-1 drop-shadow transition-colors block text-left"
+            >
+              {isTranslated
+                ? 'Show original'
+                : `Translation (${translationInfo.targetLang.toUpperCase()})`}
+            </button>
+          )}
         </div>
 
         {/* Mobile-Only Action Rail (overlay on bottom-right inside video) */}
@@ -949,17 +911,12 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
         </div>
 
         {/* Scrubber / Progress Bar (Decoupled – zero parent re-renders during playback) */}
-        <ReelProgressBar
-          videoRef={videoRef}
-          onSeek={(time) => {
-            if (videoRef.current) {
-              videoRef.current.currentTime = time;
-            }
-          }}
-        />
+        {hasVideo && (
+          <ReelProgressBar key={`progress-${videoKey}`} videoRef={videoRef} onSeek={seekVideo} />
+        )}
       </div>
 
-      {/* Desktop Action Rail (Positioned to the right of the video, matching screenshot) */}
+      {/* Desktop Action Rail */}
       <div className="hidden sm:flex flex-col items-center pb-2 z-20 shrink-0 pointer-events-auto">
         {renderActionRail(false)}
       </div>
@@ -1001,13 +958,20 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
 export const ReelCard = React.memo(ReelCardComponent, (prev, next) => {
   return (
     prev.reel.id === next.reel.id &&
+    prev.reel.videoUrl === next.reel.videoUrl &&
+    prev.reel.hlsUrl === next.reel.hlsUrl &&
+    prev.reel.thumbnailUrl === next.reel.thumbnailUrl &&
+    prev.videoPool === next.videoPool &&
     prev.reel.isLiked === next.reel.isLiked &&
     prev.reel.likesCount === next.reel.likesCount &&
     prev.reel.isSaved === next.reel.isSaved &&
     prev.reel.commentsCount === next.reel.commentsCount &&
     prev.reel.sharesCount === next.reel.sharesCount &&
     prev.isActive === next.isActive &&
-    prev.isMuted === next.isMuted
+    prev.isMuted === next.isMuted &&
+    prev.onToggleMute === next.onToggleMute &&
+    prev.onNavigateNext === next.onNavigateNext &&
+    prev.onRemoveReel === next.onRemoveReel
   );
 });
 

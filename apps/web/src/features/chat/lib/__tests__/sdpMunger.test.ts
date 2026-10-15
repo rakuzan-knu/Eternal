@@ -45,12 +45,27 @@ describe('sdpMunger', () => {
   it('applies full mungeSDP pipeline correctly', () => {
     const result = mungeSDP(SAMPLE_SDP, 'av1');
     const mVideoLine = result.split('\r\n').find((l) => l.startsWith('m=video'));
-    expect(mVideoLine?.startsWith('m=video 9 UDP/TLS/RTP/SAVPF 100 98 99')).toBe(true);
+    expect(mVideoLine?.startsWith('m=video 9 UDP/TLS/RTP/SAVPF 100')).toBe(true);
+  });
+
+  it('injects VP9 SVC only when requested for vp9', () => {
+    const result = mungeSDP(SAMPLE_SDP, 'vp9', true, false);
     expect(result).toContain('scalability-mode=L3T3_KEY');
   });
 
   it('returns original SDP if invalid or auto', () => {
     expect(mungeSDP('', 'av1')).toBe('');
     expect(mungeSDP(SAMPLE_SDP, 'auto')).toBe(SAMPLE_SDP);
+  });
+
+  it('injects 1080p60 bitrate and bandwidth parameters for screen share and prioritizes VP8', () => {
+    const result = mungeSDP(SAMPLE_SDP, 'h264', false, true);
+    expect(result).toContain('b=AS:6000');
+    expect(result).toContain('b=TIAS:6000000');
+    expect(result).toContain('x-google-min-bitrate=3000');
+    expect(result).toContain('x-google-start-bitrate=5000');
+    const mVideoLine = result.split('\r\n').find((l) => l.startsWith('m=video'));
+    // 96 is VP8 in SAMPLE_SDP
+    expect(mVideoLine?.startsWith('m=video 9 UDP/TLS/RTP/SAVPF 96 97')).toBe(true);
   });
 });

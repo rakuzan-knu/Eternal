@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { renderWithProviders as render } from '@/test/renderWithProviders';
 import AdminPermissionsModal from '../AdminPermissionsModal';
 import { chatApi } from '../../api/chatApi';
 import { ParticipantView } from '@/entities/chat/model/types';

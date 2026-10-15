@@ -289,13 +289,13 @@ export const DATA_PACKAGE_DATA: Record<'en' | 'uk', DataPackageTranslation> = {
             id: 'legal-compliance',
             title: '5.1 Right to Data Portability (GDPR Art. 20 / Law of Ukraine No. 2297-VI)',
             content: [
-              'You have the legal right to receive the personal data concerning you in a structured, commonly used, and machine-readable format, and have the right to transmit those data to another controller without hindrance from Eternal Inc.',
+              'You have the legal right to receive the personal data concerning you in a structured, commonly used, and machine-readable format, and have the right to transmit those data to another controller without hindrance from Eternal',
               'If you permanently lose access to your account and require your data package for legal proceedings or personal records, you can submit an off-platform verified request to our privacy team.',
             ],
             bullets: [
               'Data Protection Officer (DPO): dpo@eternal.app',
               'Legal & Privacy Inquiries: privacy@eternal.app',
-              'Corporate Headquarters: Eternal Inc., Kyiv, Ukraine',
+              'Project operators: Ag Mykola and Ag Mihal, Ukraine',
             ],
           },
         ],
@@ -538,13 +538,13 @@ export const DATA_PACKAGE_DATA: Record<'en' | 'uk', DataPackageTranslation> = {
             id: 'legal-compliance',
             title: '5.1 Право на перенесення даних (GDPR Art. 20 / Закон України № 2297-VI)',
             content: [
-              'Ви маєте законне право отримати всі персональні дані, які ви надали Eternal Inc., у структурованому, загальноприйнятому та машиночитаному форматі, а також передати ці дані іншому контролеру.',
+              'Ви маєте законне право отримати всі персональні дані, які ви надали Eternal, у структурованому, загальноприйнятому та машиночитаному форматі, а також передати ці дані іншому контролеру.',
               'Якщо ви втратили доступ до облікового запису та потребуєте копію даних для юридичних цілей, зверніться до нашої служби безпеки:',
             ],
             bullets: [
               'Офіцер із захисту даних (DPO): dpo@eternal.app',
               'Юридичний відділ: privacy@eternal.app',
-              'Головний офіс: Eternal Inc., м. Київ, Україна',
+              'Оператори проєкту: Ag Mykola та Ag Mihal, Україна',
             ],
           },
         ],

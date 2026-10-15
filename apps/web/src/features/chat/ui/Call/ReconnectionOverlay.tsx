@@ -24,8 +24,8 @@ export function ReconnectionOverlay({ onCancelCall }: ReconnectionOverlayProps) 
             <CheckCircle2 size={36} className="text-emerald-400" />
           </div>
           <div>
-            <h3 className="text-xl font-bold text-white tracking-wide">Связь восстановлена</h3>
-            <p className="text-xs text-emerald-300/80 mt-1">WebRTC медиапотоки синхронизированы</p>
+            <h3 className="text-xl font-bold text-white tracking-wide">Connection Restored</h3>
+            <p className="text-xs text-emerald-300/80 mt-1">WebRTC media streams synchronized</p>
           </div>
         </div>
       ) : (
@@ -65,17 +65,17 @@ export function ReconnectionOverlay({ onCancelCall }: ReconnectionOverlayProps) 
               <span className="text-2xl font-mono font-bold text-white tracking-tighter">
                 {reconnectCountdown}
               </span>
-              <span className="text-[10px] text-amber-300/80 uppercase font-medium">сек</span>
+              <span className="text-[10px] text-amber-300/80 uppercase font-medium">s</span>
             </div>
           </div>
 
           <div className="space-y-2">
             <div className="flex items-center justify-center gap-2">
               <RefreshCw size={18} className="text-amber-400 animate-spin" />
-              <h3 className="text-lg font-semibold text-white tracking-wide">Переподключение...</h3>
+              <h3 className="text-lg font-semibold text-white tracking-wide">Reconnecting...</h3>
             </div>
             <p className="text-xs text-gray-300 leading-relaxed max-w-xs mx-auto">
-              Потеряно ICE-соединение. Выполняется автоматический ICE Restart и стабилизация сокета.
+              Synchronizing with active call and restoring WebRTC connection...
             </p>
           </div>
 
@@ -85,7 +85,7 @@ export function ReconnectionOverlay({ onCancelCall }: ReconnectionOverlayProps) 
               className="mt-4 flex items-center gap-2 px-5 py-2.5 rounded-full bg-zinc-800 hover:bg-rose-600/80 border border-white/10 text-xs font-medium text-gray-200 hover:text-white transition-all shadow-lg hover:scale-105"
             >
               <PhoneOff size={14} />
-              <span>Завершить звонок</span>
+              <span>End Call</span>
             </button>
           )}
         </div>

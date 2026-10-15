@@ -40,6 +40,7 @@ export type ReelWithAuthor = Reel & {
     username: string;
     displayName: string | null;
     avatar: string | null;
+    activeDecoration?: any;
     isVerified?: boolean;
     followers?: { followerId: string }[];
   };
@@ -56,6 +57,7 @@ export type ReelCommentWithUser = ReelComment & {
     username: string;
     displayName: string | null;
     avatar: string | null;
+    activeDecoration?: any;
     isVerified?: boolean;
   };
 };

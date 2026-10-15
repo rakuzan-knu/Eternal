@@ -73,7 +73,7 @@ export const FamilyCenterPage: React.FC = () => {
       <PrivacyNavbar />
 
       <main className="flex-1 w-full pt-20">
-        {/* 2. Hero Section (matching Discord layout) */}
+        {/* 2. Hero Section*/}
         <section className="relative w-full overflow-hidden bg-gradient-to-b from-[#281b75] via-[#1b104a] to-[#07050f] py-16 sm:py-24 px-6 lg:px-12 border-b border-purple-900/30">
           {/* Subtle Ambient Radial Glow */}
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.06),transparent_70%)] pointer-events-none" />
@@ -110,7 +110,7 @@ export const FamilyCenterPage: React.FC = () => {
           </div>
         </section>
 
-        {/* 3. Section: FOR PARENTS AND GUARDIANS (matching Discord Screenshot 2) */}
+        {/* 3. Section: FOR PARENTS AND GUARDIANS*/}
         <section className="w-full py-20 sm:py-28 px-6 lg:px-12 border-b border-white/[0.05]">
           <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             {/* Left Illustration */}
@@ -145,7 +145,7 @@ export const FamilyCenterPage: React.FC = () => {
           </div>
         </section>
 
-        {/* 4. Section: QUOTE CARD (matching Discord Screenshot 3) */}
+        {/* 4. Section: QUOTE CARD*/}
         <section className="w-full py-16 sm:py-24 px-6 lg:px-12 border-b border-white/[0.05]">
           <div className="max-w-5xl mx-auto">
             <div className="relative rounded-[32px] sm:rounded-[40px] bg-gradient-to-br from-[#4f20a6] via-[#3d1685] to-[#2a0e61] border border-white/20 p-8 sm:p-14 shadow-[0_25px_60px_rgba(0,0,0,0.6)] overflow-hidden flex flex-col items-center text-center">
@@ -185,7 +185,7 @@ export const FamilyCenterPage: React.FC = () => {
           </div>
         </section>
 
-        {/* 5. Section: FOR TEENS (matching Discord Screenshot 4) */}
+        {/* 5. Section: FOR TEENS*/}
         <section className="w-full py-20 sm:py-28 px-6 lg:px-12 border-b border-white/[0.05]">
           <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             {/* Left Text Content */}
@@ -217,7 +217,7 @@ export const FamilyCenterPage: React.FC = () => {
           </div>
         </section>
 
-        {/* 6. Section: ETERNAL’S APPROACH TO SAFETY (matching Discord Screenshot 5) */}
+        {/* 6. Section: ETERNAL’S APPROACH TO SAFETY*/}
         <section className="w-full py-20 sm:py-28 px-6 lg:px-12 border-b border-white/[0.05]">
           <div className="max-w-6xl mx-auto flex flex-col items-center text-center">
             <h2 className="text-3xl sm:text-5xl font-black text-white uppercase tracking-tight mb-12">
@@ -318,7 +318,7 @@ export const FamilyCenterPage: React.FC = () => {
           </div>
         </section>
 
-        {/* 8. Section: WE'RE HERE TO HELP! (matching Discord Screenshot layout) */}
+        {/* 8. Section: WE'RE HERE TO HELP!*/}
         <section className="relative w-full overflow-hidden bg-gradient-to-b from-[#07050f] via-[#130b2c] to-[#07050f] py-32 sm:py-44 lg:py-52 min-h-[680px] lg:min-h-[760px] px-6 lg:px-12 flex items-center justify-center">
           {/* Ambient background glows */}
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-600/15 rounded-full blur-3xl pointer-events-none" />

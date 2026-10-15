@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { Verifier } from '@pact-foundation/pact';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
@@ -51,6 +52,7 @@ async function ensureUser(spec: UserSpec): Promise<string> {
   const user = await prisma.user.upsert({
     where: { username: spec.username },
     create: {
+      id: randomUUID(),
       email: spec.email,
       username: spec.username,
       displayName: spec.displayName,

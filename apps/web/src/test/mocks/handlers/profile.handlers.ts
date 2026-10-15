@@ -297,4 +297,10 @@ export const profileHandlers = [
   http.get('https://api.github.com/repos/rakuzan-knu/social-network/pulls', () =>
     HttpResponse.json([]),
   ),
+
+  http.get('*/decorations', () => HttpResponse.json([])),
+  http.get('*/decorations/me', () => HttpResponse.json({ activeDecorationId: null, items: [] })),
+  http.patch('*/decorations/me/active', () =>
+    HttpResponse.json({ activeDecorationId: null, items: [] }),
+  ),
 ];

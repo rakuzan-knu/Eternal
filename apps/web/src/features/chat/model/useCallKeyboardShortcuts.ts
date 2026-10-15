@@ -13,20 +13,12 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useCallStore } from './callStore';
 import { playPTTPressChirp, playPTTReleaseChirp } from '../lib/callRingtone';
 import { triggerHaptic } from '../lib/webrtc/hapticFeedback';
+import { isEditableElement, matchesPTTKey } from './usePushToTalk';
 
 export interface UseCallKeyboardShortcutsOptions {
   onToggleMute?: () => void;
   onToggleVideo?: () => void;
   onToggleWhiteboard?: () => void;
-}
-
-export function isEditableElement(target: EventTarget | null): boolean {
-  if (!target || !(target instanceof HTMLElement)) return false;
-  const tagName = target.tagName.toLowerCase();
-  if (tagName === 'input' || tagName === 'textarea' || tagName === 'select') {
-    return true;
-  }
-  return target.isContentEditable;
 }
 
 export function useCallKeyboardShortcuts(options: UseCallKeyboardShortcutsOptions = {}) {
@@ -36,6 +28,7 @@ export function useCallKeyboardShortcuts(options: UseCallKeyboardShortcutsOption
     callStatus,
     isPTTEnabled,
     isPTTActive,
+    pttKey,
     pttReleaseTailMs,
     isPTTSoundEnabled,
     setIsPTTActive,
@@ -96,29 +89,40 @@ export function useCallKeyboardShortcuts(options: UseCallKeyboardShortcutsOption
         typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
       const modifier = isMac ? e.metaKey : e.ctrlKey;
       const currentPTTEnabled = useCallStore.getState().isPTTEnabled;
+      const currentPttKey = useCallStore.getState().pttKey || 'KeyV';
+      const hasModifiers = e.ctrlKey || e.metaKey || e.altKey;
 
-      // 1. Spacebar Push-to-Talk (Hold)
-      if (e.code === 'Space' && !e.repeat && currentPTTEnabled) {
+      // 1. Push-to-Talk (Hold) - only when NOT modified by Ctrl / Meta / Alt
+      if (currentPTTEnabled && !hasModifiers && matchesPTTKey(e, currentPttKey) && !e.repeat) {
         e.preventDefault();
         startTalking();
         return;
       }
 
-      // 2. Cmd/Ctrl + Shift + M OR standalone 'm'/'M' without Ctrl/Alt/Meta -> Toggle Microphone
-      const isMuteShortcut =
-        (modifier && e.shiftKey && (e.key === 'M' || e.key === 'm')) ||
-        (!e.ctrlKey && !e.metaKey && !e.altKey && (e.key === 'm' || e.key === 'M'));
-      if (isMuteShortcut) {
+      // 2. Cmd/Ctrl + Shift + M (always) OR standalone 'm'/'M' without Ctrl/Alt/Meta (if !currentPTTEnabled) -> Toggle Microphone
+      const isMuteCombo = modifier && e.shiftKey && (e.key === 'M' || e.key === 'm');
+      const isMuteSingle =
+        !currentPTTEnabled &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey &&
+        (e.key === 'm' || e.key === 'M');
+      if (isMuteCombo || isMuteSingle) {
         e.preventDefault();
         onToggleMute?.();
         return;
       }
 
-      // 3. Cmd/Ctrl + Shift + V OR standalone 'v'/'V' without Ctrl/Alt/Meta -> Toggle Camera Video
-      const isVideoShortcut =
-        (modifier && e.shiftKey && (e.key === 'V' || e.key === 'v')) ||
-        (!e.ctrlKey && !e.metaKey && !e.altKey && (e.key === 'v' || e.key === 'V'));
-      if (isVideoShortcut) {
+      // 3. Cmd/Ctrl + Shift + V (always) OR standalone 'v'/'V' without Ctrl/Alt/Meta (if !currentPTTEnabled and not PTT key) -> Toggle Camera Video
+      const isVideoCombo = modifier && e.shiftKey && (e.key === 'V' || e.key === 'v');
+      const isVideoSingle =
+        !currentPTTEnabled &&
+        !matchesPTTKey(e, currentPttKey) &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey &&
+        (e.key === 'v' || e.key === 'V');
+      if (isVideoCombo || isVideoSingle) {
         e.preventDefault();
         onToggleVideo?.();
         return;
@@ -135,19 +139,28 @@ export function useCallKeyboardShortcuts(options: UseCallKeyboardShortcutsOption
     const handleKeyUp = (e: KeyboardEvent) => {
       if (isEditableElement(e.target)) return;
       const currentPTTEnabled = useCallStore.getState().isPTTEnabled;
+      const currentPttKey = useCallStore.getState().pttKey || 'KeyV';
 
-      if (e.code === 'Space' && currentPTTEnabled) {
+      if (currentPTTEnabled && matchesPTTKey(e, currentPttKey)) {
         e.preventDefault();
+        stopTalkingWithTail();
+      }
+    };
+
+    const handleBlur = () => {
+      if (useCallStore.getState().isPTTActive) {
         stopTalkingWithTail();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('blur', handleBlur);
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('blur', handleBlur);
       if (releaseTimerRef.current) {
         clearTimeout(releaseTimerRef.current);
         releaseTimerRef.current = null;
@@ -157,6 +170,7 @@ export function useCallKeyboardShortcuts(options: UseCallKeyboardShortcutsOption
     callStatus,
     isPTTEnabled,
     isPTTActive,
+    pttKey,
     startTalking,
     stopTalkingWithTail,
     onToggleMute,

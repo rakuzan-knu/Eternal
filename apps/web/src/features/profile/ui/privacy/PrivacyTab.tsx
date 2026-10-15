@@ -58,31 +58,31 @@ export default function PrivacyTab() {
         <button
           type="button"
           onClick={() => setRequestsOpen(true)}
-          className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.07] transition-colors group"
+          className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.04] hover:bg-black/[0.04] dark:hover:bg-white/[0.07] transition-colors group cursor-pointer"
         >
-          <span className="w-9 h-9 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-gray-200">
+          <span className="w-9 h-9 flex items-center justify-center rounded-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-gray-950 dark:text-white">
             <UserCheck size={17} />
           </span>
-          <span className="flex-1 text-left text-sm font-medium text-gray-200">
+          <span className="flex-1 text-left text-sm font-medium text-gray-950 dark:text-white">
             Follow Requests
           </span>
           {pendingCount > 0 && (
-            <span className="flex-shrink-0 min-w-[22px] h-[22px] px-1.5 flex items-center justify-center rounded-full bg-white text-black text-xs font-bold animate-popIn">
+            <span className="flex-shrink-0 min-w-[22px] h-[22px] px-1.5 flex items-center justify-center rounded-full bg-gray-950 text-white dark:bg-white dark:text-black text-xs font-bold animate-popIn">
               {pendingCount > 99 ? '99+' : pendingCount}
             </span>
           )}
           <ChevronRight
             size={17}
-            className="text-gray-600 group-hover:text-gray-300 transition-colors flex-shrink-0"
+            className="text-gray-400 dark:text-gray-600 group-hover:text-gray-950 dark:group-hover:text-gray-300 transition-colors flex-shrink-0"
           />
         </button>
       )}
 
       <section>
-        <h3 className="px-1 mb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+        <h3 className="px-1 mb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
           Who can see you and contact you
         </h3>
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02]">
+        <div className="rounded-2xl border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] overflow-hidden">
           {DIMENSIONS.map((d, i) => (
             <PrivacyDimensionRow
               key={d.dimension}
@@ -98,17 +98,17 @@ export default function PrivacyTab() {
       </section>
 
       {/* Request Data Package Section */}
-      <section className="p-4 rounded-2xl border border-purple-500/20 bg-purple-950/[0.15] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <section className="p-4 rounded-2xl border border-black/10 dark:border-white/10 bg-black/[0.03] dark:bg-white/[0.03] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="space-y-0.5">
-          <p className="text-sm font-bold text-white">Request All of My Data</p>
-          <p className="text-xs text-neutral-300">
+          <p className="text-sm font-bold text-gray-950 dark:text-white">Request All of My Data</p>
+          <p className="text-xs text-gray-600 dark:text-gray-400">
             Request an encrypted ZIP package with your account records, messages, and activity.
           </p>
         </div>
         <button
           type="button"
           onClick={() => setIsDataModalOpen(true)}
-          className="px-4 py-2 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white shadow-[0_0_12px_rgba(168,85,247,0.35)] transition-all shrink-0"
+          className="px-4 py-2 rounded-xl text-xs font-bold bg-gray-950 text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-white/90 shadow-sm transition-all shrink-0 cursor-pointer"
         >
           Request Data
         </button>

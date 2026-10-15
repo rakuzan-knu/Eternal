@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent } from '@testing-library/react';
+import { renderWithProviders as render } from '@/test/renderWithProviders';
 import SystemMessageCluster from '../SystemMessageCluster';
 import { MessageView } from '@/entities/chat/model/types';
 import React from 'react';

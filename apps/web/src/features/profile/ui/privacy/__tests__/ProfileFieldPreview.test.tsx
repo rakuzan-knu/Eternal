@@ -1,6 +1,17 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import ProfileFieldPreview from '../ProfileFieldPreview';
+
+vi.mock('@/entities/profile/model/useCurrentUser', () => ({
+  useCurrentUser: () => ({
+    data: {
+      id: 'u1',
+      username: 'alice',
+      displayName: 'Alice',
+      avatar: null,
+    },
+  }),
+}));
 
 describe('ProfileFieldPreview', () => {
   it('renders profile field preview for banner, avatar, and bio', () => {

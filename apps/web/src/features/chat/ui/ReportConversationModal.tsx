@@ -49,7 +49,7 @@ export default function ReportConversationModal({
   return (
     <Modal onClose={onClose} className="w-full max-w-md">
       {(close) => (
-        <div className="bg-[#181a22] border border-white/10 rounded-3xl w-full shadow-2xl overflow-hidden backdrop-blur-2xl">
+        <div className="glass-modal border border-white/10 rounded-3xl w-full shadow-2xl overflow-hidden">
           {/* Header */}
           <div className="relative flex items-center justify-center px-5 py-4 border-b border-white/10">
             <button

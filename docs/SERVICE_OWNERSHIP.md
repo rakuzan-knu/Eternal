@@ -7,7 +7,7 @@ Read this before adding or changing a backend module, API route, queue processor
 | Service role | HTTP namespaces | Background work |
 |---|---|---|
 | core (Workspace 1) | Everything else: auth, users, posts, stories, notifications, decorations, Family Center, nameplates and future ordinary features | Media previews, search indexing, story retention |
-| messenger (Workspace 2) | conversations, calls, crypto/prekeys, e2ee, messenger | Message and notification workers; outbox publication; calls CDC; auto-delete; presence and Steam/Spotify presence polling |
+| messenger (Workspace 2) | conversations, calls, crypto/prekeys, e2ee, messenger, soundboard, watch-together | Message and notification workers; outbox publication; calls CDC; auto-delete; presence and Steam/Spotify presence polling |
 | reels (Workspace 3) | reels | Video transcode worker |
 | music (Workspace 4) | integrations, spotify, auth/spotify | No queue workers; music catalogue/library HTTP |
 | all | Legacy monolith; use only for local development or a staged migration | Legacy ownership of every task |
@@ -16,7 +16,7 @@ Health and metrics exist on every service. Jam uses the messenger WebSocket, inc
 
 Both Fastify bootstrap paths accept trailing slashes. Preserve this compatibility: an empty Vercel wildcard can append `/` to a namespace-root request, including Spotify OAuth start. The role smoke test checks both URL forms without weakening ownership or authentication.
 
-GitHub OAuth belongs to core, including `/integrations/github/callback`. This exception must precede general `/integrations` routing. Music uses CORE_API_URL (the core origin ending in /v1) to redirect GitHub connections to core. Provider callback URLs must be registered in the provider dashboard; never copy localhost callbacks into production.
+GitHub OAuth belongs to core, including `/integrations/github/callback`. This exception must precede general `/integrations` routing. Clients start GitHub connections with authenticated POST `/auth/github/oauth/start` on Core. First-party popup launch sets the callback cookie on its owning origin. Provider callback URLs must be registered in the provider dashboard; never copy localhost callbacks into production.
 
 ## Add a feature
 
@@ -47,7 +47,7 @@ Deploy the existing desktop web app and Expo Web as separate Vercel projects. Th
 - Current steady-state estimate: core8 + messenger8 + reels4 + music4 =24 Redis connections. Core and Messenger rolling deployments can add eight connections temporarily; stage Core with background work disabled before either update, then restore it after old instances have stopped. Stagger changes and verify actual connections rather than treating this estimate as a guarantee.
 - Run meaningful role routing/auth/privacy/worker/shutdown tests, affected lint/typecheck/build and the Docker CI matrix. It starts all four roles with one isolated PostgreSQL/Redis, 512MiB per role, no swap and0.1CPU each, and asserts at most30 Redis connections including the probe.
 - `scripts/deploy/smoke-service-split.cjs <core-origin> <messenger-origin> <reels-origin> <music-origin>` is read-only and verifies role headers, dependencies, correct routes, wrong-role404 and non-messenger WebSocket rejection. Verify the live frontend after login as well.
-- No migration is required for this split. For future schema changes, apply compatible additive migrations on core before enabling dependent specialty releases.
+- The split itself adds no schema migration; the coordinated 1.8.0 release includes migrations and requires a fresh verified backup. For future schema changes, apply compatible additive migrations on core before enabling dependent specialty releases.
 - Rollback must coordinate client routing and backend role: specialty origins cannot point at a core-only service. Temporarily restore all role if returning to the monolith.
 
 ## Free-tier limits

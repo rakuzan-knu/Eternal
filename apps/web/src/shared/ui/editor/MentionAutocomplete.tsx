@@ -2,13 +2,17 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Hash } from 'lucide-react';
 import Avatar from '@/shared/ui/Avatar';
+import { Nameplate } from '@/shared/ui/Nameplate';
 import { apiClient as api } from '@/shared/api/httpClient';
+import type { AvatarDecorationDto, NameplateDto } from '@social-network/shared-contracts';
 
 interface UserOption {
   id: string;
   username: string;
   displayName: string | null;
   avatar: string | null;
+  activeNameplate?: NameplateDto | null;
+  activeDecoration?: AvatarDecorationDto | null;
   isVerified?: boolean;
   primaryBadge?: string | null;
   followersCount?: number;
@@ -182,14 +186,23 @@ function MentionAutocompletePopup({
                 aria-selected={isSelected}
                 onMouseEnter={() => setSelectedIndex(idx)}
                 onClick={() => handleSelectItem(user)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors cursor-pointer ${
+                className={`nameplate-row w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors cursor-pointer ${
                   isSelected ? 'bg-white/[0.08]' : 'hover:bg-white/[0.04]'
                 }`}
               >
-                <Avatar src={user.avatar} size="sm" />
-                <div className="flex flex-col min-w-0 flex-1">
+                <Nameplate nameplate={user.activeNameplate} alwaysPlay={true} />
+                <Avatar
+                  src={user.avatar}
+                  decoration={user.activeDecoration}
+                  userId={user.id}
+                  size="sm"
+                />
+                <div data-nameplate-text className="flex flex-col min-w-0 flex-1">
                   <div className="flex items-center gap-1.5 truncate">
-                    <span className="font-semibold text-xs text-white truncate">
+                    <span
+                      data-nameplate-label
+                      className="font-semibold text-xs text-white truncate"
+                    >
                       {user.displayName || user.username}
                     </span>
                     {user.isVerified && (

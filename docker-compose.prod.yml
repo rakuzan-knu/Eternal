@@ -94,6 +94,7 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN}
       PORT: 3000
       NODE_ENV: production
+      PLATFORM_ADMIN_USER_IDS: ${PLATFORM_ADMIN_USER_IDS:-}
       NODE_OPTIONS: --max-old-space-size=512 --enable-source-maps=false
       S3_ENDPOINT: http://minio:9000
       S3_PORT: 9000
@@ -401,11 +402,11 @@ services:
   backup-service:
     build:
       context: .
-      dockerfile: backend/Dockerfile
-    image: ${DOCKER_REGISTRY:-docker.io/subvincdebian}/social-network-backend:${IMAGE_TAG:-latest}
+      dockerfile: scripts/db/Dockerfile.backup
+    image: ${DOCKER_REGISTRY:-docker.io/subvincdebian}/social-network-backup:${IMAGE_TAG:-latest}
     restart: unless-stopped
     command: >
-      sh -c 'while true; do
+      sh -ec 'while true; do
         /bin/bash /scripts/backup-db.sh;
         sleep 86400;
       done'
@@ -415,6 +416,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_HOST: postgres
       POSTGRES_PORT: '5432'
+      BACKUP_ENCRYPTION_KEY: ${BACKUP_ENCRYPTION_KEY:?Set a unique backup encryption key}
       BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-7}
     volumes:
       - ./scripts/db/backup-db.sh:/scripts/backup-db.sh:ro

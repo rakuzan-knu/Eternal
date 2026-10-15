@@ -1,4 +1,4 @@
-# 🌐 Social Network
+# 🌐 Eternal Social Network
 
 A modern, high-performance **Social Network Application** built as a monorepo using **pnpm workspaces**. Powered by **NestJS** on the backend and **React + Vite** on the frontend.
 
@@ -23,7 +23,7 @@ Backend contributors and AI agents: read [service ownership and deployment rules
 
 ### 🟩 Front-End (React + Vite)
 
-- **Core & Build Tools:** React 19, Vite 6, React Compiler
+- **Core & Build Tools:** React 19, Vite 8, React Compiler
 - **Architecture:** Feature-Sliced Design (FSD)
 - **Styling & UI:** Tailwind CSS 4
 - **State Management & Local-First:** TanStack Query 5 with IndexedDB persistence (`idb-keyval`), Zustand (Client State), Persistent Mutation Outbox Queue (offline-first sync with idempotency keys)
@@ -111,7 +111,11 @@ Detailed documentation, architecture deep dives, API specs, and runbooks are ava
 
 ## 📄 License
 
-This project is licensed under the [AGPL-3.0 License](./LICENSE).
+Eternal's original proprietary materials are subject to the [Proprietary Software and Intellectual Property Notice](./LICENSE.md). Copyright © 2026 Ag Mykola and Ag Mihal. All rights reserved.
+
+Repository access does not grant a general license to copy, modify, run, self-host, or redistribute proprietary code. Applicable law, hosting-platform permissions, third-party licenses. See [third-party attributions](./apps/web/src/pages/Licenses/data/licensesData.ts) and the [licensing and contribution policy](./docs/legal/README.md).
+
+AI/ML training and related data mining of proprietary materials require the authorization specified in LICENSE.md. Development instructions below are for authorized maintainers and contributors; they do not grant permission to use the proprietary code.
 
 ## 🚀 Getting Started
 

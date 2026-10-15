@@ -3,11 +3,12 @@ import TypingIndicatorBubble from './TypingIndicatorBubble';
 import { ChevronDown } from 'lucide-react';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { MessageView, UserSnapshot } from '../../../entities/chat/model/types';
+import { AttachmentView, MessageView, UserSnapshot } from '../../../entities/chat/model/types';
 import { groupMessagesByDate } from '../lib/groupMessagesByDate';
 import { ChatThemeConfig } from '../model/chatTheme';
 import MessageBubble from './MessageBubble';
 import { MessageThreadSkeleton, OlderMessagesSkeleton } from './MessageListSkeletons';
+import { isVideoAttachment, isImageAttachment } from '../lib/chatMediaUtils';
 
 import { useSpotifyDockOffset } from '@/shared/model/useSpotifyDockOffset';
 import { CallHistoryItem } from './Call/CallHistoryItem';
@@ -40,6 +41,8 @@ interface MessageListProps {
   hasMore: boolean;
   isLoading: boolean;
   isFetchingMore: boolean;
+  hasNewer?: boolean;
+  isFetchingNewer?: boolean;
   typingParticipants: UserSnapshot[];
   isGroup: boolean;
   isSelectionMode?: boolean;
@@ -69,6 +72,7 @@ interface MessageListProps {
   onLoadOlder?: () => void;
   onLoadNewer?: () => void;
   onRetry?: (messageId: string) => void;
+  onOpenMedia?: (attachment: AttachmentView, originRect?: DOMRect, message?: MessageView) => void;
 }
 
 type Row =
@@ -114,10 +118,10 @@ function isSameSenderAndMinute(msg1: MessageView, msg2: MessageView): boolean {
 function buildRows(messages: MessageView[]): Row[] {
   const groups = groupMessagesByDate(messages);
   const rows: Row[] = [];
-  groups.forEach((group, groupIndex) => {
+  groups.forEach((group) => {
     rows.push({
       type: 'separator',
-      key: `sep-${groupIndex}-${group.label}`,
+      key: `sep-${group.date?.toISOString() ?? group.label}`,
       label: group.label,
       date: group.date,
     });
@@ -245,10 +249,13 @@ export default function MessageList({
   contentMaxWidth,
   highlightDateLabel,
   isAnchoredInHistory = false,
+  hasNewer = false,
+  isFetchingNewer = false,
   onResetToLive,
   onLoadOlder,
   onLoadNewer,
   onRetry,
+  onOpenMedia,
 }: MessageListProps) {
   const scrollerElementRef = useRef<HTMLDivElement | null>(null);
   const sizeContainerRef = useRef<HTMLDivElement | null>(null);
@@ -259,11 +266,73 @@ export default function MessageList({
   );
   const [scrollGeneration] = useState(getChatScrollGeneration);
 
+  const estimateRowSize = useCallback(
+    (index: number) => {
+      const row = rows[index];
+      if (!row) return 60;
+      if (row.type === 'separator') return 44;
+      if (row.type === 'system_cluster') return Math.max(40, row.messages.length * 36);
+      if (row.type === 'message') {
+        const msg = row.message;
+        if (msg.messageType === 'CALL_LOG') return 52;
+        if (msg.messageType === 'THEME_PROPOSAL') return 160;
+
+        if (msg.attachments && msg.attachments.length > 0) {
+          const hasMedia = msg.attachments.some(
+            (a) =>
+              a.type === 'IMAGE' ||
+              a.type === 'GIF' ||
+              a.type === 'VIDEO' ||
+              isVideoAttachment(a) ||
+              isImageAttachment(a),
+          );
+          if (hasMedia) {
+            const primary = msg.attachments.find(
+              (a) =>
+                a.type === 'IMAGE' ||
+                a.type === 'GIF' ||
+                a.type === 'VIDEO' ||
+                isVideoAttachment(a) ||
+                isImageAttachment(a),
+            );
+            let mediaH = 320;
+            if (primary?.width && primary?.height) {
+              const ratio = primary.height / primary.width;
+              mediaH = Math.min(460, Math.max(180, Math.round(ratio * 360)));
+            }
+            const extra = (msg.body ? 48 : 0) + (msg.replyTo ? 48 : 0) + 24;
+            return mediaH + extra;
+          }
+
+          const hasAudio = msg.attachments.some((a) => a.type === 'AUDIO');
+          if (hasAudio) return 76 + (msg.body ? 40 : 0);
+
+          const hasFiles = msg.attachments.some((a) => a.type === 'FILE');
+          if (hasFiles) return 68 * msg.attachments.length + (msg.body ? 40 : 0);
+        }
+
+        const textLen = msg.body?.length || 0;
+        let baseH = 52;
+        if (textLen > 300) baseH = 160;
+        else if (textLen > 150) baseH = 100;
+        else if (textLen > 60) baseH = 68;
+
+        if (msg.replyTo) baseH += 44;
+        if (msg.forwardedFrom) baseH += 36;
+        if (msg.reactions && msg.reactions.length > 0) baseH += 30;
+
+        return baseH;
+      }
+      return 60;
+    },
+    [rows],
+  );
+
   const virtualizer = useVirtualizer({
     count: rows.length,
     getItemKey: (index) => rows[index].key,
     getScrollElement: () => scrollerElementRef.current,
-    estimateSize: () => 64,
+    estimateSize: estimateRowSize,
     overscan: 6,
     initialRect: { width: 500, height: 800 },
     initialOffset: initialPosition?.offset ?? 0,
@@ -282,21 +351,97 @@ export default function MessageList({
     !initialPosition || initialPosition.atBottom,
   );
   const followScrollCommand = useRef(false);
+  const viewportAnchor = useRef<{ messageId: string; offset: number } | null>(null);
+  const captureViewportAnchor = useCallback(() => {
+    const scroller = scrollerElementRef.current;
+    if (!scroller) return;
+    const bounds = scroller.getBoundingClientRect();
+    for (const row of scroller.querySelectorAll<HTMLElement>('[data-message-id]')) {
+      const rect = row.getBoundingClientRect();
+      if (rect.bottom > bounds.top && rect.top < bounds.bottom) {
+        viewportAnchor.current = {
+          messageId: row.dataset.messageId!,
+          offset: rect.top - bounds.top,
+        };
+        return;
+      }
+    }
+    // The native scroll offset can change before React mounts the new
+    // virtual range. Use the full measurement table rather than leaving an
+    // anchor from the previous viewport (or losing the top edge entirely).
+    const paddingTop = parseFloat(getComputedStyle(scroller).paddingTop) || 0;
+    const top = scroller.scrollTop - paddingTop;
+    for (const item of virtualizer.measurementsCache) {
+      if (item.end <= top || item.start >= top + scroller.clientHeight) continue;
+      const row = rows[item.index];
+      const messageId =
+        row?.type === 'message'
+          ? row.message.id
+          : row?.type === 'system_cluster'
+            ? row.messages[0]?.id
+            : undefined;
+      if (messageId) {
+        viewportAnchor.current = { messageId, offset: item.start - top };
+        return;
+      }
+    }
+  }, [rows, virtualizer]);
+
+  // Restore an identity and its pixel offset before paint. Index-based
+  // anchoring breaks when maxPages removes a page at the opposite edge.
+  const previousWindow = useRef({ conversationId, rows, isAnchoredInHistory });
+  useLayoutEffect(() => {
+    const previous = previousWindow.current;
+    previousWindow.current = { conversationId, rows, isAnchoredInHistory };
+    if (
+      previous.conversationId !== conversationId ||
+      (previous.isAnchoredInHistory && !isAnchoredInHistory)
+    ) {
+      viewportAnchor.current = null;
+      setShowScrollBottom(false);
+      setIsFollowingLatest(true);
+      followScrollCommand.current = true;
+      if (rows.length) virtualizer.scrollToIndex(rows.length - 1, { align: 'end' });
+      return;
+    }
+    const anchor = viewportAnchor.current;
+    if (!anchor || previous.rows === rows || highlightMessageId) return;
+    if (!isAnchoredInHistory && isFollowingLatest) return;
+    const index = rows.findIndex((row) =>
+      row.type === 'message'
+        ? row.message.id === anchor.messageId
+        : row.type === 'system_cluster' &&
+          row.messages.some((message) => message.id === anchor.messageId),
+    );
+    const offset = index >= 0 ? virtualizer.getOffsetForIndex(index, 'start')?.[0] : undefined;
+    if (offset !== undefined) {
+      const scroller = scrollerElementRef.current;
+      const paddingTop = scroller ? parseFloat(getComputedStyle(scroller).paddingTop) || 0 : 0;
+      virtualizer.scrollToOffset(Math.max(0, offset + paddingTop - anchor.offset));
+    }
+  }, [
+    rows,
+    conversationId,
+    isAnchoredInHistory,
+    isFollowingLatest,
+    highlightMessageId,
+    virtualizer,
+  ]);
 
   const handleStartReached = useCallback(() => {
+    if (!hasMore || isFetchingMore) return;
     if (isAnchoredInHistory && onLoadOlder) {
       onLoadOlder();
       return;
     }
-    if (!hasMore || isFetchingMore) return;
     onLoadMore();
   }, [hasMore, isAnchoredInHistory, isFetchingMore, onLoadMore, onLoadOlder]);
 
   const handleEndReached = useCallback(() => {
-    if (isAnchoredInHistory && onLoadNewer) {
+    if (isAnchoredInHistory && hasNewer && !isFetchingNewer && onLoadNewer) {
       onLoadNewer();
     }
-  }, [isAnchoredInHistory, onLoadNewer]);
+  }, [isAnchoredInHistory, hasNewer, isFetchingNewer, onLoadNewer]);
 
   const stopLiveFollowing = useCallback(() => {
     const el = scrollerElementRef.current;
@@ -311,6 +456,7 @@ export default function MessageList({
   const checkScrollPosition = useCallback(() => {
     const el = scrollerElementRef.current;
     if (!el) return;
+    captureViewportAnchor();
     const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
     // Leaving the live edge requires user input (or a targeted jump).
     // Row measurements may temporarily grow the list below the same offset.
@@ -327,14 +473,7 @@ export default function MessageList({
     if (distanceFromBottom < 100) {
       handleEndReached();
     }
-  }, [isAnchoredInHistory, handleStartReached, handleEndReached]);
-
-  useEffect(() => {
-    const el = scrollerElementRef.current;
-    if (!el) return;
-    el.addEventListener('scroll', checkScrollPosition, { passive: true });
-    return () => el.removeEventListener('scroll', checkScrollPosition);
-  }, [checkScrollPosition]);
+  }, [isAnchoredInHistory, handleStartReached, handleEndReached, captureViewportAnchor]);
 
   useLayoutEffect(() => {
     const element = scrollerElementRef.current;
@@ -353,6 +492,7 @@ export default function MessageList({
   }, [conversationId, scrollGeneration, virtualizer, isLoading, hasMessages]);
 
   const isInitialMount = useRef(!initialPosition || initialPosition.atBottom);
+  const pendingHighlightRequest = useRef<{ key: string } | null>(null);
   useEffect(() => {
     if (
       rows.length > 0 &&
@@ -447,9 +587,17 @@ export default function MessageList({
       const timeout = setTimeout(() => onHighlightHandled?.(), 1700);
       return () => clearTimeout(timeout);
     } else if (onLoadAround) {
-      onLoadAround(highlightMessageId).catch(() => {});
+      const key = `${conversationId ?? ''}:${highlightMessageId}`;
+      if (pendingHighlightRequest.current?.key === key) return;
+      const request = { key };
+      pendingHighlightRequest.current = request;
+      onLoadAround(highlightMessageId)
+        .catch(() => {})
+        .finally(() => {
+          if (pendingHighlightRequest.current === request) pendingHighlightRequest.current = null;
+        });
     }
-  }, [highlightMessageId, rows, onHighlightHandled, onLoadAround, virtualizer]);
+  }, [conversationId, highlightMessageId, rows, onHighlightHandled, onLoadAround, virtualizer]);
 
   useEffect(() => {
     if (virtualRows.length === 0) return;
@@ -469,7 +617,7 @@ export default function MessageList({
     setUnreadBelowCount(belowCount);
   }, [virtualRows, rows, currentUserId, onMarkRead]);
 
-  if (isLoading) {
+  if (isLoading && messages.length === 0) {
     return (
       <div className="flex-1 overflow-y-auto py-4">
         <MessageThreadSkeleton />
@@ -535,11 +683,15 @@ export default function MessageList({
           }
         }}
         className="flex-1 custom-scrollbar py-2 overflow-y-auto overflow-x-hidden"
-        style={{ overflowAnchor: 'none', overflowX: 'hidden' }}
+        style={{
+          overflowAnchor: 'none',
+          overflowX: 'hidden',
+          transform: 'translateZ(0)',
+        }}
       >
         {isFetchingMore && (
           <div
-            className="w-full mx-auto px-1 sm:px-2.5 transition-[max-width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            className="absolute top-0 inset-x-0 z-10 w-full mx-auto px-1 sm:px-2.5 pointer-events-none"
             style={{
               maxWidth: contentMaxWidth ? `${contentMaxWidth}px` : '880px',
             }}
@@ -581,7 +733,7 @@ export default function MessageList({
                       const rect = e.currentTarget.getBoundingClientRect();
                       onOpenDatePicker?.(row.date, rect);
                     }}
-                    className={`px-3.5 py-1 rounded-full bg-[#18181b]/85 border border-white/10 backdrop-blur-md shadow-md text-[11px] font-medium text-gray-300 pointer-events-auto select-none transition-all duration-300 cursor-pointer hover:bg-[#252530] hover:border-purple-400/50 hover:text-purple-300 hover:shadow-[0_0_15px_rgba(168,85,247,0.35)] active:scale-95 group ${
+                    className={`px-3.5 py-1 rounded-full bg-[#161722]/95 border border-white/10 shadow-[0_2px_12px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.06)] text-[11px] font-medium text-gray-300 pointer-events-auto select-none transition-all duration-300 cursor-pointer hover:bg-[#252530] hover:border-purple-400/50 hover:text-purple-300 hover:shadow-[0_0_15px_rgba(168,85,247,0.35)] active:scale-95 group ${
                       isHighlighted ? 'animate-dateJumpPulse ring-2 ring-purple-500/80' : ''
                     }`}
                     title="Click to open calendar date picker"
@@ -657,7 +809,16 @@ export default function MessageList({
                         onUnreact={onUnreact}
                         onJumpToMessage={onJumpToMessage}
                         onRetry={onRetry}
+                        onOpenMedia={onOpenMedia}
                         e2eePeerUserId={isGroup ? null : otherParticipantId}
+                        peerName={
+                          isGroup
+                            ? null
+                            : otherParticipant?.nickname ||
+                              otherParticipant?.user.displayName ||
+                              otherParticipant?.user.username ||
+                              null
+                        }
                       />
                     </div>
                   </div>
@@ -670,6 +831,13 @@ export default function MessageList({
                 key={row.key || virtualItem.key}
                 ref={virtualizer.measureElement}
                 data-index={virtualItem.index}
+                data-message-id={
+                  row.type === 'message'
+                    ? row.message.id
+                    : row.type === 'system_cluster'
+                      ? row.messages[0]?.id
+                      : undefined
+                }
                 style={{
                   position: 'absolute',
                   top: 0,
@@ -716,7 +884,7 @@ export default function MessageList({
               setShowScrollBottom(false);
               setUnreadBelowCount(0);
             }}
-            className="pointer-events-auto group w-10 h-10 rounded-full bg-[#181926]/90 border border-white/15 backdrop-blur-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] flex items-center justify-center text-gray-300 hover:text-white hover:bg-purple-600/30 hover:border-purple-400/50 hover:shadow-[0_0_15px_rgba(168,85,247,0.4)] transition-all duration-200 active:scale-95 animate-popIn cursor-pointer mr-1 sm:mr-2"
+            className="pointer-events-auto group w-10 h-10 rounded-full bg-[#181926]/95 border border-white/15 shadow-[0_8px_24px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.1)] flex items-center justify-center text-gray-300 hover:text-white hover:bg-purple-600/30 hover:border-purple-400/50 hover:shadow-[0_0_15px_rgba(168,85,247,0.4)] transition-all duration-200 active:scale-95 animate-popIn cursor-pointer mr-1 sm:mr-2"
             title={isAnchoredInHistory ? 'Jump to live messages' : 'Scroll to bottom'}
           >
             <ChevronDown size={20} className="group-hover:translate-y-0.5 transition-transform" />

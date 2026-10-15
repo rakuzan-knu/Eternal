@@ -21,8 +21,13 @@ function getActivityTime(conversation: ConversationView) {
 
 export default function ArchivedChatsModal({ onClose }: ArchivedChatsModalProps) {
   const userId = useAuthStore((s) => s.userId);
-  const { data: conversations } = useConversations();
   const [unlocked, setUnlocked] = useState(false);
+  const {
+    data: conversations,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = useConversations({ archive: 'archived', enabled: unlocked });
   const [isExpanded, setExpanded] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -112,6 +117,9 @@ export default function ArchivedChatsModal({ onClose }: ArchivedChatsModalProps)
                 currentUserId={userId}
                 activeId={activeId}
                 onSelect={setActiveId}
+                hasNextPage={hasNextPage}
+                isFetchingNextPage={isFetchingNextPage}
+                onLoadMore={() => void fetchNextPage()}
               />
               <div className="flex min-w-0 flex-1 flex-col border-l border-white/10">
                 {activeConversation ? (

@@ -1,6 +1,6 @@
 # 🚀 Contributor Getting Started Guide
 
-Welcome to the **Social Network** open-source project! This guide will walk you through setting up a complete local development environment from scratch in under 5 minutes.
+This guide helps authorized Eternal maintainers and contributors set up a local development environment. Follow [LICENSE.md](../../LICENSE.md) and the [licensing policy](../legal/README.md); setup instructions grant no permission to use the proprietary code.
 
 ---
 

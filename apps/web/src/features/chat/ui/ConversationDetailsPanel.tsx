@@ -21,7 +21,16 @@ import { chatApi } from '../api/chatApi';
 import Avatar from '../../../shared/ui/Avatar';
 import GroupAvatarCollage from '../../../shared/ui/GroupAvatarCollage';
 import OnlineStatusIndicator from '../../../shared/ui/OnlineStatusIndicator';
-import { DiscordGamepadIcon } from '@/shared/ui/BrandIcons';
+import {
+  isMusicActivity,
+  isGamingActivity,
+  getActivityGameIcon,
+  getActivityMusicCover,
+  formatActivityText,
+} from '../../../shared/ui/activityIcons';
+import { useMediaDetailModalStore } from '@/entities/showcase/model/useMediaDetailModalStore';
+import { ShowcaseMediaType } from '@backend/common/contracts';
+import { useMusicHubStore } from '@/features/music/model/useMusicHubStore';
 import { useQueryOnlineStatus } from '../model/usePresence';
 import { usePresenceStore } from '@/shared/model/usePresenceStore';
 import { useAuthStore } from '@/shared/model/useAuthStore';
@@ -100,22 +109,58 @@ export default function ConversationDetailsPanel({
   const otherActivity = usePresenceStore((s) =>
     otherUserId ? s.userActivities[otherUserId] : null,
   );
-  const isOtherGaming = Boolean(
-    !isGroup &&
-    otherUserId &&
-    otherActivity &&
-    (otherActivity.type === 'gaming' ||
-      otherActivity.type === 'game' ||
-      otherActivity.isSteam ||
-      (otherActivity.title && otherActivity.type !== 'spotify')),
-  );
-  const isOtherListening = Boolean(
-    !isGroup &&
-    !isOtherGaming &&
-    otherUserId &&
-    otherActivity &&
-    (otherActivity.type === 'spotify' || Boolean(otherActivity.trackId)),
-  );
+  const isOtherListening = Boolean(!isGroup && otherUserId && isMusicActivity(otherActivity));
+  const isOtherGaming = Boolean(!isGroup && otherUserId && isGamingActivity(otherActivity));
+  const formattedActivity = formatActivityText(otherActivity, 26, 18);
+
+  const handleTrackClick = (e: React.MouseEvent, activity: any) => {
+    e.stopPropagation();
+    if (!activity) return;
+
+    let trackId = activity.trackId;
+    if (!trackId && activity.externalUrl) {
+      const match = String(activity.externalUrl).match(/\/(?:music\/)?track\/([^/?#]+)/i);
+      if (match) {
+        trackId = match[1];
+      }
+    }
+
+    if (trackId || activity.title) {
+      const resolvedId =
+        trackId ||
+        `trk-${encodeURIComponent(
+          String(activity.title)
+            .toLowerCase()
+            .trim()
+            .replace(/[^a-z0-9]+/g, '-'),
+        )}`;
+
+      useMusicHubStore.getState().cacheTrack({
+        id: resolvedId,
+        title: activity.title || 'Unknown Track',
+        artist: activity.subtitle || activity.artist || 'Unknown Artist',
+        albumArt: activity.imageUrl || activity.albumArt || activity.coverUrl || '',
+        durationMs: activity.durationMs || 180000,
+        previewUrl: activity.previewUrl || null,
+        spotifyUrl: `/music/track/${resolvedId}`,
+        source: (activity.source as any) || 'platform',
+      });
+      navigate(`/music/track/${resolvedId}`);
+    } else {
+      navigate('/music');
+    }
+  };
+
+  const handleGameClick = (e: React.MouseEvent, activity: any) => {
+    e.stopPropagation();
+    if (!activity?.title) return;
+    useMediaDetailModalStore.getState().openMediaDetail({
+      title: activity.title,
+      type: ShowcaseMediaType.GAME,
+      posterUrl: activity.imageUrl || '',
+    });
+  };
+
   const muteConversation = useMuteConversation();
   const archiveConversation = useArchiveConversation();
   const blockUser = useBlockUser();
@@ -131,9 +176,7 @@ export default function ConversationDetailsPanel({
   const [isClosing, setIsClosing] = useState(false);
 
   const requestClose = () => {
-    if (isClosing) return;
-    setIsClosing(true);
-    setTimeout(onClose, 180);
+    onClose();
   };
 
   const otherUsername = conversation.participants?.find((p) => p.userId === otherUserId)?.user
@@ -188,11 +231,7 @@ export default function ConversationDetailsPanel({
 
   if (viewedParticipant) {
     return (
-      <div
-        className={`h-full w-[340px] flex-shrink-0 flex flex-col bg-[#16161a]/80 backdrop-blur-2xl border-l border-white/5 ${
-          isClosing ? 'animate-slideOutRight' : 'animate-slideInRight'
-        }`}
-      >
+      <div className="h-full w-[340px] flex-shrink-0 flex flex-col glass-panel border-l border-white/10">
         <GroupMemberDetailView
           conversation={conversation}
           participant={viewedParticipant}
@@ -204,11 +243,7 @@ export default function ConversationDetailsPanel({
   }
 
   return (
-    <div
-      className={`h-full w-[340px] flex-shrink-0 flex flex-col bg-[#16161a]/80 backdrop-blur-2xl border-l border-white/5 ${
-        isClosing ? 'animate-slideOutRight' : 'animate-slideInRight'
-      }`}
-    >
+    <div className="h-full w-[340px] flex-shrink-0 flex flex-col glass-panel border-l border-white/10">
       <div className="flex items-center justify-between px-5 h-16 flex-shrink-0 border-b border-white/5">
         <h2 className="text-base font-bold text-white">Chat details</h2>
         <button
@@ -221,7 +256,7 @@ export default function ConversationDetailsPanel({
 
       <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-5">
         <div className="flex flex-col items-center text-center mb-4">
-          <div className="relative mb-3">
+          <div className="relative w-28 h-28 mx-auto mb-3 shrink-0 flex items-center justify-center">
             {isGroup ? (
               display.avatar ? (
                 <Avatar size="xl" src={display.avatar} />
@@ -233,9 +268,14 @@ export default function ConversationDetailsPanel({
               )
             ) : (
               <>
-                <Avatar size="xl" src={display.avatar} />
+                <Avatar
+                  size="xl"
+                  src={display.avatar}
+                  decoration={display.activeDecoration}
+                  userId={otherUserId}
+                />
                 {otherUserId && (
-                  <OnlineStatusIndicator userId={otherUserId} variant="dot" size="md" />
+                  <OnlineStatusIndicator userId={otherUserId} variant="dot" size="xl" />
                 )}
               </>
             )}
@@ -252,38 +292,59 @@ export default function ConversationDetailsPanel({
             <p className="text-sm mt-0.5 text-gray-500">
               {conversation.participants.length} members
             </p>
-          ) : isOtherGaming ? (
-            <div className="inline-flex items-center justify-center gap-1.5 text-sm mt-0.5 text-gray-300 font-medium">
-              <DiscordGamepadIcon
-                size={14}
-                className="text-[#23a55a] shrink-0 drop-shadow-[0_0_5px_rgba(35,165,90,0.8)]"
-              />
-              <span>
-                Playing <span className="text-white font-semibold">{otherActivity?.title}</span>
+          ) : isOtherListening ? (
+            <div
+              className="inline-flex items-center justify-center gap-1.5 text-sm mt-0.5 text-gray-300 font-medium max-w-full px-2"
+              title={`Listening to ${formattedActivity.fullText}`}
+            >
+              <span
+                onClick={(e) => handleTrackClick(e, otherActivity)}
+                className="cursor-pointer hover:scale-110 transition-transform shrink-0"
+                title={`Open track: ${formattedActivity.title}`}
+              >
+                {getActivityMusicCover(otherActivity, 16)}
+              </span>
+              <span className="truncate max-w-[260px] text-center">
+                Listening to{' '}
+                <span
+                  onClick={(e) => handleTrackClick(e, otherActivity)}
+                  className="text-white font-semibold hover:underline cursor-pointer"
+                  title={`Open track: ${formattedActivity.title}`}
+                >
+                  {formattedActivity.title}
+                </span>
+                {formattedActivity.subtitle ? (
+                  <span className="text-gray-400 font-normal"> — {formattedActivity.subtitle}</span>
+                ) : null}
               </span>
             </div>
-          ) : isOtherListening ? (
-            <div className="inline-flex items-center justify-center gap-1.5 text-sm mt-0.5 text-gray-300 font-medium">
-              <Music
-                size={14}
-                className="text-[#1DB954] shrink-0 drop-shadow-[0_0_5px_rgba(29,185,84,0.8)]"
-              />
-              <span>
-                Listening to{' '}
-                <span className="text-white font-semibold">{otherActivity?.title}</span>
-                {otherActivity?.subtitle || otherActivity?.artist ? (
-                  <span className="text-gray-400 font-normal">
-                    {' '}
-                    — {otherActivity.subtitle || otherActivity.artist}
-                  </span>
-                ) : null}
+          ) : isOtherGaming ? (
+            <div
+              className="inline-flex items-center justify-center gap-1.5 text-sm mt-0.5 text-gray-300 font-medium max-w-full px-2"
+              title={`Playing ${formattedActivity.fullText}`}
+            >
+              <span
+                onClick={(e) => handleGameClick(e, otherActivity)}
+                className="cursor-pointer hover:scale-110 transition-transform shrink-0"
+                title={`View ${formattedActivity.title}`}
+              >
+                {getActivityGameIcon(otherActivity, 16)}
+              </span>
+              <span className="truncate max-w-[260px] text-center">
+                Playing{' '}
+                <span
+                  onClick={(e) => handleGameClick(e, otherActivity)}
+                  className="text-white font-semibold hover:underline cursor-pointer"
+                  title={`View ${formattedActivity.title}`}
+                >
+                  {formattedActivity.title}
+                </span>
               </span>
             </div>
           ) : (
             <p
               className={`inline-flex items-center gap-1.5 text-sm mt-0.5 ${isOnline ? 'text-emerald-400' : 'text-gray-500'}`}
             >
-              {isOnline && <span className="w-2 h-2 rounded-full bg-emerald-500" />}
               {isOnline ? 'Active now' : 'Offline'}
             </p>
           )}
@@ -554,6 +615,8 @@ export default function ConversationDetailsPanel({
           onConfirm={handleDeleteChat}
           conversationName={display.title}
           avatarUrl={display.avatar}
+          decoration={display.activeDecoration}
+          userId={display.otherUserId}
           isGroup={isGroup}
           otherUserName={display.title}
         />

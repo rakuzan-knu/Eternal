@@ -629,7 +629,12 @@ export class E2eeCryptoManager {
     ) {
       throw new Error('E2EE dialog binding mismatch (possible transplant)');
     }
-    const entry = parsed.keys[opts.ownDeviceId];
+    let wrapDeviceId = opts.ownDeviceId;
+    let entry = parsed.keys[wrapDeviceId];
+    if (!entry && parsed.keys['legacy']) {
+      wrapDeviceId = 'legacy';
+      entry = parsed.keys['legacy'];
+    }
     if (!entry) throw new Error('E2EE v3 has no content-key wrap for this device');
     const sender = senderDevices.find((d) => d.deviceId === parsed.from);
     if (!sender) throw new Error('E2EE v3 sender device is unknown');
@@ -640,7 +645,7 @@ export class E2eeCryptoManager {
         {
           name: 'AES-GCM',
           iv: new Uint8Array(base64ToArrayBuffer(entry.iv)),
-          additionalData: new TextEncoder().encode(encodeWrapAad(parsed.from, opts.ownDeviceId)),
+          additionalData: new TextEncoder().encode(encodeWrapAad(parsed.from, wrapDeviceId)),
         },
         shared,
         base64ToArrayBuffer(entry.k),

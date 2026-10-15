@@ -10,7 +10,7 @@ import {
   groupByMonth,
 } from '../lib/extractChatMedia';
 import { formatFileSize } from '@/shared/lib/attachmentLimits';
-import MediaLightbox from './MediaLightbox';
+import { DeferredMediaLightbox as MediaLightbox } from './DeferredChatOverlays';
 import EmptyState from '@/shared/ui/EmptyState';
 
 type Tab = 'media' | 'files' | 'links';

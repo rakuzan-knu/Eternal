@@ -3,7 +3,13 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
-  testIgnore: '**/design/**',
+  // Performance and design suites run through their dedicated configs.
+  testIgnore: [
+    '**/media-performance.spec.ts',
+    '**/memory-performance.spec.ts',
+    '**/data-window-performance.spec.ts',
+    '**/design/**',
+  ],
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

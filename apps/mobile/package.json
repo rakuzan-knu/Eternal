@@ -2,6 +2,7 @@
   "name": "@social-network/mobile",
   "version": "1.0.0",
   "private": true,
+  "license": "UNLICENSED",
   "main": "index.js",
   "scripts": {
     "start": "expo start",
@@ -9,6 +10,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "build:web": "expo export --platform web",
+    "build": "expo export -p web",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --config vitest.config.ts"
   },

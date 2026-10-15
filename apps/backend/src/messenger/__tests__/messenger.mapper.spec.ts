@@ -33,7 +33,10 @@ describe('MessengerMapper', () => {
         id: 'usr-sender',
         username: 'sender_user',
         displayName: 'Sender User',
+        displayNameStyle: null,
         avatar: null,
+        activeNameplate: null,
+        activeDecoration: null,
         isVerified: false,
         primaryBadge: null,
         defaultChatTheme: null,
@@ -48,7 +51,10 @@ describe('MessengerMapper', () => {
             id: 'usr-sender',
             username: 'sender_user',
             displayName: 'Sender User',
+            displayNameStyle: null,
             avatar: null,
+            activeNameplate: null,
+            activeDecoration: null,
             isVerified: false,
             primaryBadge: null,
             defaultChatTheme: null,
@@ -127,7 +133,10 @@ describe('MessengerMapper', () => {
             id: 'usr-orig',
             username: 'original_user',
             displayName: 'Original User',
+            displayNameStyle: null,
             avatar: null,
+            activeNameplate: null,
+            activeDecoration: null,
             isVerified: false,
             primaryBadge: null,
             defaultChatTheme: null,
@@ -139,7 +148,8 @@ describe('MessengerMapper', () => {
 
       expect(mapped.replyTo?.id).toBe('msg-1');
       expect(mapped.forwardedFrom?.id).toBe('orig-msg');
-      expect(mapped.forwardedFrom?.body).toBe('Original forwarded content');
+      // Forwarded content lives in the destination message snapshot; never read a source body.
+      expect(mapped.forwardedFrom?.body).toBeNull();
     });
   });
 
@@ -161,11 +171,16 @@ describe('MessengerMapper', () => {
         archivedAt: null,
         pinnedAt: null,
         leftAt: null,
+        unreadProjectionReady: false,
+        unreadProjectionVerifiedAt: null,
         user: {
           id: 'usr-1',
           username: 'user_1',
           displayName: 'User One',
+          displayNameStyle: null,
           avatar: null,
+          activeNameplate: null,
+          activeDecoration: null,
           isVerified: false,
           primaryBadge: null,
           defaultChatTheme: null,
@@ -210,11 +225,16 @@ describe('MessengerMapper', () => {
           archivedAt: new Date(),
           pinnedAt: new Date(),
           leftAt: null,
+          unreadProjectionReady: false,
+          unreadProjectionVerifiedAt: null,
           user: {
             id: 'usr-viewer',
             username: 'viewer',
             displayName: 'Viewer',
+            displayNameStyle: null,
             avatar: null,
+            activeNameplate: null,
+            activeDecoration: null,
             isVerified: false,
             primaryBadge: null,
             defaultChatTheme: null,
@@ -236,11 +256,16 @@ describe('MessengerMapper', () => {
           archivedAt: null,
           pinnedAt: null,
           leftAt: null,
+          unreadProjectionReady: false,
+          unreadProjectionVerifiedAt: null,
           user: {
             id: 'usr-other',
             username: 'other',
             displayName: 'Other',
+            displayNameStyle: null,
             avatar: null,
+            activeNameplate: null,
+            activeDecoration: null,
             isVerified: false,
             primaryBadge: null,
             defaultChatTheme: null,

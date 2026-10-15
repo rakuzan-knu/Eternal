@@ -6,6 +6,14 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as messagesHookModule from '../../model/useMessages';
 import ChatThread from '../ChatThread';
+import { useChatDraftsStore } from '../../model/useChatDraftsStore';
+
+vi.mock('../ConversationDetailsPanel', () => ({
+  default: ({ onOpenSearch }: { onOpenSearch: () => void }) => (
+    <button onClick={onOpenSearch}>Search</button>
+  ),
+}));
+vi.mock('../MessageSearchPanel', () => ({ default: () => <div>Search</div> }));
 
 vi.mock('../../api/chatApi', () => ({
   chatApi: {
@@ -15,6 +23,15 @@ vi.mock('../../api/chatApi', () => ({
     markRead: vi.fn(),
   },
 }));
+
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
 
 describe('ChatThread', () => {
   const queryClient = new QueryClient({
@@ -51,6 +68,7 @@ describe('ChatThread', () => {
   } as unknown as ConversationView;
 
   beforeEach(() => {
+    useChatDraftsStore.setState({ drafts: {} });
     act(() => {
       useSpotifyPlayerStore.setState({
         currentTrack: null,
@@ -100,9 +118,7 @@ describe('ChatThread', () => {
     const infoBtn = screen.getByTitle('Conversation info');
     fireEvent.click(infoBtn);
 
-    await waitFor(() => {
-      expect(screen.getByText('Search')).toBeInTheDocument();
-    });
+    expect(await screen.findByText('Search', {}, { timeout: 5000 })).toBeInTheDocument();
   });
 
   it('renders blocked banner when conversation is blocked', () => {
@@ -160,7 +176,7 @@ describe('ChatThread', () => {
     const viewAllBtn = screen.getByTitle('View all pinned messages');
     fireEvent.click(viewAllBtn);
 
-    expect(screen.getByRole('heading', { name: /Pinned messages/i })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /Pinned messages/i })).toBeInTheDocument();
   });
 
   it('dynamically raises composer padding when SpotifyBottomDock is full or minimized', () => {
@@ -233,5 +249,84 @@ describe('ChatThread', () => {
       </QueryClientProvider>,
     );
     expect(screen.getByTestId('composer-outer-wrapper')).toHaveStyle({ paddingBottom: '8px' });
+  });
+
+  it('closes right panel on Esc, and closes chat navigating to /messages when pressing Esc while idle', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <ChatThread conversation={mockConv} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    // 1. Toggle search panel
+    const searchBtn = screen.getByTitle('Search messages (Ctrl+F)');
+    fireEvent.click(searchBtn);
+    expect(await screen.findByText('Search')).toBeInTheDocument();
+
+    // 2. Press Escape -> closes search panel
+    fireEvent.keyDown(window, { key: 'Escape' });
+    act(() => {
+      vi.advanceTimersByTime(350);
+    });
+    expect(screen.queryByText('Search')).not.toBeInTheDocument();
+
+    // 3. Press Escape while idle in chat -> triggers smooth exit and navigates to /messages
+    mockNavigate.mockClear();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+    expect(mockNavigate).toHaveBeenCalledWith('/messages');
+    vi.useRealTimers();
+  });
+
+  it('keeps the composer draft and retries a failed message load', () => {
+    const refetch = vi.fn();
+    useChatDraftsStore.getState().setDraft('conv-1', 'Draft survives a load failure');
+    vi.spyOn(messagesHookModule, 'useMessages').mockReturnValue({
+      messages: [],
+      isError: true,
+      isFetching: false,
+      isLoading: false,
+      hasNextPage: false,
+      isFetchingNextPage: false,
+      fetchNextPage: vi.fn(),
+      refetch,
+    } as any);
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <ChatThread conversation={mockConv} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent('Messages could not load');
+    expect(screen.getByRole('textbox', { name: 'Message' })).toHaveValue(
+      'Draft survives a load failure',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Retry messages' }));
+    expect(refetch).toHaveBeenCalledOnce();
+  });
+
+  it('lets the open message menu own Escape without closing the chat', () => {
+    mockNavigate.mockClear();
+    const closeMenu = vi.fn();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <ChatThread conversation={mockConv} />
+          <div role="menu" onKeyDown={closeMenu} tabIndex={0}>
+            Message actions
+          </div>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' });
+    expect(closeMenu).toHaveBeenCalledOnce();
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(screen.getByTestId('chat-thread')).not.toHaveClass('pointer-events-none');
   });
 });

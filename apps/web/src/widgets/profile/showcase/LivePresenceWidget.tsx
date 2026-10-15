@@ -704,7 +704,7 @@ export const LivePresenceWidget: React.FC<LivePresenceWidgetProps> = ({
                   {steamActivity.subtitle || 'Steam'}
                 </span>
 
-                {/* Discord-style Gamepad Timer (Green #23a55a) */}
+                {/* Gamepad Timer (Green #23a55a) */}
                 <div className="flex items-center gap-1.5 mt-1 text-[#23a55a]">
                   <DiscordGamepadIcon size={15} className="text-[#23a55a]" />
                   <span className="text-xs font-semibold font-mono tracking-wide">
