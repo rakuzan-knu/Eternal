@@ -1,3 +1,4 @@
+import { DirectUploadsService } from '../common/media/direct-uploads.service';
 import { BadRequestException, Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { S3Client } from '@aws-sdk/client-s3';
@@ -16,6 +17,9 @@ export type SanitizedMedia = {
 
 @Injectable()
 export class CommentsMediaService {
+  @Inject(DirectUploadsService)
+  private readonly directUploads!: DirectUploadsService;
+
   private readonly logger = new Logger(CommentsMediaService.name);
   private readonly bucket: string;
   private readonly publicUrl: string;
@@ -86,7 +90,16 @@ export class CommentsMediaService {
   /**
    * Sanitizes, strips EXIF GPS/camera metadata, and processes comment image.
    */
-  async processCommentImage(file: Express.Multer.File): Promise<SanitizedMedia> {
+  async processCommentImage(
+    file: Express.Multer.File,
+    userId?: string,
+    uploadId?: string,
+  ): Promise<SanitizedMedia> {
+    if (uploadId && userId) {
+      const media = await this.directUploads.resolve(userId, uploadId, 'comment');
+      return { url: media.url, mimetype: media.contentType, size: media.sizeBytes };
+    }
+    this.directUploads.assertLegacyAllowed();
     if (!file || !file.buffer) {
       throw new BadRequestException('No image file provided');
     }

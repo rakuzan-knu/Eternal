@@ -135,6 +135,23 @@ describe('PostsService', () => {
       mockRedis as unknown as RedisService,
       mockGateway as unknown as MessengerGateway,
     );
+    Object.assign(service, {
+      directUploads: {
+        assertLegacyAllowed: jest.fn(),
+        isDirectUploadUrl: (url: string) => url.startsWith('https://cdn.test/bucket/media/post/'),
+        assertOwnedUrl: jest.fn().mockResolvedValue(undefined),
+        resolve: jest.fn().mockResolvedValue({
+          uploadId: 'completed-id',
+          url: 'https://example.com/source.mp4',
+          contentType: 'video/mp4',
+          sizeBytes: 100,
+          kind: 'VIDEO',
+          duration: 5,
+          width: 640,
+          height: 360,
+        }),
+      },
+    });
   });
 
   describe('getAllPosts & getPostById', () => {
@@ -167,6 +184,54 @@ describe('PostsService', () => {
   });
 
   describe('createPost', () => {
+    it.each(['spoofed', { length: 0 }, () => undefined])(
+      'rejects non-array uploaded files before reading their length (%j)',
+      async (value) => {
+        const args: Parameters<PostsService['createPost']> = [{ content: 'Draft' }, 'usr-1'];
+        Object.defineProperty(args, 2, { value });
+        await expect(service.createPost(...args)).rejects.toThrow(
+          'Uploaded files must be an array',
+        );
+        expect(mockMediaService.processUploadedFiles).not.toHaveBeenCalled();
+        expect(mockPostsRepository.createPost).not.toHaveBeenCalled();
+      },
+    );
+    it.each(['https://media.tenor.com/image.gif', [42]])(
+      'rejects tampered GIF parameter types (%j)',
+      async (value) => {
+        const dto = { content: 'Draft stays intact', gifUrls: [] };
+        Object.defineProperty(dto, 'gifUrls', { value });
+        await expect(service.createPost(dto, 'usr-1')).rejects.toThrow(
+          'GIF references must be an array of URLs',
+        );
+        expect(mockMediaService.processUploadedFiles).not.toHaveBeenCalled();
+        expect(mockPostsRepository.createPost).not.toHaveBeenCalled();
+      },
+    );
+    it('publishes a canonical direct upload with a storage path prefix after ownership checks', async () => {
+      const url = 'https://cdn.test/bucket/media/post/11111111-1111-4111-8111-111111111111.webp';
+      const assertOwnedUrl = vi.fn().mockResolvedValue(undefined);
+      Object.assign(service, {
+        directUploads: {
+          isDirectUploadUrl: (value: string) =>
+            value.startsWith('https://cdn.test/bucket/media/post/'),
+          assertOwnedUrl,
+        },
+      });
+      mockPostsRepository.createPost.mockResolvedValueOnce(basePost);
+      await service.createPost(
+        { content: 'Photo', media: [{ type: MediaType.IMAGE, url, order: 0 }] },
+        'usr-1',
+      );
+      expect(assertOwnedUrl).toHaveBeenCalledWith('usr-1', url, 'post');
+      expect(mockMediaService.processUploadedFiles).not.toHaveBeenCalled();
+      expect(mockPostsRepository.createPost).toHaveBeenCalledWith(
+        expect.objectContaining({
+          media: { create: [{ type: MediaType.IMAGE, url, order: 0 }] },
+        }),
+      );
+    });
+
     it('routes JSON media and GIF aliases through validation and never persists failed references', async () => {
       const dto = {
         media: [{ type: MediaType.IMAGE, url: 'data:image/png;base64,AAAA', order: 0 }],
@@ -223,7 +288,7 @@ describe('PostsService', () => {
       const dto = {
         content: 'Check this out @sam_dev #coding',
         media: [{ type: MediaType.IMAGE, url: 'https://cdn.com/img.png', order: 0 }],
-        gifUrls: ['https://cdn.com/a.gif'],
+        gifUrls: ['https://media.tenor.com/a.gif'],
         poll: ['Option A', 'Option B'],
       };
 

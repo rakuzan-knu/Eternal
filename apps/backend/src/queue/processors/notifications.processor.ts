@@ -15,6 +15,7 @@ import { QUEUE_NOTIFICATIONS, NotificationJobType } from '../queue.constants';
 import { QueueService } from '../queue.service';
 import { MessengerGateway } from '../../messenger/gateway/messenger.gateway';
 import { TraceContext } from '../../common/tracing/trace-context';
+import { runsBackground } from '../../config/service-role';
 
 export interface NotificationJobData {
   userId: string;
@@ -44,6 +45,7 @@ export class NotificationsProcessor implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit(): void {
+    if (!runsBackground('messenger')) return;
     const redisUrl = this.configService.get<string>('REDIS_URL');
     if (
       !redisUrl ||

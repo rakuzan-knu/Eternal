@@ -1,4 +1,5 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { runsBackground } from '../../config/service-role';
 import { UnreadProjectionService } from './unread-projection.service';
 
 @Injectable()
@@ -13,6 +14,7 @@ export class UnreadReconciliationWorker implements OnModuleInit, OnModuleDestroy
 
   onModuleInit(): void {
     if (
+      !runsBackground('messenger') ||
       process.env.UNREAD_PROJECTION_RECONCILE_ENABLED !== 'true' ||
       process.env.NODE_ENV === 'test'
     )

@@ -9,7 +9,12 @@ import type { StoryViewResponse } from '@social-network/shared-contracts';
 
 const mocks = vi.hoisted(() => ({ post: vi.fn(), session: vi.fn(), picker: vi.fn() }));
 vi.mock('@/shared/api/client', () => ({
-  getMobileApi: () => ({ post: mocks.post }),
+  getMobileApi: () => ({
+    post: (path: string, ...args: unknown[]) =>
+      path === '/uploads/direct'
+        ? Promise.resolve({ data: { mode: 'proxy' } })
+        : mocks.post(path, ...args),
+  }),
   assertSession: mocks.session,
 }));
 vi.mock('@social-network/shared-stores', () => ({
@@ -285,7 +290,7 @@ it('rejects oversized photos before upload', async () => {
   const editor = await setup();
   await editor.click('Choose photo or video');
   await editor.click('Choose photo or video');
-  expect(editor.element.querySelector('[role="alert"]')?.textContent).toContain('10 MB');
+  expect(editor.element.querySelector('[role="alert"]')?.textContent).toContain('5 MB');
   expect(editor.button('Share story').disabled).toBe(true);
   expect(mocks.post).not.toHaveBeenCalled();
 });
@@ -306,7 +311,7 @@ it('blocks duplicate publishing and closing while the upload is pending', async 
         type: 'image',
         width: 900,
         height: 1600,
-        file: new File(['pixels'], 'photo.jpg'),
+        file: new File(['pixels'], 'photo.jpg', { type: 'image/jpeg' }),
       },
     ],
   });
@@ -404,7 +409,7 @@ it('retains the draft and sends no request when the account changes during file 
         type: 'image',
         width: 100,
         height: 100,
-        file: new File(['pixels'], 'photo.jpg'),
+        file: new File(['pixels'], 'photo.jpg', { type: 'image/jpeg' }),
       },
     ],
   });

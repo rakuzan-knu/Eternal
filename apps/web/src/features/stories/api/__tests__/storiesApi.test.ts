@@ -32,6 +32,7 @@ describe('storiesApi', () => {
   });
 
   it('calls createStory with FormData', async () => {
+    vi.mocked(apiClient.post).mockResolvedValueOnce({ data: { mode: 'proxy' } });
     vi.mocked(apiClient.post).mockResolvedValueOnce({ data: { id: 'story-1' } });
     const file = new File(['content'], 'story.jpg', { type: 'image/jpeg' });
     const result = await storiesApi.createStory({

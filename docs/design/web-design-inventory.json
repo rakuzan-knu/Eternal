@@ -1934,8 +1934,8 @@
       "references": [
         "apps/web/src/entities/showcase/ui/ShowcaseIntegrationCard.tsx:132",
         "apps/web/src/entities/showcase/ui/ShowcaseIntegrationCard.tsx:170",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1230",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1270"
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1347",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1387"
       ]
     },
     {
@@ -2149,10 +2149,10 @@
       "value": "#0e0e11",
       "references": [
         "apps/web/src/entities/showcase/ui/ShowcaseIntegrationCard.tsx:677",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2567",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:597",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:599",
-        "apps/web/src/pages/OAuth/OAuthCallbackHandler.tsx:118"
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2684",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:709",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:711",
+        "apps/web/src/pages/OAuth/OAuthCallbackHandler.tsx:116"
       ]
     },
     {
@@ -3248,8 +3248,8 @@
     {
       "value": "#141417",
       "references": [
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1370",
-        "apps/web/src/pages/OAuth/OAuthCallbackHandler.tsx:119"
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1487",
+        "apps/web/src/pages/OAuth/OAuthCallbackHandler.tsx:117"
       ]
     },
     {
@@ -3294,8 +3294,8 @@
       "references": [
         "apps/web/src/entities/showcase/ui/ShowcaseIntegrationCard.tsx:132",
         "apps/web/src/entities/showcase/ui/ShowcaseIntegrationCard.tsx:170",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1230",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1270"
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1347",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1387"
       ]
     },
     {
@@ -4072,28 +4072,28 @@
         "apps/web/src/features/music/ui/MusicTopNavbar.tsx:201",
         "apps/web/src/features/music/ui/MusicWhatsNewModal.tsx:57",
         "apps/web/src/features/music/ui/TrackDetailsModal.tsx:206",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1597",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1616",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1632",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1648",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1678",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1713",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1721",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1723",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1798",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1824",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1863",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1877",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1903",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1928",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1967",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1998",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2029",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2035",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2037",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2107",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2142",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2161",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1714",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1733",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1749",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1765",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1795",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1830",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1838",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1840",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1915",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1941",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1980",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1994",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2020",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2045",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2084",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2115",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2146",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2152",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2154",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2224",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2259",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2278",
         "apps/web/src/features/profile/ui/integrations/platforms.tsx:45",
         "apps/web/src/shared/ui/OnlineStatusIndicator.tsx:102",
         "apps/web/src/shared/ui/OnlineStatusIndicator.tsx:46",
@@ -4335,7 +4335,7 @@
       "value": "#1b2838",
       "references": [
         "apps/web/src/entities/showcase/ui/ShowcaseIntegrationCard.tsx:114",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1204",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1321",
         "apps/web/src/features/profile/ui/integrations/platforms.tsx:26",
         "apps/web/src/shared/model/useThemeStore.ts:77",
         "apps/web/src/shared/model/useThemeStore.ts:78"
@@ -4685,26 +4685,26 @@
         "apps/web/src/features/profile/ui/ProfileCustomizeSettingsSection.tsx:808",
         "apps/web/src/features/profile/ui/account/AccountReputationPanel.tsx:269",
         "apps/web/src/features/profile/ui/account/AccountReputationPanel.tsx:71",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1319",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1343",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1430",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1444",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1461",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1478",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1536",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2199",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2224",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2245",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2296",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2321",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1080",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1436",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1460",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1547",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1561",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1578",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1595",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1653",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2316",
         "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2341",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2361",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2411",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2436",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2456",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2476",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2497",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:963",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2362",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2413",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2438",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2458",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2478",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2528",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2553",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2573",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2593",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2614",
         "apps/web/src/features/profile/ui/voice/VoiceVideoTab.tsx:1704",
         "apps/web/src/widgets/profile/showcase/LivePresenceWidget.tsx:681",
         "apps/web/src/widgets/sidebar/ui/OnlineFriendsSidebar.tsx:341"
@@ -5402,7 +5402,7 @@
       "value": "#2a475e",
       "references": [
         "apps/web/src/entities/showcase/ui/ShowcaseIntegrationCard.tsx:114",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1204"
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1321"
       ]
     },
     {
@@ -5677,7 +5677,7 @@
     {
       "value": "#35363c",
       "references": [
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:66"
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:67"
       ]
     },
     {
@@ -6157,10 +6157,10 @@
       "value": "#4752C4",
       "references": [
         "apps/web/src/features/profile/ui/EditProfileModal.tsx:1621",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2589",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:667",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:754",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:809",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2706",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:779",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:866",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:921",
         "apps/web/src/pages/Safety/FamilyCenterPage.tsx:356",
         "apps/web/src/widgets/profile/showcase/ShowcaseQuickEditor.tsx:2850",
         "apps/web/src/widgets/profile/showcase/UnsavedChangesBar.tsx:62"
@@ -6517,27 +6517,27 @@
         "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:579",
         "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:620",
         "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:743",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1063",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1079",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1148",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1164",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1178",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1370",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2589",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:66",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:661",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:667",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:720",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:741",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:754",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:791",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:809",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:989",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1106",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1180",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1196",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1265",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1281",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1295",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1487",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2706",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:67",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:773",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:779",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:832",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:853",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:866",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:903",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:921",
         "apps/web/src/features/profile/ui/voice/VoiceAdvancedSection.tsx:25",
         "apps/web/src/features/profile/ui/voice/VoiceSoundsSection.tsx:19",
         "apps/web/src/features/profile/ui/voice/VoiceVideoTab.tsx:1781",
         "apps/web/src/features/profile/ui/voice/VoiceVideoTab.tsx:41",
-        "apps/web/src/pages/OAuth/OAuthCallbackHandler.tsx:122",
+        "apps/web/src/pages/OAuth/OAuthCallbackHandler.tsx:120",
         "apps/web/src/pages/Safety/FamilyCenterPage.tsx:356",
         "apps/web/src/pages/Safety/FamilyCenterPage.tsx:99",
         "apps/web/src/shared/model/useThemeStore.ts:85",
@@ -7062,7 +7062,7 @@
       "value": "#7983f5",
       "references": [
         "apps/web/src/entities/showcase/ui/ShowcaseIntegrationCard.tsx:341",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:989"
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1106"
       ]
     },
     {
@@ -7539,9 +7539,9 @@
       "value": "#9146FF",
       "references": [
         "apps/web/src/entities/showcase/ui/ShowcaseIntegrationCard.tsx:751",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2228",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2249",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2266",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2345",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2366",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2383",
         "apps/web/src/features/profile/ui/integrations/platforms.tsx:63",
         "apps/web/src/widgets/profile/showcase/LivePresenceWidget.tsx:615"
       ]
@@ -8085,10 +8085,10 @@
     {
       "value": "#FF0000",
       "references": [
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2325",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2345",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2365",
-        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2383",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2442",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2462",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2482",
+        "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:2500",
         "apps/web/src/features/profile/ui/integrations/platforms.tsx:54"
       ]
     },
@@ -77465,162 +77465,162 @@
       "colorLiterals": [],
       "presentation": [
         {
-          "line": 444,
+          "line": 452,
           "attribute": "className",
           "expression": "\"glass-card w-full border border-white/[0.05] rounded-3xl p-4 flex flex-col gap-3 relative transition-colors duration-200\""
         },
         {
-          "line": 446,
+          "line": 454,
           "attribute": "className",
           "expression": "\"flex items-center justify-between bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2 text-xs text-red-400\""
         },
         {
-          "line": 447,
+          "line": 455,
           "attribute": "className",
           "expression": "\"flex items-center gap-2\""
         },
         {
-          "line": 448,
+          "line": 456,
           "attribute": "size",
           "expression": "{14}"
         },
         {
-          "line": 448,
+          "line": 456,
           "attribute": "className",
           "expression": "\"shrink-0\""
         },
         {
-          "line": 453,
+          "line": 461,
           "attribute": "className",
           "expression": "\"text-red-400 hover:text-red-300 font-bold ml-2 cursor-pointer\""
         },
         {
-          "line": 455,
+          "line": 463,
           "attribute": "size",
           "expression": "{12}"
         },
         {
-          "line": 461,
+          "line": 469,
           "attribute": "className",
           "expression": "\"flex flex-wrap gap-2 items-center justify-between pb-1 border-b border-white/5\""
         },
         {
-          "line": 462,
+          "line": 470,
           "attribute": "className",
           "expression": "\"flex flex-wrap items-center gap-1 bg-white/5 p-0.5 rounded-xl border border-white/5\""
         },
         {
-          "line": 466,
+          "line": 474,
           "attribute": "className",
           "expression": "{`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${\n              activeTab === 'write'\n                ? 'bg-purple-600 text-white shadow-sm'\n                : 'text-gray-600 dark:text-gray-300 hover:text-gray-950 dark:hover:text-white'\n            }`}"
         },
         {
-          "line": 472,
+          "line": 480,
           "attribute": "size",
           "expression": "{12}"
         },
         {
-          "line": 478,
+          "line": 486,
           "attribute": "className",
           "expression": "{`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${\n              activeTab === 'preview'\n                ? 'bg-purple-600 text-white shadow-sm'\n                : 'text-gray-600 dark:text-gray-300 hover:text-gray-950 dark:hover:text-white'\n            }`}"
         },
         {
-          "line": 484,
+          "line": 492,
           "attribute": "size",
           "expression": "{12}"
         },
         {
-          "line": 490,
+          "line": 498,
           "attribute": "className",
           "expression": "\"text-[11px] font-mono text-purple-300/70\""
         },
         {
-          "line": 505,
+          "line": 513,
           "attribute": "className",
           "expression": "\"flex gap-4 items-start\""
         },
         {
-          "line": 506,
+          "line": 514,
           "attribute": "size",
           "expression": "\"md\""
         },
         {
-          "line": 507,
+          "line": 515,
           "attribute": "className",
           "expression": "\"flex-1 flex flex-col gap-3 relative min-w-0\""
         },
         {
-          "line": 522,
+          "line": 530,
           "attribute": "className",
           "expression": "\"w-full bg-transparent resize-none text-gray-950 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-400 focus:outline-none text-[15px] min-h-[65px] pt-2 disabled:opacity-60 leading-relaxed\""
         },
         {
-          "line": 531,
+          "line": 539,
           "attribute": "className",
           "expression": "\"min-h-[65px] p-3 rounded-2xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/5 text-gray-800 dark:text-gray-200 text-[15px] leading-relaxed\""
         },
         {
-          "line": 535,
+          "line": 543,
           "attribute": "className",
           "expression": "\"text-gray-500 italic text-sm\""
         },
         {
-          "line": 543,
+          "line": 551,
           "attribute": "className",
           "expression": "\"grid grid-cols-3 gap-2\""
         },
         {
-          "line": 547,
+          "line": 555,
           "attribute": "className",
           "expression": "\"relative rounded-2xl overflow-hidden border border-white/10 aspect-square group\""
         },
         {
-          "line": 550,
-          "attribute": "className",
-          "expression": "\"w-full h-full object-cover\""
-        },
-        {
-          "line": 552,
-          "attribute": "className",
-          "expression": "\"w-full h-full object-cover\""
-        },
-        {
           "line": 558,
+          "attribute": "className",
+          "expression": "\"w-full h-full object-cover\""
+        },
+        {
+          "line": 560,
+          "attribute": "className",
+          "expression": "\"w-full h-full object-cover\""
+        },
+        {
+          "line": 566,
           "attribute": "className",
           "expression": "\"absolute top-2 right-2 bg-black/70 hover:bg-black/90 p-1 rounded-full text-white transition-all cursor-pointer\""
         },
         {
-          "line": 561,
+          "line": 569,
           "attribute": "size",
           "expression": "{14}"
         },
         {
-          "line": 578,
+          "line": 586,
           "attribute": "className",
           "expression": "\"h-px bg-white/5 w-full mt-2\""
         },
         {
-          "line": 580,
+          "line": 588,
           "attribute": "className",
           "expression": "\"flex flex-wrap gap-2 justify-between items-center relative\""
         },
         {
-          "line": 581,
+          "line": 589,
           "attribute": "className",
           "expression": "\"flex flex-wrap gap-1 -ml-2\""
         },
         {
-          "line": 608,
+          "line": 616,
           "attribute": "className",
           "expression": "\"flex items-center gap-1.5 bg-neutral-900 text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-gray-200 font-bold px-5 py-1.5 rounded-full disabled:opacity-40 transition-all text-sm cursor-pointer disabled:cursor-not-allowed shadow-sm active:scale-95\""
         },
         {
-          "line": 610,
+          "line": 618,
           "attribute": "size",
           "expression": "{14}"
         },
         {
-          "line": 610,
+          "line": 618,
           "attribute": "className",
           "expression": "\"animate-spin\""
         }
@@ -95518,1934 +95518,1784 @@
       ],
       "presentation": [
         {
-          "line": 65,
+          "line": 66,
           "attribute": "className",
           "expression": "{`w-11 h-6 rounded-full transition-colors relative cursor-pointer shrink-0 p-0.5 select-none focus:outline-none ${\n      checked ? 'bg-[#5865F2]' : 'bg-[#35363c]'\n    } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}"
         },
         {
-          "line": 70,
+          "line": 71,
           "attribute": "className",
           "expression": "{`block w-5 h-5 bg-white rounded-full transition-transform shadow-md ${\n        checked ? 'translate-x-5' : 'translate-x-0'\n      }`}"
         },
         {
-          "line": 596,
+          "line": 708,
           "attribute": "className",
           "expression": "\"fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn select-none\""
         },
         {
-          "line": 597,
+          "line": 709,
           "attribute": "className",
           "expression": "\"relative w-full max-w-lg max-h-[88vh] bg-[#0e0e11] border border-white/[0.1] rounded-3xl shadow-2xl flex flex-col text-white overflow-hidden\""
         },
         {
-          "line": 599,
+          "line": 711,
           "attribute": "className",
           "expression": "\"flex items-center justify-between px-6 py-4 border-b border-white/[0.08] shrink-0 bg-[#0e0e11]\""
         },
         {
-          "line": 600,
+          "line": 712,
           "attribute": "className",
           "expression": "\"flex items-center gap-3\""
         },
         {
-          "line": 601,
+          "line": 713,
           "attribute": "className",
           "expression": "\"w-10 h-10 flex items-center justify-center shrink-0\""
         },
         {
-          "line": 605,
+          "line": 717,
           "attribute": "className",
           "expression": "\"text-base font-bold text-white flex items-center gap-1.5\""
         },
         {
-          "line": 608,
+          "line": 720,
           "attribute": "className",
           "expression": "\"text-xs text-gray-400\""
         },
         {
-          "line": 615,
+          "line": 727,
           "attribute": "className",
           "expression": "\"p-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-gray-400 hover:text-white transition-colors cursor-pointer\""
         },
         {
-          "line": 617,
+          "line": 729,
           "attribute": "size",
           "expression": "{16}"
         },
         {
-          "line": 622,
+          "line": 734,
           "attribute": "className",
           "expression": "\"flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/20\""
         },
         {
-          "line": 628,
+          "line": 740,
           "attribute": "className",
           "expression": "\"flex flex-col items-center justify-center text-center p-6 rounded-2xl bg-white/[0.02] border border-white/[0.06] gap-4 my-auto w-full\""
-        },
-        {
-          "line": 629,
-          "attribute": "className",
-          "expression": "\"w-14 h-14 rounded-2xl bg-white/[0.06] border border-white/10 flex items-center justify-center text-white shadow-[0_0_20px_rgba(255,255,255,0.08)]\""
-        },
-        {
-          "line": 630,
-          "attribute": "size",
-          "expression": "{32}"
-        },
-        {
-          "line": 633,
-          "attribute": "className",
-          "expression": "\"flex flex-col gap-1.5 max-w-sm\""
-        },
-        {
-          "line": 634,
-          "attribute": "className",
-          "expression": "\"text-sm font-bold text-white\""
-        },
-        {
-          "line": 637,
-          "attribute": "className",
-          "expression": "\"text-xs text-gray-400 leading-relaxed\""
-        },
-        {
-          "line": 644,
-          "attribute": "className",
-          "expression": "\"w-full p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs text-left\""
-        },
-        {
-          "line": 649,
-          "attribute": "className",
-          "expression": "\"w-full flex flex-col gap-2 pt-1\""
-        },
-        {
-          "line": 661,
-          "attribute": "className",
-          "expression": "\"w-full bg-white/[0.04] border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 outline-none focus:border-[#5865F2] transition-colors\""
-        },
-        {
-          "line": 667,
-          "attribute": "className",
-          "expression": "\"w-full py-2.5 px-4 rounded-xl bg-[#5865F2] hover:bg-[#4752C4] text-white text-xs font-bold transition-all shadow-[0_4px_16px_rgba(88,101,242,0.35)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50\""
-        },
-        {
-          "line": 671,
-          "attribute": "size",
-          "expression": "{15}"
-        },
-        {
-          "line": 671,
-          "attribute": "className",
-          "expression": "\"animate-spin\""
-        },
-        {
-          "line": 677,
-          "attribute": "size",
-          "expression": "{14}"
-        },
-        {
-          "line": 684,
-          "attribute": "className",
-          "expression": "\"flex flex-col items-center justify-center text-center p-6 rounded-2xl bg-white/[0.02] border border-white/[0.06] gap-4 my-auto w-full\""
-        },
-        {
-          "line": 687,
-          "attribute": "className",
-          "expression": "\"flex items-center gap-3 p-3 rounded-xl bg-white/[0.04] border border-white/[0.08] w-full text-left\""
-        },
-        {
-          "line": 691,
-          "attribute": "className",
-          "expression": "\"w-12 h-12 rounded-xl object-cover bg-black/40 border border-white/10 shrink-0\""
-        },
-        {
-          "line": 693,
-          "attribute": "className",
-          "expression": "\"flex flex-col min-w-0 flex-1\""
-        },
-        {
-          "line": 694,
-          "attribute": "className",
-          "expression": "\"text-xs font-bold text-white truncate\""
-        },
-        {
-          "line": 697,
-          "attribute": "className",
-          "expression": "\"text-[11px] text-gray-400 truncate\""
-        },
-        {
-          "line": 701,
-          "attribute": "className",
-          "expression": "\"text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30 shrink-0\""
-        },
-        {
-          "line": 708,
-          "attribute": "className",
-          "expression": "\"w-full p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs text-left leading-relaxed\""
-        },
-        {
-          "line": 714,
-          "attribute": "className",
-          "expression": "\"flex flex-col gap-2 w-full text-left\""
-        },
-        {
-          "line": 715,
-          "attribute": "className",
-          "expression": "\"text-xs text-gray-300 font-medium leading-relaxed\""
-        },
-        {
-          "line": 719,
-          "attribute": "className",
-          "expression": "\"flex items-center gap-2 p-2.5 rounded-xl bg-black/40 border border-white/10\""
-        },
-        {
-          "line": 720,
-          "attribute": "className",
-          "expression": "\"flex-1 font-mono text-xs font-bold text-[#5865F2] select-all tracking-wider\""
-        },
-        {
-          "line": 730,
-          "attribute": "className",
-          "expression": "\"px-2.5 py-1 rounded-lg bg-white/[0.08] hover:bg-white/[0.15] text-[11px] font-semibold text-white transition-colors cursor-pointer shrink-0 flex items-center gap-1\""
-        },
-        {
-          "line": 732,
-          "attribute": "size",
-          "expression": "{12}"
-        },
-        {
-          "line": 732,
-          "attribute": "className",
-          "expression": "\"text-emerald-400\""
         },
         {
           "line": 741,
           "attribute": "className",
-          "expression": "\"text-[11px] text-[#5865F2] hover:underline flex items-center gap-1 self-start\""
+          "expression": "\"w-14 h-14 rounded-2xl bg-white/[0.06] border border-white/10 flex items-center justify-center text-white shadow-[0_0_20px_rgba(255,255,255,0.08)]\""
         },
         {
-          "line": 744,
+          "line": 742,
           "attribute": "size",
-          "expression": "{10}"
+          "expression": "{32}"
         },
         {
-          "line": 749,
-          "attribute": "className",
-          "expression": "\"flex flex-col gap-2 w-full mt-1\""
-        },
-        {
-          "line": 754,
-          "attribute": "className",
-          "expression": "\"w-full py-2.5 px-4 rounded-xl bg-[#5865F2] hover:bg-[#4752C4] text-white text-xs font-bold transition-all shadow-[0_4px_16px_rgba(88,101,242,0.35)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50\""
-        },
-        {
-          "line": 758,
-          "attribute": "size",
-          "expression": "{15}"
-        },
-        {
-          "line": 758,
-          "attribute": "className",
-          "expression": "\"animate-spin\""
-        },
-        {
-          "line": 763,
-          "attribute": "size",
-          "expression": "{15}"
-        },
-        {
-          "line": 776,
-          "attribute": "className",
-          "expression": "\"w-full py-1.5 text-[11px] text-gray-400 hover:text-white transition-colors cursor-pointer text-center\""
-        },
-        {
-          "line": 782,
-          "attribute": "className",
-          "expression": "\"text-[10px] text-gray-500 leading-relaxed text-center pt-2 border-t border-white/[0.06] w-full\""
-        },
-        {
-          "line": 790,
-          "attribute": "className",
-          "expression": "\"flex flex-col items-center justify-center text-center p-6 rounded-2xl bg-white/[0.02] border border-white/[0.06] gap-4 my-auto\""
-        },
-        {
-          "line": 791,
-          "attribute": "className",
-          "expression": "\"w-14 h-14 rounded-2xl bg-[#5865F2]/10 border border-[#5865F2]/20 flex items-center justify-center text-[#5865F2] shadow-[0_0_20px_rgba(88,101,242,0.15)]\""
-        },
-        {
-          "line": 792,
-          "attribute": "size",
-          "expression": "{28}"
-        },
-        {
-          "line": 795,
+          "line": 745,
           "attribute": "className",
           "expression": "\"flex flex-col gap-1.5 max-w-sm\""
         },
         {
-          "line": 796,
+          "line": 746,
           "attribute": "className",
           "expression": "\"text-sm font-bold text-white\""
         },
         {
-          "line": 799,
+          "line": 749,
           "attribute": "className",
           "expression": "\"text-xs text-gray-400 leading-relaxed\""
         },
         {
-          "line": 809,
+          "line": 756,
           "attribute": "className",
-          "expression": "\"w-full py-2.5 px-4 rounded-xl bg-[#5865F2] hover:bg-[#4752C4] text-white text-xs font-bold transition-all shadow-[0_4px_16px_rgba(88,101,242,0.35)] flex items-center justify-center gap-2 cursor-pointer hover:scale-102 active:scale-98 disabled:opacity-50\""
+          "expression": "\"w-full p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs text-left\""
         },
         {
-          "line": 813,
+          "line": 761,
+          "attribute": "className",
+          "expression": "\"w-full flex flex-col gap-2 pt-1\""
+        },
+        {
+          "line": 773,
+          "attribute": "className",
+          "expression": "\"w-full bg-white/[0.04] border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 outline-none focus:border-[#5865F2] transition-colors\""
+        },
+        {
+          "line": 779,
+          "attribute": "className",
+          "expression": "\"w-full py-2.5 px-4 rounded-xl bg-[#5865F2] hover:bg-[#4752C4] text-white text-xs font-bold transition-all shadow-[0_4px_16px_rgba(88,101,242,0.35)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50\""
+        },
+        {
+          "line": 783,
           "attribute": "size",
           "expression": "{15}"
         },
         {
-          "line": 813,
+          "line": 783,
           "attribute": "className",
           "expression": "\"animate-spin\""
         },
         {
-          "line": 819,
+          "line": 789,
           "attribute": "size",
-          "expression": "{13}"
+          "expression": "{14}"
         },
         {
-          "line": 825,
+          "line": 796,
           "attribute": "className",
-          "expression": "\"text-[10px] text-gray-400/80 leading-relaxed border-t border-white/[0.06] pt-3 mt-1 w-full text-left flex flex-col gap-1.5\""
+          "expression": "\"flex flex-col items-center justify-center text-center p-6 rounded-2xl bg-white/[0.02] border border-white/[0.06] gap-4 my-auto w-full\""
         },
         {
-          "line": 833,
+          "line": 799,
           "attribute": "className",
-          "expression": "\"text-blue-400 hover:underline inline-flex items-center gap-0.5\""
+          "expression": "\"flex items-center gap-3 p-3 rounded-xl bg-white/[0.04] border border-white/[0.08] w-full text-left\""
+        },
+        {
+          "line": 803,
+          "attribute": "className",
+          "expression": "\"w-12 h-12 rounded-xl object-cover bg-black/40 border border-white/10 shrink-0\""
+        },
+        {
+          "line": 805,
+          "attribute": "className",
+          "expression": "\"flex flex-col min-w-0 flex-1\""
+        },
+        {
+          "line": 806,
+          "attribute": "className",
+          "expression": "\"text-xs font-bold text-white truncate\""
+        },
+        {
+          "line": 809,
+          "attribute": "className",
+          "expression": "\"text-[11px] text-gray-400 truncate\""
+        },
+        {
+          "line": 813,
+          "attribute": "className",
+          "expression": "\"text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30 shrink-0\""
+        },
+        {
+          "line": 820,
+          "attribute": "className",
+          "expression": "\"w-full p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs text-left leading-relaxed\""
+        },
+        {
+          "line": 826,
+          "attribute": "className",
+          "expression": "\"flex flex-col gap-2 w-full text-left\""
+        },
+        {
+          "line": 827,
+          "attribute": "className",
+          "expression": "\"text-xs text-gray-300 font-medium leading-relaxed\""
+        },
+        {
+          "line": 831,
+          "attribute": "className",
+          "expression": "\"flex items-center gap-2 p-2.5 rounded-xl bg-black/40 border border-white/10\""
+        },
+        {
+          "line": 832,
+          "attribute": "className",
+          "expression": "\"flex-1 font-mono text-xs font-bold text-[#5865F2] select-all tracking-wider\""
         },
         {
           "line": 842,
           "attribute": "className",
-          "expression": "\"text-blue-400 hover:underline inline-flex items-center gap-0.5\""
+          "expression": "\"px-2.5 py-1 rounded-lg bg-white/[0.08] hover:bg-white/[0.15] text-[11px] font-semibold text-white transition-colors cursor-pointer shrink-0 flex items-center gap-1\""
         },
         {
-          "line": 851,
-          "attribute": "className",
-          "expression": "\"text-blue-400 hover:underline inline-flex items-center gap-0.5\""
+          "line": 844,
+          "attribute": "size",
+          "expression": "{12}"
         },
         {
-          "line": 867,
+          "line": 844,
           "attribute": "className",
-          "expression": "\"text-emerald-400 hover:underline inline-flex items-center gap-0.5\""
+          "expression": "\"text-emerald-400\""
         },
         {
-          "line": 881,
+          "line": 853,
           "attribute": "className",
-          "expression": "\"text-purple-400 hover:underline inline-flex items-center gap-0.5\""
+          "expression": "\"text-[11px] text-[#5865F2] hover:underline flex items-center gap-1 self-start\""
         },
         {
-          "line": 890,
-          "attribute": "className",
-          "expression": "\"text-purple-400 hover:underline inline-flex items-center gap-0.5\""
+          "line": 856,
+          "attribute": "size",
+          "expression": "{10}"
         },
         {
-          "line": 912,
+          "line": 861,
           "attribute": "className",
-          "expression": "\"text-gray-300 hover:underline inline-flex items-center gap-0.5\""
+          "expression": "\"flex flex-col gap-2 w-full mt-1\""
         },
         {
-          "line": 924,
+          "line": 866,
           "attribute": "className",
-          "expression": "\"flex flex-col gap-3.5\""
+          "expression": "\"w-full py-2.5 px-4 rounded-xl bg-[#5865F2] hover:bg-[#4752C4] text-white text-xs font-bold transition-all shadow-[0_4px_16px_rgba(88,101,242,0.35)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50\""
         },
         {
-          "line": 926,
-          "attribute": "className",
-          "expression": "\"flex items-center justify-between p-2.5 rounded-2xl bg-white/[0.03] border border-white/[0.08]\""
+          "line": 870,
+          "attribute": "size",
+          "expression": "{15}"
         },
         {
-          "line": 927,
+          "line": 870,
           "attribute": "className",
-          "expression": "\"flex items-center gap-3\""
+          "expression": "\"animate-spin\""
         },
         {
-          "line": 934,
+          "line": 875,
+          "attribute": "size",
+          "expression": "{15}"
+        },
+        {
+          "line": 888,
           "attribute": "className",
-          "expression": "\"w-9 h-9 rounded-full object-cover border border-white/20 shrink-0\""
+          "expression": "\"w-full py-1.5 text-[11px] text-gray-400 hover:text-white transition-colors cursor-pointer text-center\""
+        },
+        {
+          "line": 894,
+          "attribute": "className",
+          "expression": "\"text-[10px] text-gray-500 leading-relaxed text-center pt-2 border-t border-white/[0.06] w-full\""
+        },
+        {
+          "line": 902,
+          "attribute": "className",
+          "expression": "\"flex flex-col items-center justify-center text-center p-6 rounded-2xl bg-white/[0.02] border border-white/[0.06] gap-4 my-auto\""
+        },
+        {
+          "line": 903,
+          "attribute": "className",
+          "expression": "\"w-14 h-14 rounded-2xl bg-[#5865F2]/10 border border-[#5865F2]/20 flex items-center justify-center text-[#5865F2] shadow-[0_0_20px_rgba(88,101,242,0.15)]\""
+        },
+        {
+          "line": 904,
+          "attribute": "size",
+          "expression": "{28}"
+        },
+        {
+          "line": 907,
+          "attribute": "className",
+          "expression": "\"flex flex-col gap-1.5 max-w-sm\""
+        },
+        {
+          "line": 908,
+          "attribute": "className",
+          "expression": "\"text-sm font-bold text-white\""
+        },
+        {
+          "line": 911,
+          "attribute": "className",
+          "expression": "\"text-xs text-gray-400 leading-relaxed\""
+        },
+        {
+          "line": 921,
+          "attribute": "className",
+          "expression": "\"w-full py-2.5 px-4 rounded-xl bg-[#5865F2] hover:bg-[#4752C4] text-white text-xs font-bold transition-all shadow-[0_4px_16px_rgba(88,101,242,0.35)] flex items-center justify-center gap-2 cursor-pointer hover:scale-102 active:scale-98 disabled:opacity-50\""
+        },
+        {
+          "line": 925,
+          "attribute": "size",
+          "expression": "{15}"
+        },
+        {
+          "line": 925,
+          "attribute": "className",
+          "expression": "\"animate-spin\""
+        },
+        {
+          "line": 931,
+          "attribute": "size",
+          "expression": "{13}"
         },
         {
           "line": 936,
           "attribute": "className",
-          "expression": "\"flex flex-col min-w-0\""
-        },
-        {
-          "line": 937,
-          "attribute": "className",
-          "expression": "\"text-xs font-bold text-white flex items-center gap-1.5 truncate\""
+          "expression": "\"text-xs text-red-400\""
         },
         {
           "line": 942,
           "attribute": "className",
-          "expression": "\"text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30 flex items-center gap-1 shrink-0\""
+          "expression": "\"text-[10px] text-gray-400/80 leading-relaxed border-t border-white/[0.06] pt-3 mt-1 w-full text-left flex flex-col gap-1.5\""
         },
         {
-          "line": 943,
-          "attribute": "size",
-          "expression": "{10}"
-        },
-        {
-          "line": 946,
+          "line": 950,
           "attribute": "className",
-          "expression": "\"text-[10px] text-gray-400\""
-        },
-        {
-          "line": 952,
-          "attribute": "className",
-          "expression": "\"text-[11px] font-bold px-2.5 py-1 rounded-xl bg-white/[0.06] text-gray-300 shrink-0\""
+          "expression": "\"text-blue-400 hover:underline inline-flex items-center gap-0.5\""
         },
         {
           "line": 959,
           "attribute": "className",
+          "expression": "\"text-blue-400 hover:underline inline-flex items-center gap-0.5\""
+        },
+        {
+          "line": 968,
+          "attribute": "className",
+          "expression": "\"text-blue-400 hover:underline inline-flex items-center gap-0.5\""
+        },
+        {
+          "line": 984,
+          "attribute": "className",
+          "expression": "\"text-emerald-400 hover:underline inline-flex items-center gap-0.5\""
+        },
+        {
+          "line": 998,
+          "attribute": "className",
+          "expression": "\"text-purple-400 hover:underline inline-flex items-center gap-0.5\""
+        },
+        {
+          "line": 1007,
+          "attribute": "className",
+          "expression": "\"text-purple-400 hover:underline inline-flex items-center gap-0.5\""
+        },
+        {
+          "line": 1029,
+          "attribute": "className",
+          "expression": "\"text-gray-300 hover:underline inline-flex items-center gap-0.5\""
+        },
+        {
+          "line": 1041,
+          "attribute": "className",
           "expression": "\"flex flex-col gap-3.5\""
         },
         {
-          "line": 963,
+          "line": 1043,
           "attribute": "className",
-          "expression": "\"p-3 rounded-2xl bg-[#1e1f22]/70 border border-white/[0.08] hover:border-white/[0.14] transition-all flex items-center justify-between gap-4 cursor-pointer select-none\""
+          "expression": "\"flex items-center justify-between p-2.5 rounded-2xl bg-white/[0.03] border border-white/[0.08]\""
         },
         {
-          "line": 965,
+          "line": 1044,
           "attribute": "className",
-          "expression": "\"flex flex-col\""
-        },
-        {
-          "line": 966,
-          "attribute": "className",
-          "expression": "\"text-xs font-bold text-white flex items-center gap-1.5\""
-        },
-        {
-          "line": 969,
-          "attribute": "className",
-          "expression": "\"text-[11px] text-gray-400 mt-0.5\""
-        },
-        {
-          "line": 980,
-          "attribute": "className",
-          "expression": "\"flex flex-col gap-2\""
-        },
-        {
-          "line": 981,
-          "attribute": "className",
-          "expression": "\"flex items-center justify-between\""
-        },
-        {
-          "line": 982,
-          "attribute": "className",
-          "expression": "\"text-[10px] font-bold text-gray-400 uppercase tracking-wider\""
-        },
-        {
-          "line": 985,
-          "attribute": "className",
-          "expression": "\"flex items-center gap-2.5\""
-        },
-        {
-          "line": 989,
-          "attribute": "className",
-          "expression": "\"text-[10px] text-[#5865F2] hover:text-[#7983f5] font-semibold flex items-center gap-1 transition-colors\""
-        },
-        {
-          "line": 991,
-          "attribute": "size",
-          "expression": "{10}"
-        },
-        {
-          "line": 994,
-          "attribute": "className",
-          "expression": "\"text-[10px] text-gray-400\""
-        },
-        {
-          "line": 1000,
-          "attribute": "className",
-          "expression": "\"flex flex-col gap-2\""
-        },
-        {
-          "line": 1004,
-          "attribute": "className",
-          "expression": "{`p-2.5 rounded-2xl border transition-all flex flex-col gap-2 cursor-pointer select-none ${\n                          featuredGames.includes('dota2')\n                            ? 'bg-white/[0.04] border-white/20 shadow-sm'\n                            : 'bg-white/[0.01] border-white/[0.05] opacity-60 hover:opacity-90 hover:border-white/10'\n                        }`}"
-        },
-        {
-          "line": 1010,
-          "attribute": "className",
-          "expression": "\"flex items-center justify-between gap-3\""
-        },
-        {
-          "line": 1011,
-          "attribute": "className",
-          "expression": "\"flex items-center gap-3 min-w-0\""
-        },
-        {
-          "line": 1012,
-          "attribute": "size",
-          "expression": "{32}"
-        },
-        {
-          "line": 1013,
-          "attribute": "className",
-          "expression": "\"flex flex-col min-w-0\""
-        },
-        {
-          "line": 1014,
-          "attribute": "className",
-          "expression": "\"text-xs font-bold text-white leading-tight\""
-        },
-        {
-          "line": 1017,
-          "attribute": "className",
-          "expression": "\"flex items-center gap-1.5 mt-0.5 flex-wrap\""
-        },
-        {
-          "line": 1021,
-          "attribute": "size",
-          "expression": "\"sm\""
-        },
-        {
-          "line": 1023,
-          "attribute": "className",
-          "expression": "\"text-[11px] font-bold text-white\""
-        },
-        {
-          "line": 1027,
-          "attribute": "className",
-          "expression": "\"text-[10px] text-emerald-400 font-semibold\""
-        },
-        {
-          "line": 1032,
-          "attribute": "className",
-          "expression": "\"text-[10px] text-gray-400\""
-        },
-        {
-          "line": 1049,
-          "attribute": "className",
-          "expression": "\"pt-2 border-t border-white/[0.08] flex items-center gap-3 flex-wrap\""
+          "expression": "\"flex items-center gap-3\""
         },
         {
           "line": 1051,
           "attribute": "className",
-          "expression": "\"flex items-center gap-1.5\""
+          "expression": "\"w-9 h-9 rounded-full object-cover border border-white/20 shrink-0\""
         },
         {
-          "line": 1052,
+          "line": 1053,
           "attribute": "className",
-          "expression": "\"text-[10px] text-gray-400\""
+          "expression": "\"flex flex-col min-w-0\""
+        },
+        {
+          "line": 1054,
+          "attribute": "className",
+          "expression": "\"text-xs font-bold text-white flex items-center gap-1.5 truncate\""
+        },
+        {
+          "line": 1059,
+          "attribute": "className",
+          "expression": "\"text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30 flex items-center gap-1 shrink-0\""
+        },
+        {
+          "line": 1060,
+          "attribute": "size",
+          "expression": "{10}"
         },
         {
           "line": 1063,
           "attribute": "className",
-          "expression": "\"w-24 px-2 py-0.5 rounded-lg bg-black/50 border border-white/10 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-[#5865F2]\""
-        },
-        {
-          "line": 1066,
-          "attribute": "className",
-          "expression": "\"flex items-center gap-1.5\""
-        },
-        {
-          "line": 1067,
-          "attribute": "className",
           "expression": "\"text-[10px] text-gray-400\""
         },
         {
-          "line": 1079,
+          "line": 1069,
           "attribute": "className",
-          "expression": "\"w-20 px-2 py-0.5 rounded-lg bg-black/50 border border-white/10 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-[#5865F2]\""
+          "expression": "\"text-[11px] font-bold px-2.5 py-1 rounded-xl bg-white/[0.06] text-gray-300 shrink-0\""
         },
         {
-          "line": 1081,
+          "line": 1076,
           "attribute": "className",
-          "expression": "\"text-[10px] text-gray-400\""
+          "expression": "\"flex flex-col gap-3.5\""
         },
         {
-          "line": 1090,
+          "line": 1080,
           "attribute": "className",
-          "expression": "{`p-2.5 rounded-2xl border transition-all flex flex-col gap-2 cursor-pointer select-none ${\n                          featuredGames.includes('cs2')\n                            ? 'bg-white/[0.04] border-white/20 shadow-sm'\n                            : 'bg-white/[0.01] border-white/[0.05] opacity-60 hover:opacity-90 hover:border-white/10'\n                        }`}"
+          "expression": "\"p-3 rounded-2xl bg-[#1e1f22]/70 border border-white/[0.08] hover:border-white/[0.14] transition-all flex items-center justify-between gap-4 cursor-pointer select-none\""
         },
         {
-          "line": 1096,
+          "line": 1082,
           "attribute": "className",
-          "expression": "\"flex items-center justify-between gap-3\""
+          "expression": "\"flex flex-col\""
+        },
+        {
+          "line": 1083,
+          "attribute": "className",
+          "expression": "\"text-xs font-bold text-white flex items-center gap-1.5\""
+        },
+        {
+          "line": 1086,
+          "attribute": "className",
+          "expression": "\"text-[11px] text-gray-400 mt-0.5\""
         },
         {
           "line": 1097,
           "attribute": "className",
-          "expression": "\"flex items-center gap-3 min-w-0\""
+          "expression": "\"flex flex-col gap-2\""
         },
         {
           "line": 1098,
-          "attribute": "size",
-          "expression": "{32}"
+          "attribute": "className",
+          "expression": "\"flex items-center justify-between\""
         },
         {
           "line": 1099,
           "attribute": "className",
-          "expression": "\"flex flex-col min-w-0\""
+          "expression": "\"text-[10px] font-bold text-gray-400 uppercase tracking-wider\""
         },
         {
-          "line": 1100,
+          "line": 1102,
           "attribute": "className",
-          "expression": "\"text-xs font-bold text-white leading-tight\""
+          "expression": "\"flex items-center gap-2.5\""
         },
         {
-          "line": 1103,
+          "line": 1106,
           "attribute": "className",
-          "expression": "\"flex items-center gap-1.5 mt-0.5 flex-wrap\""
+          "expression": "\"text-[10px] text-[#5865F2] hover:text-[#7983f5] font-semibold flex items-center gap-1 transition-colors\""
         },
         {
-          "line": 1107,
-          "attribute": "className",
-          "expression": "\"text-[10px] font-bold text-gray-300\""
+          "line": 1108,
+          "attribute": "size",
+          "expression": "{10}"
         },
         {
-          "line": 1112,
+          "line": 1111,
           "attribute": "className",
-          "expression": "\"text-[10px] text-emerald-400 font-semibold\""
+          "expression": "\"text-[10px] text-gray-400\""
         },
         {
           "line": 1117,
           "attribute": "className",
-          "expression": "\"text-[10px] text-gray-400\""
+          "expression": "\"flex flex-col gap-2\""
+        },
+        {
+          "line": 1121,
+          "attribute": "className",
+          "expression": "{`p-2.5 rounded-2xl border transition-all flex flex-col gap-2 cursor-pointer select-none ${\n                          featuredGames.includes('dota2')\n                            ? 'bg-white/[0.04] border-white/20 shadow-sm'\n                            : 'bg-white/[0.01] border-white/[0.05] opacity-60 hover:opacity-90 hover:border-white/10'\n                        }`}"
+        },
+        {
+          "line": 1127,
+          "attribute": "className",
+          "expression": "\"flex items-center justify-between gap-3\""
+        },
+        {
+          "line": 1128,
+          "attribute": "className",
+          "expression": "\"flex items-center gap-3 min-w-0\""
+        },
+        {
+          "line": 1129,
+          "attribute": "size",
+          "expression": "{32}"
+        },
+        {
+          "line": 1130,
+          "attribute": "className",
+          "expression": "\"flex flex-col min-w-0\""
+        },
+        {
+          "line": 1131,
+          "attribute": "className",
+          "expression": "\"text-xs font-bold text-white leading-tight\""
         },
         {
           "line": 1134,
           "attribute": "className",
-          "expression": "\"pt-2 border-t border-white/[0.08] flex items-center gap-3 flex-wrap\""
+          "expression": "\"flex items-center gap-1.5 mt-0.5 flex-wrap\""
         },
         {
-          "line": 1136,
-          "attribute": "className",
-          "expression": "\"flex items-center gap-1.5\""
-        },
-        {
-          "line": 1137,
-          "attribute": "className",
-          "expression": "\"text-[10px] text-gray-400\""
-        },
-        {
-          "line": 1148,
-          "attribute": "className",
-          "expression": "\"w-24 px-2 py-0.5 rounded-lg bg-black/50 border border-white/10 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-[#5865F2]\""
-        },
-        {
-          "line": 1151,
-          "attribute": "className",
-          "expression": "\"flex items-center gap-1.5\""
-        },
-        {
-          "line": 1152,
-          "attribute": "className",
-          "expression": "\"text-[10px] text-gray-400\""
-        },
-        {
-          "line": 1164,
-          "attribute": "className",
-          "expression": "\"w-20 px-2 py-0.5 rounded-lg bg-black/50 border border-white/10 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-[#5865F2]\""
-        },
-        {
-          "line": 1166,
-          "attribute": "className",
-          "expression": "\"text-[10px] text-gray-400\""
-        },
-        {
-          "line": 1175,
-          "attribute": "className",
-          "expression": "\"p-3 rounded-2xl bg-black/40 border border-white/[0.08] flex flex-col gap-2\""
-        },
-        {
-          "line": 1176,
-          "attribute": "className",
-          "expression": "\"flex items-center justify-between\""
-        },
-        {
-          "line": 1177,
-          "attribute": "className",
-          "expression": "\"text-[10px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5\""
-        },
-        {
-          "line": 1178,
-          "attribute": "size",
-          "expression": "{12}"
-        },
-        {
-          "line": 1178,
-          "attribute": "className",
-          "expression": "\"text-[#5865F2]\""
-        },
-        {
-          "line": 1181,
-          "attribute": "className",
-          "expression": "\"text-[10px] text-gray-400\""
-        },
-        {
-          "line": 1191,
-          "attribute": "className",
-          "expression": "\"py-4 px-3 rounded-xl bg-white/[0.02] border border-dashed border-white/10 text-center flex flex-col items-center justify-center gap-1\""
-        },
-        {
-          "line": 1192,
-          "attribute": "size",
-          "expression": "{18}"
-        },
-        {
-          "line": 1192,
-          "attribute": "className",
-          "expression": "\"text-gray-500\""
-        },
-        {
-          "line": 1193,
-          "attribute": "className",
-          "expression": "\"text-xs font-semibold text-gray-400\""
-        },
-        {
-          "line": 1196,
-          "attribute": "className",
-          "expression": "\"text-[10px] text-gray-400 max-w-xs leading-relaxed\""
-        },
-        {
-          "line": 1202,
-          "attribute": "className",
-          "expression": "\"flex flex-col gap-1.5\""
-        },
-        {
-          "line": 1204,
-          "attribute": "className",
-          "expression": "\"flex items-center justify-between gap-2 p-2 rounded-xl bg-[#1b2838]/60 border border-[#2a475e]/40\""
-        },
-        {
-          "line": 1205,
-          "attribute": "className",
-          "expression": "\"flex items-center gap-2.5\""
-        },
-        {
-          "line": 1206,
+          "line": 1138,
           "attribute": "size",
           "expression": "\"sm\""
         },
         {
-          "line": 1207,
-          "attribute": "className",
-          "expression": "\"flex flex-col\""
-        },
-        {
-          "line": 1208,
-          "attribute": "className",
-          "expression": "\"text-xs font-bold text-white leading-tight\""
-        },
-        {
-          "line": 1211,
-          "attribute": "className",
-          "expression": "\"text-[10px] text-gray-400\""
-        },
-        {
-          "line": 1220,
-          "attribute": "className",
-          "expression": "\"py-2 px-3 rounded-xl bg-white/[0.02] border border-dashed border-white/10 text-center text-[10px] text-gray-400\""
-        },
-        {
-          "line": 1230,
-          "attribute": "className",
-          "expression": "\"flex items-center justify-between p-2 rounded-xl bg-gradient-to-r from-[#14151a] to-[#0c0d10] border border-white/[0.08]\""
-        },
-        {
-          "line": 1232,
-          "attribute": "className",
-          "expression": "\"flex items-center gap-2.5\""
-        },
-        {
-          "line": 1233,
-          "attribute": "size",
-          "expression": "{30}"
-        },
-        {
-          "line": 1234,
-          "attribute": "className",
-          "expression": "\"flex flex-col\""
-        },
-        {
-          "line": 1235,
-          "attribute": "className",
-          "expression": "\"text-xs font-bold text-white leading-tight\""
-        },
-        {
-          "line": 1238,
-          "attribute": "className",
-          "expression": "\"flex items-center gap-1.5 mt-0.5\""
-        },
-        {
-          "line": 1242,
-          "attribute": "size",
-          "expression": "\"sm\""
-        },
-        {
-          "line": 1244,
+          "line": 1140,
           "attribute": "className",
           "expression": "\"text-[11px] font-bold text-white\""
         },
         {
-          "line": 1250,
+          "line": 1144,
           "attribute": "className",
-          "expression": "\"text-right\""
+          "expression": "\"text-[10px] text-emerald-400 font-semibold\""
         },
         {
-          "line": 1252,
+          "line": 1149,
           "attribute": "className",
-          "expression": "\"text-[10px] font-bold text-emerald-400\""
+          "expression": "\"text-[10px] text-gray-400\""
         },
         {
-          "line": 1257,
+          "line": 1166,
           "attribute": "className",
-          "expression": "\"text-[9px] text-gray-400\""
+          "expression": "\"pt-2 border-t border-white/[0.08] flex items-center gap-3 flex-wrap\""
         },
         {
-          "line": 1270,
+          "line": 1168,
           "attribute": "className",
-          "expression": "\"flex items-center justify-between p-2 rounded-xl bg-gradient-to-r from-[#14151a] to-[#0c0d10] border border-white/[0.08]\""
+          "expression": "\"flex items-center gap-1.5\""
         },
         {
-          "line": 1272,
+          "line": 1169,
           "attribute": "className",
-          "expression": "\"flex items-center gap-2.5\""
+          "expression": "\"text-[10px] text-gray-400\""
         },
         {
-          "line": 1273,
+          "line": 1180,
+          "attribute": "className",
+          "expression": "\"w-24 px-2 py-0.5 rounded-lg bg-black/50 border border-white/10 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-[#5865F2]\""
+        },
+        {
+          "line": 1183,
+          "attribute": "className",
+          "expression": "\"flex items-center gap-1.5\""
+        },
+        {
+          "line": 1184,
+          "attribute": "className",
+          "expression": "\"text-[10px] text-gray-400\""
+        },
+        {
+          "line": 1196,
+          "attribute": "className",
+          "expression": "\"w-20 px-2 py-0.5 rounded-lg bg-black/50 border border-white/10 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-[#5865F2]\""
+        },
+        {
+          "line": 1198,
+          "attribute": "className",
+          "expression": "\"text-[10px] text-gray-400\""
+        },
+        {
+          "line": 1207,
+          "attribute": "className",
+          "expression": "{`p-2.5 rounded-2xl border transition-all flex flex-col gap-2 cursor-pointer select-none ${\n                          featuredGames.includes('cs2')\n                            ? 'bg-white/[0.04] border-white/20 shadow-sm'\n                            : 'bg-white/[0.01] border-white/[0.05] opacity-60 hover:opacity-90 hover:border-white/10'\n                        }`}"
+        },
+        {
+          "line": 1213,
+          "attribute": "className",
+          "expression": "\"flex items-center justify-between gap-3\""
+        },
+        {
+          "line": 1214,
+          "attribute": "className",
+          "expression": "\"flex items-center gap-3 min-w-0\""
+        },
+        {
+          "line": 1215,
           "attribute": "size",
-          "expression": "{30}"
+          "expression": "{32}"
         },
         {
-          "line": 1274,
+          "line": 1216,
           "attribute": "className",
-          "expression": "\"flex flex-col\""
+          "expression": "\"flex flex-col min-w-0\""
         },
         {
-          "line": 1275,
+          "line": 1217,
           "attribute": "className",
           "expression": "\"text-xs font-bold text-white leading-tight\""
         },
         {
-          "line": 1279,
+          "line": 1220,
           "attribute": "className",
-          "expression": "\"mt-0.5\""
+          "expression": "\"flex items-center gap-1.5 mt-0.5 flex-wrap\""
+        },
+        {
+          "line": 1224,
+          "attribute": "className",
+          "expression": "\"text-[10px] font-bold text-gray-300\""
+        },
+        {
+          "line": 1229,
+          "attribute": "className",
+          "expression": "\"text-[10px] text-emerald-400 font-semibold\""
+        },
+        {
+          "line": 1234,
+          "attribute": "className",
+          "expression": "\"text-[10px] text-gray-400\""
+        },
+        {
+          "line": 1251,
+          "attribute": "className",
+          "expression": "\"pt-2 border-t border-white/[0.08] flex items-center gap-3 flex-wrap\""
+        },
+        {
+          "line": 1253,
+          "attribute": "className",
+          "expression": "\"flex items-center gap-1.5\""
+        },
+        {
+          "line": 1254,
+          "attribute": "className",
+          "expression": "\"text-[10px] text-gray-400\""
+        },
+        {
+          "line": 1265,
+          "attribute": "className",
+          "expression": "\"w-24 px-2 py-0.5 rounded-lg bg-black/50 border border-white/10 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-[#5865F2]\""
+        },
+        {
+          "line": 1268,
+          "attribute": "className",
+          "expression": "\"flex items-center gap-1.5\""
+        },
+        {
+          "line": 1269,
+          "attribute": "className",
+          "expression": "\"text-[10px] text-gray-400\""
+        },
+        {
+          "line": 1281,
+          "attribute": "className",
+          "expression": "\"w-20 px-2 py-0.5 rounded-lg bg-black/50 border border-white/10 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-[#5865F2]\""
         },
         {
           "line": 1283,
           "attribute": "className",
-          "expression": "\"text-[10px] text-gray-400 font-medium\""
+          "expression": "\"text-[10px] text-gray-400\""
         },
         {
-          "line": 1289,
+          "line": 1292,
           "attribute": "className",
-          "expression": "\"text-right\""
+          "expression": "\"p-3 rounded-2xl bg-black/40 border border-white/[0.08] flex flex-col gap-2\""
         },
         {
-          "line": 1291,
+          "line": 1293,
           "attribute": "className",
-          "expression": "\"text-[10px] font-bold text-emerald-400\""
+          "expression": "\"flex items-center justify-between\""
+        },
+        {
+          "line": 1294,
+          "attribute": "className",
+          "expression": "\"text-[10px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5\""
+        },
+        {
+          "line": 1295,
+          "attribute": "size",
+          "expression": "{12}"
         },
         {
           "line": 1295,
           "attribute": "className",
-          "expression": "\"text-[10px] px-1.5 py-0.2 rounded bg-white/5 text-gray-400 font-semibold\""
+          "expression": "\"text-[#5865F2]\""
         },
         {
-          "line": 1315,
+          "line": 1298,
           "attribute": "className",
-          "expression": "\"flex flex-col gap-3.5\""
+          "expression": "\"text-[10px] text-gray-400\""
+        },
+        {
+          "line": 1308,
+          "attribute": "className",
+          "expression": "\"py-4 px-3 rounded-xl bg-white/[0.02] border border-dashed border-white/10 text-center flex flex-col items-center justify-center gap-1\""
+        },
+        {
+          "line": 1309,
+          "attribute": "size",
+          "expression": "{18}"
+        },
+        {
+          "line": 1309,
+          "attribute": "className",
+          "expression": "\"text-gray-500\""
+        },
+        {
+          "line": 1310,
+          "attribute": "className",
+          "expression": "\"text-xs font-semibold text-gray-400\""
+        },
+        {
+          "line": 1313,
+          "attribute": "className",
+          "expression": "\"text-[10px] text-gray-400 max-w-xs leading-relaxed\""
         },
         {
           "line": 1319,
           "attribute": "className",
-          "expression": "\"p-3.5 rounded-2xl bg-[#1e1f22]/80 border border-white/[0.08] hover:border-white/[0.14] transition-all flex items-center justify-between gap-4 cursor-pointer select-none\""
+          "expression": "\"flex flex-col gap-1.5\""
         },
         {
           "line": 1321,
           "attribute": "className",
-          "expression": "\"flex flex-col\""
+          "expression": "\"flex items-center justify-between gap-2 p-2 rounded-xl bg-[#1b2838]/60 border border-[#2a475e]/40\""
         },
         {
           "line": 1322,
           "attribute": "className",
-          "expression": "\"text-xs font-bold text-white flex items-center gap-1.5\""
+          "expression": "\"flex items-center gap-2.5\""
+        },
+        {
+          "line": 1323,
+          "attribute": "size",
+          "expression": "\"sm\""
+        },
+        {
+          "line": 1324,
+          "attribute": "className",
+          "expression": "\"flex flex-col\""
         },
         {
           "line": 1325,
           "attribute": "className",
-          "expression": "\"text-[11px] text-gray-400 mt-0.5\""
+          "expression": "\"text-xs font-bold text-white leading-tight\""
+        },
+        {
+          "line": 1328,
+          "attribute": "className",
+          "expression": "\"text-[10px] text-gray-400\""
         },
         {
           "line": 1337,
           "attribute": "className",
-          "expression": "\"flex flex-col gap-3 pt-1\""
+          "expression": "\"py-2 px-3 rounded-xl bg-white/[0.02] border border-dashed border-white/10 text-center text-[10px] text-gray-400\""
         },
         {
-          "line": 1338,
+          "line": 1347,
           "attribute": "className",
-          "expression": "\"text-[10px] font-bold text-gray-400 uppercase tracking-wider px-1\""
-        },
-        {
-          "line": 1343,
-          "attribute": "className",
-          "expression": "\"p-3.5 rounded-2xl bg-[#1e1f22]/60 border border-white/[0.08] flex flex-col gap-3\""
-        },
-        {
-          "line": 1346,
-          "attribute": "className",
-          "expression": "\"flex items-center justify-between gap-4 cursor-pointer select-none\""
-        },
-        {
-          "line": 1348,
-          "attribute": "className",
-          "expression": "\"flex flex-col\""
+          "expression": "\"flex items-center justify-between p-2 rounded-xl bg-gradient-to-r from-[#14151a] to-[#0c0d10] border border-white/[0.08]\""
         },
         {
           "line": 1349,
           "attribute": "className",
-          "expression": "\"text-xs font-bold text-white flex items-center gap-1.5\""
+          "expression": "\"flex items-center gap-2.5\""
+        },
+        {
+          "line": 1350,
+          "attribute": "size",
+          "expression": "{30}"
+        },
+        {
+          "line": 1351,
+          "attribute": "className",
+          "expression": "\"flex flex-col\""
         },
         {
           "line": 1352,
           "attribute": "className",
-          "expression": "\"text-[11px] text-gray-400 mt-0.5\""
+          "expression": "\"text-xs font-bold text-white leading-tight\""
         },
         {
-          "line": 1363,
+          "line": 1355,
           "attribute": "className",
-          "expression": "\"flex flex-col gap-2 pt-2 border-t border-white/[0.06]\""
+          "expression": "\"flex items-center gap-1.5 mt-0.5\""
         },
         {
-          "line": 1364,
-          "attribute": "className",
-          "expression": "\"text-[11px] font-semibold text-gray-300\""
+          "line": 1359,
+          "attribute": "size",
+          "expression": "\"sm\""
         },
         {
-          "line": 1370,
+          "line": 1361,
           "attribute": "className",
-          "expression": "\"w-full bg-[#141417] border border-white/[0.12] rounded-xl px-3 py-2 text-xs text-white outline-none cursor-pointer focus:border-[#5865F2] transition-colors\""
+          "expression": "\"text-[11px] font-bold text-white\""
+        },
+        {
+          "line": 1367,
+          "attribute": "className",
+          "expression": "\"text-right\""
+        },
+        {
+          "line": 1369,
+          "attribute": "className",
+          "expression": "\"text-[10px] font-bold text-emerald-400\""
+        },
+        {
+          "line": 1374,
+          "attribute": "className",
+          "expression": "\"text-[9px] text-gray-400\""
+        },
+        {
+          "line": 1387,
+          "attribute": "className",
+          "expression": "\"flex items-center justify-between p-2 rounded-xl bg-gradient-to-r from-[#14151a] to-[#0c0d10] border border-white/[0.08]\""
         },
         {
           "line": 1389,
           "attribute": "className",
-          "expression": "\"mt-1 p-2.5 rounded-xl bg-black/40 border border-white/[0.06] flex flex-col gap-1.5 text-left\""
+          "expression": "\"flex items-center gap-2.5\""
         },
         {
           "line": 1390,
-          "attribute": "className",
-          "expression": "\"flex items-center justify-between\""
+          "attribute": "size",
+          "expression": "{30}"
         },
         {
           "line": 1391,
           "attribute": "className",
-          "expression": "\"text-xs font-bold text-indigo-300 flex items-center gap-1.5 truncate\""
+          "expression": "\"flex flex-col\""
         },
         {
           "line": 1392,
-          "attribute": "size",
-          "expression": "{13}"
-        },
-        {
-          "line": 1395,
           "attribute": "className",
-          "expression": "\"flex items-center gap-2 text-[10px] text-gray-400\""
+          "expression": "\"text-xs font-bold text-white leading-tight\""
         },
         {
           "line": 1396,
           "attribute": "className",
-          "expression": "\"text-amber-300 flex items-center gap-0.5 font-bold\""
+          "expression": "\"mt-0.5\""
         },
         {
-          "line": 1398,
-          "attribute": "size",
-          "expression": "{10}"
-        },
-        {
-          "line": 1399,
+          "line": 1400,
           "attribute": "className",
-          "expression": "\"fill-amber-400 text-amber-400\""
+          "expression": "\"text-[10px] text-gray-400 font-medium\""
         },
         {
-          "line": 1403,
+          "line": 1406,
           "attribute": "className",
-          "expression": "\"flex items-center gap-0.5\""
+          "expression": "\"text-right\""
         },
         {
-          "line": 1404,
-          "attribute": "size",
-          "expression": "{10}"
-        },
-        {
-          "line": 1410,
+          "line": 1408,
           "attribute": "className",
-          "expression": "\"text-[10px] text-gray-400 line-clamp-1\""
+          "expression": "\"text-[10px] font-bold text-emerald-400\""
         },
         {
-          "line": 1414,
+          "line": 1412,
           "attribute": "className",
-          "expression": "\"flex items-center gap-1.5 text-[9px] text-gray-400\""
-        },
-        {
-          "line": 1415,
-          "attribute": "className",
-          "expression": "\"w-1.5 h-1.5 rounded-full bg-blue-400\""
-        },
-        {
-          "line": 1426,
-          "attribute": "className",
-          "expression": "\"grid grid-cols-1 sm:grid-cols-2 gap-2\""
-        },
-        {
-          "line": 1430,
-          "attribute": "className",
-          "expression": "\"p-3 rounded-xl bg-[#1e1f22]/60 border border-white/[0.08] hover:border-white/[0.14] transition-all flex items-center justify-between gap-2 cursor-pointer select-none\""
+          "expression": "\"text-[10px] px-1.5 py-0.2 rounded bg-white/5 text-gray-400 font-semibold\""
         },
         {
           "line": 1432,
           "attribute": "className",
-          "expression": "\"flex flex-col\""
-        },
-        {
-          "line": 1433,
-          "attribute": "className",
-          "expression": "\"text-xs font-medium text-gray-200\""
+          "expression": "\"flex flex-col gap-3.5\""
         },
         {
           "line": 1436,
           "attribute": "className",
-          "expression": "\"text-[10px] text-gray-400\""
+          "expression": "\"p-3.5 rounded-2xl bg-[#1e1f22]/80 border border-white/[0.08] hover:border-white/[0.14] transition-all flex items-center justify-between gap-4 cursor-pointer select-none\""
         },
         {
-          "line": 1444,
-          "attribute": "className",
-          "expression": "\"p-3 rounded-xl bg-[#1e1f22]/60 border border-white/[0.08] hover:border-white/[0.14] transition-all flex items-center justify-between gap-2 cursor-pointer select-none\""
-        },
-        {
-          "line": 1446,
+          "line": 1438,
           "attribute": "className",
           "expression": "\"flex flex-col\""
         },
         {
-          "line": 1447,
+          "line": 1439,
           "attribute": "className",
-          "expression": "\"text-xs font-medium text-gray-200\""
+          "expression": "\"text-xs font-bold text-white flex items-center gap-1.5\""
         },
         {
-          "line": 1450,
+          "line": 1442,
           "attribute": "className",
-          "expression": "\"text-[10px] text-gray-400\""
+          "expression": "\"text-[11px] text-gray-400 mt-0.5\""
         },
         {
-          "line": 1461,
+          "line": 1454,
           "attribute": "className",
-          "expression": "\"p-3 rounded-xl bg-[#1e1f22]/60 border border-white/[0.08] hover:border-white/[0.14] transition-all flex items-center justify-between gap-2 cursor-pointer select-none\""
+          "expression": "\"flex flex-col gap-3 pt-1\""
+        },
+        {
+          "line": 1455,
+          "attribute": "className",
+          "expression": "\"text-[10px] font-bold text-gray-400 uppercase tracking-wider px-1\""
+        },
+        {
+          "line": 1460,
+          "attribute": "className",
+          "expression": "\"p-3.5 rounded-2xl bg-[#1e1f22]/60 border border-white/[0.08] flex flex-col gap-3\""
         },
         {
           "line": 1463,
           "attribute": "className",
+          "expression": "\"flex items-center justify-between gap-4 cursor-pointer select-none\""
+        },
+        {
+          "line": 1465,
+          "attribute": "className",
           "expression": "\"flex flex-col\""
         },
         {
-          "line": 1464,
+          "line": 1466,
           "attribute": "className",
-          "expression": "\"text-xs font-medium text-gray-200\""
+          "expression": "\"text-xs font-bold text-white flex items-center gap-1.5\""
         },
         {
-          "line": 1467,
+          "line": 1469,
           "attribute": "className",
-          "expression": "\"text-[10px] text-gray-400\""
-        },
-        {
-          "line": 1478,
-          "attribute": "className",
-          "expression": "\"p-3 rounded-xl bg-[#1e1f22]/60 border border-white/[0.08] hover:border-white/[0.14] transition-all flex items-center justify-between gap-2 cursor-pointer select-none\""
+          "expression": "\"text-[11px] text-gray-400 mt-0.5\""
         },
         {
           "line": 1480,
           "attribute": "className",
-          "expression": "\"flex flex-col\""
+          "expression": "\"flex flex-col gap-2 pt-2 border-t border-white/[0.06]\""
         },
         {
           "line": 1481,
           "attribute": "className",
-          "expression": "\"text-xs font-medium text-gray-200\""
+          "expression": "\"text-[11px] font-semibold text-gray-300\""
         },
         {
-          "line": 1484,
+          "line": 1487,
           "attribute": "className",
-          "expression": "\"text-[10px] text-gray-400\""
+          "expression": "\"w-full bg-[#141417] border border-white/[0.12] rounded-xl px-3 py-2 text-xs text-white outline-none cursor-pointer focus:border-[#5865F2] transition-colors\""
         },
         {
-          "line": 1501,
+          "line": 1506,
           "attribute": "className",
-          "expression": "\"flex flex-col gap-2\""
-        },
-        {
-          "line": 1502,
-          "attribute": "className",
-          "expression": "\"text-xs font-bold text-gray-300\""
-        },
-        {
-          "line": 1503,
-          "attribute": "className",
-          "expression": "\"grid grid-cols-2 gap-2\""
+          "expression": "\"mt-1 p-2.5 rounded-xl bg-black/40 border border-white/[0.06] flex flex-col gap-1.5 text-left\""
         },
         {
           "line": 1507,
           "attribute": "className",
-          "expression": "{`py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${\n                        featuredGame === 'lol'\n                          ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/50'\n                          : 'bg-white/[0.03] text-gray-400 hover:text-white border border-white/[0.06]'\n                      }`}"
+          "expression": "\"flex items-center justify-between\""
         },
         {
-          "line": 1518,
+          "line": 1508,
           "attribute": "className",
-          "expression": "{`py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${\n                        featuredGame === 'val' || featuredGame === 'valorant'\n                          ? 'bg-rose-500/20 text-rose-300 border border-rose-500/50'\n                          : 'bg-white/[0.03] text-gray-400 hover:text-white border border-white/[0.06]'\n                      }`}"
+          "expression": "\"text-xs font-bold text-indigo-300 flex items-center gap-1.5 truncate\""
+        },
+        {
+          "line": 1509,
+          "attribute": "size",
+          "expression": "{13}"
+        },
+        {
+          "line": 1512,
+          "attribute": "className",
+          "expression": "\"flex items-center gap-2 text-[10px] text-gray-400\""
+        },
+        {
+          "line": 1513,
+          "attribute": "className",
+          "expression": "\"text-amber-300 flex items-center gap-0.5 font-bold\""
+        },
+        {
+          "line": 1515,
+          "attribute": "size",
+          "expression": "{10}"
+        },
+        {
+          "line": 1516,
+          "attribute": "className",
+          "expression": "\"fill-amber-400 text-amber-400\""
+        },
+        {
+          "line": 1520,
+          "attribute": "className",
+          "expression": "\"flex items-center gap-0.5\""
+        },
+        {
+          "line": 1521,
+          "attribute": "size",
+          "expression": "{10}"
+        },
+        {
+          "line": 1527,
+          "attribute": "className",
+          "expression": "\"text-[10px] text-gray-400 line-clamp-1\""
+        },
+        {
+          "line": 1531,
+          "attribute": "className",
+          "expression": "\"flex items-center gap-1.5 text-[9px] text-gray-400\""
         },
         {
           "line": 1532,
           "attribute": "className",
-          "expression": "\"flex flex-col gap-3.5\""
+          "expression": "\"w-1.5 h-1.5 rounded-full bg-blue-400\""
         },
         {
-          "line": 1536,
+          "line": 1543,
           "attribute": "className",
-          "expression": "\"p-3.5 rounded-2xl bg-[#1e1f22]/70 border border-white/[0.08] hover:border-white/[0.14] transition-all flex items-center justify-between gap-4 cursor-pointer select-none\""
+          "expression": "\"grid grid-cols-1 sm:grid-cols-2 gap-2\""
         },
         {
-          "line": 1538,
+          "line": 1547,
+          "attribute": "className",
+          "expression": "\"p-3 rounded-xl bg-[#1e1f22]/60 border border-white/[0.08] hover:border-white/[0.14] transition-all flex items-center justify-between gap-2 cursor-pointer select-none\""
+        },
+        {
+          "line": 1549,
           "attribute": "className",
           "expression": "\"flex flex-col\""
         },
         {
-          "line": 1539,
+          "line": 1550,
           "attribute": "className",
-          "expression": "\"text-xs font-bold text-white flex items-center gap-1.5\""
+          "expression": "\"text-xs font-medium text-gray-200\""
         },
         {
-          "line": 1542,
+          "line": 1553,
           "attribute": "className",
-          "expression": "\"text-[11px] text-gray-400 mt-0.5\""
+          "expression": "\"text-[10px] text-gray-400\""
         },
         {
-          "line": 1586,
+          "line": 1561,
           "attribute": "className",
-          "expression": "\"flex flex-col gap-3.5\""
+          "expression": "\"p-3 rounded-xl bg-[#1e1f22]/60 border border-white/[0.08] hover:border-white/[0.14] transition-all flex items-center justify-between gap-2 cursor-pointer select-none\""
         },
         {
-          "line": 1588,
+          "line": 1563,
           "attribute": "className",
-          "expression": "\"flex flex-col gap-2\""
+          "expression": "\"flex flex-col\""
         },
         {
-          "line": 1589,
+          "line": 1564,
           "attribute": "className",
-          "expression": "\"flex items-center justify-between px-1\""
+          "expression": "\"text-xs font-medium text-gray-200\""
         },
         {
-          "line": 1590,
+          "line": 1567,
           "attribute": "className",
-          "expression": "\"text-[10px] font-bold text-gray-400 uppercase tracking-wider\""
+          "expression": "\"text-[10px] text-gray-400\""
+        },
+        {
+          "line": 1578,
+          "attribute": "className",
+          "expression": "\"p-3 rounded-xl bg-[#1e1f22]/60 border border-white/[0.08] hover:border-white/[0.14] transition-all flex items-center justify-between gap-2 cursor-pointer select-none\""
+        },
+        {
+          "line": 1580,
+          "attribute": "className",
+          "expression": "\"flex flex-col\""
+        },
+        {
+          "line": 1581,
+          "attribute": "className",
+          "expression": "\"text-xs font-medium text-gray-200\""
+        },
+        {
+          "line": 1584,
+          "attribute": "className",
+          "expression": "\"text-[10px] text-gray-400\""
+        },
+        {
+          "line": 1595,
+          "attribute": "className",
+          "expression": "\"p-3 rounded-xl bg-[#1e1f22]/60 border border-white/[0.08] hover:border-white/[0.14] transition-all flex items-center justify-between gap-2 cursor-pointer select-none\""
         },
         {
           "line": 1597,
           "attribute": "className",
-          "expression": "\"inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#1DB954]/10 hover:bg-[#1DB954]/20 text-[#1DB954] text-xs font-semibold border border-[#1DB954]/30 transition-all cursor-pointer disabled:opacity-50\""
+          "expression": "\"flex flex-col\""
+        },
+        {
+          "line": 1598,
+          "attribute": "className",
+          "expression": "\"text-xs font-medium text-gray-200\""
         },
         {
           "line": 1601,
+          "attribute": "className",
+          "expression": "\"text-[10px] text-gray-400\""
+        },
+        {
+          "line": 1618,
+          "attribute": "className",
+          "expression": "\"flex flex-col gap-2\""
+        },
+        {
+          "line": 1619,
+          "attribute": "className",
+          "expression": "\"text-xs font-bold text-gray-300\""
+        },
+        {
+          "line": 1620,
+          "attribute": "className",
+          "expression": "\"grid grid-cols-2 gap-2\""
+        },
+        {
+          "line": 1624,
+          "attribute": "className",
+          "expression": "{`py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${\n                        featuredGame === 'lol'\n                          ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/50'\n                          : 'bg-white/[0.03] text-gray-400 hover:text-white border border-white/[0.06]'\n                      }`}"
+        },
+        {
+          "line": 1635,
+          "attribute": "className",
+          "expression": "{`py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${\n                        featuredGame === 'val' || featuredGame === 'valorant'\n                          ? 'bg-rose-500/20 text-rose-300 border border-rose-500/50'\n                          : 'bg-white/[0.03] text-gray-400 hover:text-white border border-white/[0.06]'\n                      }`}"
+        },
+        {
+          "line": 1649,
+          "attribute": "className",
+          "expression": "\"flex flex-col gap-3.5\""
+        },
+        {
+          "line": 1653,
+          "attribute": "className",
+          "expression": "\"p-3.5 rounded-2xl bg-[#1e1f22]/70 border border-white/[0.08] hover:border-white/[0.14] transition-all flex items-center justify-between gap-4 cursor-pointer select-none\""
+        },
+        {
+          "line": 1655,
+          "attribute": "className",
+          "expression": "\"flex flex-col\""
+        },
+        {
+          "line": 1656,
+          "attribute": "className",
+          "expression": "\"text-xs font-bold text-white flex items-center gap-1.5\""
+        },
+        {
+          "line": 1659,
+          "attribute": "className",
+          "expression": "\"text-[11px] text-gray-400 mt-0.5\""
+        },
+        {
+          "line": 1703,
+          "attribute": "className",
+          "expression": "\"flex flex-col gap-3.5\""
+        },
+        {
+          "line": 1705,
+          "attribute": "className",
+          "expression": "\"flex flex-col gap-2\""
+        },
+        {
+          "line": 1706,
+          "attribute": "className",
+          "expression": "\"flex items-center justify-between px-1\""
+        },
+        {
+          "line": 1707,
+          "attribute": "className",
+          "expression": "\"text-[10px] font-bold text-gray-400 uppercase tracking-wider\""
+        },
+        {
+          "line": 1714,
+          "attribute": "className",
+          "expression": "\"inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#1DB954]/10 hover:bg-[#1DB954]/20 text-[#1DB954] text-xs font-semibold border border-[#1DB954]/30 transition-all cursor-pointer disabled:opacity-50\""
+        },
+        {
+          "line": 1718,
           "attribute": "size",
           "expression": "{12}"
         },
         {
-          "line": 1602,
+          "line": 1719,
           "attribute": "className",
           "expression": "{isLoadingSpotifyLibrary ? 'animate-spin' : ''}"
         },
         {
-          "line": 1610,
+          "line": 1727,
           "attribute": "className",
           "expression": "\"grid grid-cols-3 gap-2\""
         },
         {
-          "line": 1614,
+          "line": 1731,
           "attribute": "className",
           "expression": "{`py-2 px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${\n                                  spotifyDisplayMode === 'tracks'\n                                    ? 'bg-[#1DB954]/20 text-[#1DB954] border border-[#1DB954]/50 shadow-[0_0_12px_rgba(29,185,84,0.15)]'\n                                    : 'bg-white/[0.03] text-gray-400 hover:text-white border border-white/[0.06]'\n                                }`}"
         },
         {
-          "line": 1620,
+          "line": 1737,
           "attribute": "size",
           "expression": "{13}"
         },
         {
-          "line": 1622,
+          "line": 1739,
           "attribute": "className",
           "expression": "\"text-[10px] px-1.5 py-0.2 bg-black/40 rounded-full font-mono font-normal\""
         },
         {
-          "line": 1630,
+          "line": 1747,
           "attribute": "className",
           "expression": "{`py-2 px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${\n                                  spotifyDisplayMode === 'playlists'\n                                    ? 'bg-[#1DB954]/20 text-[#1DB954] border border-[#1DB954]/50 shadow-[0_0_12px_rgba(29,185,84,0.15)]'\n                                    : 'bg-white/[0.03] text-gray-400 hover:text-white border border-white/[0.06]'\n                                }`}"
         },
         {
-          "line": 1636,
-          "attribute": "size",
-          "expression": "{13}"
-        },
-        {
-          "line": 1638,
-          "attribute": "className",
-          "expression": "\"text-[10px] px-1.5 py-0.2 bg-black/40 rounded-full font-mono font-normal\""
-        },
-        {
-          "line": 1646,
-          "attribute": "className",
-          "expression": "{`py-2 px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${\n                                  spotifyDisplayMode === 'none'\n                                    ? 'bg-[#1DB954]/20 text-[#1DB954] border border-[#1DB954]/50 shadow-[0_0_12px_rgba(29,185,84,0.15)]'\n                                    : 'bg-white/[0.03] text-gray-400 hover:text-white border border-white/[0.06]'\n                                }`}"
-        },
-        {
-          "line": 1652,
-          "attribute": "size",
-          "expression": "{13}"
-        },
-        {
-          "line": 1660,
-          "attribute": "className",
-          "expression": "\"flex flex-col gap-2\""
-        },
-        {
-          "line": 1662,
-          "attribute": "className",
-          "expression": "\"relative\""
-        },
-        {
-          "line": 1664,
-          "attribute": "size",
-          "expression": "{14}"
-        },
-        {
-          "line": 1665,
-          "attribute": "className",
-          "expression": "\"absolute left-3 top-1/2 -translate-y-1/2 text-gray-400\""
-        },
-        {
-          "line": 1678,
-          "attribute": "className",
-          "expression": "\"w-full pl-9 pr-8 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] focus:border-[#1DB954]/50 text-xs text-white placeholder-gray-500 focus:outline-hidden transition-all\""
-        },
-        {
-          "line": 1682,
-          "attribute": "size",
-          "expression": "{12}"
-        },
-        {
-          "line": 1683,
-          "attribute": "className",
-          "expression": "\"absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 animate-spin\""
-        },
-        {
-          "line": 1689,
-          "attribute": "className",
-          "expression": "\"absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white p-0.5 cursor-pointer\""
-        },
-        {
-          "line": 1691,
-          "attribute": "size",
-          "expression": "{12}"
-        },
-        {
-          "line": 1696,
-          "attribute": "className",
-          "expression": "\"flex items-center justify-between px-1\""
-        },
-        {
-          "line": 1697,
-          "attribute": "className",
-          "expression": "\"text-[10px] font-bold text-gray-400 uppercase tracking-wider\""
-        },
-        {
-          "line": 1704,
-          "attribute": "className",
-          "expression": "\"text-[10px] text-gray-400 hover:text-white cursor-pointer\""
-        },
-        {
-          "line": 1713,
-          "attribute": "className",
-          "expression": "\"flex flex-wrap gap-1.5 p-2 rounded-xl bg-[#1DB954]/10 border border-[#1DB954]/25\""
-        },
-        {
-          "line": 1721,
-          "attribute": "className",
-          "expression": "\"inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/60 border border-[#1DB954]/40 text-[11px] text-white shadow-xs\""
-        },
-        {
-          "line": 1723,
-          "attribute": "className",
-          "expression": "\"w-1.5 h-1.5 rounded-full bg-[#1DB954]\""
-        },
-        {
-          "line": 1724,
-          "attribute": "className",
-          "expression": "\"max-w-[130px] truncate font-semibold\""
-        },
-        {
-          "line": 1734,
-          "attribute": "className",
-          "expression": "\"text-gray-400 hover:text-red-400 ml-0.5 cursor-pointer\""
-        },
-        {
-          "line": 1736,
-          "attribute": "size",
-          "expression": "{11}"
-        },
-        {
-          "line": 1746,
-          "attribute": "className",
-          "expression": "\"flex flex-col gap-1.5 py-2\""
-        },
-        {
-          "line": 1750,
-          "attribute": "className",
-          "expression": "\"flex items-center gap-2.5 p-2 rounded-xl bg-white/[0.02] border border-white/[0.04] animate-pulse\""
-        },
-        {
-          "line": 1752,
-          "attribute": "className",
-          "expression": "\"w-9 h-9 rounded-lg bg-white/10 shrink-0\""
-        },
-        {
           "line": 1753,
-          "attribute": "className",
-          "expression": "\"flex flex-col gap-1 flex-1\""
-        },
-        {
-          "line": 1754,
-          "attribute": "className",
-          "expression": "\"h-3 w-32 bg-white/10 rounded-sm\""
+          "attribute": "size",
+          "expression": "{13}"
         },
         {
           "line": 1755,
           "attribute": "className",
-          "expression": "\"h-2 w-20 bg-white/5 rounded-sm\""
-        },
-        {
-          "line": 1762,
-          "attribute": "className",
-          "expression": "\"p-5 rounded-2xl bg-white/[0.02] border border-dashed border-white/10 text-center flex flex-col items-center justify-center gap-1.5 text-xs text-gray-400\""
-        },
-        {
-          "line": 1763,
-          "attribute": "size",
-          "expression": "{24}"
+          "expression": "\"text-[10px] px-1.5 py-0.2 bg-black/40 rounded-full font-mono font-normal\""
         },
         {
           "line": 1763,
           "attribute": "className",
-          "expression": "\"text-gray-500 mb-1 opacity-50\""
-        },
-        {
-          "line": 1764,
-          "attribute": "className",
-          "expression": "\"font-semibold text-gray-300\""
+          "expression": "{`py-2 px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${\n                                  spotifyDisplayMode === 'none'\n                                    ? 'bg-[#1DB954]/20 text-[#1DB954] border border-[#1DB954]/50 shadow-[0_0_12px_rgba(29,185,84,0.15)]'\n                                    : 'bg-white/[0.03] text-gray-400 hover:text-white border border-white/[0.06]'\n                                }`}"
         },
         {
           "line": 1769,
-          "attribute": "className",
-          "expression": "\"text-[11px] text-gray-500\""
-        },
-        {
-          "line": 1776,
-          "attribute": "className",
-          "expression": "\"flex flex-col gap-1.5 max-h-60 overflow-y-auto pr-1\""
-        },
-        {
-          "line": 1796,
-          "attribute": "className",
-          "expression": "{`flex items-center justify-between p-2 rounded-xl border transition-all cursor-pointer select-none group/item ${\n                                          isSelected\n                                            ? 'bg-[#1DB954]/15 border-[#1DB954]/40 shadow-xs'\n                                            : 'bg-white/[0.02] hover:bg-white/[0.06] border-white/[0.05]'\n                                        }`}"
-        },
-        {
-          "line": 1802,
-          "attribute": "className",
-          "expression": "\"flex items-center gap-2.5 min-w-0\""
-        },
-        {
-          "line": 1803,
-          "attribute": "className",
-          "expression": "\"relative w-9 h-9 rounded-lg overflow-hidden bg-black/40 shrink-0 border border-white/10 group/art\""
-        },
-        {
-          "line": 1810,
-          "attribute": "className",
-          "expression": "\"w-full h-full object-cover\""
-        },
-        {
-          "line": 1822,
-          "attribute": "className",
-          "expression": "{`absolute inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center transition-opacity text-white cursor-pointer ${\n                                                  isPlayingThis\n                                                    ? 'opacity-100 text-[#1DB954]'\n                                                    : 'opacity-0 group-hover/art:opacity-100'\n                                                }`}"
-        },
-        {
-          "line": 1834,
           "attribute": "size",
-          "expression": "{14}"
+          "expression": "{13}"
         },
         {
-          "line": 1836,
-          "attribute": "size",
-          "expression": "{14}"
-        },
-        {
-          "line": 1836,
-          "attribute": "className",
-          "expression": "\"translate-x-0.2\""
-        },
-        {
-          "line": 1842,
-          "attribute": "className",
-          "expression": "\"flex flex-col min-w-0\""
-        },
-        {
-          "line": 1844,
-          "attribute": "className",
-          "expression": "{`text-xs font-bold truncate ${isSelected ? 'text-white' : 'text-gray-200'}`}"
-        },
-        {
-          "line": 1848,
-          "attribute": "className",
-          "expression": "\"text-[10px] text-gray-400 truncate\""
-        },
-        {
-          "line": 1854,
-          "attribute": "className",
-          "expression": "\"flex items-center gap-2 shrink-0 ml-2\""
-        },
-        {
-          "line": 1856,
-          "attribute": "className",
-          "expression": "\"text-[10px] font-mono text-gray-400\""
-        },
-        {
-          "line": 1861,
-          "attribute": "className",
-          "expression": "{`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${\n                                              isSelected\n                                                ? 'bg-[#1DB954] border-[#1DB954] text-black shadow-[0_0_8px_rgba(29,185,84,0.4)]'\n                                                : 'border-white/20 bg-black/20 group-hover/item:border-white/40'\n                                            }`}"
-        },
-        {
-          "line": 1867,
-          "attribute": "size",
-          "expression": "{12}"
-        },
-        {
-          "line": 1867,
-          "attribute": "strokeWidth",
-          "expression": "{3}"
-        },
-        {
-          "line": 1876,
-          "attribute": "className",
-          "expression": "\"flex flex-col gap-1.5 pt-2 border-t border-white/[0.08]\""
-        },
-        {
-          "line": 1877,
-          "attribute": "className",
-          "expression": "\"text-[10px] font-bold text-[#1DB954] uppercase tracking-wider px-1\""
-        },
-        {
-          "line": 1901,
-          "attribute": "className",
-          "expression": "{`flex items-center justify-between p-2 rounded-xl border transition-all cursor-pointer select-none group/item ${\n                                              isSelected\n                                                ? 'bg-[#1DB954]/15 border-[#1DB954]/40 shadow-xs'\n                                                : 'bg-white/[0.02] hover:bg-white/[0.06] border-white/[0.05]'\n                                            }`}"
-        },
-        {
-          "line": 1907,
-          "attribute": "className",
-          "expression": "\"flex items-center gap-2.5 min-w-0\""
-        },
-        {
-          "line": 1908,
-          "attribute": "className",
-          "expression": "\"relative w-9 h-9 rounded-lg overflow-hidden bg-black/40 shrink-0 border border-white/10 group/art\""
-        },
-        {
-          "line": 1914,
-          "attribute": "className",
-          "expression": "\"w-full h-full object-cover\""
-        },
-        {
-          "line": 1926,
-          "attribute": "className",
-          "expression": "{`absolute inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center transition-opacity text-white cursor-pointer ${\n                                                      isPlayingThis\n                                                        ? 'opacity-100 text-[#1DB954]'\n                                                        : 'opacity-0 group-hover/art:opacity-100'\n                                                    }`}"
-        },
-        {
-          "line": 1938,
-          "attribute": "size",
-          "expression": "{14}"
-        },
-        {
-          "line": 1940,
-          "attribute": "size",
-          "expression": "{14}"
-        },
-        {
-          "line": 1940,
-          "attribute": "className",
-          "expression": "\"translate-x-0.2\""
-        },
-        {
-          "line": 1946,
-          "attribute": "className",
-          "expression": "\"flex flex-col min-w-0\""
-        },
-        {
-          "line": 1948,
-          "attribute": "className",
-          "expression": "{`text-xs font-bold truncate ${isSelected ? 'text-white' : 'text-gray-200'}`}"
-        },
-        {
-          "line": 1952,
-          "attribute": "className",
-          "expression": "\"text-[10px] text-gray-400 truncate\""
-        },
-        {
-          "line": 1958,
-          "attribute": "className",
-          "expression": "\"flex items-center gap-2 shrink-0 ml-2\""
-        },
-        {
-          "line": 1960,
-          "attribute": "className",
-          "expression": "\"text-[10px] font-mono text-gray-400\""
-        },
-        {
-          "line": 1965,
-          "attribute": "className",
-          "expression": "{`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${\n                                                  isSelected\n                                                    ? 'bg-[#1DB954] border-[#1DB954] text-black shadow-[0_0_8px_rgba(29,185,84,0.4)]'\n                                                    : 'border-white/20 bg-black/20 group-hover/item:border-white/40'\n                                                }`}"
-        },
-        {
-          "line": 1971,
-          "attribute": "size",
-          "expression": "{12}"
-        },
-        {
-          "line": 1971,
-          "attribute": "strokeWidth",
-          "expression": "{3}"
-        },
-        {
-          "line": 1986,
+          "line": 1777,
           "attribute": "className",
           "expression": "\"flex flex-col gap-2\""
         },
         {
-          "line": 1988,
+          "line": 1779,
           "attribute": "className",
           "expression": "\"relative\""
         },
         {
-          "line": 1990,
+          "line": 1781,
           "attribute": "size",
           "expression": "{14}"
         },
         {
-          "line": 1991,
+          "line": 1782,
           "attribute": "className",
           "expression": "\"absolute left-3 top-1/2 -translate-y-1/2 text-gray-400\""
         },
         {
-          "line": 1998,
+          "line": 1795,
           "attribute": "className",
           "expression": "\"w-full pl-9 pr-8 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] focus:border-[#1DB954]/50 text-xs text-white placeholder-gray-500 focus:outline-hidden transition-all\""
         },
         {
-          "line": 2004,
+          "line": 1799,
+          "attribute": "size",
+          "expression": "{12}"
+        },
+        {
+          "line": 1800,
+          "attribute": "className",
+          "expression": "\"absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 animate-spin\""
+        },
+        {
+          "line": 1806,
           "attribute": "className",
           "expression": "\"absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white p-0.5 cursor-pointer\""
         },
         {
-          "line": 2006,
+          "line": 1808,
           "attribute": "size",
           "expression": "{12}"
         },
         {
-          "line": 2011,
+          "line": 1813,
           "attribute": "className",
           "expression": "\"flex items-center justify-between px-1\""
         },
         {
-          "line": 2012,
+          "line": 1814,
           "attribute": "className",
           "expression": "\"text-[10px] font-bold text-gray-400 uppercase tracking-wider\""
         },
         {
-          "line": 2020,
+          "line": 1821,
           "attribute": "className",
           "expression": "\"text-[10px] text-gray-400 hover:text-white cursor-pointer\""
         },
         {
-          "line": 2029,
+          "line": 1830,
           "attribute": "className",
           "expression": "\"flex flex-wrap gap-1.5 p-2 rounded-xl bg-[#1DB954]/10 border border-[#1DB954]/25\""
         },
         {
-          "line": 2035,
+          "line": 1838,
           "attribute": "className",
           "expression": "\"inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/60 border border-[#1DB954]/40 text-[11px] text-white shadow-xs\""
         },
         {
-          "line": 2037,
+          "line": 1840,
           "attribute": "className",
           "expression": "\"w-1.5 h-1.5 rounded-full bg-[#1DB954]\""
         },
         {
-          "line": 2038,
+          "line": 1841,
           "attribute": "className",
           "expression": "\"max-w-[130px] truncate font-semibold\""
         },
         {
-          "line": 2048,
+          "line": 1851,
           "attribute": "className",
           "expression": "\"text-gray-400 hover:text-red-400 ml-0.5 cursor-pointer\""
         },
         {
-          "line": 2050,
+          "line": 1853,
           "attribute": "size",
           "expression": "{11}"
         },
         {
-          "line": 2059,
+          "line": 1863,
           "attribute": "className",
           "expression": "\"flex flex-col gap-1.5 py-2\""
         },
         {
-          "line": 2063,
+          "line": 1867,
           "attribute": "className",
           "expression": "\"flex items-center gap-2.5 p-2 rounded-xl bg-white/[0.02] border border-white/[0.04] animate-pulse\""
         },
         {
-          "line": 2065,
+          "line": 1869,
           "attribute": "className",
           "expression": "\"w-9 h-9 rounded-lg bg-white/10 shrink-0\""
         },
         {
-          "line": 2066,
+          "line": 1870,
           "attribute": "className",
           "expression": "\"flex flex-col gap-1 flex-1\""
         },
         {
-          "line": 2067,
+          "line": 1871,
           "attribute": "className",
           "expression": "\"h-3 w-32 bg-white/10 rounded-sm\""
         },
         {
-          "line": 2068,
+          "line": 1872,
           "attribute": "className",
           "expression": "\"h-2 w-20 bg-white/5 rounded-sm\""
         },
         {
-          "line": 2074,
+          "line": 1879,
           "attribute": "className",
           "expression": "\"p-5 rounded-2xl bg-white/[0.02] border border-dashed border-white/10 text-center flex flex-col items-center justify-center gap-1.5 text-xs text-gray-400\""
         },
         {
-          "line": 2075,
+          "line": 1880,
           "attribute": "size",
           "expression": "{24}"
         },
         {
-          "line": 2075,
+          "line": 1880,
           "attribute": "className",
           "expression": "\"text-gray-500 mb-1 opacity-50\""
         },
         {
-          "line": 2076,
+          "line": 1881,
           "attribute": "className",
           "expression": "\"font-semibold text-gray-300\""
         },
         {
-          "line": 2081,
+          "line": 1886,
           "attribute": "className",
           "expression": "\"text-[11px] text-gray-500\""
         },
         {
-          "line": 2087,
+          "line": 1893,
           "attribute": "className",
           "expression": "\"flex flex-col gap-1.5 max-h-60 overflow-y-auto pr-1\""
         },
         {
-          "line": 2105,
+          "line": 1913,
           "attribute": "className",
-          "expression": "{`flex items-center justify-between p-2 rounded-xl border transition-all cursor-pointer select-none group/pl ${\n                                          isSelected\n                                            ? 'bg-[#1DB954]/15 border-[#1DB954]/40 shadow-xs'\n                                            : 'bg-white/[0.02] hover:bg-white/[0.06] border-white/[0.05]'\n                                        }`}"
+          "expression": "{`flex items-center justify-between p-2 rounded-xl border transition-all cursor-pointer select-none group/item ${\n                                          isSelected\n                                            ? 'bg-[#1DB954]/15 border-[#1DB954]/40 shadow-xs'\n                                            : 'bg-white/[0.02] hover:bg-white/[0.06] border-white/[0.05]'\n                                        }`}"
         },
         {
-          "line": 2111,
+          "line": 1919,
           "attribute": "className",
           "expression": "\"flex items-center gap-2.5 min-w-0\""
         },
         {
-          "line": 2119,
+          "line": 1920,
           "attribute": "className",
-          "expression": "\"w-9 h-9 rounded-lg object-cover shrink-0 border border-white/10\""
+          "expression": "\"relative w-9 h-9 rounded-lg overflow-hidden bg-black/40 shrink-0 border border-white/10 group/art\""
         },
         {
-          "line": 2122,
+          "line": 1927,
           "attribute": "className",
-          "expression": "\"w-9 h-9 rounded-lg bg-black/40 border border-white/10 flex items-center justify-center text-gray-400 shrink-0\""
+          "expression": "\"w-full h-full object-cover\""
         },
         {
-          "line": 2123,
+          "line": 1939,
+          "attribute": "className",
+          "expression": "{`absolute inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center transition-opacity text-white cursor-pointer ${\n                                                  isPlayingThis\n                                                    ? 'opacity-100 text-[#1DB954]'\n                                                    : 'opacity-0 group-hover/art:opacity-100'\n                                                }`}"
+        },
+        {
+          "line": 1951,
           "attribute": "size",
-          "expression": "{16}"
+          "expression": "{14}"
         },
         {
-          "line": 2126,
+          "line": 1953,
+          "attribute": "size",
+          "expression": "{14}"
+        },
+        {
+          "line": 1953,
+          "attribute": "className",
+          "expression": "\"translate-x-0.2\""
+        },
+        {
+          "line": 1959,
           "attribute": "className",
           "expression": "\"flex flex-col min-w-0\""
         },
         {
-          "line": 2128,
+          "line": 1961,
           "attribute": "className",
           "expression": "{`text-xs font-bold truncate ${isSelected ? 'text-white' : 'text-gray-200'}`}"
         },
         {
-          "line": 2132,
+          "line": 1965,
           "attribute": "className",
-          "expression": "\"text-[10px] text-gray-400\""
+          "expression": "\"text-[10px] text-gray-400 truncate\""
         },
         {
-          "line": 2138,
+          "line": 1971,
           "attribute": "className",
-          "expression": "\"shrink-0 ml-2\""
+          "expression": "\"flex items-center gap-2 shrink-0 ml-2\""
         },
         {
-          "line": 2140,
+          "line": 1973,
           "attribute": "className",
-          "expression": "{`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${\n                                              isSelected\n                                                ? 'bg-[#1DB954] border-[#1DB954] text-black shadow-[0_0_8px_rgba(29,185,84,0.4)]'\n                                                : 'border-white/20 bg-black/20 group-hover/pl:border-white/40'\n                                            }`}"
+          "expression": "\"text-[10px] font-mono text-gray-400\""
         },
         {
-          "line": 2146,
+          "line": 1978,
+          "attribute": "className",
+          "expression": "{`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${\n                                              isSelected\n                                                ? 'bg-[#1DB954] border-[#1DB954] text-black shadow-[0_0_8px_rgba(29,185,84,0.4)]'\n                                                : 'border-white/20 bg-black/20 group-hover/item:border-white/40'\n                                            }`}"
+        },
+        {
+          "line": 1984,
           "attribute": "size",
           "expression": "{12}"
         },
         {
-          "line": 2146,
+          "line": 1984,
           "attribute": "strokeWidth",
           "expression": "{3}"
         },
         {
-          "line": 2158,
+          "line": 1993,
           "attribute": "className",
-          "expression": "\"p-3 rounded-2xl bg-black/40 border border-white/[0.08] flex flex-col gap-2\""
+          "expression": "\"flex flex-col gap-1.5 pt-2 border-t border-white/[0.08]\""
         },
         {
-          "line": 2159,
+          "line": 1994,
           "attribute": "className",
-          "expression": "\"flex items-center justify-between\""
+          "expression": "\"text-[10px] font-bold text-[#1DB954] uppercase tracking-wider px-1\""
         },
         {
-          "line": 2160,
+          "line": 2018,
           "attribute": "className",
-          "expression": "\"text-[10px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5\""
+          "expression": "{`flex items-center justify-between p-2 rounded-xl border transition-all cursor-pointer select-none group/item ${\n                                              isSelected\n                                                ? 'bg-[#1DB954]/15 border-[#1DB954]/40 shadow-xs'\n                                                : 'bg-white/[0.02] hover:bg-white/[0.06] border-white/[0.05]'\n                                            }`}"
         },
         {
-          "line": 2161,
+          "line": 2024,
+          "attribute": "className",
+          "expression": "\"flex items-center gap-2.5 min-w-0\""
+        },
+        {
+          "line": 2025,
+          "attribute": "className",
+          "expression": "\"relative w-9 h-9 rounded-lg overflow-hidden bg-black/40 shrink-0 border border-white/10 group/art\""
+        },
+        {
+          "line": 2031,
+          "attribute": "className",
+          "expression": "\"w-full h-full object-cover\""
+        },
+        {
+          "line": 2043,
+          "attribute": "className",
+          "expression": "{`absolute inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center transition-opacity text-white cursor-pointer ${\n                                                      isPlayingThis\n                                                        ? 'opacity-100 text-[#1DB954]'\n                                                        : 'opacity-0 group-hover/art:opacity-100'\n                                                    }`}"
+        },
+        {
+          "line": 2055,
+          "attribute": "size",
+          "expression": "{14}"
+        },
+        {
+          "line": 2057,
+          "attribute": "size",
+          "expression": "{14}"
+        },
+        {
+          "line": 2057,
+          "attribute": "className",
+          "expression": "\"translate-x-0.2\""
+        },
+        {
+          "line": 2063,
+          "attribute": "className",
+          "expression": "\"flex flex-col min-w-0\""
+        },
+        {
+          "line": 2065,
+          "attribute": "className",
+          "expression": "{`text-xs font-bold truncate ${isSelected ? 'text-white' : 'text-gray-200'}`}"
+        },
+        {
+          "line": 2069,
+          "attribute": "className",
+          "expression": "\"text-[10px] text-gray-400 truncate\""
+        },
+        {
+          "line": 2075,
+          "attribute": "className",
+          "expression": "\"flex items-center gap-2 shrink-0 ml-2\""
+        },
+        {
+          "line": 2077,
+          "attribute": "className",
+          "expression": "\"text-[10px] font-mono text-gray-400\""
+        },
+        {
+          "line": 2082,
+          "attribute": "className",
+          "expression": "{`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${\n                                                  isSelected\n                                                    ? 'bg-[#1DB954] border-[#1DB954] text-black shadow-[0_0_8px_rgba(29,185,84,0.4)]'\n                                                    : 'border-white/20 bg-black/20 group-hover/item:border-white/40'\n                                                }`}"
+        },
+        {
+          "line": 2088,
           "attribute": "size",
           "expression": "{12}"
         },
         {
-          "line": 2161,
-          "attribute": "className",
-          "expression": "\"text-[#1DB954]\""
+          "line": 2088,
+          "attribute": "strokeWidth",
+          "expression": "{3}"
         },
         {
-          "line": 2164,
+          "line": 2103,
           "attribute": "className",
-          "expression": "\"text-[10px] text-gray-400\""
+          "expression": "\"flex flex-col gap-2\""
         },
         {
-          "line": 2195,
+          "line": 2105,
           "attribute": "className",
-          "expression": "\"flex flex-col gap-3.5\""
+          "expression": "\"relative\""
         },
         {
-          "line": 2199,
-          "attribute": "className",
-          "expression": "\"p-3.5 rounded-2xl bg-[#1e1f22]/80 border border-white/[0.08] hover:border-white/[0.14] transition-all flex items-center justify-between gap-4 cursor-pointer select-none\""
-        },
-        {
-          "line": 2201,
-          "attribute": "className",
-          "expression": "\"flex flex-col\""
-        },
-        {
-          "line": 2202,
-          "attribute": "className",
-          "expression": "\"text-xs font-bold text-white flex items-center gap-1.5\""
-        },
-        {
-          "line": 2205,
-          "attribute": "className",
-          "expression": "\"text-[11px] text-gray-400 mt-0.5\""
-        },
-        {
-          "line": 2216,
-          "attribute": "className",
-          "expression": "\"flex flex-col gap-3 pt-1\""
-        },
-        {
-          "line": 2217,
-          "attribute": "className",
-          "expression": "\"text-[10px] font-bold text-gray-400 uppercase tracking-wider px-1\""
-        },
-        {
-          "line": 2224,
-          "attribute": "className",
-          "expression": "\"p-3.5 rounded-2xl bg-[#1e1f22]/60 border border-white/[0.08] hover:border-white/[0.14] transition-all flex items-center justify-between gap-4 cursor-pointer select-none\""
-        },
-        {
-          "line": 2226,
-          "attribute": "className",
-          "expression": "\"flex flex-col\""
-        },
-        {
-          "line": 2227,
-          "attribute": "className",
-          "expression": "\"text-xs font-bold text-white flex items-center gap-1.5\""
-        },
-        {
-          "line": 2228,
+          "line": 2107,
           "attribute": "size",
-          "expression": "{13}"
+          "expression": "{14}"
+        },
+        {
+          "line": 2108,
+          "attribute": "className",
+          "expression": "\"absolute left-3 top-1/2 -translate-y-1/2 text-gray-400\""
+        },
+        {
+          "line": 2115,
+          "attribute": "className",
+          "expression": "\"w-full pl-9 pr-8 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] focus:border-[#1DB954]/50 text-xs text-white placeholder-gray-500 focus:outline-hidden transition-all\""
+        },
+        {
+          "line": 2121,
+          "attribute": "className",
+          "expression": "\"absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white p-0.5 cursor-pointer\""
+        },
+        {
+          "line": 2123,
+          "attribute": "size",
+          "expression": "{12}"
+        },
+        {
+          "line": 2128,
+          "attribute": "className",
+          "expression": "\"flex items-center justify-between px-1\""
+        },
+        {
+          "line": 2129,
+          "attribute": "className",
+          "expression": "\"text-[10px] font-bold text-gray-400 uppercase tracking-wider\""
+        },
+        {
+          "line": 2137,
+          "attribute": "className",
+          "expression": "\"text-[10px] text-gray-400 hover:text-white cursor-pointer\""
+        },
+        {
+          "line": 2146,
+          "attribute": "className",
+          "expression": "\"flex flex-wrap gap-1.5 p-2 rounded-xl bg-[#1DB954]/10 border border-[#1DB954]/25\""
+        },
+        {
+          "line": 2152,
+          "attribute": "className",
+          "expression": "\"inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/60 border border-[#1DB954]/40 text-[11px] text-white shadow-xs\""
+        },
+        {
+          "line": 2154,
+          "attribute": "className",
+          "expression": "\"w-1.5 h-1.5 rounded-full bg-[#1DB954]\""
+        },
+        {
+          "line": 2155,
+          "attribute": "className",
+          "expression": "\"max-w-[130px] truncate font-semibold\""
+        },
+        {
+          "line": 2165,
+          "attribute": "className",
+          "expression": "\"text-gray-400 hover:text-red-400 ml-0.5 cursor-pointer\""
+        },
+        {
+          "line": 2167,
+          "attribute": "size",
+          "expression": "{11}"
+        },
+        {
+          "line": 2176,
+          "attribute": "className",
+          "expression": "\"flex flex-col gap-1.5 py-2\""
+        },
+        {
+          "line": 2180,
+          "attribute": "className",
+          "expression": "\"flex items-center gap-2.5 p-2 rounded-xl bg-white/[0.02] border border-white/[0.04] animate-pulse\""
+        },
+        {
+          "line": 2182,
+          "attribute": "className",
+          "expression": "\"w-9 h-9 rounded-lg bg-white/10 shrink-0\""
+        },
+        {
+          "line": 2183,
+          "attribute": "className",
+          "expression": "\"flex flex-col gap-1 flex-1\""
+        },
+        {
+          "line": 2184,
+          "attribute": "className",
+          "expression": "\"h-3 w-32 bg-white/10 rounded-sm\""
+        },
+        {
+          "line": 2185,
+          "attribute": "className",
+          "expression": "\"h-2 w-20 bg-white/5 rounded-sm\""
+        },
+        {
+          "line": 2191,
+          "attribute": "className",
+          "expression": "\"p-5 rounded-2xl bg-white/[0.02] border border-dashed border-white/10 text-center flex flex-col items-center justify-center gap-1.5 text-xs text-gray-400\""
+        },
+        {
+          "line": 2192,
+          "attribute": "size",
+          "expression": "{24}"
+        },
+        {
+          "line": 2192,
+          "attribute": "className",
+          "expression": "\"text-gray-500 mb-1 opacity-50\""
+        },
+        {
+          "line": 2193,
+          "attribute": "className",
+          "expression": "\"font-semibold text-gray-300\""
+        },
+        {
+          "line": 2198,
+          "attribute": "className",
+          "expression": "\"text-[11px] text-gray-500\""
+        },
+        {
+          "line": 2204,
+          "attribute": "className",
+          "expression": "\"flex flex-col gap-1.5 max-h-60 overflow-y-auto pr-1\""
+        },
+        {
+          "line": 2222,
+          "attribute": "className",
+          "expression": "{`flex items-center justify-between p-2 rounded-xl border transition-all cursor-pointer select-none group/pl ${\n                                          isSelected\n                                            ? 'bg-[#1DB954]/15 border-[#1DB954]/40 shadow-xs'\n                                            : 'bg-white/[0.02] hover:bg-white/[0.06] border-white/[0.05]'\n                                        }`}"
         },
         {
           "line": 2228,
           "attribute": "className",
-          "expression": "\"text-[#9146FF]\""
+          "expression": "\"flex items-center gap-2.5 min-w-0\""
         },
         {
-          "line": 2231,
+          "line": 2236,
           "attribute": "className",
-          "expression": "\"text-[11px] text-gray-400 mt-0.5\""
+          "expression": "\"w-9 h-9 rounded-lg object-cover shrink-0 border border-white/10\""
+        },
+        {
+          "line": 2239,
+          "attribute": "className",
+          "expression": "\"w-9 h-9 rounded-lg bg-black/40 border border-white/10 flex items-center justify-center text-gray-400 shrink-0\""
+        },
+        {
+          "line": 2240,
+          "attribute": "size",
+          "expression": "{16}"
+        },
+        {
+          "line": 2243,
+          "attribute": "className",
+          "expression": "\"flex flex-col min-w-0\""
         },
         {
           "line": 2245,
           "attribute": "className",
-          "expression": "\"p-3.5 rounded-2xl bg-[#1e1f22]/60 border border-white/[0.08] hover:border-white/[0.14] transition-all flex items-center justify-between gap-4 cursor-pointer select-none\""
-        },
-        {
-          "line": 2247,
-          "attribute": "className",
-          "expression": "\"flex flex-col\""
-        },
-        {
-          "line": 2248,
-          "attribute": "className",
-          "expression": "\"text-xs font-bold text-white flex items-center gap-1.5\""
+          "expression": "{`text-xs font-bold truncate ${isSelected ? 'text-white' : 'text-gray-200'}`}"
         },
         {
           "line": 2249,
-          "attribute": "size",
-          "expression": "{13}"
-        },
-        {
-          "line": 2249,
-          "attribute": "className",
-          "expression": "\"text-[#9146FF]\""
-        },
-        {
-          "line": 2252,
-          "attribute": "className",
-          "expression": "\"text-[11px] text-gray-400 mt-0.5\""
-        },
-        {
-          "line": 2263,
-          "attribute": "className",
-          "expression": "\"p-3 rounded-2xl bg-black/40 border border-white/[0.08] flex flex-col gap-2\""
-        },
-        {
-          "line": 2264,
-          "attribute": "className",
-          "expression": "\"flex items-center justify-between\""
-        },
-        {
-          "line": 2265,
-          "attribute": "className",
-          "expression": "\"text-[10px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5\""
-        },
-        {
-          "line": 2266,
-          "attribute": "size",
-          "expression": "{12}"
-        },
-        {
-          "line": 2266,
-          "attribute": "className",
-          "expression": "\"text-[#9146FF]\""
-        },
-        {
-          "line": 2269,
           "attribute": "className",
           "expression": "\"text-[10px] text-gray-400\""
         },
         {
-          "line": 2292,
+          "line": 2255,
+          "attribute": "className",
+          "expression": "\"shrink-0 ml-2\""
+        },
+        {
+          "line": 2257,
+          "attribute": "className",
+          "expression": "{`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${\n                                              isSelected\n                                                ? 'bg-[#1DB954] border-[#1DB954] text-black shadow-[0_0_8px_rgba(29,185,84,0.4)]'\n                                                : 'border-white/20 bg-black/20 group-hover/pl:border-white/40'\n                                            }`}"
+        },
+        {
+          "line": 2263,
+          "attribute": "size",
+          "expression": "{12}"
+        },
+        {
+          "line": 2263,
+          "attribute": "strokeWidth",
+          "expression": "{3}"
+        },
+        {
+          "line": 2275,
+          "attribute": "className",
+          "expression": "\"p-3 rounded-2xl bg-black/40 border border-white/[0.08] flex flex-col gap-2\""
+        },
+        {
+          "line": 2276,
+          "attribute": "className",
+          "expression": "\"flex items-center justify-between\""
+        },
+        {
+          "line": 2277,
+          "attribute": "className",
+          "expression": "\"text-[10px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5\""
+        },
+        {
+          "line": 2278,
+          "attribute": "size",
+          "expression": "{12}"
+        },
+        {
+          "line": 2278,
+          "attribute": "className",
+          "expression": "\"text-[#1DB954]\""
+        },
+        {
+          "line": 2281,
+          "attribute": "className",
+          "expression": "\"text-[10px] text-gray-400\""
+        },
+        {
+          "line": 2312,
           "attribute": "className",
           "expression": "\"flex flex-col gap-3.5\""
         },
         {
-          "line": 2296,
+          "line": 2316,
           "attribute": "className",
           "expression": "\"p-3.5 rounded-2xl bg-[#1e1f22]/80 border border-white/[0.08] hover:border-white/[0.14] transition-all flex items-center justify-between gap-4 cursor-pointer select-none\""
         },
         {
-          "line": 2298,
+          "line": 2318,
           "attribute": "className",
           "expression": "\"flex flex-col\""
         },
         {
-          "line": 2299,
+          "line": 2319,
           "attribute": "className",
           "expression": "\"text-xs font-bold text-white flex items-center gap-1.5\""
         },
         {
-          "line": 2302,
+          "line": 2322,
           "attribute": "className",
           "expression": "\"text-[11px] text-gray-400 mt-0.5\""
         },
         {
-          "line": 2313,
+          "line": 2333,
           "attribute": "className",
           "expression": "\"flex flex-col gap-3 pt-1\""
         },
         {
-          "line": 2314,
+          "line": 2334,
           "attribute": "className",
           "expression": "\"text-[10px] font-bold text-gray-400 uppercase tracking-wider px-1\""
-        },
-        {
-          "line": 2321,
-          "attribute": "className",
-          "expression": "\"p-3.5 rounded-2xl bg-[#1e1f22]/60 border border-white/[0.08] hover:border-white/[0.14] transition-all flex items-center justify-between gap-4 cursor-pointer select-none\""
-        },
-        {
-          "line": 2323,
-          "attribute": "className",
-          "expression": "\"flex flex-col\""
-        },
-        {
-          "line": 2324,
-          "attribute": "className",
-          "expression": "\"text-xs font-bold text-white flex items-center gap-1.5\""
-        },
-        {
-          "line": 2325,
-          "attribute": "size",
-          "expression": "{13}"
-        },
-        {
-          "line": 2325,
-          "attribute": "className",
-          "expression": "\"text-[#FF0000]\""
-        },
-        {
-          "line": 2328,
-          "attribute": "className",
-          "expression": "\"text-[11px] text-gray-400 mt-0.5\""
         },
         {
           "line": 2341,
@@ -97470,7 +97320,7 @@
         {
           "line": 2345,
           "attribute": "className",
-          "expression": "\"text-[#FF0000]\""
+          "expression": "\"text-[#9146FF]\""
         },
         {
           "line": 2348,
@@ -97478,32 +97328,32 @@
           "expression": "\"text-[11px] text-gray-400 mt-0.5\""
         },
         {
-          "line": 2361,
+          "line": 2362,
           "attribute": "className",
           "expression": "\"p-3.5 rounded-2xl bg-[#1e1f22]/60 border border-white/[0.08] hover:border-white/[0.14] transition-all flex items-center justify-between gap-4 cursor-pointer select-none\""
         },
         {
-          "line": 2363,
+          "line": 2364,
           "attribute": "className",
           "expression": "\"flex flex-col\""
         },
         {
-          "line": 2364,
+          "line": 2365,
           "attribute": "className",
           "expression": "\"text-xs font-bold text-white flex items-center gap-1.5\""
         },
         {
-          "line": 2365,
+          "line": 2366,
           "attribute": "size",
           "expression": "{13}"
         },
         {
-          "line": 2365,
+          "line": 2366,
           "attribute": "className",
-          "expression": "\"text-[#FF0000]\""
+          "expression": "\"text-[#9146FF]\""
         },
         {
-          "line": 2368,
+          "line": 2369,
           "attribute": "className",
           "expression": "\"text-[11px] text-gray-400 mt-0.5\""
         },
@@ -97530,245 +97380,400 @@
         {
           "line": 2383,
           "attribute": "className",
-          "expression": "\"text-[#FF0000]\""
+          "expression": "\"text-[#9146FF]\""
         },
         {
-          "line": 2407,
+          "line": 2386,
+          "attribute": "className",
+          "expression": "\"text-[10px] text-gray-400\""
+        },
+        {
+          "line": 2409,
           "attribute": "className",
           "expression": "\"flex flex-col gap-3.5\""
         },
         {
-          "line": 2411,
+          "line": 2413,
           "attribute": "className",
           "expression": "\"p-3.5 rounded-2xl bg-[#1e1f22]/80 border border-white/[0.08] hover:border-white/[0.14] transition-all flex items-center justify-between gap-4 cursor-pointer select-none\""
         },
         {
-          "line": 2413,
+          "line": 2415,
           "attribute": "className",
           "expression": "\"flex flex-col\""
         },
         {
-          "line": 2414,
+          "line": 2416,
           "attribute": "className",
           "expression": "\"text-xs font-bold text-white flex items-center gap-1.5\""
         },
         {
-          "line": 2417,
+          "line": 2419,
           "attribute": "className",
           "expression": "\"text-[11px] text-gray-400 mt-0.5\""
         },
         {
-          "line": 2428,
+          "line": 2430,
           "attribute": "className",
           "expression": "\"flex flex-col gap-3 pt-1\""
         },
         {
-          "line": 2429,
+          "line": 2431,
           "attribute": "className",
           "expression": "\"text-[10px] font-bold text-gray-400 uppercase tracking-wider px-1\""
         },
         {
-          "line": 2436,
+          "line": 2438,
           "attribute": "className",
           "expression": "\"p-3.5 rounded-2xl bg-[#1e1f22]/60 border border-white/[0.08] hover:border-white/[0.14] transition-all flex items-center justify-between gap-4 cursor-pointer select-none\""
         },
         {
-          "line": 2438,
+          "line": 2440,
           "attribute": "className",
           "expression": "\"flex flex-col\""
         },
         {
-          "line": 2439,
+          "line": 2441,
           "attribute": "className",
           "expression": "\"text-xs font-bold text-white flex items-center gap-1.5\""
         },
         {
-          "line": 2440,
+          "line": 2442,
           "attribute": "size",
           "expression": "{13}"
         },
         {
-          "line": 2440,
+          "line": 2442,
           "attribute": "className",
-          "expression": "\"text-white\""
+          "expression": "\"text-[#FF0000]\""
         },
         {
-          "line": 2443,
+          "line": 2445,
           "attribute": "className",
           "expression": "\"text-[11px] text-gray-400 mt-0.5\""
-        },
-        {
-          "line": 2456,
-          "attribute": "className",
-          "expression": "\"p-3.5 rounded-2xl bg-[#1e1f22]/60 border border-white/[0.08] hover:border-white/[0.14] transition-all flex items-center justify-between gap-4 cursor-pointer select-none\""
         },
         {
           "line": 2458,
           "attribute": "className",
+          "expression": "\"p-3.5 rounded-2xl bg-[#1e1f22]/60 border border-white/[0.08] hover:border-white/[0.14] transition-all flex items-center justify-between gap-4 cursor-pointer select-none\""
+        },
+        {
+          "line": 2460,
+          "attribute": "className",
           "expression": "\"flex flex-col\""
         },
         {
-          "line": 2459,
+          "line": 2461,
           "attribute": "className",
           "expression": "\"text-xs font-bold text-white flex items-center gap-1.5\""
         },
         {
-          "line": 2460,
+          "line": 2462,
           "attribute": "size",
           "expression": "{13}"
         },
         {
-          "line": 2460,
+          "line": 2462,
           "attribute": "className",
-          "expression": "\"text-white\""
+          "expression": "\"text-[#FF0000]\""
         },
         {
-          "line": 2463,
+          "line": 2465,
           "attribute": "className",
           "expression": "\"text-[11px] text-gray-400 mt-0.5\""
         },
         {
-          "line": 2476,
+          "line": 2478,
           "attribute": "className",
           "expression": "\"p-3.5 rounded-2xl bg-[#1e1f22]/60 border border-white/[0.08] hover:border-white/[0.14] transition-all flex items-center justify-between gap-4 cursor-pointer select-none\""
         },
         {
-          "line": 2478,
+          "line": 2480,
           "attribute": "className",
           "expression": "\"flex flex-col\""
         },
         {
-          "line": 2479,
+          "line": 2481,
           "attribute": "className",
           "expression": "\"text-xs font-bold text-white flex items-center gap-1.5\""
         },
         {
-          "line": 2480,
+          "line": 2482,
           "attribute": "size",
           "expression": "{13}"
         },
         {
-          "line": 2480,
+          "line": 2482,
           "attribute": "className",
-          "expression": "\"text-white\""
+          "expression": "\"text-[#FF0000]\""
         },
         {
-          "line": 2483,
+          "line": 2485,
           "attribute": "className",
           "expression": "\"text-[11px] text-gray-400 mt-0.5\""
         },
         {
           "line": 2497,
           "attribute": "className",
-          "expression": "\"p-3.5 rounded-2xl bg-[#1e1f22]/60 border border-white/[0.08] flex flex-col gap-2.5\""
+          "expression": "\"p-3 rounded-2xl bg-black/40 border border-white/[0.08] flex flex-col gap-2\""
         },
         {
           "line": 2498,
           "attribute": "className",
-          "expression": "\"flex flex-col\""
+          "expression": "\"flex items-center justify-between\""
         },
         {
           "line": 2499,
           "attribute": "className",
-          "expression": "\"text-xs font-bold text-white flex items-center gap-1.5\""
-        },
-        {
-          "line": 2500,
-          "attribute": "size",
-          "expression": "{13}"
-        },
-        {
-          "line": 2500,
-          "attribute": "className",
-          "expression": "\"text-amber-400\""
-        },
-        {
-          "line": 2503,
-          "attribute": "className",
-          "expression": "\"text-[11px] text-gray-400 mt-0.5\""
-        },
-        {
-          "line": 2507,
-          "attribute": "className",
-          "expression": "\"grid grid-cols-2 gap-2 bg-black/40 p-1 rounded-xl border border-white/[0.06]\""
-        },
-        {
-          "line": 2511,
-          "attribute": "className",
-          "expression": "{`py-1.5 px-3 rounded-lg text-xs font-semibold transition-all ${\n                                  robloxDisplayContent === 'collectibles' ||\n                                  robloxDisplayContent === 'auto'\n                                    ? 'bg-white/15 text-white shadow-sm'\n                                    : 'text-gray-400 hover:text-white hover:bg-white/5'\n                                }`}"
-        },
-        {
-          "line": 2523,
-          "attribute": "className",
-          "expression": "{`py-1.5 px-3 rounded-lg text-xs font-semibold transition-all ${\n                                  robloxDisplayContent === 'places'\n                                    ? 'bg-white/15 text-white shadow-sm'\n                                    : 'text-gray-400 hover:text-white hover:bg-white/5'\n                                }`}"
-        },
-        {
-          "line": 2536,
-          "attribute": "className",
-          "expression": "\"p-3 rounded-2xl bg-black/40 border border-white/[0.08] flex flex-col gap-2\""
-        },
-        {
-          "line": 2537,
-          "attribute": "className",
-          "expression": "\"flex items-center justify-between\""
-        },
-        {
-          "line": 2538,
-          "attribute": "className",
           "expression": "\"text-[10px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5\""
         },
         {
-          "line": 2539,
+          "line": 2500,
           "attribute": "size",
           "expression": "{12}"
         },
         {
-          "line": 2539,
+          "line": 2500,
+          "attribute": "className",
+          "expression": "\"text-[#FF0000]\""
+        },
+        {
+          "line": 2524,
+          "attribute": "className",
+          "expression": "\"flex flex-col gap-3.5\""
+        },
+        {
+          "line": 2528,
+          "attribute": "className",
+          "expression": "\"p-3.5 rounded-2xl bg-[#1e1f22]/80 border border-white/[0.08] hover:border-white/[0.14] transition-all flex items-center justify-between gap-4 cursor-pointer select-none\""
+        },
+        {
+          "line": 2530,
+          "attribute": "className",
+          "expression": "\"flex flex-col\""
+        },
+        {
+          "line": 2531,
+          "attribute": "className",
+          "expression": "\"text-xs font-bold text-white flex items-center gap-1.5\""
+        },
+        {
+          "line": 2534,
+          "attribute": "className",
+          "expression": "\"text-[11px] text-gray-400 mt-0.5\""
+        },
+        {
+          "line": 2545,
+          "attribute": "className",
+          "expression": "\"flex flex-col gap-3 pt-1\""
+        },
+        {
+          "line": 2546,
+          "attribute": "className",
+          "expression": "\"text-[10px] font-bold text-gray-400 uppercase tracking-wider px-1\""
+        },
+        {
+          "line": 2553,
+          "attribute": "className",
+          "expression": "\"p-3.5 rounded-2xl bg-[#1e1f22]/60 border border-white/[0.08] hover:border-white/[0.14] transition-all flex items-center justify-between gap-4 cursor-pointer select-none\""
+        },
+        {
+          "line": 2555,
+          "attribute": "className",
+          "expression": "\"flex flex-col\""
+        },
+        {
+          "line": 2556,
+          "attribute": "className",
+          "expression": "\"text-xs font-bold text-white flex items-center gap-1.5\""
+        },
+        {
+          "line": 2557,
+          "attribute": "size",
+          "expression": "{13}"
+        },
+        {
+          "line": 2557,
           "attribute": "className",
           "expression": "\"text-white\""
         },
         {
-          "line": 2567,
+          "line": 2560,
           "attribute": "className",
-          "expression": "\"flex items-center justify-between px-6 py-3.5 border-t border-white/[0.08] shrink-0 bg-[#0e0e11]\""
-        },
-        {
-          "line": 2571,
-          "attribute": "className",
-          "expression": "\"text-red-400 hover:text-red-300 text-xs font-semibold hover:underline transition cursor-pointer flex items-center gap-1.5\""
+          "expression": "\"text-[11px] text-gray-400 mt-0.5\""
         },
         {
           "line": 2573,
+          "attribute": "className",
+          "expression": "\"p-3.5 rounded-2xl bg-[#1e1f22]/60 border border-white/[0.08] hover:border-white/[0.14] transition-all flex items-center justify-between gap-4 cursor-pointer select-none\""
+        },
+        {
+          "line": 2575,
+          "attribute": "className",
+          "expression": "\"flex flex-col\""
+        },
+        {
+          "line": 2576,
+          "attribute": "className",
+          "expression": "\"text-xs font-bold text-white flex items-center gap-1.5\""
+        },
+        {
+          "line": 2577,
           "attribute": "size",
           "expression": "{13}"
         },
         {
           "line": 2577,
           "attribute": "className",
-          "expression": "\"flex items-center gap-2.5\""
+          "expression": "\"text-white\""
         },
         {
-          "line": 2581,
+          "line": 2580,
           "attribute": "className",
-          "expression": "\"px-4 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-xs font-semibold text-gray-300 hover:text-white transition cursor-pointer\""
+          "expression": "\"text-[11px] text-gray-400 mt-0.5\""
         },
         {
-          "line": 2589,
+          "line": 2593,
           "attribute": "className",
-          "expression": "\"px-5 py-2 rounded-xl text-xs font-bold bg-[#5865F2] hover:bg-[#4752C4] text-white transition-all shadow-[0_4px_16px_rgba(88,101,242,0.35)] flex items-center gap-1.5 cursor-pointer disabled:opacity-50 hover:scale-102 active:scale-98\""
+          "expression": "\"p-3.5 rounded-2xl bg-[#1e1f22]/60 border border-white/[0.08] hover:border-white/[0.14] transition-all flex items-center justify-between gap-4 cursor-pointer select-none\""
         },
         {
-          "line": 2591,
+          "line": 2595,
+          "attribute": "className",
+          "expression": "\"flex flex-col\""
+        },
+        {
+          "line": 2596,
+          "attribute": "className",
+          "expression": "\"text-xs font-bold text-white flex items-center gap-1.5\""
+        },
+        {
+          "line": 2597,
           "attribute": "size",
           "expression": "{13}"
         },
         {
-          "line": 2591,
+          "line": 2597,
+          "attribute": "className",
+          "expression": "\"text-white\""
+        },
+        {
+          "line": 2600,
+          "attribute": "className",
+          "expression": "\"text-[11px] text-gray-400 mt-0.5\""
+        },
+        {
+          "line": 2614,
+          "attribute": "className",
+          "expression": "\"p-3.5 rounded-2xl bg-[#1e1f22]/60 border border-white/[0.08] flex flex-col gap-2.5\""
+        },
+        {
+          "line": 2615,
+          "attribute": "className",
+          "expression": "\"flex flex-col\""
+        },
+        {
+          "line": 2616,
+          "attribute": "className",
+          "expression": "\"text-xs font-bold text-white flex items-center gap-1.5\""
+        },
+        {
+          "line": 2617,
+          "attribute": "size",
+          "expression": "{13}"
+        },
+        {
+          "line": 2617,
+          "attribute": "className",
+          "expression": "\"text-amber-400\""
+        },
+        {
+          "line": 2620,
+          "attribute": "className",
+          "expression": "\"text-[11px] text-gray-400 mt-0.5\""
+        },
+        {
+          "line": 2624,
+          "attribute": "className",
+          "expression": "\"grid grid-cols-2 gap-2 bg-black/40 p-1 rounded-xl border border-white/[0.06]\""
+        },
+        {
+          "line": 2628,
+          "attribute": "className",
+          "expression": "{`py-1.5 px-3 rounded-lg text-xs font-semibold transition-all ${\n                                  robloxDisplayContent === 'collectibles' ||\n                                  robloxDisplayContent === 'auto'\n                                    ? 'bg-white/15 text-white shadow-sm'\n                                    : 'text-gray-400 hover:text-white hover:bg-white/5'\n                                }`}"
+        },
+        {
+          "line": 2640,
+          "attribute": "className",
+          "expression": "{`py-1.5 px-3 rounded-lg text-xs font-semibold transition-all ${\n                                  robloxDisplayContent === 'places'\n                                    ? 'bg-white/15 text-white shadow-sm'\n                                    : 'text-gray-400 hover:text-white hover:bg-white/5'\n                                }`}"
+        },
+        {
+          "line": 2653,
+          "attribute": "className",
+          "expression": "\"p-3 rounded-2xl bg-black/40 border border-white/[0.08] flex flex-col gap-2\""
+        },
+        {
+          "line": 2654,
+          "attribute": "className",
+          "expression": "\"flex items-center justify-between\""
+        },
+        {
+          "line": 2655,
+          "attribute": "className",
+          "expression": "\"text-[10px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5\""
+        },
+        {
+          "line": 2656,
+          "attribute": "size",
+          "expression": "{12}"
+        },
+        {
+          "line": 2656,
+          "attribute": "className",
+          "expression": "\"text-white\""
+        },
+        {
+          "line": 2684,
+          "attribute": "className",
+          "expression": "\"flex items-center justify-between px-6 py-3.5 border-t border-white/[0.08] shrink-0 bg-[#0e0e11]\""
+        },
+        {
+          "line": 2688,
+          "attribute": "className",
+          "expression": "\"text-red-400 hover:text-red-300 text-xs font-semibold hover:underline transition cursor-pointer flex items-center gap-1.5\""
+        },
+        {
+          "line": 2690,
+          "attribute": "size",
+          "expression": "{13}"
+        },
+        {
+          "line": 2694,
+          "attribute": "className",
+          "expression": "\"flex items-center gap-2.5\""
+        },
+        {
+          "line": 2698,
+          "attribute": "className",
+          "expression": "\"px-4 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-xs font-semibold text-gray-300 hover:text-white transition cursor-pointer\""
+        },
+        {
+          "line": 2706,
+          "attribute": "className",
+          "expression": "\"px-5 py-2 rounded-xl text-xs font-bold bg-[#5865F2] hover:bg-[#4752C4] text-white transition-all shadow-[0_4px_16px_rgba(88,101,242,0.35)] flex items-center gap-1.5 cursor-pointer disabled:opacity-50 hover:scale-102 active:scale-98\""
+        },
+        {
+          "line": 2708,
+          "attribute": "size",
+          "expression": "{13}"
+        },
+        {
+          "line": 2708,
           "attribute": "className",
           "expression": "\"animate-spin\""
         },
         {
-          "line": 2591,
+          "line": 2708,
           "attribute": "size",
           "expression": "{13}"
         }
@@ -106768,7 +106773,6 @@
         "dark:placeholder:text-gray-500",
         "dark:text-emerald-300",
         "dark:text-gray-300",
-        "dark:text-gray-400",
         "dark:text-indigo-300",
         "dark:text-red-400",
         "dark:text-white",
@@ -106865,7 +106869,6 @@
         "text-emerald-500",
         "text-emerald-600",
         "text-gray-400",
-        "text-gray-500",
         "text-gray-600",
         "text-gray-700",
         "text-gray-900",
@@ -106875,6 +106878,7 @@
         "text-sm",
         "text-white",
         "text-xs",
+        "text-zinc-500",
         "top-2",
         "transition-all",
         "transition-colors",
@@ -106891,207 +106895,207 @@
       "colorLiterals": [],
       "presentation": [
         {
-          "line": 128,
+          "line": 131,
           "attribute": "className",
           "expression": "\"fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-2 sm:p-4 overflow-y-auto animate-in fade-in duration-200\""
         },
         {
-          "line": 132,
+          "line": 135,
           "attribute": "className",
           "expression": "\"w-full max-w-lg max-h-[92dvh] glass-modal border border-black/10 dark:border-white/10 rounded-2xl sm:rounded-3xl overflow-y-auto shadow-2xl flex flex-col my-auto text-gray-900 dark:text-white backdrop-blur-3xl animate-in zoom-in-95 duration-200\""
         },
         {
-          "line": 136,
+          "line": 139,
           "attribute": "className",
           "expression": "\"flex items-center justify-between px-4 py-3.5 sm:px-6 sm:py-4 border-b border-black/10 dark:border-white/10 shrink-0\""
         },
         {
-          "line": 137,
+          "line": 140,
           "attribute": "className",
           "expression": "\"flex items-center gap-2.5\""
         },
         {
-          "line": 138,
+          "line": 141,
           "attribute": "className",
           "expression": "\"w-8 h-8 rounded-xl bg-pink-500/10 flex items-center justify-center text-pink-500\""
         },
         {
-          "line": 139,
+          "line": 142,
           "attribute": "className",
           "expression": "\"w-4 h-4\""
         },
         {
-          "line": 141,
+          "line": 144,
           "attribute": "className",
           "expression": "\"text-base sm:text-lg font-bold text-gray-900 dark:text-white\""
         },
         {
-          "line": 148,
+          "line": 151,
           "attribute": "className",
           "expression": "\"p-1.5 rounded-full text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer\""
         },
         {
-          "line": 151,
+          "line": 154,
           "attribute": "className",
           "expression": "\"w-5 h-5\""
         },
         {
-          "line": 156,
+          "line": 159,
           "attribute": "className",
           "expression": "\"p-4 sm:p-6 space-y-4 overflow-y-auto\""
         },
         {
-          "line": 158,
+          "line": 161,
           "attribute": "className",
           "expression": "\"p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-500 dark:text-red-400 text-sm\""
         },
         {
-          "line": 167,
+          "line": 170,
           "attribute": "className",
           "expression": "\"border-2 border-dashed border-black/15 dark:border-white/15 hover:border-pink-500 rounded-2xl p-6 sm:p-9 flex flex-col items-center justify-center cursor-pointer transition-all bg-black/[0.02] dark:bg-white/[0.03] hover:bg-pink-500/[0.03] group\""
         },
         {
-          "line": 169,
+          "line": 172,
           "attribute": "className",
           "expression": "\"w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-pink-500/10 flex items-center justify-center mb-2 sm:mb-3 group-hover:scale-110 transition-transform shadow-xs\""
         },
         {
-          "line": 170,
+          "line": 173,
           "attribute": "className",
           "expression": "\"w-6 h-6 sm:w-7 sm:h-7 text-pink-500\""
         },
         {
-          "line": 172,
+          "line": 175,
           "attribute": "className",
           "expression": "\"font-semibold text-gray-900 dark:text-white text-xs sm:text-sm text-center\""
         },
         {
-          "line": 175,
+          "line": 178,
           "attribute": "className",
-          "expression": "\"text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1 text-center\""
+          "expression": "\"text-[11px] sm:text-xs text-zinc-500 mt-1 text-center\""
         },
         {
-          "line": 180,
+          "line": 183,
           "attribute": "className",
           "expression": "\"relative rounded-2xl overflow-hidden bg-black aspect-9/16 max-h-[min(280px,35dvh)] mx-auto flex items-center justify-center shadow-lg border border-black/10 dark:border-white/10\""
         },
         {
-          "line": 184,
+          "line": 187,
           "attribute": "className",
           "expression": "\"w-full h-full object-contain\""
         },
         {
-          "line": 192,
+          "line": 195,
           "attribute": "className",
           "expression": "\"absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-full hover:bg-black/80 cursor-pointer shadow-md\""
         },
         {
-          "line": 194,
+          "line": 197,
           "attribute": "className",
           "expression": "\"w-4 h-4\""
         },
         {
-          "line": 204,
+          "line": 207,
           "attribute": "className",
           "expression": "\"hidden\""
         },
         {
-          "line": 208,
+          "line": 211,
           "attribute": "className",
           "expression": "\"space-y-3\""
         },
         {
-          "line": 210,
+          "line": 213,
           "attribute": "className",
           "expression": "\"block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5\""
         },
         {
-          "line": 218,
+          "line": 221,
           "attribute": "className",
           "expression": "\"w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:border-pink-500 transition-colors resize-none\""
         },
         {
-          "line": 225,
+          "line": 228,
           "attribute": "className",
           "expression": "\"p-3.5 bg-indigo-500/10 border border-indigo-500/25 rounded-xl space-y-2\""
         },
         {
-          "line": 226,
+          "line": 229,
           "attribute": "className",
           "expression": "\"flex items-center justify-between text-xs font-semibold text-indigo-500 dark:text-indigo-300\""
         },
         {
-          "line": 227,
+          "line": 230,
           "attribute": "className",
           "expression": "\"flex items-center gap-1.5\""
-        },
-        {
-          "line": 228,
-          "attribute": "className",
-          "expression": "\"w-3.5 h-3.5 text-pink-500 animate-pulse\""
         },
         {
           "line": 231,
           "attribute": "className",
+          "expression": "\"w-3.5 h-3.5 text-pink-500 animate-pulse\""
+        },
+        {
+          "line": 234,
+          "attribute": "className",
           "expression": "\"font-mono\""
         },
         {
-          "line": 233,
+          "line": 236,
           "attribute": "className",
           "expression": "\"w-full bg-black/10 dark:bg-zinc-800 rounded-full h-2 overflow-hidden\""
         },
         {
-          "line": 235,
+          "line": 238,
           "attribute": "className",
           "expression": "\"bg-linear-to-r from-pink-500 to-indigo-500 h-full transition-all duration-150 rounded-full\""
         },
         {
-          "line": 236,
+          "line": 239,
           "attribute": "style",
           "expression": "{{ width: `${compressionPercent}%` }}"
         },
         {
-          "line": 243,
+          "line": 246,
           "attribute": "className",
           "expression": "\"p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-between text-xs font-medium text-emerald-600 dark:text-emerald-300\""
         },
         {
-          "line": 244,
+          "line": 247,
           "attribute": "className",
           "expression": "\"flex items-center gap-1.5\""
         },
         {
-          "line": 245,
+          "line": 248,
           "attribute": "className",
           "expression": "\"w-3.5 h-3.5 text-emerald-500\""
         },
         {
-          "line": 248,
+          "line": 251,
           "attribute": "className",
           "expression": "\"font-mono font-bold\""
         },
         {
-          "line": 256,
+          "line": 259,
           "attribute": "className",
           "expression": "\"flex justify-end gap-3 pt-2\""
         },
         {
-          "line": 261,
+          "line": 264,
           "attribute": "className",
           "expression": "\"px-4 py-2 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50 transition-colors cursor-pointer\""
         },
         {
-          "line": 268,
+          "line": 271,
           "attribute": "className",
           "expression": "\"px-6 py-2 rounded-xl text-sm font-semibold bg-linear-to-r from-pink-600 to-indigo-600 text-white hover:opacity-90 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg flex items-center gap-2 cursor-pointer\""
         },
         {
-          "line": 272,
+          "line": 275,
           "attribute": "className",
           "expression": "\"w-4 h-4 animate-spin\""
         },
         {
-          "line": 277,
+          "line": 280,
           "attribute": "className",
           "expression": "\"w-4 h-4 animate-spin\""
         }
@@ -141046,97 +141050,97 @@
       "colorLiterals": ["#0e0e11", "#141417", "#5865F2"],
       "presentation": [
         {
-          "line": 118,
+          "line": 116,
           "attribute": "className",
           "expression": "\"flex items-center justify-center min-h-screen bg-[#0e0e11] text-white p-6 select-none font-sans\""
         },
         {
-          "line": 119,
+          "line": 117,
           "attribute": "className",
           "expression": "\"text-center p-8 rounded-3xl bg-[#141417] border border-white/[0.1] shadow-2xl max-w-sm w-full flex flex-col items-center gap-4\""
         },
         {
-          "line": 122,
+          "line": 120,
           "attribute": "className",
           "expression": "\"w-12 h-12 rounded-2xl bg-[#5865F2]/10 border border-[#5865F2]/30 flex items-center justify-center text-[#5865F2]\""
         },
         {
-          "line": 123,
+          "line": 121,
           "attribute": "size",
           "expression": "{24}"
         },
         {
-          "line": 123,
+          "line": 121,
           "attribute": "className",
           "expression": "\"animate-spin\""
         },
         {
-          "line": 125,
+          "line": 123,
           "attribute": "className",
           "expression": "\"flex flex-col gap-1\""
         },
         {
-          "line": 126,
+          "line": 124,
           "attribute": "className",
           "expression": "\"text-base font-bold text-white capitalize\""
         },
         {
-          "line": 129,
+          "line": 127,
           "attribute": "className",
           "expression": "\"text-xs text-gray-400\""
         },
         {
-          "line": 138,
+          "line": 136,
           "attribute": "className",
           "expression": "\"w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-[0_0_24px_rgba(16,185,129,0.3)]\""
         },
         {
-          "line": 139,
+          "line": 137,
           "attribute": "size",
           "expression": "{26}"
         },
         {
-          "line": 141,
+          "line": 139,
           "attribute": "className",
           "expression": "\"flex flex-col gap-1\""
         },
         {
-          "line": 142,
+          "line": 140,
           "attribute": "className",
           "expression": "\"text-base font-bold text-white capitalize\""
         },
         {
-          "line": 145,
+          "line": 143,
           "attribute": "className",
           "expression": "\"text-xs text-gray-400\""
         },
         {
-          "line": 154,
+          "line": 152,
           "attribute": "className",
           "expression": "\"w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 shadow-[0_0_24px_rgba(239,68,68,0.3)]\""
         },
         {
-          "line": 155,
+          "line": 153,
           "attribute": "size",
           "expression": "{26}"
         },
         {
-          "line": 157,
+          "line": 155,
           "attribute": "className",
           "expression": "\"flex flex-col gap-1\""
         },
         {
-          "line": 158,
+          "line": 156,
           "attribute": "className",
           "expression": "\"text-base font-bold text-white\""
         },
         {
-          "line": 159,
+          "line": 157,
           "attribute": "className",
           "expression": "\"text-xs text-gray-400 leading-relaxed\""
         },
         {
-          "line": 164,
+          "line": 162,
           "attribute": "className",
           "expression": "\"mt-2 px-4 py-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] text-xs font-bold text-white transition-colors cursor-pointer\""
         }

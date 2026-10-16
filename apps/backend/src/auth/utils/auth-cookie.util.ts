@@ -9,6 +9,23 @@ export interface CookieResponse {
   clearCookie?: (name: string, options?: Record<string, unknown>) => void;
 }
 
+// maxAge is in seconds; Express requires milliseconds while Fastify uses seconds.
+export function setResponseCookie(
+  res: CookieResponse,
+  name: string,
+  value: string,
+  options: Record<string, unknown>,
+): void {
+  if (typeof res.setCookie === 'function') {
+    res.setCookie(name, value, options);
+  } else if (typeof res.cookie === 'function') {
+    res.cookie(name, value, {
+      ...options,
+      ...(typeof options.maxAge === 'number' ? { maxAge: options.maxAge * 1000 } : {}),
+    });
+  }
+}
+
 export function parseTtlToSeconds(ttl?: string): number {
   if (!ttl) return 7 * 24 * 60 * 60;
   const match = /^(\d+)([smhd])$/.exec(ttl);

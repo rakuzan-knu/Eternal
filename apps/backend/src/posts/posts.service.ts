@@ -1,3 +1,4 @@
+import { DirectUploadsService } from '../common/media/direct-uploads.service';
 import {
   BadRequestException,
   ForbiddenException,
@@ -35,6 +36,9 @@ import { FeedScoringService } from './feed-scoring.service';
 
 @Injectable()
 export class PostsService {
+  @Inject(DirectUploadsService)
+  private readonly directUploads!: DirectUploadsService;
+
   private readonly logger = new Logger(PostsService.name);
   private static readonly CACHE_POST_PREFIX = 'posts:';
   private static readonly CACHE_FEED_PATTERN = 'posts:feed:*';
@@ -129,6 +133,9 @@ export class PostsService {
     authorId: string,
     files?: Express.Multer.File[],
   ): Promise<PostResponseDto> {
+    if (files !== undefined && !Array.isArray(files))
+      throw new BadRequestException('Uploaded files must be an array');
+    const uploadedFiles = Array.isArray(files) ? files : [];
     const mediaItems: {
       type: MediaType;
       url: string;
@@ -137,13 +144,33 @@ export class PostsService {
       order: number;
     }[] = [];
 
+    if (uploadedFiles.length) this.directUploads.assertLegacyAllowed();
+    const directMedia = [];
+    const legacyReferences = [];
+    for (const item of dto.media ?? []) {
+      if (!this.directUploads.isDirectUploadUrl(item.url, 'post')) {
+        legacyReferences.push({ url: item.url, kind: 'uploaded' as const });
+        continue;
+      }
+      await this.directUploads.assertOwnedUrl(authorId, item.url, 'post');
+      if (item.poster) await this.directUploads.assertOwnedUrl(authorId, item.poster, 'post');
+      directMedia.push(item);
+    }
+    const gifUrls = dto.gifUrls ?? [];
+    if (!Array.isArray(gifUrls) || gifUrls.some((url) => typeof url !== 'string'))
+      throw new BadRequestException('GIF references must be an array of URLs');
     const references = [
-      ...(dto.media ?? []).map((item) => ({ url: item.url, kind: 'uploaded' as const })),
-      ...(dto.gifUrls ?? []).map((url) => ({ url, kind: 'gif' as const })),
+      ...legacyReferences,
+      ...gifUrls.map((url) => ({ url, kind: 'gif' as const })),
     ];
-    if (files?.length || references.length) {
-      const processed = await this.mediaService.processUploadedFiles(files ?? [], references);
+    if (uploadedFiles.length + references.length + directMedia.length > 5)
+      throw new BadRequestException('Maximum 5 media files allowed per post');
+    if (uploadedFiles.length || references.length) {
+      const processed = await this.mediaService.processUploadedFiles(uploadedFiles, references);
       processed.forEach((item: ProcessedMedia) => mediaItems.push(item));
+    }
+    for (const item of directMedia) {
+      mediaItems.push({ ...item, order: mediaItems.length });
     }
     const contentText = (dto.content ?? '').trim();
     const pollOptions = dto.poll?.map((option) => String(option).trim()).filter(Boolean) ?? [];
@@ -657,6 +684,7 @@ export class PostsService {
     file: Express.Multer.File,
     ownerId: string,
   ) {
+    this.directUploads.assertLegacyAllowed();
     return await this.mediaService.uploadChunk(uploadId, chunkIndex, totalChunks, file, ownerId);
   }
 

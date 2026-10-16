@@ -16,6 +16,8 @@ services:
         value: 'production'
       - key: AUTO_MIGRATE
         value: 'true'
+      - key: DATABASE_POOL_LIMIT
+        value: '5'
       - key: CORS_ORIGIN
         sync: false
       - key: DATABASE_URL
@@ -37,7 +39,7 @@ services:
       - key: SENTRY_DSN
         sync: false
       - key: SENTRY_TRACES_SAMPLE_RATE
-        value: '1.0'
+        value: '0.1'
       # Cloudflare R2 Object Storage (Zero local media stored on Render)
       - key: STORAGE_DRIVER
         value: 'r2'

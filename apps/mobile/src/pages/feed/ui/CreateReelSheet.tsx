@@ -8,6 +8,7 @@ import type { ReelResponseDto } from '@social-network/shared-contracts';
 import { assertSession, getMobileApi } from '@/shared/api/client';
 import { Button } from '@/shared/ui';
 import { reelForm } from '../api/postForm';
+import { prepareMobileUploadForm } from '../api/directUploadForm';
 import { Video } from './MediaGallery';
 import { colors, common, ErrorNotice, Sheet } from './primitives';
 
@@ -39,7 +40,9 @@ export function CreateReelSheet({
       const refreshToken = useAuthStore.getState().refreshToken;
       const body = await reelForm(asset, { caption, audioTitle, audioArtist });
       assertSession(userId, refreshToken);
-      return (await getMobileApi().post<ReelResponseDto>('/reels', body)).data;
+      const prepared = await prepareMobileUploadForm(getMobileApi(), body, 'reel');
+      assertSession(userId, refreshToken);
+      return (await getMobileApi().post<ReelResponseDto>('/reels', prepared)).data;
     },
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: ['mobile', userId, 'reels'] });
@@ -70,9 +73,9 @@ export function CreateReelSheet({
           setError('Choose a video for your reel.');
           return;
         }
-        // Match the actual multipart upload limit, which is lower than the web picker limit.
-        if ((selected.fileSize ?? selected.file?.size ?? 0) > 100 * 1024 * 1024) {
-          setError('Choose a video smaller than 100 MB.');
+        // Match the direct upload admission policy before reading the device file.
+        if ((selected.fileSize ?? selected.file?.size ?? 0) > 20 * 1024 * 1024) {
+          setError('Choose a video smaller than 20 MiB.');
           return;
         }
         setAsset(selected);
@@ -118,7 +121,7 @@ export function CreateReelSheet({
           <Text style={common.title}>
             {picking ? 'Opening video library…' : 'Select a vertical video'}
           </Text>
-          <Text style={common.muted}>Up to 100 MB · 9:16 recommended</Text>
+          <Text style={common.muted}>Up to 20 MiB · 60 seconds · 1920 px</Text>
         </Pressable>
       )}
       <View style={s.field}>

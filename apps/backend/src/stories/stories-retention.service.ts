@@ -1,3 +1,4 @@
+import { runsBackground } from '../config/service-role';
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
@@ -63,6 +64,7 @@ export class StoriesRetentionService implements OnModuleDestroy {
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async cleanupExpiredStories(): Promise<void> {
+    if (!runsBackground('core')) return;
     this.logger.log('Starting daily expired stories cleanup job...');
 
     try {
@@ -76,9 +78,11 @@ export class StoriesRetentionService implements OnModuleDestroy {
         `Found ${expired.length} expired stories. Purging files and database records...`,
       );
 
+      const expiredIds = expired.map((story) => story.id);
       for (const story of expired) {
         for (const url of storyMediaAssets(story)) {
           try {
+            if (await this.storiesRepo.isMediaReferenced(url, expiredIds)) continue;
             await deleteFromStorage(this.s3, {
               url,
               bucket: this.bucket,

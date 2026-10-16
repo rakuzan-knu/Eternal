@@ -1,6 +1,16 @@
 import { NestFactory } from '@nestjs/core';
 import type { Request, Response } from 'express';
 
+type SendHook = (
+  request: unknown,
+  reply: { header: (name: string, value: string) => unknown },
+  payload: unknown,
+) => Promise<unknown>;
+
+const { mockAddHook } = vi.hoisted(() => ({
+  mockAddHook: vi.fn<(event: string, hook: SendHook) => void>(),
+}));
+
 jest.mock('../instrument', () => ({}));
 jest.mock('dotenv', () => ({
   config: jest.fn(),
@@ -47,7 +57,9 @@ jest.mock('@fastify/multipart', () => ({ default: jest.fn(() => jest.fn()), __es
 jest.mock('@nestjs/platform-fastify', () => {
   return {
     FastifyAdapter: jest.fn().mockImplementation(function () {
-      return {};
+      return {
+        getInstance: jest.fn().mockReturnValue({ addHook: mockAddHook }),
+      };
     }),
   };
 });
@@ -184,6 +196,7 @@ describe('main.ts handler and bootstrap', () => {
 
   it('handles CORS options callback in bootstrap', async () => {
     process.env.NODE_ENV = 'development';
+    process.env.SERVICE_ROLE = 'core';
     delete process.env.VERCEL;
     process.env.CORS_ORIGIN = 'http://allowed-domain.com';
 
@@ -192,6 +205,15 @@ describe('main.ts handler and bootstrap', () => {
     await import('../main.js');
 
     await new Promise((resolve) => setTimeout(resolve, 50));
+
+    expect(mockAddHook).toHaveBeenCalledTimes(1);
+    expect(mockAddHook).toHaveBeenCalledWith('onSend', expect.any(Function));
+    const hook = mockAddHook.mock.calls[0]?.[1];
+    expect(hook).toBeDefined();
+    const reply = { header: jest.fn() };
+    const payload = { status: 'ok' };
+    expect(await hook?.({}, reply, payload)).toBe(payload);
+    expect(reply.header).toHaveBeenCalledWith('X-Service-Role', 'core');
 
     expect(corsSpy).toHaveBeenCalled();
     const calls = corsSpy.mock.calls as unknown as Array<[CorsOptions]>;

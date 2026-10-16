@@ -1,4 +1,4 @@
-import { setOAuthCookie } from '../common/security/oauth-state';
+import { setOAuthCookie, readOAuthCookieState } from '../common/security/oauth-state';
 import {
   Controller,
   Get,
@@ -15,8 +15,13 @@ import {
   UnauthorizedException,
   NotFoundException,
   BadRequestException,
+  ValidationPipe,
+  Headers,
+  Header,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import type { FastifyAdapter } from '@nestjs/platform-fastify';
+import { Readable } from 'node:stream';
 import { AuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OptionalAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -27,6 +32,11 @@ import { SpotifyService } from './spotify.service';
 import { SoundCloudService } from './soundcloud.service';
 import { PrismaService } from '@common/prisma';
 import { isSupportedPlatform, assignPlatformData } from './platform.utils';
+import { SteamAuthStartDto, SteamAuthLaunchDto } from './dto/steam-auth.dto';
+import { STEAM_AUTH_COOKIE } from './steam-auth.service';
+import { steamAccountPreferences } from './steam-account';
+
+type FastifyReply = ReturnType<FastifyAdapter['reply']>;
 
 interface SyncLikedTrackItem {
   id: string;
@@ -86,16 +96,21 @@ export class IntegrationsController {
   async redirectToSpotify(@CurrentUser() user: RequestUser, @Res() res: Response) {
     const url = await this.spotifyService.getAuthorizationUrl(user.id);
     setOAuthCookie(res, 'spotify', new URL(url).searchParams.get('state')!);
-    return res.redirect(url);
+    return res.status(302).redirect(url);
   }
 
+  @Header('Cross-Origin-Opener-Policy', 'unsafe-none')
   @Get(['spotify/callback', 'auth/spotify/callback', 'api/auth/spotify/callback'])
   async handleSpotifyCallback(
     @Query() query: Record<string, any>,
     @Res() res: Response,
     @Req() req: Request,
   ) {
-    return this.spotifyService.handleOAuthCallback(query, res, req.cookies?.spotify_oauth_state);
+    return this.spotifyService.handleOAuthCallback(
+      query,
+      res,
+      readOAuthCookieState(req, 'spotify'),
+    );
   }
 
   @UseGuards(AuthGuard)
@@ -308,7 +323,7 @@ export class IntegrationsController {
   ) {
     const result = await this.soundCloudService.getStreamUrl(trackId, bypassCache === 'true');
     if (redirect === 'true' && result?.streamUrl && res) {
-      return res.redirect(result.streamUrl);
+      return res.status(302).redirect(result.streamUrl);
     }
     return result;
   }
@@ -317,11 +332,14 @@ export class IntegrationsController {
   async streamSoundCloudAudio(
     @Param('trackId') trackId: string,
     @Req() req: Request,
-    @Res() res: Response,
+    @Res() res: FastifyReply,
   ) {
     const result = await this.soundCloudService.getStreamUrl(trackId);
     if (!result?.streamUrl) {
-      return res.status(404).json({ error: 'Stream not found' });
+      return res.status(404).send({ error: 'Stream not found' });
+    }
+    if (process.env.SOUNDCLOUD_AUDIO_PROXY_ENABLED !== 'true') {
+      return res.status(302).redirect(result.streamUrl);
     }
 
     try {
@@ -338,34 +356,21 @@ export class IntegrationsController {
       for (const [key, val] of audioResponse.headers.entries()) {
         const lower = key.toLowerCase();
         if (['content-range', 'accept-ranges', 'content-length', 'content-type'].includes(lower)) {
-          res.setHeader(key, val);
+          res.header(key, val);
         }
       }
 
       if (!res.getHeader('accept-ranges')) {
-        res.setHeader('Accept-Ranges', 'bytes');
+        res.header('Accept-Ranges', 'bytes');
       }
 
-      const reader = audioResponse.body?.getReader();
-      if (!reader) {
-        return res.end();
+      if (!audioResponse.body) {
+        return res.send();
       }
 
-      const pump = async () => {
-        try {
-          while (true) {
-            const chunk = (await reader.read()) as { done: boolean; value?: Uint8Array };
-            if (chunk.done) break;
-            if (chunk.value) res.write(chunk.value);
-          }
-          res.end();
-        } catch {
-          res.end();
-        }
-      };
-      void pump();
+      return res.send(Readable.fromWeb(audioResponse.body));
     } catch {
-      return res.redirect(result.streamUrl);
+      return res.status(302).redirect(result.streamUrl);
     }
   }
 
@@ -390,15 +395,53 @@ export class IntegrationsController {
 
   @UseGuards(AuthGuard)
   @Get('steam/auth')
-  async redirectToSteam(
+  redirectToSteam(): never {
+    throw new UnauthorizedException('Start Steam authentication with an authenticated POST');
+  }
+
+  @Post('steam/auth')
+  @UseGuards(AuthGuard)
+  @Header('Cache-Control', 'no-store')
+  startSteamAuth(
     @CurrentUser() user: RequestUser,
-    @Req() req: Request,
-    @Res() res: Response,
+    @Body(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+    body: SteamAuthStartDto,
   ) {
-    const url = await this.integrationsService.getSteamAuthUrl(user.id, req);
-    const returnTo = new URL(new URL(url).searchParams.get('openid.return_to')!);
-    setOAuthCookie(res, 'steam', returnTo.searchParams.get('state')!);
-    return res.redirect(url);
+    return this.integrationsService.getSteamAuthUrl(user.id, body.origin);
+  }
+
+  @Get('steam/launch')
+  steamLaunchPage(@Res() res: FastifyReply): FastifyReply {
+    return res
+      .header('Cache-Control', 'no-store')
+      .header('Referrer-Policy', 'no-referrer')
+      .header('Cross-Origin-Opener-Policy', 'unsafe-none')
+      .type('text/html; charset=utf-8')
+      .send(this.integrationsService.getSteamLaunchPage());
+  }
+
+  @Post('steam/launch')
+  async launchSteamAuth(
+    @Body(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+    body: SteamAuthLaunchDto,
+    @Res({ passthrough: true }) res: FastifyReply,
+    @Headers('origin') requestOrigin?: string,
+  ) {
+    const result = await this.integrationsService.launchSteamAuth(
+      body.ticket,
+      body.proof,
+      body.origin,
+      requestOrigin,
+    );
+    res.setCookie(STEAM_AUTH_COOKIE, result.browserProof, {
+      httpOnly: true,
+      secure: result.secure,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 600,
+    });
+    res.header('Cache-Control', 'no-store');
+    return { url: result.url };
   }
 
   // --- Music Hub: User Personal Liked Tracks (Persisted in PostgreSQL) ---
@@ -979,26 +1022,66 @@ export class IntegrationsController {
 
   @Get('steam/callback')
   async handleSteamCallback(
-    @Query() query: Record<string, any>,
-    @Res() res: Response,
-    @Req() req: Request,
+    @Query() query: Record<string, unknown>,
+    @Req() req: { url: string; cookies?: Record<string, unknown> },
+    @Res() res: FastifyReply,
   ) {
-    return this.integrationsService.handleSteamCallback(query, res, req.cookies?.steam_oauth_state);
+    res.clearCookie(STEAM_AUTH_COOKIE, { path: '/' });
+    res
+      .header('Cache-Control', 'no-store')
+      .header('Referrer-Policy', 'no-referrer')
+      .header('Cross-Origin-Opener-Policy', 'unsafe-none');
+    const html = await this.integrationsService.handleSteamCallback(
+      query,
+      req.cookies?.[STEAM_AUTH_COOKIE],
+      req.url.split('?')[0] || '',
+    );
+    return res.type('text/html; charset=utf-8').send(html);
+  }
+
+  @Get('oauth/launch')
+  @Header('Cache-Control', 'no-store')
+  @Header('Referrer-Policy', 'no-referrer')
+  @Header('Cross-Origin-Opener-Policy', 'unsafe-none')
+  oauthLaunchPage(@Res() res: FastifyReply): FastifyReply {
+    return res.type('text/html; charset=utf-8').send(this.integrationsService.getOAuthLaunchPage());
+  }
+
+  @Post('oauth/launch')
+  @Header('Cache-Control', 'no-store')
+  async launchOAuth(
+    @Body() body: unknown,
+    @Headers('origin') origin: string | undefined,
+    @Res() res: Response,
+  ) {
+    const result = await this.integrationsService.launchOAuth(body, origin);
+    setOAuthCookie(res, result.provider, result.state);
+    return res.send({ url: result.url });
+  }
+
+  @UseGuards(AuthGuard)
+  @Post('spotify/oauth/start')
+  @Header('Cache-Control', 'no-store')
+  async startSpotifyOAuth(
+    @CurrentUser() user: RequestUser,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const url = await this.spotifyService.getAuthorizationUrl(user.id);
+    return res.send(
+      await this.integrationsService.prepareOAuthLaunch(url, String(req.headers.origin || '')),
+    );
   }
 
   @UseGuards(AuthGuard)
   @Post(':platform/oauth/start')
+  @Header('Cache-Control', 'no-store')
   async startOAuth(
     @Param('platform') platform: string,
     @CurrentUser() user: RequestUser,
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    if (platform === 'spotify') {
-      const url = await this.spotifyService.getAuthorizationUrl(user.id);
-      setOAuthCookie(res, 'spotify', new URL(url).searchParams.get('state')!);
-      return res.send({ url });
-    }
     return this.integrationsService.handlePlatformOAuthStart(platform, user.id, req, res, true);
   }
 
@@ -1013,6 +1096,7 @@ export class IntegrationsController {
     return this.integrationsService.handlePlatformOAuthStart(platform, user.id, req, res);
   }
 
+  @Header('Cross-Origin-Opener-Policy', 'unsafe-none')
   @Get([':platform/callback', 'auth/:platform/callback', 'api/auth/:platform/callback'])
   async handlePlatformOAuthCallback(
     @Param('platform') platform: string,
@@ -1020,7 +1104,7 @@ export class IntegrationsController {
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    const combinedQuery = { ...query, browserState: req.cookies?.[`${platform}_oauth_state`] };
+    const combinedQuery = { ...query, browserState: readOAuthCookieState(req, platform) };
     return this.integrationsService.handlePlatformOAuthCallback(platform, combinedQuery, res);
   }
 
@@ -1087,12 +1171,13 @@ export class IntegrationsController {
       throw new BadRequestException('Unsupported or invalid platform');
     }
 
-    const data =
-      body.details ||
-      (await this.integrationsService.getPlatformData(platform, body.handle, body.options));
-
     const showcase = await this.showcaseService.getShowcase(user.username, user.id);
     const existingConnected = (showcase?.connectedAccounts as Record<string, any>) || {};
+    const data =
+      platform.trim().toLowerCase() === 'steam'
+        ? steamAccountPreferences(existingConnected.steam, body.details || {})
+        : body.details ||
+          (await this.integrationsService.getPlatformData(platform, body.handle, body.options));
 
     const updatedConnected = assignPlatformData(existingConnected, platform, data);
 

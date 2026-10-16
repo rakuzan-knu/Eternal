@@ -1,5 +1,18 @@
+import {
+  issueOAuthLaunch,
+  consumeOAuthLaunch,
+  oauthLaunchPage,
+} from '../common/security/oauth-launch';
 import { issueOAuthState, consumeOAuthState, setOAuthCookie } from '../common/security/oauth-state';
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+  Optional,
+  ServiceUnavailableException,
+} from '@nestjs/common';
+import { SteamAuthService } from './steam-auth.service';
 import type { Request, Response } from 'express';
 import { RedisService } from '../redis/redis.service';
 import { PrismaService } from '@common/prisma';
@@ -55,6 +68,7 @@ export class IntegrationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
+    @Optional() private readonly steamAuth?: SteamAuthService,
   ) {}
 
   private async getTwitchAppToken(): Promise<string | null> {
@@ -87,72 +101,36 @@ export class IntegrationsService {
     return null;
   }
 
-  async getSteamAuthUrl(userId: string, req: Request, existingState?: string): Promise<string> {
-    const host = req.get('host') || 'localhost:3000';
-    const protocol = req.protocol || 'http';
-    const backendUrl = `${protocol}://${host}`;
+  private requireSteamAuth(): SteamAuthService {
+    if (!this.steamAuth) throw new ServiceUnavailableException('Steam authentication unavailable');
+    return this.steamAuth;
+  }
 
-    const state = existingState || (await issueOAuthState(this.redis, 'steam', userId));
-    const returnTo = `${backendUrl}/integrations/steam/callback?state=${encodeURIComponent(state)}`;
-    const steamUrl = new URL('https://steamcommunity.com/openid/login');
-    steamUrl.searchParams.set('openid.ns', 'http://specs.openid.net/auth/2.0');
-    steamUrl.searchParams.set('openid.mode', 'checkid_setup');
-    steamUrl.searchParams.set('openid.return_to', returnTo);
-    steamUrl.searchParams.set('openid.realm', backendUrl);
-    steamUrl.searchParams.set(
-      'openid.identity',
-      'http://specs.openid.net/auth/2.0/identifier_select',
-    );
-    steamUrl.searchParams.set(
-      'openid.claimed_id',
-      'http://specs.openid.net/auth/2.0/identifier_select',
-    );
-    return steamUrl.toString();
+  getSteamAuthUrl(userId: string, origin: string) {
+    return this.requireSteamAuth().start(userId, origin);
+  }
+
+  getSteamLaunchPage(): string {
+    return this.requireSteamAuth().launchPage();
+  }
+
+  launchSteamAuth(ticket: string, proof: string, openerOrigin: string, requestOrigin?: string) {
+    return this.requireSteamAuth().launch(ticket, proof, openerOrigin, requestOrigin);
   }
 
   async handleSteamCallback(
     query: Record<string, unknown>,
-    res: Response,
-    browserState?: string,
-  ): Promise<void> {
-    const claimedId =
-      typeof query['openid.claimed_id'] === 'string'
-        ? query['openid.claimed_id']
-        : typeof query['openid.identity'] === 'string'
-          ? query['openid.identity']
-          : null;
-    const state = typeof query.state === 'string' ? query.state : undefined;
-    const { userId } = await consumeOAuthState(this.redis, 'steam', state, undefined, browserState);
+    browserProof: unknown,
+    callbackPath: string,
+  ): Promise<string> {
+    const { userId, origin, steamId } = await this.requireSteamAuth().verify(
+      query,
+      browserProof,
+      callbackPath,
+    );
 
-    if (!claimedId) {
-      res.status(400).send('Invalid OpenID response from Steam');
-      return;
-    }
-
-    // Extract 64-bit Steam ID strictly validating digits
-    const match = claimedId.match(/^https:\/\/steamcommunity\.com\/openid\/id\/(\d{17})$/);
-    if (!match) {
-      res.status(400).send('Invalid Steam OpenID claimed ID format');
-      return;
-    }
-    const steamId = match[1];
-
-    const verification = new URLSearchParams();
-    for (const [key, value] of Object.entries(query)) {
-      if (key.startsWith('openid.') && typeof value === 'string') verification.set(key, value);
-    }
-    verification.set('openid.mode', 'check_authentication');
-    const verified = await fetch('https://steamcommunity.com/openid/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: verification,
-      signal: AbortSignal.timeout(10000),
-    });
-    if (!verified.ok || !(await verified.text()).split(/\r?\n/).includes('is_valid:true')) {
-      throw new BadRequestException('Invalid Steam provider assertion');
-    }
     // Fetch verified Steam data
-    const steamData = await this.fetchSteam(steamId, { featuredGame: 'dota2' });
+    const steamData = await this.getPlatformData('steam', steamId, { featuredGame: 'dota2' });
 
     if (userId) {
       const showcase = await this.prisma.profileShowcase.findUnique({
@@ -180,8 +158,7 @@ export class IntegrationsService {
       await this.redis.del(`showcase:user:${userId}`);
     }
 
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.send(`<!DOCTYPE html>
+    return `<!DOCTYPE html>
 <html>
   <head>
     <title>Steam Account Connected</title>
@@ -207,7 +184,7 @@ export class IntegrationsService {
       function broadcast() {
         if (window.opener) {
           try {
-            window.opener.postMessage({ type: 'INTEGRATION_AUTH_SUCCESS', platform: 'steam' }, '*');
+            window.opener.postMessage({ type: 'INTEGRATION_AUTH_SUCCESS', platform: 'steam' }, ${JSON.stringify(origin)});
           } catch(e) {}
         }
       }
@@ -226,13 +203,13 @@ export class IntegrationsService {
           if (window.opener) {
             window.close();
           } else {
-            window.location.href = '/settings';
+            window.location.href = ${JSON.stringify(origin + '/settings')};
           }
         }
       }, 1000);
     </script>
   </body>
-</html>`);
+</html>`;
   }
 
   async handlePlatformOAuthStart(
@@ -242,14 +219,14 @@ export class IntegrationsService {
     res: Response,
     asJson = false,
   ): Promise<void> {
-    const host = req.get('host') || 'localhost:3000';
+    const host = req.headers.host || 'localhost:3000';
     const protocol = req.protocol || 'http';
     const backendUrl = `${protocol}://${host}`;
     const p = platform.toLowerCase();
 
     const rawOrigin = req.query['origin'];
     const queryOrigin = typeof rawOrigin === 'string' ? rawOrigin : '';
-    const referer = req.get('referer') || '';
+    const referer = req.headers.referer || '';
     let clientOrigin = queryOrigin;
     if (!clientOrigin && referer) {
       try {
@@ -268,27 +245,15 @@ export class IntegrationsService {
       isVercel = false;
     }
 
-    const finish = (url: string) => {
-      if (asJson) res.send({ url });
-      else res.redirect(url);
+    const finish = async (url: string) => {
+      if (asJson) res.send(await this.prepareOAuthLaunch(url, String(req.headers.origin || '')));
+      else res.status(302).redirect(url);
     };
-    const state = await issueOAuthState(this.redis, p, userId);
-    setOAuthCookie(res, p, state);
-    if (p === 'github') {
-      const url = new URL('https://github.com/login/oauth/authorize');
-      url.searchParams.set('client_id', process.env.GITHUB_CLIENT_ID || '');
-      const githubCallback = process.env.GITHUB_CALLBACK_URL;
-      url.searchParams.set(
-        'redirect_uri',
-        githubCallback && !githubCallback.includes(':5000')
-          ? githubCallback
-          : `http://localhost:${process.env.PORT || 3000}/api/auth/github/callback`,
-      );
-      url.searchParams.set('scope', 'read:user');
-      url.searchParams.set('state', state);
-      return finish(url.toString());
+    if (p === 'github' || p === 'steam') {
+      throw new BadRequestException('Use the dedicated authenticated provider start endpoint');
     }
-    if (p === 'steam') return finish(await this.getSteamAuthUrl(userId, req, state));
+    const state = await issueOAuthState(this.redis, p, userId);
+    if (!asJson) setOAuthCookie(res, p, state);
 
     if (p === 'spotify' && process.env.SPOTIFY_CLIENT_ID) {
       const spotifyUrl = new URL('https://accounts.spotify.com/authorize');
@@ -340,7 +305,7 @@ export class IntegrationsService {
     }
 
     if (p === 'roblox') {
-      res.setHeader('Content-Type', 'text/html');
+      res.header('Content-Type', 'text/html');
       res.send(`
         <!DOCTYPE html>
         <html>
@@ -357,8 +322,27 @@ export class IntegrationsService {
       return;
     }
 
-    const callbackUrl = `${backendUrl}/integrations/${p}/callback?userId=${encodeURIComponent(userId || '')}`;
-    return res.redirect(callbackUrl);
+    throw new BadRequestException('Unsupported OAuth provider');
+  }
+
+  private oauthLaunchUrl(): string {
+    const origin =
+      process.env.RENDER_EXTERNAL_URL ||
+      (process.env.NODE_ENV !== 'production' ? 'http://localhost:3000' : '');
+    if (!origin) throw new ServiceUnavailableException('OAuth callback host is not configured');
+    return new URL('/v1/integrations/oauth/launch', origin).href;
+  }
+
+  prepareOAuthLaunch(url: string, origin: string) {
+    return issueOAuthLaunch(this.redis, url, origin, this.oauthLaunchUrl());
+  }
+
+  getOAuthLaunchPage(): string {
+    return oauthLaunchPage();
+  }
+
+  launchOAuth(body: unknown, origin?: string) {
+    return consumeOAuthLaunch(this.redis, body, origin, this.oauthLaunchUrl());
   }
 
   async exchangeOAuthCode(
@@ -825,7 +809,7 @@ export class IntegrationsService {
           ? query['error_description']
           : null;
     if (error) {
-      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.header('Content-Type', 'text/html; charset=utf-8');
       res.status(400).send(`<!DOCTYPE html>
 <html>
   <head><title>Authentication Failed</title></head>
@@ -842,7 +826,7 @@ export class IntegrationsService {
 
     const code = typeof query['code'] === 'string' ? query['code'] : null;
     if (!code || typeof code !== 'string') {
-      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.header('Content-Type', 'text/html; charset=utf-8');
       res.status(400).send(`<!DOCTYPE html>
 <html>
   <head><title>Authentication Failed</title></head>
@@ -868,7 +852,7 @@ export class IntegrationsService {
         typeof query.browserState === 'string' ? query.browserState : undefined,
       );
     } catch {
-      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.header('Content-Type', 'text/html; charset=utf-8');
       res.status(400).send(`<!DOCTYPE html>
 <html>
   <head><title>Authentication Failed</title></head>
@@ -883,7 +867,7 @@ export class IntegrationsService {
       return;
     }
 
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.header('Content-Type', 'text/html; charset=utf-8');
     res.send(`<!DOCTYPE html>
 <html>
   <head>
@@ -910,7 +894,7 @@ export class IntegrationsService {
       function broadcast() {
         if (window.opener) {
           try {
-            window.opener.postMessage({ type: 'INTEGRATION_AUTH_SUCCESS' }, '*');
+            window.opener.postMessage({ type: 'INTEGRATION_AUTH_SUCCESS', platform: ${JSON.stringify(p)} }, '*');
           } catch(e) {}
         }
       }

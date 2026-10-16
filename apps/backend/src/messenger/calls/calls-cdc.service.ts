@@ -11,6 +11,7 @@ import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Client as PgClient } from 'pg';
 import { RedisService } from '../../redis/redis.service';
+import { runsBackground } from '../../config/service-role';
 
 export interface CDCRoomPayload {
   table: 'calls' | 'call_participants' | 'call_permissions';
@@ -42,6 +43,7 @@ export class CallsCDCService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   async onModuleInit(): Promise<void> {
+    if (!runsBackground('messenger')) return;
     await this.initCDCListener();
   }
 
@@ -69,6 +71,7 @@ export class CallsCDCService implements OnModuleInit, OnModuleDestroy {
    * Connects to PostgreSQL notification stream for CDC event ingestion
    */
   public async initCDCListener(): Promise<void> {
+    if (!runsBackground('messenger')) return;
     if (this.isConnecting || this.isConnected) return;
 
     const dbUrl = this.configService.get<string>('DATABASE_URL');

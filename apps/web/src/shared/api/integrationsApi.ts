@@ -1,6 +1,31 @@
 import { apiClient } from '@/shared/api/httpClient';
 
 export const integrationsApi = {
+  startOAuth: async (
+    platform: string,
+    signal?: AbortSignal,
+  ): Promise<{ url: string; launchProof: string }> => {
+    const path =
+      platform === 'github' ? '/auth/github/oauth/start' : `/integrations/${platform}/oauth/start`;
+    const response = await apiClient.post<{ url: string; launchProof: string }>(
+      path,
+      undefined,
+      signal ? { signal } : {},
+    );
+    return response.data;
+  },
+  startSteamAuth: async (
+    origin: string,
+    signal?: AbortSignal,
+  ): Promise<{ url: string; launchProof: string }> => {
+    const response = await apiClient.post<{ url: string; launchProof: string }>(
+      '/integrations/steam/auth',
+      { origin },
+      signal ? { signal } : {},
+    );
+    return response.data;
+  },
+
   preview: async (
     platform: string,
     handle: string,

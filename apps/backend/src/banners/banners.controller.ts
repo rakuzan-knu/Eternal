@@ -29,7 +29,7 @@ import type { BannerView } from './interfaces/banners-repository.interface';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/interfaces/jwt-payload.interface';
 
-const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024;
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 
 function parsePosition(raw?: string): number | undefined {
   if (raw === undefined || raw === '') return undefined;
@@ -67,6 +67,7 @@ export class BannersController {
     @CurrentUser() user: RequestUser,
     @UploadedFile(
       new ParseFilePipe({
+        fileIsRequired: false,
         validators: [
           new MaxFileSizeValidator({ maxSize: MAX_FILE_SIZE_BYTES }),
           new FileTypeValidator({ fileType: /^image\/(jpeg|jpg|png|gif|webp)$/ }),
@@ -75,8 +76,11 @@ export class BannersController {
     )
     file: Express.Multer.File,
     @Body('bannerPosition') bannerPosition?: string,
+    @Body('uploadId') uploadId?: string,
   ): Promise<BannerView> {
     if (user.id !== userId) throw new ForbiddenException('You can only upload your own banner');
+    if (uploadId)
+      return this.bannersService.useDirectBanner(userId, uploadId, parsePosition(bannerPosition));
     return this.bannersService.uploadBanner(userId, file, parsePosition(bannerPosition));
   }
 

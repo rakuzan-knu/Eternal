@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { AvatarDecorationDto } from './decorations';
 
 export const createReelSchema = z.object({
+  uploadId: z.string().uuid().optional(),
   caption: z.string().max(2000).default('').optional(),
   audioTitle: z.string().max(128).optional(),
   audioArtist: z.string().max(128).optional(),

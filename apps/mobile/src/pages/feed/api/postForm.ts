@@ -8,6 +8,7 @@ import {
   type CreateStoryDto,
 } from '@social-network/shared-contracts';
 import { storyMediaType, validateStoryAsset } from '../model/story';
+import { appendUploadField as appendField } from './directUploadForm';
 
 // React Native 0.76's FormData accepts file descriptors, unlike the DOM overload.
 declare global {
@@ -23,20 +24,32 @@ async function appendAsset(body: FormData, field: string, asset: ImagePickerAsse
     Platform.OS !== 'web' &&
     !video &&
     !audio &&
-    (/^image\/(heic|heif)$/i.test(asset.mimeType || '') ||
-      /\.(heic|heif)(?:$|\?)/i.test(asset.fileName || asset.uri))
+    !(
+      /^image\/gif$/i.test(asset.mimeType || '') ||
+      /\.gif(?:$|\?)/i.test(asset.fileName || asset.uri)
+    )
   ) {
     const { ImageManipulator, SaveFormat } = await import('expo-image-manipulator');
     const context = ImageManipulator.manipulate(asset.uri);
     try {
+      const scale = Math.min(1, 2048 / Math.max(asset.width, asset.height));
+      if (scale < 1)
+        context.resize({
+          width: Math.round(asset.width * scale),
+          height: Math.round(asset.height * scale),
+        });
       const image = await context.renderAsync();
       try {
-        const converted = await image.saveAsync({ format: SaveFormat.JPEG, compress: 1 });
+        const png = asset.mimeType === 'image/png';
+        const converted = await image.saveAsync({
+          format: png ? SaveFormat.PNG : SaveFormat.JPEG,
+          compress: 0.85,
+        });
         asset = {
           ...asset,
           ...converted,
-          mimeType: 'image/jpeg',
-          fileName: `${asset.fileName?.replace(/\.[^.]+$/, '') || 'attachment'}.jpg`,
+          mimeType: png ? 'image/png' : 'image/jpeg',
+          fileName: `${asset.fileName?.replace(/\.[^.]+$/, '') || 'attachment'}.${png ? 'png' : 'jpg'}`,
         };
       } finally {
         image.release();
@@ -47,14 +60,14 @@ async function appendAsset(body: FormData, field: string, asset: ImagePickerAsse
   }
   const name = asset.fileName || `attachment.${audio ? 'mp3' : video ? 'mp4' : 'jpg'}`;
   if (Platform.OS === 'web') {
-    if (asset.file) body.append(field, asset.file, name);
+    if (asset.file) appendField(body, field, asset.file, name);
     else {
       const response = await fetch(asset.uri);
       if (!response.ok) throw new Error('Cannot read attachment');
-      body.append(field, await response.blob(), name);
+      appendField(body, field, await response.blob(), name);
     }
   } else {
-    body.append(field, {
+    appendField(body, field, {
       uri: asset.uri,
       name,
       type: asset.mimeType || (video ? 'video/mp4' : 'image/jpeg'),
@@ -68,8 +81,8 @@ export async function postForm(
   poll: string[],
 ): Promise<FormData> {
   const body = new FormData();
-  body.append('content', content.trim());
-  if (poll.length) body.append('poll', JSON.stringify(poll.map((option) => option.trim())));
+  appendField(body, 'content', content.trim());
+  if (poll.length) appendField(body, 'poll', JSON.stringify(poll.map((option) => option.trim())));
   for (const asset of assets) await appendAsset(body, 'media', asset);
   return body;
 }
@@ -110,12 +123,12 @@ export async function storyForm(
   if (new Blob([overlayJson]).size > 256 * 1024)
     throw new Error('Story layers exceed the upload limit.');
   const body = new FormData();
-  body.append('caption', fields.caption || '');
-  body.append('mediaType', fields.mediaType);
-  body.append('privacy', fields.privacy);
-  if (fields.overlays) body.append('overlays', overlayJson);
-  if (fields.backgroundColor) body.append('backgroundColor', fields.backgroundColor);
-  if (fields.filter) body.append('filter', fields.filter);
+  appendField(body, 'caption', fields.caption || '');
+  appendField(body, 'mediaType', fields.mediaType);
+  appendField(body, 'privacy', fields.privacy);
+  if (fields.overlays) appendField(body, 'overlays', overlayJson);
+  if (fields.backgroundColor) appendField(body, 'backgroundColor', fields.backgroundColor);
+  if (fields.filter) appendField(body, 'filter', fields.filter);
   if (asset) await appendAsset(body, 'file', asset);
   for (const [id, attachment] of Object.entries(attachments))
     await appendAsset(body, `overlay:${id}`, attachment);
@@ -136,7 +149,7 @@ export async function reelForm(asset: ImagePickerAsset, input: CreateReelDto): P
   });
   const body = new FormData();
   for (const [key, value] of Object.entries(fields)) {
-    if (value !== undefined) body.append(key, String(value));
+    if (value !== undefined) appendField(body, key, String(value));
   }
   await appendAsset(body, 'video', asset);
   return body;

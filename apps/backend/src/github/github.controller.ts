@@ -7,6 +7,7 @@ import {
   Req,
   Res,
   Headers,
+  Header,
   Body,
   UseGuards,
   HttpCode,
@@ -14,6 +15,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import { setOAuthCookie } from '../common/security/oauth-state';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { GithubService } from './github.service';
@@ -42,6 +44,36 @@ export class GithubController {
     await this.githubService.getAuthorizationUrl(req, res);
   }
 
+  @UseGuards(AuthGuard)
+  @Post('auth/github/oauth/start')
+  @Header('Cache-Control', 'no-store')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Start authenticated GitHub linking on the callback owner' })
+  async startOAuth(@Req() req: Request, @Res() res: Response): Promise<void> {
+    await this.githubService.getAuthorizationUrl(req, res, true);
+  }
+
+  @Get('auth/github/oauth/launch')
+  @Header('Cache-Control', 'no-store')
+  @Header('Referrer-Policy', 'no-referrer')
+  @Header('Cross-Origin-Opener-Policy', 'unsafe-none')
+  launchPage(@Res() res: Response) {
+    return res.type('text/html; charset=utf-8').send(this.githubService.getOAuthLaunchPage());
+  }
+
+  @Post('auth/github/oauth/launch')
+  @Header('Cache-Control', 'no-store')
+  async launchOAuth(
+    @Body() body: unknown,
+    @Headers('origin') origin: string | undefined,
+    @Res() res: Response,
+  ) {
+    const result = await this.githubService.launchOAuth(body, origin);
+    setOAuthCookie(res, result.provider, result.state);
+    return res.send({ url: result.url });
+  }
+
+  @Header('Cross-Origin-Opener-Policy', 'unsafe-none')
   @Get(['auth/github/callback', 'integrations/github/callback'])
   @ApiOperation({ summary: 'GitHub OAuth authorization callback' })
   async handleCallback(

@@ -4,6 +4,7 @@ import type { ServerOptions } from 'socket.io';
 import { createAdapter } from '@socket.io/redis-adapter';
 import Redis from 'ioredis';
 import msgpackParser from 'socket.io-msgpack-parser';
+import { ownsRole } from '../../config/service-role';
 
 interface SocketIoServerInstance {
   adapter?: (adapterConstructor: unknown) => void;
@@ -79,8 +80,11 @@ export class RedisIoAdapter extends IoAdapter {
   }
 
   override createIOServer(port: number, options?: ServerOptions): unknown {
+    const allowRequest: ServerOptions['allowRequest'] = (_request, callback) =>
+      callback(null, ownsRole('messenger'));
     const rawServer: unknown = super.createIOServer(port, {
       ...options,
+      allowRequest,
       parser: msgpackParser,
       pingInterval: 10_000,
       pingTimeout: 5_000,

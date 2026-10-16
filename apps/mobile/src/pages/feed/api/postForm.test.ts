@@ -72,7 +72,7 @@ it('converts native HEIC story media and stickers to JPEG and releases decoded i
       type: 'image/jpeg',
     });
   expect(manipulator.create).toHaveBeenCalledWith(heic.uri);
-  expect(manipulator.save).toHaveBeenCalledWith({ format: 'jpeg', compress: 1 });
+  expect(manipulator.save).toHaveBeenCalledWith({ format: 'jpeg', compress: 0.85 });
   expect(manipulator.imageRelease).toHaveBeenCalledTimes(2);
   expect(manipulator.contextRelease).toHaveBeenCalledTimes(2);
 });
@@ -169,8 +169,19 @@ describe('post and story upload contracts', () => {
     expect(attached.name).toBe('photo.jpg');
     expect(await attached.text()).toBe('pixels');
   });
-  it('uses native file descriptors without fetching a device file URI', async () => {
+  it('bounds and reencodes native images before constructing their file descriptors', async () => {
     platform.OS = 'android';
+    const resize = vi.fn();
+    manipulator.create.mockReturnValue({
+      resize,
+      renderAsync: manipulator.render,
+      release: manipulator.contextRelease,
+    });
+    manipulator.render.mockResolvedValue({
+      saveAsync: manipulator.save,
+      release: manipulator.imageRelease,
+    });
+    manipulator.save.mockResolvedValue({ uri: 'file:///prepared.jpg', width: 2048, height: 1024 });
     const fetchSpy = vi.fn();
     vi.stubGlobal('fetch', fetchSpy);
     class NativeFormData {
@@ -183,8 +194,14 @@ describe('post and story upload contracts', () => {
       }
     }
     vi.stubGlobal('FormData', NativeFormData);
-    const body = await postForm('hello', [photo], []);
-    expect(body.get('media')).toEqual({ uri: photo.uri, name: 'photo.jpg', type: 'image/jpeg' });
+    const body = await postForm('hello', [{ ...photo, width: 4096, height: 2048 }], []);
+    expect(body.get('media')).toEqual({
+      uri: 'file:///prepared.jpg',
+      name: 'photo.jpg',
+      type: 'image/jpeg',
+    });
+    expect(resize).toHaveBeenCalledWith({ width: 2048, height: 1024 });
+    expect(manipulator.save).toHaveBeenCalledWith({ format: 'jpeg', compress: 0.85 });
     expect(fetchSpy).not.toHaveBeenCalled();
   });
   it('uses the distinct story file field, media type and privacy', async () => {
@@ -200,7 +217,7 @@ describe('post and story upload contracts', () => {
   });
   it('validates story size and caption before multipart upload and sends chosen privacy', async () => {
     await expect(storyForm({ ...photo, fileSize: 11 * 1024 * 1024 }, 'caption')).rejects.toThrow(
-      '10 MB',
+      '5 MB',
     );
     await expect(storyForm(photo, 'x'.repeat(1001))).rejects.toThrow();
     const body = await storyForm(

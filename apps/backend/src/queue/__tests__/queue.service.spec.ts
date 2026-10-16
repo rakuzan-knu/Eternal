@@ -6,10 +6,13 @@ import {
   SearchJobType,
   MessageJobType,
   QUEUE_NOTIFICATIONS,
+  QUEUE_VIDEO_TRANSCODE,
 } from '../queue.constants';
+import { Queue } from 'bullmq';
 
 const mockQueueAdd = jest.fn().mockResolvedValue({ id: 'job-1' });
 const mockQueueClose = jest.fn().mockResolvedValue(undefined);
+const mockGetJob = jest.fn();
 const mockGetJobCounts = jest.fn().mockResolvedValue({
   waiting: 3,
   active: 1,
@@ -25,6 +28,7 @@ jest.mock('bullmq', () => {
         add: mockQueueAdd,
         close: mockQueueClose,
         getJobCounts: mockGetJobCounts,
+        getJob: mockGetJob,
         on: jest.fn().mockReturnThis(),
         client: Promise.resolve({ on: jest.fn() }),
         waitUntilReady: jest.fn().mockResolvedValue(undefined),
@@ -130,7 +134,8 @@ describe('QueueService', () => {
   it('returns queue metrics for initialized queues', async () => {
     service.onModuleInit();
     const metrics = await service.getQueueMetrics();
-    expect(metrics).toHaveLength(5);
+    expect(metrics).toHaveLength(6);
+    expect(metrics.find((metric) => metric.name === QUEUE_VIDEO_TRANSCODE)).toBeDefined();
     expect(metrics[0]).toMatchObject({
       name: QUEUE_NOTIFICATIONS,
       waiting: 3,
@@ -140,5 +145,36 @@ describe('QueueService', () => {
       delayed: 2,
       total: 6,
     });
+  });
+
+  it('bounds completed and failed jobs by both age and count', () => {
+    service.onModuleInit();
+    const options = jest
+      .mocked(Queue)
+      .mock.calls.find(([name]) => name === QUEUE_VIDEO_TRANSCODE)?.[1];
+    expect(options?.defaultJobOptions).toMatchObject({
+      attempts: 3,
+      removeOnComplete: { age: 3600, count: 25 },
+      removeOnFail: { age: 7 * 24 * 3600, count: 100 },
+    });
+  });
+
+  it('can retry video jobs from the DLQ while preserving the storage reference', async () => {
+    service.onModuleInit();
+    const remove = jest.fn().mockResolvedValue(undefined);
+    const data = {
+      reelId: 'reel-1',
+      videoUrl: 'https://example.com/clip.mp4',
+      sourceStorageKey: 'reels/clip.mp4',
+    };
+    mockGetJob.mockResolvedValue({
+      data: { originalQueue: QUEUE_VIDEO_TRANSCODE, jobName: 'video_hls_transcode', data },
+      remove,
+    });
+
+    await expect(service.retryDeadLetterJob('dlq-1')).resolves.toBe(true);
+
+    expect(mockQueueAdd).toHaveBeenCalledWith('video_hls_transcode', data);
+    expect(remove).toHaveBeenCalledTimes(1);
   });
 });

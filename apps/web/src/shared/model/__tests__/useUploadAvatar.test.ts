@@ -8,6 +8,7 @@ import React from 'react';
 describe('useUploadAvatar', () => {
   it('posts avatar file via formData and invalidates user query', async () => {
     const postSpy = vi.spyOn(apiClient, 'post').mockResolvedValue({ data: { avatar: 'new-url' } });
+    postSpy.mockResolvedValueOnce({ data: { mode: 'proxy' } });
     const queryClient = new QueryClient();
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
 

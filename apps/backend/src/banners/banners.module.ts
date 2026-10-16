@@ -1,3 +1,4 @@
+import { roleControllers } from '../config/service-role';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { BannersController } from './banners.controller';
@@ -9,7 +10,7 @@ import { BANNER_REPOSITORY } from './interfaces/banners-repository.interface';
 
 @Module({
   imports: [ConfigModule, PrismaModule],
-  controllers: [BannersController],
+  controllers: roleControllers('core', [BannersController]),
   providers: [
     BannersService,
     bannerS3Provider,

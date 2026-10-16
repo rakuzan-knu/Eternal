@@ -1,3 +1,4 @@
+import { DirectUploadsService } from '../common/media/direct-uploads.service';
 import {
   BadRequestException,
   ForbiddenException,
@@ -50,6 +51,9 @@ import { StoryViewsCoalescerService } from './coalescing/story-views-coalescer.s
 
 @Injectable()
 export class StoriesService implements OnModuleDestroy {
+  @Inject(DirectUploadsService)
+  private readonly directUploads!: DirectUploadsService;
+
   private readonly logger = new Logger(StoriesService.name);
   private readonly s3: S3Client;
   private readonly bucket: string;
@@ -309,9 +313,20 @@ export class StoriesService implements OnModuleDestroy {
     file?: Express.Multer.File,
     attachments: Express.Multer.File[] = [],
   ): Promise<StoryViewResponse> {
-    let mediaUrl = '';
+    const direct = dto.uploadId
+      ? await this.directUploads.resolve(userId, dto.uploadId, 'story')
+      : undefined;
+    if (file || attachments.length) this.directUploads.assertLegacyAllowed();
+    let mediaUrl = direct?.url || '';
     let mediaType = dto.mediaType || StoryMediaType.IMAGE;
-    const uploadedUrls: string[] = [];
+    if (direct)
+      mediaType =
+        direct.kind === 'AUDIO'
+          ? StoryMediaType.VOICE
+          : direct.kind === 'VIDEO'
+            ? StoryMediaType.VIDEO
+            : StoryMediaType.IMAGE;
+    const uploadedUrls: string[] = direct ? [direct.url] : [];
     let persisted = false;
     const attachmentLayers = new Map<string, Express.Multer.File>();
     if (
@@ -335,16 +350,35 @@ export class StoriesService implements OnModuleDestroy {
       attachmentLayers.set(id, attachment);
     }
 
+    const directLayers = new Map<string, string>();
+    for (const [id, uploadId] of Object.entries(dto.overlayUploads || {})) {
+      const layer = dto.overlays?.find(
+        (entry) => entry.id === id && entry.type === 'image' && !entry.isMainMedia,
+      );
+      if (!layer) throw new BadRequestException('Invalid photo sticker');
+      const overlay = await this.directUploads.resolve(userId, uploadId, 'story-overlay');
+      directLayers.set(id, overlay.url);
+      uploadedUrls.push(overlay.url);
+    }
     for (const layer of dto.overlays || []) {
-      if (layer.type === 'image' && !layer.isMainMedia && !attachmentLayers.has(layer.id)) {
-        if (!layer.url || !/^https?:\/\//i.test(layer.url))
+      if (
+        layer.type === 'image' &&
+        !layer.isMainMedia &&
+        !attachmentLayers.has(layer.id) &&
+        !directLayers.has(layer.id)
+      ) {
+        if (!layer.url) throw new BadRequestException('Upload each photo sticker with its layer');
+        await this.directUploads.assertOwnedUrl(userId, layer.url, 'story-overlay');
+        if (!/^https?:\/\//i.test(layer.url))
           throw new BadRequestException('Upload each photo sticker with its layer');
       }
-      if (layer.type === 'image' && layer.isMainMedia && !file)
+      if (layer.type === 'image' && layer.isMainMedia && !file && !direct)
         throw new BadRequestException('Main photo requires an upload');
     }
     try {
-      if (file) {
+      if (direct) {
+        // Completed immutable R2 object; no bytes pass through Render.
+      } else if (file) {
         const processed = await this.processUploadedMedia(file);
         mediaUrl = processed.url;
         mediaType = processed.mediaType;
@@ -359,7 +393,11 @@ export class StoriesService implements OnModuleDestroy {
 
       const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours TTL
 
-      let finalOverlays = dto.overlays || [];
+      let finalOverlays = (dto.overlays || []).map((layer) =>
+        layer.type === 'image' && directLayers.has(layer.id)
+          ? { ...layer, url: directLayers.get(layer.id)! }
+          : layer,
+      );
       for (const [id, attachment] of attachmentLayers) {
         const processed = await this.processUploadedMedia(attachment);
         uploadedUrls.push(processed.url);
@@ -367,7 +405,7 @@ export class StoriesService implements OnModuleDestroy {
           layer.id === id && layer.type === 'image' ? { ...layer, url: processed.url } : layer,
         );
       }
-      if (file && Array.isArray(finalOverlays)) {
+      if ((file || direct) && Array.isArray(finalOverlays)) {
         finalOverlays = finalOverlays.map((o) => {
           if (o.type === 'image' && o.isMainMedia) {
             return {
@@ -474,7 +512,7 @@ export class StoriesService implements OnModuleDestroy {
                     }
                   }
 
-                  await this.messagesService.send(conv.id, userId, {
+                  await this.messagesService.sendStoryReference(conv.id, userId, {
                     conversationId: conv.id,
                     text: 'Mentioned you in their story',
                     messageType: 'STORY_REPLY',
@@ -510,6 +548,7 @@ export class StoriesService implements OnModuleDestroy {
   private async deleteUploadedAssets(urls: string[]) {
     for (const url of new Set(urls)) {
       try {
+        if (await this.storiesRepo.isMediaReferenced(url)) continue;
         await deleteFromStorage(this.s3, { url, bucket: this.bucket, publicUrl: this.publicUrl });
       } catch {
         this.logger.warn('Story media cleanup failed');
@@ -800,7 +839,7 @@ export class StoriesService implements OnModuleDestroy {
     const messageText = dto.text.trim();
 
     // 3. Send message via MessagesService
-    const sentMessage = await this.messagesService.send(conv.id, senderId, {
+    const sentMessage = await this.messagesService.sendStoryReference(conv.id, senderId, {
       conversationId: conv.id,
       text: messageText,
       messageType: 'STORY_REPLY',

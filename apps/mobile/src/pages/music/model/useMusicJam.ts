@@ -3,7 +3,7 @@ import { io, type Socket } from 'socket.io-client';
 import parser from 'socket.io-msgpack-parser';
 import { z } from 'zod';
 import { useAuthStore } from '@social-network/shared-stores';
-import { apiOrigin, getMobileApi } from '@/shared/api/client';
+import { messengerOrigin, getMobileApi } from '@/shared/api/client';
 import { trackSchema, type Track } from './music';
 
 const roomSchema = z.object({
@@ -80,7 +80,7 @@ export function useMusicJam(player: Player) {
   }, []);
   React.useEffect(() => {
     if (!connectionEnabled) return;
-    const connection = io(`${apiOrigin}/messenger`, {
+    const connection = io(`${messengerOrigin}/messenger`, {
       parser,
       transports: ['websocket'],
       reconnection: true,

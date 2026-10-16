@@ -1,4 +1,9 @@
 import {
+  issueOAuthLaunch,
+  consumeOAuthLaunch,
+  oauthLaunchPage,
+} from '../common/security/oauth-launch';
+import {
   issueOAuthState,
   consumeOAuthState,
   setOAuthCookie,
@@ -14,7 +19,6 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { RedisService } from '../redis/redis.service';
 import { CircuitBreaker } from '../common/resilience/circuit-breaker';
-import { safeJsonParse } from '../common/utils/json.util';
 import { TraceContext } from '../common/tracing/trace-context';
 import * as crypto from 'crypto';
 import { timingSafeEqual } from '../common/crypto/timing-safe';
@@ -73,7 +77,10 @@ export class GithubService {
 
   private get frontendRedirectUrl(): string {
     const raw = this.config.get<string>('CORS_ORIGIN') || 'http://localhost:5173';
-    return raw.split(',')[0].trim().replace(/\/+$/, '');
+    const first = raw.split(',')[0].trim();
+    let end = first.length;
+    while (end > 0 && first.charCodeAt(end - 1) === 47) end--;
+    return first.slice(0, end);
   }
 
   private get systemToken(): string {
@@ -88,15 +95,35 @@ export class GithubService {
     const userId = (req as Request & { user?: { id: string } }).user?.id;
     if (!userId) throw new UnauthorizedException('Authentication required');
     const state = await issueOAuthState(this.redis, 'github', userId, this.callbackUrl);
-    setOAuthCookie(res, 'github', state);
+    if (!asJson) setOAuthCookie(res, 'github', state);
     const targetUrl = new URL('https://github.com/login/oauth/authorize');
     targetUrl.searchParams.set('client_id', this.clientId);
     targetUrl.searchParams.set('redirect_uri', this.callbackUrl);
     targetUrl.searchParams.set('scope', 'read:user');
     targetUrl.searchParams.set('state', state);
 
-    if (asJson) res.send({ url: targetUrl.toString() });
+    if (asJson)
+      res.send(
+        await issueOAuthLaunch(
+          this.redis,
+          targetUrl.toString(),
+          String(req.headers.origin || ''),
+          this.oauthLaunchUrl(),
+        ),
+      );
     else res.redirect(targetUrl.toString());
+  }
+
+  private oauthLaunchUrl(): string {
+    return new URL('/v1/auth/github/oauth/launch', this.callbackUrl).href;
+  }
+
+  getOAuthLaunchPage(): string {
+    return oauthLaunchPage();
+  }
+
+  async launchOAuth(body: unknown, requestOrigin?: string) {
+    return consumeOAuthLaunch(this.redis, body, requestOrigin, this.oauthLaunchUrl());
   }
 
   async handleOAuthCallback(
@@ -271,11 +298,11 @@ export class GithubService {
         await this.syncUserGithubContributions(targetUserId);
       }
 
-      return res.redirect(`${effectiveFrontendUrl}/settings?github=connected`);
+      return res.status(302).redirect(`${effectiveFrontendUrl}/settings?github=connected`);
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
       this.logger.error(`GitHub OAuth Callback Exception: ${errMsg}`);
-      return res.redirect(`${effectiveFrontendUrl}/settings?error=oauth_failed`);
+      return res.status(302).redirect(`${effectiveFrontendUrl}/settings?error=oauth_failed`);
     }
   }
 

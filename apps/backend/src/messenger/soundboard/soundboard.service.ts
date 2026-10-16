@@ -9,6 +9,7 @@ import { PrismaService } from '@common/prisma';
 import { ConversationsService } from '../conversations/conversations.service';
 import type { CreateSoundboardDto, SoundboardItemDto } from './soundboard.types';
 import { randomUUID } from 'node:crypto';
+import { ownsRole } from '../../config/service-role';
 
 @Injectable()
 export class SoundboardService implements OnModuleInit {
@@ -25,6 +26,7 @@ export class SoundboardService implements OnModuleInit {
   ) {}
 
   async onModuleInit(): Promise<void> {
+    if (!ownsRole('messenger')) return;
     await this.ensureTableSchema();
   }
 
@@ -109,7 +111,7 @@ export class SoundboardService implements OnModuleInit {
     const item: SoundboardItemDto = {
       id,
       name: dto.name.trim(),
-      emoji: dto.emoji.trim() || '🔊',
+      emoji: dto.emoji.trim() || 'рџ”Љ',
       scope: 'my',
       userId,
       durationMs: dto.durationMs || 1000,
@@ -220,7 +222,7 @@ export class SoundboardService implements OnModuleInit {
     const item: SoundboardItemDto = {
       id,
       name: dto.name.trim(),
-      emoji: dto.emoji.trim() || '🔊',
+      emoji: dto.emoji.trim() || 'рџ”Љ',
       scope: 'chat',
       conversationId,
       userId,

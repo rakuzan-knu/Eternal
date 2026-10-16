@@ -80,11 +80,11 @@ export class ReelsController {
   @ApiResponse({ status: 201, description: 'Reel created successfully' })
   createReel(
     @Body(new ZodValidationPipe(createReelSchema)) dto: CreateReelDto,
-    @CurrentUser() user?: RequestUser,
+    @CurrentUser() user: RequestUser,
     @UploadedFile() file?: Express.Multer.File,
     @Req() req?: { thumbnailFile?: Express.Multer.File },
   ) {
-    const authorId = user!.id;
+    const authorId = user.id;
     return this.reelsService.createReel(authorId, dto, file, req?.thumbnailFile);
   }
 
@@ -94,8 +94,8 @@ export class ReelsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Toggle like on reel' })
   @ApiResponse({ status: 200, description: 'Like toggled successfully' })
-  toggleLike(@Param('id') id: string, @CurrentUser() user?: RequestUser) {
-    const userId = user!.id;
+  toggleLike(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    const userId = user.id;
     return this.reelsService.toggleLike(id, userId);
   }
 
@@ -144,10 +144,10 @@ export class ReelsController {
   @ApiResponse({ status: 201, description: 'Comment added' })
   addComment(
     @Param('id') id: string,
-    @CurrentUser() user: RequestUser | undefined,
+    @CurrentUser() user: RequestUser,
     @Body(new ZodValidationPipe(createReelCommentSchema)) dto: CreateReelCommentDto,
   ) {
-    const userId = user!.id;
+    const userId = user.id;
     return this.reelsService.addComment(id, userId, dto.content);
   }
 
@@ -157,8 +157,8 @@ export class ReelsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Mark a reel as not interesting' })
   @ApiResponse({ status: 200, description: 'Reel preference updated' })
-  notInterested(@Param('id') id: string, @CurrentUser() user?: RequestUser) {
-    const userId = user!.id;
+  notInterested(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    const userId = user.id;
     return this.reelsService.markNotInterested(id, userId);
   }
 
@@ -170,10 +170,10 @@ export class ReelsController {
   @ApiResponse({ status: 200, description: 'Report registered' })
   reportReel(
     @Param('id') id: string,
-    @CurrentUser() user: RequestUser | undefined,
+    @CurrentUser() user: RequestUser,
     @Body(new ZodValidationPipe(reportReelSchema)) dto: ReportReelDto,
   ) {
-    const userId = user!.id;
+    const userId = user.id;
     return this.reelsService.reportReel(id, userId, dto.category, dto.details);
   }
 

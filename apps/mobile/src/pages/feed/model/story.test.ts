@@ -29,17 +29,17 @@ const story: StoryViewResponse = {
 };
 describe('story publishing and viewing', () => {
   it('enforces server image/video limits, using MIME when picker type is absent', () => {
-    expect(validateStoryAsset({ ...photo, fileSize: 10 * 1024 * 1024 })).toBeNull();
-    expect(validateStoryAsset({ ...photo, fileSize: 10 * 1024 * 1024 + 1 })).toContain('10 MB');
-    expect(validateStoryAsset({ ...photo, type: 'video', fileSize: 50 * 1024 * 1024 })).toBeNull();
+    expect(validateStoryAsset({ ...photo, fileSize: 5 * 1024 * 1024 })).toBeNull();
+    expect(validateStoryAsset({ ...photo, fileSize: 5 * 1024 * 1024 + 1 })).toContain('5 MB');
+    expect(validateStoryAsset({ ...photo, type: 'video', fileSize: 20 * 1024 * 1024 })).toBeNull();
     expect(
       validateStoryAsset({
         ...photo,
         type: undefined,
         mimeType: 'video/quicktime',
-        fileSize: 101 * 1024 * 1024,
+        fileSize: 20 * 1024 * 1024 + 1,
       }),
-    ).toContain('100 MB');
+    ).toContain('20 MB');
     expect(storyMediaType({ ...photo, type: undefined, mimeType: 'video/mp4' })).toBe('VIDEO');
     expect(validateStoryAsset({ ...photo, mimeType: 'application/pdf' })).toBe(
       'Choose a photo, video or audio file.',

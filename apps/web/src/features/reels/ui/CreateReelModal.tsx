@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { isAxiosError } from 'axios';
 import { X, UploadCloud, Film, Loader2, Zap } from 'lucide-react';
 import { useCreateReel } from '../api/reelsApi';
 import { compressVideo } from '../lib/videoCompressor';
@@ -37,13 +38,13 @@ export const CreateReelModal: React.FC<CreateReelModalProps> = ({ isOpen, onClos
     const selected = e.target.files?.[0];
     if (!selected) return;
 
-    if (!selected.type.startsWith('video/')) {
-      setError('Please select a valid video file (MP4, WebM, MOV)');
+    if (!['video/mp4', 'video/webm'].includes(selected.type.split(';', 1)[0])) {
+      setError('Please select an MP4 or WebM video');
       return;
     }
 
-    if (selected.size > 150 * 1024 * 1024) {
-      setError('Video file size exceeds 150MB limit');
+    if (selected.size > 20 * 1024 * 1024) {
+      setError('Video file size exceeds the 20 MiB limit');
       return;
     }
 
@@ -63,7 +64,6 @@ export const CreateReelModal: React.FC<CreateReelModalProps> = ({ isOpen, onClos
     }
 
     let finalFile = file;
-    let thumbnailBlob: Blob | null = null;
     let duration: number | null = null;
     let width: number | null = null;
     let height: number | null = null;
@@ -78,13 +78,15 @@ export const CreateReelModal: React.FC<CreateReelModalProps> = ({ isOpen, onClos
         },
       });
 
-      finalFile = compressionResult.file;
-      thumbnailBlob = compressionResult.thumbnailBlob;
+      // MediaRecorder WebM often omits a duration header; keep a verifiable original MP4.
+      const changesToWebM =
+        compressionResult.file.type.startsWith('video/webm') && !file.type.startsWith('video/webm');
+      finalFile = changesToWebM ? file : compressionResult.file;
       duration = compressionResult.duration;
       width = compressionResult.width;
       height = compressionResult.height;
 
-      if (compressionResult.savingsPercent > 0) {
+      if (!changesToWebM && compressionResult.savingsPercent > 0) {
         setCompressionStats({
           originalSize: compressionResult.originalSize,
           compressedSize: compressionResult.compressedSize,
@@ -99,9 +101,6 @@ export const CreateReelModal: React.FC<CreateReelModalProps> = ({ isOpen, onClos
 
     const formData = new FormData();
     formData.append('video', finalFile);
-    if (thumbnailBlob) {
-      formData.append('thumbnail', thumbnailBlob, 'thumbnail.webp');
-    }
     if (duration) formData.append('duration', String(duration));
     if (width) formData.append('width', String(width));
     if (height) formData.append('height', String(height));
@@ -116,8 +115,12 @@ export const CreateReelModal: React.FC<CreateReelModalProps> = ({ isOpen, onClos
       setCaption('');
       setCompressionStats(null);
     } catch (err: unknown) {
+      const message = isAxiosError<{ message?: unknown }>(err)
+        ? err.response?.data?.message
+        : undefined;
       const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        (typeof message === 'string' ? message : null) ||
+        (err instanceof Error ? err.message : null) ||
         'Failed to create reel';
       setError(msg);
     }
@@ -172,8 +175,8 @@ export const CreateReelModal: React.FC<CreateReelModalProps> = ({ isOpen, onClos
               <p className="font-semibold text-gray-900 dark:text-white text-xs sm:text-sm text-center">
                 Select vertical video to upload
               </p>
-              <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1 text-center">
-                MP4, WebM up to 150MB (9:16 recommended)
+              <p className="text-[11px] sm:text-xs text-zinc-500 mt-1 text-center">
+                MP4, WebM up to 20 MiB · 60 seconds · 1920 px
               </p>
             </div>
           ) : (

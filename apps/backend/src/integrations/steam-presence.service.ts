@@ -10,6 +10,7 @@ import { PrismaService } from '@common/prisma';
 import { Prisma } from '@prisma/client';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { MessengerGateway } from '../messenger/gateway/messenger.gateway';
+import { runsBackground } from '../config/service-role';
 
 interface SteamPlayerSummary {
   steamid: string;
@@ -58,6 +59,7 @@ interface SteamUserEntry {
 export class SteamPresenceService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(SteamPresenceService.name);
   private pollInterval: NodeJS.Timeout | null = null;
+  private initialPollTimer: NodeJS.Timeout | null = null;
   private isPolling = false;
 
   constructor(
@@ -128,14 +130,19 @@ export class SteamPresenceService implements OnModuleInit, OnModuleDestroy {
   }
 
   onModuleInit() {
+    if (!runsBackground('messenger')) return;
     // Initial poll after short delay to let sockets and gateway settle
-    setTimeout(() => void this.pollOnlineSteamUsers(), 5000);
+    this.initialPollTimer = setTimeout(() => void this.pollOnlineSteamUsers(), 5000);
     // Poll every 30 seconds
     this.pollInterval = setInterval(() => void this.pollOnlineSteamUsers(), 30_000);
     this.logger.log('SteamPresenceService initialized: batch poller scheduled every 30s.');
   }
 
   onModuleDestroy() {
+    if (this.initialPollTimer) {
+      clearTimeout(this.initialPollTimer);
+      this.initialPollTimer = null;
+    }
     if (this.pollInterval) {
       clearInterval(this.pollInterval);
       this.pollInterval = null;
@@ -143,6 +150,7 @@ export class SteamPresenceService implements OnModuleInit, OnModuleDestroy {
   }
 
   async pollOnlineSteamUsers(): Promise<void> {
+    if (!runsBackground('messenger')) return;
     if (this.isPolling) return;
     this.isPolling = true;
 

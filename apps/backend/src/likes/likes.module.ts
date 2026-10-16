@@ -1,3 +1,4 @@
+import { roleControllers } from '../config/service-role';
 import { Module, forwardRef } from '@nestjs/common';
 import { LikesRepository } from './likes.repository';
 import { LikesService } from './likes.service';
@@ -15,7 +16,7 @@ import { CrdtModule } from '../common/crdt/crdt.module';
     forwardRef(() => MessengerModule),
     CrdtModule,
   ],
-  controllers: [LikesController],
+  controllers: roleControllers('core', [LikesController]),
   providers: [
     LikesService,
     LikesRepository,

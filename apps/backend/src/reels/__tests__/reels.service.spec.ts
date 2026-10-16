@@ -4,6 +4,8 @@ import type { S3Client } from '@aws-sdk/client-s3';
 import type { ConfigService } from '@nestjs/config';
 import type { RedisService } from '../../redis/redis.service';
 import type { QueueService } from '../../queue/queue.service';
+import * as imageProcessor from '../../common/media/image-processor';
+import { Readable } from 'node:stream';
 
 describe('ReelsService', () => {
   let service: ReelsService;
@@ -63,7 +65,11 @@ describe('ReelsService', () => {
 
     mockS3 = {} as unknown as jest.Mocked<S3Client>;
     mockConfig = {
-      get: jest.fn().mockReturnValue('test-value'),
+      get: jest
+        .fn()
+        .mockImplementation((key: string) =>
+          key === 'VIDEO_TRANSCODE_ENABLED' ? 'true' : 'test-value',
+        ),
     } as unknown as jest.Mocked<ConfigService>;
 
     const mockRedisClient = {
@@ -79,6 +85,22 @@ describe('ReelsService', () => {
     } as unknown as jest.Mocked<QueueService>;
 
     service = new ReelsService(mockRepo, mockS3, mockConfig, mockRedis, mockQueue);
+    Object.assign(service, {
+      directUploads: {
+        assertLegacyAllowed: jest.fn(),
+        assertOwnedUrl: jest.fn().mockResolvedValue(undefined),
+        resolve: jest.fn().mockResolvedValue({
+          uploadId: 'completed-id',
+          url: 'https://example.com/source.mp4',
+          contentType: 'video/mp4',
+          sizeBytes: 100,
+          kind: 'VIDEO',
+          duration: 5,
+          width: 640,
+          height: 360,
+        }),
+      },
+    });
   });
 
   it('getFeed returns paginated reels with mapped DTO fields', async () => {
@@ -111,7 +133,7 @@ describe('ReelsService', () => {
   it('createReel saves reel and dispatches BullMQ transcode job', async () => {
     const result = await service.createReel('author-1', {
       caption: 'Brand new short',
-      audioUrl: 'https://example.com/source.mp4',
+      uploadId: '11111111-1111-4111-8111-111111111111',
     });
 
     expect(mockRepo.create).toHaveBeenCalled();
@@ -120,7 +142,53 @@ describe('ReelsService', () => {
         reelId: 'reel-1',
         videoUrl: sampleReel.videoUrl,
       }),
+      { jobId: 'reel-reel-1' },
     );
     expect(result.id).toBe('reel-1');
+  });
+
+  it('queues uploaded videos by storage key without copying their bytes into Redis', async () => {
+    const upload = jest
+      .spyOn(imageProcessor, 'uploadToStorageWithFallback')
+      .mockResolvedValue(sampleReel.videoUrl);
+    const buffer = Buffer.from('video-source');
+    const file: Express.Multer.File = {
+      fieldname: 'video',
+      originalname: 'clip.mp4',
+      encoding: '7bit',
+      mimetype: 'video/mp4',
+      size: buffer.length,
+      stream: Readable.from([buffer]),
+      destination: '',
+      filename: '',
+      path: '',
+      buffer,
+    };
+
+    await service.createReel('author-1', { caption: 'Uploaded clip' }, file);
+
+    expect(mockQueue.addVideoTranscodeJob).toHaveBeenCalledWith(
+      {
+        reelId: 'reel-1',
+        videoUrl: sampleReel.videoUrl,
+        sourceStorageKey: upload.mock.calls[0][1].key,
+      },
+      { jobId: 'reel-reel-1' },
+    );
+    expect(mockQueue.addVideoTranscodeJob.mock.calls[0][0].sourceStorageKey).toMatch(
+      /^reels\/[a-z0-9_-]+\.mp4$/i,
+    );
+    expect(mockQueue.addVideoTranscodeJob.mock.calls[0][0]).not.toHaveProperty(
+      'sourceBufferBase64',
+    );
+    upload.mockRestore();
+  });
+
+  it('does not put a development data URI fallback into Redis', async () => {
+    mockRepo.create.mockResolvedValue({ ...sampleReel, videoUrl: 'data:video/mp4;base64,YQ==' });
+
+    await service.createReel('author-1', { uploadId: '11111111-1111-4111-8111-111111111111' });
+
+    expect(mockQueue.addVideoTranscodeJob).not.toHaveBeenCalled();
   });
 });

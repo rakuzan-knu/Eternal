@@ -1,7 +1,9 @@
+import { roleControllers } from '../config/service-role';
 import { Module, forwardRef } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PrismaModule } from '@common/prisma';
+import { DirectUploadsModule } from '../common/media/direct-uploads.module';
 import { UsersModule } from '../users/users.module';
 
 import { ConversationsController } from './conversations/conversations.controller';
@@ -61,6 +63,7 @@ import { WatchTogetherService } from './watch-together/watch-together.service';
 @Module({
   imports: [
     PrismaModule,
+    DirectUploadsModule,
     UnreadProjectionModule,
     RedisModule,
     forwardRef(() => UsersModule),
@@ -69,7 +72,7 @@ import { WatchTogetherService } from './watch-together/watch-together.service';
     OpenGraphModule,
     SnowflakeModule,
   ],
-  controllers: [
+  controllers: roleControllers('messenger', [
     ConversationsController,
     MessagesController,
     MessengerLinkPreviewController,
@@ -79,7 +82,7 @@ import { WatchTogetherService } from './watch-together/watch-together.service';
     PrekeysController,
     SoundboardController,
     WatchTogetherController,
-  ],
+  ]),
   providers: [
     SoundboardService,
     WatchTogetherService,

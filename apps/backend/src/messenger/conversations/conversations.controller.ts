@@ -1,3 +1,4 @@
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   type AddMembersDto,
   type CreateDirectConversationDto,
@@ -97,8 +98,9 @@ export class ConversationsController {
     @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser() user: RequestUser,
+    @Body('uploadId') uploadId?: string,
   ) {
-    return this.messagesService.uploadAttachment(id, user.id, file);
+    return this.messagesService.uploadAttachment(id, user.id, file, uploadId);
   }
 
   @Get(':id')
