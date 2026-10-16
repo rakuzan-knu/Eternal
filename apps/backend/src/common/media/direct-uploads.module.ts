@@ -10,6 +10,8 @@ import { MediaBudgetService } from './media-budget.service';
 import { MediaAccessRepository } from './media-access.repository';
 import { ResourceUsageRepository } from './resource-usage.repository';
 import { ResourceBudgetService } from './resource-budget.service';
+import { PendingMediaRepository } from './pending-media.repository';
+import { PendingMediaCleanupService } from './pending-media-cleanup.service';
 
 @Global()
 @Module({
@@ -20,6 +22,8 @@ import { ResourceBudgetService } from './resource-budget.service';
     MediaBudgetService,
     MediaAccessRepository,
     ResourceUsageRepository,
+    PendingMediaRepository,
+    ...(runsBackground('core') ? [PendingMediaCleanupService] : []),
     ...(runsBackground('core') ? [ResourceBudgetService] : []),
   ],
   exports: [DirectUploadsService, MediaBudgetService],

@@ -133,6 +133,29 @@ describe('image-processor', () => {
   });
 
   describe('deleteFromStorage', () => {
+    it('propagates failures when retention requires a retry', async () => {
+      const error = new Error('R2 unavailable');
+      const mockS3 = { send: jest.fn().mockRejectedValue(error) };
+      await expect(
+        deleteFromStorage(mockS3 as unknown as S3Client, {
+          url: 'https://cdn.example.com/test-bucket/story.webp',
+          bucket: 'test-bucket',
+          publicUrl: 'https://cdn.example.com',
+          strict: true,
+        }),
+      ).rejects.toBe(error);
+    });
+
+    it('never deletes objects through a lookalike public hostname', async () => {
+      const mockS3 = { send: jest.fn() };
+      await deleteFromStorage(mockS3 as unknown as S3Client, {
+        url: 'https://cdn.example.com.evil.test/test-bucket/story.webp',
+        bucket: 'test-bucket',
+        publicUrl: 'https://cdn.example.com',
+        strict: true,
+      });
+      expect(mockS3.send).not.toHaveBeenCalled();
+    });
     it('deletes S3 object when URL matches publicUrl', async () => {
       const mockS3 = {
         send: jest.fn().mockResolvedValue({}),
