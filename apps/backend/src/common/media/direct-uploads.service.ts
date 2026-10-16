@@ -29,6 +29,7 @@ import {
   type UploadPurpose,
 } from './direct-upload.contract';
 import { MediaAccessRepository } from './media-access.repository';
+import { PendingMediaRepository } from './pending-media.repository';
 import { inspectMedia } from './media-metadata';
 import { MEDIA_POLICY } from './media-policy';
 import { validateUploadedMedia } from './media-upload-validator';
@@ -81,6 +82,7 @@ export class DirectUploadsService {
     private readonly budget: MediaBudgetService,
     private readonly access: MediaAccessRepository,
     private readonly config: ConfigService,
+    private readonly pending: PendingMediaRepository,
   ) {}
 
   async start(userId: string, input: DirectUploadInput) {
@@ -184,7 +186,9 @@ export class DirectUploadsService {
       const finalKey = prepared.extension
         ? intent.finalKey.slice(0, intent.finalKey.lastIndexOf('.') + 1) + prepared.extension
         : intent.finalKey;
+      const trackPending = this.config.get<string>('MEDIA_PENDING_TRACKING_ENABLED') === 'true';
       const objectMetadata: Record<string, string> = {
+        ...(trackPending ? { registryversion: '1' } : {}),
         ownerid: userId,
         uploadid: uploadId,
         purpose: intent.purpose,
@@ -200,6 +204,9 @@ export class DirectUploadsService {
         ContentDisposition: this.kind(prepared.contentType) === 'FILE' ? 'attachment' : 'inline',
         CacheControl: 'public, max-age=31536000, immutable',
       };
+      // Enable tracking only after every consumer can claim retention. Once enabled,
+      // persist before the final-object write so failed promotion remains reclaimable.
+      if (trackPending) await this.pending.register(finalKey, uploadId, userId);
       if (prepared.buffer) {
         await s3.send(new PutObjectCommand({ ...publication, Body: prepared.buffer }), {
           abortSignal: AbortSignal.timeout(15_000),
@@ -404,6 +411,7 @@ export class DirectUploadsService {
       head.Metadata.conversationid !== conversationId
     )
       throw new ForbiddenException('Media ownership mismatch');
+    await this.pending.retain(key, userId, head.Metadata.registryversion === '1');
   }
 
   assertLegacyAllowed(): void {

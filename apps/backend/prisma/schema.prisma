@@ -7,6 +7,26 @@ datasource db {
   provider = "postgresql"
 }
 
+enum PendingMediaState {
+  PENDING
+  RETAINED
+  DELETING
+  DELETED
+}
+
+// No cascading owner relation: object deletion must remain retryable after account removal.
+model PendingMediaObject {
+  key       String @id
+  uploadId  String @unique
+  ownerId   String
+  state     PendingMediaState @default(PENDING)
+  createdAt DateTime @default(now())
+  deletedAt DateTime?
+
+  @@index([state, createdAt])
+  @@index([state, deletedAt])
+}
+
 model User {
   id               String           @id @default(uuid())
   email            String           @unique

@@ -284,6 +284,14 @@ export class ComputeWorkerService implements OnModuleInit, OnModuleDestroy {
   onModuleInit(): void {
     const cpus = typeof os.availableParallelism === 'function' ? os.availableParallelism() : 2;
     this.poolSize = Math.max(1, Math.min(cpus, 4));
+    const configuredPoolSize = Number(process.env.COMPUTE_WORKER_POOL_SIZE);
+    if (
+      Number.isInteger(configuredPoolSize) &&
+      configuredPoolSize >= 1 &&
+      configuredPoolSize <= 4
+    ) {
+      this.poolSize = configuredPoolSize;
+    }
 
     for (let i = 0; i < this.poolSize; i++) {
       this.spawnWorker(i);

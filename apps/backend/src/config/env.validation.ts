@@ -4,6 +4,11 @@ export const envSchema = z
   .object({
     SERVICE_ROLE: z.enum(['all', 'core', 'messenger', 'reels', 'music']).default('all'),
     BACKGROUND_ENABLED: z.enum(['true', 'false']).default('true'),
+    MEDIA_ORPHAN_CLEANUP_ENABLED: z.enum(['true', 'false']).default('false'),
+    MEDIA_PENDING_TRACKING_ENABLED: z.enum(['true', 'false']).default('false'),
+    COMPUTE_WORKER_POOL_SIZE: z.coerce.number().int().min(1).max(4).optional(),
+    SHARP_CONCURRENCY: z.coerce.number().int().min(1).max(8).optional(),
+    SHARP_CACHE_MEMORY_MB: z.coerce.number().int().min(0).max(128).optional(),
     CORE_API_URL: z.string().url().optional(),
     DATABASE_URL: z.string().min(1),
     REDIS_URL: z.string().min(1),

@@ -51,7 +51,7 @@ import { RedisSelfHealingService } from './redis-self-healing.service';
         client.on('ready', () => {
           hasLoggedError = false;
           logger.log('Redis connected successfully.');
-          const policy = configService.get<string>('REDIS_MAXMEMORY_POLICY') || 'allkeys-lru';
+          const policy = configService.get<string>('REDIS_MAXMEMORY_POLICY') || 'noeviction';
           if (typeof client.call === 'function') {
             client
               .call('CONFIG', 'SET', 'maxmemory-policy', policy)
