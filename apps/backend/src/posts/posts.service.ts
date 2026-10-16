@@ -153,9 +153,12 @@ export class PostsService {
       if (item.poster) await this.directUploads.assertOwnedUrl(authorId, item.poster, 'post');
       directMedia.push(item);
     }
+    const gifUrls = dto.gifUrls ?? [];
+    if (!Array.isArray(gifUrls) || gifUrls.some((url) => typeof url !== 'string'))
+      throw new BadRequestException('GIF references must be an array of URLs');
     const references = [
       ...legacyReferences,
-      ...(dto.gifUrls ?? []).map((url) => ({ url, kind: 'gif' as const })),
+      ...gifUrls.map((url) => ({ url, kind: 'gif' as const })),
     ];
     if ((files?.length ?? 0) + references.length + directMedia.length > 5)
       throw new BadRequestException('Maximum 5 media files allowed per post');

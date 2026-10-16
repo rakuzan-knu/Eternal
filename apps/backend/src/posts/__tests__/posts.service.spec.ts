@@ -184,6 +184,18 @@ describe('PostsService', () => {
   });
 
   describe('createPost', () => {
+    it.each(['https://media.tenor.com/image.gif', [42]])(
+      'rejects tampered GIF parameter types (%j)',
+      async (value) => {
+        const dto = { content: 'Draft stays intact', gifUrls: [] };
+        Object.defineProperty(dto, 'gifUrls', { value });
+        await expect(service.createPost(dto, 'usr-1')).rejects.toThrow(
+          'GIF references must be an array of URLs',
+        );
+        expect(mockMediaService.processUploadedFiles).not.toHaveBeenCalled();
+        expect(mockPostsRepository.createPost).not.toHaveBeenCalled();
+      },
+    );
     it('publishes a canonical direct upload with a storage path prefix after ownership checks', async () => {
       const url = 'https://cdn.test/bucket/media/post/11111111-1111-4111-8111-111111111111.webp';
       const assertOwnedUrl = vi.fn().mockResolvedValue(undefined);

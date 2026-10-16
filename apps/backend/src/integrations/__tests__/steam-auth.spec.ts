@@ -246,6 +246,8 @@ describe('Steam OpenID account linking', () => {
     ['openid.signed', 'return_to,identity'],
     ['openid.mode', 'cancel'],
     ['openid.ns', 'wrong'],
+    ['openid.__proto__', 'tampered'],
+    ['openid.unexpected', 'tampered'],
     ['openid.realm', 'https://attacker.example/'],
     ['openid.response_nonce', '2000-01-01T00:00:00Zexpired'],
     ['userId', 'victim'],

@@ -26,8 +26,8 @@ The service split is in PR #115 on `codex/free-hosting-recovery`. Until it is me
 Stage and inspect each frontend before promotion:
 
 ```powershell
-vercel deploy --prod --skip-domain --project social-network --scope rakuzan-knu
-vercel deploy --prod --skip-domain --project eternal-mobile-web --scope rakuzan-knu --local-config apps/mobile/vercel.json
+# Run in the already-linked project root (repository root for desktop; apps/mobile for Expo Web).
+vercel deploy --prod --skip-domain --scope rakuzan-knu
 vercel promote <verified-deployment-url> --scope rakuzan-knu
 ```
 
@@ -39,7 +39,7 @@ Expo Web is a browser app. Native Android/iOS builds and distribution remain sep
 
 ## Direct media rollout
 
-Follow [DIRECT_MEDIA_UPLOADS.md](DIRECT_MEDIA_UPLOADS.md). Disable Auto-assign Custom Production Domains for both Vercel projects before pushing a cross-layer media change. Build production frontends without promotion, deploy the four compatible APIs sequentially, then promote both ready client deployments. Restore the projects' previous auto-assignment setting afterward. Never promote a new upload client before Core serves its control API.
+Follow [DIRECT_MEDIA_UPLOADS.md](DIRECT_MEDIA_UPLOADS.md). Disable Auto-assign Custom Production Domains for both Vercel projects before pushing a cross-layer media change. Build production frontends without promotion, deploy the four compatible APIs sequentially, then promote both ready client deployments. After the protected merge and returning Production Branch Tracking to main, restore the projects' previous auto-assignment setting. While the rollout PR remains unmerged, keep automatic domain assignment disabled and promote only verified deployments manually. Never promote a new upload client before Core serves its control API.
 
 Render uses DIRECT_UPLOADS_REQUIRED=true, VIDEO_TRANSCODE_ENABLED=false and SOUNDCLOUD_AUDIO_PROXY_ENABLED=false. Music's STEAM_CALLBACK_URL is its canonical `/v1/integrations/steam/callback`; Steam starts through an authenticated POST and first-party popup launch. Preserve the popup's COOP unsafe-none response header and exact origin/source proof checks. Do not reintroduce a GET start with userId/state selected by the caller.
 

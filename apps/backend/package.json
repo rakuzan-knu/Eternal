@@ -29,7 +29,7 @@
     "db:studio": "prisma studio",
     "test:mutation": "stryker run",
     "test:pact:verify": "tsx test/pact-verify.ts",
-    "test:ci": "vitest run --reporter=github-actions --bail=1",
+    "test:ci": "vitest run --reporter=default --reporter=github-actions --bail=1",
     "test:cov:ci": "vitest run --coverage --reporter=github-actions",
     "benchmark": "node ../scripts/bench/run-stress-tests.cjs",
     "benchmark:k6": "node ../scripts/bench/run-k6.cjs",
