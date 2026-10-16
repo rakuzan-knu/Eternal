@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.0](https://github.com/rakuzan-knu/Eternal/compare/v1.8.0...v1.9.0) (2026-10-16)
+
+### ✨ Features
+
+* **infra:** split services and bound free-tier media traffic ([#115](https://github.com/rakuzan-knu/Eternal/issues/115)) ([e56a868](https://github.com/rakuzan-knu/Eternal/commit/e56a868afc3253a018ccf4a01639f81aa837ee6d))
+
 ## [1.8.0](https://github.com/rakuzan-knu/Eternal/compare/v1.7.1...v1.8.0) (2026-10-15)
 
 ### ✨ Features
