@@ -1,4 +1,5 @@
 import axios, { type AxiosInstance, type InternalAxiosRequestConfig } from 'axios';
+import { getServiceBaseUrl, type ServiceOrigins } from './service-routing';
 
 export interface ExtendedRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean;
@@ -7,6 +8,7 @@ export interface ExtendedRequestConfig extends InternalAxiosRequestConfig {
 
 export interface ApiClientOptions {
   baseURL: string;
+  serviceOrigins?: ServiceOrigins;
   getToken?: () => string | null | Promise<string | null>;
   getRefreshToken?: () => string | null | Promise<string | null>;
   onTokenRefreshed?: (tokens: {
@@ -77,6 +79,9 @@ export function createApiClient(options: ApiClientOptions): AxiosInstance {
   }
 
   client.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
+    if (options.serviceOrigins) {
+      config.baseURL = getServiceBaseUrl(config.url ?? '', options.serviceOrigins, options.baseURL);
+    }
     if (config.url && !config.url.startsWith('http://') && !config.url.startsWith('https://')) {
       if (config.url.startsWith('/v1/')) {
         config.url = config.url.slice(3);

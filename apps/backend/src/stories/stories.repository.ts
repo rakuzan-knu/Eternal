@@ -409,6 +409,17 @@ export class StoriesRepository {
     return true;
   }
 
+  async isMediaReferenced(url: string, excludedStoryIds: string[] = []): Promise<boolean> {
+    const story = await this.prisma.story.findFirst({
+      where: {
+        id: { notIn: excludedStoryIds },
+        OR: [{ mediaUrl: url }, { mediaAssets: { array_contains: [url] } }],
+      },
+      select: { id: true },
+    });
+    return Boolean(story);
+  }
+
   async findExpiredStories() {
     const now = new Date();
     return this.prisma.story.findMany({

@@ -1,3 +1,4 @@
+import { ownsRole } from '../../config/service-role';
 import { canViewStory } from '../../stories/story-access';
 import { publicIntegrationData } from '../../common/security/public-integration-data';
 import {
@@ -175,6 +176,7 @@ export class MessengerGateway
   private candidateSub?: Subscription;
 
   onModuleInit(): void {
+    if (!ownsRole('messenger')) return;
     this.logger.log('MessengerGateway initialized');
     this.initRxCandidateBackpressure();
   }
@@ -211,7 +213,9 @@ export class MessengerGateway
   ) {}
 
   afterInit(server?: Server) {
+    if (!ownsRole('messenger')) return;
     const s = server || this.server;
+    s.on('eternal:showcase-presence', this.handleClusterShowcasePresence);
     if (this.presenceEngine && s) {
       this.presenceEngine.setServer(s);
     }
@@ -242,6 +246,9 @@ export class MessengerGateway
   }
 
   onModuleDestroy(): void {
+    if (ownsRole('messenger')) {
+      this.server?.off('eternal:showcase-presence', this.handleClusterShowcasePresence);
+    }
     for (const [socketId] of this.socketTimers) {
       this.clearSocketTimers(socketId);
     }
@@ -249,13 +256,14 @@ export class MessengerGateway
     this.onlineUsers.clear();
     this.candidateSub?.unsubscribe();
     try {
-      this.server?.disconnectSockets?.(true);
+      if (ownsRole('messenger')) this.server?.local?.disconnectSockets?.(true);
     } catch {
       // ignore on teardown
     }
   }
 
   async drainSockets(options?: DrainOptions): Promise<void> {
+    if (!ownsRole('messenger')) return;
     if (this.podMigrationService) {
       await this.podMigrationService.migrateRoomsOnShutdown(this.server);
     }
@@ -267,6 +275,10 @@ export class MessengerGateway
   }
 
   async handleConnection(client: Socket): Promise<void> {
+    if (!ownsRole('messenger')) {
+      client.disconnect(true);
+      return;
+    }
     if (this.drainingService?.isDraining) {
       client.emit(WS_EVENTS.RECONNECT_WITH_BACKOFF, {
         reconnectAfterMs: Math.floor(Math.random() * 5000) + 1000,
@@ -1450,6 +1462,10 @@ export class MessengerGateway
     isPrivate?: boolean;
   }) {
     if (!payload?.userId) return;
+    if (!ownsRole('messenger')) {
+      this.server.serverSideEmit('eternal:showcase-presence', payload);
+      return;
+    }
 
     const cleanActivityStatus = payload.activityStatus
       ? publicIntegrationData(payload.activityStatus)
@@ -1521,6 +1537,26 @@ export class MessengerGateway
       this.server.emit('user:customization:updated', payload);
     }
   }
+
+  private readonly handleClusterShowcasePresence = (payload: unknown): void => {
+    if (
+      !payload ||
+      typeof payload !== 'object' ||
+      !('userId' in payload) ||
+      typeof payload.userId !== 'string' ||
+      payload.userId.length > 128 ||
+      !('activityStatus' in payload)
+    )
+      return;
+    void this.handleShowcasePresenceUpdated({
+      userId: payload.userId,
+      activityStatus: payload.activityStatus,
+      ...('connectedAccounts' in payload ? { connectedAccounts: payload.connectedAccounts } : {}),
+      ...('isPrivate' in payload && typeof payload.isPrivate === 'boolean'
+        ? { isPrivate: payload.isPrivate }
+        : {}),
+    });
+  };
 
   @SubscribeMessage('subscribeStory')
   async handleSubscribeStory(

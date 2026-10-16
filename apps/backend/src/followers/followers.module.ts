@@ -1,3 +1,4 @@
+import { roleControllers } from '../config/service-role';
 import { Module, forwardRef } from '@nestjs/common';
 import { FollowersController } from './followers.controller';
 import { FollowersService } from './followers.service';
@@ -8,7 +9,7 @@ import { MessengerModule } from '../messenger/messenger.module';
 
 @Module({
   imports: [PrismaModule, forwardRef(() => MessengerModule)],
-  controllers: [FollowersController],
+  controllers: roleControllers('core', [FollowersController]),
   providers: [
     FollowersService,
     {

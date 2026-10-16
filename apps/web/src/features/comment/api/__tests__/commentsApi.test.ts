@@ -104,6 +104,7 @@ describe('commentsApi', () => {
   });
 
   it('uploads media via multipart form data', async () => {
+    vi.mocked(apiClient.post).mockResolvedValueOnce({ data: { mode: 'proxy' } });
     vi.mocked(apiClient.post).mockResolvedValue({
       data: { url: 'https://cdn.example.com/img.png' },
     });

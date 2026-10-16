@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { getOAuthSessionState, clearOAuthSessionState } from '@/shared/lib/safeSessionStorage';
+import { getApiUrl } from '@/shared/api/httpClient';
 
 export const OAuthCallbackHandler: React.FC<{ platform?: string }> = ({
   platform: propPlatform,
@@ -62,9 +63,6 @@ export const OAuthCallbackHandler: React.FC<{ platform?: string }> = ({
       return;
     }
 
-    const rawApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-    const baseBackendUrl = rawApiUrl.replace(/\/api\/?$/, '').replace(/\/$/, '');
-
     // Call exchange-code endpoint on backend
     const currentOrigin = window.location.origin;
     const token = localStorage.getItem('accessToken');
@@ -73,7 +71,7 @@ export const OAuthCallbackHandler: React.FC<{ platform?: string }> = ({
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    fetch(`${baseBackendUrl}/integrations/${effectivePlatform}/exchange-code`, {
+    fetch(getApiUrl(`/integrations/${effectivePlatform}/exchange-code`), {
       method: 'POST',
       headers,
       credentials: 'include',

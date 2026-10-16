@@ -1,3 +1,4 @@
+import { roleControllers } from '../config/service-role';
 import { Module, forwardRef } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
@@ -20,7 +21,7 @@ import { BloomModule } from '../common/bloom/bloom.module';
     forwardRef(() => SessionsModule),
     BloomModule,
   ],
-  controllers: [AuthController],
+  controllers: roleControllers('core', [AuthController]),
   providers: [AuthService, JwtStrategy, TurnstileService, TokenRevocationService],
   exports: [AuthService, TurnstileService, TokenRevocationService],
 })

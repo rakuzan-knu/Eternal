@@ -126,10 +126,10 @@ export class PostsController {
   @ApiResponse({ status: 201, description: 'Post created successfully.' })
   createPost(
     @Body(new ZodValidationPipe(createPostSchema)) dto: CreatePostDto,
-    @CurrentUser() user?: RequestUser,
+    @CurrentUser() user: RequestUser,
     @UploadedFiles() files?: Express.Multer.File[],
   ) {
-    const authorId = user!.id;
+    const authorId = user.id;
     return this.postsService.createPost(dto, authorId, files);
   }
 

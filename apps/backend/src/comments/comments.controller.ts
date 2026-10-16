@@ -64,8 +64,12 @@ export class CommentsController {
   @ApiOperation({ summary: 'Upload and sanitize comment image attachment' })
   @ApiResponse({ status: 201, description: 'Image sanitized and uploaded successfully.' })
   @ApiResponse({ status: 400, description: 'Invalid file format or size exceeds 5MB.' })
-  uploadCommentMedia(@UploadedFile() file: Express.Multer.File) {
-    return this.mediaService.processCommentImage(file);
+  uploadCommentMedia(
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: RequestUser,
+    @Body('uploadId') uploadId?: string,
+  ) {
+    return this.mediaService.processCommentImage(file, user.id, uploadId);
   }
 
   @Get('posts/:id/comments')

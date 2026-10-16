@@ -1,4 +1,5 @@
 import { apiClient as api } from '@/shared/api/httpClient';
+import { prepareDirectUploadForm } from '@shared/api-client';
 import {
   ChatActivityMap,
   ConversationView,
@@ -162,15 +163,19 @@ export const chatApi = {
       })
       .then((r) => r.data),
 
-  uploadAttachment: (
+  uploadAttachment: async (
     conversationId: string,
     file: File,
     onProgress?: (percent: number) => void,
+    signal?: AbortSignal,
   ) => {
     const formData = new FormData();
     formData.append('file', file);
+    const body = await prepareDirectUploadForm(api, formData, 'chat', { conversationId, signal });
+    if (body !== formData) onProgress?.(100);
     return api
-      .post(`/conversations/${conversationId}/attachments`, formData, {
+      .post(`/conversations/${conversationId}/attachments`, body, {
+        ...(signal ? { signal } : {}),
         onUploadProgress: (e) => {
           if (onProgress && e.total) onProgress(Math.round((e.loaded / e.total) * 100));
         },

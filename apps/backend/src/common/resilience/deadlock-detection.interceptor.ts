@@ -1,3 +1,4 @@
+import { redactRequestUrl } from '../utils/redact-url.util';
 import {
   CallHandler,
   ExecutionContext,
@@ -93,7 +94,7 @@ export class DeadlockDetectionInterceptor implements NestInterceptor {
 
             const traceId = TraceContext.getTraceId() || req?.traceId || 'unknown';
             const method = req?.method || 'UNKNOWN';
-            const url = req?.originalUrl || req?.url || 'UNKNOWN';
+            const url = redactRequestUrl(req?.originalUrl || req?.url);
             const handlerName = `${classRef.name}.${handler.name}`;
 
             const healthStatus = this.healthMonitor?.getHealthStatus();

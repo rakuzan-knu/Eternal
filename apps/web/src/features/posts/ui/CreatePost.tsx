@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { isAxiosError } from 'axios';
 import { X, Loader2, AlertCircle, Eye, Edit3 } from 'lucide-react';
 import Avatar from '../../../shared/ui/Avatar';
 import { PollCreator } from './PollCreator';
@@ -435,8 +436,15 @@ export default function CreatePost({
       setActiveMenu(null);
       setPollOptions(emptyPollOptions());
       setActiveTab('write');
-    } catch {
-      setErrorMessage('Failed to publish post. Please check your connection and try again.');
+    } catch (error) {
+      const message = isAxiosError<{ message?: unknown }>(error)
+        ? error.response?.data?.message
+        : undefined;
+      const detail =
+        typeof message === 'string' ? message : error instanceof Error ? error.message : '';
+      setErrorMessage(
+        detail || 'Failed to publish post. Please check your connection and try again.',
+      );
     }
   };
 

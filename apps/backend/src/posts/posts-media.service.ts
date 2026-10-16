@@ -126,7 +126,7 @@ export class PostsMediaService implements OnModuleDestroy {
 
   private readonly CHUNK_TTL_MS = 15 * 60 * 1000; // 15 minutes TTL for incomplete upload sessions
   private readonly MAX_CONCURRENT_SESSIONS = 100;
-  private readonly MAX_TOTAL_CHUNKS = 50; // 50 * 5MB = 250MB max video assembly
+  private readonly MAX_TOTAL_CHUNKS = 4; // 4 * 5 MiB = 20 MiB max video assembly
 
   private readonly chunkCleanup = setInterval(() => this.cleanupAbandonedChunks(), 60000).unref();
   private assemblyBytes = 0;
@@ -180,6 +180,9 @@ export class PostsMediaService implements OnModuleDestroy {
       throw new BadRequestException('Chunk size exceeds 5MB limit');
     }
 
+    const existingSession = this.chunkStore.get(uploadId);
+    if (existingSession && existingSession.totalChunks !== totalChunks)
+      throw new BadRequestException('Chunk count cannot change');
     const existing = this.chunkStore.get(uploadId);
     if (existing && existing.ownerId !== ownerId)
       throw new BadRequestException('Upload belongs to another user');

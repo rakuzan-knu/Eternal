@@ -1,3 +1,4 @@
+import { roleControllers } from '../config/service-role';
 import { Module, forwardRef } from '@nestjs/common';
 import { PostsRepository } from './posts.repository';
 import { PostsService } from './posts.service';
@@ -15,7 +16,7 @@ import { FeedScoringService } from './feed-scoring.service';
 
 @Module({
   imports: [PrismaModule, forwardRef(() => MessengerModule), SnowflakeModule],
-  controllers: [PostsController],
+  controllers: roleControllers('core', [PostsController]),
   providers: [
     postsS3Provider,
     PostsMediaService,

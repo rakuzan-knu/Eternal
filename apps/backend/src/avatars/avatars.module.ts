@@ -1,3 +1,4 @@
+import { roleControllers } from '../config/service-role';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AvatarsController } from './avatars.controller';
@@ -9,7 +10,7 @@ import { AVATAR_REPOSITORY } from './interfaces/avatars-repository.interface';
 
 @Module({
   imports: [ConfigModule, PrismaModule],
-  controllers: [AvatarsController],
+  controllers: roleControllers('core', [AvatarsController]),
   providers: [
     AvatarsService,
     s3Provider,

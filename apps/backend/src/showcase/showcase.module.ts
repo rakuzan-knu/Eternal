@@ -1,3 +1,4 @@
+import { roleControllers } from '../config/service-role';
 import { Module, forwardRef } from '@nestjs/common';
 import { ShowcaseController } from './showcase.controller';
 import { ShowcaseService } from './showcase.service';
@@ -10,7 +11,7 @@ import { IntegrationsModule } from '../integrations/integrations.module';
 
 @Module({
   imports: [PrismaModule, RedisModule, forwardRef(() => IntegrationsModule)],
-  controllers: [ShowcaseController],
+  controllers: roleControllers('core', [ShowcaseController]),
   providers: [
     ShowcaseService,
     MediaProxyService,

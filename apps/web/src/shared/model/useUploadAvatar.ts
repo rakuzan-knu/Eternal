@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/shared/api/queryKeys';
 import { apiClient } from '@/shared/api/httpClient';
+import { prepareDirectUploadForm } from '@shared/api-client';
 
 interface UploadAvatarPayload {
   userId: string;
@@ -19,7 +20,8 @@ export function useUploadAvatar() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await apiClient.post(`/users/${userId}/avatar`, formData, { signal });
+      const body = await prepareDirectUploadForm(apiClient, formData, 'avatar', { signal });
+      const response = await apiClient.post(`/users/${userId}/avatar`, body, { signal });
 
       return response.data;
     },

@@ -1,5 +1,6 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/shared/api/httpClient';
+import { prepareDirectUploadForm } from '@shared/api-client';
 import { REEL_COMMENTS_KEY, REELS_FEED_KEY, USER_REELS_KEY } from '@/shared/api/queryKeys';
 
 export * from '@/entities/reel';
@@ -321,54 +322,15 @@ export function useCreateReel() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (formData: FormData) => {
-      try {
-        const { data } = await apiClient.post<ReelItem>('/reels', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
-        return data;
-      } catch (err) {
-        const status = (err as { response?: { status?: number } })?.response?.status;
-        if (status && status >= 400 && status < 500 && status !== 401) {
-          throw err;
-        }
-        const caption = (formData.get('caption') as string) || 'New video';
-        const audioTitle = (formData.get('audioTitle') as string) || 'Original Audio';
-        const audioArtist = (formData.get('audioArtist') as string) || 'PROFKINO';
-        const fallbackReel: ReelItem = {
-          id: `reel-local-${Date.now()}`,
-          authorId: 'user-profkino',
-          videoUrl: '/videos/sample-reel.mp4',
-          hlsUrl: null,
-          thumbnailUrl: '/images/profkino-reel-preview.webp',
-          blurhash: null,
-          thumbhash: null,
-          duration: 5,
-          width: 720,
-          height: 1280,
-          caption,
-          audioTitle,
-          audioArtist,
-          audioUrl: null,
-          viewsCount: 1,
-          likesCount: 0,
-          commentsCount: 0,
-          sharesCount: 0,
-          isLiked: false,
-          isSaved: false,
-          savedCount: 0,
-          createdAt: new Date().toISOString(),
-          author: {
-            id: 'user-profkino',
-            username: 'profkino',
-            displayName: 'PROFKINO',
-            avatar: '/avatars/profkino.webp',
-            isVerified: true,
-            isFollowing: false,
-          },
-        };
-        return fallbackReel;
-      }
+    mutationFn: async (payload: FormData | { formData: FormData; signal?: AbortSignal }) => {
+      const formData = payload instanceof FormData ? payload : payload.formData;
+      const signal = payload instanceof FormData ? undefined : payload.signal;
+      const body = await prepareDirectUploadForm(apiClient, formData, 'reel', { signal });
+      const { data } = await apiClient.post<ReelItem>('/reels', body, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        ...(signal ? { signal } : {}),
+      });
+      return data;
     },
     onSuccess: (newReel) => {
       queryClient.setQueriesData<{ pages: PaginatedReels[]; pageParams: unknown[] }>(

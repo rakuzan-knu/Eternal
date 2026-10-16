@@ -26,6 +26,7 @@ import {
 } from './queue.constants';
 import { AlertingService } from '../common/resilience/alerting.service';
 import { MetricsService } from '../metrics/metrics.service';
+import type { VideoHlsTranscodeJobData } from './processors/video-transcode.processor';
 
 @Injectable()
 export class QueueService implements OnModuleInit, OnModuleDestroy {
@@ -84,8 +85,8 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
           type: 'exponential',
           delay: 1000,
         },
-        removeOnComplete: 100,
-        removeOnFail: 500,
+        removeOnComplete: { age: 3600, count: 25 },
+        removeOnFail: { age: 7 * 24 * 3600, count: 100 },
       };
 
       const setupQueue = (name: string, opts = defaultJobOptions): Queue => {
@@ -176,7 +177,10 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async addVideoTranscodeJob(data: unknown, opts?: JobsOptions): Promise<void> {
+  async addVideoTranscodeJob(
+    data: Omit<VideoHlsTranscodeJobData, 'sourceBufferBase64'>,
+    opts?: JobsOptions,
+  ): Promise<void> {
     try {
       if (this.videoTranscodeQueue) {
         await this.videoTranscodeQueue.add(VideoJobType.HLS_TRANSCODE, data, opts);
@@ -318,6 +322,8 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
         return this.searchIndexingQueue;
       case QUEUE_MESSAGES:
         return this.messagesQueue;
+      case QUEUE_VIDEO_TRANSCODE:
+        return this.videoTranscodeQueue;
       default:
         return undefined;
     }
@@ -339,6 +345,7 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
       { name: QUEUE_MEDIA_PREVIEWS, queue: this.mediaPreviewsQueue },
       { name: QUEUE_SEARCH_INDEXING, queue: this.searchIndexingQueue },
       { name: QUEUE_MESSAGES, queue: this.messagesQueue },
+      { name: QUEUE_VIDEO_TRANSCODE, queue: this.videoTranscodeQueue },
       { name: QUEUE_DEAD_LETTER, queue: this.deadLetterQueue },
     ];
 

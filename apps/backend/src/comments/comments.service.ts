@@ -1,3 +1,4 @@
+import { DirectUploadsService } from '../common/media/direct-uploads.service';
 import {
   BadRequestException,
   ConflictException,
@@ -28,6 +29,9 @@ import { TextPipelineService } from '../common/text-pipeline/text-pipeline.servi
 
 @Injectable()
 export class CommentsService {
+  @Inject(DirectUploadsService)
+  private readonly directUploads!: DirectUploadsService;
+
   private readonly logger = new Logger(CommentsService.name);
 
   constructor(
@@ -46,6 +50,7 @@ export class CommentsService {
     userId: string,
     dto: CreateCommentDto,
   ): Promise<CommentResponseDto> {
+    if (dto.mediaUrl) await this.directUploads.assertOwnedUrl(userId, dto.mediaUrl, 'comment');
     // 1. Idempotency Key Guard
     if (dto.clientMutationId && this.redis) {
       const lockKey = `idempotency:comment:${userId}:${dto.clientMutationId}`;

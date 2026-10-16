@@ -1,3 +1,4 @@
+import { roleControllers } from '../config/service-role';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { GithubController } from './github.controller';
@@ -9,7 +10,7 @@ import { GithubRepository } from './repositories/github.repository';
 
 @Module({
   imports: [ConfigModule, PrismaModule, RedisModule],
-  controllers: [GithubController],
+  controllers: roleControllers('core', [GithubController]),
   providers: [
     GithubService,
     {

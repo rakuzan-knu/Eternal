@@ -1,3 +1,4 @@
+import { DirectUploadsService } from '../../common/media/direct-uploads.service';
 import {
   pngImage,
   gifImage,
@@ -138,6 +139,7 @@ describe('StoriesService', () => {
         createdAt: new Date(),
       }),
       getStoryViewers: jest.fn().mockResolvedValue({ totalViews: 1, viewers: [] }),
+      isMediaReferenced: jest.fn().mockResolvedValue(false),
       deleteStory: jest.fn().mockResolvedValue(true),
       getCloseFriends: jest.fn().mockResolvedValue([{ friend: mockAuthor }]),
       isCloseFriend: jest.fn().mockResolvedValue(false),
@@ -182,11 +184,19 @@ describe('StoriesService', () => {
     };
 
     const mockMessages = {
-      send: jest.fn().mockResolvedValue({ id: 'msg-1', body: 'Nice story!' }),
+      sendStoryReference: jest.fn().mockResolvedValue({ id: 'msg-1', body: 'Nice story!' }),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        {
+          provide: DirectUploadsService,
+          useValue: {
+            assertLegacyAllowed: jest.fn(),
+            assertOwnedUrl: jest.fn().mockResolvedValue(undefined),
+            resolve: jest.fn(),
+          },
+        },
         StoriesService,
         { provide: StoriesRepository, useValue: mockRepo },
         {
@@ -424,7 +434,7 @@ describe('StoriesService', () => {
       const res = await service.replyToStory('story-1', 'user-2', { text: 'Love this!' });
 
       expect(convsService.createDirect).toHaveBeenCalledWith('user-2', { participantId: 'user-1' });
-      expect(messagesService.send).toHaveBeenCalled();
+      expect(messagesService.sendStoryReference).toHaveBeenCalled();
       expect(res.conversationId).toBe('conv-1');
     });
 
@@ -450,6 +460,13 @@ describe('StoriesService', () => {
 
       expect(repo.deleteStory).toHaveBeenCalledWith('story-1', 'user-1');
       expect(res).toBe(true);
+    });
+
+    it('retains a storage object referenced by another story', async () => {
+      jest.mocked(deleteFromStorage).mockClear();
+      repo.isMediaReferenced.mockResolvedValueOnce(true);
+      await service.deleteStory('story-1', 'user-1');
+      expect(deleteFromStorage).not.toHaveBeenCalled();
     });
 
     it('rejects deleting a story owned by someone else', async () => {

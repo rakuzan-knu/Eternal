@@ -23,12 +23,14 @@ import {
 } from './outbox.constants';
 import type { IOutboxRepository } from './interfaces/outbox-repository.interface';
 import type { OutboxEvent } from '@prisma/client';
+import { runsBackground } from '../../config/service-role';
 
 @Injectable()
 export class OutboxPublisherService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(OutboxPublisherService.name);
   private isRunning = false;
   private timer?: NodeJS.Timeout;
+  private pollDelayMs = 1000;
 
   constructor(
     @Inject(OUTBOX_REPOSITORY)
@@ -44,11 +46,13 @@ export class OutboxPublisherService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit(): void {
+    if (!runsBackground('messenger')) return;
     if (process.env.NODE_ENV === 'test' && !process.env.ENABLE_OUTBOX_POLLER_IN_TEST) {
       this.logger.log('OutboxPublisherService polling loop skipped in test environment.');
       return;
     }
     this.isRunning = true;
+    this.pollDelayMs = 1000;
     this.scheduleNextPoll(1000);
     this.logger.log('OutboxPublisherService initialized and started polling worker.');
   }
@@ -70,7 +74,9 @@ export class OutboxPublisherService implements OnModuleInit, OnModuleDestroy {
         let nextDelay = 1000;
         try {
           if (!this.isRunning) return;
-          await this.processOutboxBatch();
+          const processed = await this.processOutboxBatch();
+          this.pollDelayMs = processed > 0 ? 1000 : Math.min(this.pollDelayMs * 2, 10000);
+          nextDelay = this.pollDelayMs;
           this.hasLoggedPollingError = false;
         } catch (err) {
           if (!this.hasLoggedPollingError) {
@@ -92,6 +98,7 @@ export class OutboxPublisherService implements OnModuleInit, OnModuleDestroy {
   }
 
   async processOutboxBatch(): Promise<number> {
+    if (!runsBackground('messenger')) return 0;
     const lockToken = await this.redisService.acquireLock(OUTBOX_PUBLISHER_LOCK_KEY, 8000);
     if (!lockToken) {
       return 0;

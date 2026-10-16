@@ -114,6 +114,7 @@ describe('chatApi', () => {
     const postSpy = vi
       .spyOn(apiClient, 'post')
       .mockImplementation(async (url: string, data?: any, config?: any) => {
+        if (url === '/uploads/direct') return { data: { mode: 'proxy' } };
         if (config?.onUploadProgress) {
           config.onUploadProgress({ loaded: 50, total: 100 });
         }

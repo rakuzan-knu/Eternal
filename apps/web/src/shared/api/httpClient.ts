@@ -1,4 +1,5 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios';
+import { getServiceBaseUrl } from '@social-network/shared-api-client/service-routing';
 import {
   useAccountsStore,
   type AccountsState,
@@ -52,12 +53,33 @@ const rawApiUrl = (
 ).trim();
 
 const rawBaseUrl = rawApiUrl.replace(/\/api\/?$/, '').replace(/\/+$/, '');
+const coreBaseUrl = rawBaseUrl
+  ? rawBaseUrl.endsWith('/v1')
+    ? rawBaseUrl
+    : `${rawBaseUrl}/v1`
+  : '/v1';
 
 export const apiClient = axios.create({
-  baseURL: rawBaseUrl ? (rawBaseUrl.endsWith('/v1') ? rawBaseUrl : `${rawBaseUrl}/v1`) : '/v1',
+  baseURL: coreBaseUrl,
   timeout: 30000,
   withCredentials: true,
 });
+const serviceOrigins = {
+  messenger: import.meta.env.VITE_MESSENGER_API_URL ?? '',
+  reels: import.meta.env.VITE_REELS_API_URL ?? '',
+  music: import.meta.env.VITE_MUSIC_API_URL ?? '',
+};
+
+// Popup navigation and fetch callers need the same routing as Axios requests.
+export function getApiUrl(path: string): string {
+  if (/^(?:[a-z][a-z\d+.-]*:|\/\/)/i.test(path)) return path;
+  const baseUrl = getServiceBaseUrl(path, serviceOrigins, coreBaseUrl).replace(/\/+$/, '');
+  const relativePath = path
+    .replace(/^\/+/, '')
+    .replace(/^(?:api\/)?v1(?:\/|$)/, '')
+    .replace(/^api(?:\/|$)/, '');
+  return `${baseUrl}/${relativePath}`;
+}
 
 export function isTokenExpired(token: string | null): boolean {
   if (!token) return true;
@@ -131,6 +153,7 @@ export async function getValidAccessToken(): Promise<string | null> {
 }
 
 apiClient.interceptors.request.use(async (config) => {
+  config.baseURL = getServiceBaseUrl(config.url ?? '', serviceOrigins, coreBaseUrl);
   // Since baseURL already ends with /v1, strip any redundant /v1 prefix from config.url
   if (config.url && !config.url.startsWith('http://') && !config.url.startsWith('https://')) {
     if (config.url.startsWith('/v1/')) {

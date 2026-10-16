@@ -14,7 +14,7 @@ export function validateStoryAsset(asset: ImagePickerAsset): string | null {
   const mime = asset.mimeType?.toLowerCase();
   if (mime && !mime.startsWith(audio ? 'audio/' : video ? 'video/' : 'image/'))
     return 'Choose a photo, video or audio file.';
-  const maxMB = audio ? 25 : video ? 100 : 10;
+  const maxMB = audio ? 10 : video ? 20 : 5;
   const size = Math.max(asset.fileSize ?? 0, asset.file?.size ?? 0);
   return size > maxMB * 1024 * 1024
     ? `Choose a ${audio ? 'audio file' : video ? 'video' : 'photo'} smaller than ${maxMB} MB.`

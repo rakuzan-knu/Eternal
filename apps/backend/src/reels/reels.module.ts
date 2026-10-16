@@ -1,3 +1,4 @@
+import { roleControllers } from '../config/service-role';
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../common/prisma';
 import { ReelsController } from './reels.controller';
@@ -8,7 +9,7 @@ import { reelsS3Provider } from './s3-provider';
 
 @Module({
   imports: [PrismaModule],
-  controllers: [ReelsController],
+  controllers: roleControllers('reels', [ReelsController]),
   providers: [
     reelsS3Provider,
     ReelsService,

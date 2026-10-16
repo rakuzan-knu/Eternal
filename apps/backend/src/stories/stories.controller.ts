@@ -72,6 +72,8 @@ export class StoriesController {
     @UploadedFile() file?: Express.Multer.File,
     @Body()
     body?: {
+      uploadId?: string;
+      overlayUploads?: string | Record<string, string>;
       mediaType?: CreateStoryDto['mediaType'];
       caption?: string;
       overlays?: string | CreateStoryDto['overlays'];
@@ -96,7 +98,13 @@ export class StoriesController {
     if (primary.length > 1) throw new BadRequestException('Use one main story file');
     // Fastify decorates request.file with a function even when no primary file was uploaded.
     const primaryFile = primary[0] || (typeof file === 'object' ? file : undefined);
+    const overlayUploads =
+      typeof body?.overlayUploads === 'string'
+        ? safeJsonParse<Record<string, string>>(body.overlayUploads, { maxSizeBytes: 4096 })
+        : body?.overlayUploads;
     const rawDto: CreateStoryDto = {
+      uploadId: body?.uploadId,
+      overlayUploads: overlayUploads || undefined,
       mediaType: body?.mediaType || (primaryFile ? undefined : 'IMAGE'),
       caption: body?.caption,
       overlays: Array.isArray(overlays) ? overlays : undefined,
