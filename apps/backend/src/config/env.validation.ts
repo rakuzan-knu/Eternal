@@ -24,6 +24,13 @@ export const envSchema = z
     DATABASE_CONNECT_TIMEOUT_SECONDS: z.coerce.number().int().min(1).max(60).default(10),
     DATABASE_STATEMENT_TIMEOUT_MS: z.coerce.number().int().min(100).max(60000).default(10000),
     DATABASE_QUERY_TIMEOUT_MS: z.coerce.number().int().min(100).max(60000).default(10000),
+    CALL_TELEMETRY_STORAGE: z.enum(['postgres', 'cassandra']).default('postgres'),
+    CASSANDRA_SECURE_CONNECT_BUNDLE: z.string().min(1).optional(),
+    CASSANDRA_APPLICATION_TOKEN: z.string().min(1).optional(),
+    CASSANDRA_KEYSPACE: z
+      .string()
+      .regex(/^[a-z][a-z0-9_]{0,47}$/)
+      .optional(),
     REDIS_MAXMEMORY_POLICY: z
       .enum(['allkeys-lru', 'volatile-lru', 'allkeys-lfu', 'volatile-lfu', 'noeviction'])
       .default('noeviction'),
@@ -55,6 +62,22 @@ export const envSchema = z
     LOCAL_STORAGE_DIR: z.string().optional(),
     LOCAL_STORAGE_PUBLIC_URL: z.string().optional(),
   })
+
+  .refine(
+    (data) => {
+      const values = [
+        data.CASSANDRA_SECURE_CONNECT_BUNDLE,
+        data.CASSANDRA_APPLICATION_TOKEN,
+        data.CASSANDRA_KEYSPACE,
+      ];
+      const configured = values.filter(Boolean).length;
+      return configured === 3 || (configured === 0 && data.CALL_TELEMETRY_STORAGE === 'postgres');
+    },
+    {
+      message:
+        'Cassandra requires its secure connect bundle, application token and keyspace together',
+    },
+  )
 
   .refine((data) => data.JWT_ACCESS_SECRET !== data.JWT_REFRESH_SECRET, {
     message: 'JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must be different',

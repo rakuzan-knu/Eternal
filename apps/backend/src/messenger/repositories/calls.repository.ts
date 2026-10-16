@@ -1,14 +1,21 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException, Optional } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { CallStatus, CallType, CallEndReason, ParticipantRole } from '@prisma/client';
 import type { CallParticipant, CallTelemetry } from '@prisma/client';
 import { PrismaService } from '@common/prisma';
 import type { ICallsRepository } from '../interfaces/calls-repository.interface';
 import type { CallWithDetails } from '../interfaces/types';
 import { callInclude } from '../interfaces/types';
+import { CassandraTelemetryRepository } from '../../common/cassandra/cassandra-telemetry.repository';
+import { TelemetrySyncRepository } from '../../common/cassandra/telemetry-sync.repository';
 
 @Injectable()
 export class CallsRepository implements ICallsRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly cassandraTelemetry?: CassandraTelemetryRepository,
+    @Optional() private readonly telemetryWriter?: TelemetrySyncRepository,
+  ) {}
 
   async createCall(data: {
     conversationId: string;
@@ -147,7 +154,7 @@ export class CallsRepository implements ICallsRepository {
     });
   }
 
-  saveTelemetry(data: {
+  async saveTelemetry(data: {
     callId: string;
     userId: string;
     avgRttMs: number;
@@ -159,6 +166,23 @@ export class CallsRepository implements ICallsRepository {
     durationMs: number;
     endReason?: string | null;
   }): Promise<CallTelemetry> {
+    const cassandra = this.cassandraTelemetry;
+    if (cassandra?.enabled) {
+      if (!this.telemetryWriter)
+        throw new ServiceUnavailableException('Telemetry synchronization unavailable');
+      const record: CallTelemetry = {
+        ...data,
+        id: randomUUID(),
+        createdAt: new Date(),
+        maxRttMs: data.maxRttMs ?? null,
+        jitterMs: data.jitterMs ?? null,
+        audioCodec: data.audioCodec ?? null,
+        videoCodec: data.videoCodec ?? null,
+        endReason: data.endReason ?? null,
+      };
+      await this.telemetryWriter.write(record);
+      return record;
+    }
     return this.prisma.callTelemetry.create({
       data: {
         callId: data.callId,
@@ -175,7 +199,17 @@ export class CallsRepository implements ICallsRepository {
     });
   }
 
-  findTelemetriesForUser(userId: string, limit = 50): Promise<CallTelemetry[]> {
+  async findTelemetriesForUser(userId: string, limit = 50): Promise<CallTelemetry[]> {
+    if (this.cassandraTelemetry?.enabled) {
+      const records = await this.cassandraTelemetry.findForUser(userId, limit);
+      // A committed deletion must be invisible even while its asynchronous purge is pending.
+      const calls = await this.prisma.call.findMany({
+        where: { id: { in: [...new Set(records.map((record) => record.callId))] } },
+        select: { id: true },
+      });
+      const existingCalls = new Set(calls.map((call) => call.id));
+      return records.filter((record) => existingCalls.has(record.callId));
+    }
     return this.prisma.callTelemetry.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },

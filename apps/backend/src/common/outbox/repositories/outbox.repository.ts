@@ -5,6 +5,7 @@ import type {
   CreateOutboxEventInput,
   IOutboxRepository,
 } from '../interfaces/outbox-repository.interface';
+import { TELEMETRY_EVENTS } from '../../cassandra/telemetry-sync.repository';
 
 @Injectable()
 export class OutboxRepository implements IOutboxRepository {
@@ -54,6 +55,7 @@ export class OutboxRepository implements IOutboxRepository {
     return this.prisma.$transaction(async (tx) => {
       const candidateEvents = await tx.outboxEvent.findMany({
         where: {
+          eventType: { notIn: TELEMETRY_EVENTS },
           OR: [
             { status: OutboxStatus.PENDING },
             {
