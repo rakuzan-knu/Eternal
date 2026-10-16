@@ -1060,6 +1060,20 @@ export class IntegrationsController {
   }
 
   @UseGuards(AuthGuard)
+  @Post('spotify/oauth/start')
+  @Header('Cache-Control', 'no-store')
+  async startSpotifyOAuth(
+    @CurrentUser() user: RequestUser,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const url = await this.spotifyService.getAuthorizationUrl(user.id);
+    return res.send(
+      await this.integrationsService.prepareOAuthLaunch(url, String(req.headers.origin || '')),
+    );
+  }
+
+  @UseGuards(AuthGuard)
   @Post(':platform/oauth/start')
   @Header('Cache-Control', 'no-store')
   async startOAuth(
@@ -1068,12 +1082,6 @@ export class IntegrationsController {
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    if (platform === 'spotify') {
-      const url = await this.spotifyService.getAuthorizationUrl(user.id);
-      return res.send(
-        await this.integrationsService.prepareOAuthLaunch(url, String(req.headers.origin || '')),
-      );
-    }
     return this.integrationsService.handlePlatformOAuthStart(platform, user.id, req, res, true);
   }
 

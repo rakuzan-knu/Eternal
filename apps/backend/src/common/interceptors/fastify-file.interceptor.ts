@@ -51,7 +51,7 @@ interface FastifyMultipartRequest {
     | undefined
     | Express.Multer.File
     | ((options?: { limits: { fileSize: number } }) => Promise<FastifyMultipartPart>);
-  files?: Express.Multer.File[];
+  files?: Express.Multer.File[] | (() => AsyncIterable<FastifyMultipartPart>);
   incomingFile?: Express.Multer.File;
   incomingFiles?: Express.Multer.File[];
   body?: Record<string, unknown>;
@@ -256,6 +256,8 @@ export function FastifyFilesInterceptor(fieldName = 'files', maxCount = 10): Typ
         }
       }
 
+      // The multipart plugin also decorates JSON requests with a files() method.
+      if (typeof req.files === 'function') req.files = [];
       return next.handle();
     }
   }

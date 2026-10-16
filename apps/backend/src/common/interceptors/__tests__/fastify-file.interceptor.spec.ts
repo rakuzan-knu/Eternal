@@ -124,3 +124,39 @@ describe('real multipart requests', () => {
     }
   });
 });
+
+describe('JSON posts without file parts', () => {
+  it('normalizes the multipart files() decorator to an empty upload array', async () => {
+    const adapter = new FastifyAdapter();
+    const app = adapter.getInstance();
+    const next = { handle: vi.fn(() => of(undefined)) };
+    const Interceptor = FastifyFilesInterceptor('media', 5);
+    await app.register(multipart);
+    app.post('/posts', async (request) => {
+      const before = typeof request.files;
+      const context = {
+        getType: () => 'http',
+        switchToHttp: () => ({ getRequest: () => request }),
+      } as ExecutionContext;
+      await new Interceptor().intercept(context, next);
+      const files: unknown = Reflect.get(request, 'files');
+      return {
+        before,
+        array: Array.isArray(files),
+        count: Array.isArray(files) ? files.length : null,
+      };
+    });
+    try {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/posts',
+        payload: { content: 'Text post' },
+      });
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual({ before: 'function', array: true, count: 0 });
+      expect(next.handle).toHaveBeenCalledTimes(1);
+    } finally {
+      await app.close();
+    }
+  });
+});
