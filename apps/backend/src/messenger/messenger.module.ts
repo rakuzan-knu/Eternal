@@ -3,6 +3,7 @@ import { Module, forwardRef } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PrismaModule } from '@common/prisma';
+import { CassandraModule } from '../common/cassandra/cassandra.module';
 import { DirectUploadsModule } from '../common/media/direct-uploads.module';
 import { UsersModule } from '../users/users.module';
 
@@ -63,6 +64,7 @@ import { WatchTogetherService } from './watch-together/watch-together.service';
 @Module({
   imports: [
     PrismaModule,
+    CassandraModule,
     DirectUploadsModule,
     UnreadProjectionModule,
     RedisModule,
