@@ -17,8 +17,24 @@ import { enforceUploadSize } from './media-upload-validator';
 // Configure libvips threadpool and SIMD hardware acceleration for peak throughput
 try {
   const cpuCount = typeof os.cpus === 'function' ? os.cpus().length || 4 : 4;
-  sharp.concurrency(Math.max(1, cpuCount - 1));
-  sharp.cache({ memory: 128, files: 50, items: 200 });
+  const concurrency = Number(process.env.SHARP_CONCURRENCY);
+  const cacheMemory = Number(process.env.SHARP_CACHE_MEMORY_MB);
+  sharp.concurrency(
+    Number.isInteger(concurrency) && concurrency >= 1 && concurrency <= 8
+      ? concurrency
+      : Math.max(1, cpuCount - 1),
+  );
+  sharp.cache({
+    memory:
+      process.env.SHARP_CACHE_MEMORY_MB !== undefined &&
+      Number.isInteger(cacheMemory) &&
+      cacheMemory >= 0 &&
+      cacheMemory <= 128
+        ? cacheMemory
+        : 128,
+    files: 50,
+    items: 200,
+  });
   sharp.simd(true);
 } catch {
   // Graceful fallback for restricted environments
@@ -158,6 +174,7 @@ export async function deleteFromStorage(
     url: string;
     bucket: string;
     publicUrl: string;
+    strict?: boolean;
   },
 ): Promise<void> {
   const { url, bucket, publicUrl } = params;
@@ -165,7 +182,7 @@ export async function deleteFromStorage(
 
   // Cloudflare R2 / S3 deletion
   const cleanPublicUrl = (process.env.R2_PUBLIC_URL || publicUrl).replace(/\/+$/, '');
-  if (cleanPublicUrl && !url.startsWith(cleanPublicUrl)) return;
+  if (cleanPublicUrl && !url.startsWith(`${cleanPublicUrl}/`)) return;
 
   let key = '';
   if (url.startsWith(cleanPublicUrl)) {
@@ -189,7 +206,8 @@ export async function deleteFromStorage(
 
   try {
     await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
-  } catch {
+  } catch (error) {
+    if (params.strict) throw error;
     // Graceful no-op on non-existent storage objects
   }
 }

@@ -13,6 +13,7 @@ export class StoriesRetentionService implements OnModuleDestroy {
   private readonly logger = new Logger(StoriesRetentionService.name);
   private readonly s3: S3Client;
   private readonly bucket: string;
+  private running = false;
 
   onModuleDestroy(): void {
     this.s3.destroy();
@@ -62,13 +63,14 @@ export class StoriesRetentionService implements OnModuleDestroy {
     });
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  @Cron(CronExpression.EVERY_HOUR)
   async cleanupExpiredStories(): Promise<void> {
-    if (!runsBackground('core')) return;
-    this.logger.log('Starting daily expired stories cleanup job...');
+    if (!runsBackground('core') || this.running) return;
+    this.running = true;
+    this.logger.log('Starting bounded expired stories cleanup job...');
 
     try {
-      const expired = await this.storiesRepo.findExpiredStories();
+      const expired = await this.storiesRepo.findExpiredStories(100);
       if (expired.length === 0) {
         this.logger.log('No expired stories to clean up.');
         return;
@@ -78,28 +80,35 @@ export class StoriesRetentionService implements OnModuleDestroy {
         `Found ${expired.length} expired stories. Purging files and database records...`,
       );
 
-      const expiredIds = expired.map((story) => story.id);
+      let deletedCount = 0;
       for (const story of expired) {
+        let cleaned = true;
         for (const url of storyMediaAssets(story)) {
           try {
-            if (await this.storiesRepo.isMediaReferenced(url, expiredIds)) continue;
+            if (await this.storiesRepo.isMediaReferenced(url, [story.id])) continue;
             await deleteFromStorage(this.s3, {
               url,
               bucket: this.bucket,
               publicUrl: this.publicUrl,
+              strict: true,
             });
           } catch (err) {
+            cleaned = false;
             this.logger.warn(
               `Failed to delete storage object for expired story ${story.id}: ${String(err)}`,
             );
           }
         }
+        // Remove each successful reference before checking the next story. Otherwise
+        // two expired stories sharing a URL can both skip its deletion forever.
+        if (cleaned) deletedCount += await this.storiesRepo.deleteExpiredStories([story.id]);
       }
 
-      const deletedCount = await this.storiesRepo.deleteExpiredStories(expired.map((s) => s.id));
       this.logger.log(`Successfully purged ${deletedCount} expired story records from database.`);
     } catch (e) {
       this.logger.error(`Error during expired stories cleanup job: ${String(e)}`);
+    } finally {
+      this.running = false;
     }
   }
 }

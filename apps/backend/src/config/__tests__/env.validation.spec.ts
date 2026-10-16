@@ -97,4 +97,23 @@ describe('env.validation', () => {
     const parseFail = envSchema.safeParse({});
     expect(parseFail.success).toBe(false);
   });
+
+  it('keeps orphan deletion opt-in and accepts bounded free-tier worker settings', () => {
+    const result = validateEnv({
+      ...validBaseConfig,
+      COMPUTE_WORKER_POOL_SIZE: '1',
+      SHARP_CONCURRENCY: '1',
+      SHARP_CACHE_MEMORY_MB: '0',
+    });
+    expect(result.MEDIA_ORPHAN_CLEANUP_ENABLED).toBe('false');
+    expect(result.COMPUTE_WORKER_POOL_SIZE).toBe(1);
+    expect(result.SHARP_CACHE_MEMORY_MB).toBe(0);
+    for (const invalid of [
+      { COMPUTE_WORKER_POOL_SIZE: '0' },
+      { SHARP_CONCURRENCY: '99' },
+      { SHARP_CACHE_MEMORY_MB: '-1' },
+      { MEDIA_ORPHAN_CLEANUP_ENABLED: 'yes' },
+    ])
+      expect(() => validateEnv({ ...validBaseConfig, ...invalid })).toThrow();
+  });
 });

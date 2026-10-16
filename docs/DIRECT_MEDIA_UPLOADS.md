@@ -28,7 +28,49 @@ Generic chat files, including encrypted attachments, use application/octet-strea
 
 The video check combines bounded MP4/WebM metadata inspection with full container/packet validation and ffmpeg decoding, using the existing decoder concurrency and timeout limits. WebM without a usable duration or oversized metadata is rejected. MediaRecorder outputs can lack duration; keep the original supported file rather than inventing a duration or claiming success. Reels play directly; heavy transcoding is disabled unless VIDEO_TRANSCODE_ENABLED=true on appropriate compute.
 
-Admission is an atomic Redis operation and fails closed when Redis is unavailable. Counters are conservative and reset in UTC. The existing Redis LRU policy can evict counters; they are not a durable total-storage accounting system. Inventory checks precede signing after reserving allowance, so repeated rejected requests cannot endlessly enumerate R2. Inventory failures deny new uploads. This is application admission control, not a guaranteed provider billing cap or unlimited storage.
+Admission is an atomic Redis operation and fails closed when Redis is unavailable. Counters are conservative and reset in UTC. Configure Redis with `noeviction`: eviction can remove both allowance counters and BullMQ state. Redis Free has no persistence, so counters still do not constitute durable total-storage accounting. Inventory checks precede signing after reserving allowance, so repeated rejected requests cannot endlessly enumerate R2. Inventory failures deny new uploads. This is application admission control, not a guaranteed provider billing cap or unlimited storage.
+
+## Abandoned completed objects
+
+Apply the additive `20261016090000_pending_media_objects` migration before deploying
+the registry-aware backend. With tracking enabled, completion records the final object
+in PostgreSQL before writing it to R2. Consumer validation atomically marks it retained before publishing
+content; cleanup cannot claim a retained object. A consumer that loses this race is
+rejected before publication.
+
+Keep both `MEDIA_PENDING_TRACKING_ENABLED=false` and
+`MEDIA_ORPHAN_CLEANUP_ENABLED=false` during rollout. This prevents old consumers
+from publishing objects that a new Core incorrectly regards as unclaimed. After
+**all four services** use registry-aware consumers, enable tracking and cleanup only
+on Core. At minute 20 each hour Core
+processes at most 100 unclaimed objects older than two days, with a 45-second loop
+budget and bounded storage timeouts. Failed deletions retain a durable retry record.
+Deleted-object tombstones expire after 30 days in bounded batches; registered object
+metadata still requires a registry record, so late consumers fail closed.
+
+This cleanup only covers newly tracked, unpublished uploads. It deliberately preserves
+historical objects and retained media, including a conservative retained object when a
+later content write fails. It does not reclaim media from deleted posts or reels.
+Do not add blanket lifecycle rules to `media/` or `reels/`.
+
+Before rollback to old consumers, disable both flags on Core, deploy that configuration
+and wait until the previous Core instance and its cleanup have stopped. Conservatively
+preserve every tracked unfinished object before starting any old consumer:
+
+```sql
+UPDATE "PendingMediaObject"
+SET state = 'RETAINED'
+WHERE state IN ('PENDING', 'DELETING');
+```
+
+Do this through the approved database maintenance workflow. It preserves files and
+intentionally abandons reclamation for that compatibility interval. After updating all
+consumers again, tracking may be re-enabled for new uploads; do not reset retained
+objects to pending. Merely turning cleanup off temporarily is insufficient.
+
+Expired story cleanup runs on Core hourly in batches of 100. It preserves references
+when R2 deletion fails so the next sweep can retry; objects referenced by another story
+remain intact.
 
 ## Bucket and deployment configuration
 
