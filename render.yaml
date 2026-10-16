@@ -8,12 +8,23 @@ services:
     plan: free
     region: frankfurt
     healthCheckPath: /ping
-    autoDeploy: true
+    # Deploy roles sequentially to stay within the shared Redis connection limit.
+    autoDeploy: false
     envVars:
       - key: PORT
         value: '3000'
       - key: NODE_ENV
         value: 'production'
+      - key: NODE_OPTIONS
+        value: '--max-old-space-size=256 --expose-gc'
+      - key: COMPUTE_WORKER_POOL_SIZE
+        value: '1'
+      - key: SHARP_CONCURRENCY
+        value: '1'
+      - key: SHARP_CACHE_MEMORY_MB
+        value: '16'
+      - key: REDIS_MAXMEMORY_POLICY
+        value: 'noeviction'
       - key: AUTO_MIGRATE
         value: 'true'
       - key: DATABASE_POOL_LIMIT

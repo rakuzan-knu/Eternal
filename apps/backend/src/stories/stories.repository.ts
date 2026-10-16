@@ -420,12 +420,14 @@ export class StoriesRepository {
     return Boolean(story);
   }
 
-  async findExpiredStories() {
+  async findExpiredStories(take = 100) {
     const now = new Date();
     return this.prisma.story.findMany({
       where: {
         expiresAt: { lte: now },
       },
+      take,
+      orderBy: [{ expiresAt: 'asc' }, { id: 'asc' }],
       select: {
         id: true,
         mediaUrl: true,

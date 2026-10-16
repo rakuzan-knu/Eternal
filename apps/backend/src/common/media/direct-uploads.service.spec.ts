@@ -19,6 +19,7 @@ import { StorageService } from '../storage/storage.service';
 import { R2StorageService } from '../storage/r2-storage.service';
 import { MediaAccessRepository } from './media-access.repository';
 import { MediaBudgetService } from './media-budget.service';
+import { PendingMediaRepository } from './pending-media.repository';
 import { DirectUploadsService } from './direct-uploads.service';
 import type { DirectUploadInput } from './direct-upload.contract';
 
@@ -30,8 +31,10 @@ describe('direct upload ownership and immutable promotion', () => {
   let client: ReturnType<typeof createInMemoryRedisClient>;
   let redis: RedisService;
   let service: DirectUploadsService;
+  let config: ConfigService;
   const send = vi.fn<(command: unknown) => Promise<unknown>>();
   const access = { assertConversationAccess: vi.fn() };
+  const pending = { register: vi.fn(), retain: vi.fn() };
   const input: DirectUploadInput = {
     purpose: 'chat',
     contentType: 'application/octet-stream',
@@ -56,6 +59,10 @@ describe('direct upload ownership and immutable promotion', () => {
     mime = 'application/octet-stream';
     objectBytes = Buffer.from('12345');
     vi.clearAllMocks();
+    config = new ConfigService({
+      DIRECT_UPLOADS_REQUIRED: 'true',
+      MEDIA_PENDING_TRACKING_ENABLED: 'true',
+    });
     send.mockImplementation(async (command: unknown) => {
       if (command instanceof ListObjectsV2Command) return { Contents: [], IsTruncated: false };
       if (command instanceof HeadObjectCommand)
@@ -94,10 +101,11 @@ describe('direct upload ownership and immutable promotion', () => {
         { provide: RedisService, useValue: redis },
         {
           provide: ConfigService,
-          useValue: new ConfigService({ DIRECT_UPLOADS_REQUIRED: 'true' }),
+          useValue: config,
         },
         MediaBudgetService,
         { provide: MediaAccessRepository, useValue: access },
+        { provide: PendingMediaRepository, useValue: pending },
       ],
     }).compile();
     service = module.get(DirectUploadsService);
@@ -133,6 +141,12 @@ describe('direct upload ownership and immutable promotion', () => {
     expect(await service.complete('alice', result.uploadId)).toEqual(complete);
     const copies = send.mock.calls.filter(([command]) => command instanceof CopyObjectCommand);
     expect(copies).toHaveLength(1);
+    expect(pending.register).toHaveBeenCalledTimes(1);
+    expect(pending.register.mock.invocationCallOrder[0]).toBeLessThan(
+      send.mock.invocationCallOrder[
+        send.mock.calls.findIndex(([command]) => command instanceof CopyObjectCommand)
+      ],
+    );
     const copy: unknown = copies[0]?.[0];
     if (!(copy instanceof CopyObjectCommand)) throw new Error('Missing conditional copy');
     expect(copy.input).toMatchObject({
@@ -145,6 +159,37 @@ describe('direct upload ownership and immutable promotion', () => {
     await expect(
       service.resolve('alice', result.uploadId, 'chat', input.conversationId),
     ).resolves.toEqual(complete);
+    expect(pending.retain).toHaveBeenCalledWith(expect.any(String), 'alice', true);
+  });
+  it('fails closed before final storage writes when durable registration fails', async () => {
+    const result = await start();
+    pending.register.mockRejectedValueOnce(new Error('Registry unavailable'));
+    await expect(service.complete('alice', result.uploadId)).rejects.toThrow(
+      'Registry unavailable',
+    );
+    expect(send.mock.calls.some(([command]) => command instanceof CopyObjectCommand)).toBe(false);
+  });
+  it('does not register or mark media while old consumers remain in a mixed rollout', async () => {
+    config.set('MEDIA_PENDING_TRACKING_ENABLED', 'false');
+    const result = await start();
+    const receipt = await service.complete('alice', result.uploadId);
+    expect(receipt.url).toContain('/media/chat/');
+    expect(pending.register).not.toHaveBeenCalled();
+    expect(metadata.registryversion).toBeUndefined();
+    // An old consumer can publish using this receipt without claiming retention;
+    // there is no pending registry row for subsequent cleanup to select.
+    expect(metadata).toMatchObject({ ownerid: 'alice', purpose: 'chat' });
+    expect(pending.retain).not.toHaveBeenCalled();
+  });
+  it('rejects publication after cleanup has claimed a completed object', async () => {
+    const result = await start();
+    const receipt = await service.complete('alice', result.uploadId);
+    pending.retain.mockRejectedValueOnce(
+      new BadRequestException('Upload expired before publication'),
+    );
+    await expect(
+      service.assertOwnedUrl('alice', receipt.url, 'chat', input.conversationId),
+    ).rejects.toThrow('Upload expired');
   });
   it('rejects another user, wrong purpose and cross-conversation publication', async () => {
     const result = await start();

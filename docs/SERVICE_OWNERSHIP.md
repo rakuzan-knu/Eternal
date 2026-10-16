@@ -30,7 +30,7 @@ GitHub OAuth belongs to core, including `/integrations/github/callback`. This ex
 
 ## Environment
 
-Every Render service: SERVICE_ROLE, NODE_ENV=production, PORT=3000, DATABASE_URL, REDIS_URL, existing shared JWT secrets and TTLs, DATABASE_POOL_LIMIT=5, SENTRY_TRACES_SAMPLE_RATE=0.1, CORS_ORIGIN containing the actual frontend origin. Only core applies migrations (AUTO_MIGRATE=true); specialty services use false. BACKGROUND_ENABLED defaults to true; false is a temporary staged-rollout switch and must not remove HTTP controllers.
+Every Render service: SERVICE_ROLE, NODE_ENV=production, PORT=3000, DATABASE_URL, REDIS_URL, existing shared JWT secrets and TTLs, DATABASE_POOL_LIMIT=5, SENTRY_TRACES_SAMPLE_RATE=0.1, CORS_ORIGIN containing the actual frontend origin. Use REDIS_MAXMEMORY_POLICY=noeviction to protect BullMQ and upload allowance keys. The Free profile sets NODE_OPTIONS=--max-old-space-size=256 --expose-gc, COMPUTE_WORKER_POOL_SIZE=1, SHARP_CONCURRENCY=1 and SHARP_CACHE_MEMORY_MB=16, leaving memory for native buffers. These are resource ceilings, not a capacity guarantee; verify RSS under real traffic. Only core applies migrations (AUTO_MIGRATE=true); specialty services use false. BACKGROUND_ENABLED defaults to true; false is a temporary staged-rollout switch and must not remove HTTP controllers.
 
 Use the existing R2 account with R2_ENDPOINT ending in `.r2.cloudflarestorage.com` (without a bucket path), R2_BUCKET=social-network-media and the configured R2_PUBLIC_URL. STORAGE_DRIVER=r2. Credentials must be object-only and bucket-scoped; keep them out of Git, logs, screenshots and frontend EXPO_PUBLIC_/VITE_ variables. The legacy MINIO aliases, when retained, must point to the same R2 configuration, never localhost in production.
 
