@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.1](https://github.com/rakuzan-knu/Eternal/compare/v1.9.0...v1.9.1) (2026-10-16)
+
+### 🐛 Bug Fixes
+
+* **infra:** bound media retention and free-tier resource usage ([#123](https://github.com/rakuzan-knu/Eternal/issues/123)) ([7664955](https://github.com/rakuzan-knu/Eternal/commit/76649558e21880c43b950957603df661455b4812))
+
 ## [1.9.0](https://github.com/rakuzan-knu/Eternal/compare/v1.8.0...v1.9.0) (2026-10-16)
 
 ### ✨ Features
