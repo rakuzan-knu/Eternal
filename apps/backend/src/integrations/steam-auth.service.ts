@@ -10,6 +10,20 @@ import { RedisService } from '../redis/redis.service';
 const STEAM_ENDPOINT = 'https://steamcommunity.com/openid/login';
 const OPENID_NS = 'http://specs.openid.net/auth/2.0';
 const STATE_TTL_SECONDS = 600;
+const OPENID_FIELDS = [
+  'openid.ns',
+  'openid.mode',
+  'openid.op_endpoint',
+  'openid.claimed_id',
+  'openid.identity',
+  'openid.return_to',
+  'openid.response_nonce',
+  'openid.assoc_handle',
+  'openid.signed',
+  'openid.sig',
+  'openid.realm',
+];
+const allowedOpenIdFields: ReadonlySet<string> = new Set(OPENID_FIELDS);
 export const STEAM_AUTH_COOKIE = 'steam_auth_browser';
 
 interface SteamTransaction {
@@ -224,12 +238,18 @@ export class SteamAuthService {
       'origin' in query
     )
       throw invalid();
-    const fields: Record<string, string> = {};
     if (Object.keys(query).length > 32) throw invalid();
     for (const [key, value] of Object.entries(query)) {
       if (typeof value !== 'string' || value.length > 4096) throw invalid();
-      if (key.startsWith('openid.')) fields[key] = value;
+      if (key.startsWith('openid.') && !allowedOpenIdFields.has(key)) throw invalid();
     }
+    // Keys come exclusively from the protocol allowlist, never from callback parameters.
+    const fields = Object.fromEntries<string>(
+      OPENID_FIELDS.flatMap<[string, string]>((key) => {
+        const value = query[key];
+        return typeof value === 'string' ? [[key, value]] : [];
+      }),
+    );
     const claimed = fields['openid.claimed_id'];
     const identity = claimed?.match(/^https?:\/\/steamcommunity\.com\/openid\/id\/(\d{17})$/);
     const nonce = fields['openid.response_nonce'] || '';

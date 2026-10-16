@@ -1,5 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { PrismaModule } from '@common/prisma';
+import { RedisModule } from '../../redis/redis.module';
 import { roleControllers, runsBackground } from '../../config/service-role';
 import { StorageModule } from '../storage/storage.module';
 import { DirectUploadsController } from './direct-uploads.controller';
@@ -11,7 +13,7 @@ import { ResourceBudgetService } from './resource-budget.service';
 
 @Global()
 @Module({
-  imports: [ConfigModule, StorageModule],
+  imports: [ConfigModule, StorageModule, PrismaModule, RedisModule],
   controllers: roleControllers('core', [DirectUploadsController]),
   providers: [
     DirectUploadsService,
