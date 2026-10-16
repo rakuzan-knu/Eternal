@@ -60,6 +60,8 @@ describe('OAuth service transport and ownership', () => {
     vi.stubEnv('CORS_ORIGIN', 'https://web.example');
     vi.stubEnv('RENDER_EXTERNAL_URL', 'https://music.example');
     vi.stubEnv('SPOTIFY_CLIENT_ID', 'test-client-id');
+    vi.stubEnv('TWITCH_CLIENT_ID', 'test-twitch-client-id');
+    vi.stubEnv('TWITCH_CALLBACK_URL', 'https://music.example/v1/integrations/twitch/callback');
     vi.stubEnv('SPOTIFY_CALLBACK_URL', 'https://music.example/v1/auth/spotify/callback');
     const module = await Test.createTestingModule({
       controllers: [IntegrationsController, SpotifyCallbackController, GithubController],
@@ -196,43 +198,63 @@ describe('OAuth service transport and ownership', () => {
     },
   );
 
-  it('sets Spotify state cookies in the first-party Music launch instead of the cross-site authenticated request', async () => {
-    const started = await app.inject({
-      method: 'POST',
-      url: '/integrations/spotify/oauth/start',
-      headers,
-    });
-    expect(started.statusCode).toBe(201);
-    expect(started.headers['set-cookie']).toBeUndefined();
-    const result = started.json<{ url: string; launchProof: string }>();
-    const launch = new URL(result.url);
-    expect(launch.origin).toBe('https://music.example');
-    const payload = {
-      ticket: launch.hash.slice(1),
-      proof: result.launchProof,
-      origin: 'https://web.example',
-    };
-    const wrongHost = await app.inject({
-      method: 'POST',
-      url: '/integrations/oauth/launch',
-      headers: { origin: 'https://untrusted.example' },
-      payload,
-    });
-    expect(wrongHost.statusCode).toBe(401);
-    const response = await app.inject({
-      method: 'POST',
-      url: '/integrations/oauth/launch',
-      headers: { origin: launch.origin },
-      payload,
-    });
-    expect(response.statusCode).toBe(201);
-    expect(response.headers['set-cookie']).toEqual(expect.stringContaining('spotify_oauth_state='));
-    const provider = new URL(response.json<{ url: string }>().url);
-    expect(provider.origin).toBe('https://accounts.spotify.com');
-    expect(provider.searchParams.get('redirect_uri')).toBe(
-      'https://music.example/v1/auth/spotify/callback',
-    );
-  });
+  it.each([
+    ['spotify', 'https://accounts.spotify.com', 'https://music.example/v1/auth/spotify/callback'],
+    ['twitch', 'https://id.twitch.tv', 'https://music.example/v1/integrations/twitch/callback'],
+  ])(
+    'binds the %s start route to the authenticated user and sets cookies only in the first-party Music launch',
+    async (platform, providerOrigin, callbackUrl) => {
+      const path = `/integrations/${platform}/oauth/start?userId=attacker`;
+      const rejected = await app.inject({
+        method: 'POST',
+        url: path,
+        payload: { userId: 'attacker' },
+      });
+      expect(rejected.statusCode).toBe(401);
+      expect(records.size).toBe(0);
+      const started = await app.inject({
+        method: 'POST',
+        url: path,
+        headers,
+        payload: { userId: 'attacker' },
+      });
+      expect(started.statusCode).toBe(201);
+      expect(started.headers['set-cookie']).toBeUndefined();
+      const result = started.json<{ url: string; launchProof: string }>();
+      const launch = new URL(result.url);
+      expect(launch.origin).toBe('https://music.example');
+      const payload = {
+        ticket: launch.hash.slice(1),
+        proof: result.launchProof,
+        origin: 'https://web.example',
+      };
+      const wrongHost = await app.inject({
+        method: 'POST',
+        url: '/integrations/oauth/launch',
+        headers: { origin: 'https://untrusted.example' },
+        payload,
+      });
+      expect(wrongHost.statusCode).toBe(401);
+      const response = await app.inject({
+        method: 'POST',
+        url: '/integrations/oauth/launch',
+        headers: { origin: launch.origin },
+        payload,
+      });
+      expect(response.statusCode).toBe(201);
+      expect(response.headers['set-cookie']).toEqual(
+        expect.stringContaining(`${platform}_oauth_state=`),
+      );
+      const provider = new URL(response.json<{ url: string }>().url);
+      expect(provider.origin).toBe(providerOrigin);
+      expect(provider.searchParams.get('redirect_uri')).toBe(callbackUrl);
+      const state = provider.searchParams.get('state');
+      expect(JSON.parse(records.get(`oauth-state:${state}`)!)).toMatchObject({
+        userId: 'user-123',
+        provider: platform,
+      });
+    },
+  );
 
   it('rejects a stolen launch ticket without its opener proof and consumes the attempt', async () => {
     const started = await app.inject({ method: 'POST', url: '/auth/github/oauth/start', headers });

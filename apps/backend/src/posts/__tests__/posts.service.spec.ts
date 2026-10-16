@@ -184,6 +184,18 @@ describe('PostsService', () => {
   });
 
   describe('createPost', () => {
+    it.each(['spoofed', { length: 0 }, () => undefined])(
+      'rejects non-array uploaded files before reading their length (%j)',
+      async (value) => {
+        const args: Parameters<PostsService['createPost']> = [{ content: 'Draft' }, 'usr-1'];
+        Object.defineProperty(args, 2, { value });
+        await expect(service.createPost(...args)).rejects.toThrow(
+          'Uploaded files must be an array',
+        );
+        expect(mockMediaService.processUploadedFiles).not.toHaveBeenCalled();
+        expect(mockPostsRepository.createPost).not.toHaveBeenCalled();
+      },
+    );
     it.each(['https://media.tenor.com/image.gif', [42]])(
       'rejects tampered GIF parameter types (%j)',
       async (value) => {

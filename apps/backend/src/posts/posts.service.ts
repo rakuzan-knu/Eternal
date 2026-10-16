@@ -133,6 +133,9 @@ export class PostsService {
     authorId: string,
     files?: Express.Multer.File[],
   ): Promise<PostResponseDto> {
+    if (files !== undefined && !Array.isArray(files))
+      throw new BadRequestException('Uploaded files must be an array');
+    const uploadedFiles = Array.isArray(files) ? files : [];
     const mediaItems: {
       type: MediaType;
       url: string;
@@ -141,7 +144,7 @@ export class PostsService {
       order: number;
     }[] = [];
 
-    if (files?.length) this.directUploads.assertLegacyAllowed();
+    if (uploadedFiles.length) this.directUploads.assertLegacyAllowed();
     const directMedia = [];
     const legacyReferences = [];
     for (const item of dto.media ?? []) {
@@ -160,10 +163,10 @@ export class PostsService {
       ...legacyReferences,
       ...gifUrls.map((url) => ({ url, kind: 'gif' as const })),
     ];
-    if ((files?.length ?? 0) + references.length + directMedia.length > 5)
+    if (uploadedFiles.length + references.length + directMedia.length > 5)
       throw new BadRequestException('Maximum 5 media files allowed per post');
-    if (files?.length || references.length) {
-      const processed = await this.mediaService.processUploadedFiles(files ?? [], references);
+    if (uploadedFiles.length || references.length) {
+      const processed = await this.mediaService.processUploadedFiles(uploadedFiles, references);
       processed.forEach((item: ProcessedMedia) => mediaItems.push(item));
     }
     for (const item of directMedia) {
