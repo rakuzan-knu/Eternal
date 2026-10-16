@@ -58,8 +58,10 @@ jobs:
             apps/web/node_modules
             packages/*/dist
             packages/*/node_modules
+            packages/*/*/dist
+            packages/*/*/node_modules
             ~/.cache/prisma
-          key: ${{ runner.os }}-monorepo-pnpm-${{ hashFiles('pnpm-lock.yaml', 'apps/backend/prisma/schema.prisma') }}
+          key: ${{ runner.os }}-monorepo-pnpm-v5-${{ hashFiles('pnpm-lock.yaml', 'apps/backend/prisma/schema.prisma') }}
 
       - name: Install & Generate (On Cache Miss)
         if: steps.monorepo-cache.outputs.cache-hit != 'true'

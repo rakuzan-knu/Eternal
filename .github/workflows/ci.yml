@@ -854,10 +854,10 @@ jobs:
             postgres:17-alpine
           docker run -d --name backend-smoke-redis --network backend-smoke-network redis:7-alpine
           for attempt in $(seq 1 30); do
-            if docker exec backend-smoke-db pg_isready -U smoke -d smoke; then break; fi
+            if docker exec backend-smoke-db pg_isready -h 127.0.0.1 -U smoke -d smoke; then break; fi
             sleep 1
           done
-          docker exec backend-smoke-db pg_isready -U smoke -d smoke
+          docker exec backend-smoke-db pg_isready -h 127.0.0.1 -U smoke -d smoke
           docker run -d --name backend-smoke \
             --network backend-smoke-network --memory 512m --memory-swap 512m --cpus 0.15 \
             -p 127.0.0.1:3000:3000 -e PORT=3000 -e AUTO_MIGRATE=true \
@@ -906,10 +906,10 @@ jobs:
             -e POSTGRES_USER=smoke -e POSTGRES_PASSWORD=smoke -e POSTGRES_DB=smoke postgres:17-alpine
           docker run -d --name role-smoke-redis --network role-smoke-network redis:7-alpine
           for attempt in $(seq 1 30); do
-            if docker exec role-smoke-db pg_isready -U smoke -d smoke; then break; fi
+            if docker exec role-smoke-db pg_isready -h 127.0.0.1 -U smoke -d smoke; then break; fi
             sleep 1
           done
-          docker exec role-smoke-db pg_isready -U smoke -d smoke
+          docker exec role-smoke-db pg_isready -h 127.0.0.1 -U smoke -d smoke
           port=3010
           for role in core messenger reels music; do
             migrate=false
