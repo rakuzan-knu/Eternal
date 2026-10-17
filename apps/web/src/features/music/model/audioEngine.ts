@@ -2,6 +2,7 @@ import Hls from 'hls.js';
 import type { SpotifyTrack } from '@/shared/model/useSpotifyPlayerStore';
 import { integrationsApi } from '@/entities/showcase/api/integrationsApi';
 import { audioCoordinator } from '@/shared/lib/audioCoordinator';
+import { isSoundCloudAudioUrl } from '@/shared/lib/urlSecurity';
 
 export interface AudioEngineCallbacks {
   onProgress: (positionMs: number, durationMs: number) => void;
@@ -71,12 +72,12 @@ export class SoundCloudAudioDriver implements IAudioDriver {
     let isHls = Boolean(streamUrl && streamUrl.includes('.m3u8'));
 
     // Resolve streamUrl from backend if needed
-    if (!streamUrl || streamUrl.startsWith('/api')) {
+    if (!isSoundCloudAudioUrl(streamUrl)) {
       try {
         const res = await integrationsApi.getSoundCloudStream(track.id);
+        streamUrl = res?.streamUrl;
         if (res?.streamUrl) {
-          streamUrl = res.streamUrl;
-          isHls = Boolean(res.isHls || streamUrl.includes('.m3u8'));
+          isHls = Boolean(res.isHls || res.streamUrl.includes('.m3u8'));
         }
       } catch (err) {
         this.callbacks.onError(err);
@@ -84,7 +85,7 @@ export class SoundCloudAudioDriver implements IAudioDriver {
       }
     }
 
-    if (!streamUrl) {
+    if (!streamUrl || !isSoundCloudAudioUrl(streamUrl)) {
       this.callbacks.onError(new Error('SoundCloud stream URL could not be resolved'));
       return false;
     }

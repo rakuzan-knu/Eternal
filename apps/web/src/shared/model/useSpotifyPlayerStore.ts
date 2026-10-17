@@ -8,6 +8,7 @@ import {
   unescapeHtml,
   isTrustedMessageOrigin,
   isAppleAudioUrl,
+  isSoundCloudAudioUrl,
 } from '@/shared/lib/spotifyUrl';
 import { useAuthStore } from './useAuthStore';
 import { musicEventBridge } from '@/shared/lib/musicEvents';
@@ -162,20 +163,35 @@ const handleSoundCloudTokenExpiration = async (trackId?: string) => {
       '[SoundCloud Player] Stream token expired (403/network error). Requesting fresh stream URL...',
     );
     const fresh = await integrationsApi.getSoundCloudStream(targetId, true);
+    const current = useSpotifyPlayerStore.getState();
     if (
-      fresh?.streamUrl &&
-      generation === streamGeneration &&
-      useSpotifyPlayerStore.getState().currentTrack?.id === targetId &&
-      useSpotifyPlayerStore.getState().isPlaying
-    ) {
-      const pos = state.progressMs;
-      const restarting = startSoundCloudPlayback(targetId, fresh.streamUrl, fresh.isHls, pos);
-      cooldownGeneration = streamGeneration;
-      isRetryingSoundCloud = true;
-      await restarting;
+      generation !== streamGeneration ||
+      current.currentTrack?.id !== targetId ||
+      !current.isPlaying
+    )
+      return;
+    if (!fresh?.streamUrl || !isSoundCloudAudioUrl(fresh.streamUrl)) {
+      throw new Error('SoundCloud stream unavailable');
     }
-  } catch (err) {
-    console.warn('[SoundCloud Player] Failed to refresh stream token:', err);
+    const restarting = startSoundCloudPlayback(
+      targetId,
+      fresh.streamUrl,
+      fresh.isHls,
+      current.progressMs,
+    );
+    cooldownGeneration = streamGeneration;
+    isRetryingSoundCloud = true;
+    await restarting;
+  } catch {
+    console.warn('[SoundCloud Player] Failed to refresh stream token.');
+    if (
+      cooldownGeneration === streamGeneration &&
+      useSpotifyPlayerStore.getState().currentTrack?.id === targetId
+    ) {
+      useSpotifyPlayerStore.setState({ isPlaying: false });
+      stopProgressTimer();
+      teardownSoundCloudAudio();
+    }
   } finally {
     if (cooldownGeneration === streamGeneration) {
       if (!useSpotifyPlayerStore.getState().isPlaying) {
@@ -218,6 +234,11 @@ const startSoundCloudPlayback = async (
   startTimeMs: number = 0,
 ) => {
   teardownSoundCloudAudio();
+  if (!isSoundCloudAudioUrl(url)) {
+    useSpotifyPlayerStore.setState({ isPlaying: false });
+    stopProgressTimer();
+    return;
+  }
   const generation = ++streamGeneration;
   const audio = getOrCreateAudio();
   const store = useSpotifyPlayerStore.getState();
@@ -1068,7 +1089,7 @@ export const useSpotifyPlayerStore = create<SpotifyPlayerState>()(
             sdkPlayerInstance.pause().catch(() => {});
           }
 
-          if (track.streamUrl && !track.streamUrl.startsWith('/api')) {
+          if (track.streamUrl && isSoundCloudAudioUrl(track.streamUrl)) {
             startSoundCloudPlayback(
               safeTrackId,
               track.streamUrl,

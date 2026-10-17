@@ -87,6 +87,7 @@ describe('SoundCloud audio transport with NestFastify', () => {
     expect(response.headers['content-range']).toBe('bytes 0-3/8');
     expect(response.headers['accept-ranges']).toBe('bytes');
     expect(response.headers['x-upstream-extra']).toBeUndefined();
+    expect(response.headers['cache-control']).toBe('private, no-store');
   });
 
   it('supplies Accept-Ranges when the upstream does not provide it', async () => {
@@ -106,8 +107,65 @@ describe('SoundCloud audio transport with NestFastify', () => {
     const response = await app.inject('/integrations/soundcloud/stream/123/audio');
     expect(response.statusCode).toBe(302);
     expect(response.headers.location).toBe(streamUrl);
+    expect(response.headers['cache-control']).toBe('private, no-store');
     expect(upstreamFetch).not.toHaveBeenCalled();
   });
+
+  it.each([
+    'https://sndcdn.com/audio.mp3',
+    'https://cf-media.sndcdn.com:443/audio.mp3?token=private',
+  ])('accepts a secure provider redirect: %s', async (url) => {
+    vi.stubEnv('SOUNDCLOUD_AUDIO_PROXY_ENABLED', undefined);
+    getStreamUrl.mockResolvedValue({ streamUrl: url, isHls: false, mimeType: 'audio/mpeg' });
+    for (const path of ['123?redirect=true', '123/audio']) {
+      const response = await app.inject(`/integrations/soundcloud/stream/${path}`);
+      expect(response.statusCode).toBe(302);
+      expect(response.headers.location).toBe(url);
+      expect(response.headers['cache-control']).toBe('private, no-store');
+    }
+    expect(upstreamFetch).not.toHaveBeenCalled();
+  });
+
+  it('does not cache resolved stream metadata', async () => {
+    const response = await app.inject('/integrations/soundcloud/stream/123?bypassCache=true');
+    expect(response.statusCode).toBe(200);
+    expect(response.json<{ streamUrl: string }>().streamUrl).toBe(streamUrl);
+    expect(response.headers['cache-control']).toBe('private, no-store');
+    expect(getStreamUrl).toHaveBeenCalledWith('123', true);
+    expect(upstreamFetch).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    'http://cf-media.sndcdn.com/audio.mp3',
+    'https://sndcdn.com.evil.test/audio.mp3',
+    'https://evil-sndcdn.com/audio.mp3',
+    'https://user:password@cf-media.sndcdn.com/audio.mp3',
+    'https://user@cf-media.sndcdn.com/audio.mp3',
+    'https://cf-media.sndcdn.com:8443/audio.mp3',
+    'https://127.0.0.1/audio.mp3',
+    'javascript:alert(1)',
+    '/relative/audio.mp3',
+    'not a URL',
+  ])(
+    'rejects unsupported provider URLs before returning metadata, redirecting or fetching: %s',
+    async (url) => {
+      getStreamUrl.mockResolvedValue({ streamUrl: url, isHls: false, mimeType: 'audio/mpeg' });
+      for (const path of ['123', '123?redirect=true', '123/audio']) {
+        const response = await app.inject(`/integrations/soundcloud/stream/${path}`);
+        expect(response.statusCode).toBe(502);
+        expect(response.headers.location).toBeUndefined();
+        expect(response.headers['cache-control']).toBe('private, no-store');
+        expect(response.json<{ message: string }>().message).toBe(
+          'SoundCloud returned an unsupported stream URL',
+        );
+      }
+      vi.stubEnv('SOUNDCLOUD_AUDIO_PROXY_ENABLED', undefined);
+      const response = await app.inject('/integrations/soundcloud/stream/123/audio');
+      expect(response.statusCode).toBe(502);
+      expect(response.headers.location).toBeUndefined();
+      expect(upstreamFetch).not.toHaveBeenCalled();
+    },
+  );
 
   it('returns JSON 404 without fetching when no stream URL was resolved', async () => {
     getStreamUrl.mockResolvedValue(null);

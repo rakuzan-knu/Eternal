@@ -7,6 +7,7 @@ import { ProfileEffect } from '@/shared/ui/ProfileEffect';
 import { ProfileFrame } from '@/shared/ui/ProfileFrame';
 import Avatar from '@/shared/ui/Avatar';
 import StyledDisplayName from '@/shared/ui/StyledDisplayName';
+import SkeletonBone from '@/shared/ui/SkeletonBone';
 import { apiClient as api } from '@/shared/api/httpClient';
 import { postsApi } from '@/entities/post/api/postsApi';
 import { PostType } from '@/entities/post/model/types';
@@ -166,7 +167,7 @@ export function MiniProfileHoverCard({
   });
 
   // Fetch 3 most recent posts
-  const { data: userPostsData } = useQuery({
+  const { data: userPostsData, isLoading: isPostsLoading } = useQuery({
     queryKey: ['miniProfilePosts', profile?.id],
     queryFn: async () => {
       if (!profile?.id) return [];
@@ -336,8 +337,23 @@ export function MiniProfileHoverCard({
             <ProfileEffect effect={profile?.activeProfileEffect} priority />
             <div className="relative z-10 p-4 sm:p-5 flex flex-col gap-3.5">
               {isProfileLoading ? (
-                <div className="flex items-center justify-center py-16">
-                  <div className="w-6 h-6 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" />
+                <div role="status" aria-label="Loading profile" className="space-y-4">
+                  <span className="sr-only">Loading profile...</span>
+                  <div className="flex items-center gap-3.5">
+                    <SkeletonBone className="h-14 w-14 shrink-0 rounded-full" />
+                    <div className="flex-1 space-y-2">
+                      <SkeletonBone className="h-4 w-36 rounded-md" />
+                      <SkeletonBone className="h-3 w-24 rounded-md" />
+                    </div>
+                  </div>
+                  <SkeletonBone className="h-3 w-full rounded-md" />
+                  <SkeletonBone className="h-3 w-3/4 rounded-md" />
+                  <SkeletonBone className="h-14 w-full rounded-2xl" />
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {Array.from({ length: 3 }, (_, index) => (
+                      <SkeletonBone key={index} className="aspect-square rounded-xl" />
+                    ))}
+                  </div>
                 </div>
               ) : profile ? (
                 <>
@@ -419,8 +435,19 @@ export function MiniProfileHoverCard({
                     </div>
                   </div>
 
-                  {/* 4. Three Most Recent Posts Preview with Liquid Glass Container */}
-                  {recentPosts.length > 0 && (
+                  {/* 4. Three Most Recent Posts Preview */}
+                  {isPostsLoading ? (
+                    <div
+                      role="status"
+                      aria-label="Loading recent posts"
+                      className="grid grid-cols-3 gap-1.5"
+                    >
+                      <span className="sr-only">Loading recent posts...</span>
+                      {Array.from({ length: 3 }, (_, index) => (
+                        <SkeletonBone key={index} className="aspect-square rounded-xl" />
+                      ))}
+                    </div>
+                  ) : recentPosts.length > 0 ? (
                     <div className="grid grid-cols-3 gap-1.5 rounded-2xl overflow-hidden border border-white/15 bg-black/30 backdrop-blur-xl p-1.5 shadow-[0_8px_24px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.15)]">
                       {recentPosts.map((post) => {
                         const mediaItem =
@@ -488,7 +515,7 @@ export function MiniProfileHoverCard({
                         );
                       })}
                     </div>
-                  )}
+                  ) : null}
 
                   {/* 5. Action Buttons: Message & Follow */}
                   {currentUserId !== profile.id && (

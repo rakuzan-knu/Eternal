@@ -39,6 +39,8 @@ export function CommentItem({
   const [showHeartBurst, setShowHeartBurst] = useState(false);
   const [isHeartPopping, setIsHeartPopping] = useState(false);
   const [isLikePending, setIsLikePending] = useState(false);
+  const menuContainerRef = useRef<HTMLDivElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
   const lastTapRef = useRef<number>(0);
   const likePendingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const heartBurstTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -61,6 +63,28 @@ export function CommentItem({
   const canDelete = !comment.isDeleted && (isCommentOwner || isPostOwner);
   const canPin = !isReply && !comment.isDeleted && isPostOwner;
   const canReport = !comment.isDeleted && !isCommentOwner;
+
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    const handleOutside = (event: PointerEvent) => {
+      if (event.target instanceof Node && !menuContainerRef.current?.contains(event.target)) {
+        setIsMenuOpen(false);
+      }
+    };
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      event.stopPropagation();
+      setIsMenuOpen(false);
+      menuButtonRef.current?.focus();
+    };
+    document.addEventListener('pointerdown', handleOutside, true);
+    document.addEventListener('keydown', handleEscape, true);
+    return () => {
+      document.removeEventListener('pointerdown', handleOutside, true);
+      document.removeEventListener('keydown', handleEscape, true);
+    };
+  }, [isMenuOpen]);
 
   useEffect(() => {
     return () => {
@@ -243,9 +267,12 @@ export function CommentItem({
 
           {/* Three-Dot Menu Button */}
           {!comment.isDeleted && (
-            <div className="relative">
+            <div ref={menuContainerRef} className="relative">
               <button
+                ref={menuButtonRef}
                 type="button"
+                aria-expanded={isMenuOpen}
+                aria-haspopup="menu"
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsMenuOpen((prev) => !prev);
@@ -258,6 +285,8 @@ export function CommentItem({
 
               {isMenuOpen && (
                 <div
+                  role="menu"
+                  aria-label="Comment actions"
                   className="absolute right-0 top-full mt-1 w-36 glass-modal bg-white dark:bg-[#161619] border border-black/10 dark:border-white/10 rounded-2xl p-1 shadow-2xl flex flex-col gap-0.5 z-40 backdrop-blur-xl animate-fadeIn text-gray-900 dark:text-white"
                   onClick={(e) => e.stopPropagation()}
                 >
@@ -295,7 +324,7 @@ export function CommentItem({
                         setIsMenuOpen(false);
                         onReport(comment);
                       }}
-                      className="flex items-center gap-2 w-full text-left px-2.5 py-1.5 rounded-xl text-xs text-amber-400 hover:bg-amber-500/15 transition-colors cursor-pointer"
+                      className="flex items-center gap-2 w-full text-left px-2.5 py-1.5 rounded-xl text-xs text-red-400 hover:bg-red-500/15 transition-colors cursor-pointer"
                     >
                       <Flag size={13} />
                       <span>Report</span>

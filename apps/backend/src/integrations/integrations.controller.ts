@@ -15,6 +15,7 @@ import {
   UnauthorizedException,
   NotFoundException,
   BadRequestException,
+  BadGatewayException,
   ValidationPipe,
   Headers,
   Header,
@@ -315,6 +316,7 @@ export class IntegrationsController {
   }
 
   @Get('soundcloud/stream/:trackId')
+  @Header('Cache-Control', 'private, no-store')
   async getSoundCloudStream(
     @Param('trackId') trackId: string,
     @Query('bypassCache') bypassCache?: string,
@@ -322,6 +324,7 @@ export class IntegrationsController {
     @Res({ passthrough: true }) res?: Response,
   ) {
     const result = await this.soundCloudService.getStreamUrl(trackId, bypassCache === 'true');
+    if (result?.streamUrl) this.validateSoundCloudAudioUrl(result.streamUrl);
     if (redirect === 'true' && result?.streamUrl && res) {
       return res.status(302).redirect(result.streamUrl);
     }
@@ -329,6 +332,7 @@ export class IntegrationsController {
   }
 
   @Get('soundcloud/stream/:trackId/audio')
+  @Header('Cache-Control', 'private, no-store')
   async streamSoundCloudAudio(
     @Param('trackId') trackId: string,
     @Req() req: Request,
@@ -338,6 +342,7 @@ export class IntegrationsController {
     if (!result?.streamUrl) {
       return res.status(404).send({ error: 'Stream not found' });
     }
+    this.validateSoundCloudAudioUrl(result.streamUrl);
     if (process.env.SOUNDCLOUD_AUDIO_PROXY_ENABLED !== 'true') {
       return res.status(302).redirect(result.streamUrl);
     }
@@ -372,6 +377,24 @@ export class IntegrationsController {
     } catch {
       return res.status(302).redirect(result.streamUrl);
     }
+  }
+
+  private validateSoundCloudAudioUrl(value: string): void {
+    try {
+      const url = new URL(value);
+      if (
+        url.protocol === 'https:' &&
+        !url.username &&
+        !url.password &&
+        !url.port &&
+        (url.hostname === 'sndcdn.com' || url.hostname.endsWith('.sndcdn.com'))
+      ) {
+        return;
+      }
+    } catch {
+      // Invalid provider URLs must not reach either redirects or the proxy fetch.
+    }
+    throw new BadGatewayException('SoundCloud returned an unsupported stream URL');
   }
 
   @Get('soundcloud/related/:trackId')

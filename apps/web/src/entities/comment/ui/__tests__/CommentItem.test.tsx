@@ -196,9 +196,39 @@ describe('CommentItem', () => {
     const menuButton = screen.getByTitle('Options');
     fireEvent.click(menuButton);
 
-    const reportButton = screen.getByText('Report');
+    const reportButton = screen.getByRole('button', { name: 'Report' });
+    expect(reportButton).toHaveClass('text-red-400', 'hover:bg-red-500/15');
     fireEvent.click(reportButton);
     expect(onReport).toHaveBeenCalledWith(mockComment);
+  });
+
+  it('closes the options on outside pointer input, including when propagation is stopped', () => {
+    renderCommentItem({ comment: mockComment, currentUserId: 'u99', onReport: vi.fn() });
+    const trigger = screen.getByTitle('Options');
+    fireEvent.click(trigger);
+    const menu = screen.getByRole('menu', { name: 'Comment actions' });
+    fireEvent.pointerDown(menu);
+    expect(menu).toBeInTheDocument();
+    fireEvent.pointerDown(trigger);
+    expect(menu).toBeInTheDocument();
+    const outside = screen.getByText('Great post!');
+    outside.addEventListener('pointerdown', (event) => event.stopPropagation(), { once: true });
+    fireEvent.pointerDown(outside, { pointerType: 'touch' });
+    expect(screen.queryByRole('menu', { name: 'Comment actions' })).not.toBeInTheDocument();
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('closes options with Escape and returns focus without closing the parent dialog', () => {
+    renderCommentItem({ comment: mockComment, currentUserId: 'u99', onReport: vi.fn() });
+    const trigger = screen.getByTitle('Options');
+    fireEvent.click(trigger);
+    const parentEscape = vi.fn();
+    document.addEventListener('keydown', parentEscape);
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' });
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+    expect(parentEscape).not.toHaveBeenCalled();
+    document.removeEventListener('keydown', parentEscape);
   });
 
   it('renders deleted comment state correctly', () => {
