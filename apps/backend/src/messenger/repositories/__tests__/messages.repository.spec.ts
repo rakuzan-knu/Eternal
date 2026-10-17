@@ -281,6 +281,13 @@ describe('MessagesRepository', () => {
 
     expect(hydrate).toHaveBeenCalledWith([message]);
     expect(result[0].replyTo?.body).toBe('Restored reply');
+    const omit = { bodySearch: true, bodyDigest: true };
+    expect(mockPrisma.message.findMany.mock.calls[0]).toMatchObject([
+      {
+        omit,
+        include: { replyTo: { omit }, forwardedFrom: { omit } },
+      },
+    ]);
   });
 
   it('hydrates before deriving calendar snippets and searches the PostgreSQL projection', async () => {
@@ -303,6 +310,11 @@ describe('MessagesRepository', () => {
       requestingUserId: 'usr-1',
     });
     expect(activity['2026-08-28'].firstMessageSnippet).toBe('Restored calendar text');
+    expect(mockPrisma.message.findMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        omit: { bodySearch: true, bodyDigest: true },
+      }),
+    );
     await repository.search('conv-1', 'calendar', 20);
     expect(mockPrisma.message.findMany).toHaveBeenLastCalledWith(
       expect.objectContaining({

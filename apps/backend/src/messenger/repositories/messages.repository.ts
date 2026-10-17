@@ -6,7 +6,7 @@ import { PrismaService } from '@common/prisma';
 import { SnowflakeService } from '../../common/id/snowflake.service';
 import type { IMessagesRepository } from '../interfaces/messages-repository.interface';
 import type { MessageWithDetails } from '../interfaces/types';
-import { messageInclude } from '../interfaces/types';
+import { messageBodyOmit, messageInclude } from '../interfaces/types';
 import type { ChatActivityMap } from '@common/contracts';
 import { withUnreadWriteLock } from '../unread/unread-write-lock';
 
@@ -77,6 +77,7 @@ export class MessagesRepository implements IMessagesRepository {
                 }
               : {}),
           },
+          omit: messageBodyOmit,
           include: messageInclude,
         }),
       ),
@@ -109,6 +110,7 @@ export class MessagesRepository implements IMessagesRepository {
         take: take,
         skip: cursor ? 1 : 0,
         ...(cursor ? { cursor: { id: cursor } } : {}),
+        omit: messageBodyOmit,
         include: messageInclude,
       }),
     );
@@ -143,6 +145,7 @@ export class MessagesRepository implements IMessagesRepository {
         },
         orderBy: { createdAt: 'desc' },
         take: half + 1,
+        omit: messageBodyOmit,
         include: messageInclude,
       }),
       this.prisma.message.findMany({
@@ -157,6 +160,7 @@ export class MessagesRepository implements IMessagesRepository {
         },
         orderBy: { createdAt: 'asc' },
         take: half,
+        omit: messageBodyOmit,
         include: messageInclude,
       }),
     ]);
@@ -259,6 +263,7 @@ export class MessagesRepository implements IMessagesRepository {
           : {}),
       },
       orderBy: { createdAt: 'asc' },
+      omit: messageBodyOmit,
       include: {
         attachments: true,
       },
@@ -349,6 +354,7 @@ export class MessagesRepository implements IMessagesRepository {
           deletedFor: { none: { userId: requestingUserId } },
           conversation: { participants: { some: { userId: requestingUserId, leftAt: null } } },
         },
+        omit: messageBodyOmit,
         include: messageInclude,
       }),
     );
@@ -359,6 +365,7 @@ export class MessagesRepository implements IMessagesRepository {
       this.prisma.message.update({
         where: { id: messageId },
         data: { body, editedAt: new Date() },
+        omit: messageBodyOmit,
         include: messageInclude,
       }),
     );
@@ -368,6 +375,7 @@ export class MessagesRepository implements IMessagesRepository {
     await withUnreadWriteLock(this.prisma, { messageIds: [messageId] }, (tx) =>
       tx.message.update({
         where: { id: messageId },
+        omit: messageBodyOmit,
         data: {
           body: null,
           messageType: 'DELETED',
@@ -471,6 +479,7 @@ export class MessagesRepository implements IMessagesRepository {
         },
         orderBy: { createdAt: 'desc' },
         take: limit,
+        omit: messageBodyOmit,
         include: messageInclude,
       }),
     );
@@ -481,6 +490,7 @@ export class MessagesRepository implements IMessagesRepository {
       this.prisma.message.findFirst({
         where: { conversationId, deletedForAll: false },
         orderBy: { createdAt: 'desc' },
+        omit: messageBodyOmit,
         include: messageInclude,
       }),
     );

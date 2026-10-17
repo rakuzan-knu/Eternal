@@ -619,5 +619,10 @@ describe('ConversationsService', () => {
       service.respondThemeProposal('conv-1', message.id, 'usr-2', 'CANCEL'),
     ).rejects.toThrow(ForbiddenException);
     expect(mockPrisma.message.update).not.toHaveBeenCalled();
+    expect(mockPrisma.message.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        omit: { bodySearch: true, bodyDigest: true },
+      }),
+    );
   });
 });

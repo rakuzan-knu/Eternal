@@ -87,5 +87,17 @@ describe('conversation page contract', () => {
     expect(row.messages[0].body).toBe('Preview');
     expect(row.messages[0].replyTo?.body).toBe('Reply');
     expect(row.pinnedMessages[0].message.body).toBe('Pinned');
+    const omit = { bodySearch: true, bodyDigest: true };
+    expect(prisma.conversation.findMany.mock.calls[0]).toMatchObject([
+      {
+        include: {
+          messages: {
+            omit,
+            include: { replyTo: { omit }, forwardedFrom: { omit } },
+          },
+          pinnedMessages: { include: { message: { omit } } },
+        },
+      },
+    ]);
   });
 });

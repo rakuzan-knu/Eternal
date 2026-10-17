@@ -21,6 +21,7 @@ import {
   Permission,
 } from '@common/contracts';
 import {
+  messageBodyOmit,
   conversationInclude,
   participantInclude,
   userSnapshot,
@@ -137,7 +138,10 @@ export class ConversationsRepository implements IConversationsRepository {
     if (!window.length) return { rows: [], hasMore: false, boundary: null };
     const previewMessageInclude = conversationPreviewMessageInclude(userId);
     const mapPreview = (
-      message: Prisma.MessageGetPayload<{ include: typeof previewMessageInclude }>,
+      message: Prisma.MessageGetPayload<{
+        omit: typeof messageBodyOmit;
+        include: typeof previewMessageInclude;
+      }>,
     ): MessageWithDetails => ({ ...message, reactions: [], pinnedIn: [] });
     const [conversations, ownParticipants] = await Promise.all([
       this.prisma.conversation.findMany({
@@ -158,7 +162,7 @@ export class ConversationsRepository implements IConversationsRepository {
           pinnedMessages: {
             ...conversationInclude.pinnedMessages,
             take: 50,
-            include: { message: { include: previewMessageInclude } },
+            include: { message: { omit: messageBodyOmit, include: previewMessageInclude } },
           },
         },
       }),

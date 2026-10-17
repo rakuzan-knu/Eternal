@@ -23,7 +23,7 @@ import { CONVERSATIONS_REPOSITORY } from '../interfaces/conversations-repository
 import type { IConversationsRepository } from '../interfaces/conversations-repository.interface';
 import { MESSAGES_REPOSITORY } from '../interfaces/messages-repository.interface';
 import type { IMessagesRepository } from '../interfaces/messages-repository.interface';
-import { messageInclude } from '../interfaces/types';
+import { messageBodyOmit, messageInclude } from '../interfaces/types';
 import { MessengerMapper } from '../messenger.mapper';
 import type {
   GetMessagesQueryDto,
@@ -395,6 +395,7 @@ export class MessagesService implements OnModuleDestroy {
                 }
               : {}),
           },
+          omit: messageBodyOmit,
           include: messageInclude,
         });
 
@@ -757,6 +758,7 @@ export class MessagesService implements OnModuleDestroy {
         deletedForAll: false,
         deletedFor: { none: { userId } },
       },
+      omit: messageBodyOmit,
       include: { attachments: true },
       orderBy: { createdAt: 'asc' },
     });

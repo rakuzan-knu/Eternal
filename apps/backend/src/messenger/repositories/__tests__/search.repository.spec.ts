@@ -40,6 +40,7 @@ describe('SearchRepository message body hydration', () => {
     expect(result.messages[0].highlightSnippet).toContain('restored match');
     expect(prisma.message.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
+        omit: { bodySearch: true, bodyDigest: true },
         where: expect.objectContaining({
           conversationId: { in: ['c1'] },
           deletedFor: { none: { userId: 'u1' } },
