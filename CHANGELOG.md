@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.10.1](https://github.com/rakuzan-knu/Eternal/compare/v1.10.0...v1.10.1) (2026-10-17)
+
+### 🐛 Bug Fixes
+
+* **infra:** prepare Astra Secure Connect Bundle at runtime ([#125](https://github.com/rakuzan-knu/Eternal/issues/125)) ([35b3149](https://github.com/rakuzan-knu/Eternal/commit/35b314909ac558f8332c9d16a38ff558b5916f80))
+
 ## [1.10.0](https://github.com/rakuzan-knu/Eternal/compare/v1.9.1...v1.10.0) (2026-10-17)
 
 ### ✨ Features
