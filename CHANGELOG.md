@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.10.0](https://github.com/rakuzan-knu/Eternal/compare/v1.9.1...v1.10.0) (2026-10-17)
+
+### ✨ Features
+
+* **backend:** add Cassandra message body archive and optional identity search ([#124](https://github.com/rakuzan-knu/Eternal/issues/124)) ([6f1b3a9](https://github.com/rakuzan-knu/Eternal/commit/6f1b3a996a6191e02fc36239dc7c7fac226cb44f))
+
 ## [1.9.1](https://github.com/rakuzan-knu/Eternal/compare/v1.9.0...v1.9.1) (2026-10-16)
 
 ### 🐛 Bug Fixes
