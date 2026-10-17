@@ -43,6 +43,7 @@
   },
   "include": [
     "src/**/*",
+    "scripts/**/*",
     "test/**/*",
     "prisma.config.ts",
     "vitest.config.ts",

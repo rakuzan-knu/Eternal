@@ -593,4 +593,36 @@ describe('ConversationsService', () => {
       expect(mockConvsRepo.updateSharedTheme).toHaveBeenCalledWith('conv-1', null);
     });
   });
+  it('hydrates a theme proposal before parsing and enforcing author permissions', async () => {
+    const message = {
+      id: 'archived-proposal',
+      conversationId: 'conv-1',
+      messageType: 'THEME_PROPOSAL',
+      body: null as string | null,
+    };
+    mockPrisma.message.findUnique.mockResolvedValueOnce(message);
+    Object.assign(service, {
+      messageBodies: {
+        hydrate: async <T>(value: T): Promise<T> => {
+          await Promise.resolve();
+          message.body = JSON.stringify({
+            status: 'PENDING',
+            proposedByUserId: 'usr-1',
+            expiresAt: new Date(Date.now() + 100000).toISOString(),
+          });
+          return value;
+        },
+      },
+    });
+
+    await expect(
+      service.respondThemeProposal('conv-1', message.id, 'usr-2', 'CANCEL'),
+    ).rejects.toThrow(ForbiddenException);
+    expect(mockPrisma.message.update).not.toHaveBeenCalled();
+    expect(mockPrisma.message.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        omit: { bodySearch: true, bodyDigest: true },
+      }),
+    );
+  });
 });

@@ -53,6 +53,14 @@ export function getInMemoryPgDb(): IMemoryDb {
           let sql = fs.readFileSync(sqlFile, 'utf8');
           // Strip unsupported PL/pgSQL DO $$ blocks that hang pg-mem parser
           sql = sql.replace(/DO\s+\$\$[\s\S]*?END\s+\$\$;/gi, '');
+          // pg-mem cannot execute PostgreSQL routines/triggers. Remove complete bodies before
+          // parsing or splitting statements: their PL/pgSQL fragments can hang its SQL parser.
+          // Trigger behavior is verified by the opt-in real PostgreSQL integration suites.
+          sql = sql.replace(
+            /\bCREATE\s+(?:OR\s+REPLACE\s+)?(?:FUNCTION|PROCEDURE)\b[\s\S]*?\$\$[\s\S]*?\$\$\s*;/gi,
+            '',
+          );
+          sql = sql.replace(/\bCREATE\s+(?:CONSTRAINT\s+)?TRIGGER\b[\s\S]*?;/gi, '');
           try {
             db.public.none(sql);
           } catch {

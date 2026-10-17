@@ -24,6 +24,26 @@ export const envSchema = z
     DATABASE_CONNECT_TIMEOUT_SECONDS: z.coerce.number().int().min(1).max(60).default(10),
     DATABASE_STATEMENT_TIMEOUT_MS: z.coerce.number().int().min(100).max(60000).default(10000),
     DATABASE_QUERY_TIMEOUT_MS: z.coerce.number().int().min(100).max(60000).default(10000),
+    CALL_TELEMETRY_STORAGE: z.enum(['postgres', 'cassandra']).default('postgres'),
+    MESSAGE_BODY_ARCHIVE_ENABLED: z.enum(['true', 'false']).default('false'),
+    PUBLIC_SEARCH_PROVIDER: z.enum(['postgres', 'algolia']).default('postgres'),
+    ALGOLIA_APPLICATION_ID: z
+      .string()
+      .regex(/^[A-Za-z0-9]+$/)
+      .optional(),
+    ALGOLIA_API_KEY: z.string().min(1).optional(),
+    ALGOLIA_PUBLIC_USERS_INDEX: z
+      .string()
+      .regex(/^[A-Za-z0-9_-]{1,100}$/)
+      .optional(),
+    PUBLIC_SEARCH_MONTHLY_REQUESTS_LIMIT: z.coerce.number().int().min(1).max(9000).default(9000),
+    PUBLIC_SEARCH_MONTHLY_WRITES_LIMIT: z.coerce.number().int().min(1).max(45000).default(45000),
+    CASSANDRA_SECURE_CONNECT_BUNDLE: z.string().min(1).optional(),
+    CASSANDRA_APPLICATION_TOKEN: z.string().min(1).optional(),
+    CASSANDRA_KEYSPACE: z
+      .string()
+      .regex(/^[a-z][a-z0-9_]{0,47}$/)
+      .optional(),
     REDIS_MAXMEMORY_POLICY: z
       .enum(['allkeys-lru', 'volatile-lru', 'allkeys-lfu', 'volatile-lfu', 'noeviction'])
       .default('noeviction'),
@@ -55,6 +75,36 @@ export const envSchema = z
     LOCAL_STORAGE_DIR: z.string().optional(),
     LOCAL_STORAGE_PUBLIC_URL: z.string().optional(),
   })
+
+  .refine(
+    (data) => {
+      const values = [
+        data.CASSANDRA_SECURE_CONNECT_BUNDLE,
+        data.CASSANDRA_APPLICATION_TOKEN,
+        data.CASSANDRA_KEYSPACE,
+      ];
+      const configured = values.filter(Boolean).length;
+      return (
+        configured === 3 ||
+        (configured === 0 &&
+          data.CALL_TELEMETRY_STORAGE === 'postgres' &&
+          data.MESSAGE_BODY_ARCHIVE_ENABLED === 'false')
+      );
+    },
+    {
+      message:
+        'Cassandra requires its secure connect bundle, application token and keyspace together',
+    },
+  )
+
+  .refine(
+    (data) =>
+      data.PUBLIC_SEARCH_PROVIDER !== 'algolia' ||
+      Boolean(
+        data.ALGOLIA_APPLICATION_ID && data.ALGOLIA_API_KEY && data.ALGOLIA_PUBLIC_USERS_INDEX,
+      ),
+    { message: 'Algolia mode requires application ID, backend key and dedicated users index' },
+  )
 
   .refine((data) => data.JWT_ACCESS_SECRET !== data.JWT_REFRESH_SECRET, {
     message: 'JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must be different',
