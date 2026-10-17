@@ -548,5 +548,10 @@ describe('MessagesService', () => {
         body: 'Archived forward',
       }),
     );
+    expect(mockPrisma.message.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        omit: { bodySearch: true, bodyDigest: true },
+      }),
+    );
   });
 });

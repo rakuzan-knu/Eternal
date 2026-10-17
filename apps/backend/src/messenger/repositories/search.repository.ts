@@ -1,3 +1,4 @@
+import { messageBodyOmit } from '../interfaces/types';
 import { MessageBodyService } from '../../common/cassandra/message-body.service';
 import { Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '@common/prisma';
@@ -56,6 +57,7 @@ export class SearchRepository implements ISearchRepository {
         take: limit,
         skip: offset,
         orderBy: { createdAt: 'desc' },
+        omit: messageBodyOmit,
         include: {
           conversation: {
             include: {

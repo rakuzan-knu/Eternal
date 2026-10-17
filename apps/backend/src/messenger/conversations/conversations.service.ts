@@ -55,7 +55,7 @@ import { MessengerMapper } from '../messenger.mapper';
 import type { ReportCategory } from '@prisma/client';
 import { Prisma } from '@prisma/client';
 import { WS_EVENTS } from '../events/ws-events';
-import { messageInclude } from '../interfaces/types';
+import { messageBodyOmit, messageInclude } from '../interfaces/types';
 
 import { DataLoaderService } from '../../common/dataloader';
 import { QueueService } from '../../queue/queue.service';
@@ -392,6 +392,7 @@ export class ConversationsService implements OnModuleDestroy {
               messageType: 'SYSTEM',
               body: `User ${userName} changed the group name to "${dto.name}"`,
             },
+            omit: messageBodyOmit,
             include: messageInclude,
           }),
       );
@@ -583,6 +584,7 @@ export class ConversationsService implements OnModuleDestroy {
             messageType: 'SYSTEM',
             body: `${userName} left the group`,
           },
+          omit: messageBodyOmit,
           include: messageInclude,
         }),
     );
@@ -887,6 +889,7 @@ export class ConversationsService implements OnModuleDestroy {
                 messageType: 'SYSTEM',
                 body: `${userName} left the group`,
               },
+              omit: messageBodyOmit,
               include: messageInclude,
             }),
         );
@@ -1033,6 +1036,7 @@ export class ConversationsService implements OnModuleDestroy {
             messageType: 'SYSTEM',
             body: `User ${userName} updated the group icon`,
           },
+          omit: messageBodyOmit,
           include: messageInclude,
         }),
     );
@@ -1092,6 +1096,7 @@ export class ConversationsService implements OnModuleDestroy {
         createdAt: { gte: twentyFourHoursAgo },
         bodySearch: { contains: '"status":"PENDING"' },
       },
+      select: { id: true },
     });
     if (existingPending) {
       throw new BadRequestException(
@@ -1120,6 +1125,7 @@ export class ConversationsService implements OnModuleDestroy {
             messageType: 'THEME_PROPOSAL',
             body: JSON.stringify(proposalData),
           },
+          omit: messageBodyOmit,
           include: messageInclude,
         }),
     );
@@ -1154,6 +1160,7 @@ export class ConversationsService implements OnModuleDestroy {
 
     const msg = await this.prisma.message.findUnique({
       where: { id: messageId },
+      omit: messageBodyOmit,
       include: messageInclude,
     });
     if (!msg || msg.conversationId !== conversationId) {
@@ -1198,6 +1205,7 @@ export class ConversationsService implements OnModuleDestroy {
         body: JSON.stringify(proposalData),
         editedAt: new Date(),
       },
+      omit: messageBodyOmit,
       include: messageInclude,
     });
 

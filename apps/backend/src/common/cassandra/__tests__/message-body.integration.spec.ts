@@ -9,6 +9,7 @@ import { OutboxRepository } from '../../outbox/repositories/outbox.repository';
 import { Test } from '@nestjs/testing';
 import { PublicSearchSyncService } from '../../public-search/public-search-sync.service';
 import { PublicSearchService } from '../../public-search/public-search.service';
+import { messageBodyOmit } from '../../../messenger/interfaces/types';
 
 class LoopbackTranslator extends policies.addressResolution.EC2MultiRegionTranslator {
   override translate(_address: string, _port: number, callback: (endpoint: string) => void): void {
@@ -122,6 +123,14 @@ describe.skipIf(process.env.MESSAGE_ARCHIVE_INTEGRATION !== 'true')(
       await history.hydrate(result);
       expect(result.messages[0].body).toBe(text);
       expect(result.messages[0].replyTo.body).toBe(text);
+      const payload = await prisma.message.findUniqueOrThrow({
+        where: { id: message.id },
+        omit: messageBodyOmit,
+      });
+      expect(payload).not.toHaveProperty('bodySearch');
+      expect(payload).not.toHaveProperty('bodyDigest');
+      await history.hydrate(payload);
+      expect(payload.body).toBe(text);
       await expect(
         history.hydrate([
           { ...archived },
