@@ -524,4 +524,29 @@ describe('MessagesService', () => {
       ]);
     });
   });
+  it('restores bodies before forwarding archived messages', async () => {
+    const message = { ...sampleMsg, body: null as string | null, attachments: [] };
+    mockPrisma.message.findMany.mockResolvedValueOnce([message]);
+    Object.assign(service, {
+      messageBodies: {
+        hydrate: async <T>(value: T): Promise<T> => {
+          await Promise.resolve();
+          message.body = 'Archived forward';
+          return value;
+        },
+      },
+    });
+
+    await service.batchForward('conv-1', 'usr-1', {
+      messageIds: ['msg-1'],
+      conversationIds: ['conv-2'],
+    });
+
+    expect(mockMessagesRepo.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        conversationId: 'conv-2',
+        body: 'Archived forward',
+      }),
+    );
+  });
 });

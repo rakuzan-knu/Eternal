@@ -28,6 +28,7 @@
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "db:cassandra": "tsx scripts/cassandra-telemetry.ts",
+    "db:message-bodies": "tsx scripts/message-bodies.ts",
     "test:mutation": "stryker run",
     "test:pact:verify": "tsx test/pact-verify.ts",
     "test:ci": "vitest run --reporter=default --reporter=github-actions --bail=1",

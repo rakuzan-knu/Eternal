@@ -395,6 +395,10 @@ model Message {
   conversationId  String
   senderId        String
   body            String?
+  bodySearch      String?     @map("body_search")
+  bodyRevision    BigInt      @default(0) @map("body_revision")
+  bodyArchived    Boolean     @default(false) @map("body_archived")
+  bodyDigest      String?     @map("body_digest")
   clientSeq       Int?        @map("client_seq")
   messageType     MessageType @default(TEXT)
   replyToId       String?
