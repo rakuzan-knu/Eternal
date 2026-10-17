@@ -32,6 +32,21 @@ describe('In-Memory Test Infrastructure (pg-mem & ioredis-mock)', () => {
       }
     });
 
+    it('loads archive and search DDL without parsing unsupported PostgreSQL trigger bodies', () => {
+      const db = getInMemoryPgDb();
+      expect(
+        db.public.many(
+          'SELECT body_search, body_revision, body_archived, body_digest FROM "Message"',
+        ),
+      ).toEqual([]);
+      expect(db.public.one('SELECT capture_enabled FROM message_body_archive_config')).toEqual({
+        capture_enabled: false,
+      });
+      expect(db.public.one('SELECT enabled FROM public_search_control')).toEqual({
+        enabled: false,
+      });
+    });
+
     it('generates random UUIDs using custom pg-mem registered function', () => {
       const db = getInMemoryPgDb();
       const res = db.public.one('SELECT gen_random_uuid() AS id') as { id: string };

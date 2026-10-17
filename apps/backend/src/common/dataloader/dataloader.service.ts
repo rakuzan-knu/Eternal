@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { MessageBodyService } from '../cassandra/message-body.service';
+import { Injectable, Optional } from '@nestjs/common';
 import DataLoader from 'dataloader';
 import { PrismaService } from '@common/prisma';
 import type { UserSnapshot } from '@common/contracts';
@@ -59,7 +60,10 @@ export interface ScopedLoaders {
 
 @Injectable()
 export class DataLoaderService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly messageBodies?: MessageBodyService,
+  ) {}
 
   /**
    * Creates a batch loader for User snapshots by user IDs.
@@ -275,6 +279,8 @@ export class DataLoaderService {
           conversationId: true,
           senderId: true,
           body: true,
+          bodyArchived: true,
+          bodyRevision: true,
           messageType: true,
           replyToId: true,
           forwardedFromId: true,
@@ -284,6 +290,8 @@ export class DataLoaderService {
           editedAt: true,
         },
       });
+
+      if (this.messageBodies) await this.messageBodies.hydrate(messages);
 
       const messageMap = new Map<string, (typeof messages)[0]>();
       for (const m of messages) {

@@ -1,3 +1,4 @@
+import { MessageBodyService } from '../../common/cassandra/message-body.service';
 import { Injectable, Optional } from '@nestjs/common';
 import { AttachmentType, MessageType, Prisma } from '@prisma/client';
 import type { MessageReaction, ConversationParticipant } from '@prisma/client';
@@ -5,7 +6,7 @@ import { PrismaService } from '@common/prisma';
 import { SnowflakeService } from '../../common/id/snowflake.service';
 import type { IMessagesRepository } from '../interfaces/messages-repository.interface';
 import type { MessageWithDetails } from '../interfaces/types';
-import { messageInclude } from '../interfaces/types';
+import { messageBodyOmit, messageInclude } from '../interfaces/types';
 import type { ChatActivityMap } from '@common/contracts';
 import { withUnreadWriteLock } from '../unread/unread-write-lock';
 
@@ -15,6 +16,7 @@ export class MessagesRepository implements IMessagesRepository {
     private readonly prisma: PrismaService,
     @Optional()
     private readonly snowflake?: SnowflakeService,
+    @Optional() private readonly messageBodies?: MessageBodyService,
   ) {}
 
   async create(data: {
@@ -42,40 +44,43 @@ export class MessagesRepository implements IMessagesRepository {
       | undefined;
   }): Promise<MessageWithDetails> {
     const msgId = data.id ?? (this.snowflake ? this.snowflake.generate() : undefined);
-    return withUnreadWriteLock(this.prisma, { conversationIds: [data.conversationId] }, (tx) =>
-      tx.message.create({
-        data: {
-          conversationId: data.conversationId,
-          senderId: data.senderId,
-          body: data.body ?? null,
-          clientSeq: data.clientSeq ?? null,
-          messageType: (data.messageType as MessageType) || MessageType.TEXT,
-          replyToId: data.replyToId ?? null,
-          forwardedFromId: data.forwardedFromId ?? null,
-          ...(msgId ? { id: msgId } : {}),
-          ...(data.attachments && data.attachments.length > 0
-            ? {
-                attachments: {
-                  create: data.attachments.map((att) => ({
-                    type: att.type,
-                    url: att.url,
-                    fileName: att.fileName || null,
-                    mimeType: att.mimeType || null,
-                    size: att.size != null ? Math.round(att.size) : null,
-                    width: att.width != null ? Math.round(att.width) : null,
-                    height: att.height != null ? Math.round(att.height) : null,
-                    duration: att.duration != null ? Math.round(att.duration) : null,
-                    waveform: Array.isArray(att.waveform)
-                      ? att.waveform.map((w: number) => Math.min(100, Math.max(0, Math.round(w))))
-                      : [],
-                    thumbnailUrl: att.thumbnailUrl || null,
-                  })),
-                },
-              }
-            : {}),
-        },
-        include: messageInclude,
-      }),
+    return this.hydrate(
+      withUnreadWriteLock(this.prisma, { conversationIds: [data.conversationId] }, (tx) =>
+        tx.message.create({
+          data: {
+            conversationId: data.conversationId,
+            senderId: data.senderId,
+            body: data.body ?? null,
+            clientSeq: data.clientSeq ?? null,
+            messageType: (data.messageType as MessageType) || MessageType.TEXT,
+            replyToId: data.replyToId ?? null,
+            forwardedFromId: data.forwardedFromId ?? null,
+            ...(msgId ? { id: msgId } : {}),
+            ...(data.attachments && data.attachments.length > 0
+              ? {
+                  attachments: {
+                    create: data.attachments.map((att) => ({
+                      type: att.type,
+                      url: att.url,
+                      fileName: att.fileName || null,
+                      mimeType: att.mimeType || null,
+                      size: att.size != null ? Math.round(att.size) : null,
+                      width: att.width != null ? Math.round(att.width) : null,
+                      height: att.height != null ? Math.round(att.height) : null,
+                      duration: att.duration != null ? Math.round(att.duration) : null,
+                      waveform: Array.isArray(att.waveform)
+                        ? att.waveform.map((w: number) => Math.min(100, Math.max(0, Math.round(w))))
+                        : [],
+                      thumbnailUrl: att.thumbnailUrl || null,
+                    })),
+                  },
+                }
+              : {}),
+          },
+          omit: messageBodyOmit,
+          include: messageInclude,
+        }),
+      ),
     );
   }
 
@@ -91,21 +96,24 @@ export class MessagesRepository implements IMessagesRepository {
     const cursor = before ?? after;
     const take = before ? limit : after ? -limit : limit;
 
-    return this.prisma.message.findMany({
-      where: {
-        conversationId,
-        deletedForAll: false,
-        deletedFor: { none: { userId: requestingUserId } },
-        ...(hiddenUserIds && hiddenUserIds.length > 0
-          ? { senderId: { notIn: hiddenUserIds } }
-          : {}),
-      },
-      orderBy: [{ createdAt: 'desc' }, { clientSeq: 'desc' }, { id: 'desc' }],
-      take: take,
-      skip: cursor ? 1 : 0,
-      ...(cursor ? { cursor: { id: cursor } } : {}),
-      include: messageInclude,
-    });
+    return this.hydrate(
+      this.prisma.message.findMany({
+        where: {
+          conversationId,
+          deletedForAll: false,
+          deletedFor: { none: { userId: requestingUserId } },
+          ...(hiddenUserIds && hiddenUserIds.length > 0
+            ? { senderId: { notIn: hiddenUserIds } }
+            : {}),
+        },
+        orderBy: [{ createdAt: 'desc' }, { clientSeq: 'desc' }, { id: 'desc' }],
+        take: take,
+        skip: cursor ? 1 : 0,
+        ...(cursor ? { cursor: { id: cursor } } : {}),
+        omit: messageBodyOmit,
+        include: messageInclude,
+      }),
+    );
   }
 
   async findAround(params: {
@@ -137,6 +145,7 @@ export class MessagesRepository implements IMessagesRepository {
         },
         orderBy: { createdAt: 'desc' },
         take: half + 1,
+        omit: messageBodyOmit,
         include: messageInclude,
       }),
       this.prisma.message.findMany({
@@ -151,6 +160,7 @@ export class MessagesRepository implements IMessagesRepository {
         },
         orderBy: { createdAt: 'asc' },
         take: half,
+        omit: messageBodyOmit,
         include: messageInclude,
       }),
     ]);
@@ -158,8 +168,12 @@ export class MessagesRepository implements IMessagesRepository {
     const combined = [...afterMsgs.reverse(), ...beforeMsgs];
     const map = new Map<string, MessageWithDetails>();
     combined.forEach((m) => map.set(m.id, m));
-    return Array.from(map.values()).sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    return this.hydrate(
+      Promise.resolve(
+        Array.from(map.values()).sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        ),
+      ),
     );
   }
 
@@ -249,10 +263,13 @@ export class MessagesRepository implements IMessagesRepository {
           : {}),
       },
       orderBy: { createdAt: 'asc' },
+      omit: messageBodyOmit,
       include: {
         attachments: true,
       },
     });
+
+    if (this.messageBodies) await this.messageBodies.hydrate(messages);
 
     let formatter: Intl.DateTimeFormat;
     try {
@@ -329,29 +346,36 @@ export class MessagesRepository implements IMessagesRepository {
   }
 
   findOne(messageId: string, requestingUserId: string): Promise<MessageWithDetails | null> {
-    return this.prisma.message.findFirst({
-      where: {
-        id: messageId,
-        deletedForAll: false,
-        deletedFor: { none: { userId: requestingUserId } },
-        conversation: { participants: { some: { userId: requestingUserId, leftAt: null } } },
-      },
-      include: messageInclude,
-    });
+    return this.hydrate(
+      this.prisma.message.findFirst({
+        where: {
+          id: messageId,
+          deletedForAll: false,
+          deletedFor: { none: { userId: requestingUserId } },
+          conversation: { participants: { some: { userId: requestingUserId, leftAt: null } } },
+        },
+        omit: messageBodyOmit,
+        include: messageInclude,
+      }),
+    );
   }
 
   async edit(messageId: string, body: string): Promise<MessageWithDetails> {
-    return this.prisma.message.update({
-      where: { id: messageId },
-      data: { body, editedAt: new Date() },
-      include: messageInclude,
-    });
+    return this.hydrate(
+      this.prisma.message.update({
+        where: { id: messageId },
+        data: { body, editedAt: new Date() },
+        omit: messageBodyOmit,
+        include: messageInclude,
+      }),
+    );
   }
 
   async deleteForAll(messageId: string): Promise<void> {
     await withUnreadWriteLock(this.prisma, { messageIds: [messageId] }, (tx) =>
       tx.message.update({
         where: { id: messageId },
+        omit: messageBodyOmit,
         data: {
           body: null,
           messageType: 'DELETED',
@@ -442,28 +466,34 @@ export class MessagesRepository implements IMessagesRepository {
     hiddenUserIds?: string[],
   ): Promise<MessageWithDetails[]> {
     const escapedQuery = query.replace(/[%_\\]/g, '\\$&');
-    return this.prisma.message.findMany({
-      where: {
-        conversationId,
-        body: { contains: escapedQuery, mode: 'insensitive' },
-        deletedAt: null,
-        deletedForAll: false,
-        ...(hiddenUserIds && hiddenUserIds.length > 0
-          ? { senderId: { notIn: hiddenUserIds } }
-          : {}),
-      },
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-      include: messageInclude,
-    });
+    return this.hydrate(
+      this.prisma.message.findMany({
+        where: {
+          conversationId,
+          bodySearch: { contains: escapedQuery, mode: 'insensitive' },
+          deletedAt: null,
+          deletedForAll: false,
+          ...(hiddenUserIds && hiddenUserIds.length > 0
+            ? { senderId: { notIn: hiddenUserIds } }
+            : {}),
+        },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        omit: messageBodyOmit,
+        include: messageInclude,
+      }),
+    );
   }
 
   findLastMessage(conversationId: string): Promise<MessageWithDetails | null> {
-    return this.prisma.message.findFirst({
-      where: { conversationId, deletedForAll: false },
-      orderBy: { createdAt: 'desc' },
-      include: messageInclude,
-    });
+    return this.hydrate(
+      this.prisma.message.findFirst({
+        where: { conversationId, deletedForAll: false },
+        orderBy: { createdAt: 'desc' },
+        omit: messageBodyOmit,
+        include: messageInclude,
+      }),
+    );
   }
 
   async belongsToConversation(messageId: string, conversationId: string): Promise<boolean> {
@@ -472,5 +502,9 @@ export class MessagesRepository implements IMessagesRepository {
       select: { id: true },
     });
     return !!msg;
+  }
+  private async hydrate<T>(result: Promise<T>): Promise<T> {
+    const value = await result;
+    return this.messageBodies ? this.messageBodies.hydrate(value) : value;
   }
 }

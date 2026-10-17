@@ -1,3 +1,4 @@
+import { MessageBodyService } from '../../common/cassandra/message-body.service';
 import {
   BadRequestException,
   ForbiddenException,
@@ -54,7 +55,7 @@ import { MessengerMapper } from '../messenger.mapper';
 import type { ReportCategory } from '@prisma/client';
 import { Prisma } from '@prisma/client';
 import { WS_EVENTS } from '../events/ws-events';
-import { messageInclude } from '../interfaces/types';
+import { messageBodyOmit, messageInclude } from '../interfaces/types';
 
 import { DataLoaderService } from '../../common/dataloader';
 import { QueueService } from '../../queue/queue.service';
@@ -90,6 +91,7 @@ export class ConversationsService implements OnModuleDestroy {
     private readonly queueService?: QueueService,
     @Optional()
     private readonly unreadProjection?: UnreadProjectionService,
+    @Optional() private readonly messageBodies?: MessageBodyService,
   ) {
     const accountId = this.configService.get<string>('R2_ACCOUNT_ID');
     const endpoint =
@@ -390,9 +392,12 @@ export class ConversationsService implements OnModuleDestroy {
               messageType: 'SYSTEM',
               body: `User ${userName} changed the group name to "${dto.name}"`,
             },
+            omit: messageBodyOmit,
             include: messageInclude,
           }),
       );
+
+      if (this.messageBodies) await this.messageBodies.hydrate(sysMsg);
 
       const mapped = this.mapper.mapMessage(sysMsg, userId, new Set());
       await this.broadcastToParticipants(conversationId, participantIds, WS_EVENTS.NEW_MESSAGE, {
@@ -579,11 +584,13 @@ export class ConversationsService implements OnModuleDestroy {
             messageType: 'SYSTEM',
             body: `${userName} left the group`,
           },
+          omit: messageBodyOmit,
           include: messageInclude,
         }),
     );
 
     const participantIds = await this.convsRepo.findParticipantIds(conversationId);
+    if (this.messageBodies) await this.messageBodies.hydrate(sysMsg);
     const mapped = this.mapper.mapMessage(sysMsg, userId, new Set());
     await this.broadcastToParticipants(
       conversationId,
@@ -882,11 +889,13 @@ export class ConversationsService implements OnModuleDestroy {
                 messageType: 'SYSTEM',
                 body: `${userName} left the group`,
               },
+              omit: messageBodyOmit,
               include: messageInclude,
             }),
         );
 
         const remainingParticipantIds = participantIds.filter((id) => id !== userId);
+        if (this.messageBodies) await this.messageBodies.hydrate(sysMsg);
         const mapped = this.mapper.mapMessage(sysMsg, userId, new Set());
         for (const remId of remainingParticipantIds) {
           this.gateway?.emitToUser(remId, WS_EVENTS.NEW_MESSAGE, {
@@ -1027,11 +1036,13 @@ export class ConversationsService implements OnModuleDestroy {
             messageType: 'SYSTEM',
             body: `User ${userName} updated the group icon`,
           },
+          omit: messageBodyOmit,
           include: messageInclude,
         }),
     );
 
     const participantIds = await this.convsRepo.findParticipantIds(conversationId);
+    if (this.messageBodies) await this.messageBodies.hydrate(sysMsg);
     const mapped = this.mapper.mapMessage(sysMsg, userId, new Set());
     await this.broadcastToParticipants(conversationId, participantIds, WS_EVENTS.NEW_MESSAGE, {
       conversationId,
@@ -1083,8 +1094,9 @@ export class ConversationsService implements OnModuleDestroy {
         conversationId,
         messageType: 'THEME_PROPOSAL',
         createdAt: { gte: twentyFourHoursAgo },
-        body: { contains: '"status":"PENDING"' },
+        bodySearch: { contains: '"status":"PENDING"' },
       },
+      select: { id: true },
     });
     if (existingPending) {
       throw new BadRequestException(
@@ -1113,10 +1125,12 @@ export class ConversationsService implements OnModuleDestroy {
             messageType: 'THEME_PROPOSAL',
             body: JSON.stringify(proposalData),
           },
+          omit: messageBodyOmit,
           include: messageInclude,
         }),
     );
 
+    if (this.messageBodies) await this.messageBodies.hydrate(message);
     await this.convsRepo.touchUpdatedAt(conversationId);
 
     const participantIds = await this.convsRepo.findParticipantIds(conversationId);
@@ -1146,11 +1160,13 @@ export class ConversationsService implements OnModuleDestroy {
 
     const msg = await this.prisma.message.findUnique({
       where: { id: messageId },
+      omit: messageBodyOmit,
       include: messageInclude,
     });
     if (!msg || msg.conversationId !== conversationId) {
       throw new NotFoundException('Theme proposal message not found');
     }
+    if (this.messageBodies) await this.messageBodies.hydrate(msg);
     if (msg.messageType !== 'THEME_PROPOSAL' || !msg.body) {
       throw new BadRequestException('Message is not a theme proposal');
     }
@@ -1189,8 +1205,11 @@ export class ConversationsService implements OnModuleDestroy {
         body: JSON.stringify(proposalData),
         editedAt: new Date(),
       },
+      omit: messageBodyOmit,
       include: messageInclude,
     });
+
+    if (this.messageBodies) await this.messageBodies.hydrate(updatedMsg);
 
     if (action === 'ACCEPT') {
       await this.convsRepo.updateSharedTheme(conversationId, proposalData.proposedTheme);

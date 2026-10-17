@@ -262,4 +262,66 @@ describe('MessagesRepository', () => {
     mockPrisma.message.findFirst.mockResolvedValueOnce(null);
     expect(await repository.belongsToConversation('msg-unknown', 'conv-1')).toBe(false);
   });
+  it('awaits hydration for message results including archived reply bodies', async () => {
+    const reply = { ...sampleMsg, id: 'reply-1', body: null as string | null };
+    const message = { ...sampleMsg, replyTo: reply };
+    mockPrisma.message.findMany.mockResolvedValueOnce([message]);
+    const hydrate = jest.fn(async <T>(value: T): Promise<T> => {
+      await Promise.resolve();
+      reply.body = 'Restored reply';
+      return value;
+    });
+    Object.assign(repository, { messageBodies: { hydrate } });
+
+    const result = await repository.findMany({
+      conversationId: 'conv-1',
+      requestingUserId: 'usr-1',
+      limit: 20,
+    });
+
+    expect(hydrate).toHaveBeenCalledWith([message]);
+    expect(result[0].replyTo?.body).toBe('Restored reply');
+    const omit = { bodySearch: true, bodyDigest: true };
+    expect(mockPrisma.message.findMany.mock.calls[0]).toMatchObject([
+      {
+        omit,
+        include: { replyTo: { omit }, forwardedFrom: { omit } },
+      },
+    ]);
+  });
+
+  it('hydrates before deriving calendar snippets and searches the PostgreSQL projection', async () => {
+    const message = { ...sampleMsg, body: null as string | null, attachments: [] };
+    mockPrisma.message.findMany.mockResolvedValue([message]);
+    Object.assign(repository, {
+      messageBodies: {
+        hydrate: async <T>(value: T): Promise<T> => {
+          await Promise.resolve();
+          message.body = 'Restored calendar text';
+          return value;
+        },
+      },
+    });
+
+    const activity = await repository.getActivityMap({
+      conversationId: 'conv-1',
+      year: 2026,
+      month: 8,
+      requestingUserId: 'usr-1',
+    });
+    expect(activity['2026-08-28'].firstMessageSnippet).toBe('Restored calendar text');
+    expect(mockPrisma.message.findMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        omit: { bodySearch: true, bodyDigest: true },
+      }),
+    );
+    await repository.search('conv-1', 'calendar', 20);
+    expect(mockPrisma.message.findMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          bodySearch: { contains: 'calendar', mode: 'insensitive' },
+        }),
+      }),
+    );
+  });
 });

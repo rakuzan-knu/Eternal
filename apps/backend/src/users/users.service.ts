@@ -1,3 +1,4 @@
+import { PublicSearchService } from '../common/public-search/public-search.service';
 import { profileFrameSchema } from '../common/contracts/profile-frames';
 import {
   BadRequestException,
@@ -111,6 +112,7 @@ export class UsersService {
     private readonly lastSeenCoalescer?: LastSeenCoalescerService,
     @Optional()
     private readonly textPipeline?: TextPipelineService,
+    @Optional() private readonly publicSearch?: PublicSearchService,
   ) {}
 
   private userKey(id: string): string {
@@ -391,12 +393,16 @@ export class UsersService {
 
     const blockedIds = viewerId ? await this.usersRepository.getBlockedIds(viewerId) : [];
 
-    // Query candidates matching substring or prefix
-    const candidates = await this.usersRepository.searchCandidates(
-      blockedIds,
-      [...RESERVED_USERNAMES],
-      60,
-    );
+    const providerIds = await this.publicSearch?.candidates(term);
+    const candidates =
+      providerIds != null
+        ? await this.usersRepository.searchCandidates(
+            blockedIds,
+            [...RESERVED_USERNAMES],
+            60,
+            providerIds,
+          )
+        : await this.usersRepository.searchCandidates(blockedIds, [...RESERVED_USERNAMES], 60);
 
     const scored = candidates
       .map((u) => {

@@ -238,4 +238,28 @@ describe('ConversationsRepository', () => {
     await repository.unpinMessage('conv-1', 'msg-1');
     expect(mockPrisma.pinnedMessage.delete).toHaveBeenCalled();
   });
+  it('restores preview and pinned message bodies before returning a conversation', async () => {
+    const preview = { id: 'm1', body: null as string | null };
+    const pinned = { id: 'm2', body: null as string | null };
+    const conversation = {
+      ...sampleConv,
+      messages: [preview],
+      pinnedMessages: [{ message: pinned }],
+    };
+    mockPrisma.conversation.findFirst.mockResolvedValueOnce(conversation);
+    Object.assign(repository, {
+      messageBodies: {
+        hydrate: async <T>(value: T): Promise<T> => {
+          await Promise.resolve();
+          preview.body = 'Preview';
+          pinned.body = 'Pinned';
+          return value;
+        },
+      },
+    });
+
+    const result = await repository.findOneForUser('conv-1', 'usr-1');
+    expect(result?.messages[0].body).toBe('Preview');
+    expect(result?.pinnedMessages[0].message.body).toBe('Pinned');
+  });
 });

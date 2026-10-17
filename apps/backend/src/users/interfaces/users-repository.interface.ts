@@ -34,6 +34,7 @@ export interface IUsersRepository {
     blockedIds: string[],
     reservedUsernames: string[],
     takeLimit: number,
+    candidateIds?: string[],
   ): Promise<
     (User & {
       badges: { badgeId: string }[];

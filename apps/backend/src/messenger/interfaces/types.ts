@@ -1,5 +1,11 @@
 import type { Prisma } from '@prisma/client';
 
+/** Internal PostgreSQL projection and verification hash never travel with message payloads. */
+export const messageBodyOmit = {
+  bodySearch: true,
+  bodyDigest: true,
+} satisfies Prisma.MessageOmit;
+
 export const userSnapshot = {
   id: true,
   username: true,
@@ -52,6 +58,7 @@ export const messageInclude = {
     },
   },
   replyTo: {
+    omit: messageBodyOmit,
     include: {
       deletedFor: { select: { userId: true } },
       sender: { select: userSnapshot },
@@ -59,6 +66,7 @@ export const messageInclude = {
     },
   },
   forwardedFrom: {
+    omit: messageBodyOmit,
     include: {
       sender: { select: userSnapshot },
     },
@@ -93,6 +101,7 @@ export function conversationPreviewMessageInclude(userId: string) {
       },
     },
     replyTo: {
+      omit: messageBodyOmit,
       include: {
         sender: messageInclude.replyTo.include.sender,
         attachments: messageInclude.replyTo.include.attachments,
@@ -116,19 +125,23 @@ export const conversationInclude = {
   messages: {
     orderBy: { createdAt: 'desc' as const },
     take: 1,
+    omit: messageBodyOmit,
     include: messageInclude,
   },
   pinnedMessages: {
     orderBy: { pinnedAt: 'desc' as const },
     include: {
-      message: { include: messageInclude },
+      message: { omit: messageBodyOmit, include: messageInclude },
     },
   },
 } satisfies Prisma.ConversationInclude;
 
-export type MessageWithDetails = Prisma.MessageGetPayload<{
+type MessageDetails = Prisma.MessageGetPayload<{
   include: typeof messageInclude;
 }>;
+
+export type MessageWithDetails = Omit<MessageDetails, keyof typeof messageBodyOmit> &
+  Partial<Pick<MessageDetails, keyof typeof messageBodyOmit>>;
 
 export type ParticipantWithUser = Prisma.ConversationParticipantGetPayload<{
   include: typeof participantInclude;

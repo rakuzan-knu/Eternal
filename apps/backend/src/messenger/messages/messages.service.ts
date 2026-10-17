@@ -1,3 +1,4 @@
+import { MessageBodyService } from '../../common/cassandra/message-body.service';
 import { DirectUploadsService } from '../../common/media/direct-uploads.service';
 import {
   BadRequestException,
@@ -22,7 +23,7 @@ import { CONVERSATIONS_REPOSITORY } from '../interfaces/conversations-repository
 import type { IConversationsRepository } from '../interfaces/conversations-repository.interface';
 import { MESSAGES_REPOSITORY } from '../interfaces/messages-repository.interface';
 import type { IMessagesRepository } from '../interfaces/messages-repository.interface';
-import { messageInclude } from '../interfaces/types';
+import { messageBodyOmit, messageInclude } from '../interfaces/types';
 import { MessengerMapper } from '../messenger.mapper';
 import type {
   GetMessagesQueryDto,
@@ -79,6 +80,7 @@ export class MessagesService implements OnModuleDestroy {
     @Optional()
     @Inject(STORAGE_SERVICE)
     private readonly storageService?: IStorageService,
+    @Optional() private readonly messageBodies?: MessageBodyService,
   ) {
     const accountId = this.configService.get<string>('R2_ACCOUNT_ID');
     const endpoint =
@@ -393,6 +395,7 @@ export class MessagesService implements OnModuleDestroy {
                 }
               : {}),
           },
+          omit: messageBodyOmit,
           include: messageInclude,
         });
 
@@ -403,6 +406,7 @@ export class MessagesService implements OnModuleDestroy {
 
         const pinnedIds = await this.convsRepo.findPinnedMessages(conversationId);
         const pinnedSet = new Set(pinnedIds);
+        if (this.messageBodies) await this.messageBodies.hydrate(message);
         const mapped = this.mapper.mapMessage(message, senderId, pinnedSet);
 
         await tx.outboxEvent.create({
@@ -754,9 +758,12 @@ export class MessagesService implements OnModuleDestroy {
         deletedForAll: false,
         deletedFor: { none: { userId } },
       },
+      omit: messageBodyOmit,
       include: { attachments: true },
       orderBy: { createdAt: 'asc' },
     });
+
+    if (this.messageBodies) await this.messageBodies.hydrate(messages);
 
     const totalCount = dto.conversationIds.length * messages.length;
     const results: MessageView[] = new Array<MessageView>(totalCount);
