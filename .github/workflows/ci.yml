@@ -838,6 +838,12 @@ jobs:
           tags: social-network-backend:ci-${{ github.sha }}
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
+      - name: Verify runtime Cassandra bundle preparation
+        run: |
+          docker run --rm --entrypoint node \
+            --mount type=bind,source="$PWD",target=/workspace,readonly \
+            --workdir /workspace social-network-backend:ci-${{ github.sha }} \
+            --test scripts/deploy/__tests__/prepare-cassandra-bundle.test.mjs
       - name: Test container health (Smoke Test)
         run: |
           set -euo pipefail

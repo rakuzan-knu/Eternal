@@ -28,7 +28,18 @@ Use a runtime token scoped to these tables/keyspace with SELECT, MODIFY and the
 permissions required by the CQL driver to connect. Schema creation uses a separate
 administrative credential or the Astra CQL console. Never put the token in Vite
 variables, Git, a public bundle URL, logs, or the chat. Keep the downloaded SCB in
-an ignored local path and upload it as a Render Secret File for deployment.
+an ignored local path and configure it privately for deployment as described below.
+
+Render Secret Files accept text, so a binary SCB ZIP must not be pasted into their
+contents field. For the repository Docker image, instead set backend-only
+`CASSANDRA_SECURE_CONNECT_BUNDLE_BASE64` to the ZIP's base64 representation and
+`CASSANDRA_SECURE_CONNECT_BUNDLE=/tmp/secure-connect-eternal.zip`. Keep Render's
+Docker Command override empty. The image validates and atomically decodes the
+bundle as the application user with mode 0600 before starting Prisma or Nest,
+then removes the encoded variable from the application's environment. Invalid
+configuration stops startup without logging its contents. Never use Docker build
+arguments or commit either representation. A pre-mounted binary bundle remains
+supported when the base64 variable is absent.
 
 Two Cassandra tables support bounded latest-by-user queries and deletion by call.
 The second table stores only deletion keys, not a second copy of the payload.
