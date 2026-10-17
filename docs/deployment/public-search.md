@@ -16,6 +16,11 @@ or the old first-60-user coverage. Healthy provider reads never also scan PG can
 Failure or exhausted/unavailable budget falls back to the bounded PG path; successful
 empty results stay empty. DTOs, authentication, blocks and profile visibility remain.
 
+On DNS failure only (`ENOTFOUND`/`EAI_AGAIN`), retry once on Algolia's official
+`<app>-1.algolianet.com` read/write host. Each attempt reserves its own HTTP budget.
+Timeouts, connection resets and HTTP errors do not replay potentially accepted writes;
+durable synchronization retains its existing retry path. TLS validation stays enabled.
+
 Post/hashtag search retain private/followed/owned-post visibility, chronological cursors
 and last-100-public-post tag counts. Private message substring search uses the PG
 projection in [message-history.md](message-history.md). This is partial search offload.
@@ -39,6 +44,12 @@ adapter caps records at 40,000, HTTP attempts at 9,000/month (including polls, w
 and failures), and record mutations at 45,000/month. Lower limits are configurable;
 rebuild clear consumes one mutation. These leave headroom and are more conservative
 than search-only billing.
+
+Free usage requires the Algolia logo next to the search bar. The web and Expo search
+pages credit people search only; posts and tags still use PostgreSQL. Deploy these
+clients before enabling provider reads. The bundled white logo is unmodified from
+[Algolia's official logo pack](https://www.algolia.com/algolia-logo-pack.zip);
+see the [free-plan attribution requirement](https://support.algolia.com/hc/en-us/articles/4406981826065-Do-I-need-to-display-the-Algolia-logo-when-on-a-free-plan).
 
 Reservations use the existing shared Redis connection and atomic Lua counters scoped
 to application ID and UTC month. No local fallback or TTL; preserve keys with noeviction.
@@ -77,6 +88,10 @@ remain until synchronization resumes; live PG hydration still rejects deleted/bl
 
 Rollback reads with `PUBLIC_SEARCH_PROVIDER=postgres`; keep credentials and capture
 until pending updates/deletions are reconciled or the dedicated index is cleared.
+The reconciler runs only in `algolia` mode: switching to `postgres` stops it. Retaining
+credentials and capture alone does not drain deletion intents. Stop identity changes
+and reconcile before switching, or clear the dedicated index and account for pending
+intents before disabling capture.
 Disable capture only after accounting for provider data. Real account/key setup,
 provider publication and quota enforcement require deployment verification. Local
 tests use synthetic identities and mocked provider responses; no live identities
