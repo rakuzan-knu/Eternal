@@ -16,11 +16,13 @@ export const UserReelsView: React.FC<UserReelsViewProps> = ({ userId }) => {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-3 gap-2 sm:gap-4">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4" role="status" aria-label="Loading reels">
+        <span className="sr-only">Loading reels...</span>
         {[1, 2, 3, 4, 5, 6].map((i) => (
           <div
             key={i}
-            className="aspect-9/16 rounded-2xl bg-zinc-900/80 animate-pulse border border-white/5"
+            aria-hidden="true"
+            className="skeleton-shimmer aspect-9/16 rounded-2xl border border-white/5"
           />
         ))}
       </div>
