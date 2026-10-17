@@ -5,3 +5,4 @@ export * from './Alert';
 export * from './GlassCard';
 export * from './AuthFooter';
 export * from './Select';
+export { AlgoliaLogo } from './AlgoliaLogo';

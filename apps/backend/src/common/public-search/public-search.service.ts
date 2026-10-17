@@ -54,10 +54,9 @@ export class PublicSearchService {
 
   private async request(path: string, body?: unknown): Promise<unknown> {
     const { app, key, index } = this.settings();
-    await this.reserve('requests', 1);
-    const response = await fetch(
-      `https://${app}.algolia.net/1/indexes/${encodeURIComponent(index)}${path}`,
-      {
+    const send = async (host: string): Promise<Response> => {
+      await this.reserve('requests', 1);
+      return fetch(`https://${host}/1/indexes/${encodeURIComponent(index)}${path}`, {
         method: body === undefined ? 'GET' : 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -66,8 +65,24 @@ export class PublicSearchService {
         },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
         signal: AbortSignal.timeout(3000),
-      },
-    );
+      });
+    };
+    let response: Response;
+    try {
+      response = await send(`${app}.algolia.net`);
+    } catch (error) {
+      // DNS failures happen before transmission, so even writes can safely use
+      // Algolia's read/write fallback host. Never retry ambiguous writes here.
+      const cause = error instanceof TypeError ? error.cause : undefined;
+      if (
+        !cause ||
+        typeof cause !== 'object' ||
+        !('code' in cause) ||
+        (cause.code !== 'ENOTFOUND' && cause.code !== 'EAI_AGAIN')
+      )
+        throw error;
+      response = await send(`${app}-1.algolianet.com`);
+    }
     if (!response.ok) throw new Error('Public search provider request failed');
     return response.json();
   }
