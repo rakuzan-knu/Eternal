@@ -121,6 +121,14 @@ describe('PostCard', () => {
     expect(screen.getByText('3')).toBeInTheDocument();
   });
 
+  it('places Like first in both visual and keyboard action order', () => {
+    renderPostCard();
+    const like = screen.getByTitle('Like');
+    const row = like.parentElement;
+    expect(row?.querySelector('button')).toBe(like);
+    expect(row?.querySelectorAll('button')[1]).toHaveAccessibleName('View comments');
+  });
+
   it('does not render the repost banner for a regular post', () => {
     renderPostCard();
 

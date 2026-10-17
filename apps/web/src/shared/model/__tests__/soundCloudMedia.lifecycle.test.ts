@@ -71,7 +71,9 @@ describe('SoundCloud media lifecycle', () => {
     vi.restoreAllMocks();
   });
   it('bounds HLS buffers and destroys the previous stream on replacement and reset', async () => {
-    useSpotifyPlayerStore.getState().playTrack(track('sc-one', '/one.m3u8'), [track('sc-next')]);
+    useSpotifyPlayerStore
+      .getState()
+      .playTrack(track('sc-one', 'https://cf-media.sndcdn.com/one.m3u8'), [track('sc-next')]);
     await vi.waitFor(() => expect(hls.instances).toHaveLength(1));
     expect(hls.instances[0].config).toMatchObject({
       enableWorker: true,
@@ -80,7 +82,9 @@ describe('SoundCloud media lifecycle', () => {
       maxMaxBufferLength: 60,
       maxBufferSize: 8 * 1024 * 1024,
     });
-    useSpotifyPlayerStore.getState().playTrack(track('sc-two', '/two.m3u8'), [track('sc-next')]);
+    useSpotifyPlayerStore
+      .getState()
+      .playTrack(track('sc-two', 'https://cf-media.sndcdn.com/two.m3u8'), [track('sc-next')]);
     await vi.waitFor(() => expect(hls.instances).toHaveLength(2));
     expect(hls.instances[0].destroy).toHaveBeenCalledOnce();
     resetSessionStores();
@@ -98,7 +102,9 @@ describe('SoundCloud media lifecycle', () => {
     useSpotifyPlayerStore.getState().playTrack(track('sc-delayed'), [track('sc-next')]);
     useSpotifyPlayerStore
       .getState()
-      .playTrack(track('sc-current', '/current.mp3'), [track('sc-next')]);
+      .playTrack(track('sc-current', 'https://cf-media.sndcdn.com/current.mp3'), [
+        track('sc-next'),
+      ]);
     reject(new Error('old request failed'));
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(useSpotifyPlayerStore.getState().currentTrack?.id).toBe('sc-current');
@@ -106,7 +112,9 @@ describe('SoundCloud media lifecycle', () => {
   });
 
   it('a late HLS manifest cannot restart a paused track, and resume restarts loading', async () => {
-    useSpotifyPlayerStore.getState().playTrack(track('sc-late', '/late.m3u8'), [track('sc-next')]);
+    useSpotifyPlayerStore
+      .getState()
+      .playTrack(track('sc-late', 'https://cf-media.sndcdn.com/late.m3u8'), [track('sc-next')]);
     await vi.waitFor(() => expect(hls.instances).toHaveLength(1));
     const instance = hls.instances[0];
     useSpotifyPlayerStore.getState().pause();
@@ -122,7 +130,7 @@ describe('SoundCloud media lifecycle', () => {
     hls.failAttach = true;
     useSpotifyPlayerStore
       .getState()
-      .playTrack(track('sc-failed', '/failed.m3u8'), [track('sc-next')]);
+      .playTrack(track('sc-failed', 'https://cf-media.sndcdn.com/failed.m3u8'), [track('sc-next')]);
     await vi.waitFor(() => expect(hls.instances).toHaveLength(1));
     expect(hls.instances[0].destroy).toHaveBeenCalledOnce();
     expect(useSpotifyPlayerStore.getState().isPlaying).toBe(false);
@@ -131,13 +139,15 @@ describe('SoundCloud media lifecycle', () => {
   it('retains the retry cooldown after replacing an expired stream', async () => {
     vi.useFakeTimers();
     vi.mocked(integrationsApi.getSoundCloudStream).mockResolvedValue({
-      streamUrl: '/fresh.m3u8',
+      streamUrl: 'https://cf-media.sndcdn.com/fresh.m3u8',
       isHls: true,
       mimeType: 'application/vnd.apple.mpegurl',
     });
     useSpotifyPlayerStore
       .getState()
-      .playTrack(track('sc-expired', '/expired.m3u8'), [track('sc-next')]);
+      .playTrack(track('sc-expired', 'https://cf-media.sndcdn.com/expired.m3u8'), [
+        track('sc-next'),
+      ]);
     await vi.waitFor(() => expect(hls.instances).toHaveLength(1));
     hls.instances[0].events.get('error')!('error', { type: 'network' });
     await vi.waitFor(() => expect(hls.instances).toHaveLength(2));
@@ -155,8 +165,12 @@ describe('SoundCloud media lifecycle', () => {
         reject = r;
       }),
     );
-    useSpotifyPlayerStore.getState().playTrack(track('sc-same', '/old.mp3'), [track('sc-next')]);
-    useSpotifyPlayerStore.getState().playTrack(track('sc-same', '/new.mp3'), [track('sc-next')]);
+    useSpotifyPlayerStore
+      .getState()
+      .playTrack(track('sc-same', 'https://cf-media.sndcdn.com/old.mp3'), [track('sc-next')]);
+    useSpotifyPlayerStore
+      .getState()
+      .playTrack(track('sc-same', 'https://cf-media.sndcdn.com/new.mp3'), [track('sc-next')]);
     reject(new Error('old playback failed'));
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(integrationsApi.getSoundCloudStream).not.toHaveBeenCalled();
@@ -171,18 +185,75 @@ describe('SoundCloud media lifecycle', () => {
           resolve = r;
         }),
       )
-      .mockResolvedValueOnce({ streamUrl: '/fresh.mp3', isHls: false, mimeType: 'audio/mpeg' });
+      .mockResolvedValueOnce({
+        streamUrl: 'https://cf-media.sndcdn.com/fresh.mp3',
+        isHls: false,
+        mimeType: 'audio/mpeg',
+      });
     vi.mocked(HTMLMediaElement.prototype.play).mockRejectedValueOnce(new Error('expired URL'));
     useSpotifyPlayerStore
       .getState()
-      .playTrack(track('sc-paused-retry', '/expired.mp3'), [track('sc-next')]);
+      .playTrack(track('sc-paused-retry', 'https://cf-media.sndcdn.com/expired.mp3'), [
+        track('sc-next'),
+      ]);
     await vi.waitFor(() => expect(integrationsApi.getSoundCloudStream).toHaveBeenCalledOnce());
     useSpotifyPlayerStore.getState().pause();
-    resolve({ streamUrl: '/fresh.mp3', isHls: false, mimeType: 'audio/mpeg' });
+    resolve({
+      streamUrl: 'https://cf-media.sndcdn.com/fresh.mp3',
+      isHls: false,
+      mimeType: 'audio/mpeg',
+    });
     await new Promise((r) => setTimeout(r, 0));
     vi.mocked(HTMLMediaElement.prototype.play).mockRejectedValueOnce(new Error('still expired'));
     useSpotifyPlayerStore.getState().resume();
     await vi.waitFor(() => expect(integrationsApi.getSoundCloudStream).toHaveBeenCalledTimes(2));
-    await vi.waitFor(() => expect(getGlobalAudioElement()?.getAttribute('src')).toBe('/fresh.mp3'));
+    await vi.waitFor(() =>
+      expect(getGlobalAudioElement()?.getAttribute('src')).toBe(
+        'https://cf-media.sndcdn.com/fresh.mp3',
+      ),
+    );
+  });
+  it('rejects an unsupported URL returned while refreshing and releases the stream', async () => {
+    vi.mocked(integrationsApi.getSoundCloudStream).mockResolvedValue({
+      streamUrl: 'https://attacker.test/audio.mp3',
+      isHls: false,
+      mimeType: 'audio/mpeg',
+    });
+    useSpotifyPlayerStore
+      .getState()
+      .playTrack(track('sc-invalid-refresh', 'https://cf-media.sndcdn.com/expired.m3u8'), [
+        track('sc-next'),
+      ]);
+    await vi.waitFor(() => expect(hls.instances).toHaveLength(1));
+    hls.instances[0].events.get('error')!('error', { type: 'network' });
+    await vi.waitFor(() => expect(useSpotifyPlayerStore.getState().isPlaying).toBe(false));
+    expect(hls.instances[0].destroy).toHaveBeenCalledOnce();
+    expect(getGlobalAudioElement()?.getAttribute('src')).toBeNull();
+  });
+
+  it('a late refresh failure cannot stop a newer playback of the same track', async () => {
+    let rejectRefresh = (_error: Error) => {};
+    vi.mocked(integrationsApi.getSoundCloudStream).mockReturnValueOnce(
+      new Promise((_, reject) => {
+        rejectRefresh = reject;
+      }),
+    );
+    useSpotifyPlayerStore
+      .getState()
+      .playTrack(track('sc-refresh-race', 'https://cf-media.sndcdn.com/old.m3u8'), [
+        track('sc-next'),
+      ]);
+    await vi.waitFor(() => expect(hls.instances).toHaveLength(1));
+    hls.instances[0].events.get('error')!('error', { type: 'network' });
+    await vi.waitFor(() => expect(integrationsApi.getSoundCloudStream).toHaveBeenCalledOnce());
+    useSpotifyPlayerStore
+      .getState()
+      .playTrack(track('sc-refresh-race', 'https://cf-media.sndcdn.com/new.mp3'), [
+        track('sc-next'),
+      ]);
+    rejectRefresh(new Error('Old lookup failed'));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(useSpotifyPlayerStore.getState().isPlaying).toBe(true);
+    expect(getGlobalAudioElement()?.src).toBe('https://cf-media.sndcdn.com/new.mp3');
   });
 });

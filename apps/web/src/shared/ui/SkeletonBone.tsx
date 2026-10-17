@@ -1,3 +1,3 @@
 export default function SkeletonBone({ className = '' }: { className?: string }) {
-  return <div className={`skeleton-shimmer ${className}`} />;
+  return <div aria-hidden="true" className={`skeleton-shimmer ${className}`} />;
 }

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   isSpotifyUrl,
   isSoundCloudUrl,
+  isSoundCloudAudioUrl,
   isAppleAudioUrl,
   isTrustedMessageOrigin,
   isSpotifyMessageOrigin,
@@ -44,6 +45,30 @@ describe('urlSecurity', () => {
       expect(isSoundCloudUrl('javascript:alert(1)')).toBe(false);
       expect(isSoundCloudUrl('')).toBe(false);
       expect(isSoundCloudUrl(null)).toBe(false);
+    });
+  });
+
+  describe('isSoundCloudAudioUrl', () => {
+    it.each([
+      'https://sndcdn.com/audio.mp3',
+      'https://cf-media.sndcdn.com/audio.mp3?token=signed',
+      'https://cf-hls-media.sndcdn.com/playlist.m3u8',
+    ])('allows provider HTTPS media: %s', (url) => {
+      expect(isSoundCloudAudioUrl(url)).toBe(true);
+    });
+    it.each([
+      undefined,
+      null,
+      '',
+      '/api/integrations/soundcloud/stream/1',
+      'http://cf-media.sndcdn.com/audio.mp3',
+      'https://sndcdn.com.attacker.test/audio.mp3',
+      'https://evil-sndcdn.com/audio.mp3',
+      'https://user:password@cf-media.sndcdn.com/audio.mp3',
+      'https://cf-media.sndcdn.com:8443/audio.mp3',
+      'javascript:alert(1)',
+    ])('rejects unsupported media: %s', (url) => {
+      expect(isSoundCloudAudioUrl(url)).toBe(false);
     });
   });
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, waitFor, fireEvent } from '@testing-library/react';
+import { screen, waitFor, fireEvent, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MiniProfileHoverCard } from '../MiniProfileHoverCard';
 import { renderWithProviders } from '@/test/renderWithProviders';
@@ -82,6 +82,46 @@ describe('MiniProfileHoverCard (Comprehensive Suite)', () => {
       nextCursor: null,
     });
     vi.spyOn(chatApi, 'createDirectConversation').mockResolvedValue({ id: 'conv-99' } as any);
+  });
+
+  it('shows profile and recent-post skeletons until each request finishes', async () => {
+    let resolveProfile!: (value: { data: typeof mockProfile }) => void;
+    let resolvePosts!: (value: { posts: never[]; nextCursor: null }) => void;
+    vi.spyOn(api, 'get').mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveProfile = resolve;
+      }),
+    );
+    vi.spyOn(postsApi, 'getUserPosts').mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolvePosts = resolve;
+      }),
+    );
+
+    renderWithProviders(
+      <MiniProfileHoverCard username="bob_ross">
+        <span>Hover loading profile</span>
+      </MiniProfileHoverCard>,
+    );
+    fireEvent.mouseEnter(screen.getByText('Hover loading profile'));
+
+    const profileStatus = await screen.findByRole('status', { name: 'Loading profile' });
+    expect(profileStatus.querySelectorAll('.skeleton-shimmer').length).toBeGreaterThan(0);
+
+    await act(async () => resolveProfile({ data: mockProfile }));
+
+    const postsStatus = await screen.findByRole('status', { name: 'Loading recent posts' });
+    expect(screen.getByText('Bob Ross')).toBeInTheDocument();
+    expect(screen.queryByRole('status', { name: 'Loading profile' })).not.toBeInTheDocument();
+    expect(postsStatus.querySelectorAll('.skeleton-shimmer')).toHaveLength(3);
+
+    await act(async () => resolvePosts({ posts: [], nextCursor: null }));
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('status', { name: 'Loading recent posts' }),
+      ).not.toBeInTheDocument();
+    });
   });
 
   it('renders children trigger and opens card on hover after delay', async () => {
