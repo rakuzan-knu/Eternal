@@ -564,23 +564,6 @@ export default function SearchPage() {
         </div>
       </div>
 
-      <a
-        href="https://www.algolia.com/"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center justify-end gap-2 text-xs text-gray-400"
-        aria-label="People search powered by Algolia"
-      >
-        <span>People search by</span>
-        <img
-          src="/images/algolia-logo-white.png"
-          alt="Algolia"
-          width={88}
-          height={20}
-          className="h-auto"
-        />
-      </a>
-
       {/* 2. Segmented Search Tabs (when searching) */}
       {isSearchActive && (
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar border-b border-white/[0.06]">

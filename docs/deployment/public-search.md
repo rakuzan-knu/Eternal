@@ -45,11 +45,9 @@ and failures), and record mutations at 45,000/month. Lower limits are configurab
 rebuild clear consumes one mutation. These leave headroom and are more conservative
 than search-only billing.
 
-Free usage requires the Algolia logo next to the search bar. The web and Expo search
-pages credit people search only; posts and tags still use PostgreSQL. Deploy these
-clients before enabling provider reads. The bundled white logo is unmodified from
-[Algolia's official logo pack](https://www.algolia.com/algolia-logo-pack.zip);
-see the [free-plan attribution requirement](https://support.algolia.com/hc/en-us/articles/4406981826065-Do-I-need-to-display-the-Algolia-logo-when-on-a-free-plan).
+The web and Expo search pages omit provider branding. This does not change
+[Algolia's published free-plan attribution requirement](https://support.algolia.com/hc/en-us/articles/4406981826065-Do-I-need-to-display-the-Algolia-logo-when-on-a-free-plan).
+People search still uses the configured provider; posts and tags remain in PostgreSQL.
 
 Reservations use the existing shared Redis connection and atomic Lua counters scoped
 to application ID and UTC month. No local fallback or TTL; preserve keys with noeviction.

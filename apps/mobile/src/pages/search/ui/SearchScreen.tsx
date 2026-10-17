@@ -26,7 +26,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { PostResponseDto, UserProfileDto } from '@social-network/shared-contracts';
-import { AlgoliaLogo, Button } from '@/shared/ui';
+import { Button } from '@/shared/ui';
 import { feedApi } from '../../feed/api/feedApi';
 import { feedKeys } from '../../feed/model/queries';
 import { nextCursor, uniquePosts } from '../../feed/model/feed';
@@ -589,20 +589,6 @@ export function SearchScreen({
             <X size={18} color={colors.muted} />
           </IconButton>
         )}
-      </View>
-      <View
-        accessible
-        accessibilityLabel="People search powered by Algolia"
-        style={{
-          flexDirection: 'row',
-          justifyContent: 'flex-end',
-          alignItems: 'center',
-          gap: 8,
-          paddingHorizontal: 16,
-        }}
-      >
-        <Text style={{ color: colors.muted, fontSize: 12 }}>People search by</Text>
-        <AlgoliaLogo />
       </View>
       {!!term.trim() && (
         <ScrollView
