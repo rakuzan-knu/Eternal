@@ -6,9 +6,27 @@ import { renderWithProviders } from '@/test/renderWithProviders';
 import { useUIStore } from '@/shared/model/useUIStore';
 import { useCurrentUser } from '@/entities/profile/model/useCurrentUser';
 import { followApi } from '@/entities/user';
-import { chatApi } from '@/entities/chat';
+import { chatApi, type MessageView } from '@/entities/chat';
 import { postsApi } from '@/features/posts/api/postsApi';
-import * as socketModule from '@/shared/api/socket';
+import { useMessageToastStore } from '@/shared/model/useMessageToastStore';
+
+const confirmedMessage: MessageView = {
+  id: 'message-1',
+  conversationId: 'conv-target-1',
+  sender: { id: 'sender-1', username: 'sender', displayName: null, avatar: null },
+  body: 'Post link',
+  messageType: 'TEXT',
+  replyTo: null,
+  forwardedFrom: null,
+  attachments: [],
+  reactions: [],
+  readBy: [],
+  isEdited: false,
+  isDeleted: false,
+  isPinned: false,
+  createdAt: '2026-10-17T12:00:00.000Z',
+  editedAt: null,
+};
 
 vi.mock('@/entities/profile/model/useCurrentUser');
 
@@ -38,16 +56,13 @@ describe('ShareModal (Comprehensive Suite)', () => {
     { id: 'u-2', username: 'david', displayName: 'David Bowie', avatar: null, followsYou: false },
   ];
 
-  const mockSocket = {
-    connected: true,
-    emit: vi.fn(),
-  };
-
   let writeTextSpy: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    useMessageToastStore.getState().dismissAll();
+    vi.spyOn(chatApi, 'sendMessage').mockResolvedValue(confirmedMessage);
     useUIStore.setState({
       isShareModalOpen: true,
       activePostForShare: mockPost as any,
@@ -68,7 +83,6 @@ describe('ShareModal (Comprehensive Suite)', () => {
     });
     vi.spyOn(postsApi, 'share').mockResolvedValue({ success: true } as any);
     vi.spyOn(chatApi, 'createDirectConversation').mockResolvedValue({ id: 'conv-target-1' } as any);
-    vi.spyOn(socketModule, 'getSocket').mockReturnValue(mockSocket as any);
 
     writeTextSpy = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', {
@@ -131,7 +145,7 @@ describe('ShareModal (Comprehensive Suite)', () => {
     expect(postsApi.share).toHaveBeenCalledWith('post-123');
   });
 
-  it('allows selecting user, typing message, and sending via chat socket', async () => {
+  it('allows selecting user, typing message, and sending with confirmed delivery', async () => {
     const user = userEvent.setup({ delay: null });
     renderWithProviders(<ShareModal />);
 
@@ -148,11 +162,105 @@ describe('ShareModal (Comprehensive Suite)', () => {
     await user.click(sendBtn);
 
     expect(chatApi.createDirectConversation).toHaveBeenCalledWith('u-1');
-    expect(mockSocket.emit).toHaveBeenCalledWith('sendMessage', {
-      conversationId: 'conv-target-1',
-      body: expect.stringContaining('Check out this awesome post!'),
+    expect(chatApi.sendMessage).toHaveBeenCalledWith('conv-target-1', {
+      text: expect.stringContaining('Check out this awesome post!'),
+      clientMessageId: expect.any(String),
     });
     expect(useUIStore.getState().isShareModalOpen).toBe(false);
+  });
+
+  it('keeps failed recipients selected and retries only them after partial delivery', async () => {
+    vi.mocked(chatApi.sendMessage)
+      .mockResolvedValueOnce(confirmedMessage)
+      .mockRejectedValueOnce(new Error('Unavailable'));
+    renderWithProviders(<ShareModal />);
+    fireEvent.click(await screen.findByText('Charlie Brown'));
+    fireEvent.click(screen.getByText('David Bowie'));
+    fireEvent.change(screen.getByPlaceholderText('Write a message...'), {
+      target: { value: 'Read this' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /send to direct/i }));
+    await waitFor(() =>
+      expect(useMessageToastStore.getState().toasts[0]?.title).toBe('Partially sent'),
+    );
+    expect(useUIStore.getState().isShareModalOpen).toBe(true);
+    expect(screen.getByPlaceholderText('Write a message...')).toHaveValue('Read this');
+    expect(postsApi.share).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole('button', { name: /send to direct/i }));
+    await waitFor(() => expect(useUIStore.getState().isShareModalOpen).toBe(false));
+    expect(chatApi.createDirectConversation).toHaveBeenNthCalledWith(3, 'u-2');
+    expect(chatApi.sendMessage).toHaveBeenCalledTimes(3);
+    expect(vi.mocked(chatApi.sendMessage).mock.calls[2]?.[1].clientMessageId).toBe(
+      vi.mocked(chatApi.sendMessage).mock.calls[1]?.[1].clientMessageId,
+    );
+  });
+
+  it('uses a new message id after the draft changes or the modal is reopened', async () => {
+    vi.mocked(chatApi.sendMessage).mockRejectedValue(new Error('Response timed out'));
+    renderWithProviders(<ShareModal />);
+    fireEvent.click(await screen.findByText('Charlie Brown'));
+    const send = async () => {
+      const previousCalls = vi.mocked(chatApi.sendMessage).mock.calls.length;
+      fireEvent.click(screen.getByRole('button', { name: /send to direct/i }));
+      await waitFor(() => expect(chatApi.sendMessage).toHaveBeenCalledTimes(previousCalls + 1));
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: /send to direct/i })).toBeEnabled(),
+      );
+      return vi.mocked(chatApi.sendMessage).mock.calls[previousCalls]?.[1].clientMessageId;
+    };
+    const firstId = await send();
+    expect(firstId).toEqual(expect.any(String));
+    expect(await send()).toBe(firstId);
+    fireEvent.change(screen.getByPlaceholderText('Write a message...'), {
+      target: { value: 'Updated draft' },
+    });
+    const updatedId = await send();
+    expect(updatedId).not.toBe(firstId);
+    const activePostForShare = useUIStore.getState().activePostForShare;
+    fireEvent.click(screen.getByTestId('close-button'));
+    useUIStore.setState({ isShareModalOpen: true, activePostForShare });
+    await screen.findByText('Charlie Brown');
+    expect(await send()).not.toBe(updatedId);
+  });
+
+  it('does not report success or count a share when every delivery fails', async () => {
+    vi.mocked(chatApi.sendMessage).mockRejectedValue(new Error('Delivery failed'));
+    renderWithProviders(<ShareModal />);
+    fireEvent.click(await screen.findByText('Charlie Brown'));
+    fireEvent.click(screen.getByRole('button', { name: /send to direct/i }));
+    await waitFor(() => expect(useMessageToastStore.getState().toasts[0]?.title).toBe('Error'));
+    expect(useUIStore.getState().isShareModalOpen).toBe(true);
+    expect(postsApi.share).not.toHaveBeenCalled();
+  });
+
+  it('keeps the modal open when the server response has no persisted message id', async () => {
+    vi.mocked(chatApi.sendMessage).mockResolvedValue({ ...confirmedMessage, id: '' });
+    renderWithProviders(<ShareModal />);
+    fireEvent.click(await screen.findByText('Charlie Brown'));
+    fireEvent.click(screen.getByRole('button', { name: /send to direct/i }));
+    await waitFor(() => expect(useMessageToastStore.getState().toasts[0]?.title).toBe('Error'));
+    expect(useUIStore.getState().isShareModalOpen).toBe(true);
+    expect(postsApi.share).not.toHaveBeenCalled();
+  });
+
+  it('waits for delivery confirmation before counting the share or closing', async () => {
+    let confirmDelivery = (_message: MessageView) => {};
+    vi.mocked(chatApi.sendMessage).mockReturnValue(
+      new Promise<MessageView>((resolve) => {
+        confirmDelivery = resolve;
+      }),
+    );
+    renderWithProviders(<ShareModal />);
+    fireEvent.click(await screen.findByText('Charlie Brown'));
+    fireEvent.click(screen.getByRole('button', { name: /send to direct/i }));
+    await waitFor(() => expect(chatApi.sendMessage).toHaveBeenCalledTimes(1));
+    expect(useUIStore.getState().isShareModalOpen).toBe(true);
+    expect(postsApi.share).not.toHaveBeenCalled();
+    expect(useMessageToastStore.getState().toasts).toHaveLength(0);
+    confirmDelivery(confirmedMessage);
+    await waitFor(() => expect(useUIStore.getState().isShareModalOpen).toBe(false));
+    expect(postsApi.share).toHaveBeenCalledTimes(1);
   });
 
   it('opens social sharing windows on click (X, Telegram, WhatsApp, Facebook)', async () => {

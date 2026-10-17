@@ -24,6 +24,7 @@ import { queryStaleTimes } from '@/shared/api/queryClient';
 import { queryKeys } from '@/shared/api/queryKeys';
 import Avatar from '@/shared/ui/Avatar';
 import StyledDisplayName from '@/shared/ui/StyledDisplayName';
+import SkeletonBone from '@/shared/ui/SkeletonBone';
 import { apiClient as api } from '@/shared/api/httpClient';
 import { postsApi } from '@/entities/post/api/postsApi';
 import { PostType, PostMedia } from '@/entities/post/model/types';
@@ -81,7 +82,7 @@ function GridMediaSkeleton({ count = 9 }: { count?: number }) {
       {Array.from({ length: count }).map((_, i) => (
         <div
           key={i}
-          className="aspect-square relative overflow-hidden rounded-2xl bg-[#141418] border border-white/[0.04] animate-pulse"
+          className="skeleton-shimmer aspect-square relative overflow-hidden rounded-2xl border border-white/[0.04]"
         >
           <div className="absolute inset-0 bg-gradient-to-tr from-white/[0.02] via-white/[0.05] to-white/[0.02]" />
         </div>
@@ -950,7 +951,7 @@ export default function SearchPage() {
                         {[1, 2].map((i) => (
                           <div
                             key={i}
-                            className="h-36 glass-card border border-white/10 rounded-3xl animate-pulse"
+                            className="skeleton-shimmer h-36 glass-card border border-white/10 rounded-3xl"
                           />
                         ))}
                       </div>
@@ -985,8 +986,18 @@ export default function SearchPage() {
               {activeTab === 'People' && (
                 <div className="glass-card border border-white/10 rounded-3xl p-5 shadow-2xl flex flex-col gap-3">
                   {isLoadingUsers ? (
-                    <div role="status" className="text-center py-12 text-gray-400 text-sm">
-                      Searching people...
+                    <div role="status" aria-label="Searching people" className="space-y-4 py-3">
+                      <span className="sr-only">Searching people...</span>
+                      {Array.from({ length: 5 }, (_, index) => (
+                        <div key={index} className="flex items-center gap-3">
+                          <SkeletonBone className="h-11 w-11 shrink-0 rounded-full" />
+                          <div className="flex-1 space-y-2">
+                            <SkeletonBone className="h-3 w-32 rounded-md" />
+                            <SkeletonBone className="h-3 w-24 rounded-md" />
+                          </div>
+                          <SkeletonBone className="h-8 w-20 rounded-full" />
+                        </div>
+                      ))}
                     </div>
                   ) : isUsersError ? (
                     <div role="alert" className="text-center py-12 text-gray-300 text-sm">
@@ -1021,7 +1032,7 @@ export default function SearchPage() {
                       {[1, 2, 3].map((i) => (
                         <div
                           key={i}
-                          className="h-36 glass-card border border-white/10 rounded-3xl animate-pulse"
+                          className="skeleton-shimmer h-36 glass-card border border-white/10 rounded-3xl"
                         />
                       ))}
                     </div>

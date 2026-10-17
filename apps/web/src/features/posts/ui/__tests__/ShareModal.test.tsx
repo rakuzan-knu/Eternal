@@ -6,8 +6,26 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import type { PostType } from '@/entities/post/model/types';
 import { followApi } from '@/entities/user';
-import { chatApi } from '@/entities/chat';
+import { chatApi, type MessageView } from '@/entities/chat';
 import { postsApi } from '@/features/posts/api/postsApi';
+
+const confirmedMessage: MessageView = {
+  id: 'message-1',
+  conversationId: 'conv-target-1',
+  sender: { id: 'sender-1', username: 'sender', displayName: null, avatar: null },
+  body: 'Post link',
+  messageType: 'TEXT',
+  replyTo: null,
+  forwardedFrom: null,
+  attachments: [],
+  reactions: [],
+  readBy: [],
+  isEdited: false,
+  isDeleted: false,
+  isPinned: false,
+  createdAt: '2026-10-17T12:00:00.000Z',
+  editedAt: null,
+};
 
 vi.mock('@/entities/profile/model/useCurrentUser', () => ({
   useCurrentUser: () => ({ data: { id: 'usr-me', username: 'me' } }),
@@ -20,6 +38,7 @@ describe('ShareModal', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(chatApi, 'sendMessage').mockResolvedValue(confirmedMessage);
     localStorage.clear();
     useUIStore.setState({
       isShareModalOpen: true,
@@ -79,6 +98,10 @@ describe('ShareModal', () => {
     });
 
     expect(chatApi.createDirectConversation).toHaveBeenCalledWith('u1');
+    expect(chatApi.sendMessage).toHaveBeenCalledWith('conv-1', {
+      text: expect.stringContaining('Look at this!'),
+      clientMessageId: expect.any(String),
+    });
     expect(useUIStore.getState().isShareModalOpen).toBe(false);
   });
 
