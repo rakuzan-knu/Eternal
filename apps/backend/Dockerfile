@@ -83,13 +83,14 @@ RUN mkdir -p /app/apps/backend /app/backend \
     && ln -s /app/dist /app/backend/dist
 
 COPY --from=builder /app/scripts/db/backup-db.sh ./scripts/db/backup-db.sh
+COPY --from=builder /app/scripts/deploy/prepare-cassandra-bundle.cjs ./scripts/prepare-cassandra-bundle.cjs
 
 RUN chown -R appuser:appgroup /app
 USER appuser
 
 EXPOSE 7860 3000
 ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["sh", "-ec", "export NODE_OPTIONS=$(echo \"${NODE_OPTIONS:-}\" | sed 's/--optimize-for-size//g'); export DIRECT_URL=\"${DIRECT_URL:-$DATABASE_URL}\"; if [ -n \"$DATABASE_URL\" ] && [ \"$AUTO_MIGRATE\" != \"false\" ]; then echo '🚀 Applying Prisma database migrations...'; prisma migrate deploy --schema=./prisma/schema.prisma; fi; if [ -f dist/main.js ]; then exec node dist/main; elif [ -f dist/src/main.js ]; then exec node dist/src/main; else exec node dist/backend/src/main; fi"]
+CMD ["sh", "-ec", "node scripts/prepare-cassandra-bundle.cjs; unset CASSANDRA_SECURE_CONNECT_BUNDLE_BASE64; export NODE_OPTIONS=$(echo \"${NODE_OPTIONS:-}\" | sed 's/--optimize-for-size//g'); export DIRECT_URL=\"${DIRECT_URL:-$DATABASE_URL}\"; if [ -n \"$DATABASE_URL\" ] && [ \"$AUTO_MIGRATE\" != \"false\" ]; then echo '🚀 Applying Prisma database migrations...'; prisma migrate deploy --schema=./prisma/schema.prisma; fi; if [ -f dist/main.js ]; then exec node dist/main; elif [ -f dist/src/main.js ]; then exec node dist/src/main; else exec node dist/backend/src/main; fi"]
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD node -e "require('http').get('http://localhost:' + (process.env.PORT || 7860) + '/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1))"
