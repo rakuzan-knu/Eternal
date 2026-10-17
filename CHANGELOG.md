@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.10.3](https://github.com/rakuzan-knu/Eternal/compare/v1.10.2...v1.10.3) (2026-10-17)
+
+### 🐛 Bug Fixes
+
+* **frontend:** remove search provider branding ([#127](https://github.com/rakuzan-knu/Eternal/issues/127)) ([5415019](https://github.com/rakuzan-knu/Eternal/commit/541501951befa20156e03b0340ef51090ea1725b))
+
 ## [1.10.2](https://github.com/rakuzan-knu/Eternal/compare/v1.10.1...v1.10.2) (2026-10-17)
 
 ### 🐛 Bug Fixes
