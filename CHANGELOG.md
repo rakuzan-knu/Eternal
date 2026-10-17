@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.10.4](https://github.com/rakuzan-knu/Eternal/compare/v1.10.3...v1.10.4) (2026-10-17)
+
+### 🐛 Bug Fixes
+
+* correct post interactions, loading states and SoundCloud playback ([#128](https://github.com/rakuzan-knu/Eternal/issues/128)) ([1deb3b0](https://github.com/rakuzan-knu/Eternal/commit/1deb3b0382f2ebdd67969a93ec58ffe700dc8474))
+
 ## [1.10.3](https://github.com/rakuzan-knu/Eternal/compare/v1.10.2...v1.10.3) (2026-10-17)
 
 ### 🐛 Bug Fixes
