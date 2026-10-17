@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.10.2](https://github.com/rakuzan-knu/Eternal/compare/v1.10.1...v1.10.2) (2026-10-17)
+
+### 🐛 Bug Fixes
+
+* **infra:** prepare free Algolia activation ([#126](https://github.com/rakuzan-knu/Eternal/issues/126)) ([75bd4b3](https://github.com/rakuzan-knu/Eternal/commit/75bd4b39500aeccda6acf53b8ddf438d5444a084))
+
 ## [1.10.1](https://github.com/rakuzan-knu/Eternal/compare/v1.10.0...v1.10.1) (2026-10-17)
 
 ### 🐛 Bug Fixes
