@@ -54,6 +54,43 @@ describe('PublicSearchService', () => {
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ hits: [] })));
     await expect(service.candidates('missing')).resolves.toEqual([]);
   });
+  it('uses the official fallback after DNS failure and budgets each attempt', async () => {
+    fetchMock
+      .mockRejectedValueOnce(new TypeError('fetch failed', { cause: { code: 'ENOTFOUND' } }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ hits: [{ objectID: 'u-1' }] })));
+    await expect(service.candidates('alex')).resolves.toEqual(['u-1']);
+    expect(fetchMock.mock.calls[1][0]).toBe(
+      'https://example-1.algolianet.com/1/indexes/public_users/query',
+    );
+    expect(client.eval).toHaveBeenCalledTimes(2);
+  });
+  it('refuses a DNS fallback when its separate reservation is exhausted', async () => {
+    client.eval.mockResolvedValueOnce(1).mockResolvedValueOnce(0);
+    fetchMock.mockRejectedValueOnce(
+      new TypeError('fetch failed', { cause: { code: 'EAI_AGAIN' } }),
+    );
+    await expect(service.candidates('alex')).resolves.toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+  it('does not replay an ambiguous deletion request', async () => {
+    fetchMock.mockRejectedValueOnce(
+      new TypeError('fetch failed', { cause: { code: 'ECONNRESET' } }),
+    );
+    await expect(service.syncIdentity('u-1', null)).rejects.toThrow('fetch failed');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+  it('can send a deletion to the fallback after failure before DNS resolution', async () => {
+    fetchMock
+      .mockRejectedValueOnce(new TypeError('fetch failed', { cause: { code: 'ENOTFOUND' } }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ taskID: 9 })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'published' })));
+    await service.syncIdentity('deleted-user', null);
+    expect(fetchMock.mock.calls[1][0]).toBe(
+      'https://example-1.algolianet.com/1/indexes/public_users/batch',
+    );
+    expect(fetchMock.mock.calls[1][1]?.body).toBe(fetchMock.mock.calls[0][1]?.body);
+    expect(client.eval).toHaveBeenCalledTimes(4); // One write plus three HTTP attempts.
+  });
   it.each(['disabled', 'budget', 'redis'])('makes no provider calls when %s', async (failure) => {
     if (failure === 'disabled') config.set('PUBLIC_SEARCH_PROVIDER', 'postgres');
     if (failure === 'budget') client.eval.mockResolvedValue(0);
