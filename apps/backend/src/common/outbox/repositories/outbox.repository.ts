@@ -6,6 +6,7 @@ import type {
   IOutboxRepository,
 } from '../interfaces/outbox-repository.interface';
 import { TELEMETRY_EVENTS } from '../../cassandra/telemetry-sync.repository';
+import { MESSAGE_BODY_EVENTS } from '../../cassandra/message-body.service';
 
 @Injectable()
 export class OutboxRepository implements IOutboxRepository {
@@ -55,7 +56,9 @@ export class OutboxRepository implements IOutboxRepository {
     return this.prisma.$transaction(async (tx) => {
       const candidateEvents = await tx.outboxEvent.findMany({
         where: {
-          eventType: { notIn: TELEMETRY_EVENTS },
+          eventType: {
+            notIn: [...TELEMETRY_EVENTS, ...MESSAGE_BODY_EVENTS, 'public_search.user.sync'],
+          },
           OR: [
             { status: OutboxStatus.PENDING },
             {
@@ -86,14 +89,13 @@ export class OutboxRepository implements IOutboxRepository {
   }
 
   async markAsPublished(eventId: string): Promise<void> {
-    await this.prisma.outboxEvent.update({
-      where: { id: eventId },
-      data: {
-        status: OutboxStatus.PUBLISHED,
-        processedAt: new Date(),
-        lastError: null,
-      },
-    });
+    // Delivery needs the complete view until it succeeds. Retain IDs, not a second permanent body.
+    await this.prisma.$executeRaw`
+      UPDATE outbox_events SET status = 'PUBLISHED', processed_at = NOW(), updated_at = NOW(),
+        last_error = NULL, payload = CASE WHEN event_type = 'MESSAGE_SENT'
+          THEN payload - 'messageView' ELSE payload END
+      WHERE id = ${eventId}
+    `;
   }
 
   async markAsFailed(eventId: string, error: string): Promise<void> {

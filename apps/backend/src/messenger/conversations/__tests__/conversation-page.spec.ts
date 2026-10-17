@@ -55,4 +55,37 @@ describe('conversation page contract', () => {
     expect(sql.sql).toContain('v."activityAt" DESC, v."conversationId" DESC');
     expect(sql.sql).not.toContain('"updatedAt" DESC');
   });
+  it('hydrates previews, replies and pins before page mapping copies their bodies', async () => {
+    const reply = { id: 'reply', body: null as string | null };
+    const message = { id: 'm1', body: null as string | null, replyTo: reply };
+    const pinned = { id: 'pin', body: null as string | null };
+    const conversation = { id: 'c1', messages: [message], pinnedMessages: [{ message: pinned }] };
+    const prisma = {
+      $queryRaw: vi.fn().mockResolvedValue([{ id: 'c1', createdAt: new Date(), unreadCount: 0n }]),
+      conversation: { findMany: vi.fn().mockResolvedValue([conversation]) },
+      conversationParticipant: { findMany: vi.fn().mockResolvedValue([]) },
+    };
+    const repository = new ConversationsRepository(prisma as unknown as PrismaService);
+    Object.assign(repository, {
+      messageBodies: {
+        hydrate: async <T>(value: T): Promise<T> => {
+          await Promise.resolve();
+          message.body = 'Preview';
+          reply.body = 'Reply';
+          pinned.body = 'Pinned';
+          return value;
+        },
+      },
+    });
+
+    const result = await repository.findPageForUser('viewer', {
+      ...conversationPageQuerySchema.parse({ limit: 1 }),
+      cutoff: '2026-10-11T00:00:00.000000Z',
+    });
+
+    const row = result.rows[0].conversation;
+    expect(row.messages[0].body).toBe('Preview');
+    expect(row.messages[0].replyTo?.body).toBe('Reply');
+    expect(row.pinnedMessages[0].message.body).toBe('Pinned');
+  });
 });

@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { MessageBodyService } from '../../common/cassandra/message-body.service';
+import { Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '@common/prisma';
 import type { ISearchRepository } from '../interfaces/search-repository.interface';
 import type { GlobalSearchDto, GlobalSearchResult } from '@common/contracts';
@@ -6,7 +7,10 @@ import { AttachmentType } from '@prisma/client';
 
 @Injectable()
 export class SearchRepository implements ISearchRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly messageBodies?: MessageBodyService,
+  ) {}
 
   async searchGlobal(userId: string, dto: GlobalSearchDto): Promise<GlobalSearchResult> {
     const q = dto.q ? dto.q.trim() : '';
@@ -44,7 +48,7 @@ export class SearchRepository implements ISearchRepository {
           conversationId: { in: targetConvIds },
           deletedForAll: false,
           deletedFor: { none: { userId } },
-          body: {
+          bodySearch: {
             contains: q,
             mode: 'insensitive',
           },
@@ -81,6 +85,8 @@ export class SearchRepository implements ISearchRepository {
           },
         },
       });
+
+      if (this.messageBodies) await this.messageBodies.hydrate(messages);
 
       searchMessages = messages.map((m) => {
         let conversationTitle = m.conversation.name ?? 'Direct Chat';

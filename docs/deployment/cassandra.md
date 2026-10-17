@@ -1,9 +1,9 @@
 # Astra DB: call telemetry
 
 Scope: call telemetry only. Calls, participants, authorization, messages, attachments,
-search, story views and the transactional outbox remain in PostgreSQL. The current
-message transaction creates the message, attachments and outbox together; swapping
-that storage requires a separate messaging migration.
+search, story views and the transactional outbox remain in PostgreSQL in this path.
+The separate opt-in [message body archive](message-history.md) preserves message,
+attachment and outbox transactions while moving copied body payloads to Cassandra.
 
 Database: `eternal`, keyspace `eternal`, serverless non-vector, AWS `us-east-2`.
 The telemetry worker belongs only to Messenger and checks `runsBackground('messenger')`.

@@ -190,12 +190,19 @@ export class UsersRepository implements IUsersRepository {
     return badges.map((b) => b.badgeId);
   }
 
-  async searchCandidates(blockedIds: string[], reservedUsernames: string[], takeLimit: number) {
+  async searchCandidates(
+    blockedIds: string[],
+    reservedUsernames: string[],
+    takeLimit: number,
+    candidateIds?: string[],
+  ) {
+    if (candidateIds?.length === 0) return [];
     return this.prisma.user.findMany({
       where: {
         AND: [
           blockedIds.length > 0 ? { id: { notIn: blockedIds } } : {},
           { username: { notIn: reservedUsernames } },
+          ...(candidateIds ? [{ id: { in: candidateIds } }] : []),
         ],
       },
       take: takeLimit,

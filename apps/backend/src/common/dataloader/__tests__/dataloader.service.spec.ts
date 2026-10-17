@@ -211,4 +211,26 @@ describe('DataLoaderService', () => {
     expect(scoped.userFollowsLoader).toBeDefined();
     expect(scoped.postInteractionsLoader).toBeDefined();
   });
+  it('hydrates batched messages before caching while preserving key order and missing rows', async () => {
+    const message = { id: 'm1', body: null as string | null };
+    mockPrisma.message.findMany = jest.fn().mockResolvedValue([message]);
+    const hydrate = jest.fn(async <T>(value: T): Promise<T> => {
+      await Promise.resolve();
+      message.body = 'Restored';
+      return value;
+    });
+    Object.assign(service, { messageBodies: { hydrate } });
+    const loader = service.createMessageLoader();
+    const result = await loader.loadMany(['missing', 'm1', 'm1']);
+
+    expect(result).toEqual([null, message, message]);
+    expect(message.body).toBe('Restored');
+    await loader.load('m1');
+    expect(hydrate).toHaveBeenCalledTimes(1);
+    expect(mockPrisma.message.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({ bodyArchived: true, bodyRevision: true }),
+      }),
+    );
+  });
 });

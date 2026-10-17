@@ -1,5 +1,6 @@
+import { MessageBodyService } from '../../common/cassandra/message-body.service';
 import { buildConversationPageQuery } from '../conversations/conversation-page.query';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { MuteLevel, ParticipantRole, Prisma } from '@prisma/client';
 import type { Conversation, ConversationParticipant } from '@prisma/client';
 import { PrismaService } from '@common/prisma';
@@ -28,7 +29,10 @@ import {
 
 @Injectable()
 export class ConversationsRepository implements IConversationsRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly messageBodies?: MessageBodyService,
+  ) {}
 
   findDirectBetween(userAId: string, userBId: string): Promise<Conversation | null> {
     return this.prisma.conversation.findFirst({
@@ -43,24 +47,26 @@ export class ConversationsRepository implements IConversationsRepository {
   }
 
   async createDirect(userAId: string, userBId: string): Promise<ConversationWithDetails> {
-    return this.prisma.conversation.create({
-      data: {
-        type: 'DIRECT',
-        participants: {
-          create: [
-            {
-              userId: userAId,
-              permissions: DEFAULT_MEMBER_PERMISSIONS | Permission.CAN_PIN_MESSAGES,
-            },
-            {
-              userId: userBId,
-              permissions: DEFAULT_MEMBER_PERMISSIONS | Permission.CAN_PIN_MESSAGES,
-            },
-          ],
+    return this.hydrate(
+      this.prisma.conversation.create({
+        data: {
+          type: 'DIRECT',
+          participants: {
+            create: [
+              {
+                userId: userAId,
+                permissions: DEFAULT_MEMBER_PERMISSIONS | Permission.CAN_PIN_MESSAGES,
+              },
+              {
+                userId: userBId,
+                permissions: DEFAULT_MEMBER_PERMISSIONS | Permission.CAN_PIN_MESSAGES,
+              },
+            ],
+          },
         },
-      },
-      include: conversationInclude,
-    });
+        include: conversationInclude,
+      }),
+    );
   }
 
   async createGroup(data: {
@@ -70,35 +76,41 @@ export class ConversationsRepository implements IConversationsRepository {
     memberIds: string[];
   }): Promise<ConversationWithDetails> {
     const allMemberIds = Array.from(new Set([data.createdById, ...data.memberIds]));
-    return this.prisma.conversation.create({
-      data: {
-        type: 'GROUP',
-        name: data.name,
-        description: data.description ?? null,
-        createdById: data.createdById,
-        participants: {
-          create: allMemberIds.map((userId) => ({
-            userId,
-            role: userId === data.createdById ? ParticipantRole.OWNER : ParticipantRole.MEMBER,
-            permissions:
-              userId === data.createdById ? DEFAULT_OWNER_PERMISSIONS : DEFAULT_MEMBER_PERMISSIONS,
-          })),
+    return this.hydrate(
+      this.prisma.conversation.create({
+        data: {
+          type: 'GROUP',
+          name: data.name,
+          description: data.description ?? null,
+          createdById: data.createdById,
+          participants: {
+            create: allMemberIds.map((userId) => ({
+              userId,
+              role: userId === data.createdById ? ParticipantRole.OWNER : ParticipantRole.MEMBER,
+              permissions:
+                userId === data.createdById
+                  ? DEFAULT_OWNER_PERMISSIONS
+                  : DEFAULT_MEMBER_PERMISSIONS,
+            })),
+          },
         },
-      },
-      include: conversationInclude,
-    });
+        include: conversationInclude,
+      }),
+    );
   }
 
   findAllForUser(userId: string): Promise<ConversationWithDetails[]> {
-    return this.prisma.conversation.findMany({
-      where: {
-        participants: {
-          some: { userId, leftAt: null },
+    return this.hydrate(
+      this.prisma.conversation.findMany({
+        where: {
+          participants: {
+            some: { userId, leftAt: null },
+          },
         },
-      },
-      orderBy: { updatedAt: 'desc' },
-      include: conversationInclude,
-    });
+        orderBy: { updatedAt: 'desc' },
+        include: conversationInclude,
+      }),
+    );
   }
 
   async getPageSnapshot(userId: string): Promise<string> {
@@ -155,6 +167,8 @@ export class ConversationsRepository implements IConversationsRepository {
         include: participantInclude,
       }),
     ]);
+    if (this.messageBodies) await this.messageBodies.hydrate(conversations);
+
     const ownById = new Map(
       ownParticipants.map((participant) => [participant.conversationId, participant]),
     );
@@ -195,13 +209,15 @@ export class ConversationsRepository implements IConversationsRepository {
   }
 
   findOneForUser(conversationId: string, userId: string): Promise<ConversationWithDetails | null> {
-    return this.prisma.conversation.findFirst({
-      where: {
-        id: conversationId,
-        participants: { some: { userId, leftAt: null } },
-      },
-      include: conversationInclude,
-    });
+    return this.hydrate(
+      this.prisma.conversation.findFirst({
+        where: {
+          id: conversationId,
+          participants: { some: { userId, leftAt: null } },
+        },
+        include: conversationInclude,
+      }),
+    );
   }
 
   updateGroup(
@@ -380,5 +396,9 @@ export class ConversationsRepository implements IConversationsRepository {
         sharedThemeUpdatedAt: theme ? new Date() : null,
       },
     });
+  }
+  private async hydrate<T>(result: Promise<T>): Promise<T> {
+    const value = await result;
+    return this.messageBodies ? this.messageBodies.hydrate(value) : value;
   }
 }
