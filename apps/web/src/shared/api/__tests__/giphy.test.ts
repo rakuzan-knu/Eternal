@@ -51,6 +51,17 @@ describe('GIPHY client', () => {
     expect(url.searchParams.get('offset')).toBe('24');
     expect(options?.signal).toBe(signal);
   });
+  it('uses a separate GIPHY key for the chat section', async () => {
+    vi.stubEnv('VITE_GIPHY_CHAT_API_KEY', 'own-chat-test-key');
+    expect(isGifSearchConfigured('chat')).toBe(true);
+    await searchGifs('hello', 0, undefined, 'chat');
+    expect(new URL(String(fetchMock.mock.calls[0][0])).searchParams.get('api_key')).toBe(
+      'own-chat-test-key',
+    );
+    vi.stubEnv('VITE_GIPHY_CHAT_API_KEY', '');
+    expect(isGifSearchConfigured('chat')).toBe(false);
+    await expect(searchGifs('', 0, undefined, 'chat')).rejects.toThrow('not configured');
+  });
   it.each([
     'https://media1.giphy.com.evil.test/x.gif',
     'http://media1.giphy.com/x.gif',

@@ -2,6 +2,7 @@ import { test, expect, fulfillApi } from './fixtures';
 import type { CDPSession, Page } from '@playwright/test';
 import { readFile, writeFile } from 'node:fs/promises';
 
+const hlsFixtureOrigin = 'https://cf-hls-media.sndcdn.com';
 const me = { id: 'usr-me', username: 'mockme', displayName: 'Mock Me', avatar: null };
 const peer = { id: 'usr-peer', username: 'peer', displayName: 'Performance Peer', avatar: null };
 const message = (index: number) => ({
@@ -85,7 +86,7 @@ async function mockPlatform(page: Page, totalMessages = 500, dialogs = 1) {
     } else if (path.startsWith('/posts/')) json = { data: [], hasMore: false, nextCursor: null };
     else if (path.startsWith('/integrations/soundcloud/stream/'))
       json = {
-        streamUrl: `${new URL(page.url()).origin}/perf-hls/playlist.m3u8`,
+        streamUrl: `${hlsFixtureOrigin}/perf-hls/playlist.m3u8`,
         isHls: true,
         mimeType: 'application/vnd.apple.mpegurl',
       };
@@ -357,10 +358,16 @@ test('CPU 4x measures interactions and layout shifts while HLS plays beside 1000
 }, info) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await mockPlatform(page, 1000, 1000);
-  await page.route('**/perf-hls/*', async (route) => {
+  await page.route(`${hlsFixtureOrigin}/perf-hls/*`, async (route) => {
     const name = new URL(route.request().url()).pathname.split('/').at(-1)!;
     if (!/^(playlist\.m3u8|segment-\d+\.mpegts)$/.test(name)) return route.abort();
+    const headers = { 'Access-Control-Allow-Origin': '*' };
+    if (route.request().method() === 'OPTIONS') {
+      await route.fulfill({ status: 204, headers });
+      return;
+    }
     await route.fulfill({
+      headers,
       contentType: name.endsWith('.mpegts') ? 'video/mp2t' : 'application/vnd.apple.mpegurl',
       body: await readFile(`e2e/fixtures/media-hls/${name}`),
     });

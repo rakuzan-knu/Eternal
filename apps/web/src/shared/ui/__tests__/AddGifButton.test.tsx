@@ -36,7 +36,7 @@ describe('AddGifButton', () => {
       toggle = vi.fn();
     render(<AddGifButton isOpen onToggle={toggle} onGifSelect={select} />);
     await userEvent.click(await screen.findByRole('button', { name: 'Select Happy cat' }));
-    expect(searchGifs).toHaveBeenCalledWith('', 0, expect.any(AbortSignal));
+    expect(searchGifs).toHaveBeenCalledWith('', 0, expect.any(AbortSignal), 'posts');
     expect(select).toHaveBeenCalledWith(page.gifs[0].url);
     expect(toggle).not.toHaveBeenCalled();
     expect(screen.getByRole('link', { name: 'Powered By GIPHY' })).toHaveAttribute(
@@ -48,12 +48,12 @@ describe('AddGifButton', () => {
     render(<AddGifButton isOpen onToggle={vi.fn()} onGifSelect={vi.fn()} />);
     await userEvent.click(await screen.findByRole('button', { name: 'Load more GIFs' }));
     await waitFor(() =>
-      expect(searchGifs).toHaveBeenLastCalledWith('', 24, expect.any(AbortSignal)),
+      expect(searchGifs).toHaveBeenLastCalledWith('', 24, expect.any(AbortSignal), 'posts'),
     );
     expect(screen.getAllByRole('button', { name: 'Select Happy cat' })).toHaveLength(1);
     await userEvent.type(screen.getByRole('searchbox'), 'dogs');
     await waitFor(() =>
-      expect(searchGifs).toHaveBeenLastCalledWith('dogs', 0, expect.any(AbortSignal)),
+      expect(searchGifs).toHaveBeenLastCalledWith('dogs', 0, expect.any(AbortSignal), 'posts'),
     );
     expect(vi.mocked(searchGifs).mock.calls.filter(([query]) => query === 'dogs')).toHaveLength(1);
   });
@@ -65,6 +65,12 @@ describe('AddGifButton', () => {
     const signal = vi.mocked(searchGifs).mock.calls[0][2];
     rerender(<AddGifButton isOpen={false} onToggle={vi.fn()} onGifSelect={vi.fn()} />);
     expect(signal?.aborted).toBe(true);
+  });
+  it('uses the chat integration for a message composer', async () => {
+    render(<AddGifButton isOpen section="chat" onToggle={vi.fn()} onGifSelect={vi.fn()} />);
+    await screen.findByRole('button', { name: 'Select Happy cat' });
+    expect(isGifSearchConfigured).toHaveBeenCalledWith('chat');
+    expect(searchGifs).toHaveBeenCalledWith('', 0, expect.any(AbortSignal), 'chat');
   });
   it('ignores a stale response after changing search', async () => {
     let resolveOld: (value: GifPage) => void = () => {};

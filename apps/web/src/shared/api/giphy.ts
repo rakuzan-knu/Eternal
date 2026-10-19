@@ -11,8 +11,18 @@ export interface GifPage {
   hasMore: boolean;
 }
 
-export function isGifSearchConfigured(): boolean {
-  return Boolean(import.meta.env.VITE_GIPHY_API_KEY?.trim());
+export type GifSection = 'posts' | 'chat';
+
+function apiKey(section: GifSection): string | undefined {
+  return (
+    section === 'chat'
+      ? import.meta.env.VITE_GIPHY_CHAT_API_KEY
+      : import.meta.env.VITE_GIPHY_API_KEY
+  )?.trim();
+}
+
+export function isGifSearchConfigured(section: GifSection = 'posts'): boolean {
+  return Boolean(apiKey(section));
 }
 
 function record(value: unknown): value is Record<string, unknown> {
@@ -39,8 +49,9 @@ export async function searchGifs(
   query: string,
   offset = 0,
   signal?: AbortSignal,
+  section: GifSection = 'posts',
 ): Promise<GifPage> {
-  const key = import.meta.env.VITE_GIPHY_API_KEY?.trim();
+  const key = apiKey(section);
   if (!key) throw new Error('GIF search is not configured yet.');
   const params = new URLSearchParams({
     api_key: key,
@@ -68,7 +79,7 @@ export async function searchGifs(
   const gifs: GifResult[] = [];
   for (const item of payload.data) {
     if (!record(item) || typeof item.id !== 'string' || !record(item.images)) continue;
-    // GIPHY's downsized rendition stays animated and fits the post upload size limit.
+    // Prefer GIPHY's animated downsized rendition to reduce client bandwidth.
     const original = item.images.downsized ?? item.images.original;
     const preview = item.images.fixed_width_small ?? item.images.fixed_width ?? original;
     const url = record(original) ? mediaUrl(original.url) : null;

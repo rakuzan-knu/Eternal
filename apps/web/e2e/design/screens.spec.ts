@@ -4,6 +4,7 @@ import {
   postText,
   prepareScreen,
   recoverScreen,
+  waitForScreenChrome,
   type Screen,
 } from './screen-fixtures';
 import { auditReadability } from './readability';
@@ -67,7 +68,17 @@ for (const screen of ['feed', 'profile', 'chat'] as const) {
         expect(sendBounds!.x + sendBounds!.width).toBeLessThanOrEqual(layout.width);
         await field.fill('');
       }
+      await waitForScreenChrome(page);
       await page.evaluate(() => document.fonts.ready);
+      if (screen === 'profile') {
+        // Root text scaling triggers Framer's shared-layout projection after the content is ready.
+        const activeBoard = page
+          .getByRole('button', { name: 'Board', exact: true })
+          .filter({ visible: true })
+          .locator(':scope > div.absolute');
+        await expect(activeBoard).toHaveCSS('opacity', '1');
+        await expect(activeBoard).toHaveCSS('transform', 'none');
+      }
       if (screen === 'feed' && layout.width >= 1024) {
         await expect(
           page.getByText('No suggestions available right now.', { exact: true }),
@@ -114,6 +125,7 @@ for (const screen of ['feed', 'profile', 'chat'] as const) {
           }),
         ).toBeVisible();
       }
+      await waitForScreenChrome(page);
       await expect(page).toHaveScreenshot(`${screen}-${state}.png`);
     });
   }

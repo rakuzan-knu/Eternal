@@ -7,6 +7,7 @@ import { uid } from 'uid';
 import { validateUploadedMedia } from '../common/media/media-upload-validator';
 import {
   readPostMediaReference,
+  validateProviderGifUrl,
   type PostMediaReference,
 } from '../common/media/post-media-reference';
 import {
@@ -97,6 +98,10 @@ export class PostsMediaService implements OnModuleDestroy {
     const prepared = [];
     for (const file of files) prepared.push(await this.prepareUploadedFile(file));
     for (const reference of references) {
+      if (reference.kind === 'gif') {
+        prepared.push({ type: MediaType.IMAGE, url: validateProviderGifUrl(reference.url) });
+        continue;
+      }
       const buffer = await readPostMediaReference(reference, {
         s3: this.s3,
         bucket: this.bucket,
@@ -106,12 +111,13 @@ export class PostsMediaService implements OnModuleDestroy {
         buffer,
         mimetype: 'application/octet-stream',
       } as Express.Multer.File);
-      if (reference.kind === 'gif' && media.type !== MediaType.IMAGE) {
-        throw new BadRequestException('Choose a valid image from the GIF picker');
-      }
       prepared.push(media);
     }
-    return Promise.all(prepared.map((file, order) => this.storePreparedFile(file, order)));
+    return Promise.all(
+      prepared.map(async (file, order) =>
+        'url' in file ? { ...file, order } : this.storePreparedFile(file, order),
+      ),
+    );
   }
   private readonly chunkStore = new Map<
     string,

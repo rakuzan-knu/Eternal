@@ -1793,6 +1793,7 @@ export default function MessageComposer({
               />
 
               <AddGifButton
+                section="chat"
                 isOpen={openPopover === 'gif'}
                 disabled={!canSendMedia}
                 title={canSendMedia ? 'Add GIF' : 'This action is restricted in this chat'}

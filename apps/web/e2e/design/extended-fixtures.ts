@@ -138,8 +138,9 @@ export async function stateApi(
   await page.route(
     (url) =>
       ['localhost', '127.0.0.1'].includes(url.hostname) &&
-      url.port === '3000' &&
-      [pathname, `/v1${pathname}`].includes(url.pathname),
+      // Production previews may use the first-party /v1 rewrite instead of an explicit API origin.
+      ((url.port === '3000' && [pathname, `/v1${pathname}`].includes(url.pathname)) ||
+        (url.port === '6007' && url.pathname === `/v1${pathname}`)),
     async (route) => {
       if (route.request().method() !== 'OPTIONS') await gate;
       await fulfillApi(route, { json: content });

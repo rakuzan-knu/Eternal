@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 import { fileURLToPath } from 'node:url';
 import { test, expect, mockApi, fulfillApi } from '../fixtures';
-import { authorName } from './screen-fixtures';
+import { authorName, waitForScreenChrome } from './screen-fixtures';
 import {
   extendedText,
   notifications,
@@ -69,9 +69,9 @@ async function openSurface(page: Page, screen: ExtendedScreen, state: ExtendedSt
 
 async function assertState(page: Page, screen: ExtendedScreen, state: ExtendedState) {
   if (state === 'loading') {
-    const labels = { search: 'Searching people...', notifications: 'Loading notifications...' };
+    const labels = { search: 'Searching people', notifications: 'Loading notifications' };
     if (screen === 'search' || screen === 'notifications')
-      await expect(page.getByText(labels[screen], { exact: true })).toBeVisible();
+      await expect(page.getByRole('status', { name: labels[screen], exact: true })).toBeVisible();
     else
       await expect(
         page.getByRole('status', {
@@ -132,6 +132,7 @@ for (const screen of screens) {
         await page.goto(fixture.path, { waitUntil: 'domcontentloaded' });
         await openSurface(page, screen, state);
         await assertState(page, screen, state);
+        await waitForScreenChrome(page);
         await page.evaluate(() => document.fonts.ready);
         await expect(page).toHaveScreenshot(`extended-${screen}-${state}.png`);
       } finally {
@@ -149,6 +150,7 @@ for (const screen of screens) {
       await page.goto(fixture.path, { waitUntil: 'domcontentloaded' });
       await openSurface(page, screen, 'content');
       await assertState(page, screen, 'content');
+      await waitForScreenChrome(page);
       await page.evaluate(() => document.fonts.ready);
       await expect
         .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
