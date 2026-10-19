@@ -1,129 +1,116 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { isGifSearchConfigured, searchGifs, type GifPage } from '@/shared/api/giphy';
 import { AddGifButton } from '../AddGifButton';
 
-function mockBoundingRectTop(top: number) {
-  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
-    top,
-    bottom: top + 40,
-    left: 100,
-    right: 140,
-    width: 40,
-    height: 40,
-    x: 100,
-    y: top,
-    toJSON: () => {},
-  });
-}
-
+vi.mock('@/shared/api/giphy', () => ({ isGifSearchConfigured: vi.fn(), searchGifs: vi.fn() }));
+const page: GifPage = {
+  gifs: [
+    {
+      id: 'cat',
+      title: 'Happy cat',
+      url: 'https://media0.giphy.com/cat.gif?cid=test',
+      previewUrl: 'https://media1.giphy.com/cat-small.gif',
+    },
+  ],
+  nextOffset: 24,
+  hasMore: true,
+};
 describe('AddGifButton', () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
+  beforeEach(() => {
+    vi.mocked(isGifSearchConfigured).mockReturnValue(true);
+    vi.mocked(searchGifs).mockResolvedValue(page);
   });
-
-  it('does not render the gif grid when isOpen is false', () => {
-    render(<AddGifButton isOpen={false} onToggle={vi.fn()} onGifSelect={vi.fn()} />);
-
-    expect(screen.queryAllByRole('img')).toHaveLength(0);
-  });
-
-  it('renders the gif grid when isOpen is true', () => {
-    render(<AddGifButton isOpen={true} onToggle={vi.fn()} onGifSelect={vi.fn()} />);
-
-    expect(screen.getAllByRole('img').length).toBeGreaterThan(0);
-  });
-
-  it('calls onToggle when the trigger button is clicked', async () => {
-    const onToggle = vi.fn();
-    const user = userEvent.setup();
-    render(<AddGifButton isOpen={false} onToggle={onToggle} onGifSelect={vi.fn()} />);
-
-    await user.click(screen.getByTitle('Add GIF'));
-
-    expect(onToggle).toHaveBeenCalledTimes(1);
-  });
-
-  it('does nothing when disabled', async () => {
-    const onToggle = vi.fn();
-    const user = userEvent.setup();
-    render(
-      <AddGifButton isOpen={false} disabled={true} onToggle={onToggle} onGifSelect={vi.fn()} />,
-    );
-
-    await user.click(screen.getByTitle('Add GIF'));
-    expect(onToggle).not.toHaveBeenCalled();
-  });
-
-  it('calls onGifSelect with the clicked gif url', async () => {
-    const onGifSelect = vi.fn();
-    const user = userEvent.setup();
-    render(<AddGifButton isOpen={true} onToggle={vi.fn()} onGifSelect={onGifSelect} />);
-    const firstGif = screen.getAllByRole('img')[0];
-
-    await user.click(firstGif);
-
-    expect(onGifSelect).toHaveBeenCalledWith(firstGif.getAttribute('src'));
-  });
-
-  it('opens the panel above the button (bottom-full) when there is enough room above (rect.top >= 280)', async () => {
-    mockBoundingRectTop(500);
-    const user = userEvent.setup();
+  afterEach(() => vi.resetAllMocks());
+  it('does not request GIFs while closed or disabled', () => {
     const { rerender } = render(
       <AddGifButton isOpen={false} onToggle={vi.fn()} onGifSelect={vi.fn()} />,
     );
-
-    await user.click(screen.getByTitle('Add GIF'));
-    rerender(<AddGifButton isOpen={true} onToggle={vi.fn()} onGifSelect={vi.fn()} />);
-
-    expect(screen.getAllByRole('img')[0].closest('div.absolute')).toHaveClass(
-      'bottom-full',
-      'mb-3',
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    rerender(<AddGifButton isOpen disabled onToggle={vi.fn()} onGifSelect={vi.fn()} />);
+    expect(searchGifs).not.toHaveBeenCalled();
+  });
+  it('loads trending GIFs and selects the animated URL', async () => {
+    const select = vi.fn(),
+      toggle = vi.fn();
+    render(<AddGifButton isOpen onToggle={toggle} onGifSelect={select} />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Select Happy cat' }));
+    expect(searchGifs).toHaveBeenCalledWith('', 0, expect.any(AbortSignal), 'posts');
+    expect(select).toHaveBeenCalledWith(page.gifs[0].url);
+    expect(toggle).not.toHaveBeenCalled();
+  });
+  it('debounces search and resets pagination for a new query', async () => {
+    render(<AddGifButton isOpen onToggle={vi.fn()} onGifSelect={vi.fn()} />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Load more GIFs' }));
+    await waitFor(() =>
+      expect(searchGifs).toHaveBeenLastCalledWith('', 24, expect.any(AbortSignal), 'posts'),
+    );
+    expect(screen.getAllByRole('button', { name: 'Select Happy cat' })).toHaveLength(1);
+    await userEvent.type(screen.getByRole('searchbox'), 'dogs');
+    await waitFor(() =>
+      expect(searchGifs).toHaveBeenLastCalledWith('dogs', 0, expect.any(AbortSignal), 'posts'),
+    );
+    expect(vi.mocked(searchGifs).mock.calls.filter(([query]) => query === 'dogs')).toHaveLength(1);
+  });
+  it('shows loading skeletons and cancels a closed request', async () => {
+    vi.mocked(searchGifs).mockImplementation(() => new Promise(() => {}));
+    const { rerender } = render(<AddGifButton isOpen onToggle={vi.fn()} onGifSelect={vi.fn()} />);
+    expect(await screen.findByRole('status')).toHaveTextContent('Loading GIFs');
+    expect(document.querySelectorAll('.skeleton-shimmer')).toHaveLength(6);
+    const signal = vi.mocked(searchGifs).mock.calls[0][2];
+    rerender(<AddGifButton isOpen={false} onToggle={vi.fn()} onGifSelect={vi.fn()} />);
+    expect(signal?.aborted).toBe(true);
+  });
+  it('uses the chat integration for a message composer', async () => {
+    render(<AddGifButton isOpen section="chat" onToggle={vi.fn()} onGifSelect={vi.fn()} />);
+    await screen.findByRole('button', { name: 'Select Happy cat' });
+    expect(isGifSearchConfigured).toHaveBeenCalledWith('chat');
+    expect(searchGifs).toHaveBeenCalledWith('', 0, expect.any(AbortSignal), 'chat');
+  });
+  it('ignores a stale response after changing search', async () => {
+    let resolveOld: (value: GifPage) => void = () => {};
+    vi.mocked(searchGifs).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveOld = resolve;
+        }),
+    );
+    vi.mocked(searchGifs).mockResolvedValue({ gifs: [], nextOffset: 0, hasMore: false });
+    render(<AddGifButton isOpen onToggle={vi.fn()} onGifSelect={vi.fn()} />);
+    await userEvent.type(screen.getByRole('searchbox'), 'dogs');
+    await screen.findByText('No GIFs found. Try another search.');
+    resolveOld(page);
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Select Happy cat' })).not.toBeInTheDocument(),
     );
   });
-
-  it('opens the panel below the button (top-full) when there is not enough room above (rect.top < 280)', async () => {
-    mockBoundingRectTop(100);
-    const user = userEvent.setup();
-    const { rerender } = render(
-      <AddGifButton isOpen={false} onToggle={vi.fn()} onGifSelect={vi.fn()} />,
-    );
-
-    await user.click(screen.getByTitle('Add GIF'));
-    rerender(<AddGifButton isOpen={true} onToggle={vi.fn()} onGifSelect={vi.fn()} />);
-
-    expect(screen.getAllByRole('img')[0].closest('div.absolute')).toHaveClass('top-full', 'mt-3');
+  it('reports failure and retries', async () => {
+    vi.mocked(searchGifs).mockRejectedValueOnce(new Error('offline'));
+    render(<AddGifButton isOpen onToggle={vi.fn()} onGifSelect={vi.fn()} />);
+    expect(await screen.findByRole('alert')).toHaveTextContent('GIFs could not load.');
+    await userEvent.click(screen.getByRole('button', { name: 'Retry GIFs' }));
+    expect(await screen.findByRole('button', { name: 'Select Happy cat' })).toBeVisible();
   });
-
-  it('supports usePortal and outside click / escape dismiss', async () => {
-    mockBoundingRectTop(300);
-    const onToggle = vi.fn();
+  it('handles missing configuration without a provider request', () => {
+    vi.mocked(isGifSearchConfigured).mockReturnValue(false);
+    render(<AddGifButton isOpen onToggle={vi.fn()} onGifSelect={vi.fn()} />);
+    expect(screen.getByText('GIF search is not available yet.')).toBeVisible();
+    expect(searchGifs).not.toHaveBeenCalled();
+  });
+  it('portals above the modal and closes on outside click or Escape', async () => {
+    const toggle = vi.fn();
     render(
-      <div>
-        <div data-testid="outside">Outside</div>
-        <AddGifButton isOpen={true} usePortal={true} onToggle={onToggle} onGifSelect={vi.fn()} />
+      <div data-modal-id="composer" style={{ zIndex: 10000 }}>
+        <AddGifButton isOpen usePortal onToggle={toggle} onGifSelect={vi.fn()} />
       </div>,
     );
-
-    expect(screen.getAllByRole('img').length).toBeGreaterThan(0);
-
-    fireEvent(window, new Event('resize'));
-    fireEvent(window, new Event('scroll'));
-
-    // Outside click
-    fireEvent.mouseDown(screen.getByTestId('outside'));
-    expect(onToggle).toHaveBeenCalledTimes(1);
-
-    // Escape key
+    await screen.findByRole('button', { name: 'Select Happy cat' });
+    const dialog = screen.getByRole('dialog', { name: 'GIF picker' });
+    expect(dialog).toHaveAttribute('data-modal-owner', 'composer');
+    expect(Number(dialog.style.zIndex)).toBeGreaterThan(10000);
+    fireEvent.mouseDown(document.body);
     fireEvent.keyDown(window, { key: 'Escape' });
-    expect(onToggle).toHaveBeenCalledTimes(2);
-  });
-
-  it('calculates top position for portal when bottom space is constrained', () => {
-    mockBoundingRectTop(600);
-    render(
-      <AddGifButton isOpen={true} usePortal={true} onToggle={vi.fn()} onGifSelect={vi.fn()} />,
-    );
-    expect(screen.getAllByRole('img').length).toBeGreaterThan(0);
+    expect(toggle).toHaveBeenCalledTimes(2);
   });
 });

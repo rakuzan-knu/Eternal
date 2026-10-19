@@ -1,3 +1,4 @@
+import SkeletonBone from '@/shared/ui/SkeletonBone';
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -33,15 +34,17 @@ export function PostEmbedCard({ postId, isOwnMessage }: PostEmbedCardProps) {
   if (isLoading) {
     return (
       <div
-        className={`mt-2 p-3 rounded-2xl border animate-pulse flex flex-col gap-2 ${
+        role="status"
+        aria-label="Loading post preview"
+        className={`mt-2 p-3 rounded-2xl border flex flex-col gap-2 ${
           isOwnMessage ? 'bg-black/10 border-black/10' : 'bg-white/[0.04] border-white/10'
         }`}
       >
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-full bg-white/10" />
-          <div className="w-24 h-3 bg-white/10 rounded" />
+          <SkeletonBone className="w-6 h-6 rounded-full" />
+          <SkeletonBone className="w-24 h-3 rounded" />
         </div>
-        <div className="w-full h-10 bg-white/10 rounded-xl" />
+        <SkeletonBone className="w-full h-10 rounded-xl" />
       </div>
     );
   }

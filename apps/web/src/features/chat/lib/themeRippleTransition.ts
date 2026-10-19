@@ -1,3 +1,4 @@
+import { shouldReduceMotion } from '@/shared/model/useVisualEffects';
 export interface RippleOrigin {
   x: number;
   y: number;
@@ -8,7 +9,7 @@ export function triggerCircularRippleTransition(
   applyTheme: () => void,
 ): void {
   const isBrowser = typeof window !== 'undefined' && typeof document !== 'undefined';
-  if (isBrowser && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+  if (isBrowser && shouldReduceMotion()) {
     applyTheme();
     return;
   }

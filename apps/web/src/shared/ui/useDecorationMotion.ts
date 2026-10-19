@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import { useVisualEffects } from '@/shared/model/useVisualEffects';
 
 const listeners = new Set<() => void>();
 let media: MediaQueryList | undefined;
@@ -20,12 +21,13 @@ function subscribe(listener: () => void) {
   };
 }
 function snapshot() {
-  return (
-    !document.hidden && !(media ?? window.matchMedia?.('(prefers-reduced-motion: reduce)'))?.matches
-  );
+  if (document.hidden) return 0;
+  return (media ?? window.matchMedia?.('(prefers-reduced-motion: reduce)'))?.matches ? 1 : 2;
 }
 
 // A long chat shares one media-query listener and one tab-visibility listener.
 export function useDecorationMotion() {
-  return useSyncExternalStore(subscribe, snapshot, () => false);
+  const motion = useVisualEffects((state) => state.motion);
+  const device = useSyncExternalStore(subscribe, snapshot, () => 0);
+  return device > 0 && motion !== 'reduced' && (motion === 'full' || device === 2);
 }

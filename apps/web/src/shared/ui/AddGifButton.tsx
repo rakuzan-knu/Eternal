@@ -1,9 +1,19 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { FileImage } from 'lucide-react';
+import { FileImage, Search, X } from 'lucide-react';
+import {
+  isGifSearchConfigured,
+  searchGifs,
+  type GifResult,
+  type GifSection,
+} from '@/shared/api/giphy';
+import { useDebounce } from '@/shared/lib/useDebounce';
+import { resolveOverlayLayer } from '@/shared/lib/overlayLayer';
+import SkeletonBone from './SkeletonBone';
 
 interface AddGifButtonProps {
   isOpen: boolean;
+  section?: GifSection;
   disabled?: boolean;
   title?: string;
   onToggle: () => void;
@@ -13,16 +23,9 @@ interface AddGifButtonProps {
   buttonClassName?: string;
 }
 
-const PRESET_GIFS = [
-  'https://media.giphy.com/media/Ju7l5y9osyymQ/giphy.gif',
-  'https://media.giphy.com/media/l0HlBO7eyXzSZkJri/giphy.gif',
-  'https://media.giphy.com/media/26ufdipQqU2lhNA4g/giphy.gif',
-  'https://media.giphy.com/media/3oEjI6SIIHBdRx622A/giphy.gif',
-  'https://media.giphy.com/media/xT9IgzoKnNnkbpSNAI/giphy.gif',
-];
-
 export const AddGifButton: React.FC<AddGifButtonProps> = ({
   isOpen,
+  section = 'posts',
   disabled = false,
   title = 'Add GIF',
   onToggle,
@@ -31,6 +34,54 @@ export const AddGifButton: React.FC<AddGifButtonProps> = ({
   className = '',
   buttonClassName = '',
 }) => {
+  const [search, setSearch] = useState('');
+  const query = useDebounce(search.trim(), 300);
+  const [gifs, setGifs] = useState<GifResult[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+  const [page, setPage] = useState({ offset: 0, nextOffset: 0, hasMore: false });
+  const [retry, setRetry] = useState(0);
+  const configured = isGifSearchConfigured(section);
+  const requestRef = useRef<AbortController | null>(null);
+  const loadedQueryRef = useRef('');
+
+  useEffect(() => {
+    if (!isOpen || disabled || !configured) return;
+    requestRef.current?.abort();
+    const controller = new AbortController();
+    requestRef.current = controller;
+    const changed = loadedQueryRef.current !== query;
+    const offset = changed ? 0 : page.offset;
+    loadedQueryRef.current = query;
+    if (changed) {
+      setGifs([]);
+      setPage({ offset: 0, nextOffset: 0, hasMore: false });
+      if (page.offset !== 0) return () => controller.abort();
+    }
+    setLoading(true);
+    setError(false);
+    searchGifs(query, offset, controller.signal, section)
+      .then((result) => {
+        if (controller.signal.aborted) return;
+        setGifs((previous) =>
+          offset === 0
+            ? result.gifs
+            : [
+                ...previous,
+                ...result.gifs.filter((gif) => !previous.some((item) => item.id === gif.id)),
+              ],
+        );
+        setPage({ offset, nextOffset: result.nextOffset, hasMore: result.hasMore });
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setError(true);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+    return () => controller.abort();
+  }, [isOpen, disabled, configured, query, page.offset, retry, section]);
+
   const [direction, setDirection] = useState<'top' | 'bottom'>('top');
   const [portalStyle, setPortalStyle] = useState<React.CSSProperties | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
@@ -54,7 +105,7 @@ export const AddGifButton: React.FC<AddGifButtonProps> = ({
       if (!rect) return;
 
       const width = Math.min(320, window.innerWidth - 24);
-      const height = 240;
+      const height = panelRef.current?.offsetHeight || 420;
       const gap = 8;
 
       const spaceAbove = rect.top;
@@ -65,21 +116,26 @@ export const AddGifButton: React.FC<AddGifButtonProps> = ({
       const left = Math.min(window.innerWidth - width - 12, Math.max(12, preferredLeft));
       const top = opensTop
         ? Math.max(12, rect.top - height - gap)
-        : Math.min(window.innerHeight - height - 12, rect.bottom + gap);
+        : Math.max(12, Math.min(window.innerHeight - height - 12, rect.bottom + gap));
 
       setPortalStyle({
         position: 'fixed',
         left: `${left}px`,
         top: `${top}px`,
         width: `${width}px`,
-        zIndex: 99999,
+        maxHeight: 'calc(100dvh - 24px)',
+        overflowY: 'auto',
+        zIndex: resolveOverlayLayer(buttonRef.current, '--eternal-layer-menu', 1000, 10),
       });
     };
 
     updatePosition();
+    const observer = new ResizeObserver(updatePosition);
+    if (panelRef.current) observer.observe(panelRef.current);
     window.addEventListener('resize', updatePosition);
     window.addEventListener('scroll', updatePosition, true);
     return () => {
+      observer.disconnect();
       window.removeEventListener('resize', updatePosition);
       window.removeEventListener('scroll', updatePosition, true);
     };
@@ -122,6 +178,9 @@ export const AddGifButton: React.FC<AddGifButtonProps> = ({
   const panel = (
     <div
       ref={panelRef}
+      role="dialog"
+      aria-label="GIF picker"
+      data-modal-owner={buttonRef.current?.closest<HTMLElement>('[data-modal-id]')?.dataset.modalId}
       className={`shadow-[0_25px_70px_rgba(0,0,0,0.85),0_0_40px_rgba(147,51,234,0.2)] bg-[#0e1017]/95 rounded-2xl overflow-hidden border border-white/15 animate-popIn p-3 w-[320px] max-w-[calc(100vw-24px)] backdrop-blur-3xl backdrop-saturate-150 ${
         usePortal
           ? 'z-[99999]'
@@ -130,26 +189,95 @@ export const AddGifButton: React.FC<AddGifButtonProps> = ({
       style={usePortal ? (portalStyle ?? undefined) : undefined}
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="flex items-center justify-between px-1 mb-2">
-        <span className="text-xs font-semibold text-gray-300">Trending GIFs</span>
-        <span className="text-[10px] text-purple-400 font-medium">Giphy</span>
+      <div className="flex items-center justify-between px-1 mb-3">
+        <span className="text-sm font-semibold text-white">
+          {query ? 'Search GIFs' : 'Trending GIFs'}
+        </span>
+        <button
+          type="button"
+          aria-label="Close GIF picker"
+          onClick={onToggle}
+          className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10"
+        >
+          <X size={16} />
+        </button>
       </div>
-      <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
-        {PRESET_GIFS.map((gif, index) => (
-          <img
-            key={index}
-            src={gif}
-            alt="gif"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-            }}
-            onClick={() => {
-              onGifSelect(gif);
-              onToggle();
-            }}
-            className="rounded-xl h-18 w-full object-cover cursor-pointer hover:opacity-90 hover:scale-[1.02] border border-white/10 transition-all duration-200"
-          />
-        ))}
+      <label className="flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 px-3 py-2 mb-3 text-gray-400">
+        <Search size={16} />
+        <input
+          aria-label="Search GIFs"
+          placeholder="Search GIFs"
+          type="search"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          className="min-w-0 w-full bg-transparent text-sm text-white outline-none"
+        />
+      </label>
+      <div className="max-h-64 min-h-40 overflow-y-auto custom-scrollbar" aria-busy={loading}>
+        {!configured ? (
+          <p className="px-3 py-8 text-center text-sm text-gray-400">
+            GIF search is not available yet.
+          </p>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-2">
+              {gifs.map((gif) => (
+                <button
+                  key={gif.id}
+                  type="button"
+                  aria-label={`Select ${gif.title}`}
+                  className="rounded-xl overflow-hidden border border-white/10 hover:border-purple-400 focus-visible:outline-2 focus-visible:outline-purple-400"
+                  onClick={() => {
+                    onGifSelect(gif.url);
+                  }}
+                >
+                  <img
+                    src={gif.previewUrl}
+                    alt=""
+                    loading="lazy"
+                    className="w-full h-24 object-cover"
+                  />
+                </button>
+              ))}
+              {loading &&
+                Array.from({ length: 6 }, (_, index) => (
+                  <SkeletonBone key={`loading-${index}`} className="h-24 w-full rounded-xl" />
+                ))}
+            </div>
+            {loading && (
+              <span role="status" className="sr-only">
+                Loading GIFs...
+              </span>
+            )}
+            {error ? (
+              <div role="alert" className="p-4 text-center text-sm text-gray-300">
+                <p>GIFs could not load.</p>
+                <button
+                  type="button"
+                  onClick={() => setRetry((value) => value + 1)}
+                  className="mt-2 rounded-lg px-3 py-2 bg-white/10 hover:bg-white/15"
+                >
+                  Retry GIFs
+                </button>
+              </div>
+            ) : !loading && gifs.length === 0 ? (
+              <p className="py-8 text-center text-sm text-gray-400">
+                No GIFs found. Try another search.
+              </p>
+            ) : null}
+            {!loading && !error && page.hasMore && (
+              <button
+                type="button"
+                className="w-full mt-3 py-2 rounded-xl bg-white/5 text-sm text-gray-300 hover:bg-white/10"
+                onClick={() =>
+                  setPage((previous) => ({ ...previous, offset: previous.nextOffset }))
+                }
+              >
+                Load more GIFs
+              </button>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
@@ -162,6 +290,8 @@ export const AddGifButton: React.FC<AddGifButtonProps> = ({
         onClick={handleToggle}
         disabled={disabled}
         title={title}
+        aria-haspopup="dialog"
+        aria-expanded={isOpen && !disabled}
         className={`p-2 rounded-xl transition-all duration-200 cursor-pointer ${
           disabled
             ? 'opacity-40 cursor-not-allowed text-gray-500'

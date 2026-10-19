@@ -131,4 +131,26 @@ describe('PostMenu', () => {
     // Verify only one menu is rendered (not two duplicate 'Hide post' texts)
     expect(screen.getAllByText('Hide post')).toHaveLength(1);
   });
+  it('shows Unblock author after a block and disables changes while pending', () => {
+    const onBlockAuthor = vi.fn();
+    const { rerender } = render(
+      <PostMenu postId="blocked-author" isAuthorBlocked onBlockAuthor={onBlockAuthor} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /more options/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Unblock author' }));
+    expect(onBlockAuthor).toHaveBeenCalledTimes(1);
+    rerender(
+      <PostMenu
+        postId="blocked-author"
+        isAuthorBlocked
+        isBlockPending
+        onBlockAuthor={onBlockAuthor}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /more options/i }));
+    const pending = screen.getByRole('button', { name: 'Updating block...' });
+    expect(pending).toBeDisabled();
+    fireEvent.click(pending);
+    expect(onBlockAuthor).toHaveBeenCalledTimes(1);
+  });
 });

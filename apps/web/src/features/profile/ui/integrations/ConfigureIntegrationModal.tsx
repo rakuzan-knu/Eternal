@@ -1864,7 +1864,7 @@ export const ConfigureIntegrationModal: React.FC<ConfigureIntegrationModalProps>
                                   {[1, 2, 3].map((n) => (
                                     <div
                                       key={n}
-                                      className="flex items-center gap-2.5 p-2 rounded-xl bg-white/[0.02] border border-white/[0.04] animate-pulse"
+                                      className="flex items-center gap-2.5 p-2 rounded-xl bg-white/[0.02] border border-white/[0.04] skeleton-shimmer"
                                     >
                                       <div className="w-9 h-9 rounded-lg bg-white/10 shrink-0" />
                                       <div className="flex flex-col gap-1 flex-1">
@@ -2177,7 +2177,7 @@ export const ConfigureIntegrationModal: React.FC<ConfigureIntegrationModalProps>
                                   {[1, 2, 3].map((n) => (
                                     <div
                                       key={n}
-                                      className="flex items-center gap-2.5 p-2 rounded-xl bg-white/[0.02] border border-white/[0.04] animate-pulse"
+                                      className="flex items-center gap-2.5 p-2 rounded-xl bg-white/[0.02] border border-white/[0.04] skeleton-shimmer"
                                     >
                                       <div className="w-9 h-9 rounded-lg bg-white/10 shrink-0" />
                                       <div className="flex flex-col gap-1 flex-1">

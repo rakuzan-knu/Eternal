@@ -1,3 +1,4 @@
+import SkeletonBone from '@/shared/ui/SkeletonBone';
 import { Nameplate } from '@/shared/ui/Nameplate';
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -20,18 +21,15 @@ interface UserListModalProps {
 
 function UserListSkeleton() {
   return (
-    <div className="space-y-2 py-1 px-1">
+    <div className="space-y-2 py-1 px-1" role="status" aria-label="Loading users">
       {Array.from({ length: 6 }).map((_, i) => (
         <div key={i} className="nameplate-row flex items-center gap-3 px-3 py-2.5 rounded-2xl">
-          <div className="w-10 h-10 rounded-full bg-black/5 dark:bg-white/5 animate-pulse shrink-0" />
+          <SkeletonBone className="w-10 h-10 rounded-full shrink-0" />
           <div className="flex-1 min-w-0 space-y-1.5">
-            <div
-              className="h-3.5 bg-black/10 dark:bg-white/10 rounded-md animate-pulse"
-              style={{ width: `${55 + (i % 3) * 15}%` }}
-            />
-            <div className="h-2.5 w-20 bg-black/5 dark:bg-white/5 rounded-md animate-pulse" />
+            <SkeletonBone className="h-3.5 rounded-md" style={{ width: `${55 + (i % 3) * 15}%` }} />
+            <SkeletonBone className="h-2.5 w-20 rounded-md" />
           </div>
-          <div className="w-20 h-7 rounded-full bg-black/5 dark:bg-white/5 animate-pulse shrink-0" />
+          <SkeletonBone className="w-20 h-7 rounded-full shrink-0" />
         </div>
       ))}
     </div>

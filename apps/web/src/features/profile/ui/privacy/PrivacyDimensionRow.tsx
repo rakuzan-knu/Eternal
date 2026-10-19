@@ -42,7 +42,7 @@ export default function PrivacyDimensionRow({
       </div>
 
       {isLoading ? (
-        <span className="w-16 h-3 rounded-full bg-black/10 dark:bg-white/10 animate-pulse flex-shrink-0" />
+        <span className="w-16 h-3 rounded-full bg-black/10 dark:bg-white/10 skeleton-shimmer flex-shrink-0" />
       ) : (
         <span className="text-sm text-sky-600 dark:text-[#7ab8ff] font-medium flex-shrink-0">
           {VALUE_LABEL[value]}

@@ -5,6 +5,7 @@ import { useStoriesFeed } from '@/features/stories/model/useStories';
 import { useStoryEditorStore } from '@/features/stories/model/useStoryEditorStore';
 import { useStoryViewerStore } from '@/features/stories/model/useStoryViewerStore';
 import Avatar from '@/shared/ui/Avatar';
+import SkeletonBone from '@/shared/ui/SkeletonBone';
 import type { UserStoriesGroup } from '@/features/stories/model/types';
 
 export function StoriesBar() {
@@ -73,9 +74,9 @@ export function StoriesBar() {
         className="glass-card w-full border border-white/5 rounded-3xl p-3.5 flex items-center gap-4 overflow-hidden"
       >
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="flex flex-col items-center gap-1.5 shrink-0 animate-pulse">
-            <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10" />
-            <div className="w-12 h-2.5 rounded bg-white/5" />
+          <div key={i} className="flex flex-col items-center gap-1.5 shrink-0">
+            <SkeletonBone className="w-16 h-16 rounded-full border border-white/10" />
+            <SkeletonBone className="w-12 h-2.5 rounded" />
           </div>
         ))}
       </div>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Moon, RotateCcw, Volume2, Sparkles, Layers, Music2 } from 'lucide-react';
+import { MotionSettings } from './MotionSettings';
 import { useThemeStore } from '@/shared/model/useThemeStore';
 import { CanvasThemesSection } from './CanvasThemesSection';
 import { AccentThemesSection } from './AccentThemesSection';
@@ -80,6 +81,8 @@ export default function AppearanceTab() {
             </button>
           </div>
         </div>
+
+        <MotionSettings />
 
         {/* Live Preview Card */}
         <ThemeLivePreviewCard />
