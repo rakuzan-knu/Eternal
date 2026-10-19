@@ -49,7 +49,7 @@ export const LinkPreviewCard: React.FC<LinkPreviewCardProps> = ({
     return (
       <div
         data-testid="link-preview-skeleton"
-        className={`w-full max-w-full h-20 rounded-xl bg-white/[0.03] border border-white/5 animate-pulse mt-2 ${className}`}
+        className={`w-full max-w-full h-20 rounded-xl bg-white/[0.03] border border-white/5 skeleton-shimmer mt-2 ${className}`}
       />
     );
   }

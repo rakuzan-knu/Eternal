@@ -1,3 +1,4 @@
+import { shouldReduceMotion } from '@/shared/model/useVisualEffects';
 import React, {
   createContext,
   useContext,
@@ -72,7 +73,7 @@ export default function Modal({
     if (closingRef.current) return;
     closingRef.current = true;
     setIsClosing(true);
-    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const reduced = shouldReduceMotion();
     timerRef.current = setTimeout(onClose, reduced ? 0 : exitDurationMs);
   }, [onClose, exitDurationMs]);
 

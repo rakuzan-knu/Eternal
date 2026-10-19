@@ -1,3 +1,4 @@
+import SkeletonBone from '@/shared/ui/SkeletonBone';
 import { ProfileFrameSurface } from '@/shared/ui/ProfileFrame';
 import React, { useState, useEffect, useMemo, useOptimistic, useTransition } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
@@ -30,14 +31,14 @@ const ProfileShowcaseSidebar = React.lazy(() =>
 
 function SkeletonProfileHeader() {
   return (
-    <div className="w-full animate-pulse">
-      <div className="h-44 w-full bg-white/3" />
+    <div className="w-full" role="status" aria-label="Loading profile">
+      <SkeletonBone className="h-44 w-full" />
       <div className="px-6 pb-6 relative">
-        <div className="absolute -top-16 left-6 w-28 h-28 rounded-full bg-white/6 border-4 border-[#0b0b0c]" />
+        <SkeletonBone className="absolute -top-16 left-6 w-28 h-28 rounded-full border-4 border-[#0b0b0c]" />
         <div className="pt-20 flex flex-col gap-2">
-          <div className="h-6 w-40 bg-white/5 rounded" />
-          <div className="h-4 w-24 bg-white/4 rounded" />
-          <div className="h-4 w-full max-w-sm bg-white/3 rounded mt-2" />
+          <SkeletonBone className="h-6 w-40 rounded" />
+          <SkeletonBone className="h-4 w-24 rounded" />
+          <SkeletonBone className="h-4 w-full max-w-sm rounded mt-2" />
         </div>
       </div>
     </div>

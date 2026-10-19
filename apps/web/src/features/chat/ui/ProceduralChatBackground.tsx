@@ -36,7 +36,9 @@ export default function ProceduralChatBackground({
       typeof window !== 'undefined' &&
       (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false),
   );
-  const reducedMotion = osReducedMotion || simplified;
+  const motion = useVisualEffects((state) => state.motion);
+  const reducedMotion =
+    simplified || motion === 'reduced' || (motion === 'system' && osReducedMotion);
 
   useEffect(() => {
     const preference = window.matchMedia?.('(prefers-reduced-motion: reduce)');

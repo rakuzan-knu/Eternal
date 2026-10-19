@@ -173,7 +173,7 @@ export function BoundedPostList({ posts, query, queryKey, includePost, initialSc
               <div
                 role="status"
                 aria-label="Loading posts"
-                className="rounded-3xl bg-white/[0.02] animate-pulse"
+                className="rounded-3xl bg-white/[0.02] skeleton-shimmer"
                 style={{ height: item.size - 16 }}
               />
             )}

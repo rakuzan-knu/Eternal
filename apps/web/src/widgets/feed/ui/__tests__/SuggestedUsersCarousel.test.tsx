@@ -33,7 +33,9 @@ describe('SuggestedUsersCarousel', () => {
     } as unknown as ReturnType<typeof useSuggestedUsersModule.useSuggestedUsers>);
 
     const { container } = render(<SuggestedUsersCarousel />);
-    expect(container.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0);
+    expect(screen.getByRole('status', { name: 'Loading suggested users' })).toBeInTheDocument();
+    expect(container.querySelectorAll('.skeleton-shimmer')).toHaveLength(17);
+    expect(container.querySelector('.animate-pulse')).not.toBeInTheDocument();
   });
 
   it('renders suggested creator cards with avatars, mutual info, and follow buttons', () => {
@@ -80,7 +82,7 @@ describe('SuggestedUsersCarousel', () => {
     expect(screen.getByTestId('follow-btn-user-1')).toBeInTheDocument();
   });
 
-  it('calls dismissMutation when the ✕ button is clicked', () => {
+  it('calls dismissMutation when the РІСљвЂў button is clicked', () => {
     vi.spyOn(useSuggestedUsersModule, 'useSuggestedUsers').mockReturnValue({
       data: [
         {
