@@ -39,10 +39,6 @@ describe('AddGifButton', () => {
     expect(searchGifs).toHaveBeenCalledWith('', 0, expect.any(AbortSignal), 'posts');
     expect(select).toHaveBeenCalledWith(page.gifs[0].url);
     expect(toggle).not.toHaveBeenCalled();
-    expect(screen.getByRole('link', { name: 'Powered By GIPHY' })).toHaveAttribute(
-      'href',
-      'https://giphy.com/',
-    );
   });
   it('debounces search and resets pagination for a new query', async () => {
     render(<AddGifButton isOpen onToggle={vi.fn()} onGifSelect={vi.fn()} />);

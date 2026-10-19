@@ -43,7 +43,7 @@ Set `VITE_GIPHY_API_KEY` (posts) and `VITE_GIPHY_CHAT_API_KEY` (messages) on the
 
 API and media requests go directly from the browser to GIPHY. Core and Messenger validate approved provider URLs and preserve their original query parameters; they do not download or rehost provider GIFs. Existing uploaded media keeps its ownership and byte validation. Deploy the compatible APIs before promoting the web client; no schema migration or historical-media rewrite is needed.
 
-Keep the official Powered By GIPHY attribution below the picker, outside the selected GIF. The unmodified `apps/web/public/branding/powered-by-giphy.png` asset comes from [GIPHY's attribution marks](https://media.giphy.com/giphy-attribution-marks.zip). See the [GIPHY API integration requirements](https://developers.giphy.com/docs/api/) for key limits, attribution and direct media delivery.
+The picker footer branding is hidden at the product owner's request. GIPHY requires visible attribution under its API terms; hiding it does not satisfy that requirement. See the [GIPHY API integration requirements](https://developers.giphy.com/docs/api/) for attribution, key limits and direct media delivery.
 
 ## Direct media rollout
 

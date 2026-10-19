@@ -436,7 +436,7 @@
     "scannedSources": 1000,
     "designSources": 583,
     "literalColors": 1503,
-    "assets": 690,
+    "assets": 689,
     "stories": 181
   },
   "colors": [
@@ -177925,7 +177925,6 @@
         "bg-transparent",
         "bg-white/10",
         "bg-white/5",
-        "block",
         "border-white/10",
         "border-white/15",
         "bottom-full",
@@ -177942,7 +177941,6 @@
         "grid",
         "grid-cols-2",
         "h-24",
-        "h-auto",
         "hover:bg-black/5",
         "hover:bg-white/10",
         "hover:bg-white/15",
@@ -177956,7 +177954,6 @@
         "mb-3",
         "min-h-40",
         "min-w-0",
-        "ml-auto",
         "mt-2",
         "mt-3",
         "object-cover",
@@ -177967,7 +177964,6 @@
         "p-2",
         "p-3",
         "p-4",
-        "pt-3",
         "px-1",
         "px-3",
         "py-2",
@@ -177978,13 +177974,11 @@
         "rounded-lg",
         "rounded-xl",
         "shadow-[0_25px_70px_rgba(0,0,0,0.85),0_0_40px_rgba(147,51,234,0.2)]",
-        "text-[10px]",
         "text-center",
         "text-gray-300",
         "text-gray-400",
         "text-gray-500",
         "text-purple-300",
-        "text-right",
         "text-sm",
         "text-white",
         "top-full",
@@ -178099,30 +178093,15 @@
         {
           "line": 286,
           "attribute": "className",
-          "expression": "\"block pt-3 text-right text-[10px] font-semibold text-gray-400\""
-        },
-        {
-          "line": 291,
-          "attribute": "width",
-          "expression": "{150}"
-        },
-        {
-          "line": 292,
-          "attribute": "className",
-          "expression": "\"ml-auto h-auto\""
-        },
-        {
-          "line": 299,
-          "attribute": "className",
           "expression": "{`relative ${className}`}"
         },
         {
-          "line": 308,
+          "line": 295,
           "attribute": "className",
           "expression": "{`p-2 rounded-xl transition-all duration-200 cursor-pointer ${\n          disabled\n            ? 'opacity-40 cursor-not-allowed text-gray-500'\n            : isOpen\n              ? 'bg-purple-500/20 text-purple-300'\n              : 'text-gray-500 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10'\n        } ${buttonClassName}`}"
         },
         {
-          "line": 316,
+          "line": 303,
           "attribute": "size",
           "expression": "{18}"
         }
@@ -209405,11 +209384,6 @@
       "path": "apps/web/public/Profile-decorations/Profile-frames/profile-frame-rose-ivory.rail.svg",
       "extension": ".svg",
       "bytes": 801
-    },
-    {
-      "path": "apps/web/public/branding/powered-by-giphy.png",
-      "extension": ".png",
-      "bytes": 1516
     },
     {
       "path": "apps/web/public/cursors/dota2_centerpoint.webp",
