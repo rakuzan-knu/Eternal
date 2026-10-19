@@ -118,6 +118,64 @@ test.describe('Feed (authenticated, mocked API)', () => {
     }
   });
 
+  test('full animation preference restores loading motion under a reduced-motion device setting', async ({
+    authenticatedPage: page,
+  }) => {
+    await page.addInitScript(() => localStorage.setItem('eternal-motion', 'full'));
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    let releaseProfile = () => {};
+    const pendingProfile = new Promise<void>((resolve) => {
+      releaseProfile = resolve;
+    });
+    await page.route('**/users/by-username/alice', async (route) => {
+      await pendingProfile;
+      await route.abort();
+    });
+    try {
+      await page.goto('/');
+      await expect(page.locator('html')).toHaveAttribute('data-motion', 'full');
+      await page
+        .locator('#post-post-1')
+        .getByRole('link', { name: 'Alice Mock', exact: true })
+        .hover();
+      const loading = page.getByRole('status', { name: 'Loading profile', exact: true });
+      await expect(loading).toBeVisible();
+      const avatar = loading.locator('.skeleton-shimmer').first();
+      expect(await avatar.evaluate((el) => getComputedStyle(el, '::after').animationName)).toBe(
+        'skeleton-wave',
+      );
+      expect(
+        await avatar.evaluate(
+          (el) =>
+            parseFloat(getComputedStyle(el).borderRadius) >= el.getBoundingClientRect().height / 2,
+        ),
+      ).toBe(true);
+      const first = await avatar.evaluate((el) => getComputedStyle(el, '::after').transform);
+      await expect
+        .poll(() => avatar.evaluate((el) => getComputedStyle(el, '::after').transform))
+        .not.toBe(first);
+      await page.screenshot({ path: 'test-results/loading-motion-full.png' });
+    } finally {
+      releaseProfile();
+    }
+  });
+
+  test('sidebar navigation fits laptop height without an overlay scrollbar', async ({
+    authenticatedPage: page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 674 });
+    await page.goto('/');
+    await expect(page.getByText('Hello from the mocked feed!')).toBeVisible();
+    const nav = page.locator('#app-navigation .sidebar-nav');
+    await expect(nav).toBeVisible();
+    expect(await nav.evaluate((el) => el.scrollHeight <= el.clientHeight + 1)).toBe(true);
+    expect(await nav.evaluate((el) => getComputedStyle(el).scrollbarWidth)).toBe('none');
+    expect(await nav.evaluate((el) => el.parentElement?.children.length)).toBe(1);
+    await page.setViewportSize({ width: 1280, height: 480 });
+    await nav.getByRole('link', { name: 'Shop', exact: true }).focus();
+    await expect(nav.getByRole('link', { name: 'Shop', exact: true })).toBeInViewport();
+  });
+
   test('GIF picker searches the provider and attaches a selection without publishing', async ({
     authenticatedPage: page,
   }) => {

@@ -215,7 +215,7 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .profile-frame__spark {
+  :root:not([data-motion='full']) .profile-frame__spark {
     animation: none;
   }
 }

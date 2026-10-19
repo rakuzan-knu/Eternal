@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import * as Sentry from '@sentry/react';
-import { MotionConfig } from 'framer-motion';
+import { AppMotion } from '@/shared/ui/AppMotion';
 
 import './index.css';
 import App from '@/app/App';
@@ -31,9 +31,9 @@ createRoot(document.getElementById('root')!).render(
     >
       <BrowserRouter>
         <PersistQueryClientProvider client={queryClient} persistOptions={offlinePersistOptions}>
-          <MotionConfig reducedMotion="user">
+          <AppMotion>
             <App />
-          </MotionConfig>
+          </AppMotion>
         </PersistQueryClientProvider>
       </BrowserRouter>
     </Sentry.ErrorBoundary>

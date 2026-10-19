@@ -1,3 +1,4 @@
+import SkeletonBone from '@/shared/ui/SkeletonBone';
 import { Nameplate } from '@/shared/ui/Nameplate';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -531,17 +532,21 @@ export function OnlineFriendsSidebar() {
 
         {/* List of Suggested Users */}
         {isSuggestedLoading ? (
-          <div className="flex flex-col gap-3 py-2">
+          <div
+            className="flex flex-col gap-3 py-2"
+            role="status"
+            aria-label="Loading suggested users"
+          >
             {[1, 2, 3].map((i) => (
-              <div key={i} className="flex items-center justify-between gap-3 animate-pulse">
+              <div key={i} className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-white/[0.05]" />
+                  <SkeletonBone className="w-8 h-8 rounded-full" />
                   <div className="flex flex-col gap-1">
-                    <div className="w-20 h-3 rounded bg-white/[0.05]" />
-                    <div className="w-14 h-2 rounded bg-white/[0.05]" />
+                    <SkeletonBone className="w-20 h-3 rounded" />
+                    <SkeletonBone className="w-14 h-2 rounded" />
                   </div>
                 </div>
-                <div className="w-16 h-6 rounded-full bg-white/[0.05]" />
+                <SkeletonBone className="w-16 h-6 rounded-full" />
               </div>
             ))}
           </div>
@@ -756,11 +761,11 @@ export function OnlineFriendsSidebar() {
         {/* Scrollable Friends List Container */}
         <div className="flex flex-col gap-3 max-h-[calc(100vh-220px)] overflow-y-auto custom-scrollbar pr-1">
           {isFriendsLoading ? (
-            <div className="flex flex-col gap-2 py-4 animate-pulse">
+            <div className="flex flex-col gap-2 py-4" role="status" aria-label="Loading friends">
               {[1, 2].map((i) => (
                 <div key={i} className="flex items-center gap-2.5 p-2">
-                  <div className="w-7 h-7 rounded-full bg-white/[0.05]" />
-                  <div className="w-24 h-3 rounded bg-white/[0.05]" />
+                  <SkeletonBone className="w-7 h-7 rounded-full" />
+                  <SkeletonBone className="w-24 h-3 rounded" />
                 </div>
               ))}
             </div>

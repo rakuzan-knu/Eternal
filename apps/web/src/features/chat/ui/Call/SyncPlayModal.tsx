@@ -1574,14 +1574,14 @@ export const SyncPlayModal: React.FC<SyncPlayModalProps> = ({
                           {[...Array(3)].map((_, rIdx) => (
                             <div key={rIdx} className="space-y-3">
                               <div className="flex items-center gap-2">
-                                <div className="w-7 h-7 rounded-xl bg-neutral-800 animate-pulse" />
-                                <div className="h-4 bg-neutral-800 rounded w-48 animate-pulse" />
+                                <div className="w-7 h-7 rounded-xl bg-neutral-800 skeleton-shimmer" />
+                                <div className="h-4 bg-neutral-800 rounded w-48 skeleton-shimmer" />
                               </div>
                               <div className="flex gap-4 overflow-hidden">
                                 {[...Array(4)].map((_, i) => (
                                   <div
                                     key={i}
-                                    className="w-64 shrink-0 aspect-video bg-neutral-900/60 rounded-2xl animate-pulse"
+                                    className="w-64 shrink-0 aspect-video bg-neutral-900/60 rounded-2xl skeleton-shimmer"
                                   />
                                 ))}
                               </div>
@@ -1618,7 +1618,7 @@ export const SyncPlayModal: React.FC<SyncPlayModalProps> = ({
                           {[...Array(6)].map((_, i) => (
                             <div
                               key={i}
-                              className="animate-pulse bg-neutral-900/60 rounded-xl overflow-hidden border border-white/5"
+                              className="skeleton-shimmer bg-neutral-900/60 rounded-xl overflow-hidden border border-white/5"
                             >
                               <div className="aspect-video bg-neutral-800/80" />
                               <div className="p-3 space-y-2">

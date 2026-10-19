@@ -1,3 +1,4 @@
+import SkeletonBone from '@/shared/ui/SkeletonBone';
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -467,11 +468,15 @@ export function ShareModal() {
         {/* Mutual Connections Grid */}
         <div className="px-5 py-3 overflow-y-auto flex-1 max-h-[300px]">
           {isLoadingUsers ? (
-            <div className="grid grid-cols-4 gap-y-4 gap-x-2 py-4">
+            <div
+              className="grid grid-cols-4 gap-y-4 gap-x-2 py-4"
+              role="status"
+              aria-label="Loading recipients"
+            >
               {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="flex flex-col items-center gap-1.5 animate-pulse">
-                  <div className="w-14 h-14 rounded-full bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5" />
-                  <div className="w-12 h-2.5 bg-black/5 dark:bg-white/5 rounded" />
+                <div key={i} className="flex flex-col items-center gap-1.5">
+                  <SkeletonBone className="w-14 h-14 rounded-full border border-black/5 dark:border-white/5" />
+                  <SkeletonBone className="w-12 h-2.5 rounded" />
                 </div>
               ))}
             </div>
