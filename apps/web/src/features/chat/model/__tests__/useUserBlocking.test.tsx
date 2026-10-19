@@ -148,4 +148,56 @@ describe('author block cache', () => {
     expect(result.current.status.blockedByMe).toBe(false);
     expect(result.current.status.isBlocked).toBe(true);
   });
+  it.each([
+    { cache: { data: [] }, expected: false },
+    { cache: { items: [target] }, expected: false },
+    { cache: null, expected: false },
+    { cache: 'unexpected', expected: false },
+    { cache: [null, false, {}, target], expected: true },
+  ])(
+    'validates unknown blocked-list cache values before reading rows: $cache',
+    ({ cache, expected }) => {
+      const client = new QueryClient();
+      client.setQueryData(queryKeys.conversations.blocked, cache);
+      expect(getUserBlockStatus(client, 'target').blockedByMe).toBe(expected);
+    },
+  );
+
+  it.each([
+    { cache: null },
+    { cache: false },
+    { cache: 'unexpected' },
+    { cache: [null, false, { type: 'DIRECT', blockingMe: true }] },
+    { cache: { pages: {} } },
+    {
+      cache: {
+        pages: [
+          null,
+          { data: {} },
+          { data: [null, { type: 'DIRECT', blockingMe: true, participants: null }] },
+        ],
+      },
+    },
+    { cache: { type: 'DIRECT', blockingMe: true, participants: [null, false, {}] } },
+  ])('ignores malformed conversation cache shapes: $cache', ({ cache }) => {
+    const client = new QueryClient();
+    client.setQueryData(queryKeys.conversations.root, cache);
+    expect(getUserBlockStatus(client, 'target').isBlocked).toBe(false);
+  });
+
+  it('keeps valid incoming blocks from paginated chat caches with unrelated malformed rows', () => {
+    const client = new QueryClient();
+    client.setQueryData(queryKeys.conversations.pages, {
+      pages: [
+        null,
+        {
+          data: [
+            null,
+            { type: 'DIRECT', blockingMe: true, participants: [null, { userId: 'target' }] },
+          ],
+        },
+      ],
+    });
+    expect(getUserBlockStatus(client, 'target').isBlocked).toBe(true);
+  });
 });

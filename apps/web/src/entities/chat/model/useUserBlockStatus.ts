@@ -4,7 +4,6 @@ import { queryKeys } from '@/shared/api/queryKeys';
 import { queryStaleTimes } from '@/shared/api/queryClient';
 import { useAuthStore } from '@/shared/model/useAuthStore';
 import { chatApi } from '../api/chatApi';
-import type { ConversationView, InfiniteConversationsData, UserSnapshot } from './types';
 
 export class UserBlockedError extends Error {
   constructor() {
@@ -13,30 +12,48 @@ export class UserBlockedError extends Error {
 }
 
 export function getUserBlockStatus(client: QueryClient, userId: string) {
-  const blockedByMe =
-    client
-      .getQueryData<UserSnapshot[]>(queryKeys.conversations.blocked)
-      ?.some((user) => user.id === userId) ?? false;
+  const blockedUsers = client.getQueryData<unknown>(queryKeys.conversations.blocked);
+  const blockedRows: unknown[] = Array.isArray(blockedUsers) ? blockedUsers : [];
+  const blockedByMe = blockedRows.some(
+    (user) => user !== null && typeof user === 'object' && 'id' in user && user.id === userId,
+  );
   const deniedUntil = client.getQueryData<number>(queryKeys.conversations.blockState(userId));
   const denialUpdatedAt =
     client.getQueryState(queryKeys.conversations.blockState(userId))?.dataUpdatedAt ?? 0;
   let latestReverse: { blocked: boolean; updatedAt: number } | undefined;
-  for (const [key, data] of client.getQueriesData<
-    ConversationView[] | ConversationView | InfiniteConversationsData
-  >({ queryKey: queryKeys.conversations.root })) {
-    const rows = Array.isArray(data)
-      ? data
-      : data && 'pages' in data
-        ? data.pages.flatMap((page) => page.data)
-        : data && 'participants' in data
-          ? [data]
-          : [];
+  for (const [key, data] of client.getQueriesData<unknown>({
+    queryKey: queryKeys.conversations.root,
+  })) {
+    let rows: unknown[] = [];
+    if (Array.isArray(data)) rows = data;
+    else if (data !== null && typeof data === 'object') {
+      if ('pages' in data && Array.isArray(data.pages)) {
+        const pages: unknown[] = data.pages;
+        rows = pages.flatMap((page) =>
+          page !== null && typeof page === 'object' && 'data' in page && Array.isArray(page.data)
+            ? page.data
+            : [],
+        );
+      } else if ('participants' in data) rows = [data];
+    }
     const updatedAt = client.getQueryState(key)?.dataUpdatedAt ?? 0;
     for (const conversation of rows) {
       if (
+        conversation !== null &&
+        typeof conversation === 'object' &&
+        'type' in conversation &&
         conversation.type === 'DIRECT' &&
+        'blockingMe' in conversation &&
         typeof conversation.blockingMe === 'boolean' &&
-        conversation.participants.some((member) => member.userId === userId) &&
+        'participants' in conversation &&
+        Array.isArray(conversation.participants) &&
+        conversation.participants.some(
+          (member: unknown) =>
+            member !== null &&
+            typeof member === 'object' &&
+            'userId' in member &&
+            member.userId === userId,
+        ) &&
         (!latestReverse || updatedAt >= latestReverse.updatedAt)
       ) {
         latestReverse = { blocked: conversation.blockingMe, updatedAt };

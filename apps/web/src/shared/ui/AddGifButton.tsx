@@ -1,13 +1,19 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { FileImage, Search, X } from 'lucide-react';
-import { isGifSearchConfigured, searchGifs, type GifResult } from '@/shared/api/giphy';
+import {
+  isGifSearchConfigured,
+  searchGifs,
+  type GifResult,
+  type GifSection,
+} from '@/shared/api/giphy';
 import { useDebounce } from '@/shared/lib/useDebounce';
 import { resolveOverlayLayer } from '@/shared/lib/overlayLayer';
 import SkeletonBone from './SkeletonBone';
 
 interface AddGifButtonProps {
   isOpen: boolean;
+  section?: GifSection;
   disabled?: boolean;
   title?: string;
   onToggle: () => void;
@@ -19,6 +25,7 @@ interface AddGifButtonProps {
 
 export const AddGifButton: React.FC<AddGifButtonProps> = ({
   isOpen,
+  section = 'posts',
   disabled = false,
   title = 'Add GIF',
   onToggle,
@@ -34,7 +41,7 @@ export const AddGifButton: React.FC<AddGifButtonProps> = ({
   const [error, setError] = useState(false);
   const [page, setPage] = useState({ offset: 0, nextOffset: 0, hasMore: false });
   const [retry, setRetry] = useState(0);
-  const configured = isGifSearchConfigured();
+  const configured = isGifSearchConfigured(section);
   const requestRef = useRef<AbortController | null>(null);
   const loadedQueryRef = useRef('');
 
@@ -53,7 +60,7 @@ export const AddGifButton: React.FC<AddGifButtonProps> = ({
     }
     setLoading(true);
     setError(false);
-    searchGifs(query, offset, controller.signal)
+    searchGifs(query, offset, controller.signal, section)
       .then((result) => {
         if (controller.signal.aborted) return;
         setGifs((previous) =>
@@ -73,7 +80,7 @@ export const AddGifButton: React.FC<AddGifButtonProps> = ({
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [isOpen, disabled, configured, query, page.offset, retry]);
+  }, [isOpen, disabled, configured, query, page.offset, retry, section]);
 
   const [direction, setDirection] = useState<'top' | 'bottom'>('top');
   const [portalStyle, setPortalStyle] = useState<React.CSSProperties | null>(null);
@@ -278,7 +285,12 @@ export const AddGifButton: React.FC<AddGifButtonProps> = ({
         rel="noreferrer"
         className="block pt-3 text-right text-[10px] font-semibold text-gray-400"
       >
-        Powered By GIPHY
+        <img
+          src="/branding/powered-by-giphy.png"
+          alt="Powered By GIPHY"
+          width={150}
+          className="ml-auto h-auto"
+        />
       </a>
     </div>
   );

@@ -52,6 +52,7 @@ export default defineConfig({
       VITE_API_URL: 'http://127.0.0.1:3000',
       // Requests to GIPHY are intercepted by the picker regression test.
       VITE_GIPHY_API_KEY: 'e2e-own-test-key',
+      VITE_GIPHY_CHAT_API_KEY: 'e2e-chat-test-key',
       NODE_ENV: 'test',
     },
     url: 'http://127.0.0.1:5173',

@@ -5,7 +5,7 @@ import { Readable } from 'node:stream';
 import { mkdtemp, mkdir, writeFile, unlink, rmdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { readPostMediaReference } from '../post-media-reference';
+import { readPostMediaReference, validateProviderGifUrl } from '../post-media-reference';
 import { PostsMediaService } from '../../../posts/posts-media.service';
 import { pngImage, gifImage } from './upload-fixtures';
 
@@ -60,8 +60,10 @@ describe('post media reference boundary', () => {
     'https://media.giphy.com.evil.example/image.gif',
     'https://127.0.0.1/image.gif',
     'https://user:pass@media.giphy.com/image.gif',
+    'https://media1.giphy.com:8443/image.gif',
+    'https://media1.giphy.com/image.gif#fragment',
   ])('rejects unapproved GIF URL %s', async (url) => {
-    await expect(readPostMediaReference({ url, kind: 'gif' }, storage)).rejects.toBeInstanceOf(
+    await expect(service.processUploadedFiles([], [{ url, kind: 'gif' }])).rejects.toBeInstanceOf(
       BadRequestException,
     );
     expect(fetchMock).not.toHaveBeenCalled();
@@ -79,12 +81,10 @@ describe('post media reference boundary', () => {
     expect(result[0].type).toBe('IMAGE');
     expect(result[1].type).toBe('IMAGE');
     expect(send.mock.calls.filter(([command]) => command instanceof PutObjectCommand)).toHaveLength(
-      2,
+      1,
     );
-    expect(fetchMock).toHaveBeenCalledWith(
-      new URL(gifUrl),
-      expect.objectContaining({ redirect: 'error' }),
-    );
+    expect(result[1].url).toBe(gifUrl);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('accepts direct bucket URLs used by R2 without an extra bucket prefix', async () => {
@@ -128,12 +128,11 @@ describe('post media reference boundary', () => {
     }
   });
 
-  it('rejects invalid bytes from both approved GIF and storage URLs before any write', async () => {
-    fetchMock.mockImplementation(() => new Response('MZ invalid file'));
+  it('rejects untrusted GIF references and invalid stored bytes before any write', async () => {
     await expect(
       service.processUploadedFiles(
         [{ buffer: pngImage, mimetype: 'image/png' } as Express.Multer.File],
-        [{ url: gifUrl, kind: 'gif' }],
+        [{ url: 'https://untrusted.example/image.gif', kind: 'gif' }],
       ),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(send).not.toHaveBeenCalled();
@@ -144,22 +143,7 @@ describe('post media reference boundary', () => {
     expect(send.mock.calls.every(([command]) => command instanceof GetObjectCommand)).toBe(true);
   });
 
-  it('bounds GIF streams even without Content-Length and stops at the combined attachment limit', async () => {
-    fetchMock.mockImplementation(
-      () =>
-        new Response(
-          new ReadableStream({
-            start(controller) {
-              controller.enqueue(new Uint8Array(10 * 1024 * 1024 + 1));
-              controller.close();
-            },
-          }),
-        ),
-    );
-    await expect(readPostMediaReference({ url: gifUrl, kind: 'gif' }, storage)).rejects.toThrow(
-      /too large/,
-    );
-    fetchMock.mockClear();
+  it('stops at the combined attachment limit before any fetch or storage operation', async () => {
     await expect(
       service.processUploadedFiles(
         [],
@@ -170,10 +154,27 @@ describe('post media reference boundary', () => {
     expect(send).not.toHaveBeenCalled();
   });
 
-  it('rejects failed or redirected GIF responses', async () => {
-    fetchMock.mockRejectedValue(new Error('redirect forbidden'));
+  it.each([
+    'media.giphy.com',
+    'media0.giphy.com',
+    'media22.giphy.com',
+    'i.giphy.com',
+    'media.tenor.com',
+    'c.tenor.com',
+  ])('preserves provider URLs from %s without downloading or rehosting', async (host) => {
+    const url = `https://${host}/media/example/giphy.gif?cid=original&ep=v1_search`;
+    expect(validateProviderGifUrl(url)).toBe(url);
+    expect(await service.processUploadedFiles([], [{ url, kind: 'gif' }])).toEqual([
+      { type: 'IMAGE', url, order: 0 },
+    ]);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it('prevents the binary reader from acting as a provider GIF proxy', async () => {
     await expect(readPostMediaReference({ url: gifUrl, kind: 'gif' }, storage)).rejects.toThrow(
-      /could not be loaded/,
+      /direct media references/,
     );
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

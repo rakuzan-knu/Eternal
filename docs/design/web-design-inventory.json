@@ -436,7 +436,7 @@
     "scannedSources": 1000,
     "designSources": 583,
     "literalColors": 1503,
-    "assets": 689,
+    "assets": 690,
     "stories": 181
   },
   "colors": [
@@ -1568,8 +1568,8 @@
         "apps/web/src/shared/lib/cursorEngine.ts:552",
         "apps/web/src/shared/ui/Avatar.tsx:107",
         "apps/web/src/shared/ui/AvatarDecoration.css:16",
-        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:164",
-        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:228"
+        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:165",
+        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:229"
       ]
     },
     {
@@ -2181,7 +2181,7 @@
     },
     {
       "value": "#0e1017",
-      "references": ["apps/web/src/shared/ui/AddGifButton.tsx:177"]
+      "references": ["apps/web/src/shared/ui/AddGifButton.tsx:184"]
     },
     {
       "value": "#0ea5e9",
@@ -2577,8 +2577,8 @@
         "apps/web/src/shared/lib/cursorPresets.ts:82",
         "apps/web/src/shared/ui/StyledDisplayName.tsx:160",
         "apps/web/src/shared/ui/StyledDisplayName.tsx:76",
-        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:157",
-        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:220",
+        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:158",
+        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:221",
         "apps/web/src/widgets/profile/showcase/ShowcaseQuickEditor.tsx:119"
       ]
     },
@@ -3046,10 +3046,10 @@
         "apps/web/src/pages/Notifications/NotificationsPage.tsx:646",
         "apps/web/src/pages/Search/SearchPage.tsx:169",
         "apps/web/src/shared/lib/themeContrastEngine.ts:148",
-        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:133",
-        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:136",
-        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:181",
-        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:241",
+        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:134",
+        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:137",
+        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:182",
+        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:242",
         "apps/web/src/widgets/profile/saved/CreateCollectionModal.tsx:49",
         "apps/web/src/widgets/profile/showcase/TasteMatchBanner.tsx:47"
       ]
@@ -3366,8 +3366,8 @@
         "apps/web/src/features/stories/ui/StoryViewerModal.tsx:1741",
         "apps/web/src/features/stories/ui/StoryViewerModal.tsx:981",
         "apps/web/src/shared/ui/ImageEditorModal.tsx:29",
-        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:157",
-        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:220"
+        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:158",
+        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:221"
       ]
     },
     {
@@ -3523,8 +3523,8 @@
         "apps/web/src/shared/ui/OnlineStatusIndicator.tsx:121",
         "apps/web/src/shared/ui/OnlineStatusIndicator.tsx:143",
         "apps/web/src/shared/ui/OnlineStatusIndicator.tsx:97",
-        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:113",
-        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:125",
+        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:114",
+        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:126",
         "apps/web/src/widgets/sidebar/ui/RailwaySidebar.tsx:283",
         "apps/web/src/widgets/sidebar/ui/RailwaySidebar.tsx:291",
         "apps/web/src/widgets/sidebar/ui/Sidebar.tsx:414",
@@ -4994,8 +4994,8 @@
         "apps/web/src/shared/lib/cursorPresets.ts:206",
         "apps/web/src/shared/ui/ImageEditorModal.tsx:28",
         "apps/web/src/shared/ui/VideoEditorModal.tsx:86",
-        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:157",
-        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:220"
+        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:158",
+        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:221"
       ]
     },
     {
@@ -6734,8 +6734,8 @@
         "apps/web/src/pages/Safety/ui/WellbeingIllustrations.tsx:316",
         "apps/web/src/pages/Safety/ui/WellbeingIllustrations.tsx:56",
         "apps/web/src/shared/ui/StyledDisplayName.tsx:160",
-        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:158",
-        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:221",
+        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:159",
+        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:222",
         "apps/web/src/widgets/profile/showcase/ExportShowcaseModal.tsx:35",
         "apps/web/src/widgets/profile/showcase/LivePresenceWidget.tsx:425",
         "apps/web/src/widgets/profile/showcase/MediaShowcaseWidget.tsx:199",
@@ -7501,8 +7501,8 @@
         "apps/web/src/shared/lib/cursorVfxEngine.ts:590",
         "apps/web/src/shared/lib/useLiquidGlassTheme.ts:101",
         "apps/web/src/shared/lib/useLiquidGlassTheme.ts:111",
-        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:158",
-        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:221"
+        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:159",
+        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:222"
       ]
     },
     {
@@ -8378,7 +8378,7 @@
         "apps/web/src/features/chat/ui/FileIconBadge.tsx:68",
         "apps/web/src/features/chat/ui/FloatingVideoNotePiP.tsx:281",
         "apps/web/src/features/chat/ui/MessageComposer.tsx:1762",
-        "apps/web/src/features/chat/ui/MessageComposer.tsx:1829",
+        "apps/web/src/features/chat/ui/MessageComposer.tsx:1830",
         "apps/web/src/features/chat/ui/VideoNoteBubble.tsx:352",
         "apps/web/src/features/chat/ui/VideoNoteRecorderCircle.tsx:126",
         "apps/web/src/features/profile/ui/ProfileCustomizeSettingsSection.tsx:2114",
@@ -8958,8 +8958,8 @@
         "apps/web/src/features/stories/ui/StoryViewerModal.tsx:1742",
         "apps/web/src/features/stories/ui/StoryViewerModal.tsx:982",
         "apps/web/src/shared/lib/cursorPresets.ts:142",
-        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:158",
-        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:221"
+        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:159",
+        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:222"
       ]
     },
     {
@@ -11832,7 +11832,7 @@
         "apps/web/src/entities/story/ui/StoryAvatar.tsx:136",
         "apps/web/src/features/chat/lib/webrtc/virtualBackground.ts:608",
         "apps/web/src/features/chat/ui/FileIconBadge.tsx:59",
-        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:159"
+        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:160"
       ]
     },
     {
@@ -12581,7 +12581,7 @@
         "apps/web/src/features/chat/ui/VideoNoteRecorderCircle.tsx:118",
         "apps/web/src/index.css:1192",
         "apps/web/src/index.css:1204",
-        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:224",
+        "apps/web/src/widgets/feed/ui/StoriesBar.tsx:225",
         "apps/web/src/widgets/player/JamRoomPopover.tsx:220",
         "apps/web/src/widgets/player/JamRoomPopover.tsx:392",
         "apps/web/src/widgets/player/SpotifyQueuePopover.tsx:241"
@@ -12862,7 +12862,7 @@
     {
       "value": "rgba(255,255,255,0.1)",
       "references": [
-        "apps/web/src/features/chat/ui/MessageComposer.tsx:1821",
+        "apps/web/src/features/chat/ui/MessageComposer.tsx:1822",
         "apps/web/src/features/profile/ui/ProfileShowcaseSettingsSection.tsx:413",
         "apps/web/src/features/profile/ui/voice/VoiceVideoTab.tsx:2109",
         "apps/web/src/widgets/profile/showcase/ShowcaseQuickEditor.tsx:2968"
@@ -50180,142 +50180,142 @@
           "expression": "{`absolute inset-0 flex items-center justify-center text-[9px] font-bold select-none ${\n                        text.length >= MAX_MESSAGE_LENGTH ? 'text-rose-400' : 'text-amber-400'\n                      }`}"
         },
         {
-          "line": 1809,
+          "line": 1810,
           "attribute": "className",
           "expression": "\"w-8 h-8 shrink-0 relative flex items-center justify-center rounded-full bg-purple-950/80 border border-purple-500/40 text-purple-200 font-mono text-[11px] font-bold shadow-[0_0_10px_rgba(168,85,247,0.3)] select-none\""
         },
         {
-          "line": 1813,
+          "line": 1814,
           "attribute": "className",
           "expression": "\"absolute inset-0 w-full h-full -rotate-90 pointer-events-none\""
         },
         {
-          "line": 1814,
+          "line": 1815,
           "attribute": "viewBox",
           "expression": "\"0 0 32 32\""
         },
         {
-          "line": 1817,
-          "attribute": "cx",
-          "expression": "\"16\""
-        },
-        {
           "line": 1818,
-          "attribute": "cy",
+          "attribute": "cx",
           "expression": "\"16\""
         },
         {
           "line": 1819,
-          "attribute": "r",
-          "expression": "\"13\""
-        },
-        {
-          "line": 1820,
-          "attribute": "fill",
-          "expression": "\"none\""
-        },
-        {
-          "line": 1821,
-          "attribute": "stroke",
-          "expression": "\"rgba(255,255,255,0.1)\""
-        },
-        {
-          "line": 1822,
-          "attribute": "strokeWidth",
-          "expression": "\"2.5\""
-        },
-        {
-          "line": 1825,
-          "attribute": "cx",
-          "expression": "\"16\""
-        },
-        {
-          "line": 1826,
           "attribute": "cy",
           "expression": "\"16\""
         },
         {
-          "line": 1827,
+          "line": 1820,
           "attribute": "r",
           "expression": "\"13\""
         },
         {
-          "line": 1828,
+          "line": 1821,
           "attribute": "fill",
           "expression": "\"none\""
         },
         {
-          "line": 1829,
+          "line": 1822,
           "attribute": "stroke",
-          "expression": "\"#a855f7\""
+          "expression": "\"rgba(255,255,255,0.1)\""
         },
         {
-          "line": 1830,
+          "line": 1823,
           "attribute": "strokeWidth",
           "expression": "\"2.5\""
         },
         {
-          "line": 1835,
+          "line": 1826,
+          "attribute": "cx",
+          "expression": "\"16\""
+        },
+        {
+          "line": 1827,
+          "attribute": "cy",
+          "expression": "\"16\""
+        },
+        {
+          "line": 1828,
+          "attribute": "r",
+          "expression": "\"13\""
+        },
+        {
+          "line": 1829,
+          "attribute": "fill",
+          "expression": "\"none\""
+        },
+        {
+          "line": 1830,
+          "attribute": "stroke",
+          "expression": "\"#a855f7\""
+        },
+        {
+          "line": 1831,
+          "attribute": "strokeWidth",
+          "expression": "\"2.5\""
+        },
+        {
+          "line": 1836,
           "attribute": "strokeLinecap",
           "expression": "\"round\""
         },
         {
-          "line": 1836,
+          "line": 1837,
           "attribute": "className",
           "expression": "\"transition-all duration-1000 linear\""
         },
         {
-          "line": 1846,
+          "line": 1847,
           "attribute": "className",
           "expression": "\"w-8 h-8 shrink-0 flex items-center justify-center rounded-full bg-linear-to-r from-purple-500 to-indigo-500 hover:from-purple-400 hover:to-indigo-400 text-white shadow-[0_0_14px_rgba(168,85,247,0.6)] transition-all active:scale-95 disabled:opacity-50 cursor-pointer\""
         },
         {
-          "line": 1850,
+          "line": 1851,
           "attribute": "size",
           "expression": "{18}"
         },
         {
-          "line": 1851,
+          "line": 1852,
           "attribute": "strokeWidth",
           "expression": "{2.8}"
         },
         {
-          "line": 1852,
+          "line": 1853,
           "attribute": "className",
           "expression": "{isSendingEffective ? 'animate-pulse' : ''}"
         },
         {
-          "line": 1860,
+          "line": 1861,
           "attribute": "className",
           "expression": "\"w-8 h-8 shrink-0 flex items-center justify-center rounded-full bg-linear-to-r from-purple-500 to-indigo-500 hover:from-purple-400 hover:to-indigo-400 text-white shadow-[0_0_14px_rgba(168,85,247,0.6)] transition-all active:scale-95 disabled:opacity-50 cursor-pointer\""
         },
         {
-          "line": 1864,
+          "line": 1865,
           "attribute": "size",
           "expression": "{14}"
         },
         {
-          "line": 1865,
+          "line": 1866,
           "attribute": "className",
           "expression": "{isSendingEffective ? 'animate-pulse' : 'translate-x-[0.5px]'}"
         },
         {
-          "line": 1883,
+          "line": 1884,
           "attribute": "className",
           "expression": "{`w-8 h-8 shrink-0 flex items-center justify-center rounded-full transition-all duration-200 cursor-pointer ${\n                    !canSendVoice\n                      ? 'opacity-40 cursor-not-allowed text-gray-400 dark:text-gray-600'\n                      : recorder.recordState !== 'idle'\n                        ? 'bg-purple-600 text-white shadow-[0_0_15px_rgba(168,85,247,0.6)] scale-110'\n                        : isLight\n                          ? 'text-gray-700 hover:text-gray-950 hover:bg-black/5'\n                          : 'text-gray-300 hover:text-white hover:bg-white/10'\n                  }`}"
         },
         {
-          "line": 1894,
+          "line": 1895,
           "attribute": "className",
           "expression": "{`transition-transform duration-200 ${\n                      recorder.mode === 'video' ? 'rotate-y-180' : ''\n                    }`}"
         },
         {
-          "line": 1898,
+          "line": 1899,
           "attribute": "size",
           "expression": "{18}"
         },
         {
-          "line": 1898,
+          "line": 1899,
           "attribute": "size",
           "expression": "{18}"
         }
@@ -177942,6 +177942,7 @@
         "grid",
         "grid-cols-2",
         "h-24",
+        "h-auto",
         "hover:bg-black/5",
         "hover:bg-white/10",
         "hover:bg-white/15",
@@ -177955,6 +177956,7 @@
         "mb-3",
         "min-h-40",
         "min-w-0",
+        "ml-auto",
         "mt-2",
         "mt-3",
         "object-cover",
@@ -177995,122 +177997,132 @@
       "colorLiterals": ["#0e1017"],
       "presentation": [
         {
-          "line": 177,
+          "line": 184,
           "attribute": "className",
           "expression": "{`shadow-[0_25px_70px_rgba(0,0,0,0.85),0_0_40px_rgba(147,51,234,0.2)] bg-[#0e1017]/95 rounded-2xl overflow-hidden border border-white/15 animate-popIn p-3 w-[320px] max-w-[calc(100vw-24px)] backdrop-blur-3xl backdrop-saturate-150 ${\n        usePortal\n          ? 'z-[99999]'\n          : `z-50 absolute right-0 ${direction === 'top' ? 'bottom-full mb-3' : 'top-full mt-3'}`\n      }`}"
         },
         {
-          "line": 182,
+          "line": 189,
           "attribute": "style",
           "expression": "{usePortal ? (portalStyle ?? undefined) : undefined}"
         },
         {
-          "line": 185,
+          "line": 192,
           "attribute": "className",
           "expression": "\"flex items-center justify-between px-1 mb-3\""
         },
         {
-          "line": 186,
+          "line": 193,
           "attribute": "className",
           "expression": "\"text-sm font-semibold text-white\""
         },
         {
-          "line": 193,
+          "line": 200,
           "attribute": "className",
           "expression": "\"p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10\""
         },
         {
-          "line": 195,
+          "line": 202,
           "attribute": "size",
           "expression": "{16}"
         },
         {
-          "line": 198,
+          "line": 205,
           "attribute": "className",
           "expression": "\"flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 px-3 py-2 mb-3 text-gray-400\""
         },
         {
-          "line": 199,
+          "line": 206,
           "attribute": "size",
           "expression": "{16}"
         },
         {
-          "line": 206,
+          "line": 213,
           "attribute": "className",
           "expression": "\"min-w-0 w-full bg-transparent text-sm text-white outline-none\""
         },
         {
-          "line": 209,
+          "line": 216,
           "attribute": "className",
           "expression": "\"max-h-64 min-h-40 overflow-y-auto custom-scrollbar\""
         },
         {
-          "line": 211,
+          "line": 218,
           "attribute": "className",
           "expression": "\"px-3 py-8 text-center text-sm text-gray-400\""
         },
         {
-          "line": 216,
+          "line": 223,
           "attribute": "className",
           "expression": "\"grid grid-cols-2 gap-2\""
         },
         {
-          "line": 222,
+          "line": 229,
           "attribute": "className",
           "expression": "\"rounded-xl overflow-hidden border border-white/10 hover:border-purple-400 focus-visible:outline-2 focus-visible:outline-purple-400\""
         },
         {
-          "line": 231,
+          "line": 238,
           "attribute": "className",
           "expression": "\"w-full h-24 object-cover\""
         },
         {
-          "line": 237,
+          "line": 244,
           "attribute": "className",
           "expression": "\"h-24 w-full rounded-xl\""
         },
         {
-          "line": 241,
+          "line": 248,
           "attribute": "className",
           "expression": "\"sr-only\""
         },
         {
-          "line": 246,
+          "line": 253,
           "attribute": "className",
           "expression": "\"p-4 text-center text-sm text-gray-300\""
         },
         {
-          "line": 251,
+          "line": 258,
           "attribute": "className",
           "expression": "\"mt-2 rounded-lg px-3 py-2 bg-white/10 hover:bg-white/15\""
         },
         {
-          "line": 257,
+          "line": 264,
           "attribute": "className",
           "expression": "\"py-8 text-center text-sm text-gray-400\""
         },
         {
-          "line": 264,
+          "line": 271,
           "attribute": "className",
           "expression": "\"w-full mt-3 py-2 rounded-xl bg-white/5 text-sm text-gray-300 hover:bg-white/10\""
         },
         {
-          "line": 279,
+          "line": 286,
           "attribute": "className",
           "expression": "\"block pt-3 text-right text-[10px] font-semibold text-gray-400\""
         },
         {
-          "line": 287,
+          "line": 291,
+          "attribute": "width",
+          "expression": "{150}"
+        },
+        {
+          "line": 292,
+          "attribute": "className",
+          "expression": "\"ml-auto h-auto\""
+        },
+        {
+          "line": 299,
           "attribute": "className",
           "expression": "{`relative ${className}`}"
         },
         {
-          "line": 296,
+          "line": 308,
           "attribute": "className",
           "expression": "{`p-2 rounded-xl transition-all duration-200 cursor-pointer ${\n          disabled\n            ? 'opacity-40 cursor-not-allowed text-gray-500'\n            : isOpen\n              ? 'bg-purple-500/20 text-purple-300'\n              : 'text-gray-500 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10'\n        } ${buttonClassName}`}"
         },
         {
-          "line": 304,
+          "line": 316,
           "attribute": "size",
           "expression": "{18}"
         }
@@ -187925,7 +187937,6 @@
         "absolute",
         "active:scale-90",
         "active:scale-95",
-        "animate-pulse",
         "backdrop-blur-md",
         "bg-[#09090b]",
         "bg-[#16161a]/90",
@@ -187934,7 +187945,6 @@
         "bg-gradient-to-r",
         "bg-gradient-to-tr",
         "bg-purple-600",
-        "bg-white/5",
         "border-2",
         "border-[#121216]",
         "border-white/10",
@@ -188039,157 +188049,157 @@
       ],
       "presentation": [
         {
-          "line": 73,
+          "line": 74,
           "attribute": "className",
           "expression": "\"glass-card w-full border border-white/5 rounded-3xl p-3.5 flex items-center gap-4 overflow-hidden\""
         },
         {
-          "line": 76,
-          "attribute": "className",
-          "expression": "\"flex flex-col items-center gap-1.5 shrink-0 animate-pulse\""
-        },
-        {
           "line": 77,
           "attribute": "className",
-          "expression": "\"w-16 h-16 rounded-full bg-white/5 border border-white/10\""
+          "expression": "\"flex flex-col items-center gap-1.5 shrink-0\""
         },
         {
           "line": 78,
           "attribute": "className",
-          "expression": "\"w-12 h-2.5 rounded bg-white/5\""
+          "expression": "\"w-16 h-16 rounded-full border border-white/10\""
         },
         {
-          "line": 89,
+          "line": 79,
+          "attribute": "className",
+          "expression": "\"w-12 h-2.5 rounded\""
+        },
+        {
+          "line": 90,
           "attribute": "className",
           "expression": "\"glass-card relative w-full border border-white/5 rounded-3xl p-3.5 shadow-xl select-none group/bar transition-colors duration-200\""
         },
         {
-          "line": 94,
+          "line": 95,
           "attribute": "className",
           "expression": "\"mb-3 flex flex-wrap items-center gap-3 text-sm text-gray-700 dark:text-gray-300\""
         },
         {
-          "line": 101,
+          "line": 102,
           "attribute": "className",
           "expression": "\"rounded-xl bg-purple-600 px-3 py-2 text-white disabled:opacity-50\""
         },
         {
-          "line": 113,
+          "line": 114,
           "attribute": "className",
           "expression": "\"absolute left-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-[#16161a]/90 backdrop-blur-md border border-white/15 text-white flex items-center justify-center shadow-lg hover:scale-110 hover:bg-purple-600 transition-all\""
         },
         {
-          "line": 115,
+          "line": 116,
           "attribute": "size",
           "expression": "{18}"
         },
         {
-          "line": 125,
+          "line": 126,
           "attribute": "className",
           "expression": "\"absolute right-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-[#16161a]/90 backdrop-blur-md border border-white/15 text-white flex items-center justify-center shadow-lg hover:scale-110 hover:bg-purple-600 transition-all\""
         },
         {
-          "line": 127,
+          "line": 128,
           "attribute": "size",
           "expression": "{18}"
         },
         {
-          "line": 133,
+          "line": 134,
           "attribute": "className",
           "expression": "\"absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-[#121216] to-transparent pointer-events-none z-10 rounded-l-3xl\""
         },
         {
-          "line": 136,
+          "line": 137,
           "attribute": "className",
           "expression": "\"absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-[#121216] to-transparent pointer-events-none z-10 rounded-r-3xl\""
         },
         {
-          "line": 143,
+          "line": 144,
           "attribute": "className",
           "expression": "\"flex items-center gap-4 overflow-x-auto no-scrollbar py-0.5 px-1 scroll-smooth\""
         },
         {
-          "line": 146,
+          "line": 147,
           "attribute": "className",
           "expression": "\"relative flex flex-col items-center gap-1.5 shrink-0\""
         },
         {
-          "line": 147,
+          "line": 148,
           "attribute": "className",
           "expression": "\"relative\""
         },
         {
-          "line": 152,
+          "line": 153,
           "attribute": "className",
           "expression": "\"group relative flex items-center justify-center rounded-full p-[2.5px] transition-transform duration-200 active:scale-95 cursor-pointer\""
         },
         {
-          "line": 153,
+          "line": 154,
           "attribute": "style",
           "expression": "{\n                hasOwnStories\n                  ? {\n                      background: ownGroup?.hasCloseFriendsStory\n                        ? 'linear-gradient(135deg, #10b981 0%, #22c55e 50%, #14b8a6 100%)'\n                        : 'linear-gradient(135deg, #8b5cf6 0%, #d946ef 50%, #6366f1 100%)',\n                      filter: 'drop-shadow(0 0 8px rgba(139, 92, 246, 0.45))',\n                    }\n                  : undefined\n              }"
         },
         {
-          "line": 164,
+          "line": 165,
           "attribute": "className",
           "expression": "\"rounded-full bg-[#09090b] p-[2px]\""
         },
         {
-          "line": 170,
+          "line": 171,
           "attribute": "className",
           "expression": "\"w-14 h-14\""
         },
         {
-          "line": 181,
+          "line": 182,
           "attribute": "className",
           "expression": "{`absolute bottom-0 right-0 w-6 h-6 rounded-full flex items-center justify-center border-2 border-[#121216] shadow-md transition-all duration-200 hover:scale-115 active:scale-90 cursor-pointer z-10 ${\n                hasOwnStories\n                  ? 'bg-purple-600 text-white hover:bg-purple-500'\n                  : 'bg-gradient-to-tr from-purple-600 to-indigo-500 text-white hover:brightness-110'\n              }`}"
         },
         {
-          "line": 187,
+          "line": 188,
           "attribute": "size",
           "expression": "{12}"
         },
         {
-          "line": 187,
+          "line": 188,
           "attribute": "className",
           "expression": "\"stroke-[3]\""
         },
         {
-          "line": 191,
+          "line": 192,
           "attribute": "className",
           "expression": "\"text-[11px] font-medium text-gray-700 dark:text-gray-200 truncate max-w-[70px] text-center\""
         },
         {
-          "line": 206,
+          "line": 207,
           "attribute": "className",
           "expression": "\"group flex flex-col items-center gap-1.5 shrink-0 cursor-pointer transition-transform duration-200 active:scale-95\""
         },
         {
-          "line": 209,
+          "line": 210,
           "attribute": "className",
           "expression": "{`relative rounded-full p-[2.5px] transition-all duration-300 group-hover:scale-105 ${\n                  isUnviewed\n                    ? isCloseFriendStory\n                      ? 'shadow-[0_0_12px_rgba(16,185,129,0.5)]'\n                      : 'shadow-[0_0_12px_rgba(139,92,246,0.45)]'\n                    : 'opacity-70 group-hover:opacity-100'\n                }`}"
         },
         {
-          "line": 216,
+          "line": 217,
           "attribute": "style",
           "expression": "{\n                  isUnviewed\n                    ? {\n                        background: isCloseFriendStory\n                          ? 'linear-gradient(135deg, #10b981 0%, #22c55e 50%, #14b8a6 100%)'\n                          : 'linear-gradient(135deg, #8b5cf6 0%, #d946ef 50%, #6366f1 100%)',\n                      }\n                    : {\n                        background: 'rgba(255, 255, 255, 0.15)',\n                      }\n                }"
         },
         {
-          "line": 228,
+          "line": 229,
           "attribute": "className",
           "expression": "\"rounded-full bg-[#09090b] p-[2px]\""
         },
         {
-          "line": 234,
+          "line": 235,
           "attribute": "className",
           "expression": "\"w-14 h-14\""
         },
         {
-          "line": 241,
+          "line": 242,
           "attribute": "className",
           "expression": "\"absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-emerald-500 text-black rounded-full border-2 border-[#121216] flex items-center justify-center text-[9px] font-black shadow-sm\""
         },
         {
-          "line": 249,
+          "line": 250,
           "attribute": "className",
           "expression": "\"text-[11px] font-medium text-gray-700 dark:text-gray-200 group-hover:text-gray-950 dark:group-hover:text-white transition-colors truncate max-w-[70px] text-center\""
         }
@@ -209396,6 +209406,11 @@
       "path": "apps/web/public/Profile-decorations/Profile-frames/profile-frame-rose-ivory.rail.svg",
       "extension": ".svg",
       "bytes": 801
+    },
+    {
+      "path": "apps/web/public/branding/powered-by-giphy.png",
+      "extension": ".png",
+      "bytes": 1516
     },
     {
       "path": "apps/web/public/cursors/dota2_centerpoint.webp",

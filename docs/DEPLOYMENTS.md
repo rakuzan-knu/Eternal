@@ -37,6 +37,14 @@ Keep credentials in server environment variables and approved private local cred
 
 Expo Web is a browser app. Native Android/iOS builds and distribution remain separate work. Free Render services sleep when idle; cold starts and limited CPU remain, and this deployment does not establish a load-test guarantee or implement production video transcoding.
 
+## GIPHY web picker
+
+Set `VITE_GIPHY_API_KEY` (posts) and `VITE_GIPHY_CHAT_API_KEY` (messages) on the desktop Vercel project for Production and Preview, then rebuild. These are public client keys from separate account-owned GIPHY apps, as required per platform and section. Beta keys allow 100 API calls per hour each; no paid upgrade is enabled by this integration.
+
+API and media requests go directly from the browser to GIPHY. Core and Messenger validate approved provider URLs and preserve their original query parameters; they do not download or rehost provider GIFs. Existing uploaded media keeps its ownership and byte validation. Deploy the compatible APIs before promoting the web client; no schema migration or historical-media rewrite is needed.
+
+Keep the official Powered By GIPHY attribution below the picker, outside the selected GIF. The unmodified `apps/web/public/branding/powered-by-giphy.png` asset comes from [GIPHY's attribution marks](https://media.giphy.com/giphy-attribution-marks.zip). See the [GIPHY API integration requirements](https://developers.giphy.com/docs/api/) for key limits, attribution and direct media delivery.
+
 ## Direct media rollout
 
 Follow [DIRECT_MEDIA_UPLOADS.md](DIRECT_MEDIA_UPLOADS.md). Disable Auto-assign Custom Production Domains for both Vercel projects before pushing a cross-layer media change. Build production frontends without promotion, deploy the four compatible APIs sequentially, then promote both ready client deployments. After the protected merge and returning Production Branch Tracking to main, restore the projects' previous auto-assignment setting. While the rollout PR remains unmerged, keep automatic domain assignment disabled and promote only verified deployments manually. Never promote a new upload client before Core serves its control API.
