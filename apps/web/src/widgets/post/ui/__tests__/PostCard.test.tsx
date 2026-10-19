@@ -1,4 +1,7 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { chatApi } from '@/entities/chat';
+import { useAuthStore } from '@/shared/model/useAuthStore';
+import { useMessageToastStore } from '@/shared/model/useMessageToastStore';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -245,5 +248,60 @@ describe('PostCard', () => {
     fireEvent.click(menuTrigger);
     fireEvent.click(screen.getByText('Delete your post'));
     expect(screen.getByText('Delete post?')).toBeInTheDocument();
+  });
+  it('confirms author blocking, shows pending, and switches the action to unblock', async () => {
+    useAuthStore.setState({ userId: 'me', isAuthenticated: true });
+    useMessageToastStore.getState().dismissAll();
+    const blockedAuthor = {
+      id: basePost.authorId,
+      username: basePost.handle,
+      displayName: basePost.author,
+      avatar: null,
+    };
+    vi.spyOn(chatApi, 'getBlockedUsers').mockResolvedValue([]);
+    let finish = (_result: unknown) => {};
+    vi.spyOn(chatApi, 'blockUser').mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+    );
+    vi.spyOn(chatApi, 'unblockUser').mockImplementation(async () => {
+      vi.mocked(chatApi.getBlockedUsers).mockResolvedValue([]);
+    });
+    renderPostCard();
+    await screen.findByRole('button', { name: 'Follow' });
+    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Block author' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Updating...' })).toBeDisabled());
+    expect(useMessageToastStore.getState().toasts).toHaveLength(0);
+    vi.mocked(chatApi.getBlockedUsers).mockResolvedValue([blockedAuthor]);
+    await act(async () => finish(undefined));
+    await screen.findByRole('button', { name: 'Blocked' });
+    await waitFor(() =>
+      expect(useMessageToastStore.getState().toasts[0]?.title).toBe('Author Blocked'),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Unblock author' }));
+    await screen.findByRole('button', { name: 'Follow' });
+    await waitFor(() =>
+      expect(useMessageToastStore.getState().toasts[0]?.title).toBe('Author Unblocked'),
+    );
+  });
+
+  it('reports a failed block and keeps the author followable', async () => {
+    useAuthStore.setState({ userId: 'me', isAuthenticated: true });
+    useMessageToastStore.getState().dismissAll();
+    vi.spyOn(chatApi, 'getBlockedUsers').mockResolvedValue([]);
+    vi.spyOn(chatApi, 'blockUser').mockRejectedValue(new Error('Offline'));
+    renderPostCard();
+    await screen.findByRole('button', { name: 'Follow' });
+    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Block author' }));
+    await waitFor(() =>
+      expect(useMessageToastStore.getState().toasts[0]?.title).toBe('Action Failed'),
+    );
+    expect(screen.getByRole('button', { name: 'Follow' })).toBeEnabled();
+    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
+    expect(screen.getByRole('button', { name: 'Block author' })).toBeEnabled();
   });
 });

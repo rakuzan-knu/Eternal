@@ -24,7 +24,6 @@ import Avatar from '../../../shared/ui/Avatar';
 import StyledDisplayName from '@/shared/ui/StyledDisplayName';
 import Tooltip from '../../../shared/ui/Tooltip';
 import OnlineStatusIndicator from '../../../shared/ui/OnlineStatusIndicator';
-import SidebarScrollbar from './SidebarScrollbar';
 import { useQueryOnlineStatus } from '@/features/chat/model/usePresence';
 import { useUnreadMessagesCount } from '@/features/chat/model/useUnreadMessagesCount';
 import { useUnreadNotificationsCount } from '../model/useUnreadNotificationsCount';
@@ -59,8 +58,6 @@ export default function MessengerSidebar() {
   const [createMenuPos, setCreateMenuPos] = useState<{ top: number; left: number } | null>(null);
   const createMenuRef = useRef<HTMLDivElement>(null);
   const createMenuPopupRef = useRef<HTMLDivElement>(null);
-  const navRef = useRef<HTMLElement | null>(null);
-  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -151,15 +148,13 @@ export default function MessengerSidebar() {
 
   return (
     <aside
-      onMouseEnter={() => setIsSidebarHovered(true)}
-      onMouseLeave={() => setIsSidebarHovered(false)}
-      className={`group/sidebar fixed top-0 left-0 bottom-0 flex flex-col justify-between py-6 glass-sidebar border-r border-black/10 dark:border-white/10 z-50 transition-all duration-300 ease-in-out ${
+      className={`sidebar-navigation-shell group/sidebar fixed top-0 left-0 bottom-0 flex flex-col justify-between py-6 glass-sidebar border-r border-black/10 dark:border-white/10 z-50 transition-all duration-300 ease-in-out ${
         isSidebarExpanded ? 'w-[220px] px-3' : 'w-16 px-0'
       }`}
     >
       <div className="flex flex-col w-full h-full min-h-0">
         <div
-          className={`relative flex items-center h-12 mb-6 w-full shrink-0 transition-all duration-300 ${
+          className={`relative flex items-center sidebar-navigation-brand h-12 mb-6 w-full shrink-0 transition-all duration-300 ${
             isSidebarExpanded ? 'px-1 justify-between' : 'justify-center'
           }`}
         >
@@ -207,10 +202,7 @@ export default function MessengerSidebar() {
         </div>
 
         <div className="relative flex-1 min-h-0 w-full flex flex-col">
-          <nav
-            ref={navRef}
-            className="flex flex-col gap-1.5 w-full px-0 flex-1 min-h-0 overflow-y-auto overflow-x-hidden sidebar-scrollbar relative py-1"
-          >
+          <nav className="flex flex-col gap-1.5 w-full px-0 flex-1 min-h-0 overflow-y-auto overflow-x-hidden sidebar-scrollbar sidebar-nav relative py-1">
             {menuItems.map((item) => {
               if (item.isAction) {
                 return (
@@ -320,7 +312,6 @@ export default function MessengerSidebar() {
               );
             })}
           </nav>
-          <SidebarScrollbar scrollRef={navRef} isSidebarHovered={isSidebarHovered} />
         </div>
 
         <div className="w-full shrink-0 mt-auto pt-2 flex flex-col">

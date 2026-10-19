@@ -92,6 +92,8 @@ const conversations = {
     ['conversations-search', query, type, conversationId ?? 'all'] as const,
   folders: ['chat-folders'] as const,
   blocked: [BLOCKED_USERS_KEY] as const,
+  blockState: (userId: string) => ['user-block-status', userId] as const,
+  blockMutation: ['user-block'] as const,
 } as const;
 
 const notifications = {

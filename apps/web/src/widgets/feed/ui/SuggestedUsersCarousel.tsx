@@ -1,3 +1,4 @@
+import SkeletonBone from '@/shared/ui/SkeletonBone';
 import { Nameplate } from '@/shared/ui/Nameplate';
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
@@ -100,20 +101,24 @@ export function SuggestedUsersCarousel({
 
   if (isLoading) {
     return (
-      <div className="w-full py-4 flex flex-col gap-3">
+      <div
+        className="w-full py-4 flex flex-col gap-3"
+        role="status"
+        aria-label="Loading suggested users"
+      >
         <div className="flex items-center justify-between px-2">
-          <div className="h-4 w-32 rounded-lg bg-white/5 animate-pulse" />
+          <SkeletonBone className="h-4 w-32 rounded-lg" />
         </div>
         <div className="flex gap-3 overflow-hidden px-1">
           {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
-              className="w-44 h-60 rounded-3xl bg-white/[0.02] border border-white/5 p-4 flex flex-col items-center justify-between animate-pulse shrink-0"
+              className="w-44 h-60 rounded-3xl bg-white/[0.02] border border-white/5 p-4 flex flex-col items-center justify-between shrink-0"
             >
-              <div className="w-16 h-16 rounded-full bg-white/5" />
-              <div className="w-24 h-3.5 rounded bg-white/5" />
-              <div className="w-16 h-2.5 rounded bg-white/5" />
-              <div className="w-full h-8 rounded-full bg-white/5 mt-2" />
+              <SkeletonBone className="w-16 h-16 rounded-full" />
+              <SkeletonBone className="w-24 h-3.5 rounded" />
+              <SkeletonBone className="w-16 h-2.5 rounded" />
+              <SkeletonBone className="w-full h-8 rounded-full mt-2" />
             </div>
           ))}
         </div>

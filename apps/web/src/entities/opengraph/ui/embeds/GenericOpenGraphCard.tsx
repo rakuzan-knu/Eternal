@@ -73,7 +73,7 @@ export const GenericOpenGraphCard: React.FC<GenericOpenGraphCardProps> = ({
       {/* Preview Image with Zero Layout Shift & Broken Image Protection */}
       {showImage && (
         <div className="relative mt-2 aspect-[1.91/1] max-h-40 rounded-lg overflow-hidden bg-white/5 border border-white/5 w-full shrink-0">
-          {!imageLoaded && <div className="absolute inset-0 bg-white/5 animate-pulse" />}
+          {!imageLoaded && <div className="absolute inset-0 bg-white/5 skeleton-shimmer" />}
           <img
             src={sanitizeImageUrl(data.image!)}
             alt={title || 'Link preview'}

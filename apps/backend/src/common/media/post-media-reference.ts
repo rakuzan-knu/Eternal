@@ -7,6 +7,30 @@ import { isCloudflareStorageDomain } from '../storage/storage-url.util';
 
 export type PostMediaReference = { url: string; kind: 'uploaded' | 'gif' };
 
+/** Provider GIFs remain direct client references; never download or rehost them. */
+export function validateProviderGifUrl(value: string): string {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new BadRequestException('Choose a GIF from the picker');
+  }
+  const approvedHost =
+    /^(?:media\d*|i)\.giphy\.com$/.test(url.hostname) ||
+    ['media.tenor.com', 'c.tenor.com'].includes(url.hostname);
+  if (
+    !approvedHost ||
+    url.protocol !== 'https:' ||
+    url.username ||
+    url.password ||
+    url.hash ||
+    url.port
+  ) {
+    throw new BadRequestException('Choose a GIF from the picker');
+  }
+  return value;
+}
+
 async function readBoundedStream(
   stream: AsyncIterable<Uint8Array>,
   maxSize: number,
@@ -36,25 +60,7 @@ export async function readPostMediaReference(
     throw new BadRequestException('Use a verified upload or a GIF from the picker');
   }
   if (reference.kind === 'gif') {
-    const approvedHost =
-      /^(?:media\d*|i)\.giphy\.com$/.test(url.hostname) ||
-      ['media.tenor.com', 'c.tenor.com'].includes(url.hostname);
-    if (!approvedHost || url.protocol !== 'https:' || (url.port && url.port !== '443')) {
-      throw new BadRequestException('Choose a GIF from the picker');
-    }
-    try {
-      const response = await fetch(url, { redirect: 'error', signal: AbortSignal.timeout(10_000) });
-      const maxSize = 10 * 1024 * 1024;
-      if (!response.ok || !response.body) throw new Error('GIF unavailable');
-      if (Number(response.headers.get('content-length')) > maxSize) {
-        await response.body.cancel();
-        throw new BadRequestException('Image size exceeds 10MB limit');
-      }
-      return await readBoundedStream(response.body, maxSize);
-    } catch (error) {
-      if (error instanceof BadRequestException) throw error;
-      throw new BadRequestException('Selected GIF could not be loaded. Choose another GIF');
-    }
+    throw new BadRequestException('Provider GIFs must be used as direct media references');
   }
 
   const publicUrl = (process.env.R2_PUBLIC_URL || storage.publicUrl).replace(/\/+$/, '');

@@ -1,5 +1,5 @@
 import { type Page } from '@playwright/test';
-import { mockApi } from '../fixtures';
+import { expect, mockApi } from '../fixtures';
 
 export type Screen = 'feed' | 'profile' | 'chat';
 export type ScreenState = 'content' | 'empty' | 'error';
@@ -80,7 +80,10 @@ export async function prepareScreen(page: Page, screen: Screen, state: ScreenSta
   await page.routeWebSocket('**/*', (socket) => socket.close());
   await page.route('**/*', (route) => {
     const url = new URL(route.request().url());
-    if (url.hostname === '127.0.0.1' && url.port === '6007') return route.continue();
+    if (url.hostname === '127.0.0.1' && url.port === '6007') {
+      // Let the authenticated fixture answer first-party API rewrites as well as direct API origins.
+      return url.pathname.startsWith('/v1/') ? route.fallback() : route.continue();
+    }
     if (['127.0.0.1', 'localhost'].includes(url.hostname) && url.port === '3000')
       return route.fallback();
     return route.abort();
@@ -99,6 +102,7 @@ export async function prepareScreen(page: Page, screen: Screen, state: ScreenSta
   await mockApi(page, '/conversations/page**', { json: conversationPageResponse });
   await mockApi(page, '/conversations/unread-count', { json: { count: 0 } });
   await mockApi(page, '/conversations/folders', { json: [] });
+  await mockApi(page, '/conversations/users/blocked', { json: [] });
   await mockApi(page, '/posts?**', { json: { posts: [post], nextCursor: null } });
   if (screen === 'feed') {
     await mockApi(
@@ -149,6 +153,14 @@ export async function prepareScreen(page: Page, screen: Screen, state: ScreenSta
       : { json: { data: state === 'empty' ? [] : [message], hasMore: false, nextCursor: null } },
   );
   return '/messages/design-conversation';
+}
+
+/** Screenshots show settled account controls, independently of the held content request. */
+export async function waitForScreenChrome(page: Page) {
+  await expect(page.getByRole('button', { name: 'Loading...', exact: true })).toHaveCount(0);
+  if ((page.viewportSize()?.width ?? 1280) >= 1024) {
+    await expect(page.getByLabel('Online', { exact: true }).first()).toBeVisible();
+  }
 }
 
 export async function recoverScreen(page: Page, screen: 'feed' | 'chat') {

@@ -95,6 +95,8 @@ describe('StoriesBar', () => {
     } as any);
 
     render(<StoriesBar />, { wrapper: createWrapper() });
-    expect(document.querySelector('.animate-pulse')).toBeInTheDocument();
+    const loading = screen.getByRole('status', { name: 'Loading stories' });
+    expect(loading).toBeVisible();
+    expect(loading.querySelector('.skeleton-shimmer')).toBeInTheDocument();
   });
 });

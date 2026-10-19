@@ -5,7 +5,12 @@ import { MemoryRouter } from 'react-router-dom';
 import { FollowButton } from '../FollowButton';
 import * as useFollowMutationModule from '../../model/useFollowMutation';
 import { useAuthStore } from '@/shared/model/useAuthStore';
-import { chatApi } from '@/entities/chat';
+import { chatApi, useUserBlockStatus } from '@/entities/chat';
+
+vi.mock('@/entities/chat', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/entities/chat')>()),
+  useUserBlockStatus: vi.fn(),
+}));
 
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
@@ -25,6 +30,12 @@ describe('FollowButton', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(useUserBlockStatus).mockReturnValue({
+      blockedByMe: false,
+      isBlocked: false,
+      isPending: false,
+      isLoading: false,
+    });
     useAuthStore.setState({ userId: 'my-user-id', isAuthenticated: true });
     vi.spyOn(useFollowMutationModule, 'useFollowMutation').mockReturnValue({
       mutate: mockMutate,
@@ -53,6 +64,32 @@ describe('FollowButton', () => {
     expect(btn).toBeInTheDocument();
     expect(btn.className).toContain('min-w-[94px]');
     expect(btn.className).toContain('whitespace-nowrap');
+  });
+
+  it.each([
+    { blockedByMe: true, isBlocked: true, isPending: false, isLoading: false, label: 'Blocked' },
+    {
+      blockedByMe: false,
+      isBlocked: true,
+      isPending: false,
+      isLoading: false,
+      label: 'Unavailable',
+    },
+    {
+      blockedByMe: false,
+      isBlocked: false,
+      isPending: true,
+      isLoading: false,
+      label: 'Updating...',
+    },
+  ])('prevents following while $label', ({ label, ...status }) => {
+    vi.mocked(useUserBlockStatus).mockReturnValue(status);
+    renderComponent({ authorId: 'user-1', isFollowing: true, isFriend: true });
+    const button = screen.getByRole('button', { name: label });
+    expect(button).toBeDisabled();
+    fireEvent.click(button);
+    expect(mockMutate).not.toHaveBeenCalled();
+    expect(screen.queryByText('Send message')).not.toBeInTheDocument();
   });
 
   it('renders "Following" when following a one-way user', () => {

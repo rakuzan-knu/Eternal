@@ -96,7 +96,9 @@ describe('UserListModal', () => {
       </QueryClientProvider>,
     );
 
-    expect(document.querySelector('.animate-pulse')).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Loading users' })).toBeInTheDocument();
+    expect(document.querySelectorAll('.skeleton-shimmer')).toHaveLength(24);
+    expect(document.querySelector('.animate-pulse')).not.toBeInTheDocument();
 
     // Now empty state
     vi.spyOn(useFollowListModule, 'useFollowList').mockReturnValue({

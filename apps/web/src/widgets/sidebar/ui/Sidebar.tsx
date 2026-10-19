@@ -26,7 +26,6 @@ import OnlineStatusIndicator from '../../../shared/ui/OnlineStatusIndicator';
 import { useQueryOnlineStatus } from '@/features/chat/model/usePresence';
 import { useUnreadMessagesCount } from '@/features/chat/model/useUnreadMessagesCount';
 import { useUnreadNotificationsCount } from '../model/useUnreadNotificationsCount';
-import { SidebarScrollbar } from './SidebarScrollbar';
 import { Nameplate } from '@/shared/ui/Nameplate';
 import { useActiveDecorationStore } from '@/shared/model/useActiveDecorationStore';
 
@@ -57,8 +56,6 @@ export default function Sidebar() {
   const [isCreateMenuOpen, setIsCreateMenuOpen] = useState(false);
   const [createMenuPos, setCreateMenuPos] = useState<{ top: number; left: number } | null>(null);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
-  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
-  const navRef = useRef<HTMLElement | null>(null);
   const createMenuRef = useRef<HTMLDivElement>(null);
   const createMenuPopupRef = useRef<HTMLDivElement>(null);
 
@@ -82,7 +79,6 @@ export default function Sidebar() {
   };
 
   const handleMouseEnter = (e: React.MouseEvent) => {
-    setIsSidebarHovered(true);
     if (leaveTimerRef.current) {
       clearTimeout(leaveTimerRef.current);
       leaveTimerRef.current = null;
@@ -135,7 +131,6 @@ export default function Sidebar() {
   };
 
   const handleMouseLeave = () => {
-    setIsSidebarHovered(false);
     if (enterTimerRef.current) {
       clearTimeout(enterTimerRef.current);
       enterTimerRef.current = null;
@@ -298,13 +293,13 @@ export default function Sidebar() {
         onMouseEnter={handleMouseEnter}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
-        className={`group/sidebar glass-sidebar fixed top-4 left-4 h-[calc(100vh-2rem)] border border-black/10 dark:border-white/8 flex flex-col justify-between py-6 z-50 ease-out transition-[width,padding,border-radius,background-color] duration-200 motion-reduce:transition-none ${
+        className={`sidebar-navigation-shell group/sidebar glass-sidebar fixed top-4 left-4 h-[calc(100vh-2rem)] border border-black/10 dark:border-white/8 flex flex-col justify-between py-6 z-50 ease-out transition-[width,padding,border-radius,background-color] duration-200 motion-reduce:transition-none ${
           isSidebarExpanded ? 'w-[256px] px-4 rounded-4xl' : 'w-20 px-0 rounded-[2.5rem]'
-        } ${isReels || !isSidebarExpanded ? 'max-md:hidden' : 'max-md:top-20 max-md:h-[calc(100vh-6rem)] max-md:overflow-y-auto'}`}
+        } ${isReels || !isSidebarExpanded ? 'max-md:hidden' : 'max-md:top-20 max-md:h-[calc(100vh-6rem)] max-md:overflow-y-auto scrollbar-none'}`}
       >
         <div className="flex flex-col w-full h-full min-h-0">
           <div
-            className={`flex items-center h-12 mb-6 overflow-hidden w-full transition-all duration-200 shrink-0 ${
+            className={`flex items-center sidebar-navigation-brand h-12 mb-6 overflow-hidden w-full transition-all duration-200 shrink-0 ${
               isSidebarExpanded ? 'px-4' : 'justify-center'
             }`}
           >
@@ -325,10 +320,7 @@ export default function Sidebar() {
           </div>
 
           <div className="relative flex-1 min-h-0 w-full flex flex-col">
-            <nav
-              ref={navRef}
-              className="flex flex-col gap-2 w-full px-2 flex-1 min-h-0 overflow-y-auto overflow-x-hidden sidebar-scrollbar relative py-1"
-            >
+            <nav className="flex flex-col gap-2 w-full px-2 flex-1 min-h-0 overflow-y-auto overflow-x-hidden sidebar-scrollbar sidebar-nav relative py-1">
               {menuItems.map((item) => {
                 if (item.isAction) {
                   return (
@@ -451,7 +443,6 @@ export default function Sidebar() {
                 );
               })}
             </nav>
-            <SidebarScrollbar scrollRef={navRef} isSidebarHovered={isSidebarHovered} />
           </div>
 
           <div className="w-full shrink-0 mt-auto pt-2 flex flex-col">

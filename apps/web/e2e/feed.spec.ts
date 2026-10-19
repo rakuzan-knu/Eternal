@@ -99,18 +99,119 @@ test.describe('Feed (authenticated, mocked API)', () => {
       const loading = page.getByRole('status', { name: 'Loading profile', exact: true });
       await expect(loading).toBeVisible();
       const bone = loading.locator('.skeleton-shimmer').first();
-      expect(await bone.evaluate((element) => getComputedStyle(element).animationName)).toBe(
-        'shimmer',
-      );
+      expect(
+        await bone.evaluate((element) => getComputedStyle(element, '::after').animationName),
+      ).toBe('skeleton-wave');
       const initialPosition = await bone.evaluate(
-        (element) => getComputedStyle(element).backgroundPosition,
+        (element) => getComputedStyle(element, '::after').transform,
       );
       await expect
-        .poll(() => bone.evaluate((element) => getComputedStyle(element).backgroundPosition))
+        .poll(() => bone.evaluate((element) => getComputedStyle(element, '::after').transform))
         .not.toBe(initialPosition);
+      await page.screenshot({ path: 'test-results/skeleton-wave.png' });
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      expect(
+        await bone.evaluate((element) => getComputedStyle(element, '::after').animationName),
+      ).toBe('none');
     } finally {
       releaseProfile();
     }
+  });
+
+  test('full animation preference restores loading motion under a reduced-motion device setting', async ({
+    authenticatedPage: page,
+  }) => {
+    await page.addInitScript(() => localStorage.setItem('eternal-motion', 'full'));
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    let releaseProfile = () => {};
+    const pendingProfile = new Promise<void>((resolve) => {
+      releaseProfile = resolve;
+    });
+    await page.route('**/users/by-username/alice', async (route) => {
+      await pendingProfile;
+      await route.abort();
+    });
+    try {
+      await page.goto('/');
+      await expect(page.locator('html')).toHaveAttribute('data-motion', 'full');
+      await page
+        .locator('#post-post-1')
+        .getByRole('link', { name: 'Alice Mock', exact: true })
+        .hover();
+      const loading = page.getByRole('status', { name: 'Loading profile', exact: true });
+      await expect(loading).toBeVisible();
+      const avatar = loading.locator('.skeleton-shimmer').first();
+      expect(await avatar.evaluate((el) => getComputedStyle(el, '::after').animationName)).toBe(
+        'skeleton-wave',
+      );
+      expect(
+        await avatar.evaluate(
+          (el) =>
+            parseFloat(getComputedStyle(el).borderRadius) >= el.getBoundingClientRect().height / 2,
+        ),
+      ).toBe(true);
+      const first = await avatar.evaluate((el) => getComputedStyle(el, '::after').transform);
+      await expect
+        .poll(() => avatar.evaluate((el) => getComputedStyle(el, '::after').transform))
+        .not.toBe(first);
+      await page.screenshot({ path: 'test-results/loading-motion-full.png' });
+    } finally {
+      releaseProfile();
+    }
+  });
+
+  test('sidebar navigation fits laptop height without an overlay scrollbar', async ({
+    authenticatedPage: page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 674 });
+    await page.goto('/');
+    await expect(page.getByText('Hello from the mocked feed!')).toBeVisible();
+    const nav = page.locator('#app-navigation .sidebar-nav');
+    await expect(nav).toBeVisible();
+    expect(await nav.evaluate((el) => el.scrollHeight <= el.clientHeight + 1)).toBe(true);
+    expect(await nav.evaluate((el) => getComputedStyle(el).scrollbarWidth)).toBe('none');
+    expect(await nav.evaluate((el) => el.parentElement?.children.length)).toBe(1);
+    await page.setViewportSize({ width: 1280, height: 480 });
+    await nav.getByRole('link', { name: 'Shop', exact: true }).focus();
+    await expect(nav.getByRole('link', { name: 'Shop', exact: true })).toBeInViewport();
+  });
+
+  test('GIF picker searches the provider and attaches a selection without publishing', async ({
+    authenticatedPage: page,
+  }) => {
+    await page.route('https://api.giphy.com/v1/gifs/**', async (route) => {
+      const search = new URL(route.request().url()).searchParams.get('q');
+      await route.fulfill({
+        json: {
+          data: [
+            {
+              id: search ? 'dog' : 'cat',
+              title: search ? 'Dancing dog' : 'Happy cat',
+              images: {
+                original: {
+                  url: `https://media1.giphy.com/${search ? 'dog' : 'cat'}.gif?cid=selection`,
+                },
+                fixed_width_small: { url: 'https://media2.giphy.com/preview.gif' },
+              },
+            },
+          ],
+          pagination: { total_count: 1 },
+        },
+      });
+    });
+    await page.goto('/');
+    await page.getByTitle('Add GIF', { exact: true }).first().click();
+    const picker = page.getByRole('dialog', { name: 'GIF picker' });
+    await expect(picker.getByRole('button', { name: 'Select Happy cat' })).toBeVisible();
+    await picker.getByRole('searchbox', { name: 'Search GIFs' }).fill('dancing dog');
+    const dog = picker.getByRole('button', { name: 'Select Dancing dog' });
+    await expect(dog).toBeVisible();
+    await page.screenshot({ path: 'test-results/gif-picker.png' });
+    await dog.click();
+    await expect(picker).toBeHidden();
+    await expect(
+      page.locator('img[src="https://media1.giphy.com/dog.gif?cid=selection"]'),
+    ).toBeVisible();
   });
 
   test('comment Report is red and options dismiss on outside input or Escape', async ({

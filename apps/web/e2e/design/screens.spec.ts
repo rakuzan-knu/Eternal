@@ -4,6 +4,7 @@ import {
   postText,
   prepareScreen,
   recoverScreen,
+  waitForScreenChrome,
   type Screen,
 } from './screen-fixtures';
 import { auditReadability } from './readability';
@@ -67,6 +68,7 @@ for (const screen of ['feed', 'profile', 'chat'] as const) {
         expect(sendBounds!.x + sendBounds!.width).toBeLessThanOrEqual(layout.width);
         await field.fill('');
       }
+      await waitForScreenChrome(page);
       await page.evaluate(() => document.fonts.ready);
       if (screen === 'feed' && layout.width >= 1024) {
         await expect(
@@ -114,6 +116,7 @@ for (const screen of ['feed', 'profile', 'chat'] as const) {
           }),
         ).toBeVisible();
       }
+      await waitForScreenChrome(page);
       await expect(page).toHaveScreenshot(`${screen}-${state}.png`);
     });
   }
