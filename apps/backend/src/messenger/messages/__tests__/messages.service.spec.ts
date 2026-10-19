@@ -76,6 +76,7 @@ describe('MessagesService', () => {
   let mockConfigService: {
     get: jest.Mock;
   };
+  let assertOwnedUrl: jest.Mock;
 
   const sampleMsg = {
     id: 'msg-1',
@@ -178,10 +179,11 @@ describe('MessagesService', () => {
       mockPrisma as unknown as PrismaService,
       mockConfigService as unknown as ConfigService,
     );
+    assertOwnedUrl = jest.fn().mockResolvedValue(undefined);
     Object.assign(service, {
       directUploads: {
         assertLegacyAllowed: jest.fn(),
-        assertOwnedUrl: jest.fn().mockResolvedValue(undefined),
+        assertOwnedUrl,
         resolve: jest.fn().mockResolvedValue({
           uploadId: 'completed-id',
           url: 'https://example.com/source.mp4',
@@ -223,6 +225,92 @@ describe('MessagesService', () => {
   });
 
   describe('send message and validations', () => {
+    it.each([
+      'https://media0.giphy.com/media/example/giphy.gif?cid=tracking&rid=giphy.gif',
+      'https://media1.giphy.com/media/example/giphy.gif',
+      'https://media22.giphy.com/media/example/giphy.gif',
+      'https://media.giphy.com/media/example/giphy.gif',
+      'https://i.giphy.com/media/example/giphy.gif',
+      'https://media.giphy.com:443/media/example/giphy.gif',
+      'https://media.tenor.com/example/tenor.gif',
+    ])('accepts an official GIF provider URL unchanged: %s', async (url) => {
+      await service.send('conv-1', 'usr-1', {
+        conversationId: 'conv-1',
+        messageType: MessageType.TEXT,
+        attachments: [{ type: AttachmentType.GIF, url }],
+      });
+
+      expect(assertOwnedUrl).not.toHaveBeenCalled();
+      expect(mockPrisma.message.create.mock.calls).toMatchObject([
+        [
+          {
+            data: {
+              messageType: MessageType.GIF,
+              attachments: { create: [{ url }] },
+            },
+          },
+        ],
+      ]);
+    });
+
+    it.each([
+      'https://media0.giphy.com.evil.example/media/example.gif',
+      'https://evilmedia0.giphy.com/media/example.gif',
+      'https://media0.evil.giphy.com/media/example.gif',
+      'https://mediax.giphy.com/media/example.gif',
+      'http://media0.giphy.com/media/example.gif',
+      'https://user@media0.giphy.com/media/example.gif',
+      'https://:password@media1.giphy.com/media/example.gif',
+      'https://media0.giphy.com:8443/media/example.gif',
+      'https://media.tenor.com.evil.example/example.gif',
+      'http://media.tenor.com/example.gif',
+      'not a URL',
+    ])('requires upload ownership for an untrusted GIF URL: %s', async (url) => {
+      assertOwnedUrl.mockRejectedValueOnce(new BadRequestException('Unowned media URL'));
+
+      await expect(
+        service.send('conv-1', 'usr-1', {
+          conversationId: 'conv-1',
+          messageType: MessageType.TEXT,
+          attachments: [{ type: AttachmentType.GIF, url }],
+        }),
+      ).rejects.toThrow('Unowned media URL');
+
+      expect(assertOwnedUrl).toHaveBeenCalledWith('usr-1', url, 'chat', 'conv-1');
+      expect(mockPrisma.message.create).not.toHaveBeenCalled();
+    });
+
+    it('requires upload ownership for non-GIF attachments even on a provider domain', async () => {
+      const url = 'https://media0.giphy.com/media/example/giphy.gif';
+      assertOwnedUrl.mockRejectedValueOnce(new BadRequestException('Unowned media URL'));
+
+      await expect(
+        service.send('conv-1', 'usr-1', {
+          conversationId: 'conv-1',
+          messageType: MessageType.TEXT,
+          attachments: [{ type: AttachmentType.IMAGE, url }],
+        }),
+      ).rejects.toThrow('Unowned media URL');
+      expect(assertOwnedUrl).toHaveBeenCalledWith('usr-1', url, 'chat', 'conv-1');
+      expect(mockPrisma.message.create).not.toHaveBeenCalled();
+    });
+
+    it('rejects unauthorized senders before accepting provider GIFs', async () => {
+      mockConvsRepo.findParticipant.mockResolvedValueOnce(null);
+
+      await expect(
+        service.send('conv-1', 'usr-1', {
+          conversationId: 'conv-1',
+          messageType: MessageType.TEXT,
+          attachments: [
+            { type: AttachmentType.GIF, url: 'https://media0.giphy.com/media/example/giphy.gif' },
+          ],
+        }),
+      ).rejects.toThrow(ForbiddenException);
+      expect(assertOwnedUrl).not.toHaveBeenCalled();
+      expect(mockPrisma.message.create).not.toHaveBeenCalled();
+    });
+
     it('sends text and attachment message', async () => {
       const res = await service.send('conv-1', 'usr-1', {
         conversationId: 'conv-1',

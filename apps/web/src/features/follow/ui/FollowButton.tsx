@@ -2,9 +2,8 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { MessageSquare, UserMinus, ChevronDown } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
 import { useFollowMutation } from '../model/useFollowMutation';
-import { chatApi } from '@/entities/chat';
+import { chatApi, useUserBlockStatus } from '@/entities/chat';
 
 import { useAuthStore } from '@/shared/model/useAuthStore';
 import { useCurrentUser } from '@/entities/profile/model/useCurrentUser';
@@ -37,6 +36,7 @@ export function FollowButton({
   const menuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
+  const blockStatus = useUserBlockStatus(authorId);
   const isPending = followStatus?.toLowerCase() === 'pending';
   const effectiveIsFollowing = isFollowing || followStatus?.toLowerCase() === 'following';
   const mutation = useFollowMutation(authorId, effectiveIsFollowing || isPending);
@@ -120,6 +120,7 @@ export function FollowButton({
 
   const handleMainClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (blockStatus.isBlocked || blockStatus.isPending) return;
     if (isMutual) {
       // Toggle dropdown menu for mutual friends instead of jarring instant unfollow
       if (!isMenuOpen) {
@@ -153,6 +154,9 @@ export function FollowButton({
   };
 
   const getLabel = () => {
+    if (blockStatus.isPending) return 'Updating...';
+    if (blockStatus.isLoading) return 'Loading...';
+    if (blockStatus.isBlocked) return blockStatus.blockedByMe ? 'Blocked' : 'Unavailable';
     if (isPending) return isHovered ? 'Cancel' : 'Requested';
     if (!effectiveIsFollowing) return 'Follow';
     if (isMutual) return 'Friends';
@@ -167,7 +171,12 @@ export function FollowButton({
         onClick={handleMainClick}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        disabled={mutation.isPending}
+        disabled={
+          mutation.isPending ||
+          blockStatus.isBlocked ||
+          blockStatus.isPending ||
+          blockStatus.isLoading
+        }
         className={`min-w-[94px] w-auto whitespace-nowrap text-xs font-semibold px-3.5 py-1.5 rounded-full border transition-all duration-200 ease-out cursor-pointer disabled:opacity-40 select-none flex items-center justify-center gap-1 active:scale-95 hover:-translate-y-0.5 ${
           effectiveIsFollowing || isPending
             ? isMutual
@@ -197,6 +206,8 @@ export function FollowButton({
       {typeof document !== 'undefined' &&
         isMenuOpen &&
         isMutual &&
+        !blockStatus.isBlocked &&
+        !blockStatus.isPending &&
         createPortal(
           <div
             ref={menuRef}
