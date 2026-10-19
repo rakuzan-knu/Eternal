@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useId } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { Share2, LayoutGrid, Radio, Bookmark, Music, Pause } from 'lucide-react';
+import SkeletonBone from '@/shared/ui/SkeletonBone';
 import { DiscordGamepadIcon } from '@/shared/ui/BrandIcons';
 import { isMusicActivity, isGamingActivity } from '@/shared/ui/activityIcons';
 import { usePresenceStore } from '@/shared/model/usePresenceStore';
@@ -42,10 +43,10 @@ const DEFAULT_BOARD_WIDGET_ORDER = ['spotlight', 'media', 'meta'];
 
 export function ShowcaseSidebarSkeleton() {
   return (
-    <div className="w-full flex flex-col gap-4 animate-pulse">
-      <div className="h-16 rounded-2xl bg-white/3 border border-white/6" />
-      <div className="h-44 rounded-3xl bg-white/3 border border-white/6" />
-      <div className="h-40 rounded-3xl bg-white/3 border border-white/6" />
+    <div className="w-full flex flex-col gap-4">
+      <SkeletonBone className="h-16 rounded-2xl bg-white/3 border border-white/6" />
+      <SkeletonBone className="h-44 rounded-3xl bg-white/3 border border-white/6" />
+      <SkeletonBone className="h-40 rounded-3xl bg-white/3 border border-white/6" />
     </div>
   );
 }
@@ -56,6 +57,7 @@ export const ProfileShowcaseSidebar: React.FC<ProfileShowcaseSidebarProps> = ({
   isOwner,
   variant = 'desktop',
 }) => {
+  const tabLayoutId = useId();
   const { data: showcase, isLoading } = useShowcase(username);
   const { data: userData } = useUserByUsername(username);
   const updateShowcaseMutation = useUpdateShowcase();
@@ -360,7 +362,7 @@ export const ProfileShowcaseSidebar: React.FC<ProfileShowcaseSidebarProps> = ({
             >
               {isActive && (
                 <motion.div
-                  layoutId="activeShowcaseTab"
+                  layoutId={`${tabLayoutId}-activeShowcaseTab`}
                   transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
                   className="absolute inset-0 rounded-xl bg-white shadow-sm border border-black/10 dark:bg-white/[0.14] dark:border-white/20 dark:shadow-md"
                 />

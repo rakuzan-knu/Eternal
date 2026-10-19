@@ -4189,7 +4189,7 @@
         "apps/web/src/widgets/profile/showcase/ProfileAnthemCard.tsx:259",
         "apps/web/src/widgets/profile/showcase/ProfileAnthemCard.tsx:265",
         "apps/web/src/widgets/profile/showcase/ProfileAnthemCard.tsx:299",
-        "apps/web/src/widgets/profile/showcase/ProfileShowcaseSidebar.tsx:270",
+        "apps/web/src/widgets/profile/showcase/ProfileShowcaseSidebar.tsx:272",
         "apps/web/src/widgets/profile/showcase/ShowcaseQuickEditor.tsx:1292",
         "apps/web/src/widgets/profile/showcase/ShowcaseQuickEditor.tsx:1315",
         "apps/web/src/widgets/sidebar/ui/OnlineFriendsSidebar.tsx:176",
@@ -5037,7 +5037,7 @@
         "apps/web/src/widgets/profile/showcase/LivePresenceWidget.tsx:707",
         "apps/web/src/widgets/profile/showcase/LivePresenceWidget.tsx:708",
         "apps/web/src/widgets/profile/showcase/LivePresenceWidget.tsx:709",
-        "apps/web/src/widgets/profile/showcase/ProfileShowcaseSidebar.tsx:261",
+        "apps/web/src/widgets/profile/showcase/ProfileShowcaseSidebar.tsx:263",
         "apps/web/src/widgets/sidebar/ui/OnlineFriendsSidebar.tsx:158",
         "apps/web/src/widgets/sidebar/ui/OnlineFriendsSidebar.tsx:350",
         "apps/web/src/widgets/sidebar/ui/OnlineFriendsSidebar.tsx:351"
@@ -197698,7 +197698,6 @@
         "absolute",
         "active:scale-98",
         "animate-fadeIn",
-        "animate-pulse",
         "bg-black/5",
         "bg-white",
         "bg-white/2",
@@ -197798,312 +197797,312 @@
       "colorLiterals": ["#1DB954", "#23a55a"],
       "presentation": [
         {
-          "line": 45,
-          "attribute": "className",
-          "expression": "\"w-full flex flex-col gap-4 animate-pulse\""
-        },
-        {
           "line": 46,
           "attribute": "className",
-          "expression": "\"h-16 rounded-2xl bg-white/3 border border-white/6\""
+          "expression": "\"w-full flex flex-col gap-4\""
         },
         {
           "line": 47,
           "attribute": "className",
-          "expression": "\"h-44 rounded-3xl bg-white/3 border border-white/6\""
+          "expression": "\"h-16 rounded-2xl bg-white/3 border border-white/6\""
         },
         {
           "line": 48,
           "attribute": "className",
+          "expression": "\"h-44 rounded-3xl bg-white/3 border border-white/6\""
+        },
+        {
+          "line": 49,
+          "attribute": "className",
           "expression": "\"h-40 rounded-3xl bg-white/3 border border-white/6\""
         },
         {
-          "line": 155,
+          "line": 157,
           "attribute": "className",
           "expression": "{\n            variant === 'desktop'\n              ? 'w-[320px] xl:w-90 shrink-0 hidden lg:flex flex-col gap-4 sticky top-6 self-start'\n              : 'w-full flex flex-col gap-4 mb-6 lg:hidden'\n          }"
         },
         {
-          "line": 254,
+          "line": 256,
           "attribute": "size",
           "expression": "{13}"
         },
         {
-          "line": 260,
+          "line": 262,
           "attribute": "size",
           "expression": "{14}"
         },
         {
-          "line": 261,
+          "line": 263,
           "attribute": "className",
           "expression": "\"text-[#23a55a] drop-shadow-[0_0_5px_rgba(35,165,90,0.8)]\""
         },
         {
-          "line": 266,
+          "line": 268,
           "attribute": "size",
           "expression": "{13}"
         },
         {
-          "line": 267,
+          "line": 269,
           "attribute": "className",
           "expression": "\"text-amber-400 drop-shadow-[0_0_5px_rgba(245,158,11,0.8)] fill-amber-400/40\""
         },
         {
-          "line": 270,
+          "line": 272,
           "attribute": "size",
           "expression": "{13}"
         },
         {
-          "line": 270,
+          "line": 272,
           "attribute": "className",
           "expression": "\"text-[#1DB954] drop-shadow-[0_0_5px_rgba(29,185,84,0.8)]\""
         },
         {
-          "line": 273,
+          "line": 275,
           "attribute": "size",
           "expression": "{13}"
         },
         {
-          "line": 276,
+          "line": 278,
           "attribute": "size",
           "expression": "{13}"
         },
         {
-          "line": 347,
+          "line": 349,
           "attribute": "className",
           "expression": "\"glass-panel relative flex flex-wrap items-center p-1 rounded-2xl border border-black/10 dark:border-white/8 shadow-inner mb-2\""
         },
         {
-          "line": 355,
+          "line": 357,
           "attribute": "className",
           "expression": "{`relative flex-1 min-w-max flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-xs font-bold transition-colors z-10 cursor-pointer ${\n                isActive\n                  ? 'text-gray-900 dark:text-white'\n                  : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'\n              }`}"
         },
         {
-          "line": 363,
+          "line": 365,
           "attribute": "layoutId",
-          "expression": "\"activeShowcaseTab\""
+          "expression": "{`${tabLayoutId}-activeShowcaseTab`}"
         },
         {
-          "line": 364,
+          "line": 366,
           "attribute": "transition",
           "expression": "{{ type: 'spring', bounce: 0.2, duration: 0.6 }}"
         },
         {
-          "line": 365,
+          "line": 367,
           "attribute": "className",
           "expression": "\"absolute inset-0 rounded-xl bg-white shadow-sm border border-black/10 dark:bg-white/[0.14] dark:border-white/20 dark:shadow-md\""
         },
         {
-          "line": 368,
+          "line": 370,
           "attribute": "className",
           "expression": "\"relative z-10\""
         },
         {
-          "line": 369,
+          "line": 371,
           "attribute": "className",
           "expression": "\"relative z-10\""
         },
         {
-          "line": 377,
+          "line": 379,
           "attribute": "className",
           "expression": "\"flex items-center justify-between px-1 mb-1\""
         },
         {
-          "line": 378,
+          "line": 380,
           "attribute": "className",
           "expression": "\"text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider\""
         },
         {
-          "line": 384,
+          "line": 386,
           "attribute": "className",
           "expression": "\"flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/5 hover:bg-black/10 dark:bg-white/6 dark:hover:bg-white/12 border border-black/10 dark:border-white/8 hover:border-black/20 dark:hover:border-white/20 text-xs font-semibold text-gray-900 dark:text-white transition-all cursor-pointer shadow-sm hover:scale-102 active:scale-98\""
         },
         {
-          "line": 386,
+          "line": 388,
           "attribute": "className",
           "expression": "\"text-indigo-500 dark:text-indigo-400 font-bold\""
         },
         {
-          "line": 397,
+          "line": 399,
           "attribute": "initial",
           "expression": "{{ opacity: 0, y: 6 }}"
         },
         {
-          "line": 398,
+          "line": 400,
           "attribute": "animate",
           "expression": "{{ opacity: 1, y: 0 }}"
         },
         {
-          "line": 399,
+          "line": 401,
           "attribute": "exit",
           "expression": "{{ opacity: 0, y: -6 }}"
         },
         {
-          "line": 400,
+          "line": 402,
           "attribute": "transition",
           "expression": "{{ duration: 0.2 }}"
         },
         {
-          "line": 401,
+          "line": 403,
           "attribute": "className",
           "expression": "\"flex flex-col gap-4\""
         },
         {
-          "line": 408,
+          "line": 410,
           "attribute": "className",
           "expression": "\"flex flex-col gap-4\""
         },
         {
-          "line": 413,
+          "line": 415,
           "attribute": "className",
           "expression": "\"flex flex-col gap-4\""
         },
         {
-          "line": 417,
+          "line": 419,
           "attribute": "className",
           "expression": "\"flex flex-col items-center justify-center py-12 px-4 text-center rounded-3xl bg-white/2 border border-white/6 shadow-sm\""
         },
         {
-          "line": 418,
+          "line": 420,
           "attribute": "className",
           "expression": "\"w-10 h-10 rounded-2xl bg-white/4 border border-white/8 flex items-center justify-center text-gray-400 mb-2.5\""
         },
         {
-          "line": 419,
+          "line": 421,
           "attribute": "size",
           "expression": "{18}"
-        },
-        {
-          "line": 419,
-          "attribute": "className",
-          "expression": "\"opacity-50 text-gray-400\""
         },
         {
           "line": 421,
           "attribute": "className",
+          "expression": "\"opacity-50 text-gray-400\""
+        },
+        {
+          "line": 423,
+          "attribute": "className",
           "expression": "\"text-xs font-medium text-gray-400\""
         },
         {
-          "line": 430,
+          "line": 432,
           "attribute": "initial",
           "expression": "{{ opacity: 0, y: 6 }}"
         },
         {
-          "line": 431,
+          "line": 433,
           "attribute": "animate",
           "expression": "{{ opacity: 1, y: 0 }}"
         },
         {
-          "line": 432,
+          "line": 434,
           "attribute": "exit",
           "expression": "{{ opacity: 0, y: -6 }}"
         },
         {
-          "line": 433,
+          "line": 435,
           "attribute": "transition",
           "expression": "{{ duration: 0.2 }}"
         },
         {
-          "line": 434,
+          "line": 436,
           "attribute": "className",
           "expression": "\"flex flex-col gap-4\""
         },
         {
-          "line": 446,
+          "line": 448,
           "attribute": "className",
           "expression": "\"flex flex-col items-center justify-center py-12 px-4 text-center rounded-3xl bg-white/2 border border-white/6 shadow-sm\""
         },
         {
-          "line": 447,
+          "line": 449,
           "attribute": "className",
           "expression": "\"w-10 h-10 rounded-2xl bg-white/4 border border-white/8 flex items-center justify-center text-gray-400 mb-2.5\""
         },
         {
-          "line": 448,
+          "line": 450,
           "attribute": "size",
           "expression": "{18}"
-        },
-        {
-          "line": 448,
-          "attribute": "className",
-          "expression": "\"opacity-50 text-gray-400\""
         },
         {
           "line": 450,
           "attribute": "className",
+          "expression": "\"opacity-50 text-gray-400\""
+        },
+        {
+          "line": 452,
+          "attribute": "className",
           "expression": "\"text-xs font-medium text-gray-400\""
         },
         {
-          "line": 459,
+          "line": 461,
           "attribute": "initial",
           "expression": "{{ opacity: 0, y: 6 }}"
         },
         {
-          "line": 460,
+          "line": 462,
           "attribute": "animate",
           "expression": "{{ opacity: 1, y: 0 }}"
         },
         {
-          "line": 461,
+          "line": 463,
           "attribute": "exit",
           "expression": "{{ opacity: 0, y: -6 }}"
         },
         {
-          "line": 462,
+          "line": 464,
           "attribute": "transition",
           "expression": "{{ duration: 0.2 }}"
         },
         {
-          "line": 463,
+          "line": 465,
           "attribute": "className",
           "expression": "\"flex flex-col gap-4\""
         },
         {
-          "line": 477,
+          "line": 479,
           "attribute": "className",
           "expression": "\"flex flex-col items-center justify-center py-12 px-4 text-center rounded-3xl bg-white/2 border border-white/6 shadow-sm\""
         },
         {
-          "line": 478,
+          "line": 480,
           "attribute": "className",
           "expression": "\"w-10 h-10 rounded-2xl bg-white/4 border border-white/8 flex items-center justify-center text-gray-400 mb-2.5\""
         },
         {
-          "line": 479,
+          "line": 481,
           "attribute": "size",
           "expression": "{18}"
         },
         {
-          "line": 479,
+          "line": 481,
           "attribute": "className",
           "expression": "\"opacity-50 text-gray-400\""
         },
         {
-          "line": 481,
+          "line": 483,
           "attribute": "className",
           "expression": "\"text-xs font-medium text-gray-400\""
         },
         {
-          "line": 493,
+          "line": 495,
           "attribute": "className",
           "expression": "\"glass-card w-full py-2.5 rounded-2xl border border-black/10 dark:border-white/10 hover:border-black/20 dark:hover:border-white/20 text-xs font-semibold text-gray-800 dark:text-gray-200 hover:text-gray-950 dark:hover:text-white flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm mt-1\""
         },
         {
-          "line": 495,
+          "line": 497,
           "attribute": "size",
           "expression": "{13}"
         },
         {
-          "line": 495,
+          "line": 497,
           "attribute": "className",
           "expression": "\"text-indigo-600 dark:text-indigo-400\""
         },
         {
-          "line": 544,
+          "line": 546,
           "attribute": "className",
           "expression": "\"w-full flex flex-col gap-4 mb-6 lg:hidden animate-fadeIn relative z-20\""
         },
         {
-          "line": 552,
+          "line": 554,
           "attribute": "className",
           "expression": "\"w-[320px] xl:w-90 shrink-0 hidden lg:flex flex-col gap-4 sticky top-6 z-20 self-start animate-fadeIn select-none\""
         }
