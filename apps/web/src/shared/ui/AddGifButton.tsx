@@ -279,19 +279,6 @@ export const AddGifButton: React.FC<AddGifButtonProps> = ({
           </>
         )}
       </div>
-      <a
-        href="https://giphy.com/"
-        target="_blank"
-        rel="noreferrer"
-        className="block pt-3 text-right text-[10px] font-semibold text-gray-400"
-      >
-        <img
-          src="/branding/powered-by-giphy.png"
-          alt="Powered By GIPHY"
-          width={150}
-          className="ml-auto h-auto"
-        />
-      </a>
     </div>
   );
 
