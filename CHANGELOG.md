@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.10.5](https://github.com/rakuzan-knu/Eternal/compare/v1.10.4...v1.10.5) (2026-10-19)
+
+### 🐛 Bug Fixes
+
+* improve post interactions, skeleton motion and GIF search ([#132](https://github.com/rakuzan-knu/Eternal/issues/132)) ([44070b7](https://github.com/rakuzan-knu/Eternal/commit/44070b73a820751bd117cbae251005fd3a982432))
+
 ## [1.10.4](https://github.com/rakuzan-knu/Eternal/compare/v1.10.3...v1.10.4) (2026-10-17)
 
 ### 🐛 Bug Fixes
