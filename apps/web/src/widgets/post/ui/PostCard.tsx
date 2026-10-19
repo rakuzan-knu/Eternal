@@ -21,7 +21,8 @@ import { useSavePostMutation } from '@/features/posts/model/useSavePostMutation'
 import { useEditPostMutation } from '@/features/posts/model/useEditPostMutation';
 import { useDeletePostMutation } from '@/features/posts/model/useDeletePostMutation';
 import { usePinPostMutation } from '@/features/posts/model/usePinPostMutation';
-import { useBlockUser } from '@/features/chat/model/useConversationMutations';
+import { useUserBlockStatus } from '@/entities/chat';
+import { useBlockUser, useUnblockUser } from '@/features/chat/model/useConversationMutations';
 import { useHiddenPostsStore } from '@/shared/model/useHiddenPostsStore';
 import { useHiddenUndoStore } from '@/features/posts/model/useHiddenUndoStore';
 import { ReportPostModal } from '@/features/posts/ui/ReportPostModal';
@@ -89,6 +90,8 @@ export function PostCard({ post, queryKey }: PostCardProps) {
   const deleteMutation = useDeletePostMutation(post.id, queryKey);
   const pinMutation = usePinPostMutation(post.id, !!post.isPinned, queryKey);
   const blockUserMutation = useBlockUser();
+  const unblockUserMutation = useUnblockUser();
+  const authorBlock = useUserBlockStatus(post.authorId);
 
   const [, startLikeTransition] = useTransition();
   const [optimisticLikes, setOptimisticLikes] = useOptimistic(
@@ -314,20 +317,32 @@ export function PostCard({ post, queryKey }: PostCardProps) {
               onSave={() => saveMutation.mutate(!post.isSaved)}
               onTogglePin={() => pinMutation.mutate()}
               onHide={handleHidePost}
+              isAuthorBlocked={authorBlock.blockedByMe}
+              isBlockPending={authorBlock.isPending}
               onBlockAuthor={() => {
-                blockUserMutation.mutate(post.authorId, {
-                  onSuccess: () => {
-                    useMessageToastStore.getState().addToast({
-                      id: `toast-${Date.now()}`,
-                      conversationId: '',
-                      messageId: '',
-                      title: 'Author Blocked',
-                      body: `@${post.handle} has been blocked.`,
-                      avatar: null,
-                      memberAvatars: [],
-                      isGroup: false,
-                    });
-                  },
+                if (authorBlock.isPending) return;
+                const unblocking = authorBlock.blockedByMe;
+                const mutation = unblocking ? unblockUserMutation : blockUserMutation;
+                const notify = (success: boolean) =>
+                  useMessageToastStore.getState().addToast({
+                    id: `block-${Date.now()}`,
+                    conversationId: '',
+                    messageId: '',
+                    title: success
+                      ? unblocking
+                        ? 'Author Unblocked'
+                        : 'Author Blocked'
+                      : 'Action Failed',
+                    body: success
+                      ? `@${post.handle} has been ${unblocking ? 'unblocked' : 'blocked'}.`
+                      : `Could not ${unblocking ? 'unblock' : 'block'} @${post.handle}. Please try again.`,
+                    avatar: null,
+                    memberAvatars: [],
+                    isGroup: false,
+                  });
+                mutation.mutate(post.authorId, {
+                  onSuccess: () => notify(true),
+                  onError: () => notify(false),
                 });
               }}
               onReport={() => setIsReportOpen(true)}

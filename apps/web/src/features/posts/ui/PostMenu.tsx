@@ -30,6 +30,8 @@ interface PostMenuProps {
   onSave?: () => void;
   onReport?: () => void;
   onBlockAuthor?: () => void;
+  isAuthorBlocked?: boolean;
+  isBlockPending?: boolean;
   onDelete?: () => void;
   onEdit?: () => void;
   onTogglePin?: () => void;
@@ -49,6 +51,8 @@ export function PostMenu({
   onSave,
   onReport,
   onBlockAuthor,
+  isAuthorBlocked = false,
+  isBlockPending = false,
   onDelete,
   onEdit,
   onTogglePin,
@@ -195,9 +199,11 @@ export function PostMenu({
     label: string,
     onClick?: () => void,
     variant: 'default' | 'danger' = 'default',
+    disabled = false,
   ) => (
     <button
       type="button"
+      disabled={disabled}
       onClick={() => {
         onClick?.();
         setOpen(false);
@@ -292,7 +298,17 @@ export function PostMenu({
                   onSave,
                 )}
                 {item(<EyeOff size={16} />, 'Hide post', onHide ? onHide : () => hidePost(postId))}
-                {item(<UserX size={16} />, 'Block author', onBlockAuthor)}
+                {item(
+                  <UserX size={16} />,
+                  isBlockPending
+                    ? 'Updating block...'
+                    : isAuthorBlocked
+                      ? 'Unblock author'
+                      : 'Block author',
+                  onBlockAuthor,
+                  'danger',
+                  isBlockPending,
+                )}
                 {item(<Link2 size={16} />, 'Copy link', handleCopyLink)}
                 {item(
                   <Flag size={16} className="text-red-600 dark:text-red-400" />,

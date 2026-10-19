@@ -1,4 +1,5 @@
 import { updateConversationLists } from './chatCacheSync';
+import { invalidatePostFeedHistory } from '@/entities/post/model/postFeedColdCache';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { chatApi } from '../api/chatApi';
 import {
@@ -9,7 +10,7 @@ import {
 } from '@/shared/api/queryKeys';
 
 export { CONVERSATIONS_KEY, CONVERSATION_MESSAGES_KEY, BLOCKED_USERS_KEY };
-import { ConversationView, MuteLevel } from '../../../entities/chat/model/types';
+import { ConversationView, MuteLevel, UserSnapshot } from '../../../entities/chat/model/types';
 
 /**
  * Server State mutations: every write goes through TanStack Query with an
@@ -116,28 +117,49 @@ export function useArchiveConversation() {
   });
 }
 
-export function useBlockUser() {
+function useUserBlockMutation(blocked: boolean) {
   const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: (userId: string) => chatApi.blockUser(userId),
+    mutationKey: queryKeys.conversations.blockMutation,
+    mutationFn: (userId: string) =>
+      blocked ? chatApi.blockUser(userId) : chatApi.unblockUser(userId),
+    onSuccess: async (_data, userId) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.conversations.blocked });
+      queryClient.setQueryData<UserSnapshot[]>(queryKeys.conversations.blocked, (users) =>
+        blocked
+          ? [
+              ...(users ?? []).filter((user) => user.id !== userId),
+              { id: userId, username: userId, displayName: null, avatar: null },
+            ]
+          : (users ?? []).filter((user) => user.id !== userId),
+      );
+      invalidatePostFeedHistory();
+    },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.conversations.root });
-      queryClient.invalidateQueries({ queryKey: queryKeys.conversations.blocked });
+      for (const queryKey of [
+        queryKeys.conversations.root,
+        queryKeys.conversations.blocked,
+        queryKeys.user.root,
+        queryKeys.feed.root,
+        ['userPosts'],
+        ['userReposts'],
+        queryKeys.feed.saved,
+        ['followList'],
+        ['friends'],
+        ['suggestedUsers'],
+        ['miniProfile'],
+      ]) {
+        void queryClient.invalidateQueries({ queryKey });
+      }
     },
   });
 }
 
+export function useBlockUser() {
+  return useUserBlockMutation(true);
+}
 export function useUnblockUser() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (userId: string) => chatApi.unblockUser(userId),
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.conversations.root });
-      queryClient.invalidateQueries({ queryKey: queryKeys.conversations.blocked });
-    },
-  });
+  return useUserBlockMutation(false);
 }
 
 export function useReportUser() {

@@ -321,10 +321,14 @@ export class MessagesService implements OnModuleDestroy {
     }
 
     for (const attachment of authorizedStoryReference ? [] : dto.attachments || []) {
-      const host = URL.canParse(attachment.url) ? new URL(attachment.url).hostname : '';
+      const url = URL.canParse(attachment.url) ? new URL(attachment.url) : null;
       const gifProvider =
         attachment.type === AttachmentType.GIF &&
-        ['media.tenor.com', 'media.giphy.com', 'i.giphy.com'].includes(host);
+        url?.protocol === 'https:' &&
+        !url.username &&
+        !url.password &&
+        !url.port &&
+        (/^(?:media\d*|i)\.giphy\.com$/.test(url.hostname) || url.hostname === 'media.tenor.com');
       if (!gifProvider)
         await this.directUploads.assertOwnedUrl(senderId, attachment.url, 'chat', conversationId);
     }

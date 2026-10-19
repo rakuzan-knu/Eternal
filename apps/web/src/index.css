@@ -1224,24 +1224,36 @@ body {
 
 @layer utilities {
   .skeleton-shimmer {
-    background: linear-gradient(
-      100deg,
-      rgba(255, 255, 255, 0.07) 20%,
-      rgba(255, 255, 255, 0.2) 40%,
-      rgba(255, 255, 255, 0.07) 60%
-    );
-    background-size: 200% 100%;
-    animation: shimmer 1.4s linear infinite;
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background: rgb(128 128 128 / 16%);
     border-radius: 6px;
   }
 
-  @keyframes shimmer {
-    0% {
-      background-position: 150% 0;
-    }
+  .skeleton-shimmer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 36%), transparent);
+    transform: translateX(-100%);
+    animation: skeleton-wave 1.6s ease-in-out infinite;
+  }
 
+  @keyframes skeleton-wave {
+    0% {
+      transform: translateX(-100%);
+    }
     100% {
-      background-position: -50% 0;
+      transform: translateX(100%);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton-shimmer::after {
+      animation: none;
+      opacity: 0;
     }
   }
 

@@ -1,3 +1,5 @@
+import { chatApi, getUserBlockStatus, UserBlockedError } from '@/entities/chat';
+import { isAxiosError } from 'axios';
 import { useMutation, useQueryClient, InfiniteData } from '@tanstack/react-query';
 import { followApi, FollowListPage, FollowUserSummary } from '../api/followApi';
 import type { UserProfile } from '@/entities/profile/model/types';
@@ -10,6 +12,7 @@ import {
   USER_POSTS_KEY,
   USER_REPOSTS_KEY,
   SAVED_POSTS_KEY,
+  queryKeys,
 } from '@/shared/api/queryKeys';
 import { useMessageToastStore } from '@/shared/model/useMessageToastStore';
 import { useAuthStore } from '@/shared/model/useAuthStore';
@@ -20,6 +23,7 @@ export function useFollowMutation(id: string, isFollowing: boolean) {
 
   return useMutation({
     mutationFn: async () => {
+      if (getUserBlockStatus(queryClient, id).isBlocked) throw new UserBlockedError();
       try {
         if (isFollowing) {
           await followApi.unfollow(id);
@@ -27,6 +31,28 @@ export function useFollowMutation(id: string, isFollowing: boolean) {
           await followApi.follow(id);
         }
       } catch (err: unknown) {
+        if (
+          isAxiosError<{ message?: string }>(err) &&
+          err.response?.status === 403 &&
+          err.response.data?.message === 'Cannot follow user: relationship is in BLOCKED state'
+        ) {
+          // Reconcile blocks made in another tab before assuming an incoming block.
+          let blockedByMe = false;
+          try {
+            const blockedUsers = await queryClient.fetchQuery({
+              queryKey: queryKeys.conversations.blocked,
+              queryFn: chatApi.getBlockedUsers,
+              staleTime: 0,
+            });
+            blockedByMe = blockedUsers.some((user) => user.id === id);
+          } catch {
+            // The original follow response still authoritatively confirms a block.
+          }
+          if (!blockedByMe) {
+            queryClient.setQueryData(queryKeys.conversations.blockState(id), Date.now() + 30_000);
+          }
+          throw new UserBlockedError();
+        }
         const status = (err as { response?: { status?: number } })?.response?.status;
         if (status === 409 && !isFollowing) {
           // Idempotent: already following or request already pending on server
@@ -40,6 +66,7 @@ export function useFollowMutation(id: string, isFollowing: boolean) {
       }
     },
     onMutate: async () => {
+      if (getUserBlockStatus(queryClient, id).isBlocked) throw new UserBlockedError();
       const myUserId = useAuthStore.getState().userId;
       const nextIsFollowing = !isFollowing;
 
@@ -247,8 +274,11 @@ export function useFollowMutation(id: string, isFollowing: boolean) {
         id: `toast-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
         conversationId: '',
         messageId: '',
-        title: 'Action Failed',
-        body: 'Failed to update follow status. Please try again.',
+        title: _err instanceof UserBlockedError ? 'Following unavailable' : 'Action Failed',
+        body:
+          _err instanceof UserBlockedError
+            ? _err.message
+            : 'Failed to update follow status. Please try again.',
         avatar: null,
         memberAvatars: [],
         isGroup: false,

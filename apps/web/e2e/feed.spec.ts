@@ -99,18 +99,61 @@ test.describe('Feed (authenticated, mocked API)', () => {
       const loading = page.getByRole('status', { name: 'Loading profile', exact: true });
       await expect(loading).toBeVisible();
       const bone = loading.locator('.skeleton-shimmer').first();
-      expect(await bone.evaluate((element) => getComputedStyle(element).animationName)).toBe(
-        'shimmer',
-      );
+      expect(
+        await bone.evaluate((element) => getComputedStyle(element, '::after').animationName),
+      ).toBe('skeleton-wave');
       const initialPosition = await bone.evaluate(
-        (element) => getComputedStyle(element).backgroundPosition,
+        (element) => getComputedStyle(element, '::after').transform,
       );
       await expect
-        .poll(() => bone.evaluate((element) => getComputedStyle(element).backgroundPosition))
+        .poll(() => bone.evaluate((element) => getComputedStyle(element, '::after').transform))
         .not.toBe(initialPosition);
+      await page.screenshot({ path: 'test-results/skeleton-wave.png' });
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      expect(
+        await bone.evaluate((element) => getComputedStyle(element, '::after').animationName),
+      ).toBe('none');
     } finally {
       releaseProfile();
     }
+  });
+
+  test('GIF picker searches the provider and attaches a selection without publishing', async ({
+    authenticatedPage: page,
+  }) => {
+    await page.route('https://api.giphy.com/v1/gifs/**', async (route) => {
+      const search = new URL(route.request().url()).searchParams.get('q');
+      await route.fulfill({
+        json: {
+          data: [
+            {
+              id: search ? 'dog' : 'cat',
+              title: search ? 'Dancing dog' : 'Happy cat',
+              images: {
+                original: {
+                  url: `https://media1.giphy.com/${search ? 'dog' : 'cat'}.gif?cid=selection`,
+                },
+                fixed_width_small: { url: 'https://media2.giphy.com/preview.gif' },
+              },
+            },
+          ],
+          pagination: { total_count: 1 },
+        },
+      });
+    });
+    await page.goto('/');
+    await page.getByTitle('Add GIF', { exact: true }).first().click();
+    const picker = page.getByRole('dialog', { name: 'GIF picker' });
+    await expect(picker.getByRole('button', { name: 'Select Happy cat' })).toBeVisible();
+    await picker.getByRole('searchbox', { name: 'Search GIFs' }).fill('dancing dog');
+    const dog = picker.getByRole('button', { name: 'Select Dancing dog' });
+    await expect(dog).toBeVisible();
+    await page.screenshot({ path: 'test-results/gif-picker.png' });
+    await dog.click();
+    await expect(picker).toBeHidden();
+    await expect(
+      page.locator('img[src="https://media1.giphy.com/dog.gif?cid=selection"]'),
+    ).toBeVisible();
   });
 
   test('comment Report is red and options dismiss on outside input or Escape', async ({
