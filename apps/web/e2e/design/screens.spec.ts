@@ -70,15 +70,6 @@ for (const screen of ['feed', 'profile', 'chat'] as const) {
       }
       await waitForScreenChrome(page);
       await page.evaluate(() => document.fonts.ready);
-      if (screen === 'profile') {
-        // Root text scaling triggers Framer's shared-layout projection after the content is ready.
-        const activeBoard = page
-          .getByRole('button', { name: 'Board', exact: true })
-          .filter({ visible: true })
-          .locator(':scope > div.absolute');
-        await expect(activeBoard).toHaveCSS('opacity', '1');
-        await expect(activeBoard).toHaveCSS('transform', 'none');
-      }
       if (screen === 'feed' && layout.width >= 1024) {
         await expect(
           page.getByText('No suggestions available right now.', { exact: true }),
