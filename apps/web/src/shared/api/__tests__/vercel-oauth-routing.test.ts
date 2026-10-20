@@ -1,8 +1,42 @@
 import { describe, expect, it } from 'vitest';
-import deployment from '../../../../../../vercel.json';
+import { readFile } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+type Rewrite = { source: string; destination: string };
+
+function isRewrite(value: unknown): value is Rewrite {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'source' in value &&
+    typeof value.source === 'string' &&
+    'destination' in value &&
+    typeof value.destination === 'string'
+  );
+}
+
+// Read deployment config at test runtime; frontend Docker builds intentionally
+// compile only web/workspace sources and do not copy the root Vercel config.
+const deployment: unknown = JSON.parse(
+  await readFile(
+    resolve(dirname(fileURLToPath(import.meta.url)), '../../../../../../vercel.json'),
+    'utf8',
+  ),
+);
+if (
+  typeof deployment !== 'object' ||
+  deployment === null ||
+  !('rewrites' in deployment) ||
+  !Array.isArray(deployment.rewrites) ||
+  !deployment.rewrites.every(isRewrite)
+) {
+  throw new Error('Expected Vercel rewrite sources and destinations to be strings');
+}
+const rewrites = deployment.rewrites;
 
 function destinationFor(path: string): string | undefined {
-  return deployment.rewrites.find(({ source }) => {
+  return rewrites.find(({ source }) => {
     if (source === '/(.*)') return true;
     if (source.endsWith('/:path*')) {
       const prefix = source.slice(0, -'/:path*'.length);
