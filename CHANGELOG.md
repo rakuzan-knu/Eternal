@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.10.6](https://github.com/rakuzan-knu/Eternal/compare/v1.10.5...v1.10.6) (2026-10-20)
+
+### 🐛 Bug Fixes
+
+* **auth:** restore account lookup and match mobile password validation ([#133](https://github.com/rakuzan-knu/Eternal/issues/133)) ([354acaf](https://github.com/rakuzan-knu/Eternal/commit/354acaf08826a8c7bcead140cd0285ab992f9022))
+
 ## [1.10.5](https://github.com/rakuzan-knu/Eternal/compare/v1.10.4...v1.10.5) (2026-10-19)
 
 ### 🐛 Bug Fixes
