@@ -24,6 +24,7 @@ describe('Auth Model Types & Schemas', () => {
       username: 'alicesmith',
       identity: 'alice@example.com',
       password: 'StrongPassword123!',
+      confirmPassword: 'StrongPassword123!',
       birthDay: '15',
       birthMonth: 'May',
       birthYear: '2000',

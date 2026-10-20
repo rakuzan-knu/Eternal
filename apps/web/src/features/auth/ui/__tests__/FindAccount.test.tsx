@@ -142,7 +142,7 @@ describe('FindAccount', () => {
       mutateAsyncImpl: () =>
         Promise.reject({
           isAxiosError: true,
-          response: { status: 404, data: {} },
+          response: { status: 404, data: { errorCode: 'ACCOUNT_NOT_FOUND' } },
         }),
     });
     const onSuccess = vi.fn();
@@ -167,7 +167,7 @@ describe('FindAccount', () => {
       mutateAsyncImpl: () =>
         Promise.reject({
           isAxiosError: true,
-          response: { status: 404, data: {} },
+          response: { status: 404, data: { errorCode: 'ACCOUNT_NOT_FOUND' } },
         }),
     });
     const user = userEvent.setup({ delay: null });
@@ -211,6 +211,27 @@ describe('FindAccount', () => {
         screen.getByText('There was an error searching for your account. Please try again later.'),
       ).toBeInTheDocument();
     });
+  });
+
+  it('does not claim the user is missing when the API route returns 404', async () => {
+    setupMutations({
+      mutateAsyncImpl: () =>
+        Promise.reject({
+          isAxiosError: true,
+          response: { status: 404, data: { message: 'Cannot POST /auth/find-account' } },
+        }),
+    });
+    const onSuccess = vi.fn();
+    render(<FindAccount onSuccess={onSuccess} />);
+    fireEvent.change(getInput(), { target: { value: 'person@example.com' } });
+    fireEvent.click(getSubmitButton());
+
+    expect(
+      await screen.findByText(
+        'There was an error searching for your account. Please try again later.',
+      ),
+    ).toBeInTheDocument();
+    expect(onSuccess).not.toHaveBeenCalled();
   });
 
   it('does not render the clear button when the input is empty', () => {

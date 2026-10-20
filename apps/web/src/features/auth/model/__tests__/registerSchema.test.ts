@@ -2,6 +2,46 @@ import { describe, it, expect } from 'vitest';
 import { registerSchema } from '../registerSchema';
 
 describe('registerSchema', () => {
+  const validFields = {
+    firstName: 'John',
+    lastName: 'Doe',
+    username: '@johndoe',
+    birthMonth: 'January',
+    birthDay: '15',
+    birthYear: '1995',
+    gender: 'Male',
+    identity: 'john@example.com',
+  };
+
+  it.each([8, 128])('accepts matching passwords of %i characters, like mobile', (length) => {
+    const password = 'a'.repeat(length);
+    expect(
+      registerSchema.safeParse({ ...validFields, password, confirmPassword: password }).success,
+    ).toBe(true);
+  });
+
+  it.each(['', 'short', 'a'.repeat(129)])('rejects invalid password length', (password) => {
+    const result = registerSchema.safeParse({
+      ...validFields,
+      password,
+      confirmPassword: password,
+    });
+    expect(result.success).toBe(false);
+    if (!result.success)
+      expect(result.error.issues.some((issue) => issue.path[0] === 'password')).toBe(true);
+  });
+
+  it.each(['', 'different-password'])('requires matching confirmation', (confirmPassword) => {
+    const result = registerSchema.safeParse({
+      ...validFields,
+      password: 'password123',
+      confirmPassword,
+    });
+    expect(result.success).toBe(false);
+    if (!result.success)
+      expect(result.error.issues.some((issue) => issue.path[0] === 'confirmPassword')).toBe(true);
+  });
+
   it('validates correct registration fields', () => {
     const validData = {
       firstName: 'John',
@@ -13,6 +53,7 @@ describe('registerSchema', () => {
       gender: 'Male',
       identity: 'john@example.com',
       password: 'password123',
+      confirmPassword: 'password123',
     };
 
     const parsed = registerSchema.safeParse(validData);
@@ -33,6 +74,7 @@ describe('registerSchema', () => {
       gender: 'Male',
       identity: 'admin@example.com',
       password: 'password123',
+      confirmPassword: 'password123',
     });
     expect(reservedUser.success).toBe(false);
 
@@ -46,6 +88,7 @@ describe('registerSchema', () => {
       gender: 'Male',
       identity: 'john@example.com',
       password: 'short',
+      confirmPassword: 'short',
     });
     expect(invalidPassword.success).toBe(false);
   });
@@ -83,6 +126,7 @@ describe('registerSchema', () => {
         gender: 'Male',
         identity: `${reserved}@example.com`,
         password: 'password123',
+        confirmPassword: 'password123',
       });
       expect(res.success).toBe(false);
     }
