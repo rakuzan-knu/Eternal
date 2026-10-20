@@ -1,6 +1,39 @@
 import { test, expect, mockApi } from './fixtures';
 
 test.describe('Authentication (unauthenticated)', () => {
+  test('shows mobile-style password indicators and validates confirmation', async ({ page }) => {
+    await mockApi(page, '/auth/check-username', { json: { isAvailable: true } });
+    await page.goto('/register');
+    await expect(page.getByLabel('8+ characters: Not met')).toBeVisible();
+    await expect(
+      page.getByText('By creating an account, you agree to our', { exact: false }),
+    ).toBeVisible();
+
+    const password = page.getByLabel('Password', { exact: true });
+    await password.fill('abc');
+    await expect(page.getByLabel('8+ characters: Partially met')).toBeVisible();
+    await password.fill('Abcdefg1');
+    await expect(page.getByLabel('8+ characters: Met')).toBeVisible();
+    await expect(page.getByLabel('Latin letters (A-Z, a-z): Met')).toBeVisible();
+    await expect(page.getByLabel('Number or symbol: Met')).toBeVisible();
+
+    await page.getByLabel('Confirm Password', { exact: true }).fill('different123');
+    await expect(page.getByText('Passwords do not match')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Create Account', exact: true })).toBeDisabled();
+    await page.getByLabel('Confirm Password', { exact: true }).fill('Abcdefg1');
+    await expect(page.getByText('Passwords do not match')).toBeHidden();
+
+    await password.fill('AbcЖ1234');
+    await expect(page.getByLabel('Latin letters (A-Z, a-z): Invalid')).toBeVisible();
+    await expect(page.getByText('Passwords do not match')).toBeVisible();
+    await page.getByRole('button', { name: 'Show confirm password', exact: true }).click();
+    await expect(page.getByLabel('Confirm Password', { exact: true })).toHaveAttribute(
+      'type',
+      'text',
+    );
+    await expect(password).toHaveAttribute('type', 'password');
+  });
+
   test('redirects unauthenticated visitors from / to /login', async ({ page }) => {
     await page.goto('/');
 
