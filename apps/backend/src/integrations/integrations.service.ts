@@ -17,6 +17,7 @@ import type { Request, Response } from 'express';
 import { RedisService } from '../redis/redis.service';
 import { PrismaService } from '@common/prisma';
 import type { Prisma } from '@prisma/client';
+import { randomInt } from 'node:crypto';
 import { removePlatformData } from './platform.utils';
 import type {
   TwitchUsersResponse,
@@ -44,6 +45,41 @@ import type {
   YouTubeChannelSnippet,
   YouTubeChannelStatistics,
 } from './platform.types';
+
+const ROBLOX_VERIFICATION_WORDS = [
+  'amber',
+  'apple',
+  'birch',
+  'brook',
+  'cedar',
+  'cherry',
+  'cloud',
+  'coral',
+  'daisy',
+  'dawn',
+  'field',
+  'fern',
+  'forest',
+  'garden',
+  'harbor',
+  'hazel',
+  'hill',
+  'lake',
+  'leaf',
+  'maple',
+  'meadow',
+  'oak',
+  'peach',
+  'pine',
+  'pond',
+  'river',
+  'rose',
+  'sky',
+  'stone',
+  'sun',
+  'valley',
+  'willow',
+];
 
 function parseIsoDuration(duration?: string): string {
   if (!duration) return '0:00';
@@ -679,9 +715,12 @@ export class IntegrationsService {
       // ignore
     }
 
-    // 3. Generate unique verification code
-    const randomDigits = Math.floor(1000 + Math.random() * 9000);
-    const verificationCode = `eternal-verify-${randomDigits}`;
+    // Ten independent choices from 32 words provide 50 bits without digits or
+    // branding that Roblox may filter out of the public profile description.
+    const verificationCode = Array.from(
+      { length: 10 },
+      () => ROBLOX_VERIFICATION_WORDS[randomInt(ROBLOX_VERIFICATION_WORDS.length)],
+    ).join(' ');
 
     // Store in redis with 15 min TTL
     await this.redis.set(
@@ -720,9 +759,10 @@ export class IntegrationsService {
       avatarBustUrl: string;
       code: string;
     };
-    if (!session || !session.robloxId) {
+    if (!session || !session.robloxId || typeof session.code !== 'string' || !session.code.trim()) {
       throw new BadRequestException('Invalid verification session.');
     }
+    const expectedCode = session.code.trim().toLowerCase();
 
     // Fetch the user's latest "about" from Roblox
     let about = '';
@@ -749,11 +789,15 @@ export class IntegrationsService {
       } catch {}
     }
 
-    const expectedCode = (session.code || '').trim().toLowerCase();
     const cleanAbout = (about || '').toLowerCase();
 
     // Check if code is in the about section
     if (!cleanAbout.includes(expectedCode)) {
+      if (/#{2,}/.test(cleanAbout)) {
+        throw new BadRequestException(
+          'Roblox may have filtered your verification phrase into # characters. Generate a new phrase, replace the filtered text in your Roblox About section, save it, and try again.',
+        );
+      }
       throw new BadRequestException(
         `Verification code "${session.code}" was not found in the About section of @${session.username}. Please add it to your Roblox profile and try again.`,
       );
