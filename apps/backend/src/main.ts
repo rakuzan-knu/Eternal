@@ -19,6 +19,7 @@ import { setupGracefulShutdown } from './common/lifecycle/graceful-shutdown';
 import { setupFdGuard } from './common/lifecycle/fd-guard';
 import './instrument';
 import { getServiceRole } from './config/service-role';
+import { includeServiceCorsOrigin } from './config/cors-origins';
 
 EventEmitter.defaultMaxListeners = 50;
 if (typeof process.setMaxListeners === 'function') {
@@ -106,9 +107,11 @@ async function bootstrap() {
     }),
   );
 
-  const allowedOrigins = process.env.CORS_ORIGIN
-    ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim())
-    : ['http://localhost:5173', 'http://localhost:3000'];
+  const allowedOrigins = includeServiceCorsOrigin(
+    process.env.CORS_ORIGIN
+      ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim())
+      : ['http://localhost:5173', 'http://localhost:3000'],
+  );
 
   const vercelProjectPattern =
     /^https:\/\/(eternal|eternalnet)(-[a-z0-9-]+)?(-rakuzan)?\.vercel\.app$/;
@@ -289,7 +292,10 @@ export default async function handler(req: Request, res: Response): Promise<void
       }),
     );
     app.enableCors({
-      origin: process.env.CORS_ORIGIN?.split(',').map((o) => o.trim()) ?? '*',
+      origin:
+        process.env.CORS_ORIGIN !== undefined
+          ? includeServiceCorsOrigin(process.env.CORS_ORIGIN.split(',').map((o) => o.trim()))
+          : '*',
       methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
       credentials: true,
     });

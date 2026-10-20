@@ -56,3 +56,21 @@ Free quota diagnostics run hourly on Core using existing connections: PostgreSQL
 ### Generic OAuth popup state
 
 GitHub starts with authenticated `POST /auth/github/oauth/start` on Core; other provider starts use `POST /integrations/:platform/oauth/start` on Music. Starts return a 60-second first-party launch URL with a ticket fragment and a separate `launchProof`. The opener checks exact origin and source before sharing the proof; the backend popup sets the encrypted HttpOnly Secure SameSite=Lax provider cookie before redirecting to the provider. Keep launch bodies out of error telemetry. Steam retains its separate OpenID signed-field/nonce verification.
+
+The launch page POSTs to its own service. HTTP CORS also accepts the exact canonical HTTPS `RENDER_EXTERNAL_URL` for this request; keep `CORS_ORIGIN` limited to trusted frontend opener origins. An older deployment needs its own service origin explicitly allowed until the CORS fix is deployed. Do not use a wildcard or trust a request's Host header to resolve this.
+
+For server-handled callbacks, register the owning service URL in the provider's developer console and use the same value in its environment variable:
+
+| Provider | Environment variable | Owning callback |
+|---|---|---|
+| GitHub | `GITHUB_CALLBACK_URL` | `https://social-network-backend-4h47.onrender.com/v1/auth/github/callback` |
+| Spotify | `SPOTIFY_CALLBACK_URL` | `https://eternal-music-hub.onrender.com/v1/auth/spotify/callback` |
+| Twitch | `TWITCH_CALLBACK_URL` | `https://eternal-music-hub.onrender.com/v1/integrations/twitch/callback` |
+| YouTube | `GOOGLE_CALLBACK_URL` | `https://eternal-music-hub.onrender.com/v1/integrations/youtube/callback` |
+| Steam | `STEAM_CALLBACK_URL` | `https://eternal-music-hub.onrender.com/v1/integrations/steam/callback` |
+
+These are routing targets, not proof that the provider application has registered them. Verify its client ID, callback registration and a real login with the application owner's account before changing a live callback. A server callback through a different origin, including a Vercel rewrite, will not receive the launch service's host-scoped state cookie. YouTube's separate authenticated frontend code-exchange flow is an alternative to the server callback; keep its registered redirect URI consistent with the URI used for token exchange. Roblox uses in-app ownership verification rather than OAuth.
+
+The existing Twitch registration at `https://eternalnet.vercel.app/integrations/twitch/callback` uses an exact SPA rewrite before the general integrations API rewrite. The frontend refreshes its access token if necessary and exchanges the code directly with Music, sending the full callback origin and path. Music still validates the initiating authenticated user and consumes the provider-bound OAuth state once; anonymous server callbacks still require their state cookie. Keep this frontend callback registered while using that flow.
+
+Roblox ownership challenges use ten cryptographically selected plain words, bound to the initiating user for 15 minutes. Existing unexpired legacy challenges remain valid. Copy the phrase into the account's About section and save it before verification; if Roblox replaces it with `#`, generate a fresh phrase. A filtered or missing phrase is never accepted as ownership proof. Text moderation can still vary by account and phrase.

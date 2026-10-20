@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { getOAuthSessionState, clearOAuthSessionState } from '@/shared/lib/safeSessionStorage';
-import { getApiUrl } from '@/shared/api/httpClient';
+import { getApiUrl, getValidAccessToken } from '@/shared/api/httpClient';
 
 export const OAuthCallbackHandler: React.FC<{ platform?: string }> = ({
   platform: propPlatform,
@@ -64,23 +64,20 @@ export const OAuthCallbackHandler: React.FC<{ platform?: string }> = ({
     }
 
     // Call exchange-code endpoint on backend
-    const currentOrigin = window.location.origin;
-    const token = localStorage.getItem('accessToken');
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    fetch(getApiUrl(`/integrations/${effectivePlatform}/exchange-code`), {
-      method: 'POST',
-      headers,
-      credentials: 'include',
-      body: JSON.stringify({
-        code,
-        state,
-        redirectUri: currentOrigin,
-      }),
-    })
+    const redirectUri = `${window.location.origin}${window.location.pathname}`;
+    getValidAccessToken()
+      .then((token) => {
+        if (!token) throw new Error('Authentication required');
+        return fetch(getApiUrl(`/integrations/${effectivePlatform}/exchange-code`), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          credentials: 'include',
+          body: JSON.stringify({ code, state, redirectUri }),
+        });
+      })
       .then(async (res) => {
         if (res.ok) {
           setStatus('success');
