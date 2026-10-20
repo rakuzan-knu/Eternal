@@ -164,6 +164,7 @@ describe('main.ts handler and bootstrap', () => {
     process.env.NODE_ENV = 'production';
     process.env.VERCEL = '1';
     process.env.CORS_ORIGIN = 'http://localhost:3000, https://myapp.vercel.app';
+    process.env.RENDER_EXTERNAL_URL = 'https://eternal-music-hub.onrender.com/';
 
     vi.resetModules();
     const mod = (await import('../main.js')) as unknown as ServerlessModule;
@@ -182,6 +183,16 @@ describe('main.ts handler and bootstrap', () => {
 
     expect(createSpy).toHaveBeenCalledTimes(1);
     expect(mockApp.register).toHaveBeenCalled();
+    expect(mockApp.enableCors).toHaveBeenCalledWith(
+      expect.objectContaining({
+        origin: [
+          'http://localhost:3000',
+          'https://myapp.vercel.app',
+          'https://eternal-music-hub.onrender.com',
+        ],
+        credentials: true,
+      }),
+    );
     expect(initSpy).toHaveBeenCalledTimes(1);
     expect(mockHttpInstance).toHaveBeenCalledWith('request', req, res);
 
@@ -249,6 +260,7 @@ describe('main.ts handler and bootstrap', () => {
     process.env.NODE_ENV = 'production';
     delete process.env.VERCEL;
     process.env.CORS_ORIGIN = 'http://allowed-domain.com';
+    process.env.RENDER_EXTERNAL_URL = 'https://eternal-music-hub.onrender.com/';
 
     const corsSpy = jest.spyOn(mockApp, 'enableCors');
     vi.resetModules();
@@ -272,6 +284,20 @@ describe('main.ts handler and bootstrap', () => {
     const cbProd = jest.fn();
     invokeOrigin('https://eternalnet.vercel.app', cbProd);
     expect(cbProd).toHaveBeenCalledWith(null, true);
+
+    const cbService = jest.fn();
+    invokeOrigin('https://eternal-music-hub.onrender.com', cbService);
+    expect(cbService).toHaveBeenCalledWith(null, true);
+
+    for (const origin of [
+      'https://another-service.onrender.com',
+      'https://eternal-music-hub.onrender.com.evil.example',
+      'http://eternal-music-hub.onrender.com',
+    ]) {
+      const cbUntrusted = jest.fn();
+      invokeOrigin(origin, cbUntrusted);
+      expect(cbUntrusted).toHaveBeenCalledWith(new Error('Not allowed by CORS'), false);
+    }
   });
 
   it('sets DIRECT_URL to DATABASE_URL if DIRECT_URL is missing', async () => {
