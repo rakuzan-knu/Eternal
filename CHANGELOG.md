@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.10.7](https://github.com/rakuzan-knu/Eternal/compare/v1.10.6...v1.10.7) (2026-10-20)
+
+### 🐛 Bug Fixes
+
+* **auth:** repair OAuth callbacks and Roblox ownership verification ([#134](https://github.com/rakuzan-knu/Eternal/issues/134)) ([14a58c0](https://github.com/rakuzan-knu/Eternal/commit/14a58c0963a31b9cde2429d63defbc773fa103bd))
+
 ## [1.10.6](https://github.com/rakuzan-knu/Eternal/compare/v1.10.5...v1.10.6) (2026-10-20)
 
 ### 🐛 Bug Fixes
