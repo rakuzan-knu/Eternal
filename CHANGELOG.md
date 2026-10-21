@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.10.8](https://github.com/rakuzan-knu/Eternal/compare/v1.10.7...v1.10.8) (2026-10-21)
+
+### 🐛 Bug Fixes
+
+* **frontend:** improve accessibility and preserve local feature fixes ([f2d6642](https://github.com/rakuzan-knu/Eternal/commit/f2d66423ed17bf9ba5ff8449b37723a1d975c894))
+
 ## [1.10.7](https://github.com/rakuzan-knu/Eternal/compare/v1.10.6...v1.10.7) (2026-10-20)
 
 ### 🐛 Bug Fixes
