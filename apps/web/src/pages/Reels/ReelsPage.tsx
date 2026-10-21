@@ -4,6 +4,7 @@ import { useReelsFeed } from '@/features/reels/api/reelsApi';
 import { ReelCard } from '@/features/reels/ui/ReelCard';
 import { ReelPlaceholder } from '@/features/reels/ui/ReelPlaceholder';
 import { CreateReelModal } from '@/features/reels/ui/CreateReelModal';
+import SkeletonBone from '@/shared/ui/SkeletonBone';
 
 export const ReelsPage: React.FC = () => {
   const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage } =
@@ -168,9 +169,21 @@ export const ReelsPage: React.FC = () => {
 
       {/* Loading state */}
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center h-full gap-4 text-zinc-400">
-          <div className="w-12 h-12 border-3 border-pink-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm font-medium animate-pulse">Loading Reels Feed...</p>
+        <div
+          role="status"
+          aria-label="Loading reels"
+          className="relative h-full aspect-9/16 max-w-full overflow-hidden rounded-2xl"
+        >
+          <span className="sr-only">Loading Reels Feed...</span>
+          <SkeletonBone className="absolute inset-0 h-full w-full rounded-2xl" />
+          <div className="absolute bottom-8 left-5 right-5 space-y-4">
+            <div className="flex items-center gap-3">
+              <SkeletonBone className="h-10 w-10 rounded-full" />
+              <SkeletonBone className="h-4 w-32 rounded-md" />
+            </div>
+            <SkeletonBone className="h-3 w-3/4 rounded-md" />
+            <SkeletonBone className="h-3 w-1/2 rounded-md" />
+          </div>
         </div>
       ) : isError ? (
         <div className="flex flex-col items-center justify-center h-full gap-3 text-zinc-400">

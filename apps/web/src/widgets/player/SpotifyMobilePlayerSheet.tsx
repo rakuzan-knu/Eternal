@@ -90,6 +90,7 @@ export const SpotifyMobilePlayerSheet: React.FC = () => {
           <button
             type="button"
             onClick={() => setMobileExpanded(false)}
+            aria-label="Close player"
             className="p-2 rounded-full bg-white/5 text-gray-400 hover:text-white transition-colors"
           >
             <ChevronDown className="w-6 h-6" />
@@ -142,6 +143,8 @@ export const SpotifyMobilePlayerSheet: React.FC = () => {
             <button
               type="button"
               onClick={toggleLike}
+              aria-label="Like track"
+              aria-pressed={isLiked}
               className={`p-3 rounded-full transition-transform active:scale-75 ${
                 isLiked
                   ? isSoundCloud
@@ -160,19 +163,21 @@ export const SpotifyMobilePlayerSheet: React.FC = () => {
 
           {/* Scrubber Slider */}
           <div className="flex flex-col gap-1.5">
-            <div
-              className="relative w-full h-2.5 bg-white/15 rounded-full cursor-pointer overflow-hidden"
-              onClick={(e) => {
-                const rect = e.currentTarget.getBoundingClientRect();
-                const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-                seek(pos * durationMs);
+            <input
+              type="range"
+              aria-label="Playback position"
+              aria-valuetext={`${formatTime(progressMs)} / ${formatTime(durationMs)}`}
+              min={0}
+              max={Math.max(0, durationMs)}
+              step={1000}
+              value={Math.min(Math.max(0, progressMs), Math.max(0, durationMs))}
+              disabled={durationMs <= 0}
+              onChange={(e) => seek(Number(e.target.value))}
+              className="w-full h-2.5 rounded-full cursor-pointer accent-white"
+              style={{
+                background: `linear-gradient(to right, white ${progressPercent}%, rgb(255 255 255 / 0.15) ${progressPercent}%)`,
               }}
-            >
-              <div
-                className="h-full bg-white rounded-full transition-all"
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
+            />
             <div className="flex items-center justify-between text-xs font-mono text-gray-400">
               <span>{formatTime(progressMs)}</span>
               <span>{formatTime(durationMs)}</span>
@@ -185,6 +190,8 @@ export const SpotifyMobilePlayerSheet: React.FC = () => {
             <button
               type="button"
               onClick={toggleShuffle}
+              aria-label="Shuffle"
+              aria-pressed={isShuffled}
               className={`p-2 transition-colors ${
                 isShuffled ? (isSoundCloud ? 'text-[#FF5500]' : 'text-[#1DB954]') : 'text-gray-400'
               }`}
@@ -196,6 +203,7 @@ export const SpotifyMobilePlayerSheet: React.FC = () => {
             <button
               type="button"
               onClick={prevTrack}
+              aria-label="Previous track"
               className="p-2 text-white hover:opacity-80 active:scale-95 transition-transform"
             >
               <SkipBack className="w-8 h-8 fill-current" />
@@ -205,6 +213,7 @@ export const SpotifyMobilePlayerSheet: React.FC = () => {
             <button
               type="button"
               onClick={togglePlay}
+              aria-label={isPlaying ? 'Pause' : 'Play'}
               className="w-16 h-16 rounded-full bg-white text-black flex items-center justify-center active:scale-90 transition-transform shadow-xl"
             >
               {isPlaying ? (
@@ -218,6 +227,7 @@ export const SpotifyMobilePlayerSheet: React.FC = () => {
             <button
               type="button"
               onClick={nextTrack}
+              aria-label="Next track"
               className="p-2 text-white hover:opacity-80 active:scale-95 transition-transform"
             >
               <SkipForward className="w-8 h-8 fill-current" />
@@ -227,6 +237,7 @@ export const SpotifyMobilePlayerSheet: React.FC = () => {
             <button
               type="button"
               onClick={toggleRepeat}
+              aria-label={`Repeat: ${repeatMode === 2 ? 'one' : repeatMode === 1 ? 'all' : 'off'}`}
               className={`relative p-2 transition-colors ${
                 repeatMode > 0
                   ? isSoundCloud
@@ -267,7 +278,12 @@ export const SpotifyMobilePlayerSheet: React.FC = () => {
 
             {/* Volume slider */}
             <div className="flex items-center gap-2 flex-1 max-w-[140px] mx-4">
-              <button type="button" onClick={toggleMute} className="text-gray-400 hover:text-white">
+              <button
+                type="button"
+                onClick={toggleMute}
+                aria-label={isMuted ? 'Unmute' : 'Mute'}
+                className="text-gray-400 hover:text-white"
+              >
                 {isMuted || volume === 0 ? (
                   <VolumeX className="w-4 h-4" />
                 ) : (
@@ -276,6 +292,7 @@ export const SpotifyMobilePlayerSheet: React.FC = () => {
               </button>
               <input
                 type="range"
+                aria-label="Volume"
                 min="0"
                 max="1"
                 step="0.01"

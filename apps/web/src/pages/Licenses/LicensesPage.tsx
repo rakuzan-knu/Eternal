@@ -239,7 +239,7 @@ export const LicensesPage: React.FC = () => {
       </section>
 
       {/* Main Content Layout (Clean, Wide, No Left Sidebar) */}
-      <main className="max-w-5xl mx-auto px-6 lg:px-12 py-6 w-full flex-1 flex flex-col gap-8 select-text">
+      <main className="min-w-0 wrap-anywhere max-w-5xl mx-auto px-6 lg:px-12 py-6 w-full flex-1 flex flex-col gap-8 select-text">
         {/* Search and Quick Filters Bar */}
         <div className="p-4 rounded-2xl bg-[#0e0a1f]/80 border border-purple-800/30 backdrop-blur-xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
           {/* Search Input */}
@@ -367,7 +367,7 @@ export const LicensesPage: React.FC = () => {
                           href={pkg.repoUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="font-mono text-purple-400 hover:text-purple-200 underline transition-colors"
+                          className="wrap-anywhere font-mono text-purple-400 hover:text-purple-200 underline transition-colors"
                         >
                           {pkg.repoUrl}
                         </a>{' '}
@@ -381,7 +381,10 @@ export const LicensesPage: React.FC = () => {
                 </div>
 
                 {/* Verbatim License Text Box */}
-                <div className="p-5 rounded-2xl bg-[#090615] border border-purple-900/40 font-mono text-xs text-neutral-300 whitespace-pre-wrap leading-relaxed overflow-x-auto custom-scrollbar select-text shadow-inner">
+                <div
+                  tabIndex={0}
+                  className="p-5 rounded-2xl bg-[#090615] border border-purple-900/40 font-mono text-xs text-neutral-300 whitespace-pre-wrap leading-relaxed overflow-x-auto custom-scrollbar select-text shadow-inner"
+                >
                   {group.licenseText}
                 </div>
               </section>
@@ -486,7 +489,10 @@ export const LicensesPage: React.FC = () => {
                 </div>
 
                 {/* Verbatim SIL OFL 1.1 License Text Box */}
-                <div className="p-5 rounded-2xl bg-[#090615] border border-purple-900/40 font-mono text-xs text-neutral-300 whitespace-pre-wrap leading-relaxed overflow-x-auto custom-scrollbar select-text shadow-inner">
+                <div
+                  tabIndex={0}
+                  className="p-5 rounded-2xl bg-[#090615] border border-purple-900/40 font-mono text-xs text-neutral-300 whitespace-pre-wrap leading-relaxed overflow-x-auto custom-scrollbar select-text shadow-inner"
+                >
                   {filteredFonts.licenseText}
                 </div>
               </section>

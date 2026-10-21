@@ -78,6 +78,25 @@ describe('SaveToCollectionPopover', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it('escapes a clipped card and closes on Escape or outside click', () => {
+    const onClose = vi.fn();
+    const { container } = render(
+      <div style={{ overflow: 'hidden', transform: 'translateY(0)' }}>
+        <SaveToCollectionPopover postId="post-1" isOpen onClose={onClose} />
+      </div>,
+    );
+    const dialog = screen.getByRole('dialog', { name: 'Save to collection' });
+    expect(dialog.parentElement).toBe(document.body);
+    expect(container.contains(dialog)).toBe(false);
+    expect(dialog).toHaveStyle({ position: 'fixed', zIndex: '10000' });
+    fireEvent.mouseDown(screen.getByText('Tech Articles'));
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(1);
+    fireEvent.mouseDown(document.body);
+    expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
   it('shows empty collections state when no custom collections exist', () => {
     useSavedCollectionsStore.setState({ collections: [] });
 

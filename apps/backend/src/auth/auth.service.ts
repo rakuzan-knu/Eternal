@@ -2,6 +2,7 @@ import {
   ConflictException,
   Inject,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
   forwardRef,
 } from '@nestjs/common';
@@ -18,6 +19,7 @@ import {
   CreateUserDto,
   type ChangePasswordDto,
   type LoginDto,
+  type FoundAccountResponse,
   type RegisterDto,
   RESERVED_USERNAMES,
 } from '@common/contracts';
@@ -125,6 +127,27 @@ export class AuthService {
     return {
       ...tokens,
       user: this.toPublicUser(user),
+    };
+  }
+
+  async findAccount(identifier: string): Promise<FoundAccountResponse> {
+    const user = await this.usersService.findByEmail(identifier.trim().toLowerCase());
+    if (!user) {
+      throw new NotFoundException({
+        errorCode: 'ACCOUNT_NOT_FOUND',
+        message: 'Account not found',
+      });
+    }
+
+    const separator = user.email.indexOf('@');
+    return {
+      id: user.id,
+      name: user.displayName || user.username,
+      role: 'USER',
+      src: user.avatar,
+      maskedEmail: `${user.email.slice(0, 1)}***${user.email.slice(separator)}`,
+      // Phone numbers are not stored on User; SMS recovery is unavailable.
+      maskedPhone: '',
     };
   }
 

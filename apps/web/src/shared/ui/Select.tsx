@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useRef, useEffect, useId, forwardRef, useImperativeHandle } from 'react';
 import { ChevronDown } from 'lucide-react';
 
 interface SelectProps {
@@ -7,12 +7,14 @@ interface SelectProps {
   options: string[];
   className?: string;
   onBlur?: () => void;
+  'aria-label'?: string;
 }
 
 export const Select = forwardRef<HTMLButtonElement, SelectProps>(
-  ({ value, onChange, options, className = '', onBlur }, ref) => {
+  ({ value, onChange, options, className = '', onBlur, 'aria-label': ariaLabel }, ref) => {
     const [isOpen, setIsOpen] = useState(false);
     const [highlightedIndex, setHighlightedIndex] = useState(0);
+    const listId = useId();
 
     const dropdownRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLButtonElement>(null);
@@ -48,6 +50,7 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
     }, [highlightedIndex, isOpen]);
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+      if (options.length === 0 && e.key !== 'Escape' && e.key !== 'Tab') return;
       if (!isOpen) {
         if (['ArrowDown', 'ArrowUp', ' ', 'Enter'].includes(e.key)) {
           e.preventDefault();
@@ -95,8 +98,15 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
           onKeyDown={handleKeyDown}
           onBlur={onBlur}
           role="combobox"
+          aria-label={ariaLabel}
           aria-expanded={isOpen}
           aria-haspopup="listbox"
+          aria-controls={isOpen ? listId : undefined}
+          aria-activedescendant={
+            isOpen && options[highlightedIndex] !== undefined
+              ? `${listId}-option-${highlightedIndex}`
+              : undefined
+          }
           className="w-full flex items-center justify-between bg-neutral-900/50 border border-neutral-800 rounded-xl px-3.5 py-2.5 text-sm text-neutral-200 focus:outline-none focus:border-purple-500 transition-all duration-200"
         >
           <span>{value}</span>
@@ -109,6 +119,7 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
         {isOpen && (
           <ul
             ref={listRef}
+            id={listId}
             role="listbox"
             className="absolute z-50 left-0 w-full mt-1.5 max-h-60 overflow-y-auto bg-neutral-950 border border-neutral-800 rounded-xl shadow-2xl text-sm text-neutral-300 custom-scrollbar animate-fadeIn"
           >
@@ -119,6 +130,7 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
               return (
                 <li
                   key={option}
+                  id={`${listId}-option-${index}`}
                   role="option"
                   aria-selected={isSelected}
                   onClick={() => {

@@ -42,6 +42,117 @@ test.describe('Feed (authenticated, mocked API)', () => {
     await expect(page.getByText('@bob').first()).toBeVisible();
   });
 
+  test('post actions stay ordered and menus overlay cards on desktop and mobile', async ({
+    authenticatedPage: page,
+  }) => {
+    for (const viewport of [
+      { width: 1280, height: 800 },
+      { width: 390, height: 844 },
+    ]) {
+      await page.setViewportSize(viewport);
+      await page.goto('/');
+      const post = page.locator('#post-post-1');
+      await expect(post.getByText('Hello from the mocked feed!')).toBeVisible();
+      const like = post.getByTitle('Like', { exact: true });
+      await expect(like.locator('..').locator('button').first()).toHaveAttribute('title', 'Like');
+      await post.getByRole('button', { name: 'More options' }).click();
+      const menu = page.getByRole('menu', { name: 'Post actions' });
+      await expect(menu).toBeVisible();
+      expect(await menu.evaluate((element) => element.parentElement === document.body)).toBe(true);
+      expect(await menu.evaluate((element) => getComputedStyle(element).position)).toBe('fixed');
+      await expect(menu.getByRole('button', { name: 'Report', exact: true })).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(menu).toBeHidden();
+
+      await post.getByTitle('Save to collection', { exact: true }).click();
+      const collections = page.getByRole('dialog', { name: 'Save to collection' });
+      await expect(collections).toBeVisible();
+      expect(await collections.evaluate((element) => element.parentElement === document.body)).toBe(
+        true,
+      );
+      const bounds = await collections.boundingBox();
+      expect(bounds).not.toBeNull();
+      expect(bounds!.x).toBeGreaterThanOrEqual(0);
+      expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(viewport.width);
+      expect(bounds!.y).toBeGreaterThanOrEqual(0);
+      expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(viewport.height);
+      await page.keyboard.press('Escape');
+      await expect(collections).toBeHidden();
+    }
+  });
+
+  test('profile hover shows a moving loading skeleton', async ({ authenticatedPage: page }) => {
+    let releaseProfile = () => {};
+    const pendingProfile = new Promise<void>((resolve) => {
+      releaseProfile = resolve;
+    });
+    await page.route('**/users/by-username/alice', async (route) => {
+      await pendingProfile;
+      await route.abort();
+    });
+    try {
+      await page.goto('/');
+      await page
+        .locator('#post-post-1')
+        .getByRole('link', { name: 'Alice Mock', exact: true })
+        .hover();
+      const loading = page.getByRole('status', { name: 'Loading profile', exact: true });
+      await expect(loading).toBeVisible();
+      const bone = loading.locator('.skeleton-shimmer').first();
+      expect(await bone.evaluate((element) => getComputedStyle(element).animationName)).toBe(
+        'shimmer',
+      );
+      const initialPosition = await bone.evaluate(
+        (element) => getComputedStyle(element).backgroundPosition,
+      );
+      await expect
+        .poll(() => bone.evaluate((element) => getComputedStyle(element).backgroundPosition))
+        .not.toBe(initialPosition);
+    } finally {
+      releaseProfile();
+    }
+  });
+
+  test('comment Report is red and options dismiss on outside input or Escape', async ({
+    authenticatedPage: page,
+  }) => {
+    await mockApi(page, '/posts/post-1/comments?**', {
+      json: {
+        comments: [
+          {
+            id: 'comment-1',
+            userId: 'usr-alice',
+            author: 'Alice Mock',
+            handle: 'alice',
+            text: 'Comment menu regression',
+            createdAt: new Date().toISOString(),
+          },
+        ],
+        nextCursor: null,
+      },
+    });
+    await page.goto('/');
+    await page
+      .locator('#post-post-1')
+      .getByRole('button', { name: 'Comments, 3', exact: true })
+      .click();
+    const comment = page.getByText('Comment menu regression');
+    await expect(comment).toBeVisible();
+    const trigger = page.getByTitle('Options', { exact: true });
+    await trigger.click();
+    const menu = page.getByRole('menu', { name: 'Comment actions' });
+    const report = menu.getByRole('button', { name: 'Report', exact: true });
+    await expect(report).toHaveCSS('color', 'oklch(0.704 0.191 22.216)');
+    await comment.click();
+    await expect(menu).toBeHidden();
+    await expect(comment).toBeVisible();
+    await trigger.click();
+    await page.keyboard.press('Escape');
+    await expect(menu).toBeHidden();
+    await expect(comment).toBeVisible();
+    await expect(trigger).toBeFocused();
+  });
+
   test('renders the same feed on /feed', async ({ authenticatedPage: page }) => {
     await page.goto('/feed');
 

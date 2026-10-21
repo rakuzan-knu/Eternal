@@ -195,6 +195,8 @@ export function PostMenu({
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label="More options"
+        aria-expanded={open}
+        aria-haspopup="menu"
         className="text-gray-400 hover:text-white p-1.5 rounded-full hover:bg-white/10 transition-all cursor-pointer"
       >
         <MoreHorizontal size={18} />
@@ -206,13 +208,16 @@ export function PostMenu({
         createPortal(
           <div
             ref={menuRef}
+            role="menu"
+            aria-label="Post actions"
             style={{
               position: 'fixed',
+              zIndex: 10000,
               top: coords.top !== undefined ? `${coords.top}px` : undefined,
               bottom: coords.bottom !== undefined ? `${coords.bottom}px` : undefined,
               right: `${coords.right}px`,
             }}
-            className={`z-99999 w-64 max-h-[calc(100vh-24px)] overflow-y-auto custom-scrollbar bg-[#141418]/95 backdrop-blur-2xl border border-white/12 rounded-2xl shadow-2xl shadow-black/80 p-1.5 animate-fadeIn space-y-0.5 ${
+            className={`w-64 max-w-[calc(100vw-24px)] max-h-[calc(100vh-24px)] overflow-y-auto custom-scrollbar bg-[#141418]/95 backdrop-blur-2xl border border-white/12 rounded-2xl shadow-2xl shadow-black/80 p-1.5 animate-fadeIn space-y-0.5 ${
               coords.bottom !== undefined ? 'origin-bottom-right' : 'origin-top-right'
             }`}
           >

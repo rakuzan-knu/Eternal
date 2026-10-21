@@ -14,6 +14,8 @@ import {
   UnauthorizedException,
   NotFoundException,
   BadRequestException,
+  BadGatewayException,
+  Header,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { AuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -293,6 +295,7 @@ export class IntegrationsController {
   }
 
   @Get('soundcloud/stream/:trackId')
+  @Header('Cache-Control', 'private, no-store')
   async getSoundCloudStream(
     @Param('trackId') trackId: string,
     @Query('bypassCache') bypassCache?: string,
@@ -300,6 +303,7 @@ export class IntegrationsController {
     @Res({ passthrough: true }) res?: Response,
   ) {
     const result = await this.soundCloudService.getStreamUrl(trackId, bypassCache === 'true');
+    if (result?.streamUrl) this.validateSoundCloudAudioUrl(result.streamUrl);
     if (redirect === 'true' && result?.streamUrl && res) {
       return res.redirect(result.streamUrl);
     }
@@ -307,59 +311,32 @@ export class IntegrationsController {
   }
 
   @Get('soundcloud/stream/:trackId/audio')
-  async streamSoundCloudAudio(
-    @Param('trackId') trackId: string,
-    @Req() req: Request,
-    @Res() res: Response,
-  ) {
+  @Header('Cache-Control', 'private, no-store')
+  async streamSoundCloudAudio(@Param('trackId') trackId: string, @Res() res: Response) {
     const result = await this.soundCloudService.getStreamUrl(trackId);
     if (!result?.streamUrl) {
-      return res.status(404).json({ error: 'Stream not found' });
+      return res.status(404).send({ error: 'Stream not found' });
     }
 
+    this.validateSoundCloudAudioUrl(result.streamUrl);
+    // Preserve the legacy audio URL without sending media bytes through the API.
+    return res.redirect(result.streamUrl);
+  }
+
+  private validateSoundCloudAudioUrl(value: string): void {
     try {
-      const headers: Record<string, string> = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-      };
-      if (req.headers.range) {
-        headers['Range'] = req.headers.range;
+      const url = new URL(value);
+      if (
+        url.protocol === 'https:' &&
+        !url.username &&
+        !url.password &&
+        !url.port &&
+        (url.hostname === 'sndcdn.com' || url.hostname.endsWith('.sndcdn.com'))
+      ) {
+        return;
       }
-
-      const audioResponse = await fetch(result.streamUrl, { headers });
-      res.status(audioResponse.status);
-
-      for (const [key, val] of audioResponse.headers.entries()) {
-        const lower = key.toLowerCase();
-        if (['content-range', 'accept-ranges', 'content-length', 'content-type'].includes(lower)) {
-          res.setHeader(key, val);
-        }
-      }
-
-      if (!res.getHeader('accept-ranges')) {
-        res.setHeader('Accept-Ranges', 'bytes');
-      }
-
-      const reader = audioResponse.body?.getReader();
-      if (!reader) {
-        return res.end();
-      }
-
-      const pump = async () => {
-        try {
-          while (true) {
-            const chunk = (await reader.read()) as { done: boolean; value?: Uint8Array };
-            if (chunk.done) break;
-            if (chunk.value) res.write(chunk.value);
-          }
-          res.end();
-        } catch {
-          res.end();
-        }
-      };
-      void pump();
-    } catch {
-      return res.redirect(result.streamUrl);
-    }
+    } catch {}
+    throw new BadGatewayException('SoundCloud returned an unsupported stream URL');
   }
 
   @Get('soundcloud/related/:trackId')

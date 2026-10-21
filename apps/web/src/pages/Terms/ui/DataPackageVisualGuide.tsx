@@ -190,7 +190,7 @@ export const DataPackageVisualGuide: React.FC = () => {
         <div className="flex-1 p-6 sm:p-8 overflow-y-auto space-y-6">
           {/* Who can see you and contact you */}
           <section className="space-y-2">
-            <h3 className="px-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+            <h3 className="px-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
               Who can see you and contact you
             </h3>
             <div className="rounded-2xl border border-white/10 bg-white/[0.02] divide-y divide-white/5 overflow-hidden">

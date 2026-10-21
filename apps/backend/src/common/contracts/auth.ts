@@ -184,6 +184,20 @@ export const loginSchema = z
   });
 export type LoginDto = z.infer<typeof loginSchema>;
 
+export const findAccountSchema = z.object({
+  identifier: z.string().trim().min(1).max(255),
+});
+export type FindAccountDto = z.infer<typeof findAccountSchema>;
+
+export interface FoundAccountResponse {
+  id: string;
+  name: string;
+  role: string;
+  src: string | null;
+  maskedEmail: string;
+  maskedPhone: string;
+}
+
 export const registerSchema = z.object({
   email: z
     .string()

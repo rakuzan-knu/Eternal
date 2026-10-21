@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
   X,
@@ -24,8 +24,9 @@ import {
   USER_POSTS_KEY,
   USER_REPOSTS_KEY,
   SAVED_POSTS_KEY,
+  queryKeys,
 } from '@/shared/api/queryKeys';
-import { getSocket } from '@/shared/api/socket';
+import { sendDirectMessage } from '@/features/chat';
 import Avatar from '@/shared/ui/Avatar';
 
 export function ShareModal() {
@@ -42,6 +43,11 @@ export function ShareModal() {
   const [isSending, setIsSending] = useState(false);
 
   const carouselRef = useRef<HTMLDivElement>(null);
+  const pendingMessageIds = useRef(new Map<string, string>());
+
+  useEffect(() => {
+    pendingMessageIds.current.clear();
+  }, [isShareModalOpen, activePostForShare?.id, myUserId, messageText]);
 
   // Fetch following and followers to calculate mutual connections (up to 20 users)
   const { data: followingData, isLoading: isFollowingLoading } = useQuery({
@@ -220,35 +226,47 @@ export function ShareModal() {
   };
 
   const handleSendToSelectedUsers = async () => {
-    if (selectedUserIds.length === 0 || isSending) return;
+    if (selectedUserIds.length === 0 || isSending || !myUserId) return;
     setIsSending(true);
-    trackShare();
 
     try {
       const fullText = messageText.trim() ? `${messageText.trim()}\n${postUrl}` : postUrl;
-      const socket = getSocket();
+      const failedUserIds: string[] = [];
+      let sentCount = 0;
 
       for (const targetUserId of selectedUserIds) {
         try {
           const directConv = await chatApi.createDirectConversation(targetUserId);
-          if (directConv?.id) {
-            if (socket && socket.connected) {
-              socket.emit('sendMessage', {
-                conversationId: directConv.id,
-                body: fullText,
-              });
-            }
+          if (!directConv?.id) throw new Error('Conversation was not created.');
+          const clientMessageId =
+            pendingMessageIds.current.get(targetUserId) ?? crypto.randomUUID();
+          pendingMessageIds.current.set(targetUserId, clientMessageId);
+          await sendDirectMessage(directConv.id, targetUserId, myUserId, fullText, clientMessageId);
+          if (pendingMessageIds.current.get(targetUserId) === clientMessageId) {
+            pendingMessageIds.current.delete(targetUserId);
           }
+          sentCount += 1;
+          void queryClient.invalidateQueries({
+            queryKey: queryKeys.conversations.messages(directConv.id),
+          });
         } catch {
-          // ignore individual failures
+          failedUserIds.push(targetUserId);
         }
       }
 
-      showToast(
-        'Sent!',
-        `Shared post with ${selectedUserIds.length} friend${selectedUserIds.length > 1 ? 's' : ''}.`,
-      );
-      setSelectedUserIds([]);
+      if (sentCount > 0) {
+        trackShare();
+        void queryClient.invalidateQueries({ queryKey: queryKeys.conversations.root });
+      }
+      setSelectedUserIds(failedUserIds);
+      if (failedUserIds.length > 0) {
+        showToast(
+          sentCount > 0 ? 'Partially sent' : 'Error',
+          `${sentCount > 0 ? `Sent to ${sentCount}. ` : ''}Failed to send to ${failedUserIds.length}. Retry the selected recipients.`,
+        );
+        return;
+      }
+      showToast('Sent!', `Shared post with ${sentCount} friend${sentCount > 1 ? 's' : ''}.`);
       setMessageText('');
       closeShareModal();
     } catch {

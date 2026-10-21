@@ -1,10 +1,11 @@
 import React, { useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, MessageSquare, Loader2 } from 'lucide-react';
+import { ArrowLeft, MessageSquare } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import MessengerSidebar from '../../widgets/sidebar/ui/RailwaySidebar';
 import ChatListPanel from '../../features/chat/ui/ChatListPanel';
 import ChatThread from '../../features/chat/ui/ChatThread';
+import { MessageThreadSkeleton } from '../../features/chat/ui/MessageListSkeletons';
 import { useUIStore } from '../../shared/model/useUIStore';
 import { queryKeys } from '../../shared/api/queryKeys';
 import { queryStaleTimes } from '../../shared/api/queryClient';
@@ -84,9 +85,9 @@ export default function MessengerPage() {
             </button>
           )}
           {isResolvingActiveChat ? (
-            <div className="flex-1 flex flex-col items-center justify-center gap-3 text-gray-400 bg-[#0d111a]/40">
-              <Loader2 size={32} className="animate-spin text-sky-400" />
-              <p className="text-sm font-medium text-gray-400">Loading conversation...</p>
+            <div className="flex-1 flex flex-col justify-end gap-3 bg-[#0d111a]/40 py-5">
+              <span className="sr-only">Loading conversation...</span>
+              <MessageThreadSkeleton />
             </div>
           ) : activeConversation ? (
             <ChatThread key={activeConversation.id} conversation={activeConversation} />

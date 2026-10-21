@@ -3,10 +3,13 @@ import {
   type ChangePasswordDto,
   type CheckUsernameDto,
   type LoginDto,
+  type FindAccountDto,
+  type FoundAccountResponse,
   type RegisterDto,
   changePasswordSchema,
   checkUsernameSchema,
   loginSchema,
+  findAccountSchema,
   registerSchema,
 } from '@common/contracts';
 import {
@@ -128,6 +131,16 @@ export class AuthController {
     const result = await this.authService.login(dto, extractMeta(req, ip, ua));
     setRefreshTokenCookie(res, req, result.refreshToken);
     return result;
+  }
+
+  @Post('find-account')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 60_000 }, auth: { limit: 5, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Find an account for password recovery' })
+  findAccount(
+    @Body(new ZodValidationPipe(findAccountSchema)) dto: FindAccountDto,
+  ): Promise<FoundAccountResponse> {
+    return this.authService.findAccount(dto.identifier);
   }
 
   @Post('refresh')

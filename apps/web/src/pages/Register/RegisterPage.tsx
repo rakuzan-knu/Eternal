@@ -15,6 +15,8 @@ export const RegisterPage: React.FC = () => {
         <div className="w-full max-w-[460px] flex flex-col gap-4 animate-fadeIn">
           <div className="flex items-center gap-3 pl-1 mb-1">
             <button
+              type="button"
+              aria-label="Back to login"
               onClick={() => navigate('/login')}
               className="w-8 h-8 rounded-full bg-[#111112] border border-neutral-800/60 flex items-center justify-center hover:bg-neutral-800 text-neutral-400 hover:text-white transition-all active:scale-95"
             >

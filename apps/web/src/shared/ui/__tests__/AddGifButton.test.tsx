@@ -18,6 +18,19 @@ function mockBoundingRectTop(top: number) {
 }
 
 describe('AddGifButton', () => {
+  it('selects a portaled GIF using the keyboard and returns focus to the trigger', async () => {
+    const user = userEvent.setup();
+    const onGifSelect = vi.fn();
+    render(<AddGifButton isOpen usePortal onToggle={vi.fn()} onGifSelect={onGifSelect} />);
+    await user.tab();
+    expect(screen.getByTitle('Add GIF')).toHaveFocus();
+    await user.tab();
+    const choice = screen.getByRole('button', { name: 'Select GIF 1' });
+    expect(choice).toHaveFocus();
+    await user.keyboard('{Enter}');
+    expect(onGifSelect).toHaveBeenCalledWith(choice.querySelector('img')?.src);
+    expect(screen.getByTitle('Add GIF')).toHaveFocus();
+  });
   afterEach(() => {
     vi.restoreAllMocks();
   });

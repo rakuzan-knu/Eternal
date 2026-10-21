@@ -246,7 +246,7 @@ export const AcknowledgementsPage: React.FC = () => {
           <span>Open Source Credits</span>
         </div>
 
-        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight uppercase mb-4">
+        <h1 className="wrap-anywhere text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight uppercase mb-4">
           {t.title}
         </h1>
 
@@ -434,6 +434,9 @@ export const AcknowledgementsPage: React.FC = () => {
             {/* Scrolling Library Grid */}
             <div
               ref={scrollContainerRef}
+              tabIndex={0}
+              role="region"
+              aria-label={t.title}
               onScroll={handleUserScroll}
               className="h-[480px] overflow-y-auto custom-scrollbar p-6 sm:p-8 relative z-10"
             >
@@ -466,7 +469,7 @@ export const AcknowledgementsPage: React.FC = () => {
                           <p className="text-xs text-neutral-400 line-clamp-1 group-hover:text-neutral-300 transition-colors">
                             {lib.description}
                           </p>
-                          <span className="text-[10px] text-purple-400/70 font-semibold tracking-wide">
+                          <span className="text-[10px] text-purple-300 font-semibold tracking-wide">
                             {lib.category}
                           </span>
                         </div>
