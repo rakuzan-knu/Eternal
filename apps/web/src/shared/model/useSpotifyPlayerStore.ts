@@ -8,6 +8,7 @@ import {
   unescapeHtml,
   isTrustedMessageOrigin,
   isAppleAudioUrl,
+  isSoundCloudAudioUrl,
 } from '@/shared/lib/spotifyUrl';
 import { useAuthStore } from './useAuthStore';
 import { musicEventBridge } from '@/shared/lib/musicEvents';
@@ -148,12 +149,19 @@ const handleSoundCloudTokenExpiration = async (trackId?: string) => {
       '[SoundCloud Player] Stream token expired (403/network error). Requesting fresh stream URL...',
     );
     const fresh = await integrationsApi.getSoundCloudStream(targetId, true);
-    if (fresh?.streamUrl) {
-      const pos = state.progressMs;
-      startSoundCloudPlayback(targetId, fresh.streamUrl, fresh.isHls, pos);
+    const current = useSpotifyPlayerStore.getState();
+    if (current.currentTrack?.id !== targetId || !current.isPlaying) return;
+    if (!fresh?.streamUrl || !isSoundCloudAudioUrl(fresh.streamUrl)) {
+      throw new Error('SoundCloud stream unavailable');
     }
+    startSoundCloudPlayback(targetId, fresh.streamUrl, fresh.isHls, current.progressMs);
   } catch (err) {
     console.warn('[SoundCloud Player] Failed to refresh stream token:', err);
+    if (useSpotifyPlayerStore.getState().currentTrack?.id === targetId) {
+      useSpotifyPlayerStore.setState({ isPlaying: false });
+      stopProgressTimer();
+      teardownSoundCloudAudio();
+    }
   } finally {
     setTimeout(() => {
       isRetryingSoundCloud = false;
@@ -184,6 +192,11 @@ const startSoundCloudPlayback = (
   isHlsStream: boolean,
   startTimeMs: number = 0,
 ) => {
+  if (!isSoundCloudAudioUrl(url)) {
+    useSpotifyPlayerStore.setState({ isPlaying: false });
+    stopProgressTimer();
+    return;
+  }
   const audio = getOrCreateAudio();
   const store = useSpotifyPlayerStore.getState();
   audio.volume = store.isMuted ? 0 : store.volume;
@@ -972,7 +985,7 @@ export const useSpotifyPlayerStore = create<SpotifyPlayerState>()(
             sdkPlayerInstance.pause().catch(() => {});
           }
 
-          if (track.streamUrl && !track.streamUrl.startsWith('/api')) {
+          if (track.streamUrl && isSoundCloudAudioUrl(track.streamUrl)) {
             startSoundCloudPlayback(
               safeTrackId,
               track.streamUrl,

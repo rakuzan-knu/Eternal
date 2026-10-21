@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { ChevronDown, Sparkles, Menu, X, ArrowUpRight, Download } from 'lucide-react';
 import {
@@ -12,6 +12,7 @@ import { useAuthStore } from '../../../shared/model/useAuthStore';
 import { useAccountsStore } from '../../../shared/model/useAccountsStore';
 
 export const PrivacyNavbar: React.FC = () => {
+  const navigationRef = useRef<HTMLElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -54,6 +55,9 @@ export const PrivacyNavbar: React.FC = () => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        navigationRef.current
+          ?.querySelector<HTMLButtonElement>('button[aria-expanded="true"]')
+          ?.focus();
         setIsMobileMenuOpen(false);
         setActiveDropdown(null);
       }
@@ -77,20 +81,24 @@ export const PrivacyNavbar: React.FC = () => {
       <header className="privacy-navbar fixed top-0 left-0 right-0 h-20 bg-[#07050f]/90 border-b border-purple-900/30 backdrop-blur-xl z-50 transition-all select-none">
         <div className="max-w-7xl mx-auto h-full px-4 sm:px-6 lg:px-12 flex items-center justify-between">
           {/* Brand Logo & Name */}
-          <div
-            className="flex items-center gap-3 cursor-pointer group"
-            onClick={() => navigate('/company')}
+          <Link
+            aria-label="Eternal company"
+            className="flex min-w-0 items-center gap-3 cursor-pointer group"
+            to="/company"
           >
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500 flex items-center justify-center text-xl font-black text-white shadow-[0_0_20px_rgba(139,92,246,0.4)] group-hover:scale-105 group-hover:shadow-[0_0_25px_rgba(168,85,247,0.6)] transition-all duration-300">
               E
             </div>
-            <span className="text-2xl font-black tracking-tight text-white group-hover:text-purple-300 transition-colors">
+            <span className="max-[374px]:hidden text-2xl font-black tracking-tight text-white group-hover:text-purple-300 transition-colors">
               Eternal
             </span>
-          </div>
+          </Link>
 
           {/* Desktop Center Navigation with 1:1 Discord Style Dropdowns (>= 1280px) */}
-          <nav className="hidden xl:flex items-center gap-2.5 xl:gap-4 2xl:gap-5">
+          <nav
+            ref={navigationRef}
+            className="hidden xl:flex items-center gap-2.5 xl:gap-4 2xl:gap-5"
+          >
             {/* Download Link */}
             <Link
               to="/download"
@@ -107,6 +115,8 @@ export const PrivacyNavbar: React.FC = () => {
             >
               <button
                 type="button"
+                aria-expanded={activeDropdown === 'safety'}
+                onClick={() => setActiveDropdown('safety')}
                 className={`flex items-center gap-1.5 text-sm font-bold transition-all px-4 py-2 rounded-full cursor-pointer ${
                   activeDropdown === 'safety'
                     ? 'bg-[#5822b4] text-white shadow-lg'
@@ -267,6 +277,8 @@ export const PrivacyNavbar: React.FC = () => {
             >
               <button
                 type="button"
+                aria-expanded={activeDropdown === 'support'}
+                onClick={() => setActiveDropdown('support')}
                 className={`flex items-center gap-2 text-sm font-bold transition-all px-4 py-2 rounded-full cursor-pointer ${
                   activeDropdown === 'support'
                     ? 'bg-[#5822b4] text-white shadow-lg'
@@ -339,6 +351,8 @@ export const PrivacyNavbar: React.FC = () => {
             >
               <button
                 type="button"
+                aria-expanded={activeDropdown === 'blog'}
+                onClick={() => setActiveDropdown('blog')}
                 className={`flex items-center gap-1.5 text-sm font-bold transition-all px-4 py-2 rounded-full cursor-pointer ${
                   activeDropdown === 'blog'
                     ? 'bg-[#5822b4] text-white shadow-lg'
@@ -445,6 +459,8 @@ export const PrivacyNavbar: React.FC = () => {
             >
               <button
                 type="button"
+                aria-expanded={activeDropdown === 'developers'}
+                onClick={() => setActiveDropdown('developers')}
                 className={`flex items-center gap-2 text-sm font-bold transition-all px-4 py-2 rounded-full cursor-pointer ${
                   activeDropdown === 'developers'
                     ? 'bg-[#5822b4] text-white shadow-lg'

@@ -39,6 +39,23 @@ export function isSoundCloudUrl(url?: string | null): boolean {
   }
 }
 
+/** Direct provider media only; API resolver/proxy URLs are never audio sources. */
+export function isSoundCloudAudioUrl(value?: string | null): boolean {
+  if (!value) return false;
+  try {
+    const url = new URL(value);
+    return (
+      url.protocol === 'https:' &&
+      !url.username &&
+      !url.password &&
+      !url.port &&
+      (url.hostname === 'sndcdn.com' || url.hostname.endsWith('.sndcdn.com'))
+    );
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Validates whether a URL is an Apple Music / iTunes audio URL.
  */

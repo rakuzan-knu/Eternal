@@ -204,7 +204,7 @@ export const PrivacyPage: React.FC = () => {
           </aside>
 
           {/* Main Privacy Policy Article */}
-          <main className="lg:col-span-8 flex flex-col gap-12 privacy-content">
+          <main className="min-w-0 wrap-anywhere lg:col-span-8 flex flex-col gap-12 privacy-content">
             {sections.map((section) => (
               <section
                 key={section.id}

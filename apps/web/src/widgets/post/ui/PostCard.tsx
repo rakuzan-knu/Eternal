@@ -50,7 +50,6 @@ export function PostCard({ post, queryKey }: PostCardProps) {
   const [isCollapsing, setIsCollapsing] = useState(false);
   const [hideLikesCount, setHideLikesCount] = useState(Boolean(post.hideLikesCount));
   const [isCommentsDisabled, setIsCommentsDisabled] = useState(Boolean(post.isCommentsDisabled));
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const currentUserId = useAuthStore((s) => s.userId);
   const { data: currentUser } = useCurrentUser();
@@ -210,7 +209,7 @@ export function PostCard({ post, queryKey }: PostCardProps) {
         isCollapsing
           ? 'max-h-0 opacity-0 py-0 -my-2 border-0 pointer-events-none scale-95 overflow-hidden'
           : 'max-h-[3000px] opacity-100 p-3 sm:p-5 hover:bg-white/3'
-      } ${isMenuOpen ? 'z-30' : 'z-0'}`}
+      }`}
     >
       {post.isPinned && (
         <div className="flex items-center gap-1.5 text-xs text-purple-400 font-semibold mb-0.5 animate-fadeIn">
@@ -294,7 +293,6 @@ export function PostCard({ post, queryKey }: PostCardProps) {
               isPinned={!!post.isPinned}
               hideLikesCount={hideLikesCount}
               isCommentsDisabled={isCommentsDisabled}
-              onOpenChange={setIsMenuOpen}
               onSave={() => saveMutation.mutate()}
               onTogglePin={() => pinMutation.mutate()}
               onHide={handleHidePost}
@@ -386,6 +384,27 @@ export function PostCard({ post, queryKey }: PostCardProps) {
 
           <div className="flex flex-wrap gap-2 justify-between items-center text-gray-400 text-xs mt-4">
             <div className="flex flex-wrap items-center gap-3 sm:gap-6">
+              {/* Like Button with Pop-up Heart Animation */}
+              <button
+                type="button"
+                onClick={handleLike}
+                className={`min-h-8 min-w-8 flex items-center gap-1.5 cursor-pointer hover:text-pink-500 transition-colors group relative ${
+                  optimisticLikes.isLiked ? 'text-pink-500' : ''
+                }`}
+                title={optimisticLikes.isLiked ? 'Unlike' : 'Like'}
+              >
+                <Heart
+                  size={16}
+                  fill={optimisticLikes.isLiked ? 'currentColor' : 'none'}
+                  className={`transition-all duration-300 ${
+                    isLikePopping
+                      ? 'scale-150 text-pink-500 animate-pulse'
+                      : 'group-hover:scale-110'
+                  } ${optimisticLikes.isLiked ? 'scale-105' : ''}`}
+                />
+                {!hideLikesCount && <span>{optimisticLikes.count}</span>}
+              </button>
+
               {/* Comment Button */}
               <button
                 type="button"
@@ -422,27 +441,6 @@ export function PostCard({ post, queryKey }: PostCardProps) {
                   }`}
                 />
                 <span>{optimisticReposts.count}</span>
-              </button>
-
-              {/* Like Button with Pop-up Heart Animation */}
-              <button
-                type="button"
-                onClick={handleLike}
-                className={`min-h-8 min-w-8 flex items-center gap-1.5 cursor-pointer hover:text-pink-500 transition-colors group relative ${
-                  optimisticLikes.isLiked ? 'text-pink-500' : ''
-                }`}
-                title={optimisticLikes.isLiked ? 'Unlike' : 'Like'}
-              >
-                <Heart
-                  size={16}
-                  fill={optimisticLikes.isLiked ? 'currentColor' : 'none'}
-                  className={`transition-all duration-300 ${
-                    isLikePopping
-                      ? 'scale-150 text-pink-500 animate-pulse'
-                      : 'group-hover:scale-110'
-                  } ${optimisticLikes.isLiked ? 'scale-105' : ''}`}
-                />
-                {!hideLikesCount && <span>{optimisticLikes.count}</span>}
               </button>
 
               {/* Share Button with Shares Count */}

@@ -103,6 +103,7 @@ export const AddGifButton: React.FC<AddGifButtonProps> = ({
       if (e.key === 'Escape') {
         e.stopPropagation();
         onToggle();
+        buttonRef.current?.focus();
       }
     };
 
@@ -134,19 +135,26 @@ export const AddGifButton: React.FC<AddGifButtonProps> = ({
       </div>
       <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
         {PRESET_GIFS.map((gif, index) => (
-          <img
+          <button
             key={index}
-            src={gif}
-            alt="gif"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-            }}
+            type="button"
+            aria-label={`Select GIF ${index + 1}`}
             onClick={() => {
               onGifSelect(gif);
               onToggle();
+              buttonRef.current?.focus();
             }}
-            className="rounded-xl h-18 w-full object-cover cursor-pointer hover:opacity-90 hover:scale-[1.02] border border-white/10 transition-all duration-200"
-          />
+            className="rounded-xl h-18 w-full overflow-hidden cursor-pointer hover:opacity-90 hover:scale-[1.02] border border-white/10 transition-all duration-200 focus-visible:outline-2 focus-visible:outline-purple-400"
+          >
+            <img
+              src={gif}
+              alt="gif"
+              onError={(e) => {
+                e.currentTarget.parentElement?.setAttribute('hidden', '');
+              }}
+              className="h-full w-full object-cover"
+            />
+          </button>
         ))}
       </div>
     </div>

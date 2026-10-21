@@ -9,6 +9,7 @@ import { Button } from '../../../shared/ui/Button';
 import { Select } from '../../../shared/ui/Select';
 import { Turnstile } from '../../../shared/ui/Turnstile';
 import { useAuthMutations } from '../api/useAuth';
+import { PasswordRequirements } from './PasswordRequirements';
 
 import { RegisterPayload, AuthResponse } from '../api/authApi';
 import { registerSchema, type RegisterFields } from '../model/registerSchema';
@@ -63,7 +64,9 @@ const InfoTooltip: React.FC<{ text: string }> = ({ text }) => {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`transition-colors focus:outline-none ${isOpen ? 'text-purple-400' : 'text-neutral-500 hover:text-neutral-300'}`}
+        aria-label={text}
+        aria-expanded={isOpen}
+        className={`transition-colors focus-visible:outline-2 focus-visible:outline-purple-400 ${isOpen ? 'text-purple-400' : 'text-neutral-500 hover:text-neutral-300'}`}
       >
         <HelpCircle size={15} />
       </button>
@@ -131,17 +134,17 @@ const BirthdayFields: React.FC<{ control: Control<RegisterFields> }> = ({ contro
       <Controller
         control={control}
         name="birthMonth"
-        render={({ field }) => <Select {...field} options={MONTHS} />}
+        render={({ field }) => <Select {...field} aria-label="Birth month" options={MONTHS} />}
       />
       <Controller
         control={control}
         name="birthDay"
-        render={({ field }) => <Select {...field} options={daysOptions} />}
+        render={({ field }) => <Select {...field} aria-label="Birth day" options={daysOptions} />}
       />
       <Controller
         control={control}
         name="birthYear"
-        render={({ field }) => <Select {...field} options={YEARS} />}
+        render={({ field }) => <Select {...field} aria-label="Birth year" options={YEARS} />}
       />
     </div>
   );
@@ -158,6 +161,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 }) => {
   const { registerMutation } = useAuthMutations();
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [turnstileToken, setTurnstileToken] = useState<string | undefined>(undefined);
 
@@ -178,10 +182,13 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       birthDay: '1',
       birthYear: '2000',
       gender: 'Male',
+      password: '',
+      confirmPassword: '',
     },
   });
 
   const usernameValue = useWatch({ control, name: 'username' });
+  const passwordValue = useWatch({ control, name: 'password' });
   const debouncedUsername = useDebounce(usernameValue, 500);
 
   const { data: usernameStatus, isFetching: isCheckingUsername } = useCheckUsername(
@@ -330,7 +337,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         <Controller
           control={control}
           name="gender"
-          render={({ field }) => <Select {...field} options={['Male', 'Female', 'Custom']} />}
+          render={({ field }) => (
+            <Select {...field} aria-label="Gender" options={['Male', 'Female', 'Custom']} />
+          )}
         />
       </div>
 
@@ -349,22 +358,46 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         placeholder="New password"
         type={showPassword ? 'text' : 'password'}
         autoComplete="new-password"
-        {...register('password')}
+        aria-describedby="register-password-requirements"
+        {...register('password', { deps: ['confirmPassword'] })}
         error={errors.password?.message}
         rightElement={
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
+            aria-label={showPassword ? 'Hide password' : 'Show password'}
+            aria-pressed={showPassword}
             className="text-neutral-500 hover:text-neutral-300 transition-colors focus:outline-none flex items-center justify-center"
-            tabIndex={-1}
           >
             {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
           </button>
         }
       />
 
+      <PasswordRequirements password={passwordValue || ''} />
+
+      <Input
+        label="Confirm Password"
+        placeholder="Repeat your password"
+        type={showConfirmPassword ? 'text' : 'password'}
+        autoComplete="new-password"
+        {...register('confirmPassword')}
+        error={errors.confirmPassword?.message}
+        rightElement={
+          <button
+            type="button"
+            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+            aria-pressed={showConfirmPassword}
+            className="text-neutral-500 hover:text-neutral-300 transition-colors flex items-center justify-center"
+          >
+            {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
+        }
+      />
+
       <p className="text-xs text-neutral-500 leading-relaxed mt-1">
-        By tapping Submit, you agree to our{' '}
+        By creating an account, you agree to our{' '}
         <Link to="/terms" target="_blank" className="text-purple-400 font-medium hover:underline">
           Terms
         </Link>

@@ -44,7 +44,11 @@ export const FindAccount: React.FC<FindAccountProps> = ({ onSuccess }) => {
       const realUserData = await findAccountMutation.mutateAsync(target);
       onSuccess(realUserData);
     } catch (err) {
-      if (axios.isAxiosError(err) && err.response?.status === 404) {
+      if (
+        axios.isAxiosError(err) &&
+        err.response?.status === 404 &&
+        err.response.data?.errorCode === 'ACCOUNT_NOT_FOUND'
+      ) {
         setError('The user with this phone number or e-mail does not exist.');
       } else {
         setError('There was an error searching for your account. Please try again later.');

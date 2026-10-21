@@ -23,6 +23,9 @@ describe('PostMenu', () => {
     fireEvent.click(trigger);
 
     expect(screen.getByText('Save post')).toBeInTheDocument();
+    const menu = screen.getByRole('menu', { name: 'Post actions' });
+    expect(menu.parentElement).toBe(document.body);
+    expect(menu).toHaveStyle({ position: 'fixed', zIndex: '10000' });
     expect(screen.getByText('Hide post')).toBeInTheDocument();
     expect(screen.getByText('Block author')).toBeInTheDocument();
     expect(screen.getByText('Copy link')).toBeInTheDocument();

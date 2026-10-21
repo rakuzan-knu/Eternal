@@ -72,7 +72,7 @@ export const YouTubeEmbedCard: React.FC<YouTubeEmbedCardProps> = ({ data, classN
           className="w-full h-full border-0"
         />
       ) : (
-        <div className="relative w-full h-full cursor-pointer" onClick={handlePlayClick}>
+        <div className="relative w-full h-full">
           {/* Two-Tier Image Fallback Chain */}
           {coverTier === 1 ? (
             <img
@@ -97,9 +97,15 @@ export const YouTubeEmbedCard: React.FC<YouTubeEmbedCardProps> = ({ data, classN
 
           {/* Dark Gradient Overlay for Contrast */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-black/60 pointer-events-none" />
+          <button
+            type="button"
+            aria-label={`Play ${title}`}
+            onClick={handlePlayClick}
+            className="absolute inset-0 z-10 cursor-pointer rounded-xl focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-purple-400"
+          />
 
           {/* Header Bar */}
-          <div className="absolute top-0 inset-x-0 p-2.5 flex items-center justify-between z-10">
+          <div className="absolute top-0 inset-x-0 p-2.5 flex items-center justify-between z-10 pointer-events-none">
             <div className="flex items-center gap-1.5 min-w-0 pr-2">
               <div className="w-5 h-5 rounded-full bg-red-600 flex items-center justify-center shrink-0 shadow">
                 <YoutubeIcon className="w-3 h-3 text-white fill-white" />
@@ -114,7 +120,7 @@ export const YouTubeEmbedCard: React.FC<YouTubeEmbedCardProps> = ({ data, classN
               target="_blank"
               rel="noopener noreferrer"
               onClick={handleExternalClick}
-              className="p-1 rounded-lg bg-black/50 hover:bg-black/80 text-white/80 hover:text-white backdrop-blur-md transition-all shrink-0 border border-white/10"
+              className="pointer-events-auto p-1 rounded-lg bg-black/50 hover:bg-black/80 text-white/80 hover:text-white backdrop-blur-md transition-all shrink-0 border border-white/10"
               title="Open on YouTube"
             >
               <ExternalLink className="w-3.5 h-3.5" />

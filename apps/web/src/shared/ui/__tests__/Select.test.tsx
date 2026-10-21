@@ -6,6 +6,38 @@ import { Select } from '../Select';
 const OPTIONS = ['Alpha', 'Beta', 'Gamma'];
 
 describe('Select', () => {
+  it('announces keyboard navigation while retaining focus on the named combobox', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<Select aria-label="Birth month" value="Beta" onChange={onChange} options={OPTIONS} />);
+    const control = screen.getByRole('combobox', { name: 'Birth month' });
+    await user.tab();
+    await user.keyboard('{ArrowDown}');
+    expect(control).toHaveFocus();
+    expect(control).toHaveAttribute('aria-controls', screen.getByRole('listbox').id);
+    expect(
+      document.getElementById(control.getAttribute('aria-activedescendant')!),
+    ).toHaveTextContent('Beta');
+    await user.keyboard('{ArrowDown}');
+    expect(
+      document.getElementById(control.getAttribute('aria-activedescendant')!),
+    ).toHaveTextContent('Gamma');
+    await user.keyboard('{Enter}');
+    expect(onChange).toHaveBeenCalledWith('Gamma');
+    expect(control).not.toHaveAttribute('aria-activedescendant');
+  });
+
+  it('does not submit an undefined selection when options are empty', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<Select value="" onChange={onChange} options={[]} />);
+    await user.click(screen.getByRole('combobox'));
+    await user.keyboard('{ArrowDown}{Enter}');
+    expect(onChange).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('combobox'));
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+  });
   it('renders the current value on the trigger button', () => {
     render(<Select value="Beta" onChange={vi.fn()} options={OPTIONS} />);
 

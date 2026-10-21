@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { useUIStore } from '@/shared/model/useUIStore';
 import Avatar from '@/shared/ui/Avatar';
+import SkeletonBone from '@/shared/ui/SkeletonBone';
 import { VerifiedCheckmark } from '@/entities/profile/ui/VerifiedCheckmark';
 import {
   NotificationFilter,
@@ -476,9 +477,18 @@ export function NotificationsPage() {
 
         {/* Loading State */}
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-16 text-gray-400 gap-3">
-            <Loader2 size={24} className="animate-spin text-purple-400" />
-            <span className="text-xs font-medium">Loading notifications...</span>
+          <div role="status" aria-label="Loading notifications" className="divide-y divide-white/5">
+            <span className="sr-only">Loading notifications...</span>
+            {Array.from({ length: 6 }, (_, index) => (
+              <div key={index} className="flex items-center gap-3 px-5 py-4">
+                <SkeletonBone className="h-10 w-10 shrink-0 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <SkeletonBone className="h-3 w-3/4 rounded-md" />
+                  <SkeletonBone className="h-3 w-1/2 rounded-md" />
+                </div>
+                <SkeletonBone className="h-10 w-10 shrink-0 rounded-lg" />
+              </div>
+            ))}
           </div>
         ) : isError && allItems.length === 0 ? (
           <div

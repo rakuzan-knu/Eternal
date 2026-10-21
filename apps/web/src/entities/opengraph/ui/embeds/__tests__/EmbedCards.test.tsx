@@ -7,6 +7,7 @@ import { GitHubEmbedCard } from '../GitHubEmbedCard';
 import { YouTubeEmbedCard } from '../YouTubeEmbedCard';
 import { useActiveMediaPlaybackStore } from '@/shared/model/useActiveMediaPlaybackStore';
 import type { LinkEmbedData } from '../../../model/types';
+import userEvent from '@testing-library/user-event';
 
 describe('Embed Cards Test Suite', () => {
   beforeEach(() => {
@@ -287,9 +288,9 @@ describe('Embed Cards Test Suite', () => {
 
       render(<YouTubeEmbedCard data={mockYtData} />);
 
-      const playWrapper = screen
-        .getByText('Rick Astley - Never Gonna Give You Up')
-        .closest('.relative')!;
+      const playWrapper = screen.getByRole('button', {
+        name: 'Play Rick Astley - Never Gonna Give You Up',
+      });
       fireEvent.click(playWrapper);
 
       const iframe = screen.getByTitle('Rick Astley - Never Gonna Give You Up');
@@ -297,6 +298,20 @@ describe('Embed Cards Test Suite', () => {
       expect(iframe).toHaveAttribute(
         'src',
         'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=1&start=65',
+      );
+    });
+
+    it('starts a YouTube video from the keyboard without nesting its external link', async () => {
+      const user = userEvent.setup();
+      render(<YouTubeEmbedCard data={mockYtData} />);
+      const play = screen.getByRole('button', {
+        name: 'Play Rick Astley - Never Gonna Give You Up',
+      });
+      expect(play.querySelector('a')).toBeNull();
+      play.focus();
+      await user.keyboard('{Enter}');
+      expect(screen.getByTitle('Rick Astley - Never Gonna Give You Up')).toHaveAttribute(
+        'allowfullscreen',
       );
     });
 

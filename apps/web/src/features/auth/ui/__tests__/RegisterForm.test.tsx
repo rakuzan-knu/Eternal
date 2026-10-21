@@ -56,9 +56,49 @@ function fillMinimumValidForm() {
   fireEvent.change(usernameInput, { target: { value: '@alexk' } });
   fireEvent.change(emailInput, { target: { value: 'alex@test.com' } });
   fireEvent.change(passwordInput, { target: { value: 'secret123' } });
+  fireEvent.change(screen.getByPlaceholderText('Repeat your password'), {
+    target: { value: 'secret123' },
+  });
 }
 
 describe('RegisterForm', () => {
+  it('blocks mismatched confirmation and revalidates when the original password changes', async () => {
+    const mutate = setupMutations();
+    mockedUseCheckUsername.mockReturnValue({
+      data: { isAvailable: true },
+      isFetching: false,
+    } as never);
+    renderWithProviders(<RegisterForm />);
+    fillMinimumValidForm();
+    await waitFor(() => expect(getSubmitButton()).toBeEnabled());
+
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'changed123' } });
+    expect(await screen.findByText('Passwords do not match')).toBeInTheDocument();
+    expect(getSubmitButton()).toBeDisabled();
+    fireEvent.submit(getSubmitButton().closest('form')!);
+    expect(mutate).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByLabelText('Confirm Password'), {
+      target: { value: 'changed123' },
+    });
+    await waitFor(() => expect(getSubmitButton()).toBeEnabled());
+    fireEvent.click(getSubmitButton());
+    await waitFor(() => expect(mutate).toHaveBeenCalled());
+    expect(mutate.mock.calls[0]?.[0]).not.toHaveProperty('confirmPassword');
+  });
+
+  it('toggles confirmation independently with an accessible keyboard button', async () => {
+    setupMutations();
+    renderWithProviders(<RegisterForm />);
+    fireEvent.click(screen.getByRole('button', { name: 'Show confirm password' }));
+    expect(screen.getByLabelText('Confirm Password')).toHaveAttribute('type', 'text');
+    expect(screen.getByLabelText('Password')).toHaveAttribute('type', 'password');
+    expect(screen.getByRole('button', { name: 'Hide confirm password' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -347,9 +387,7 @@ describe('RegisterForm', () => {
     });
 
     await waitFor(() => {
-      expect(
-        screen.getByText('The password must contain at least 8 characters.'),
-      ).toBeInTheDocument();
+      expect(screen.getByText('Password must be at least 8 characters')).toBeInTheDocument();
     });
   });
 });

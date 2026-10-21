@@ -8,6 +8,11 @@ import type { PostType } from '@/entities/post/model/types';
 import { followApi } from '@/entities/user';
 import { chatApi } from '@/entities/chat';
 import { postsApi } from '@/features/posts/api/postsApi';
+import { sendDirectMessage } from '@/features/chat';
+
+vi.mock('@/features/chat', () => ({
+  sendDirectMessage: vi.fn().mockResolvedValue({ id: 'msg-1' }),
+}));
 
 vi.mock('@/entities/profile/model/useCurrentUser', () => ({
   useCurrentUser: () => ({ data: { id: 'usr-me', username: 'me' } }),
@@ -79,6 +84,13 @@ describe('ShareModal', () => {
     });
 
     expect(chatApi.createDirectConversation).toHaveBeenCalledWith('u1');
+    expect(sendDirectMessage).toHaveBeenCalledWith(
+      'conv-1',
+      'u1',
+      'usr-me',
+      expect.stringContaining('Look at this!'),
+      expect.any(String),
+    );
     expect(useUIStore.getState().isShareModalOpen).toBe(false);
   });
 

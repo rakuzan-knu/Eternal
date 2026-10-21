@@ -702,7 +702,7 @@ export function RegisterScreen({ onNavigateLogin, onSuccess }: RegisterScreenPro
                 </View>
 
                 <Text style={styles.disclaimerText}>
-                  By tapping Create Account, you agree to our{' '}
+                  By creating an account, you agree to our{' '}
                   <Text
                     style={styles.purpleLink}
                     accessibilityRole="link"

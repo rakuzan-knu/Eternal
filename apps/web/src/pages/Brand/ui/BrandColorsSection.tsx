@@ -36,27 +36,28 @@ export const BrandColorsSection: React.FC<{
           return (
             <div
               key={swatch.id}
-              onClick={() => handleCopy(swatch)}
               className={`p-6 sm:p-7 rounded-[32px] ${swatch.bgClass} ${
                 swatch.borderClass || 'border border-white/[0.08]'
               } shadow-2xl flex flex-col justify-between h-64 cursor-pointer group transition-all duration-300 hover:scale-[1.03] active:scale-95 relative overflow-hidden`}
             >
+              <button
+                type="button"
+                aria-label={`Copy ${swatch.name} HEX`}
+                onClick={() => handleCopy(swatch)}
+                className="absolute inset-0 z-20 rounded-[32px] cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-current"
+              />
               {/* Top Text Info */}
               <div className="flex flex-col gap-1 z-10">
                 <h3 className={`text-xl sm:text-2xl font-black tracking-tight ${swatch.textClass}`}>
                   {swatch.name}
                 </h3>
-                <span className={`text-xs font-mono opacity-80 ${swatch.textClass}`}>
-                  {swatch.hex}
-                </span>
-                <span className={`text-[11px] font-mono opacity-60 ${swatch.textClass}`}>
-                  {swatch.rgb}
-                </span>
+                <span className={`text-xs font-mono ${swatch.textClass}`}>{swatch.hex}</span>
+                <span className={`text-[11px] font-mono ${swatch.textClass}`}>{swatch.rgb}</span>
               </div>
 
               {/* Bottom Copy Action Pill */}
               <div className="flex items-center justify-between z-10 pt-4">
-                <span className={`text-[11px] font-medium opacity-70 ${swatch.textClass}`}>
+                <span className={`text-[11px] font-medium ${swatch.textClass}`}>
                   {swatch.description}
                 </span>
 

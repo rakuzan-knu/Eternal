@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import userEvent from '@testing-library/user-event';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ShowcaseQuickEditor } from '../ShowcaseQuickEditor';
@@ -210,5 +211,17 @@ describe('ShowcaseQuickEditor', () => {
     fireEvent.click(saveBtn);
 
     expect(mockMutateAsync).toHaveBeenCalled();
+  });
+
+  it('changes visibility with Space and Enter and announces the switch state', async () => {
+    const user = userEvent.setup();
+    renderComponent({ initialTab: 'meta' });
+    const visibility = screen.getByRole('switch', { name: 'Show Age' });
+    const initial = visibility.getAttribute('aria-checked');
+    visibility.focus();
+    await user.keyboard(' ');
+    expect(visibility).toHaveAttribute('aria-checked', initial === 'true' ? 'false' : 'true');
+    await user.keyboard('{Enter}');
+    expect(visibility).toHaveAttribute('aria-checked', initial);
   });
 });
