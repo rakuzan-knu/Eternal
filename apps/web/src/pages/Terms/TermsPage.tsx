@@ -386,7 +386,7 @@ export const TermsPage: React.FC = () => {
           </aside>
 
           {/* Main Terms of Service Article */}
-          <main className="lg:col-span-8 flex flex-col gap-12 terms-content">
+          <main className="min-w-0 wrap-anywhere lg:col-span-8 flex flex-col gap-12 terms-content">
             {sections.map((section) => (
               <section
                 key={section.id}

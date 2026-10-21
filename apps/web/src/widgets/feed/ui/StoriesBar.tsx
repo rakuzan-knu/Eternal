@@ -201,10 +201,12 @@ export function StoriesBar() {
           const isCloseFriendStory = group.hasCloseFriendsStory;
 
           return (
-            <div
+            <button
               key={author.id}
+              type="button"
+              aria-label={`View ${author.displayName || author.username}'s story`}
               onClick={() => handleGroupClick(group)}
-              className="group flex flex-col items-center gap-1.5 shrink-0 cursor-pointer transition-transform duration-200 active:scale-95"
+              className="group flex flex-col items-center gap-1.5 shrink-0 cursor-pointer transition-transform duration-200 active:scale-95 rounded-xl focus-visible:outline-2 focus-visible:outline-purple-400"
             >
               <div
                 className={`relative rounded-full p-[2.5px] transition-all duration-300 group-hover:scale-105 ${
@@ -250,7 +252,7 @@ export function StoriesBar() {
               <span className="text-[11px] font-medium text-gray-700 dark:text-gray-200 group-hover:text-gray-950 dark:group-hover:text-white transition-colors truncate max-w-[70px] text-center">
                 {author.displayName || author.username}
               </span>
-            </div>
+            </button>
           );
         })}
       </div>

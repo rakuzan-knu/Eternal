@@ -161,6 +161,7 @@ export const AddGifButton: React.FC<AddGifButtonProps> = ({
       if (e.key === 'Escape') {
         e.stopPropagation();
         onToggle();
+        buttonRef.current?.focus();
       }
     };
 
@@ -229,6 +230,7 @@ export const AddGifButton: React.FC<AddGifButtonProps> = ({
                   className="rounded-xl overflow-hidden border border-white/10 hover:border-purple-400 focus-visible:outline-2 focus-visible:outline-purple-400"
                   onClick={() => {
                     onGifSelect(gif.url);
+                    buttonRef.current?.focus();
                   }}
                 >
                   <img

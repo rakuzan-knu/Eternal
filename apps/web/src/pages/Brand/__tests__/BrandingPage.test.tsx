@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { BrandingPage } from '../BrandingPage';
@@ -11,8 +12,9 @@ describe('Branding Page (/branding, /brand)', () => {
     useLanguageStore.getState().setLanguage('English');
     useAuthStore.setState({ isAuthenticated: false, userId: null });
     // Mock navigator.clipboard
-    Object.assign(navigator, {
-      clipboard: {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
         writeText: vi.fn().mockImplementation(() => Promise.resolve()),
       },
     });
@@ -92,17 +94,20 @@ describe('Branding Page (/branding, /brand)', () => {
     expect(guidelinesLink).toHaveAttribute('href', '/guidelines');
   });
 
-  it('copies color HEX to clipboard when clicking a color swatch', async () => {
+  it('copies color HEX to clipboard when activating a named swatch with the keyboard', async () => {
+    const user = userEvent.setup();
+    const writeText = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
     render(
       <MemoryRouter>
         <BrandingPage />
       </MemoryRouter>,
     );
 
-    const purpleSwatch = screen.getByText(/Eternal Purple/i).closest('div')!;
-    fireEvent.click(purpleSwatch);
+    const purpleSwatch = screen.getByRole('button', { name: 'Copy Eternal Purple HEX' });
+    purpleSwatch.focus();
+    await user.keyboard('{Enter}');
 
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('#5822B4');
+    expect(writeText).toHaveBeenCalledWith('#5822B4');
   });
 
   it('switches to Ukrainian dynamically and updates headings', () => {

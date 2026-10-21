@@ -152,13 +152,18 @@ const DiscordToggle: React.FC<DiscordToggleProps> = ({
   disabled,
 }) => {
   return (
-    <div
+    <button
+      type="button"
+      role="switch"
+      aria-label={label}
+      aria-checked={checked}
+      disabled={disabled}
       onClick={() => !disabled && onChange(!checked)}
-      className={`flex items-center justify-between p-3 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] backdrop-blur-md transition-all cursor-pointer select-none group ${
+      className={`w-full text-left flex items-center justify-between p-3 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] backdrop-blur-md transition-all cursor-pointer select-none group focus-visible:outline-2 focus-visible:outline-purple-400 ${
         disabled ? 'opacity-50 cursor-not-allowed' : ''
       }`}
     >
-      <div className="flex flex-col pr-3 min-w-0">
+      <span className="flex flex-col pr-3 min-w-0">
         <span className="text-xs font-semibold text-white group-hover:text-gray-100 transition-colors">
           {label}
         </span>
@@ -167,8 +172,8 @@ const DiscordToggle: React.FC<DiscordToggleProps> = ({
             {description}
           </span>
         )}
-      </div>
-      <div
+      </span>
+      <span
         className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-all duration-200 ease-in-out focus:outline-none ${
           checked ? 'bg-purple-600 shadow-[0_0_12px_rgba(168,85,247,0.4)]' : 'bg-[#4e5058]'
         }`}
@@ -178,8 +183,8 @@ const DiscordToggle: React.FC<DiscordToggleProps> = ({
             checked ? 'translate-x-5' : 'translate-x-0'
           }`}
         />
-      </div>
-    </div>
+      </span>
+    </button>
   );
 };
 

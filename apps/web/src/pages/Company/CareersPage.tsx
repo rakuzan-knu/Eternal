@@ -218,6 +218,7 @@ export const CareersPage: React.FC = () => {
           <div className="mt-8 flex justify-center">
             <div className="relative inline-block">
               <select
+                aria-label={currentLanguage === 'Українська' ? 'Відділ' : 'Department'}
                 value={selectedDepartment}
                 onChange={(e) => setSelectedDepartment(e.target.value)}
                 className="appearance-none px-6 py-3 pr-10 rounded-2xl bg-[#17132e] border border-purple-500/40 text-white font-bold text-xs shadow-lg focus:outline-none focus:border-purple-400 cursor-pointer"
@@ -236,7 +237,8 @@ export const CareersPage: React.FC = () => {
         {/* Job Cards Grid*/}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 select-text">
           {filteredJobs.map((job) => (
-            <div
+            <button
+              type="button"
               key={job.id}
               onClick={() => setSelectedJob(job)}
               className="p-7 sm:p-8 rounded-[28px] bg-[#120f24] hover:bg-[#5822b4] border border-white/[0.08] hover:border-purple-400/40 shadow-xl hover:shadow-[0_20px_50px_rgba(88,34,180,0.4)] transition-all duration-200 cursor-pointer group flex flex-col justify-between gap-6 text-left"
@@ -261,7 +263,7 @@ export const CareersPage: React.FC = () => {
                   {job.location}
                 </span>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       </section>

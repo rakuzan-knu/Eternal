@@ -335,8 +335,11 @@ export const InteractivePrivacyControlsMockup: React.FC = () => {
                 {/* Custom Toggle Switch */}
                 <button
                   type="button"
+                  role="switch"
+                  aria-label={isUkrainian ? 'Приватний обліковий запис' : 'Private account'}
+                  aria-checked={isPrivateAccount}
                   onClick={() => setIsPrivateAccount(!isPrivateAccount)}
-                  className={`w-12 h-6 rounded-full transition-colors relative shrink-0 p-0.5 cursor-pointer focus:outline-none ${
+                  className={`w-12 h-6 rounded-full transition-colors relative shrink-0 p-0.5 cursor-pointer focus-visible:outline-2 focus-visible:outline-purple-400 ${
                     isPrivateAccount
                       ? 'bg-purple-600 shadow-[0_0_12px_rgba(168,85,247,0.5)]'
                       : 'bg-neutral-800'
@@ -365,8 +368,13 @@ export const InteractivePrivacyControlsMockup: React.FC = () => {
 
                 <button
                   type="button"
+                  role="switch"
+                  aria-label={
+                    isUkrainian ? 'Рекомендації та радар поруч' : 'Recommendations & Discovery'
+                  }
+                  aria-checked={isNearbyEnabled}
                   onClick={() => setIsNearbyEnabled(!isNearbyEnabled)}
-                  className={`w-12 h-6 rounded-full transition-colors relative shrink-0 p-0.5 cursor-pointer focus:outline-none ${
+                  className={`w-12 h-6 rounded-full transition-colors relative shrink-0 p-0.5 cursor-pointer focus-visible:outline-2 focus-visible:outline-purple-400 ${
                     isNearbyEnabled
                       ? 'bg-purple-600 shadow-[0_0_12px_rgba(168,85,247,0.5)]'
                       : 'bg-neutral-800'
@@ -440,6 +448,9 @@ export const InteractivePrivacyControlsMockup: React.FC = () => {
                     </div>
                     <button
                       type="button"
+                      role="switch"
+                      aria-label={isUkrainian ? 'Покращення Eternal' : 'Improve Eternal'}
+                      aria-checked={isImproveEternal}
                       onClick={() => setIsImproveEternal(!isImproveEternal)}
                       className={`w-10 h-5 rounded-full transition-colors relative shrink-0 p-0.5 cursor-pointer ${
                         isImproveEternal ? 'bg-purple-600' : 'bg-neutral-800'
@@ -469,6 +480,9 @@ export const InteractivePrivacyControlsMockup: React.FC = () => {
                     </div>
                     <button
                       type="button"
+                      role="switch"
+                      aria-label={isUkrainian ? 'Персоналізація' : 'Personalization'}
+                      aria-checked={isPersonalize}
                       onClick={() => setIsPersonalize(!isPersonalize)}
                       className={`w-10 h-5 rounded-full transition-colors relative shrink-0 p-0.5 cursor-pointer ${
                         isPersonalize ? 'bg-purple-600' : 'bg-neutral-800'
@@ -498,6 +512,9 @@ export const InteractivePrivacyControlsMockup: React.FC = () => {
                     </div>
                     <button
                       type="button"
+                      role="switch"
+                      aria-label={isUkrainian ? 'Сторонні інтеграції' : 'Third-party integrations'}
+                      aria-checked={isThirdParty}
                       onClick={() => setIsThirdParty(!isThirdParty)}
                       className={`w-10 h-5 rounded-full transition-colors relative shrink-0 p-0.5 cursor-pointer ${
                         isThirdParty ? 'bg-purple-600' : 'bg-neutral-800'

@@ -37,7 +37,7 @@ export const CareersGallery: React.FC = () => {
           <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
             <div className="flex items-center gap-2">
               <span className="font-black text-sm text-white">For You</span>
-              <span className="text-sm font-semibold text-gray-500">Following</span>
+              <span className="text-sm font-semibold text-gray-400">Following</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="px-2.5 py-1 rounded-full bg-purple-950/80 text-purple-300 text-[11px] font-bold border border-purple-800/40">
@@ -60,7 +60,7 @@ export const CareersGallery: React.FC = () => {
                     <span className="font-bold text-xs text-white">Nikolaj Agh</span>
                     <VerifiedCheckmark isVerified={true} size="xs" />
                   </div>
-                  <span className="text-[10px] text-gray-500">@nikolaj • 15m</span>
+                  <span className="text-[10px] text-gray-400">@nikolaj • 15m</span>
                 </div>
               </div>
               <button

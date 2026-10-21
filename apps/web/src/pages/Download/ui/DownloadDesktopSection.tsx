@@ -267,7 +267,12 @@ export const DownloadDesktopSection: React.FC<{
                 </div>
 
                 {/* Conversations List */}
-                <div className="flex flex-col gap-1 overflow-y-auto pr-0.5">
+                <div
+                  tabIndex={0}
+                  role="region"
+                  aria-label="Conversation preview"
+                  className="flex flex-col gap-1 overflow-y-auto pr-0.5"
+                >
                   {/* Chat 1 (Active / Selected) */}
                   <div className="p-2.5 rounded-2xl bg-white/[0.08] border border-purple-500/30 flex items-center gap-2.5 cursor-pointer">
                     <div className="relative shrink-0">
@@ -370,7 +375,12 @@ export const DownloadDesktopSection: React.FC<{
                 </div>
 
                 {/* Message Stream */}
-                <div className="flex flex-col gap-3 py-3 overflow-y-auto">
+                <div
+                  tabIndex={0}
+                  role="region"
+                  aria-label="Message preview"
+                  className="flex flex-col gap-3 py-3 overflow-y-auto"
+                >
                   {/* Date Pill */}
                   <div className="self-center px-3 py-0.5 rounded-full bg-white/[0.04] text-[9px] font-bold text-neutral-400">
                     Today, August 28

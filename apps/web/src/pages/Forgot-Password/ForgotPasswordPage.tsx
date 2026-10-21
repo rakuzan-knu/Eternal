@@ -18,6 +18,8 @@ export const ForgotPasswordPage: React.FC = () => {
         <div className="w-full max-w-[460px] flex flex-col gap-4 animate-fadeIn">
           <div className="flex items-center gap-3 pl-1">
             <button
+              type="button"
+              aria-label={step === 2 ? 'Back to account search' : 'Back to login'}
               onClick={() => (step === 2 ? setStep(1) : navigate('/login'))}
               className="w-8 h-8 rounded-full bg-[#111112] border border-neutral-800/60 flex items-center justify-center hover:bg-neutral-800 text-neutral-400 hover:text-white transition-all active:scale-95"
             >
