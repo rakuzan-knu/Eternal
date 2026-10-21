@@ -1,0 +1,1296 @@
+{
+  "date": "2026-10-21",
+  "method": {
+    "browser": "Chromium",
+    "axe": "4.13.0",
+    "tags": ["wcag2a", "wcag2aa", "wcag21aa"],
+    "theme": "dark",
+    "reducedMotion": "reduce",
+    "externalHttpRequests": "blocked",
+    "scope": "37 unique public pages, two viewport sizes; aliases and OAuth excluded",
+    "caveat": "Initial navigation timeouts were retried. These checks do not cover every interaction state or native clients."
+  },
+  "staticReview": {
+    "before": {
+      "files": 1633,
+      "errors": 180,
+      "warnings": 1510,
+      "suggestions": 3840
+    },
+    "after": {
+      "files": 1634,
+      "errors": 175,
+      "warnings": 1509,
+      "suggestions": 3841
+    },
+    "caveat": "21st findings are heuristic candidates, including test/story code and intentional literal design recipes."
+  },
+  "summary": {
+    "publicPages": 37,
+    "views": 74,
+    "baselineAxeRuleGroups": 24,
+    "finalAxeRuleGroups": 0,
+    "finalOverflowViews": 0,
+    "finalErrors": 0
+  },
+  "views": [
+    {
+      "page": "LoginPage",
+      "route": "/login",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 310,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 310,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "RegisterPage",
+      "route": "/register",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 310,
+        "axeRules": ["button-name"]
+      },
+      "after": {
+        "documentWidth": 310,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "ForgotPasswordPage",
+      "route": "/forgot-password",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 310,
+        "axeRules": ["button-name"]
+      },
+      "after": {
+        "documentWidth": 310,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "PrivacyPage",
+      "route": "/privacy",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 412,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 310,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "TermsPage",
+      "route": "/terms",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 412,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 310,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "ApplicantCandidatePrivacyPage",
+      "route": "/terms/applicant-candidate-privacy-policy",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 310,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 310,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "CookiePolicyPage",
+      "route": "/terms/cookie-policy",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 310,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 310,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "RegionalPrivacyPage",
+      "route": "/terms/local-laws",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 310,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 310,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "RetentionPolicyPage",
+      "route": "/terms/retention-policy",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 310,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 310,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "DataPrivacyControlsPage",
+      "route": "/terms/data-privacy-controls",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 310,
+        "axeRules": ["button-name"]
+      },
+      "after": {
+        "documentWidth": 310,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "YourDataPackagePage",
+      "route": "/terms/your-eternal-data-package",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 310,
+        "axeRules": ["color-contrast"]
+      },
+      "after": {
+        "documentWidth": 310,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "CopyrightPolicyPage",
+      "route": "/copyright",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 310,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 310,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "PaidServicesPage",
+      "route": "/terms/paid-services",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 310,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 310,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "LawEnforcementPage",
+      "route": "/safety-law-enforcement",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 310,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 310,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "DeveloperTermsPage",
+      "route": "/terms/developer",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 310,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 310,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "GuidelinesPage",
+      "route": "/guidelines",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 310,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 310,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "AcknowledgementsPage",
+      "route": "/acknowledgements",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 420,
+        "axeRules": ["color-contrast", "scrollable-region-focusable"]
+      },
+      "after": {
+        "documentWidth": 310,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "LicensesPage",
+      "route": "/licenses",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 333,
+        "axeRules": ["scrollable-region-focusable"]
+      },
+      "after": {
+        "documentWidth": 310,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "CompanyInformationPage",
+      "route": "/company-information",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 310,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 310,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "CompanyAboutPage",
+      "route": "/company",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 310,
+        "axeRules": ["color-contrast"]
+      },
+      "after": {
+        "documentWidth": 310,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "CareersPage",
+      "route": "/careers",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 310,
+        "axeRules": ["color-contrast", "select-name"]
+      },
+      "after": {
+        "documentWidth": 310,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "BrandingPage",
+      "route": "/branding",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 310,
+        "axeRules": ["color-contrast"]
+      },
+      "after": {
+        "documentWidth": 310,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "DownloadPage",
+      "route": "/download",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 310,
+        "axeRules": ["scrollable-region-focusable"]
+      },
+      "after": {
+        "documentWidth": 310,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "NewsroomPage",
+      "route": "/newsroom",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 310,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 310,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "BlogPage",
+      "route": "/blog",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 310,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 310,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "CategoryPage",
+      "route": "/category/community",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 310,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 310,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "FamilyCenterPage",
+      "route": "/safety-family-center",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 310,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 310,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "SafetyLibraryPage",
+      "route": "/safety-library",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 310,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 310,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "PrivacyHubPage",
+      "route": "/safety-privacy",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 310,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 310,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "TransparencyHubPage",
+      "route": "/safety-transparency",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 310,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 310,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "SafetyNewsHubPage",
+      "route": "/safety-news",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 310,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 310,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "PolicyHubPage",
+      "route": "/safety-policies",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 310,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 310,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "TeenCharterPage",
+      "route": "/safety-teen-charter",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 310,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 310,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "WellbeingHubPage",
+      "route": "/safety-wellbeing",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 310,
+        "axeRules": ["color-contrast"]
+      },
+      "after": {
+        "documentWidth": 310,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "SafetyCenterPage",
+      "route": "/safety",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 310,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 310,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "CreatorsPage",
+      "route": "/creators",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 310,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 310,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "NotFoundPage",
+      "route": "/404",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 310,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 310,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "LoginPage",
+      "route": "/login",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 1270,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 1270,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "RegisterPage",
+      "route": "/register",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 1270,
+        "axeRules": ["button-name"]
+      },
+      "after": {
+        "documentWidth": 1270,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "ForgotPasswordPage",
+      "route": "/forgot-password",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 1270,
+        "axeRules": ["button-name"]
+      },
+      "after": {
+        "documentWidth": 1270,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "PrivacyPage",
+      "route": "/privacy",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 1270,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 1270,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "TermsPage",
+      "route": "/terms",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 1270,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 1270,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "ApplicantCandidatePrivacyPage",
+      "route": "/terms/applicant-candidate-privacy-policy",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 1270,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 1270,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "CookiePolicyPage",
+      "route": "/terms/cookie-policy",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 1270,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 1270,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "RegionalPrivacyPage",
+      "route": "/terms/local-laws",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 1270,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 1270,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "RetentionPolicyPage",
+      "route": "/terms/retention-policy",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 1270,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 1270,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "DataPrivacyControlsPage",
+      "route": "/terms/data-privacy-controls",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 1270,
+        "axeRules": ["button-name"]
+      },
+      "after": {
+        "documentWidth": 1270,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "YourDataPackagePage",
+      "route": "/terms/your-eternal-data-package",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 1270,
+        "axeRules": ["color-contrast"]
+      },
+      "after": {
+        "documentWidth": 1270,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "CopyrightPolicyPage",
+      "route": "/copyright",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 1270,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 1270,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "PaidServicesPage",
+      "route": "/terms/paid-services",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 1270,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 1270,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "LawEnforcementPage",
+      "route": "/safety-law-enforcement",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 1270,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 1270,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "DeveloperTermsPage",
+      "route": "/terms/developer",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 1270,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 1270,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "GuidelinesPage",
+      "route": "/guidelines",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 1270,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 1270,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "AcknowledgementsPage",
+      "route": "/acknowledgements",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 1270,
+        "axeRules": ["color-contrast", "scrollable-region-focusable"]
+      },
+      "after": {
+        "documentWidth": 1270,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "LicensesPage",
+      "route": "/licenses",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 1270,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 1270,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "CompanyInformationPage",
+      "route": "/company-information",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 1270,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 1270,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "CompanyAboutPage",
+      "route": "/company",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 1270,
+        "axeRules": ["color-contrast"]
+      },
+      "after": {
+        "documentWidth": 1270,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "CareersPage",
+      "route": "/careers",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 1270,
+        "axeRules": ["color-contrast", "select-name"]
+      },
+      "after": {
+        "documentWidth": 1270,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "BrandingPage",
+      "route": "/branding",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 1270,
+        "axeRules": ["color-contrast"]
+      },
+      "after": {
+        "documentWidth": 1270,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "DownloadPage",
+      "route": "/download",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 1270,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 1270,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "NewsroomPage",
+      "route": "/newsroom",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 1270,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 1270,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "BlogPage",
+      "route": "/blog",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 1270,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 1270,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "CategoryPage",
+      "route": "/category/community",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 1270,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 1270,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "FamilyCenterPage",
+      "route": "/safety-family-center",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 1270,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 1270,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "SafetyLibraryPage",
+      "route": "/safety-library",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 1270,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 1270,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "PrivacyHubPage",
+      "route": "/safety-privacy",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 1270,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 1270,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "TransparencyHubPage",
+      "route": "/safety-transparency",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 1270,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 1270,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "SafetyNewsHubPage",
+      "route": "/safety-news",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 1270,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 1270,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "PolicyHubPage",
+      "route": "/safety-policies",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 1270,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 1270,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "TeenCharterPage",
+      "route": "/safety-teen-charter",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 1270,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 1270,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "WellbeingHubPage",
+      "route": "/safety-wellbeing",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 1270,
+        "axeRules": ["color-contrast"]
+      },
+      "after": {
+        "documentWidth": 1270,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "SafetyCenterPage",
+      "route": "/safety",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 1270,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 1270,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "CreatorsPage",
+      "route": "/creators",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 1270,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 1270,
+        "axeRules": [],
+        "error": null
+      }
+    },
+    {
+      "page": "NotFoundPage",
+      "route": "/404",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "before": {
+        "documentWidth": 1270,
+        "axeRules": []
+      },
+      "after": {
+        "documentWidth": 1270,
+        "axeRules": [],
+        "error": null
+      }
+    }
+  ]
+}

@@ -29,6 +29,7 @@ import {
   SAVED_POSTS_KEY,
   queryKeys,
 } from '@/shared/api/queryKeys';
+import { sendDirectMessage } from '@/features/chat';
 import Avatar from '@/shared/ui/Avatar';
 
 export function ShareModal() {
@@ -238,11 +239,7 @@ export function ShareModal() {
           const clientMessageId =
             pendingMessageIds.current.get(targetUserId) ?? crypto.randomUUID();
           pendingMessageIds.current.set(targetUserId, clientMessageId);
-          const message = await chatApi.sendMessage(directConv.id, {
-            text: fullText,
-            clientMessageId,
-          });
-          if (!message?.id) throw new Error('Message delivery was not confirmed.');
+          await sendDirectMessage(directConv.id, targetUserId, myUserId, fullText, clientMessageId);
           if (pendingMessageIds.current.get(targetUserId) === clientMessageId) {
             pendingMessageIds.current.delete(targetUserId);
           }

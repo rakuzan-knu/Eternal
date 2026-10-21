@@ -6,27 +6,12 @@ import { renderWithProviders } from '@/test/renderWithProviders';
 import { useUIStore } from '@/shared/model/useUIStore';
 import { useCurrentUser } from '@/entities/profile/model/useCurrentUser';
 import { followApi } from '@/entities/user';
-import { chatApi, type MessageView } from '@/entities/chat';
+import { chatApi } from '@/entities/chat';
 import { postsApi } from '@/features/posts/api/postsApi';
+import { sendDirectMessage } from '@/features/chat';
 import { useMessageToastStore } from '@/shared/model/useMessageToastStore';
 
-const confirmedMessage: MessageView = {
-  id: 'message-1',
-  conversationId: 'conv-target-1',
-  sender: { id: 'sender-1', username: 'sender', displayName: null, avatar: null },
-  body: 'Post link',
-  messageType: 'TEXT',
-  replyTo: null,
-  forwardedFrom: null,
-  attachments: [],
-  reactions: [],
-  readBy: [],
-  isEdited: false,
-  isDeleted: false,
-  isPinned: false,
-  createdAt: '2026-10-17T12:00:00.000Z',
-  editedAt: null,
-};
+vi.mock('@/features/chat', () => ({ sendDirectMessage: vi.fn() }));
 
 vi.mock('@/entities/profile/model/useCurrentUser');
 
@@ -62,7 +47,7 @@ describe('ShareModal (Comprehensive Suite)', () => {
     vi.clearAllMocks();
     localStorage.clear();
     useMessageToastStore.getState().dismissAll();
-    vi.spyOn(chatApi, 'sendMessage').mockResolvedValue(confirmedMessage);
+    vi.mocked(sendDirectMessage).mockResolvedValue(undefined);
     useUIStore.setState({
       isShareModalOpen: true,
       activePostForShare: mockPost as any,
@@ -162,16 +147,19 @@ describe('ShareModal (Comprehensive Suite)', () => {
     await user.click(sendBtn);
 
     expect(chatApi.createDirectConversation).toHaveBeenCalledWith('u-1');
-    expect(chatApi.sendMessage).toHaveBeenCalledWith('conv-target-1', {
-      text: expect.stringContaining('Check out this awesome post!'),
-      clientMessageId: expect.any(String),
-    });
+    expect(sendDirectMessage).toHaveBeenCalledWith(
+      'conv-target-1',
+      'u-1',
+      'user-me-1',
+      expect.stringContaining('Check out this awesome post!'),
+      expect.any(String),
+    );
     expect(useUIStore.getState().isShareModalOpen).toBe(false);
   });
 
   it('keeps failed recipients selected and retries only them after partial delivery', async () => {
-    vi.mocked(chatApi.sendMessage)
-      .mockResolvedValueOnce(confirmedMessage)
+    vi.mocked(sendDirectMessage)
+      .mockResolvedValueOnce(undefined)
       .mockRejectedValueOnce(new Error('Unavailable'));
     renderWithProviders(<ShareModal />);
     fireEvent.click(await screen.findByText('Charlie Brown'));
@@ -190,24 +178,24 @@ describe('ShareModal (Comprehensive Suite)', () => {
     fireEvent.click(screen.getByRole('button', { name: /send to direct/i }));
     await waitFor(() => expect(useUIStore.getState().isShareModalOpen).toBe(false));
     expect(chatApi.createDirectConversation).toHaveBeenNthCalledWith(3, 'u-2');
-    expect(chatApi.sendMessage).toHaveBeenCalledTimes(3);
-    expect(vi.mocked(chatApi.sendMessage).mock.calls[2]?.[1].clientMessageId).toBe(
-      vi.mocked(chatApi.sendMessage).mock.calls[1]?.[1].clientMessageId,
+    expect(sendDirectMessage).toHaveBeenCalledTimes(3);
+    expect(vi.mocked(sendDirectMessage).mock.calls[2]?.[4]).toBe(
+      vi.mocked(sendDirectMessage).mock.calls[1]?.[4],
     );
   });
 
   it('uses a new message id after the draft changes or the modal is reopened', async () => {
-    vi.mocked(chatApi.sendMessage).mockRejectedValue(new Error('Response timed out'));
+    vi.mocked(sendDirectMessage).mockRejectedValue(new Error('Response timed out'));
     renderWithProviders(<ShareModal />);
     fireEvent.click(await screen.findByText('Charlie Brown'));
     const send = async () => {
-      const previousCalls = vi.mocked(chatApi.sendMessage).mock.calls.length;
+      const previousCalls = vi.mocked(sendDirectMessage).mock.calls.length;
       fireEvent.click(screen.getByRole('button', { name: /send to direct/i }));
-      await waitFor(() => expect(chatApi.sendMessage).toHaveBeenCalledTimes(previousCalls + 1));
+      await waitFor(() => expect(sendDirectMessage).toHaveBeenCalledTimes(previousCalls + 1));
       await waitFor(() =>
         expect(screen.getByRole('button', { name: /send to direct/i })).toBeEnabled(),
       );
-      return vi.mocked(chatApi.sendMessage).mock.calls[previousCalls]?.[1].clientMessageId;
+      return vi.mocked(sendDirectMessage).mock.calls[previousCalls]?.[4];
     };
     const firstId = await send();
     expect(firstId).toEqual(expect.any(String));
@@ -225,17 +213,7 @@ describe('ShareModal (Comprehensive Suite)', () => {
   });
 
   it('does not report success or count a share when every delivery fails', async () => {
-    vi.mocked(chatApi.sendMessage).mockRejectedValue(new Error('Delivery failed'));
-    renderWithProviders(<ShareModal />);
-    fireEvent.click(await screen.findByText('Charlie Brown'));
-    fireEvent.click(screen.getByRole('button', { name: /send to direct/i }));
-    await waitFor(() => expect(useMessageToastStore.getState().toasts[0]?.title).toBe('Error'));
-    expect(useUIStore.getState().isShareModalOpen).toBe(true);
-    expect(postsApi.share).not.toHaveBeenCalled();
-  });
-
-  it('keeps the modal open when the server response has no persisted message id', async () => {
-    vi.mocked(chatApi.sendMessage).mockResolvedValue({ ...confirmedMessage, id: '' });
+    vi.mocked(sendDirectMessage).mockRejectedValue(new Error('Delivery failed'));
     renderWithProviders(<ShareModal />);
     fireEvent.click(await screen.findByText('Charlie Brown'));
     fireEvent.click(screen.getByRole('button', { name: /send to direct/i }));
@@ -245,20 +223,20 @@ describe('ShareModal (Comprehensive Suite)', () => {
   });
 
   it('waits for delivery confirmation before counting the share or closing', async () => {
-    let confirmDelivery = (_message: MessageView) => {};
-    vi.mocked(chatApi.sendMessage).mockReturnValue(
-      new Promise<MessageView>((resolve) => {
+    let confirmDelivery = () => {};
+    vi.mocked(sendDirectMessage).mockReturnValue(
+      new Promise<void>((resolve) => {
         confirmDelivery = resolve;
       }),
     );
     renderWithProviders(<ShareModal />);
     fireEvent.click(await screen.findByText('Charlie Brown'));
     fireEvent.click(screen.getByRole('button', { name: /send to direct/i }));
-    await waitFor(() => expect(chatApi.sendMessage).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(sendDirectMessage).toHaveBeenCalledTimes(1));
     expect(useUIStore.getState().isShareModalOpen).toBe(true);
     expect(postsApi.share).not.toHaveBeenCalled();
     expect(useMessageToastStore.getState().toasts).toHaveLength(0);
-    confirmDelivery(confirmedMessage);
+    confirmDelivery();
     await waitFor(() => expect(useUIStore.getState().isShareModalOpen).toBe(false));
     expect(postsApi.share).toHaveBeenCalledTimes(1);
   });

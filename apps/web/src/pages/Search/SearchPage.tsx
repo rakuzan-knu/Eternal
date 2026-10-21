@@ -951,7 +951,7 @@ export default function SearchPage() {
                         {[1, 2].map((i) => (
                           <div
                             key={i}
-                            className="skeleton-shimmer h-36 glass-card border border-white/10 rounded-3xl"
+                            className="skeleton-shimmer h-36 border border-white/[0.06] rounded-3xl"
                           />
                         ))}
                       </div>
@@ -1032,7 +1032,7 @@ export default function SearchPage() {
                       {[1, 2, 3].map((i) => (
                         <div
                           key={i}
-                          className="skeleton-shimmer h-36 glass-card border border-white/10 rounded-3xl"
+                          className="skeleton-shimmer h-36 border border-white/[0.06] rounded-3xl"
                         />
                       ))}
                     </div>

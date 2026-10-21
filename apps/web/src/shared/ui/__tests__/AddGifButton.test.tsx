@@ -23,6 +23,16 @@ describe('AddGifButton', () => {
     vi.mocked(searchGifs).mockResolvedValue(page);
   });
   afterEach(() => vi.resetAllMocks());
+  it('selects a portaled GIF with the keyboard and returns focus to the trigger', async () => {
+    const user = userEvent.setup();
+    const onGifSelect = vi.fn();
+    render(<AddGifButton isOpen usePortal onToggle={vi.fn()} onGifSelect={onGifSelect} />);
+    const choice = await screen.findByRole('button', { name: 'Select Happy cat' });
+    choice.focus();
+    await user.keyboard('{Enter}');
+    expect(onGifSelect).toHaveBeenCalledWith(page.gifs[0].url);
+    expect(screen.getByTitle('Add GIF')).toHaveFocus();
+  });
   it('does not request GIFs while closed or disabled', () => {
     const { rerender } = render(
       <AddGifButton isOpen={false} onToggle={vi.fn()} onGifSelect={vi.fn()} />,

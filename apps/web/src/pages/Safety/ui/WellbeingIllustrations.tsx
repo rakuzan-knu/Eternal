@@ -478,10 +478,10 @@ export const WellbeingArticleThumbnail: React.FC<{
       ) : type === 'on-the-road' ? (
         <div className="w-full h-full bg-gradient-to-br from-pink-900 via-purple-950 to-slate-950 flex items-center justify-center gap-3 p-4">
           <div className="flex -space-x-3">
-            <div className="w-12 h-12 rounded-full bg-pink-500 border-2 border-slate-900 flex items-center justify-center font-bold text-white text-sm shadow">
+            <div className="w-12 h-12 rounded-full bg-pink-500 border-2 border-slate-900 flex items-center justify-center font-bold text-black text-sm shadow">
               Y1
             </div>
-            <div className="w-12 h-12 rounded-full bg-purple-500 border-2 border-slate-900 flex items-center justify-center font-bold text-white text-sm shadow">
+            <div className="w-12 h-12 rounded-full bg-purple-500 border-2 border-slate-900 flex items-center justify-center font-bold text-black text-sm shadow">
               Y2
             </div>
             <div className="w-12 h-12 rounded-full bg-indigo-500 border-2 border-slate-900 flex items-center justify-center font-bold text-white text-sm shadow">

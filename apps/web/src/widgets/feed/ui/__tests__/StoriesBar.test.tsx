@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
+import userEvent from '@testing-library/user-event';
 import { StoriesBar } from '../StoriesBar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useStoryEditorStore } from '@/features/stories/model/useStoryEditorStore';
@@ -53,6 +54,14 @@ const createWrapper = () => {
 };
 
 describe('StoriesBar', () => {
+  it('opens another user story with the keyboard', async () => {
+    const user = userEvent.setup();
+    render(<StoriesBar />, { wrapper: createWrapper() });
+    const story = screen.getByRole('button', { name: "View Bob's story" });
+    story.focus();
+    await user.keyboard(' ');
+    expect(useStoryViewerStore.getState().isOpen).toBe(true);
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     useStoryEditorStore.getState().closeEditor();

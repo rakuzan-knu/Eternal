@@ -57,11 +57,12 @@ export const BlogFilterBar: React.FC<{
   return (
     <div className="w-full max-w-xl mx-auto rounded-full bg-white text-black p-1.5 sm:p-2 shadow-[0_15px_40px_rgba(0,0,0,0.5)] flex items-center justify-between gap-2 z-30 relative select-none">
       {/* Category Dropdown Pill */}
-      <div className="relative" ref={dropdownRef}>
+      <div className="relative min-w-0 max-w-[55%] shrink-0" ref={dropdownRef}>
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-full hover:bg-neutral-100 font-bold text-xs sm:text-sm text-neutral-800 transition-colors cursor-pointer"
+          aria-expanded={isOpen}
+          className="flex max-w-full items-center gap-2 px-4 sm:px-5 py-2.5 rounded-full hover:bg-neutral-100 font-bold text-xs sm:text-sm text-neutral-800 transition-colors cursor-pointer"
         >
           <span className="truncate max-w-[130px] sm:max-w-[180px]">{selectedLabel}</span>
           <ChevronDown
@@ -99,17 +100,18 @@ export const BlogFilterBar: React.FC<{
       </div>
 
       {/* Divider */}
-      <div className="w-px h-6 bg-neutral-300" />
+      <div className="w-px h-6 shrink-0 bg-neutral-300" />
 
       {/* Search Input */}
-      <div className="flex-1 flex items-center gap-2 pr-4">
+      <div className="min-w-0 flex-1 flex items-center gap-2 pr-4">
         <Search size={16} className="text-neutral-400 shrink-0" />
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder={searchPlaceholder}
-          className="w-full bg-transparent text-xs sm:text-sm font-semibold text-neutral-800 placeholder-neutral-400 focus:outline-none"
+          aria-label={searchPlaceholder}
+          className="min-w-0 w-full bg-transparent text-xs sm:text-sm font-semibold text-neutral-800 placeholder-neutral-400 focus-visible:outline-2 focus-visible:outline-purple-600"
         />
       </div>
     </div>

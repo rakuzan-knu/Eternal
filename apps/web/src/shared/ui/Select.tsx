@@ -5,6 +5,7 @@ import React, {
   forwardRef,
   useImperativeHandle,
   useMemo,
+  useId,
 } from 'react';
 import { ChevronDown, Check } from 'lucide-react';
 import { useThemeStore } from '@/shared/model/useThemeStore';
@@ -46,6 +47,9 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
     ref,
   ) => {
     const [isOpen, setIsOpen] = useState(false);
+    const [highlightedIndex, setHighlightedIndex] = useState(0);
+    const listId = useId();
+    const listRef = useRef<HTMLDivElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLButtonElement>(null);
 
@@ -82,6 +86,20 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
       };
     }, [isOpen, onBlur]);
 
+    useEffect(() => {
+      if (isOpen) {
+        const currentIndex = normalizedOptions.findIndex((opt) => opt.value === value);
+        setHighlightedIndex(currentIndex >= 0 ? currentIndex : 0);
+      }
+    }, [isOpen, value, normalizedOptions]);
+
+    useEffect(() => {
+      if (isOpen) {
+        const items = listRef.current?.querySelectorAll<HTMLElement>('[role="option"]');
+        items?.[highlightedIndex]?.scrollIntoView({ block: 'nearest' });
+      }
+    }, [isOpen, highlightedIndex]);
+
     const handleSelect = (val: string) => {
       onChange(val);
       setIsOpen(false);
@@ -90,35 +108,41 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
       if (disabled) return;
-
-      if (e.key === 'Escape') {
-        setIsOpen(false);
-        buttonRef.current?.focus();
-      } else if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        setIsOpen((prev) => !prev);
-      } else if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        if (!isOpen) {
+      if (!isOpen) {
+        if (['ArrowDown', 'ArrowUp', ' ', 'Enter'].includes(e.key)) {
+          e.preventDefault();
           setIsOpen(true);
-        } else if (normalizedOptions.length > 0) {
-          const currentIndex = normalizedOptions.findIndex((opt) => opt.value === value);
-          const nextIndex = (currentIndex + 1) % normalizedOptions.length;
-          onChange(normalizedOptions[nextIndex].value);
         }
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        if (!isOpen) {
-          setIsOpen(true);
-        } else if (normalizedOptions.length > 0) {
-          const currentIndex = normalizedOptions.findIndex((opt) => opt.value === value);
-          const prevIndex =
-            (currentIndex - 1 + normalizedOptions.length) % normalizedOptions.length;
-          onChange(normalizedOptions[prevIndex].value);
-        }
-      } else if (e.key === 'Tab') {
-        setIsOpen(false);
-        onBlur?.();
+        return;
+      }
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault();
+          if (normalizedOptions.length)
+            setHighlightedIndex((previous) => (previous + 1) % normalizedOptions.length);
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          if (normalizedOptions.length)
+            setHighlightedIndex(
+              (previous) => (previous - 1 + normalizedOptions.length) % normalizedOptions.length,
+            );
+          break;
+        case 'Enter':
+        case ' ':
+          e.preventDefault();
+          if (normalizedOptions[highlightedIndex])
+            handleSelect(normalizedOptions[highlightedIndex].value);
+          break;
+        case 'Escape':
+          e.preventDefault();
+          setIsOpen(false);
+          buttonRef.current?.focus();
+          break;
+        case 'Tab':
+          setIsOpen(false);
+          onBlur?.();
+          break;
       }
     };
 
@@ -133,6 +157,12 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
           aria-label={ariaLabel}
           aria-expanded={isOpen}
           aria-haspopup="listbox"
+          aria-controls={isOpen ? listId : undefined}
+          aria-activedescendant={
+            isOpen && normalizedOptions[highlightedIndex]
+              ? `${listId}-option-${highlightedIndex}`
+              : undefined
+          }
           onClick={() => setIsOpen((prev) => !prev)}
           onKeyDown={handleKeyDown}
           onBlur={onBlur}
@@ -166,6 +196,8 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
         {/* Dropdown Menu Popup */}
         {isOpen && (
           <div
+            ref={listRef}
+            id={listId}
             role="listbox"
             className="absolute top-full left-0 right-0 mt-1.5 z-50 bg-white/95 dark:bg-[#151518]/95 border border-black/10 dark:border-white/10 rounded-xl shadow-2xl p-1.5 max-h-64 overflow-y-auto backdrop-blur-xl animate-fadeIn"
           >
@@ -174,16 +206,18 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
                 No options available
               </div>
             ) : (
-              normalizedOptions.map((opt) => {
+              normalizedOptions.map((opt, index) => {
                 const isSelected = opt.value === value;
                 return (
                   <button
                     key={opt.value}
                     type="button"
                     role="option"
+                    id={`${listId}-option-${index}`}
+                    tabIndex={-1}
                     aria-selected={isSelected}
                     onClick={() => handleSelect(opt.value)}
-                    className={`w-full px-3 py-2.5 rounded-lg flex items-center justify-between text-left transition-colors duration-150 cursor-pointer group ${
+                    className={`w-full px-3 py-2.5 rounded-lg flex items-center justify-between text-left transition-colors duration-150 cursor-pointer group ${highlightedIndex === index ? 'bg-black/[0.04] dark:bg-white/[0.04]' : ''} ${
                       isSelected
                         ? 'bg-black/[0.08] dark:bg-white/[0.08] text-gray-950 dark:text-white font-bold'
                         : 'hover:bg-black/[0.04] dark:hover:bg-white/[0.04] text-gray-700 dark:text-gray-300 hover:text-gray-950 dark:hover:text-white'

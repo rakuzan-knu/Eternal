@@ -64,7 +64,9 @@ const InfoTooltip: React.FC<{ text: string }> = ({ text }) => {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`transition-colors focus:outline-none ${isOpen ? 'text-purple-400' : 'text-neutral-500 hover:text-neutral-300'}`}
+        aria-label={text}
+        aria-expanded={isOpen}
+        className={`transition-colors focus-visible:outline-2 focus-visible:outline-purple-400 ${isOpen ? 'text-purple-400' : 'text-neutral-500 hover:text-neutral-300'}`}
       >
         <HelpCircle size={15} />
       </button>
@@ -132,17 +134,17 @@ const BirthdayFields: React.FC<{ control: Control<RegisterFields> }> = ({ contro
       <Controller
         control={control}
         name="birthMonth"
-        render={({ field }) => <Select {...field} options={MONTHS} />}
+        render={({ field }) => <Select {...field} aria-label="Birth month" options={MONTHS} />}
       />
       <Controller
         control={control}
         name="birthDay"
-        render={({ field }) => <Select {...field} options={daysOptions} />}
+        render={({ field }) => <Select {...field} aria-label="Birth day" options={daysOptions} />}
       />
       <Controller
         control={control}
         name="birthYear"
-        render={({ field }) => <Select {...field} options={YEARS} />}
+        render={({ field }) => <Select {...field} aria-label="Birth year" options={YEARS} />}
       />
     </div>
   );
@@ -335,7 +337,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         <Controller
           control={control}
           name="gender"
-          render={({ field }) => <Select {...field} options={['Male', 'Female', 'Custom']} />}
+          render={({ field }) => (
+            <Select {...field} aria-label="Gender" options={['Male', 'Female', 'Custom']} />
+          )}
         />
       </div>
 

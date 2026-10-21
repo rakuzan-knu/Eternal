@@ -279,7 +279,7 @@ export const CompanyAboutPage: React.FC = () => {
                             </span>
                             <VerifiedCheckmark isVerified={true} size="xs" />
                           </div>
-                          <span className="text-[10px] text-gray-500">@mihalagh • 2h</span>
+                          <span className="text-[10px] text-gray-400">@mihalagh • 2h</span>
                         </div>
                       </div>
 

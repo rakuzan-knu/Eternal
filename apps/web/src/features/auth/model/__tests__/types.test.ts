@@ -7,12 +7,14 @@ describe('Auth Model Types & Schemas', () => {
     const valid = loginSchema.safeParse({
       identity: 'user@example.com',
       password: 'password123',
+      confirmPassword: 'password123',
     });
     expect(valid.success).toBe(true);
 
     const invalid = loginSchema.safeParse({
       identity: '',
       password: '',
+      confirmPassword: '',
     });
     expect(invalid.success).toBe(false);
   });
