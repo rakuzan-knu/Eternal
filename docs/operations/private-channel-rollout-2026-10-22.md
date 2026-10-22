@@ -1,6 +1,6 @@
 # Private channel rollout — 22 October 2026
 
-Status: infrastructure prepared; application production rollout is pending.
+Status: backend rollout applied; Core worker restoration and client acceptance in progress.
 
 ## Completed operations
 
@@ -15,7 +15,8 @@ Status: infrastructure prepared; application production rollout is pending.
   `20261016000000_upload_budget`; removed only that empty, untracked local
   directory. No placeholder SQL, migration history rewrite or resolve was used.
 - Rehearsed all five community/access/media migrations on the restored copy.
-  Production migrations have **not** been applied.
+  Core subsequently applied all five in production; a separate verified-TLS
+  database query confirmed their names and the applied count increasing 55→60.
 - Created Standard R2 bucket `social-network-private-media`, with public access
   disabled and no public development URL or custom domain.
 - Configured CORS for `https://eternalnet.vercel.app` and
@@ -54,7 +55,8 @@ inject the undecorated callback alongside decorated socket/body parameters.
 Explicit `@Ack()` fixes the chat/reconnect/call callback boundaries. A real Nest
 Socket.IO adapter regression covers replay data and idempotent send responses;
 auth and persistence are mocked in this narrowly scoped test. Production still
-has the old handler until the release is deployed.
+had the old handler before this rollout. The updated Messenger now returns an
+actual authenticated `gatewayResume` acknowledgement with `status: ok`.
 
 The release is published in draft PR #135. Normal pre-push workspace typechecks
 passed. CI built the backend Docker image and successfully exercised all four
@@ -92,8 +94,24 @@ running tests; its job was retried without changing the checks.
    for these checks. The Expo feed currently opens desktop web for chat; there is
    no separate native private-channel renderer to claim as tested.
 
-No application production deployment or two-account private-channel acceptance
-has been completed at this checkpoint. Core's next configuration temporarily sets
-`BACKGROUND_ENABLED=false` for the first deployment; restore it only after the
-old Messenger instance and connections have drained. Follow protected-branch
-review; no merge or branch-protection bypass has been performed.
+Core's background-disabled stage and Messenger, Reels and Music now run
+`13d963ac`. Each new process passed dependency readiness; Redis returned to 18
+clients including the probe after each drain. Final Core restoration with
+`BACKGROUND_ENABLED=true` is deploying. The final web staging revision `6cc92cb6`
+is READY, and its built JavaScript contains all four expected API origins.
+
+A dedicated QA community/private channel and one-use, one-day invitation are
+recorded outside Git. Actual Core direct upload → private R2 PUT → completion →
+Messenger Socket.IO send succeeded. Replaying the same client message ID returned
+the same message. Authorized private resolution returned 200 with `private,
+no-store`; anonymous resolution returned 401, signed R2 reading returned 200,
+and unsigned reading returned 400. Browser/two-account acceptance remains pending.
+
+The follow-up regenerates the design inventory after compact-row CSS changed.
+Another CI job failed before tests because the runner's unrelated Microsoft apt
+repository returned 403. FFmpeg setup now refreshes only signed Ubuntu sources;
+verified the exact command and FFmpeg candidate in disposable Ubuntu 24.04.
+Workflow YAML/pinned-action validation and design checks passed. No certificate
+or package-signature verification was disabled.
+
+Follow protected-branch review; no merge or branch-protection bypass has occurred.
