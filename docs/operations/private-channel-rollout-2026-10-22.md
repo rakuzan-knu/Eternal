@@ -1,6 +1,6 @@
 # Private channel rollout — 22 October 2026
 
-Status: backend rollout applied; Core worker restoration and client acceptance in progress.
+Status: production rollout completed; final two-account acceptance and CI repair pending.
 
 ## Completed operations
 
@@ -67,8 +67,8 @@ against a maximum of 30.
 Browser access recovered after restarting Chrome. Vercel initially rejected the
 commit author (`TEAM_ACCESS_REQUIRED`); after the owner linked GitHub, staging
 deployment `dpl_AnqyA9jPEtWC9CTeyQGxmyYL2xGM` reached READY. Its actual HTTP
-response allows first-party camera and microphone. Canonical domains have not
-been promoted. This staging revision precedes the final sidebar/test follow-up.
+response allows first-party camera and microphone. The final sidebar/test
+follow-up was staged separately and promoted after all APIs were ready.
 
 CI caught a lazy-navigation heading ambiguity and laptop sidebar overflow from
 the additional Communities link. The invitation assertion now targets its h1;
@@ -78,7 +78,7 @@ differences were confined to the added/shifted sidebar icons; updated the 17
 Windows baselines. Backend unit CI timed out while downloading FFmpeg before
 running tests; its job was retried without changing the checks.
 
-## Remaining release sequence
+## Release sequence used
 
 1. Stage the reviewed release client without assigning production domains.
 2. Install the confirmed object-only credentials and `R2_PRIVATE_BUCKET` on the
@@ -97,21 +97,50 @@ running tests; its job was retried without changing the checks.
 Core's background-disabled stage and Messenger, Reels and Music now run
 `13d963ac`. Each new process passed dependency readiness; Redis returned to 18
 clients including the probe after each drain. Final Core restoration with
-`BACKGROUND_ENABLED=true` is deploying. The final web staging revision `6cc92cb6`
-is READY, and its built JavaScript contains all four expected API origins.
+`BACKGROUND_ENABLED=true` succeeded in `dep-dbd5bf3ncjis73b6g600`; re-export
+confirmed Core role/migration/background settings and only the five intended
+R2 configuration changes. The final web revision `6cc92cb6` was promoted from
+`dpl_HX54ssTqHawbajnpKnmbcJiGmuqv`. Canonical HTML is 200 with the expected
+asset hash and camera/microphone Permissions-Policy. Its built JavaScript
+contains all four expected API origins. The post-rollout four-role smoke passed;
+Redis returned to 22 clients including the probe, below the configured 30 limit.
 
 A dedicated QA community/private channel and one-use, one-day invitation are
 recorded outside Git. Actual Core direct upload → private R2 PUT → completion →
 Messenger Socket.IO send succeeded. Replaying the same client message ID returned
 the same message. Authorized private resolution returned 200 with `private,
 no-store`; anonymous resolution returned 401, signed R2 reading returned 200,
-and unsigned reading returned 400. Browser/two-account acceptance remains pending.
+and unsigned reading returned 400. Disconnect/reconnect obtained a new socket ID
+and replay returned three events including the published private message.
+
+The primary account joined through the one-use invitation. Before a grant, the
+private channel was absent from its navigation and opening the exact channel URL
+showed Channel unavailable with no chat thread. After an explicit grant, the
+open UI updated to the private thread; the message was visible and the actual
+128px R2 image loaded in Chrome. Actual UI search returned the private message;
+revoking access removed the open thread, search results and navigation entry.
+Regrant restored the message. The owner explicitly authorized a separate QA
+Chromium peer with synthetic media and microphone use in the primary browser;
+no audio recording is retained.
+
+After microphone permission was enabled, both peers connected but only the
+caller's audio reached the answerer. Real RTP counters exposed an unnegotiated
+answerer sender. The follow-up applies the remote offer before attaching local
+tracks, awaits replacement and preserves cancellation across resolved/rejected
+browser operations. Both audio and video browser regressions now require real
+inbound and outbound audio RTP on each peer, alongside encrypted signaling,
+matching SAS and cleanup. Production re-acceptance awaits the fixed web build.
 
 The follow-up regenerates the design inventory after compact-row CSS changed.
-Another CI job failed before tests because the runner's unrelated Microsoft apt
-repository returned 403. FFmpeg setup now refreshes only signed Ubuntu sources;
-verified the exact command and FFmpeg candidate in disposable Ubuntu 24.04.
-Workflow YAML/pinned-action validation and design checks passed. No certificate
-or package-signature verification was disabled.
+An unrelated Microsoft apt repository returned 403 in backend CI; FFmpeg setup
+now refreshes only signed Ubuntu sources. Verified the exact command and FFmpeg
+candidate in disposable Ubuntu 24.04. Workflow YAML/pinned-action validation and
+design checks passed; normal Git Credential Manager authentication published the
+repair without changing token scopes or protections. CI then reached backend
+tests and exposed an incomplete security fixture; its conversation repository
+now supplies the archive lookup, preserving the banned-member assertions. The
+focused backend security suite passed 17/17. The earlier design job passed all
+69 screenshot/keyboard checks; its subsequent cross-browser interaction matrix
+still reports scrolling/focus failures and must not be described as green.
 
 Follow protected-branch review; no merge or branch-protection bypass has occurred.
