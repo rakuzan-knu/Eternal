@@ -444,6 +444,13 @@ export function applyConversationDeleted(
   invalidateHistoryConversation(conversationId);
   updateConversationLists(queryClient, (prev) => prev.filter((c) => c.id !== conversationId));
   queryClient.removeQueries({ queryKey: queryKeys.conversations.messages(conversationId) });
+  queryClient.removeQueries({ queryKey: queryKeys.conversations.detail(conversationId) });
+  queryClient.removeQueries({ queryKey: queryKeys.conversations.detailAlias(conversationId) });
+  queryClient.removeQueries({ queryKey: ['chat-activity-map', conversationId] });
+  queryClient.removeQueries({ queryKey: ['message-search', conversationId] });
+  // Mixed global results can also contain content from the revoked channel.
+  queryClient.removeQueries({ queryKey: ['conversations-search'] });
+  queryClient.removeQueries({ queryKey: ['private-media'] });
 }
 
 /** REST gap-fill delta → merge without losing optimistic rows. */

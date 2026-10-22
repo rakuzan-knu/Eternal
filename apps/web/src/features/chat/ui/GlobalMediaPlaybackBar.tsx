@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { ResolvedMediaUrl } from '@/shared/lib/privateMediaView';
 import {
   Play,
   Pause,
@@ -27,12 +28,26 @@ interface GlobalMediaPlaybackBarProps {
 }
 
 export default function GlobalMediaPlaybackBar({ onNearQueueEnd }: GlobalMediaPlaybackBarProps) {
+  const rawUrl = useActiveMediaPlaybackStore((state) => state.url);
+  return rawUrl ? (
+    <ResolvedMediaUrl url={rawUrl}>
+      {(url) => <GlobalMediaPlaybackBarContent onNearQueueEnd={onNearQueueEnd} resolvedUrl={url} />}
+    </ResolvedMediaUrl>
+  ) : (
+    <GlobalMediaPlaybackBarContent onNearQueueEnd={onNearQueueEnd} />
+  );
+}
+
+function GlobalMediaPlaybackBarContent({
+  onNearQueueEnd,
+  resolvedUrl,
+}: GlobalMediaPlaybackBarProps & { resolvedUrl?: string }) {
   // Sync with OS MediaSession
   useMediaSessionSync();
 
   const {
     activeMediaId,
-    url,
+    url: rawUrl,
     mediaType,
     senderName,
     sentAt,
@@ -57,6 +72,7 @@ export default function GlobalMediaPlaybackBar({ onNearQueueEnd }: GlobalMediaPl
     setPlaybackRate,
     stopAll,
   } = useActiveMediaPlaybackStore();
+  const url = resolvedUrl ?? rawUrl;
 
   const masterAudioRef = useRef<HTMLAudioElement | null>(null);
   const [isVolumeHovered, setIsVolumeHovered] = useState(false);
@@ -156,6 +172,7 @@ export default function GlobalMediaPlaybackBar({ onNearQueueEnd }: GlobalMediaPl
         onPlaying={() => setIsLoading(false)}
         onError={() => setIsLoading(false)}
         onLoadedMetadata={(e) => {
+          if (currentTime > 0) e.currentTarget.currentTime = currentTime;
           setIsLoading(false);
           const d = e.currentTarget.duration;
           if (d && !isNaN(d) && isFinite(d)) {

@@ -5,13 +5,18 @@ import { PrismaService } from '../prisma/prisma.service';
 export class PendingMediaRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async register(key: string, uploadId: string, ownerId: string): Promise<void> {
+  async register(key: string, uploadId: string, ownerId: string, bucket?: string): Promise<void> {
     const row = await this.prisma.pendingMediaObject.upsert({
       where: { key },
-      create: { key, uploadId, ownerId },
+      create: { key, uploadId, ownerId, ...(bucket ? { bucket } : {}) },
       update: {},
     });
-    if (row.ownerId !== ownerId || row.uploadId !== uploadId || row.state !== 'PENDING')
+    if (
+      row.ownerId !== ownerId ||
+      row.uploadId !== uploadId ||
+      row.state !== 'PENDING' ||
+      (bucket && row.bucket !== bucket)
+    )
       throw new ConflictException('Upload is no longer awaiting publication');
   }
 
@@ -33,7 +38,7 @@ export class PendingMediaRepository {
       where: { OR: [{ state: 'PENDING', createdAt: { lt: before } }, { state: 'DELETING' }] },
       orderBy: { createdAt: 'asc' },
       take: 100,
-      select: { key: true },
+      select: { key: true, bucket: true },
     });
   }
 

@@ -116,6 +116,11 @@ export function useMessengerRealtime(
 ) {
   const socket = useChatSocket();
   const queryClient = useQueryClient();
+  useChatSocketEvent<{ communityId: string; eventId: string }>('community:changed', () => {
+    void queryClient.invalidateQueries({ queryKey: queryKeys.communities.root });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.conversations.root });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.conversations.unreadCount });
+  });
   const userId = useAuthStore((s) => s.userId);
   const cacheBatch = useMemo(
     () => getRealtimeChatBatch(queryClient, userId),
@@ -766,6 +771,7 @@ export function useMessengerRealtime(
 
   const handleConversationDeleted = (payload: { conversationId: string }) => {
     cacheBatch.enqueue((cache) => applyConversationDeleted(cache, payload.conversationId));
+    cacheBatch.invalidate(queryKeys.conversations.unreadCount);
     if (activeConversationId === payload.conversationId) {
       if (window.location.pathname.startsWith('/messages')) {
         window.history.pushState(null, '', '/messages');

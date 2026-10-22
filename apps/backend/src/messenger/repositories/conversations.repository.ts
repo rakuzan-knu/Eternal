@@ -4,6 +4,7 @@ import { Injectable, Optional } from '@nestjs/common';
 import { MuteLevel, ParticipantRole, Prisma } from '@prisma/client';
 import type { Conversation, ConversationParticipant } from '@prisma/client';
 import { PrismaService } from '@common/prisma';
+import { withUnreadWriteLock } from '../unread/unread-write-lock';
 import type {
   IConversationsRepository,
   ConversationPageOptions,
@@ -30,6 +31,14 @@ import {
 
 @Injectable()
 export class ConversationsRepository implements IConversationsRepository {
+  async isCommunityChannel(conversationId: string): Promise<boolean> {
+    return Boolean(
+      await this.prisma.communityChannel.findUnique({
+        where: { conversationId },
+        select: { communityId: true },
+      }),
+    );
+  }
   constructor(
     private readonly prisma: PrismaService,
     @Optional() private readonly messageBodies?: MessageBodyService,
@@ -379,17 +388,27 @@ export class ConversationsRepository implements IConversationsRepository {
     messageId: string,
     pinnedByUserId: string,
   ): Promise<void> {
-    await this.prisma.pinnedMessage.upsert({
-      where: { conversationId_messageId: { conversationId, messageId } },
-      update: { pinnedByUserId, pinnedAt: new Date() },
-      create: { conversationId, messageId, pinnedByUserId },
-    });
+    await withUnreadWriteLock(
+      this.prisma,
+      { conversationIds: [conversationId], requireWritableChannel: true, actorId: pinnedByUserId },
+      (tx) =>
+        tx.pinnedMessage.upsert({
+          where: { conversationId_messageId: { conversationId, messageId } },
+          update: { pinnedByUserId, pinnedAt: new Date() },
+          create: { conversationId, messageId, pinnedByUserId },
+        }),
+    );
   }
 
-  async unpinMessage(conversationId: string, messageId: string): Promise<void> {
-    await this.prisma.pinnedMessage.delete({
-      where: { conversationId_messageId: { conversationId, messageId } },
-    });
+  async unpinMessage(conversationId: string, messageId: string, userId: string): Promise<void> {
+    await withUnreadWriteLock(
+      this.prisma,
+      { conversationIds: [conversationId], actorId: userId },
+      (tx) =>
+        tx.pinnedMessage.delete({
+          where: { conversationId_messageId: { conversationId, messageId } },
+        }),
+    );
   }
 
   async updateSharedTheme(conversationId: string, theme: string | null): Promise<Conversation> {

@@ -1,4 +1,10 @@
-import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
+import { Readable } from 'node:stream';
 import { ConversationsService } from '../conversations.service';
 import type { IConversationsRepository } from '../../interfaces/conversations-repository.interface';
 import type { IMessagesRepository } from '../../interfaces/messages-repository.interface';
@@ -32,6 +38,7 @@ describe('ConversationsService', () => {
     updateGroup: jest.Mock;
     updateSharedTheme: jest.Mock;
     touchUpdatedAt: jest.Mock;
+    isCommunityChannel: jest.Mock;
   };
   let mockMessagesRepo: {
     create: jest.Mock;
@@ -135,6 +142,7 @@ describe('ConversationsService', () => {
       updateGroup: jest.fn().mockResolvedValue({}),
       updateSharedTheme: jest.fn().mockResolvedValue({}),
       touchUpdatedAt: jest.fn().mockResolvedValue(undefined),
+      isCommunityChannel: jest.fn().mockResolvedValue(false),
     };
 
     mockMessagesRepo = {
@@ -280,9 +288,123 @@ describe('ConversationsService', () => {
         service.createGroup('usr-1', { name: 'Group', memberIds: ['usr-2'] }),
       ).rejects.toThrow(ForbiddenException);
     });
+
+    it.each([
+      { blockerId: 'usr-1', blockedId: 'usr-2' },
+      { blockerId: 'usr-2', blockedId: 'usr-1' },
+    ])('checks group creation blocks in both directions (%j)', async (block) => {
+      mockPrisma.userBlock.findFirst.mockResolvedValueOnce(block);
+      await expect(
+        service.createGroup('usr-1', { name: 'Group', memberIds: ['usr-2'] }),
+      ).rejects.toThrow(ForbiddenException);
+      expect(mockPrisma.userBlock.findFirst).toHaveBeenCalledWith({
+        where: {
+          OR: [
+            { blockerId: { in: ['usr-2'] }, blockedId: 'usr-1' },
+            { blockerId: 'usr-1', blockedId: { in: ['usr-2'] } },
+          ],
+        },
+      });
+      expect(mockConvsRepo.createGroup).not.toHaveBeenCalled();
+    });
+
+    it('deduplicates group creation members and omits the creator', async () => {
+      await service.createGroup('usr-1', { name: 'Group', memberIds: ['usr-1', 'usr-2', 'usr-2'] });
+      expect(mockPrisma.user.count).toHaveBeenCalledWith({ where: { id: { in: ['usr-2'] } } });
+      expect(mockConvsRepo.createGroup).toHaveBeenCalledWith(
+        expect.objectContaining({ memberIds: ['usr-2'] }),
+      );
+    });
   });
 
   describe('updateGroup & member management', () => {
+    const avatarFile: Express.Multer.File = {
+      fieldname: 'avatar',
+      originalname: 'avatar.png',
+      encoding: '7bit',
+      mimetype: 'image/png',
+      size: 6,
+      stream: Readable.from([]),
+      destination: '',
+      filename: '',
+      path: '',
+      buffer: Buffer.from('avatar'),
+    };
+
+    it.each([
+      ['metadata', () => service.updateGroup('conv-group', 'usr-owner', { name: 'Changed' })],
+      ['avatar', () => service.uploadGroupAvatar('conv-group', 'usr-owner', avatarFile)],
+      [
+        'add member',
+        () => service.addMembers('conv-group', 'usr-owner', { memberIds: ['usr-new'] }),
+      ],
+      ['remove member', () => service.removeMember('conv-group', 'usr-owner', 'usr-member')],
+      [
+        'permissions',
+        () =>
+          service.updateAdminPermissions('conv-group', 'usr-owner', 'usr-admin', {
+            canEditGroup: true,
+          }),
+      ],
+      ['leave', () => service.leaveConversation('conv-group', 'usr-owner')],
+      [
+        'transfer ownership',
+        () => service.transferOwnership('conv-group', 'usr-owner', { newOwnerId: 'usr-admin' }),
+      ],
+      ['promote', () => service.promoteMember('conv-group', 'usr-owner', 'usr-member')],
+      ['demote', () => service.demoteMember('conv-group', 'usr-owner', 'usr-admin')],
+      ['delete for me', () => service.deleteConversation('conv-group', 'usr-owner', false)],
+      ['delete for all', () => service.deleteConversation('conv-group', 'usr-owner', true)],
+      ['clear for all', () => service.clearHistory('conv-group', 'usr-owner', true)],
+    ])('prevents legacy %s from mutating a community channel', async (_operation, perform) => {
+      mockConvsRepo.findOneForUser.mockResolvedValue(sampleGroupConv);
+      mockConvsRepo.isCommunityChannel.mockResolvedValue(true);
+      await expect(perform()).rejects.toThrow(ConflictException);
+      expect(mockConvsRepo.isCommunityChannel).toHaveBeenCalledWith('conv-group');
+      expect(mockConvsRepo.updateParticipant).not.toHaveBeenCalled();
+      expect(mockConvsRepo.updateGroup).not.toHaveBeenCalled();
+      expect(mockConvsRepo.addParticipants).not.toHaveBeenCalled();
+      expect(mockConvsRepo.removeParticipant).not.toHaveBeenCalled();
+      expect(mockPrisma.conversation.delete).not.toHaveBeenCalled();
+      expect(mockPrisma.message.updateMany).not.toHaveBeenCalled();
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('does not disclose channel membership before confirming the requester belongs to the conversation', async () => {
+      mockConvsRepo.findOneForUser.mockResolvedValue(null);
+      await expect(
+        service.addMembers('conv-group', 'outsider', { memberIds: ['usr-new'] }),
+      ).rejects.toThrow(NotFoundException);
+      await expect(service.deleteConversation('conv-group', 'outsider', true)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(mockConvsRepo.isCommunityChannel).not.toHaveBeenCalled();
+    });
+
+    it('does not perform channel lookup before checking the caller role for privileged actions', async () => {
+      mockConvsRepo.findOneForUser.mockResolvedValue(sampleGroupConv);
+      await expect(service.promoteMember('conv-group', 'usr-member', 'usr-admin')).rejects.toThrow(
+        ForbiddenException,
+      );
+      await expect(service.deleteConversation('conv-group', 'usr-member', true)).rejects.toThrow(
+        ForbiddenException,
+      );
+      await expect(service.clearHistory('conv-group', 'usr-member', true)).rejects.toThrow(
+        ForbiddenException,
+      );
+      expect(mockConvsRepo.isCommunityChannel).not.toHaveBeenCalled();
+    });
+
+    it('retains personal clear history for community members without changing membership', async () => {
+      mockConvsRepo.findOneForUser.mockResolvedValue(sampleGroupConv);
+      mockConvsRepo.isCommunityChannel.mockResolvedValue(true);
+      await service.clearHistory('conv-group', 'usr-member', false);
+      expect(mockConvsRepo.isCommunityChannel).not.toHaveBeenCalled();
+      expect(mockPrisma.messageDeletion.createMany).toHaveBeenCalled();
+      expect(mockConvsRepo.updateParticipant).not.toHaveBeenCalled();
+      expect(mockConvsRepo.removeParticipant).not.toHaveBeenCalled();
+    });
+
     it('updates group name and emits system message', async () => {
       mockConvsRepo.findOneForUser.mockResolvedValueOnce(sampleGroupConv);
       await service.updateGroup('conv-group', 'usr-owner', { name: 'New Tech Group' });
@@ -294,6 +416,75 @@ describe('ConversationsService', () => {
       mockConvsRepo.findOneForUser.mockResolvedValueOnce(sampleGroupConv);
       await service.addMembers('conv-group', 'usr-owner', { memberIds: ['usr-new'] });
       expect(mockConvsRepo.addParticipants).toHaveBeenCalledWith('conv-group', ['usr-new']);
+    });
+
+    it('deduplicates incoming members and keeps existing member history intact', async () => {
+      mockConvsRepo.findOneForUser.mockResolvedValueOnce(sampleGroupConv);
+      await service.addMembers('conv-group', 'usr-owner', {
+        memberIds: ['usr-new', 'usr-new', 'usr-owner', 'usr-member'],
+      });
+      expect(mockPrisma.user.count).toHaveBeenCalledWith({ where: { id: { in: ['usr-new'] } } });
+      expect(mockConvsRepo.addParticipants).toHaveBeenCalledWith('conv-group', ['usr-new']);
+    });
+
+    it('does not reset joinedAt when every requested member is already active', async () => {
+      mockConvsRepo.findOneForUser.mockResolvedValueOnce(sampleGroupConv);
+      await service.addMembers('conv-group', 'usr-owner', {
+        memberIds: ['usr-member', 'usr-owner'],
+      });
+      expect(mockPrisma.user.count).not.toHaveBeenCalled();
+      expect(mockPrisma.userBlock.findFirst).not.toHaveBeenCalled();
+      expect(mockConvsRepo.addParticipants).not.toHaveBeenCalled();
+    });
+
+    it('permits a previously departed member to rejoin after normal checks', async () => {
+      mockConvsRepo.findOneForUser.mockResolvedValueOnce({
+        ...sampleGroupConv,
+        participants: [
+          ...sampleGroupConv.participants,
+          { userId: 'usr-departed', role: 'MEMBER', leftAt: new Date('2026-01-01') },
+        ],
+      });
+      await service.addMembers('conv-group', 'usr-owner', { memberIds: ['usr-departed'] });
+      expect(mockConvsRepo.addParticipants).toHaveBeenCalledWith('conv-group', ['usr-departed']);
+    });
+
+    it('still authorizes an invitation before treating active members as a no-op', async () => {
+      mockConvsRepo.findOneForUser.mockResolvedValueOnce({
+        ...sampleGroupConv,
+        participants: [
+          {
+            userId: 'usr-member',
+            role: 'MEMBER',
+            leftAt: null,
+            permissions: Permission.CAN_SEND_TEXT,
+          },
+        ],
+      });
+      await expect(
+        service.addMembers('conv-group', 'usr-member', { memberIds: ['usr-member'] }),
+      ).rejects.toThrow(ForbiddenException);
+      expect(mockConvsRepo.addParticipants).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      { blockerId: 'usr-owner', blockedId: 'usr-new' },
+      { blockerId: 'usr-new', blockedId: 'usr-owner' },
+    ])('rejects adding a blocked member in either direction (%j)', async (block) => {
+      mockConvsRepo.findOneForUser.mockResolvedValueOnce(sampleGroupConv);
+      mockPrisma.userBlock.findFirst.mockResolvedValueOnce(block);
+      await expect(
+        service.addMembers('conv-group', 'usr-owner', { memberIds: ['usr-new'] }),
+      ).rejects.toThrow(ForbiddenException);
+      expect(mockPrisma.userBlock.findFirst).toHaveBeenCalledWith({
+        where: {
+          OR: [
+            { blockerId: { in: ['usr-new'] }, blockedId: 'usr-owner' },
+            { blockerId: 'usr-owner', blockedId: { in: ['usr-new'] } },
+          ],
+        },
+      });
+      expect(mockConvsRepo.addParticipants).not.toHaveBeenCalled();
     });
 
     it('removes member by admin / owner', async () => {

@@ -1,4 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { fetchMedia, resolveMediaUrl } from '@/shared/lib/privateMedia';
+import { MediaImage, MediaVideo } from '@/shared/lib/privateMediaView';
 import { withObjectUrl } from '@/shared/lib/blobResources';
 import { createPortal } from 'react-dom';
 import {
@@ -474,7 +476,7 @@ export default function MediaLightbox({
   const handleDownload = async () => {
     if (!current) return;
     try {
-      const response = await fetch(current.attachment.url, { mode: 'cors' });
+      const response = await fetchMedia(current.attachment.url, { mode: 'cors' });
       if (!response.ok) throw new Error('Fetch failed');
       const blob = await response.blob();
       const objectUrl = URL.createObjectURL(blob);
@@ -488,7 +490,7 @@ export default function MediaLightbox({
       setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
     } catch {
       const link = document.createElement('a');
-      link.href = current.attachment.url;
+      link.href = await resolveMediaUrl(current.attachment.url);
       link.download = current.attachment.fileName ?? 'download';
       link.target = '_blank';
       link.rel = 'noreferrer';
@@ -522,7 +524,7 @@ export default function MediaLightbox({
       let pngBlob: Blob | null = null;
 
       try {
-        const response = await fetch(current.attachment.url, { mode: 'cors' });
+        const response = await fetchMedia(current.attachment.url, { mode: 'cors' });
         if (response.ok) {
           const fetchedBlob = await response.blob();
           if (fetchedBlob.type === 'image/png') {
@@ -575,7 +577,11 @@ export default function MediaLightbox({
             }
           };
           img.onerror = () => resolve(null);
-          img.src = current.attachment.url;
+          void resolveMediaUrl(current.attachment.url)
+            .then((url) => {
+              img.src = url;
+            })
+            .catch(() => resolve(null));
         });
       }
 
@@ -822,7 +828,7 @@ export default function MediaLightbox({
             }`}
           >
             {isVideo ? (
-              <video
+              <MediaVideo
                 key={current.attachment.id || current.attachment.url}
                 ref={videoRef}
                 src={current.attachment.url}
@@ -862,12 +868,7 @@ export default function MediaLightbox({
                   cursor: zoom > 1 ? (isDragging ? 'grabbing' : 'grab') : 'pointer',
                 }}
                 className="max-w-[85vw] max-h-[78vh] rounded-lg shadow-[0_20px_60px_rgba(0,0,0,0.7)] object-contain select-none"
-              >
-                <source
-                  src={current.attachment.url}
-                  type={current.attachment.mimeType || undefined}
-                />
-              </video>
+              ></MediaVideo>
             ) : hasError || current.attachment.url?.startsWith('color:') ? (
               <div className="flex flex-col items-center justify-center p-8 text-center bg-white/5 border border-white/10 rounded-2xl max-w-sm">
                 <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center mb-3">
@@ -879,7 +880,7 @@ export default function MediaLightbox({
                 </p>
               </div>
             ) : (
-              <img
+              <MediaImage
                 key={current.attachment.id}
                 src={current.attachment.url}
                 alt={current.attachment.fileName ?? 'media'}

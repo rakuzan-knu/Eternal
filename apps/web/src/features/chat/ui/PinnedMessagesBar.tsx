@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { MediaImage, MediaVideo } from '@/shared/lib/privateMediaView';
 import { X, Layers } from 'lucide-react';
 
 import { MessageView } from '../../../entities/chat/model/types';
@@ -91,9 +92,13 @@ export default function PinnedMessagesBar({
         {imageAttachment && (
           <div className="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0 border border-white/10 bg-black/40">
             {imageAttachment.type === 'VIDEO' ? (
-              <video src={imageAttachment.url} className="w-full h-full object-cover" muted />
+              <MediaVideo src={imageAttachment.url} className="w-full h-full object-cover" muted />
             ) : (
-              <img src={imageAttachment.url} alt="pinned" className="w-full h-full object-cover" />
+              <MediaImage
+                src={imageAttachment.url}
+                alt="pinned"
+                className="w-full h-full object-cover"
+              />
             )}
           </div>
         )}

@@ -1,0 +1,3 @@
+ALTER TABLE "community_channels"
+ADD COLUMN "isPrivate" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN "allowedUserIds" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];

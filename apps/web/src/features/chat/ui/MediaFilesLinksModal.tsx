@@ -1,4 +1,6 @@
 import React, { useMemo, useState } from 'react';
+import { resolveMediaUrl } from '@/shared/lib/privateMedia';
+import { MediaImage, MediaVideo } from '@/shared/lib/privateMediaView';
 import { X, Image as ImageIcon, FileText, Link as LinkIcon, Play } from 'lucide-react';
 import { MessageView } from '../../../entities/chat/model/types';
 import Modal from '@/shared/ui/Modal';
@@ -42,7 +44,7 @@ function MediaThumbnailImage({ url, alt }: { url: string; alt?: string }) {
     );
   }
   return (
-    <img
+    <MediaImage
       src={url}
       alt={alt ?? ''}
       onError={() => setHasError(true)}
@@ -60,6 +62,7 @@ export default function MediaFilesLinksModal({
 }: MediaFilesLinksModalProps) {
   const [tab, setTab] = useState<Tab>(initialTab);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [downloadError, setDownloadError] = useState(false);
 
   const mediaItems = useMemo(() => extractMediaItems(messages), [messages]);
   const fileItems = useMemo(() => extractFileItems(messages), [messages]);
@@ -69,15 +72,20 @@ export default function MediaFilesLinksModal({
   const fileGroups = useMemo(() => groupByMonth(fileItems), [fileItems]);
   const linkGroups = useMemo(() => groupByMonth(linkItems), [linkItems]);
 
-  const handleDownloadFile = (url: string, fileName: string | null) => {
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = fileName ?? 'download';
-    link.target = '_blank';
-    link.rel = 'noreferrer';
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+  const handleDownloadFile = async (url: string, fileName: string | null) => {
+    setDownloadError(false);
+    try {
+      const link = document.createElement('a');
+      link.href = await resolveMediaUrl(url);
+      link.download = fileName ?? 'download';
+      link.target = '_blank';
+      link.rel = 'noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch {
+      setDownloadError(true);
+    }
   };
 
   return (
@@ -118,6 +126,9 @@ export default function MediaFilesLinksModal({
             </div>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-4">
+              {downloadError && (
+                <p role="alert">File could not be downloaded. Select it again to retry.</p>
+              )}
               {tab === 'media' &&
                 (mediaGroups.length === 0 ? (
                   <EmptyState
@@ -140,7 +151,7 @@ export default function MediaFilesLinksModal({
                             >
                               {item.attachment.type === 'VIDEO' ? (
                                 <>
-                                  <video
+                                  <MediaVideo
                                     src={item.attachment.url}
                                     className="w-full h-full object-cover"
                                     muted

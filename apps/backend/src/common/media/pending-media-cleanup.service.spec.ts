@@ -81,4 +81,13 @@ describe('pending media cleanup', () => {
     expect(Date.now() - cutoff.getTime()).toBeGreaterThanOrEqual(2 * 86400_000);
     expect(pending.pruneDeleted).toHaveBeenCalledWith(expect.any(Date));
   });
+  it('deletes private abandoned objects from their recorded bucket', async () => {
+    pending.candidates.mockResolvedValue([
+      { key: 'private-chat/orphan.bin', bucket: 'closed-media' },
+    ]);
+    await cleanup.cleanup();
+    const command: unknown = send.mock.calls[0]?.[0];
+    if (!(command instanceof DeleteObjectCommand)) throw new Error('Expected storage deletion');
+    expect(command.input).toEqual({ Bucket: 'closed-media', Key: 'private-chat/orphan.bin' });
+  });
 });

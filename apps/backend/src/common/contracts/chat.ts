@@ -438,6 +438,9 @@ export interface ParticipantView {
 
 export interface ConversationView {
   id: string;
+  communityId?: string;
+  communityChannelArchivedAt?: string | null;
+  communityChannelIsPrivate?: boolean;
   type: string;
   name: string | null;
   avatar: string | null;

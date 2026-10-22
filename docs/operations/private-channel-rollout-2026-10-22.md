@@ -1,0 +1,75 @@
+# Private channel rollout — 22 October 2026
+
+Status: infrastructure prepared; application production rollout is pending.
+
+## Completed operations
+
+- Exported the existing Core configuration into a private, user-only local store.
+  No credentials are included in this repository or the release artifact.
+- Backed up the production application `public` schema with PostgreSQL 17
+  `pg_dump`, TLS hostname/CA verification and the Supabase CA. Encrypted the
+  4,156,516-byte archive with AES-256-GCM and authenticated decryption. Restored
+  it into disposable PostgreSQL with the required `pg_trgm`/`btree_gin`
+  extensions; all 60 migration records restored. Removed the plaintext archive.
+- Confirmed there is no production migration record for
+  `20261016000000_upload_budget`; removed only that empty, untracked local
+  directory. No placeholder SQL, migration history rewrite or resolve was used.
+- Rehearsed all five community/access/media migrations on the restored copy.
+  Production migrations have **not** been applied.
+- Created Standard R2 bucket `social-network-private-media`, with public access
+  disabled and no public development URL or custom domain.
+- Configured CORS for `https://eternalnet.vercel.app` and
+  `https://eternal-mobile-web.vercel.app`: GET/HEAD/PUT, content-type,
+  if-none-match and range; exposed ETag and content/range headers.
+- With explicit operator confirmation, enabled deletion after one day only for
+  `_incoming/`; retained the default multipart abort rule. No expiry rule applies
+  to published `private-chat/` objects.
+- With explicit operator confirmation, created an Object Read & Write token
+  scoped only to the public and private media buckets. Its credentials are stored
+  privately; the running Render services still use their previous credentials.
+- Actual R2 probe: a tiny synthetic `_incoming/` object returned 200 with a
+  60-second signed GET and exact expected bytes. Unsigned S3 access returned 400
+  (denied); preflight returned 204 and the exact allowed origin for both clients.
+  This provider response differs from the isolated S3 fixture's 403. The temporary
+  probe object is covered by the confirmed lifecycle rule.
+- Created one dedicated acceptance account through the real registration API,
+  with a non-deliverable test email and credentials stored privately. No test
+  posts or messages were sent to existing users.
+
+## Release preparation and discovered defect
+
+The isolated `feat/private-channel-rollout` branch excludes unrelated local
+Saved Reels, registration, profile and marketing edits. It includes communities,
+layout/archive, private access, private attachment consumers and their dependency
+boundaries. It is based on `4af5ccc9` from remote main; the update from the local
+baseline changed only the release changelog.
+
+A real authenticated production socket reached `gatewayReady`, but
+`gatewayResume` acknowledgement timed out. The installed Nest adapter does not
+inject the undecorated callback alongside decorated socket/body parameters.
+Explicit `@Ack()` fixes the chat/reconnect/call callback boundaries. A real Nest
+Socket.IO adapter regression covers replay data and idempotent send responses;
+auth and persistence are mocked in this narrowly scoped test. Production still
+has the old handler until the release is deployed.
+
+## Remaining release sequence
+
+1. Stage the reviewed release client without assigning production domains.
+2. Install the confirmed object-only credentials and `R2_PRIVATE_BUCKET` on the
+   owning services. Preserve the existing credentials until all consumers drain.
+3. Follow the sequential Redis-safe Core background-disabled stage in
+   [DEPLOYMENTS.md](../DEPLOYMENTS.md), apply compatible migrations through Core,
+   update all affected roles and wait for old instances to stop.
+4. Restore Core background work, verify dependency/Redis readiness, then promote
+   only the verified web client. Do not enable private-channel use beforehand.
+5. Run two-account production acceptance: channel visibility and revoke/regrant,
+   search, signed media and actual browser CORS, Socket.IO send/replay/reconnect,
+   call signaling and media transport. Do not substitute mocked browser fixtures
+   for these checks. The Expo feed currently opens desktop web for chat; there is
+   no separate native private-channel renderer to claim as tested.
+
+No production deployment, credential replacement or two-account private-channel
+acceptance has been completed. Browser automation stopped when its automatic URL
+confidence policy could not identify the active Windows browser URL. Continue
+through a working authenticated provider connection; do not bypass that policy
+or protected-branch review.

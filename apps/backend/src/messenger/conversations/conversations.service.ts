@@ -1,6 +1,7 @@
 import { MessageBodyService } from '../../common/cassandra/message-body.service';
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Inject,
   Injectable,
@@ -45,8 +46,6 @@ import type {
 import {
   Permission,
   DEFAULT_ADMIN_PERMISSIONS,
-  DEFAULT_MEMBER_PERMISSIONS,
-  DEFAULT_OWNER_PERMISSIONS,
   adminPermissionsToMask,
   maskToAdminPermissions,
   getEffectivePermissions,
@@ -345,11 +344,14 @@ export class ConversationsService implements OnModuleDestroy {
 
       const block = await this.prisma.userBlock.findFirst({
         where: {
-          blockerId: { in: uniqueMemberIds },
-          blockedId: userId,
+          OR: [
+            { blockerId: { in: uniqueMemberIds }, blockedId: userId },
+            { blockerId: userId, blockedId: { in: uniqueMemberIds } },
+          ],
         },
       });
-      if (block) throw new ForbiddenException('One or more users have blocked you');
+      if (block)
+        throw new ForbiddenException('Cannot add members due to privacy settings / blocks');
     }
 
     const groupName = dto.name?.trim() || 'New Group';
@@ -374,6 +376,7 @@ export class ConversationsService implements OnModuleDestroy {
 
     await this.assertMember(conversationId, userId);
 
+    await this.assertStandaloneGroupMutation(conversationId);
     await this.convsRepo.updateGroup(conversationId, dto);
 
     const participantIds = await this.convsRepo.findParticipantIds(conversationId);
@@ -433,35 +436,47 @@ export class ConversationsService implements OnModuleDestroy {
       await this.assertMember(conversationId, userId);
 
       const inviter = conv.participants.find((p) => p.userId === userId);
-      if (inviter) {
-        const inviterFlags = getEffectivePermissions(
-          inviter.role,
-          (inviter as unknown as { permissions?: number }).permissions,
-        );
-        if (inviter.role !== 'OWNER' && (inviterFlags & Permission.CAN_INVITE_USERS) === 0) {
-          throw new ForbiddenException('You do not have permission to invite users');
-        }
+      if (!inviter) throw new ForbiddenException('You are not a member of this conversation');
+      const inviterFlags = getEffectivePermissions(
+        inviter.role,
+        (inviter as unknown as { permissions?: number }).permissions,
+      );
+      if (inviter.role !== 'OWNER' && (inviterFlags & Permission.CAN_INVITE_USERS) === 0) {
+        throw new ForbiddenException('You do not have permission to invite users');
       }
 
+      await this.assertStandaloneGroupMutation(conversationId);
+
+      const activeMemberIds = new Set(
+        conv.participants
+          .filter((participant) => !participant.leftAt)
+          .map((participant) => participant.userId),
+      );
+      const newMemberIds = [...new Set(dto.memberIds)].filter(
+        (id) => id !== userId && !activeMemberIds.has(id),
+      );
+      // Re-adding an active participant would reset joinedAt and hide their earlier history.
+      if (newMemberIds.length === 0) return this.getConversation(conversationId, userId);
+
       const existingUsersCount = await this.prisma.user.count({
-        where: { id: { in: dto.memberIds } },
+        where: { id: { in: newMemberIds } },
       });
-      if (existingUsersCount !== dto.memberIds.length) {
+      if (existingUsersCount !== newMemberIds.length) {
         throw new NotFoundException('One or more users not found');
       }
 
       const block = await this.prisma.userBlock.findFirst({
         where: {
           OR: [
-            { blockerId: { in: dto.memberIds }, blockedId: userId },
-            { blockerId: userId, blockedId: { in: dto.memberIds } },
+            { blockerId: { in: newMemberIds }, blockedId: userId },
+            { blockerId: userId, blockedId: { in: newMemberIds } },
           ],
         },
       });
       if (block)
         throw new ForbiddenException('Cannot add members due to privacy settings / blocks');
 
-      await this.convsRepo.addParticipants(conversationId, dto.memberIds);
+      await this.convsRepo.addParticipants(conversationId, newMemberIds);
       return this.getConversation(conversationId, userId);
     });
   }
@@ -483,6 +498,8 @@ export class ConversationsService implements OnModuleDestroy {
     if (admin.role !== 'OWNER' && (adminFlags & Permission.CAN_MANAGE_MEMBERS) === 0) {
       throw new ForbiddenException('Only admins can remove members');
     }
+
+    await this.assertStandaloneGroupMutation(conversationId);
 
     const target = conv.participants.find((p) => p.userId === targetUserId);
     if (!target) throw new NotFoundException('User is not in this conversation');
@@ -519,6 +536,8 @@ export class ConversationsService implements OnModuleDestroy {
     if (!owner || owner.role !== 'OWNER') {
       throw new ForbiddenException('Only the group owner can customize admin permissions');
     }
+
+    await this.assertStandaloneGroupMutation(conversationId);
 
     const target = conv.participants.find((p) => p.userId === targetUserId);
     if (!target) throw new NotFoundException('Target user not in group');
@@ -560,6 +579,8 @@ export class ConversationsService implements OnModuleDestroy {
 
     const p = conv.participants.find((p) => p.userId === userId);
     if (!p || p.leftAt) throw new NotFoundException('Not a member');
+
+    await this.assertStandaloneGroupMutation(conversationId);
 
     if (p.role === 'OWNER') {
       const remaining = conv.participants.filter((item) => item.userId !== userId && !item.leftAt);
@@ -618,6 +639,8 @@ export class ConversationsService implements OnModuleDestroy {
       throw new ForbiddenException('Only the owner can transfer ownership');
     }
 
+    await this.assertStandaloneGroupMutation(conversationId);
+
     const newOwner = conv.participants.find((p) => p.userId === dto.newOwnerId);
     if (!newOwner) throw new NotFoundException('New owner not in conversation');
 
@@ -645,6 +668,8 @@ export class ConversationsService implements OnModuleDestroy {
       throw new ForbiddenException('Only the group owner can promote members to admin');
     }
 
+    await this.assertStandaloneGroupMutation(conversationId);
+
     const target = conv.participants.find((p) => p.userId === targetUserId);
     if (!target) throw new NotFoundException('User not in group');
 
@@ -658,6 +683,7 @@ export class ConversationsService implements OnModuleDestroy {
     if (!admin || admin.role !== 'OWNER') {
       throw new ForbiddenException('Only owner can demote admins');
     }
+    await this.assertStandaloneGroupMutation(conversationId);
     await this.convsRepo.updateParticipant(conversationId, targetUserId, { role: 'MEMBER' });
   }
 
@@ -809,9 +835,24 @@ export class ConversationsService implements OnModuleDestroy {
     if (block) throw new ForbiddenException('User is blocked');
   }
 
-  async assertMember(conversationId: string, userId: string): Promise<void> {
+  async assertMember(
+    conversationId: string,
+    userId: string,
+    requireWritableChannel = false,
+  ): Promise<void> {
     const p = await this.convsRepo.findParticipant(conversationId, userId);
     if (!p || p.leftAt) throw new ForbiddenException('Not a member of this conversation');
+    if (requireWritableChannel) {
+      const conversation = await this.convsRepo.findOneForUser(conversationId, userId);
+      if (conversation?.communityChannel?.archivedAt)
+        throw new ForbiddenException('This channel is archived. Restore it before posting.');
+    }
+  }
+
+  private async assertStandaloneGroupMutation(conversationId: string): Promise<void> {
+    if (await this.convsRepo.isCommunityChannel(conversationId)) {
+      throw new ConflictException('Manage this channel through community settings');
+    }
   }
 
   async touchUpdatedAt(conversationId: string): Promise<void> {
@@ -838,6 +879,7 @@ export class ConversationsService implements OnModuleDestroy {
           throw new ForbiddenException('Only admins or owners can delete group for everyone');
         }
       }
+      await this.assertStandaloneGroupMutation(conversationId);
       await withUnreadWriteLock(this.prisma, { conversationIds: [conversationId] }, (tx) =>
         tx.conversation.delete({
           where: { id: conversationId },
@@ -845,6 +887,7 @@ export class ConversationsService implements OnModuleDestroy {
       );
       this.gateway?.emitConversationDeleted(conversationId, participantIds);
     } else {
+      await this.assertStandaloneGroupMutation(conversationId);
       if (conv.type === 'GROUP') {
         if (participant.role === 'OWNER') {
           const remaining = conv.participants.filter((p) => p.userId !== userId && !p.leftAt);
@@ -924,6 +967,7 @@ export class ConversationsService implements OnModuleDestroy {
           throw new ForbiddenException('Only admins or owners can clear history for everyone');
         }
       }
+      await this.assertStandaloneGroupMutation(conversationId);
       await withUnreadWriteLock(this.prisma, { conversationIds: [conversationId] }, (tx) =>
         tx.message.updateMany({
           where: { conversationId },
@@ -991,6 +1035,8 @@ export class ConversationsService implements OnModuleDestroy {
     if (conv.type !== 'GROUP') throw new BadRequestException('Not a group conversation');
 
     await this.assertMember(conversationId, userId);
+
+    await this.assertStandaloneGroupMutation(conversationId);
 
     if (!file || !Buffer.isBuffer(file.buffer)) {
       throw new BadRequestException('Invalid avatar file');

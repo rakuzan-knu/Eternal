@@ -184,6 +184,13 @@ export class MessengerMapper {
 
     return {
       id: conv.id,
+      ...(conv.communityChannel
+        ? {
+            communityId: conv.communityChannel.communityId,
+            communityChannelIsPrivate: conv.communityChannel.isPrivate,
+            communityChannelArchivedAt: conv.communityChannel.archivedAt?.toISOString() ?? null,
+          }
+        : {}),
       type: conv.type,
       name: conv.name ?? null,
       avatar: conv.avatar ?? null,

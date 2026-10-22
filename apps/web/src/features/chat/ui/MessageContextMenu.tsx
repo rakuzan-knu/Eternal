@@ -1,3 +1,4 @@
+import { fetchMedia, resolveMediaUrl } from '@/shared/lib/privateMedia';
 import React, { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react';
 import { withObjectUrl } from '@/shared/lib/blobResources';
 import { createPortal } from 'react-dom';
@@ -24,6 +25,7 @@ import { formatFullMessageDate } from '../lib/groupMessagesByDate';
 import MessageReactionDock from './MessageReactionDock';
 
 export interface MessageContextMenuProps {
+  readOnly?: boolean;
   message: MessageView;
   isOwnMessage: boolean;
   onClose: () => void;
@@ -47,6 +49,7 @@ export interface MessageContextMenuProps {
 const EXIT_DURATION_MS = 130;
 
 export default function MessageContextMenu({
+  readOnly = false,
   message,
   isOwnMessage,
   onClose,
@@ -176,7 +179,7 @@ export default function MessageContextMenu({
   const handleCopyMedia = async () => {
     if (!mediaAttachment?.url) return;
     try {
-      const res = await fetch(mediaAttachment.url);
+      const res = await fetchMedia(mediaAttachment.url);
       const blob = await res.blob();
       if (typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
         if (blob.type === 'image/png') {
@@ -225,7 +228,7 @@ export default function MessageContextMenu({
       mediaAttachment.url.split('/').pop() ||
       'media';
     try {
-      const res = await fetch(mediaAttachment.url);
+      const res = await fetchMedia(mediaAttachment.url);
       const blob = await res.blob();
       const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -237,7 +240,7 @@ export default function MessageContextMenu({
       URL.revokeObjectURL(blobUrl);
     } catch {
       const a = document.createElement('a');
-      a.href = mediaAttachment.url;
+      a.href = await resolveMediaUrl(mediaAttachment.url);
       a.download = filename;
       a.target = '_blank';
       document.body.appendChild(a);
@@ -317,7 +320,7 @@ export default function MessageContextMenu({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Telegram Quick Reactions Pill Bar using MessageReactionDock with TelegramAppleEmoji */}
-        {onReact && (
+        {onReact && !readOnly && (
           <div
             data-testid="context-menu-reactions"
             className="self-start overflow-visible transition-all duration-200 ease-out animate-telegramReactionsExpand origin-left"
@@ -390,7 +393,7 @@ export default function MessageContextMenu({
             <span className="text-[12.5px] font-medium truncate" title={formattedDate}>
               {formattedDate}
             </span>
-            {isOwnMessage && (
+            {isOwnMessage && !readOnly && (
               <span className="ml-auto text-[11px] font-normal text-gray-400/80 tracking-tight">
                 {statusLabel}
               </span>
@@ -398,7 +401,7 @@ export default function MessageContextMenu({
           </div>
 
           {/* Action: Reply */}
-          {onReply && (
+          {onReply && !readOnly && (
             <button
               type="button"
               role="menuitem"
@@ -415,7 +418,7 @@ export default function MessageContextMenu({
           )}
 
           {/* Action: Edit (ONLY visible on own messages!) */}
-          {isOwnMessage && (
+          {isOwnMessage && !readOnly && (
             <button
               type="button"
               role="menuitem"
@@ -503,6 +506,7 @@ export default function MessageContextMenu({
           <button
             type="button"
             role="menuitem"
+            disabled={readOnly && !message.isPinned}
             onClick={(e) => {
               e.stopPropagation();
               onTogglePin();

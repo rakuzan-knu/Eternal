@@ -10,6 +10,7 @@ describe('conversations-repository.interface', () => {
 
   it('implements IConversationsRepository interface methods', async () => {
     const mockRepo: IConversationsRepository = {
+      isCommunityChannel: jest.fn().mockResolvedValue(false),
       findDirectBetween: jest.fn().mockResolvedValue(null),
       createDirect: jest.fn().mockResolvedValue({ id: 'conv-1' }),
       createGroup: jest.fn().mockResolvedValue({ id: 'grp-1' }),

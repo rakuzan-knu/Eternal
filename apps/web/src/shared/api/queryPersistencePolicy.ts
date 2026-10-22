@@ -10,7 +10,13 @@ export function isPersistableQuery(query: {
   state: { status: string };
 }) {
   const root = String(query.queryKey[0] ?? '').toLowerCase();
-  return query.state.status === 'success' && !root.includes('search') && root !== 'checkusername';
+  return (
+    query.state.status === 'success' &&
+    !root.includes('search') &&
+    root !== 'checkusername' &&
+    root !== 'community-invite-preview' &&
+    root !== 'private-media'
+  );
 }
 
 /** Bound the disk snapshot without evicting an active screen's scroll window.

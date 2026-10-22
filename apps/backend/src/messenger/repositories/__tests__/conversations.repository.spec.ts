@@ -38,6 +38,7 @@ describe('ConversationsRepository', () => {
       count: jest.Mock;
     };
     $transaction: jest.Mock;
+    $queryRaw: jest.Mock;
   };
 
   const sampleConv = {
@@ -92,7 +93,13 @@ describe('ConversationsRepository', () => {
       message: {
         count: jest.fn().mockResolvedValue(4),
       },
-      $transaction: jest.fn().mockImplementation((promises) => Promise.all(promises)),
+      $queryRaw: jest.fn().mockResolvedValue([]),
+      $transaction: jest
+        .fn()
+        .mockImplementation(
+          (operation: ((tx: typeof mockPrisma) => unknown) | Promise<unknown>[]) =>
+            typeof operation === 'function' ? operation(mockPrisma) : Promise.all(operation),
+        ),
     };
 
     repository = new ConversationsRepository(mockPrisma as unknown as PrismaService);
@@ -235,7 +242,7 @@ describe('ConversationsRepository', () => {
     await repository.pinMessage('conv-1', 'msg-1', 'usr-1');
     expect(mockPrisma.pinnedMessage.upsert).toHaveBeenCalled();
 
-    await repository.unpinMessage('conv-1', 'msg-1');
+    await repository.unpinMessage('conv-1', 'msg-1', 'usr-1');
     expect(mockPrisma.pinnedMessage.delete).toHaveBeenCalled();
   });
   it('restores preview and pinned message bodies before returning a conversation', async () => {

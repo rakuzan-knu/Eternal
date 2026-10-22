@@ -19,12 +19,28 @@ model PendingMediaObject {
   key       String @id
   uploadId  String @unique
   ownerId   String
+  bucket    String?
   state     PendingMediaState @default(PENDING)
   createdAt DateTime @default(now())
   deletedAt DateTime?
 
   @@index([state, createdAt])
   @@index([state, deletedAt])
+}
+
+/// Durable storage locator; never includes credentials or expiring download URLs.
+model PrivateMediaObject {
+  id String @id
+  key String @unique
+  bucket String
+  ownerId String
+  conversationId String
+  contentType String
+  sizeBytes Int
+  readyAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([conversationId, ownerId])
+  @@map("private_media_objects")
 }
 
 model User {
@@ -76,6 +92,9 @@ model User {
   comments  Comment[]
 
   conversationParticipants ConversationParticipant[]
+  ownedCommunities         Community[] @relation("CommunityOwner")
+  communityMemberships     CommunityMember[]
+  communityInvites         CommunityInvite[]
   conversationActivityVersions ConversationActivityVersion[]
   sentMessages             Message[]                 @relation("SentMessages")
   messageReactions         MessageReaction[]
@@ -307,9 +326,99 @@ model Conversation {
   pinnedMessages PinnedMessage[]
   calls          Call[]
   activityVersions ConversationActivityVersion[]
+  communityChannel CommunityChannel?
 
   @@index([createdAt])
   @@index([updatedAt, id])
+}
+
+model Community {
+  id String @id @default(uuid())
+  ownerId String
+  name String
+  description String @default("")
+  avatar String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  owner User @relation("CommunityOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  members CommunityMember[]
+  channels CommunityChannel[]
+  channelRevision Int @default(0)
+  categories CommunityCategory[]
+  invites CommunityInvite[]
+  @@index([createdAt, id])
+  @@index([ownerId])
+  @@map("communities")
+}
+
+enum CommunityMemberState {
+  ACTIVE
+  LEFT
+  BANNED
+}
+
+model CommunityMember {
+  id String @id @default(uuid())
+  communityId String
+  userId String
+  role ParticipantRole @default(MEMBER)
+  state CommunityMemberState @default(ACTIVE)
+  joinedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([communityId, userId])
+  @@index([userId, state, communityId])
+  @@index([communityId, state, id])
+  @@map("community_members")
+}
+
+model CommunityChannel {
+  id String @id @default(uuid())
+  communityId String
+  conversationId String @unique
+  name String
+  description String @default("")
+  position Int @default(0)
+  categoryId String?
+  archivedAt DateTime?
+  isPrivate Boolean @default(false)
+  /// Explicit member grants; administrators and the owner have implicit access.
+  allowedUserIds String[] @default([])
+  category CommunityCategory? @relation(fields: [categoryId, communityId], references: [id, communityId], onDelete: NoAction, onUpdate: NoAction)
+  createdAt DateTime @default(now())
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  @@index([communityId, position, id])
+  @@map("community_channels")
+}
+
+model CommunityCategory {
+  id String @id @default(uuid())
+  communityId String
+  name String
+  position Int @default(0)
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  channels CommunityChannel[]
+  @@unique([id, communityId])
+  @@index([communityId, position, id])
+  @@map("community_categories")
+}
+
+model CommunityInvite {
+  id String @id @default(uuid())
+  communityId String
+  creatorId String
+  tokenHash String @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  maxUses Int?
+  useCount Int @default(0)
+  createdAt DateTime @default(now())
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  creator User @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  @@index([communityId, createdAt, id])
+  @@map("community_invites")
 }
 
 enum ConversationType {

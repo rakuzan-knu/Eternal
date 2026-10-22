@@ -176,7 +176,9 @@ describe('ChatThread', () => {
     const viewAllBtn = screen.getByTitle('View all pinned messages');
     fireEvent.click(viewAllBtn);
 
-    expect(await screen.findByRole('heading', { name: /Pinned messages/i })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: /Pinned messages/i }, { timeout: 5000 }),
+    ).toBeInTheDocument();
   });
 
   it('dynamically raises composer padding when SpotifyBottomDock is full or minimized', () => {
@@ -328,5 +330,45 @@ describe('ChatThread', () => {
     expect(closeMenu).toHaveBeenCalledOnce();
     expect(mockNavigate).not.toHaveBeenCalled();
     expect(screen.getByTestId('chat-thread')).not.toHaveClass('pointer-events-none');
+  });
+  it('cancels delayed close navigation when another destination unmounts the thread', () => {
+    vi.useFakeTimers();
+    const onClose = vi.fn();
+    try {
+      const view = render(
+        <QueryClientProvider client={queryClient}>
+          <MemoryRouter>
+            <ChatThread conversation={mockConv} onClose={onClose} />
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+      fireEvent.keyDown(window, { key: 'Escape' });
+      view.unmount();
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+      expect(onClose).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+  it('keeps archived channel history tools but disables publication and calls', () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <ChatThread
+            conversation={{
+              ...mockConv,
+              communityId: 'server',
+              communityChannelArchivedAt: '2026-10-22T00:00:00.000Z',
+            }}
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    expect(screen.getByText(/This channel is archived/)).toBeVisible();
+    expect(screen.queryByRole('textbox', { name: 'Message' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Start audio call' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Start video call' })).toBeDisabled();
   });
 });

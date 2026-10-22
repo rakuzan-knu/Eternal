@@ -11,6 +11,19 @@ function snapshot(client: QueryClient) {
   return { timestamp: 1, buster: 'test', clientState: dehydrate(client) };
 }
 describe('bounded offline snapshots', () => {
+  it('never persists bearer invitations or recipient searches', () => {
+    const client = new QueryClient();
+    client.setQueryData(['community-invite-preview', 'secret-token'], {
+      community: 'public-summary',
+    });
+    client.setQueryData(['community-invite-people-search', 'someone'], [{ id: 'user' }]);
+    client.setQueryData(['communities', 'directory', ''], { data: [] });
+    const bounded = boundPersistedClient(snapshot(client));
+    expect(bounded.clientState.queries.map((query) => query.queryKey)).toEqual([
+      ['communities', 'directory', ''],
+    ]);
+    client.clear();
+  });
   it('keeps the most recent queries, excluding ephemeral search results', () => {
     const client = new QueryClient();
     for (let i = 0; i < 100; i++)

@@ -66,6 +66,7 @@ export const envSchema = z
     R2_ACCESS_KEY_ID: z.string().optional(),
     R2_SECRET_ACCESS_KEY: z.string().optional(),
     R2_BUCKET: z.string().optional(),
+    R2_PRIVATE_BUCKET: z.string().optional(),
     R2_PUBLIC_URL: z.string().optional(),
     MINIO_ENDPOINT: z.string().optional(),
     MINIO_ACCESS_KEY: z.string().optional(),
