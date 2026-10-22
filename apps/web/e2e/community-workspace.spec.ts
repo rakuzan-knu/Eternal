@@ -528,7 +528,7 @@ for (const width of [390, 1440]) {
         .fill(`https://other.example/invite/${token}`);
       await dialog.getByRole('button', { name: 'Preview invitation' }).click();
       await expect(page).toHaveURL(new RegExp(`/invite/${token}$`));
-      await expect(page.getByRole('heading', { name: server.name })).toBeVisible();
+      await expect(page.getByRole('heading', { name: server.name, level: 1 })).toBeVisible();
       await expect(page.getByRole('button', { name: 'Accept invitation' })).toBeEnabled();
       expect(accepted).toBe(false);
     });

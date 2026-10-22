@@ -26,7 +26,11 @@ Status: infrastructure prepared; application production rollout is pending.
   to published `private-chat/` objects.
 - With explicit operator confirmation, created an Object Read & Write token
   scoped only to the public and private media buckets. Its credentials are stored
-  privately; the running Render services still use their previous credentials.
+  privately. Installed the key, its legacy MINIO aliases and `R2_PRIVATE_BUCKET`
+  in all four Render configurations with Save only. Re-exported each service
+  and verified exactly these five keys changed, no keys were removed, and the
+  saved values match the scoped credentials. Existing instances keep their old
+  configuration until the sequential deployments below.
 - Actual R2 probe: a tiny synthetic `_incoming/` object returned 200 with a
   60-second signed GET and exact expected bytes. Unsigned S3 access returned 400
   (denied); preflight returned 204 and the exact allowed origin for both clients.
@@ -52,6 +56,26 @@ Socket.IO adapter regression covers replay data and idempotent send responses;
 auth and persistence are mocked in this narrowly scoped test. Production still
 has the old handler until the release is deployed.
 
+The release is published in draft PR #135. Normal pre-push workspace typechecks
+passed. CI built the backend Docker image and successfully exercised all four
+roles with shared PostgreSQL/Redis fixtures. A read-only production role smoke
+also passed for all four services; Redis reported 22 clients including the probe,
+against a maximum of 30.
+
+Browser access recovered after restarting Chrome. Vercel initially rejected the
+commit author (`TEAM_ACCESS_REQUIRED`); after the owner linked GitHub, staging
+deployment `dpl_AnqyA9jPEtWC9CTeyQGxmyYL2xGM` reached READY. Its actual HTTP
+response allows first-party camera and microphone. Canonical domains have not
+been promoted. This staging revision precedes the final sidebar/test follow-up.
+
+CI caught a lazy-navigation heading ambiguity and laptop sidebar overflow from
+the additional Communities link. The invitation assertion now targets its h1;
+compact navigation uses 40px rows below 760px viewport height. The affected
+invitation and laptop tests passed locally. Independently reviewed screenshot
+differences were confined to the added/shifted sidebar icons; updated the 17
+Windows baselines. Backend unit CI timed out while downloading FFmpeg before
+running tests; its job was retried without changing the checks.
+
 ## Remaining release sequence
 
 1. Stage the reviewed release client without assigning production domains.
@@ -68,8 +92,8 @@ has the old handler until the release is deployed.
    for these checks. The Expo feed currently opens desktop web for chat; there is
    no separate native private-channel renderer to claim as tested.
 
-No production deployment, credential replacement or two-account private-channel
-acceptance has been completed. Browser automation stopped when its automatic URL
-confidence policy could not identify the active Windows browser URL. Continue
-through a working authenticated provider connection; do not bypass that policy
-or protected-branch review.
+No application production deployment or two-account private-channel acceptance
+has been completed at this checkpoint. Core's next configuration temporarily sets
+`BACKGROUND_ENABLED=false` for the first deployment; restore it only after the
+old Messenger instance and connections have drained. Follow protected-branch
+review; no merge or branch-protection bypass has been performed.
