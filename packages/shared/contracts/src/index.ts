@@ -1,4 +1,5 @@
 export * from './auth';
+export * from './communities';
 export * from './decorations';
 export * from './calls';
 export * from './chat';

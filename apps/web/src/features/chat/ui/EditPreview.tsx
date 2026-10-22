@@ -1,4 +1,6 @@
 import React from 'react';
+import { isPrivateMedia } from '@/shared/lib/privateMedia';
+import { MediaImage } from '@/shared/lib/privateMediaView';
 import DOMPurify from 'dompurify';
 import { Pencil, X, FileText } from 'lucide-react';
 import FileIconBadge from './FileIconBadge';
@@ -89,8 +91,14 @@ export default function EditPreview({
     ? editThumbnail ||
       (isVideoNote ? message.sender.avatar || (message.sender as any).avatarUrl : null)
     : null;
-  const sanitizedThumbnail = sanitizeMediaUrl(rawThumbnail);
-  const displayThumbnail = sanitizedThumbnail ? DOMPurify.sanitize(sanitizedThumbnail) : null;
+  const sanitizedThumbnail = isPrivateMedia(rawThumbnail)
+    ? rawThumbnail
+    : sanitizeMediaUrl(rawThumbnail);
+  const displayThumbnail = isPrivateMedia(sanitizedThumbnail)
+    ? sanitizedThumbnail
+    : sanitizedThumbnail
+      ? DOMPurify.sanitize(sanitizedThumbnail)
+      : null;
 
   const getPreviewText = () => {
     if (isVideoNote) return 'Video message';
@@ -154,7 +162,7 @@ export default function EditPreview({
                   : 'rounded-md bg-black/40 border border-white/10'
             } shadow-xs flex items-center justify-center`}
           >
-            <img
+            <MediaImage
               src={displayThumbnail}
               alt="Edit attachment preview"
               className={`w-full h-full ${isSticker ? 'object-contain' : 'object-cover'}`}

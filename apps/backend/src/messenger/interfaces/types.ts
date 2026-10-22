@@ -118,6 +118,7 @@ export const participantInclude = {
 } satisfies Prisma.ConversationParticipantInclude;
 
 export const conversationInclude = {
+  communityChannel: { select: { communityId: true, archivedAt: true, isPrivate: true } },
   participants: {
     where: { leftAt: null },
     include: participantInclude,

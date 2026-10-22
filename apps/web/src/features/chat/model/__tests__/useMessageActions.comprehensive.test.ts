@@ -10,7 +10,7 @@ import * as socketHookModule from '../useChatSocket';
 
 describe('useMessageActions (Comprehensive Suite)', () => {
   let queryClient: QueryClient;
-  let mockSocket: { emit: ReturnType<typeof vi.fn> };
+  let mockSocket: { emit: ReturnType<typeof vi.fn>; connected: boolean };
 
   const initialMessagesData = {
     pages: [
@@ -40,6 +40,7 @@ describe('useMessageActions (Comprehensive Suite)', () => {
     vi.restoreAllMocks();
     mockSocket = {
       emit: vi.fn(),
+      connected: true,
     };
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
@@ -52,10 +53,100 @@ describe('useMessageActions (Comprehensive Suite)', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   const wrapper = ({ children }: { children: React.ReactNode }) =>
     React.createElement(QueryClientProvider, { client: queryClient }, children);
+
+  it.each([false, true])(
+    'reuploads public media for a private target (hide author: %s)',
+    async (hideAuthor) => {
+      const target: Awaited<ReturnType<typeof chatApi.getConversation>> = {
+        id: 'private-target',
+        type: 'GROUP',
+        name: 'Private',
+        avatar: null,
+        description: null,
+        createdById: 'user-1',
+        participants: [],
+        lastMessage: null,
+        unreadCount: 0,
+        myTheme: 'default',
+        myMuteLevel: 'NONE',
+        myNickname: null,
+        isArchived: false,
+        isPinned: false,
+        blockedByMe: false,
+        blockingMe: false,
+        isBlocked: false,
+        pinnedMessages: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        communityChannelIsPrivate: true,
+      };
+      vi.spyOn(chatApi, 'getConversation').mockResolvedValue(target);
+      const upload = vi.spyOn(chatApi, 'uploadAttachment').mockResolvedValue({
+        type: 'IMAGE',
+        url: 'private-media://11111111-1111-4111-8111-111111111111',
+        thumbnailUrl: 'https://public.example/untrusted-thumbnail.jpg',
+      });
+      const send = vi
+        .spyOn(chatApi, 'sendMessage')
+        .mockRejectedValue(new Error('stop after payload'));
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response('image bytes', {
+          headers: { 'Content-Type': 'image/png' },
+        }),
+      );
+      vi.stubGlobal('fetch', fetchMock);
+      const { result } = renderHook(() => useMessageActions('conv-1'), { wrapper });
+      await act(async () => {
+        await expect(
+          result.current.forwardMessage(
+            {
+              id: 'source-message',
+              conversationId: 'conv-1',
+              body: 'Caption',
+              attachments: [
+                {
+                  id: 'source-file',
+                  type: 'IMAGE',
+                  url: 'https://public.example/image.png',
+                  fileName: 'image.png',
+                  mimeType: 'image/png',
+                  size: 11,
+                  width: null,
+                  height: null,
+                  duration: null,
+                  thumbnailUrl: 'https://public.example/thumbnail.png',
+                },
+              ],
+            },
+            ['private-target'],
+            { hideAuthor },
+          ),
+        ).rejects.toThrow('stop after payload');
+      });
+      expect(fetchMock).toHaveBeenCalledWith('https://public.example/image.png', {
+        credentials: 'omit',
+      });
+      expect(upload).toHaveBeenCalledWith('private-target', expect.any(File));
+      expect(upload.mock.calls[0][1].size).toBe(11);
+      expect(send).toHaveBeenCalledWith('private-target', {
+        text: 'Caption',
+        forwardedFromId: hideAuthor ? undefined : 'source-message',
+        attachments: [
+          {
+            type: 'IMAGE',
+            url: 'private-media://11111111-1111-4111-8111-111111111111',
+            thumbnailUrl: null,
+          },
+        ],
+      });
+      expect(mockSocket.emit).not.toHaveBeenCalled();
+    },
+  );
 
   it('sends message optimistically and handles socket ack', async () => {
     mockSocket.emit.mockImplementation((event, payload, cb) => {

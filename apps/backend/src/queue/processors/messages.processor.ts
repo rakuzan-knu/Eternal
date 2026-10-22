@@ -163,13 +163,14 @@ export class MessagesProcessor implements OnModuleInit, OnModuleDestroy {
     const { conversationId, event, payload, excludedUserId } = data;
     let recipientIds = data.recipientIds;
 
-    if (!recipientIds || recipientIds.length === 0) {
-      if (this.convsRepo) {
-        recipientIds = await this.convsRepo.findParticipantIds(conversationId);
-      }
-    }
+    // Queued recipient snapshots may outlive channel access.
+    const repository = this.convsRepo;
+    if (!repository) throw new Error('Cannot authorize conversation fanout');
+    const currentIds = await repository.findParticipantIds(conversationId);
+    const current = new Set(currentIds);
+    recipientIds = recipientIds?.length ? recipientIds.filter((id) => current.has(id)) : currentIds;
 
-    if (!recipientIds || recipientIds.length === 0) return;
+    if (recipientIds.length === 0) return;
 
     if (excludedUserId) {
       recipientIds = recipientIds.filter((id) => id !== excludedUserId);
@@ -211,22 +212,21 @@ export class MessagesProcessor implements OnModuleInit, OnModuleDestroy {
       `Thundering herd mitigation: Dispatching '${event}' for conv ${conversationId} to ${onlineRecipients.length} online, ${offlineRecipients.length} offline recipients`,
     );
 
-    // Batch 1: Immediate dispatch to active online sessions
-    if (this.gateway && onlineRecipients.length > 0) {
-      for (const uid of onlineRecipients) {
-        this.gateway.emitToUser(uid, event, payload);
+    const deliver = async (ids: string[]) => {
+      // Presence lookup and pacing can cross a revocation commit.
+      const authorized = new Set(await repository.findParticipantIds(conversationId));
+      for (const uid of ids) {
+        if (authorized.has(uid)) this.gateway?.emitToUser(uid, event, payload);
       }
-    }
+    };
+    // Batch 1: Immediate dispatch to active online sessions
+    if (this.gateway && onlineRecipients.length > 0) await deliver(onlineRecipients);
 
     // Batch 2+: Paced chunking to offline / dormant users
     const OFFLINE_CHUNK_SIZE = 1000;
     for (let i = 0; i < offlineRecipients.length; i += OFFLINE_CHUNK_SIZE) {
       const chunk = offlineRecipients.slice(i, i + OFFLINE_CHUNK_SIZE);
-      if (this.gateway) {
-        for (const uid of chunk) {
-          this.gateway.emitToUser(uid, event, payload);
-        }
-      }
+      if (this.gateway) await deliver(chunk);
       if (i + OFFLINE_CHUNK_SIZE < offlineRecipients.length) {
         await new Promise((resolve) => setTimeout(resolve, 30));
       }

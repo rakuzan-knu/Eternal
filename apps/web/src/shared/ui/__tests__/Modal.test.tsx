@@ -96,4 +96,46 @@ describe('Modal', () => {
     act(() => vi.advanceTimersByTime(1000));
     expect(onClose).not.toHaveBeenCalled();
   });
+
+  it('keeps a pending mutation dialog open until dismissal is enabled again', () => {
+    const close = vi.fn();
+    const content = (requestClose: () => void) => (
+      <button onClick={requestClose}>Close pending</button>
+    );
+    const view = render(
+      <Modal onClose={close} dismissible={false}>
+        {content}
+      </Modal>,
+    );
+    fireEvent.keyDown(window, { key: 'Escape' });
+    fireEvent.click(screen.getByText('Close pending'));
+    act(() => vi.advanceTimersByTime(200));
+    expect(close).not.toHaveBeenCalled();
+    view.rerender(
+      <Modal onClose={close} dismissible>
+        {content}
+      </Modal>,
+    );
+    fireEvent.click(screen.getByText('Close pending'));
+    act(() => vi.advanceTimersByTime(200));
+    expect(close).toHaveBeenCalledTimes(1);
+  });
+  it('vetoes dismissal before animation and allows closing after the guard changes', () => {
+    const onClose = vi.fn();
+    const guard = vi.fn().mockReturnValue(false);
+    render(
+      <Modal onClose={onClose} onBeforeClose={guard}>
+        {(close) => <button onClick={close}>Guarded close</button>}
+      </Modal>,
+    );
+    fireEvent.keyDown(window, { key: 'Escape' });
+    act(() => vi.advanceTimersByTime(200));
+    expect(guard).toHaveBeenCalledOnce();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog')).toBeVisible();
+    guard.mockReturnValue(true);
+    fireEvent.click(screen.getByText('Guarded close'));
+    act(() => vi.advanceTimersByTime(200));
+    expect(onClose).toHaveBeenCalledOnce();
+  });
 });

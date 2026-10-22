@@ -1,3 +1,4 @@
+import { fetchMedia } from '@/shared/lib/privateMedia';
 import React, {
   useCallback,
   useEffect,
@@ -246,7 +247,7 @@ export default function MessageComposer({
     const att = activeEdit?.attachments?.[0];
     if (!att?.url) return;
     try {
-      const res = await fetch(att.url);
+      const res = await fetchMedia(att.url);
       const blob = await res.blob();
       const file = new File([blob], att.fileName || (att as any).name || 'photo.png', {
         type: blob.type || 'image/png',

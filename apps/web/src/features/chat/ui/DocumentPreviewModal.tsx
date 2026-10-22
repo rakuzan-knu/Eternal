@@ -1,3 +1,5 @@
+import { isPrivateMedia } from '@/shared/lib/privateMedia';
+import { ResolvedMediaUrl } from '@/shared/lib/privateMediaView';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { downloadBlob } from '@/shared/lib/blobResources';
 import { createPortal } from 'react-dom';
@@ -39,7 +41,18 @@ export interface DocumentPreviewModalProps {
   onSendDirectly?: (editedFile: File) => void;
 }
 
-export default function DocumentPreviewModal({
+export default function DocumentPreviewModal(props: DocumentPreviewModalProps) {
+  const source = props.fileOrUrl;
+  if (!(source instanceof File) && isPrivateMedia(source.url))
+    return (
+      <ResolvedMediaUrl url={source.url}>
+        {(url) => <DocumentPreviewContent {...props} fileOrUrl={{ ...source, url }} />}
+      </ResolvedMediaUrl>
+    );
+  return <DocumentPreviewContent {...props} />;
+}
+
+function DocumentPreviewContent({
   fileOrUrl,
   onClose,
   onSave,

@@ -33,3 +33,4 @@ export * from './model/CallContext';
 export * from './model/CallProvider';
 export * from './model/useCallManager';
 export { sendDirectMessage } from './model/sendDirectMessage';
+export { CommunityConversation } from './ui/CommunityConversation';

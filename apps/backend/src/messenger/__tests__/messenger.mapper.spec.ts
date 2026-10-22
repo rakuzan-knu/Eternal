@@ -202,6 +202,7 @@ describe('MessengerMapper', () => {
 
   describe('mapConversation', () => {
     const conv: ConversationWithDetails = {
+      communityChannel: null,
       id: 'conv-1',
       type: 'DIRECT',
       name: null,

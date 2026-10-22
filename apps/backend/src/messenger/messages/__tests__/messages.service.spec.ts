@@ -385,7 +385,7 @@ describe('MessagesService', () => {
       expect(mockMessagesRepo.deleteForMe).toHaveBeenCalledWith('msg-1', 'usr-1');
 
       await service.delete('msg-1', 'usr-1', { messageId: 'msg-1', forAll: true });
-      expect(mockMessagesRepo.deleteForAll).toHaveBeenCalledWith('msg-1');
+      expect(mockMessagesRepo.deleteForAll).toHaveBeenCalledWith('msg-1', 'usr-1');
 
       // Admin deleting OWNER message -> Forbidden
       mockMessagesRepo.findOne.mockResolvedValueOnce({ ...sampleMsg, senderId: 'usr-owner' });
@@ -538,7 +538,7 @@ describe('MessagesService', () => {
       expect(mockConvsRepo.pinMessage).toHaveBeenCalledWith('conv-1', 'msg-1', 'usr-1');
 
       await service.unpinMessage('conv-1', 'msg-1', 'usr-1');
-      expect(mockConvsRepo.unpinMessage).toHaveBeenCalledWith('conv-1', 'msg-1');
+      expect(mockConvsRepo.unpinMessage).toHaveBeenCalledWith('conv-1', 'msg-1', 'usr-1');
     });
 
     it('marks messages as read with and without messageId', async () => {
@@ -607,7 +607,7 @@ describe('MessagesService', () => {
       ]);
       const results = await service.search('conv-1', 'usr-1', { q: 'hello', limit: 20 });
       expect(results).toHaveLength(1);
-      expect(mockMessagesRepo.search).toHaveBeenCalledWith('conv-1', 'hello', 20, [
+      expect(mockMessagesRepo.search).toHaveBeenCalledWith('conv-1', 'usr-1', 'hello', 20, [
         'usr-blocked-1',
       ]);
     });
