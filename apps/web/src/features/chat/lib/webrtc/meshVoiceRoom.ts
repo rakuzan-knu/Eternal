@@ -7,6 +7,7 @@ export interface VoiceMeshPeer {
 }
 
 export interface VoiceMeshEvents {
+  onDisconnected?: () => void;
   onPeersChange?: (peers: string[]) => void;
   onSpeakingChange?: (peerId: string, isSpeaking: boolean) => void;
   onLocalSpeakingChange?: (isSpeaking: boolean) => void;
@@ -34,6 +35,7 @@ export class MeshVoiceRoomManager {
   private isMuted = false;
   private isDeafened = false;
   private currentRoomId: string | null = null;
+  private joinGeneration = 0;
 
   constructor(
     private readonly currentUserId: string,
@@ -120,12 +122,13 @@ export class MeshVoiceRoomManager {
    */
   public async join(roomId: string): Promise<void> {
     this.leave();
+    const generation = this.joinGeneration;
     this.currentRoomId = roomId;
 
     try {
       // 1. Acquire local microphone stream with high-fidelity Opus & user settings
       const settings = useVoiceVideoSettingsStore.getState();
-      this.localStream = await navigator.mediaDevices.getUserMedia({
+      const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           deviceId: settings.selectedAudioInput
             ? { exact: settings.selectedAudioInput }
@@ -137,11 +140,23 @@ export class MeshVoiceRoomManager {
         video: false,
       });
 
-      this.setupLocalVAD(this.localStream);
+      // Leaving (including archive/unmount) while the microphone prompt is
+      // pending must not reactivate a room or leak a late microphone stream.
+      if (this.joinGeneration !== generation || this.currentRoomId !== roomId) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      this.localStream = stream;
+      this.setupLocalVAD(stream);
 
       // 2. Announce join to signaling server
       this.socketEmit('voice:mesh-join', { roomId }, (res: unknown) => {
         const response = res as { success?: boolean; existingPeers?: string[] } | undefined;
+        if (this.joinGeneration !== generation || this.currentRoomId !== roomId) return;
+        if (!response?.success) {
+          this.leave();
+          return;
+        }
         if (response?.success && Array.isArray(response.existingPeers)) {
           // For all existing peers already in the room, create connections and send offers
           for (const peerId of response.existingPeers) {
@@ -249,6 +264,7 @@ export class MeshVoiceRoomManager {
    * Disconnects from the mesh room and cleans up hardware tracks and connections.
    */
   public leave(): void {
+    this.joinGeneration++;
     if (this.currentRoomId) {
       playActionSound('disconnect');
       this.socketEmit('voice:mesh-leave', { roomId: this.currentRoomId });
@@ -287,6 +303,7 @@ export class MeshVoiceRoomManager {
 
     this.peers.clear();
     this.events.onPeersChange?.([]);
+    this.events.onDisconnected?.();
   }
 
   private async connectToPeer(peerId: string, isInitiator: boolean): Promise<VoiceMeshPeer> {

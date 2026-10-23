@@ -30,10 +30,27 @@ describe('ScrollToTop Component', () => {
   let height = 3000;
   let frameId = 0;
   let frames: Map<number, FrameRequestCallback>;
+  const resizeCallbacks = new Set<() => void>();
 
   beforeEach(() => {
     height = 3000;
     frames = new Map();
+    resizeCallbacks.clear();
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        private notify: () => void;
+        constructor(callback: ResizeObserverCallback) {
+          this.notify = () => callback([], this);
+          resizeCallbacks.add(this.notify);
+        }
+        observe() {}
+        unobserve() {}
+        disconnect() {
+          resizeCallbacks.delete(this.notify);
+        }
+      },
+    );
     Object.defineProperty(window, 'scrollY', { value: 0, configurable: true });
     Object.defineProperty(document.documentElement, 'scrollHeight', {
       get: () => height,
@@ -60,6 +77,7 @@ describe('ScrollToTop Component', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
     if (originalScrollY) Object.defineProperty(window, 'scrollY', originalScrollY);
     if (originalHeight) {
       Object.defineProperty(document.documentElement, 'scrollHeight', originalHeight);
@@ -159,6 +177,26 @@ describe('ScrollToTop Component', () => {
     nextFrame();
     expect(window.scrollY).toBe(0);
     expect(frames.size).toBe(0);
+  });
+
+  it('reconciles late virtual-list layout changes after the first restored frames', () => {
+    renderNavigation();
+    Object.defineProperty(window, 'scrollY', { value: 900, configurable: true });
+    fireEvent.click(screen.getByText('Open post'));
+    fireEvent.click(screen.getByText('Back'));
+    nextFrame();
+    nextFrame();
+    expect(window.scrollY).toBe(900);
+    Object.defineProperty(window, 'scrollY', { value: 743, configurable: true });
+    act(() => resizeCallbacks.forEach((notify) => notify()));
+    nextFrame();
+    nextFrame();
+    expect(window.scrollY).toBe(900);
+    fireEvent.wheel(window);
+    expect(resizeCallbacks.size).toBe(0);
+    Object.defineProperty(window, 'scrollY', { value: 500, configurable: true });
+    nextFrame();
+    expect(window.scrollY).toBe(500);
   });
 
   it('clears previous session positions and pending restoration on account reset', () => {

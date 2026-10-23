@@ -1,3 +1,4 @@
+import { fetchMedia, isPrivateMedia } from '@/shared/lib/privateMedia';
 import { updateConversationLists, getCachedConversations } from './chatCacheSync';
 import { useCallback, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -16,6 +17,7 @@ import {
   resolveDirectPeerUserId,
   type ConversationPeerView,
 } from '../lib/e2ee/messageE2ee';
+import { resolveMessageMentions } from '../lib/messageMentions';
 import { nextMessageSeq } from '../lib/e2ee/replayStore';
 import { cacheDecryptedBody } from './useDecryptedMessageBody';
 import { e2eeManager, parseEnvelope } from '@/shared/lib/crypto/e2ee';
@@ -71,6 +73,7 @@ export function useMessageActions(conversationId: string | null) {
             attachments: p.attachments,
             clientMessageId: mutation.id,
             clientSeq: p.clientSeq,
+            mentionedUserIds: p.mentionedUserIds,
           });
           if (res.message || res.status === 'ok') {
             return true;
@@ -82,6 +85,7 @@ export function useMessageActions(conversationId: string | null) {
           attachments: p.attachments as OutgoingAttachment[] | undefined,
           clientMessageId: mutation.id,
           clientSeq: p.clientSeq,
+          mentionedUserIds: p.mentionedUserIds,
         });
         return Boolean(fallbackRes);
       } catch {
@@ -144,6 +148,14 @@ export function useMessageActions(conversationId: string | null) {
                     ? 'FILE'
                     : 'TEXT';
 
+      const conversation = getCachedConversations(queryClient).find(
+        (row) => row.id === conversationId,
+      );
+      const mentionedUserIds = resolveMessageMentions(
+        text,
+        conversation?.participants ?? [],
+        userId,
+      );
       const clientSeq = getNextClientSeq(conversationId);
       const optimisticId = `client_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
       const optimisticMessage: MessageView = {
@@ -155,6 +167,8 @@ export function useMessageActions(conversationId: string | null) {
         conversationId,
         sender: { id: userId ?? '', username: '', displayName: null, avatar: null },
         body: text || null,
+        mentionedUserIds,
+        requiresEncryptedRetry: Boolean(opts?.encrypt && text.trim()),
         messageType: resolvedMessageType,
         replyTo: null,
         forwardedFrom: null,
@@ -211,6 +225,19 @@ export function useMessageActions(conversationId: string | null) {
         }
       }
 
+      if (opts?.encrypt && text.trim()) {
+        updatePages((pages) =>
+          pages.map((page) => ({
+            ...page,
+            data: page.data.map((message) =>
+              message.id === optimisticId
+                ? { ...message, requiresEncryptedRetry: e2eeManager.isEncrypted(outgoingText) }
+                : message,
+            ),
+          })),
+        );
+      }
+
       // Persist mutation into IndexedDB outbox queue (offline backup, do NOT autoFlush during active send)
       await mutationOutbox
         .enqueueMessage(
@@ -221,6 +248,7 @@ export function useMessageActions(conversationId: string | null) {
             replyToId,
             attachments: attachments as unknown[],
             clientSeq,
+            mentionedUserIds,
           },
           false,
         )
@@ -239,6 +267,7 @@ export function useMessageActions(conversationId: string | null) {
           attachments,
           clientMessageId: optimisticId,
           clientSeq,
+          mentionedUserIds,
         });
         if (res.message) {
           void mutationOutboxDb.delete(optimisticId);
@@ -286,6 +315,7 @@ export function useMessageActions(conversationId: string | null) {
             attachments,
             clientMessageId: optimisticId,
             clientSeq,
+            mentionedUserIds,
           });
           if (fallbackRes) {
             void mutationOutboxDb.delete(optimisticId);
@@ -362,6 +392,19 @@ export function useMessageActions(conversationId: string | null) {
       const retryClientSeq = targetMessage.clientSeq ?? getNextClientSeq(conversationId);
       const text = targetMessage.body || '';
       const replyToId = targetMessage.replyTo?.id;
+      const storedMutation = await mutationOutboxDb.get(optimisticId);
+      const persistedPayload =
+        storedMutation?.conversationId === conversationId &&
+        storedMutation.payload.conversationId === conversationId
+          ? storedMutation.payload
+          : undefined;
+      if (
+        targetMessage.requiresEncryptedRetry &&
+        (!persistedPayload?.text || !e2eeManager.isEncrypted(persistedPayload.text))
+      ) {
+        throw new Error('Encrypted retry data is unavailable. Compose this message again.');
+      }
+      const mentionedUserIds = persistedPayload?.mentionedUserIds ?? targetMessage.mentionedUserIds;
 
       // If an attachment previously failed with a data: URI, re-upload it properly to server now
       const resolvedAttachments: OutgoingAttachment[] = [];
@@ -415,8 +458,8 @@ export function useMessageActions(conversationId: string | null) {
         })),
       );
 
-      // Retry sends plain text directly.
-      const outgoingText = text;
+      // Reuse the exact original envelope and metadata for this idempotency key.
+      const outgoingText = persistedPayload?.text ?? text;
 
       try {
         const res = await emitWithAck<MessageView>(socket, 'sendMessage', {
@@ -427,6 +470,7 @@ export function useMessageActions(conversationId: string | null) {
           attachments: resolvedAttachments.length > 0 ? resolvedAttachments : undefined,
           clientMessageId: optimisticId,
           clientSeq: retryClientSeq,
+          mentionedUserIds,
         });
         if (res.message) {
           const real = {
@@ -453,6 +497,7 @@ export function useMessageActions(conversationId: string | null) {
             attachments: resolvedAttachments.length > 0 ? resolvedAttachments : undefined,
             clientMessageId: optimisticId,
             clientSeq: retryClientSeq,
+            mentionedUserIds,
           });
           if (fallbackRes) {
             const real = { ...(fallbackRes as MessageView), status: 'SENT' as const };
@@ -571,13 +616,57 @@ export function useMessageActions(conversationId: string | null) {
         body: string | null;
         conversationId: string;
         sender?: { id?: string | null } | null;
-        attachments?: any[];
+        attachments?: AttachmentView[];
       },
       conversationIds: string[],
       opts?: { hideAuthor?: boolean },
     ) => {
       const targets = [...new Set(conversationIds.filter(Boolean))];
       if (targets.length === 0) return [];
+      const publicAttachments = (message.attachments ?? []).filter(
+        (attachment) => !isPrivateMedia(attachment.url),
+      );
+      if (publicAttachments.length && (!message.body || !e2eeManager.isEncrypted(message.body))) {
+        // A public URL cannot be made confidential by copying it into a private message.
+        const targetsWithAccess = await Promise.all(
+          targets.map((id) => chatApi.getConversation(id)),
+        );
+        const results: unknown[] = [];
+        const plainTargets: string[] = [];
+        for (const target of targetsWithAccess) {
+          if (!target.communityChannelIsPrivate) {
+            plainTargets.push(target.id);
+            continue;
+          }
+          const attachments: OutgoingAttachment[] = [];
+          for (const attachment of message.attachments ?? []) {
+            const response = await fetchMedia(attachment.url, { credentials: 'omit' });
+            if (!response.ok) throw new Error('Cannot read attachment for private forwarding');
+            const blob = await response.blob();
+            const file = new File([blob], attachment.fileName || 'attachment', {
+              type: attachment.mimeType || blob.type || 'application/octet-stream',
+            });
+            const uploaded: OutgoingAttachment = await chatApi.uploadAttachment(target.id, file);
+            attachments.push({ ...uploaded, thumbnailUrl: null });
+          }
+          results.push(
+            await chatApi.sendMessage(target.id, {
+              text: message.body ?? undefined,
+              attachments,
+              forwardedFromId: opts?.hideAuthor ? undefined : message.id,
+            }),
+          );
+        }
+        if (plainTargets.length)
+          results.push(
+            await emitWithAck(socket, 'forwardMessage', {
+              messageId: message.id,
+              conversationIds: plainTargets,
+              hideAuthor: opts?.hideAuthor,
+            }),
+          );
+        return results;
+      }
       if (!message.body || !e2eeManager.isEncrypted(message.body)) {
         // Plaintext (or bodiless): legacy server-side copy preserves
         // attribution behavior exactly as before.
@@ -613,8 +702,20 @@ export function useMessageActions(conversationId: string | null) {
           });
           if (encrypted) outgoing = encrypted;
         }
+        const attachments: OutgoingAttachment[] = [];
+        for (const attachment of message.attachments ?? []) {
+          const response = await fetchMedia(attachment.url, { credentials: 'omit' });
+          if (!response.ok) throw new Error('Cannot read attachment for forwarding');
+          const blob = await response.blob();
+          const file = new File([blob], attachment.fileName || 'attachment', {
+            type: attachment.mimeType || blob.type || 'application/octet-stream',
+          });
+          const uploaded: OutgoingAttachment = await chatApi.uploadAttachment(targetId, file);
+          attachments.push({ ...uploaded, thumbnailUrl: null });
+        }
         const res = await emitWithAck(socket, 'sendMessage', {
           conversationId: targetId,
+          attachments,
           text: outgoing,
           messageType: 'TEXT',
           forwardedFromId: opts?.hideAuthor ? undefined : message.id,
@@ -895,7 +996,9 @@ export function useMessageActions(conversationId: string | null) {
       );
       const isEnvelopeId = (id: string) => {
         const body = byId.get(id)?.body;
-        return !!body && e2eeManager.isEncrypted(body);
+        return (
+          (!!body && e2eeManager.isEncrypted(body)) || Boolean(byId.get(id)?.attachments?.length)
+        );
       };
       // Split: plaintext keeps the single server batch; envelopes fan out
       // client-side per message (decrypt source → re-encrypt per target).

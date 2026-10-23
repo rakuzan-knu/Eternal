@@ -14,11 +14,14 @@ import { resolveOverlayLayer } from '@/shared/lib/overlayLayer';
 
 interface ModalProps {
   onClose: () => void;
+  /** Return false to keep the dialog open before its exit animation starts. */
+  onBeforeClose?: () => boolean;
   children: (requestClose: () => void) => React.ReactNode;
   className?: string;
   zIndex?: string;
   exitDurationMs?: number;
   closeOnInputEscape?: boolean;
+  dismissible?: boolean;
   'aria-label'?: string;
   'aria-labelledby'?: string;
   'aria-describedby'?: string;
@@ -47,11 +50,13 @@ const topModal = () =>
 
 export default function Modal({
   onClose,
+  onBeforeClose,
   children,
   className = '',
   zIndex,
   exitDurationMs = 180,
   closeOnInputEscape = false,
+  dismissible = true,
   'aria-label': ariaLabel,
   'aria-labelledby': ariaLabelledBy,
   'aria-describedby': ariaDescribedBy,
@@ -70,12 +75,13 @@ export default function Modal({
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const requestClose = useCallback(() => {
-    if (closingRef.current) return;
+    if (closingRef.current || !dismissible) return;
+    if (onBeforeClose && !onBeforeClose()) return;
     closingRef.current = true;
     setIsClosing(true);
     const reduced = shouldReduceMotion();
     timerRef.current = setTimeout(onClose, reduced ? 0 : exitDurationMs);
-  }, [onClose, exitDurationMs]);
+  }, [onClose, onBeforeClose, exitDurationMs, dismissible]);
 
   useLayoutEffect(() => {
     const content = contentRef.current;

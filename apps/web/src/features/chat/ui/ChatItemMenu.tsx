@@ -108,6 +108,11 @@ export default function ChatItemMenu({
   };
 
   const openModal = (modal: 'muteOptions' | 'selectTone' | 'clearHistory' | 'deleteChat') => {
+    if (modal === 'deleteChat' && conversation.communityId) {
+      navigate(`/communities/${conversation.communityId}`);
+      onClose();
+      return;
+    }
     setActiveModal(modal);
     setIsDropdownVisible(false);
   };

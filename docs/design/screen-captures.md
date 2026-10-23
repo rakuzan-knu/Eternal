@@ -14,4 +14,6 @@ Run the commands in [scenarios](scenarios.md#executable-reference-coverage) to c
 
 On 2026-10-05, eight Feed/Stories baselines were reviewed and refreshed after switching the harness from development Vite to production preview. Differences were confined to the caught-up SVG checkmark, story sound icon and caption text rasterization; layout, content and state assertions remained unchanged. Screenshot tolerances were not widened. See the [validation log](platform-validation.md) for passing runs and limitations.
 
+On 2026-10-23, only `profile-large-text-win32.png` was reviewed and refreshed: the previous full-page image contained an empty offscreen post card, while the corrected virtual row exposes its actual content and height at 200% root text size. Explicit layout/style/paint containment preserves the other post-card baselines without allowing content-visibility to skip virtual-row measurement. Screenshot tolerances, content assertions and platform gates are unchanged.
+
 These images reflect Windows font metrics. They do not establish pixel parity on macOS, Linux, iOS or Android. Native clients still need device screenshots, keyboards, safe-area and assistive-technology checks from [platform guidance](platforms.md).

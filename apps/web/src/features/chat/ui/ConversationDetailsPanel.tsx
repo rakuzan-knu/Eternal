@@ -170,7 +170,18 @@ export default function ConversationDetailsPanel({
 
   const [isInfoOpen, setInfoOpen] = useState(true);
   const [isPrivacyOpen, setPrivacyOpen] = useState(false);
-  const [activeModal, setActiveModal] = useState<DetailsModal | null>(null);
+  const [activeModal, setModal] = useState<DetailsModal | null>(null);
+  const setActiveModal = (modal: DetailsModal | null) => {
+    if (
+      conversation.communityId &&
+      modal &&
+      ['editGroup', 'addMembers', 'participants', 'admins', 'permissions', 'delete'].includes(modal)
+    ) {
+      navigate(`/communities/${conversation.communityId}`);
+      return;
+    }
+    setModal(modal);
+  };
   const [viewedMemberId, setViewedMemberId] = useState<string | null>(null);
   const [galleryTab, setGalleryTab] = useState<'media' | 'files' | 'links' | null>(null);
   const [isClosing, setIsClosing] = useState(false);
@@ -204,6 +215,10 @@ export default function ConversationDetailsPanel({
   };
 
   const handleLeaveGroup = () => {
+    if (conversation.communityId) {
+      navigate(`/communities/${conversation.communityId}`);
+      return;
+    }
     if (!window.confirm('Leave this group?')) return;
     leaveConversation.mutate(conversation.id, {
       onSuccess: () => {
@@ -255,6 +270,15 @@ export default function ConversationDetailsPanel({
       </div>
 
       <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-5">
+        {conversation.communityId && (
+          <button
+            type="button"
+            onClick={() => navigate(`/communities/${conversation.communityId}`)}
+            className="mb-4 w-full min-h-11 rounded-xl border border-purple-500/25 bg-purple-500/10 px-3 text-sm font-semibold text-purple-300 cursor-pointer focus-visible:outline-2 focus-visible:outline-purple-500"
+          >
+            Open community · channels and members
+          </button>
+        )}
         <div className="flex flex-col items-center text-center mb-4">
           <div className="relative w-28 h-28 mx-auto mb-3 shrink-0 flex items-center justify-center">
             {isGroup ? (
@@ -397,7 +421,11 @@ export default function ConversationDetailsPanel({
           <GroupMembersSection
             conversation={conversation}
             onAddMembers={() => setActiveModal('addMembers')}
-            onSelectMember={(userId) => setViewedMemberId(userId)}
+            onSelectMember={(userId) =>
+              conversation.communityId
+                ? navigate(`/communities/${conversation.communityId}`)
+                : setViewedMemberId(userId)
+            }
             onViewAll={() => setActiveModal('participants')}
           />
         )}

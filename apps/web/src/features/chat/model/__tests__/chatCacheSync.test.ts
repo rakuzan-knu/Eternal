@@ -230,4 +230,19 @@ describe('chatCacheSync', () => {
     expect(sortMessagesChronologically([a, b]).map((m) => m.id)).toEqual(['b', 'a']);
     expect(dedupeMessages([a, a, b]).map((m) => m.id)).toEqual(['a', 'b']);
   });
+  it('removes revoked conversation snapshots and local/global search without clearing unrelated detail', () => {
+    const keys = [
+      queryKeys.conversations.detail('conv-1'),
+      queryKeys.conversations.detailAlias('conv-1'),
+      queryKeys.conversations.messages('conv-1'),
+      queryKeys.conversations.search('conv-1', 'secret'),
+      queryKeys.conversations.activity('conv-1', 2026, 10, 'UTC'),
+      queryKeys.conversations.globalSearch('secret', 'all'),
+    ];
+    for (const key of keys) client.setQueryData(key, { privateContent: true });
+    client.setQueryData(queryKeys.conversations.detail('other'), { id: 'other' });
+    applyConversationDeleted(client, 'conv-1');
+    for (const key of keys) expect(client.getQueryData(key)).toBeUndefined();
+    expect(client.getQueryData(queryKeys.conversations.detail('other'))).toEqual({ id: 'other' });
+  });
 });

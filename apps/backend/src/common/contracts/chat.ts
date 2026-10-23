@@ -166,6 +166,11 @@ export const sendMessageSchema = z
     replyToId: z.string().min(1).max(128).optional(),
     forwardedFromId: z.string().min(1).max(128).optional(),
     clientMessageId: z.string().max(64).optional(),
+    mentionedUserIds: z
+      .array(z.string().uuid())
+      .max(50)
+      .refine((ids) => new Set(ids).size === ids.length, 'Invalid mentions')
+      .optional(),
     clientSeq: z.number().int().min(1).optional(),
     attachments: z.array(attachmentSchema).max(10).optional(),
   })
@@ -410,6 +415,7 @@ export interface MessageView {
   sender: UserSnapshot;
   body: string | null;
   clientSeq?: number | null;
+  mentionedUserIds?: string[];
   messageType: MessageType;
   replyTo: MessageView | null;
   forwardedFrom: Pick<MessageView, 'id' | 'body' | 'sender'> | null;
@@ -438,6 +444,9 @@ export interface ParticipantView {
 
 export interface ConversationView {
   id: string;
+  communityId?: string;
+  communityChannelArchivedAt?: string | null;
+  communityChannelIsPrivate?: boolean;
   type: string;
   name: string | null;
   avatar: string | null;
@@ -447,6 +456,9 @@ export interface ConversationView {
   lastMessage: MessageView | null;
   unreadCount: number;
 
+  myNotificationMode?: 'ALL' | 'MENTIONS' | 'NONE' | null;
+  myEffectiveNotificationMode?: 'ALL' | 'MENTIONS' | 'NONE';
+  myNotificationMutedUntil?: string | null;
   myTheme: string;
   myMuteLevel: MuteLevel;
   myMutedUntil?: Date | null;

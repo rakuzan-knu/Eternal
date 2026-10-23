@@ -1,5 +1,6 @@
 import { test, expect } from '../fixtures';
 import {
+  authorName,
   messageText,
   postText,
   prepareScreen,
@@ -134,7 +135,8 @@ test('narrow Messenger returns to list and opens the conversation', async ({
   await page.getByRole('button', { name: 'Back to chats', exact: true }).click();
   await expect(page.getByTestId('chat-thread')).not.toBeVisible();
   const conversation = page.getByRole('button', {
-    name: /Олександра Коваленко/i,
+    name: `Open conversation with ${authorName}`,
+    exact: true,
   });
   await expect(conversation).toBeVisible();
   await conversation.click();

@@ -75,6 +75,71 @@ describe('MeshVoiceRoomManager', () => {
     expect(manager.getRoomId()).toBe('room-456');
     manager.leave();
   });
+  it('stops a late microphone stream after leaving while permission is pending', async () => {
+    let resolveMedia: ((value: MediaStream) => void) | undefined;
+    vi.mocked(navigator.mediaDevices.getUserMedia).mockReturnValue(
+      new Promise((resolve) => {
+        resolveMedia = resolve;
+      }),
+    );
+    const manager = new MeshVoiceRoomManager('user-123', mockSocketEmit);
+    const joining = manager.join('archived-room');
+    manager.leave();
+    resolveMedia?.(mockStream as unknown as MediaStream);
+    await joining;
+    expect(mockAudioTrack.stop).toHaveBeenCalledOnce();
+    expect(manager.getRoomId()).toBeNull();
+    expect(mockSocketEmit).not.toHaveBeenCalledWith(
+      'voice:mesh-join',
+      expect.anything(),
+      expect.anything(),
+    );
+  });
+  it('cleans up microphone and connections when an archived room rejects joining', async () => {
+    mockSocketEmit.mockImplementation((event, _payload, callback) => {
+      if (event === 'voice:mesh-join') callback?.({ success: false });
+    });
+    const manager = new MeshVoiceRoomManager('user-123', mockSocketEmit);
+    await manager.join('archived-room');
+    expect(manager.getRoomId()).toBeNull();
+    expect(mockAudioTrack.stop).toHaveBeenCalledOnce();
+  });
+  it('notifies the hook when a delayed join denial disconnects the room', async () => {
+    const disconnected = vi.fn();
+    let acknowledge: ((response: unknown) => void) | undefined;
+    mockSocketEmit.mockImplementation((event, _payload, callback) => {
+      if (event === 'voice:mesh-join') acknowledge = callback;
+    });
+    const manager = new MeshVoiceRoomManager('user-123', mockSocketEmit, {
+      onDisconnected: disconnected,
+    });
+    await manager.join('room');
+    disconnected.mockClear();
+    acknowledge?.({ success: false });
+    expect(disconnected).toHaveBeenCalledOnce();
+    expect(manager.getRoomId()).toBeNull();
+    expect(mockAudioTrack.stop).toHaveBeenCalledOnce();
+  });
+  it('rejects a stale microphone result when rejoining the same room', async () => {
+    let resolveFirst: ((stream: MediaStream) => void) | undefined;
+    const lateTrack = { stop: vi.fn() };
+    const lateStream = { getTracks: () => [lateTrack] };
+    vi.mocked(navigator.mediaDevices.getUserMedia).mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveFirst = resolve;
+      }),
+    );
+    const manager = new MeshVoiceRoomManager('user-123', mockSocketEmit);
+    const first = manager.join('room');
+    manager.leave();
+    await manager.join('room');
+    resolveFirst?.(lateStream as unknown as MediaStream);
+    await first;
+    expect(lateTrack.stop).toHaveBeenCalledOnce();
+    expect(mockAudioTrack.stop).not.toHaveBeenCalled();
+    expect(manager.getRoomId()).toBe('room');
+    manager.leave();
+  });
 
   it('toggles microphone mute and audio tracks', async () => {
     const manager = new MeshVoiceRoomManager('user-123', mockSocketEmit);

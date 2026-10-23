@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from 'react';
+import { useCallback, useLayoutEffect, useRef } from 'react';
 import { useLocation, useNavigationType } from 'react-router-dom';
 import { registerSessionResetHandler } from '@/shared/model/resetSession';
 
@@ -23,18 +23,22 @@ export function ScrollToTop() {
   const positions = useRef(new Map<string, { top: number; left: number }>());
   const activeKey = useRef(key);
   const restoreFrame = useRef<number | null>(null);
+  const restoreObserver = useRef<ResizeObserver | null>(null);
+  const restoreTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelRestoration = useCallback(() => {
+    if (restoreFrame.current !== null) cancelAnimationFrame(restoreFrame.current);
+    restoreFrame.current = null;
+    restoreObserver.current?.disconnect();
+    restoreObserver.current = null;
+    if (restoreTimer.current !== null) clearTimeout(restoreTimer.current);
+    restoreTimer.current = null;
+  }, []);
 
   useLayoutEffect(() => {
     const savedPositions = positions.current;
     const previousRestoration = window.history.scrollRestoration;
     window.history.scrollRestoration = 'manual';
 
-    const cancelRestoration = () => {
-      if (restoreFrame.current !== null) {
-        cancelAnimationFrame(restoreFrame.current);
-        restoreFrame.current = null;
-      }
-    };
     const remember = () => {
       savedPositions.delete(activeKey.current);
       savedPositions.set(activeKey.current, { top: window.scrollY, left: window.scrollX });
@@ -83,7 +87,7 @@ export function ScrollToTop() {
       window.removeEventListener('touchstart', cancelRestoration);
       window.removeEventListener('pointerdown', cancelRestoration, true);
     };
-  }, []);
+  }, [cancelRestoration]);
 
   useLayoutEffect(() => {
     activeKey.current = key;
@@ -120,14 +124,20 @@ export function ScrollToTop() {
       }
       restoreFrame.current = requestAnimationFrame(restore);
     };
+    // Virtual lists can finish their first frames before cached content resizes.
+    // Reconcile those late layout changes within the existing bounded restore
+    // window; all navigation/scroll input above cancels this observer too.
+    restoreObserver.current = new ResizeObserver(() => {
+      if (restoreFrame.current !== null) return;
+      settledFrames = 0;
+      restoreFrame.current = requestAnimationFrame(restore);
+    });
+    restoreObserver.current.observe(document.documentElement);
+    restoreObserver.current.observe(document.body);
+    restoreTimer.current = setTimeout(cancelRestoration, RESTORE_TIMEOUT_MS);
     restoreFrame.current = requestAnimationFrame(restore);
-    return () => {
-      if (restoreFrame.current !== null) {
-        cancelAnimationFrame(restoreFrame.current);
-        restoreFrame.current = null;
-      }
-    };
-  }, [key, pathname, search, hash, navigationType]);
+    return cancelRestoration;
+  }, [key, pathname, search, hash, navigationType, cancelRestoration]);
 
   return null;
 }

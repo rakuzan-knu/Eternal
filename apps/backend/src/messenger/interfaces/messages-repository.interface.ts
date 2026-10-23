@@ -8,6 +8,7 @@ export interface IMessagesRepository {
   create(data: {
     conversationId: string;
     senderId: string;
+    sourceConversationId?: string;
     body?: string | undefined;
     clientSeq?: number | undefined;
     messageType?: string | undefined;
@@ -66,9 +67,9 @@ export interface IMessagesRepository {
 
   findOne(messageId: string, requestingUserId: string): Promise<MessageWithDetails | null>;
 
-  edit(messageId: string, body: string): Promise<MessageWithDetails>;
+  edit(messageId: string, body: string, userId: string): Promise<MessageWithDetails>;
 
-  deleteForAll(messageId: string): Promise<void>;
+  deleteForAll(messageId: string, userId: string): Promise<void>;
 
   deleteForMe(messageId: string, userId: string): Promise<void>;
 
@@ -84,6 +85,7 @@ export interface IMessagesRepository {
 
   search(
     conversationId: string,
+    requestingUserId: string,
     query: string,
     limit: number,
     hiddenUserIds?: string[],

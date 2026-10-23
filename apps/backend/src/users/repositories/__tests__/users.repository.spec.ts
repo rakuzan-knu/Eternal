@@ -146,6 +146,7 @@ describe('UsersRepository', () => {
     mockPrisma.$transaction.mockImplementationOnce(
       async (callback: (tx: unknown) => Promise<unknown>) => {
         const tx = {
+          community: { count: jest.fn().mockResolvedValue(0) },
           post: { deleteMany: jest.fn() },
           follow: { deleteMany: jest.fn() },
           user: { delete: jest.fn() },
@@ -163,6 +164,20 @@ describe('UsersRepository', () => {
 
     await repository.deleteUser('usr-to-delete');
     expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1);
+  });
+
+  it('requires ownership transfer before deleting an account without removing any content', async () => {
+    const tx = {
+      community: { count: jest.fn().mockResolvedValue(1) },
+      user: { delete: jest.fn() },
+      post: { deleteMany: jest.fn() },
+    };
+    mockPrisma.$transaction.mockImplementationOnce((callback: (value: unknown) => Promise<void>) =>
+      callback(tx),
+    );
+    await expect(repository.deleteUser('owner')).rejects.toThrow('Transfer ownership');
+    expect(tx.user.delete).not.toHaveBeenCalled();
+    expect(tx.post.deleteMany).not.toHaveBeenCalled();
   });
 
   it('blockUser executes upsert and removes follow relations via transaction', async () => {

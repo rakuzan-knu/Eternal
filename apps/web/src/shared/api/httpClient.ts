@@ -10,6 +10,7 @@ import { notifyAuthChange } from '@/shared/lib/broadcastSync';
 
 interface ExtendedRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean;
+  _authSession?: SessionSnapshot;
   _rateLimitRetryCount?: number;
 }
 
@@ -101,34 +102,112 @@ export function isTokenExpired(token: string | null): boolean {
   }
 }
 
-let refreshPromise: Promise<string> | null = null;
+interface SessionSnapshot {
+  revision: number;
+  userId: string | null;
+  authenticated: boolean;
+  accountId: string | null;
+  accessToken: string | null;
+  refreshToken: string | null;
+}
 
-export async function requestTokenRefresh(): Promise<string> {
-  const refreshToken = getStoredItem('refreshToken');
+// A switch away and back must invalidate pending work even if the user IDs match again.
+let sessionRevision = 0;
+let sessionTrackingStarted = false;
+function captureSession(): SessionSnapshot {
+  // Stores import socket transport during initialization; subscribe after that cycle has settled.
+  if (!sessionTrackingStarted) {
+    sessionTrackingStarted = true;
+    useAuthStore.subscribe((state, previous) => {
+      if (state.userId !== previous.userId || state.isAuthenticated !== previous.isAuthenticated) {
+        sessionRevision += 1;
+      }
+    });
+    useAccountsStore.subscribe((state, previous) => {
+      if (state.activeAccountId !== previous.activeAccountId) sessionRevision += 1;
+    });
+  }
+  return {
+    revision: sessionRevision,
+    userId: useAuthStore.getState().userId,
+    authenticated: useAuthStore.getState().isAuthenticated,
+    accountId: useAccountsStore.getState().activeAccountId,
+    accessToken: getStoredItem('accessToken'),
+    refreshToken: getStoredItem('refreshToken'),
+  };
+}
 
+const isSameIdentity = (session: SessionSnapshot): boolean => {
+  const current = captureSession();
+  return (
+    current.revision === session.revision &&
+    current.userId === session.userId &&
+    current.authenticated === session.authenticated &&
+    current.accountId === session.accountId
+  );
+};
+
+const isSameSession = (session: SessionSnapshot): boolean =>
+  isSameIdentity(session) &&
+  getStoredItem('accessToken') === session.accessToken &&
+  getStoredItem('refreshToken') === session.refreshToken;
+
+const sessionChanged = () =>
+  new axios.CanceledError('Session changed while the request was pending');
+let pendingRefresh: { session: SessionSnapshot; promise: Promise<string> } | null = null;
+
+async function refreshSession(session: SessionSnapshot): Promise<string> {
   const base = (apiClient.defaults.baseURL || '').replace(/\/+$/, '');
   const refreshUrl = base.endsWith('/v1') ? `${base}/auth/refresh` : `${base}/v1/auth/refresh`;
-  const response = await axios.post(refreshUrl, refreshToken ? { refreshToken } : {}, {
-    withCredentials: true,
-  });
+  const response = await axios.post<{ accessToken?: unknown; refreshToken?: unknown }>(
+    refreshUrl,
+    session.refreshToken ? { refreshToken: session.refreshToken } : {},
+    { withCredentials: true },
+  );
+  if (!isSameSession(session)) throw sessionChanged();
   const { accessToken, refreshToken: newRefreshToken } = response.data;
+  if (
+    typeof accessToken !== 'string' ||
+    !accessToken ||
+    (newRefreshToken !== undefined && typeof newRefreshToken !== 'string')
+  ) {
+    throw new Error('Invalid token refresh response');
+  }
   setStoredItem('accessToken', accessToken);
   if (newRefreshToken) setStoredItem('refreshToken', newRefreshToken);
-
-  notifyAuthChange('TOKEN_REFRESH', { accessToken, refreshToken: newRefreshToken });
-
-  const activeId = useAccountsStore.getState().activeAccountId;
-  if (activeId) {
+  notifyAuthChange('TOKEN_REFRESH', {
+    accessToken,
+    refreshToken: newRefreshToken,
+    session: {
+      userId: session.userId,
+      accountId: session.accountId,
+      previousAccessToken: session.accessToken,
+    },
+  });
+  if (session.accountId) {
     useAccountsStore.setState((state: AccountsState) => ({
       accounts: state.accounts.map((a: SavedAccount) =>
-        a.id === activeId
+        a.id === session.accountId
           ? { ...a, accessToken, refreshToken: newRefreshToken ?? a.refreshToken }
           : a,
       ),
     }));
   }
-
   return accessToken;
+}
+
+export function requestTokenRefresh(): Promise<string> {
+  const session = captureSession();
+  if (pendingRefresh && isSameSession(pendingRefresh.session)) return pendingRefresh.promise;
+  const pending = {
+    session,
+    promise: refreshSession(session).finally(() => {
+      // An old account's completion must not release the new account's mutex.
+      if (pendingRefresh === pending) pendingRefresh = null;
+    }),
+  };
+  pendingRefresh = pending;
+  return pending.promise;
 }
 
 export async function getValidAccessToken(): Promise<string | null> {
@@ -141,18 +220,15 @@ export async function getValidAccessToken(): Promise<string | null> {
   if (!refreshToken && !isAuth) return null;
 
   try {
-    if (!refreshPromise) {
-      refreshPromise = requestTokenRefresh().finally(() => {
-        refreshPromise = null;
-      });
-    }
-    return await refreshPromise;
+    return await requestTokenRefresh();
   } catch {
     return null;
   }
 }
 
-apiClient.interceptors.request.use(async (config) => {
+apiClient.interceptors.request.use(async (config: ExtendedRequestConfig) => {
+  const session = config._authSession ?? captureSession();
+  if (!isSameIdentity(session)) throw sessionChanged();
   config.baseURL = getServiceBaseUrl(config.url ?? '', serviceOrigins, coreBaseUrl);
   // Since baseURL already ends with /v1, strip any redundant /v1 prefix from config.url
   if (config.url && !config.url.startsWith('http://') && !config.url.startsWith('https://')) {
@@ -188,14 +264,24 @@ apiClient.interceptors.request.use(async (config) => {
     }
   }
 
+  if (!isSameIdentity(session)) throw sessionChanged();
+  config._authSession = captureSession();
   if (token && config.headers) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const session = (response.config as ExtendedRequestConfig | undefined)?._authSession;
+    if (session && !isSameIdentity(session)) throw sessionChanged();
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config as ExtendedRequestConfig | undefined;
+
+    if (originalRequest?._authSession && !isSameIdentity(originalRequest._authSession)) {
+      return Promise.reject(sessionChanged());
+    }
 
     // 1. Handle 429 Too Many Requests with exponential backoff & jitter
     if (error.response?.status === 429 && originalRequest) {
@@ -215,26 +301,41 @@ apiClient.interceptors.response.use(
       }
     }
 
-    // 2. Handle 401 Unauthorized with token refresh mutex
-    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+    // Refresh only resource requests; rejected sign-in credentials are not session expiry.
+    const isAuthRequest = /\/auth\/(?:login|register|refresh)(?:[/?]|$)/.test(
+      originalRequest?.url ?? '',
+    );
+    if (
+      error.response?.status === 401 &&
+      originalRequest &&
+      !originalRequest._retry &&
+      !isAuthRequest
+    ) {
       originalRequest._retry = true;
+      const session = originalRequest._authSession ?? captureSession();
+      if (!isSameIdentity(session)) return Promise.reject(sessionChanged());
       try {
-        if (!refreshPromise) {
-          refreshPromise = requestTokenRefresh().finally(() => {
-            refreshPromise = null;
-          });
-        }
-        const accessToken = await refreshPromise;
+        const currentToken = getStoredItem('accessToken');
+        // Another request may have refreshed this identity while its old request was in flight.
+        const accessToken =
+          currentToken && currentToken !== session.accessToken && !isTokenExpired(currentToken)
+            ? currentToken
+            : await requestTokenRefresh();
+        if (!isSameIdentity(session)) throw sessionChanged();
         if (originalRequest.headers) {
           originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         }
         return apiClient(originalRequest);
       } catch (refreshError) {
-        const activeId = useAccountsStore.getState().activeAccountId;
-        if (activeId) {
-          useAccountsStore.getState().removeAccount(activeId);
+        // Offline, rate limits and server outages are recoverable; they do not revoke auth.
+        if (
+          axios.isAxiosError(refreshError) &&
+          refreshError.response?.status === 401 &&
+          isSameSession(session)
+        ) {
+          if (session.accountId) useAccountsStore.getState().removeAccount(session.accountId);
+          useAuthStore.getState().clearAuth();
         }
-        useAuthStore.getState().clearAuth();
         return Promise.reject(refreshError);
       }
     }

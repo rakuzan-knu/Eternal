@@ -127,6 +127,7 @@ export class MessagesService implements OnModuleDestroy {
   }> {
     await this.assertMember(conversationId, userId);
     await this.assertNotBlockedDirect(conversationId, userId);
+    await this.assertChannelWritable(conversationId, userId);
 
     if (uploadId) {
       const media = await this.directUploads.resolve(userId, uploadId, 'chat', conversationId);
@@ -140,6 +141,9 @@ export class MessagesService implements OnModuleDestroy {
         ...(media.height ? { height: media.height } : {}),
       };
     }
+    const conversation = await this.convsRepo.findOneForUser(conversationId, userId);
+    if (conversation?.communityChannel?.isPrivate)
+      throw new BadRequestException('Use a completed direct upload for private attachments');
     this.directUploads.assertLegacyAllowed();
     if (!file || !file.buffer) {
       throw new BadRequestException('No file provided');
@@ -251,6 +255,7 @@ export class MessagesService implements OnModuleDestroy {
     dto: { text?: string | undefined; attachments?: readonly unknown[] | undefined },
   ): Promise<void> {
     const participant = await this.assertMember(conversationId, userId);
+    await this.assertChannelWritable(conversationId, userId);
     await this.assertNotBlockedDirect(conversationId, userId);
     const custom = (participant as unknown as { permissions?: number }).permissions;
     const permissions =
@@ -331,6 +336,13 @@ export class MessagesService implements OnModuleDestroy {
         (/^(?:media\d*|i)\.giphy\.com$/.test(url.hostname) || url.hostname === 'media.tenor.com');
       if (!gifProvider)
         await this.directUploads.assertOwnedUrl(senderId, attachment.url, 'chat', conversationId);
+      if (attachment.thumbnailUrl?.startsWith('private-media:'))
+        await this.directUploads.assertOwnedUrl(
+          senderId,
+          attachment.thumbnailUrl,
+          'chat',
+          conversationId,
+        );
     }
 
     // Backend validation against circle spoofing & duration limits (max 60s for video circles, max 60m for audio/video)
@@ -365,14 +377,34 @@ export class MessagesService implements OnModuleDestroy {
 
     const { mappedMessage } = await withUnreadWriteLock(
       this.prisma,
-      { conversationIds: [conversationId] },
+      {
+        conversationIds: [conversationId],
+        requireWritableChannel: true,
+        actorId: senderId,
+        hasAttachments: Boolean(dto.attachments?.length),
+        attachmentUrls: (dto.attachments ?? []).flatMap((attachment) => [
+          attachment.url,
+          ...(attachment.thumbnailUrl ? [attachment.thumbnailUrl] : []),
+        ]),
+      },
       async (tx) => {
+        // Validate explicit metadata after authorization and while participant locks
+        // serialize revocation. Never infer mentions from an encrypted body.
+        if (dto.mentionedUserIds?.length) {
+          const mentioned = await tx.conversationParticipant.findMany({
+            where: { conversationId, leftAt: null, userId: { in: dto.mentionedUserIds } },
+            select: { userId: true },
+          });
+          if (mentioned.length !== dto.mentionedUserIds.length)
+            throw new BadRequestException('Invalid mentions');
+        }
         const snowflakeId = this.snowflake ? this.snowflake.generate() : undefined;
         const message = await tx.message.create({
           data: {
             conversationId,
             senderId,
             body: dto.text || null,
+            mentionedUserIds: dto.mentionedUserIds ?? [],
             clientSeq: dto.clientSeq ?? null,
             messageType: finalMessageType,
             replyToId: dto.replyToId || null,
@@ -559,7 +591,7 @@ export class MessagesService implements OnModuleDestroy {
 
     await this.assertMember(msg.conversationId, userId);
 
-    const updated = await this.messagesRepo.edit(messageId, dto.body);
+    const updated = await this.messagesRepo.edit(messageId, dto.body, userId);
     const pinnedIds = await this.convsRepo.findPinnedMessages(msg.conversationId);
     return this.mapper.mapMessage(updated, userId, new Set(pinnedIds));
   }
@@ -603,7 +635,7 @@ export class MessagesService implements OnModuleDestroy {
           }
         }
       }
-      await this.messagesRepo.deleteForAll(messageId);
+      await this.messagesRepo.deleteForAll(messageId, userId);
     } else {
       await this.messagesRepo.deleteForMe(messageId, userId);
     }
@@ -662,29 +694,37 @@ export class MessagesService implements OnModuleDestroy {
         }
       }
 
-      await withUnreadWriteLock(this.prisma, { conversationIds: [conversationId] }, async (tx) => {
-        await tx.message.updateMany({
-          where: {
-            id: { in: messageIds },
-            conversationId,
-            deletedForAll: false,
-            deletedFor: { none: { userId } },
-          },
-          data: {
-            body: null,
-            messageType: 'DELETED',
-            deletedAt: new Date(),
-            deletedForAll: true,
-          },
-        });
-      });
+      await withUnreadWriteLock(
+        this.prisma,
+        { conversationIds: [conversationId], actorId: userId },
+        async (tx) => {
+          await tx.message.updateMany({
+            where: {
+              id: { in: messageIds },
+              conversationId,
+              deletedForAll: false,
+              deletedFor: { none: { userId } },
+            },
+            data: {
+              body: null,
+              messageType: 'DELETED',
+              deletedAt: new Date(),
+              deletedForAll: true,
+            },
+          });
+        },
+      );
     } else {
-      await withUnreadWriteLock(this.prisma, { conversationIds: [conversationId] }, async (tx) => {
-        await tx.messageDeletion.createMany({
-          data: messageIds.map((id) => ({ messageId: id, userId })),
-          skipDuplicates: true,
-        });
-      });
+      await withUnreadWriteLock(
+        this.prisma,
+        { conversationIds: [conversationId], actorId: userId },
+        async (tx) => {
+          await tx.messageDeletion.createMany({
+            data: messageIds.map((id) => ({ messageId: id, userId })),
+            skipDuplicates: true,
+          });
+        },
+      );
     }
 
     return { deletedIds: messageIds, forAll };
@@ -716,6 +756,7 @@ export class MessagesService implements OnModuleDestroy {
       const msg = await this.messagesRepo.create({
         conversationId,
         senderId: userId,
+        sourceConversationId: original.conversationId,
         body: original.body ?? undefined,
         messageType: original.messageType,
         forwardedFromId: dto.hideAuthor ? undefined : messageId,
@@ -791,6 +832,7 @@ export class MessagesService implements OnModuleDestroy {
         const created = await this.messagesRepo.create({
           conversationId: targetConvId,
           senderId: userId,
+          sourceConversationId: conversationId,
           body: msg.body ?? undefined,
           messageType: msg.messageType,
           forwardedFromId: dto.hideAuthor ? undefined : msg.id,
@@ -898,7 +940,7 @@ export class MessagesService implements OnModuleDestroy {
       }
     }
 
-    await this.convsRepo.unpinMessage(conversationId, messageId);
+    await this.convsRepo.unpinMessage(conversationId, messageId, userId);
   }
 
   async markRead(conversationId: string, userId: string, messageId?: string): Promise<boolean> {
@@ -940,10 +982,22 @@ export class MessagesService implements OnModuleDestroy {
     await this.assertMember(conversationId, userId);
     const hiddenUserIds = await this.getHiddenUserIds(userId);
     const limit = Math.min(query.limit ?? 30, 100);
-    const results = await this.messagesRepo.search(conversationId, query.q, limit, hiddenUserIds);
+    const results = await this.messagesRepo.search(
+      conversationId,
+      userId,
+      query.q,
+      limit,
+      hiddenUserIds,
+    );
     const pinnedIds = await this.convsRepo.findPinnedMessages(conversationId);
     const pinnedSet = new Set(pinnedIds);
     return results.map((m) => this.mapper.mapMessage(m, userId, pinnedSet));
+  }
+
+  private async assertChannelWritable(conversationId: string, userId: string) {
+    const conversation = await this.convsRepo.findOneForUser(conversationId, userId);
+    if (conversation?.communityChannel?.archivedAt)
+      throw new ForbiddenException('This channel is archived. Restore it before posting.');
   }
 
   private async assertMember(conversationId: string, userId: string) {

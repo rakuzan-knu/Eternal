@@ -123,6 +123,8 @@ export class AutoDeleteService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async deleteObjectByUrl(url: string): Promise<void> {
+    // Private files can be intentionally forwarded; retain until a separate retention policy.
+    if (url.startsWith('private-media:')) return;
     await deleteFromStorage(this.s3, {
       url,
       bucket: this.bucket,

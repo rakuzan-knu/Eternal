@@ -23,6 +23,7 @@ import {
 export type ClusterPosition = 'single' | 'first' | 'middle' | 'last';
 
 interface MessageListProps {
+  readOnly?: boolean;
   messages: MessageView[];
   currentUserId: string | null;
   otherParticipantId: string | null;
@@ -215,6 +216,7 @@ function buildRows(messages: MessageView[]): Row[] {
 }
 
 export default function MessageList({
+  readOnly = false,
   messages,
   currentUserId,
   otherParticipantId,
@@ -328,11 +330,15 @@ export default function MessageList({
     [rows],
   );
 
-  const virtualizer = useVirtualizer({
+  const virtualizer = useVirtualizer<HTMLDivElement, HTMLDivElement>({
     count: rows.length,
     getItemKey: (index) => rows[index].key,
     getScrollElement: () => scrollerElementRef.current,
     estimateSize: estimateRowSize,
+    // Update changed rows before the history anchor effect runs. Cached synchronous
+    // sizes can otherwise be corrected only after that effect by ResizeObserver.
+    measureElement: (element, entry) =>
+      Math.round(entry?.borderBoxSize?.[0]?.blockSize ?? element.offsetHeight),
     overscan: 6,
     initialRect: { width: 500, height: 800 },
     initialOffset: initialPosition?.offset ?? 0,
@@ -351,6 +357,8 @@ export default function MessageList({
     !initialPosition || initialPosition.atBottom,
   );
   const followScrollCommand = useRef(false);
+  const restoringHistory = useRef(Boolean(initialPosition && !initialPosition.atBottom));
+  const historyRestoreRows = useRef<Row[] | null>(null);
   const viewportAnchor = useRef<{ messageId: string; offset: number } | null>(null);
   const captureViewportAnchor = useCallback(() => {
     const scroller = scrollerElementRef.current;
@@ -417,7 +425,21 @@ export default function MessageList({
     if (offset !== undefined) {
       const scroller = scrollerElementRef.current;
       const paddingTop = scroller ? parseFloat(getComputedStyle(scroller).paddingTop) || 0 : 0;
-      virtualizer.scrollToOffset(Math.max(0, offset + paddingTop - anchor.offset));
+      const mountedAnchor = scroller
+        ? [...scroller.querySelectorAll<HTMLElement>('[data-message-id]')].find(
+            (element) => element.dataset.messageId === anchor.messageId,
+          )
+        : undefined;
+      // Mounted rows already include actual padding and pending size corrections.
+      // Reconstructing their position from the estimated table applies those twice.
+      const target =
+        scroller && mountedAnchor
+          ? scroller.scrollTop +
+            mountedAnchor.getBoundingClientRect().top -
+            scroller.getBoundingClientRect().top -
+            anchor.offset
+          : offset + paddingTop - anchor.offset;
+      virtualizer.scrollToOffset(Math.max(0, target));
     }
   }, [
     rows,
@@ -427,6 +449,27 @@ export default function MessageList({
     highlightMessageId,
     virtualizer,
   ]);
+
+  // Scroll events can precede the virtual range's DOM commit. Refresh the anchor
+  // after measurement/range changes so the next mutation uses the visible row.
+  useLayoutEffect(() => {
+    captureViewportAnchor();
+  }, [virtualRows, captureViewportAnchor]);
+
+  useLayoutEffect(() => {
+    if (!restoringHistory.current || !initialPosition || highlightMessageId) return;
+    if (historyRestoreRows.current && historyRestoreRows.current !== rows) {
+      // A changed history window belongs to the message-identity anchor above,
+      // rather than the old absolute offset from before a prepend/refetch.
+      restoringHistory.current = false;
+      return;
+    }
+    if (rows.length === 0) return;
+    historyRestoreRows.current = rows;
+    // The restored draft can resize the viewport after the saved measurements
+    // mount. Keep the saved offset until the reader chooses another position.
+    virtualizer.scrollToOffset(initialPosition.offset);
+  }, [initialPosition, rows, totalSize, viewportHeight, highlightMessageId, virtualizer]);
 
   const handleStartReached = useCallback(() => {
     if (!hasMore || isFetchingMore) return;
@@ -444,6 +487,7 @@ export default function MessageList({
   }, [isAnchoredInHistory, hasNewer, isFetchingNewer, onLoadNewer]);
 
   const stopLiveFollowing = useCallback(() => {
+    restoringHistory.current = false;
     const el = scrollerElementRef.current;
     if (!el || !followScrollCommand.current) return;
     // Cancel only in response to input, not virtual row measurement corrections.
@@ -572,6 +616,7 @@ export default function MessageList({
 
   useEffect(() => {
     if (!highlightMessageId) return;
+    restoringHistory.current = false;
     const relativeIndex = rows.findIndex(
       (r) => r.type === 'message' && r.message.id === highlightMessageId,
     );
@@ -668,6 +713,7 @@ export default function MessageList({
         tabIndex={0}
         onScroll={checkScrollPosition}
         onWheelCapture={(event) => {
+          restoringHistory.current = false;
           if (event.deltaY < 0) stopLiveFollowing();
         }}
         onTouchStartCapture={stopLiveFollowing}
@@ -675,6 +721,10 @@ export default function MessageList({
           if (event.target === event.currentTarget) stopLiveFollowing();
         }}
         onKeyDownCapture={(event) => {
+          if (
+            ['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key)
+          )
+            restoringHistory.current = false;
           if (
             ['ArrowUp', 'PageUp', 'Home'].includes(event.key) ||
             (event.key === ' ' && event.shiftKey)
@@ -789,6 +839,7 @@ export default function MessageList({
                       }`}
                     >
                       <MessageBubble
+                        readOnly={readOnly}
                         message={message}
                         isOwnMessage={isOwnMessage}
                         showAvatar={showAvatar}
@@ -872,6 +923,7 @@ export default function MessageList({
           <button
             type="button"
             onClick={() => {
+              restoringHistory.current = false;
               if (isAnchoredInHistory) {
                 onResetToLive?.();
               }

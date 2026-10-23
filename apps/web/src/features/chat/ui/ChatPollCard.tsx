@@ -4,12 +4,13 @@ import { useChatPollVotesStore } from '../model/useChatPollVotesStore';
 import type { ChatPollData } from '../lib/chatPoll';
 
 interface ChatPollCardProps {
+  readOnly?: boolean;
   messageId: string;
   poll: ChatPollData;
   isOwnMessage: boolean;
 }
 
-export default function ChatPollCard({ messageId, poll }: ChatPollCardProps) {
+export default function ChatPollCard({ messageId, poll, readOnly = false }: ChatPollCardProps) {
   const myVoteOptionId = useChatPollVotesStore((s) => s.getVote(messageId));
   const setVote = useChatPollVotesStore((s) => s.setVote);
 
@@ -37,7 +38,7 @@ export default function ChatPollCard({ messageId, poll }: ChatPollCardProps) {
   }, [poll.options, myVoteOptionId]);
 
   const handleVote = (optionId: string) => {
-    if (hasVoted) return;
+    if (hasVoted || readOnly) return;
     setVote(messageId, optionId);
   };
 
@@ -68,6 +69,7 @@ export default function ChatPollCard({ messageId, poll }: ChatPollCardProps) {
               <button
                 key={opt.id}
                 type="button"
+                disabled={readOnly}
                 onClick={() => handleVote(opt.id)}
                 className="group relative flex items-center justify-between w-full text-left text-xs font-medium text-gray-100 bg-white/5 hover:bg-purple-500/15 hover:border-purple-400/40 border border-white/10 rounded-xl px-3.5 py-2.5 transition-all active:scale-[0.99] cursor-pointer"
               >

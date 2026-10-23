@@ -2592,6 +2592,6 @@ html[data-custom-cursor='true'] .cursor-default {
   }
   .sidebar-nav > a,
   .sidebar-nav > div > a {
-    height: 44px;
+    height: 40px;
   }
 }

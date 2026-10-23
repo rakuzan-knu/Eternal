@@ -1,3 +1,4 @@
+import { resolveMediaUrl } from '@/shared/lib/privateMedia';
 import React, { useState } from 'react';
 import { Download } from 'lucide-react';
 import { AttachmentView } from '../../../entities/chat/model/types';
@@ -154,10 +155,14 @@ export default function MessageAttachments({
           </span>
           <button
             type="button"
-            onClick={(e) => {
+            onClick={async (e) => {
               e.stopPropagation();
               const link = document.createElement('a');
-              link.href = a.url;
+              try {
+                link.href = await resolveMediaUrl(a.url);
+              } catch {
+                return;
+              }
               link.download = a.fileName ?? 'download';
               document.body.appendChild(link);
               link.click();
