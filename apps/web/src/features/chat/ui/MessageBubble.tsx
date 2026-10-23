@@ -23,6 +23,7 @@ import MessageContextMenu from './MessageContextMenu';
 import DeleteMessageModal from './DeleteMessageModal';
 import { DeferredMediaLightbox as MediaLightbox } from './DeferredChatOverlays';
 import MessageAttachments from './MessageAttachments';
+import { MediaImage } from '@/shared/lib/privateMediaView';
 import ChatPollCard from './ChatPollCard';
 import { parseChatPoll } from '../lib/chatPoll';
 import { PostEmbedCard } from './PostEmbedCard';
@@ -46,6 +47,7 @@ import {
 import { isVideoAttachment, isImageAttachment } from '../lib/chatMediaUtils';
 
 interface MessageBubbleProps {
+  readOnly?: boolean;
   message: MessageView;
   isOwnMessage: boolean;
   showAvatar: boolean;
@@ -107,6 +109,7 @@ export default function MessageBubble({
   isReadByOther,
   clusterPosition = 'single',
   currentUserId,
+  readOnly = false,
   isSelectionMode = false,
   isSelected = false,
   chatTheme,
@@ -232,7 +235,7 @@ export default function MessageBubble({
   };
 
   const handleTouchEnd = () => {
-    if (isSelectionMode) return;
+    if (isSelectionMode || readOnly) return;
     const now = Date.now();
     const DOUBLE_TAP_DELAY = 300;
 
@@ -317,6 +320,7 @@ export default function MessageBubble({
   }
 
   const handleReactionPick = (emoji: string, origin?: { x: number; y: number }) => {
+    if (readOnly) return;
     const existing = message.reactions.find((r) => r.emoji === emoji);
     if (existing?.selfReacted) {
       onUnreact(message.id, emoji);
@@ -332,13 +336,13 @@ export default function MessageBubble({
           y: rect.top + rect.height / 2,
         };
         triggerFlyingReaction(origin, targetPoint, emoji, () => {
-          onReact(message.id, emoji);
+          if (!readOnly) onReact(message.id, emoji);
         });
         return;
       }
     }
 
-    onReact(message.id, emoji);
+    if (!readOnly) onReact(message.id, emoji);
   };
 
   const isDynamicBg = Boolean(
@@ -528,7 +532,7 @@ export default function MessageBubble({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onDoubleClick={(e) => {
-        if (isSelectionMode) return;
+        if (isSelectionMode || readOnly) return;
         e.preventDefault();
         onReply(message);
       }}
@@ -613,6 +617,7 @@ export default function MessageBubble({
               } z-30 flex items-center gap-0.5 bg-[#14151f] border border-white/[0.14] rounded-full px-1.5 py-0.5 shadow-[0_8px_32px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.08)] animate-popIn whitespace-nowrap`}
             >
               <button
+                disabled={readOnly}
                 ref={smileBtnRef}
                 type="button"
                 onClick={() => setPickerOpen((v) => !v)}
@@ -623,6 +628,7 @@ export default function MessageBubble({
               </button>
               <button
                 type="button"
+                disabled={readOnly}
                 onClick={() => onReply(message)}
                 className="w-6 h-6 flex items-center justify-center rounded-full text-white/80 hover:text-white hover:bg-white/15 transition-colors cursor-pointer"
                 title="Reply"
@@ -651,6 +657,7 @@ export default function MessageBubble({
           {/* Context Menu (Telegram style, positioned at click coordinates or 3-dots button) */}
           {isMenuOpen && (
             <MessageContextMenu
+              readOnly={readOnly}
               message={message}
               isOwnMessage={isOwnMessage}
               isReadByOther={isReadByOther}
@@ -749,7 +756,12 @@ export default function MessageBubble({
 
           {pollData ? (
             <div className="flex flex-col">
-              <ChatPollCard messageId={message.id} poll={pollData} isOwnMessage={isOwnMessage} />
+              <ChatPollCard
+                readOnly={readOnly}
+                messageId={message.id}
+                poll={pollData}
+                isOwnMessage={isOwnMessage}
+              />
               <span className="inline-flex items-center gap-1 self-end mt-1 px-2 py-0.5 rounded-full bg-black/40 text-[10px] text-gray-400 select-none">
                 {formatMessageTime(message.createdAt)}
                 {isOwnMessage && statusIcon}
@@ -913,8 +925,8 @@ export default function MessageBubble({
                     )}
 
                     {/* Media Thumbnail (if image, video or sticker) */}
-                    {isReplyMedia && (
-                      <img
+                    {isReplyMedia && replyThumbnail && (
+                      <MediaImage
                         src={replyThumbnail}
                         alt="Attachment preview"
                         className="w-9 h-9 rounded-md object-cover shrink-0 mr-2.5 bg-black/40 border border-white/10"
@@ -1100,7 +1112,7 @@ export default function MessageBubble({
                     if (selfReacted) {
                       onUnreact(message.id, emoji);
                     } else {
-                      onReact(message.id, emoji);
+                      if (!readOnly) onReact(message.id, emoji);
                     }
                   }}
                 />

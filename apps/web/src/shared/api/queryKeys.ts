@@ -135,6 +135,22 @@ const featureFlags = {
 } as const;
 
 export const queryKeys = {
+  communities: {
+    root: ['communities'] as const,
+    directory: (q: string, after?: string) =>
+      ['communities', 'directory', q, after ?? 'first'] as const,
+    mine: ['communities', 'mine'] as const,
+    detail: (id: string) => ['communities', id] as const,
+    channels: (id: string) => ['communities', id, 'channels'] as const,
+    notificationPreferences: (id: string, channelId?: string) =>
+      ['communities', id, 'notification-preferences', channelId ?? 'server'] as const,
+    members: (id: string, after?: string) =>
+      ['communities', id, 'members', after ?? 'first'] as const,
+    invites: (id: string) => ['communities', id, 'invites'] as const,
+    bans: (id: string, after?: string) => ['communities', id, 'bans', after ?? 'first'] as const,
+    preview: (token: string) => ['community-invite-preview', token] as const,
+    people: (query: string) => ['community-invite-people-search', query] as const,
+  },
   profileFrames: {
     catalog: ['profile-frame-catalog'] as const,
     inventory: (userId: string | null) => ['profile-frame-inventory', userId] as const,

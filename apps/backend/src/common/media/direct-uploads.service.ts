@@ -15,6 +15,7 @@ import {
   PutObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { privateMediaId, privateMediaRef } from './private-media-ref';
 import { randomUUID } from 'node:crypto';
 import { Readable } from 'node:stream';
 import { z } from 'zod';
@@ -51,6 +52,7 @@ const intentSchema = directUploadSchema.extend({
   uploadId: z.string().uuid(),
   tempKey: z.string(),
   finalKey: z.string(),
+  bucket: z.string().optional(),
   receipt: receiptSchema.optional(),
 });
 type Intent = z.infer<typeof intentSchema>;
@@ -86,7 +88,13 @@ export class DirectUploadsService {
   ) {}
 
   async start(userId: string, input: DirectUploadInput) {
-    if (this.storage.isLocal()) return { mode: 'proxy' as const };
+    let privateBucket: string | undefined;
+    if (input.purpose === 'chat') {
+      if (!input.conversationId) throw new BadRequestException('Conversation is required');
+      const context = await this.access.assertConversationAccess(input.conversationId, userId);
+      if (context?.isPrivate) privateBucket = this.r2.getPrivateBucket();
+    }
+    if (this.storage.isLocal() && !privateBucket) return { mode: 'proxy' as const };
     const kind = this.kind(input.contentType);
     const imagesOnly = ['avatar', 'banner', 'comment', 'story-overlay'].includes(input.purpose);
     if (
@@ -107,7 +115,6 @@ export class DirectUploadsService {
       throw new BadRequestException(`File exceeds ${max / 1024 / 1024} MiB limit`);
     if (input.purpose === 'chat') {
       if (!input.conversationId) throw new BadRequestException('Conversation is required');
-      await this.access.assertConversationAccess(input.conversationId, userId);
     } else if (input.conversationId)
       throw new BadRequestException('Conversation is only valid for chat uploads');
     const client = this.client();
@@ -117,15 +124,17 @@ export class DirectUploadsService {
       ...input,
       userId,
       uploadId,
+      ...(privateBucket ? { bucket: privateBucket } : {}),
       tempKey: `_incoming/${uploadId}`,
-      finalKey:
-        input.purpose === 'reel'
+      finalKey: privateBucket
+        ? `private-chat/${finalId}.${mimeExtensions[input.contentType]}`
+        : input.purpose === 'reel'
           ? `reels/${finalId}.${mimeExtensions[input.contentType]}`
           : `media/${input.purpose}/${finalId}.${mimeExtensions[input.contentType]}`,
     };
     await this.budget.reserveUpload(userId, uploadId, input.sizeBytes);
     try {
-      await this.assertBucketCapacity();
+      await this.assertBucketCapacity(privateBucket);
       await client.set(
         this.key(uploadId),
         JSON.stringify(intent),
@@ -135,7 +144,7 @@ export class DirectUploadsService {
       const url = await getSignedUrl(
         this.storage.getS3Client(),
         new PutObjectCommand({
-          Bucket: this.r2.getDefaultBucket(),
+          Bucket: privateBucket ?? this.r2.getDefaultBucket(),
           Key: intent.tempKey,
           ContentLength: input.sizeBytes,
           ContentType: input.contentType,
@@ -160,6 +169,7 @@ export class DirectUploadsService {
 
   async complete(userId: string, uploadId: string): Promise<CompletedUpload> {
     let intent = await this.intent(userId, uploadId);
+    await this.assertIntentAccess(intent, userId);
     if (intent.receipt) return intent.receipt;
     const client = this.client();
     const lock = randomUUID();
@@ -168,10 +178,9 @@ export class DirectUploadsService {
     try {
       intent = await this.intent(userId, uploadId);
       if (intent.receipt) return intent.receipt;
-      if (intent.purpose === 'chat')
-        await this.access.assertConversationAccess(intent.conversationId!, userId);
+      await this.assertIntentAccess(intent, userId);
       const s3 = this.storage.getS3Client();
-      const Bucket = this.r2.getDefaultBucket();
+      const Bucket = intent.bucket ?? this.r2.getDefaultBucket();
       const head = await s3.send(new HeadObjectCommand({ Bucket, Key: intent.tempKey }), {
         abortSignal: AbortSignal.timeout(10_000),
       });
@@ -186,7 +195,9 @@ export class DirectUploadsService {
       const finalKey = prepared.extension
         ? intent.finalKey.slice(0, intent.finalKey.lastIndexOf('.') + 1) + prepared.extension
         : intent.finalKey;
-      const trackPending = this.config.get<string>('MEDIA_PENDING_TRACKING_ENABLED') === 'true';
+      const trackPending =
+        Boolean(intent.bucket) ||
+        this.config.get<string>('MEDIA_PENDING_TRACKING_ENABLED') === 'true';
       const objectMetadata: Record<string, string> = {
         ...(trackPending ? { registryversion: '1' } : {}),
         ownerid: userId,
@@ -202,30 +213,51 @@ export class DirectUploadsService {
         Metadata: objectMetadata,
         ContentType: prepared.contentType,
         ContentDisposition: this.kind(prepared.contentType) === 'FILE' ? 'attachment' : 'inline',
-        CacheControl: 'public, max-age=31536000, immutable',
+        CacheControl: intent.bucket ? 'private, no-store' : 'public, max-age=31536000, immutable',
       };
       // Enable tracking only after every consumer can claim retention. Once enabled,
       // persist before the final-object write so failed promotion remains reclaimable.
-      if (trackPending) await this.pending.register(finalKey, uploadId, userId);
-      if (prepared.buffer) {
-        await s3.send(new PutObjectCommand({ ...publication, Body: prepared.buffer }), {
-          abortSignal: AbortSignal.timeout(15_000),
+      if (trackPending) await this.pending.register(finalKey, uploadId, userId, intent.bucket);
+      if (intent.bucket && intent.conversationId)
+        await this.access.registerPrivateObject({
+          id: uploadId,
+          key: finalKey,
+          bucket: intent.bucket,
+          ownerId: userId,
+          conversationId: intent.conversationId,
+          contentType: prepared.contentType,
+          sizeBytes: prepared.sizeBytes,
         });
-      } else {
-        await s3.send(
-          new CopyObjectCommand({
-            ...publication,
-            CopySource: `${Bucket}/${intent.tempKey}`,
-            CopySourceIfMatch: head.ETag,
-            MetadataDirective: 'REPLACE',
-          }),
-          { abortSignal: AbortSignal.timeout(15_000) },
+      const publish = async (abortSignal: AbortSignal) => {
+        if (prepared.buffer) {
+          await s3.send(new PutObjectCommand({ ...publication, Body: prepared.buffer }), {
+            abortSignal,
+          });
+        } else {
+          await s3.send(
+            new CopyObjectCommand({
+              ...publication,
+              CopySource: `${Bucket}/${intent.tempKey}`,
+              CopySourceIfMatch: head.ETag,
+              MetadataDirective: 'REPLACE',
+            }),
+            { abortSignal },
+          );
+        }
+      };
+      if (intent.purpose === 'chat' && intent.conversationId) {
+        await this.access.withUploadPublication(
+          intent.conversationId,
+          userId,
+          Boolean(intent.bucket),
+          publish,
         );
-      }
+      } else await publish(AbortSignal.timeout(15_000));
+      if (intent.bucket) await this.access.completePrivateObject(uploadId);
       const receipt: CompletedUpload = {
         uploadId,
         filename: intent.filename,
-        url: this.storage.getPublicUrl(finalKey),
+        url: intent.bucket ? privateMediaRef(uploadId) : this.storage.getPublicUrl(finalKey),
         contentType: prepared.contentType,
         sizeBytes: prepared.sizeBytes,
         kind: this.kind(prepared.contentType),
@@ -273,7 +305,7 @@ export class DirectUploadsService {
     try {
       const response = await this.storage.getS3Client().send(
         new GetObjectCommand({
-          Bucket: this.r2.getDefaultBucket(),
+          Bucket: intent.bucket ?? this.r2.getDefaultBucket(),
           Key: intent.tempKey,
           IfMatch: etag,
         }),
@@ -360,9 +392,12 @@ export class DirectUploadsService {
     try {
       intent = await this.intent(userId, uploadId);
       if (intent.receipt) return;
-      await this.storage
-        .getS3Client()
-        .send(new DeleteObjectCommand({ Bucket: this.r2.getDefaultBucket(), Key: intent.tempKey }));
+      await this.storage.getS3Client().send(
+        new DeleteObjectCommand({
+          Bucket: intent.bucket ?? this.r2.getDefaultBucket(),
+          Key: intent.tempKey,
+        }),
+      );
       await client.del(this.key(uploadId));
       await this.budget.finishUpload(userId, uploadId);
     } finally {
@@ -394,6 +429,18 @@ export class DirectUploadsService {
     purpose: UploadPurpose,
     conversationId?: string,
   ): Promise<void> {
+    const id = privateMediaId(url);
+    if (id) {
+      if (purpose !== 'chat' || !conversationId)
+        throw new ForbiddenException('Private media belongs to a conversation');
+      const row = await this.access.privateObjectForOwner(id, userId, conversationId);
+      if (row.bucket !== this.r2.getPrivateBucket())
+        throw new ForbiddenException('Private media storage mismatch');
+      await this.pending.retain(row.key, userId, true);
+      return;
+    }
+    if (url.startsWith('private-media:'))
+      throw new ForbiddenException('Invalid private media reference');
     if (this.storage.isLocal()) return;
     const prefix = `${this.storage.getPublicUrl('')}`;
     if (!url.startsWith(prefix)) throw new ForbiddenException('Use a completed media upload');
@@ -417,6 +464,34 @@ export class DirectUploadsService {
   assertLegacyAllowed(): void {
     if (this.storage.isR2() && this.config.get<string>('DIRECT_UPLOADS_REQUIRED') === 'true')
       throw new BadRequestException('Update the app to use direct media uploads');
+  }
+
+  private async assertIntentAccess(intent: Intent, userId: string) {
+    if (intent.purpose !== 'chat' || !intent.conversationId) return;
+    const context = await this.access.assertConversationAccess(intent.conversationId, userId);
+    if (context?.isPrivate && !intent.bucket)
+      throw new ConflictException('Channel access changed. Upload the file again.');
+    if (intent.bucket && intent.bucket !== this.r2.getPrivateBucket())
+      throw new ForbiddenException('Private upload storage mismatch');
+  }
+
+  async downloadPrivate(userId: string, id: string) {
+    const row = await this.access.privateObjectForReader(id, userId);
+    if (row.bucket !== this.r2.getPrivateBucket())
+      throw new ForbiddenException('Private media storage mismatch');
+    const expiresIn = 60;
+    const url = await getSignedUrl(
+      this.storage.getS3Client(),
+      new GetObjectCommand({
+        Bucket: row.bucket,
+        Key: row.key,
+        ResponseCacheControl: 'private, no-store',
+        ResponseContentType: row.contentType,
+        ResponseContentDisposition: this.kind(row.contentType) === 'FILE' ? 'attachment' : 'inline',
+      }),
+      { expiresIn },
+    );
+    return { url, expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString() };
   }
 
   private async intent(userId: string, uploadId: string): Promise<Intent> {
@@ -446,7 +521,7 @@ export class DirectUploadsService {
           ? 'AUDIO'
           : 'FILE';
   }
-  private async assertBucketCapacity(): Promise<void> {
+  private async assertBucketCapacity(privateBucket?: string): Promise<void> {
     const configured = Number(
       this.config.get<string>('MEDIA_BUCKET_MAX_BYTES', String(8 * 1024 ** 3)),
     );
@@ -454,25 +529,42 @@ export class DirectUploadsService {
       Number.isSafeInteger(configured) && configured > 0
         ? Math.min(configured, 8 * 1024 ** 3)
         : 8 * 1024 ** 3;
-    let continuation: string | undefined;
+    const buckets = [
+      ...new Set([
+        this.r2.getDefaultBucket(),
+        ...(privateBucket || this.config.get<string>('R2_PRIVATE_BUCKET')
+          ? [privateBucket ?? this.r2.getPrivateBucket()]
+          : []),
+      ]),
+    ];
     let bytes = 0;
-    for (let page = 0; page < 10; page++) {
-      const result = await this.storage.getS3Client().send(
-        new ListObjectsV2Command({
-          Bucket: this.r2.getDefaultBucket(),
-          MaxKeys: 1000,
-          ContinuationToken: continuation,
-        }),
-        { abortSignal: AbortSignal.timeout(10_000) },
-      );
-      for (const item of result.Contents || []) bytes += item.Size || 0;
-      if (bytes >= limit) throw new ServiceUnavailableException('Media storage allowance reached');
-      if (!result.IsTruncated) return;
-      continuation = result.NextContinuationToken;
-      if (!continuation) break;
+    let pages = 0;
+    for (const bucket of buckets) {
+      let continuation: string | undefined;
+      let complete = false;
+      while (pages++ < 10) {
+        const result = await this.storage.getS3Client().send(
+          new ListObjectsV2Command({
+            Bucket: bucket,
+            MaxKeys: 1000,
+            ContinuationToken: continuation,
+          }),
+          { abortSignal: AbortSignal.timeout(10_000) },
+        );
+        for (const item of result.Contents || []) bytes += item.Size || 0;
+        if (bytes >= limit)
+          throw new ServiceUnavailableException('Media storage allowance reached');
+        if (!result.IsTruncated) {
+          complete = true;
+          break;
+        }
+        continuation = result.NextContinuationToken;
+        if (!continuation) break;
+      }
+      if (!complete)
+        throw new ServiceUnavailableException(
+          'Storage inventory requires maintenance before more uploads',
+        );
     }
-    throw new ServiceUnavailableException(
-      'Storage inventory requires maintenance before more uploads',
-    );
   }
 }

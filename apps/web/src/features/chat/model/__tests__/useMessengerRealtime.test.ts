@@ -4,7 +4,12 @@ import { useMessengerRealtime } from '../useMessengerRealtime';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import { CONVERSATIONS_KEY, queryKeys } from '@/shared/api/queryKeys';
-import { useNotificationSettingsStore } from '@/entities/notification';
+import {
+  playMessageNotificationSound,
+  useNotificationSettingsStore,
+} from '@/entities/notification';
+import type { ConversationView } from '@/entities/chat';
+import { chatApi } from '../../api/chatApi';
 import { useAuthStore } from '@/shared/model/useAuthStore';
 import { useMessageToastStore } from '@/shared/model/useMessageToastStore';
 
@@ -28,7 +33,7 @@ vi.mock('../useChatSocketEvent', () => ({
   },
 }));
 
-vi.mock('@/shared/lib/messageNotificationSound', () => ({
+vi.mock('@/entities/notification/lib/messageNotificationSound', () => ({
   playMessageNotificationSound: vi.fn(),
   initializeMessageNotificationSound: vi.fn(),
 }));
@@ -73,7 +78,296 @@ describe('useMessengerRealtime', () => {
       defaultOptions: { queries: { retry: false } },
     });
   });
-  afterEach(() => vi.useRealTimers());
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it.each(['open', 'account', 'preferences'] as const)(
+    'suppresses a deferred preview after %s changes',
+    async (change) => {
+      const addToast = vi.fn();
+      useMessageToastStore.setState({ toasts: [], addToast });
+      useNotificationSettingsStore.setState({ groups: true, privateChats: true });
+      queryClient.setQueryData(queryKeys.conversations.root, [
+        {
+          id: 'conv-1',
+          type: 'GROUP',
+          participants: [],
+          myMuteLevel: 'NONE',
+          myEffectiveNotificationMode: 'ALL',
+          unreadCount: 0,
+        },
+      ]);
+      const initialProps: { active: string | null } = { active: null };
+      const { rerender } = renderHook(
+        ({ active }) => useMessengerRealtime(['conv-1'], active, true),
+        {
+          initialProps,
+          wrapper: createWrapper(queryClient),
+        },
+      );
+      let delivery: unknown;
+      act(() => {
+        delivery = registeredSocketEvents.newMessage?.({
+          conversationId: 'conv-1',
+          message: {
+            id: `deferred-${change}`,
+            conversationId: 'conv-1',
+            sender: { id: 'other', username: 'other' },
+            body: 'Hello',
+            messageType: 'TEXT',
+            createdAt: new Date().toISOString(),
+          },
+        });
+      });
+      act(() => {
+        if (change === 'open') rerender({ active: 'conv-1' });
+        else if (change === 'account') useAuthStore.setState({ userId: 'another-user' });
+        else
+          registeredSocketEvents['community:changed']?.({
+            communityId: 'community',
+            eventId: 'changed',
+          });
+      });
+      await act(async () => {
+        await delivery;
+      });
+      expect(addToast).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['name', 'text'] as const)(
+    'honors %s privacy changes during preview loading',
+    async (change) => {
+      const addToast = vi.fn();
+      useMessageToastStore.setState({ toasts: [], addToast });
+      useNotificationSettingsStore.setState({ groups: true, privateChats: true });
+      queryClient.setQueryData(queryKeys.conversations.root, [
+        {
+          id: 'conv-1',
+          type: 'GROUP',
+          name: 'Private group',
+          participants: [],
+          myMuteLevel: 'NONE',
+          myEffectiveNotificationMode: 'ALL',
+          unreadCount: 0,
+        },
+      ]);
+      renderHook(() => useMessengerRealtime(['conv-1'], null, true), {
+        wrapper: createWrapper(queryClient),
+      });
+      let delivery: unknown;
+      act(() => {
+        delivery = registeredSocketEvents.newMessage?.({
+          conversationId: 'conv-1',
+          message: {
+            id: `privacy-${change}`,
+            conversationId: 'conv-1',
+            sender: { id: 'other', username: 'other' },
+            body: 'Secret text',
+            messageType: 'TEXT',
+            createdAt: new Date().toISOString(),
+          },
+        });
+      });
+      act(() =>
+        useNotificationSettingsStore.setState(
+          change === 'name' ? { showName: false, showText: false } : { showText: false },
+        ),
+      );
+      await act(async () => {
+        await delivery;
+      });
+      expect(addToast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: change === 'name' ? 'Eternal' : 'Private group',
+          body: 'You have a new message',
+        }),
+      );
+    },
+  );
+
+  it.each([
+    ['newMessage', 'open'],
+    ['messageReactionAdded', 'open'],
+    ['newMessage', 'disabled'],
+    ['messageReactionAdded', 'disabled'],
+    ['newMessage', 'dnd'],
+    ['messageReactionAdded', 'dnd'],
+    ['newMessage', 'muted'],
+    ['messageReactionAdded', 'muted'],
+  ] as const)(
+    'rechecks %s delivery after %s changes while preferences load',
+    async (event, change) => {
+      const addToast = vi.fn();
+      useMessageToastStore.setState({ toasts: [], addToast });
+      useNotificationSettingsStore.setState({ groups: true, privateChats: true });
+      let finishFetch!: (value: unknown) => void;
+      vi.spyOn(queryClient, 'fetchQuery').mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finishFetch = resolve;
+          }),
+      );
+      const initialProps: { active: string | null } = { active: null };
+      const { rerender } = renderHook(
+        ({ active }: { active: string | null }) => useMessengerRealtime([], active, true),
+        { initialProps, wrapper: createWrapper(queryClient) },
+      );
+      let delivery: unknown;
+      act(() => {
+        delivery = registeredSocketEvents[event]?.({
+          conversationId: 'conv-1',
+          message: {
+            id: 'pending',
+            conversationId: 'conv-1',
+            sender: { id: 'other', username: 'other' },
+            body: 'Hello',
+            messageType: 'TEXT',
+            createdAt: new Date().toISOString(),
+            reactions: [{ emoji: '🔥', users: [{ id: 'other', username: 'other' }] }],
+          },
+        });
+      });
+      act(() => {
+        if (change === 'open') rerender({ active: 'conv-1' });
+        else if (change === 'disabled')
+          useNotificationSettingsStore.setState({ enableNotifications: false });
+        else if (change === 'dnd')
+          useNotificationSettingsStore.setState({
+            dndUntil: new Date(Date.now() + 60_000).toISOString(),
+          });
+        else useNotificationSettingsStore.setState({ mutedActorIds: ['other'] });
+      });
+      await act(async () => {
+        finishFetch({
+          id: 'conv-1',
+          type: 'GROUP',
+          participants: [],
+          myEffectiveNotificationMode: 'ALL',
+        });
+        await delivery;
+      });
+      expect(playMessageNotificationSound).not.toHaveBeenCalled();
+      expect(addToast).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['connect', 'resyncRequired'])(
+    'refreshes inactive conversation preferences after %s when a personal community event was missed',
+    async (event) => {
+      const addToast = vi.fn();
+      useMessageToastStore.setState({ toasts: [], addToast });
+      useNotificationSettingsStore.setState({ groups: true, privateChats: true });
+      const stale: ConversationView = {
+        id: 'conv-1',
+        type: 'GROUP',
+        name: 'Community channel',
+        avatar: null,
+        description: null,
+        createdById: null,
+        participants: [],
+        lastMessage: null,
+        unreadCount: 0,
+        myTheme: 'default',
+        myMuteLevel: 'NONE',
+        myNickname: null,
+        myEffectiveNotificationMode: 'ALL',
+        isArchived: false,
+        isPinned: false,
+        blockedByMe: false,
+        blockingMe: false,
+        isBlocked: false,
+        pinnedMessages: [],
+        createdAt: '2026-10-22T12:00:00Z',
+        updatedAt: '2026-10-22T12:00:00Z',
+      };
+      const current = { ...stale, myEffectiveNotificationMode: 'NONE' } as const;
+      queryClient.setQueryData(queryKeys.conversations.detail('conv-1'), stale);
+      queryClient.setQueryData(queryKeys.conversations.root, [stale]);
+      const getConversation = vi.spyOn(chatApi, 'getConversation').mockResolvedValueOnce(current);
+      renderHook(() => useMessengerRealtime([], null, true), {
+        wrapper: createWrapper(queryClient),
+      });
+      const resync = mockOn.mock.calls.find(([name]) => name === event)?.[1];
+      expect(resync).toBeTypeOf('function');
+      await act(async () => {
+        resync();
+        // A list refetch alone must not let the older inactive detail override preferences.
+        queryClient.setQueryData(queryKeys.conversations.root, [current]);
+        await registeredSocketEvents.newMessage?.({
+          conversationId: 'conv-1',
+          message: {
+            id: `after-${event}`,
+            conversationId: 'conv-1',
+            sender: { id: 'other', username: 'other' },
+            body: 'Hello',
+            messageType: 'TEXT',
+            createdAt: new Date().toISOString(),
+          },
+        });
+      });
+      expect(getConversation).toHaveBeenCalledWith('conv-1', expect.any(AbortSignal));
+      expect(addToast).not.toHaveBeenCalled();
+      expect(playMessageNotificationSound).not.toHaveBeenCalled();
+      expect(
+        queryClient.getQueryData<ConversationView>(queryKeys.conversations.detail('conv-1'))
+          ?.myEffectiveNotificationMode,
+      ).toBe('NONE');
+    },
+  );
+
+  it('alerts only explicit mentions, keeps delivery/unread and suppresses reactions in MENTIONS mode', async () => {
+    const addToast = vi.fn();
+    useMessageToastStore.setState({ toasts: [], addToast });
+    useNotificationSettingsStore.setState({ groups: true });
+    queryClient.setQueryData(queryKeys.conversations.root, [
+      {
+        id: 'conv-1',
+        type: 'GROUP',
+        name: 'Group',
+        participants: [],
+        myMuteLevel: 'MESSAGES',
+        myMutedUntil: '2020-01-01T00:00:00Z',
+        myNotificationMode: null,
+        myEffectiveNotificationMode: 'MENTIONS',
+        unreadCount: 0,
+      },
+    ]);
+    renderHook(() => useMessengerRealtime(['conv-1'], null, true), {
+      wrapper: createWrapper(queryClient),
+    });
+    const message = {
+      conversationId: 'conv-1',
+      sender: { id: 'other', username: 'other' },
+      body: 'Hello',
+      messageType: 'TEXT',
+      createdAt: new Date().toISOString(),
+      reactions: [{ emoji: '🔥', users: [{ id: 'other', username: 'other' }] }],
+    };
+    await act(async () => {
+      await registeredSocketEvents.newMessage?.({
+        conversationId: 'conv-1',
+        message: { ...message, id: 'unmentioned', mentionedUserIds: [] },
+      });
+      await registeredSocketEvents.newMessage?.({
+        conversationId: 'conv-1',
+        message: { ...message, id: 'mentioned', mentionedUserIds: ['my-user-id'] },
+      });
+      await registeredSocketEvents.messageReactionAdded?.({
+        conversationId: 'conv-1',
+        message: { ...message, id: 'mentioned', mentionedUserIds: ['my-user-id'] },
+      });
+    });
+    expect(addToast).toHaveBeenCalledTimes(1);
+    expect(addToast).toHaveBeenCalledWith(expect.objectContaining({ id: 'mentioned' }));
+    act(() => vi.advanceTimersByTime(50));
+    expect(
+      queryClient.getQueryData<Array<{ unreadCount: number }>>(queryKeys.conversations.root)?.[0]
+        .unreadCount,
+    ).toBe(2);
+  });
 
   it('joins conversations and sends socket events', () => {
     renderHook(() => useMessengerRealtime(['conv-1', 'conv-2']), {
@@ -82,6 +376,46 @@ describe('useMessengerRealtime', () => {
 
     expect(mockEmit).toHaveBeenCalledWith('joinConversation', { conversationId: 'conv-1' });
     expect(mockEmit).toHaveBeenCalledWith('joinConversation', { conversationId: 'conv-2' });
+  });
+
+  it('suppresses alerts from stale preferences until a community change can be refreshed', async () => {
+    const addToast = vi.fn();
+    useMessageToastStore.setState({ toasts: [], addToast });
+    queryClient.setQueryData(queryKeys.conversations.root, [
+      {
+        id: 'conv-1',
+        type: 'DIRECT',
+        participants: [],
+        myMuteLevel: 'NONE',
+        myEffectiveNotificationMode: 'ALL',
+        unreadCount: 0,
+      },
+    ]);
+    const fetch = vi.spyOn(queryClient, 'fetchQuery');
+    renderHook(() => useMessengerRealtime(['conv-1'], null, true), {
+      wrapper: createWrapper(queryClient),
+    });
+    await act(async () => {
+      registeredSocketEvents['community:changed']?.({
+        communityId: 'community',
+        eventId: 'preferences',
+      });
+      await registeredSocketEvents.newMessage?.({
+        conversationId: 'conv-1',
+        message: {
+          id: 'after-preference-change',
+          conversationId: 'conv-1',
+          sender: { id: 'other', username: 'other' },
+          body: 'Hello',
+          messageType: 'TEXT',
+          createdAt: new Date().toISOString(),
+        },
+      });
+    });
+    expect(fetch).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: queryKeys.conversations.detail('conv-1'), staleTime: 0 }),
+    );
+    expect(addToast).not.toHaveBeenCalled();
   });
 
   it('keeps closed chats unsubscribed and leaves rooms when selection changes', () => {
@@ -99,6 +433,8 @@ describe('useMessengerRealtime', () => {
   });
 
   it('reconciles the authoritative badge once per burst even for a loaded paged dialog', async () => {
+    queryClient.setQueryData(queryKeys.communities.channels('community'), []);
+    queryClient.setQueryData(queryKeys.communities.directory(''), []);
     queryClient.setQueryData(queryKeys.conversations.page('my-user-id', {}), {
       pages: [{ data: [{ id: 'conv-1', unreadCount: 0 }], hasMore: true, nextCursor: 'next' }],
       pageParams: [undefined],
@@ -125,6 +461,12 @@ describe('useMessengerRealtime', () => {
     ).toHaveLength(1);
     expect(queryClient.getQueryState(queryKeys.conversations.unreadCount)?.isInvalidated).toBe(
       true,
+    );
+    expect(
+      queryClient.getQueryState(queryKeys.communities.channels('community'))?.isInvalidated,
+    ).toBe(true);
+    expect(queryClient.getQueryState(queryKeys.communities.directory(''))?.isInvalidated).toBe(
+      false,
     );
     unmount();
     queryClient.clear();

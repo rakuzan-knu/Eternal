@@ -168,7 +168,11 @@ test.describe('Feed (authenticated, mocked API)', () => {
     await expect(page.getByText('Hello from the mocked feed!')).toBeVisible();
     const nav = page.locator('#app-navigation .sidebar-nav');
     await expect(nav).toBeVisible();
-    expect(await nav.evaluate((el) => el.scrollHeight <= el.clientHeight + 1)).toBe(true);
+    const navigationSize = await nav.evaluate((el) => ({
+      scrollHeight: el.scrollHeight,
+      clientHeight: el.clientHeight,
+    }));
+    expect(navigationSize.scrollHeight).toBeLessThanOrEqual(navigationSize.clientHeight + 1);
     expect(await nav.evaluate((el) => getComputedStyle(el).scrollbarWidth)).toBe('none');
     expect(await nav.evaluate((el) => el.parentElement?.children.length)).toBe(1);
     await page.setViewportSize({ width: 1280, height: 480 });

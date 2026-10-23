@@ -17,6 +17,8 @@ import {
 } from '../../lib/e2ee/messageE2ee';
 import { __resetReplayStoreForTests } from '../../lib/e2ee/replayStore';
 import * as socketHookModule from '../useChatSocket';
+import type { InfiniteMessagesData } from '@/entities/chat';
+import { mutationOutboxDb } from '@/shared/lib/outbox/mutationOutbox';
 
 vi.mock('@/shared/api/httpClient', () => ({
   apiClient: {
@@ -217,6 +219,73 @@ describe.runIf(hasSubtle)('useMessageActions E2EE v2/v3 + pins + seq', () => {
   function sentEnvelopes() {
     return emitted.filter((e) => e.event === 'sendMessage').map((e) => e.payload.text as string);
   }
+
+  it('retries the exact encrypted envelope and explicit mentions, refusing plaintext when the outbox is missing', async () => {
+    queryClient.setQueryData([CONVERSATION_MESSAGES_KEY, 'conv-1'], {
+      pages: [{ data: [], hasMore: false, nextCursor: null }],
+      pageParams: [undefined],
+    });
+    queryClient.setQueryData(
+      [CONVERSATIONS_KEY],
+      [
+        {
+          id: 'conv-1',
+          type: 'DIRECT',
+          participants: [
+            {
+              userId: 'user-1',
+              user: { id: 'user-1', username: 'alice', displayName: null, avatar: null },
+            },
+            {
+              userId: 'peer-9',
+              user: { id: 'peer-9', username: 'peer9', displayName: null, avatar: null },
+            },
+          ],
+        },
+      ],
+    );
+    mockSocket.emit.mockImplementation(
+      (event: string, payload: Record<string, unknown>, cb?: (res: unknown) => void) => {
+        emitted.push({ event, payload });
+        cb?.({ status: 'error', error: 'offline' });
+      },
+    );
+    const http = vi.spyOn(chatApi, 'sendMessage').mockRejectedValue(new Error('offline'));
+    const { result } = renderHook(() => useMessageActions('conv-1'), { wrapper });
+    await act(async () => {
+      await expect(
+        result.current.sendMessage('Hi @peer9', undefined, undefined, { encrypt: true }),
+      ).rejects.toThrow('offline');
+    });
+    const row = queryClient.getQueryData<InfiniteMessagesData>([
+      CONVERSATION_MESSAGES_KEY,
+      'conv-1',
+    ])?.pages[0].data[0];
+    expect(row?.requiresEncryptedRetry).toBe(true);
+    expect(row?.body).toBe('Hi @peer9');
+    const originalEnvelope = sentEnvelopes()[0];
+    expect(parseEnvelope(originalEnvelope).v).toBe(2);
+    await act(async () => {
+      await expect(result.current.retrySendMessage(row?.id ?? '')).rejects.toThrow('offline');
+    });
+    expect(sentEnvelopes()).toEqual([originalEnvelope, originalEnvelope]);
+    for (const event of emitted.filter((item) => item.event === 'sendMessage')) {
+      expect(event.payload.mentionedUserIds).toEqual(['peer-9']);
+      expect(event.payload.clientMessageId).toBe(row?.id);
+    }
+    for (const [, payload] of http.mock.calls) {
+      expect(payload.text).toBe(originalEnvelope);
+      expect(payload.mentionedUserIds).toEqual(['peer-9']);
+    }
+    await mutationOutboxDb.delete(row?.id ?? '');
+    await act(async () => {
+      await expect(result.current.retrySendMessage(row?.id ?? '')).rejects.toThrow(
+        'Encrypted retry data is unavailable',
+      );
+    });
+    expect(sentEnvelopes()).toHaveLength(2);
+    expect(http).toHaveBeenCalledTimes(2);
+  });
 
   it('sendMessage emits v2 with dialog binding and monotonic seq', async () => {
     const { result } = renderHook(() => useMessageActions('conv-1'), { wrapper });

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { MediaVideo } from '@/shared/lib/privateMediaView';
 import { Volume2, VolumeX, Play } from 'lucide-react';
 import { AttachmentView } from '../../../entities/chat/model/types';
 import { useActiveMediaPlaybackStore } from '@/shared/model/useActiveMediaPlaybackStore';
@@ -298,7 +299,7 @@ export function VideoNoteBubble({
       className="relative w-52 h-52 sm:w-60 sm:h-60 rounded-full overflow-hidden border-2 border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.6)] bg-black cursor-pointer select-none group transition-transform active:scale-[0.98]"
       title={isMuted ? 'Click to turn sound on' : isPlaying ? 'Click to pause' : 'Click to resume'}
     >
-      <video
+      <MediaVideo
         ref={videoRef}
         src={attachment.url}
         playsInline

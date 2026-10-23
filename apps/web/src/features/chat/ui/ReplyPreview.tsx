@@ -1,3 +1,4 @@
+import { MediaImage } from '@/shared/lib/privateMediaView';
 import React from 'react';
 import { X, FileText, Link2 } from 'lucide-react';
 import { QueryClientContext } from '@tanstack/react-query';
@@ -276,7 +277,7 @@ export default function ReplyPreview({
                   : 'rounded-md bg-black/40 border border-white/10'
             } shadow-xs flex items-center justify-center`}
           >
-            <img
+            <MediaImage
               src={displayThumbnail}
               alt="Reply attachment preview"
               className={`w-full h-full ${isSticker ? 'object-contain' : 'object-cover'}`}

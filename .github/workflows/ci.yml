@@ -234,7 +234,9 @@ jobs:
 
   backend-unit-tests:
     name: Backend — Unit Tests
-    runs-on: ubuntu-latest
+    # Ubuntu 26.04 FFmpeg 8.0.1 emits a false Opus EOF error (FFmpeg#20954).
+    # Keep strict decoding on the stable runner until its package includes 618fc15.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     needs: [setup, plan]
     if: needs.plan.outputs.backend-changed == 'true' || github.event_name != 'pull_request'
@@ -267,7 +269,18 @@ jobs:
           fail-on-cache-miss: true
 
       - name: Install FFmpeg for media validation
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+        # FFmpeg comes from Ubuntu; unrelated preinstalled vendor repositories can fail.
+        run: |
+          test -f /etc/apt/sources.list.d/ubuntu.sources
+          # The Azure HTTP mirror can take the entire job budget to fetch FFmpeg.
+          # Preserve Ubuntu's Signed-By policy while using its primary HTTPS archive.
+          sudo sed -i \
+            -e 's|mirror+file:/etc/apt/apt-mirrors\.txt|https://archive.ubuntu.com/ubuntu/|g' \
+            -e 's|http://azure\.archive\.ubuntu\.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' \
+            -e 's|https://azure\.archive\.ubuntu\.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' \
+            /etc/apt/sources.list.d/ubuntu.sources
+          sudo apt-get update -o Dir::Etc::sourcelist=sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=-
+          sudo apt-get install -y --no-install-recommends ffmpeg
 
       - name: Run backend unit tests
         if: github.event_name == 'pull_request'
@@ -350,7 +363,8 @@ jobs:
 
   backend-e2e:
     name: Backend — E2E Tests (${{ matrix.module }})
-    runs-on: ubuntu-latest
+    # Match the media-validation environment of backend-unit-tests.
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     needs: [setup, plan]
     if: needs.plan.outputs.backend-changed == 'true'
@@ -431,11 +445,35 @@ jobs:
         run: pnpm exec prisma migrate deploy
 
       - name: Install FFmpeg for media validation
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+        # Keep the same signed Ubuntu-only refresh as the unit-test job above.
+        run: |
+          test -f /etc/apt/sources.list.d/ubuntu.sources
+          sudo sed -i \
+            -e 's|mirror+file:/etc/apt/apt-mirrors\.txt|https://archive.ubuntu.com/ubuntu/|g' \
+            -e 's|http://azure\.archive\.ubuntu\.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' \
+            -e 's|https://azure\.archive\.ubuntu\.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' \
+            /etc/apt/sources.list.d/ubuntu.sources
+          sudo apt-get update -o Dir::Etc::sourcelist=sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=-
+          sudo apt-get install -y --no-install-recommends ffmpeg
 
       - name: Run E2E tests (${{ matrix.module }})
         working-directory: apps/backend
         run: pnpm exec vitest run --config vitest.config.e2e.ts test/${{ matrix.module }}.e2e-spec.ts
+
+      - name: Create isolated community fixture database
+        if: matrix.module == 'chat'
+        run: docker exec ${{ job.services.postgres.id }} createdb -U user channel_layout_test
+
+      - name: Verify community access and notification transactions
+        if: matrix.module == 'chat'
+        working-directory: apps/backend
+        env:
+          DATABASE_URL: postgresql://user:password@localhost:5432/channel_layout_test
+          DIRECT_URL: postgresql://user:password@localhost:5432/channel_layout_test
+          COMMUNITY_TEST_DATABASE_URL: postgresql://user:password@localhost:5432/channel_layout_test
+        run: |
+          pnpm exec prisma migrate deploy
+          pnpm exec vitest run --config vitest.config.e2e.ts test/community-channel-layout.e2e-spec.ts test/community-notifications.e2e-spec.ts
 
   backend-contract-test:
     name: Backend — API Contract Verification

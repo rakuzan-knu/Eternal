@@ -215,10 +215,10 @@ describe('MessagesRepository', () => {
 
   it('edit, deleteForAll and deleteForMe', async () => {
     mockPrisma.message.update.mockResolvedValueOnce({ ...sampleMsg, body: 'Edited' });
-    const edited = await repository.edit('msg-1', 'Edited');
+    const edited = await repository.edit('msg-1', 'Edited', 'usr-1');
     expect(edited.body).toBe('Edited');
 
-    await repository.deleteForAll('msg-1');
+    await repository.deleteForAll('msg-1', 'usr-1');
     expect(mockPrisma.message.update).toHaveBeenCalled();
 
     await repository.deleteForMe('msg-1', 'usr-1');
@@ -250,7 +250,7 @@ describe('MessagesRepository', () => {
     const reactions = await repository.getReactions('msg-1');
     expect(reactions).toHaveLength(1);
 
-    await repository.search('conv-1', 'test query', 20, ['blocked-1']);
+    await repository.search('conv-1', 'usr-1', 'test query', 20, ['blocked-1']);
     expect(mockPrisma.message.findMany).toHaveBeenCalled();
 
     await repository.findLastMessage('conv-1');
@@ -315,7 +315,7 @@ describe('MessagesRepository', () => {
         omit: { bodySearch: true, bodyDigest: true },
       }),
     );
-    await repository.search('conv-1', 'calendar', 20);
+    await repository.search('conv-1', 'usr-1', 'calendar', 20);
     expect(mockPrisma.message.findMany).toHaveBeenLastCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
@@ -323,5 +323,56 @@ describe('MessagesRepository', () => {
         }),
       }),
     );
+  });
+  it.each(['create', 'edit', 'react'] as const)(
+    'rejects %s after acquiring archive-compatible locks',
+    async (operation) => {
+      mockPrisma.$queryRaw
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([{ archivedAt: new Date() }]);
+      const result =
+        operation === 'create'
+          ? repository.create({ conversationId: 'conv-1', senderId: 'usr-1', body: 'denied' })
+          : operation === 'edit'
+            ? repository.edit('msg-1', 'denied', 'usr-1')
+            : repository.addReaction('msg-1', 'usr-1', '👍');
+      await expect(result).rejects.toThrow('channel is archived');
+      expect(mockPrisma.message.create).not.toHaveBeenCalled();
+      expect(mockPrisma.message.update).not.toHaveBeenCalled();
+      expect(mockPrisma.messageReaction.upsert).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['create', 'edit', 'react'] as const)(
+    'rejects %s if access was revoked while waiting for locks',
+    async (operation) => {
+      mockPrisma.$queryRaw
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([{ archivedAt: null, isPrivate: true, hasAccess: false }]);
+      const result =
+        operation === 'create'
+          ? repository.create({ conversationId: 'conv-1', senderId: 'usr-1', body: 'denied' })
+          : operation === 'edit'
+            ? repository.edit('msg-1', 'denied', 'usr-1')
+            : repository.addReaction('msg-1', 'usr-1', '👍');
+      await expect(result).rejects.toThrow('access has been revoked');
+      expect(mockPrisma.message.create).not.toHaveBeenCalled();
+      expect(mockPrisma.message.update).not.toHaveBeenCalled();
+      expect(mockPrisma.messageReaction.upsert).not.toHaveBeenCalled();
+    },
+  );
+
+  it('rejects public attachment publication even for an authorized private channel member', async () => {
+    mockPrisma.$queryRaw
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ archivedAt: null, isPrivate: true, hasAccess: true }]);
+    await expect(
+      repository.create({
+        conversationId: 'conv-1',
+        senderId: 'usr-1',
+        attachments: [{ type: 'FILE', url: 'https://public.invalid/file' }],
+      }),
+    ).rejects.toThrow('Upload attachments to private storage');
+    expect(mockPrisma.message.create).not.toHaveBeenCalled();
   });
 });

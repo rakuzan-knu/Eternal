@@ -105,10 +105,14 @@ describe('bounded historical browsing', () => {
     await act(async () => {
       await result.current.loadNewer();
     });
+    // The fetch promise settles before TanStack's batched observer notification.
+    // Wait for the rendered window, including when CI schedules that timer late.
+    await waitFor(() => {
+      expect(result.current.messages[0].id).toBe('m441');
+      expect(result.current.messages.at(-1)?.id).toBe('m520');
+      expect(new Set(result.current.messages.map((m) => m.id)).size).toBe(80);
+    });
     expect(vi.mocked(chatApi.getMessages).mock.calls.length).toBe(requests);
-    expect(result.current.messages[0].id).toBe('m441');
-    expect(result.current.messages.at(-1)?.id).toBe('m520');
-    expect(new Set(result.current.messages.map((m) => m.id)).size).toBe(80);
   });
 
   it('keeps a new live message in the head without inserting it into an anchored old window', async () => {

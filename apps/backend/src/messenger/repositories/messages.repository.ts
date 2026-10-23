@@ -22,6 +22,7 @@ export class MessagesRepository implements IMessagesRepository {
   async create(data: {
     conversationId: string;
     senderId: string;
+    sourceConversationId?: string;
     body?: string | undefined;
     clientSeq?: number | undefined;
     messageType?: string | undefined;
@@ -45,41 +46,58 @@ export class MessagesRepository implements IMessagesRepository {
   }): Promise<MessageWithDetails> {
     const msgId = data.id ?? (this.snowflake ? this.snowflake.generate() : undefined);
     return this.hydrate(
-      withUnreadWriteLock(this.prisma, { conversationIds: [data.conversationId] }, (tx) =>
-        tx.message.create({
-          data: {
-            conversationId: data.conversationId,
-            senderId: data.senderId,
-            body: data.body ?? null,
-            clientSeq: data.clientSeq ?? null,
-            messageType: (data.messageType as MessageType) || MessageType.TEXT,
-            replyToId: data.replyToId ?? null,
-            forwardedFromId: data.forwardedFromId ?? null,
-            ...(msgId ? { id: msgId } : {}),
-            ...(data.attachments && data.attachments.length > 0
-              ? {
-                  attachments: {
-                    create: data.attachments.map((att) => ({
-                      type: att.type,
-                      url: att.url,
-                      fileName: att.fileName || null,
-                      mimeType: att.mimeType || null,
-                      size: att.size != null ? Math.round(att.size) : null,
-                      width: att.width != null ? Math.round(att.width) : null,
-                      height: att.height != null ? Math.round(att.height) : null,
-                      duration: att.duration != null ? Math.round(att.duration) : null,
-                      waveform: Array.isArray(att.waveform)
-                        ? att.waveform.map((w: number) => Math.min(100, Math.max(0, Math.round(w))))
-                        : [],
-                      thumbnailUrl: att.thumbnailUrl || null,
-                    })),
-                  },
-                }
-              : {}),
-          },
-          omit: messageBodyOmit,
-          include: messageInclude,
-        }),
+      withUnreadWriteLock(
+        this.prisma,
+        {
+          conversationIds: [data.conversationId],
+          requireWritableChannel: true,
+          actorId: data.senderId,
+          ...(data.sourceConversationId
+            ? { sourceConversationIds: [data.sourceConversationId] }
+            : {}),
+          hasAttachments: Boolean(data.attachments?.length),
+          attachmentUrls: (data.attachments ?? []).flatMap((attachment) => [
+            attachment.url,
+            ...(attachment.thumbnailUrl ? [attachment.thumbnailUrl] : []),
+          ]),
+        },
+        (tx) =>
+          tx.message.create({
+            data: {
+              conversationId: data.conversationId,
+              senderId: data.senderId,
+              body: data.body ?? null,
+              clientSeq: data.clientSeq ?? null,
+              messageType: (data.messageType as MessageType) || MessageType.TEXT,
+              replyToId: data.replyToId ?? null,
+              forwardedFromId: data.forwardedFromId ?? null,
+              ...(msgId ? { id: msgId } : {}),
+              ...(data.attachments && data.attachments.length > 0
+                ? {
+                    attachments: {
+                      create: data.attachments.map((att) => ({
+                        type: att.type,
+                        url: att.url,
+                        fileName: att.fileName || null,
+                        mimeType: att.mimeType || null,
+                        size: att.size != null ? Math.round(att.size) : null,
+                        width: att.width != null ? Math.round(att.width) : null,
+                        height: att.height != null ? Math.round(att.height) : null,
+                        duration: att.duration != null ? Math.round(att.duration) : null,
+                        waveform: Array.isArray(att.waveform)
+                          ? att.waveform.map((w: number) =>
+                              Math.min(100, Math.max(0, Math.round(w))),
+                            )
+                          : [],
+                        thumbnailUrl: att.thumbnailUrl || null,
+                      })),
+                    },
+                  }
+                : {}),
+            },
+            omit: messageBodyOmit,
+            include: messageInclude,
+          }),
       ),
     );
   }
@@ -102,6 +120,7 @@ export class MessagesRepository implements IMessagesRepository {
           conversationId,
           deletedForAll: false,
           deletedFor: { none: { userId: requestingUserId } },
+          conversation: { participants: { some: { userId: requestingUserId, leftAt: null } } },
           ...(hiddenUserIds && hiddenUserIds.length > 0
             ? { senderId: { notIn: hiddenUserIds } }
             : {}),
@@ -138,6 +157,7 @@ export class MessagesRepository implements IMessagesRepository {
           conversationId,
           deletedForAll: false,
           deletedFor: { none: { userId: requestingUserId } },
+          conversation: { participants: { some: { userId: requestingUserId, leftAt: null } } },
           createdAt: { lte: target.createdAt },
           ...(hiddenUserIds && hiddenUserIds.length > 0
             ? { senderId: { notIn: hiddenUserIds } }
@@ -153,6 +173,7 @@ export class MessagesRepository implements IMessagesRepository {
           conversationId,
           deletedForAll: false,
           deletedFor: { none: { userId: requestingUserId } },
+          conversation: { participants: { some: { userId: requestingUserId, leftAt: null } } },
           createdAt: { gt: target.createdAt },
           ...(hiddenUserIds && hiddenUserIds.length > 0
             ? { senderId: { notIn: hiddenUserIds } }
@@ -191,6 +212,7 @@ export class MessagesRepository implements IMessagesRepository {
         conversationId,
         deletedForAll: false,
         deletedFor: { none: { userId: requestingUserId } },
+        conversation: { participants: { some: { userId: requestingUserId, leftAt: null } } },
         createdAt: { gte: targetDate },
         ...(hiddenUserIds && hiddenUserIds.length > 0
           ? { senderId: { notIn: hiddenUserIds } }
@@ -206,6 +228,7 @@ export class MessagesRepository implements IMessagesRepository {
           conversationId,
           deletedForAll: false,
           deletedFor: { none: { userId: requestingUserId } },
+          conversation: { participants: { some: { userId: requestingUserId, leftAt: null } } },
           createdAt: { lte: targetDate },
           ...(hiddenUserIds && hiddenUserIds.length > 0
             ? { senderId: { notIn: hiddenUserIds } }
@@ -254,6 +277,7 @@ export class MessagesRepository implements IMessagesRepository {
         conversationId,
         deletedForAll: false,
         deletedFor: { none: { userId: requestingUserId } },
+        conversation: { participants: { some: { userId: requestingUserId, leftAt: null } } },
         createdAt: {
           gte: windowStart,
           lt: windowEnd,
@@ -360,19 +384,24 @@ export class MessagesRepository implements IMessagesRepository {
     );
   }
 
-  async edit(messageId: string, body: string): Promise<MessageWithDetails> {
+  async edit(messageId: string, body: string, userId: string): Promise<MessageWithDetails> {
     return this.hydrate(
-      this.prisma.message.update({
-        where: { id: messageId },
-        data: { body, editedAt: new Date() },
-        omit: messageBodyOmit,
-        include: messageInclude,
-      }),
+      withUnreadWriteLock(
+        this.prisma,
+        { messageIds: [messageId], requireWritableChannel: true, actorId: userId },
+        (tx) =>
+          tx.message.update({
+            where: { id: messageId },
+            data: { body, editedAt: new Date() },
+            omit: messageBodyOmit,
+            include: messageInclude,
+          }),
+      ),
     );
   }
 
-  async deleteForAll(messageId: string): Promise<void> {
-    await withUnreadWriteLock(this.prisma, { messageIds: [messageId] }, (tx) =>
+  async deleteForAll(messageId: string, userId: string): Promise<void> {
+    await withUnreadWriteLock(this.prisma, { messageIds: [messageId], actorId: userId }, (tx) =>
       tx.message.update({
         where: { id: messageId },
         omit: messageBodyOmit,
@@ -387,7 +416,7 @@ export class MessagesRepository implements IMessagesRepository {
   }
 
   async deleteForMe(messageId: string, userId: string): Promise<void> {
-    await withUnreadWriteLock(this.prisma, { messageIds: [messageId] }, (tx) =>
+    await withUnreadWriteLock(this.prisma, { messageIds: [messageId], actorId: userId }, (tx) =>
       tx.messageDeletion.upsert({
         where: { messageId_userId: { messageId, userId } },
         update: { deletedAt: new Date() },
@@ -404,10 +433,15 @@ export class MessagesRepository implements IMessagesRepository {
 
     if (!msg) return null;
 
-    return this.prisma.conversationParticipant.update({
-      where: { conversationId_userId: { conversationId: msg.conversationId, userId } },
-      data: { lastReadAt: msg.createdAt },
-    });
+    return withUnreadWriteLock(
+      this.prisma,
+      { conversationIds: [msg.conversationId], actorId: userId },
+      (tx) =>
+        tx.conversationParticipant.update({
+          where: { conversationId_userId: { conversationId: msg.conversationId, userId } },
+          data: { lastReadAt: msg.createdAt },
+        }),
+    );
   }
 
   async markAllRead(conversationId: string, userId: string): Promise<void> {
@@ -429,28 +463,34 @@ export class MessagesRepository implements IMessagesRepository {
               AND NOT EXISTS (SELECT 1 FROM "MessageDeletion" d
                 WHERE d."messageId" = m.id AND d."userId" = p."userId"))
         ), "updatedAt" = clock_timestamp()::timestamp(3)
-        WHERE p."conversationId" = ${conversationId} AND p."userId" = ${userId}
+        WHERE p."conversationId" = ${conversationId} AND p."userId" = ${userId} AND p."leftAt" IS NULL
       `);
     });
   }
 
   async addReaction(messageId: string, userId: string, emoji: string): Promise<MessageReaction> {
-    return this.prisma.$transaction(async (tx) => {
-      await tx.messageReaction.deleteMany({
-        where: { messageId, userId, emoji: { not: emoji } },
-      });
-      return tx.messageReaction.upsert({
-        where: { messageId_userId_emoji: { messageId, userId, emoji } },
-        update: { createdAt: new Date() },
-        create: { messageId, userId, emoji },
-      });
-    });
+    return withUnreadWriteLock(
+      this.prisma,
+      { messageIds: [messageId], requireWritableChannel: true, actorId: userId },
+      async (tx) => {
+        await tx.messageReaction.deleteMany({
+          where: { messageId, userId, emoji: { not: emoji } },
+        });
+        return tx.messageReaction.upsert({
+          where: { messageId_userId_emoji: { messageId, userId, emoji } },
+          update: { createdAt: new Date() },
+          create: { messageId, userId, emoji },
+        });
+      },
+    );
   }
 
   async removeReaction(messageId: string, userId: string, emoji: string): Promise<void> {
-    await this.prisma.messageReaction.deleteMany({
-      where: { messageId, userId, emoji },
-    });
+    await withUnreadWriteLock(this.prisma, { messageIds: [messageId], actorId: userId }, (tx) =>
+      tx.messageReaction.deleteMany({
+        where: { messageId, userId, emoji },
+      }),
+    );
   }
 
   getReactions(messageId: string): Promise<MessageReaction[]> {
@@ -461,6 +501,7 @@ export class MessagesRepository implements IMessagesRepository {
 
   search(
     conversationId: string,
+    requestingUserId: string,
     query: string,
     limit: number,
     hiddenUserIds?: string[],
@@ -470,6 +511,8 @@ export class MessagesRepository implements IMessagesRepository {
       this.prisma.message.findMany({
         where: {
           conversationId,
+          conversation: { participants: { some: { userId: requestingUserId, leftAt: null } } },
+          deletedFor: { none: { userId: requestingUserId } },
           bodySearch: { contains: escapedQuery, mode: 'insensitive' },
           deletedAt: null,
           deletedForAll: false,

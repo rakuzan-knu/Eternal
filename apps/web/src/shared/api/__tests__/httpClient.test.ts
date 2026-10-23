@@ -1,6 +1,6 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
-import axios from 'axios';
-import { apiClient, requestTokenRefresh } from '../httpClient';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import axios, { AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from 'axios';
+import { apiClient, requestTokenRefresh, getValidAccessToken } from '../httpClient';
 import { useAuthStore } from '@/shared/model/useAuthStore';
 import { useAccountsStore } from '@/shared/model/useAccountsStore';
 import { resetSessionStores, registerSessionResetHandler } from '@/shared/model/resetSession';
@@ -18,7 +18,201 @@ vi.mock('axios', async (importOriginal) => {
   };
 });
 
+const defaultAdapter = apiClient.defaults.adapter;
+const handlers = apiClient.interceptors as unknown as {
+  request: {
+    handlers: {
+      fulfilled: (config: InternalAxiosRequestConfig) => Promise<InternalAxiosRequestConfig>;
+    }[];
+  };
+  response: { handlers: { rejected: (error: unknown) => Promise<unknown> }[] };
+};
+const prepareRequest = () =>
+  handlers.request.handlers[0].fulfilled({
+    url: '/users/me',
+    method: 'get',
+    headers: new AxiosHeaders(),
+  });
+const rejectRequest = (config: InternalAxiosRequestConfig) =>
+  handlers.response.handlers[0].rejected({ config, response: { status: 401 } });
+function activate(id = 'alice') {
+  localStorage.setItem('accessToken', `${id}-access`);
+  localStorage.setItem('refreshToken', `${id}-refresh`);
+  useAuthStore.getState().setAuth(id);
+  useAccountsStore.getState().upsertAccount({
+    id,
+    username: id,
+    accessToken: `${id}-access`,
+    refreshToken: `${id}-refresh`,
+  });
+}
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason: unknown) => void;
+  const promise = new Promise<T>((yes, no) => {
+    resolve = yes;
+    reject = no;
+  });
+  return { promise, resolve, reject };
+}
+
 describe('httpClient and session management', () => {
+  afterEach(() => {
+    apiClient.defaults.adapter = defaultAdapter;
+  });
+
+  it('discards a successful private response completed after switching accounts', async () => {
+    activate('alice');
+    const completion = deferred<void>();
+    const adapter = vi.fn(async (config: InternalAxiosRequestConfig) => {
+      await completion.promise;
+      return { data: { owner: 'alice' }, status: 200, statusText: 'OK', headers: {}, config };
+    });
+    apiClient.defaults.adapter = adapter;
+    const request = apiClient.get('/users/me');
+    await vi.waitFor(() => expect(adapter).toHaveBeenCalledOnce());
+    activate('bob');
+    completion.resolve();
+    await expect(request).rejects.toThrow('Session changed');
+    expect(useAuthStore.getState().userId).toBe('bob');
+  });
+
+  it.each(['switch', 'logout', 'switch away and back'])(
+    'discards a refresh completed after %s',
+    async (change) => {
+      activate();
+      const pending = deferred<{ data: { accessToken: string; refreshToken: string } }>();
+      vi.mocked(axios.post).mockReturnValueOnce(pending.promise);
+      const result = requestTokenRefresh();
+      const rejected = expect(result).rejects.toMatchObject({ code: 'ERR_CANCELED' });
+      if (change === 'logout') useAuthStore.getState().clearAuth();
+      else {
+        activate('bob');
+        if (change === 'switch away and back') activate('alice');
+      }
+      const expectedToken = localStorage.getItem('accessToken');
+      pending.resolve({ data: { accessToken: 'stale-access', refreshToken: 'stale-refresh' } });
+      await rejected;
+      expect(localStorage.getItem('accessToken')).toBe(expectedToken);
+      expect(
+        useAccountsStore
+          .getState()
+          .accounts.every((account) => account.accessToken !== 'stale-access'),
+      ).toBe(true);
+    },
+  );
+
+  it('does not refresh or replay an old resource request after switching accounts', async () => {
+    activate();
+    const request = await prepareRequest();
+    activate('bob');
+    const adapter = vi.fn();
+    apiClient.defaults.adapter = adapter;
+    await expect(rejectRequest(request)).rejects.toMatchObject({ code: 'ERR_CANCELED' });
+    expect(axios.post).not.toHaveBeenCalled();
+    expect(adapter).not.toHaveBeenCalled();
+    expect(useAuthStore.getState().userId).toBe('bob');
+  });
+
+  it.each([undefined, 429, 500, 503])(
+    'preserves auth after transient refresh failure (%s)',
+    async (status) => {
+      activate();
+      const request = await prepareRequest();
+      const failure = new AxiosError(
+        'Temporary failure',
+        'ERR_NETWORK',
+        undefined,
+        undefined,
+        status === undefined
+          ? undefined
+          : { status, statusText: 'Unavailable', data: {}, headers: {}, config: request },
+      );
+      vi.mocked(axios.post).mockRejectedValueOnce(failure);
+      await expect(rejectRequest(request)).rejects.toBe(failure);
+      expect(useAuthStore.getState().userId).toBe('alice');
+      expect(localStorage.getItem('accessToken')).toBe('alice-access');
+      expect(useAccountsStore.getState().activeAccountId).toBe('alice');
+    },
+  );
+
+  it('does not clear a new account when an old refresh returns unauthorized', async () => {
+    activate();
+    const request = await prepareRequest();
+    const pending = deferred<never>();
+    vi.mocked(axios.post).mockReturnValueOnce(pending.promise);
+    const result = rejectRequest(request);
+    const rejected = expect(result).rejects.toMatchObject({ response: { status: 401 } });
+    activate('bob');
+    pending.reject(
+      new AxiosError('Revoked', 'ERR_BAD_REQUEST', undefined, undefined, {
+        status: 401,
+        statusText: 'Unauthorized',
+        data: {},
+        headers: {},
+        config: request,
+      }),
+    );
+    await rejected;
+    expect(useAuthStore.getState().userId).toBe('bob');
+    expect(localStorage.getItem('accessToken')).toBe('bob-access');
+  });
+
+  it('deduplicates concurrent refreshes for the same session, including socket callers', async () => {
+    activate();
+    const pending = deferred<{ data: { accessToken: string } }>();
+    vi.mocked(axios.post).mockReturnValueOnce(pending.promise);
+    const first = requestTokenRefresh();
+    const second = requestTokenRefresh();
+    expect(axios.post).toHaveBeenCalledTimes(1);
+    pending.resolve({ data: { accessToken: 'fresh' } });
+    await expect(Promise.all([first, second])).resolves.toEqual(['fresh', 'fresh']);
+    await expect(getValidAccessToken()).resolves.toBe('fresh');
+  });
+
+  it('keeps the new account refresh mutex when the old refresh finishes first', async () => {
+    activate();
+    const alice = deferred<{ data: { accessToken: string } }>();
+    const bob = deferred<{ data: { accessToken: string } }>();
+    vi.mocked(axios.post).mockReturnValueOnce(alice.promise).mockReturnValueOnce(bob.promise);
+    const first = requestTokenRefresh();
+    const rejected = expect(first).rejects.toMatchObject({ code: 'ERR_CANCELED' });
+    activate('bob');
+    const second = requestTokenRefresh();
+    alice.resolve({ data: { accessToken: 'stale' } });
+    await rejected;
+    const third = requestTokenRefresh();
+    expect(axios.post).toHaveBeenCalledTimes(2);
+    bob.resolve({ data: { accessToken: 'bob-fresh' } });
+    await expect(Promise.all([second, third])).resolves.toEqual(['bob-fresh', 'bob-fresh']);
+    expect(localStorage.getItem('accessToken')).toBe('bob-fresh');
+  });
+
+  it('does not replay an old request after refresh succeeds for a switched account', async () => {
+    activate();
+    const request = await prepareRequest();
+    const pending = deferred<{ data: { accessToken: string } }>();
+    vi.mocked(axios.post).mockReturnValueOnce(pending.promise);
+    const adapter = vi.fn();
+    apiClient.defaults.adapter = adapter;
+    const result = rejectRequest(request);
+    const rejected = expect(result).rejects.toMatchObject({ code: 'ERR_CANCELED' });
+    activate('bob');
+    pending.resolve({ data: { accessToken: 'stale' } });
+    await rejected;
+    expect(adapter).not.toHaveBeenCalled();
+    expect(localStorage.getItem('accessToken')).toBe('bob-access');
+  });
+
+  it('does not treat rejected login credentials as a refresh failure', async () => {
+    activate();
+    const request = await prepareRequest();
+    request.url = '/auth/login';
+    await expect(rejectRequest(request)).rejects.toMatchObject({ response: { status: 401 } });
+    expect(axios.post).not.toHaveBeenCalled();
+    expect(useAuthStore.getState().userId).toBe('alice');
+  });
+
   beforeEach(() => {
     localStorage.clear();
     useAuthStore.getState().clearAuth();
@@ -109,7 +303,15 @@ describe('httpClient and session management', () => {
       refreshToken: 'expired-refresh-token',
     });
 
-    vi.mocked(axios.post).mockRejectedValueOnce(new Error('Refresh token invalid'));
+    vi.mocked(axios.post).mockRejectedValueOnce(
+      new AxiosError('Refresh token invalid', 'ERR_BAD_REQUEST', undefined, undefined, {
+        status: 401,
+        statusText: 'Unauthorized',
+        data: {},
+        headers: {},
+        config: { headers: new AxiosHeaders() },
+      }),
+    );
 
     const mock401Error = {
       config: { headers: {}, _retry: false },

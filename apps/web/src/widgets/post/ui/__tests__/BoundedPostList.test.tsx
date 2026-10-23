@@ -202,4 +202,34 @@ describe('bounded post scroll anchors', () => {
     unmount();
     client.clear();
   });
+
+  it('does not replay an old anchor when cached posts refetch without changing order', () => {
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    const history = new PostFeedWindow();
+    history.remember(undefined, 10, null);
+    history.scrollY = 1200;
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <QueryClientProvider client={client}>
+        <MemoryRouter>{children}</MemoryRouter>
+      </QueryClientProvider>
+    );
+    const query = { window: history, knownItemCount: 10 };
+    const { rerender, unmount } = render(
+      <BoundedPostList posts={posts} query={query} queryKey={['feed']} />,
+      { wrapper },
+    );
+    history.anchor = { id: 'post-0', offset: 100 };
+    scrollTo.mockClear();
+    rerender(
+      <BoundedPostList
+        posts={posts.map((post) => ({ ...post, likes: (post.likes ?? 0) + 1 }))}
+        query={query}
+        queryKey={['feed']}
+      />,
+    );
+    expect(scrollTo).not.toHaveBeenCalled();
+    unmount();
+    client.clear();
+  });
 });

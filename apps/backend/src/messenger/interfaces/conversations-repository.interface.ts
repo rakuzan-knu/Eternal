@@ -25,6 +25,7 @@ export type ConversationPageOptions = ConversationPageQuery & {
 export const CONVERSATIONS_REPOSITORY = 'CONVERSATIONS_REPOSITORY';
 
 export interface IConversationsRepository {
+  isCommunityChannel(conversationId: string): Promise<boolean>;
   findDirectBetween(userAId: string, userBId: string): Promise<Conversation | null>;
 
   createDirect(userAId: string, userBId: string): Promise<ConversationWithDetails>;
@@ -98,7 +99,7 @@ export interface IConversationsRepository {
 
   pinMessage(conversationId: string, messageId: string, pinnedByUserId: string): Promise<void>;
 
-  unpinMessage(conversationId: string, messageId: string): Promise<void>;
+  unpinMessage(conversationId: string, messageId: string, userId: string): Promise<void>;
 
   updateSharedTheme(conversationId: string, theme: string | null): Promise<Conversation>;
 }

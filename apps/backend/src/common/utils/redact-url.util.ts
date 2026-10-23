@@ -1,7 +1,9 @@
 /** Keep request diagnostics without persisting OAuth assertions or signed upload credentials. */
 export function redactRequestUrl(value: string | undefined): string {
   if (!value) return '/';
-  const withoutFragment = value.split('#', 1)[0];
+  const withoutFragment = value
+    .split('#', 1)[0]
+    .replace(/(\/messenger\/communities\/invites\/)[^/?#]+/gi, '$1[REDACTED]');
   const question = withoutFragment.indexOf('?');
   if (question < 0) return withoutFragment;
   const path = withoutFragment.slice(0, question);

@@ -127,6 +127,8 @@ export const test = base.extend<{
     await page.route(`${API_BASE}/**`, abortHandler);
     await page.route(`http://localhost:3000/**`, abortHandler);
     await page.route(`http://127.0.0.1:3000/**`, abortHandler);
+    // Production preview uses same-origin /v1 rewrites. Explicit mocks below win.
+    await page.route('**/v1/**', (route) => route.abort('blockedbyclient'));
 
     // Base background API mocks so sidebar/auth polling doesn't trigger 401 logouts
     await mockApi(page, '/auth/refresh', {

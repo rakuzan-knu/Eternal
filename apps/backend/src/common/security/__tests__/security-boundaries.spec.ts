@@ -166,7 +166,10 @@ describe('security boundaries', () => {
     const findParticipant = jest.fn().mockResolvedValue({ role: 'MEMBER', leftAt: new Date() });
     const cached = jest.fn().mockResolvedValue(JSON.stringify({ id: 'old-secret-message' }));
     Object.assign(service, {
-      convsRepo: { findParticipant },
+      convsRepo: {
+        findParticipant,
+        findOneForUser: jest.fn().mockResolvedValue({ type: 'GROUP', communityChannel: null }),
+      },
       fastPath: { checkFastPath: () => true, computeMask: () => 0, setPermissions: jest.fn() },
       redisService: { get: cached },
       prisma: { conversation: { findUnique: jest.fn().mockResolvedValue({ type: 'GROUP' }) } },

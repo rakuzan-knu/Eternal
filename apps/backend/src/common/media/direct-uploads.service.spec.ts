@@ -1,5 +1,6 @@
 import { Test } from '@nestjs/testing';
-import { BadRequestException } from '@nestjs/common';
+import { vi } from 'vitest';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { Readable } from 'node:stream';
 import sharp from 'sharp';
 import * as mediaDecode from './media-decode-validator';
@@ -33,7 +34,14 @@ describe('direct upload ownership and immutable promotion', () => {
   let service: DirectUploadsService;
   let config: ConfigService;
   const send = vi.fn<(command: unknown) => Promise<unknown>>();
-  const access = { assertConversationAccess: vi.fn() };
+  const access = {
+    assertConversationAccess: vi.fn<MediaAccessRepository['assertConversationAccess']>(),
+    withUploadPublication: vi.fn<MediaAccessRepository['withUploadPublication']>(),
+    registerPrivateObject: vi.fn(),
+    completePrivateObject: vi.fn(),
+    privateObjectForOwner: vi.fn(),
+    privateObjectForReader: vi.fn(),
+  };
   const pending = { register: vi.fn(), retain: vi.fn() };
   const input: DirectUploadInput = {
     purpose: 'chat',
@@ -59,6 +67,15 @@ describe('direct upload ownership and immutable promotion', () => {
     mime = 'application/octet-stream';
     objectBytes = Buffer.from('12345');
     vi.clearAllMocks();
+    access.assertConversationAccess.mockReset().mockResolvedValue({ isPrivate: false });
+    access.withUploadPublication
+      .mockReset()
+      .mockImplementation(async (conversationId, userId, privateStorage, publish) => {
+        const context = await access.assertConversationAccess(conversationId, userId);
+        if (context.isPrivate && !privateStorage)
+          throw new ForbiddenException('Channel access changed');
+        return publish(AbortSignal.timeout(15_000));
+      });
     config = new ConfigService({
       DIRECT_UPLOADS_REQUIRED: 'true',
       MEDIA_PENDING_TRACKING_ENABLED: 'true',
@@ -97,7 +114,10 @@ describe('direct upload ownership and immutable promotion', () => {
             getPublicUrl: (key: string) => `${publicBase}${key}`,
           },
         },
-        { provide: R2StorageService, useValue: { getDefaultBucket: () => 'media' } },
+        {
+          provide: R2StorageService,
+          useValue: { getDefaultBucket: () => 'media', getPrivateBucket: () => 'private-media' },
+        },
         { provide: RedisService, useValue: redis },
         {
           provide: ConfigService,
@@ -296,5 +316,101 @@ describe('direct upload ownership and immutable promotion', () => {
     expect(image.exif).toBeUndefined();
     expect(put.input.Body).not.toEqual(objectBytes);
     expect(send.mock.calls.some(([command]) => command instanceof CopyObjectCommand)).toBe(false);
+  });
+  it('keeps private staging and completed objects out of the public bucket', async () => {
+    access.assertConversationAccess.mockResolvedValue({ isPrivate: true });
+    const result = await service.start('alice', input);
+    if (result.mode !== 'direct') throw new Error('Expected direct upload');
+    const receipt = await service.complete('alice', result.uploadId);
+    expect(receipt.url).toBe(`private-media://${result.uploadId}`);
+    expect(access.registerPrivateObject).toHaveBeenCalledWith(
+      expect.objectContaining({ bucket: 'private-media', conversationId: input.conversationId }),
+    );
+    expect(access.completePrivateObject).toHaveBeenCalledWith(result.uploadId);
+    const promotion = send.mock.calls
+      .map(([command]) => command)
+      .find((command) => command instanceof CopyObjectCommand);
+    if (!(promotion instanceof CopyObjectCommand)) throw new Error('Private promotion missing');
+    expect(promotion.input.Bucket).toBe('private-media');
+    expect(promotion.input.CopySource).toMatch(/^private-media\/_incoming\//);
+    expect(promotion.input.CacheControl).toBe('private, no-store');
+  });
+
+  it('refuses a public upload completed after the channel became private', async () => {
+    access.assertConversationAccess
+      .mockResolvedValueOnce({ isPrivate: false })
+      .mockResolvedValue({ isPrivate: true });
+    const result = await service.start('alice', input);
+    if (result.mode !== 'direct') throw new Error('Expected direct upload');
+    await expect(service.complete('alice', result.uploadId)).rejects.toThrow(
+      'Channel access changed',
+    );
+    expect(access.registerPrivateObject).not.toHaveBeenCalled();
+  });
+
+  it.each(['private', 'revoked'] as const)(
+    'refuses promotion when access becomes %s during validation',
+    async (change) => {
+      const result = await start();
+      const storageSend = send.getMockImplementation();
+      send.mockImplementation(async (command) => {
+        const response = await storageSend?.(command);
+        if (command instanceof HeadObjectCommand) {
+          if (change === 'private')
+            access.assertConversationAccess.mockResolvedValue({ isPrivate: true });
+          else
+            access.assertConversationAccess.mockRejectedValue(
+              new ForbiddenException('Access revoked'),
+            );
+        }
+        return response;
+      });
+      await expect(service.complete('alice', result.uploadId)).rejects.toThrow();
+      expect(
+        send.mock.calls.some(
+          ([command]) =>
+            command instanceof CopyObjectCommand || command instanceof PutObjectCommand,
+        ),
+      ).toBe(false);
+      expect(access.withUploadPublication).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it('rechecks access even when completion can return an existing receipt', async () => {
+    access.assertConversationAccess.mockResolvedValue({ isPrivate: true });
+    const result = await service.start('alice', input);
+    if (result.mode !== 'direct') throw new Error('Expected direct upload');
+    await service.complete('alice', result.uploadId);
+    access.assertConversationAccess.mockRejectedValueOnce(new ForbiddenException());
+    await expect(service.complete('alice', result.uploadId)).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+  });
+
+  it('never signs a private download when the visible message access lookup fails', async () => {
+    access.privateObjectForReader.mockRejectedValueOnce(new ForbiddenException());
+    const before = (await import('@aws-sdk/s3-request-presigner')).getSignedUrl;
+    vi.mocked(before).mockClear();
+    await expect(service.downloadPrivate('revoked', 'id')).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+    expect(before).not.toHaveBeenCalled();
+  });
+
+  it('requires a distinct configured private bucket', () => {
+    for (const values of [{}, { R2_PRIVATE_BUCKET: 'public-media' }]) {
+      const storage = new R2StorageService(
+        new ConfigService({ R2_BUCKET: 'public-media', ...values }),
+      );
+      expect(() => storage.getPrivateBucket()).toThrow(
+        'Private attachment storage is not configured',
+      );
+      storage.getS3Client().destroy();
+    }
+    const storage = new R2StorageService(
+      new ConfigService({ R2_BUCKET: 'public-media', R2_PRIVATE_BUCKET: 'closed-media' }),
+    );
+    expect(storage.getPrivateBucket()).toBe('closed-media');
+    storage.getS3Client().destroy();
   });
 });

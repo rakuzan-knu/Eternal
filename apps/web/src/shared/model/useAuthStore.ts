@@ -12,16 +12,20 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       userId: null,
       isAuthenticated: false,
       setAuth: (userId) => set({ userId, isAuthenticated: true }),
       clearAuth: () => {
+        const owner = {
+          userId: get().userId,
+          previousAccessToken: localStorage.getItem('accessToken'),
+        };
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
         set({ userId: null, isAuthenticated: false });
         resetSessionStores();
-        notifyAuthChange('LOGOUT');
+        notifyAuthChange('LOGOUT', owner);
       },
     }),
     {
