@@ -18,6 +18,10 @@ import type { RequestUser } from '../../auth/interfaces/jwt-payload.interface';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import {
   communityPageSchema,
+  updateCommunityNotificationPreferencesSchema,
+  updateCommunityChannelNotificationPreferencesSchema,
+  type UpdateCommunityNotificationPreferencesDto,
+  type UpdateCommunityChannelNotificationPreferencesDto,
   createCommunitySchema,
   createCommunityChannelSchema,
   createCommunityInviteSchema,
@@ -95,6 +99,52 @@ export class CommunitiesController {
     @Body(new ZodValidationPipe(createCommunitySchema)) dto: CreateCommunityDto,
   ) {
     return this.service.update(id, user.id, dto);
+  }
+
+  @Get(':id/notification-preferences')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  notificationPreferences(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.service.notificationPreferences(id, user.id);
+  }
+
+  @Patch(':id/notification-preferences')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  updateNotificationPreferences(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: RequestUser,
+    @Body(new ZodValidationPipe(updateCommunityNotificationPreferencesSchema))
+    dto: UpdateCommunityNotificationPreferencesDto,
+  ) {
+    return this.service.notificationPreferences(id, user.id, dto);
+  }
+
+  @Get(':id/channels/:channelId/notification-preferences')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  channelNotificationPreferences(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('channelId', ParseUUIDPipe) channelId: string,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.service.channelNotificationPreferences(id, channelId, user.id);
+  }
+
+  @Patch(':id/channels/:channelId/notification-preferences')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  updateChannelNotificationPreferences(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('channelId', ParseUUIDPipe) channelId: string,
+    @CurrentUser() user: RequestUser,
+    @Body(new ZodValidationPipe(updateCommunityChannelNotificationPreferencesSchema))
+    dto: UpdateCommunityChannelNotificationPreferencesDto,
+  ) {
+    return this.service.channelNotificationPreferences(id, channelId, user.id, dto);
   }
 
   @Get(':id/channels')

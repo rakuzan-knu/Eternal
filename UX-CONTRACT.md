@@ -1,5 +1,13 @@
 # Eternal interaction contract
 
+## Community notification preferences
+
+Every active member controls their own server alerts (all messages, personal mentions or none) and temporary server mute. Channels inherit that preference unless the member selects an override. Existing conversation mute remains an independent veto; expiry is evaluated when an alert arrives. Preferences affect message toasts and sounds, including reactions, rather than delivery, history or unread counts. Calls keep their existing mute controls.
+
+Notification settings reuse the community Modal, Select and control styles. Save waits for a validated server response; errors retain drafts, scope changes and dismissal confirm discarding unsaved changes. Personal preference events and reconnect/resync invalidate verified settings before a subsequent alert. Unavailable current settings suppress the alert. Unread badges use the existing server conversation projection and reconcile on message/read/delete/clear/reconnect events, including channels absent from loaded conversation pages.
+
+Personal @username mentions resolve only known authorized conversation participants, with bounded explicit IDs validated by the server. The same IDs and encrypted envelope survive offline retry; forwards do not copy mention metadata into a different conversation. This feature provides in-app alerts; offline operating-system push delivery is not implemented.
+
 ## Scope and ownership
 
 This contract records the community workspace and its reused chat boundaries. Existing application behavior outside these surfaces remains owned by its feature and maintained docs/design guides.

@@ -117,6 +117,151 @@ describe('CommunitiesRepository authorization and invitation regressions', () =>
     },
   );
 
+  it.each([null, { ...member, state: 'LEFT' }, { ...member, state: 'BANNED' }])(
+    'rejects personal preferences for inactive membership: %j',
+    async (membership) => {
+      tx.communityMember.findUnique.mockResolvedValue(membership);
+      await expect(
+        repository.notificationPreferences(community.id, 'user', { notificationMode: 'NONE' }),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      await expect(
+        repository.channelNotificationPreferences(community.id, 'channel', 'user', {
+          notificationMode: 'ALL',
+        }),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(tx.communityMember.update).not.toHaveBeenCalled();
+      expect(tx.conversationParticipant.update).not.toHaveBeenCalled();
+      expect(outbox.recordEvent).not.toHaveBeenCalled();
+    },
+  );
+
+  it('lets an ordinary member update only personal server preferences and invalidates only their sessions', async () => {
+    const until = new Date('2030-01-01');
+    tx.communityMember.update.mockResolvedValue({
+      ...member,
+      notificationMode: 'MENTIONS',
+      notificationMutedUntil: until,
+    });
+    await expect(
+      repository.notificationPreferences(community.id, 'user', {
+        notificationMode: 'MENTIONS',
+        notificationMutedUntil: until.toISOString(),
+      }),
+    ).resolves.toEqual({
+      notificationMode: 'MENTIONS',
+      notificationMutedUntil: until.toISOString(),
+    });
+    expect(tx.communityMember.update).toHaveBeenCalledWith({
+      where: { communityId_userId: { communityId: community.id, userId: 'user' } },
+      data: { notificationMode: 'MENTIONS', notificationMutedUntil: until },
+    });
+    expect(outbox.recordEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventType: 'COMMUNITY_CHANGED',
+        payload: {
+          communityId: community.id,
+          recipientIds: ['user'],
+          removedUserIds: [],
+          conversationIds: ['conversation'],
+        },
+      }),
+      tx,
+    );
+    expect(tx.community.update).not.toHaveBeenCalled();
+    expect(tx.conversationParticipant.update).not.toHaveBeenCalled();
+  });
+
+  it('can clear the server mute without modifying its notification mode or channel mute', async () => {
+    tx.communityMember.update.mockResolvedValue({
+      ...member,
+      notificationMode: 'NONE',
+      notificationMutedUntil: null,
+    });
+    await expect(
+      repository.notificationPreferences(community.id, 'user', { notificationMutedUntil: null }),
+    ).resolves.toEqual({ notificationMode: 'NONE', notificationMutedUntil: null });
+    expect(tx.communityMember.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { notificationMutedUntil: null } }),
+    );
+    expect(tx.conversationParticipant.update).not.toHaveBeenCalled();
+  });
+
+  it('retains expired mute timestamps so consumers can evaluate expiry at alert time', async () => {
+    const until = new Date('2000-01-01');
+    tx.communityMember.findUnique.mockResolvedValue({
+      ...member,
+      notificationMode: 'MENTIONS',
+      notificationMutedUntil: until,
+    });
+    await expect(repository.notificationPreferences(community.id, 'user')).resolves.toEqual({
+      notificationMode: 'MENTIONS',
+      notificationMutedUntil: until.toISOString(),
+    });
+    expect(outbox.recordEvent).not.toHaveBeenCalled();
+  });
+
+  it.each([null, { leftAt: new Date(), notificationMode: 'ALL' }])(
+    'denies channel preferences after access revocation: %j',
+    async (participant) => {
+      tx.conversationParticipant.findUnique.mockResolvedValue(participant);
+      await expect(
+        repository.channelNotificationPreferences(community.id, 'channel', 'user', {
+          notificationMode: 'NONE',
+        }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(tx.conversationParticipant.update).not.toHaveBeenCalled();
+    },
+  );
+
+  it('does not disclose foreign or ungranted private channel preferences', async () => {
+    tx.communityChannel.findFirst.mockResolvedValue(null);
+    await expect(
+      repository.channelNotificationPreferences(community.id, 'private', 'user'),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(tx.communityChannel.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'private',
+        communityId: community.id,
+        conversation: { participants: { some: { userId: 'user', leftAt: null } } },
+      },
+    });
+    expect(tx.conversationParticipant.findUnique).not.toHaveBeenCalled();
+  });
+
+  it.each(['ALL', 'MENTIONS', 'NONE', null] as const)(
+    'supports channel override and inheritance reset: %s',
+    async (mode) => {
+      tx.communityMember.findUnique.mockResolvedValue({
+        ...member,
+        notificationMode: 'MENTIONS',
+        notificationMutedUntil: new Date('2030-01-01'),
+      });
+      tx.conversationParticipant.findUnique.mockResolvedValue({
+        leftAt: null,
+        notificationMode: 'NONE',
+        muteLevel: 'MESSAGES',
+      });
+      tx.conversationParticipant.update.mockResolvedValue({ notificationMode: mode });
+      await expect(
+        repository.channelNotificationPreferences(community.id, 'channel', 'user', {
+          notificationMode: mode,
+        }),
+      ).resolves.toEqual({
+        notificationMode: mode,
+        effectiveNotificationMode: mode ?? 'MENTIONS',
+        notificationMutedUntil: '2030-01-01T00:00:00.000Z',
+      });
+      expect(tx.conversationParticipant.update).toHaveBeenCalledWith({
+        where: { conversationId_userId: { conversationId: 'conversation', userId: 'user' } },
+        data: { notificationMode: mode },
+      });
+      expect(tx.community.update).not.toHaveBeenCalled();
+      expect(outbox.recordEvent.mock.calls).toMatchObject([
+        [{ payload: { recipientIds: ['user'] } }],
+      ]);
+    },
+  );
+
   it('derives ownership from the community owner rather than a forged member role', async () => {
     tx.communityMember.findUnique.mockResolvedValue({ ...member, role: 'OWNER' });
     await expect(repository.channels(community.id, 'user')).resolves.toMatchObject({

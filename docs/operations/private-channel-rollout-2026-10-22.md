@@ -1,6 +1,6 @@
 # Private channel rollout — 22 October 2026
 
-Status: production rollout completed; final two-account acceptance and CI repair pending.
+Status: private-channel production rollout and two-account acceptance completed; notification follow-up in verification.
 
 ## Completed operations
 
@@ -129,7 +129,12 @@ answerer sender. The follow-up applies the remote offer before attaching local
 tracks, awaits replacement and preserves cancellation across resolved/rejected
 browser operations. Both audio and video browser regressions now require real
 inbound and outbound audio RTP on each peer, alongside encrypted signaling,
-matching SAS and cleanup. Production re-acceptance awaits the fixed web build.
+matching SAS and cleanup. Production re-acceptance passed after promoting web revision `256c2b00` from
+`dpl_DgG1wsn16heincE88brd36TmTrny`. Primary Chrome reported 26kbps inbound and
+33kbps outbound audio. QA RTP grew from 34,707/28,446 to 237,405/198,054 bytes
+inbound/outbound. Reversing caller/answerer roles also connected with
+243,718/208,239 bytes. Both QA local tracks ended after hangup and every peer
+connection closed; the primary UI returned to its idle channel. No audio was recorded.
 
 The follow-up regenerates the design inventory after compact-row CSS changed.
 An unrelated Microsoft apt repository returned 403 in backend CI; FFmpeg setup
@@ -142,5 +147,8 @@ now supplies the archive lookup, preserving the banned-member assertions. The
 focused backend security suite passed 17/17. The earlier design job passed all
 69 screenshot/keyboard checks; its subsequent cross-browser interaction matrix
 still reports scrolling/focus failures and must not be described as green.
+The same failure classes predate this release: main run39576815823/job119144376097
+(SHA90eb55d5) passed69 screenshots then failed13 platform interactions. No unrelated
+scroll/focus implementation was changed to conceal these failures.
 
 Follow protected-branch review; no merge or branch-protection bypass has occurred.

@@ -21,6 +21,8 @@ import {
   type CommunityChannelLayoutDto,
   type CommunityChannelArchiveDto,
   type CommunityChannelAccessDto,
+  type UpdateCommunityNotificationPreferencesDto,
+  type UpdateCommunityChannelNotificationPreferencesDto,
 } from '@common/contracts';
 
 const publicSelect = {
@@ -227,11 +229,109 @@ export class CommunitiesRepository {
     });
   }
 
+  private async personalChanged(
+    tx: Prisma.TransactionClient,
+    id: string,
+    userId: string,
+    conversationIds: string[],
+  ) {
+    await this.outbox.recordEvent(
+      {
+        aggregateType: 'COMMUNITY',
+        aggregateId: id,
+        eventType: 'COMMUNITY_CHANGED',
+        payload: { communityId: id, recipientIds: [userId], removedUserIds: [], conversationIds },
+      },
+      tx,
+    );
+  }
+
+  async notificationPreferences(
+    id: string,
+    userId: string,
+    dto?: UpdateCommunityNotificationPreferencesDto,
+  ) {
+    return this.locked(id, async (tx) => {
+      const { member } = await this.access(tx, id, userId);
+      if (!member) throw new ForbiddenException('Community access unavailable');
+      const row = dto
+        ? await tx.communityMember.update({
+            where: { communityId_userId: { communityId: id, userId } },
+            data: {
+              ...(dto.notificationMode !== undefined
+                ? { notificationMode: dto.notificationMode }
+                : {}),
+              ...(dto.notificationMutedUntil !== undefined
+                ? {
+                    notificationMutedUntil: dto.notificationMutedUntil
+                      ? new Date(dto.notificationMutedUntil)
+                      : null,
+                  }
+                : {}),
+            },
+          })
+        : member;
+      if (dto) {
+        const channels = await tx.communityChannel.findMany({
+          where: {
+            communityId: id,
+            conversation: { participants: { some: { userId, leftAt: null } } },
+          },
+          select: { conversationId: true },
+        });
+        await this.personalChanged(
+          tx,
+          id,
+          userId,
+          channels.map((channel) => channel.conversationId),
+        );
+      }
+      return {
+        notificationMode: row.notificationMode,
+        notificationMutedUntil: row.notificationMutedUntil?.toISOString() ?? null,
+      };
+    });
+  }
+
+  async channelNotificationPreferences(
+    id: string,
+    channelId: string,
+    userId: string,
+    dto?: UpdateCommunityChannelNotificationPreferencesDto,
+  ) {
+    return this.locked(id, async (tx) => {
+      const { member } = await this.access(tx, id, userId);
+      const channel = await tx.communityChannel.findFirst({
+        where: {
+          id: channelId,
+          communityId: id,
+          conversation: { participants: { some: { userId, leftAt: null } } },
+        },
+      });
+      if (!channel) throw new NotFoundException('Channel unavailable');
+      const where = { conversationId_userId: { conversationId: channel.conversationId, userId } };
+      const participant = await tx.conversationParticipant.findUnique({ where });
+      if (!participant || participant.leftAt) throw new NotFoundException('Channel unavailable');
+      const row = dto
+        ? await tx.conversationParticipant.update({
+            where,
+            data: { notificationMode: dto.notificationMode },
+          })
+        : participant;
+      if (dto) await this.personalChanged(tx, id, userId, [channel.conversationId]);
+      return {
+        notificationMode: row.notificationMode ?? null,
+        effectiveNotificationMode: row.notificationMode ?? member?.notificationMode ?? 'ALL',
+        notificationMutedUntil: member?.notificationMutedUntil?.toISOString() ?? null,
+      };
+    });
+  }
+
   async channels(id: string, userId: string) {
     return this.prisma.$transaction(async (tx) => {
       // A shared lock gives categories, channels and revision one consistent snapshot.
       await tx.$queryRaw(Prisma.sql`SELECT id FROM communities WHERE id = ${id} FOR SHARE`);
-      const { role, community } = await this.access(tx, id, userId);
+      const { role, community, member } = await this.access(tx, id, userId);
       const data = await tx.communityChannel.findMany({
         where: {
           communityId: id,
@@ -247,7 +347,38 @@ export class CommunitiesRepository {
         orderBy: [{ position: 'asc' }, { id: 'asc' }],
         select: { id: true, name: true, position: true },
       });
-      return { communityId: id, role, data, categories, revision: community.channelRevision };
+      const participants = await tx.conversationParticipant.findMany({
+        where: {
+          userId,
+          leftAt: null,
+          conversationId: { in: data.map((channel) => channel.conversationId) },
+        },
+        select: { conversationId: true, notificationMode: true },
+      });
+      const preferences = new Map(
+        participants.map((participant) => [
+          participant.conversationId,
+          participant.notificationMode,
+        ]),
+      );
+      const notificationPreferences = {
+        notificationMode: member?.notificationMode ?? 'ALL',
+        notificationMutedUntil: member?.notificationMutedUntil?.toISOString() ?? null,
+      };
+      return {
+        communityId: id,
+        role,
+        data: data.map((channel) => ({
+          ...channel,
+          myNotificationMode: preferences.get(channel.conversationId) ?? null,
+          myEffectiveNotificationMode:
+            preferences.get(channel.conversationId) ?? notificationPreferences.notificationMode,
+          myNotificationMutedUntil: notificationPreferences.notificationMutedUntil,
+        })),
+        categories,
+        revision: community.channelRevision,
+        notificationPreferences,
+      };
     });
   }
 

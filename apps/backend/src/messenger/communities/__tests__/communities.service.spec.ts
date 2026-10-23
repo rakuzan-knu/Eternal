@@ -1,11 +1,18 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { UnreadProjectionService } from '../../unread/unread-projection.service';
 import { CommunitiesRepository } from '../communities.repository';
 import { CommunitiesService } from '../communities.service';
 
 describe('CommunitiesService', () => {
   let service: CommunitiesService;
-  const repository = { preview: jest.fn(), accept: jest.fn(), list: jest.fn() };
+  const repository = {
+    preview: jest.fn(),
+    accept: jest.fn(),
+    list: jest.fn(),
+    channels: jest.fn(),
+  };
+  const unreadProjection = { getConversationCounts: jest.fn() };
   const summary = {
     id: 'community',
     name: 'Community',
@@ -18,9 +25,36 @@ describe('CommunitiesService', () => {
   beforeEach(async () => {
     jest.resetAllMocks();
     const module = await Test.createTestingModule({
-      providers: [CommunitiesService, { provide: CommunitiesRepository, useValue: repository }],
+      providers: [
+        CommunitiesService,
+        { provide: CommunitiesRepository, useValue: repository },
+        { provide: UnreadProjectionService, useValue: unreadProjection },
+      ],
     }).compile();
     service = module.get(CommunitiesService);
+  });
+
+  it('hydrates canonical unread counts in bounded batches while preserving preference fields', async () => {
+    const data = Array.from({ length: 101 }, (_, index) => ({
+      conversationId: `conversation-${index}`,
+      myNotificationMode: 'NONE',
+    }));
+    repository.channels.mockResolvedValue({ communityId: 'community', role: 'MEMBER', data });
+    unreadProjection.getConversationCounts.mockImplementation(
+      (_userId: string, ids: string[]) => new Map(ids.map((id) => [id, 3])),
+    );
+    const result = await service.channels('community', 'user');
+    expect(unreadProjection.getConversationCounts).toHaveBeenCalledTimes(2);
+    expect(unreadProjection.getConversationCounts).toHaveBeenNthCalledWith(
+      1,
+      'user',
+      data.slice(0, 100).map((channel) => channel.conversationId),
+    );
+    expect(unreadProjection.getConversationCounts).toHaveBeenNthCalledWith(2, 'user', [
+      'conversation-100',
+    ]);
+    expect(result.data).toHaveLength(101);
+    expect(result.data[100]).toMatchObject({ unreadCount: 3, myNotificationMode: 'NONE' });
   });
 
   it.each(['', 'a'.repeat(42), 'a'.repeat(44), '/'.repeat(43), ' '.repeat(43)])(

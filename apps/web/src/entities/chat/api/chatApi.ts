@@ -155,6 +155,7 @@ export const chatApi = {
       attachments?: OutgoingAttachment[];
       clientMessageId?: string;
       clientSeq?: number;
+      mentionedUserIds?: string[];
     },
   ) =>
     api

@@ -17,6 +17,7 @@ import {
   resolveDirectPeerUserId,
   type ConversationPeerView,
 } from '../lib/e2ee/messageE2ee';
+import { resolveMessageMentions } from '../lib/messageMentions';
 import { nextMessageSeq } from '../lib/e2ee/replayStore';
 import { cacheDecryptedBody } from './useDecryptedMessageBody';
 import { e2eeManager, parseEnvelope } from '@/shared/lib/crypto/e2ee';
@@ -72,6 +73,7 @@ export function useMessageActions(conversationId: string | null) {
             attachments: p.attachments,
             clientMessageId: mutation.id,
             clientSeq: p.clientSeq,
+            mentionedUserIds: p.mentionedUserIds,
           });
           if (res.message || res.status === 'ok') {
             return true;
@@ -83,6 +85,7 @@ export function useMessageActions(conversationId: string | null) {
           attachments: p.attachments as OutgoingAttachment[] | undefined,
           clientMessageId: mutation.id,
           clientSeq: p.clientSeq,
+          mentionedUserIds: p.mentionedUserIds,
         });
         return Boolean(fallbackRes);
       } catch {
@@ -145,6 +148,14 @@ export function useMessageActions(conversationId: string | null) {
                     ? 'FILE'
                     : 'TEXT';
 
+      const conversation = getCachedConversations(queryClient).find(
+        (row) => row.id === conversationId,
+      );
+      const mentionedUserIds = resolveMessageMentions(
+        text,
+        conversation?.participants ?? [],
+        userId,
+      );
       const clientSeq = getNextClientSeq(conversationId);
       const optimisticId = `client_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
       const optimisticMessage: MessageView = {
@@ -156,6 +167,8 @@ export function useMessageActions(conversationId: string | null) {
         conversationId,
         sender: { id: userId ?? '', username: '', displayName: null, avatar: null },
         body: text || null,
+        mentionedUserIds,
+        requiresEncryptedRetry: Boolean(opts?.encrypt && text.trim()),
         messageType: resolvedMessageType,
         replyTo: null,
         forwardedFrom: null,
@@ -212,6 +225,19 @@ export function useMessageActions(conversationId: string | null) {
         }
       }
 
+      if (opts?.encrypt && text.trim()) {
+        updatePages((pages) =>
+          pages.map((page) => ({
+            ...page,
+            data: page.data.map((message) =>
+              message.id === optimisticId
+                ? { ...message, requiresEncryptedRetry: e2eeManager.isEncrypted(outgoingText) }
+                : message,
+            ),
+          })),
+        );
+      }
+
       // Persist mutation into IndexedDB outbox queue (offline backup, do NOT autoFlush during active send)
       await mutationOutbox
         .enqueueMessage(
@@ -222,6 +248,7 @@ export function useMessageActions(conversationId: string | null) {
             replyToId,
             attachments: attachments as unknown[],
             clientSeq,
+            mentionedUserIds,
           },
           false,
         )
@@ -240,6 +267,7 @@ export function useMessageActions(conversationId: string | null) {
           attachments,
           clientMessageId: optimisticId,
           clientSeq,
+          mentionedUserIds,
         });
         if (res.message) {
           void mutationOutboxDb.delete(optimisticId);
@@ -287,6 +315,7 @@ export function useMessageActions(conversationId: string | null) {
             attachments,
             clientMessageId: optimisticId,
             clientSeq,
+            mentionedUserIds,
           });
           if (fallbackRes) {
             void mutationOutboxDb.delete(optimisticId);
@@ -363,6 +392,19 @@ export function useMessageActions(conversationId: string | null) {
       const retryClientSeq = targetMessage.clientSeq ?? getNextClientSeq(conversationId);
       const text = targetMessage.body || '';
       const replyToId = targetMessage.replyTo?.id;
+      const storedMutation = await mutationOutboxDb.get(optimisticId);
+      const persistedPayload =
+        storedMutation?.conversationId === conversationId &&
+        storedMutation.payload.conversationId === conversationId
+          ? storedMutation.payload
+          : undefined;
+      if (
+        targetMessage.requiresEncryptedRetry &&
+        (!persistedPayload?.text || !e2eeManager.isEncrypted(persistedPayload.text))
+      ) {
+        throw new Error('Encrypted retry data is unavailable. Compose this message again.');
+      }
+      const mentionedUserIds = persistedPayload?.mentionedUserIds ?? targetMessage.mentionedUserIds;
 
       // If an attachment previously failed with a data: URI, re-upload it properly to server now
       const resolvedAttachments: OutgoingAttachment[] = [];
@@ -416,8 +458,8 @@ export function useMessageActions(conversationId: string | null) {
         })),
       );
 
-      // Retry sends plain text directly.
-      const outgoingText = text;
+      // Reuse the exact original envelope and metadata for this idempotency key.
+      const outgoingText = persistedPayload?.text ?? text;
 
       try {
         const res = await emitWithAck<MessageView>(socket, 'sendMessage', {
@@ -428,6 +470,7 @@ export function useMessageActions(conversationId: string | null) {
           attachments: resolvedAttachments.length > 0 ? resolvedAttachments : undefined,
           clientMessageId: optimisticId,
           clientSeq: retryClientSeq,
+          mentionedUserIds,
         });
         if (res.message) {
           const real = {
@@ -454,6 +497,7 @@ export function useMessageActions(conversationId: string | null) {
             attachments: resolvedAttachments.length > 0 ? resolvedAttachments : undefined,
             clientMessageId: optimisticId,
             clientSeq: retryClientSeq,
+            mentionedUserIds,
           });
           if (fallbackRes) {
             const real = { ...(fallbackRes as MessageView), status: 'SENT' as const };

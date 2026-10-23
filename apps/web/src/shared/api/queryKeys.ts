@@ -142,6 +142,8 @@ export const queryKeys = {
     mine: ['communities', 'mine'] as const,
     detail: (id: string) => ['communities', id] as const,
     channels: (id: string) => ['communities', id, 'channels'] as const,
+    notificationPreferences: (id: string, channelId?: string) =>
+      ['communities', id, 'notification-preferences', channelId ?? 'server'] as const,
     members: (id: string, after?: string) =>
       ['communities', id, 'members', after ?? 'first'] as const,
     invites: (id: string) => ['communities', id, 'invites'] as const,

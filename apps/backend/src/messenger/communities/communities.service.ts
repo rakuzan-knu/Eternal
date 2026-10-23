@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Optional } from '@nestjs/common';
 import type {
   CommunityPageQuery,
   CommunitySummary,
@@ -9,12 +9,18 @@ import type {
   CommunityChannelLayoutDto,
   CommunityChannelArchiveDto,
   CommunityChannelAccessDto,
+  UpdateCommunityNotificationPreferencesDto,
+  UpdateCommunityChannelNotificationPreferencesDto,
 } from '@common/contracts';
+import { UnreadProjectionService } from '../unread/unread-projection.service';
 import { CommunitiesRepository, type CommunityPublicRow } from './communities.repository';
 
 @Injectable()
 export class CommunitiesService {
-  constructor(private readonly repository: CommunitiesRepository) {}
+  constructor(
+    private readonly repository: CommunitiesRepository,
+    @Optional() private readonly unreadProjection?: UnreadProjectionService,
+  ) {}
 
   private summary(row: CommunityPublicRow): CommunitySummary {
     return {
@@ -54,8 +60,39 @@ export class CommunitiesService {
   async update(id: string, userId: string, dto: CreateCommunityDto) {
     return this.summary(await this.repository.update(id, userId, dto));
   }
-  channels(id: string, userId: string) {
-    return this.repository.channels(id, userId);
+  notificationPreferences(
+    id: string,
+    userId: string,
+    dto?: UpdateCommunityNotificationPreferencesDto,
+  ) {
+    return this.repository.notificationPreferences(id, userId, dto);
+  }
+  channelNotificationPreferences(
+    id: string,
+    channelId: string,
+    userId: string,
+    dto?: UpdateCommunityChannelNotificationPreferencesDto,
+  ) {
+    return this.repository.channelNotificationPreferences(id, channelId, userId, dto);
+  }
+  async channels(id: string, userId: string) {
+    const result = await this.repository.channels(id, userId);
+    if (!this.unreadProjection) return result;
+    const counts = new Map<string, number>();
+    for (let start = 0; start < result.data.length; start += 100) {
+      const batch = await this.unreadProjection.getConversationCounts(
+        userId,
+        result.data.slice(start, start + 100).map((channel) => channel.conversationId),
+      );
+      for (const [id, count] of batch) counts.set(id, count);
+    }
+    return {
+      ...result,
+      data: result.data.map((channel) => ({
+        ...channel,
+        unreadCount: counts.get(channel.conversationId) ?? 0,
+      })),
+    };
   }
   createChannel(id: string, userId: string, dto: CreateCommunityChannelDto) {
     return this.repository.createChannel(id, userId, dto);

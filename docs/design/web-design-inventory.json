@@ -433,8 +433,8 @@
     }
   },
   "summary": {
-    "scannedSources": 1022,
-    "designSources": 598,
+    "scannedSources": 1025,
+    "designSources": 599,
     "literalColors": 1506,
     "assets": 689,
     "stories": 181
@@ -123597,104 +123597,99 @@
       "colorLiterals": [],
       "presentation": [
         {
-          "line": 104,
+          "line": 108,
           "attribute": "className",
           "expression": "{`community-workspace ${channelId ? 'has-channel' : ''} ${view !== 'overview' ? 'has-detail' : ''} ${expanded ? 'global-nav-expanded' : ''}`}"
         },
         {
-          "line": 112,
+          "line": 116,
           "attribute": "className",
           "expression": "\"community-server-rail\""
         },
         {
-          "line": 115,
+          "line": 119,
           "attribute": "className",
           "expression": "\"community-server-icon\""
         },
         {
-          "line": 119,
+          "line": 123,
           "attribute": "size",
           "expression": "{22}"
         },
         {
-          "line": 121,
+          "line": 125,
           "attribute": "className",
           "expression": "\"community-rail-divider\""
         },
         {
-          "line": 129,
-          "attribute": "className",
-          "expression": "\"community-server-icon\""
-        },
-        {
-          "line": 141,
+          "line": 133,
           "attribute": "className",
           "expression": "\"community-server-icon\""
         },
         {
           "line": 145,
+          "attribute": "className",
+          "expression": "\"community-server-icon\""
+        },
+        {
+          "line": 149,
           "attribute": "size",
           "expression": "{20}"
         },
         {
-          "line": 150,
+          "line": 154,
           "attribute": "className",
           "expression": "\"community-server-icon community-server-add\""
         },
         {
-          "line": 154,
+          "line": 158,
           "attribute": "size",
           "expression": "{22}"
         },
         {
-          "line": 157,
+          "line": 161,
           "attribute": "className",
           "expression": "\"community-channel-panel\""
         },
         {
-          "line": 158,
+          "line": 162,
           "attribute": "className",
           "expression": "\"community-back\""
         },
         {
-          "line": 159,
+          "line": 163,
           "attribute": "size",
           "expression": "{15}"
         },
         {
-          "line": 161,
+          "line": 165,
           "attribute": "className",
           "expression": "\"community-server-heading\""
         },
         {
-          "line": 162,
+          "line": 166,
           "attribute": "className",
           "expression": "\"community-server-mark\""
         },
         {
-          "line": 166,
+          "line": 170,
           "attribute": "size",
           "expression": "{25}"
         },
         {
-          "line": 178,
+          "line": 182,
           "attribute": "className",
           "expression": "\"community-action community-action-primary\""
         },
         {
-          "line": 181,
+          "line": 185,
           "attribute": "size",
           "expression": "{16}"
         },
         {
-          "line": 185,
+          "line": 189,
           "attribute": "className",
           "expression": "\"community-sections\""
-        },
-        {
-          "line": 187,
-          "attribute": "size",
-          "expression": "{17}"
         },
         {
           "line": 191,
@@ -123702,427 +123697,452 @@
           "expression": "{17}"
         },
         {
-          "line": 196,
+          "line": 195,
           "attribute": "size",
           "expression": "{17}"
         },
         {
-          "line": 201,
+          "line": 200,
+          "attribute": "size",
+          "expression": "{17}"
+        },
+        {
+          "line": 205,
           "attribute": "className",
           "expression": "\"community-channel-label\""
         },
         {
-          "line": 211,
+          "line": 215,
           "attribute": "size",
           "expression": "{17}"
         },
         {
-          "line": 215,
+          "line": 219,
           "attribute": "className",
           "expression": "\"community-channel-search\""
         },
         {
-          "line": 216,
-          "attribute": "size",
-          "expression": "{15}"
-        },
-        {
-          "line": 232,
+          "line": 220,
           "attribute": "size",
           "expression": "{15}"
         },
         {
           "line": 236,
-          "attribute": "className",
-          "expression": "\"community-channel-list\""
-        },
-        {
-          "line": 245,
-          "attribute": "className",
-          "expression": "\"community-channel-group\""
-        },
-        {
-          "line": 256,
-          "attribute": "size",
-          "expression": "{19}"
-        },
-        {
-          "line": 258,
-          "attribute": "size",
-          "expression": "{19}"
-        },
-        {
-          "line": 269,
-          "attribute": "className",
-          "expression": "\"community-channel-group\""
-        },
-        {
-          "line": 282,
-          "attribute": "size",
-          "expression": "{19}"
-        },
-        {
-          "line": 284,
-          "attribute": "size",
-          "expression": "{19}"
-        },
-        {
-          "line": 287,
-          "attribute": "className",
-          "expression": "\"sr-only\""
-        },
-        {
-          "line": 298,
-          "attribute": "className",
-          "expression": "\"community-channel-footer\""
-        },
-        {
-          "line": 301,
-          "attribute": "className",
-          "expression": "\"community-action\""
-        },
-        {
-          "line": 310,
-          "attribute": "size",
-          "expression": "{16}"
-        },
-        {
-          "line": 314,
-          "attribute": "className",
-          "expression": "\"community-action\""
-        },
-        {
-          "line": 315,
-          "attribute": "size",
-          "expression": "{16}"
-        },
-        {
-          "line": 318,
-          "attribute": "className",
-          "expression": "\"community-action\""
-        },
-        {
-          "line": 319,
-          "attribute": "size",
-          "expression": "{16}"
-        },
-        {
-          "line": 319,
-          "attribute": "size",
-          "expression": "{14}"
-        },
-        {
-          "line": 323,
-          "attribute": "className",
-          "expression": "\"community-content\""
-        },
-        {
-          "line": 325,
-          "attribute": "className",
-          "expression": "{`community-content-header ${selectedChannel ? 'community-context-in-thread' : ''}`}"
-        },
-        {
-          "line": 329,
-          "attribute": "className",
-          "expression": "\"community-mobile-back\""
-        },
-        {
-          "line": 333,
-          "attribute": "size",
-          "expression": "{18}"
-        },
-        {
-          "line": 336,
-          "attribute": "size",
-          "expression": "{20}"
-        },
-        {
-          "line": 338,
-          "attribute": "size",
-          "expression": "{20}"
-        },
-        {
-          "line": 340,
-          "attribute": "size",
-          "expression": "{20}"
-        },
-        {
-          "line": 355,
-          "attribute": "className",
-          "expression": "\"community-icon-button\""
-        },
-        {
-          "line": 359,
-          "attribute": "size",
-          "expression": "{19}"
-        },
-        {
-          "line": 364,
-          "attribute": "className",
-          "expression": "\"community-icon-button\""
-        },
-        {
-          "line": 368,
-          "attribute": "size",
-          "expression": "{19}"
-        },
-        {
-          "line": 373,
-          "attribute": "className",
-          "expression": "\"community-workspace-state\""
-        },
-        {
-          "line": 377,
-          "attribute": "className",
-          "expression": "\"community-workspace-state\""
-        },
-        {
-          "line": 379,
-          "attribute": "className",
-          "expression": "\"community-action\""
-        },
-        {
-          "line": 384,
-          "attribute": "className",
-          "expression": "\"community-workspace-state\""
-        },
-        {
-          "line": 385,
-          "attribute": "size",
-          "expression": "{35}"
-        },
-        {
-          "line": 393,
-          "attribute": "className",
-          "expression": "\"community-action community-action-primary\""
-        },
-        {
-          "line": 401,
-          "attribute": "className",
-          "expression": "\"community-workspace-state\""
-        },
-        {
-          "line": 405,
-          "attribute": "className",
-          "expression": "\"community-workspace-state\""
-        },
-        {
-          "line": 406,
-          "attribute": "size",
-          "expression": "{35}"
-        },
-        {
-          "line": 414,
-          "attribute": "className",
-          "expression": "\"community-action\""
-        },
-        {
-          "line": 423,
-          "attribute": "className",
-          "expression": "\"community-workspace-state\""
-        },
-        {
-          "line": 437,
-          "attribute": "className",
-          "expression": "\"community-workspace-state\""
-        },
-        {
-          "line": 440,
-          "attribute": "className",
-          "expression": "\"community-action\""
-        },
-        {
-          "line": 446,
-          "attribute": "className",
-          "expression": "\"community-content-scroll\""
-        },
-        {
-          "line": 454,
-          "attribute": "className",
-          "expression": "\"community-about\""
-        },
-        {
-          "line": 455,
-          "attribute": "className",
-          "expression": "\"community-eyebrow\""
-        },
-        {
-          "line": 457,
-          "attribute": "className",
-          "expression": "\"community-description\""
-        },
-        {
-          "line": 480,
-          "attribute": "className",
-          "expression": "\"community-access-note\""
-        },
-        {
-          "line": 481,
-          "attribute": "size",
-          "expression": "{20}"
-        },
-        {
-          "line": 491,
-          "attribute": "className",
-          "expression": "\"community-about-actions\""
-        },
-        {
-          "line": 492,
-          "attribute": "className",
-          "expression": "\"community-action\""
-        },
-        {
-          "line": 493,
-          "attribute": "size",
-          "expression": "{16}"
-        },
-        {
-          "line": 496,
-          "attribute": "className",
-          "expression": "\"community-action\""
-        },
-        {
-          "line": 497,
-          "attribute": "size",
-          "expression": "{16}"
-        },
-        {
-          "line": 504,
-          "attribute": "className",
-          "expression": "\"community-overview-grid\""
-        },
-        {
-          "line": 506,
-          "attribute": "className",
-          "expression": "\"community-welcome\""
-        },
-        {
-          "line": 507,
-          "attribute": "className",
-          "expression": "\"community-eyebrow\""
-        },
-        {
-          "line": 513,
-          "attribute": "className",
-          "expression": "\"community-about-actions\""
-        },
-        {
-          "line": 516,
-          "attribute": "className",
-          "expression": "\"community-action community-action-primary\""
-        },
-        {
-          "line": 519,
-          "attribute": "size",
-          "expression": "{17}"
-        },
-        {
-          "line": 524,
-          "attribute": "className",
-          "expression": "\"community-action\""
-        },
-        {
-          "line": 525,
-          "attribute": "size",
-          "expression": "{16}"
-        },
-        {
-          "line": 531,
-          "attribute": "className",
-          "expression": "\"community-browse\""
-        },
-        {
-          "line": 532,
-          "attribute": "className",
-          "expression": "\"community-section-heading\""
-        },
-        {
-          "line": 535,
-          "attribute": "className",
-          "expression": "\"community-action\""
-        },
-        {
-          "line": 536,
-          "attribute": "size",
-          "expression": "{16}"
-        },
-        {
-          "line": 546,
-          "attribute": "className",
-          "expression": "\"community-browse-row\""
-        },
-        {
-          "line": 548,
-          "attribute": "className",
-          "expression": "\"community-hash\""
-        },
-        {
-          "line": 550,
-          "attribute": "size",
-          "expression": "{22}"
-        },
-        {
-          "line": 552,
-          "attribute": "size",
-          "expression": "{22}"
-        },
-        {
-          "line": 559,
-          "attribute": "size",
-          "expression": "{17}"
-        },
-        {
-          "line": 563,
-          "attribute": "className",
-          "expression": "\"community-empty\""
-        },
-        {
-          "line": 572,
-          "attribute": "className",
-          "expression": "\"community-people-preview\""
-        },
-        {
-          "line": 573,
-          "attribute": "className",
-          "expression": "\"community-section-heading\""
-        },
-        {
-          "line": 582,
-          "attribute": "className",
-          "expression": "\"community-action\""
-        },
-        {
-          "line": 591,
-          "attribute": "className",
-          "expression": "\"community-person\""
-        },
-        {
-          "line": 593,
-          "attribute": "className",
-          "expression": "\"community-person-avatar\""
-        },
-        {
-          "line": 613,
-          "attribute": "className",
-          "expression": "\"community-action\""
-        },
-        {
-          "line": 614,
           "attribute": "size",
           "expression": "{15}"
         },
         {
-          "line": 616,
+          "line": 240,
           "attribute": "className",
-          "expression": "\"community-access-note\""
+          "expression": "\"community-channel-list\""
         },
         {
-          "line": 617,
+          "line": 249,
+          "attribute": "className",
+          "expression": "\"community-channel-group\""
+        },
+        {
+          "line": 260,
+          "attribute": "size",
+          "expression": "{19}"
+        },
+        {
+          "line": 262,
+          "attribute": "size",
+          "expression": "{19}"
+        },
+        {
+          "line": 267,
+          "attribute": "className",
+          "expression": "\"community-channel-unread\""
+        },
+        {
+          "line": 281,
+          "attribute": "className",
+          "expression": "\"community-channel-group\""
+        },
+        {
+          "line": 294,
+          "attribute": "size",
+          "expression": "{19}"
+        },
+        {
+          "line": 296,
+          "attribute": "size",
+          "expression": "{19}"
+        },
+        {
+          "line": 301,
+          "attribute": "className",
+          "expression": "\"community-channel-unread\""
+        },
+        {
+          "line": 307,
+          "attribute": "className",
+          "expression": "\"sr-only\""
+        },
+        {
+          "line": 318,
+          "attribute": "className",
+          "expression": "\"community-channel-footer\""
+        },
+        {
+          "line": 320,
+          "attribute": "className",
+          "expression": "\"community-action\""
+        },
+        {
+          "line": 321,
+          "attribute": "size",
+          "expression": "{17}"
+        },
+        {
+          "line": 326,
+          "attribute": "className",
+          "expression": "\"community-action\""
+        },
+        {
+          "line": 335,
+          "attribute": "size",
+          "expression": "{16}"
+        },
+        {
+          "line": 339,
+          "attribute": "className",
+          "expression": "\"community-action\""
+        },
+        {
+          "line": 340,
+          "attribute": "size",
+          "expression": "{16}"
+        },
+        {
+          "line": 343,
+          "attribute": "className",
+          "expression": "\"community-action\""
+        },
+        {
+          "line": 344,
+          "attribute": "size",
+          "expression": "{16}"
+        },
+        {
+          "line": 344,
+          "attribute": "size",
+          "expression": "{14}"
+        },
+        {
+          "line": 348,
+          "attribute": "className",
+          "expression": "\"community-content\""
+        },
+        {
+          "line": 350,
+          "attribute": "className",
+          "expression": "{`community-content-header ${selectedChannel ? 'community-context-in-thread' : ''}`}"
+        },
+        {
+          "line": 354,
+          "attribute": "className",
+          "expression": "\"community-mobile-back\""
+        },
+        {
+          "line": 358,
           "attribute": "size",
           "expression": "{18}"
         },
         {
+          "line": 361,
+          "attribute": "size",
+          "expression": "{20}"
+        },
+        {
+          "line": 363,
+          "attribute": "size",
+          "expression": "{20}"
+        },
+        {
+          "line": 365,
+          "attribute": "size",
+          "expression": "{20}"
+        },
+        {
+          "line": 380,
+          "attribute": "className",
+          "expression": "\"community-icon-button\""
+        },
+        {
+          "line": 384,
+          "attribute": "size",
+          "expression": "{19}"
+        },
+        {
+          "line": 389,
+          "attribute": "className",
+          "expression": "\"community-icon-button\""
+        },
+        {
+          "line": 393,
+          "attribute": "size",
+          "expression": "{19}"
+        },
+        {
+          "line": 398,
+          "attribute": "className",
+          "expression": "\"community-workspace-state\""
+        },
+        {
+          "line": 402,
+          "attribute": "className",
+          "expression": "\"community-workspace-state\""
+        },
+        {
+          "line": 404,
+          "attribute": "className",
+          "expression": "\"community-action\""
+        },
+        {
+          "line": 409,
+          "attribute": "className",
+          "expression": "\"community-workspace-state\""
+        },
+        {
+          "line": 410,
+          "attribute": "size",
+          "expression": "{35}"
+        },
+        {
+          "line": 418,
+          "attribute": "className",
+          "expression": "\"community-action community-action-primary\""
+        },
+        {
+          "line": 426,
+          "attribute": "className",
+          "expression": "\"community-workspace-state\""
+        },
+        {
+          "line": 430,
+          "attribute": "className",
+          "expression": "\"community-workspace-state\""
+        },
+        {
+          "line": 431,
+          "attribute": "size",
+          "expression": "{35}"
+        },
+        {
+          "line": 439,
+          "attribute": "className",
+          "expression": "\"community-action\""
+        },
+        {
+          "line": 448,
+          "attribute": "className",
+          "expression": "\"community-workspace-state\""
+        },
+        {
+          "line": 462,
+          "attribute": "className",
+          "expression": "\"community-workspace-state\""
+        },
+        {
+          "line": 465,
+          "attribute": "className",
+          "expression": "\"community-action\""
+        },
+        {
+          "line": 471,
+          "attribute": "className",
+          "expression": "\"community-content-scroll\""
+        },
+        {
+          "line": 479,
+          "attribute": "className",
+          "expression": "\"community-about\""
+        },
+        {
+          "line": 480,
+          "attribute": "className",
+          "expression": "\"community-eyebrow\""
+        },
+        {
+          "line": 482,
+          "attribute": "className",
+          "expression": "\"community-description\""
+        },
+        {
+          "line": 505,
+          "attribute": "className",
+          "expression": "\"community-access-note\""
+        },
+        {
+          "line": 506,
+          "attribute": "size",
+          "expression": "{20}"
+        },
+        {
+          "line": 516,
+          "attribute": "className",
+          "expression": "\"community-about-actions\""
+        },
+        {
+          "line": 517,
+          "attribute": "className",
+          "expression": "\"community-action\""
+        },
+        {
+          "line": 518,
+          "attribute": "size",
+          "expression": "{16}"
+        },
+        {
+          "line": 521,
+          "attribute": "className",
+          "expression": "\"community-action\""
+        },
+        {
+          "line": 522,
+          "attribute": "size",
+          "expression": "{16}"
+        },
+        {
+          "line": 529,
+          "attribute": "className",
+          "expression": "\"community-overview-grid\""
+        },
+        {
+          "line": 531,
+          "attribute": "className",
+          "expression": "\"community-welcome\""
+        },
+        {
+          "line": 532,
+          "attribute": "className",
+          "expression": "\"community-eyebrow\""
+        },
+        {
+          "line": 538,
+          "attribute": "className",
+          "expression": "\"community-about-actions\""
+        },
+        {
+          "line": 541,
+          "attribute": "className",
+          "expression": "\"community-action community-action-primary\""
+        },
+        {
+          "line": 544,
+          "attribute": "size",
+          "expression": "{17}"
+        },
+        {
+          "line": 549,
+          "attribute": "className",
+          "expression": "\"community-action\""
+        },
+        {
+          "line": 550,
+          "attribute": "size",
+          "expression": "{16}"
+        },
+        {
+          "line": 556,
+          "attribute": "className",
+          "expression": "\"community-browse\""
+        },
+        {
+          "line": 557,
+          "attribute": "className",
+          "expression": "\"community-section-heading\""
+        },
+        {
+          "line": 560,
+          "attribute": "className",
+          "expression": "\"community-action\""
+        },
+        {
+          "line": 561,
+          "attribute": "size",
+          "expression": "{16}"
+        },
+        {
+          "line": 571,
+          "attribute": "className",
+          "expression": "\"community-browse-row\""
+        },
+        {
+          "line": 573,
+          "attribute": "className",
+          "expression": "\"community-hash\""
+        },
+        {
+          "line": 575,
+          "attribute": "size",
+          "expression": "{22}"
+        },
+        {
+          "line": 577,
+          "attribute": "size",
+          "expression": "{22}"
+        },
+        {
+          "line": 584,
+          "attribute": "size",
+          "expression": "{17}"
+        },
+        {
+          "line": 588,
+          "attribute": "className",
+          "expression": "\"community-empty\""
+        },
+        {
+          "line": 597,
+          "attribute": "className",
+          "expression": "\"community-people-preview\""
+        },
+        {
+          "line": 598,
+          "attribute": "className",
+          "expression": "\"community-section-heading\""
+        },
+        {
+          "line": 607,
+          "attribute": "className",
+          "expression": "\"community-action\""
+        },
+        {
+          "line": 616,
+          "attribute": "className",
+          "expression": "\"community-person\""
+        },
+        {
+          "line": 618,
+          "attribute": "className",
+          "expression": "\"community-person-avatar\""
+        },
+        {
+          "line": 638,
+          "attribute": "className",
+          "expression": "\"community-action\""
+        },
+        {
+          "line": 639,
+          "attribute": "size",
+          "expression": "{15}"
+        },
+        {
+          "line": 641,
+          "attribute": "className",
+          "expression": "\"community-access-note\""
+        },
+        {
           "line": 642,
+          "attribute": "size",
+          "expression": "{18}"
+        },
+        {
+          "line": 667,
           "attribute": "layout",
           "expression": "{{ ...channels.data, communityId, revision: channels.data.revision }}"
         }
@@ -124133,7 +124153,7 @@
       "utilityLiterals": [],
       "colorLiterals": [],
       "presentation": [],
-      "stylesheetOrArtwork": ".community-workspace {\n  --community-line: var(--app-border-subtle);\n  display: flex;\n  width: 100%;\n  min-width: 0;\n  height: 100%;\n  min-height: 0;\n  color: var(--app-text-primary);\n  background: var(--app-bg-color);\n  font-size: 14px;\n}\n.community-workspace button,\n.community-workspace a {\n  -webkit-tap-highlight-color: transparent;\n}\n.community-workspace button:not(:disabled),\n.community-workspace a {\n  cursor: pointer;\n}\n.community-workspace :is(button, a, input):focus-visible {\n  outline: 2px solid var(--app-accent-color);\n  outline-offset: 3px;\n}\n.community-server-rail {\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  gap: 12px;\n  width: 68px;\n  flex-shrink: 0;\n  padding: 20px 8px;\n  overflow-y: auto;\n  border-right: 1px solid var(--community-line);\n}\n.community-server-icon {\n  position: relative;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  width: 44px;\n  height: 44px;\n  flex-shrink: 0;\n  border-radius: 16px;\n  background: var(--app-surface-elevated);\n  color: var(--app-text-secondary);\n  font-weight: 750;\n  font-size: 13px;\n  text-decoration: none;\n  transition:\n    border-radius 160ms,\n    background-color 160ms;\n}\n.community-server-icon img,\n.community-server-mark img,\n.community-person-avatar img {\n  width: 100%;\n  height: 100%;\n  object-fit: cover;\n  border-radius: inherit;\n}\n.community-server-icon:hover,\n.community-server-icon[aria-current] {\n  color: var(--text-on-accent, white);\n  background: var(--app-accent-color);\n  border-radius: 12px;\n}\n.community-server-icon[aria-current]::before {\n  content: '';\n  position: absolute;\n  left: -9px;\n  width: 3px;\n  height: 28px;\n  border-radius: 3px;\n  background: var(--app-text-primary);\n}\n.community-rail-divider {\n  width: 25px;\n  height: 1px;\n  background: var(--community-line);\n}\n.community-server-add {\n  color: var(--app-accent-color);\n  background: color-mix(in srgb, var(--app-accent-color) 10%, transparent);\n}\n.community-channel-panel {\n  display: flex;\n  flex-direction: column;\n  width: 244px;\n  min-width: 0;\n  flex-shrink: 0;\n  background: var(--app-surface-card);\n  border-right: 1px solid var(--community-line);\n  padding: 0 12px;\n  min-height: 0;\n}\n.community-back {\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  min-height: 48px;\n  padding: 0 8px;\n  color: var(--app-text-secondary);\n  font-size: 12px;\n  text-decoration: none;\n}\n.community-back:hover {\n  color: var(--app-text-primary);\n}\n.community-server-heading {\n  padding: 12px 8px 20px;\n}\n.community-server-mark {\n  width: 48px;\n  height: 48px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  border-radius: 15px;\n  font-weight: 750;\n  font-size: 17px;\n  color: var(--app-accent-color);\n  background: color-mix(in srgb, var(--app-accent-color) 12%, var(--app-surface-elevated));\n  margin-bottom: 14px;\n}\n.community-server-heading h1 {\n  font-size: 18px;\n  line-height: 1.35;\n  font-weight: 750;\n  overflow-wrap: anywhere;\n}\n.community-server-heading p {\n  font-size: 12px;\n  color: var(--app-text-secondary);\n  margin: 7px 0 16px;\n}\n.community-action {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  gap: 8px;\n  min-height: 40px;\n  border: 1px solid var(--community-line);\n  border-radius: 10px;\n  padding: 8px 13px;\n  font-size: 13px;\n  font-weight: 600;\n  color: var(--app-text-primary);\n  background: var(--app-surface-elevated);\n  text-decoration: none;\n}\n.community-action:hover {\n  background: color-mix(in srgb, var(--app-text-primary) 8%, var(--app-surface-elevated));\n}\n.community-action-primary {\n  background: var(--app-accent-color);\n  border-color: transparent;\n  color: var(--text-on-accent, white);\n}\n.community-action-primary:hover {\n  background: color-mix(in srgb, var(--app-accent-color) 85%, white);\n}\n.community-server-heading .community-action {\n  width: 100%;\n}\n.community-sections {\n  display: flex;\n  flex-direction: column;\n  gap: 3px;\n  padding-bottom: 18px;\n  border-bottom: 1px solid var(--community-line);\n}\n.community-sections a,\n.community-channel-list a {\n  display: flex;\n  align-items: center;\n  gap: 10px;\n  min-height: 40px;\n  padding: 9px 10px;\n  border-radius: 8px;\n  text-decoration: none;\n  color: var(--app-text-secondary);\n  font-weight: 550;\n}\n.community-sections a > span {\n  margin-left: auto;\n  font-size: 11px;\n  font-weight: 600;\n}\n.community-sections a:hover,\n.community-channel-list a:hover {\n  color: var(--app-text-primary);\n  background: color-mix(in srgb, var(--app-text-primary) 4%, transparent);\n}\n.community-sections a[aria-current],\n.community-channel-list a[aria-current] {\n  background: color-mix(in srgb, var(--app-accent-color) 13%, transparent);\n  color: var(--app-text-primary);\n}\n.community-channel-list a[aria-current] {\n  box-shadow: inset 3px 0 var(--app-accent-color);\n}\n.community-channel-label {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  padding: 18px 9px 8px;\n}\n.community-channel-label h2 {\n  font-size: 11px;\n  letter-spacing: 0.07em;\n  text-transform: uppercase;\n  color: var(--app-text-secondary);\n  font-weight: 700;\n}\n.community-channel-label h2 span {\n  opacity: 0.7;\n  margin-left: 5px;\n}\n.community-channel-label button,\n.community-channel-search button {\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  min-width: 28px;\n  min-height: 28px;\n  border-radius: 6px;\n  color: var(--app-text-secondary);\n}\n.community-channel-label button:hover {\n  background: var(--app-surface-elevated);\n  color: var(--app-text-primary);\n}\n.community-channel-search {\n  display: flex;\n  align-items: center;\n  padding: 0 8px;\n  gap: 6px;\n  border: 1px solid var(--community-line);\n  border-radius: 8px;\n  margin-bottom: 10px;\n  color: var(--app-text-secondary);\n}\n.community-channel-search input {\n  width: 100%;\n  min-width: 0;\n  min-height: 36px;\n  background: transparent;\n  font-size: 12px;\n  color: var(--app-text-primary);\n}\n.community-channel-search:focus-within {\n  border-color: var(--app-accent-color);\n}\n.community-channel-list {\n  flex: 1;\n  overflow-y: auto;\n  min-height: 70px;\n  padding-bottom: 12px;\n}\n.community-channel-list a span {\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n.community-channel-list a svg {\n  flex-shrink: 0;\n  opacity: 0.8;\n}\n.community-channel-list > p {\n  padding: 12px;\n  font-size: 12px;\n  color: var(--app-text-secondary);\n}\n.community-channel-footer {\n  margin-top: auto;\n  padding: 12px 0;\n  border-top: 1px solid var(--community-line);\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n}\n.community-content {\n  display: flex;\n  flex: 1;\n  flex-direction: column;\n  min-height: 0;\n  min-width: 0;\n  overflow: hidden;\n}\n.community-content-header {\n  height: 58px;\n  min-height: 58px;\n  border-bottom: 1px solid var(--community-line);\n  padding: 0 22px;\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 12px;\n  background: var(--app-surface-card);\n}\n.community-content-header > div {\n  display: flex;\n  align-items: center;\n  gap: 10px;\n  min-width: 0;\n}\n.community-content-header h2 {\n  font-size: 14px;\n  font-weight: 700;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n.community-content-header svg {\n  color: var(--app-text-secondary);\n  flex-shrink: 0;\n}\n.community-icon-button {\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  width: 36px;\n  height: 36px;\n  border-radius: 8px;\n}\n.community-icon-button:hover {\n  background: var(--app-surface-elevated);\n}\n.community-mobile-back {\n  display: none;\n}\n.community-context-in-thread {\n  display: none;\n}\n.community-content-scroll {\n  flex: 1;\n  overflow: auto;\n  min-height: 0;\n  padding: 32px;\n}\n.community-overview-grid {\n  display: grid;\n  grid-template-columns: minmax(0, 1fr) 230px;\n  gap: 28px;\n  max-width: 1200px;\n  margin: 0 auto;\n}\n.community-overview-grid > div {\n  min-width: 0;\n}\n.community-welcome {\n  padding: 6px 0 28px;\n  border-bottom: 1px solid var(--community-line);\n}\n.community-eyebrow {\n  font-size: 10px;\n  font-weight: 750;\n  letter-spacing: 0.12em;\n  color: var(--app-accent-color);\n  margin-bottom: 13px;\n}\n.community-welcome h2,\n.community-about > h2 {\n  font-size: clamp(23px, 2.1vw, 32px);\n  font-weight: 750;\n  line-height: 1.2;\n  letter-spacing: -0.025em;\n  overflow-wrap: anywhere;\n}\n.community-welcome > p:not(.community-eyebrow) {\n  color: var(--app-text-secondary);\n  font-size: 14px;\n  line-height: 1.7;\n  margin: 14px 0 20px;\n  max-width: 560px;\n  white-space: pre-wrap;\n  overflow-wrap: anywhere;\n}\n.community-about-actions {\n  display: flex;\n  flex-wrap: wrap;\n  gap: 9px;\n}\n.community-browse {\n  margin-top: 24px;\n}\n.community-section-heading {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 12px;\n  margin-bottom: 15px;\n}\n.community-section-heading h2 {\n  font-size: 14px;\n  font-weight: 700;\n}\n.community-section-heading > span {\n  font-size: 12px;\n  color: var(--app-text-secondary);\n}\n.community-browse-row {\n  display: flex;\n  align-items: center;\n  gap: 14px;\n  padding: 16px 0;\n  border-bottom: 1px solid var(--community-line);\n  text-decoration: none;\n}\n.community-hash {\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  width: 42px;\n  height: 42px;\n  border-radius: 12px;\n  flex-shrink: 0;\n  background: var(--app-surface-elevated);\n  color: var(--app-text-secondary);\n}\n.community-browse-row > div {\n  min-width: 0;\n  flex: 1;\n}\n.community-browse-row h3 {\n  font-size: 14px;\n  font-weight: 650;\n  overflow-wrap: anywhere;\n}\n.community-browse-row p {\n  color: var(--app-text-secondary);\n  font-size: 12px;\n  line-height: 1.5;\n  margin-top: 4px;\n  overflow-wrap: anywhere;\n}\n.community-browse-row > svg {\n  color: var(--app-text-secondary);\n  flex-shrink: 0;\n}\n.community-browse-row:hover h3,\n.community-browse-row:hover > svg {\n  color: var(--app-accent-color);\n}\n.community-people-preview {\n  border-left: 1px solid var(--community-line);\n  padding-left: 24px;\n}\n.community-person {\n  display: flex;\n  align-items: center;\n  gap: 10px;\n  padding: 10px 0;\n  text-decoration: none;\n}\n.community-person-avatar {\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  width: 34px;\n  height: 34px;\n  flex-shrink: 0;\n  border-radius: 12px;\n  background: var(--app-surface-elevated);\n  color: var(--app-text-secondary);\n  font-size: 10px;\n  font-weight: 700;\n}\n.community-person > div {\n  min-width: 0;\n}\n.community-person strong {\n  display: block;\n  font-size: 12px;\n  font-weight: 600;\n  overflow-wrap: anywhere;\n}\n.community-person span:not(.community-person-avatar) {\n  display: block;\n  font-size: 11px;\n  color: var(--app-text-secondary);\n  margin-top: 2px;\n}\n.community-people-preview > .community-action {\n  width: 100%;\n  margin: 14px 0;\n}\n.community-access-note {\n  display: flex;\n  align-items: flex-start;\n  gap: 10px;\n  border-top: 1px solid var(--community-line);\n  padding-top: 18px;\n  margin-top: 14px;\n  color: var(--app-text-secondary);\n  font-size: 12px;\n  line-height: 1.6;\n}\n.community-access-note svg {\n  flex-shrink: 0;\n  margin-top: 2px;\n}\n.community-access-note h3 {\n  color: var(--app-text-primary);\n  font-weight: 650;\n  margin-bottom: 4px;\n}\n.community-about {\n  max-width: 700px;\n  margin: 12px auto;\n}\n.community-description {\n  color: var(--app-text-secondary);\n  line-height: 1.8;\n  white-space: pre-wrap;\n  overflow-wrap: anywhere;\n  margin: 20px 0;\n}\n.community-about dl {\n  display: flex;\n  flex-wrap: wrap;\n  gap: 32px;\n  padding: 24px 0;\n  border-top: 1px solid var(--community-line);\n}\n.community-about dt {\n  font-size: 12px;\n  color: var(--app-text-secondary);\n  margin-bottom: 6px;\n}\n.community-about dd {\n  font-weight: 650;\n  text-transform: capitalize;\n}\n.community-about > .community-about-actions {\n  margin-top: 24px;\n}\n.community-workspace-state {\n  flex: 1;\n  min-height: 250px;\n  display: flex;\n  flex-direction: column;\n  justify-content: center;\n  align-items: center;\n  text-align: center;\n  padding: 32px;\n  gap: 16px;\n}\n.community-workspace-state h2 {\n  font-size: 20px;\n  font-weight: 700;\n}\n.community-workspace-state > p {\n  max-width: 440px;\n  font-size: 14px;\n  line-height: 1.7;\n  color: var(--app-text-secondary);\n}\n.community-empty {\n  color: var(--app-text-secondary);\n  padding: 24px 0;\n  line-height: 1.6;\n}\n\n@media (max-width: 1199px) {\n  .community-overview-grid {\n    grid-template-columns: minmax(0, 1fr);\n  }\n  .community-people-preview {\n    border-left: 0;\n    border-top: 1px solid var(--community-line);\n    padding: 24px 0 0;\n  }\n  .community-people-preview .community-person {\n    display: inline-flex;\n    width: 50%;\n    vertical-align: top;\n  }\n  .community-content-scroll {\n    padding: 24px;\n  }\n}\n@media (max-width: 900px) and (min-width: 768px) {\n  .community-server-rail {\n    display: none;\n  }\n  .community-channel-panel {\n    width: 210px;\n  }\n}\n@media (max-width: 767px) {\n  .community-workspace {\n    height: 100%;\n    flex-wrap: wrap;\n    overflow: auto;\n  }\n  .community-server-rail {\n    flex-direction: row;\n    width: 100%;\n    height: 68px;\n    overflow-x: auto;\n    padding: 10px 16px;\n    border-right: 0;\n    border-bottom: 1px solid var(--community-line);\n  }\n  .community-rail-divider {\n    width: 1px;\n    height: 24px;\n    flex-shrink: 0;\n  }\n  .community-channel-panel {\n    width: 100%;\n    background: var(--app-bg-color);\n    border-right: 0;\n    min-height: 0;\n    padding: 0 16px;\n  }\n  .community-server-heading {\n    padding: 8px 4px 18px;\n  }\n  .community-server-heading h1 {\n    font-size: 22px;\n  }\n  .community-server-heading .community-action {\n    width: auto;\n  }\n  .community-server-mark {\n    width: 42px;\n    height: 42px;\n    margin-bottom: 12px;\n  }\n  .community-sections {\n    flex-direction: row;\n    overflow-x: auto;\n    padding-bottom: 12px;\n    gap: 4px;\n  }\n  .community-sections a {\n    flex-shrink: 0;\n    font-size: 12px;\n    padding: 10px 9px;\n  }\n  .community-channel-list {\n    overflow: visible;\n  }\n  .community-channel-list a {\n    min-height: 46px;\n  }\n  .community-channel-label {\n    padding-top: 18px;\n  }\n  .community-channel-footer {\n    flex-direction: row;\n    flex-wrap: wrap;\n  }\n  .community-content {\n    width: 100%;\n    flex: 0 0 auto;\n    overflow: visible;\n  }\n  .community-content-header {\n    padding: 0 16px;\n  }\n  .community-content-scroll {\n    overflow: visible;\n    padding: 20px;\n  }\n  .community-workspace:is(.has-channel, .has-detail) {\n    flex-wrap: nowrap;\n    overflow: hidden;\n  }\n  .community-workspace:is(.has-channel, .has-detail) > .community-server-rail,\n  .community-workspace:is(.has-channel, .has-detail) > .community-channel-panel {\n    display: none;\n  }\n  .community-workspace:is(.has-channel, .has-detail) > .community-content {\n    flex: 1;\n    overflow: hidden;\n  }\n  .community-mobile-back {\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    min-width: 36px;\n    height: 40px;\n    margin-left: -8px;\n    border-radius: 8px;\n  }\n  .community-browse .community-section-heading {\n    flex-wrap: wrap;\n  }\n  .community-workspace-state {\n    padding: 28px 20px;\n  }\n}\n@media (prefers-reduced-motion: reduce) {\n  .community-workspace * {\n    transition: none !important;\n  }\n}\n\n@media (max-width: 767px) {\n  .community-workspace.has-detail .community-content-scroll {\n    overflow: auto;\n  }\n}\n.community-channel-group h3 {\n  margin: 14px 10px 6px;\n  color: var(--app-text-secondary);\n  font-size: 12px;\n  font-weight: 700;\n  overflow-wrap: anywhere;\n}\n.community-layout-dialog {\n  width: min(680px, calc(100vw - 24px));\n  max-height: 85dvh;\n  overflow-y: auto;\n  padding: 24px;\n  border: 1px solid var(--app-border-subtle);\n  border-radius: 20px;\n  background: var(--app-bg-color);\n  color: var(--app-text-primary);\n  display: grid;\n  gap: 24px;\n}\n.community-layout-category,\n.community-layout-channel-order li {\n  display: flex;\n  align-items: center;\n  gap: 4px;\n  min-width: 0;\n}\n.community-layout-category button,\n.community-layout-channel-order button:not(:first-child) {\n  padding-inline: 10px;\n}\n.community-layout-channel-order {\n  display: grid;\n  gap: 6px;\n  max-height: 240px;\n  overflow-y: auto;\n}\n"
+      "stylesheetOrArtwork": ".community-workspace {\n  --community-line: var(--app-border-subtle);\n  display: flex;\n  width: 100%;\n  min-width: 0;\n  height: 100%;\n  min-height: 0;\n  color: var(--app-text-primary);\n  background: var(--app-bg-color);\n  font-size: 14px;\n}\n.community-workspace button,\n.community-workspace a {\n  -webkit-tap-highlight-color: transparent;\n}\n.community-workspace button:not(:disabled),\n.community-workspace a {\n  cursor: pointer;\n}\n.community-workspace :is(button, a, input):focus-visible {\n  outline: 2px solid var(--app-accent-color);\n  outline-offset: 3px;\n}\n.community-server-rail {\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  gap: 12px;\n  width: 68px;\n  flex-shrink: 0;\n  padding: 20px 8px;\n  overflow-y: auto;\n  border-right: 1px solid var(--community-line);\n}\n.community-server-icon {\n  position: relative;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  width: 44px;\n  height: 44px;\n  flex-shrink: 0;\n  border-radius: 16px;\n  background: var(--app-surface-elevated);\n  color: var(--app-text-secondary);\n  font-weight: 750;\n  font-size: 13px;\n  text-decoration: none;\n  transition:\n    border-radius 160ms,\n    background-color 160ms;\n}\n.community-server-icon img,\n.community-server-mark img,\n.community-person-avatar img {\n  width: 100%;\n  height: 100%;\n  object-fit: cover;\n  border-radius: inherit;\n}\n.community-server-icon:hover,\n.community-server-icon[aria-current] {\n  color: var(--text-on-accent, white);\n  background: var(--app-accent-color);\n  border-radius: 12px;\n}\n.community-server-icon[aria-current]::before {\n  content: '';\n  position: absolute;\n  left: -9px;\n  width: 3px;\n  height: 28px;\n  border-radius: 3px;\n  background: var(--app-text-primary);\n}\n.community-rail-divider {\n  width: 25px;\n  height: 1px;\n  background: var(--community-line);\n}\n.community-server-add {\n  color: var(--app-accent-color);\n  background: color-mix(in srgb, var(--app-accent-color) 10%, transparent);\n}\n.community-channel-panel {\n  display: flex;\n  flex-direction: column;\n  width: 244px;\n  min-width: 0;\n  flex-shrink: 0;\n  background: var(--app-surface-card);\n  border-right: 1px solid var(--community-line);\n  padding: 0 12px;\n  min-height: 0;\n}\n.community-back {\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  min-height: 48px;\n  padding: 0 8px;\n  color: var(--app-text-secondary);\n  font-size: 12px;\n  text-decoration: none;\n}\n.community-back:hover {\n  color: var(--app-text-primary);\n}\n.community-server-heading {\n  padding: 12px 8px 20px;\n}\n.community-server-mark {\n  width: 48px;\n  height: 48px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  border-radius: 15px;\n  font-weight: 750;\n  font-size: 17px;\n  color: var(--app-accent-color);\n  background: color-mix(in srgb, var(--app-accent-color) 12%, var(--app-surface-elevated));\n  margin-bottom: 14px;\n}\n.community-server-heading h1 {\n  font-size: 18px;\n  line-height: 1.35;\n  font-weight: 750;\n  overflow-wrap: anywhere;\n}\n.community-server-heading p {\n  font-size: 12px;\n  color: var(--app-text-secondary);\n  margin: 7px 0 16px;\n}\n.community-action {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  gap: 8px;\n  min-height: 40px;\n  border: 1px solid var(--community-line);\n  border-radius: 10px;\n  padding: 8px 13px;\n  font-size: 13px;\n  font-weight: 600;\n  color: var(--app-text-primary);\n  background: var(--app-surface-elevated);\n  text-decoration: none;\n}\n.community-action:hover {\n  background: color-mix(in srgb, var(--app-text-primary) 8%, var(--app-surface-elevated));\n}\n.community-action-primary {\n  background: var(--app-accent-color);\n  border-color: transparent;\n  color: var(--text-on-accent, white);\n}\n.community-action-primary:hover {\n  background: color-mix(in srgb, var(--app-accent-color) 85%, white);\n}\n.community-server-heading .community-action {\n  width: 100%;\n}\n.community-sections {\n  display: flex;\n  flex-direction: column;\n  gap: 3px;\n  padding-bottom: 18px;\n  border-bottom: 1px solid var(--community-line);\n}\n.community-sections a,\n.community-channel-list a {\n  display: flex;\n  align-items: center;\n  gap: 10px;\n  min-height: 40px;\n  padding: 9px 10px;\n  border-radius: 8px;\n  text-decoration: none;\n  color: var(--app-text-secondary);\n  font-weight: 550;\n}\n.community-sections a > span {\n  margin-left: auto;\n  font-size: 11px;\n  font-weight: 600;\n}\n.community-sections a:hover,\n.community-channel-list a:hover {\n  color: var(--app-text-primary);\n  background: color-mix(in srgb, var(--app-text-primary) 4%, transparent);\n}\n.community-sections a[aria-current],\n.community-channel-list a[aria-current] {\n  background: color-mix(in srgb, var(--app-accent-color) 13%, transparent);\n  color: var(--app-text-primary);\n}\n.community-channel-list a[aria-current] {\n  box-shadow: inset 3px 0 var(--app-accent-color);\n}\n.community-channel-label {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  padding: 18px 9px 8px;\n}\n.community-channel-label h2 {\n  font-size: 11px;\n  letter-spacing: 0.07em;\n  text-transform: uppercase;\n  color: var(--app-text-secondary);\n  font-weight: 700;\n}\n.community-channel-label h2 span {\n  opacity: 0.7;\n  margin-left: 5px;\n}\n.community-channel-label button,\n.community-channel-search button {\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  min-width: 28px;\n  min-height: 28px;\n  border-radius: 6px;\n  color: var(--app-text-secondary);\n}\n.community-channel-label button:hover {\n  background: var(--app-surface-elevated);\n  color: var(--app-text-primary);\n}\n.community-channel-search {\n  display: flex;\n  align-items: center;\n  padding: 0 8px;\n  gap: 6px;\n  border: 1px solid var(--community-line);\n  border-radius: 8px;\n  margin-bottom: 10px;\n  color: var(--app-text-secondary);\n}\n.community-channel-search input {\n  width: 100%;\n  min-width: 0;\n  min-height: 36px;\n  background: transparent;\n  font-size: 12px;\n  color: var(--app-text-primary);\n}\n.community-channel-search:focus-within {\n  border-color: var(--app-accent-color);\n}\n.community-channel-list {\n  flex: 1;\n  overflow-y: auto;\n  min-height: 70px;\n  padding-bottom: 12px;\n}\n.community-channel-list a span {\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n.community-channel-list a svg {\n  flex-shrink: 0;\n  opacity: 0.8;\n}\n.community-channel-list a .community-channel-unread {\n  margin-left: auto;\n  flex-shrink: 0;\n  min-width: 22px;\n  padding: 1px 5px;\n  border-radius: 999px;\n  background: color-mix(in srgb, var(--app-accent-color) 18%, transparent);\n  color: var(--app-text-primary);\n  text-align: center;\n  font-size: 11px;\n  font-weight: 700;\n}\n.community-channel-list > p {\n  padding: 12px;\n  font-size: 12px;\n  color: var(--app-text-secondary);\n}\n.community-channel-footer {\n  margin-top: auto;\n  padding: 12px 0;\n  border-top: 1px solid var(--community-line);\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n}\n.community-content {\n  display: flex;\n  flex: 1;\n  flex-direction: column;\n  min-height: 0;\n  min-width: 0;\n  overflow: hidden;\n}\n.community-content-header {\n  height: 58px;\n  min-height: 58px;\n  border-bottom: 1px solid var(--community-line);\n  padding: 0 22px;\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 12px;\n  background: var(--app-surface-card);\n}\n.community-content-header > div {\n  display: flex;\n  align-items: center;\n  gap: 10px;\n  min-width: 0;\n}\n.community-content-header h2 {\n  font-size: 14px;\n  font-weight: 700;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n.community-content-header svg {\n  color: var(--app-text-secondary);\n  flex-shrink: 0;\n}\n.community-icon-button {\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  width: 36px;\n  height: 36px;\n  border-radius: 8px;\n}\n.community-icon-button:hover {\n  background: var(--app-surface-elevated);\n}\n.community-mobile-back {\n  display: none;\n}\n.community-context-in-thread {\n  display: none;\n}\n.community-content-scroll {\n  flex: 1;\n  overflow: auto;\n  min-height: 0;\n  padding: 32px;\n}\n.community-overview-grid {\n  display: grid;\n  grid-template-columns: minmax(0, 1fr) 230px;\n  gap: 28px;\n  max-width: 1200px;\n  margin: 0 auto;\n}\n.community-overview-grid > div {\n  min-width: 0;\n}\n.community-welcome {\n  padding: 6px 0 28px;\n  border-bottom: 1px solid var(--community-line);\n}\n.community-eyebrow {\n  font-size: 10px;\n  font-weight: 750;\n  letter-spacing: 0.12em;\n  color: var(--app-accent-color);\n  margin-bottom: 13px;\n}\n.community-welcome h2,\n.community-about > h2 {\n  font-size: clamp(23px, 2.1vw, 32px);\n  font-weight: 750;\n  line-height: 1.2;\n  letter-spacing: -0.025em;\n  overflow-wrap: anywhere;\n}\n.community-welcome > p:not(.community-eyebrow) {\n  color: var(--app-text-secondary);\n  font-size: 14px;\n  line-height: 1.7;\n  margin: 14px 0 20px;\n  max-width: 560px;\n  white-space: pre-wrap;\n  overflow-wrap: anywhere;\n}\n.community-about-actions {\n  display: flex;\n  flex-wrap: wrap;\n  gap: 9px;\n}\n.community-browse {\n  margin-top: 24px;\n}\n.community-section-heading {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 12px;\n  margin-bottom: 15px;\n}\n.community-section-heading h2 {\n  font-size: 14px;\n  font-weight: 700;\n}\n.community-section-heading > span {\n  font-size: 12px;\n  color: var(--app-text-secondary);\n}\n.community-browse-row {\n  display: flex;\n  align-items: center;\n  gap: 14px;\n  padding: 16px 0;\n  border-bottom: 1px solid var(--community-line);\n  text-decoration: none;\n}\n.community-hash {\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  width: 42px;\n  height: 42px;\n  border-radius: 12px;\n  flex-shrink: 0;\n  background: var(--app-surface-elevated);\n  color: var(--app-text-secondary);\n}\n.community-browse-row > div {\n  min-width: 0;\n  flex: 1;\n}\n.community-browse-row h3 {\n  font-size: 14px;\n  font-weight: 650;\n  overflow-wrap: anywhere;\n}\n.community-browse-row p {\n  color: var(--app-text-secondary);\n  font-size: 12px;\n  line-height: 1.5;\n  margin-top: 4px;\n  overflow-wrap: anywhere;\n}\n.community-browse-row > svg {\n  color: var(--app-text-secondary);\n  flex-shrink: 0;\n}\n.community-browse-row:hover h3,\n.community-browse-row:hover > svg {\n  color: var(--app-accent-color);\n}\n.community-people-preview {\n  border-left: 1px solid var(--community-line);\n  padding-left: 24px;\n}\n.community-person {\n  display: flex;\n  align-items: center;\n  gap: 10px;\n  padding: 10px 0;\n  text-decoration: none;\n}\n.community-person-avatar {\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  width: 34px;\n  height: 34px;\n  flex-shrink: 0;\n  border-radius: 12px;\n  background: var(--app-surface-elevated);\n  color: var(--app-text-secondary);\n  font-size: 10px;\n  font-weight: 700;\n}\n.community-person > div {\n  min-width: 0;\n}\n.community-person strong {\n  display: block;\n  font-size: 12px;\n  font-weight: 600;\n  overflow-wrap: anywhere;\n}\n.community-person span:not(.community-person-avatar) {\n  display: block;\n  font-size: 11px;\n  color: var(--app-text-secondary);\n  margin-top: 2px;\n}\n.community-people-preview > .community-action {\n  width: 100%;\n  margin: 14px 0;\n}\n.community-access-note {\n  display: flex;\n  align-items: flex-start;\n  gap: 10px;\n  border-top: 1px solid var(--community-line);\n  padding-top: 18px;\n  margin-top: 14px;\n  color: var(--app-text-secondary);\n  font-size: 12px;\n  line-height: 1.6;\n}\n.community-access-note svg {\n  flex-shrink: 0;\n  margin-top: 2px;\n}\n.community-access-note h3 {\n  color: var(--app-text-primary);\n  font-weight: 650;\n  margin-bottom: 4px;\n}\n.community-about {\n  max-width: 700px;\n  margin: 12px auto;\n}\n.community-description {\n  color: var(--app-text-secondary);\n  line-height: 1.8;\n  white-space: pre-wrap;\n  overflow-wrap: anywhere;\n  margin: 20px 0;\n}\n.community-about dl {\n  display: flex;\n  flex-wrap: wrap;\n  gap: 32px;\n  padding: 24px 0;\n  border-top: 1px solid var(--community-line);\n}\n.community-about dt {\n  font-size: 12px;\n  color: var(--app-text-secondary);\n  margin-bottom: 6px;\n}\n.community-about dd {\n  font-weight: 650;\n  text-transform: capitalize;\n}\n.community-about > .community-about-actions {\n  margin-top: 24px;\n}\n.community-workspace-state {\n  flex: 1;\n  min-height: 250px;\n  display: flex;\n  flex-direction: column;\n  justify-content: center;\n  align-items: center;\n  text-align: center;\n  padding: 32px;\n  gap: 16px;\n}\n.community-workspace-state h2 {\n  font-size: 20px;\n  font-weight: 700;\n}\n.community-workspace-state > p {\n  max-width: 440px;\n  font-size: 14px;\n  line-height: 1.7;\n  color: var(--app-text-secondary);\n}\n.community-empty {\n  color: var(--app-text-secondary);\n  padding: 24px 0;\n  line-height: 1.6;\n}\n\n@media (max-width: 1199px) {\n  .community-overview-grid {\n    grid-template-columns: minmax(0, 1fr);\n  }\n  .community-people-preview {\n    border-left: 0;\n    border-top: 1px solid var(--community-line);\n    padding: 24px 0 0;\n  }\n  .community-people-preview .community-person {\n    display: inline-flex;\n    width: 50%;\n    vertical-align: top;\n  }\n  .community-content-scroll {\n    padding: 24px;\n  }\n}\n@media (max-width: 900px) and (min-width: 768px) {\n  .community-server-rail {\n    display: none;\n  }\n  .community-channel-panel {\n    width: 210px;\n  }\n}\n@media (max-width: 767px) {\n  .community-workspace {\n    height: 100%;\n    flex-wrap: wrap;\n    overflow: auto;\n  }\n  .community-server-rail {\n    flex-direction: row;\n    width: 100%;\n    height: 68px;\n    overflow-x: auto;\n    padding: 10px 16px;\n    border-right: 0;\n    border-bottom: 1px solid var(--community-line);\n  }\n  .community-rail-divider {\n    width: 1px;\n    height: 24px;\n    flex-shrink: 0;\n  }\n  .community-channel-panel {\n    width: 100%;\n    background: var(--app-bg-color);\n    border-right: 0;\n    min-height: 0;\n    padding: 0 16px;\n  }\n  .community-server-heading {\n    padding: 8px 4px 18px;\n  }\n  .community-server-heading h1 {\n    font-size: 22px;\n  }\n  .community-server-heading .community-action {\n    width: auto;\n  }\n  .community-server-mark {\n    width: 42px;\n    height: 42px;\n    margin-bottom: 12px;\n  }\n  .community-sections {\n    flex-direction: row;\n    overflow-x: auto;\n    padding-bottom: 12px;\n    gap: 4px;\n  }\n  .community-sections a {\n    flex-shrink: 0;\n    font-size: 12px;\n    padding: 10px 9px;\n  }\n  .community-channel-list {\n    overflow: visible;\n  }\n  .community-channel-list a {\n    min-height: 46px;\n  }\n  .community-channel-label {\n    padding-top: 18px;\n  }\n  .community-channel-footer {\n    flex-direction: row;\n    flex-wrap: wrap;\n  }\n  .community-content {\n    width: 100%;\n    flex: 0 0 auto;\n    overflow: visible;\n  }\n  .community-content-header {\n    padding: 0 16px;\n  }\n  .community-content-scroll {\n    overflow: visible;\n    padding: 20px;\n  }\n  .community-workspace:is(.has-channel, .has-detail) {\n    flex-wrap: nowrap;\n    overflow: hidden;\n  }\n  .community-workspace:is(.has-channel, .has-detail) > .community-server-rail,\n  .community-workspace:is(.has-channel, .has-detail) > .community-channel-panel {\n    display: none;\n  }\n  .community-workspace:is(.has-channel, .has-detail) > .community-content {\n    flex: 1;\n    overflow: hidden;\n  }\n  .community-mobile-back {\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    min-width: 36px;\n    height: 40px;\n    margin-left: -8px;\n    border-radius: 8px;\n  }\n  .community-browse .community-section-heading {\n    flex-wrap: wrap;\n  }\n  .community-workspace-state {\n    padding: 28px 20px;\n  }\n}\n@media (prefers-reduced-motion: reduce) {\n  .community-workspace * {\n    transition: none !important;\n  }\n}\n\n@media (max-width: 767px) {\n  .community-workspace.has-detail .community-content-scroll {\n    overflow: auto;\n  }\n}\n.community-channel-group h3 {\n  margin: 14px 10px 6px;\n  color: var(--app-text-secondary);\n  font-size: 12px;\n  font-weight: 700;\n  overflow-wrap: anywhere;\n}\n.community-layout-dialog {\n  width: min(680px, calc(100vw - 24px));\n  max-height: 85dvh;\n  overflow-y: auto;\n  padding: 24px;\n  border: 1px solid var(--app-border-subtle);\n  border-radius: 20px;\n  background: var(--app-bg-color);\n  color: var(--app-text-primary);\n  display: grid;\n  gap: 24px;\n}\n.community-layout-category,\n.community-layout-channel-order li {\n  display: flex;\n  align-items: center;\n  gap: 4px;\n  min-width: 0;\n}\n.community-layout-category button,\n.community-layout-channel-order button:not(:first-child) {\n  padding-inline: 10px;\n}\n.community-layout-channel-order {\n  display: grid;\n  gap: 6px;\n  max-height: 240px;\n  overflow-y: auto;\n}\n"
     },
     {
       "path": "apps/web/src/pages/Company/CareersPage.tsx",
@@ -190461,6 +190481,93 @@
           "line": 899,
           "attribute": "className",
           "expression": "{`${communityButton} bg-purple-600 text-white`}"
+        }
+      ]
+    },
+    {
+      "path": "apps/web/src/widgets/communities/CommunityNotificationDialog.tsx",
+      "utilityLiterals": [
+        "dark:text-gray-400",
+        "flex",
+        "font-bold",
+        "gap-3",
+        "justify-end",
+        "space-y-4",
+        "text-gray-600",
+        "text-sm",
+        "text-xl"
+      ],
+      "colorLiterals": [],
+      "presentation": [
+        {
+          "line": 71,
+          "attribute": "className",
+          "expression": "\"community-layout-dialog\""
+        },
+        {
+          "line": 72,
+          "attribute": "className",
+          "expression": "\"text-xl font-bold\""
+        },
+        {
+          "line": 78,
+          "attribute": "className",
+          "expression": "\"flex justify-end gap-3\""
+        },
+        {
+          "line": 82,
+          "attribute": "className",
+          "expression": "{communityButton}"
+        },
+        {
+          "line": 89,
+          "attribute": "className",
+          "expression": "{communityButton}"
+        },
+        {
+          "line": 120,
+          "attribute": "className",
+          "expression": "\"text-sm text-gray-600 dark:text-gray-400\""
+        },
+        {
+          "line": 134,
+          "attribute": "className",
+          "expression": "{communityButton}"
+        },
+        {
+          "line": 139,
+          "attribute": "className",
+          "expression": "{communityButton}"
+        },
+        {
+          "line": 210,
+          "attribute": "className",
+          "expression": "\"space-y-4\""
+        },
+        {
+          "line": 224,
+          "attribute": "className",
+          "expression": "\"text-sm\""
+        },
+        {
+          "line": 249,
+          "attribute": "className",
+          "expression": "\"text-sm text-gray-600 dark:text-gray-400\""
+        },
+        {
+          "line": 259,
+          "attribute": "className",
+          "expression": "\"flex justify-end gap-3\""
+        },
+        {
+          "line": 262,
+          "attribute": "className",
+          "expression": "{communityButton}"
+        },
+        {
+          "line": 270,
+          "attribute": "className",
+          "expression": "{communityButton}"
         }
       ]
     },

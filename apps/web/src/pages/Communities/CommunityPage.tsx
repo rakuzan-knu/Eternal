@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
+  Bell,
   ArrowUpRight,
   Compass,
   Hash,
@@ -33,6 +34,7 @@ import {
   CommunityInviteDialog,
   CommunityMembers,
   CommunityChannelLayoutDialog,
+  CommunityNotificationDialog,
 } from '@/widgets/communities';
 import './community-workspace.css';
 
@@ -50,7 +52,9 @@ export default function CommunityPage() {
   const community = useCommunity(communityId);
   const channels = useCommunityChannels(communityId, authenticated);
   const mine = useMyCommunities(authenticated);
-  const [dialog, setDialog] = useState<'channel' | 'invite' | 'edit' | 'layout' | null>(null);
+  const [dialog, setDialog] = useState<
+    'channel' | 'invite' | 'edit' | 'layout' | 'notifications' | null
+  >(null);
   const [filter, setFilter] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
   const base = `/communities/${communityId}`;
@@ -96,8 +100,8 @@ export default function CommunityPage() {
     setFilter('');
   }, [communityId]);
   useEffect(() => {
-    if (!admin) setDialog(null);
-  }, [admin]);
+    if (!member || (!admin && dialog !== 'notifications')) setDialog(null);
+  }, [admin, member, dialog]);
 
   return (
     <div
@@ -258,6 +262,14 @@ export default function CommunityPage() {
                             <Hash size={19} />
                           )}
                           <span>{channel.name}</span>
+                          {(channel.unreadCount ?? 0) > 0 && (
+                            <span
+                              className="community-channel-unread"
+                              aria-label={`${channel.unreadCount} unread messages`}
+                            >
+                              {channel.unreadCount?.toLocaleString(locale)}
+                            </span>
+                          )}
                         </Link>
                       ))}
                       {!grouped.length && <p>No channels in this category.</p>}
@@ -284,6 +296,14 @@ export default function CommunityPage() {
                           <Hash size={19} />
                         )}
                         <span>{channel.name}</span>
+                        {(channel.unreadCount ?? 0) > 0 && (
+                          <span
+                            className="community-channel-unread"
+                            aria-label={`${channel.unreadCount} unread messages`}
+                          >
+                            {channel.unreadCount?.toLocaleString(locale)}
+                          </span>
+                        )}
                         <span className="sr-only"> (archived)</span>
                       </Link>
                     ))}
@@ -296,6 +316,11 @@ export default function CommunityPage() {
           </>
         )}
         <footer className="community-channel-footer">
+          {member && (
+            <button className="community-action" onClick={() => setDialog('notifications')}>
+              <Bell size={17} /> Notification settings
+            </button>
+          )}
           {admin && (
             <button
               className="community-action"
@@ -645,6 +670,14 @@ export default function CommunityPage() {
       )}
       {admin && community.data && dialog === 'invite' && (
         <CommunityInviteDialog community={community.data} onClose={() => setDialog(null)} />
+      )}
+      {member && dialog === 'notifications' && (
+        <CommunityNotificationDialog
+          communityId={communityId}
+          channels={channels.data.data}
+          selectedChannelId={selectedChannel?.id}
+          onClose={() => setDialog(null)}
+        />
       )}
     </div>
   );
