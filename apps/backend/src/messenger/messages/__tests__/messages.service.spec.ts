@@ -45,6 +45,7 @@ describe('MessagesService', () => {
     mapMessage: jest.Mock;
   };
   let mockPrisma: {
+    conversationParticipant: { findMany: jest.Mock };
     userBlock: {
       findMany: jest.Mock;
       findFirst: jest.Mock;
@@ -130,6 +131,7 @@ describe('MessagesService', () => {
     };
 
     mockPrisma = {
+      conversationParticipant: { findMany: jest.fn().mockResolvedValue([{ userId: 'usr-2' }]) },
       $queryRaw: jest.fn().mockResolvedValue([]),
       userBlock: {
         findMany: jest.fn().mockResolvedValue([]),
@@ -225,6 +227,72 @@ describe('MessagesService', () => {
   });
 
   describe('send message and validations', () => {
+    it('persists explicit mention metadata with encrypted text and the replayable outbox view', async () => {
+      const mentionedUserIds = ['usr-2'];
+      mockPrisma.message.create.mockResolvedValue({ ...sampleMsg, mentionedUserIds });
+      mockMapper.mapMessage.mockReturnValue({ id: sampleMsg.id, mentionedUserIds });
+      const result = await service.send('conv-1', 'usr-1', {
+        text: 'encrypted body',
+        messageType: MessageType.TEXT,
+        mentionedUserIds,
+      });
+      expect(result.mentionedUserIds).toEqual(mentionedUserIds);
+      expect(mockPrisma.conversationParticipant.findMany).toHaveBeenCalledWith({
+        where: { conversationId: 'conv-1', leftAt: null, userId: { in: mentionedUserIds } },
+        select: { userId: true },
+      });
+      expect(mockPrisma.message.create.mock.calls).toMatchObject([
+        [{ data: { mentionedUserIds } }],
+      ]);
+      expect(mockPrisma.outboxEvent?.create.mock.calls).toMatchObject([
+        [{ data: { payload: { messageView: { mentionedUserIds } } } }],
+      ]);
+      expect(mockPrisma.$queryRaw).toHaveBeenCalled();
+    });
+
+    it('rejects an absent or revoked mention with a generic validation error before persisting', async () => {
+      mockPrisma.conversationParticipant.findMany.mockResolvedValue([]);
+      await expect(
+        service.send('conv-1', 'usr-1', {
+          text: 'hello',
+          messageType: MessageType.TEXT,
+          mentionedUserIds: ['outsider'],
+        }),
+      ).rejects.toThrow('Invalid mentions');
+      expect(mockPrisma.message.create).not.toHaveBeenCalled();
+      expect(mockPrisma.outboxEvent?.create).not.toHaveBeenCalled();
+    });
+
+    it('checks sender authorization separately before checking mention targets', async () => {
+      mockConvsRepo.findParticipant.mockResolvedValue(null);
+      await expect(
+        service.send('conv-1', 'usr-1', {
+          text: 'hello',
+          messageType: MessageType.TEXT,
+          mentionedUserIds: ['outsider'],
+        }),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(mockPrisma.conversationParticipant.findMany).not.toHaveBeenCalled();
+      expect(mockPrisma.message.create).not.toHaveBeenCalled();
+    });
+
+    it('returns original mention metadata on idempotent retry without adding alerts or writes', async () => {
+      const cached = { id: 'original', mentionedUserIds: ['usr-2'] };
+      Object.assign(service, {
+        redisService: { get: jest.fn().mockResolvedValue(JSON.stringify(cached)) },
+      });
+      await expect(
+        service.send('conv-1', 'usr-1', {
+          text: 'changed',
+          messageType: MessageType.TEXT,
+          clientMessageId: 'same',
+          mentionedUserIds: ['outsider'],
+        }),
+      ).resolves.toEqual(cached);
+      expect(mockPrisma.message.create).not.toHaveBeenCalled();
+      expect(mockPrisma.outboxEvent?.create).not.toHaveBeenCalled();
+    });
+
     it.each([
       'https://media0.giphy.com/media/example/giphy.gif?cid=tracking&rid=giphy.gif',
       'https://media1.giphy.com/media/example/giphy.gif',

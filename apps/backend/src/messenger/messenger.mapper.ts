@@ -60,6 +60,7 @@ export class MessengerMapper {
       conversationId: msg.conversationId,
       sender: msg.sender,
       body: isMessageHidden ? null : (msg.body ?? null),
+      mentionedUserIds: isMessageHidden ? [] : (msg.mentionedUserIds ?? []),
       clientSeq: msg.clientSeq != null ? msg.clientSeq | 0 : null,
       messageType: msg.messageType,
       replyTo:
@@ -199,6 +200,13 @@ export class MessengerMapper {
       participants: conv.participants.map((p) => this.mapParticipant(p)),
       lastMessage,
       unreadCount: unreadCount | 0,
+      myNotificationMode: myParticipant?.notificationMode ?? null,
+      myEffectiveNotificationMode:
+        myParticipant?.notificationMode ??
+        conv.ownCommunityNotificationPreferences?.notificationMode ??
+        'ALL',
+      myNotificationMutedUntil:
+        conv.ownCommunityNotificationPreferences?.notificationMutedUntil?.toISOString() ?? null,
       myTheme: effectiveTheme,
       myMuteLevel: effectiveMuteLevel,
       myMutedUntil: isMuteExpired ? null : (myParticipant?.mutedUntil ?? null),

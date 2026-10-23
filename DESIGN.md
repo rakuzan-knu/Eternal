@@ -23,6 +23,8 @@ components:
 
 # Eternal design context
 
+Community notification preferences reuse the existing Modal and authored Select, community button styles and runtime theme tokens. A server/channel scope selector separates account preferences from administrator settings. Use explicit inheritance and temporary-mute wording, preserve failed drafts, and show canonical unread counts as compact channel badges. No new palette, font, navigation surface or notification renderer is introduced.
+
 ## Communities and sharing
 
 Communities add an invitation-based server model without converting or removing existing group chats. Public discovery exposes names, descriptions and counts; channel conversations and member lists require active membership. Keep the existing purple identity, readable compact cards and all navigation destinations. Use the shared Modal and Select for keyboard navigation, focus recovery and mutation states. Community cards retain page gutters on narrow screens; invitation dialogs scroll internally without hiding actions.

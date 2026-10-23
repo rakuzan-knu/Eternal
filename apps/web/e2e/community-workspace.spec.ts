@@ -1,4 +1,4 @@
-import { test, expect, mockApi } from './fixtures';
+import { test, expect, mockApi, fulfillApi } from './fixtures';
 
 const server = {
   id: '10000000-0000-4000-8000-000000000001',
@@ -146,6 +146,85 @@ for (const width of [390, 1440]) {
           },
         });
       }
+    });
+    test('members save notification preferences, retry errors and restore channel inheritance', async ({
+      authenticatedPage: page,
+    }) => {
+      await mockApi(page, `/messenger/communities/${server.id}/channels`, {
+        json: {
+          communityId: server.id,
+          role: 'MEMBER',
+          data: channels.map((channel, index) => ({
+            ...channel,
+            unreadCount: index === 0 ? 3 : 0,
+          })),
+        },
+      });
+      let serverMode = 'ALL';
+      let attempts = 0;
+      const writes: unknown[] = [];
+      await page.route(
+        `**/messenger/communities/${server.id}/notification-preferences`,
+        async (route) => {
+          if (route.request().method() === 'PATCH') {
+            attempts++;
+            writes.push(route.request().postDataJSON());
+            if (attempts === 1)
+              return fulfillApi(route, { status: 503, json: { message: 'Unavailable' } });
+            serverMode = 'MENTIONS';
+          }
+          return fulfillApi(route, {
+            json: { notificationMode: serverMode, notificationMutedUntil: null },
+          });
+        },
+      );
+      await page.route(
+        `**/messenger/communities/${server.id}/channels/design-feedback/notification-preferences`,
+        async (route) => {
+          const patch = route.request().method() === 'PATCH';
+          if (patch) writes.push(route.request().postDataJSON());
+          return fulfillApi(route, {
+            json: {
+              notificationMode: patch ? null : 'NONE',
+              effectiveNotificationMode: patch ? serverMode : 'NONE',
+              notificationMutedUntil: null,
+            },
+          });
+        },
+      );
+      await page.goto(`/communities/${server.id}`);
+      await expect(page.getByRole('link', { name: 'general 3 unread messages' })).toBeVisible();
+      await page.getByRole('button', { name: 'Notification settings', exact: true }).click();
+      const dialog = page.getByRole('dialog', { name: 'Notification settings' });
+      const alerts = dialog.getByRole('combobox', { name: 'Message alerts' });
+      await alerts.click();
+      await alerts.press('ArrowDown');
+      await alerts.press('Enter');
+      await expect(alerts).toContainText('Only personal mentions');
+      await dialog.getByRole('button', { name: 'Save changes' }).click();
+      await expect(dialog.getByRole('alert')).toContainText('Could not save');
+      await expect(alerts).toContainText('Only personal mentions');
+      await dialog.getByRole('button', { name: 'Save changes' }).click();
+      await expect(dialog).not.toBeVisible();
+      await page.getByRole('button', { name: 'Notification settings', exact: true }).click();
+      await expect(alerts).toContainText('Only personal mentions');
+      await dialog.getByRole('combobox', { name: 'Notification settings for' }).click();
+      await dialog.getByRole('option', { name: '#design-feedback', exact: true }).click();
+      await expect(alerts).toContainText('No message alerts');
+      await alerts.click();
+      await dialog.getByRole('option', { name: 'Use server default', exact: true }).click();
+      await page.screenshot({
+        path: test.info().outputPath('notification-inheritance.png'),
+        fullPage: true,
+      });
+      await dialog.getByRole('button', { name: 'Save changes' }).click();
+      await expect(dialog).not.toBeVisible();
+      expect(writes).toEqual([
+        { notificationMode: 'MENTIONS' },
+        { notificationMode: 'MENTIONS' },
+        { notificationMode: null },
+      ]);
+      await expect(page.getByRole('link', { name: 'general 3 unread messages' })).toBeVisible();
     });
     test('server context and the original conversation tools stay available', async ({
       authenticatedPage: page,

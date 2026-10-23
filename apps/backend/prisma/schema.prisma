@@ -357,12 +357,20 @@ enum CommunityMemberState {
   BANNED
 }
 
+enum NotificationMode {
+  ALL
+  MENTIONS
+  NONE
+}
+
 model CommunityMember {
   id String @id @default(uuid())
   communityId String
   userId String
   role ParticipantRole @default(MEMBER)
   state CommunityMemberState @default(ACTIVE)
+  notificationMode NotificationMode @default(ALL)
+  notificationMutedUntil DateTime?
   joinedAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
@@ -436,6 +444,7 @@ model ConversationParticipant {
   theme          String?         @default("default")
   muteLevel      MuteLevel       @default(NONE)
   mutedUntil     DateTime?
+  notificationMode NotificationMode?
   leftAt         DateTime?
   archivedAt     DateTime?
   pinnedAt       DateTime?
@@ -509,6 +518,7 @@ model Message {
   bodyArchived    Boolean     @default(false) @map("body_archived")
   bodyDigest      String?     @map("body_digest")
   clientSeq       Int?        @map("client_seq")
+  mentionedUserIds String[] @default([])
   messageType     MessageType @default(TEXT)
   replyToId       String?
   forwardedFromId String?

@@ -21,6 +21,12 @@ import {
   type CreateCommunityDto,
   type CreateCommunityChannelDto,
   type CreateCommunityInviteDto,
+  communityNotificationPreferencesSchema,
+  communityChannelNotificationPreferencesSchema,
+  updateCommunityNotificationPreferencesSchema,
+  updateCommunityChannelNotificationPreferencesSchema,
+  type UpdateCommunityNotificationPreferencesDto,
+  type UpdateCommunityChannelNotificationPreferencesDto,
 } from '@social-network/shared-contracts';
 
 export const communityKeys = queryKeys.communities;
@@ -144,6 +150,44 @@ export function useCommunityAction<TInput, TOutput>(action: (input: TInput) => P
   });
 }
 export const communitiesApi = {
+  notificationPreferences: async (id: string, signal?: AbortSignal) =>
+    communityNotificationPreferencesSchema.parse(
+      (await apiClient.get<unknown>(`${base}/${id}/notification-preferences`, { signal })).data,
+    ),
+  channelNotificationPreferences: async (id: string, channelId: string, signal?: AbortSignal) =>
+    communityChannelNotificationPreferencesSchema.parse(
+      (
+        await apiClient.get<unknown>(
+          `${base}/${id}/channels/${channelId}/notification-preferences`,
+          { signal },
+        )
+      ).data,
+    ),
+  setNotificationPreferences: async (
+    id: string,
+    input: UpdateCommunityNotificationPreferencesDto,
+  ) =>
+    communityNotificationPreferencesSchema.parse(
+      (
+        await apiClient.patch<unknown>(
+          `${base}/${id}/notification-preferences`,
+          updateCommunityNotificationPreferencesSchema.parse(input),
+        )
+      ).data,
+    ),
+  setChannelNotificationPreferences: async (
+    id: string,
+    channelId: string,
+    input: UpdateCommunityChannelNotificationPreferencesDto,
+  ) =>
+    communityChannelNotificationPreferencesSchema.parse(
+      (
+        await apiClient.patch<unknown>(
+          `${base}/${id}/channels/${channelId}/notification-preferences`,
+          updateCommunityChannelNotificationPreferencesSchema.parse(input),
+        )
+      ).data,
+    ),
   channelAccess: async (id: string, channelId: string, signal?: AbortSignal) =>
     communityChannelAccessSchema.parse(
       (await apiClient.get<unknown>(`${base}/${id}/channels/${channelId}/access`, { signal })).data,

@@ -14,6 +14,7 @@ import { useMessageToastStore } from '@/shared/model/useMessageToastStore';
 import { retainTypingExpiration, useTypingStore, type TypingUpdate } from './useTypingStore';
 import { getConversationDisplay } from '../lib/getConversationDisplay';
 import { getMessageToastPreview } from '../lib/getMessageToastPreview';
+import { allowsChatAlert } from '../lib/chatAlertPolicy';
 import {
   applyConversationDeleted,
   applyIncomingMessage,
@@ -78,6 +79,18 @@ function rememberPlayed(played: Set<string>, id: string): void {
   }
 }
 
+function rememberPreferenceRefresh(
+  refreshed: Map<string, number>,
+  id: string,
+  epoch: number,
+): void {
+  refreshed.set(id, epoch);
+  if (refreshed.size > PLAYED_IDS_HARD_LIMIT) {
+    const oldest = refreshed.keys().next().value;
+    if (oldest) refreshed.delete(oldest);
+  }
+}
+
 function isCoveredByPreview(
   message: MessageView,
   preview: MessageView | null | undefined,
@@ -116,11 +129,19 @@ export function useMessengerRealtime(
 ) {
   const socket = useChatSocket();
   const queryClient = useQueryClient();
-  useChatSocketEvent<{ communityId: string; eventId: string }>('community:changed', () => {
+  const preferencesEpoch = useRef(0);
+  const refreshedPreferences = useRef(new Map<string, number>());
+  const invalidateCommunityPreferences = () => {
+    preferencesEpoch.current += 1;
+    refreshedPreferences.current.clear();
     void queryClient.invalidateQueries({ queryKey: queryKeys.communities.root });
     void queryClient.invalidateQueries({ queryKey: queryKeys.conversations.root });
     void queryClient.invalidateQueries({ queryKey: queryKeys.conversations.unreadCount });
-  });
+  };
+  useChatSocketEvent<{ communityId: string; eventId: string }>(
+    'community:changed',
+    invalidateCommunityPreferences,
+  );
   const userId = useAuthStore((s) => s.userId);
   const cacheBatch = useMemo(
     () => getRealtimeChatBatch(queryClient, userId),
@@ -243,6 +264,9 @@ export function useMessengerRealtime(
 
     const handleConnect = () => {
       cacheBatch.flush();
+      // Personal preference events may have expired from the replay buffer.
+      preferencesEpoch.current += 1;
+      refreshedPreferences.current.clear();
       if (sessionIdRef.current && lastSeqRef.current > 0) {
         socket.emit(
           'gatewayResume',
@@ -283,6 +307,8 @@ export function useMessengerRealtime(
     };
 
     const handleResyncRequired = (data?: { currentSeq?: number }) => {
+      preferencesEpoch.current += 1;
+      refreshedPreferences.current.clear();
       lastSeqRef.current = data?.currentSeq ?? 0;
       persistSeq(sessionIdRef.current, lastSeqRef.current);
       void fillViaRest();
@@ -352,6 +378,10 @@ export function useMessengerRealtime(
       timer = setTimeout(() => {
         timer = undefined;
         void queryClient.invalidateQueries({ queryKey: queryKeys.conversations.unreadCount });
+        void queryClient.invalidateQueries({
+          queryKey: queryKeys.communities.root,
+          predicate: (query) => query.queryKey[2] === 'channels',
+        });
       }, 1000);
     };
     const events = [
@@ -361,6 +391,8 @@ export function useMessengerRealtime(
       'messagesCleared',
       'conversationUpdated',
       'conversationDeleted',
+      'connect',
+      'resyncRequired',
     ];
     events.forEach((event) => socket.on(event, schedule));
     return () => {
@@ -423,16 +455,27 @@ export function useMessengerRealtime(
 
     // Fetch one dialog only on an incoming event to honor group/mute preferences.
     // The global badge and initial /search still never fetch the full list.
-    if (!conversation && message.sender?.id !== userId && enableNotifications) {
+    const preferencesChanged =
+      preferencesEpoch.current > 0 &&
+      refreshedPreferences.current.get(message.conversationId) !== preferencesEpoch.current;
+    if (
+      (!conversation || preferencesChanged) &&
+      message.sender?.id !== userId &&
+      enableNotifications
+    ) {
+      const epoch = preferencesEpoch.current;
       try {
         conversation = await queryClient.fetchQuery({
           queryKey: queryKeys.conversations.detail(message.conversationId),
           queryFn: ({ signal }) => chatApi.getConversation(message.conversationId, signal),
-          staleTime: 60_000,
+          staleTime: preferencesChanged ? 0 : 60_000,
           gcTime: 60_000,
         });
+        if (epoch !== preferencesEpoch.current) return;
+        rememberPreferenceRefresh(refreshedPreferences.current, message.conversationId, epoch);
       } catch {
         /* offline: respect unknown mute/privacy settings by suppressing the toast */
+        conversation = undefined;
       }
     }
     if (useAuthStore.getState().userId !== userId) return;
@@ -454,8 +497,7 @@ export function useMessengerRealtime(
       (isGroup ? groups : privateChats) &&
       Boolean(message.sender?.id && message.sender.id !== userId) &&
       message.conversationId !== activeConversationId &&
-      conversation?.myMuteLevel !== 'MESSAGES' &&
-      conversation?.myMuteLevel !== 'MESSAGES_AND_CALLS' &&
+      allowsChatAlert(conversation, userId, message.mentionedUserIds) &&
       !isSenderMuted &&
       !isDndActive &&
       !playedMessageIdsRef.current.has(message.id);
@@ -516,6 +558,10 @@ export function useMessengerRealtime(
   useEffect(() => {
     handleNewMessageRef.current = handleNewMessage;
     handleReplayEventRef.current = (evt) => {
+      if (evt.event === 'community:changed') {
+        invalidateCommunityPreferences();
+        return;
+      }
       const payload = evt.payload as {
         conversationId?: string;
         message?: MessageView;
@@ -582,7 +628,7 @@ export function useMessengerRealtime(
     };
   });
 
-  const handleReactionAdded = ({
+  const handleReactionAdded = async ({
     conversationId,
     message,
   }: {
@@ -592,17 +638,36 @@ export function useMessengerRealtime(
     cacheBatch.enqueue((cache) => applyReactionMessage(cache, conversationId, message, userId));
     if (!reactions || isDndActive) return;
     const conversations = getCachedConversations(queryClient);
-    const conversation = conversations?.find((c) => c.id === conversationId);
+    let conversation = conversations?.find((c) => c.id === conversationId);
     const latestReaction = message.reactions?.[message.reactions.length - 1];
     if (!latestReaction) return;
 
     const reactor = latestReaction.users?.[latestReaction.users.length - 1];
     if (!reactor || reactor.id === userId || mutedActorIds?.includes(reactor.id)) return;
 
+    const preferencesChanged =
+      preferencesEpoch.current > 0 &&
+      refreshedPreferences.current.get(conversationId) !== preferencesEpoch.current;
+    if (!conversation || preferencesChanged) {
+      const epoch = preferencesEpoch.current;
+      try {
+        conversation = await queryClient.fetchQuery({
+          queryKey: queryKeys.conversations.detail(conversationId),
+          queryFn: ({ signal }) => chatApi.getConversation(conversationId, signal),
+          staleTime: preferencesChanged ? 0 : 60_000,
+          gcTime: 60_000,
+        });
+        if (epoch !== preferencesEpoch.current) return;
+        rememberPreferenceRefresh(refreshedPreferences.current, conversationId, epoch);
+      } catch {
+        return;
+      }
+    }
+    if (useAuthStore.getState().userId !== userId) return;
+
     if (
       conversationId !== activeConversationId &&
-      conversation?.myMuteLevel !== 'MESSAGES' &&
-      conversation?.myMuteLevel !== 'MESSAGES_AND_CALLS'
+      allowsChatAlert(conversation, userId, undefined, 'reaction')
     ) {
       if (enableNotifications && allowSound) {
         playMessageNotificationSound(volume);

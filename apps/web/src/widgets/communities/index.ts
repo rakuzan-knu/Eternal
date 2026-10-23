@@ -6,3 +6,4 @@ export {
 
 export { CommunityJoinDialog } from './CommunityJoinDialog';
 export { CommunityChannelLayoutDialog } from './CommunityChannelLayoutDialog';
+export { CommunityNotificationDialog } from './CommunityNotificationDialog';

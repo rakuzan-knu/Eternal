@@ -3,7 +3,9 @@ import { renderHook, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import { useMessageActions } from '../useMessageActions';
-import { CONVERSATION_MESSAGES_KEY } from '@/shared/api/queryKeys';
+import { CONVERSATION_MESSAGES_KEY, queryKeys } from '@/shared/api/queryKeys';
+import type { InfiniteMessagesData } from '@/entities/chat';
+import { mutationOutbox } from '@/shared/lib/outbox/mutationOutbox';
 import { useAuthStore } from '@/shared/model/useAuthStore';
 import { chatApi } from '@/features/chat/api/chatApi';
 import * as socketHookModule from '../useChatSocket';
@@ -58,6 +60,56 @@ describe('useMessageActions (Comprehensive Suite)', () => {
 
   const wrapper = ({ children }: { children: React.ReactNode }) =>
     React.createElement(QueryClientProvider, { client: queryClient }, children);
+
+  it('preserves explicit mentions through optimistic send, outbox, HTTP fallback and retry', async () => {
+    queryClient.setQueryData(queryKeys.conversations.root, [
+      {
+        id: 'conv-1',
+        participants: [
+          {
+            userId: 'peer',
+            user: { id: 'peer', username: 'peer', displayName: null, avatar: null },
+          },
+        ],
+      },
+    ]);
+    const enqueue = vi.spyOn(mutationOutbox, 'enqueueMessage');
+    mockSocket.emit.mockImplementation((event, _payload, cb) => {
+      if (event === 'sendMessage' && cb) cb({ status: 'error', error: 'offline' });
+    });
+    const send = vi.spyOn(chatApi, 'sendMessage').mockRejectedValue(new Error('offline'));
+    const { result } = renderHook(() => useMessageActions('conv-1'), { wrapper });
+    await act(async () => {
+      await expect(result.current.sendMessage('Hi @PEER and @unknown')).rejects.toThrow();
+    });
+    const row = queryClient.getQueryData<InfiniteMessagesData>(
+      queryKeys.conversations.messages('conv-1'),
+    )?.pages[0].data[0];
+    expect(row?.mentionedUserIds).toEqual(['peer']);
+    expect(enqueue).toHaveBeenCalledWith(
+      row?.id,
+      expect.objectContaining({ mentionedUserIds: ['peer'] }),
+      false,
+    );
+    expect(send).toHaveBeenLastCalledWith(
+      'conv-1',
+      expect.objectContaining({ mentionedUserIds: ['peer'] }),
+    );
+    // A retry must retain original metadata even if participant data has since changed.
+    queryClient.setQueryData(queryKeys.conversations.root, []);
+    await act(async () => {
+      await expect(result.current.retrySendMessage(row?.id ?? '')).rejects.toThrow();
+    });
+    expect(send).toHaveBeenLastCalledWith(
+      'conv-1',
+      expect.objectContaining({ mentionedUserIds: ['peer'], clientMessageId: row?.id }),
+    );
+    const socketPayloads = mockSocket.emit.mock.calls
+      .filter(([event]) => event === 'sendMessage')
+      .map(([, payload]) => payload);
+    expect(socketPayloads).toHaveLength(2);
+    for (const payload of socketPayloads) expect(payload.mentionedUserIds).toEqual(['peer']);
+  });
 
   it.each([false, true])(
     'reuploads public media for a private target (hide author: %s)',

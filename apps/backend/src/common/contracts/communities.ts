@@ -1,5 +1,36 @@
 import { z } from 'zod';
 
+export const notificationModeSchema = z.enum(['ALL', 'MENTIONS', 'NONE']);
+export type NotificationMode = z.infer<typeof notificationModeSchema>;
+export const communityNotificationPreferencesSchema = z.object({
+  notificationMode: notificationModeSchema,
+  notificationMutedUntil: z.string().datetime().nullable(),
+});
+export type CommunityNotificationPreferences = z.infer<
+  typeof communityNotificationPreferencesSchema
+>;
+export const updateCommunityNotificationPreferencesSchema = communityNotificationPreferencesSchema
+  .partial()
+  .strict()
+  .refine((value) => Object.keys(value).length > 0, 'Choose a preference');
+export type UpdateCommunityNotificationPreferencesDto = z.infer<
+  typeof updateCommunityNotificationPreferencesSchema
+>;
+export const communityChannelNotificationPreferencesSchema = z.object({
+  notificationMode: notificationModeSchema.nullable(),
+  effectiveNotificationMode: notificationModeSchema,
+  notificationMutedUntil: z.string().datetime().nullable(),
+});
+export type CommunityChannelNotificationPreferences = z.infer<
+  typeof communityChannelNotificationPreferencesSchema
+>;
+export const updateCommunityChannelNotificationPreferencesSchema = z
+  .object({ notificationMode: notificationModeSchema.nullable() })
+  .strict();
+export type UpdateCommunityChannelNotificationPreferencesDto = z.infer<
+  typeof updateCommunityChannelNotificationPreferencesSchema
+>;
+
 export const communityPageSchema = z.object({
   q: z.string().trim().max(100).optional(),
   after: z.string().uuid().optional(),
@@ -103,6 +134,10 @@ export interface CommunityChannelDto {
   categoryId?: string | null;
   archivedAt?: string | null;
   isPrivate?: boolean;
+  unreadCount?: number;
+  myNotificationMode?: NotificationMode | null;
+  myEffectiveNotificationMode?: NotificationMode;
+  myNotificationMutedUntil?: string | null;
 }
 export interface CommunityMemberDto {
   userId: string;
@@ -129,6 +164,7 @@ export interface CommunityPage<T> {
 export interface CommunityChannelsResponse {
   communityId: string;
   role: CommunityRole;
+  notificationPreferences?: CommunityNotificationPreferences;
   data: CommunityChannelDto[];
   categories?: CommunityCategoryDto[];
   revision?: number;
@@ -163,6 +199,10 @@ export const communityChannelResponseSchema = z.object({
   categoryId: z.string().nullable().default(null),
   archivedAt: z.string().datetime().nullable().default(null),
   isPrivate: z.boolean().default(false),
+  unreadCount: z.number().int().min(0).optional(),
+  myNotificationMode: notificationModeSchema.nullable().optional(),
+  myEffectiveNotificationMode: notificationModeSchema.optional(),
+  myNotificationMutedUntil: z.string().datetime().nullable().optional(),
 });
 export const communityMemberResponseSchema = z.object({
   userId: z.string().min(1),
@@ -195,6 +235,7 @@ export const communityInvitesResponseSchema = communityDirectoryResponseSchema.e
 export const communityChannelsResponseSchema = z.object({
   communityId: z.string().min(1),
   role: z.enum(['OWNER', 'ADMIN', 'MEMBER']),
+  notificationPreferences: communityNotificationPreferencesSchema.optional(),
   data: z.array(communityChannelResponseSchema),
   categories: z
     .array(z.object({ id: z.string().min(1), name: z.string(), position: z.number().int() }))

@@ -388,12 +388,23 @@ export class MessagesService implements OnModuleDestroy {
         ]),
       },
       async (tx) => {
+        // Validate explicit metadata after authorization and while participant locks
+        // serialize revocation. Never infer mentions from an encrypted body.
+        if (dto.mentionedUserIds?.length) {
+          const mentioned = await tx.conversationParticipant.findMany({
+            where: { conversationId, leftAt: null, userId: { in: dto.mentionedUserIds } },
+            select: { userId: true },
+          });
+          if (mentioned.length !== dto.mentionedUserIds.length)
+            throw new BadRequestException('Invalid mentions');
+        }
         const snowflakeId = this.snowflake ? this.snowflake.generate() : undefined;
         const message = await tx.message.create({
           data: {
             conversationId,
             senderId,
             body: dto.text || null,
+            mentionedUserIds: dto.mentionedUserIds ?? [],
             clientSeq: dto.clientSeq ?? null,
             messageType: finalMessageType,
             replyToId: dto.replyToId || null,
