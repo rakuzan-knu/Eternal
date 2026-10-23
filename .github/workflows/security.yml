@@ -119,7 +119,7 @@ jobs:
           trivy fs . --severity CRITICAL,HIGH --ignore-unfixed --format sarif -o trivy-fs.sarif --exit-code 0
 
 
-      - uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+      - uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
         if: always() && steps.trivy_fs_step.outcome == 'success'
         with:
           sarif_file: trivy-fs.sarif
@@ -155,7 +155,7 @@ jobs:
           fetch-depth: 0
 
       - name: TruffleHog Secret Scan
-        uses: trufflesecurity/trufflehog@3bcf19f51e91a9655d84ddb623728c7620be482a # main
+        uses: trufflesecurity/trufflehog@048de9ff07098d943136cd5231a0e93fbb3ea443 # main
         with:
           path: ./
           extra_args: --debug --only-verified
