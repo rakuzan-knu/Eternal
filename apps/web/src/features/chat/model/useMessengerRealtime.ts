@@ -13,7 +13,6 @@ import {
 import { useMessageToastStore } from '@/shared/model/useMessageToastStore';
 import { retainTypingExpiration, useTypingStore, type TypingUpdate } from './useTypingStore';
 import { getConversationDisplay } from '../lib/getConversationDisplay';
-import { getMessageToastPreview } from '../lib/getMessageToastPreview';
 import { allowsChatAlert } from '../lib/chatAlertPolicy';
 import {
   applyConversationDeleted,
@@ -130,6 +129,10 @@ export function useMessengerRealtime(
   const socket = useChatSocket();
   const queryClient = useQueryClient();
   const preferencesEpoch = useRef(0);
+  const activeConversationRef = useRef(activeConversationId);
+  useEffect(() => {
+    activeConversationRef.current = activeConversationId;
+  }, [activeConversationId]);
   const refreshedPreferences = useRef(new Map<string, number>());
   const invalidateCommunityPreferences = () => {
     preferencesEpoch.current += 1;
@@ -510,6 +513,21 @@ export function useMessengerRealtime(
 
       // Push notification toast (suppressed only in the active conversation)
       if (showPushNotifications && enableNotifications) {
+        const epoch = preferencesEpoch.current;
+        // Formatting encrypted/media previews is needed only for a visible
+        // toast; keep that module and its crypto dependency out of search startup.
+        const preview =
+          showName && showText
+            ? await import('../lib/getMessageToastPreview')
+                .then(({ getMessageToastPreview }) => getMessageToastPreview(message))
+                .catch(() => 'You have a new message')
+            : 'You have a new message';
+        if (
+          useAuthStore.getState().userId !== userId ||
+          epoch !== preferencesEpoch.current ||
+          activeConversationRef.current === message.conversationId
+        )
+          return;
         let toastTitle = 'Eternal';
         let toastBody = 'You have a new message';
         let toastAvatar: string | null = null;
@@ -521,7 +539,7 @@ export function useMessengerRealtime(
           toastTitle = showName ? display.title : 'Eternal';
           toastBody = showName
             ? showText
-              ? getMessageToastPreview(message)
+              ? preview
               : 'You have a new message'
             : 'You have a new message';
           toastAvatar = showName ? display.avatar : null;
@@ -535,7 +553,7 @@ export function useMessengerRealtime(
             : 'Eternal';
           toastBody = showName
             ? showText
-              ? getMessageToastPreview(message)
+              ? preview
               : 'You have a new message'
             : 'You have a new message';
           toastAvatar = showName ? message.sender?.avatar || null : null;

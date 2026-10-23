@@ -190500,72 +190500,72 @@
       "colorLiterals": [],
       "presentation": [
         {
-          "line": 71,
+          "line": 77,
           "attribute": "className",
           "expression": "\"community-layout-dialog\""
         },
         {
-          "line": 72,
+          "line": 78,
           "attribute": "className",
           "expression": "\"text-xl font-bold\""
         },
         {
-          "line": 78,
+          "line": 84,
           "attribute": "className",
           "expression": "\"flex justify-end gap-3\""
         },
         {
-          "line": 82,
+          "line": 88,
           "attribute": "className",
           "expression": "{communityButton}"
         },
         {
-          "line": 89,
+          "line": 95,
           "attribute": "className",
           "expression": "{communityButton}"
         },
         {
-          "line": 120,
+          "line": 126,
           "attribute": "className",
           "expression": "\"text-sm text-gray-600 dark:text-gray-400\""
         },
         {
-          "line": 134,
+          "line": 140,
           "attribute": "className",
           "expression": "{communityButton}"
         },
         {
-          "line": 139,
+          "line": 145,
           "attribute": "className",
           "expression": "{communityButton}"
         },
         {
-          "line": 210,
+          "line": 216,
           "attribute": "className",
           "expression": "\"space-y-4\""
         },
         {
-          "line": 224,
+          "line": 230,
           "attribute": "className",
           "expression": "\"text-sm\""
         },
         {
-          "line": 249,
+          "line": 255,
           "attribute": "className",
           "expression": "\"text-sm text-gray-600 dark:text-gray-400\""
         },
         {
-          "line": 259,
+          "line": 265,
           "attribute": "className",
           "expression": "\"flex justify-end gap-3\""
         },
         {
-          "line": 262,
+          "line": 268,
           "attribute": "className",
           "expression": "{communityButton}"
         },
         {
-          "line": 270,
+          "line": 276,
           "attribute": "className",
           "expression": "{communityButton}"
         }

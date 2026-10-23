@@ -1,6 +1,6 @@
 # Community notifications rollout — 23 October 2026
 
-Status: implementation and focused verification complete; production migration and rollout pending.
+Status: production migration applied; sequential API rollout in progress, web promotion pending.
 
 ## Behavior and compatibility
 
@@ -32,3 +32,13 @@ Personal COMMUNITY_CHANGED events trigger reconciliation without changing the ad
 6. Verify real two-account settings, mentions, muted delivery/unread, reload, reconnect and private-access denial on the dedicated QA community. Restore acceptance preferences afterward.
 
 Private-channel rollout, scoped storage and real bidirectional audio acceptance are recorded in [the preceding rollout](private-channel-rollout-2026-10-22.md). Protected-branch approval remains required for merge. Existing platform scroll/focus CI failures have a documented main-branch baseline; they must not be described as green or bypassed.
+
+## CI follow-up and live migration
+
+Core staging `dep-dbdhd7oae00c7387ai8g` and Messenger `dep-dbdhgjoae00c7387jql0` are live on `5034d7d6`. Core temporarily has background work disabled. A separate verified-TLS query confirms all61 applied migrations, including the notification migration; both services passed database/Redis readiness and Redis drained to18/30 clients before each subsequent role update.
+
+CI exposed a newly added channel-preference test that matched only one argument of `recordEvent`, although the implementation correctly supplies the Prisma transaction as its second argument. The assertion now explicitly verifies both event and transaction; a final affected eight-suite backend run passed162 tests.
+
+The unchanged main/previous lockfile was affected by DOMPurify advisory GHSA-cg2g-xh64-v4q7. The follow-up updates only DOMPurify3.4.16→3.4.17 and its direct allowed range/integrity; frozen installation changes one package. Current production audit reports zero critical findings and four pre-existing high findings; no security threshold was lowered. Markdown rendering tests passed15/15.
+
+Startup initially exceeded the existing350KiB budget. Message preview formatting and its crypto dependency now load only when displaying a toast; generic fallback remains available on import failure. Recheck account, active conversation and preference generation before showing a deferred preview. Three affected suites passed34 tests, including new cancellation regressions. The actual production build startup graph is347.6KiB, with no forbidden startup or chat-overlay imports. Contract-purity experiments were discarded; no validation behavior changed.

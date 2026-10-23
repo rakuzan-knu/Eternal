@@ -123,4 +123,40 @@ describe('personal community notification settings', () => {
     await screen.findByRole('combobox', { name: 'Message alerts' });
     expect(http.patch).not.toHaveBeenCalled();
   });
+
+  it('closes channel settings immediately when refreshed access removes the channel', async () => {
+    http.get.mockResolvedValue({
+      data: {
+        notificationMode: null,
+        effectiveNotificationMode: 'ALL',
+        notificationMutedUntil: null,
+      },
+    });
+    const onClose = vi.fn();
+    const client = new QueryClient();
+    const { rerender } = render(
+      <QueryClientProvider client={client}>
+        <CommunityNotificationDialog
+          communityId="server"
+          channels={[channel]}
+          selectedChannelId="channel"
+          onClose={onClose}
+        />
+      </QueryClientProvider>,
+    );
+    await screen.findByRole('combobox', { name: 'Message alerts' });
+    rerender(
+      <QueryClientProvider client={client}>
+        <CommunityNotificationDialog
+          communityId="server"
+          channels={[]}
+          selectedChannelId="channel"
+          onClose={onClose}
+        />
+      </QueryClientProvider>,
+    );
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(onClose).toHaveBeenCalledOnce();
+    expect(http.patch).not.toHaveBeenCalled();
+  });
 });
