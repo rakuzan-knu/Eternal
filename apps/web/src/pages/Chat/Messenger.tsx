@@ -21,14 +21,24 @@ import { ensureMessageIdentityRegistered } from '../../features/chat/lib/e2ee/me
 export default function MessengerPage() {
   const { conversationId } = useParams<{ conversationId?: string }>();
   const navigate = useNavigate();
+  const workspaceRef = useRef<HTMLDivElement>(null);
   const previousConversation = useRef(conversationId);
   useEffect(() => {
-    if (!conversationId && previousConversation.current) {
-      document
-        .getElementById(`conversation-${previousConversation.current}`)
-        ?.focus({ preventScroll: true });
-    }
+    const returningConversation = !conversationId ? previousConversation.current : undefined;
     previousConversation.current = conversationId;
+    if (!returningConversation || !workspaceRef.current) return;
+
+    // A hidden virtual list mounts its rows after its viewport is measured.
+    // Return focus when the real row is available, rather than losing the one attempt.
+    const restoreFocus = () => {
+      const button = document.getElementById(`conversation-${returningConversation}`);
+      button?.focus({ preventScroll: true });
+      if (button && document.activeElement === button) observer.disconnect();
+    };
+    const observer = new MutationObserver(restoreFocus);
+    observer.observe(workspaceRef.current, { childList: true, subtree: true, attributes: true });
+    restoreFocus();
+    return () => observer.disconnect();
   }, [conversationId]);
   const isSidebarExpanded = useUIStore((s) => s.isSidebarExpanded);
   const { data: conversations, isLoading: isLoadingConversations } = useConversations();
@@ -64,7 +74,7 @@ export default function MessengerPage() {
   const handleSelectConversation = (id: string) => navigate(`/messages/${id}`);
 
   return (
-    <div className="fixed inset-0 flex bg-transparent overflow-hidden">
+    <div ref={workspaceRef} className="fixed inset-0 flex bg-transparent overflow-hidden">
       <SEOHead
         title="Messages • Direct Chats on Eternal"
         description="Direct and group messaging on Eternal."

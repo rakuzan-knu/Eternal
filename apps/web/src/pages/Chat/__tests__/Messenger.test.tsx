@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Routes, Route, MemoryRouter } from 'react-router-dom';
 import React from 'react';
 import MessengerPage from '../Messenger';
@@ -16,7 +16,11 @@ vi.mock('@/features/chat/model/useConversations', () => ({
 }));
 
 vi.mock('@/features/chat/ui/ChatListPanel', () => ({
-  default: () => <div data-testid="chat-list-panel" />,
+  default: () => (
+    <div data-testid="chat-list-panel">
+      <button id="conversation-conv-1">General Chat</button>
+    </div>
+  ),
 }));
 
 vi.mock('@/features/chat/ui/ChatThread', () => ({
@@ -58,5 +62,24 @@ describe('MessengerPage', () => {
 
     expect(screen.getByTestId('chat-thread')).toBeInTheDocument();
     expect(screen.getByText('Chat: conv-1')).toBeInTheDocument();
+  });
+
+  it('returns focus when the virtual conversation row mounts after navigation', async () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/messages/conv-1']}>
+          <Routes>
+            <Route path="/messages" element={<MessengerPage />} />
+            <Route path="/messages/:conversationId" element={<MessengerPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    const row = screen.getByRole('button', { name: 'General Chat' });
+    const list = row.parentElement!;
+    row.remove();
+    fireEvent.click(screen.getByRole('button', { name: 'Back to chats' }));
+    act(() => list.appendChild(row));
+    await waitFor(() => expect(row).toHaveFocus());
   });
 });

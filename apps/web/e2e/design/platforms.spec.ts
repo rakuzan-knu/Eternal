@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures';
-import { messageText, postText, prepareScreen } from './screen-fixtures';
+import { authorName, messageText, postText, prepareScreen } from './screen-fixtures';
 
 test.use({ baseURL: 'http://127.0.0.1:6007' });
 
@@ -52,7 +52,8 @@ for (const screen of ['feed', 'profile', 'chat'] as const) {
       ).toBeInViewport();
       await page.getByRole('button', { name: 'Back to chats', exact: true }).click();
       const conversation = page.getByRole('button', {
-        name: /Олександра Коваленко/i,
+        name: `Open conversation with ${authorName}`,
+        exact: true,
       });
       await expect(conversation).toBeVisible();
       await conversation.click();
