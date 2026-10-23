@@ -98,14 +98,14 @@ describe('PostCard', () => {
     vi.clearAllMocks();
   });
 
-  function renderPostCard(post: PostType = basePost) {
+  function renderPostCard(post: PostType = basePost, isVirtualized = false) {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
     });
     return render(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter>
-          <PostCard post={post} queryKey={['test']} />
+          <PostCard post={post} queryKey={['test']} isVirtualized={isVirtualized} />
         </MemoryRouter>
       </QueryClientProvider>,
     );
@@ -122,6 +122,14 @@ describe('PostCard', () => {
     expect(screen.getByText('1')).toBeInTheDocument();
     expect(screen.getByText('5')).toBeInTheDocument();
     expect(screen.getByText('3')).toBeInTheDocument();
+  });
+
+  it('exposes real geometry when the virtual list owns visibility', () => {
+    const { container } = renderPostCard(basePost, true);
+    const card = container.querySelector<HTMLElement>(`#post-${basePost.id}`)!;
+    expect(card.style.contentVisibility).toBe('visible');
+    expect(card.style.containIntrinsicSize).toBe('');
+    expect(card.style.contain).toBe('layout style paint');
   });
 
   it('places Like first in both visual and keyboard action order', () => {

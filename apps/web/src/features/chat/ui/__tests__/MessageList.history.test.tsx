@@ -3,8 +3,9 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import MessageList from '../MessageList';
 import type { MessageView } from '@/entities/chat/model/types';
+import { getChatScrollGeneration, saveChatScrollPosition } from '../../model/chatScrollPositions';
 
-const mountedRange = vi.hoisted(() => ({ start: 0, end: Infinity }));
+const mountedRange = vi.hoisted(() => ({ start: 0, end: Infinity, offsetError: 0 }));
 
 vi.mock('../MessageBubble', () => ({
   default: ({ message }: { message: MessageView }) => <span>{message.body}</span>,
@@ -34,7 +35,7 @@ vi.mock('@tanstack/react-virtual', () => ({
     getTotalSize: () => options.count * 64,
     takeSnapshot: () => [],
     measureElement: () => {},
-    getOffsetForIndex: (index: number) => [index * 64, 'start'],
+    getOffsetForIndex: (index: number) => [index * 64 + mountedRange.offsetError, 'start'],
     scrollToOffset: (offset: number) => {
       const node = options.getScrollElement();
       if (node) node.scrollTop = offset;
@@ -74,10 +75,16 @@ afterEach(() => {
   vi.restoreAllMocks();
   mountedRange.start = 0;
   mountedRange.end = Infinity;
+  mountedRange.offsetError = 0;
 });
 
 describe('history viewport anchoring', () => {
   it('keeps the first visible message at the same pixel offset when older/newer pages replace the bounded window', () => {
+    saveChatScrollPosition(
+      'restore-prepend',
+      { offset: 300, atBottom: false, measurements: [] },
+      getChatScrollGeneration(),
+    );
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
       this: HTMLElement,
     ) {
@@ -100,6 +107,7 @@ describe('history viewport anchoring', () => {
       };
     });
     const props = {
+      conversationId: 'restore-prepend',
       currentUserId: 'me',
       otherParticipantId: 'peer',
       hasMore: true,
@@ -132,7 +140,9 @@ describe('history viewport anchoring', () => {
     const row = () => scroller.querySelector<HTMLElement>('[data-message-id="m205"]')!;
     const originalOffset = row().getBoundingClientRect().top;
     expect(originalOffset).toBe(28);
-    rerender(<MessageList {...props} messages={messages(181, 260)} />);
+    // The mounted row is authoritative while a measurement-table correction is pending.
+    mountedRange.offsetError = 12;
+    rerender(<MessageList {...props} messages={messages(181, 280)} />);
     expect(row().getBoundingClientRect().top).toBe(originalOffset);
     rerender(<MessageList {...props} messages={messages(201, 280)} />);
     expect(row().getBoundingClientRect().top).toBe(originalOffset);

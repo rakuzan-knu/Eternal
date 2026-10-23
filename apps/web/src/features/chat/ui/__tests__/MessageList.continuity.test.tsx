@@ -23,6 +23,7 @@ vi.mock('@tanstack/react-virtual', () => {
   return { useVirtualizer: () => virtualizer };
 });
 import MessageList from '../MessageList';
+import { getChatScrollGeneration, saveChatScrollPosition } from '../../model/chatScrollPositions';
 
 const message = (id: string): MessageView => ({
   id,
@@ -80,6 +81,52 @@ afterEach(() => {
 });
 
 describe('chat following policy', () => {
+  it('retains restored history through draft viewport resizing until navigation input', () => {
+    saveChatScrollPosition(
+      'restored-history',
+      { offset: 720, atBottom: false, measurements: [] },
+      getChatScrollGeneration(),
+    );
+    const props: React.ComponentProps<typeof MessageList> = {
+      conversationId: 'restored-history',
+      messages: [message('saved')],
+      currentUserId: 'u1',
+      otherParticipantId: 'u2',
+      hasMore: false,
+      isLoading: false,
+      isFetchingMore: false,
+      typingParticipants: [],
+      isGroup: false,
+      onLoadMore: vi.fn(),
+      onReply: vi.fn(),
+      onEdit: vi.fn(),
+      onDelete: vi.fn(),
+      onForward: vi.fn(),
+      onTogglePin: vi.fn(),
+      onReport: vi.fn(),
+      onReact: vi.fn(),
+      onUnreact: vi.fn(),
+    };
+    const client = new QueryClient();
+    const content = () => (
+      <QueryClientProvider client={client}>
+        <MessageList {...props} />
+      </QueryClientProvider>
+    );
+    const view = render(content());
+    vi.clearAllMocks();
+    scrollRect.height -= 20;
+    view.rerender(content());
+    expect(scrollToOffset).toHaveBeenCalledWith(720);
+    fireEvent.wheel(screen.getByTestId('message-scroll'), { deltaY: 200 });
+    vi.clearAllMocks();
+    scrollRect.height += 20;
+    view.rerender(content());
+    expect(scrollToOffset).not.toHaveBeenCalled();
+    view.unmount();
+    client.clear();
+  });
+
   it('keeps partial-screen history while new messages arrive and resumes following only at the bottom', () => {
     const props: React.ComponentProps<typeof MessageList> = {
       conversationId: 'history-follow',

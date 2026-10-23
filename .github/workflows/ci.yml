@@ -234,7 +234,9 @@ jobs:
 
   backend-unit-tests:
     name: Backend — Unit Tests
-    runs-on: ubuntu-latest
+    # Ubuntu 26.04 FFmpeg 8.0.1 emits a false Opus EOF error (FFmpeg#20954).
+    # Keep strict decoding on the stable runner until its package includes 618fc15.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     needs: [setup, plan]
     if: needs.plan.outputs.backend-changed == 'true' || github.event_name != 'pull_request'
@@ -354,7 +356,8 @@ jobs:
 
   backend-e2e:
     name: Backend — E2E Tests (${{ matrix.module }})
-    runs-on: ubuntu-latest
+    # Match the media-validation environment of backend-unit-tests.
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     needs: [setup, plan]
     if: needs.plan.outputs.backend-changed == 'true'
