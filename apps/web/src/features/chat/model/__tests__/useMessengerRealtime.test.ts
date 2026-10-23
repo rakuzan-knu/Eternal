@@ -137,6 +137,123 @@ describe('useMessengerRealtime', () => {
     },
   );
 
+  it.each(['name', 'text'] as const)(
+    'honors %s privacy changes during preview loading',
+    async (change) => {
+      const addToast = vi.fn();
+      useMessageToastStore.setState({ toasts: [], addToast });
+      useNotificationSettingsStore.setState({ groups: true, privateChats: true });
+      queryClient.setQueryData(queryKeys.conversations.root, [
+        {
+          id: 'conv-1',
+          type: 'GROUP',
+          name: 'Private group',
+          participants: [],
+          myMuteLevel: 'NONE',
+          myEffectiveNotificationMode: 'ALL',
+          unreadCount: 0,
+        },
+      ]);
+      renderHook(() => useMessengerRealtime(['conv-1'], null, true), {
+        wrapper: createWrapper(queryClient),
+      });
+      let delivery: unknown;
+      act(() => {
+        delivery = registeredSocketEvents.newMessage?.({
+          conversationId: 'conv-1',
+          message: {
+            id: `privacy-${change}`,
+            conversationId: 'conv-1',
+            sender: { id: 'other', username: 'other' },
+            body: 'Secret text',
+            messageType: 'TEXT',
+            createdAt: new Date().toISOString(),
+          },
+        });
+      });
+      act(() =>
+        useNotificationSettingsStore.setState(
+          change === 'name' ? { showName: false, showText: false } : { showText: false },
+        ),
+      );
+      await act(async () => {
+        await delivery;
+      });
+      expect(addToast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: change === 'name' ? 'Eternal' : 'Private group',
+          body: 'You have a new message',
+        }),
+      );
+    },
+  );
+
+  it.each([
+    ['newMessage', 'open'],
+    ['messageReactionAdded', 'open'],
+    ['newMessage', 'disabled'],
+    ['messageReactionAdded', 'disabled'],
+    ['newMessage', 'dnd'],
+    ['messageReactionAdded', 'dnd'],
+    ['newMessage', 'muted'],
+    ['messageReactionAdded', 'muted'],
+  ] as const)(
+    'rechecks %s delivery after %s changes while preferences load',
+    async (event, change) => {
+      const addToast = vi.fn();
+      useMessageToastStore.setState({ toasts: [], addToast });
+      useNotificationSettingsStore.setState({ groups: true, privateChats: true });
+      let finishFetch!: (value: unknown) => void;
+      vi.spyOn(queryClient, 'fetchQuery').mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finishFetch = resolve;
+          }),
+      );
+      const initialProps: { active: string | null } = { active: null };
+      const { rerender } = renderHook(
+        ({ active }: { active: string | null }) => useMessengerRealtime([], active, true),
+        { initialProps, wrapper: createWrapper(queryClient) },
+      );
+      let delivery: unknown;
+      act(() => {
+        delivery = registeredSocketEvents[event]?.({
+          conversationId: 'conv-1',
+          message: {
+            id: 'pending',
+            conversationId: 'conv-1',
+            sender: { id: 'other', username: 'other' },
+            body: 'Hello',
+            messageType: 'TEXT',
+            createdAt: new Date().toISOString(),
+            reactions: [{ emoji: '🔥', users: [{ id: 'other', username: 'other' }] }],
+          },
+        });
+      });
+      act(() => {
+        if (change === 'open') rerender({ active: 'conv-1' });
+        else if (change === 'disabled')
+          useNotificationSettingsStore.setState({ enableNotifications: false });
+        else if (change === 'dnd')
+          useNotificationSettingsStore.setState({
+            dndUntil: new Date(Date.now() + 60_000).toISOString(),
+          });
+        else useNotificationSettingsStore.setState({ mutedActorIds: ['other'] });
+      });
+      await act(async () => {
+        finishFetch({
+          id: 'conv-1',
+          type: 'GROUP',
+          participants: [],
+          myEffectiveNotificationMode: 'ALL',
+        });
+        await delivery;
+      });
+      expect(playMessageNotificationSound).not.toHaveBeenCalled();
+      expect(addToast).not.toHaveBeenCalled();
+    },
+  );
+
   it.each(['connect', 'resyncRequired'])(
     'refreshes inactive conversation preferences after %s when a personal community event was missed',
     async (event) => {

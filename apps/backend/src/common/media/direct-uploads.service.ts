@@ -228,21 +228,31 @@ export class DirectUploadsService {
           contentType: prepared.contentType,
           sizeBytes: prepared.sizeBytes,
         });
-      if (prepared.buffer) {
-        await s3.send(new PutObjectCommand({ ...publication, Body: prepared.buffer }), {
-          abortSignal: AbortSignal.timeout(15_000),
-        });
-      } else {
-        await s3.send(
-          new CopyObjectCommand({
-            ...publication,
-            CopySource: `${Bucket}/${intent.tempKey}`,
-            CopySourceIfMatch: head.ETag,
-            MetadataDirective: 'REPLACE',
-          }),
-          { abortSignal: AbortSignal.timeout(15_000) },
+      const publish = async (abortSignal: AbortSignal) => {
+        if (prepared.buffer) {
+          await s3.send(new PutObjectCommand({ ...publication, Body: prepared.buffer }), {
+            abortSignal,
+          });
+        } else {
+          await s3.send(
+            new CopyObjectCommand({
+              ...publication,
+              CopySource: `${Bucket}/${intent.tempKey}`,
+              CopySourceIfMatch: head.ETag,
+              MetadataDirective: 'REPLACE',
+            }),
+            { abortSignal },
+          );
+        }
+      };
+      if (intent.purpose === 'chat' && intent.conversationId) {
+        await this.access.withUploadPublication(
+          intent.conversationId,
+          userId,
+          Boolean(intent.bucket),
+          publish,
         );
-      }
+      } else await publish(AbortSignal.timeout(15_000));
       if (intent.bucket) await this.access.completePrivateObject(uploadId);
       const receipt: CompletedUpload = {
         uploadId,

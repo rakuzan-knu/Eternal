@@ -160,9 +160,6 @@ export function useMessengerRealtime(
   const volume = useNotificationSettingsStore((s) => s.volume);
   const dndUntil = useNotificationSettingsStore((s) => s.dndUntil);
   const mutedActorIds = useNotificationSettingsStore((s) => s.mutedActorIds);
-  const privateChats = useNotificationSettingsStore((s) => s.privateChats);
-  const groups = useNotificationSettingsStore((s) => s.groups);
-  const reactions = useNotificationSettingsStore((s) => s.reactions);
   const likes = useNotificationSettingsStore((s) => s.likes);
   const comments = useNotificationSettingsStore((s) => s.comments);
   const reposts = useNotificationSettingsStore((s) => s.reposts);
@@ -482,8 +479,20 @@ export function useMessengerRealtime(
       }
     }
     if (useAuthStore.getState().userId !== userId) return;
-    const isGroup = conversation?.type === 'GROUP';
-    const isSenderMuted = Boolean(message.sender?.id && mutedActorIds?.includes(message.sender.id));
+    // Async detail/preview work must honor settings and focus at delivery time.
+    const getAlertSettings = () => {
+      const settings = useNotificationSettingsStore.getState();
+      if (
+        !settings.enableNotifications ||
+        !(conversation?.type === 'GROUP' ? settings.groups : settings.privateChats) ||
+        activeConversationRef.current === message.conversationId ||
+        (settings.dndUntil && Date.parse(settings.dndUntil) > Date.now()) ||
+        (message.sender?.id && settings.mutedActorIds.includes(message.sender.id)) ||
+        !allowsChatAlert(conversation, userId, message.mentionedUserIds)
+      )
+        return undefined;
+      return settings;
+    };
 
     // Suppress push notification toasts for call end/log events upon any call outcome
     const isCallMessage =
@@ -494,40 +503,39 @@ export function useMessengerRealtime(
         (message.body.includes('"callId"') || message.body.includes('"callType"')),
       );
 
+    let alertSettings = getAlertSettings();
     const shouldNotify =
       !isCallMessage &&
       Boolean(conversation) &&
-      (isGroup ? groups : privateChats) &&
       Boolean(message.sender?.id && message.sender.id !== userId) &&
-      message.conversationId !== activeConversationId &&
-      allowsChatAlert(conversation, userId, message.mentionedUserIds) &&
-      !isSenderMuted &&
-      !isDndActive &&
       !playedMessageIdsRef.current.has(message.id);
 
-    if (shouldNotify) {
+    if (shouldNotify && alertSettings) {
       rememberPlayed(playedMessageIdsRef.current, message.id);
-      if (enableNotifications && allowSound) {
-        playMessageNotificationSound(volume);
+      if (alertSettings.allowSound) {
+        playMessageNotificationSound(alertSettings.volume);
       }
 
       // Push notification toast (suppressed only in the active conversation)
-      if (showPushNotifications && enableNotifications) {
+      if (showPushNotifications) {
         const epoch = preferencesEpoch.current;
         // Formatting encrypted/media previews is needed only for a visible
         // toast; keep that module and its crypto dependency out of search startup.
         const preview =
-          showName && showText
+          alertSettings.showName && alertSettings.showText
             ? await import('../lib/getMessageToastPreview')
                 .then(({ getMessageToastPreview }) => getMessageToastPreview(message))
                 .catch(() => 'You have a new message')
             : 'You have a new message';
+        alertSettings = getAlertSettings();
         if (
+          !alertSettings ||
           useAuthStore.getState().userId !== userId ||
           epoch !== preferencesEpoch.current ||
           activeConversationRef.current === message.conversationId
         )
           return;
+        const { showName, showText } = alertSettings;
         let toastTitle = 'Eternal';
         let toastBody = 'You have a new message';
         let toastAvatar: string | null = null;
@@ -654,7 +662,8 @@ export function useMessengerRealtime(
     message: MessageView;
   }) => {
     cacheBatch.enqueue((cache) => applyReactionMessage(cache, conversationId, message, userId));
-    if (!reactions || isDndActive) return;
+    const initialSettings = useNotificationSettingsStore.getState();
+    if (!initialSettings.enableNotifications || !initialSettings.reactions) return;
     const conversations = getCachedConversations(queryClient);
     let conversation = conversations?.find((c) => c.id === conversationId);
     const latestReaction = message.reactions?.[message.reactions.length - 1];
@@ -682,16 +691,25 @@ export function useMessengerRealtime(
       }
     }
     if (useAuthStore.getState().userId !== userId) return;
+    const settings = useNotificationSettingsStore.getState();
+    if (
+      !settings.enableNotifications ||
+      !settings.reactions ||
+      (settings.dndUntil && Date.parse(settings.dndUntil) > Date.now()) ||
+      settings.mutedActorIds.includes(reactor.id)
+    )
+      return;
 
     if (
-      conversationId !== activeConversationId &&
+      conversationId !== activeConversationRef.current &&
       allowsChatAlert(conversation, userId, undefined, 'reaction')
     ) {
-      if (enableNotifications && allowSound) {
-        playMessageNotificationSound(volume);
+      if (settings.allowSound) {
+        playMessageNotificationSound(settings.volume);
       }
 
-      if (showPushNotifications && enableNotifications) {
+      if (showPushNotifications) {
+        const { showName, showText } = settings;
         const reactorName = reactor.displayName || reactor.username;
         const toastTitle = showName && reactorName ? reactorName : 'Eternal';
         const toastBody = showName
