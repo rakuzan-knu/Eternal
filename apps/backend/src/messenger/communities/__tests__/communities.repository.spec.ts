@@ -256,9 +256,11 @@ describe('CommunitiesRepository authorization and invitation regressions', () =>
         data: { notificationMode: mode },
       });
       expect(tx.community.update).not.toHaveBeenCalled();
-      expect(outbox.recordEvent.mock.calls).toMatchObject([
-        [{ payload: { recipientIds: ['user'] } }],
-      ]);
+      expect(outbox.recordEvent).toHaveBeenCalledTimes(1);
+      expect(outbox.recordEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ payload: expect.objectContaining({ recipientIds: ['user'] }) }),
+        tx,
+      );
     },
   );
 

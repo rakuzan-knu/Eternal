@@ -83,6 +83,60 @@ describe('useMessengerRealtime', () => {
     vi.restoreAllMocks();
   });
 
+  it.each(['open', 'account', 'preferences'] as const)(
+    'suppresses a deferred preview after %s changes',
+    async (change) => {
+      const addToast = vi.fn();
+      useMessageToastStore.setState({ toasts: [], addToast });
+      useNotificationSettingsStore.setState({ groups: true, privateChats: true });
+      queryClient.setQueryData(queryKeys.conversations.root, [
+        {
+          id: 'conv-1',
+          type: 'GROUP',
+          participants: [],
+          myMuteLevel: 'NONE',
+          myEffectiveNotificationMode: 'ALL',
+          unreadCount: 0,
+        },
+      ]);
+      const initialProps: { active: string | null } = { active: null };
+      const { rerender } = renderHook(
+        ({ active }) => useMessengerRealtime(['conv-1'], active, true),
+        {
+          initialProps,
+          wrapper: createWrapper(queryClient),
+        },
+      );
+      let delivery: unknown;
+      act(() => {
+        delivery = registeredSocketEvents.newMessage?.({
+          conversationId: 'conv-1',
+          message: {
+            id: `deferred-${change}`,
+            conversationId: 'conv-1',
+            sender: { id: 'other', username: 'other' },
+            body: 'Hello',
+            messageType: 'TEXT',
+            createdAt: new Date().toISOString(),
+          },
+        });
+      });
+      act(() => {
+        if (change === 'open') rerender({ active: 'conv-1' });
+        else if (change === 'account') useAuthStore.setState({ userId: 'another-user' });
+        else
+          registeredSocketEvents['community:changed']?.({
+            communityId: 'community',
+            eventId: 'changed',
+          });
+      });
+      await act(async () => {
+        await delivery;
+      });
+      expect(addToast).not.toHaveBeenCalled();
+    },
+  );
+
   it.each(['connect', 'resyncRequired'])(
     'refreshes inactive conversation preferences after %s when a personal community event was missed',
     async (event) => {

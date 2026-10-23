@@ -36,6 +36,7 @@ export function CommunityNotificationDialog({
   const [discard, setDiscard] = useState(false);
   const [nextScope, setNextScope] = useState<string | null>(null);
   const channelId = scope === 'server' ? undefined : scope;
+  const scopeAllowed = !channelId || channels.some((channel) => channel.id === channelId);
   const preferences = useQuery({
     queryKey: communityKeys.notificationPreferences(communityId, channelId),
     queryFn: async ({ signal }) =>
@@ -44,7 +45,11 @@ export function CommunityNotificationDialog({
         : communitiesApi.notificationPreferences(communityId, signal),
     staleTime: 0,
     retry: false,
+    enabled: scopeAllowed,
   });
+  useEffect(() => {
+    if (!scopeAllowed) onClose();
+  }, [scopeAllowed, onClose]);
   const close = () => {
     if (pending) return;
     if (dirty) {
@@ -52,6 +57,7 @@ export function CommunityNotificationDialog({
       setDiscard(true);
     } else onClose();
   };
+  if (!scopeAllowed) return null;
   return (
     <Modal
       onClose={onClose}
