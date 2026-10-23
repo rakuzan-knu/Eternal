@@ -4,6 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from '@common/prisma';
 import { MessengerModule } from '../../messenger/messenger.module';
 import { QueueService } from '../queue.service';
+import { OutboxModule } from '../../common/outbox/outbox.module';
 
 describe('QueueModule', () => {
   it('compiles the module successfully', async () => {
@@ -11,6 +12,7 @@ describe('QueueModule', () => {
       imports: [
         ConfigModule.forRoot({ isGlobal: true }),
         PrismaModule,
+        OutboxModule,
         MessengerModule,
         QueueModule,
       ],
