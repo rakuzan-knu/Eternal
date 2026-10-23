@@ -1,6 +1,6 @@
 # Community notifications rollout — 23 October 2026
 
-Status: production migration applied; sequential API rollout in progress, web promotion pending.
+Status: production rollout and two-account notification UI acceptance complete.
 
 ## Behavior and compatibility
 
@@ -14,7 +14,7 @@ Personal COMMUNITY_CHANGED events trigger reconciliation without changing the ad
 
 ## Verification evidence
 
-- Backend: nine focused suites, 181 tests passed; backend build and shared-contract typecheck passed. Final backend typecheck passed independently.
+- Final affected backend run: eight focused suites, 162 tests passed after correcting the transaction argument assertion. Backend build, shared-contract typecheck and all 16 workspace typechecks passed.
 - Real isolated PostgreSQL 17: six notification tests and eleven existing community/private/layout tests passed, including actual persisted mentions, private revocation, unread under NONE and rollback on outbox failure. The disposable fixture was stopped; unrelated development databases were preserved.
 - Web chat: eight focused suites, 39 tests passed; subsequent replay/reconnect tests and dialog tests passed (16 tests in the final two-suite run). Frontend typecheck passed.
 - Community form/API/page: 23 tests passed. Two browser journeys passed at 390px and 1440px, including keyboard selection, failed save/retry, persisted server mode, channel inheritance reset and retained unread badges. Screenshots were visually inspected.
@@ -42,3 +42,11 @@ CI exposed a newly added channel-preference test that matched only one argument 
 The unchanged main/previous lockfile was affected by DOMPurify advisory GHSA-cg2g-xh64-v4q7. The follow-up updates only DOMPurify3.4.16→3.4.17 and its direct allowed range/integrity; frozen installation changes one package. Current production audit reports zero critical findings and four pre-existing high findings; no security threshold was lowered. Markdown rendering tests passed15/15.
 
 Startup initially exceeded the existing350KiB budget. Message preview formatting and its crypto dependency now load only when displaying a toast; generic fallback remains available on import failure. Recheck account, active conversation and preference generation before showing a deferred preview. Three affected suites passed34 tests, including new cancellation regressions. The actual production build startup graph is347.6KiB, with no forbidden startup or chat-overlay imports. Contract-purity experiments were discarded; no validation behavior changed.
+
+## Production rollout checkpoint
+
+All four API roles are live on `5034d7d6`. Core final restore `dep-dbdht83ncjis73a8s0ng` succeeded, with background work restored. Reels `dep-dbdhlunavr4c73a47ui0` and Music `dep-dbdhq37avr4c73a4mocg` succeeded after the preceding Core/Messenger stages. Final Redis observation was 23/30 clients. All four services passed readiness, owned-route, wrong-service rejection and WebSocket boundary smoke checks.
+
+Web follow-up `a20a1e7a` was promoted as `dpl_4iYbofRzdEhs6ayyaiJSbPVkEqJ3`; the canonical domain serves `/assets/index-D2PXxfea.js` with HTTP 200 and the expected media Permissions-Policy. Production REST acceptance verified own preferences, server inheritance, channel override, independent server mute, unchanged unread, anonymous denial and wrong-role rejection. QA preferences were restored. Production UI persisted MENTIONS plus temporary mute across reload; QA ALL/unmuted was restored afterward. Final real two-account acceptance passed: with primary MENTIONS and inherited private channel, a plain QA message increased unread to1 without a toast; @subvinc produced a visible toast and unread2; a mention under server mute arrived with unread3 and no toast. Opening the channel subsequently cleared its unread badge. Reload retained server mute and channel inheritance. Primary ALL/unmuted and channel inheritance were restored and verified; QA preferences were also restored.
+
+Current Security CI passed, including Trivy; affected build/typecheck and API contract jobs passed. Backend unit CI reports 946 passing tests and one media decode failure. Its validator/test/fixtures are byte-identical to main: passing main used FFmpeg 6.1.1, current runner uses 8.0.1. Exact failing format is unconfirmed; local reproduction lacked FFmpeg. This is an environment compatibility lead, not a proven root cause or a green full-suite result. Existing main platform scroll/focus failures remain separate. No gates or decoder validation were weakened.
