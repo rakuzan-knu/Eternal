@@ -1,3 +1,5 @@
+<img src="https://raw.githubusercontent.com/subvincdebian/subvincdebian/main/assets/repo-Eternal.svg" alt="Eternal project overview" width="100%" />
+
 # 🌐 Eternal Social Network
 
 A team-built social network with feeds, profiles and messaging. React and TypeScript frontend; NestJS backend in a pnpm workspace.
