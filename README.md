@@ -1,10 +1,23 @@
+<img src="https://raw.githubusercontent.com/subvincdebian/subvincdebian/228fedbb64bbc9c14d464b63a747f10ad5449c71/assets/repo-Eternal.svg" alt="Eternal project overview" width="100%" />
+
 # 🌐 Eternal Social Network
 
-A modern, high-performance **Social Network Application** built as a monorepo using **pnpm workspaces**. Powered by **NestJS** on the backend and **React + Vite** on the frontend.
+A team-built social network with feeds, profiles and messaging. React and TypeScript frontend; NestJS backend in a pnpm workspace.
 
 Backend contributors and AI agents: read [service ownership and deployment rules](docs/SERVICE_OWNERSHIP.md) before adding modules, background tasks, WebSocket events or client API routes.
 
 ---
+
+[Website](https://eternalnet.vercel.app) · [Frontend source](apps/web/src) · [Backend source](apps/backend/src) · [Documentation](docs/README.md)
+
+## Frontend overview
+
+The web app uses React, TypeScript, Vite and Tailwind CSS, with TanStack Query, Zustand, React Hook Form and Zod. Start with [`apps/web/src/app`](apps/web/src/app), [`features`](apps/web/src/features) and [`shared`](apps/web/src/shared).
+
+The project began with three developers. Contributions include responsive interfaces, reusable UI, loading states, keyboard interaction and API integration. Complex platform features also involved AI-assisted development.
+
+<details>
+<summary>Technical stack, setup and contributor documentation</summary>
 
 ## 🛠️ Tech Stack
 
@@ -23,11 +36,11 @@ Backend contributors and AI agents: read [service ownership and deployment rules
 
 ### 🟩 Front-End (React + Vite)
 
-- **Core & Build Tools:** React 19, Vite 8, React Compiler
+- **Core & Build Tools:** React 19, Vite 6, React Compiler
 - **Architecture:** Feature-Sliced Design (FSD)
 - **Styling & UI:** Tailwind CSS 4
 - **State Management & Local-First:** TanStack Query 5 with IndexedDB persistence (`idb-keyval`), Zustand (Client State), Persistent Mutation Outbox Queue (offline-first sync with idempotency keys)
-- **Voice & Media Engines:** Web Worker image compressor (`OffscreenCanvas`), Real-time interactive waveform voice analyser & scrub physics, P2P WebRTC Mesh voice channels (Discord-style $0 server media bandwidth)
+- **Voice & Media Engines:** Web Worker image compressor (`OffscreenCanvas`), Real-time interactive waveform voice analyser & scrub physics, P2P WebRTC Mesh voice channels (client-side voice channels)
 - **Privacy & Encryption:** Pure WebCrypto API (ECDH P-256 + AES-GCM-256) E2EE, TOFU key pinning, Secret Chat verification modal with SAS safety emojis
 - **Routing:** React Router 7
 - **Form Handling & Validation:** React Hook Form + Zod
@@ -37,7 +50,7 @@ Backend contributors and AI agents: read [service ownership and deployment rules
 ### 🟨 Infrastructure & DevOps
 
 - **Monorepo Management:** pnpm Workspaces + **Nx** (`nx.json`, task graph & affected execution)
-- **Test Suite:** **Vitest 3 + `unplugin-swc`** unified monorepo workspace (Rust compiler, ~10-15x faster than Jest + `ts-jest`), isolated single-fork database E2E runner
+- **Test Suite:** **Vitest 4** for the monorepo test suite; see the testing handbook for runner configuration
 - **Supply Chain Security:** Cosign keyless artifact signing, CycloneDX SBOM generation, Trivy container scanning, strict `allowScripts` lockdown
 - **Containerization:** Docker (multi-stage non-root images with BuildKit cache mounts and parallel package builds)
 - **CI/CD & Release:** GitHub Actions (matrix sharded, PR build de-duplication, zero-overhead container smoke test), `@commitlint`, `lint-staged`, `husky`, `semantic-release`
@@ -51,8 +64,8 @@ social-network/
 ├── .agents/                 # AI Agent rules & workspace custom guidelines
 ├── .github/                 # CI/CD Workflows, PR templates & CODEOWNERS
 ├── .husky/                  # Git hooks (commit-msg, pre-commit, pre-push)
-├── backend/                 # NestJS API application & Prisma schema
-├── frontend/                # React + Vite application (Feature-Sliced Design)
+├── apps/backend/            # NestJS API application & Prisma schema
+├── apps/web/                # React + Vite application (Feature-Sliced Design)
 ├── docs/                    # Technical documentation, architecture & runbooks
 ├── scripts/                 # CI/CD, deploy, db, bench, secrets & utility scripts
 ├── .dockerignore            # Docker build exclusion rules
@@ -102,7 +115,7 @@ Detailed documentation, architecture deep dives, API specs, and runbooks are ava
 - 🔐 **[Security & Privacy Architecture](./docs/architecture/security.md)** — Auth, Argon2, E2EE, rate limiting & Cosign
 - 📡 **[REST API Reference](./docs/api/http-api.md)** & **[Zod Contracts](./docs/api/contracts.md)**
 - 🤝 **[Contributor Guide](./docs/contributing/README.md)** & **[Contribution Workflow](./docs/contributing/workflow.md)**
-- 🧪 **[Testing Handbook](./docs/contributing/testing.md)** — Vitest 3 (Backend & Frontend), E2E runner, Stryker & k6
+- 🧪 **[Testing Handbook](./docs/contributing/testing.md)** — Vitest 4 (Backend & Frontend), E2E runner, Stryker & k6
 - 🚀 **[Deployment Guides](./docs/deployment/README.md)** — Multi-stage Docker & Cloud environments
 - ⚙️ **[Operations & SRE Handbook](./docs/operations/README.md)** — Resilience, zero-downtime migrations & SLAs
 - 📖 **[Operational Runbooks](./docs/runbooks/README.md)** — SRE emergency playbooks & incident triage
@@ -122,8 +135,8 @@ AI/ML training and related data mining of proprietary materials require the auth
 ### 1. Clone the repository
 
 ```bash
-git clone <repository-url>
-cd social-network
+git clone https://github.com/rakuzan-knu/Eternal.git
+cd Eternal
 ```
 
 ### 2. Install dependencies
@@ -141,8 +154,8 @@ Copy `.env.example` files in both workspace directories and configure your envir
 
 ```bash
 cp .env.example .env
-cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env
+# Configure backend variables using .env.example and the deployment guide.
+# Configure VITE_* variables for apps/web as required by your environment.
 ```
 
 ### 4. Start Local Infrastructure (Docker)
@@ -179,7 +192,7 @@ pnpm dev:frontend
 
 ## 📜 Available Root Scripts
 
-All root commands execute across both `backend` and `frontend` workspaces:
+All root commands execute across both `apps/backend` and `apps/web` workspaces:
 
 | Script                 | Description                                                      |
 | :--------------------- | :--------------------------------------------------------------- |
@@ -195,7 +208,7 @@ All root commands execute across both `backend` and `frontend` workspaces:
 | `pnpm lint:fix`        | Fixes ESLint errors automatically across workspaces              |
 | `pnpm format`          | Formats codebase using Prettier                                  |
 | `pnpm typecheck`       | Validates TypeScript types without emitting files                |
-| `pnpm test`            | Runs all tests in monorepo via unified Vitest 3 workspace runner |
+| `pnpm test`            | Runs all tests in monorepo via unified Vitest 4 workspace runner |
 | `pnpm test:backend`    | Runs backend test suite via Vitest project runner                |
 | `pnpm test:frontend`   | Runs frontend test suite via Vitest project runner               |
 | `pnpm test:cov`        | Generates unit & integration test coverage via v8                |
@@ -229,10 +242,12 @@ Don't stay blocked—communication keeps the velocity high! 🚀
 
 ## 🤝 Contributing
 
-Before contributing, please read our detailed [CONTRIBUTING.md](./CONTRIBUTING.md) and [Contribution Workflow](./docs/contributing/workflow.md) covering:
+Before contributing, please read our detailed [CONTRIBUTING.MD](./CONTRIBUTING.MD) and [Contribution Workflow](./docs/contributing/workflow.md) covering:
 
 - GitHub Issues and proposal workflow
 - Git branch naming conventions (`feat/<issue>-...`, `fix/<issue>-...`)
 - Commit message guidelines & scope rules
 - Architectural standards (NestJS 4-Tier & Feature-Sliced Design)
 - Pull Request approval guidelines and automated release flow
+
+</details>
