@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/subvincdebian/subvincdebian/main/assets/repo-Eternal.svg" alt="Eternal project overview" width="100%" />
+<img src="https://raw.githubusercontent.com/subvincdebian/subvincdebian/228fedbb64bbc9c14d464b63a747f10ad5449c71/assets/repo-Eternal.svg" alt="Eternal project overview" width="100%" />
 
 # 🌐 Eternal Social Network
 
