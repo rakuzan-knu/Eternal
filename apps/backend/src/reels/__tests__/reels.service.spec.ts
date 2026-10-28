@@ -49,6 +49,8 @@ describe('ReelsService', () => {
 
   beforeEach(() => {
     mockRepo = {
+      findSaved: jest.fn().mockResolvedValue([]),
+      setSaved: jest.fn().mockResolvedValue({ saved: true, savedCount: 1 }),
       findAllPaginated: jest.fn().mockResolvedValue([sampleReel]),
       findByUserId: jest.fn().mockResolvedValue([sampleReel]),
       findById: jest.fn().mockResolvedValue(sampleReel),
@@ -74,6 +76,7 @@ describe('ReelsService', () => {
 
     const mockRedisClient = {
       set: jest.fn().mockResolvedValue('OK'),
+      del: jest.fn().mockResolvedValue(1),
     };
     mockRedis = {
       getClient: jest.fn().mockReturnValue(mockRedisClient),
@@ -106,7 +109,7 @@ describe('ReelsService', () => {
   it('getFeed returns paginated reels with mapped DTO fields', async () => {
     const result = await service.getFeed(10, undefined, 'viewer-1');
 
-    expect(mockRepo.findAllPaginated).toHaveBeenCalledWith(15, undefined, 'viewer-1');
+    expect(mockRepo.findAllPaginated).toHaveBeenCalledWith(11, undefined, 'viewer-1', undefined);
     expect(result.data.length).toBe(1);
     expect(result.data[0].id).toBe('reel-1');
     expect(result.data[0].isLiked).toBe(true);
@@ -114,10 +117,85 @@ describe('ReelsService', () => {
     expect(result.data[0].author.isFollowing).toBe(true);
   });
 
+  it('pushes hidden reel and author preferences into repository pagination', async () => {
+    const reelIds = Array.from({ length: 40 }, (_, index) => `hidden-${index}`);
+    mockRedis.getClient.mockReturnValue({
+      smembers: jest.fn().mockResolvedValueOnce(reelIds).mockResolvedValueOnce(['hidden-author']),
+    } as unknown as ReturnType<RedisService['getClient']>);
+    mockRepo.findAllPaginated.mockResolvedValue([sampleReel]);
+    const result = await service.getFeed(10, 'cursor', 'viewer');
+    expect(mockRepo.findAllPaginated).toHaveBeenCalledWith(11, 'cursor', 'viewer', {
+      reelIds,
+      authorIds: ['hidden-author'],
+    });
+    expect(result.data[0].id).toBe('reel-1');
+  });
+
+  it('never substitutes demo data for an empty or failed repository', async () => {
+    mockRepo.findAllPaginated.mockResolvedValue([]);
+    await expect(service.getFeed()).resolves.toEqual({
+      data: [],
+      meta: { hasNextPage: false, nextCursor: null },
+    });
+    mockRepo.findAllPaginated.mockRejectedValue(new Error('database unavailable'));
+    await expect(service.getFeed()).rejects.toThrow('database unavailable');
+    mockRepo.findByUserId.mockRejectedValue(new Error('database unavailable'));
+    await expect(service.getUserReels('author')).rejects.toThrow('database unavailable');
+    mockRepo.findById.mockResolvedValue(null);
+    await expect(service.getReelById('reel-profkino-1')).rejects.toThrow('Reel not found');
+  });
+
+  it('paginates saves using saved row ids and maps server saved state', async () => {
+    mockRepo.findSaved.mockResolvedValue([
+      {
+        id: 'saved-1',
+        reel: {
+          ...sampleReel,
+          saves: [{ userId: 'viewer' }],
+          _count: { likes: 5, comments: 2, saves: 7 },
+        },
+      },
+      { id: 'saved-2', reel: sampleReel },
+    ]);
+    const result = await service.getSavedReels('viewer', 1);
+    expect(mockRepo.findSaved).toHaveBeenCalledWith('viewer', 2, undefined);
+    expect(result.meta).toEqual({ nextCursor: 'saved-1', hasNextPage: true });
+    expect(result.data[0]).toMatchObject({ isSaved: true, savedCount: 7 });
+  });
+
+  it('does not execute mutations or return comments when the viewer cannot read a reel', async () => {
+    mockRepo.findById.mockResolvedValue(null);
+    await expect(service.toggleLike('private', 'viewer')).rejects.toThrow('Reel not found');
+    await expect(service.addComment('private', 'viewer', 'text')).rejects.toThrow('Reel not found');
+    await expect(service.recordShare('private', 'viewer')).rejects.toThrow('Reel not found');
+    await expect(service.recordView('private', 'viewer', 'viewer')).rejects.toThrow(
+      'Reel not found',
+    );
+    await expect(service.getComments('private', 20, undefined, 'viewer')).rejects.toThrow(
+      'Reel not found',
+    );
+    await expect(service.reportReel('private', 'viewer', 'OTHER')).rejects.toThrow(
+      'Reel not found',
+    );
+    expect(mockRepo.toggleLike).not.toHaveBeenCalled();
+    expect(mockRepo.addComment).not.toHaveBeenCalled();
+    expect(mockRepo.incrementShares).not.toHaveBeenCalled();
+    expect(mockRepo.incrementViews).not.toHaveBeenCalled();
+    expect(mockRepo.findComments).not.toHaveBeenCalled();
+    expect(mockRepo.reportReel).not.toHaveBeenCalled();
+  });
+
+  it('propagates persistence errors without counting a view twice', async () => {
+    mockRepo.incrementViews.mockRejectedValue(new Error('database unavailable'));
+    await expect(service.recordView('reel-1', 'viewer')).rejects.toThrow('database unavailable');
+    expect(mockRepo.incrementViews).toHaveBeenCalledTimes(1);
+    expect(mockRedis.getClient().del).toHaveBeenCalled();
+  });
+
   it('toggleLike calls repository and returns result', async () => {
     const result = await service.toggleLike('reel-1', 'user-1');
 
-    expect(mockRepo.findById).toHaveBeenCalledWith('reel-1');
+    expect(mockRepo.findById).toHaveBeenCalledWith('reel-1', 'user-1');
     expect(mockRepo.toggleLike).toHaveBeenCalledWith('reel-1', 'user-1');
     expect(result.liked).toBe(true);
   });

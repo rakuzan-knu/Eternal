@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useId, useRef, useState } from 'react';
 import { AlertCircle, X, Loader2 } from 'lucide-react';
 import { Button } from '../../../shared/ui/Button';
 import { FoundUserResponse } from '../model/types';
@@ -10,6 +10,8 @@ interface FindAccountProps {
 }
 
 export const FindAccount: React.FC<FindAccountProps> = ({ onSuccess }) => {
+  const errorId = useId();
+  const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState('');
   const [error, setError] = useState<string | null>(null);
   const { findAccountMutation } = useAuthMutations();
@@ -59,10 +61,15 @@ export const FindAccount: React.FC<FindAccountProps> = ({ onSuccess }) => {
   const isPending = findAccountMutation.isPending;
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div className="relative">
         <input
+          ref={inputRef}
           type="text"
+          aria-label="Email address or phone number"
+          autoComplete="username"
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? errorId : undefined}
           value={inputValue}
           disabled={isPending}
           onChange={(e) => {
@@ -79,9 +86,11 @@ export const FindAccount: React.FC<FindAccountProps> = ({ onSuccess }) => {
         {inputValue && !isPending && (
           <button
             type="button"
+            aria-label="Clear email address or phone number"
             onClick={() => {
               setInputValue('');
               setError(null);
+              inputRef.current?.focus();
             }}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-300 transition-colors"
           >
@@ -91,7 +100,11 @@ export const FindAccount: React.FC<FindAccountProps> = ({ onSuccess }) => {
       </div>
 
       {error && (
-        <div className="flex items-start gap-2 text-red-400 text-xs px-1 animate-slideUp">
+        <div
+          id={errorId}
+          role="alert"
+          className="flex items-start gap-2 text-red-400 text-xs px-1 animate-slideUp"
+        >
           <AlertCircle size={14} className="mt-[2px] flex-shrink-0" />
           <span>{error}</span>
         </div>

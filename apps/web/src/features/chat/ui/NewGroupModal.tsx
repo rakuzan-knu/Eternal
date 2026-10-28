@@ -1,5 +1,5 @@
 import { Nameplate } from '@/shared/ui/Nameplate';
-import React, { useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { X, Check, Search } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import Avatar from '../../../shared/ui/Avatar';
@@ -15,12 +15,17 @@ interface NewGroupModalProps {
   onCreated: (conversationId: string) => void;
 }
 
-const MAX_MEMBERS = 10;
+const MAX_MEMBERS = 100;
 
 export default function NewGroupModal({ onClose, onCreated }: NewGroupModalProps) {
+  const titleId = useId();
+  const searchRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    searchRef.current?.focus();
+  }, []);
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<UserSearchResult[]>([]);
-  const { results, isSearching } = useUserSearch(query);
+  const { results, isSearching, isError, retry } = useUserSearch(query);
   const { data: currentUser } = useCurrentUser();
   const queryClient = useQueryClient();
 
@@ -30,7 +35,7 @@ export default function NewGroupModal({ onClose, onCreated }: NewGroupModalProps
         .filter(Boolean)
         .join(', ');
       return chatApi.createGroupConversation(
-        name,
+        name.length <= 128 ? name : 'New group',
         selected.map((u: UserSearchResult) => u.id),
       );
     },
@@ -47,26 +52,37 @@ export default function NewGroupModal({ onClose, onCreated }: NewGroupModalProps
     setSelected((prev) =>
       prev.some((u: UserSearchResult) => u.id === user.id)
         ? prev.filter((u: UserSearchResult) => u.id !== user.id)
-        : [...prev, user],
+        : prev.length < MAX_MEMBERS
+          ? [...prev, user]
+          : prev,
     );
   };
 
   const isSelected = (id: string) => selected.some((u: UserSearchResult) => u.id === id);
 
   return (
-    <Modal onClose={onClose} className="w-full max-w-md max-h-[75vh] flex flex-col">
+    <Modal
+      onClose={onClose}
+      closeOnInputEscape
+      aria-labelledby={titleId}
+      className="w-full max-w-md max-h-[75vh] flex flex-col"
+    >
       {(close) => (
         <div className="bg-[#1c1c20] border border-white/10 rounded-3xl shadow-2xl flex flex-col max-h-[75vh]">
           <div className="flex items-center justify-between px-5 pt-5 pb-4 flex-shrink-0">
             <div>
-              <h2 className="text-lg font-bold text-white">New group chat</h2>
+              <h2 id={titleId} className="text-lg font-bold text-white">
+                New group chat
+              </h2>
               <p className="text-xs text-gray-500 mt-0.5">
                 {selected.length > 0
                   ? `${selected.length}/${MAX_MEMBERS} selected`
-                  : 'You can add up to 10 people'}
+                  : 'You can add up to 100 people at a time'}
               </p>
             </div>
             <button
+              type="button"
+              aria-label="Close new group chat"
               onClick={close}
               className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white transition-colors active:scale-90"
             >
@@ -86,7 +102,7 @@ export default function NewGroupModal({ onClose, onCreated }: NewGroupModalProps
                   <Avatar
                     size="sm"
                     src={user.avatar}
-                    decoration={(user as any).activeDecoration}
+                    decoration={user.activeDecoration}
                     userId={user.id}
                   />
                   <span data-nameplate-text className="text-xs font-medium text-white truncate">
@@ -105,13 +121,28 @@ export default function NewGroupModal({ onClose, onCreated }: NewGroupModalProps
                 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500"
               />
               <input
+                ref={searchRef}
                 autoFocus
+                aria-label="Search by username"
                 value={query}
                 maxLength={32}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search by username"
-                className="w-full h-10 pl-10 pr-4 rounded-full bg-white/5 border border-white/5 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-white/20 transition-colors"
+                className="w-full h-10 pl-10 pr-12 rounded-full bg-white/5 border border-white/5 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-white/20 transition-colors"
               />
+              {query && (
+                <button
+                  type="button"
+                  aria-label="Clear people search"
+                  onClick={() => {
+                    setQuery('');
+                    searchRef.current?.focus();
+                  }}
+                  className="absolute right-1 top-0 h-10 w-10 flex items-center justify-center rounded-full text-gray-400 hover:text-white focus-visible:outline-2 focus-visible:outline-white"
+                >
+                  <X size={16} aria-hidden="true" />
+                </button>
+              )}
             </div>
           </div>
 
@@ -121,7 +152,19 @@ export default function NewGroupModal({ onClose, onCreated }: NewGroupModalProps
                 Search for people to add to the group
               </p>
             )}
-            {query.trim() && !isSearching && filteredResults.length === 0 && (
+            {isError && (
+              <div role="alert" className="text-center text-sm text-red-400 mt-8 px-6">
+                People could not be loaded.{' '}
+                <button
+                  type="button"
+                  className="underline cursor-pointer"
+                  onClick={() => void retry()}
+                >
+                  Try again
+                </button>
+              </div>
+            )}
+            {query.trim() && !isSearching && !isError && filteredResults.length === 0 && (
               <p className="text-center text-sm text-gray-500 mt-8 px-6">No users found</p>
             )}
 
@@ -141,7 +184,7 @@ export default function NewGroupModal({ onClose, onCreated }: NewGroupModalProps
                   <Avatar
                     size="sm"
                     src={user.avatar}
-                    decoration={(user as any).activeDecoration}
+                    decoration={user.activeDecoration}
                     userId={user.id}
                   />
                   <span data-nameplate-text className="flex-1 text-left min-w-0">
@@ -164,6 +207,11 @@ export default function NewGroupModal({ onClose, onCreated }: NewGroupModalProps
           </div>
 
           <div className="px-5 py-4 border-t border-white/10 flex-shrink-0">
+            {createGroup.isError && (
+              <p role="alert" className="mb-3 text-sm text-red-400">
+                Group could not be created. Your selection is saved. Try again.
+              </p>
+            )}
             <button
               disabled={selected.length === 0 || createGroup.isPending}
               onClick={() => createGroup.mutate()}

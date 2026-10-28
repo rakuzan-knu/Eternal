@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Phone, Video, Info, Radio, Search } from 'lucide-react';
+import { Phone, Video, Info, Radio, Search, ArrowLeft } from 'lucide-react';
 import Avatar from '../../../shared/ui/Avatar';
 import GroupAvatarCollage from '../../../shared/ui/GroupAvatarCollage';
 import OnlineStatusIndicator from '../../../shared/ui/OnlineStatusIndicator';
@@ -20,6 +20,9 @@ import {
 } from '../../../shared/ui/activityIcons';
 
 interface ChatThreadHeaderProps {
+  readOnly?: boolean;
+  onBack?: () => void;
+  communityName?: string;
   conversationId?: string;
   display: ConversationDisplay;
   otherUserId: string | null;
@@ -37,6 +40,9 @@ interface ChatThreadHeaderProps {
 }
 
 export default function ChatThreadHeader({
+  readOnly = false,
+  onBack,
+  communityName,
   conversationId: _conversationId,
   display,
   otherUserId,
@@ -114,6 +120,17 @@ export default function ChatThreadHeader({
   return (
     <div className="flex flex-wrap gap-y-2 items-center justify-between px-5 max-md:px-3 min-h-16 py-2 border-b border-white/10 shrink-0 glass-panel z-10">
       <div className="flex items-center gap-3 min-w-0">
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            aria-label="Back to community channels"
+            title="Back to channels"
+            className="flex min-h-10 min-w-10 items-center justify-center rounded-lg text-gray-300 cursor-pointer hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-[var(--app-accent-color)]"
+          >
+            <ArrowLeft size={19} />
+          </button>
+        )}
         <div className="relative">
           {isGroup ? (
             display.avatar ? (
@@ -145,7 +162,10 @@ export default function ChatThreadHeader({
           {isOtherTyping ? (
             <p className="text-[12px] truncate text-blue-400">Typing…</p>
           ) : isGroup ? (
-            <p className="text-[12px] truncate text-gray-400">{memberCount} members</p>
+            <p className="text-[12px] truncate text-gray-400" title={communityName}>
+              {communityName ? `${communityName} · ` : ''}
+              {memberCount} members
+            </p>
           ) : isOtherListening ? (
             <div
               className="flex items-center gap-1.5 min-w-0 text-[12px] text-gray-300 font-medium"
@@ -212,6 +232,7 @@ export default function ChatThreadHeader({
         {onStartVoiceMesh && (
           <button
             type="button"
+            disabled={readOnly && !isVoiceMeshActive}
             onClick={onStartVoiceMesh}
             title={isVoiceMeshActive ? 'Voice Channel Active' : 'Join Voice Channel'}
             aria-label="Join Voice Channel"
@@ -226,6 +247,7 @@ export default function ChatThreadHeader({
         )}
 
         <button
+          disabled={readOnly}
           onClick={() => {
             prewarmer.prewarmImmediately();
             onStartCall?.('audio');
@@ -241,6 +263,7 @@ export default function ChatThreadHeader({
         </button>
 
         <button
+          disabled={readOnly}
           onClick={() => {
             prewarmer.prewarmImmediately();
             onStartCall?.('video');

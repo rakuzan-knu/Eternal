@@ -1,10 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { type Prisma, ReportCategory } from '@prisma/client';
 import type {
   IReelsRepository,
   ReelCommentWithUser,
   ReelWithAuthor,
+  ReelsFeedExclusions,
 } from '../interfaces/reels-repository.interface';
 
 const AUTHOR_SELECT = {
@@ -50,26 +51,53 @@ export class ReelsRepository implements IReelsRepository {
     };
   }
 
+  private visibleTo(viewerId?: string): Prisma.ReelWhereInput {
+    return {
+      author: {
+        ...(viewerId
+          ? {
+              blockedUsers: { none: { blockedId: viewerId } },
+              blockedByUsers: { none: { blockerId: viewerId } },
+              OR: [
+                { id: viewerId },
+                { isPrivate: false },
+                { followers: { some: { followerId: viewerId, status: 'ACCEPTED' } } },
+              ],
+            }
+          : { isPrivate: false }),
+      },
+    };
+  }
+
+  private reelInclude(viewerId?: string) {
+    return {
+      author: { select: this.getAuthorSelect(viewerId) },
+      _count: { select: { likes: true, comments: true, saves: true } },
+      ...(viewerId
+        ? {
+            likes: { where: { userId: viewerId }, select: { userId: true } },
+            saves: { where: { userId: viewerId }, select: { userId: true } },
+          }
+        : {}),
+    } satisfies Prisma.ReelInclude;
+  }
+
   async findAllPaginated(
     limit: number,
     after?: string,
     viewerId?: string,
+    exclusions?: ReelsFeedExclusions,
   ): Promise<ReelWithAuthor[]> {
-    return await this.prisma.reel.findMany({
+    return this.prisma.reel.findMany({
+      where: {
+        ...this.visibleTo(viewerId),
+        ...(exclusions?.reelIds.length ? { id: { notIn: exclusions.reelIds } } : {}),
+        ...(exclusions?.authorIds.length ? { authorId: { notIn: exclusions.authorIds } } : {}),
+      },
       take: limit,
       ...(after ? { skip: 1, cursor: { id: after } } : {}),
-      orderBy: { createdAt: 'desc' },
-      include: {
-        author: { select: this.getAuthorSelect(viewerId) },
-        ...(viewerId
-          ? {
-              likes: {
-                where: { userId: viewerId },
-                select: { userId: true },
-              },
-            }
-          : {}),
-      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      include: this.reelInclude(viewerId),
     });
   }
 
@@ -79,39 +107,72 @@ export class ReelsRepository implements IReelsRepository {
     after?: string,
     viewerId?: string,
   ): Promise<ReelWithAuthor[]> {
-    return await this.prisma.reel.findMany({
-      where: { authorId: userId },
+    return this.prisma.reel.findMany({
+      where: { authorId: userId, ...this.visibleTo(viewerId) },
       take: limit,
       ...(after ? { skip: 1, cursor: { id: after } } : {}),
-      orderBy: { createdAt: 'desc' },
-      include: {
-        author: { select: this.getAuthorSelect(viewerId) },
-        ...(viewerId
-          ? {
-              likes: {
-                where: { userId: viewerId },
-                select: { userId: true },
-              },
-            }
-          : {}),
-      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      include: this.reelInclude(viewerId),
     });
   }
 
   async findById(id: string, viewerId?: string): Promise<ReelWithAuthor | null> {
-    return await this.prisma.reel.findUnique({
-      where: { id },
-      include: {
-        author: { select: this.getAuthorSelect(viewerId) },
-        ...(viewerId
+    return this.prisma.reel.findFirst({
+      where: { id, ...this.visibleTo(viewerId) },
+      include: this.reelInclude(viewerId),
+    });
+  }
+
+  async findSaved(userId: string, limit: number, after?: string) {
+    const cursor = after
+      ? await this.prisma.savedReel.findFirst({
+          where: { id: after, userId },
+          select: { id: true, createdAt: true },
+        })
+      : null;
+    if (after && !cursor) throw new BadRequestException('Invalid saved reels cursor');
+    return this.prisma.savedReel.findMany({
+      where: {
+        userId,
+        reel: this.visibleTo(userId),
+        ...(cursor
           ? {
-              likes: {
-                where: { userId: viewerId },
-                select: { userId: true },
-              },
+              OR: [
+                { createdAt: { lt: cursor.createdAt } },
+                { createdAt: cursor.createdAt, id: { lt: cursor.id } },
+              ],
             }
           : {}),
       },
+      take: limit,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      include: { reel: { include: this.reelInclude(userId) } },
+    });
+  }
+
+  async setSaved(reelId: string, userId: string, saved: boolean) {
+    return this.prisma.$transaction(async (tx) => {
+      if (saved) {
+        const reel = await tx.reel.findFirst({
+          where: { id: reelId, ...this.visibleTo(userId) },
+          select: { id: true },
+        });
+        if (!reel) throw new NotFoundException('Reel not found');
+        // skipDuplicates handles concurrent retries without toggling the user's intent.
+        await tx.savedReel.createMany({ data: [{ reelId, userId }], skipDuplicates: true });
+      } else {
+        await tx.savedReel.deleteMany({ where: { reelId, userId } });
+      }
+      // Removing your own bookmark remains allowed after access is revoked, but
+      // the response must not expose aggregate counts for inaccessible content.
+      const visible =
+        saved ||
+        (await tx.reel.findFirst({
+          where: { id: reelId, ...this.visibleTo(userId) },
+          select: { id: true },
+        }));
+      const savedCount = visible ? await tx.savedReel.count({ where: { reelId } }) : 0;
+      return { saved, savedCount };
     });
   }
 
@@ -172,25 +233,17 @@ export class ReelsRepository implements IReelsRepository {
   }
 
   async incrementViews(reelId: string): Promise<void> {
-    try {
-      await this.prisma.reel.updateMany({
-        where: { id: reelId },
-        data: { viewsCount: { increment: 1 } },
-      });
-    } catch {
-      // Graceful fallback for seed or mock reels
-    }
+    await this.prisma.reel.update({
+      where: { id: reelId },
+      data: { viewsCount: { increment: 1 } },
+    });
   }
 
   async incrementShares(reelId: string): Promise<void> {
-    try {
-      await this.prisma.reel.updateMany({
-        where: { id: reelId },
-        data: { sharesCount: { increment: 1 } },
-      });
-    } catch {
-      // Graceful fallback for seed or mock reels
-    }
+    await this.prisma.reel.update({
+      where: { id: reelId },
+      data: { sharesCount: { increment: 1 } },
+    });
   }
 
   async addComment(reelId: string, userId: string, content: string): Promise<ReelCommentWithUser> {
@@ -237,7 +290,7 @@ export class ReelsRepository implements IReelsRepository {
       where: { id: reelId },
       select: { authorId: true },
     });
-    if (!reel) return;
+    if (!reel) throw new NotFoundException('Reel not found');
 
     const cat = REPORT_CATEGORY_MAP[category] ?? ReportCategory.OTHER;
 

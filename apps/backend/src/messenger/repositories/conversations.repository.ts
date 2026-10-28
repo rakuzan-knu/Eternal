@@ -4,6 +4,7 @@ import { Injectable, Optional } from '@nestjs/common';
 import { MuteLevel, ParticipantRole, Prisma } from '@prisma/client';
 import type { Conversation, ConversationParticipant } from '@prisma/client';
 import { PrismaService } from '@common/prisma';
+import { withUnreadWriteLock } from '../unread/unread-write-lock';
 import type {
   IConversationsRepository,
   ConversationPageOptions,
@@ -30,6 +31,14 @@ import {
 
 @Injectable()
 export class ConversationsRepository implements IConversationsRepository {
+  async isCommunityChannel(conversationId: string): Promise<boolean> {
+    return Boolean(
+      await this.prisma.communityChannel.findUnique({
+        where: { conversationId },
+        select: { communityId: true },
+      }),
+    );
+  }
   constructor(
     private readonly prisma: PrismaService,
     @Optional() private readonly messageBodies?: MessageBodyService,
@@ -101,7 +110,7 @@ export class ConversationsRepository implements IConversationsRepository {
   }
 
   findAllForUser(userId: string): Promise<ConversationWithDetails[]> {
-    return this.hydrate(
+    return this.hydrateForUser(
       this.prisma.conversation.findMany({
         where: {
           participants: {
@@ -111,6 +120,7 @@ export class ConversationsRepository implements IConversationsRepository {
         orderBy: { updatedAt: 'desc' },
         include: conversationInclude,
       }),
+      userId,
     );
   }
 
@@ -171,6 +181,7 @@ export class ConversationsRepository implements IConversationsRepository {
         include: participantInclude,
       }),
     ]);
+    await this.attachNotificationPreferences(conversations, userId);
     if (this.messageBodies) await this.messageBodies.hydrate(conversations);
 
     const ownById = new Map(
@@ -213,7 +224,7 @@ export class ConversationsRepository implements IConversationsRepository {
   }
 
   findOneForUser(conversationId: string, userId: string): Promise<ConversationWithDetails | null> {
-    return this.hydrate(
+    return this.hydrateForUser(
       this.prisma.conversation.findFirst({
         where: {
           id: conversationId,
@@ -221,6 +232,7 @@ export class ConversationsRepository implements IConversationsRepository {
         },
         include: conversationInclude,
       }),
+      userId,
     );
   }
 
@@ -379,17 +391,27 @@ export class ConversationsRepository implements IConversationsRepository {
     messageId: string,
     pinnedByUserId: string,
   ): Promise<void> {
-    await this.prisma.pinnedMessage.upsert({
-      where: { conversationId_messageId: { conversationId, messageId } },
-      update: { pinnedByUserId, pinnedAt: new Date() },
-      create: { conversationId, messageId, pinnedByUserId },
-    });
+    await withUnreadWriteLock(
+      this.prisma,
+      { conversationIds: [conversationId], requireWritableChannel: true, actorId: pinnedByUserId },
+      (tx) =>
+        tx.pinnedMessage.upsert({
+          where: { conversationId_messageId: { conversationId, messageId } },
+          update: { pinnedByUserId, pinnedAt: new Date() },
+          create: { conversationId, messageId, pinnedByUserId },
+        }),
+    );
   }
 
-  async unpinMessage(conversationId: string, messageId: string): Promise<void> {
-    await this.prisma.pinnedMessage.delete({
-      where: { conversationId_messageId: { conversationId, messageId } },
-    });
+  async unpinMessage(conversationId: string, messageId: string, userId: string): Promise<void> {
+    await withUnreadWriteLock(
+      this.prisma,
+      { conversationIds: [conversationId], actorId: userId },
+      (tx) =>
+        tx.pinnedMessage.delete({
+          where: { conversationId_messageId: { conversationId, messageId } },
+        }),
+    );
   }
 
   async updateSharedTheme(conversationId: string, theme: string | null): Promise<Conversation> {
@@ -401,6 +423,44 @@ export class ConversationsRepository implements IConversationsRepository {
       },
     });
   }
+  private async attachNotificationPreferences(
+    rows: Array<
+      Pick<ConversationWithDetails, 'communityChannel' | 'ownCommunityNotificationPreferences'>
+    >,
+    userId: string,
+  ) {
+    const communityIds = [
+      ...new Set(
+        rows.flatMap((row) => (row.communityChannel ? [row.communityChannel.communityId] : [])),
+      ),
+    ];
+    if (!communityIds.length) return;
+    const members = await this.prisma.communityMember.findMany({
+      where: { userId, state: 'ACTIVE', communityId: { in: communityIds } },
+      select: { communityId: true, notificationMode: true, notificationMutedUntil: true },
+    });
+    const preferences = new Map(members.map((member) => [member.communityId, member]));
+    for (const row of rows) {
+      const member = row.communityChannel && preferences.get(row.communityChannel.communityId);
+      if (member)
+        row.ownCommunityNotificationPreferences = {
+          notificationMode: member.notificationMode,
+          notificationMutedUntil: member.notificationMutedUntil,
+        };
+    }
+  }
+
+  private async hydrateForUser<
+    T extends ConversationWithDetails[] | ConversationWithDetails | null,
+  >(result: Promise<T>, userId: string): Promise<T> {
+    const value = await result;
+    await this.attachNotificationPreferences(
+      Array.isArray(value) ? value : value ? [value] : [],
+      userId,
+    );
+    return this.messageBodies ? this.messageBodies.hydrate(value) : value;
+  }
+
   private async hydrate<T>(result: Promise<T>): Promise<T> {
     const value = await result;
     return this.messageBodies ? this.messageBodies.hydrate(value) : value;

@@ -98,8 +98,8 @@ it('keeps system notifications with no target on the page and routes verified st
     ),
   ).toEqual({ kind: 'none' });
   expect(notificationTarget({ ...like, type: 'SYSTEM_VERIFIED', postId: null }, 'alex')).toEqual({
-    kind: 'web',
-    path: '/alex',
+    kind: 'profile',
+    username: 'alex',
   });
 });
 

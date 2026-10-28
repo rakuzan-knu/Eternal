@@ -11,6 +11,8 @@ import { UserNameWithBadges } from '@/entities/profile/ui/UserNameWithBadges';
 import BadgeList from '@/features/profile/ui/BadgeList';
 import { getBadgeById, Badge } from '@/entities/profile/model/badges';
 import { chatApi } from '@/features/chat/api/chatApi';
+import { ProfileSafetyMenu } from './ProfileSafetyMenu';
+import { useLocale } from '@/shared/lib/language/locale';
 
 interface ProfileHeaderProps {
   decoration?: AvatarDecorationDto | null | undefined;
@@ -41,12 +43,12 @@ interface ProfileHeaderProps {
   onEditClick: () => void;
 }
 
-function formatJoinedDate(createdAt?: string | Date | null): string {
+function formatJoinedDate(createdAt: string | Date | null | undefined, locale: string): string {
   if (!createdAt) return 'recently';
   try {
     const d = new Date(createdAt);
     if (isNaN(d.getTime())) return 'recently';
-    return d.toLocaleDateString('en-US', {
+    return d.toLocaleDateString(locale, {
       month: 'long',
       year: 'numeric',
     });
@@ -83,23 +85,26 @@ export default function ProfileHeader({
   followingCount = 0,
   onEditClick,
 }: ProfileHeaderProps) {
+  const locale = useLocale();
   const navigate = useNavigate();
   const [openList, setOpenList] = useState<'followers' | 'following' | null>(null);
   const [isStartingChat, setIsStartingChat] = useState(false);
+  const [chatError, setChatError] = useState(false);
 
   const hasProfileTheme = Boolean(profileTheme?.primary && profileTheme?.accent);
 
   const handleStartChat = async () => {
     try {
       setIsStartingChat(true);
+      setChatError(false);
       const conv = await chatApi.createDirectConversation(userId);
       if (conv?.id) {
         navigate(`/messages/${conv.id}`);
       } else {
-        navigate('/messages');
+        setChatError(true);
       }
     } catch {
-      navigate('/messages');
+      setChatError(true);
     } finally {
       setIsStartingChat(false);
     }
@@ -195,6 +200,7 @@ export default function ProfileHeader({
                 type="button"
                 onClick={handleStartChat}
                 disabled={isStartingChat}
+                aria-busy={isStartingChat}
                 className={
                   hasProfileTheme
                     ? 'flex items-center gap-1.5 bg-black/40 hover:bg-black/60 text-white border border-white/15 backdrop-blur-md font-semibold text-xs px-4 py-2 rounded-xl transition-all shadow-md active:scale-[0.98] cursor-pointer disabled:opacity-50'
@@ -211,9 +217,16 @@ export default function ProfileHeader({
                 isFriend={isFriend}
                 followsYou={followsYou}
               />
+              <ProfileSafetyMenu userId={userId} username={username} />
             </>
           )}
         </div>
+
+        {chatError && (
+          <p role="alert" className="mt-3 text-sm text-red-500 dark:text-red-400">
+            Could not open this conversation. Select Message to try again.
+          </p>
+        )}
 
         <div
           className={
@@ -320,7 +333,7 @@ export default function ProfileHeader({
               size={14}
               className={hasProfileTheme ? 'text-gray-300' : 'text-gray-400 dark:text-gray-500'}
             />
-            <span>Joined {formatJoinedDate(createdAt)}</span>
+            <span>Joined {formatJoinedDate(createdAt, locale)}</span>
           </div>
 
           <div

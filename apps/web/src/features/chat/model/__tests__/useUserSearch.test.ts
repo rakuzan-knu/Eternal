@@ -35,4 +35,15 @@ describe('useUserSearch', () => {
     await waitFor(() => expect(result.current.results).toHaveLength(1));
     expect(userSearchApi.search).toHaveBeenCalledWith('bob', expect.any(AbortSignal));
   });
+
+  it('distinguishes a failed search from no matches and supports retry', async () => {
+    vi.mocked(userSearchApi.search)
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValueOnce([]);
+    const { result } = renderHook(() => useUserSearch('alice'), { wrapper: createWrapper() });
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    await result.current.retry();
+    await waitFor(() => expect(result.current.isError).toBe(false));
+    expect(result.current.results).toEqual([]);
+  });
 });

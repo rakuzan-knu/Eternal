@@ -1,16 +1,15 @@
 import React from 'react';
-import { Film, Play } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Film } from 'lucide-react';
 import { useUserReels } from '../api/reelsApi';
-import { BlurHashImage } from '@/shared/ui/BlurHashImage';
+import { ReelGrid } from './ReelGrid';
 
 interface UserReelsViewProps {
   userId: string;
 }
 
 export const UserReelsView: React.FC<UserReelsViewProps> = ({ userId }) => {
-  const { data, isLoading } = useUserReels(userId);
-  const navigate = useNavigate();
+  const { data, isLoading, isError, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } =
+    useUserReels(userId);
 
   const reels = data?.pages.flatMap((page) => page.data) ?? [];
 
@@ -29,6 +28,21 @@ export const UserReelsView: React.FC<UserReelsViewProps> = ({ userId }) => {
     );
   }
 
+  if (isError && reels.length === 0) {
+    return (
+      <div role="alert" className="rounded-2xl border border-red-500/20 p-6 text-center space-y-3">
+        <p className="text-sm text-gray-700 dark:text-gray-300">Reels could not be loaded.</p>
+        <button
+          type="button"
+          onClick={() => void refetch()}
+          className="min-h-11 px-4 rounded-xl border border-purple-500/30 text-purple-500 font-semibold cursor-pointer hover:bg-purple-500/10"
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
+
   if (reels.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-white/5 rounded-4xl bg-white/1">
@@ -42,36 +56,23 @@ export const UserReelsView: React.FC<UserReelsViewProps> = ({ userId }) => {
   }
 
   return (
-    <div className="grid grid-cols-3 gap-2 sm:gap-4">
-      {reels.map((reel) => (
-        <div
-          key={reel.id}
-          onClick={() => navigate(`/reels?id=${reel.id}`)}
-          className="group relative aspect-9/16 rounded-xl sm:rounded-2xl overflow-hidden cursor-pointer bg-zinc-900 border border-white/6 shadow-md hover:border-pink-500/50 transition-all hover:scale-[1.02]"
+    <div className="space-y-4">
+      <ReelGrid reels={reels} />
+      {isError && (
+        <p role="alert" className="text-sm text-red-400">
+          More reels could not be loaded. You can try again.
+        </p>
+      )}
+      {hasNextPage && (
+        <button
+          type="button"
+          disabled={isFetchingNextPage}
+          onClick={() => void fetchNextPage()}
+          className="w-full min-h-11 rounded-xl border border-black/10 dark:border-white/10 text-gray-700 dark:text-gray-300 font-semibold text-sm cursor-pointer hover:bg-purple-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {reel.blurhash || reel.thumbnailUrl ? (
-            <BlurHashImage
-              blurhash={reel.blurhash}
-              src={reel.thumbnailUrl}
-              alt={reel.caption}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-linear-to-b from-zinc-800 to-zinc-950">
-              <Film className="w-8 h-8 text-zinc-500" aria-hidden="true" />
-            </div>
-          )}
-
-          {/* Dark gradient on bottom */}
-          <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-80 group-hover:opacity-100 transition-opacity" />
-
-          {/* Views count badge */}
-          <div className="absolute bottom-2 left-2 flex items-center gap-1 text-white text-xs font-semibold drop-shadow">
-            <Play className="w-3.5 h-3.5 fill-white" />
-            <span>{reel.viewsCount}</span>
-          </div>
-        </div>
-      ))}
+          {isFetchingNextPage ? 'Loading…' : isError ? 'Try loading more again' : 'Load more reels'}
+        </button>
+      )}
     </div>
   );
 };

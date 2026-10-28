@@ -10,5 +10,6 @@ export default defineConfig({
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     clearMocks: true,
     restoreMocks: true,
+    setupFiles: ['./src/test/setupLanguage.ts'],
   },
 });

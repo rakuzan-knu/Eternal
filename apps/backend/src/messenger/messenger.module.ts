@@ -1,4 +1,7 @@
 import { roleControllers } from '../config/service-role';
+import { CommunitiesController } from './communities/communities.controller';
+import { CommunitiesService } from './communities/communities.service';
+import { CommunitiesRepository } from './communities/communities.repository';
 import { Module, forwardRef } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
@@ -75,6 +78,7 @@ import { WatchTogetherService } from './watch-together/watch-together.service';
     SnowflakeModule,
   ],
   controllers: roleControllers('messenger', [
+    CommunitiesController,
     ConversationsController,
     MessagesController,
     MessengerLinkPreviewController,
@@ -86,6 +90,8 @@ import { WatchTogetherService } from './watch-together/watch-together.service';
     WatchTogetherController,
   ]),
   providers: [
+    CommunitiesService,
+    CommunitiesRepository,
     SoundboardService,
     WatchTogetherService,
     {

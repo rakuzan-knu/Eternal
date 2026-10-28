@@ -47,6 +47,8 @@ describe('BlockUserModal', () => {
     vi.spyOn(userSearchModule, 'useUserSearch').mockReturnValue({
       results: [{ id: 'u3', username: 'bob', displayName: 'Bob', avatar: 'https://avatar.png' }],
       isSearching: false,
+      isError: false,
+      retry: async () => {},
     });
 
     const onClose = vi.fn();

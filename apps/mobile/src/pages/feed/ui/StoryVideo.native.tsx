@@ -7,6 +7,7 @@ import { Video } from './MediaGallery';
 import { ErrorNotice } from './primitives';
 import type { StoryVideoProps } from './storyVideoTypes';
 import { storyVideoStringLiteral, storyVideoSyncScript } from './storyVideoScript';
+import { tr } from '@/shared/lib/i18n';
 
 let previewSequence = 0;
 /** The native web renderer supplies the same GPU video effects as the web app. */
@@ -15,7 +16,7 @@ function FilteredStoryVideo({
   active,
   volume = 1,
   filter,
-  label = 'Story video',
+  label = tr('Story video'),
 }: StoryVideoProps) {
   const view = React.useRef<WebView>(null);
   const [source, setSource] = React.useState<{ uri: string } | { html: string }>();
@@ -91,7 +92,9 @@ function FilteredStoryVideo({
   }, []);
   if (failed)
     return (
-      <ErrorNotice message="This video effect couldn't be previewed. Choose Normal or try another video." />
+      <ErrorNotice
+        message={tr("This video effect couldn't be previewed. Choose Normal or try another video.")}
+      />
     );
   if (!source) return <ActivityIndicator color="#a855f7" />;
   return (
@@ -138,7 +141,7 @@ export function StoryVideo(props: StoryVideoProps) {
           autoPlay
           volume={props.volume}
           loop
-          label={props.label || 'Story video'}
+          label={props.label || tr('Story video')}
         />
       )}
     </View>

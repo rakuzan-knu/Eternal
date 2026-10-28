@@ -16,7 +16,7 @@ import {
   FileText,
 } from 'lucide-react';
 import { useLanguageStore } from '../../shared/lib/language/languageStore';
-import { DATA_PRIVACY_CONTROLS_DATA } from './data/dataPrivacyControlsData';
+import { DATA_PRIVACY_CONTROLS_DATA } from '@social-network/shared-content';
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   Sliders: <Sliders className="w-4 h-4" />,

@@ -1,4 +1,6 @@
 export * from './lib/webrtc/opfsRecorder';
+export { useBlockUser, useUnblockUser } from './model/useConversationMutations';
+export { default as ReportConversationModal } from './ui/ReportConversationModal';
 export * from './lib/webrtc/webRtcStatsEngine';
 export * from './lib/webrtc/biometricStepUp';
 export * from './lib/webrtc/perfectNegotiationFSM';
@@ -33,3 +35,4 @@ export * from './model/CallContext';
 export * from './model/CallProvider';
 export * from './model/useCallManager';
 export { sendDirectMessage } from './model/sendDirectMessage';
+export { CommunityConversation } from './ui/CommunityConversation';

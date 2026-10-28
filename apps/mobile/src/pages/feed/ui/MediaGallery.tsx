@@ -4,6 +4,7 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import { Play, ImageOff } from 'lucide-react-native';
 import type { PostMediaResponseDto } from '@social-network/shared-contracts';
 import { colors, common, ErrorNotice, Sheet } from './primitives';
+import { tr } from '@/shared/lib/i18n';
 
 export function Video({
   uri,
@@ -62,7 +63,7 @@ export function Video({
     if (!active) player.pause();
   }, [active, player]);
   return failed ? (
-    <ErrorNotice message="This video couldn't be loaded." />
+    <ErrorNotice message={tr("This video couldn't be loaded.")} />
   ) : (
     <VideoView
       player={player}
@@ -96,7 +97,7 @@ function MediaItem({
       ) : (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={video ? 'Play video' : 'View full image'}
+          accessibilityLabel={video ? tr('Play video') : tr('View full image')}
           style={s.fill}
           onPress={() => (video ? setPlaying(true) : setExpanded(true))}
         >
@@ -110,7 +111,7 @@ function MediaItem({
           ) : (
             <View style={s.fallback}>
               <ImageOff size={28} color={colors.muted} />
-              <Text style={common.muted}>{video ? 'Video' : 'Image unavailable'}</Text>
+              <Text style={common.muted}>{video ? tr('Video') : tr('Image unavailable')}</Text>
             </View>
           )}
           {video && (
@@ -121,12 +122,12 @@ function MediaItem({
         </Pressable>
       )}
       {expanded && (
-        <Sheet title="Photo" onClose={() => setExpanded(false)}>
+        <Sheet title={tr('Photo')} onClose={() => setExpanded(false)}>
           <Image
             source={{ uri: media.url }}
             resizeMode="contain"
             style={s.fill}
-            accessibilityLabel="Full post image"
+            accessibilityLabel={tr('Full post image')}
           />
         </Sheet>
       )}
@@ -167,7 +168,13 @@ export function MediaGallery({
         </ScrollView>
       )}
       {media.length > 1 && (
-        <View style={s.pagination} accessibilityLabel={`Media ${index + 1} of ${media.length}`}>
+        <View
+          style={s.pagination}
+          accessibilityLabel={tr('Media {index} of {count}', {
+            index: index + 1,
+            count: media.length,
+          })}
+        >
           {ordered.map((item, i) => (
             <View key={item.id || i} style={[s.dot, i === index && s.selectedDot]} />
           ))}

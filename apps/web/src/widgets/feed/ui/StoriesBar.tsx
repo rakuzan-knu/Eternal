@@ -83,6 +83,29 @@ export function StoriesBar() {
     );
   }
 
+  if (!isError && feed.length === 0) {
+    return (
+      <div
+        role="region"
+        aria-label="Stories"
+        className="flex items-center justify-between gap-3 px-1 py-2"
+      >
+        <span className="text-sm text-gray-500 dark:text-gray-400">
+          Share a moment with your followers
+        </span>
+        <button
+          type="button"
+          onClick={() => openEditor()}
+          aria-label="Add story"
+          className="shrink-0 flex min-h-10 items-center gap-2 rounded-full border border-white/10 px-4 text-sm font-semibold text-gray-900 dark:text-white hover:bg-black/5 dark:hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-current"
+        >
+          <Plus size={16} aria-hidden="true" />
+          Add story
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div
       role="region"

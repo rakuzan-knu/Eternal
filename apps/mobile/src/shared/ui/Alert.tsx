@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { View, Text, Pressable, StyleSheet, type ViewStyle } from 'react-native';
 import { AlertCircle, CheckCircle2, AlertTriangle, Info, X } from 'lucide-react-native';
+import { tr } from '@/shared/lib/i18n';
 
 export type AlertVariant = 'error' | 'success' | 'warning' | 'info';
 
@@ -69,8 +70,8 @@ export function Alert({ variant = 'error', title, children, onDismiss, style }: 
       {onDismiss && (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Dismiss alert"
-          accessibilityHint="Closes this alert message"
+          accessibilityLabel={tr('Dismiss alert')}
+          accessibilityHint={tr('Closes this alert message')}
           onPress={onDismiss}
           style={styles.closeButton}
           hitSlop={8}

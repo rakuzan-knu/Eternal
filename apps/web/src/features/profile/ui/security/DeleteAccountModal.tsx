@@ -62,6 +62,10 @@ export default function DeleteAccountModal({ onClose }: DeleteAccountModalProps)
       const status = (err as AxiosError)?.response?.status;
       if (status === 401) {
         fail('Incorrect password. Please enter your current password to confirm deletion.');
+      } else if (status === 409) {
+        fail(
+          'Transfer ownership of your communities before deleting your account. Open Communities to choose a new owner.',
+        );
       } else {
         fail('Failed to delete account. Please try again later.');
       }

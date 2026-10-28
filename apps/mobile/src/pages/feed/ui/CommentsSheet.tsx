@@ -15,6 +15,7 @@ import { feedApi } from '../api/feedApi';
 import { nextCursor, relativeTime } from '../model/feed';
 import { feedKeys } from '../model/queries';
 import { Avatar, colors, common, ErrorNotice, IconButton, Sheet } from './primitives';
+import { tr } from '@/shared/lib/i18n';
 
 export function CommentsSheet({
   userId,
@@ -49,7 +50,7 @@ export function CommentsSheet({
     return true;
   });
   return (
-    <Sheet title="Comments" onClose={onClose}>
+    <Sheet title={tr('Comments')} onClose={onClose}>
       <FlatList
         data={unique}
         keyExtractor={(item) => item.id}
@@ -68,13 +69,13 @@ export function CommentsSheet({
             <ActivityIndicator color={colors.purple} style={s.loader} />
           ) : query.isError ? (
             <ErrorNotice
-              message="Comments couldn't be loaded."
+              message={tr("Comments couldn't be loaded.")}
               onRetry={() => {
                 void query.refetch();
               }}
             />
           ) : (
-            <Text style={s.empty}>Start the conversation. Leave the first comment.</Text>
+            <Text style={s.empty}>{tr('Start the conversation. Leave the first comment.')}</Text>
           )
         }
         renderItem={({ item }) => (
@@ -86,14 +87,14 @@ export function CommentsSheet({
                 <Text style={common.muted}>{relativeTime(item.createdAt)}</Text>
               </View>
               <Text style={common.text} selectable>
-                {item.isDeleted ? 'Comment deleted' : item.text}
+                {item.isDeleted ? tr('Comment deleted') : item.text}
               </Text>
               {item.mediaUrl && !item.isDeleted && (
                 <Image
                   source={{ uri: item.mediaUrl }}
                   resizeMode="contain"
                   style={s.commentMedia}
-                  accessibilityLabel="Comment attachment"
+                  accessibilityLabel={tr('Comment attachment')}
                 />
               )}
             </View>
@@ -109,7 +110,7 @@ export function CommentsSheet({
             <ActivityIndicator color={colors.purple} />
           ) : query.isError && unique.length > 0 ? (
             <ErrorNotice
-              message="More comments couldn't be loaded."
+              message={tr("More comments couldn't be loaded.")}
               onRetry={() => {
                 void (query.isFetchNextPageError ? query.fetchNextPage() : query.refetch());
               }}
@@ -117,7 +118,9 @@ export function CommentsSheet({
           ) : null
         }
       />
-      {create.isError && <ErrorNotice message="Your comment wasn't sent. Please try again." />}
+      {create.isError && (
+        <ErrorNotice message={tr("Your comment wasn't sent. Please try again.")} />
+      )}
       <View style={s.composer}>
         <TextInput
           value={text}
@@ -125,13 +128,13 @@ export function CommentsSheet({
           multiline
           maxLength={1000}
           editable={!create.isPending}
-          placeholder="Add a comment…"
+          placeholder={tr('Add a comment…')}
           placeholderTextColor={colors.muted}
-          accessibilityLabel="Comment text"
+          accessibilityLabel={tr('Comment text')}
           style={s.input}
         />
         <IconButton
-          label="Send comment"
+          label={tr('Send comment')}
           disabled={!text.trim() || create.isPending}
           onPress={() => create.mutate()}
         >

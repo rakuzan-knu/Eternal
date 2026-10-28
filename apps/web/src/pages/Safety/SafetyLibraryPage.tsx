@@ -7,7 +7,7 @@ import {
   ARTICLES_DATA,
   SAFETY_LIBRARY_TRANSLATIONS,
   LibraryArticle,
-} from './data/safetyLibraryData';
+} from '@social-network/shared-content';
 import {
   LibraryHeroScrollIllustration,
   LibraryHeroShieldIllustration,

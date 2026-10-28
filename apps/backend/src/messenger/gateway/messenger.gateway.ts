@@ -2,6 +2,7 @@ import { ownsRole } from '../../config/service-role';
 import { canViewStory } from '../../stories/story-access';
 import { publicIntegrationData } from '../../common/security/public-integration-data';
 import {
+  Ack,
   ConnectedSocket,
   MessageBody,
   OnGatewayConnection,
@@ -21,6 +22,8 @@ import {
   OnModuleDestroy,
   OnModuleInit,
   Optional,
+  ForbiddenException,
+  NotFoundException,
 } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Server, Socket } from 'socket.io';
@@ -566,6 +569,7 @@ export class MessengerGateway
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody(new ZodValidationPipe(conversationIdSchema)) payload: ConversationIdDto,
   ) {
+    await this.convsService.assertMember(payload.conversationId, client.userId, true);
     const isTypingLimited = await this.isTypingRateLimited(client.userId).catch(() => false);
     if (isTypingLimited) return;
 
@@ -598,6 +602,7 @@ export class MessengerGateway
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody(new ZodValidationPipe(conversationIdSchema)) payload: ConversationIdDto,
   ) {
+    await this.convsService.assertMember(payload.conversationId, client.userId);
     await this.emitToConversationExceptBlocked(
       payload.conversationId,
       client.userId,
@@ -647,6 +652,7 @@ export class MessengerGateway
   async handleSendMessage(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() rawPayload: unknown,
+    @Ack()
     callback?: (res: {
       status: string;
       message?: unknown;
@@ -825,6 +831,7 @@ export class MessengerGateway
   async handleGatewayResume(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody(new ZodValidationPipe(gatewayResumeSchema)) payload: GatewayResumeDto,
+    @Ack()
     callback?: (res: {
       status: string;
       events?: any[];
@@ -869,8 +876,69 @@ export class MessengerGateway
         })
         .filter(Boolean);
 
-      client.emit(WS_EVENTS.GATEWAY_RESUMED, { currentSeq, count: events.length });
-      callback?.({ status: 'ok', events, currentSeq });
+      // Replay is a fresh delivery: a buffered event is not a lasting access grant.
+      const access = new Map<string, boolean>();
+      const callScopes = new Map<string, string>();
+      const isRecord = (value: unknown): value is Record<string, unknown> =>
+        Boolean(value) && typeof value === 'object';
+      const visibleEvents = [];
+      for (const event of events) {
+        if (!event) continue;
+        const body = event.payload;
+        let conversationId: string | undefined;
+        if (isRecord(body)) {
+          if (typeof body.conversationId === 'string') conversationId = body.conversationId;
+          else if (event.event === WS_EVENTS.CONVERSATION_UPDATED && typeof body.id === 'string')
+            conversationId = body.id;
+          else if (isRecord(body.conversation) && typeof body.conversation.id === 'string')
+            conversationId = body.conversation.id;
+          else if (isRecord(body.call) && typeof body.call.conversationId === 'string')
+            conversationId = body.call.conversationId;
+          else if (isRecord(body.message) && typeof body.message.conversationId === 'string')
+            conversationId = body.message.conversationId;
+          else if (
+            typeof body.roomId === 'string' &&
+            typeof event.event === 'string' &&
+            event.event.startsWith('voice:')
+          )
+            conversationId = body.roomId;
+          else if (
+            typeof body.callId === 'string' &&
+            typeof event.event === 'string' &&
+            event.event.startsWith('call:')
+          ) {
+            if (!this.callsService) continue;
+            try {
+              let scope = callScopes.get(body.callId);
+              if (!scope) {
+                scope = (await this.callsService.getCallById(body.callId, userId)).conversationId;
+                callScopes.set(body.callId, scope);
+              }
+              conversationId = scope;
+            } catch (error) {
+              if (error instanceof ForbiddenException || error instanceof NotFoundException)
+                continue;
+              throw error;
+            }
+          }
+        }
+        if (conversationId) {
+          if (!access.has(conversationId)) {
+            try {
+              await this.convsService.assertMember(conversationId, userId);
+              access.set(conversationId, true);
+            } catch (error) {
+              if (!(error instanceof ForbiddenException)) throw error;
+              access.set(conversationId, false);
+            }
+          }
+          if (!access.get(conversationId) && event.event !== WS_EVENTS.CONVERSATION_DELETED)
+            continue;
+        }
+        visibleEvents.push(event);
+      }
+      client.emit(WS_EVENTS.GATEWAY_RESUMED, { currentSeq, count: visibleEvents.length });
+      callback?.({ status: 'ok', events: visibleEvents, currentSeq });
     } catch (err) {
       this.logger.warn(`Gateway resume failed for client ${client.id}: ${String(err)}`);
       client.emit(WS_EVENTS.RESYNC_REQUIRED, { reason: 'resume_error' });
@@ -882,7 +950,7 @@ export class MessengerGateway
   async handleMessageDelivered(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody(new ZodValidationPipe(messageDeliveredSchema)) payload: MessageDeliveredDto,
-    callback?: (res: { status: string }) => void,
+    @Ack() callback?: (res: { status: string }) => void,
   ): Promise<void> {
     const userId = client.userId;
     if (!userId) return;
@@ -909,7 +977,7 @@ export class MessengerGateway
   async handleClientHibernate(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody(new ZodValidationPipe(clientHibernateSchema)) _payload: ClientHibernateDto,
-    callback?: (res: { status: string }) => void,
+    @Ack() callback?: (res: { status: string }) => void,
   ): Promise<void> {
     const userId = client.userId;
     if (userId) {
@@ -930,7 +998,7 @@ export class MessengerGateway
   @SubscribeMessage(WS_EVENTS.CLIENT_WAKE)
   async handleClientWake(
     @ConnectedSocket() client: AuthenticatedSocket,
-    callback?: (res: { status: string; currentSeq?: number }) => void,
+    @Ack() callback?: (res: { status: string; currentSeq?: number }) => void,
   ): Promise<void> {
     const userId = client.userId;
     if (userId) {
@@ -949,7 +1017,7 @@ export class MessengerGateway
   async handleEditMessage(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody(new ZodValidationPipe(editMessageSchema)) payload: EditMessageDto,
-    callback?: (res: { status: string; message?: unknown; error?: string }) => void,
+    @Ack() callback?: (res: { status: string; message?: unknown; error?: string }) => void,
   ): Promise<void> {
     if (!payload.messageId) {
       callback?.({ status: 'error', error: 'messageId is required' });
@@ -968,7 +1036,7 @@ export class MessengerGateway
   async handleDeleteMessage(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody(new ZodValidationPipe(deleteMessageSchema)) payload: DeleteMessageDto,
-    callback?: (res: { status: string; deletedForAll: boolean; error?: string }) => void,
+    @Ack() callback?: (res: { status: string; deletedForAll: boolean; error?: string }) => void,
   ): Promise<void> {
     if (!payload.messageId) {
       callback?.({ status: 'error', error: 'messageId is required', deletedForAll: false });
@@ -1000,7 +1068,7 @@ export class MessengerGateway
   async handleForwardMessage(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody(new ZodValidationPipe(forwardMessageSchema)) payload: ForwardMessageDto,
-    callback?: (res: { status: string; messages?: unknown[]; error?: string }) => void,
+    @Ack() callback?: (res: { status: string; messages?: unknown[]; error?: string }) => void,
   ): Promise<void> {
     if (!payload.messageId) {
       callback?.({ status: 'error', error: 'messageId is required' });
@@ -1024,7 +1092,7 @@ export class MessengerGateway
   async handleAddReaction(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody(new ZodValidationPipe(reactToMessageSchema)) payload: ReactToMessageDto,
-    callback?: (res: { status: string; message?: unknown; error?: string }) => void,
+    @Ack() callback?: (res: { status: string; message?: unknown; error?: string }) => void,
   ): Promise<void> {
     if (!payload.messageId) {
       callback?.({ status: 'error', error: 'messageId is required' });
@@ -1050,7 +1118,7 @@ export class MessengerGateway
   async handleRemoveReaction(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody(new ZodValidationPipe(reactToMessageSchema)) payload: ReactToMessageDto,
-    callback?: (res: { status: string; message?: unknown; error?: string }) => void,
+    @Ack() callback?: (res: { status: string; message?: unknown; error?: string }) => void,
   ): Promise<void> {
     if (!payload.messageId) {
       callback?.({ status: 'error', error: 'messageId is required' });
@@ -1076,7 +1144,7 @@ export class MessengerGateway
   async handlePinMessage(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody(new ZodValidationPipe(togglePinMessageSchema)) payload: TogglePinMessageDto,
-    callback?: (res: { status: string; error?: string }) => void,
+    @Ack() callback?: (res: { status: string; error?: string }) => void,
   ): Promise<void> {
     try {
       await this.messagesService.pinMessage(
@@ -1084,7 +1152,7 @@ export class MessengerGateway
         payload.messageId,
         client.userId,
       );
-      this.emitMessagePinned(payload.conversationId, payload.messageId);
+      await this.emitMessagePinned(payload.conversationId, payload.messageId);
       callback?.({ status: 'ok' });
     } catch (err: unknown) {
       callback?.({
@@ -1098,7 +1166,7 @@ export class MessengerGateway
   async handleUnpinMessage(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody(new ZodValidationPipe(togglePinMessageSchema)) payload: TogglePinMessageDto,
-    callback?: (res: { status: string; error?: string }) => void,
+    @Ack() callback?: (res: { status: string; error?: string }) => void,
   ): Promise<void> {
     try {
       await this.messagesService.unpinMessage(
@@ -1106,7 +1174,7 @@ export class MessengerGateway
         payload.messageId,
         client.userId,
       );
-      this.emitMessageUnpinned(payload.conversationId, payload.messageId);
+      await this.emitMessageUnpinned(payload.conversationId, payload.messageId);
       callback?.({ status: 'ok' });
     } catch (err: unknown) {
       callback?.({
@@ -1225,8 +1293,19 @@ export class MessengerGateway
     }
   }
 
+  async emitNewMessageToParticipants(
+    conversationId: string,
+    recipientIds: string[],
+    message: unknown,
+  ) {
+    const current = new Set(await this.convsService.getParticipantIds(conversationId));
+    for (const userId of new Set(recipientIds)) {
+      if (current.has(userId))
+        this.emitToUser(userId, WS_EVENTS.NEW_MESSAGE, { conversationId, message });
+    }
+  }
+
   async emitMessageEdited(conversationId: string, message: unknown, actingUserId?: string) {
-    this.server.to(conversationId).emit(WS_EVENTS.MESSAGE_EDITED, { conversationId, message });
     if (actingUserId) {
       await this.emitToConversationExceptBlocked(
         conversationId,
@@ -1234,7 +1313,11 @@ export class MessengerGateway
         WS_EVENTS.MESSAGE_EDITED,
         { conversationId, message },
       ).catch(() => {});
-    }
+    } else
+      await this.emitToCurrentParticipants(conversationId, WS_EVENTS.MESSAGE_EDITED, {
+        conversationId,
+        message,
+      });
   }
 
   async emitMessageDeleted(
@@ -1243,10 +1326,6 @@ export class MessengerGateway
     deletedForAll: boolean,
     actingUserId?: string,
   ) {
-    this.server
-      .to(conversationId)
-      .emit(WS_EVENTS.MESSAGE_DELETED, { conversationId, messageId, deletedForAll });
-
     if (deletedForAll) {
       if (actingUserId) {
         await this.emitToConversationExceptBlocked(
@@ -1267,13 +1346,16 @@ export class MessengerGateway
           });
         }
       }
+    } else if (actingUserId) {
+      this.emitToUser(actingUserId, WS_EVENTS.MESSAGE_DELETED, {
+        conversationId,
+        messageId,
+        deletedForAll: false,
+      });
     }
   }
 
   async emitReactionAdded(conversationId: string, message: unknown, actingUserId?: string) {
-    this.server
-      .to(conversationId)
-      .emit(WS_EVENTS.MESSAGE_REACTION_ADDED, { conversationId, message });
     if (actingUserId && typeof message === 'object' && message !== null) {
       await this.emitReactionToParticipants(
         conversationId,
@@ -1281,13 +1363,14 @@ export class MessengerGateway
         WS_EVENTS.MESSAGE_REACTION_ADDED,
         message as MessageView,
       );
-    }
+    } else
+      await this.emitToCurrentParticipants(conversationId, WS_EVENTS.MESSAGE_REACTION_ADDED, {
+        conversationId,
+        message,
+      });
   }
 
   async emitReactionRemoved(conversationId: string, message: unknown, actingUserId?: string) {
-    this.server
-      .to(conversationId)
-      .emit(WS_EVENTS.MESSAGE_REACTION_REMOVED, { conversationId, message });
     if (actingUserId && typeof message === 'object' && message !== null) {
       await this.emitReactionToParticipants(
         conversationId,
@@ -1295,7 +1378,20 @@ export class MessengerGateway
         WS_EVENTS.MESSAGE_REACTION_REMOVED,
         message as MessageView,
       );
-    }
+    } else
+      await this.emitToCurrentParticipants(conversationId, WS_EVENTS.MESSAGE_REACTION_REMOVED, {
+        conversationId,
+        message,
+      });
+  }
+
+  private async emitToCurrentParticipants(
+    conversationId: string,
+    event: string,
+    payload: unknown,
+  ): Promise<void> {
+    const participants = await this.convsService.getParticipantIds(conversationId);
+    for (const userId of participants) this.emitToUser(userId, event, payload);
   }
 
   private async emitReactionToParticipants(
@@ -1334,11 +1430,17 @@ export class MessengerGateway
   }
 
   emitMessagePinned(conversationId: string, messageId: string) {
-    this.server.to(conversationId).emit(WS_EVENTS.MESSAGE_PINNED, { conversationId, messageId });
+    return this.emitToCurrentParticipants(conversationId, WS_EVENTS.MESSAGE_PINNED, {
+      conversationId,
+      messageId,
+    });
   }
 
   emitMessageUnpinned(conversationId: string, messageId: string) {
-    this.server.to(conversationId).emit(WS_EVENTS.MESSAGE_UNPINNED, { conversationId, messageId });
+    return this.emitToCurrentParticipants(conversationId, WS_EVENTS.MESSAGE_UNPINNED, {
+      conversationId,
+      messageId,
+    });
   }
 
   emitConversationDeleted(conversationId: string, participantUserIds: string[] = []) {
@@ -1353,6 +1455,36 @@ export class MessengerGateway
       for (const userId of participantUserIds) {
         this.emitToUser(userId, WS_EVENTS.CONVERSATION_DELETED, { conversationId });
       }
+    }
+  }
+
+  async emitCommunityChanged(
+    communityId: string,
+    recipientIds: string[],
+    removedUserIds: string[],
+    conversationIds: string[],
+    eventId: string,
+  ): Promise<void> {
+    for (const userId of removedUserIds) {
+      for (const conversationId of conversationIds) {
+        // Outbox delivery can arrive after the same person has already rejoined.
+        try {
+          await this.convsService.assertMember(conversationId, userId);
+          continue;
+        } catch (error) {
+          if (!(error instanceof ForbiddenException)) throw error;
+        }
+        // Target only departed users; the generic delete helper broadcasts to the whole channel.
+        this.server.in(`user:${userId}`).socketsLeave(conversationId);
+        this.server.in(`user:${userId}`).socketsLeave(`voice-mesh:${conversationId}`);
+        this.server
+          .to(`voice-mesh:${conversationId}`)
+          .emit(WS_EVENTS.VOICE_MESH_PEER_LEFT, { roomId: conversationId, peerId: userId });
+        this.emitToUser(userId, WS_EVENTS.CONVERSATION_DELETED, { conversationId });
+      }
+    }
+    for (const userId of new Set([...recipientIds, ...removedUserIds])) {
+      this.emitToUser(userId, 'community:changed', { communityId, eventId });
     }
   }
 
@@ -1682,7 +1814,7 @@ export class MessengerGateway
       ephemeralPublicKey: string;
       conversationId?: string;
     },
-    callback?: (res: { status: string }) => void,
+    @Ack() callback?: (res: { status: string }) => void,
   ): void {
     const senderId = client.userId;
     if (!senderId || !payload?.recipientId || !payload?.ephemeralPublicKey) {
@@ -1704,6 +1836,7 @@ export class MessengerGateway
   async handleCallInitiate(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody(new ZodValidationPipe(initiateCallSchema)) payload: InitiateCallDto,
+    @Ack()
     callback?: (res: { status: string; callId?: string; call?: unknown; error?: string }) => void,
   ) {
     if (!this.callsService) throw new WsException('CallsService not available');
@@ -1777,7 +1910,7 @@ export class MessengerGateway
   async handleCallAccept(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody(new ZodValidationPipe(acceptCallSchema)) payload: AcceptCallDto,
-    callback?: (res: { status: string; call?: unknown; error?: string }) => void,
+    @Ack() callback?: (res: { status: string; call?: unknown; error?: string }) => void,
   ) {
     if (!this.callsService) throw new WsException('CallsService not available');
     try {
@@ -1830,7 +1963,7 @@ export class MessengerGateway
   async handleCallReject(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody(new ZodValidationPipe(rejectCallSchema)) payload: RejectCallDto,
-    callback?: (res: { status: string }) => void,
+    @Ack() callback?: (res: { status: string }) => void,
   ) {
     if (!this.callsService) throw new WsException('CallsService not available');
     try {
@@ -1974,7 +2107,7 @@ export class MessengerGateway
   async handleCallEnd(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody(new ZodValidationPipe(endCallSchema)) payload: EndCallDto,
-    callback?: (res: { status: string }) => void,
+    @Ack() callback?: (res: { status: string }) => void,
   ) {
     if (!this.callsService) throw new WsException('CallsService not available');
     try {
@@ -2157,6 +2290,7 @@ export class MessengerGateway
   async handleCallReconnect(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody(new ZodValidationPipe(callReconnectSchema)) payload: CallReconnectDto,
+    @Ack()
     callback?: (res: {
       status: string;
       active?: boolean;
@@ -2209,7 +2343,7 @@ export class MessengerGateway
   async handleCallReconnectAnswer(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody(new ZodValidationPipe(callReconnectAnswerSchema)) payload: CallReconnectAnswerDto,
-    callback?: (res: { status: string }) => void,
+    @Ack() callback?: (res: { status: string }) => void,
   ) {
     await this.assertSignalParticipants(payload.callId, client.userId, payload.targetUserId);
     const answerPayload = {
@@ -2240,7 +2374,7 @@ export class MessengerGateway
   async handleCallIceRestart(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody(new ZodValidationPipe(iceRestartSchema)) payload: IceRestartDto,
-    callback?: (res: { status: string }) => void,
+    @Ack() callback?: (res: { status: string }) => void,
   ) {
     await this.assertSignalParticipants(payload.callId, client.userId, payload.targetUserId);
     const restartPayload = {
@@ -2270,7 +2404,7 @@ export class MessengerGateway
   async handleCallIceRestartAnswer(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody(new ZodValidationPipe(iceRestartAnswerSchema)) payload: IceRestartAnswerDto,
-    callback?: (res: { status: string }) => void,
+    @Ack() callback?: (res: { status: string }) => void,
   ) {
     await this.assertSignalParticipants(payload.callId, client.userId, payload.targetUserId);
     const answerPayload = {
@@ -2300,7 +2434,7 @@ export class MessengerGateway
   async handleCallRelayAnnounce(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody(new ZodValidationPipe(relayAnnounceSchema)) payload: RelayAnnounceDto,
-    callback?: (res: { status: string }) => void,
+    @Ack() callback?: (res: { status: string }) => void,
   ) {
     if (this.callsService) {
       await this.callsService.registerRelayNode(client.userId, payload.natType, payload.maxSlots);
@@ -2313,7 +2447,7 @@ export class MessengerGateway
   async handleCallRelayRequest(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody(new ZodValidationPipe(relayRequestSchema)) payload: RelayRequestDto,
-    callback?: (res: { status: string; relay?: unknown; error?: string }) => void,
+    @Ack() callback?: (res: { status: string; relay?: unknown; error?: string }) => void,
   ) {
     await this.assertSignalParticipants(payload.callId, client.userId, payload.targetUserId);
     if (!this.callsService) throw new WsException('CallsService not available');
@@ -2357,7 +2491,7 @@ export class MessengerGateway
   async handleCallHandoffRequest(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody(new ZodValidationPipe(callHandoffRequestSchema)) payload: CallHandoffRequestDto,
-    callback?: (res: { status: string; call?: unknown; error?: string }) => void,
+    @Ack() callback?: (res: { status: string; call?: unknown; error?: string }) => void,
   ) {
     if (!this.callsService) throw new WsException('CallsService not available');
     try {
@@ -2731,9 +2865,21 @@ export class MessengerGateway
     @MessageBody() payload: { roomId: string },
   ) {
     if (!payload?.roomId || !client.userId) return { success: false, existingPeers: [] };
-    await this.convsService.assertMember(payload.roomId, client.userId);
     const roomKey = `voice-mesh:${payload.roomId}`;
+    try {
+      await this.convsService.assertMember(payload.roomId, client.userId, true);
+    } catch (error) {
+      if (error instanceof ForbiddenException) return { success: false, existingPeers: [] };
+      throw error;
+    }
     await client.join(roomKey);
+    try {
+      await this.convsService.assertMember(payload.roomId, client.userId, true);
+    } catch (error) {
+      await client.leave(roomKey);
+      if (error instanceof ForbiddenException) return { success: false, existingPeers: [] };
+      throw error;
+    }
 
     const roomSockets = await this.server.in(roomKey).fetchSockets();
     const existingPeers = roomSockets
@@ -2784,7 +2930,7 @@ export class MessengerGateway
       return { success: false };
     }
 
-    await this.convsService.assertMember(payload.roomId, client.userId);
+    await this.convsService.assertMember(payload.roomId, client.userId, true);
     await this.convsService.assertMember(payload.roomId, payload.targetPeerId);
     if (!client.rooms.has(`voice-mesh:${payload.roomId}`))
       throw new WsException('Join voice room first');
@@ -2799,12 +2945,17 @@ export class MessengerGateway
 
   public broadcastChatSoundAdded(conversationId: string, item: unknown): void {
     if (!this.server || !conversationId) return;
-    this.server.to(conversationId).emit('soundboard:chat_added', item);
+    void this.emitToCurrentParticipants(conversationId, 'soundboard:chat_added', item).catch(
+      (error: unknown) => this.logger.warn(`Soundboard fanout failed: ${String(error)}`),
+    );
   }
 
   public broadcastChatSoundDeleted(conversationId: string, soundId: string): void {
     if (!this.server || !conversationId) return;
-    this.server.to(conversationId).emit('soundboard:chat_deleted', { conversationId, id: soundId });
+    void this.emitToCurrentParticipants(conversationId, 'soundboard:chat_deleted', {
+      conversationId,
+      id: soundId,
+    }).catch((error: unknown) => this.logger.warn(`Soundboard fanout failed: ${String(error)}`));
   }
 
   @SubscribeMessage('soundboard:play')
@@ -2813,11 +2964,17 @@ export class MessengerGateway
     @MessageBody() payload: { conversationId?: string; [key: string]: unknown },
   ) {
     if (!payload?.conversationId || !client.userId) return;
-    await this.convsService.assertMember(payload.conversationId, client.userId);
-    client.to(payload.conversationId).emit('soundboard:play', {
-      ...payload,
-      senderUserId: client.userId,
-    });
+    await this.convsService.assertMember(payload.conversationId, client.userId, true);
+    await this.emitToConversationExceptBlocked(
+      payload.conversationId,
+      client.userId,
+      'soundboard:play',
+      {
+        ...payload,
+        senderUserId: client.userId,
+      },
+      { includeActor: false },
+    );
   }
 
   @SubscribeMessage('watchtogether:sync')
@@ -2826,11 +2983,17 @@ export class MessengerGateway
     @MessageBody() payload: { conversationId?: string; [key: string]: unknown },
   ) {
     if (!payload?.conversationId || !client.userId) return;
-    await this.convsService.assertMember(payload.conversationId, client.userId);
-    client.to(payload.conversationId).emit('watchtogether:sync', {
-      ...payload,
-      senderUserId: client.userId,
-    });
+    await this.convsService.assertMember(payload.conversationId, client.userId, true);
+    await this.emitToConversationExceptBlocked(
+      payload.conversationId,
+      client.userId,
+      'watchtogether:sync',
+      {
+        ...payload,
+        senderUserId: client.userId,
+      },
+      { includeActor: false },
+    );
   }
 
   private extractToken(client: Socket): string | null {

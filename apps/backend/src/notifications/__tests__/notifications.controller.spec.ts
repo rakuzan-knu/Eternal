@@ -1,6 +1,7 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { NotificationsController } from '../notifications.controller';
 import { NotificationsService } from '../notifications.service';
+import { PushDevicesService } from '../push/push-devices.service';
 import { type NotificationResponseDto, NotificationType } from '@common/contracts';
 import type { RequestUser } from '../../auth/interfaces/jwt-payload.interface';
 
@@ -146,6 +147,7 @@ describe('NotificationsController', () => {
           provide: NotificationsService,
           useValue: mockService,
         },
+        { provide: PushDevicesService, useValue: { register: vi.fn(), remove: vi.fn() } },
       ],
     }).compile();
 

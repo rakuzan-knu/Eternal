@@ -1,8 +1,14 @@
-import { Injectable, ServiceUnavailableException, Optional } from '@nestjs/common';
+import {
+  Injectable,
+  ServiceUnavailableException,
+  Optional,
+  ForbiddenException,
+} from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { CallStatus, CallType, CallEndReason, ParticipantRole } from '@prisma/client';
 import type { CallParticipant, CallTelemetry } from '@prisma/client';
 import { PrismaService } from '@common/prisma';
+import { withUnreadWriteLock } from '../unread/unread-write-lock';
 import type { ICallsRepository } from '../interfaces/calls-repository.interface';
 import type { CallWithDetails } from '../interfaces/types';
 import { callInclude } from '../interfaces/types';
@@ -26,24 +32,50 @@ export class CallsRepository implements ICallsRepository {
   }): Promise<CallWithDetails> {
     const allParticipantIds = Array.from(new Set([data.initiatorId, ...data.participantIds]));
 
-    return this.prisma.call.create({
-      data: {
-        conversationId: data.conversationId,
-        type: data.type,
-        status: CallStatus.INITIATED,
-        initiatorId: data.initiatorId,
-        e2eeEnabled: data.e2eeEnabled ?? true,
-        participants: {
-          create: allParticipantIds.map((userId) => ({
-            userId,
-            role: userId === data.initiatorId ? ParticipantRole.OWNER : ParticipantRole.MEMBER,
-            joinedAt: userId === data.initiatorId ? new Date() : null,
-            videoState: data.type === CallType.VIDEO,
-          })),
-        },
+    return withUnreadWriteLock(
+      this.prisma,
+      {
+        conversationIds: [data.conversationId],
+        requireWritableChannel: true,
+        actorId: data.initiatorId,
       },
-      include: callInclude,
-    });
+      async (tx) => {
+        const channel = await tx.communityChannel.findUnique({
+          where: { conversationId: data.conversationId },
+          select: { id: true },
+        });
+        if (channel) {
+          const members = await tx.conversationParticipant.findMany({
+            where: {
+              conversationId: data.conversationId,
+              userId: { in: allParticipantIds },
+              leftAt: null,
+            },
+            select: { userId: true },
+          });
+          if (members.length !== allParticipantIds.length)
+            throw new ForbiddenException('Call participants no longer have channel access');
+        }
+        return tx.call.create({
+          data: {
+            conversationId: data.conversationId,
+            type: data.type,
+            status: CallStatus.INITIATED,
+            initiatorId: data.initiatorId,
+            e2eeEnabled: data.e2eeEnabled ?? true,
+            participants: {
+              create: allParticipantIds.map((userId) => ({
+                userId,
+                role: userId === data.initiatorId ? ParticipantRole.OWNER : ParticipantRole.MEMBER,
+                joinedAt: userId === data.initiatorId ? new Date() : null,
+                videoState: data.type === CallType.VIDEO,
+              })),
+            },
+          },
+          include: callInclude,
+        });
+      },
+    );
   }
 
   findCallById(callId: string): Promise<CallWithDetails | null> {

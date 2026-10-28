@@ -11,6 +11,7 @@ import { reelForm } from '../api/postForm';
 import { prepareMobileUploadForm } from '../api/directUploadForm';
 import { Video } from './MediaGallery';
 import { colors, common, ErrorNotice, Sheet } from './primitives';
+import { formatNumber, tr } from '@/shared/lib/i18n';
 
 export function CreateReelSheet({
   userId,
@@ -48,7 +49,8 @@ export function CreateReelSheet({
       void client.invalidateQueries({ queryKey: ['mobile', userId, 'reels'] });
       onPublished();
     },
-    onError: () => setError('Your reel was not published. Your video and caption are still here.'),
+    onError: () =>
+      setError(tr('Your reel was not published. Your video and caption are still here.')),
   });
   React.useEffect(() => {
     onBusyChange?.(create.isPending);
@@ -63,25 +65,25 @@ export function CreateReelSheet({
         Platform.OS !== 'web' &&
         !(await ImagePicker.requestMediaLibraryPermissionsAsync()).granted
       ) {
-        setError('Allow photo library access in Settings to choose a video.');
+        setError(tr('Allow photo library access in Settings to choose a video.'));
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['videos'] });
       const selected = !result.canceled ? result.assets[0] : undefined;
       if (selected) {
         if (selected.type !== 'video' && !selected.mimeType?.startsWith('video/')) {
-          setError('Choose a video for your reel.');
+          setError(tr('Choose a video for your reel.'));
           return;
         }
         // Match the direct upload admission policy before reading the device file.
         if ((selected.fileSize ?? selected.file?.size ?? 0) > 20 * 1024 * 1024) {
-          setError('Choose a video smaller than 20 MiB.');
+          setError(tr('Choose a video smaller than 20 MiB.'));
           return;
         }
         setAsset(selected);
       }
     } catch {
-      setError('The video library could not be opened.');
+      setError(tr('The video library could not be opened.'));
     } finally {
       setPicking(false);
     }
@@ -97,7 +99,7 @@ export function CreateReelSheet({
             <Video key={asset.uri} uri={asset.uri} active={!create.isPending} />
           </View>
           <Button
-            title="Change video"
+            title={tr('Change video')}
             variant="secondary"
             disabled={!isOnline || busy}
             onPress={() => {
@@ -108,7 +110,7 @@ export function CreateReelSheet({
       ) : (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Choose reel video"
+          accessibilityLabel={tr('Choose reel video')}
           disabled={!isOnline || busy}
           onPress={() => {
             void pick();
@@ -119,51 +121,53 @@ export function CreateReelSheet({
             <UploadCloud size={28} color="#f472b6" />
           </View>
           <Text style={common.title}>
-            {picking ? 'Opening video library…' : 'Select a vertical video'}
+            {picking ? tr('Opening video library…') : tr('Select a vertical video')}
           </Text>
-          <Text style={common.muted}>Up to 20 MiB · 60 seconds · 1920 px</Text>
+          <Text style={common.muted}>{tr('Up to 20 MiB · 60 seconds · 1920 px')}</Text>
         </Pressable>
       )}
       <View style={s.field}>
-        <Text style={common.title}>Caption</Text>
+        <Text style={common.title}>{tr('Caption')}</Text>
         <TextInput
-          accessibilityLabel="Reel caption"
+          accessibilityLabel={tr('Reel caption')}
           value={caption}
           onChangeText={setCaption}
           editable={isOnline && !create.isPending}
           multiline
           maxLength={2000}
-          placeholder="Describe your reel…"
+          placeholder={tr('Describe your reel…')}
           placeholderTextColor={colors.muted}
           style={[s.input, s.caption]}
         />
-        <Text style={s.count}>{caption.length.toLocaleString()}/2,000</Text>
+        <Text style={s.count}>
+          {formatNumber(caption.length)}/{formatNumber(2000)}
+        </Text>
       </View>
       <Text style={common.title}>
-        Audio details <Text style={common.muted}>(optional)</Text>
+        Audio details <Text style={common.muted}>{tr('(optional)')}</Text>
       </Text>
       <TextInput
-        accessibilityLabel="Audio title"
+        accessibilityLabel={tr('Audio title')}
         value={audioTitle}
         onChangeText={setAudioTitle}
         editable={isOnline && !create.isPending}
         maxLength={128}
-        placeholder="Audio title"
+        placeholder={tr('Audio title')}
         placeholderTextColor={colors.muted}
         style={s.input}
       />
       <TextInput
-        accessibilityLabel="Audio artist"
+        accessibilityLabel={tr('Audio artist')}
         value={audioArtist}
         onChangeText={setAudioArtist}
         editable={isOnline && !create.isPending}
         maxLength={128}
-        placeholder="Artist"
+        placeholder={tr('Artist')}
         placeholderTextColor={colors.muted}
         style={s.input}
       />
       <Button
-        title="Publish reel"
+        title={tr('Publish reel')}
         variant="purple"
         leftIcon={<Film size={18} color="white" />}
         disabled={!isOnline || !asset || picking}
@@ -178,7 +182,7 @@ export function CreateReelSheet({
   return embedded ? (
     content
   ) : (
-    <Sheet title="Create New Reel" closeDisabled={create.isPending} onClose={onClose}>
+    <Sheet title={tr('Create New Reel')} closeDisabled={create.isPending} onClose={onClose}>
       {content}
     </Sheet>
   );

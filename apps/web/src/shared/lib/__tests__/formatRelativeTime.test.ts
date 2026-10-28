@@ -51,6 +51,24 @@ describe('formatRelativeTime', () => {
 
   it('formats years', () => {
     const time = new Date(BASE_TIME - 400 * 24 * 60 * 60 * 1000).toISOString();
-    expect(formatRelativeTime(time)).toBe('1 years');
+    expect(formatRelativeTime(time)).toBe('1 year');
+  });
+
+  it.each([
+    [1 / 1440, '1 minute'],
+    [1 / 24, '1 hour'],
+    [1, '1 day'],
+    [7, '1 week'],
+    [35, '1 month'],
+    [360, '12 months'],
+    [365, '1 year'],
+    [730, '2 years'],
+  ])('formats a %s-day interval without incorrect singulars or zero years', (days, label) => {
+    expect(formatRelativeTime(new Date(BASE_TIME - days * 86400000))).toBe(label);
+  });
+
+  it('handles invalid and future timestamps', () => {
+    expect(formatRelativeTime('invalid')).toBe('just now');
+    expect(formatRelativeTime(new Date(BASE_TIME + 60000))).toBe('just now');
   });
 });

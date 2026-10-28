@@ -1,4 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
+import { MediaImage, MediaVideo } from '@/shared/lib/privateMediaView';
 import React, { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -913,7 +914,7 @@ export default function GlobalSearchModal({
     if (isVideoMedia(item)) {
       return (
         <div className="relative w-full h-full bg-black/40">
-          <video
+          <MediaVideo
             src={item.url}
             preload="metadata"
             muted
@@ -928,7 +929,7 @@ export default function GlobalSearchModal({
     }
 
     return (
-      <img
+      <MediaImage
         src={item.url}
         alt={item.fileName || 'Chat media'}
         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"

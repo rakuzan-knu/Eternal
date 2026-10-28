@@ -1,4 +1,5 @@
 import { MessageView } from '../../../entities/chat/model/types';
+import { getLocale } from '@/shared/lib/language/locale';
 
 export interface MessageGroup {
   label: string;
@@ -12,10 +13,17 @@ function dayLabel(date: Date): string {
 
   const diffDays = Math.round((startOfDay(now) - startOfDay(date)) / (1000 * 60 * 60 * 24));
 
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Yesterday';
+  const locale = getLocale();
+  if (diffDays === 0)
+    return locale.startsWith('en')
+      ? 'Today'
+      : new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }).format(0, 'day');
+  if (diffDays === 1)
+    return locale.startsWith('en')
+      ? 'Yesterday'
+      : new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }).format(-1, 'day');
 
-  return date.toLocaleDateString([], { day: 'numeric', month: 'long', year: 'numeric' });
+  return date.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 export function groupMessagesByDate(messages: MessageView[]): MessageGroup[] {
@@ -37,12 +45,12 @@ export function groupMessagesByDate(messages: MessageView[]): MessageGroup[] {
 }
 
 export function formatMessageTime(iso: string | Date): string {
-  return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return new Date(iso).toLocaleTimeString(getLocale(), { hour: '2-digit', minute: '2-digit' });
 }
 
 export function formatFullMessageDate(iso: string | Date): string {
   const date = new Date(iso);
   const label = dayLabel(date);
   const time = formatMessageTime(date);
-  return `${label} at ${time}`;
+  return `${label}${getLocale().startsWith('en') ? ' at ' : ', '}${time}`;
 }

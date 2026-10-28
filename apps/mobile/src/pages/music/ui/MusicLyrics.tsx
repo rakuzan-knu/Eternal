@@ -17,6 +17,7 @@ import { Button } from '@/shared/ui';
 import { Cover, m, MusicStatus } from './primitives';
 import { MusicBackdrop } from './MusicBackdrop';
 import { MusicTransport } from './MusicTransport';
+import { tr } from '@/shared/lib/i18n';
 
 export function MusicLyrics({ onBack }: { onBack: () => void }) {
   const music = useMusic();
@@ -69,13 +70,13 @@ export function MusicLyrics({ onBack }: { onBack: () => void }) {
     <View style={m.flex} testID="music-karaoke">
       <MusicBackdrop seed={track?.id || 'lyrics'} />
       <View style={[m.row, { padding: 12, gap: 10 }]}>
-        <IconButton label="Back from lyrics" onPress={onBack}>
+        <IconButton label={tr('Back from lyrics')} onPress={onBack}>
           <ArrowLeft size={22} color="white" />
         </IconButton>
         <Cover uri={track?.albumArt} size={42} />
         <View style={m.flex}>
           <Text numberOfLines={1} style={m.trackTitle}>
-            {track?.title || 'Lyrics'}
+            {track?.title || tr('Lyrics')}
           </Text>
           <Text numberOfLines={1} style={m.muted}>
             {track?.artist}
@@ -85,7 +86,7 @@ export function MusicLyrics({ onBack }: { onBack: () => void }) {
       </View>
       <View style={{ paddingHorizontal: 24, paddingBottom: 10 }}>
         <Text style={m.accent}>
-          {lyrics.data?.synced ? 'Karaoke · Tap a line to jump' : 'Lyrics'}
+          {lyrics.data?.synced ? tr('Karaoke · Tap a line to jump') : tr('Lyrics')}
         </Text>
       </View>
       <ScrollView
@@ -106,16 +107,19 @@ export function MusicLyrics({ onBack }: { onBack: () => void }) {
         onScrollBeginDrag={() => setFollowing(false)}
       >
         {lyrics.isFetching && !lyrics.data ? (
-          <ActivityIndicator color="#ddc8ff" accessibilityLabel="Loading lyrics" />
+          <ActivityIndicator color="#ddc8ff" accessibilityLabel={tr('Loading lyrics')} />
         ) : lyrics.isError ? (
-          <MusicStatus message="Lyrics couldn't be loaded." onRetry={() => void lyrics.refetch()} />
+          <MusicStatus
+            message={tr("Lyrics couldn't be loaded.")}
+            onRetry={() => void lyrics.refetch()}
+          />
         ) : !music.isOnline && !lyrics.data ? (
-          <Text style={m.muted}>Connect to load lyrics.</Text>
+          <Text style={m.muted}>{tr('Connect to load lyrics.')}</Text>
         ) : !lyrics.data?.lines.length ? (
           <View style={m.empty}>
             <Mic2 size={38} color="#c9a4ff" />
-            <Text style={m.heading}>Let the music speak</Text>
-            <Text style={m.muted}>Lyrics aren't available for this track yet.</Text>
+            <Text style={m.heading}>{tr('Let the music speak')}</Text>
+            <Text style={m.muted}>{tr("Lyrics aren't available for this track yet.")}</Text>
           </View>
         ) : (
           lyrics.data.lines.map((line, index) => (
@@ -155,7 +159,11 @@ export function MusicLyrics({ onBack }: { onBack: () => void }) {
       </ScrollView>
       {!following && !!lyrics.data?.synced && (
         <View style={{ paddingHorizontal: 24, paddingBottom: 8 }}>
-          <Button title="Follow lyrics" variant="secondary" onPress={() => setFollowing(true)} />
+          <Button
+            title={tr('Follow lyrics')}
+            variant="secondary"
+            onPress={() => setFollowing(true)}
+          />
         </View>
       )}
       <MusicTransport compact />

@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { AlertCircle, X, ClipboardPaste } from 'lucide-react-native';
 import { Pressable } from 'react-native';
+import { tr } from '@/shared/lib/i18n';
 
 export interface InputProps extends TextInputProps {
   label?: string;
@@ -114,7 +115,7 @@ export const Input = React.forwardRef<TextInput, InputProps>(
           {showClearButton && Boolean(props.value) && props.editable !== false && (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Clear text"
+              accessibilityLabel={tr('Clear text')}
               onPress={(e) => {
                 e.stopPropagation?.();
                 onClear?.();
@@ -132,7 +133,7 @@ export const Input = React.forwardRef<TextInput, InputProps>(
         {pasteSuggestion && !props.value && onPasteSuggestion && (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`Paste ${pasteSuggestion} from clipboard`}
+            accessibilityLabel={tr('Paste {text} from clipboard', { text: pasteSuggestion })}
             onPress={onPasteSuggestion}
             style={styles.pasteBadge}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}

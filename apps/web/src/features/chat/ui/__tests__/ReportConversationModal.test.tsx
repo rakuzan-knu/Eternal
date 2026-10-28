@@ -26,12 +26,16 @@ describe('ReportConversationModal', () => {
     fireEvent.click(reasonBtn);
 
     await waitFor(() => {
-      expect(chatApi.reportUser).toHaveBeenCalledWith('target-u1', 'OTHER', 'conv-1');
+      expect(chatApi.reportUser).toHaveBeenCalledWith(
+        'target-u1',
+        'FRAUD',
+        'Fraud, deception, or spam\nConversation: conv-1',
+      );
       expect(onClose).toHaveBeenCalled();
     });
   });
 
-  it('handles error in reportUser gracefully and still adds toast and closes', async () => {
+  it('retains the reason after failure and submits only on successful retry', async () => {
     vi.mocked(chatApi.reportUser).mockRejectedValueOnce(new Error('Network failure'));
     const onClose = vi.fn();
 
@@ -42,8 +46,12 @@ describe('ReportConversationModal', () => {
     const reasonBtn = screen.getByText('Violence, hostility or exploitation');
     fireEvent.click(reasonBtn);
 
-    await waitFor(() => {
-      expect(onClose).toHaveBeenCalled();
-    });
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent('Your report was not sent'),
+    );
+    expect(onClose).not.toHaveBeenCalled();
+    vi.mocked(chatApi.reportUser).mockResolvedValueOnce(undefined as never);
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
   });
 });

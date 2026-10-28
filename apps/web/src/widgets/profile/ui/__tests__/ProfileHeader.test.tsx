@@ -23,6 +23,10 @@ vi.mock('@/features/chat/api/chatApi', () => ({
   },
 }));
 
+vi.mock('../ProfileSafetyMenu', () => ({
+  ProfileSafetyMenu: () => <button>Profile actions</button>,
+}));
+
 const defaultProps = {
   userId: 'user-1',
   username: 'ayate',

@@ -27,7 +27,7 @@ import {
   MoreHorizontal,
 } from 'lucide-react-native';
 import { useMusic } from '../model/MusicProvider';
-import { durationLabel, musicLink, trackSource } from '../model/music';
+import { durationLabel, musicLink, repeatLabel, trackSource } from '../model/music';
 import { musicApi } from '../api/musicApi';
 import { colors, ErrorNotice, IconButton, Sheet } from '../../feed/ui/primitives';
 import { shareLink } from '../../feed/ui/shareLink';
@@ -37,6 +37,16 @@ import { MusicJam } from './MusicJam';
 import { MusicLyrics } from './MusicLyrics';
 import { MusicBackdrop } from './MusicBackdrop';
 import { Cover, m, TrackRow } from './primitives';
+import { tr } from '@/shared/lib/i18n';
+
+function panelLabel(panel: string) {
+  if (panel === 'Queue') return tr('Queue');
+  if (panel === 'Lyrics') return tr('Lyrics');
+  if (panel === 'More') return tr('More');
+  if (panel === 'Sleep timer') return tr('Sleep timer');
+  if (panel === 'Jam') return tr('Listen together');
+  return panel;
+}
 
 export function MusicPlayer() {
   const music = useMusic();
@@ -54,9 +64,9 @@ export function MusicPlayer() {
   const share = () => {
     void shareLink(track.title, musicLink('track', track.id, webOrigin))
       .then((result) => {
-        if (result === 'copied') music.setNotice('Link copied');
+        if (result === 'copied') music.setNotice(tr('Link copied'));
       })
-      .catch(() => music.setError('The share menu could not be opened.'));
+      .catch(() => music.setError(tr('The share menu could not be opened.')));
   };
   return (
     <>
@@ -74,7 +84,7 @@ export function MusicPlayer() {
         <View style={[m.row, { padding: 7, gap: 7 }]}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`Open player: ${track.title}`}
+            accessibilityLabel={tr('Open player: {name}', { name: track.title })}
             onPress={() => {
               setPanel('Playing');
               music.setExpanded(true);
@@ -87,16 +97,19 @@ export function MusicPlayer() {
                 {track.title}
               </Text>
               <Text numberOfLines={1} style={m.muted}>
-                {music.stream.data?.preview ? 'Spotify preview · ' : ''}
+                {music.stream.data?.preview ? `${tr('Spotify preview')} · ` : ''}
                 {track.artist}
               </Text>
             </View>
           </Pressable>
-          <IconButton label={music.playing ? 'Pause music' : 'Play music'} onPress={music.toggle}>
+          <IconButton
+            label={music.playing ? tr('Pause music') : tr('Play music')}
+            onPress={music.toggle}
+          >
             {music.stream.isFetching ? <ActivityIndicator color="white" /> : icon}
           </IconButton>
           <IconButton
-            label="Next track"
+            label={tr('Next track')}
             onPress={() => music.next()}
             disabled={
               music.listener || (music.index === music.queue.length - 1 && music.repeat === 'off')
@@ -116,7 +129,7 @@ export function MusicPlayer() {
         </View>
       </View>
       {music.expanded && (
-        <Sheet title="Now playing" onClose={() => music.setExpanded(false)}>
+        <Sheet title={tr('Now playing')} onClose={() => music.setExpanded(false)}>
           {panel === 'Lyrics' ? (
             <MusicLyrics onBack={() => setPanel('Playing')} />
           ) : (
@@ -128,19 +141,23 @@ export function MusicPlayer() {
               >
                 {panel !== 'Playing' && (
                   <View style={m.row}>
-                    <IconButton label="Back to now playing" onPress={() => setPanel('Playing')}>
+                    <IconButton
+                      label={tr('Back to now playing')}
+                      onPress={() => setPanel('Playing')}
+                    >
                       <ArrowLeft size={22} color="white" />
                     </IconButton>
                     <Text accessibilityRole="header" style={m.heading}>
-                      {panel === 'More' ? 'Track options' : panel}
+                      {panel === 'More' ? tr('Track options') : panelLabel(panel)}
                     </Text>
                   </View>
                 )}
                 {music.error && <ErrorNotice message={music.error} onRetry={music.toggle} />}
                 {music.listener && (
                   <Text style={m.muted}>
-                    Playback follows the Jam host. Choose a track to leave Jam and listen on your
-                    own.
+                    {tr(
+                      'Playback follows the Jam host. Choose a track to leave Jam and listen on your own.',
+                    )}
                   </Text>
                 )}
                 {panel === 'Playing' && (
@@ -160,7 +177,7 @@ export function MusicPlayer() {
                         </Text>
                       </View>
                       <IconButton
-                        label={liked ? 'Unlike current track' : 'Like current track'}
+                        label={liked ? tr('Unlike current track') : tr('Like current track')}
                         disabled={music.busy || !music.isOnline}
                         onPress={() => void music.like(track)}
                       >
@@ -174,7 +191,7 @@ export function MusicPlayer() {
                     <View>
                       <Slider
                         disabled={music.listener}
-                        accessibilityLabel="Playback position"
+                        accessibilityLabel={tr('Playback position')}
                         accessibilityValue={{
                           min: 0,
                           max: Math.max(1, music.duration),
@@ -203,7 +220,7 @@ export function MusicPlayer() {
                     </View>
                     <View style={[m.row, { justifyContent: 'space-between', gap: 0 }]}>
                       <IconButton
-                        label={`Shuffle ${music.shuffle ? 'on' : 'off'}`}
+                        label={music.shuffle ? tr('Shuffle on') : tr('Shuffle off')}
                         selected={music.shuffle}
                         disabled={music.listener}
                         onPress={music.toggleShuffle}
@@ -211,7 +228,7 @@ export function MusicPlayer() {
                         <Shuffle size={22} color={music.shuffle ? colors.purple : colors.muted} />
                       </IconButton>
                       <IconButton
-                        label="Previous track"
+                        label={tr('Previous track')}
                         onPress={music.previous}
                         disabled={music.listener}
                       >
@@ -226,7 +243,7 @@ export function MusicPlayer() {
                         {icon}
                       </Pressable>
                       <IconButton
-                        label="Next track"
+                        label={tr('Next track')}
                         onPress={() => music.next()}
                         disabled={
                           music.listener ||
@@ -236,7 +253,7 @@ export function MusicPlayer() {
                         <SkipForward size={29} color="white" fill="white" />
                       </IconButton>
                       <IconButton
-                        label={`Repeat: ${music.repeat}`}
+                        label={tr('Repeat: {mode}', { mode: repeatLabel(music.repeat) })}
                         disabled={music.listener}
                         onPress={() =>
                           music.setRepeat(
@@ -263,7 +280,9 @@ export function MusicPlayer() {
                         <Pressable
                           key={action.title}
                           accessibilityRole="button"
-                          accessibilityLabel={`Show ${action.title.toLowerCase()}`}
+                          accessibilityLabel={tr('Show {name}', {
+                            name: panelLabel(action.title).toLowerCase(),
+                          })}
                           onPress={() => setPanel(action.title)}
                           style={{
                             minWidth: 64,
@@ -274,32 +293,38 @@ export function MusicPlayer() {
                           }}
                         >
                           {action.icon}
-                          <Text style={m.small}>{action.title}</Text>
+                          <Text style={m.small}>{panelLabel(action.title)}</Text>
                         </Pressable>
                       ))}
                     </View>
                     {trackSource(track) === 'spotify' && (
                       <Button
-                        title="Listen in Spotify"
+                        title={tr('Listen in Spotify')}
                         variant="secondary"
                         onPress={() =>
                           void Linking.openURL(
                             `https://open.spotify.com/track/${encodeURIComponent(track.id.replace(/^sp-/, ''))}`,
-                          ).catch(() => music.setError('Spotify could not be opened.'))
+                          ).catch(() => music.setError(tr('Spotify could not be opened.')))
                         }
                       />
                     )}
                     {music.stream.data?.preview && (
                       <Text style={m.muted}>
-                        Spotify preview. Full playback is available in Spotify with your account.
+                        {tr(
+                          'Spotify preview. Full playback is available in Spotify with your account.',
+                        )}
                       </Text>
                     )}
                   </>
                 )}
                 {panel === 'More' && (
                   <>
-                    <Button title="Game Mode" variant="secondary" onPress={music.enterGameMode} />
-                    <Text style={m.muted}>Volume</Text>
+                    <Button
+                      title={tr('Game Mode')}
+                      variant="secondary"
+                      onPress={music.enterGameMode}
+                    />
+                    <Text style={m.muted}>{tr('Volume')}</Text>
                     <View style={m.row}>
                       <IconButton
                         label={music.muted ? 'Unmute' : 'Mute'}
@@ -312,7 +337,7 @@ export function MusicPlayer() {
                         )}
                       </IconButton>
                       <Slider
-                        accessibilityLabel="Music volume"
+                        accessibilityLabel={tr('Music volume')}
                         style={{ flex: 1, height: 44 }}
                         minimumValue={0}
                         maximumValue={1}
@@ -326,25 +351,25 @@ export function MusicPlayer() {
                       />
                     </View>
 
-                    <Button title="Share track" variant="secondary" onPress={share} />
+                    <Button title={tr('Share track')} variant="secondary" onPress={share} />
                     <Button
-                      title="Listen together · Jam"
+                      title={tr('Listen together · Jam')}
                       variant="secondary"
                       onPress={() => setPanel('Jam')}
                     />
                     <Button
-                      title={music.sleepUntil ? 'Sleep timer · On' : 'Sleep timer'}
+                      title={music.sleepUntil ? tr('Sleep timer · On') : tr('Sleep timer')}
                       variant="secondary"
                       onPress={() => setPanel('Sleep timer')}
                     />
-                    <Button title="Close player" variant="ghost" onPress={music.close} />
+                    <Button title={tr('Close player')} variant="ghost" onPress={music.close} />
                   </>
                 )}
                 {panel === 'Queue' && (
                   <>
-                    <Text style={m.heading}>Up next</Text>
+                    <Text style={m.heading}>{tr('Up next')}</Text>
                     <Button
-                      title="Clear upcoming tracks"
+                      title={tr('Clear upcoming tracks')}
                       variant="ghost"
                       onPress={music.clearQueue}
                       disabled={music.listener}
@@ -355,7 +380,7 @@ export function MusicPlayer() {
                           <TrackRow track={item} onPlay={() => music.play(item, music.queue)} />
                         </View>
                         <IconButton
-                          label={`Remove ${item.title} from queue`}
+                          label={tr('Remove {name} from queue', { name: item.title })}
                           disabled={music.listener}
                           onPress={() => music.removeQueue(music.index + i + 1)}
                         >
@@ -365,11 +390,11 @@ export function MusicPlayer() {
                     ))}
                     {music.index + 1 >= music.queue.length && (
                       <Text style={m.muted}>
-                        Your queue is empty. Add tracks from their options menu.
+                        {tr('Your queue is empty. Add tracks from their options menu.')}
                       </Text>
                     )}
                     <Button
-                      title="Find more like this"
+                      title={tr('Find more like this')}
                       variant="secondary"
                       disabled={!music.isOnline || music.busy || music.listener}
                       onPress={() =>
@@ -388,7 +413,7 @@ export function MusicPlayer() {
                 {panel === 'Jam' && <MusicJam />}
                 {panel === 'Sleep timer' && (
                   <>
-                    <Text style={m.heading}>Fall asleep to your favourites</Text>
+                    <Text style={m.heading}>{tr('Fall asleep to your favourites')}</Text>
                     {[15, 30, 45, 60].map((minutes) => (
                       <Button
                         key={minutes}
@@ -402,7 +427,7 @@ export function MusicPlayer() {
                     ))}
                     {music.sleepUntil && (
                       <Button
-                        title="Turn off timer"
+                        title={tr('Turn off timer')}
                         variant="ghost"
                         onPress={() => music.setSleepUntil(null)}
                       />

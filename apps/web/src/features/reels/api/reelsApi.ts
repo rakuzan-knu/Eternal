@@ -1,10 +1,15 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/shared/api/httpClient';
 import { prepareDirectUploadForm } from '@shared/api-client';
-import { REEL_COMMENTS_KEY, REELS_FEED_KEY, USER_REELS_KEY } from '@/shared/api/queryKeys';
+import {
+  REEL_COMMENTS_KEY,
+  REELS_FEED_KEY,
+  USER_REELS_KEY,
+  queryKeys,
+} from '@/shared/api/queryKeys';
 
 export * from '@/entities/reel';
-import { type ReelItem, type ReelAuthor, DEFAULT_SEED_REELS } from '@/entities/reel';
+import { type ReelItem, type ReelAuthor } from '@/entities/reel';
 
 export interface ReelComment {
   id: string;
@@ -27,33 +32,11 @@ export function useReelsFeed(limit = 10) {
   return useInfiniteQuery<PaginatedReels>({
     queryKey: [REELS_FEED_KEY],
     queryFn: async ({ pageParam, signal }) => {
-      try {
-        const { data } = await apiClient.get<PaginatedReels>('/reels/feed', {
-          params: { limit, after: pageParam },
-          signal,
-        });
-        if (!data || !data.data || data.data.length === 0) {
-          return {
-            data: DEFAULT_SEED_REELS,
-            meta: { nextCursor: null, hasNextPage: false },
-          };
-        }
-        // Ensure featured seed reel (PROFKINO with local video) is at the top of feed on first page
-        if (!pageParam) {
-          const existingIds = new Set(data.data.map((r) => r.id));
-          const seedsToAdd = DEFAULT_SEED_REELS.filter((s) => !existingIds.has(s.id));
-          return {
-            ...data,
-            data: [...seedsToAdd, ...data.data],
-          };
-        }
-        return data;
-      } catch {
-        return {
-          data: DEFAULT_SEED_REELS,
-          meta: { nextCursor: null, hasNextPage: false },
-        };
-      }
+      const { data } = await apiClient.get<PaginatedReels>('/reels/feed', {
+        params: { limit, after: pageParam },
+        signal,
+      });
+      return data;
     },
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) =>
@@ -88,6 +71,21 @@ export function useReel(id: string) {
       return data;
     },
     enabled: Boolean(id),
+  });
+}
+
+export function useSavedReels(userId: string, after?: string) {
+  return useQuery<PaginatedReels>({
+    queryKey: queryKeys.reels.saved(userId, after),
+    queryFn: async ({ signal }) => {
+      const { data } = await apiClient.get<PaginatedReels>('/reels/saved', {
+        params: { limit: 12, after },
+        signal,
+      });
+      return data;
+    },
+    enabled: Boolean(userId),
+    gcTime: 60_000,
   });
 }
 
@@ -133,6 +131,11 @@ export function useToggleLikeReel() {
         queryClient.setQueryData([REELS_FEED_KEY], context.previous);
       }
     },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.reels.savedRoot });
+      void queryClient.invalidateQueries({ queryKey: [USER_REELS_KEY] });
+      void queryClient.invalidateQueries({ queryKey: ['reel'] });
+    },
   });
 }
 
@@ -149,27 +152,30 @@ export function useRecordReelShare() {
 
   return useMutation({
     mutationFn: async (reelId: string) => {
-      try {
-        await apiClient.post(`/reels/${reelId}/share`);
-      } catch {
-        // Degraded fallback
-      }
+      const { data } = await apiClient.post<{ success: boolean }>(`/reels/${reelId}/share`);
+      if (!data.success) throw new Error('Could not record the share');
     },
-    onMutate: async (reelId) => {
-      queryClient.setQueriesData<{ pages: PaginatedReels[]; pageParams: unknown[] }>(
-        { queryKey: [REELS_FEED_KEY] },
-        (old) => {
-          if (!old) return old;
-          return {
-            ...old,
-            pages: old.pages.map((page) => ({
-              ...page,
-              data: page.data.map((r) =>
-                r.id === reelId ? { ...r, sharesCount: r.sharesCount + 1 } : r,
-              ),
-            })),
-          };
-        },
+    onSuccess: (_data, reelId) => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.reels.savedRoot });
+      for (const key of [REELS_FEED_KEY, USER_REELS_KEY]) {
+        queryClient.setQueriesData<{ pages: PaginatedReels[]; pageParams: unknown[] }>(
+          { queryKey: [key] },
+          (old) => {
+            if (!old) return old;
+            return {
+              ...old,
+              pages: old.pages.map((page) => ({
+                ...page,
+                data: page.data.map((reel) =>
+                  reel.id === reelId ? { ...reel, sharesCount: reel.sharesCount + 1 } : reel,
+                ),
+              })),
+            };
+          },
+        );
+      }
+      queryClient.setQueryData<ReelItem>(['reel', reelId], (old) =>
+        old ? { ...old, sharesCount: old.sharesCount + 1 } : old,
       );
     },
   });
@@ -179,48 +185,35 @@ export function useToggleSaveReel() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (reelId: string) => {
-      try {
-        const { data } = await apiClient.post<{ saved: boolean; savedCount: number }>(
-          `/reels/${reelId}/save`,
+    mutationFn: async ({ reelId, saved }: { reelId: string; saved: boolean }) => {
+      const url = `/reels/${reelId}/save`;
+      const { data } = saved
+        ? await apiClient.post<{ saved: boolean; savedCount: number }>(url)
+        : await apiClient.delete<{ saved: boolean; savedCount: number }>(url);
+      return { reelId, ...data };
+    },
+    onSuccess: ({ reelId, saved, savedCount }) => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.reels.savedRoot });
+      for (const key of [REELS_FEED_KEY, USER_REELS_KEY]) {
+        queryClient.setQueriesData<{ pages: PaginatedReels[]; pageParams: unknown[] }>(
+          { queryKey: [key] },
+          (old) => {
+            if (!old) return old;
+            return {
+              ...old,
+              pages: old.pages.map((page) => ({
+                ...page,
+                data: page.data.map((reel) =>
+                  reel.id === reelId ? { ...reel, isSaved: saved, savedCount } : reel,
+                ),
+              })),
+            };
+          },
         );
-        return { reelId, ...data };
-      } catch {
-        return { reelId, saved: true, savedCount: 1 };
       }
-    },
-    onMutate: async (reelId) => {
-      await queryClient.cancelQueries({ queryKey: [REELS_FEED_KEY] });
-      const previous = queryClient.getQueryData<{ pages: PaginatedReels[]; pageParams: unknown[] }>(
-        [REELS_FEED_KEY],
+      queryClient.setQueryData<ReelItem>(['reel', reelId], (old) =>
+        old ? { ...old, isSaved: saved, savedCount } : old,
       );
-
-      if (previous) {
-        queryClient.setQueryData([REELS_FEED_KEY], {
-          ...previous,
-          pages: previous.pages.map((page) => ({
-            ...page,
-            data: page.data.map((r) =>
-              r.id === reelId
-                ? {
-                    ...r,
-                    isSaved: !r.isSaved,
-                    savedCount: r.isSaved
-                      ? Math.max(0, (r.savedCount ?? 0) - 1)
-                      : (r.savedCount ?? 0) + 1,
-                  }
-                : r,
-            ),
-          })),
-        });
-      }
-
-      return { previous };
-    },
-    onError: (_err, _reelId, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData([REELS_FEED_KEY], context.previous);
-      }
     },
   });
 }
@@ -241,79 +234,39 @@ export function useAddReelComment() {
 
   return useMutation({
     mutationFn: async ({ reelId, content }: { reelId: string; content: string }) => {
-      try {
-        const { data } = await apiClient.post<ReelComment>(`/reels/${reelId}/comments`, {
-          content,
-        });
-        return data;
-      } catch {
-        return {
-          id: `local-cmt-${Date.now()}`,
-          reelId,
-          userId: 'local-user',
-          content,
-          createdAt: new Date().toISOString(),
-          user: {
-            id: 'local-user',
-            username: 'you',
-            displayName: 'You',
-            avatar: null,
-          },
-        };
-      }
-    },
-    onMutate: async ({ reelId, content }) => {
-      await queryClient.cancelQueries({ queryKey: [REEL_COMMENTS_KEY, reelId] });
-      const previousComments = queryClient.getQueryData<ReelComment[]>([REEL_COMMENTS_KEY, reelId]);
-
-      const optimisticComment: ReelComment = {
-        id: `optimistic-cmt-${Date.now()}`,
-        reelId,
-        userId: 'local-user',
+      const { data } = await apiClient.post<ReelComment>(`/reels/${reelId}/comments`, {
         content,
-        createdAt: new Date().toISOString(),
-        user: {
-          id: 'local-user',
-          username: 'you',
-          displayName: 'You',
-          avatar: null,
-        },
-      };
-
+      });
+      return data;
+    },
+    onSuccess: async (newComment, { reelId }) => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.reels.savedRoot });
+      await queryClient.cancelQueries({ queryKey: [REEL_COMMENTS_KEY, reelId] });
       queryClient.setQueryData<ReelComment[]>([REEL_COMMENTS_KEY, reelId], (old) => [
-        optimisticComment,
-        ...(old || []),
+        newComment,
+        ...(old ?? []).filter((comment) => comment.id !== newComment.id),
       ]);
 
-      // Optimistically update comment count in feed
-      queryClient.setQueriesData<{ pages: PaginatedReels[]; pageParams: unknown[] }>(
-        { queryKey: [REELS_FEED_KEY] },
-        (old) => {
-          if (!old) return old;
-          return {
-            ...old,
-            pages: old.pages.map((page) => ({
-              ...page,
-              data: page.data.map((r) =>
-                r.id === reelId ? { ...r, commentsCount: r.commentsCount + 1 } : r,
-              ),
-            })),
-          };
-        },
-      );
-
-      return { previousComments };
-    },
-    onError: (_err, { reelId }, context) => {
-      if (context?.previousComments) {
-        queryClient.setQueryData([REEL_COMMENTS_KEY, reelId], context.previousComments);
+      for (const key of [REELS_FEED_KEY, USER_REELS_KEY]) {
+        queryClient.setQueriesData<{ pages: PaginatedReels[]; pageParams: unknown[] }>(
+          { queryKey: [key] },
+          (old) => {
+            if (!old) return old;
+            return {
+              ...old,
+              pages: old.pages.map((page) => ({
+                ...page,
+                data: page.data.map((reel) =>
+                  reel.id === reelId ? { ...reel, commentsCount: reel.commentsCount + 1 } : reel,
+                ),
+              })),
+            };
+          },
+        );
       }
-    },
-    onSuccess: (newComment, { reelId }) => {
-      queryClient.setQueryData<ReelComment[]>([REEL_COMMENTS_KEY, reelId], (old) => {
-        if (!old) return [newComment];
-        return old.map((c) => (c.id.startsWith('optimistic-cmt-') ? newComment : c));
-      });
+      queryClient.setQueryData<ReelItem>(['reel', reelId], (old) =>
+        old ? { ...old, commentsCount: old.commentsCount + 1 } : old,
+      );
     },
   });
 }
@@ -357,14 +310,11 @@ export function useCreateReel() {
 export function useNotInterestedReel() {
   return useMutation({
     mutationFn: async (reelId: string) => {
-      try {
-        const { data } = await apiClient.post<{ success: boolean }>(
-          `/reels/${reelId}/not-interested`,
-        );
-        return { reelId, ...data };
-      } catch {
-        return { reelId, success: true };
-      }
+      const { data } = await apiClient.post<{ success: boolean }>(
+        `/reels/${reelId}/not-interested`,
+      );
+      if (!data.success) throw new Error('Could not update your preference');
+      return { reelId, ...data };
     },
   });
 }
@@ -380,15 +330,12 @@ export function useReportReel() {
       category: string;
       details?: string;
     }) => {
-      try {
-        const { data } = await apiClient.post<{ success: boolean; message: string }>(
-          `/reels/${reelId}/report`,
-          { category, details },
-        );
-        return data;
-      } catch {
-        return { success: true, message: 'Report submitted successfully' };
-      }
+      const { data } = await apiClient.post<{ success: boolean; message: string }>(
+        `/reels/${reelId}/report`,
+        { category, details },
+      );
+      if (!data.success) throw new Error('Could not submit your report');
+      return data;
     },
   });
 }

@@ -1,6 +1,6 @@
 import { renderWithProviders as render } from '@/test/renderWithProviders';
 import { describe, it, expect, vi } from 'vitest';
-import { screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent, within } from '@testing-library/react';
 import { SavedPostsView } from '../SavedPostsView';
 import { useSavedCollectionsStore } from '@/entities/post/model/useSavedCollectionsStore';
 
@@ -76,8 +76,6 @@ describe('SavedPostsView', () => {
       ],
     });
 
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
-
     render(<SavedPostsView userId="user-1" />);
 
     expect(screen.getByText('Favorites')).toBeInTheDocument();
@@ -87,6 +85,12 @@ describe('SavedPostsView', () => {
 
     const deleteBtn = screen.getByTitle('Delete collection');
     fireEvent.click(deleteBtn);
+
+    expect(useSavedCollectionsStore.getState().collections).toHaveLength(1);
+    expect(screen.getByRole('dialog', { name: 'Delete collection “Favorites”?' })).toBeVisible();
+    fireEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete collection' }),
+    );
 
     expect(useSavedCollectionsStore.getState().collections).toEqual([]);
   });

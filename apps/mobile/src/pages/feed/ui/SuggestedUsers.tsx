@@ -7,6 +7,7 @@ import { Button } from '@/shared/ui';
 import { feedApi } from '../api/feedApi';
 import { feedKeys } from '../model/queries';
 import { Avatar, colors, common, ErrorNotice } from './primitives';
+import { tr } from '@/shared/lib/i18n';
 
 function Creator({ user, viewerId }: { user: UserProfileDto; viewerId: string }) {
   const client = useQueryClient();
@@ -31,14 +32,14 @@ function Creator({ user, viewerId }: { user: UserProfileDto; viewerId: string })
         @{user.username}
       </Text>
       <Button
-        title={following ? 'Following' : requested ? 'Requested' : 'Follow'}
+        title={following ? tr('Following|button') : requested ? tr('Requested') : tr('Follow')}
         variant={following || requested ? 'secondary' : 'purple'}
         size="sm"
         disabled={following || requested}
         loading={follow.isPending}
         onPress={() => follow.mutate()}
       />
-      {follow.isError && <ErrorNotice message="Follow failed. Try again." />}
+      {follow.isError && <ErrorNotice message={tr('Follow failed. Try again.')} />}
     </View>
   );
 }
@@ -52,7 +53,7 @@ export function SuggestedUsers({ userId }: { userId: string }) {
   if (query.isError)
     return (
       <ErrorNotice
-        message="Creator suggestions couldn't be loaded."
+        message={tr("Creator suggestions couldn't be loaded.")}
         onRetry={() => {
           void query.refetch();
         }}
@@ -64,7 +65,7 @@ export function SuggestedUsers({ userId }: { userId: string }) {
     <View style={s.section}>
       <View style={common.row}>
         <Sparkles size={16} color={colors.purple} />
-        <Text style={common.title}>Discover creators</Text>
+        <Text style={common.title}>{tr('Discover creators')}</Text>
       </View>
       <ScrollView
         horizontal

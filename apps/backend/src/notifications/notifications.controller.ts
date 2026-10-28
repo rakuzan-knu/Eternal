@@ -13,16 +13,19 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { NotificationsService } from './notifications.service';
+import { PushDevicesService } from './push/push-devices.service';
 import { AuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/interfaces/jwt-payload.interface';
 import type {
+  RegisterPushDeviceDto,
   GetNotificationsQueryDto,
   MarkAllAsReadQueryDto,
   NotificationFilterType,
   UpdateNotificationSettingsDto,
 } from '@common/contracts';
 import {
+  registerPushDeviceSchema,
   getNotificationsQuerySchema,
   markAllAsReadQuerySchema,
   updateNotificationSettingsSchema,
@@ -35,7 +38,29 @@ import { ConditionalHttpCache } from '../common/cache/etag.interceptor';
 @UseGuards(AuthGuard)
 @ApiBearerAuth()
 export class NotificationsController {
-  constructor(private readonly notificationsService: NotificationsService) {}
+  constructor(
+    private readonly notificationsService: NotificationsService,
+    private readonly pushDevices: PushDevicesService,
+  ) {}
+
+  @Post('push-devices')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Register or refresh this device for push notifications' })
+  @ApiResponse({ status: 200, description: 'Device registered.' })
+  registerPushDevice(
+    @CurrentUser() user: RequestUser,
+    @Body(new ZodValidationPipe(registerPushDeviceSchema)) dto: RegisterPushDeviceDto,
+  ) {
+    return this.pushDevices.register(user.id, user.sessionJti, dto);
+  }
+
+  @Delete('push-devices/:token')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Stop push notifications on a device' })
+  @ApiResponse({ status: 204, description: 'Device removed.' })
+  async removePushDevice(@CurrentUser() user: RequestUser, @Param('token') token: string) {
+    await this.pushDevices.remove(user.id, token);
+  }
 
   @Get()
   @ConditionalHttpCache()

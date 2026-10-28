@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useOptimistic, useTransition } from 'react';
 import { Link } from 'react-router-dom';
+import { useLocale } from '@/shared/lib/language/locale';
 import { MessageSquare, Repeat, Heart, Share, Bookmark, ChevronDown, Pin } from 'lucide-react';
 
 import { StoryAvatar } from '@/entities/story';
@@ -42,6 +43,7 @@ interface PostCardProps {
 }
 
 export function PostCard({ post, queryKey }: PostCardProps) {
+  const locale = useLocale();
   const [showVoters, setShowVoters] = useState(false);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -283,18 +285,18 @@ export function PostCard({ post, queryKey }: PostCardProps) {
                 {post.editedAt && (
                   <span
                     className="text-gray-400 hover:text-gray-200 cursor-help relative group/edited"
-                    title={`Edited on ${new Date(post.editedAt).toLocaleString()}`}
+                    title={`Edited on ${new Date(post.editedAt).toLocaleString(locale)}`}
                   >
                     <span>(edited)</span>
                     <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/edited:flex px-2.5 py-1 text-[11px] font-medium text-white bg-[#1c1c20]/95 backdrop-blur-md border border-white/10 rounded-lg shadow-xl whitespace-nowrap z-30">
                       Edited on{' '}
-                      {new Date(post.editedAt).toLocaleDateString([], {
+                      {new Date(post.editedAt).toLocaleDateString(locale, {
                         month: 'short',
                         day: 'numeric',
                         year: 'numeric',
                       })}{' '}
                       at{' '}
-                      {new Date(post.editedAt).toLocaleTimeString([], {
+                      {new Date(post.editedAt).toLocaleTimeString(locale, {
                         hour: '2-digit',
                         minute: '2-digit',
                       })}

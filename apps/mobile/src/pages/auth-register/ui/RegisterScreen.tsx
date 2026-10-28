@@ -32,6 +32,12 @@ import { Button, Input, PasswordInput, Select, Alert, GlassCard, AuthFooter } fr
 import { haptics, useScreenSecurity, getClipboardEmail, useDebounce } from '@/shared/lib';
 import { ChevronLeft, Check, X } from 'lucide-react-native';
 import axios from 'axios';
+import { formatDate, msg, tr, trKnown } from '@/shared/lib/i18n';
+
+const monthName = (index: number) =>
+  index < 0 ? '' : formatDate(new Date(2000, index, 1), { month: 'long' });
+
+const GENDERS = [msg('Male'), msg('Female'), msg('Custom')] as const;
 
 const MONTHS = [
   'January',
@@ -248,7 +254,7 @@ export function RegisterScreen({ onNavigateLogin, onSuccess }: RegisterScreenPro
           setErrorMessage(
             typeof serverMessage === 'string'
               ? serverMessage
-              : 'This email address, phone number or username is already registered.',
+              : tr('This email address, phone number or username is already registered.'),
           );
         } else if (Array.isArray(serverMessage)) {
           setErrorMessage(serverMessage.join(', '));
@@ -315,8 +321,8 @@ export function RegisterScreen({ onNavigateLogin, onSuccess }: RegisterScreenPro
             <View style={styles.topBar}>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Go back to Login screen"
-                accessibilityHint="Returns to sign in page"
+                accessibilityLabel={tr('Go back to Login screen')}
+                accessibilityHint={tr('Returns to sign in page')}
                 onPress={onNavigateLogin}
                 disabled={isPending}
                 style={styles.backCircleBtn}
@@ -338,9 +344,9 @@ export function RegisterScreen({ onNavigateLogin, onSuccess }: RegisterScreenPro
             <Animated.View style={[styles.cardWrapper, { transform: [{ translateX: shakeAnim }] }]}>
               <GlassCard style={styles.card} accessibilityRole={'form' as any}>
                 <View style={styles.header} accessibilityRole="header">
-                  <Text style={styles.title}>Get started on Eternal</Text>
+                  <Text style={styles.title}>{tr('Get started on Eternal')}</Text>
                   <Text style={styles.subtitle}>
-                    Create an account to connect with friends and communities.
+                    {tr('Create an account to connect with friends and communities.')}
                   </Text>
                 </View>
 
@@ -365,8 +371,8 @@ export function RegisterScreen({ onNavigateLogin, onSuccess }: RegisterScreenPro
                       render={({ field: { onChange, onBlur, value } }) => (
                         <Input
                           ref={firstNameRef}
-                          label="Name"
-                          placeholder="First name"
+                          label={tr('Name')}
+                          placeholder={tr('First name')}
                           autoCapitalize="words"
                           autoCorrect={false}
                           autoComplete="name-given"
@@ -380,7 +386,7 @@ export function RegisterScreen({ onNavigateLogin, onSuccess }: RegisterScreenPro
                           editable={!isPending}
                           showClearButton={Boolean(value)}
                           onClear={() => setValue('firstName', '', { shouldValidate: true })}
-                          error={errors.firstName?.message}
+                          error={trKnown(errors.firstName?.message)}
                         />
                       )}
                     />
@@ -394,7 +400,7 @@ export function RegisterScreen({ onNavigateLogin, onSuccess }: RegisterScreenPro
                         <Input
                           ref={lastNameRef}
                           label=" "
-                          placeholder="Last name"
+                          placeholder={tr('Last name')}
                           autoCapitalize="words"
                           autoCorrect={false}
                           autoComplete="name-family"
@@ -408,7 +414,7 @@ export function RegisterScreen({ onNavigateLogin, onSuccess }: RegisterScreenPro
                           editable={!isPending}
                           showClearButton={Boolean(value)}
                           onClear={() => setValue('lastName', '', { shouldValidate: true })}
-                          error={errors.lastName?.message}
+                          error={trKnown(errors.lastName?.message)}
                         />
                       )}
                     />
@@ -427,7 +433,7 @@ export function RegisterScreen({ onNavigateLogin, onSuccess }: RegisterScreenPro
                     render={({ field: { onChange, onBlur, value } }) => (
                       <Input
                         ref={usernameRef}
-                        label="Username"
+                        label={tr('Username')}
                         placeholder="@username"
                         autoCapitalize="none"
                         autoCorrect={false}
@@ -455,24 +461,27 @@ export function RegisterScreen({ onNavigateLogin, onSuccess }: RegisterScreenPro
                             <View
                               style={styles.usernameStatusRow}
                               accessibilityRole="text"
-                              accessibilityLabel="Username is available"
+                              accessibilityLabel={tr('Username is available')}
                             >
                               <Check size={14} color="#10b981" strokeWidth={2.5} />
-                              <Text style={styles.usernameAvailableText}>Available</Text>
+                              <Text style={styles.usernameAvailableText}>
+                                {tr('Available|username')}
+                              </Text>
                             </View>
                           ) : isTaken ? (
                             <View
                               style={styles.usernameStatusRow}
                               accessibilityRole="alert"
-                              accessibilityLabel="Username is taken"
+                              accessibilityLabel={tr('Username is taken')}
                             >
                               <X size={14} color="#ef4444" strokeWidth={2.5} />
-                              <Text style={styles.usernameTakenText}>Taken</Text>
+                              <Text style={styles.usernameTakenText}>{tr('Taken')}</Text>
                             </View>
                           ) : null
                         }
                         error={
-                          errors.username?.message || (isTaken ? 'Username is taken' : undefined)
+                          trKnown(errors.username?.message) ||
+                          (isTaken ? tr('Username is taken') : undefined)
                         }
                       />
                     )}
@@ -489,11 +498,12 @@ export function RegisterScreen({ onNavigateLogin, onSuccess }: RegisterScreenPro
                   }}
                 >
                   <View style={styles.sectionHeaderRow}>
-                    <Text style={styles.sectionLabel}>Birthday</Text>
+                    <Text style={styles.sectionLabel}>{tr('Birthday')}</Text>
                   </View>
                   <Text style={styles.sectionHint}>
-                    Providing your birthday helps make sure you get the right experience for your
-                    age.
+                    {tr(
+                      'Providing your birthday helps make sure you get the right experience for your age.',
+                    )}
                   </Text>
                   <View style={styles.birthdayRow}>
                     <View style={styles.monthCol}>
@@ -502,9 +512,11 @@ export function RegisterScreen({ onNavigateLogin, onSuccess }: RegisterScreenPro
                         name="birthMonth"
                         render={({ field: { onChange, value } }) => (
                           <Select
-                            value={value}
-                            options={MONTHS}
-                            onChange={(val) => {
+                            value={monthName(MONTHS.indexOf(value))}
+                            options={MONTHS.map((_, index) => monthName(index))}
+                            onChange={(label) => {
+                              const val =
+                                MONTHS.find((_, index) => monthName(index) === label) ?? label;
                               onChange(val);
                               // Ensure day doesn't exceed new month's max
                               const monthIdx = MONTHS.indexOf(val);
@@ -574,21 +586,27 @@ export function RegisterScreen({ onNavigateLogin, onSuccess }: RegisterScreenPro
                   }}
                 >
                   <View style={styles.sectionHeaderRow}>
-                    <Text style={styles.sectionLabel}>Gender</Text>
+                    <Text style={styles.sectionLabel}>{tr('Gender')}</Text>
                   </View>
                   <Text style={styles.sectionHint}>
-                    You can change who sees your gender on your profile later.
+                    {tr('You can change who sees your gender on your profile later.')}
                   </Text>
                   <Controller
                     control={control}
                     name="gender"
                     render={({ field: { onChange, value } }) => (
                       <Select
-                        value={value}
-                        options={['Male', 'Female', 'Custom']}
-                        onChange={onChange}
+                        value={
+                          GENDERS.find((item) => item === value)
+                            ? tr(value as (typeof GENDERS)[number])
+                            : value
+                        }
+                        options={GENDERS.map((item) => tr(item))}
+                        onChange={(next) =>
+                          onChange(GENDERS.find((item) => tr(item) === next) ?? next)
+                        }
                         disabled={isPending}
-                        error={errors.gender?.message}
+                        error={trKnown(errors.gender?.message)}
                       />
                     )}
                   />
@@ -606,8 +624,8 @@ export function RegisterScreen({ onNavigateLogin, onSuccess }: RegisterScreenPro
                     render={({ field: { onChange, onBlur, value } }) => (
                       <Input
                         ref={identityRef}
-                        label="Mobile number or email"
-                        placeholder="Mobile number or email"
+                        label={tr('Mobile number or email')}
+                        placeholder={tr('Mobile number or email')}
                         keyboardType="email-address"
                         autoCapitalize="none"
                         autoCorrect={false}
@@ -630,7 +648,7 @@ export function RegisterScreen({ onNavigateLogin, onSuccess }: RegisterScreenPro
                             setClipboardEmail(null);
                           }
                         }}
-                        error={errors.identity?.message}
+                        error={trKnown(errors.identity?.message)}
                       />
                     )}
                   />
@@ -648,8 +666,8 @@ export function RegisterScreen({ onNavigateLogin, onSuccess }: RegisterScreenPro
                     render={({ field: { onChange, onBlur, value } }) => (
                       <PasswordInput
                         ref={passwordRef}
-                        label="Password"
-                        placeholder="New password"
+                        label={tr('Password')}
+                        placeholder={tr('New password')}
                         autoComplete="new-password"
                         textContentType="newPassword"
                         returnKeyType="next"
@@ -661,7 +679,7 @@ export function RegisterScreen({ onNavigateLogin, onSuccess }: RegisterScreenPro
                         editable={!isPending}
                         showRequirementsChecklist={true}
                         passwordValue={passwordValue}
-                        error={errors.password?.message}
+                        error={trKnown(errors.password?.message)}
                       />
                     )}
                   />
@@ -679,8 +697,8 @@ export function RegisterScreen({ onNavigateLogin, onSuccess }: RegisterScreenPro
                     render={({ field: { onChange, onBlur, value } }) => (
                       <PasswordInput
                         ref={confirmPasswordRef}
-                        label="Confirm Password"
-                        placeholder="Repeat your password"
+                        label={tr('Confirm Password')}
+                        placeholder={tr('Repeat your password')}
                         autoComplete="new-password"
                         textContentType="newPassword"
                         returnKeyType="done"
@@ -695,7 +713,7 @@ export function RegisterScreen({ onNavigateLogin, onSuccess }: RegisterScreenPro
                         }}
                         onBlur={onBlur}
                         editable={!isPending}
-                        error={errors.confirmPassword?.message}
+                        error={trKnown(errors.confirmPassword?.message)}
                       />
                     )}
                   />
@@ -706,51 +724,51 @@ export function RegisterScreen({ onNavigateLogin, onSuccess }: RegisterScreenPro
                   <Text
                     style={styles.purpleLink}
                     accessibilityRole="link"
-                    accessibilityLabel="Terms"
+                    accessibilityLabel={tr('Terms')}
                     {...({ hitSlop: { top: 8, bottom: 8, left: 8, right: 8 } } as any)}
                   >
-                    Terms
+                    {tr('Terms')}
                   </Text>
                   ,{' '}
                   <Text
                     style={styles.purpleLink}
                     accessibilityRole="link"
-                    accessibilityLabel="Privacy Policy"
+                    accessibilityLabel={tr('Privacy Policy')}
                     {...({ hitSlop: { top: 8, bottom: 8, left: 8, right: 8 } } as any)}
                   >
-                    Privacy Policy
+                    {tr('Privacy Policy')}
                   </Text>{' '}
                   and{' '}
                   <Text
                     style={styles.purpleLink}
                     accessibilityRole="link"
-                    accessibilityLabel="Cookies Policy"
+                    accessibilityLabel={tr('Cookies Policy')}
                     {...({ hitSlop: { top: 8, bottom: 8, left: 8, right: 8 } } as any)}
                   >
-                    Cookies Policy
+                    {tr('Cookies Policy')}
                   </Text>
                   .
                 </Text>
 
                 <Button
-                  title="Create Account"
+                  title={tr('Create Account')}
                   variant="primary"
                   size="lg"
                   loading={isPending}
-                  accessibilityLabel="Create Account"
-                  accessibilityHint="Submits registration form to create an account"
+                  accessibilityLabel={tr('Create Account')}
+                  accessibilityHint={tr('Submits registration form to create an account')}
                   onPress={handleSubmit(onSubmit, onValidationError)}
                   style={styles.submitBtn}
                 />
 
                 {/* Secondary Button matching web design */}
                 <Button
-                  title="I already have an account"
+                  title={tr('I already have an account')}
                   variant="secondary"
                   size="lg"
                   disabled={isPending}
-                  accessibilityLabel="I already have an account"
-                  accessibilityHint="Navigates back to the login screen"
+                  accessibilityLabel={tr('I already have an account')}
+                  accessibilityHint={tr('Navigates back to the login screen')}
                   onPress={onNavigateLogin}
                   style={styles.secondaryBtn}
                 />

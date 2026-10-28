@@ -12,6 +12,7 @@ import {
 import { Eye, EyeOff, CheckCircle2, XCircle, ArrowBigUp } from 'lucide-react-native';
 import { Input, type InputProps } from './Input';
 import type { PasswordStrength } from '@social-network/shared-contracts';
+import { type MessageKey, msg, tr } from '@/shared/lib/i18n';
 
 export interface PasswordStrengthInfo {
   strength: PasswordStrength;
@@ -33,11 +34,11 @@ const strengthColors: Record<PasswordStrength, string> = {
   strong: '#10b981',
 };
 
-const strengthLabels: Record<PasswordStrength, string> = {
-  weak: 'Weak',
-  fair: 'Fair',
-  good: 'Good',
-  strong: 'Strong',
+const strengthLabels: Record<PasswordStrength, MessageKey> = {
+  weak: msg('Weak'),
+  fair: msg('Fair'),
+  good: msg('Good'),
+  strong: msg('Strong'),
 };
 
 export const PasswordInput = React.forwardRef<TextInput, PasswordInputProps>(
@@ -157,8 +158,8 @@ export const PasswordInput = React.forwardRef<TextInput, PasswordInputProps>(
           rightElement={
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
-              accessibilityHint="Toggles visibility of password characters"
+              accessibilityLabel={showPassword ? tr('Hide password') : tr('Show password')}
+              accessibilityHint={tr('Toggles visibility of password characters')}
               onPress={() => setShowPassword((prev) => !prev)}
               style={styles.eyeButton}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -179,7 +180,7 @@ export const PasswordInput = React.forwardRef<TextInput, PasswordInputProps>(
             accessibilityLiveRegion="polite"
           >
             <ArrowBigUp size={13} color="#eab308" />
-            <Text style={styles.capsLockText}>Caps Lock is on</Text>
+            <Text style={styles.capsLockText}>{tr('Caps Lock is on')}</Text>
           </View>
         )}
 
@@ -195,14 +196,16 @@ export const PasswordInput = React.forwardRef<TextInput, PasswordInputProps>(
           <View
             style={styles.strengthContainer}
             accessibilityRole="summary"
-            accessibilityLabel={`Password strength: ${strengthLabels[strengthInfo.strength]}`}
+            accessibilityLabel={tr('Password strength: {level}', {
+              level: tr(strengthLabels[strengthInfo.strength]),
+            })}
           >
             <View style={styles.strengthHeader}>
-              <Text style={styles.strengthTitle}>Password strength</Text>
+              <Text style={styles.strengthTitle}>{tr('Password strength')}</Text>
               <Text
                 style={[styles.strengthBadge, { color: strengthColors[strengthInfo.strength] }]}
               >
-                {strengthLabels[strengthInfo.strength]}
+                {tr(strengthLabels[strengthInfo.strength])}
               </Text>
             </View>
 

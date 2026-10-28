@@ -28,6 +28,7 @@ import {
 } from '@/shared/lib';
 import { ScanFace, Fingerprint } from 'lucide-react-native';
 import axios from 'axios';
+import { tr, trKnown } from '@/shared/lib/i18n';
 
 export interface LoginScreenProps {
   onNavigateRegister: () => void;
@@ -107,7 +108,9 @@ export function LoginScreen({
     }
 
     const success = await authenticateWithBiometrics(
-      `Sign in to Eternal with ${biometric?.biometryName || 'Biometrics'}`,
+      tr('Sign in to Eternal with {method}', {
+        method: biometric?.biometryName || tr('Biometrics'),
+      }),
     );
 
     if (success) {
@@ -225,8 +228,8 @@ export function LoginScreen({
             {/* GlassCard matching Web mobile */}
             <GlassCard style={styles.card} accessibilityRole={'form' as any}>
               <View style={styles.header} accessibilityRole="header">
-                <Text style={styles.title}>Welcome back</Text>
-                <Text style={styles.subtitle}>Sign in to your account</Text>
+                <Text style={styles.title}>{tr('Welcome back')}</Text>
+                <Text style={styles.subtitle}>{tr('Sign in to your account')}</Text>
               </View>
 
               {lockoutSeconds > 0 && (
@@ -248,7 +251,7 @@ export function LoginScreen({
                 render={({ field: { onChange, onBlur, value } }) => (
                   <Input
                     ref={identityRef}
-                    placeholder="Email address or phone number"
+                    placeholder={tr('Email address or phone number')}
                     autoCapitalize="none"
                     autoCorrect={false}
                     keyboardType="email-address"
@@ -271,7 +274,7 @@ export function LoginScreen({
                         setClipboardEmail(null);
                       }
                     }}
-                    error={errors.identity?.message || errors.email?.message}
+                    error={trKnown(errors.identity?.message || errors.email?.message)}
                   />
                 )}
               />
@@ -283,7 +286,7 @@ export function LoginScreen({
                 render={({ field: { onChange, onBlur, value } }) => (
                   <PasswordInput
                     ref={passwordRef}
-                    placeholder="Password"
+                    placeholder={tr('Password')}
                     textContentType="password"
                     autoComplete="current-password"
                     returnKeyType="go"
@@ -292,7 +295,7 @@ export function LoginScreen({
                     onChangeText={onChange}
                     onBlur={onBlur}
                     editable={!isPending && lockoutSeconds === 0}
-                    error={errors.password?.message}
+                    error={trKnown(errors.password?.message)}
                   />
                 )}
               />
@@ -301,28 +304,34 @@ export function LoginScreen({
               <View style={styles.forgotContainer}>
                 <Pressable
                   accessibilityRole="link"
-                  accessibilityLabel="Forgot password?"
-                  accessibilityHint="Navigates to the password recovery screen"
+                  accessibilityLabel={tr('Forgot password?')}
+                  accessibilityHint={tr('Navigates to the password recovery screen')}
                   onPress={onNavigateForgotPassword}
                   disabled={isPending}
                   style={styles.forgotBtn}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
-                  <Text style={styles.forgotText}>Forgot password?</Text>
+                  <Text style={styles.forgotText}>{tr('Forgot password?')}</Text>
                 </Pressable>
               </View>
 
               {/* Log in Button */}
               <Button
-                title={lockoutSeconds > 0 ? `Locked out (${lockoutSeconds}s)` : 'Log in'}
+                title={
+                  lockoutSeconds > 0
+                    ? tr('Locked out ({count}s)', { count: lockoutSeconds })
+                    : tr('Log in')
+                }
                 variant="primary"
                 size="lg"
                 loading={isPending}
                 disabled={lockoutSeconds > 0}
                 accessibilityLabel={
-                  lockoutSeconds > 0 ? `Locked out for ${lockoutSeconds} seconds` : 'Log in'
+                  lockoutSeconds > 0
+                    ? tr('Locked out for {count} seconds', { count: lockoutSeconds })
+                    : tr('Log in')
                 }
-                accessibilityHint="Submits your credentials to sign in"
+                accessibilityHint={tr('Submits your credentials to sign in')}
                 onPress={handleSubmit(onSubmit, onValidationError)}
                 style={styles.submitBtn}
               />
@@ -330,7 +339,7 @@ export function LoginScreen({
               {/* Biometric Quick Login (Face ID / Fingerprint) */}
               {biometric?.isAvailable && (
                 <Button
-                  title={`Sign in with ${biometric.biometryName}`}
+                  title={tr('Sign in with {method}', { method: biometric.biometryName })}
                   variant="outline"
                   size="lg"
                   leftIcon={
@@ -341,8 +350,10 @@ export function LoginScreen({
                     )
                   }
                   disabled={isPending}
-                  accessibilityLabel={`Sign in with ${biometric.biometryName}`}
-                  accessibilityHint="Authenticates using your biometric credentials"
+                  accessibilityLabel={tr('Sign in with {method}', {
+                    method: biometric.biometryName,
+                  })}
+                  accessibilityHint={tr('Authenticates using your biometric credentials')}
                   onPress={handleBiometricLogin}
                   style={styles.biometricBtn}
                 />
@@ -351,18 +362,18 @@ export function LoginScreen({
               {/* OR Divider */}
               <View style={styles.dividerRow} accessible={false}>
                 <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>OR</Text>
+                <Text style={styles.dividerText}>{tr('OR')}</Text>
                 <View style={styles.dividerLine} />
               </View>
 
               {/* Secondary Button */}
               <Button
-                title="Create new account"
+                title={tr('Create new account')}
                 variant="secondary"
                 size="lg"
                 disabled={isPending}
-                accessibilityLabel="Create new account"
-                accessibilityHint="Navigates to the account registration screen"
+                accessibilityLabel={tr('Create new account')}
+                accessibilityHint={tr('Navigates to the account registration screen')}
                 onPress={onNavigateRegister}
               />
             </GlassCard>

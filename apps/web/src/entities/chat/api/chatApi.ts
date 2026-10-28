@@ -151,9 +151,11 @@ export const chatApi = {
       text?: string;
       messageType?: string;
       replyToId?: string;
+      forwardedFromId?: string;
       attachments?: OutgoingAttachment[];
       clientMessageId?: string;
       clientSeq?: number;
+      mentionedUserIds?: string[];
     },
   ) =>
     api

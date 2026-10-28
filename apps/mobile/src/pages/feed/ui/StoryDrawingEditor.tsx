@@ -6,6 +6,7 @@ import { clamp, makeOverlay, STORY_COLORS } from '../model/storyEditor';
 import { IconButton, colors, common } from './primitives';
 import { StoryDrawing } from './StoryDrawing';
 import { StoryColorPicker, StoryRange } from './StoryToolPanel';
+import { tr } from '@/shared/lib/i18n';
 
 export function StoryDrawingEditor({
   initial,
@@ -96,7 +97,7 @@ export function StoryDrawingEditor({
     <View style={[StyleSheet.absoluteFill, { zIndex: 90 }]}>
       <View
         {...responder.panHandlers}
-        accessibilityLabel="Story drawing canvas"
+        accessibilityLabel={tr('Story drawing canvas')}
         style={StyleSheet.absoluteFill}
       >
         <View pointerEvents="none" style={StyleSheet.absoluteFill}>
@@ -104,7 +105,7 @@ export function StoryDrawingEditor({
         </View>
       </View>
       <View style={s.toolbar}>
-        <IconButton label="Cancel drawing" onPress={onClose}>
+        <IconButton label={tr('Cancel drawing')} onPress={onClose}>
           <X color="white" size={21} />
         </IconButton>
         {(['pencil', 'marker', 'eraser'] as const).map((value) => {
@@ -112,7 +113,7 @@ export function StoryDrawingEditor({
           return (
             <IconButton
               key={value}
-              label={`Drawing ${value}`}
+              label={tr('Drawing {value}', { value })}
               selected={tool === value}
               onPress={() => setTool(value)}
             >
@@ -120,30 +121,30 @@ export function StoryDrawingEditor({
             </IconButton>
           );
         })}
-        <IconButton label="Save drawing" onPress={() => onSave({ ...layer, strokes })}>
+        <IconButton label={tr('Save drawing')} onPress={() => onSave({ ...layer, strokes })}>
           <Check color={colors.green} size={22} />
         </IconButton>
       </View>
       <View style={s.bottom}>
         {limit && (
           <Text accessibilityRole="alert" style={common.muted}>
-            Drawing limit reached. Remove a stroke to keep editing.
+            {tr('Drawing limit reached. Remove a stroke to keep editing.')}
           </Text>
         )}
         {settings && (
           <>
             <StoryColorPicker
-              label="Brush color"
+              label={tr('Brush color')}
               colors={STORY_COLORS}
               value={color}
               onChange={setColor}
             />
-            <StoryRange label="Brush size" value={size} min={2} max={30} onChange={setSize} />
+            <StoryRange label={tr('Brush size')} value={size} min={2} max={30} onChange={setSize} />
           </>
         )}
         <View style={s.toolbar}>
           <IconButton
-            label="Undo drawing"
+            label={tr('Undo drawing')}
             disabled={!strokes.length}
             onPress={() => {
               setRedo([...redo, strokes[strokes.length - 1]]);
@@ -154,7 +155,7 @@ export function StoryDrawingEditor({
             <Undo2 color="white" size={20} />
           </IconButton>
           <IconButton
-            label="Redo drawing"
+            label={tr('Redo drawing')}
             disabled={!redo.length}
             onPress={() => {
               setStrokes([...strokes, redo[redo.length - 1]]);
@@ -164,7 +165,7 @@ export function StoryDrawingEditor({
             <Redo2 color="white" size={20} />
           </IconButton>
           <IconButton
-            label="Brush settings"
+            label={tr('Brush settings')}
             selected={settings}
             onPress={() => setSettings(!settings)}
           >
@@ -180,7 +181,7 @@ export function StoryDrawingEditor({
             />
           </IconButton>
           <IconButton
-            label="Clear drawing"
+            label={tr('Clear drawing')}
             disabled={!strokes.length}
             onPress={() => {
               setRedo([...strokes].reverse());

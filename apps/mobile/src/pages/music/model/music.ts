@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { tr } from '@/shared/lib/i18n';
 
 export const trackSchema = z.object({
   id: z.union([z.string(), z.number()]).transform(String),
@@ -49,6 +50,14 @@ export const folderSchema = z.object({
 export type Folder = z.infer<typeof folderSchema>;
 export type Source = 'all' | 'soundcloud' | 'spotify';
 export type Repeat = 'off' | 'all' | 'one';
+
+export function repeatLabel(repeat: Repeat) {
+  return repeat === 'one'
+    ? tr('Repeat one')
+    : repeat === 'all'
+      ? tr('Repeat all')
+      : tr('Off|repeat');
+}
 export const preferencesSchema = z.object({
   history: z.array(trackSchema).max(100).default([]),
   saved: z.array(playlistSchema).default([]),

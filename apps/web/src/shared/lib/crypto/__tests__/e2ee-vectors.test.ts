@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import vectors from '../vectors/v1.json';
+import vectors from '@social-network/shared-crypto/vectors/v1.json';
 
 /**
  * Golden KAT vectors for message-layer E2EE (repo vectors/ convention,

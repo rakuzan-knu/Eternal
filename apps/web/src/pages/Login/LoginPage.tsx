@@ -6,12 +6,14 @@ import { AuthFooter } from '../../shared/ui/AuthFooter';
 import { HeroSection } from './ui/LoginHeroSection';
 import { FloatingCards } from './ui/FloatingCards';
 import { LoginForm } from '../../features/auth/ui/LoginForm';
+import { SEOHead } from '@/shared/seo';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
 
   return (
     <div className="min-h-screen w-full bg-[#050505] bg-radial-gradient flex flex-col items-center justify-between px-6 xl:px-12 relative overflow-hidden text-neutral-200 font-sans">
+      <SEOHead title="Log in" canonical="/login" noindex />
       <div className="hidden lg:flex absolute top-8 left-8 w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 shadow-[0_0_25px_rgba(99,102,241,0.4)] flex items-center justify-center text-xl font-black text-white select-none">
         E
       </div>

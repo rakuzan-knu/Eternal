@@ -1,5 +1,6 @@
 import type { InfiniteData } from '@tanstack/react-query';
 import type { PostResponseDto } from '@social-network/shared-contracts';
+import { formatDate, tr } from '@/shared/lib/i18n';
 
 export interface Page<T> {
   data: T[];
@@ -65,9 +66,9 @@ export function relativeTime(value: string, now = Date.now()): string {
   const timestamp = new Date(value).getTime();
   if (!Number.isFinite(timestamp)) return '';
   const seconds = Math.max(0, Math.floor((now - timestamp) / 1000));
-  if (seconds < 60) return 'now';
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
-  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d`;
-  return new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  if (seconds < 60) return tr('now');
+  if (seconds < 3600) return tr('{count}m', { count: Math.floor(seconds / 60) });
+  if (seconds < 86400) return tr('{count}h', { count: Math.floor(seconds / 3600) });
+  if (seconds < 604800) return tr('{count}d', { count: Math.floor(seconds / 86400) });
+  return formatDate(value, { month: 'short', day: 'numeric' });
 }

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { View, Text, Pressable, Modal, FlatList, StyleSheet, type ViewStyle } from 'react-native';
 import { ChevronDown, Check } from 'lucide-react-native';
+import { tr } from '@/shared/lib/i18n';
 
 export interface SelectProps {
   label?: string;
@@ -49,7 +50,7 @@ export const Select = React.forwardRef<View, SelectProps>(
           accessibilityRole="combobox"
           accessibilityLabel={label ? `${label}: ${value || placeholder}` : value || placeholder}
           accessibilityState={{ expanded: isOpen, disabled }}
-          accessibilityHint="Double tap to open selection options"
+          accessibilityHint={tr('Double tap to open selection options')}
           disabled={disabled}
           onPress={() => setIsOpen(true)}
           style={({ pressed }) => [
@@ -84,12 +85,12 @@ export const Select = React.forwardRef<View, SelectProps>(
             style={styles.modalBackdrop}
             onPress={() => setIsOpen(false)}
             accessibilityRole="button"
-            accessibilityLabel="Close options menu"
+            accessibilityLabel={tr('Close options menu')}
           >
             <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>
-                  {label ? `Select ${label}` : 'Select an option'}
+                  {label ? tr('Select {name}', { name: label }) : tr('Select an option')}
                 </Text>
               </View>
 

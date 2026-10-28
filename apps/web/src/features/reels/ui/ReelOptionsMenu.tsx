@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   MoreVertical,
   Gauge,
@@ -23,6 +23,7 @@ export interface ReelOptionsMenuProps {
   subtitleLanguage: SubtitleLanguage;
   onSelectSubtitleLanguage: (lang: SubtitleLanguage) => void;
   onNotInterested: () => void;
+  isNotInterestedPending?: boolean;
   onOpenReport: () => void;
   onOpenChange?: (open: boolean) => void;
 }
@@ -41,6 +42,7 @@ export const ReelOptionsMenu: React.FC<ReelOptionsMenuProps> = ({
   subtitleLanguage,
   onSelectSubtitleLanguage,
   onNotInterested,
+  isNotInterestedPending = false,
   onOpenReport,
   onOpenChange,
 }) => {
@@ -48,10 +50,13 @@ export const ReelOptionsMenu: React.FC<ReelOptionsMenuProps> = ({
   const [view, setView] = useState<MenuView>('main');
   const menuRef = useRef<HTMLDivElement | null>(null);
 
-  const updateOpenState = (open: boolean) => {
-    setIsOpen(open);
-    onOpenChange?.(open);
-  };
+  const updateOpenState = useCallback(
+    (open: boolean) => {
+      setIsOpen(open);
+      onOpenChange?.(open);
+    },
+    [onOpenChange],
+  );
 
   // Close on outside click
   useEffect(() => {
@@ -65,7 +70,7 @@ export const ReelOptionsMenu: React.FC<ReelOptionsMenuProps> = ({
       document.addEventListener('mousedown', handleOutsideClick);
     }
     return () => document.removeEventListener('mousedown', handleOutsideClick);
-  }, [isOpen]);
+  }, [isOpen, updateOpenState]);
 
   const handleClose = () => {
     updateOpenState(false);
@@ -171,6 +176,7 @@ export const ReelOptionsMenu: React.FC<ReelOptionsMenuProps> = ({
               {/* 4.7 Not Interested */}
               <button
                 type="button"
+                disabled={isNotInterestedPending}
                 onClick={() => {
                   onNotInterested();
                   handleClose();

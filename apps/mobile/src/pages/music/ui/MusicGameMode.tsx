@@ -34,6 +34,7 @@ import { MusicBackdrop, musicGradient } from './MusicBackdrop';
 import { MusicTransport } from './MusicTransport';
 import { MusicLyrics } from './MusicLyrics';
 import { MusicSlider } from './MusicSlider';
+import { tr } from '@/shared/lib/i18n';
 
 type Panel = 'Playlists' | 'Queue' | 'Search' | 'Lyrics' | 'Controls';
 export function MusicGameMode() {
@@ -56,7 +57,7 @@ export function MusicGameMode() {
   }, [query]);
   React.useEffect(() => {
     if (Platform.OS === 'web' && typeof document !== 'undefined')
-      document.title = 'Game Mode • Eternal';
+      document.title = `${tr('Game Mode')} • Eternal`;
     const back = () => {
       if (panel !== 'Playlists') setPanel('Playlists');
       else if (selected) setSelected(null);
@@ -100,7 +101,7 @@ export function MusicGameMode() {
         ),
       );
       if (results.every((result) => result.status === 'rejected'))
-        throw new Error('Music search is unavailable.');
+        throw new Error(tr('Music search is unavailable.'));
       const lists = results.flatMap((result) =>
         result.status === 'fulfilled' ? [result.value] : [],
       );
@@ -164,12 +165,12 @@ export function MusicGameMode() {
         <Gamepad2 size={24} color="#d9bfff" />
         <View style={m.flex}>
           <Text accessibilityRole="header" style={s.heading}>
-            Game Mode
+            {tr('Game Mode')}
           </Text>
-          <Text style={m.muted}>Just you and the music</Text>
+          <Text style={m.muted}>{tr('Just you and the music')}</Text>
         </View>
         <IconButton
-          label="Game audio settings"
+          label={tr('Game audio settings')}
           selected={panel === 'Controls'}
           onPress={() => setPanel(panel === 'Controls' ? 'Playlists' : 'Controls')}
         >
@@ -177,18 +178,18 @@ export function MusicGameMode() {
         </IconButton>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Exit Game Mode"
+          accessibilityLabel={tr('Exit Game Mode')}
           onPress={music.exitGameMode}
           style={s.exit}
         >
           <X size={17} color="#fff" />
-          <Text style={m.text}>Exit</Text>
+          <Text style={m.text}>{tr('Exit')}</Text>
         </Pressable>
       </View>
       {!!music.notice && (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Dismiss: ${music.notice}`}
+          accessibilityLabel={tr('Dismiss: {text}', { text: music.notice })}
           onPress={() => music.setNotice(null)}
           style={[m.row, { minHeight: 44, paddingHorizontal: 20, backgroundColor: '#c9a4ff15' }]}
         >
@@ -205,7 +206,7 @@ export function MusicGameMode() {
       )}
       {!music.isOnline && (
         <Text accessibilityRole="alert" style={[m.muted, { paddingHorizontal: 20 }]}>
-          You're offline. Reconnect to load music.
+          {tr("You're offline. Reconnect to load music.")}
         </Text>
       )}
       {!!music.error && (
@@ -223,10 +224,10 @@ export function MusicGameMode() {
               style={m.flex}
               contentContainerStyle={{ padding: 24, gap: 18 }}
             >
-              <Text style={m.heading}>Your sound</Text>
-              <Text style={m.muted}>Volume</Text>
+              <Text style={m.heading}>{tr('Your sound')}</Text>
+              <Text style={m.muted}>{tr('Volume')}</Text>
               <MusicSlider
-                accessibilityLabel="Game music volume"
+                accessibilityLabel={tr('Game music volume')}
                 minimumValue={0}
                 maximumValue={1}
                 step={0.05}
@@ -239,7 +240,7 @@ export function MusicGameMode() {
                 thumbTintColor="white"
                 style={{ height: 44 }}
               />
-              <Text style={m.muted}>Sleep timer</Text>
+              <Text style={m.muted}>{tr('Sleep timer')}</Text>
               <View style={[m.row, { flexWrap: 'wrap' }]}>
                 {[15, 30, 60].map((minutes) => (
                   <Button
@@ -253,17 +254,18 @@ export function MusicGameMode() {
               </View>
               {!!music.sleepUntil && (
                 <Button
-                  title="Turn off sleep timer"
+                  title={tr('Turn off sleep timer')}
                   variant="ghost"
                   onPress={() => music.setSleepUntil(null)}
                 />
               )}
               <Text style={m.muted}>
-                Game Mode pauses the social screens and their updates. Your music keeps playing when
-                you return to the game.
+                {tr(
+                  'Game Mode pauses the social screens and their updates. Your music keeps playing when you return to the game.',
+                )}
               </Text>
               <Button
-                title="Back to music"
+                title={tr('Back to music')}
                 variant="secondary"
                 onPress={() => setPanel('Playlists')}
               />
@@ -281,12 +283,12 @@ export function MusicGameMode() {
               columnWrapperStyle={{ gap: 12 }}
               ListHeaderComponent={
                 <View style={{ gap: 12, paddingBottom: 18 }}>
-                  <Text style={s.hero}>Pick your soundtrack.</Text>
-                  <Text style={m.muted}>Change the mix. Stay in the game.</Text>
+                  <Text style={s.hero}>{tr('Pick your soundtrack.')}</Text>
+                  <Text style={m.muted}>{tr('Change the mix. Stay in the game.')}</Text>
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel="Game liked songs"
-                    onPress={() => openCollection('liked-songs', 'Liked songs')}
+                    accessibilityLabel={tr('Game liked songs')}
+                    onPress={() => openCollection('liked-songs', tr('Liked songs'))}
                   >
                     <LinearGradient
                       colors={['#7340b5', '#382650']}
@@ -296,13 +298,13 @@ export function MusicGameMode() {
                     >
                       <Heart size={30} color="#fff" fill="#fff" />
                       <View style={m.flex}>
-                        <Text style={s.collectionTitle}>Liked songs</Text>
+                        <Text style={s.collectionTitle}>{tr('Liked songs')}</Text>
                         <Text style={s.caption}>
                           {music.liked.data
-                            ? `${music.liked.data.length} saved`
+                            ? tr('{count} saved', { count: music.liked.data.length })
                             : music.liked.isError
-                              ? 'Tap to retry'
-                              : 'Loading…'}
+                              ? tr('Tap to retry')
+                              : tr('Loading…')}
                         </Text>
                       </View>
                       <ListMusic size={22} color="#e5d5fa" />
@@ -311,29 +313,31 @@ export function MusicGameMode() {
                   {!!music.preferences.history.length && (
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel="Game recently played"
-                      onPress={() => openCollection('history', 'Recently played')}
+                      accessibilityLabel={tr('Game recently played')}
+                      onPress={() => openCollection('history', tr('Recently played'))}
                       style={s.recent}
                     >
                       <Cover uri={music.preferences.history[0].albumArt} size={48} />
                       <View style={m.flex}>
-                        <Text style={m.trackTitle}>Jump back in</Text>
+                        <Text style={m.trackTitle}>{tr('Jump back in')}</Text>
                         <Text numberOfLines={1} style={m.muted}>
                           {music.preferences.history[0].title}
                         </Text>
                       </View>
                     </Pressable>
                   )}
-                  <Text style={[m.heading, { fontSize: 18, marginTop: 8 }]}>Your playlists</Text>
+                  <Text style={[m.heading, { fontSize: 18, marginTop: 8 }]}>
+                    {tr('Your playlists')}
+                  </Text>
                   {music.playlists.isFetching && !music.playlists.data && (
                     <ActivityIndicator
                       color="#c9a4ff"
-                      accessibilityLabel="Loading game playlists"
+                      accessibilityLabel={tr('Loading game playlists')}
                     />
                   )}
                   {music.playlists.isError && (
                     <MusicStatus
-                      message="Playlists couldn't load."
+                      message={tr("Playlists couldn't load.")}
                       onRetry={() => void music.playlists.refetch()}
                     />
                   )}
@@ -342,7 +346,7 @@ export function MusicGameMode() {
               renderItem={({ item }) => (
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={`Game playlist ${item.title}`}
+                  accessibilityLabel={tr('Game playlist {name}', { name: item.title })}
                   onPress={() => setSelected(item)}
                   style={s.tile}
                 >
@@ -353,7 +357,7 @@ export function MusicGameMode() {
                     {item.title}
                   </Text>
                   <Text numberOfLines={1} style={m.muted}>
-                    {item.creator || 'Your playlist'}
+                    {item.creator || tr('Your playlist')}
                   </Text>
                 </Pressable>
               )}
@@ -361,10 +365,12 @@ export function MusicGameMode() {
                 !music.playlists.isFetching && !music.playlists.isError ? (
                   <View style={{ paddingVertical: 18, gap: 12 }}>
                     <Text style={m.muted}>
-                      Your saved playlists will appear here. Find a song to start your next session.
+                      {tr(
+                        'Your saved playlists will appear here. Find a song to start your next session.',
+                      )}
                     </Text>
                     <Button
-                      title="Find music"
+                      title={tr('Find music')}
                       variant="secondary"
                       onPress={() => setPanel('Search')}
                     />
@@ -388,7 +394,7 @@ export function MusicGameMode() {
                     <>
                       <View style={m.row}>
                         <IconButton
-                          label="Back to game playlists"
+                          label={tr('Back to game playlists')}
                           onPress={() => setSelected(null)}
                         >
                           <ArrowLeft size={22} color="white" />
@@ -396,17 +402,20 @@ export function MusicGameMode() {
                         <Text style={[m.heading, m.flex]}>{selected?.title}</Text>
                       </View>
                       {playlistLoading && (
-                        <ActivityIndicator color="#c9a4ff" accessibilityLabel="Loading playlist" />
+                        <ActivityIndicator
+                          color="#c9a4ff"
+                          accessibilityLabel={tr('Loading playlist')}
+                        />
                       )}
                       {playlistError ? (
                         <MusicStatus
-                          message="This playlist couldn't be loaded."
+                          message={tr("This playlist couldn't be loaded.")}
                           onRetry={retryPlaylist}
                         />
                       ) : (
                         !!playlistTracks.length && (
                           <Button
-                            title="Play this mix"
+                            title={tr('Play this mix')}
                             onPress={() => music.play(playlistTracks[0], playlistTracks)}
                             disabled={!music.isOnline}
                           />
@@ -416,9 +425,9 @@ export function MusicGameMode() {
                   )}
                   {panel === 'Queue' && (
                     <View style={m.row}>
-                      <Text style={[m.heading, m.flex]}>Your queue</Text>
+                      <Text style={[m.heading, m.flex]}>{tr('Your queue')}</Text>
                       <Button
-                        title="Clear upcoming"
+                        title={tr('Clear upcoming')}
                         fullWidth={false}
                         variant="ghost"
                         disabled={music.listener || music.queue.length < 2}
@@ -430,30 +439,37 @@ export function MusicGameMode() {
                     <>
                       <TextInput
                         autoFocus
-                        accessibilityLabel="Search in Game Mode"
-                        placeholder="Songs or artists"
+                        accessibilityLabel={tr('Search in Game Mode')}
+                        placeholder={tr('Songs or artists')}
                         placeholderTextColor="#b7afc4"
                         value={query}
                         onChangeText={setQuery}
                         style={m.input}
                       />
                       {!!query && (
-                        <Button title="Clear search" variant="ghost" onPress={() => setQuery('')} />
+                        <Button
+                          title={tr('Clear search')}
+                          variant="ghost"
+                          onPress={() => setQuery('')}
+                        />
                       )}
                       {music.isOnline &&
                         !!query.trim() &&
                         (!settled || (search.isFetching && !search.data)) && (
-                          <ActivityIndicator color="#c9a4ff" accessibilityLabel="Searching music" />
+                          <ActivityIndicator
+                            color="#c9a4ff"
+                            accessibilityLabel={tr('Searching music')}
+                          />
                         )}
                       {settled && search.isError && (
                         <MusicStatus
-                          message="Music search is unavailable."
+                          message={tr('Music search is unavailable.')}
                           onRetry={() => void search.refetch()}
                         />
                       )}
                       {settled && search.data?.pages.some((page) => page.partial) && (
                         <MusicStatus
-                          message="One catalog is unavailable. Showing available music."
+                          message={tr('One catalog is unavailable. Showing available music.')}
                           onRetry={() => void search.refetch()}
                         />
                       )}
@@ -475,7 +491,7 @@ export function MusicGameMode() {
                   </View>
                   {panel === 'Queue' && index !== music.index && (
                     <IconButton
-                      label={`Remove ${item.title} from queue`}
+                      label={tr('Remove {name} from queue', { name: item.title })}
                       disabled={music.listener}
                       onPress={() => music.removeQueue(index)}
                     >
@@ -484,7 +500,7 @@ export function MusicGameMode() {
                   )}
                   {panel !== 'Queue' && (
                     <IconButton
-                      label={`Add ${item.title} to queue`}
+                      label={tr('Add {name} to queue', { name: item.title })}
                       disabled={
                         !music.isOnline ||
                         (music.listener && music.jam.room?.queuePolicy === 'dj_only')
@@ -498,23 +514,25 @@ export function MusicGameMode() {
               )}
               ListEmptyComponent={
                 panel === 'Queue' ? (
-                  <Text style={m.muted}>Pick a playlist or find a song to start listening.</Text>
+                  <Text style={m.muted}>
+                    {tr('Pick a playlist or find a song to start listening.')}
+                  </Text>
                 ) : panel === 'Search' ? (
                   !query.trim() ? (
                     <Text style={m.muted}>
-                      Search SoundCloud and Spotify without leaving the game.
+                      {tr('Search SoundCloud and Spotify without leaving the game.')}
                     </Text>
                   ) : settled && search.isSuccess ? (
-                    <Text style={m.muted}>No matches. Try another artist or song.</Text>
+                    <Text style={m.muted}>{tr('No matches. Try another artist or song.')}</Text>
                   ) : null
                 ) : !playlistLoading && !playlistError && music.isOnline ? (
-                  <Text style={m.muted}>No songs in this collection yet.</Text>
+                  <Text style={m.muted}>{tr('No songs in this collection yet.')}</Text>
                 ) : null
               }
               ListFooterComponent={
                 panel === 'Search' && settled && search.hasNextPage ? (
                   <Button
-                    title="Load more music"
+                    title={tr('Load more music')}
                     variant="ghost"
                     loading={search.isFetchingNextPage}
                     onPress={() => void search.fetchNextPage()}
@@ -536,9 +554,10 @@ export function MusicGameMode() {
           ] as const
         ).map(({ title, Icon }) => (
           <Pressable
-            key={title}
+            key={tr(title)}
+
             accessibilityRole="button"
-            accessibilityLabel={`Game ${title.toLowerCase()}`}
+            accessibilityLabel={tr('Game {name}', { name: tr(title).toLowerCase() })}
             accessibilityState={{
               selected: panel === title,
               disabled: title === 'Lyrics' && !music.current,
@@ -554,7 +573,7 @@ export function MusicGameMode() {
           >
             <Icon size={20} color={panel === title ? '#eadcff' : '#b7afc4'} />
             <Text style={[m.small, { color: panel === title ? '#eadcff' : '#b7afc4' }]}>
-              {title}
+              {tr(title)}
             </Text>
           </Pressable>
         ))}

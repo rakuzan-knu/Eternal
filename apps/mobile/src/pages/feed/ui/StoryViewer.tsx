@@ -31,6 +31,7 @@ import { StoryMusicPlayer } from './StoryMusicEditor';
 import { useStoryFonts } from './StoryFonts';
 import { openWebSection } from './FeedDock';
 import { StoryDrawing } from './StoryDrawing';
+import { tr } from '@/shared/lib/i18n';
 
 function StoryContent({
   story,
@@ -91,14 +92,14 @@ function StoryContent({
           return { ...value, userReaction: data.emoji, reactionsCount: counts };
         }),
       );
-      setMessage('Reaction sent');
+      setMessage(tr('Reaction sent'));
     },
   });
   const send = useMutation({
     mutationFn: () => getMobileApi().post(`${path}/reply`, { text: reply.trim() }),
     onSuccess: () => {
       setReply('');
-      setMessage('Reply sent to chat');
+      setMessage(tr('Reply sent to chat'));
     },
   });
   const vote = useMutation({
@@ -126,14 +127,14 @@ function StoryContent({
   });
   async function openLink(url: string) {
     if (!/^https?:\/\//i.test(url)) {
-      setError('This link cannot be opened.');
+      setError(tr('This link cannot be opened.'));
       return;
     }
     try {
       await Linking.openURL(url);
       setError(null);
     } catch {
-      setError('This link could not be opened.');
+      setError(tr('This link could not be opened.'));
     }
   }
   function overlayContent(overlay: StoryOverlay) {
@@ -157,8 +158,8 @@ function StoryContent({
                 (width * 0.75) / (overlay.aspectRatio || 1),
               )}
               filter={story.filter}
-              label="Story sticker"
-              onError={() => setError('A story image could not be loaded.')}
+              label={tr('Story sticker')}
+              onError={() => setError(tr('A story image could not be loaded.'))}
             />
           </View>
         );
@@ -206,7 +207,7 @@ function StoryContent({
             variant="secondary"
             onPress={() => {
               void openWebSection(`/profile/${encodeURIComponent(overlay.username)}`, (failed) =>
-                setError(failed ? 'This profile could not be opened.' : null),
+                setError(failed ? tr('This profile could not be opened.') : null),
               );
             }}
           />
@@ -232,14 +233,14 @@ function StoryContent({
         {!story.mediaUrl.startsWith('color:') &&
           (story.mediaType === 'IMAGE' ? (
             mainPhotoOverlay ? null : failed ? (
-              <ErrorNotice message="This story image couldn't be loaded." />
+              <ErrorNotice message={tr("This story image couldn't be loaded.")} />
             ) : (
               <StoryImage
                 uri={story.mediaUrl}
                 width={width}
                 height={(width * 16) / 9}
                 filter={story.filter}
-                label={story.caption || 'Story photo'}
+                label={story.caption || tr('Story photo')}
                 onError={() => setFailed(true)}
               />
             )
@@ -249,7 +250,7 @@ function StoryContent({
               active
               volume={audio?.type === 'audio' ? audio.videoVolume : 1}
               clipDurationSeconds={60}
-              label="Voice story"
+              label={tr('Voice story')}
             />
           ) : (
             <StoryVideo
@@ -257,7 +258,7 @@ function StoryContent({
               active
               filter={story.filter}
               volume={audio?.type === 'audio' ? audio.videoVolume : 1}
-              label="Story video"
+              label={tr('Story video')}
             />
           ))}
 
@@ -282,13 +283,20 @@ function StoryContent({
       </View>
       {!!story.caption && <Text style={s.caption}>{story.caption}</Text>}
       {audio?.type === 'audio' && <StoryMusicPlayer overlay={audio} userId={userId} active />}
-      {story.privacy === 'CLOSE_FRIENDS' && <Text style={s.closeFriends}>Close friends</Text>}
-      {!isOnline && <Text style={common.muted}>You're offline. Connect to react or reply.</Text>}
+      {story.privacy === 'CLOSE_FRIENDS' && (
+        <Text style={s.closeFriends}>{tr('Close friends')}</Text>
+      )}
+      {!isOnline && (
+        <Text style={common.muted}>{tr("You're offline. Connect to react or reply.")}</Text>
+      )}
       {view.isError && (
-        <ErrorNotice message="Your view couldn't be recorded." onRetry={() => view.mutate()} />
+        <ErrorNotice
+          message={tr("Your view couldn't be recorded.")}
+          onRetry={() => view.mutate()}
+        />
       )}
       {(react.isError || send.isError || vote.isError || remove.isError) && (
-        <ErrorNotice message="That action failed. Please try again." />
+        <ErrorNotice message={tr('That action failed. Please try again.')} />
       )}
       {error && <ErrorNotice message={error} />}
       {message && (
@@ -307,7 +315,7 @@ function StoryContent({
               onPress={() => setShowViewers((show) => !show)}
             />
             <IconButton
-              label="Delete story"
+              label={tr('Delete story')}
               disabled={!isOnline || remove.isPending}
               onPress={() => setConfirmDelete(true)}
             >
@@ -316,16 +324,16 @@ function StoryContent({
           </View>
           {confirmDelete && (
             <View style={s.poll}>
-              <Text style={common.text}>Delete this story? This cannot be undone.</Text>
+              <Text style={common.text}>{tr('Delete this story? This cannot be undone.')}</Text>
               <Button
-                title="Delete story permanently"
+                title={tr('Delete story permanently')}
                 variant="danger"
                 disabled={!isOnline}
                 loading={remove.isPending}
                 onPress={() => remove.mutate()}
               />
               <Button
-                title="Keep story"
+                title={tr('Keep story')}
                 variant="secondary"
                 disabled={remove.isPending}
                 onPress={() => setConfirmDelete(false)}
@@ -335,10 +343,10 @@ function StoryContent({
           {showViewers && (
             <View style={s.poll}>
               {viewers.isPending ? (
-                <Text style={common.muted}>Loading viewers…</Text>
+                <Text style={common.muted}>{tr('Loading viewers…')}</Text>
               ) : viewers.isError ? (
                 <ErrorNotice
-                  message="Viewers couldn't be loaded."
+                  message={tr("Viewers couldn't be loaded.")}
                   onRetry={() => {
                     void viewers.refetch();
                   }}
@@ -357,7 +365,7 @@ function StoryContent({
                   </View>
                 ))
               ) : (
-                <Text style={common.muted}>No views yet.</Text>
+                <Text style={common.muted}>{tr('No views yet.')}</Text>
               )}
             </View>
           )}
@@ -369,7 +377,7 @@ function StoryContent({
               <Pressable
                 key={emoji}
                 accessibilityRole="button"
-                accessibilityLabel={`React ${emoji}`}
+                accessibilityLabel={tr('React {emoji}', { emoji })}
                 aria-pressed={story.userReaction === emoji}
                 accessibilityState={{
                   selected: story.userReaction === emoji,
@@ -392,13 +400,13 @@ function StoryContent({
               onChangeText={setReply}
               maxLength={2000}
               editable={isOnline && !send.isPending}
-              accessibilityLabel="Reply to story"
-              placeholder="Send a message…"
+              accessibilityLabel={tr('Reply to story')}
+              placeholder={tr('Send a message…')}
               placeholderTextColor={colors.muted}
               style={s.reply}
             />
             <IconButton
-              label="Send story reply"
+              label={tr('Send story reply')}
               disabled={!isOnline || !reply.trim() || send.isPending}
               onPress={() => {
                 setMessage(null);
@@ -443,7 +451,7 @@ export function StoryViewer({
       >
         <View style={s.controls}>
           <IconButton
-            label="Previous story"
+            label={tr('Previous story')}
             disabled={index === 0}
             onPress={() => setId(group.stories[index - 1].id)}
           >
@@ -460,7 +468,7 @@ export function StoryViewer({
             </Text>
           </View>
           <IconButton
-            label="Next story"
+            label={tr('Next story')}
             onPress={() =>
               index < group.stories.length - 1 ? setId(group.stories[index + 1].id) : onClose()
             }

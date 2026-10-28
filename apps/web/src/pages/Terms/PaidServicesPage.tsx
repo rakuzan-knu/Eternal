@@ -14,7 +14,7 @@ import {
   FileText,
 } from 'lucide-react';
 import { useLanguageStore } from '../../shared/lib/language/languageStore';
-import { PAID_SERVICES_DATA } from './data/paidServicesData';
+import { PAID_SERVICES_DATA } from '@social-network/shared-content';
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   Crown: <Crown className="w-4 h-4" />,

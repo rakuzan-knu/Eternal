@@ -59,6 +59,22 @@ describe('OnlineStatusIndicator', () => {
     expect(gamepad).toHaveAttribute('title', 'Playing Dota 2');
   });
 
+  it.each([false, true])(
+    'does not mislabel platform music as Spotify when paused=%s',
+    (isPaused) => {
+      usePresenceStore.setState({
+        userActivities: {
+          'user-online': { type: 'platform_music', title: 'A SoundCloud track', isPaused },
+        },
+      });
+      render(<OnlineStatusIndicator userId="user-online" />);
+      expect(
+        screen.getByLabelText(isPaused ? 'Music paused' : 'Listening to music'),
+      ).toBeInTheDocument();
+      expect(screen.queryByLabelText(/Spotify/)).not.toBeInTheDocument();
+    },
+  );
+
   it('renders text variant with "Playing [game]" when playing a game', () => {
     usePresenceStore.setState({
       onlineUserIds: new Set(['gamer-1']),

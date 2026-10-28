@@ -20,17 +20,13 @@ import {
   Search,
   ChevronDown,
   ChevronRight,
+  ArrowLeft,
   Lock,
-  Users,
-  Moon,
-  Smartphone,
   Eye,
-  UserX,
   Volume2,
   LogOut,
   Link as LinkIcon,
   Unlink,
-  ShieldCheck,
   Mic,
 } from 'lucide-react';
 import AccountReputationPanel from './account/AccountReputationPanel';
@@ -163,6 +159,10 @@ export default function EditProfileModal() {
   const [activeTab, setActiveTab] = useState(targetTab);
   const [activeSection, setActiveSection] = useState('sec-account-info');
   const [searchQuery, setSearchQuery] = useState('');
+  const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
+  useEffect(() => {
+    if (!isEditProfileOpen) setMobileNavigationOpen(false);
+  }, [isEditProfileOpen]);
   const [expandedTabs, setExpandedTabs] = useState<Record<string, boolean>>({
     account: true,
     appearance: false,
@@ -364,6 +364,7 @@ export default function EditProfileModal() {
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const rightPanelRef = useRef<HTMLDivElement>(null);
+  const mobileNavigationToggleRef = useRef<HTMLButtonElement>(null);
   const subNavRef = useRef<HTMLDivElement>(null);
   const tabHeaderRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const accordionRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -651,6 +652,11 @@ export default function EditProfileModal() {
   }, [activeSection]);
 
   const handleSectionClick = (tabId: string, sectionId: string) => {
+    setMobileNavigationOpen(false);
+    // The selected mobile menu item is about to be hidden. Keep focus on a visible control.
+    if (window.matchMedia?.('(max-width: 639px)').matches) {
+      mobileNavigationToggleRef.current?.focus();
+    }
     if (sectionId === 'sec-family') {
       if (isSlidePanelClosing) {
         setIsSlidePanelClosing(false);
@@ -1032,7 +1038,24 @@ export default function EditProfileModal() {
           <X size={20} />
         </button>
 
-        <div className="w-full sm:w-[300px] max-h-[45%] sm:max-h-none border-b sm:border-b-0 sm:border-r border-black/10 dark:border-white/[0.06] p-4 flex flex-col gap-4 select-none shrink-0 overflow-x-hidden overflow-y-hidden bg-transparent transition-colors duration-200">
+        <div className="sm:hidden shrink-0 border-b border-black/10 dark:border-white/10 px-4 py-3 pr-16">
+          <button
+            type="button"
+            ref={mobileNavigationToggleRef}
+            aria-expanded={mobileNavigationOpen}
+            aria-controls="profile-settings-navigation"
+            onClick={() => setMobileNavigationOpen((open) => !open)}
+            className="flex min-h-10 items-center gap-2 rounded-xl px-2 text-sm font-semibold hover:bg-black/5 dark:hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-current"
+          >
+            <ArrowLeft size={16} aria-hidden="true" />
+            {mobileNavigationOpen ? 'Back to settings page' : 'All settings'}
+          </button>
+        </div>
+
+        <div
+          id="profile-settings-navigation"
+          className={`${mobileNavigationOpen ? 'flex flex-1 min-h-0' : 'hidden'} w-full sm:flex sm:flex-none sm:w-[300px] sm:max-h-none sm:border-r border-black/10 dark:border-white/[0.06] p-4 flex-col gap-4 select-none shrink-0 overflow-x-hidden overflow-y-hidden bg-transparent transition-colors duration-200`}
+        >
           <div className="flex items-center gap-3 p-2.5 rounded-2xl bg-black/[0.03] dark:bg-white/[0.03] border border-black/10 dark:border-white/[0.06]">
             <Avatar
               src={avatarPreview}
@@ -1067,6 +1090,7 @@ export default function EditProfileModal() {
             />
             <input
               type="text"
+              aria-label="Search settings"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search"
@@ -1241,7 +1265,9 @@ export default function EditProfileModal() {
           </div>
         </div>
 
-        <div className="flex-1 relative overflow-hidden bg-transparent">
+        <div
+          className={`${mobileNavigationOpen ? 'hidden sm:block' : ''} flex-1 min-h-0 relative overflow-hidden bg-transparent`}
+        >
           <SettingsPanelHost>
             <div
               ref={rightPanelRef}

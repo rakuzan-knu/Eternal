@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { MediaVideo } from '@/shared/lib/privateMediaView';
 import { Play, Pause, Volume2, VolumeX, X, Maximize2, Trash2 } from 'lucide-react';
 import { useActiveMediaPlaybackStore } from '@/shared/model/useActiveMediaPlaybackStore';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -251,9 +252,9 @@ export default function FloatingVideoNotePiP() {
         }`}
         title="Drag to reposition, Double-tap to resize"
       >
-        <video
+        <MediaVideo
           ref={videoRef}
-          src={url ?? undefined}
+          src={url ?? ''}
           playsInline
           loop
           muted={isMuted}

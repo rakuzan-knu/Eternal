@@ -35,9 +35,10 @@ export const ReelCommentsDrawer: React.FC<ReelCommentsDrawerProps> = ({
     const trimmed = content.trim();
     if (!trimmed || addCommentMutation.isPending) return;
 
+    const submittedContent = content;
     try {
       await addCommentMutation.mutateAsync({ reelId, content: trimmed });
-      setContent('');
+      setContent((current) => (current === submittedContent ? '' : current));
     } catch {
       // Error handled by mutation state
     }
@@ -59,9 +60,11 @@ export const ReelCommentsDrawer: React.FC<ReelCommentsDrawerProps> = ({
             <MessageCircle className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
             <h3 className="font-semibold text-gray-900 dark:text-white text-base">
               Comments{' '}
-              <span className="text-gray-500 dark:text-zinc-400 text-sm font-normal">
-                ({commentsCount})
-              </span>
+              {!isLoading && !isError && Boolean(comments?.length) && (
+                <span className="text-gray-500 dark:text-zinc-400 text-sm font-normal">
+                  ({Math.max(commentsCount, comments?.length ?? 0)})
+                </span>
+              )}
             </h3>
           </div>
           <button
@@ -101,10 +104,8 @@ export const ReelCommentsDrawer: React.FC<ReelCommentsDrawerProps> = ({
           ) : !comments || comments.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-48 text-gray-500 dark:text-zinc-400 text-sm">
               <MessageCircle className="w-10 h-10 mb-2 stroke-1 text-gray-400 dark:text-zinc-600" />
-              <p>No comments yet.</p>
-              <p className="text-xs text-gray-400 dark:text-zinc-500">
-                Be the first to share your thoughts!
-              </p>
+              <p>{commentsCount > 0 ? 'No comments to display.' : 'No comments yet.'}</p>
+              <p className="text-xs text-gray-400 dark:text-zinc-500">Share your thoughts below.</p>
             </div>
           ) : (
             comments.map((comment) => (
@@ -152,8 +153,19 @@ export const ReelCommentsDrawer: React.FC<ReelCommentsDrawerProps> = ({
         </div>
 
         {/* Comment Input */}
+        {addCommentMutation.isError && (
+          <p
+            id="reel-comment-error"
+            role="alert"
+            className="px-4 py-2 text-sm text-red-700 dark:text-red-300"
+          >
+            Your comment was not sent. Your draft is saved here; try sending again.
+          </p>
+        )}
         <form
+          noValidate
           onSubmit={handleSubmit}
+          aria-busy={addCommentMutation.isPending}
           className="p-3 border-t border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-black/30 flex items-center gap-2"
         >
           <input
@@ -163,13 +175,14 @@ export const ReelCommentsDrawer: React.FC<ReelCommentsDrawerProps> = ({
             onChange={(e) => setContent(e.target.value)}
             maxLength={1000}
             aria-label="Comment"
+            aria-describedby={addCommentMutation.isError ? 'reel-comment-error' : undefined}
             className="flex-1 min-w-0 bg-black/5 dark:bg-white/[0.06] border border-black/10 dark:border-white/10 rounded-full px-4 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors"
           />
           <button
             type="submit"
             disabled={!content.trim() || addCommentMutation.isPending}
             className="p-2 rounded-full bg-indigo-600 text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-indigo-500 transition-colors shrink-0"
-            aria-label="Send comment"
+            aria-label={addCommentMutation.isPending ? 'Sending comment' : 'Send comment'}
           >
             <Send className="w-4 h-4" />
           </button>

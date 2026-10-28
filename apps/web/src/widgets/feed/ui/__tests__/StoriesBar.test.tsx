@@ -3,7 +3,8 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import userEvent from '@testing-library/user-event';
 import { StoriesBar } from '../StoriesBar';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, QueryObserver } from '@tanstack/react-query';
+import type { UserStoriesGroup } from '@/features/stories/model/types';
 import { useStoryEditorStore } from '@/features/stories/model/useStoryEditorStore';
 import { useStoryViewerStore } from '@/features/stories/model/useStoryViewerStore';
 import * as storiesModule from '@/features/stories/model/useStories';
@@ -107,5 +108,18 @@ describe('StoriesBar', () => {
     const loading = screen.getByRole('status', { name: 'Loading stories' });
     expect(loading).toBeVisible();
     expect(loading.querySelector('.skeleton-shimmer')).toBeInTheDocument();
+  });
+
+  it('keeps story creation available in the compact empty state', async () => {
+    const emptyStories = new QueryObserver<UserStoriesGroup[]>(new QueryClient(), {
+      queryKey: ['empty-stories'],
+      queryFn: async () => [],
+      initialData: [],
+    }).getCurrentResult();
+    vi.spyOn(storiesModule, 'useStoriesFeed').mockReturnValue(emptyStories);
+    render(<StoriesBar />, { wrapper: createWrapper() });
+    expect(screen.getByRole('region', { name: 'Stories' })).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: 'Add story' }));
+    expect(useStoryEditorStore.getState().isOpen).toBe(true);
   });
 });

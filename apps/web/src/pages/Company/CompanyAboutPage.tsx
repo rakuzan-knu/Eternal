@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { PrivacyNavbar } from '../Privacy/ui/PrivacyNavbar';
 import { EternalFooter } from '@/widgets/footer';
 import { SEOHead } from '../../shared/seo';
-import { ABOUT_TRANSLATIONS } from './data/aboutTranslations';
+import { ABOUT_TRANSLATIONS } from '@social-network/shared-content';
 import { useLanguageStore } from '../../shared/lib/language/languageStore';
 import { useAuthStore } from '../../shared/model/useAuthStore';
 import {

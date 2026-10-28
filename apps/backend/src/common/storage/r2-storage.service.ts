@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import type { IStorageService, UploadFileOptions } from './storage.interface';
@@ -81,6 +81,17 @@ export class R2StorageService implements IStorageService {
 
   getDefaultBucket(): string {
     return this.defaultBucket;
+  }
+
+  getPrivateBucket(): string {
+    const bucket = this.configService.get<string>('R2_PRIVATE_BUCKET')?.trim();
+    if (
+      !bucket ||
+      bucket === this.defaultBucket ||
+      !/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/.test(bucket)
+    )
+      throw new ServiceUnavailableException('Private attachment storage is not configured');
+    return bucket;
   }
 
   getPublicUrl(key: string, bucket?: string): string {

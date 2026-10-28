@@ -13,6 +13,7 @@ import {
   ChevronRight,
   PanelLeftClose,
   PanelLeftOpen,
+  Users,
   FileText,
   Zap,
 } from 'lucide-react';
@@ -36,6 +37,7 @@ const menuItems = [
   { to: '/reels', icon: <Film size={22} />, label: 'Reels' },
   { to: '/music', icon: <Music2 size={22} />, label: 'Music Hub' },
   { to: '/messages', icon: <MessageSquare size={22} />, label: 'Message' },
+  { to: '/communities', icon: <Users size={22} />, label: 'Communities' },
   { to: '/notifications', icon: <Bell size={22} />, label: 'Notifications' },
   { to: '/create', icon: <PlusSquare size={22} />, label: 'Create', isAction: true },
   { to: '/shop', icon: <Store size={22} />, label: 'Shop' },

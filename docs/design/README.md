@@ -60,3 +60,7 @@ This is a **source snapshot**, not computed browser CSS or a portable native com
 ## Keeping it current
 
 When a visual change lands, update the affected guide and regenerate the inventory and CSS in the same change. Preserve component variants and state behavior rather than merging superficially similar values. Verify real content, narrow and wide layouts, keyboard navigation, reduced motion, loading/error/empty states and media overlays using the [review checklist](platforms.md#acceptance-checklist). The [scenario matrix](scenarios.md) separates current executable reference coverage from feature acceptance criteria. CI rejects stale generated files, broken local links/headings and missing declared assets, and runs the local screenshot suite for frontend changes.
+
+## Community workspace redesign (2026-10-22)
+
+See [Discord reference and capability inventory](discord-reference-2026-10-22.md) for actual desktop observations, implementation decisions and remaining domain work. [Interaction contract](../../UX-CONTRACT.md) defines the new server/channel navigation boundary.

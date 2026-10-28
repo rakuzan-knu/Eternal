@@ -19,8 +19,10 @@ import { ForgotPasswordScreen } from '@/pages/auth-forgot-password';
 import { SecurityLockScreen } from '@/features/security';
 import { WifiOff } from 'lucide-react-native';
 import { FeedScreen } from '@/pages/feed';
+import { inviteTokenFromInput } from '@/pages/communities';
 import { getMobileApi } from '@/shared/api/client';
 import { isNetworkOnline } from '@/shared/lib/network';
+import { languageReady, tr, useLanguage } from '@/shared/lib/i18n';
 
 // 6. Hold native splash screen until storage rehydration completes
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -126,9 +128,12 @@ function AppContent() {
   const [appIsReady, setAppIsReady] = React.useState(false);
   const [currentScreen, setCurrentScreen] = React.useState<Screen>('login');
   const [resetToken, setResetToken] = React.useState<string | null>(null);
+  const [pendingInvite, setPendingInvite] = React.useState<string | null>(null);
+  const clearPendingInvite = React.useCallback(() => setPendingInvite(null), []);
   const [isOnline, setIsOnline] = React.useState(true);
   const { isAuthenticated, user, clearSession } = useAuthStore();
   const { isLocked, unlock } = useAppLock(isAuthenticated);
+  const language = useLanguage();
 
   React.useEffect(() => {
     if (Platform.OS === 'web') return;
@@ -143,7 +148,7 @@ function AppContent() {
     async function prepare() {
       try {
         // Wait for Zustand persist & SecureStore to rehydrate tokens
-        await new Promise((resolve) => setTimeout(resolve, 200));
+        await Promise.all([new Promise((resolve) => setTimeout(resolve, 200)), languageReady()]);
       } catch {
         // Fail-safe
       } finally {
@@ -167,6 +172,11 @@ function AppContent() {
   React.useEffect(() => {
     const handleUrl = (event: { url: string }) => {
       try {
+        const invite = inviteTokenFromInput(event.url);
+        if (invite) {
+          setPendingInvite(invite);
+          return;
+        }
         const parsed = Linking.parse(event.url);
         const isReset =
           parsed.path?.includes('reset-password') || parsed.hostname === 'reset-password';
@@ -216,20 +226,20 @@ function AppContent() {
     let metaDescription = 'Eternal is an enterprise social networking platform.';
 
     if (isAuthenticated) {
-      pageTitle = 'Home • Eternal';
+      pageTitle = `${tr('Home')} • Eternal`;
       metaDescription = 'Your personal timeline and activity feed on Eternal.';
     } else {
       switch (currentScreen) {
         case 'login':
-          pageTitle = 'Log in • Eternal';
+          pageTitle = `${tr('Log in')} • Eternal`;
           metaDescription = 'Sign in to your Eternal account.';
           break;
         case 'register':
-          pageTitle = 'Create an Account • Eternal';
+          pageTitle = `${tr('Create Account')} • Eternal`;
           metaDescription = 'Join Eternal to connect with friends and communities.';
           break;
         case 'forgot-password':
-          pageTitle = 'Reset Password • Eternal';
+          pageTitle = `${tr('Set new password')} • Eternal`;
           metaDescription = 'Reset your Eternal account password securely.';
           break;
       }
@@ -253,7 +263,7 @@ function AppContent() {
     }
     // The mobile web shell contains account screens and a private, personalized feed.
     robotsTag.content = 'noindex, nofollow';
-  }, [currentScreen, isAuthenticated]);
+  }, [currentScreen, isAuthenticated, language]);
 
   // Keep splash screen visible until app is fully ready
   if (!appIsReady) {
@@ -273,11 +283,17 @@ function AppContent() {
           <View style={styles.offlineBanner} accessibilityRole="alert">
             <WifiOff size={14} color="#fca5a5" />
             <Text style={styles.offlineBannerText}>
-              You're offline. Loaded posts are still available.
+              {tr("You're offline. Loaded posts are still available.")}
             </Text>
           </View>
         )}
-        <FeedScreen user={user} isOnline={isOnline} onSignOut={clearSession} />
+        <FeedScreen
+          user={user}
+          isOnline={isOnline}
+          onSignOut={clearSession}
+          pendingInvite={pendingInvite}
+          onInviteOpened={clearPendingInvite}
+        />
       </SafeAreaView>
     );
   }
@@ -292,7 +308,7 @@ function AppContent() {
         <View style={styles.offlineBanner} accessibilityRole="alert">
           <WifiOff size={14} color="#fca5a5" />
           <Text style={styles.offlineBannerText}>
-            No internet connection. Waiting for network...
+            {tr('No internet connection. Waiting for network...')}
           </Text>
         </View>
       )}

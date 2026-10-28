@@ -1,6 +1,7 @@
 import * as React from 'react';
 import Hls from 'hls.js';
 import type { MusicAudioProps } from './audioTypes';
+import { tr } from '@/shared/lib/i18n';
 export function MusicAudio(props: MusicAudioProps) {
   const ref = React.useRef<HTMLAudioElement>(null);
   const latest = React.useRef(props);
@@ -84,5 +85,7 @@ export function MusicAudio(props: MusicAudioProps) {
     if (ref.current && ref.current.readyState >= 1)
       ref.current.currentTime = props.seek.value / 1000;
   }, [props.seek]);
-  return <audio ref={ref} preload="auto" aria-label={`Audio: ${props.track.title}`} />;
+  return (
+    <audio ref={ref} preload="auto" aria-label={tr('Audio: {name}', { name: props.track.title })} />
+  );
 }

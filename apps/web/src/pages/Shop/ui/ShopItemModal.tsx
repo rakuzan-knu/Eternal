@@ -470,6 +470,11 @@ export function ShopItemModal({
 
           {/* Bottom Actions Row */}
           <div>
+            {!owned && (
+              <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
+                Sales are not open yet. You can preview this item and save it to your wishlist.
+              </p>
+            )}
             {!owned ? (
               /* Unowned: "Buy for $X.XX" button + Gift button */
               <div className="flex items-center gap-2.5 pt-3">

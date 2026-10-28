@@ -2,8 +2,15 @@ import type { PostResponseDto, UserProfileDto } from '@social-network/shared-con
 import { getMobileApi } from '@/shared/api/client';
 import { feedKeys } from '../../feed/model/queries';
 import type { Page } from '../../feed/model/feed';
+import { msg } from '@/shared/lib/i18n';
 
-export const searchTabs = ['All', 'People', 'Posts', 'Hashtags', 'Media'] as const;
+export const searchTabs = [
+  msg('All'),
+  msg('People'),
+  msg('Posts'),
+  msg('Hashtags'),
+  msg('Media'),
+] as const;
 export type SearchTab = (typeof searchTabs)[number];
 export interface Hashtag {
   tag: string;

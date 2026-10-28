@@ -11,12 +11,15 @@ import { e2eeManager, parseEnvelope } from '@/shared/lib/crypto/e2ee';
 import { getDeviceId } from '../../lib/e2ee/identityKeys';
 import {
   __resetMessageE2eeForTests,
+  E2eeEditBlockedError,
   E2eePinChangedError,
   encryptMessageForPeer,
   evictPeerDeviceCache,
 } from '../../lib/e2ee/messageE2ee';
 import { __resetReplayStoreForTests } from '../../lib/e2ee/replayStore';
 import * as socketHookModule from '../useChatSocket';
+import type { InfiniteMessagesData } from '@/entities/chat';
+import { mutationOutboxDb } from '@/shared/lib/outbox/mutationOutbox';
 
 vi.mock('@/shared/api/httpClient', () => ({
   apiClient: {
@@ -218,6 +221,73 @@ describe.runIf(hasSubtle)('useMessageActions E2EE v2/v3 + pins + seq', () => {
     return emitted.filter((e) => e.event === 'sendMessage').map((e) => e.payload.text as string);
   }
 
+  it('retries the exact encrypted envelope and explicit mentions, refusing plaintext when the outbox is missing', async () => {
+    queryClient.setQueryData([CONVERSATION_MESSAGES_KEY, 'conv-1'], {
+      pages: [{ data: [], hasMore: false, nextCursor: null }],
+      pageParams: [undefined],
+    });
+    queryClient.setQueryData(
+      [CONVERSATIONS_KEY],
+      [
+        {
+          id: 'conv-1',
+          type: 'DIRECT',
+          participants: [
+            {
+              userId: 'user-1',
+              user: { id: 'user-1', username: 'alice', displayName: null, avatar: null },
+            },
+            {
+              userId: 'peer-9',
+              user: { id: 'peer-9', username: 'peer9', displayName: null, avatar: null },
+            },
+          ],
+        },
+      ],
+    );
+    mockSocket.emit.mockImplementation(
+      (event: string, payload: Record<string, unknown>, cb?: (res: unknown) => void) => {
+        emitted.push({ event, payload });
+        cb?.({ status: 'error', error: 'offline' });
+      },
+    );
+    const http = vi.spyOn(chatApi, 'sendMessage').mockRejectedValue(new Error('offline'));
+    const { result } = renderHook(() => useMessageActions('conv-1'), { wrapper });
+    await act(async () => {
+      await expect(
+        result.current.sendMessage('Hi @peer9', undefined, undefined, { encrypt: true }),
+      ).rejects.toThrow('offline');
+    });
+    const row = queryClient.getQueryData<InfiniteMessagesData>([
+      CONVERSATION_MESSAGES_KEY,
+      'conv-1',
+    ])?.pages[0].data[0];
+    expect(row?.requiresEncryptedRetry).toBe(true);
+    expect(row?.body).toBe('Hi @peer9');
+    const originalEnvelope = sentEnvelopes()[0];
+    expect(parseEnvelope(originalEnvelope).v).toBe(2);
+    await act(async () => {
+      await expect(result.current.retrySendMessage(row?.id ?? '')).rejects.toThrow('offline');
+    });
+    expect(sentEnvelopes()).toEqual([originalEnvelope, originalEnvelope]);
+    for (const event of emitted.filter((item) => item.event === 'sendMessage')) {
+      expect(event.payload.mentionedUserIds).toEqual(['peer-9']);
+      expect(event.payload.clientMessageId).toBe(row?.id);
+    }
+    for (const [, payload] of http.mock.calls) {
+      expect(payload.text).toBe(originalEnvelope);
+      expect(payload.mentionedUserIds).toEqual(['peer-9']);
+    }
+    await mutationOutboxDb.delete(row?.id ?? '');
+    await act(async () => {
+      await expect(result.current.retrySendMessage(row?.id ?? '')).rejects.toThrow(
+        'Encrypted retry data is unavailable',
+      );
+    });
+    expect(sentEnvelopes()).toHaveLength(2);
+    expect(http).toHaveBeenCalledTimes(2);
+  });
+
   it('sendMessage emits v2 with dialog binding and monotonic seq', async () => {
     const { result } = renderHook(() => useMessageActions('conv-1'), { wrapper });
 
@@ -289,6 +359,68 @@ describe.runIf(hasSubtle)('useMessageActions E2EE v2/v3 + pins + seq', () => {
     expect(parsed.v).toBe(2);
     if (parsed.v !== 2) throw new Error('expected v2');
     expect(parsed.aad.seq).toBe(7);
+  });
+
+  it('editMessage never downgrades an encrypted message when the peer has no usable key', async () => {
+    const original = (await encryptMessageForPeer('original', 'peer-9', ctx(4))) as string;
+    dir.set('peer-9', []);
+    evictPeerDeviceCache('peer-9');
+    const { result } = renderHook(() => useMessageActions('conv-1'), { wrapper });
+
+    let thrown: unknown = null;
+    await act(async () => {
+      try {
+        await result.current.editMessage('msg-1', 'edited in the clear?', original);
+      } catch (err) {
+        thrown = err;
+      }
+    });
+
+    expect(thrown).toBeInstanceOf(E2eeEditBlockedError);
+    expect(emitted.some((e) => e.event === 'editMessage')).toBe(false);
+  });
+
+  it('editMessage blocks loudly when the peer key changed instead of sending plaintext', async () => {
+    const original = (await encryptMessageForPeer('original', 'peer-9', ctx(5))) as string;
+    dir.set('peer-9', [{ deviceId: 'dev-b9', spki: await makeSpki(), version: 2 }]);
+    evictPeerDeviceCache('peer-9');
+    const { result } = renderHook(() => useMessageActions('conv-1'), { wrapper });
+
+    let thrown: unknown = null;
+    await act(async () => {
+      try {
+        await result.current.editMessage('msg-1', 'edited after rotation', original);
+      } catch (err) {
+        thrown = err;
+      }
+    });
+
+    expect(thrown).toBeInstanceOf(E2eePinChangedError);
+    expect(emitted.some((e) => e.event === 'editMessage')).toBe(false);
+  });
+
+  it('editMessage refuses encrypted edits when the 1:1 peer cannot be resolved', async () => {
+    const original = (await encryptMessageForPeer('original', 'peer-9', ctx(6))) as string;
+    queryClient.setQueryData([CONVERSATIONS_KEY], []);
+    const { result } = renderHook(() => useMessageActions('conv-1'), { wrapper });
+
+    await expect(
+      act(async () => {
+        await result.current.editMessage('msg-1', 'edited', original);
+      }),
+    ).rejects.toBeInstanceOf(E2eeEditBlockedError);
+    expect(emitted.some((e) => e.event === 'editMessage')).toBe(false);
+  });
+
+  it('editMessage still edits plaintext messages as plaintext', async () => {
+    const { result } = renderHook(() => useMessageActions('conv-1'), { wrapper });
+
+    await act(async () => {
+      await result.current.editMessage('msg-1', 'fixed typo', 'fixd typo');
+    });
+
+    const edit = emitted.find((e) => e.event === 'editMessage');
+    expect(edit?.payload).toMatchObject({ messageId: 'msg-1', body: 'fixed typo' });
   });
 
   it('forwardMessage re-encrypts v2 per target with fresh seq + attribution', async () => {

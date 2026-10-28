@@ -44,6 +44,19 @@ export class E2eePinChangedError extends Error {
   }
 }
 
+/**
+ * Thrown when an edit of an encrypted message cannot be re-encrypted. The
+ * edit must not be saved: sending it would downgrade the message to plaintext.
+ */
+export class E2eeEditBlockedError extends Error {
+  constructor() {
+    super(
+      'This message is end-to-end encrypted, so the edit was not saved unencrypted. Try again later.',
+    );
+    this.name = 'E2eeEditBlockedError';
+  }
+}
+
 export interface PeerDevice {
   readonly deviceId: string;
   readonly publicKey: string;

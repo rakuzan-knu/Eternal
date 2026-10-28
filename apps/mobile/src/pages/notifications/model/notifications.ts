@@ -6,19 +6,20 @@ import type {
   NotificationUnreadCountsDto,
   PaginatedNotificationsResponseDto,
 } from '@social-network/shared-contracts';
+import { type MessageKey, msg } from '@/shared/lib/i18n';
 
 export const notificationFilters: {
   type: NotificationFilterType;
-  label: string;
+  label: MessageKey;
   count: keyof NotificationUnreadCountsDto;
 }[] = [
-  { type: 'all', label: 'All', count: 'total' },
-  { type: 'likes', label: 'Likes', count: 'likes' },
-  { type: 'comments', label: 'Comments', count: 'comments' },
-  { type: 'follows', label: 'Follows', count: 'follows' },
-  { type: 'mentions', label: 'Mentions', count: 'mentions' },
-  { type: 'reposts', label: 'Reposts', count: 'reposts' },
-  { type: 'system', label: 'System', count: 'system' },
+  { type: 'all', label: msg('All'), count: 'total' },
+  { type: 'likes', label: msg('Likes'), count: 'likes' },
+  { type: 'comments', label: msg('Comments'), count: 'comments' },
+  { type: 'follows', label: msg('Follows'), count: 'follows' },
+  { type: 'mentions', label: msg('Mentions'), count: 'mentions' },
+  { type: 'reposts', label: msg('Reposts'), count: 'reposts' },
+  { type: 'system', label: msg('System'), count: 'system' },
 ];
 const typesByFilter: Record<Exclude<NotificationFilterType, 'all'>, readonly NotificationType[]> = {
   likes: ['LIKE_POST', 'LIKE_COMMENT'],
@@ -88,6 +89,7 @@ export function notificationTarget(
 ):
   | { kind: 'post'; id: string; commentId: string | null }
   | { kind: 'web'; path: string }
+  | { kind: 'profile'; username: string }
   | { kind: 'none' } {
   if (item.story) {
     // Only accept the server's local story route, never an external or executable deep link.
@@ -108,9 +110,7 @@ export function notificationTarget(
   }
   const postId = item.postId || item.post?.id;
   if (postId) return { kind: 'post', id: postId, commentId: item.commentId };
-  if (item.type === 'SYSTEM_VERIFIED')
-    return { kind: 'web', path: `/${encodeURIComponent(username)}` };
-  if (item.actor?.username)
-    return { kind: 'web', path: `/${encodeURIComponent(item.actor.username)}` };
+  if (item.type === 'SYSTEM_VERIFIED') return { kind: 'profile', username };
+  if (item.actor?.username) return { kind: 'profile', username: item.actor.username };
   return { kind: 'none' };
 }

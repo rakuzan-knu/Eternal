@@ -7,9 +7,10 @@ import { NOTIFICATIONS_REPOSITORY } from './interfaces/notifications-repository.
 import { PrismaModule } from '@common/prisma';
 import { RedisModule } from '../redis/redis.module';
 import { MessengerModule } from '../messenger/messenger.module';
+import { PushModule } from './push/push.module';
 
 @Module({
-  imports: [PrismaModule, RedisModule, forwardRef(() => MessengerModule)],
+  imports: [PrismaModule, RedisModule, PushModule, forwardRef(() => MessengerModule)],
   controllers: roleControllers('core', [NotificationsController]),
   providers: [
     NotificationsService,

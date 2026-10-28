@@ -13,6 +13,35 @@ describe('registerSchema', () => {
     identity: 'john@example.com',
   };
 
+  it.each([
+    { birthMonth: 'February', birthDay: '30', birthYear: '2000' },
+    { birthMonth: 'February', birthDay: '29', birthYear: '2001' },
+    { birthMonth: 'April', birthDay: '31', birthYear: '2000' },
+    { birthMonth: 'January', birthDay: '1', birthYear: String(new Date().getFullYear() + 1) },
+  ])('rejects impossible or future birthdays: $birthYear-$birthMonth-$birthDay', (birthday) => {
+    expect(
+      registerSchema.safeParse({
+        ...validFields,
+        ...birthday,
+        password: 'password123',
+        confirmPassword: 'password123',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('accepts a real leap-day birthday', () => {
+    expect(
+      registerSchema.safeParse({
+        ...validFields,
+        birthMonth: 'February',
+        birthDay: '29',
+        birthYear: '2000',
+        password: 'password123',
+        confirmPassword: 'password123',
+      }).success,
+    ).toBe(true);
+  });
+
   it.each([8, 128])('accepts matching passwords of %i characters, like mobile', (length) => {
     const password = 'a'.repeat(length);
     expect(

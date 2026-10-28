@@ -11,10 +11,11 @@ import {
   SkipForward,
 } from 'lucide-react-native';
 import { useMusic } from '../model/MusicProvider';
-import { durationLabel, trackSource } from '../model/music';
+import { durationLabel, repeatLabel, trackSource } from '../model/music';
 import { IconButton, colors } from '../../feed/ui/primitives';
 import { MusicSlider } from './MusicSlider';
 import { Cover, m } from './primitives';
+import { tr } from '@/shared/lib/i18n';
 
 export function MusicTransport({ compact = false }: { compact?: boolean }) {
   const music = useMusic();
@@ -47,7 +48,7 @@ export function MusicTransport({ compact = false }: { compact?: boolean }) {
             </Text>
           </View>
           <IconButton
-            label={liked ? 'Unlike current track' : 'Like current track'}
+            label={liked ? tr('Unlike current track') : tr('Like current track')}
             disabled={music.busy || !music.isOnline}
             onPress={() => {
               if (music.current) void music.like(music.current);
@@ -59,7 +60,7 @@ export function MusicTransport({ compact = false }: { compact?: boolean }) {
       )}
       <View>
         <MusicSlider
-          accessibilityLabel="Playback position"
+          accessibilityLabel={tr('Playback position')}
           disabled={music.listener}
           minimumValue={0}
           maximumValue={Math.max(1, music.duration)}
@@ -83,14 +84,14 @@ export function MusicTransport({ compact = false }: { compact?: boolean }) {
       </View>
       <View style={[m.row, { justifyContent: 'space-between' }]}>
         <IconButton
-          label={`Shuffle ${music.shuffle ? 'on' : 'off'}`}
+          label={music.shuffle ? tr('Shuffle on') : tr('Shuffle off')}
           selected={music.shuffle}
           disabled={music.listener}
           onPress={music.toggleShuffle}
         >
           <Shuffle size={21} color={music.shuffle ? '#cfb0ff' : '#c1b8cd'} />
         </IconButton>
-        <IconButton label="Previous track" disabled={music.listener} onPress={music.previous}>
+        <IconButton label={tr('Previous track')} disabled={music.listener} onPress={music.previous}>
           <SkipBack size={25} color="#fff" fill="#fff" />
         </IconButton>
         <Pressable
@@ -114,7 +115,7 @@ export function MusicTransport({ compact = false }: { compact?: boolean }) {
           )}
         </Pressable>
         <IconButton
-          label="Next track"
+          label={tr('Next track')}
           disabled={
             music.listener || (music.index >= music.queue.length - 1 && music.repeat === 'off')
           }
@@ -123,7 +124,7 @@ export function MusicTransport({ compact = false }: { compact?: boolean }) {
           <SkipForward size={25} color="#fff" fill="#fff" />
         </IconButton>
         <IconButton
-          label={`Repeat: ${music.repeat}`}
+          label={tr('Repeat: {mode}', { mode: repeatLabel(music.repeat) })}
           selected={music.repeat !== 'off'}
           disabled={music.listener}
           onPress={() =>
@@ -137,20 +138,20 @@ export function MusicTransport({ compact = false }: { compact?: boolean }) {
           )}
         </IconButton>
       </View>
-      {music.stream.data?.preview && <Text style={m.muted}>Spotify preview</Text>}
+      {music.stream.data?.preview && <Text style={m.muted}>{tr('Spotify preview')}</Text>}
       {trackSource(music.current) === 'spotify' && (
         <Pressable
           accessibilityRole="link"
-          accessibilityLabel="Listen to full track in Spotify"
+          accessibilityLabel={tr('Listen to full track in Spotify')}
           style={{ minHeight: 44, justifyContent: 'center', alignItems: 'center' }}
           onPress={() => {
             if (music.current)
               void Linking.openURL(
                 `https://open.spotify.com/track/${encodeURIComponent(music.current.id.replace(/^sp-/, ''))}`,
-              ).catch(() => music.setError('Spotify could not be opened.'));
+              ).catch(() => music.setError(tr('Spotify could not be opened.')));
           }}
         >
-          <Text style={{ color: '#d9bfff', fontWeight: '600' }}>Listen in Spotify</Text>
+          <Text style={{ color: '#d9bfff', fontWeight: '600' }}>{tr('Listen in Spotify')}</Text>
         </Pressable>
       )}
     </View>

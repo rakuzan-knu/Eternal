@@ -109,7 +109,7 @@ export const EternalFooter: React.FC = () => {
           href: '/safety/law-enforcement',
           isRoute: true,
         },
-        { label: t.columns.community, href: '#', isSoon: true },
+        { label: t.columns.community, href: '/communities', isRoute: true },
         { label: t.columns.feedback, href: '#', isSoon: true },
       ],
     },

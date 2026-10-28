@@ -14,7 +14,7 @@ import {
   ArrowUp,
 } from 'lucide-react';
 import { useLanguageStore } from '../../shared/lib/language/languageStore';
-import { COPYRIGHT_POLICY_DATA } from './data/copyrightPolicyData';
+import { COPYRIGHT_POLICY_DATA } from '@social-network/shared-content';
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   ShieldCheck: <ShieldCheck className="w-4 h-4" />,

@@ -23,6 +23,13 @@
           "supportsBackgroundPlayback": true,
           "supportsPictureInPicture": false
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#a855f7",
+          "defaultChannel": "messages"
+        }
       ]
     ],
     "splash": {

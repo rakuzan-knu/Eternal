@@ -5,7 +5,7 @@ import { PrivacyNavbar } from '../Privacy/ui/PrivacyNavbar';
 import { EternalFooter } from '@/widgets/footer';
 import { useLanguageStore } from '../../shared/lib/language/languageStore';
 import { SEOHead } from '../../shared/seo';
-import { NEWSROOM_TRANSLATIONS } from './data/newsroomData';
+import { NEWSROOM_TRANSLATIONS } from '@social-network/shared-content';
 import { EternalTrophy3D } from './ui/NewsroomIllustrations';
 import { EternalSprout3D } from '../Company/ui/CompanyIllustrations';
 import { PressReleasesSection } from './ui/PressReleasesSection';

@@ -15,7 +15,7 @@ import {
   FileText,
 } from 'lucide-react';
 import { useLanguageStore } from '../../shared/lib/language/languageStore';
-import { REGIONAL_PRIVACY_DATA } from './data/regionalPrivacyData';
+import { REGIONAL_PRIVACY_DATA } from '@social-network/shared-content';
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   Globe: <Globe className="w-4 h-4" />,

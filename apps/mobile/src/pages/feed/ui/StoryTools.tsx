@@ -19,6 +19,7 @@ import {
 import { common, ErrorNotice } from './primitives';
 import { StoryText } from './StoryCanvas';
 import { Button } from '@/shared/ui';
+import { tr } from '@/shared/lib/i18n';
 
 export function StoryTextEditor({
   initial,
@@ -47,27 +48,27 @@ export function StoryTextEditor({
   if (layer.type !== 'text') return null;
   return (
     <StoryToolPanel
-      title="Text"
+      title={tr('Text')}
       onClose={onClose}
       onSave={() => onSave(layer)}
       saveDisabled={!layer.text.trim()}
     >
       <StoryText overlay={layer} width={width} />
       <StoryField
-        label="Story text"
+        label={tr('Story text')}
         value={layer.text}
         onChange={(text) => setLayer({ ...layer, text })}
         maxLength={2000}
         multiline
       />
       <StoryChoices
-        label="Font"
+        label={tr('Font')}
         values={STORY_FONTS}
         value={STORY_FONTS.find((font) => font === layer.fontFamily) || 'modern'}
         onChange={(fontFamily) => setLayer({ ...layer, fontFamily })}
       />
       <StoryRange
-        label="Text size"
+        label={tr('Text size')}
         value={layer.fontSizeCqw || 6.5}
         min={3.5}
         max={12}
@@ -75,39 +76,39 @@ export function StoryTextEditor({
         onChange={(fontSizeCqw) => setLayer({ ...layer, fontSizeCqw })}
       />
       <StoryChoices
-        label="Alignment"
+        label={tr('Alignment')}
         values={['left', 'center', 'right'] as const}
         value={layer.textAlign}
         onChange={(textAlign) => setLayer({ ...layer, textAlign })}
       />
       <StoryChoices
-        label="Font style"
+        label={tr('Font style')}
         values={['normal', 'italic'] as const}
         value={layer.fontStyle || 'normal'}
         onChange={(fontStyle) => setLayer({ ...layer, fontStyle })}
       />
       <StoryColorPicker
-        label="Text color"
+        label={tr('Text color')}
         value={layer.color}
         colors={STORY_COLORS}
         onChange={(color) => setLayer({ ...layer, color })}
       />
       <StoryChoices
-        label="Text background"
+        label={tr('Text background')}
         values={STORY_TEXT_BACKGROUNDS}
         value={layer.backgroundStyle}
         onChange={(backgroundStyle) => setLayer({ ...layer, backgroundStyle })}
       />
       {layer.backgroundStyle !== 'none' && (
         <StoryColorPicker
-          label="Background color"
+          label={tr('Background color')}
           value={layer.backgroundColor || '#000000'}
           colors={STORY_COLORS}
           onChange={(backgroundColor) => setLayer({ ...layer, backgroundColor })}
         />
       )}
       <StoryChoices
-        label="Animation"
+        label={tr('Animation')}
         values={STORY_ANIMATIONS}
         value={layer.animation || 'none'}
         onChange={(animation) => setLayer({ ...layer, animation })}
@@ -143,25 +144,25 @@ export function StoryStickerEditor({
     initial?.type === 'poll' ? initial.options.map((item) => item.text) : ['Yes', 'No'],
   );
   const [error, setError] = React.useState<string | null>(null);
-  const title = tool === 'poll' ? 'Poll' : tool === 'link' ? 'Link' : 'Mention';
+  const title = tool === 'poll' ? tr('Poll') : tool === 'link' ? tr('Link') : tr('Mention');
   function save() {
     try {
       const fields =
         tool === 'poll'
           ? { question: first.trim(), options: options.map((text) => ({ text: text.trim() })) }
           : tool === 'link'
-            ? { url: safeStoryLink(first), title: second.trim() || 'Link' }
+            ? { url: safeStoryLink(first), title: second.trim() || tr('Link') }
             : { username: first.trim().replace(/^@/, '') };
       if (tool === 'mention' && !/^[\p{L}\p{N}_.]+$/u.test(String(fields.username)))
-        throw new Error('Enter a valid username.');
+        throw new Error(tr('Enter a valid username.'));
       onSave(makeOverlay({ ...initial, type: tool, ...fields }));
     } catch {
       setError(
         tool === 'poll'
-          ? 'Add a question and 2–4 nonempty options.'
+          ? tr('Add a question and 2–4 nonempty options.')
           : tool === 'link'
-            ? 'Enter a valid http or https link and a sticker title.'
-            : 'Enter a valid username.',
+            ? tr('Enter a valid http or https link and a sticker title.')
+            : tr('Enter a valid username.'),
       );
     }
   }
@@ -170,7 +171,11 @@ export function StoryStickerEditor({
       {error && <ErrorNotice message={error} />}
       <StoryField
         label={
-          tool === 'poll' ? 'Poll question' : tool === 'link' ? 'Link URL' : 'Username to mention'
+          tool === 'poll'
+            ? tr('Poll question')
+            : tool === 'link'
+              ? tr('Link URL')
+              : tr('Username to mention')
         }
         value={first}
         onChange={setFirst}
@@ -178,14 +183,14 @@ export function StoryStickerEditor({
         keyboardType={tool === 'link' ? 'url' : 'default'}
       />
       {tool === 'link' && (
-        <StoryField label="Link sticker title" value={second} onChange={setSecond} />
+        <StoryField label={tr('Link sticker title')} value={second} onChange={setSecond} />
       )}
       {tool === 'poll' && (
         <>
           {options.map((option, i) => (
             <View key={i}>
               <StoryField
-                label={`Poll option ${i + 1}`}
+                label={tr('Poll option {index}', { index: i + 1 })}
                 value={option}
                 onChange={(text) =>
                   setOptions(options.map((value, index) => (index === i ? text : value)))
@@ -194,7 +199,7 @@ export function StoryStickerEditor({
               />
               {options.length > 2 && (
                 <Button
-                  title={`Remove option ${i + 1}`}
+                  title={tr('Remove option {index}', { index: i + 1 })}
                   variant="ghost"
                   onPress={() => setOptions(options.filter((_, index) => index !== i))}
                 />
@@ -202,19 +207,19 @@ export function StoryStickerEditor({
             </View>
           ))}
           <Button
-            title="Add poll option"
+            title={tr('Add poll option')}
             variant="secondary"
             disabled={options.length >= 4}
             onPress={() => setOptions([...options, ''])}
           />
           <Text style={common.muted}>
-            One interactive poll per story. Viewers can change their vote.
+            {tr('One interactive poll per story. Viewers can change their vote.')}
           </Text>
         </>
       )}
       {tool === 'mention' && (
         <Text style={common.muted}>
-          The sticker opens their profile and notifies the mentioned person.
+          {tr('The sticker opens their profile and notifies the mentioned person.')}
         </Text>
       )}
     </StoryToolPanel>
@@ -280,31 +285,36 @@ export function StoryEmojiEditor({
   const [custom, setCustom] = React.useState('');
   return (
     <StoryToolPanel
-      title="Stickers"
+      title={tr('Stickers')}
       onClose={onClose}
       onSave={custom.trim() ? () => onSave(custom.trim()) : undefined}
     >
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        <Button title="Photo sticker" fullWidth={false} variant="secondary" onPress={onPhoto} />
-        <Button title="Poll" fullWidth={false} variant="secondary" onPress={onPoll} />
-        <Button title="Link" fullWidth={false} variant="secondary" onPress={onLink} />
-        <Button title="Mention" fullWidth={false} variant="secondary" onPress={onMention} />
+        <Button
+          title={tr('Photo sticker')}
+          fullWidth={false}
+          variant="secondary"
+          onPress={onPhoto}
+        />
+        <Button title={tr('Poll')} fullWidth={false} variant="secondary" onPress={onPoll} />
+        <Button title={tr('Link')} fullWidth={false} variant="secondary" onPress={onLink} />
+        <Button title={tr('Mention')} fullWidth={false} variant="secondary" onPress={onMention} />
       </View>
       <StoryField
-        label="Emoji or sticker text"
+        label={tr('Emoji or sticker text')}
         value={custom}
         onChange={setCustom}
         maxLength={2000}
       />
       <Text style={common.muted}>
-        Use your keyboard for any emoji, or choose a favourite below.
+        {tr('Use your keyboard for any emoji, or choose a favourite below.')}
       </Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' }}>
         {EMOJIS.map((emoji) => (
           <Pressable
             key={emoji}
             accessibilityRole="button"
-            accessibilityLabel={`Add sticker ${emoji}`}
+            accessibilityLabel={tr('Add sticker {emoji}', { emoji })}
             onPress={() => onSave(emoji)}
             style={{ width: 48, height: 48, alignItems: 'center', justifyContent: 'center' }}
           >

@@ -2,37 +2,38 @@ import * as React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ChevronRight, Film, ImagePlus, SquarePen } from 'lucide-react-native';
 import { colors, common } from './primitives';
+import { tr } from '@/shared/lib/i18n';
 
 export type CreateType = 'post' | 'story' | 'reel';
 
 export function CreateMenu({ onSelect }: { onSelect: (type: CreateType) => void }) {
   return (
     <View style={s.content}>
-      <Text style={common.muted}>What would you like to share?</Text>
+      <Text style={common.muted}>{tr('What would you like to share?')}</Text>
       {[
         {
           type: 'post' as const,
-          title: 'Post',
-          description: 'Share an update, photos or a poll',
+          title: tr('Post'),
+          description: tr('Share an update, photos or a poll'),
           Icon: SquarePen,
         },
         {
           type: 'story' as const,
-          title: 'Story',
-          description: 'Share a moment for 24 hours',
+          title: tr('Story'),
+          description: tr('Share a moment for 24 hours'),
           Icon: ImagePlus,
         },
         {
           type: 'reel' as const,
-          title: 'Reel',
-          description: 'Share a short vertical video',
+          title: tr('Reel'),
+          description: tr('Share a short vertical video'),
           Icon: Film,
         },
       ].map(({ type, title, description, Icon }) => (
         <Pressable
           key={type}
           accessibilityRole="button"
-          accessibilityLabel={`Create ${title.toLowerCase()}`}
+          accessibilityLabel={tr('Create {item}', { item: title.toLowerCase() })}
           accessibilityHint={description}
           onPress={() => onSelect(type)}
           style={({ pressed }) => [s.option, pressed && common.pressed]}

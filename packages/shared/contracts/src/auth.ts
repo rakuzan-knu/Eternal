@@ -223,6 +223,7 @@ export const registerSchema = z.object({
   displayName: z.string().max(64).optional(),
   password: z.string().min(8).max(128),
   birthDate: z.string().datetime().optional(),
+  gender: z.enum(['Male', 'Female', 'Custom']).optional(),
   turnstileToken: z.string().max(2048).optional(),
 });
 

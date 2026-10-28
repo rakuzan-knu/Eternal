@@ -75,6 +75,22 @@ describe('Sidebar', () => {
     expect(aside).toHaveClass('w-20');
   });
 
+  it('keeps navigation open when pinned, without losing any destinations', () => {
+    renderWithProviders(<Sidebar />);
+    fireEvent.click(screen.getByRole('button', { name: 'Expand navigation' }));
+    const pin = screen.getByRole('button', { name: 'Keep sidebar open' });
+    fireEvent.click(pin);
+    const aside = screen.getByText('Home').closest('aside')!;
+    fireEvent.mouseLeave(aside);
+    expect(pin).toHaveAttribute('aria-pressed', 'true');
+    expect(aside).toHaveClass('w-[256px]');
+    expect(screen.getByText('Music Hub').closest('a')).toHaveAttribute('href', '/music');
+    expect(screen.getByText('Shop').closest('a')).toHaveAttribute('href', '/shop');
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse navigation' }));
+    expect(useUIStore.getState().isSidebarPinned).toBe(false);
+    expect(aside).toHaveClass('w-20');
+  });
+
   it('renders all navigation menu items with their target routes', () => {
     act(() => {
       renderWithProviders(<Sidebar />);

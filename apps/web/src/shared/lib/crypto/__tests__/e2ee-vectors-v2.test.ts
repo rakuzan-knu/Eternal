@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { e2eeManager } from '../e2ee';
-import vectors from '../vectors/v2.json';
+import vectors from '@social-network/shared-crypto/vectors/v2.json';
 
 /**
  * Golden KAT vectors for v2 (AAD binding) + v3 (hybrid multi-device).

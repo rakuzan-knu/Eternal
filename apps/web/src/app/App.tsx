@@ -45,6 +45,9 @@ const SpotifyGameModePlayer = lazyWithRetry(() =>
 );
 
 const EditProfileModal = lazyWithRetry(() => import('../features/profile/ui/EditProfileModal'));
+const CommunitiesPage = lazyWithRetry(() => import('../pages/Communities/CommunitiesPage'));
+const CommunityPage = lazyWithRetry(() => import('../pages/Communities/CommunityPage'));
+const CommunityInvitePage = lazyWithRetry(() => import('../pages/Communities/CommunityInvitePage'));
 const ShareModal = lazyWithRetry(() =>
   import('../features/posts/ui/ShareModal').then((m) => ({ default: m.ShareModal })),
 );
@@ -223,6 +226,7 @@ function FeedLayout({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   const isSidebarExpanded = useUIStore((state) => state.isSidebarExpanded);
+  const isSidebarPinned = useUIStore((state) => state.isSidebarPinned);
   const isEditProfileOpen = useUIStore((state) => state.isEditProfileOpen);
   const isShareModalOpen = useUIStore((state) => state.isShareModalOpen);
   const isCommentModalOpen = useUIStore((state) => state.isCommentModalOpen);
@@ -362,6 +366,7 @@ export default function App() {
     );
   }, [isOAuthCallback, location.search, location.pathname]);
 
+  const isCommunityWorkspace = /^\/communities\/[^/]+(?:\/|$)/.test(location.pathname);
   const isStandaloneRoute = useMemo(() => {
     return (
       location.pathname.startsWith('/shop') ||
@@ -385,6 +390,7 @@ export default function App() {
       location.pathname.startsWith('/company') ||
       location.pathname.startsWith('/about') ||
       location.pathname.startsWith('/careers') ||
+      location.pathname.startsWith('/creators') ||
       location.pathname.startsWith('/jobs') ||
       location.pathname.startsWith('/branding') ||
       location.pathname.startsWith('/brand') ||
@@ -450,6 +456,13 @@ export default function App() {
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/communities" element={<CommunitiesPage />} />
+            <Route path="/communities/:communityId" element={<CommunityPage />} />
+            <Route
+              path="/communities/:communityId/channels/:channelId"
+              element={<CommunityPage />}
+            />
+            <Route path="/invite/:token" element={<CommunityInvitePage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/terms" element={<TermsPage />} />
@@ -607,17 +620,26 @@ export default function App() {
                     ? `min-h-screen flex-1 transition-[padding-bottom] duration-300 ${
                         isSpotifyDockVisible ? (isSpotifyDockMinimized ? 'pb-14' : 'pb-28') : ''
                       }`
-                    : isReelsRoute
-                      ? `h-screen overflow-hidden flex-1 transition-[padding-left] duration-200 ease-out motion-reduce:transition-none ${
-                          isSidebarExpanded ? 'pl-72' : 'pl-24'
-                        } max-md:pl-0`
-                      : `flex min-h-screen flex-1 justify-center py-8 transition-[padding-left,padding-bottom] duration-300 motion-reduce:transition-none ${
-                          isSidebarExpanded ? 'pl-72' : 'pl-24'
-                        } max-md:pl-0 max-md:pt-20 ${isSpotifyDockVisible ? (isSpotifyDockMinimized ? 'pb-14' : 'pb-28') : ''}`
+                    : isCommunityWorkspace
+                      ? `flex h-dvh min-h-0 flex-1 overflow-hidden transition-[padding-left] duration-200 motion-reduce:transition-none ${isSidebarPinned ? 'pl-72' : 'pl-24'} max-md:pl-0 max-md:pt-16 ${isSpotifyDockVisible ? (isSpotifyDockMinimized ? 'pb-14' : 'pb-28') : ''}`
+                      : isReelsRoute
+                        ? `h-screen overflow-hidden flex-1 transition-[padding-left] duration-200 ease-out motion-reduce:transition-none ${
+                            isSidebarExpanded ? 'pl-72' : 'pl-24'
+                          } max-md:pl-0`
+                        : `flex min-h-screen flex-1 justify-center py-8 transition-[padding-left,padding-bottom] duration-300 motion-reduce:transition-none ${
+                            isSidebarExpanded ? 'pl-72' : 'pl-24'
+                          } max-md:pl-0 max-md:pt-20 ${isSpotifyDockVisible ? (isSpotifyDockMinimized ? 'pb-14' : 'pb-28') : ''}`
                 }
               >
                 <Suspense fallback={<PageFallback />}>
                   <Routes>
+                    <Route path="/communities" element={<CommunitiesPage />} />
+                    <Route path="/communities/:communityId" element={<CommunityPage />} />
+                    <Route
+                      path="/communities/:communityId/channels/:channelId"
+                      element={<CommunityPage />}
+                    />
+                    <Route path="/invite/:token" element={<CommunityInvitePage />} />
                     <Route path="/privacy" element={<PrivacyPage />} />
                     <Route path="/terms" element={<TermsPage />} />
                     <Route

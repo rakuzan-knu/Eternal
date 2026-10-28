@@ -3,6 +3,7 @@ import type { Mock } from 'vitest';
 import type { ConfigService } from '@nestjs/config';
 import type { Socket, Server } from 'socket.io';
 import { MessageType } from '@prisma/client';
+import { ForbiddenException } from '@nestjs/common';
 import { MessengerGateway, type AuthenticatedSocket } from '../messenger.gateway';
 import type { MessagesService } from '../../messages/messages.service';
 import type { ConversationsService } from '../../conversations/conversations.service';
@@ -204,6 +205,125 @@ describe('MessengerGateway', () => {
     );
 
     Object.assign(gateway, { server: mockServer as unknown as Server });
+  });
+
+  describe('private channel delivery', () => {
+    it('intersects delayed recipients with current access', async () => {
+      mockConvsService.getParticipantIds.mockResolvedValue(['active', 'new-member']);
+      const emit = jest.spyOn(gateway, 'emitToUser').mockImplementation(() => {});
+      await gateway.emitNewMessageToParticipants(
+        'channel',
+        ['active', 'revoked', 'active'],
+        sampleMsg,
+      );
+      expect(emit).toHaveBeenCalledTimes(1);
+      expect(emit).toHaveBeenCalledWith('active', WS_EVENTS.NEW_MESSAGE, {
+        conversationId: 'channel',
+        message: sampleMsg,
+      });
+    });
+
+    it('filters revoked content from reconnect replay while preserving retraction and sequence', async () => {
+      const frame = (seq: number, event: string, payload: unknown) =>
+        JSON.stringify({ seq, event, payload, timestamp: 1 });
+      mockRedisService.get.mockResolvedValue('3');
+      mockRedisService.zrangebyscore.mockResolvedValue([
+        frame(1, WS_EVENTS.NEW_MESSAGE, { conversationId: 'private', message: sampleMsg }),
+        frame(1, WS_EVENTS.CONVERSATION_UPDATED, { id: 'private', lastMessage: sampleMsg }),
+        frame(1, 'call:updated', { call: { conversationId: 'private' } }),
+        frame(2, WS_EVENTS.CONVERSATION_DELETED, { conversationId: 'private' }),
+        frame(3, 'community:changed', { communityId: 'community' }),
+      ]);
+      mockConvsService.assertMember.mockRejectedValue(new ForbiddenException());
+      const callback = jest.fn();
+      await gateway.handleGatewayResume(
+        mockSocket as unknown as AuthenticatedSocket,
+        { sessionId: 'test-session', lastSeq: 0 },
+        callback,
+      );
+      expect(callback).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'ok',
+          currentSeq: 3,
+          events: [expect.objectContaining({ seq: 2 }), expect.objectContaining({ seq: 3 })],
+        }),
+      );
+      expect(mockConvsService.assertMember).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('community access retraction', () => {
+    it('does not evict a person who rejoined before an old outbox event arrives', async () => {
+      mockConvsService.assertMember.mockResolvedValue(undefined);
+      const rooms = jest.fn();
+      Object.assign(mockServer, { in: rooms });
+      const emit = jest.spyOn(gateway, 'emitToUser').mockImplementation(() => {});
+      await gateway.emitCommunityChanged(
+        'community',
+        ['member'],
+        ['rejoined'],
+        ['channel'],
+        'event',
+      );
+      expect(rooms).not.toHaveBeenCalled();
+      expect(emit).not.toHaveBeenCalledWith(
+        'rejoined',
+        WS_EVENTS.CONVERSATION_DELETED,
+        expect.anything(),
+      );
+      expect(emit).toHaveBeenCalledWith('rejoined', 'community:changed', {
+        communityId: 'community',
+        eventId: 'event',
+      });
+    });
+
+    it('evicts only the departed user and retries when authorization cannot be checked', async () => {
+      const leave = jest.fn();
+      const rooms = jest.fn().mockReturnValue({ socketsLeave: leave });
+      Object.assign(mockServer, { in: rooms });
+      const emit = jest.spyOn(gateway, 'emitToUser').mockImplementation(() => {});
+      mockConvsService.assertMember.mockRejectedValueOnce(new ForbiddenException());
+      await gateway.emitCommunityChanged(
+        'community',
+        ['member'],
+        ['departed'],
+        ['channel'],
+        'event',
+      );
+      expect(rooms).toHaveBeenCalledWith('user:departed');
+      expect(leave).toHaveBeenCalledWith('channel');
+      expect(emit).toHaveBeenCalledWith('departed', WS_EVENTS.CONVERSATION_DELETED, {
+        conversationId: 'channel',
+      });
+      mockConvsService.assertMember.mockRejectedValueOnce(new Error('database unavailable'));
+      await expect(
+        gateway.emitCommunityChanged('community', [], ['departed'], ['channel'], 'retry'),
+      ).rejects.toThrow('database unavailable');
+    });
+
+    it('never sends edited message content through a stale conversation room', async () => {
+      mockConvsService.getParticipantIds.mockResolvedValue(['active']);
+      const emit = jest.spyOn(gateway, 'emitToUser').mockImplementation(() => {});
+      await gateway.emitMessageEdited('channel', sampleMsg);
+      expect(emit).toHaveBeenCalledWith('active', WS_EVENTS.MESSAGE_EDITED, {
+        conversationId: 'channel',
+        message: sampleMsg,
+      });
+      expect(emit).not.toHaveBeenCalledWith('departed', expect.anything(), expect.anything());
+      expect(mockServer.to).not.toHaveBeenCalledWith('channel');
+    });
+
+    it.each(['emitReactionAdded', 'emitReactionRemoved'] as const)(
+      '%s resolves current membership instead of trusting old room subscriptions',
+      async (method) => {
+        mockConvsService.getParticipantIds.mockResolvedValue(['active']);
+        const emit = jest.spyOn(gateway, 'emitToUser').mockImplementation(() => {});
+        await gateway[method]('channel', sampleMsg);
+        expect(emit).toHaveBeenCalledTimes(1);
+        expect(emit.mock.calls[0][0]).toBe('active');
+        expect(mockServer.to).not.toHaveBeenCalledWith('channel');
+      },
+    );
   });
 
   describe('connection & heartbeat', () => {

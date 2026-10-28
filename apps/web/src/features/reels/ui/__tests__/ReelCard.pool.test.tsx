@@ -21,7 +21,7 @@ vi.mock('../../api/reelsApi', () => ({
 }));
 
 let intersect!: (entries: Partial<IntersectionObserverEntry>[]) => void;
-function renderCard(pool: ReelVideoPool) {
+function renderCard(pool: ReelVideoPool, onRemoveReel?: (reelId: string) => void) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
@@ -32,6 +32,7 @@ function renderCard(pool: ReelVideoPool) {
           isActive
           isMuted
           onToggleMute={() => {}}
+          onRemoveReel={onRemoveReel}
         />
       </MemoryRouter>
     </QueryClientProvider>,
@@ -98,6 +99,47 @@ describe('ReelCard pooled playback', () => {
     });
     expect(video.getAttribute('src')).toBeNull();
     expect(view.container.querySelector('video')).toBeNull();
+    view.unmount();
+    pool.dispose();
+  });
+
+  it('does not acknowledge a failed save and offers a working retry', async () => {
+    mutations.save.mutate
+      .mockImplementationOnce((_id: string, options: { onError: () => void }) => options.onError())
+      .mockImplementationOnce(
+        (_id: string, options: { onSuccess: (data: { saved: boolean }) => void }) =>
+          options.onSuccess({ saved: true }),
+      );
+    const pool = new ReelVideoPool();
+    const view = renderCard(pool);
+    const saveButton = screen.getAllByRole('button', { name: 'Save to favorites' })[0];
+    expect(saveButton).toHaveTextContent('0');
+    fireEvent.click(saveButton);
+    expect(screen.getByRole('alert')).toHaveTextContent('Could not update saved videos');
+    expect(screen.queryByText('Saved to favorites')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Saved to favorites');
+    view.unmount();
+    pool.dispose();
+  });
+
+  it('retains a reel after a failed preference update and removes it only after a successful retry', async () => {
+    mutations.hide.mutate
+      .mockImplementationOnce((_id: string, options: { onError: () => void }) => options.onError())
+      .mockImplementationOnce((_id: string, options: { onSuccess: () => void }) =>
+        options.onSuccess(),
+      );
+    const pool = new ReelVideoPool();
+    const onRemoveReel = vi.fn();
+    const view = renderCard(pool, onRemoveReel);
+    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Not Interested' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('Could not update your preference');
+    expect(onRemoveReel).not.toHaveBeenCalled();
+    expect(screen.queryByText('Video hidden')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(onRemoveReel).toHaveBeenCalledExactlyOnceWith(DEFAULT_SEED_REELS[0].id);
     view.unmount();
     pool.dispose();
   });

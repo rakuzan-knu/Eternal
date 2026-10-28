@@ -135,4 +135,34 @@ describe('MessagesProcessor', () => {
       expect.anything(),
     );
   });
+  it('does not deliver a queued entity snapshot to revoked recipients', async () => {
+    mockConvsRepo.findParticipantIds.mockResolvedValue(['u-2']);
+    await processor.processJob({
+      name: MessageJobType.GLOBAL_ENTITY_FANOUT,
+      data: {
+        conversationId: 'private',
+        event: 'conversationUpdated',
+        payload: { id: 'private' },
+        recipientIds: ['u-2', 'revoked'],
+      },
+    } as Job);
+    expect(mockGateway.emitToUser).toHaveBeenCalledTimes(1);
+    expect(mockGateway.emitToUser).toHaveBeenCalledWith('u-2', 'conversationUpdated', {
+      id: 'private',
+    });
+  });
+  it('rechecks access at delivery after recipient selection', async () => {
+    mockConvsRepo.findParticipantIds.mockResolvedValueOnce(['revoked']).mockResolvedValue([]);
+    await processor.processJob({
+      name: MessageJobType.GLOBAL_ENTITY_FANOUT,
+      data: {
+        conversationId: 'private',
+        event: 'conversationUpdated',
+        payload: { id: 'private' },
+        recipientIds: ['revoked'],
+      },
+    } as Job);
+    expect(mockConvsRepo.findParticipantIds).toHaveBeenCalledTimes(2);
+    expect(mockGateway.emitToUser).not.toHaveBeenCalled();
+  });
 });

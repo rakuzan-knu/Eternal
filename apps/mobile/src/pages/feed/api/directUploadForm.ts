@@ -28,7 +28,12 @@ export async function prepareMobileUploadForm(
   body: FormData,
   purpose: DirectUploadPurpose,
   signal?: AbortSignal,
+  conversationId?: string,
 ) {
   const entries = nativeEntries.get(body);
-  return prepareDirectUploadForm(api, body, purpose, { signal, entries });
+  return prepareDirectUploadForm(api, body, purpose, {
+    signal,
+    entries,
+    ...(conversationId ? { conversationId } : {}),
+  });
 }

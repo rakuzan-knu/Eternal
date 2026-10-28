@@ -43,6 +43,7 @@ export const CLOSE_FRIENDS_KEY = 'close-friends';
 export const REELS_FEED_KEY = 'reels-feed';
 export const USER_REELS_KEY = 'user-reels';
 export const REEL_COMMENTS_KEY = 'reel-comments';
+export const SAVED_REELS_KEY = 'saved-reels';
 
 // ─── Factory ─────────────────────────────────────────────────────────────────
 const user = {
@@ -109,6 +110,8 @@ const stories = {
 } as const;
 
 const reels = {
+  savedRoot: [SAVED_REELS_KEY] as const,
+  saved: (userId: string, after?: string) => [SAVED_REELS_KEY, userId, after ?? 'first'] as const,
   feed: (filter?: string) => [REELS_FEED_KEY, filter ?? 'all'] as const,
   user: (userId: string) => [USER_REELS_KEY, userId] as const,
   detail: (reelId: string) => [REELS_FEED_KEY, 'detail', reelId] as const,
@@ -135,6 +138,22 @@ const featureFlags = {
 } as const;
 
 export const queryKeys = {
+  communities: {
+    root: ['communities'] as const,
+    directory: (q: string, after?: string) =>
+      ['communities', 'directory', q, after ?? 'first'] as const,
+    mine: ['communities', 'mine'] as const,
+    detail: (id: string) => ['communities', id] as const,
+    channels: (id: string) => ['communities', id, 'channels'] as const,
+    notificationPreferences: (id: string, channelId?: string) =>
+      ['communities', id, 'notification-preferences', channelId ?? 'server'] as const,
+    members: (id: string, after?: string) =>
+      ['communities', id, 'members', after ?? 'first'] as const,
+    invites: (id: string) => ['communities', id, 'invites'] as const,
+    bans: (id: string, after?: string) => ['communities', id, 'bans', after ?? 'first'] as const,
+    preview: (token: string) => ['community-invite-preview', token] as const,
+    people: (query: string) => ['community-invite-people-search', query] as const,
+  },
   profileFrames: {
     catalog: ['profile-frame-catalog'] as const,
     inventory: (userId: string | null) => ['profile-frame-inventory', userId] as const,

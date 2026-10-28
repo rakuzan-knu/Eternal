@@ -26,6 +26,7 @@ describe('Structured Data (Schema.org JSON-LD)', () => {
     expect(schema['@type']).toBe('Organization');
     expect(schema.name).toBe(SEO_SITE_NAME);
     expect(schema.sameAs).toEqual(SAME_AS_ENTITIES);
+    expect(schema.sameAs.some((url) => /apps\.apple\.com|play\.google\.com/.test(url))).toBe(false);
     expect(schema.alternateName).toContain('Eternal Social Network');
   });
 
@@ -92,5 +93,6 @@ describe('Structured Data (Schema.org JSON-LD)', () => {
     expect(schema['@type']).toBe('SoftwareApplication');
     expect(schema.name).toBe('Eternal');
     expect(schema.downloadUrl).toBe(`${SEO_BASE_URL}/download`);
+    expect(schema).not.toHaveProperty('aggregateRating');
   });
 });

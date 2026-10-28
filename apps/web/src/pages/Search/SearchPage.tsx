@@ -543,6 +543,7 @@ export default function SearchPage() {
           <input
             ref={inputRef}
             type="text"
+            aria-label="Search users, hashtags and posts"
             value={searchTerm}
             maxLength={256}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -553,6 +554,7 @@ export default function SearchPage() {
           {searchTerm && (
             <button
               type="button"
+              aria-label="Clear search"
               onClick={() => {
                 setSearchTerm('');
                 inputRef.current?.focus();
@@ -764,10 +766,11 @@ export default function SearchPage() {
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                     {topUsers.map((u: SearchUserItem) => (
-                      <div
+                      <button
                         key={u.id}
+                        type="button"
                         onClick={() => handleUserClick(u)}
-                        className="glass-card hover:border-white/20 rounded-2xl p-3 flex flex-col items-center text-center gap-2 transition-all cursor-pointer group"
+                        className="glass-card min-w-0 hover:border-white/20 rounded-2xl p-3 flex flex-col items-center text-center gap-2 transition-all cursor-pointer group focus-visible:outline-2 focus-visible:outline-white"
                       >
                         <Avatar
                           src={u.avatar}
@@ -794,7 +797,7 @@ export default function SearchPage() {
                             {formatCount(u.followersCount)}
                           </span>
                         </div>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -976,7 +979,19 @@ export default function SearchPage() {
                     mediaPosts.length === 0 &&
                     matchingPosts.length === 0 && (
                       <div className="text-center py-16 text-gray-400 text-sm">
-                        No results found for "{debouncedTerm}"
+                        <p>No results found for "{debouncedTerm}"</p>
+                        <p className="mt-2">Try another name, hashtag or keyword.</p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSearchTerm('');
+                            setActiveTab('All');
+                            inputRef.current?.focus();
+                          }}
+                          className="mt-4 rounded-full px-4 py-2 text-white hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-white"
+                        >
+                          Clear search
+                        </button>
                       </div>
                     )}
                 </div>

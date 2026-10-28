@@ -118,6 +118,7 @@ export const participantInclude = {
 } satisfies Prisma.ConversationParticipantInclude;
 
 export const conversationInclude = {
+  communityChannel: { select: { communityId: true, archivedAt: true, isPrivate: true } },
   participants: {
     where: { leftAt: null },
     include: participantInclude,
@@ -149,7 +150,12 @@ export type ParticipantWithUser = Prisma.ConversationParticipantGetPayload<{
 
 export type ConversationWithDetails = Prisma.ConversationGetPayload<{
   include: typeof conversationInclude;
-}>;
+}> & {
+  ownCommunityNotificationPreferences?: {
+    notificationMode: 'ALL' | 'MENTIONS' | 'NONE';
+    notificationMutedUntil: Date | null;
+  };
+};
 
 export const callParticipantInclude = {
   user: { select: userSnapshot },

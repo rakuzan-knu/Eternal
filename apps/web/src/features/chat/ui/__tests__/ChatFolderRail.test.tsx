@@ -48,6 +48,14 @@ describe('ChatFolderRail', () => {
 
     expect(screen.getByText('All Chats')).toBeInTheDocument();
     expect(screen.getByText('Personal')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'All Chats' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByRole('button', { name: 'Personal' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
 
     fireEvent.click(screen.getByText('Personal'));
     expect(onSelect).toHaveBeenCalledWith('f-personal');

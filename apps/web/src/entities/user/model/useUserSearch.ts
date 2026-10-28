@@ -31,5 +31,9 @@ export function useUserSearch(rawQuery: string) {
   return {
     results: isValidQuery ? (query.data ?? []).slice(0, 20) : [],
     isSearching: isValidQuery && query.isFetching,
+    isError: isValidQuery && rawQuery === debouncedQuery && query.isError,
+    retry: async () => {
+      await query.refetch();
+    },
   };
 }

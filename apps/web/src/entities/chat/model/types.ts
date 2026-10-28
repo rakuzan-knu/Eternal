@@ -54,6 +54,8 @@ export interface MessageView extends Omit<
   status?: 'SENDING' | 'SENT' | 'DELIVERED' | 'READ' | 'ERROR';
   senderId?: string;
   type?: MessageType;
+  /** Local optimistic rows must never retry encrypted sends as display plaintext. */
+  requiresEncryptedRetry?: boolean;
 }
 
 export interface ParticipantView extends Omit<

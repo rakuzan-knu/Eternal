@@ -386,12 +386,12 @@ export function FeaturedCard({
         </h3>
 
         {/* Dynamic Row: Default (Price) vs Hover Actions (PiP-like smooth animation) */}
-        <div className="relative min-h-[38px] flex items-center">
+        <div className="relative min-h-[38px] flex flex-col [@media(hover:hover)]:flex-row items-stretch [@media(hover:hover)]:items-center">
           {/* Default (non-hover): Price always visible for clarity */}
           <div
             className={
               'w-full flex items-center justify-between transition-all duration-300 ease-out ' +
-              'group-hover:opacity-0 group-hover:-translate-y-1 group-hover:pointer-events-none'
+              '[@media(hover:hover)]:group-hover:opacity-0 [@media(hover:hover)]:group-hover:-translate-y-1 [@media(hover:hover)]:group-hover:pointer-events-none [@media(hover:hover)]:group-focus-within:opacity-0 [@media(hover:hover)]:group-focus-within:pointer-events-none'
             }
           >
             <div className="flex items-center gap-2">
@@ -428,9 +428,9 @@ export function FeaturedCard({
           {/* Hover state: Action buttons (PiP-like slide up & fade in) */}
           <div
             className={
-              'absolute inset-0 flex items-center gap-2 transition-all duration-300 ease-out ' +
-              'opacity-0 translate-y-2 scale-[0.98] pointer-events-none ' +
-              'group-hover:opacity-100 group-hover:translate-y-0 group-hover:scale-100 group-hover:pointer-events-auto'
+              'relative mt-2 flex items-center gap-2 transition-all duration-300 ease-out ' +
+              '[@media(hover:hover)]:absolute [@media(hover:hover)]:mt-0 [@media(hover:hover)]:inset-0 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:translate-y-2 [@media(hover:hover)]:scale-[0.98] [@media(hover:hover)]:pointer-events-none ' +
+              'group-hover:opacity-100 group-hover:translate-y-0 group-hover:scale-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:translate-y-0 group-focus-within:scale-100 group-focus-within:pointer-events-auto'
             }
           >
             {/* Primary button: Buy for / Use now (clean text, no star) / Equipped */}

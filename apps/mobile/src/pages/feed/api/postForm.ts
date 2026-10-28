@@ -9,6 +9,7 @@ import {
 } from '@social-network/shared-contracts';
 import { storyMediaType, validateStoryAsset } from '../model/story';
 import { appendUploadField as appendField } from './directUploadForm';
+import { tr } from '@/shared/lib/i18n';
 
 // React Native 0.76's FormData accepts file descriptors, unlike the DOM overload.
 declare global {
@@ -17,7 +18,7 @@ declare global {
   }
 }
 
-async function appendAsset(body: FormData, field: string, asset: ImagePickerAsset) {
+export async function appendAsset(body: FormData, field: string, asset: ImagePickerAsset) {
   const video = asset.type === 'video' || asset.mimeType?.toLowerCase().startsWith('video/');
   const audio = asset.mimeType?.toLowerCase().startsWith('audio/');
   if (
@@ -97,7 +98,7 @@ export async function storyForm(
   const error = asset ? validateStoryAsset(asset) : null;
   if (error) throw new Error(error);
   if (!asset && !appearance.backgroundColor) throw new Error('Add media or a background.');
-  if (Object.keys(attachments).length > 9) throw new Error('Use up to 9 photo stickers.');
+  if (Object.keys(attachments).length > 9) throw new Error(tr('Use up to 9 photo stickers.'));
   for (const attachment of Object.values(attachments)) {
     const issue = validateStoryAsset(attachment);
     if (issue || storyMediaType(attachment) !== 'IMAGE')
