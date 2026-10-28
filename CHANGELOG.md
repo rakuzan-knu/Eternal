@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.12.0](https://github.com/rakuzan-knu/Eternal/compare/v1.11.0...v1.12.0) (2026-10-28)
+
+### ✨ Features
+
+* **mobile:** complete mobile parity with chat, settings, localization and push ([e663fb4](https://github.com/rakuzan-knu/Eternal/commit/e663fb405cc543815a6f236893d248eebcf5bd93))
+
 ## [1.11.0](https://github.com/rakuzan-knu/Eternal/compare/v1.10.8...v1.11.0) (2026-10-27)
 
 ### ✨ Features
