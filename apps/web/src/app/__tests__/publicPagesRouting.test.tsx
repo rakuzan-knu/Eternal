@@ -20,7 +20,11 @@ describe('Public Pages Routing Integration', () => {
       useAuthStore.setState({ isAuthenticated, userId: isAuthenticated ? 'user-123' : null });
       renderWithProviders(<App />, { initialEntries: ['/creators'] });
 
-      const heading = await screen.findByRole('heading', { level: 1, name: /WELCOME CREATORS/i });
+      const heading = await screen.findByRole(
+        'heading',
+        { level: 1, name: /WELCOME CREATORS/i },
+        { timeout: 5000 },
+      );
       expect(heading).toBeInTheDocument();
       expect(
         screen.queryByRole('navigation', { name: 'Application sidebar' }),

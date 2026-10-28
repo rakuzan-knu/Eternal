@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.11.0](https://github.com/rakuzan-knu/Eternal/compare/v1.10.8...v1.11.0) (2026-10-27)
+
+### ✨ Features
+
+* **chat:** add private community channels and inherited notifications ([#135](https://github.com/rakuzan-knu/Eternal/issues/135)) ([b818212](https://github.com/rakuzan-knu/Eternal/commit/b818212b7881809bf6ff1f9b7fbd9be354e898a8))
+
+### 📝 Documentation
+
+* **frontend:** add reviewer overview and correct source paths ([#140](https://github.com/rakuzan-knu/Eternal/issues/140)) ([5b8d792](https://github.com/rakuzan-knu/Eternal/commit/5b8d7929a649568c5ff6abca527c2965eac56245))
+
+## [1.10.8](https://github.com/rakuzan-knu/Eternal/compare/v1.10.7...v1.10.8) (2026-10-21)
+
+### 🐛 Bug Fixes
+
+* **frontend:** improve accessibility and preserve local feature fixes ([f2d6642](https://github.com/rakuzan-knu/Eternal/commit/f2d66423ed17bf9ba5ff8449b37723a1d975c894))
+
 ## [1.10.7](https://github.com/rakuzan-knu/Eternal/compare/v1.10.6...v1.10.7) (2026-10-20)
 
 ### 🐛 Bug Fixes

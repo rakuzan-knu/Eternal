@@ -8,7 +8,7 @@ import {
   CREATORS_DATA_UK,
   CreatorArticle,
   CreatorFeaturedGuide,
-} from '@social-network/shared-content';
+} from '@social-network/shared-content/src/company/creatorsData';
 import {
   CreatorHeroWandIllustration,
   CreatorHeroCameraIllustration,

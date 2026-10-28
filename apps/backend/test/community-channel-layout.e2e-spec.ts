@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { describe } from 'vitest';
+import { describe, vi } from 'vitest';
 import { Test } from '@nestjs/testing';
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
@@ -91,6 +91,54 @@ describe.skipIf(!connectionString)('Community layout with PostgreSQL transaction
     if (prisma) await prisma.onModuleDestroy();
     if (previousUrl === undefined) delete process.env.DATABASE_URL;
     else process.env.DATABASE_URL = previousUrl;
+  });
+
+  it('holds the channel mutation lock until media promotion finishes', async () => {
+    const community = await repository.create(owner, { name: 'Upload lock fixture' });
+    const snapshot = await repository.channels(community.id, owner);
+    const channel = snapshot.data[0];
+    const access = new MediaAccessRepository(prisma);
+    let entered = false;
+    let release!: () => void;
+    const promotion = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const publication = access.withUploadPublication(
+      channel.conversationId,
+      owner,
+      false,
+      async () => {
+        entered = true;
+        await promotion;
+        return 'published';
+      },
+    );
+    // Observe failure below without allowing a rejected background transaction
+    // to become an unhandled rejection while the barrier is being checked.
+    void publication.catch(() => undefined);
+    try {
+      await vi.waitFor(() => expect(entered).toBe(true));
+      await expect(
+        prisma.$transaction(
+          (tx) => tx.$queryRaw`
+        SELECT id FROM communities WHERE id = ${community.id} FOR UPDATE NOWAIT
+      `,
+        ),
+      ).rejects.toThrow(/could not obtain lock/);
+    } finally {
+      release();
+      await publication;
+    }
+    await expect(
+      repository.setChannelAccess(community.id, channel.id, owner, {
+        revision: snapshot.revision,
+        isPrivate: true,
+        memberIds: [],
+      }),
+    ).resolves.toMatchObject({ isPrivate: true });
+    await expect(
+      access.withUploadPublication(channel.conversationId, owner, false, async () => 'unexpected'),
+    ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
   it('allows exactly one concurrent editor and commits metadata and outbox together', async () => {

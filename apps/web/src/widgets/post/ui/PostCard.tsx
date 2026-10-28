@@ -40,9 +40,10 @@ import StyledDisplayName from '@/shared/ui/StyledDisplayName';
 interface PostCardProps {
   post: PostType;
   queryKey: unknown[];
+  isVirtualized?: boolean;
 }
 
-export function PostCard({ post, queryKey }: PostCardProps) {
+export function PostCard({ post, queryKey, isVirtualized = false }: PostCardProps) {
   const locale = useLocale();
   const [showVoters, setShowVoters] = useState(false);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
@@ -214,8 +215,10 @@ export function PostCard({ post, queryKey }: PostCardProps) {
     <div
       id={`post-${post.id}`}
       style={{
-        contentVisibility: isMenuOpen || isPopoverOpen ? 'visible' : 'auto',
-        containIntrinsicSize: 'auto 600px',
+        // Virtual rows must expose their real height to the list's measurement owner.
+        contentVisibility: isVirtualized || isMenuOpen || isPopoverOpen ? 'visible' : 'auto',
+        containIntrinsicSize: isVirtualized ? undefined : 'auto 600px',
+        contain: isVirtualized && !isMenuOpen && !isPopoverOpen ? 'layout style paint' : undefined,
       }}
       className={`glass-card border border-white/5 rounded-3xl shadow-lg flex flex-col gap-3 transition-all duration-300 ease-out scroll-mt-20 relative ${
         isCollapsing

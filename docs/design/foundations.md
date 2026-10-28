@@ -2,7 +2,7 @@
 
 ## Brand identity
 
-The product name is **Eternal**. Its visual signature is an “E” symbol with a rounded square and an indigo → purple → pink gradient. [Brand data and SVG exports](../../apps/web/src/pages/Brand/data/brandingData.ts) and [BrandIcons](../../apps/web/src/shared/ui/BrandIcons.tsx) define reusable artwork; reuse the relevant asset rather than drawing a new letter/logo.
+The product name is **Eternal**. Its visual signature is an “E” symbol with a rounded square and an indigo → purple → pink gradient. [Brand data and SVG exports](../../packages/shared/content/src/company/brandingData.ts) and [BrandIcons](../../apps/web/src/shared/ui/BrandIcons.tsx) define reusable artwork; reuse the relevant asset rather than drawing a new letter/logo.
 
 | Brand swatch      | Exact value                     | Role in the brand page     |
 | ----------------- | ------------------------------- | -------------------------- |
@@ -104,6 +104,6 @@ Tailwind shadows include `xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px
 
 Public imagery lives under [public/images](../../apps/web/public/images), including `shared/EternalBanner.png`, safety illustrations and company/blog artwork. Game rank icons live under [public/icons](../../apps/web/public/icons). PWA sizes are 48, 96, 144, 192 and 512px; the manifest labels the 192/512 variants `any maskable`. Reuse exported silhouettes and validate safe cropping on the target OS. Inline React/SVG illustrations in page `ui/` directories are also design assets; they appear under inventory source entries even when no image file exists.
 
-The inventory asset list includes paths and byte sizes for local media, plus sound/video files. Its `declaredAssets` list separately checks the image/icon paths referenced by HTML and the manifest. [favicon.svg](../../apps/web/public/favicon.svg) reuses the rounded purple brand icon from [brandingData](../../apps/web/src/pages/Brand/data/brandingData.ts). `favicon.ico` and the manifest's `icon-48/96/144/192/512.png` files are also present. The [favicon generation script](../../apps/web/scripts/generate-favicons.cjs) uses this SVG as input; existing raster icons have not been regenerated. `pnpm design:check` rejects absent declared assets.
+The inventory asset list includes paths and byte sizes for local media, plus sound/video files. Its `declaredAssets` list separately checks the image/icon paths referenced by HTML and the manifest. [favicon.svg](../../apps/web/public/favicon.svg) reuses the rounded purple brand icon from [brandingData](../../packages/shared/content/src/company/brandingData.ts). `favicon.ico` and the manifest's `icon-48/96/144/192/512.png` files are also present. The [favicon generation script](../../apps/web/scripts/generate-favicons.cjs) uses this SVG as input; existing raster icons have not been regenerated. `pnpm design:check` rejects absent declared assets.
 
 Remote/user-generated assets are not bundled here. Preserve media fit/crop, aspect ratio, overlays and attribution from the owning component; file existence alone does not mean an asset is used on every screen.
