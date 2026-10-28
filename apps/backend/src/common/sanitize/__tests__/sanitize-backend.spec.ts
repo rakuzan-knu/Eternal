@@ -78,6 +78,13 @@ describe('sanitize-backend migration gate', () => {
     }
   });
 
+  it('bounds discarded iframe fallback recursion for untrusted profile and search text', () => {
+    delete process.env.SANITIZE_BACKEND;
+    const output = sanitizeField('<iframe>'.repeat(1_000) + '<script>alert(1)</script>Safe text');
+    expect(typeof output).toBe('string');
+    expect(output).not.toMatch(/<(iframe|script)\b/i);
+  });
+
   it('pipeline backend neutralizes the attack battery', () => {
     process.env.SANITIZE_BACKEND = 'pipeline';
     expect(resolveSanitizeBackend()).toBe('pipeline');

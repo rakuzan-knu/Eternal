@@ -89,7 +89,7 @@ describe('OnlineFriendsSidebar', () => {
     expect(screen.getByText('Suggested for you')).toBeInTheDocument();
     expect(screen.getByText('Creator One')).toBeInTheDocument();
     expect(screen.getByText('Friends')).toBeInTheDocument();
-    expect(screen.getByText(/No friends yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/Friends are people who follow each other/i)).toBeInTheDocument();
   });
 
   it('renders online and offline sections sorted A-Z and handles clicking a friend to start chat or navigate', async () => {

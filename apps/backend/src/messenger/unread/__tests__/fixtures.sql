@@ -8,6 +8,12 @@ CREATE TABLE "ConversationParticipant" (
 );
 CREATE INDEX ON "ConversationParticipant" ("userId");
 CREATE INDEX ON "ConversationParticipant" ("conversationId");
+-- Writes also check channel state under the participant locks. These fixtures
+-- model direct conversations, so their IDs have no corresponding channel rows.
+CREATE TABLE community_channels (
+  id text PRIMARY KEY, "conversationId" text NOT NULL UNIQUE,
+  "archivedAt" timestamp(3), "isPrivate" boolean NOT NULL DEFAULT false
+);
 CREATE TABLE "Message" (
   id text PRIMARY KEY, "conversationId" text NOT NULL, "senderId" text NOT NULL,
   "createdAt" timestamp(3) NOT NULL DEFAULT now(), "deletedAt" timestamp(3),

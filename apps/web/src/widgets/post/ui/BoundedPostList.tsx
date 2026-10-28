@@ -48,8 +48,8 @@ export function BoundedPostList({ posts, query, queryKey, includePost, initialSc
     measureElement: (element, entry) => {
       const size =
         entry?.borderBoxSize?.[0]?.blockSize ||
-        element.getBoundingClientRect().height ||
-        element.offsetHeight;
+        element.offsetHeight ||
+        element.getBoundingClientRect().height;
       const index = startIndex + Number(element.dataset.index);
       if (size >= 0 && Number.isFinite(index)) heights?.set(index, size);
       return size;
@@ -89,7 +89,28 @@ export function BoundedPostList({ posts, query, queryKey, includePost, initialSc
     // come from our bounded layout history, while connected DOM rows stay mounted.
     virtualizer.measure();
   }, [startIndex, virtualizer]);
+  const previousLayout = useRef({ posts, startIndex, scrollMargin, leadingHeight });
+  const hasMeasuredMargin = useRef(false);
   useLayoutEffect(() => {
+    const previous = previousLayout.current;
+    previousLayout.current = { posts, startIndex, scrollMargin, leadingHeight };
+    const sameOrder =
+      previous.startIndex === startIndex &&
+      previous.posts.length === posts.length &&
+      previous.posts.every((post, index) => post.id === posts[index]?.id);
+    if (!hasMeasuredMargin.current && scrollMargin !== 0) {
+      hasMeasuredMargin.current = true;
+      // Initial mount belongs to the saved absolute route position. Only later
+      // composer/layout changes should shift that position with a post anchor.
+      if (sameOrder && restoreTarget.current !== undefined) return;
+    }
+    // Content-only refetches must not replay an old anchor over route restoration.
+    if (
+      sameOrder &&
+      previous.scrollMargin === scrollMargin &&
+      previous.leadingHeight === leadingHeight
+    )
+      return;
     const anchor = history?.anchor;
     if (!anchor) return;
     const index = posts.findIndex((post) => String(post.id) === anchor.id);
@@ -168,7 +189,7 @@ export function BoundedPostList({ posts, query, queryKey, includePost, initialSc
             }}
           >
             {hidden ? null : post ? (
-              <PostCard post={post} queryKey={queryKey} />
+              <PostCard post={post} queryKey={queryKey} isVirtualized />
             ) : (
               <div
                 role="status"

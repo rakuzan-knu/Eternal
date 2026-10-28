@@ -109,19 +109,28 @@ describe('untrusted media uploads', () => {
     );
   });
 
-  it('recognizes real MP4, WAV and audio-only WebM independently of client MIME', async () => {
+  it('recognizes real MP4 independently of client MIME', async () => {
     expect(await validateUploadedMedia(await sampleVideo(), 'post')).toMatchObject({
       kind: 'video',
       mime: 'video/mp4',
     });
+  });
+
+  it('recognizes real WAV independently of client MIME', async () => {
     expect(await validateUploadedMedia(await sampleAudio(), 'story')).toMatchObject({
       kind: 'audio',
       mime: 'audio/wav',
     });
+  });
+
+  it('recognizes audio-only WebM independently of client MIME', async () => {
     expect(await validateUploadedMedia(await voiceWebm(), 'story')).toMatchObject({
       kind: 'audio',
       mime: 'audio/webm',
     });
+  });
+
+  it('rejects audio attachments on posts', async () => {
     await expect(validateUploadedMedia(await sampleAudio(), 'post')).rejects.toBeInstanceOf(
       BadRequestException,
     );

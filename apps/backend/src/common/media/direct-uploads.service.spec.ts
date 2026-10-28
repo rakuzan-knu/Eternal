@@ -1,4 +1,5 @@
 import { Test } from '@nestjs/testing';
+import { vi } from 'vitest';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { Readable } from 'node:stream';
 import sharp from 'sharp';
@@ -34,7 +35,8 @@ describe('direct upload ownership and immutable promotion', () => {
   let config: ConfigService;
   const send = vi.fn<(command: unknown) => Promise<unknown>>();
   const access = {
-    assertConversationAccess: vi.fn(),
+    assertConversationAccess: vi.fn<MediaAccessRepository['assertConversationAccess']>(),
+    withUploadPublication: vi.fn<MediaAccessRepository['withUploadPublication']>(),
     registerPrivateObject: vi.fn(),
     completePrivateObject: vi.fn(),
     privateObjectForOwner: vi.fn(),
@@ -66,6 +68,14 @@ describe('direct upload ownership and immutable promotion', () => {
     objectBytes = Buffer.from('12345');
     vi.clearAllMocks();
     access.assertConversationAccess.mockReset().mockResolvedValue({ isPrivate: false });
+    access.withUploadPublication
+      .mockReset()
+      .mockImplementation(async (conversationId, userId, privateStorage, publish) => {
+        const context = await access.assertConversationAccess(conversationId, userId);
+        if (context.isPrivate && !privateStorage)
+          throw new ForbiddenException('Channel access changed');
+        return publish(AbortSignal.timeout(15_000));
+      });
     config = new ConfigService({
       DIRECT_UPLOADS_REQUIRED: 'true',
       MEDIA_PENDING_TRACKING_ENABLED: 'true',
@@ -337,6 +347,34 @@ describe('direct upload ownership and immutable promotion', () => {
     );
     expect(access.registerPrivateObject).not.toHaveBeenCalled();
   });
+
+  it.each(['private', 'revoked'] as const)(
+    'refuses promotion when access becomes %s during validation',
+    async (change) => {
+      const result = await start();
+      const storageSend = send.getMockImplementation();
+      send.mockImplementation(async (command) => {
+        const response = await storageSend?.(command);
+        if (command instanceof HeadObjectCommand) {
+          if (change === 'private')
+            access.assertConversationAccess.mockResolvedValue({ isPrivate: true });
+          else
+            access.assertConversationAccess.mockRejectedValue(
+              new ForbiddenException('Access revoked'),
+            );
+        }
+        return response;
+      });
+      await expect(service.complete('alice', result.uploadId)).rejects.toThrow();
+      expect(
+        send.mock.calls.some(
+          ([command]) =>
+            command instanceof CopyObjectCommand || command instanceof PutObjectCommand,
+        ),
+      ).toBe(false);
+      expect(access.withUploadPublication).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it('rechecks access even when completion can return an existing receipt', async () => {
     access.assertConversationAccess.mockResolvedValue({ isPrivate: true });

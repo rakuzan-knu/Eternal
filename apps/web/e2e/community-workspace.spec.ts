@@ -506,7 +506,8 @@ for (const width of [390, 1440]) {
         route.fulfill({
           status: deny ? 403 : 200,
           headers: {
-            'Access-Control-Allow-Origin': 'http://127.0.0.1:5183',
+            'Access-Control-Allow-Origin':
+              route.request().headers().origin ?? new URL(page.url()).origin,
             'Access-Control-Allow-Credentials': 'true',
           },
           json: deny

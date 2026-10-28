@@ -13,11 +13,11 @@ import {
   ChevronRight,
   FileText,
   Zap,
+  Users,
   Menu,
   X,
   Pin,
   PanelLeftClose,
-  Users,
 } from 'lucide-react';
 import { useUIStore } from '../../../shared/model/useUIStore';
 import { useCurrentUser } from '@/entities/profile/model/useCurrentUser';
