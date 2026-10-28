@@ -16,6 +16,7 @@ import { QueueService } from '../queue.service';
 import { MessengerGateway } from '../../messenger/gateway/messenger.gateway';
 import { TraceContext } from '../../common/tracing/trace-context';
 import { runsBackground } from '../../config/service-role';
+import { PushDispatchService } from '../../notifications/push/push-dispatch.service';
 
 export interface NotificationJobData {
   userId: string;
@@ -42,6 +43,7 @@ export class NotificationsProcessor implements OnModuleInit, OnModuleDestroy {
     @Optional()
     private readonly gateway?: MessengerGateway,
     @Optional() private readonly queueService?: QueueService,
+    @Optional() private readonly push?: PushDispatchService,
   ) {}
 
   onModuleInit(): void {
@@ -127,7 +129,7 @@ export class NotificationsProcessor implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  processJob(job: Job): Promise<void> {
+  async processJob(job: Job): Promise<void> {
     const jobName = job.name;
     const notifData = job.data as NotificationJobData;
 
@@ -135,7 +137,7 @@ export class NotificationsProcessor implements OnModuleInit, OnModuleDestroy {
       jobName === (NotificationJobType.PUSH as string) ||
       jobName === (NotificationJobType.CREATE as string)
     ) {
-      if (!notifData?.userId) return Promise.resolve();
+      if (!notifData?.userId) return;
 
       // Perform async notification delivery / push notification fanout
       if (this.gateway) {
@@ -145,11 +147,17 @@ export class NotificationsProcessor implements OnModuleInit, OnModuleDestroy {
           createdAt: new Date().toISOString(),
         });
       }
+      if (jobName === (NotificationJobType.PUSH as string))
+        await this.push?.notify({
+          userId: notifData.userId,
+          type: notifData.type,
+          actorId: notifData.payload?.actorId ?? null,
+          postId: notifData.payload?.postId ?? null,
+          text: notifData.payload?.text ?? null,
+        });
     } else {
       this.logger.debug(`Unknown notification job type: ${jobName}`);
     }
-
-    return Promise.resolve();
   }
 
   async onModuleDestroy(): Promise<void> {

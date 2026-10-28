@@ -48,6 +48,8 @@ export const envSchema = z
       .enum(['allkeys-lru', 'volatile-lru', 'allkeys-lfu', 'volatile-lfu', 'noeviction'])
       .default('noeviction'),
     SENTRY_DSN: z.string().optional(),
+    PUSH_ENABLED: z.enum(['true', 'false']).optional(),
+    EXPO_ACCESS_TOKEN: z.string().optional(),
     SENTRY_TRACES_SAMPLE_RATE: z.string().optional(),
     GITHUB_CLIENT_ID: z.string().optional(),
     GITHUB_CLIENT_SECRET: z.string().optional(),
@@ -66,6 +68,7 @@ export const envSchema = z
     R2_ACCESS_KEY_ID: z.string().optional(),
     R2_SECRET_ACCESS_KEY: z.string().optional(),
     R2_BUCKET: z.string().optional(),
+    R2_PRIVATE_BUCKET: z.string().optional(),
     R2_PUBLIC_URL: z.string().optional(),
     MINIO_ENDPOINT: z.string().optional(),
     MINIO_ACCESS_KEY: z.string().optional(),

@@ -29,6 +29,8 @@ export interface SelectProps {
   className?: string;
   onBlur?: () => void;
   'aria-label'?: string;
+  'aria-invalid'?: React.AriaAttributes['aria-invalid'];
+  'aria-describedby'?: string;
 }
 
 export const Select = forwardRef<HTMLButtonElement, SelectProps>(
@@ -43,6 +45,8 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
       className = '',
       onBlur,
       'aria-label': ariaLabel,
+      'aria-invalid': ariaInvalid,
+      'aria-describedby': ariaDescribedBy,
     },
     ref,
   ) => {
@@ -155,6 +159,8 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
           disabled={disabled}
           role="combobox"
           aria-label={ariaLabel}
+          aria-invalid={ariaInvalid}
+          aria-describedby={ariaDescribedBy}
           aria-expanded={isOpen}
           aria-haspopup="listbox"
           aria-controls={isOpen ? listId : undefined}

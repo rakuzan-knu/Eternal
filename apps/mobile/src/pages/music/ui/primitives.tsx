@@ -3,6 +3,7 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { Music2, MoreHorizontal, Play, AlertCircle, ChevronRight } from 'lucide-react-native';
 import { colors, IconButton } from '../../feed/ui/primitives';
 import { durationLabel, type Track, type Playlist } from '../model/music';
+import { tr } from '@/shared/lib/i18n';
 export function Cover({
   uri,
   size = 52,
@@ -110,7 +111,7 @@ export function TrackRow({
         <Text style={m.small}>{durationLabel(track.durationMs)}</Text>
       </Pressable>
       {onMore && (
-        <IconButton label={`More options for ${track.title}`} onPress={onMore}>
+        <IconButton label={tr('More options for {name}', { name: track.title })} onPress={onMore}>
           <MoreHorizontal size={21} color={colors.muted} />
         </IconButton>
       )}
@@ -121,7 +122,7 @@ export function PlaylistCard({ playlist, onPress }: { playlist: Playlist; onPres
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Open playlist ${playlist.title}`}
+      accessibilityLabel={tr('Open playlist {name}', { name: playlist.title })}
       onPress={onPress}
       style={m.card}
     >
@@ -172,11 +173,11 @@ export function MusicStatus({ message, onRetry }: { message: string; onRetry?: (
       {onRetry && (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Retry: ${message}`}
+          accessibilityLabel={tr('Retry: {text}', { text: message })}
           onPress={onRetry}
           style={m.touch}
         >
-          <Text style={m.accent}>Retry</Text>
+          <Text style={m.accent}>{tr('Retry')}</Text>
         </Pressable>
       )}
     </View>
@@ -196,7 +197,7 @@ export function LibraryRow({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Open ${title.toLowerCase()}`}
+      accessibilityLabel={tr('Open {name}', { name: title.toLowerCase() })}
       onPress={onPress}
       style={({ pressed }) => [
         m.row,

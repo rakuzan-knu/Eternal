@@ -74,6 +74,52 @@ remain intact.
 
 ## Bucket and deployment configuration
 
+### Private community channel attachments
+
+Private channel uploads require `R2_PRIVATE_BUCKET`, distinct from `R2_BUCKET`, with
+all public access disabled. Missing or identical configuration fails closed; there
+is no local/public fallback. The scoped server credential needs object operations
+in both buckets. Configure direct browser PUT/GET/HEAD CORS and the temporary
+`_incoming/` lifecycle separately on the private bucket. Public staging semantics
+described below apply only to the ordinary public bucket.
+
+Core continues to own `/uploads/direct` metadata, validation, promotion and signed
+URLs. Bytes go directly between the client and storage. Messenger owns channel
+membership and message consumption. Private staging and final objects stay in the
+private bucket; durable messages store `private-media://<uuid>`, never a signed URL.
+`PrivateMediaObject` records ownership/conversation; `PendingMediaObject.bucket`
+keeps orphan cleanup in the correct bucket. Private objects are registered even
+when general pending tracking is disabled; reclamation still needs both existing
+tracking/cleanup flags and R2 storage mode.
+
+Authenticated `GET /uploads/direct/private/:id` issues a 60-second signed GET only
+when a visible, retained message reference and current channel membership permit
+reading. Deleted-for-all and personal deletions do not grant access. Archived
+history remains readable to authorized participants; new uploads remain blocked.
+Responses and stored objects use no-store. A previously issued URL can work for up
+to 60 seconds after revocation, and downloaded copies cannot be remotely erased.
+
+Completion checks membership again. Publication verifies private URLs and thumbnails,
+ready registry entries and retained proofs under the message transaction locks.
+Public reservations cannot finish after a channel becomes private. Public historical
+attachments block conversion with 409; changing visibility cannot revoke old public
+URLs. The web client reuploads public attachments into a private target when the
+user explicitly forwards them. Private source forwards still require source access;
+an intentionally exported copy grants access through its destination conversation.
+
+Web presentation resolves opaque references through authenticated Core metadata,
+then fetches storage without account credentials. Signed URLs stay in transient,
+account-scoped queries excluded from persisted cache; retraction clears these queries.
+Images, video/audio, lightbox, documents, downloads and forwarding use this boundary.
+Native clients need equivalent resolver support before enabling private attachments.
+
+Apply additive migration `20261022180000_private_channel_media` on Core before
+dependent clients/services. Drain all old Core and Messenger instances before
+enabling private media; the earlier private-channel access migration and rollout
+requirements also apply. Retained media deletion remains governed by the future
+retention policy: message auto-delete deliberately preserves shared private objects.
+Do not add blanket lifecycle deletion to `private-chat/`.
+
 Keep the scoped object-only key in server variables on all four roles. R2 CORS allows only the deployed desktop and Expo Web origins, GET/HEAD/PUT, and content-type, if-none-match and range headers. Expose ETag and range/length response headers. A new frontend origin needs an explicit CORS update.
 
 The `_incoming/` prefix is temporary staging, publicly accessible through an unguessable object key, not a private quarantine. Its lifecycle deletes objects after one day. Successful completion retains the staging object until lifecycle expiry so the still-valid PUT cannot recreate it after deletion. Publication uses a different final key; the staging lifecycle must never match `media/` or `reels/`. Keep the existing multipart-abort rule. Do not enable paid storage classes or Workers under a zero-dollar budget.
@@ -83,3 +129,5 @@ Before a coordinated release, stage Vercel production builds without domain assi
 PostgreSQL/Redis/media warnings are recorded in server logs. Render bandwidth, R2 public reads/operations, provider restrictions and cold starts remain external limits. R2's public development domain is rate-limited; a cached custom domain requires an existing domain. Do not promise uninterrupted month-long service based only on a user count.
 
 New features such as decorations, Family Center and nameplates keep their ordinary APIs on Core. A new media purpose needs an explicit server allowlist/policy, matching shared transport type and a consumer ownership check; do not reuse an unrelated proof to skip authorization. Messenger channels/bots keep APIs and persistent work on Messenger, with their own channel/bot access checks. `sendStoryReference` is an internal story-only path, never a general client upload escape hatch.
+
+Native client scope: the current Expo app does not implement community channel chat; its FeedDock sends Messages to the desktop web client. Private channel rendering is therefore delivered by that web client. Any future native channel UI must implement authenticated private-media resolution before enabling attachments.

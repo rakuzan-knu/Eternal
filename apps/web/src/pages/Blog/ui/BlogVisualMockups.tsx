@@ -12,7 +12,7 @@ import {
   Sparkles,
   Globe,
 } from 'lucide-react';
-import { BlogPost } from '../data/blogData';
+import { BlogPost } from '@social-network/shared-content';
 
 export const BlogVisualMockup: React.FC<{ type: BlogPost['previewType'] }> = ({ type }) => {
   switch (type) {

@@ -20,6 +20,7 @@ import { feedApi } from '../api/feedApi';
 import { postForm } from '../api/postForm';
 import { feedKeys } from '../model/queries';
 import { Avatar, colors, common, ErrorNotice, IconButton, Sheet } from './primitives';
+import { formatNumber, tr } from '@/shared/lib/i18n';
 
 export interface PostDraft {
   text: string;
@@ -47,7 +48,7 @@ export function CreatePostSheet(props: EditorProps) {
   );
   return (
     <Sheet
-      title="Create a post"
+      title={tr('Create a post')}
       closeDisabled={busy}
       onClose={() => {
         if (!busy) props.onClose();
@@ -101,7 +102,7 @@ export function CreatePostEditor({
       onClose();
     },
     onError: () =>
-      setError('Your post was not published. Your draft is still here; please try again.'),
+      setError(tr('Your post was not published. Your draft is still here; please try again.')),
   });
   React.useEffect(() => {
     onBusyChange?.(create.isPending);
@@ -123,7 +124,7 @@ export function CreatePostEditor({
       if (Platform.OS !== 'web') {
         const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!permission.granted) {
-          setError('Allow photo library access in Settings to attach photos or videos.');
+          setError(tr('Allow photo library access in Settings to attach photos or videos.'));
           return;
         }
       }
@@ -136,13 +137,13 @@ export function CreatePostEditor({
       if (!result.canceled) {
         const selected = result.assets.slice(0, 5 - assets.length);
         if (selected.some((asset) => (asset.fileSize ?? 0) > 20 * 1024 * 1024)) {
-          setError('Choose attachments smaller than 20 MB.');
+          setError(tr('Choose attachments smaller than 20 MB.'));
           return;
         }
         setAssets((current) => [...current, ...selected]);
       }
     } catch {
-      setError('The photo library could not be opened. Please try again.');
+      setError(tr('The photo library could not be opened. Please try again.'));
     } finally {
       setPicking(false);
     }
@@ -150,7 +151,7 @@ export function CreatePostEditor({
 
   return (
     <View style={inline ? [common.card, s.inlineCard] : s.editor}>
-      <View style={s.tabs} accessibilityRole="tablist" accessibilityLabel="Post editor">
+      <View style={s.tabs} accessibilityRole="tablist" accessibilityLabel={tr('Post editor')}>
         <Pressable
           accessibilityRole="tab"
           accessibilityState={{ selected: !preview }}
@@ -159,7 +160,7 @@ export function CreatePostEditor({
           style={[s.tab, !preview && s.activeTab]}
         >
           <Edit3 size={14} color={!preview ? colors.text : colors.muted} />
-          <Text style={[common.muted, !preview && s.activeTabText]}>Write</Text>
+          <Text style={[common.muted, !preview && s.activeTabText]}>{tr('Write')}</Text>
         </Pressable>
         <Pressable
           accessibilityRole="tab"
@@ -169,7 +170,7 @@ export function CreatePostEditor({
           style={[s.tab, preview && s.activeTab]}
         >
           <Eye size={14} color={preview ? colors.text : colors.muted} />
-          <Text style={[common.muted, preview && s.activeTabText]}>Preview</Text>
+          <Text style={[common.muted, preview && s.activeTabText]}>{tr('Preview')}</Text>
         </Pressable>
       </View>
       <View style={s.body}>
@@ -178,7 +179,7 @@ export function CreatePostEditor({
           <Avatar name={user.displayName || user.username} uri={user.avatarUrl} size={40} />
           {preview ? (
             <View style={[s.previewText, common.flex]}>
-              <Text style={common.text}>{text.trim() || 'Nothing to preview yet.'}</Text>
+              <Text style={common.text}>{text.trim() || tr('Nothing to preview yet.')}</Text>
             </View>
           ) : (
             <TextInput
@@ -191,9 +192,9 @@ export function CreatePostEditor({
                 setText(value);
                 setError(null);
               }}
-              placeholder="What's new?"
+              placeholder={tr("What's new?")}
               placeholderTextColor="#71717a"
-              accessibilityLabel="Post text"
+              accessibilityLabel={tr('Post text')}
               textAlignVertical="top"
               style={[s.input, common.flex, inline && s.inlineInput]}
             />
@@ -209,18 +210,18 @@ export function CreatePostEditor({
               <View key={`${asset.uri}-${index}`} style={s.attachment}>
                 {asset.type === 'video' ? (
                   <View style={s.videoLabel}>
-                    <Text style={common.text}>Video</Text>
+                    <Text style={common.text}>{tr('Video')}</Text>
                   </View>
                 ) : (
                   <Image
                     source={{ uri: asset.uri }}
                     style={s.preview}
-                    accessibilityLabel={`Attachment ${index + 1}`}
+                    accessibilityLabel={tr('Attachment {index}', { index: index + 1 })}
                   />
                 )}
                 <IconButton
                   style={s.remove}
-                  label={`Remove attachment ${index + 1}`}
+                  label={tr('Remove attachment {index}', { index: index + 1 })}
                   disabled={create.isPending}
                   onPress={() => setAssets((current) => current.filter((_, i) => i !== index))}
                 >
@@ -233,9 +234,9 @@ export function CreatePostEditor({
         {!!poll.length && (
           <View style={[common.card, s.poll]}>
             <View style={common.row}>
-              <Text style={[common.title, common.flex]}>Ask your community</Text>
+              <Text style={[common.title, common.flex]}>{tr('Ask your community')}</Text>
               <IconButton
-                label="Remove poll"
+                label={tr('Remove poll')}
                 disabled={create.isPending}
                 onPress={() => setPoll([])}
               >
@@ -248,9 +249,9 @@ export function CreatePostEditor({
                 value={option}
                 editable={!create.isPending && isOnline}
                 maxLength={255}
-                placeholder={`Option ${index + 1}`}
+                placeholder={tr('Option {index}', { index: index + 1 })}
                 placeholderTextColor={colors.muted}
-                accessibilityLabel={`Poll option ${index + 1}`}
+                accessibilityLabel={tr('Poll option {index}', { index: index + 1 })}
                 onChangeText={(value) =>
                   setPoll((current) => current.map((item, i) => (i === index ? value : item)))
                 }
@@ -259,7 +260,7 @@ export function CreatePostEditor({
             ))}
             {poll.length < 4 && (
               <Button
-                title="Add option"
+                title={tr('Add option')}
                 variant="ghost"
                 disabled={create.isPending}
                 leftIcon={<Plus size={16} color={colors.purple} />}
@@ -267,7 +268,9 @@ export function CreatePostEditor({
               />
             )}
             {!validPoll && (
-              <Text style={common.muted}>Add at least two different, non-empty options.</Text>
+              <Text style={common.muted}>
+                {tr('Add at least two different, non-empty options.')}
+              </Text>
             )}
           </View>
         )}
@@ -275,7 +278,7 @@ export function CreatePostEditor({
       <View style={s.toolbar}>
         <View style={common.row}>
           <IconButton
-            label="Attach photos or videos"
+            label={tr('Attach photos or videos')}
             disabled={!isOnline || create.isPending || picking || assets.length >= 5}
             onPress={() => {
               void pickMedia();
@@ -284,17 +287,21 @@ export function CreatePostEditor({
             <Paperclip size={18} color={colors.muted} />
           </IconButton>
           <IconButton
-            label="Add poll"
+            label={tr('Add poll')}
             disabled={!isOnline || create.isPending || poll.length > 0}
             onPress={() => setPoll(['', ''])}
           >
             <BarChart3 size={18} color={colors.muted} />
           </IconButton>
-          {!inline && <Text style={common.muted}>{text.length.toLocaleString()}/10,000</Text>}
+          {!inline && (
+            <Text style={common.muted}>
+              {formatNumber(text.length)}/{formatNumber(10000)}
+            </Text>
+          )}
         </View>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Publish post"
+          accessibilityLabel={tr('Publish post')}
           aria-busy={create.isPending}
           accessibilityState={{ disabled: !canPublish || create.isPending, busy: create.isPending }}
           disabled={!canPublish || create.isPending}
@@ -304,7 +311,7 @@ export function CreatePostEditor({
             create.mutate();
           }}
         >
-          <Text style={s.publishText}>{create.isPending ? 'Publishing...' : 'Publish'}</Text>
+          <Text style={s.publishText}>{create.isPending ? 'Publishing...' : tr('Publish')}</Text>
         </Pressable>
       </View>
     </View>

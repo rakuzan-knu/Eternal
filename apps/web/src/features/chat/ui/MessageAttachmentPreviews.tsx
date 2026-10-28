@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
+import { isPrivateMedia, resolveMediaUrl } from '@/shared/lib/privateMedia';
+import { MediaImage, MediaVideo, ResolvedMediaUrl } from '@/shared/lib/privateMediaView';
 import { EyeOff, Play, VolumeX } from 'lucide-react';
 import { AttachmentView } from '../../../entities/chat/model/types';
 import SkeletonBone from '@/shared/ui/SkeletonBone';
@@ -128,7 +130,7 @@ export function MediaAttachment({
         style={{ aspectRatio: resolvedAspectRatio }}
       >
         {!isLoaded && <SkeletonBone className="absolute inset-0 rounded-2xl" />}
-        <video
+        <MediaVideo
           ref={videoRef}
           autoPlay
           muted
@@ -193,7 +195,7 @@ export function MediaAttachment({
   return (
     <a
       ref={containerRef as React.RefObject<HTMLAnchorElement>}
-      href={attachment.url}
+      href={isPrivateMedia(attachment.url) ? undefined : attachment.url}
       target="_blank"
       rel="noreferrer"
       onClick={(e) => {
@@ -208,6 +210,11 @@ export function MediaAttachment({
           e.stopPropagation();
           const rect = containerRef.current?.getBoundingClientRect();
           onOpenMedia(attachment, rect);
+        } else if (isPrivateMedia(attachment.url)) {
+          e.preventDefault();
+          void resolveMediaUrl(attachment.url)
+            .then((url) => window.open(url, '_blank', 'noopener,noreferrer'))
+            .catch(() => {});
         }
       }}
       className="relative block w-full min-w-[260px] sm:min-w-[320px] max-w-[440px] sm:max-w-[480px] min-h-[180px] max-h-[460px] overflow-hidden rounded-2xl group/img bg-black/40 shadow-md cursor-pointer"
@@ -217,7 +224,7 @@ export function MediaAttachment({
 
       {/* When GIF is scrolled offscreen or paused by user, freeze decoder by swapping with static poster frame */}
       {isGif && !isGifPlaying && posterFrame ? (
-        <img
+        <MediaImage
           src={posterFrame}
           alt={attachment.fileName ?? 'attachment'}
           className={`h-full w-full object-cover transition-opacity duration-300 hover:opacity-95 ${
@@ -225,7 +232,7 @@ export function MediaAttachment({
           } ${!isSpoilerRevealed ? 'filter blur-xl scale-105' : ''}`}
         />
       ) : (
-        <img
+        <MediaImage
           src={attachment.url}
           alt={attachment.fileName ?? 'attachment'}
           decoding="async"
@@ -295,13 +302,17 @@ export function AudioAttachment({ attachment }: { attachment: AttachmentView }) 
   return (
     <div className="relative max-w-[280px]">
       {!isLoaded && <SkeletonBone className="absolute inset-0 h-10 rounded-full" />}
-      <audio
-        controls
-        preload="metadata"
-        className={`max-w-[280px] transition-opacity duration-150 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
-        src={attachment.url}
-        onLoadedMetadata={() => setLoaded(true)}
-      />
+      <ResolvedMediaUrl url={attachment.url}>
+        {(url) => (
+          <audio
+            controls
+            preload="metadata"
+            className={`max-w-[280px] transition-opacity duration-150 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+            src={url}
+            onLoadedMetadata={() => setLoaded(true)}
+          />
+        )}
+      </ResolvedMediaUrl>
     </div>
   );
 }

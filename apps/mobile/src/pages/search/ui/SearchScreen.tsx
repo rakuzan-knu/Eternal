@@ -31,7 +31,6 @@ import { feedApi } from '../../feed/api/feedApi';
 import { feedKeys } from '../../feed/model/queries';
 import { nextCursor, uniquePosts } from '../../feed/model/feed';
 import { Avatar, colors, common, ErrorNotice, IconButton } from '../../feed/ui/primitives';
-import { openWebSection } from '../../feed/ui/FeedDock';
 import { PostCard } from '../../feed/ui/PostCard';
 import {
   addRecentSearch,
@@ -41,6 +40,7 @@ import {
   searchTabs,
   type SearchTab,
 } from '../model/search';
+import { plural, tr } from '@/shared/lib/i18n';
 
 function Person({
   user,
@@ -79,7 +79,9 @@ function Person({
       <View style={s.person}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Open ${user.displayName || user.username}'s profile`}
+          accessibilityLabel={tr('Open {name} profile', {
+            name: user.displayName || user.username,
+          })}
           onPress={onOpen}
           style={s.personLink}
         >
@@ -104,7 +106,7 @@ function Person({
         {user.id !== viewerId && (
           <Button
             fullWidth={false}
-            title={following ? 'Following' : requested ? 'Requested' : 'Follow'}
+            title={following ? tr('Following|button') : requested ? tr('Requested') : tr('Follow')}
             variant={following || requested ? 'secondary' : 'purple'}
             size="sm"
             disabled={!isOnline || following || requested}
@@ -113,7 +115,7 @@ function Person({
           />
         )}
       </View>
-      {follow.isError && <ErrorNotice message="Follow failed. Please try again." />}
+      {follow.isError && <ErrorNotice message={tr('Follow failed. Please try again.')} />}
     </View>
   );
 }
@@ -126,7 +128,10 @@ function MediaTile({ post, onOpen }: { post: PostResponseDto; onOpen: () => void
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Open ${video ? 'video' : 'post'} by ${post.author}: ${post.text || 'Community post'}`}
+      accessibilityLabel={tr(
+        video ? 'Open video by {name}: {text}' : 'Open post by {name}: {text}',
+        { name: post.author, text: post.text || tr('Community post') },
+      )}
       onPress={onOpen}
       style={s.tile}
     >
@@ -143,7 +148,7 @@ function MediaTile({ post, onOpen }: { post: PostResponseDto; onOpen: () => void
             @{post.handle}
           </Text>
           <Text style={s.tileCaption} numberOfLines={4}>
-            {post.text || (video ? 'Play video' : 'Community post')}
+            {post.text || (video ? tr('Play video') : tr('Community post'))}
           </Text>
         </View>
       )}
@@ -161,13 +166,13 @@ export function SearchScreen({
   isOnline,
   active,
   onBack,
-  onNavigationError,
+  onOpenProfile,
 }: {
   userId: string;
   isOnline: boolean;
   active: boolean;
   onBack: () => void;
-  onNavigationError: (failed: boolean) => void;
+  onOpenProfile: (username: string) => void;
 }) {
   const [term, setTerm] = React.useState('');
   const [focused, setFocused] = React.useState(false);
@@ -275,7 +280,7 @@ export function SearchScreen({
       isOnline={isOnline}
       onOpen={() => {
         remember(user.username);
-        void openWebSection(`/profile/${encodeURIComponent(user.username)}`, onNavigationError);
+        onOpenProfile(user.username);
       }}
     />
   );
@@ -293,7 +298,7 @@ export function SearchScreen({
     ) : query.isPending && query.fetchStatus === 'fetching' ? (
       <ActivityIndicator
         color={colors.purple}
-        accessibilityLabel={`Loading ${label.toLowerCase()}`}
+        accessibilityLabel={tr('Loading')}
         style={s.loading}
       />
     ) : null;
@@ -316,7 +321,7 @@ export function SearchScreen({
     <View style={s.footer}>
       {query.isFetchNextPageError && (
         <ErrorNotice
-          message="More results couldn't be loaded."
+          message={tr("More results couldn't be loaded.")}
           onRetry={() => {
             void query.fetchNextPage();
           }}
@@ -324,7 +329,7 @@ export function SearchScreen({
       )}
       {query.hasNextPage && (
         <Button
-          title="Load more"
+          title={tr('Load more')}
           variant="ghost"
           disabled={!isOnline}
           loading={query.isFetchingNextPage}
@@ -339,18 +344,18 @@ export function SearchScreen({
     return (
       <View style={s.screen}>
         <View style={s.titleRow}>
-          <IconButton label="Back to search results" onPress={() => setSelected(null)}>
+          <IconButton label={tr('Back to search results')} onPress={() => setSelected(null)}>
             <ArrowLeft color={colors.text} size={22} />
           </IconButton>
           <Text accessibilityRole="header" style={s.title}>
-            Post
+            {tr('Post')}
           </Text>
         </View>
         <ScrollView contentContainerStyle={s.details}>
           {detail.isPending && detail.fetchStatus === 'paused' && (
-            <Text style={common.text}>Connect to the internet to open this post.</Text>
+            <Text style={common.text}>{tr('Connect to the internet to open this post.')}</Text>
           )}
-          {requestState(detail, 'Post')}
+          {requestState(detail, tr('Post'))}
           {detail.data && (
             <PostCard
               post={detail.data}
@@ -369,13 +374,13 @@ export function SearchScreen({
     <View style={s.sections}>
       {!isOnline && (
         <Text style={common.muted} accessibilityLiveRegion="polite">
-          You're offline. Connect to search or follow creators.
+          {tr("You're offline. Connect to search or follow creators.")}
         </Text>
       )}
       {!settled ? (
         <ActivityIndicator
           color={colors.purple}
-          accessibilityLabel="Updating search results"
+          accessibilityLabel={tr('Updating search results')}
           style={s.loading}
         />
       ) : (
@@ -386,10 +391,10 @@ export function SearchScreen({
                 <View style={s.section}>
                   <View style={s.sectionHeading}>
                     <Clock size={17} color={colors.muted} />
-                    <Text style={common.title}>Recent searches</Text>
+                    <Text style={common.title}>{tr('Recent searches')}</Text>
                     <Button
                       fullWidth={false}
-                      title="Clear"
+                      title={tr('Clear')}
                       variant="ghost"
                       size="sm"
                       onPress={() => {
@@ -415,15 +420,19 @@ export function SearchScreen({
               <View style={s.section}>
                 <View style={common.row}>
                   <TrendingUp size={18} color={colors.purple} />
-                  <Text style={common.title}>Trending hashtags</Text>
+                  <Text style={common.title}>{tr('Trending hashtags')}</Text>
                 </View>
-                {requestState(trending, 'Trending hashtags')}
+                {requestState(trending, tr('Trending hashtags'))}
                 <View style={s.chips}>
                   {trending.data?.map((tag) => (
                     <Pressable
                       key={tag.tag}
                       accessibilityRole="button"
-                      accessibilityLabel={`Search hashtag ${tag.tag}, ${tag.count} posts`}
+                      accessibilityLabel={
+                        tr('Search hashtag {tag}', { tag: tag.tag }) +
+                        ', ' +
+                        plural(tag.count, { one: '{count} post', other: '{count} posts' })
+                      }
                       onPress={() => choose(`#${tag.tag}`)}
                       style={s.chip}
                     >
@@ -437,7 +446,7 @@ export function SearchScreen({
               <View style={[common.card, s.section]}>
                 <View style={common.row}>
                   <Sparkles size={18} color={colors.purple} />
-                  <Text style={common.title}>Who to follow</Text>
+                  <Text style={common.title}>{tr('Who to follow')}</Text>
                 </View>
                 {requestState(suggested, 'Suggestions')}
                 {suggested.data?.map(person)}
@@ -448,7 +457,7 @@ export function SearchScreen({
             <View style={[common.card, s.section]}>
               <View style={common.row}>
                 <Sparkles color={colors.purple} size={17} />
-                <Text style={common.title}>Top by followers</Text>
+                <Text style={common.title}>{tr('Top by followers')}</Text>
               </View>
               {requestState(top, 'Creators')}
               <ScrollView
@@ -460,13 +469,12 @@ export function SearchScreen({
                   <Pressable
                     key={user.id}
                     accessibilityRole="button"
-                    accessibilityLabel={`Open ${user.displayName || user.username}'s profile`}
+                    accessibilityLabel={tr('Open {name} profile', {
+                      name: user.displayName || user.username,
+                    })}
                     onPress={() => {
                       remember(user.username);
-                      void openWebSection(
-                        `/profile/${encodeURIComponent(user.username)}`,
-                        onNavigationError,
-                      );
+                      onOpenProfile(user.username);
                     }}
                     style={s.topCreator}
                   >
@@ -488,19 +496,19 @@ export function SearchScreen({
           )}
           {searching && showPeople && (
             <View style={[common.card, s.section]}>
-              <Text style={common.title}>People</Text>
-              {!debounced.startsWith('#') && requestState(people, 'People')}
+              <Text style={common.title}>{tr('People')}</Text>
+              {!debounced.startsWith('#') && requestState(people, tr('People'))}
               {!debounced.startsWith('#') && people.data?.map(person)}
               {(debounced.startsWith('#') ||
                 (!people.isPending && !people.isError && !people.data?.length)) && (
-                <Text style={common.muted}>No people found. Try a name or username.</Text>
+                <Text style={common.muted}>{tr('No people found. Try a name or username.')}</Text>
               )}
             </View>
           )}
           {searching && showTags && (
             <View style={[common.card, s.section]}>
-              <Text style={common.title}>Hashtags</Text>
-              {requestState(tags, 'Hashtags')}
+              <Text style={common.title}>{tr('Hashtags')}</Text>
+              {requestState(tags, tr('Hashtags'))}
               {tags.data?.map((tag) => (
                 <Pressable
                   key={tag.tag}
@@ -518,19 +526,19 @@ export function SearchScreen({
                 </Pressable>
               ))}
               {!tags.isPending && !tags.isError && !tags.data?.length && (
-                <Text style={common.muted}>No hashtags found.</Text>
+                <Text style={common.muted}>{tr('No hashtags found.')}</Text>
               )}
             </View>
           )}
           {showMedia && (
             <View style={s.section}>
               <Text accessibilityRole="header" style={common.title}>
-                {searching ? 'Media' : 'Explore Media'}
+                {searching ? tr('Media') : tr('Explore Media')}
               </Text>
-              {requestState(mediaQuery, 'Media')}
+              {requestState(mediaQuery, tr('Media'))}
               {mediaGrid}
               {!mediaQuery.isPending && !mediaQuery.isError && !media.length && (
-                <Text style={common.muted}>No media found. Try another search.</Text>
+                <Text style={common.muted}>{tr('No media found. Try another search.')}</Text>
               )}
               {footer(mediaQuery)}
             </View>
@@ -538,11 +546,11 @@ export function SearchScreen({
           {showPosts && (
             <View style={s.section}>
               <Text accessibilityRole="header" style={common.title}>
-                Posts
+                {tr('Posts')}
               </Text>
-              {requestState(postsQuery, 'Posts')}
+              {requestState(postsQuery, tr('Posts'))}
               {!postsQuery.isPending && !postsQuery.isError && !posts.length && (
-                <Text style={common.muted}>No posts found. Try another search.</Text>
+                <Text style={common.muted}>{tr('No posts found. Try another search.')}</Text>
               )}
             </View>
           )}
@@ -553,11 +561,11 @@ export function SearchScreen({
   return (
     <View style={s.screen} testID="mobile-search">
       <View style={s.titleRow}>
-        <IconButton label="Back to Feed" onPress={onBack}>
+        <IconButton label={tr('Back to Feed')} onPress={onBack}>
           <ArrowLeft color={colors.text} size={22} />
         </IconButton>
         <Text accessibilityRole="header" style={s.title}>
-          Search
+          {tr('Search')}
         </Text>
       </View>
       <View style={s.inputWrap}>
@@ -572,14 +580,14 @@ export function SearchScreen({
           maxLength={100}
           autoCapitalize="none"
           autoCorrect={false}
-          accessibilityLabel="Search people, hashtags and posts"
-          placeholder="Search users, #hashtags, posts…"
+          accessibilityLabel={tr('Search people, hashtags and posts')}
+          placeholder={tr('Search users, #hashtags, posts…')}
           placeholderTextColor="#71717a"
           style={s.input}
         />
         {!!term && (
           <IconButton
-            label="Clear search"
+            label={tr('Clear search')}
             onPress={() => {
               setTerm('');
               setDebounced('');
@@ -609,7 +617,7 @@ export function SearchScreen({
               }}
               style={[s.tab, tab === item && s.tabSelected]}
             >
-              <Text style={[s.tabText, tab === item && s.tabTextSelected]}>{item}</Text>
+              <Text style={[s.tabText, tab === item && s.tabTextSelected]}>{tr(item)}</Text>
             </Pressable>
           ))}
         </ScrollView>

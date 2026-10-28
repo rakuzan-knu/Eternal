@@ -14,6 +14,7 @@ import {
 } from './music';
 import { useMusicJam } from './useMusicJam';
 import { MusicAudio } from '../ui/MusicAudio';
+import { tr } from '@/shared/lib/i18n';
 
 function useMusicController(userId: string, isOnline: boolean) {
   const client = useQueryClient();
@@ -97,7 +98,7 @@ function useMusicController(userId: string, isOnline: boolean) {
         updatePreferences(value);
       })
       .catch(() => {
-        if (live) setNotice('Your listening history could not be restored.');
+        if (live) setNotice(tr('Your listening history could not be restored.'));
       })
       .finally(() => {
         if (live) {
@@ -115,7 +116,7 @@ function useMusicController(userId: string, isOnline: boolean) {
       void AsyncStorage.setItem(
         `eternal-mobile-music:${userId}`,
         JSON.stringify(preferences),
-      ).catch(() => setNotice('Device storage is full. Your library is still saved online.'));
+      ).catch(() => setNotice(tr('Device storage is full. Your library is still saved online.')));
     }, 400);
     return () => clearTimeout(timer);
   }, [preferences, hydrated, userId]);
@@ -155,7 +156,7 @@ function useMusicController(userId: string, isOnline: boolean) {
   }
   function play(track: Track, tracks: Track[] = [track], startMs = 0, autoPlay = true) {
     if (!isOnline) {
-      setError('Connect to the internet to play music.');
+      setError(tr('Connect to the internet to play music.'));
       return;
     }
     const next = tracks.some((item) => item.id === track.id) ? tracks : [track, ...tracks];
@@ -198,7 +199,7 @@ function useMusicController(userId: string, isOnline: boolean) {
   async function run(action: () => Promise<unknown>, success?: string) {
     if (mutationLock.current) return false;
     if (!isOnline) {
-      setError('Connect to the internet to update your library.');
+      setError(tr('Connect to the internet to update your library.'));
       return false;
     }
     mutationLock.current = true;
@@ -212,7 +213,7 @@ function useMusicController(userId: string, isOnline: boolean) {
       return true;
     } catch {
       await client.invalidateQueries({ queryKey: key });
-      setError('Changes could not be saved. Please try again.');
+      setError(tr('Changes could not be saved. Please try again.'));
       return false;
     } finally {
       mutationLock.current = false;
@@ -226,7 +227,7 @@ function useMusicController(userId: string, isOnline: boolean) {
     }
     setQueue((value) => [...value, track]);
     originalQueue.current = [...originalQueue.current, track];
-    setNotice('Added to queue');
+    setNotice(tr('Added to queue'));
   };
   const jam = useMusicJam({
     userId,
@@ -247,7 +248,7 @@ function useMusicController(userId: string, isOnline: boolean) {
   }, []);
   const onError = React.useCallback(() => {
     setPlaying(false);
-    setError('Playback failed. Retry to refresh the audio stream.');
+    setError(tr('Playback failed. Retry to refresh the audio stream.'));
   }, []);
   return {
     jam,
@@ -307,7 +308,7 @@ function useMusicController(userId: string, isOnline: boolean) {
     play: (track: Track, tracks?: Track[]) => {
       if (jam.room && !jam.isHost) {
         jam.leave();
-        setNotice('You left Jam to play your own selection.');
+        setNotice(tr('You left Jam to play your own selection.'));
       }
       play(track, tracks);
     },

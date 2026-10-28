@@ -152,6 +152,7 @@ describe('AuthService', () => {
       displayName: 'New User',
       password: 'Password123!',
       birthDate: '2000-01-01T00:00:00.000Z',
+      gender: 'Female' as const,
     };
 
     it('throws ConflictException if email is already registered', async () => {
@@ -211,6 +212,9 @@ describe('AuthService', () => {
       const result = await service.register(registerDto, { ip: '127.0.0.1', userAgent: 'Jest' });
 
       expect(mockUsersService.create).toHaveBeenCalledTimes(1);
+      expect(mockUsersService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ gender: 'Female' }),
+      );
       const createCalls = mockUsersService.create.mock.calls as unknown as [
         [{ email: string; username: string; passwordHash: string }],
       ];

@@ -47,6 +47,7 @@ export class SearchRepository implements ISearchRepository {
       const messages = await this.prisma.message.findMany({
         where: {
           conversationId: { in: targetConvIds },
+          conversation: { participants: { some: { userId, leftAt: null } } },
           deletedForAll: false,
           deletedFor: { none: { userId } },
           bodySearch: {
@@ -148,6 +149,7 @@ export class SearchRepository implements ISearchRepository {
         where: {
           message: {
             conversationId: { in: targetConvIds },
+            conversation: { participants: { some: { userId, leftAt: null } } },
             deletedForAll: false,
             deletedFor: { none: { userId } },
           },

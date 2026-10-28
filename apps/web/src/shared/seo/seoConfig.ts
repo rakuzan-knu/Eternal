@@ -32,8 +32,6 @@ export const SAME_AS_ENTITIES = [
   'https://www.tiktok.com/@eternalsocial',
   'https://github.com/rakuzan-knu',
   'https://www.linkedin.com/company/eternal-social',
-  'https://apps.apple.com/app/eternal-social',
-  'https://play.google.com/store/apps/details?id=net.eternal.app',
 ];
 
 export const SUPPORTED_LANGUAGES = ['en', 'ru', 'de', 'fr', 'es', 'zh', 'ja', 'uk'] as const;

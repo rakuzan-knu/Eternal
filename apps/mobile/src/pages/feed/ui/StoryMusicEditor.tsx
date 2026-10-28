@@ -14,6 +14,7 @@ import {
 } from './StoryToolPanel';
 import { StoryAudio } from './StoryAudio';
 import { MusicSticker } from './StoryCanvas';
+import { tr } from '@/shared/lib/i18n';
 
 export function StoryMusicPlayer({
   overlay,
@@ -39,7 +40,7 @@ export function StoryMusicPlayer({
     <>
       {stream.isError ? (
         <ErrorNotice
-          message="Music couldn't be loaded."
+          message={tr("Music couldn't be loaded.")}
           onRetry={() => {
             void stream.refetch();
           }}
@@ -51,7 +52,7 @@ export function StoryMusicPlayer({
           volume={overlay.musicVolume}
           startTimeMs={overlay.startTimeMs}
           clipDurationSeconds={overlay.clipDurationSeconds}
-          label="Story music"
+          label={tr('Story music')}
         />
       ) : stream.isFetching ? (
         <ActivityIndicator color={colors.purple} />
@@ -113,8 +114,8 @@ export function StoryMusicEditor({
   if (base.type !== 'audio') return null;
   const overlay: AudioOverlay = {
     ...base,
-    title: (track?.title || initial?.title || 'Music').slice(0, 128),
-    artist: (track?.artist || initial?.artist || 'Artist').slice(0, 128),
+    title: (track?.title || initial?.title || tr('Music')).slice(0, 128),
+    artist: (track?.artist || initial?.artist || tr('Artist')).slice(0, 128),
     albumArt: track?.albumArt || initial?.albumArt,
     soundCloudTrackId: rawId,
     audioUrl: rawId ? undefined : initial?.audioUrl,
@@ -129,19 +130,21 @@ export function StoryMusicEditor({
   const uri = stream.data || (!rawId ? initial?.audioUrl : undefined);
   return (
     <StoryToolPanel
-      title="Music"
+      title={tr('Music')}
       onClose={onClose}
       onSave={track || initial ? () => onSave(overlay) : undefined}
       saveDisabled={!isOnline || !uri}
     >
       {error && <ErrorNotice message={error} />}
-      {!isOnline && <ErrorNotice message="Connect to the internet to find and preview music." />}
+      {!isOnline && (
+        <ErrorNotice message={tr('Connect to the internet to find and preview music.')} />
+      )}
       {track || initial ? (
         <>
           <MusicSticker overlay={overlay} />
           {stream.isError ? (
             <ErrorNotice
-              message="This track couldn't be loaded."
+              message={tr("This track couldn't be loaded.")}
               onRetry={() => {
                 void stream.refetch();
               }}
@@ -155,23 +158,23 @@ export function StoryMusicEditor({
               volume={volume}
               startTimeMs={start * 1000}
               clipDurationSeconds={clip}
-              label="Music preview"
+              label={tr('Music preview')}
             />
           ) : null}
           <StoryChoices
-            label="Music sticker"
+            label={tr('Music sticker')}
             values={['card', 'cover', 'vinyl', 'none'] as const}
             value={style || 'card'}
             onChange={setStyle}
           />
           <StoryColorPicker
-            label="Sticker color"
+            label={tr('Sticker color')}
             colors={STORY_COLORS}
             value={color}
             onChange={setColor}
           />
           <StoryRange
-            label="Clip duration (seconds)"
+            label={tr('Clip duration (seconds)')}
             value={clip}
             min={5}
             max={maxClip}
@@ -181,19 +184,19 @@ export function StoryMusicEditor({
             }}
           />
           <StoryRange
-            label="Clip starts at (seconds)"
+            label={tr('Clip starts at (seconds)')}
             value={start}
             max={Math.max(0, duration - clip)}
             onChange={setStart}
           />
           <StoryRange
-            label="Music volume (%)"
+            label={tr('Music volume (%)')}
             value={volume * 100}
             max={100}
             onChange={(value) => setVolume(value / 100)}
           />
           <StoryRange
-            label="Original video volume (%)"
+            label={tr('Original video volume (%)')}
             value={videoVolume * 100}
             max={100}
             onChange={(value) => setVideoVolume(value / 100)}
@@ -204,15 +207,20 @@ export function StoryMusicEditor({
               onPress={() => setTrack(null)}
               style={{ minHeight: 44, justifyContent: 'center' }}
             >
-              <Text style={{ color: colors.purple }}>Choose another track</Text>
+              <Text style={{ color: colors.purple }}>{tr('Choose another track')}</Text>
             </Pressable>
           )}
         </>
       ) : (
         <>
-          <StoryField label="Search music" value={query} onChange={setQuery} maxLength={128} />
+          <StoryField
+            label={tr('Search music')}
+            value={query}
+            onChange={setQuery}
+            maxLength={128}
+          />
           <StoryChoices
-            label="Music genre"
+            label={tr('Music genre')}
             values={['For You', 'Trending', 'Phonk', 'Hip-hop', 'Electronic', 'Lofi / Chill']}
             value={genre}
             onChange={setGenre}
@@ -221,7 +229,7 @@ export function StoryMusicEditor({
             <ActivityIndicator color={colors.purple} />
           ) : search.isError ? (
             <ErrorNotice
-              message="Music search couldn't be loaded."
+              message={tr("Music search couldn't be loaded.")}
               onRetry={() => {
                 void search.refetch();
               }}
@@ -231,20 +239,23 @@ export function StoryMusicEditor({
               <Pressable
                 key={item.id}
                 accessibilityRole="button"
-                accessibilityLabel={`Choose ${item.title} by ${item.artist}`}
+                accessibilityLabel={tr('Choose {title} by {artist}', {
+                  title: item.title,
+                  artist: item.artist,
+                })}
                 onPress={() => {
                   try {
                     soundCloudId(item);
                     setTrack(item);
                     if (item.durationMs && item.durationMs < 5000) {
-                      setError('Choose a track with at least 5 seconds of audio.');
+                      setError(tr('Choose a track with at least 5 seconds of audio.'));
                       return;
                     }
                     setClip(Math.max(5, Math.min(15, (item.durationMs || 15000) / 1000)));
                     setStart(0);
                     setError(null);
                   } catch {
-                    setError('This track is unavailable. Choose another song.');
+                    setError(tr('This track is unavailable. Choose another song.'));
                   }
                 }}
                 style={[common.row, { minHeight: 64 }]}
@@ -264,7 +275,7 @@ export function StoryMusicEditor({
               </Pressable>
             ))
           ) : (
-            <Text style={common.muted}>No tracks found. Try another artist or title.</Text>
+            <Text style={common.muted}>{tr('No tracks found. Try another artist or title.')}</Text>
           )}
         </>
       )}

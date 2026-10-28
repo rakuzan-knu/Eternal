@@ -14,7 +14,7 @@ import {
   FileText,
 } from 'lucide-react';
 import { useLanguageStore } from '../../shared/lib/language/languageStore';
-import { LAW_ENFORCEMENT_DATA } from './data/lawEnforcementData';
+import { LAW_ENFORCEMENT_DATA } from '@social-network/shared-content';
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   Scale: <Scale className="w-4 h-4" />,

@@ -32,6 +32,7 @@ describe('MessengerMapper', () => {
       deletedAt: null,
       editedAt: null,
       clientSeq: null,
+      mentionedUserIds: [],
       createdAt: new Date('2026-08-16T12:00:00.000Z'),
       sender: {
         id: 'usr-sender',
@@ -166,6 +167,7 @@ describe('MessengerMapper', () => {
         role: ParticipantRole.OWNER,
         permissions: 0,
         theme: null,
+        notificationMode: null,
         muteLevel: MuteLevel.NONE,
         mutedUntil: null,
         nickname: 'Boss',
@@ -202,6 +204,7 @@ describe('MessengerMapper', () => {
 
   describe('mapConversation', () => {
     const conv: ConversationWithDetails = {
+      communityChannel: null,
       id: 'conv-1',
       type: 'DIRECT',
       name: null,
@@ -220,6 +223,7 @@ describe('MessengerMapper', () => {
           role: ParticipantRole.MEMBER,
           permissions: 0,
           theme: 'dark',
+          notificationMode: null,
           muteLevel: MuteLevel.MESSAGES,
           mutedUntil: null,
           nickname: null,
@@ -251,6 +255,7 @@ describe('MessengerMapper', () => {
           role: ParticipantRole.MEMBER,
           permissions: 0,
           theme: null,
+          notificationMode: null,
           muteLevel: MuteLevel.NONE,
           mutedUntil: null,
           nickname: null,
@@ -291,6 +296,29 @@ describe('MessengerMapper', () => {
       expect(mapped.isPinned).toBe(true);
       expect(mapped.isBlocked).toBe(false);
     });
+
+    it.each(['ALL', 'MENTIONS', 'NONE', null] as const)(
+      'maps own notification inheritance without changing unread or mute: %s',
+      (notificationMode) => {
+        const value: ConversationWithDetails = {
+          ...conv,
+          ownCommunityNotificationPreferences: {
+            notificationMode: 'MENTIONS',
+            notificationMutedUntil: new Date('2000-01-01'),
+          },
+          participants: conv.participants.map((participant) => ({
+            ...participant,
+            notificationMode,
+          })),
+        };
+        const mapped = mapper.mapConversation(value, 'usr-viewer', 7);
+        expect(mapped.myNotificationMode).toBe(notificationMode);
+        expect(mapped.myEffectiveNotificationMode).toBe(notificationMode ?? 'MENTIONS');
+        expect(mapped.myNotificationMutedUntil).toBe('2000-01-01T00:00:00.000Z');
+        expect(mapped.unreadCount).toBe(7);
+        expect(mapped.myMuteLevel).toBe(MuteLevel.MESSAGES);
+      },
+    );
 
     it('marks conversation blocked if either user blocked the other', () => {
       const blockCtx = {

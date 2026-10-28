@@ -22,6 +22,7 @@ export type RegisterPayload = Partial<RegisterDto> & {
   displayName?: string;
   password?: string;
   birthDate?: string;
+  gender?: 'Male' | 'Female' | 'Custom';
   turnstileToken?: string;
 };
 

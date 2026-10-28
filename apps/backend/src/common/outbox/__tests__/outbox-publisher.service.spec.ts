@@ -84,6 +84,56 @@ describe('OutboxPublisherService', () => {
     expect(mockRedisService.releaseLock).toHaveBeenCalled();
   });
 
+  it('delivers community events only to the gateway with deduplicated recipients', async () => {
+    const emitCommunityChanged = vi.fn().mockResolvedValue(undefined);
+    Object.assign(service, { gateway: { emitCommunityChanged } });
+    mockOutboxRepo.claimPendingEvents.mockResolvedValueOnce([
+      {
+        ...sampleEvent,
+        aggregateType: 'COMMUNITY',
+        eventType: OUTBOX_EVENT_TYPES.COMMUNITY_CHANGED,
+        payload: {
+          communityId: 'community',
+          recipientIds: ['member', 'member', 42],
+          removedUserIds: ['departed'],
+          conversationIds: ['channel'],
+        },
+      },
+    ]);
+    await service.processOutboxBatch();
+    expect(emitCommunityChanged).toHaveBeenCalledWith(
+      'community',
+      ['member'],
+      ['departed'],
+      ['channel'],
+      sampleEvent.id,
+    );
+    expect(mockOutboxRepo.markAsPublished).toHaveBeenCalledWith(sampleEvent.id);
+    expect(mockQueueService.addMessageJob).not.toHaveBeenCalled();
+  });
+
+  it('retains community events for retry when the gateway cannot apply them', async () => {
+    Object.assign(service, {
+      gateway: {
+        emitCommunityChanged: vi.fn().mockRejectedValue(new Error('membership lookup unavailable')),
+      },
+    });
+    mockOutboxRepo.claimPendingEvents.mockResolvedValueOnce([
+      {
+        ...sampleEvent,
+        aggregateType: 'COMMUNITY',
+        eventType: OUTBOX_EVENT_TYPES.COMMUNITY_CHANGED,
+        payload: { communityId: 'community', recipientIds: ['member'] },
+      },
+    ]);
+    await service.processOutboxBatch();
+    expect(mockOutboxRepo.markAsPublished).not.toHaveBeenCalled();
+    expect(mockOutboxRepo.markAsFailed).toHaveBeenCalledWith(
+      sampleEvent.id,
+      'membership lookup unavailable',
+    );
+  });
+
   it('marks event as failed if publishing throws an error', async () => {
     (mockQueueService.addSearchIndexingJob as jest.Mock).mockRejectedValueOnce(
       new Error('Broker unreachable'),
@@ -146,5 +196,32 @@ describe('OutboxPublisherService', () => {
     finishBatch?.([]);
     await vi.advanceTimersByTimeAsync(2000);
     expect(mockOutboxRepo.claimPendingEvents).toHaveBeenCalledTimes(2);
+  });
+  it('uses current channel access for delayed message delivery and retries lookup failures', async () => {
+    const emitNewMessageToParticipants = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('access lookup unavailable'))
+      .mockResolvedValue(undefined);
+    Object.assign(service, { gateway: { emitNewMessageToParticipants } });
+    const event = {
+      ...sampleEvent,
+      eventType: OUTBOX_EVENT_TYPES.MESSAGE_SENT,
+      payload: {
+        messageId: 'm1',
+        conversationId: 'private',
+        recipientIds: ['member', 42],
+        messageView: { id: 'm1' },
+      },
+    };
+    mockOutboxRepo.claimPendingEvents.mockResolvedValue([event]);
+    await service.processOutboxBatch();
+    expect(mockOutboxRepo.markAsPublished).not.toHaveBeenCalled();
+    expect(mockOutboxRepo.markAsFailed).toHaveBeenCalledWith(
+      sampleEvent.id,
+      'access lookup unavailable',
+    );
+    await service.processOutboxBatch();
+    expect(emitNewMessageToParticipants).toHaveBeenCalledWith('private', ['member'], { id: 'm1' });
+    expect(mockOutboxRepo.markAsPublished).toHaveBeenCalledWith(sampleEvent.id);
   });
 });

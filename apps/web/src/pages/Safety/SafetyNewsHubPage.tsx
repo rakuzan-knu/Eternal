@@ -16,7 +16,7 @@ import {
 } from './ui/SafetyNewsIllustrations';
 import { ChevronDown, Search, ArrowRight, Filter, X, Calendar, Clock } from 'lucide-react';
 import { useLanguageStore } from '../../shared/lib/language/languageStore';
-import { SAFETY_NEWS_DATA, SafetyNewsArticle } from './data/safetyNewsData';
+import { SAFETY_NEWS_DATA, SafetyNewsArticle } from '@social-network/shared-content';
 
 export const SafetyNewsHubPage: React.FC = () => {
   const navigate = useNavigate();

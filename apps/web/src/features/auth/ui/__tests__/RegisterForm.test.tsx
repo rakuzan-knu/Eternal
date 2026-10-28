@@ -44,7 +44,18 @@ function getSubmitButton() {
   return screen.getByRole('button', { name: 'Create Account' });
 }
 
-function fillMinimumValidForm() {
+function selectOption(label: string, option: string) {
+  fireEvent.click(screen.getByRole('combobox', { name: label }));
+  fireEvent.click(screen.getByRole('option', { name: option }));
+}
+
+function fillMinimumValidForm(includePersonalDetails = true) {
+  if (includePersonalDetails) {
+    selectOption('Birth month', 'January');
+    selectOption('Birth day', '1');
+    selectOption('Birth year', '2000');
+    selectOption('Gender', 'Male');
+  }
   const firstNameInput = screen.getByPlaceholderText('First name');
   const lastNameInput = screen.getByPlaceholderText('Last name');
   const usernameInput = screen.getByPlaceholderText('@username');
@@ -62,6 +73,46 @@ function fillMinimumValidForm() {
 }
 
 describe('RegisterForm', () => {
+  it('requires a deliberate birthday and gender selection without default personal data', async () => {
+    const mutate = setupMutations();
+    renderWithProviders(<RegisterForm />);
+    expect(screen.getByRole('combobox', { name: 'Birth month' })).toHaveTextContent('Month');
+    expect(screen.getByRole('combobox', { name: 'Birth day' })).toHaveTextContent('Day');
+    expect(screen.getByRole('combobox', { name: 'Birth year' })).toHaveTextContent('Year');
+    expect(screen.getByRole('combobox', { name: 'Gender' })).toHaveTextContent('Select gender');
+    fillMinimumValidForm(false);
+    fireEvent.submit(getSubmitButton().closest('form')!);
+    expect(await screen.findByText('Select a month')).toBeInTheDocument();
+    expect(screen.getByText('Select a day')).toBeInTheDocument();
+    expect(screen.getByText('Select a year')).toBeInTheDocument();
+    expect(mutate).not.toHaveBeenCalled();
+    expect(screen.getByRole('combobox', { name: 'Birth month' })).toHaveAccessibleDescription(
+      'Select a month',
+    );
+  });
+
+  it('requires correcting the day when another month makes the selected date impossible', async () => {
+    const mutate = setupMutations();
+    renderWithProviders(<RegisterForm />);
+    fillMinimumValidForm(false);
+    selectOption('Birth month', 'January');
+    selectOption('Birth day', '31');
+    selectOption('Birth year', '2000');
+    selectOption('Gender', 'Custom');
+    await waitFor(() => expect(getSubmitButton()).toBeEnabled());
+    selectOption('Birth month', 'February');
+    await waitFor(() =>
+      expect(screen.getByRole('combobox', { name: 'Birth day' })).toHaveTextContent('Day'),
+    );
+    expect(getSubmitButton()).toBeDisabled();
+    selectOption('Birth day', '29');
+    await waitFor(() => expect(getSubmitButton()).toBeEnabled());
+    fireEvent.click(getSubmitButton());
+    await waitFor(() => expect(mutate).toHaveBeenCalled());
+    expect(new Date(mutate.mock.calls[0][0].birthDate).getDate()).toBe(29);
+    expect(mutate.mock.calls[0][0]).toHaveProperty('gender', 'Custom');
+  });
+
   it('blocks mismatched confirmation and revalidates when the original password changes', async () => {
     const mutate = setupMutations();
     mockedUseCheckUsername.mockReturnValue({

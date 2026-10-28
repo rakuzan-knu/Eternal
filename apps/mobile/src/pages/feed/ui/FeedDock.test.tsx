@@ -56,18 +56,19 @@ async function setup(busy = false) {
   const root = createRoot(element);
   const onHome = vi.fn();
   const onProfile = vi.fn();
+  const onReels = vi.fn();
+  const onChats = vi.fn();
   const onMusic = vi.fn();
-  const onError = vi.fn();
   await act(async () =>
     root.render(
       <FeedDock
         home
         busy={busy}
-        profileOpen={false}
         onHome={onHome}
+        onReels={onReels}
+        onChats={onChats}
         onProfile={onProfile}
         onMusic={onMusic}
-        onError={onError}
       />,
     ),
   );
@@ -82,10 +83,10 @@ async function setup(busy = false) {
     if (!button) throw new Error(`Missing navigation action: ${label}`);
     await act(async () => button.click());
   };
-  return { click, onHome, onProfile, onMusic, onError };
+  return { click, onHome, onProfile, onReels, onChats, onMusic };
 }
 
-it('opens Home and the native profile menu without leaving the app', async () => {
+it('opens Home and the native profile without leaving the app', async () => {
   const dock = await setup();
   await dock.click('Home, current page');
   await dock.click('Profile');
@@ -94,22 +95,18 @@ it('opens Home and the native profile menu without leaving the app', async () =>
   expect(openURL).not.toHaveBeenCalled();
 });
 
-it('opens Reels and Messages on the web and Music Hub natively', async () => {
-  openURL.mockResolvedValue(undefined);
+it('opens Messages, Reels and Music Hub natively without leaving the app', async () => {
   const dock = await setup();
   await dock.click('Reels');
   await dock.click('Messages');
   await dock.click('Music Hub');
-  expect(openURL.mock.calls.map(([url]) => url)).toEqual([
-    'https://eternal.example/reels',
-    'https://eternal.example/messages',
-  ]);
-  expect(dock.onError).toHaveBeenCalledTimes(2);
+  expect(openURL).not.toHaveBeenCalled();
+  expect(dock.onReels).toHaveBeenCalledOnce();
+  expect(dock.onChats).toHaveBeenCalledOnce();
   expect(dock.onMusic).toHaveBeenCalledOnce();
-  expect(dock.onError).toHaveBeenLastCalledWith(false);
 });
 
-it('prevents changing the feed while publishing and keeps the profile menu available', async () => {
+it('prevents changing the feed while publishing and keeps the profile available', async () => {
   const dock = await setup(true);
   await dock.click('Home, current page');
   await dock.click('Profile');

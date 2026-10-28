@@ -61,3 +61,12 @@ export async function getClipboardResetCode(): Promise<string | null> {
     return null;
   }
 }
+
+export async function copyText(text: string): Promise<void> {
+  if (Platform.OS === 'web') {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+  const Clipboard = require('expo-clipboard');
+  await Clipboard.setStringAsync(text);
+}

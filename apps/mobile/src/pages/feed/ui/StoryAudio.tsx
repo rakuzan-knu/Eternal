@@ -4,6 +4,7 @@ import { useVideoPlayer } from 'expo-video';
 import { Button } from '@/shared/ui';
 import { common } from './primitives';
 import type { StoryAudioProps } from './storyAudioTypes';
+import { tr } from '@/shared/lib/i18n';
 
 export function StoryAudio({
   uri,
@@ -11,7 +12,7 @@ export function StoryAudio({
   volume = 1,
   startTimeMs = 0,
   clipDurationSeconds = 15,
-  label = 'Story music',
+  label = tr('Story music'),
 }: StoryAudioProps) {
   const player = useVideoPlayer(uri);
   const [playing, setPlaying] = React.useState(false);
@@ -71,7 +72,7 @@ export function StoryAudio({
       />
       {failed && (
         <Text accessibilityRole="alert" style={common.muted}>
-          Audio could not be played. Tap Play to retry.
+          {tr('Audio could not be played. Tap Play to retry.')}
         </Text>
       )}
     </View>

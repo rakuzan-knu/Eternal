@@ -19,6 +19,7 @@ describe('ChatListPanel', () => {
     );
 
     expect(screen.getByText('Search in Messenger')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Search in Messenger' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'New group chat' })).toBeInTheDocument();
   });
 

@@ -60,4 +60,15 @@ describe('useUIStore', () => {
     expect(useUIStore.getState().isShareModalOpen).toBe(false);
     expect(useUIStore.getState().activePostForShare).toBeNull();
   });
+
+  it('persists only the navigation preference without modal or user content', () => {
+    useUIStore.setState({ isSidebarPinned: false });
+    useUIStore.getState().toggleSidebarPin();
+    expect(useUIStore.getState().isSidebarExpanded).toBe(true);
+    const saved = JSON.parse(localStorage.getItem('eternal-navigation-preferences')!);
+    expect(saved.state).toEqual({ isSidebarPinned: true });
+    useUIStore.getState().toggleSidebar();
+    expect(useUIStore.getState().isSidebarPinned).toBe(false);
+    expect(useUIStore.getState().isSidebarExpanded).toBe(false);
+  });
 });

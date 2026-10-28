@@ -14,7 +14,7 @@ import { DropdownDeveloperMascot } from '../../Privacy/ui/PrivacyIllustrations';
 
 export const DownloadHeroPreview: React.FC = () => {
   return (
-    <div className="relative w-full max-w-5xl mx-auto pt-6 select-none">
+    <div aria-hidden="true" className="relative w-full max-w-5xl mx-auto pt-6 select-none">
       {/* 3D Developer Mascot on Top Right with Levitation */}
       <div className="hidden lg:block absolute -top-12 -right-8 pointer-events-none z-30 drop-shadow-2xl">
         <DropdownDeveloperMascot className="w-28 h-28 xl:w-36 xl:h-36" />

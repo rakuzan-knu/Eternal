@@ -203,11 +203,6 @@ export function generateSoftwareAppSchema() {
       price: '0',
       priceCurrency: 'USD',
     },
-    aggregateRating: {
-      '@type': 'AggregateRating',
-      ratingValue: '4.9',
-      ratingCount: '12800',
-    },
     description:
       'Eternal is the ultra-sleek, privacy-first social network and real-time messenger available across all platforms.',
     downloadUrl: `${SEO_BASE_URL}/download`,

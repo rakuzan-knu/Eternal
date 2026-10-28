@@ -19,12 +19,28 @@ model PendingMediaObject {
   key       String @id
   uploadId  String @unique
   ownerId   String
+  bucket    String?
   state     PendingMediaState @default(PENDING)
   createdAt DateTime @default(now())
   deletedAt DateTime?
 
   @@index([state, createdAt])
   @@index([state, deletedAt])
+}
+
+/// Durable storage locator; never includes credentials or expiring download URLs.
+model PrivateMediaObject {
+  id String @id
+  key String @unique
+  bucket String
+  ownerId String
+  conversationId String
+  contentType String
+  sizeBytes Int
+  readyAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([conversationId, ownerId])
+  @@map("private_media_objects")
 }
 
 model User {
@@ -76,6 +92,9 @@ model User {
   comments  Comment[]
 
   conversationParticipants ConversationParticipant[]
+  ownedCommunities         Community[] @relation("CommunityOwner")
+  communityMemberships     CommunityMember[]
+  communityInvites         CommunityInvite[]
   conversationActivityVersions ConversationActivityVersion[]
   sentMessages             Message[]                 @relation("SentMessages")
   messageReactions         MessageReaction[]
@@ -100,6 +119,7 @@ model User {
   notificationsReceived    Notification[]            @relation("UserNotifications")
   notificationsTriggered   Notification[]            @relation("ActorNotifications")
   notificationSettings     UserNotificationSettings?
+  pushDevices              PushDevice[]
   showcase                 ProfileShowcase?
   stories                  Story[]
   storyViews               StoryView[]
@@ -115,6 +135,7 @@ model User {
   reels                    Reel[]
   reelLikes                ReelLike[]
   reelComments             ReelComment[]
+  savedReels               SavedReel[]
   likedTracks              UserLikedTrack[]
   musicFolders             UserMusicFolder[]
   musicPlaylists           UserPlaylist[]
@@ -307,9 +328,107 @@ model Conversation {
   pinnedMessages PinnedMessage[]
   calls          Call[]
   activityVersions ConversationActivityVersion[]
+  communityChannel CommunityChannel?
 
   @@index([createdAt])
   @@index([updatedAt, id])
+}
+
+model Community {
+  id String @id @default(uuid())
+  ownerId String
+  name String
+  description String @default("")
+  avatar String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  owner User @relation("CommunityOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  members CommunityMember[]
+  channels CommunityChannel[]
+  channelRevision Int @default(0)
+  categories CommunityCategory[]
+  invites CommunityInvite[]
+  @@index([createdAt, id])
+  @@index([ownerId])
+  @@map("communities")
+}
+
+enum CommunityMemberState {
+  ACTIVE
+  LEFT
+  BANNED
+}
+
+enum NotificationMode {
+  ALL
+  MENTIONS
+  NONE
+}
+
+model CommunityMember {
+  id String @id @default(uuid())
+  communityId String
+  userId String
+  role ParticipantRole @default(MEMBER)
+  state CommunityMemberState @default(ACTIVE)
+  notificationMode NotificationMode @default(ALL)
+  notificationMutedUntil DateTime?
+  joinedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([communityId, userId])
+  @@index([userId, state, communityId])
+  @@index([communityId, state, id])
+  @@map("community_members")
+}
+
+model CommunityChannel {
+  id String @id @default(uuid())
+  communityId String
+  conversationId String @unique
+  name String
+  description String @default("")
+  position Int @default(0)
+  categoryId String?
+  archivedAt DateTime?
+  isPrivate Boolean @default(false)
+  /// Explicit member grants; administrators and the owner have implicit access.
+  allowedUserIds String[] @default([])
+  category CommunityCategory? @relation(fields: [categoryId, communityId], references: [id, communityId], onDelete: NoAction, onUpdate: NoAction)
+  createdAt DateTime @default(now())
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  @@index([communityId, position, id])
+  @@map("community_channels")
+}
+
+model CommunityCategory {
+  id String @id @default(uuid())
+  communityId String
+  name String
+  position Int @default(0)
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  channels CommunityChannel[]
+  @@unique([id, communityId])
+  @@index([communityId, position, id])
+  @@map("community_categories")
+}
+
+model CommunityInvite {
+  id String @id @default(uuid())
+  communityId String
+  creatorId String
+  tokenHash String @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  maxUses Int?
+  useCount Int @default(0)
+  createdAt DateTime @default(now())
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  creator User @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  @@index([communityId, createdAt, id])
+  @@map("community_invites")
 }
 
 enum ConversationType {
@@ -327,6 +446,7 @@ model ConversationParticipant {
   theme          String?         @default("default")
   muteLevel      MuteLevel       @default(NONE)
   mutedUntil     DateTime?
+  notificationMode NotificationMode?
   leftAt         DateTime?
   archivedAt     DateTime?
   pinnedAt       DateTime?
@@ -400,6 +520,7 @@ model Message {
   bodyArchived    Boolean     @default(false) @map("body_archived")
   bodyDigest      String?     @map("body_digest")
   clientSeq       Int?        @map("client_seq")
+  mentionedUserIds String[] @default([])
   messageType     MessageType @default(TEXT)
   replyToId       String?
   forwardedFromId String?
@@ -643,9 +764,27 @@ model Session {
   createdAt    DateTime @default(now())
   lastActiveAt DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pushDevices PushDevice[]
 
   @@index([userId])
+}
+
+model PushDevice {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  token      String   @unique
+  platform   String
+  locale     String   @default("en")
+  sessionJti String?  @map("session_jti")
+  createdAt  DateTime @default(now()) @map("created_at")
+  lastSeenAt DateTime @default(now()) @map("last_seen_at")
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session Session? @relation(fields: [sessionJti], references: [jti], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_devices")
 }
 
 model Poll {
@@ -1156,10 +1295,25 @@ model Reel {
   author   User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
   likes    ReelLike[]
   comments ReelComment[]
+  saves    SavedReel[]
 
   @@index([authorId, createdAt(sort: Desc)])
   @@index([createdAt(sort: Desc)])
   @@map("reels")
+}
+
+model SavedReel {
+  id        String   @id @default(uuid())
+  reelId    String   @map("reel_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  reel Reel @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([reelId, userId])
+  @@index([userId, createdAt, id])
+  @@map("saved_reels")
 }
 
 model ReelLike {

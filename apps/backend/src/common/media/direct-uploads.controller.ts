@@ -1,4 +1,14 @@
-import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  UseGuards,
+  Header,
+  ParseUUIDPipe,
+} from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { AuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
@@ -23,6 +33,12 @@ export class DirectUploadsController {
   ) {
     return this.uploads.start(user.id, body);
   }
+  @Get('private/:id')
+  @Header('Cache-Control', 'private, no-store')
+  downloadPrivate(@CurrentUser() user: RequestUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.uploads.downloadPrivate(user.id, id);
+  }
+
   @Get('quota')
   status(@CurrentUser() user: RequestUser) {
     return this.budget.getStatus(user.id);

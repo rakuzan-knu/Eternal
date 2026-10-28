@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Play, CheckCheck, FileText } from 'lucide-react';
-import { PressReleaseItem } from '../data/newsroomData';
+import { PressReleaseItem } from '@social-network/shared-content';
 
 /**
  * 1:1 Realistic Minimalist Feature Previews

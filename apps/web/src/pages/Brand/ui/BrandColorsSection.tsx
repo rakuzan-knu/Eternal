@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Check, Copy } from 'lucide-react';
-import { ColorSwatch } from '../data/brandingData';
+import { ColorSwatch } from '@social-network/shared-content';
 
 export const BrandColorsSection: React.FC<{
   heading: string;

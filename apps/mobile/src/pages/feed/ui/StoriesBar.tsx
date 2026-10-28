@@ -10,6 +10,7 @@ import { feedKeys } from '../model/queries';
 import { Avatar, colors, common, ErrorNotice } from './primitives';
 import { StoryViewer } from './StoryViewer';
 import { CreateStory } from './CreateStory';
+import { tr } from '@/shared/lib/i18n';
 export { CreateStory } from './CreateStory';
 
 export function StoriesBar({
@@ -46,7 +47,9 @@ export function StoriesBar({
         <View style={s.item}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={own?.stories.length ? 'View your stories' : 'Create your story'}
+            accessibilityLabel={
+              own?.stories.length ? tr('View your stories') : tr('Create your story')
+            }
             disabled={!own?.stories.length && !isOnline}
             onPress={() => {
               if (own?.stories.length) open(own);
@@ -73,7 +76,7 @@ export function StoriesBar({
           </Pressable>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Create a story"
+            accessibilityLabel={tr('Create a story')}
             disabled={!isOnline}
             style={s.plus}
             onPress={() => {
@@ -85,7 +88,9 @@ export function StoriesBar({
               <Plus size={14} color="white" />
             </View>
           </Pressable>
-          <Text style={s.storyName}>{own?.stories.length ? 'Your story' : 'Add'}</Text>
+          <Text style={s.storyName}>
+            {own?.stories.length ? tr('Your story') : tr('Add story')}
+          </Text>
         </View>
         {others.map((group) => (
           <Pressable
@@ -124,7 +129,7 @@ export function StoriesBar({
       </ScrollView>
       {query.isError && (
         <ErrorNotice
-          message="Stories couldn't be loaded."
+          message={tr("Stories couldn't be loaded.")}
           onRetry={() => {
             void query.refetch();
           }}

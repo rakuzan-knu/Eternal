@@ -4,7 +4,7 @@ import { PrivacyNavbar } from '../Privacy/ui/PrivacyNavbar';
 import { EternalFooter } from '@/widgets/footer';
 import { SEOHead } from '../../shared/seo';
 import { useLanguageStore } from '../../shared/lib/language/languageStore';
-import { BLOG_TRANSLATIONS, BlogPost } from './data/blogData';
+import { BLOG_TRANSLATIONS, BlogPost } from '@social-network/shared-content';
 import { BlogHeroSection } from './ui/BlogHeroSection';
 import { FeaturedArticlesGrid } from './ui/FeaturedArticlesGrid';
 import { ExploreFurtherSection } from './ui/ExploreFurtherSection';

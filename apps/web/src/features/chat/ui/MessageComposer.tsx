@@ -1,3 +1,4 @@
+import { fetchMedia } from '@/shared/lib/privateMedia';
 import React, {
   useCallback,
   useEffect,
@@ -29,7 +30,11 @@ import { StagedFile } from '@/shared/model/useStagedAttachments';
 import { MAX_ATTACHMENTS_PER_MESSAGE } from '@/shared/lib/attachmentLimits';
 import ReplyPreview from './ReplyPreview';
 import EditPreview from './EditPreview';
-import { E2eePinChangedError, extractPlainPreview } from '../lib/e2ee/messageE2ee';
+import {
+  E2eeEditBlockedError,
+  E2eePinChangedError,
+  extractPlainPreview,
+} from '../lib/e2ee/messageE2ee';
 import { AddEmojiButton } from '@/shared/ui/AddEmojiButton';
 import { AddGifButton } from '@/shared/ui/AddGifButton';
 import PollComposer from './PollComposer';
@@ -246,7 +251,7 @@ export default function MessageComposer({
     const att = activeEdit?.attachments?.[0];
     if (!att?.url) return;
     try {
-      const res = await fetch(att.url);
+      const res = await fetchMedia(att.url);
       const blob = await res.blob();
       const file = new File([blob], att.fileName || (att as any).name || 'photo.png', {
         type: blob.type || 'image/png',
@@ -441,8 +446,14 @@ export default function MessageComposer({
         onCancelEdit?.();
       } catch (err) {
         console.error('Failed to edit message:', err);
-        setSendError('Failed to save edit. Please try again.');
-        setTimeout(() => setSendError(null), 4000);
+        setSendError(
+          err instanceof E2eePinChangedError
+            ? 'This contact’s security key changed. The edit was not saved.'
+            : err instanceof E2eeEditBlockedError
+              ? err.message
+              : 'Failed to save edit. Please try again.',
+        );
+        setTimeout(() => setSendError(null), 6000);
       } finally {
         isSendingRef.current = false;
         setIsSending(false);

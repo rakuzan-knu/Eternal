@@ -64,6 +64,8 @@ export interface ReelResponseDto {
   commentsCount: number;
   sharesCount: number;
   isLiked?: boolean;
+  isSaved?: boolean;
+  savedCount?: number;
   createdAt: string;
   author: ReelAuthorDto;
 }

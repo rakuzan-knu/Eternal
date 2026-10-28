@@ -284,6 +284,7 @@ export class CreateUserDto {
   readonly passwordHash: string;
   readonly displayName?: string | undefined;
   readonly birthDate?: Date | null | undefined;
+  readonly gender?: string | undefined;
 
   constructor(props: {
     email: string;
@@ -291,12 +292,14 @@ export class CreateUserDto {
     passwordHash: string;
     displayName?: string | undefined;
     birthDate?: Date | null | undefined;
+    gender?: string | undefined;
   }) {
     this.email = props.email;
     this.username = props.username;
     this.passwordHash = props.passwordHash;
     this.displayName = props.displayName;
     this.birthDate = props.birthDate;
+    this.gender = props.gender;
   }
 }
 

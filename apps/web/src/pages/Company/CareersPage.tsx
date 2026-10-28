@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { PrivacyNavbar } from '../Privacy/ui/PrivacyNavbar';
 import { EternalFooter } from '@/widgets/footer';
 import { SEOHead } from '../../shared/seo';
-import { CAREERS_JOBS, CAREERS_TRANSLATIONS, JobOpening } from './data/careersData';
+import { CAREERS_JOBS, CAREERS_TRANSLATIONS, JobOpening } from '@social-network/shared-content';
 import { useLanguageStore } from '../../shared/lib/language/languageStore';
 import { DropdownSafetyMascot, DropdownDeveloperMascot } from '../Privacy/ui/PrivacyIllustrations';
 import { EternalCrown3D, EternalSprout3D } from './ui/CompanyIllustrations';

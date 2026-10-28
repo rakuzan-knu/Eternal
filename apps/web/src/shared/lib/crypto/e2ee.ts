@@ -9,71 +9,27 @@
  * ensuring 100% confidentiality and zero server-side decryption overhead.
  */
 
-import { WeakRefCache } from '@/shared/lib/v8/weakRefCache';
+import {
+  E2eeProtocol,
+  bytesToBase64,
+  createWebCryptoBackend,
+  isEncryptedEnvelope,
+  type DeviceKeyRef,
+  type MessageAad,
+} from '@social-network/shared-crypto';
 
-export interface E2eeV1Payload {
-  e2ee: true;
-  v: 1;
-  iv: string; // Base64 12-byte IV
-  ct: string; // Base64 ciphertext
-}
-
-/**
- * Authenticated associated data bound into every v2/v3 message. The values
- * ride the envelope in plaintext (so the receiver can reconstruct the AAD)
- * but are COVERED by AES-GCM: flipping any of them fails decryption.
- * - conversationId/senderId pin the message to its dialog and author
- *   (kills surreptitious forwarding between dialogs).
- * - senderDevice scopes replay tracking per sending device (two devices of
- *   one user run independent counters).
- * - seq is the sender's per-conversation monotonic counter (gap/replay).
- */
-export interface MessageAad {
-  readonly conversationId: string;
-  readonly senderId: string;
-  readonly senderDevice: string;
-  readonly seq: number;
-}
-
-export interface E2eeV2Payload {
-  e2ee: true;
-  v: 2;
-  iv: string;
-  ct: string;
-  /** Sender device id whose identity key the shared secret uses. */
-  from: string;
-  aad: MessageAad;
-}
-
-export interface WrappedContentKey {
-  /** Base64 12-byte wrap IV. */
-  iv: string;
-  /** Base64 AES-GCM(sharedSecret, contentKey) with wrap binding as AAD. */
-  k: string;
-}
-
-/**
- * Hybrid multi-device envelope: ONE content ciphertext plus a per-device
- * wrapped content key. Every addressed device (peer devices + the sender's
- * own, for history reads) unwraps with its own ECDH shared secret.
- */
-export interface E2eeV3Payload {
-  e2ee: true;
-  v: 3;
-  iv: string;
-  ct: string;
-  from: string;
-  keys: Record<string, WrappedContentKey>;
-  aad: MessageAad;
-}
-
-export interface DeviceKeyRef {
-  readonly deviceId: string;
-  readonly publicKeySpki: string;
-}
-
-/** Wire ceiling for detection; the backend enforces 8192 on the way in. */
-export const E2EE_MAX_ENVELOPE_CHARS = 16384;
+export {
+  E2EE_MAX_ENVELOPE_CHARS,
+  encodeMessageAad,
+  parseEnvelope,
+  type DeviceKeyRef,
+  type E2eeV1Payload,
+  type E2eeV2Payload,
+  type E2eeV3Payload,
+  type MessageAad,
+  type ParsedEnvelope,
+  type WrappedContentKey,
+} from '@social-network/shared-crypto';
 
 const STORAGE_KEY_PRIV = 'e2ee_private_key_jwk';
 const STORAGE_KEY_PUB = 'e2ee_public_key_spki';
@@ -118,147 +74,24 @@ function idbSave(db: IDBDatabase, pair: CryptoKeyPair): Promise<void> {
   });
 }
 
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  let binary = '';
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return window.btoa(binary);
-}
-
-function base64ToArrayBuffer(base64: string): ArrayBuffer {
-  const binary = window.atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes.buffer;
-}
-
 /** SHA-256 hex of UTF-8 text (replay-store message fingerprints). */
 export async function sha256HexText(text: string): Promise<string> {
   const digest = await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
   return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-/** Canonical AAD encoding. IDs are uuid/opaque strings without ':'; validated on parse. */
-export function encodeMessageAad(version: 2 | 3, aad: MessageAad): string {
-  return `e2ee-msg:${version}:${aad.conversationId}:${aad.senderId}:${aad.senderDevice}:${aad.seq}`;
-}
-
-/** AAD binding for a wrapped content key: sender device -> recipient device. */
-function encodeWrapAad(from: string, recipientDeviceId: string): string {
-  return `e2ee-wrap:3:${from}:${recipientDeviceId}`;
-}
-
-function isNonEmptyString(value: unknown, maxLen: number): value is string {
-  return typeof value === 'string' && value.length > 0 && value.length <= maxLen;
-}
-
-function isB64Field(value: unknown): value is string {
-  return typeof value === 'string' && value.length > 0 && value.length <= 16384;
-}
-
-/**
- * Base64 field decoding to EXACTLY byteLength bytes. WebCrypto AES-GCM
- * readers require 12-byte IVs — enforcing at parse time maps malformed
- * envelopes to the locked label instead of rendering raw JSON as text.
- */
-function isB64Bytes(value: unknown, byteLength: number): value is string {
-  if (!isB64Field(value)) return false;
-  try {
-    return base64ToArrayBuffer(value).byteLength === byteLength;
-  } catch {
-    return false;
-  }
-}
-
-function parseAad(value: unknown): MessageAad {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error('Malformed E2EE payload: bad aad');
-  }
-  const aad = value as Record<string, unknown>;
-  if (
-    !isNonEmptyString(aad.conversationId, 256) ||
-    !isNonEmptyString(aad.senderId, 256) ||
-    !isNonEmptyString(aad.senderDevice, 128) ||
-    !Number.isInteger(aad.seq) ||
-    (aad.seq as number) < 0 ||
-    (aad.seq as number) > 2 ** 31 - 1
-  ) {
-    throw new Error('Malformed E2EE payload: bad aad fields');
-  }
-  return {
-    conversationId: aad.conversationId,
-    senderId: aad.senderId,
-    senderDevice: aad.senderDevice,
-    seq: aad.seq as number,
-  };
-}
-
-export type ParsedEnvelope =
-  | { v: 1; iv: string; ct: string }
-  | { v: 2; iv: string; ct: string; from: string; aad: MessageAad }
-  | {
-      v: 3;
-      iv: string;
-      ct: string;
-      from: string;
-      keys: Record<string, WrappedContentKey>;
-      aad: MessageAad;
-    };
-
-/** Strict structural parse of any envelope version. Throws on malformed input. */
-export function parseEnvelope(body: string): ParsedEnvelope {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(body);
-  } catch {
-    throw new Error('Malformed E2EE payload: not JSON');
-  }
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new Error('Malformed E2EE payload: not an object');
-  }
-  const payload = parsed as Record<string, unknown>;
-  if (payload.e2ee !== true || !isB64Bytes(payload.iv, 12) || !isB64Field(payload.ct)) {
-    throw new Error('Malformed E2EE payload');
-  }
-  const iv = payload.iv;
-  const ct = payload.ct;
-  if (payload.v === 1) return { v: 1, iv, ct };
-  if (payload.v === 2) {
-    if (!isNonEmptyString(payload.from, 128)) throw new Error('Malformed E2EE v2 payload');
-    return { v: 2, iv, ct, from: payload.from, aad: parseAad(payload.aad) };
-  }
-  if (payload.v === 3) {
-    if (!isNonEmptyString(payload.from, 128)) throw new Error('Malformed E2EE v3 payload');
-    if (!payload.keys || typeof payload.keys !== 'object' || Array.isArray(payload.keys)) {
-      throw new Error('Malformed E2EE v3 payload: bad keys');
-    }
-    const keys = payload.keys as Record<string, unknown>;
-    const names = Object.keys(keys);
-    if (names.length === 0 || names.length > 10) {
-      throw new Error('Malformed E2EE v3 payload: keys out of range');
-    }
-    const clean: Record<string, WrappedContentKey> = {};
-    for (const name of names) {
-      if (!isNonEmptyString(name, 128)) throw new Error('Malformed E2EE v3 payload: bad key id');
-      const entry = keys[name] as Record<string, unknown>;
-      if (!entry || !isB64Bytes(entry.iv, 12) || !isB64Field(entry.k)) {
-        throw new Error('Malformed E2EE v3 payload: bad wrap');
-      }
-      clean[name] = { iv: entry.iv, k: entry.k };
-    }
-    return { v: 3, iv, ct, from: payload.from, keys: clean, aad: parseAad(payload.aad) };
-  }
-  throw new Error('Malformed E2EE payload: unknown version');
-}
-
 export class E2eeCryptoManager {
   private keyPair: CryptoKeyPair | null = null;
   private publicSpkiBase64: string | null = null;
-  private readonly sharedKeyCache = new WeakRefCache<string, CryptoKey>('e2ee-shared-keys', 32);
+  private readonly protocol = new E2eeProtocol(
+    createWebCryptoBackend(
+      async () => {
+        if (!this.keyPair) await this.init();
+        return this.keyPair!.privateKey;
+      },
+      () => window.crypto,
+    ),
+  );
 
   /**
    * Initializes or restores the client E2EE ECDH keypair.
@@ -320,7 +153,7 @@ export class E2eeCryptoManager {
 
   private async exportSpki(publicKey: CryptoKey): Promise<string> {
     const exportedSpki = await window.crypto.subtle.exportKey('spki', publicKey);
-    return arrayBufferToBase64(exportedSpki);
+    return bytesToBase64(new Uint8Array(exportedSpki));
   }
 
   private async persistPair(pair: CryptoKeyPair): Promise<void> {
@@ -392,153 +225,41 @@ export class E2eeCryptoManager {
     return this.publicSpkiBase64;
   }
 
-  /**
-   * Derives or retrieves a cached AES-GCM shared symmetric key for a peer's public key.
-   */
+  /** Derives or retrieves a cached AES-GCM shared symmetric key for a peer's public key. */
   async getSharedKey(peerPublicKeySpki: string): Promise<CryptoKey> {
-    if (!this.keyPair) {
-      await this.init();
-    }
-
-    const cached = this.sharedKeyCache.get(peerPublicKeySpki);
-    if (cached) {
-      return cached;
-    }
-
-    const peerKeyBuffer = base64ToArrayBuffer(peerPublicKeySpki);
-    const importedPeerKey = await window.crypto.subtle.importKey(
-      'spki',
-      peerKeyBuffer,
-      { name: 'ECDH', namedCurve: 'P-256' },
-      false,
-      [],
-    );
-
-    const sharedKey = await window.crypto.subtle.deriveKey(
-      { name: 'ECDH', public: importedPeerKey },
-      this.keyPair!.privateKey,
-      { name: 'AES-GCM', length: 256 },
-      false,
-      ['encrypt', 'decrypt'],
-    );
-
-    this.sharedKeyCache.set(peerPublicKeySpki, sharedKey);
-    return sharedKey;
+    if (!this.keyPair) await this.init();
+    return this.protocol.getSharedKey(peerPublicKeySpki);
   }
 
-  /**
-   * Encrypts plaintext using the derived AES-GCM shared key.
-   */
-  async encrypt(plaintext: string, sharedKey: CryptoKey): Promise<string> {
-    const enc = new TextEncoder();
-    const iv = window.crypto.getRandomValues(new Uint8Array(12));
-
-    const cipherBuffer = await window.crypto.subtle.encrypt(
-      { name: 'AES-GCM', iv },
-      sharedKey,
-      enc.encode(plaintext),
-    );
-
-    const payload: E2eeV1Payload = {
-      e2ee: true,
-      v: 1,
-      iv: arrayBufferToBase64(iv.buffer),
-      ct: arrayBufferToBase64(cipherBuffer),
-    };
-
-    return JSON.stringify(payload);
+  /** v1: legacy unbound envelope. */
+  encrypt(plaintext: string, sharedKey: CryptoKey): Promise<string> {
+    return this.protocol.encrypt(plaintext, sharedKey);
   }
 
-  /**
-   * Decrypts an encrypted payload JSON string using the derived AES-GCM shared key.
-   */
-  async decrypt(encryptedJson: string, sharedKey: CryptoKey): Promise<string> {
-    const parsed = parseEnvelope(encryptedJson);
-    if (parsed.v !== 1) throw new Error('Expected a v1 E2EE payload');
-
-    const iv = new Uint8Array(base64ToArrayBuffer(parsed.iv));
-    const ciphertext = base64ToArrayBuffer(parsed.ct);
-
-    const decryptedBuffer = await window.crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv },
-      sharedKey,
-      ciphertext,
-    );
-
-    const dec = new TextDecoder();
-    return dec.decode(decryptedBuffer);
+  decrypt(encryptedJson: string, sharedKey: CryptoKey): Promise<string> {
+    return this.protocol.decrypt(encryptedJson, sharedKey);
   }
 
-  private randomIv(): Uint8Array<ArrayBuffer> {
-    return window.crypto.getRandomValues(new Uint8Array(12));
-  }
-
-  /**
-   * Encrypts for ONE recipient device with dialog binding (v2). The shared
-   * secret must already be the ECDH agreement of the sender identity with
-   * the recipient device key referenced by `from` semantics on the read side.
-   */
-  async encryptV2(
+  /** v2: one recipient device with dialog binding. */
+  encryptV2(
     plaintext: string,
     sharedKey: CryptoKey,
     from: string,
     aad: MessageAad,
   ): Promise<string> {
-    const aadBytes = new TextEncoder().encode(encodeMessageAad(2, aad));
-    const iv = this.randomIv();
-    const cipherBuffer = await window.crypto.subtle.encrypt(
-      { name: 'AES-GCM', iv, additionalData: aadBytes },
-      sharedKey,
-      new TextEncoder().encode(plaintext),
-    );
-    const payload: E2eeV2Payload = {
-      e2ee: true,
-      v: 2,
-      iv: arrayBufferToBase64(iv.buffer),
-      ct: arrayBufferToBase64(cipherBuffer),
-      from,
-      aad: { ...aad },
-    };
-    return JSON.stringify(payload);
+    return this.protocol.encryptV2(plaintext, sharedKey, from, aad);
   }
 
-  /**
-   * Decrypts a v2 envelope. The aad claims MUST match the receiver's own
-   * context — a transplanted envelope (wrong dialog/author) fails here,
-   * loudly, instead of misattributing plaintext.
-   */
-  async decryptV2(
+  /** Transplanted envelopes (wrong dialog/author) fail loudly instead of misattributing. */
+  decryptV2(
     envelopeJson: string,
     sharedKey: CryptoKey,
     expected: { conversationId: string; senderId: string },
   ): Promise<{ text: string; aad: MessageAad }> {
-    const parsed = parseEnvelope(envelopeJson);
-    if (parsed.v !== 2) throw new Error('Expected a v2 E2EE payload');
-    if (
-      parsed.aad.conversationId !== expected.conversationId ||
-      parsed.aad.senderId !== expected.senderId
-    ) {
-      throw new Error('E2EE dialog binding mismatch (possible transplant)');
-    }
-    const decryptedBuffer = await window.crypto.subtle.decrypt(
-      {
-        name: 'AES-GCM',
-        iv: new Uint8Array(base64ToArrayBuffer(parsed.iv)),
-        additionalData: new TextEncoder().encode(encodeMessageAad(2, parsed.aad)),
-      },
-      sharedKey,
-      base64ToArrayBuffer(parsed.ct),
-    );
-    return { text: new TextDecoder().decode(decryptedBuffer), aad: parsed.aad };
+    return this.protocol.decryptV2(envelopeJson, sharedKey, expected);
   }
 
-  /**
-   * Hybrid multi-device encrypt (v3): one content ciphertext plus a
-   * per-device wrapped content key. Recipients are peer device keys; the
-   * sender's own device is wrapped automatically (history reads) and named
-   * in `from`. Wrap AAD binds sender->recipient so wraps cannot be
-   * transplanted between devices.
-   */
+  /** v3: hybrid multi-device envelope with the sender's own device wrapped first. */
   async encryptV3(
     plaintext: string,
     recipients: DeviceKeyRef[],
@@ -551,144 +272,22 @@ export class E2eeCryptoManager {
     },
   ): Promise<string> {
     if (!this.keyPair) await this.init();
-    const aad: MessageAad = {
-      conversationId: opts.conversationId,
-      senderId: opts.senderId,
-      senderDevice: opts.from,
-      seq: opts.seq,
-    };
-    const aadBytes = new TextEncoder().encode(encodeMessageAad(3, aad));
-    const rawContentKey = window.crypto.getRandomValues(new Uint8Array(32));
-    const contentKey = await window.crypto.subtle.importKey(
-      'raw',
-      rawContentKey,
-      { name: 'AES-GCM', length: 256 },
-      false,
-      ['encrypt'],
-    );
-    const iv = this.randomIv();
-    const cipherBuffer = await window.crypto.subtle.encrypt(
-      { name: 'AES-GCM', iv, additionalData: aadBytes },
-      contentKey,
-      new TextEncoder().encode(plaintext),
-    );
-
-    // Self first: on device-id collision (exotic runtimes sharing an
-    // ephemeral id) our own wrap must win, or history reads break.
-    const targets: DeviceKeyRef[] = [
-      { deviceId: opts.from, publicKeySpki: opts.ownPublicSpki },
-      ...recipients,
-    ];
-    const keys: Record<string, WrappedContentKey> = {};
-    for (const target of targets) {
-      if (!target.deviceId || !target.publicKeySpki || keys[target.deviceId]) continue;
-      const shared = await this.getSharedKey(target.publicKeySpki);
-      const wrapIv = this.randomIv();
-      const wrapped = await window.crypto.subtle.encrypt(
-        {
-          name: 'AES-GCM',
-          iv: wrapIv,
-          additionalData: new TextEncoder().encode(encodeWrapAad(opts.from, target.deviceId)),
-        },
-        shared,
-        rawContentKey,
-      );
-      keys[target.deviceId] = {
-        iv: arrayBufferToBase64(wrapIv.buffer),
-        k: arrayBufferToBase64(wrapped),
-      };
-    }
-    if (!keys[opts.from]) throw new Error('E2EE v3 self-wrap failed');
-    const payload: E2eeV3Payload = {
-      e2ee: true,
-      v: 3,
-      iv: arrayBufferToBase64(iv.buffer),
-      ct: arrayBufferToBase64(cipherBuffer),
-      from: opts.from,
-      keys,
-      aad,
-    };
-    return JSON.stringify(payload);
+    return this.protocol.encryptV3(plaintext, recipients, opts);
   }
 
-  /**
-   * Hybrid multi-device decrypt (v3). Sender device keys arrive as arguments
-   * (directory data, verified upstream); the private half is always local.
-   */
+  /** Sender device keys arrive as arguments (directory data, verified upstream). */
   async decryptV3(
     envelopeJson: string,
     senderDevices: DeviceKeyRef[],
     opts: { ownDeviceId: string; conversationId: string; senderId: string },
   ): Promise<{ text: string; aad: MessageAad }> {
     if (!this.keyPair) await this.init();
-    const parsed = parseEnvelope(envelopeJson);
-    if (parsed.v !== 3) throw new Error('Expected a v3 E2EE payload');
-    if (
-      parsed.aad.conversationId !== opts.conversationId ||
-      parsed.aad.senderId !== opts.senderId
-    ) {
-      throw new Error('E2EE dialog binding mismatch (possible transplant)');
-    }
-    let wrapDeviceId = opts.ownDeviceId;
-    let entry = parsed.keys[wrapDeviceId];
-    if (!entry && parsed.keys['legacy']) {
-      wrapDeviceId = 'legacy';
-      entry = parsed.keys['legacy'];
-    }
-    if (!entry) throw new Error('E2EE v3 has no content-key wrap for this device');
-    const sender = senderDevices.find((d) => d.deviceId === parsed.from);
-    if (!sender) throw new Error('E2EE v3 sender device is unknown');
-    const shared = await this.getSharedKey(sender.publicKeySpki);
-    let rawContentKey: ArrayBuffer;
-    try {
-      rawContentKey = await window.crypto.subtle.decrypt(
-        {
-          name: 'AES-GCM',
-          iv: new Uint8Array(base64ToArrayBuffer(entry.iv)),
-          additionalData: new TextEncoder().encode(encodeWrapAad(parsed.from, wrapDeviceId)),
-        },
-        shared,
-        base64ToArrayBuffer(entry.k),
-      );
-    } catch {
-      throw new Error('E2EE v3 content-key unwrap failed');
-    }
-    const contentKey = await window.crypto.subtle.importKey(
-      'raw',
-      rawContentKey,
-      { name: 'AES-GCM', length: 256 },
-      false,
-      ['decrypt'],
-    );
-    const decryptedBuffer = await window.crypto.subtle.decrypt(
-      {
-        name: 'AES-GCM',
-        iv: new Uint8Array(base64ToArrayBuffer(parsed.iv)),
-        additionalData: new TextEncoder().encode(encodeMessageAad(3, parsed.aad)),
-      },
-      contentKey,
-      base64ToArrayBuffer(parsed.ct),
-    );
-    return { text: new TextDecoder().decode(decryptedBuffer), aad: parsed.aad };
+    return this.protocol.decryptV3(envelopeJson, senderDevices, opts);
   }
 
-  /**
-   * Checks if a message body is a well-formed E2EE envelope (any version).
-   * Parses instead of substring-sniffing (M3): a plaintext body merely
-   * containing '"e2ee":true' must NOT mislabel.
-   */
+  /** Parses instead of substring-sniffing: plaintext merely containing '"e2ee":true' is not encrypted. */
   isEncrypted(body?: string | null): boolean {
-    if (!body || typeof body !== 'string') return false;
-    const trimmed = body.trim();
-    if (trimmed.length === 0 || trimmed[0] !== '{' || trimmed.length > E2EE_MAX_ENVELOPE_CHARS) {
-      return false;
-    }
-    try {
-      parseEnvelope(trimmed);
-      return true;
-    } catch {
-      return false;
-    }
+    return isEncryptedEnvelope(body);
   }
 }
 

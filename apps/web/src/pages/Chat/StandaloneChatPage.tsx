@@ -33,6 +33,7 @@ import { useQueryOnlineStatus } from '@/features/chat/model/usePresence';
 import { getConversationDisplay } from '@/features/chat/lib/getConversationDisplay';
 import { useDecryptedMessageBody } from '@/features/chat/model/useDecryptedMessageBody';
 import {
+  E2eeEditBlockedError,
   E2eePinChangedError,
   ensureMessageIdentityRegistered,
   extractPlainPreview,
@@ -215,9 +216,22 @@ export default function StandaloneChatPage() {
 
   const handleSaveEdit = () => {
     if (!editingMessage || !text.trim() || !conversationId) return;
-    actions.editMessage(editingMessage.id, text.trim(), editingMessage.body).catch(() => {});
+    const target = editingMessage;
+    const next = text.trim();
     setEditingMessage(null);
     setText('');
+    actions.editMessage(target.id, next, target.body).catch((err: unknown) => {
+      setEditingMessage(target);
+      setText(next);
+      setSendError(
+        err instanceof E2eePinChangedError
+          ? 'This contact’s security key changed. The edit was not saved.'
+          : err instanceof E2eeEditBlockedError
+            ? err.message
+            : 'Failed to save edit. Please try again.',
+      );
+      setTimeout(() => setSendError(null), 6000);
+    });
   };
 
   const handleCancelEdit = () => {

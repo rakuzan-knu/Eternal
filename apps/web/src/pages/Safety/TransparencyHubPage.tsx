@@ -14,7 +14,7 @@ import {
 } from './ui/TransparencyIllustrations';
 import { ChevronDown, Download, CheckCircle2, ArrowRight } from 'lucide-react';
 import { useLanguageStore } from '../../shared/lib/language/languageStore';
-import { TRANSPARENCY_HUB_DATA } from './data/transparencyHubData';
+import { TRANSPARENCY_HUB_DATA } from '@social-network/shared-content';
 
 export const TransparencyHubPage: React.FC = () => {
   const navigate = useNavigate();

@@ -62,6 +62,7 @@ import { StoryEmojiEditor, StoryStickerEditor, StoryTextEditor } from './StoryTo
 import { StoryMusicEditor, StoryMusicPlayer } from './StoryMusicEditor';
 import { StoryToolPanel, StoryColorPicker, StoryRange } from './StoryToolPanel';
 import { StoryAudio } from './StoryAudio';
+import { type MessageKey, msg, tr } from '@/shared/lib/i18n';
 
 type Tool =
   | 'text'
@@ -77,19 +78,21 @@ type Tool =
   | 'layer'
   | 'discard'
   | null;
-const MAIN_TOOLS: { id: Exclude<Tool, null>; label: string; Icon: typeof Type }[] = [
-  { id: 'text', label: 'Add text', Icon: Type },
-  { id: 'stickers', label: 'Choose emoji', Icon: Smile },
-  { id: 'music', label: 'Add music', Icon: Music },
-  { id: 'filters', label: 'Effects and filters', Icon: Sparkles },
-  { id: 'media', label: 'Choose photo or video', Icon: ImageIcon },
+const presetName = (name: string) => (name === 'Normal' ? tr('Normal') : name);
+
+const MAIN_TOOLS: { id: Exclude<Tool, null>; label: MessageKey; Icon: typeof Type }[] = [
+  { id: 'text', label: msg('Add text'), Icon: Type },
+  { id: 'stickers', label: msg('Choose emoji'), Icon: Smile },
+  { id: 'music', label: msg('Add music'), Icon: Music },
+  { id: 'filters', label: msg('Effects and filters'), Icon: Sparkles },
+  { id: 'media', label: msg('Choose photo or video'), Icon: ImageIcon },
 ];
-const MORE_TOOLS: { id: Exclude<Tool, null>; label: string; Icon: typeof Type }[] = [
-  { id: 'mention', label: 'Mention', Icon: AtSign },
-  { id: 'drawing', label: 'Drawing', Icon: Pencil },
-  { id: 'poll', label: 'Poll', Icon: BarChart2 },
-  { id: 'background', label: 'Background', Icon: Palette },
-  { id: 'layer', label: 'Layers', Icon: Layers },
+const MORE_TOOLS: { id: Exclude<Tool, null>; label: MessageKey; Icon: typeof Type }[] = [
+  { id: 'mention', label: msg('Mention'), Icon: AtSign },
+  { id: 'drawing', label: msg('Drawing'), Icon: Pencil },
+  { id: 'poll', label: msg('Poll'), Icon: BarChart2 },
+  { id: 'background', label: msg('Background'), Icon: Palette },
+  { id: 'layer', label: msg('Layers'), Icon: Layers },
 ];
 export function CreateStory({
   userId,
@@ -166,7 +169,12 @@ export function CreateStory({
     },
     onError: (failure) =>
       setError(
-        `Your story was not published. Your draft is still here. ${failure instanceof Error && !('response' in failure) ? `${failure.message}. ` : ''}Please try again.`,
+        failure instanceof Error && !('response' in failure)
+          ? tr(
+              'Your story was not published. Your draft is still here. {reason}. Please try again.',
+              { reason: failure.message },
+            )
+          : tr('Your story was not published. Your draft is still here. Please try again.'),
       ),
     onSettled: () => {
       submitting.current = false;
@@ -199,7 +207,7 @@ export function CreateStory({
   }, [requestClose]);
   function saveLayer(layer: StoryOverlay) {
     if (layers.length >= 30 && !layers.some((item) => item.id === layer.id)) {
-      setError('Use up to 30 layers per story.');
+      setError(tr('Use up to 30 layers per story.'));
       return;
     }
     setLayers((previous) =>
@@ -241,7 +249,7 @@ export function CreateStory({
   async function pick(sticker = false) {
     if (busy || submitting.current) return;
     if (sticker && Object.keys(attachments).length >= 9) {
-      setError('Use up to 9 photo stickers.');
+      setError(tr('Use up to 9 photo stickers.'));
       return;
     }
     setPicking(true);
@@ -251,7 +259,7 @@ export function CreateStory({
         Platform.OS !== 'web' &&
         !(await ImagePicker.requestMediaLibraryPermissionsAsync()).granted
       ) {
-        setError('Allow photo library access in Settings to add media.');
+        setError(tr('Allow photo library access in Settings to add media.'));
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -300,7 +308,7 @@ export function CreateStory({
       }
     } catch (failure) {
       setError(
-        failure instanceof Error ? failure.message : 'The photo library could not be opened.',
+        failure instanceof Error ? failure.message : tr('The photo library could not be opened.'),
       );
     } finally {
       setPicking(false);
@@ -336,7 +344,9 @@ export function CreateStory({
       setTool(null);
       setSelectedId(null);
     } catch (failure) {
-      setError(failure instanceof Error ? failure.message : 'The audio file could not be opened.');
+      setError(
+        failure instanceof Error ? failure.message : tr('The audio file could not be opened.'),
+      );
     } finally {
       setPicking(false);
     }
@@ -344,7 +354,7 @@ export function CreateStory({
   function publish(audience = privacy) {
     if (!isOnline || busy || submitting.current) return;
     if (!dirty) {
-      setError('Add a photo, video, text or sticker before sharing.');
+      setError(tr('Add a photo, video, text or sticker before sharing.'));
       return;
     }
     if (new Blob([JSON.stringify(layers)]).size > 240 * 1024) {
@@ -403,8 +413,8 @@ export function CreateStory({
               width={width}
               height={Math.min(canvas.height * 0.8, width / (layer.aspectRatio || 1))}
               filter={filter}
-              label={layer.isMainMedia ? 'Story photo preview' : 'Photo sticker'}
-              onError={() => setError('A photo could not be loaded. Choose it again.')}
+              label={layer.isMainMedia ? tr('Story photo preview') : tr('Photo sticker')}
+              onError={() => setError(tr('A photo could not be loaded. Choose it again.'))}
             />
           </View>
         );
@@ -457,7 +467,7 @@ export function CreateStory({
             active={!busy && !tool}
             filter={filter}
             volume={music?.type === 'audio' ? music.videoVolume : 1}
-            label="Story video preview"
+            label={tr('Story video preview')}
           />
         )}
         {layers
@@ -498,7 +508,7 @@ export function CreateStory({
           <>
             <View style={s.close}>
               <IconButton
-                label="Close Create a story"
+                label={tr('Close Create a story')}
                 disabled={busy}
                 onPress={requestClose}
                 style={s.circle}
@@ -513,9 +523,9 @@ export function CreateStory({
             >
               {[...MAIN_TOOLS, ...(more ? MORE_TOOLS : [])].map(({ id, label, Icon }) => (
                 <View key={id} style={s.toolRow}>
-                  {more && <Text style={s.toolLabel}>{label}</Text>}
+                  {more && <Text style={s.toolLabel}>{tr(label)}</Text>}
                   <IconButton
-                    label={label}
+                    label={tr(label)}
                     disabled={busy}
                     onPress={() => openTool(id)}
                     style={s.circle}
@@ -528,7 +538,7 @@ export function CreateStory({
                 </View>
               ))}
               <IconButton
-                label={more ? 'Collapse extra tools' : 'Expand extra tools'}
+                label={more ? tr('Collapse extra tools') : tr('Expand extra tools')}
                 disabled={busy}
                 selected={more}
                 onPress={() => setMore(!more)}
@@ -550,13 +560,13 @@ export function CreateStory({
                 >
                   <Text style={s.selectionText}>Edit {selected.type}</Text>
                 </Pressable>
-                <IconButton label="Layer controls" onPress={() => setTool('layer')}>
+                <IconButton label={tr('Layer controls')} onPress={() => setTool('layer')}>
                   <Layers color="white" size={19} />
                 </IconButton>
-                <IconButton label="Remove selected layer" onPress={removeSelected}>
+                <IconButton label={tr('Remove selected layer')} onPress={removeSelected}>
                   <Trash2 color="white" size={19} />
                 </IconButton>
-                <IconButton label="Deselect layer" onPress={() => setSelectedId(null)}>
+                <IconButton label={tr('Deselect layer')} onPress={() => setSelectedId(null)}>
                   <X color="white" size={18} />
                 </IconButton>
               </View>
@@ -577,12 +587,12 @@ export function CreateStory({
       {error && <ErrorNotice message={error} />}
       {!isOnline && (
         <Text accessibilityRole="alert" style={common.muted}>
-          You're offline. You can edit your draft and share when connected.
+          {tr("You're offline. You can edit your draft and share when connected.")}
         </Text>
       )}
       {fontError && (
         <Text style={common.muted}>
-          Custom fonts couldn't be loaded. Reopen the editor to retry.
+          {tr("Custom fonts couldn't be loaded. Reopen the editor to retry.")}
         </Text>
       )}
       {mediaType === 'VOICE' && asset && (
@@ -591,7 +601,7 @@ export function CreateStory({
           active={!busy && !tool}
           volume={music?.type === 'audio' ? music.videoVolume : 1}
           clipDurationSeconds={60}
-          label="Voice story"
+          label={tr('Voice story')}
         />
       )}
       {music?.type === 'audio' && (
@@ -602,16 +612,16 @@ export function CreateStory({
         onChangeText={setCaption}
         maxLength={1000}
         editable={!busy && !tool}
-        placeholder="Add a caption..."
+        placeholder={tr('Add a caption...')}
         placeholderTextColor="#909095"
-        accessibilityLabel="Story caption"
+        accessibilityLabel={tr('Story caption')}
         style={s.caption}
       />
       <View style={s.publish}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Share to your story"
-          accessibilityHint="Publishes to your followers"
+          accessibilityLabel={tr('Share to your story')}
+          accessibilityHint={tr('Publishes to your followers')}
           disabled={!isOnline || busy || !!tool || !dirty}
           accessibilityState={{ disabled: !isOnline || busy || !!tool || !dirty }}
           onPress={() => publish('ALL_FOLLOWERS')}
@@ -627,13 +637,13 @@ export function CreateStory({
             />
           )}
           <Text numberOfLines={1} style={s.audienceText}>
-            Your story
+            {tr('Your story')}
           </Text>
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Share to close friends"
-          accessibilityHint="Publishes only to your close friends"
+          accessibilityLabel={tr('Share to close friends')}
+          accessibilityHint={tr('Publishes only to your close friends')}
           disabled={!isOnline || busy || !!tool || !dirty}
           accessibilityState={{ disabled: !isOnline || busy || !!tool || !dirty }}
           onPress={() => publish('CLOSE_FRIENDS')}
@@ -643,11 +653,11 @@ export function CreateStory({
             <Star size={12} fill="#002c20" color="#002c20" />
           </View>
           <Text numberOfLines={1} style={[s.audienceText, { color: '#5ee6b6' }]}>
-            Close Friends
+            {tr('Close Friends')}
           </Text>
         </Pressable>
         <IconButton
-          label="Share story"
+          label={tr('Share story')}
           disabled={!isOnline || busy || !!tool || !dirty}
           onPress={() => publish()}
           style={s.share}
@@ -710,17 +720,17 @@ export function CreateStory({
       )}
       {tool === 'filters' && (
         <StoryToolPanel
-          title="Effects and filters"
+          title={tr('Effects and filters')}
           onClose={() => setTool(null)}
           onSave={() => setTool(null)}
         >
-          <Text style={common.muted}>Preview an effect before sharing.</Text>
+          <Text style={common.muted}>{tr('Preview an effect before sharing.')}</Text>
           <ScrollView horizontal contentContainerStyle={{ gap: 10 }}>
             {STORY_FILTERS.map((preset) => (
               <Pressable
                 key={preset.id}
                 accessibilityRole="button"
-                accessibilityLabel={`Filter ${preset.name}`}
+                accessibilityLabel={tr('Filter {name}', { name: presetName(preset.name) })}
                 accessibilityState={{ selected: filter === preset.id }}
                 aria-pressed={filter === preset.id}
                 onPress={() => setFilter(preset.id)}
@@ -732,21 +742,21 @@ export function CreateStory({
                     width={76}
                     height={90}
                     filter={preset.id}
-                    label={preset.name}
+                    label={presetName(preset.name)}
                   />
                 ) : (
                   <Sparkles color={colors.purple} size={26} />
                 )}
-                <Text style={common.muted}>{preset.name}</Text>
+                <Text style={common.muted}>{presetName(preset.name)}</Text>
               </Pressable>
             ))}
           </ScrollView>
         </StoryToolPanel>
       )}
       {tool === 'media' && (
-        <StoryToolPanel title="Media" onClose={() => setTool(null)}>
+        <StoryToolPanel title={tr('Media')} onClose={() => setTool(null)}>
           <Button
-            title={asset ? 'Change photo or video' : 'Choose photo or video'}
+            title={asset ? tr('Change photo or video') : tr('Choose photo or video')}
             variant="secondary"
             disabled={busy}
             onPress={() => {
@@ -754,7 +764,7 @@ export function CreateStory({
             }}
           />
           <Button
-            title="Add photo sticker"
+            title={tr('Add photo sticker')}
             variant="secondary"
             disabled={busy}
             onPress={() => {
@@ -762,7 +772,7 @@ export function CreateStory({
             }}
           />
           <Button
-            title="Choose audio file"
+            title={tr('Choose audio file')}
             variant="secondary"
             disabled={busy}
             onPress={() => {
@@ -770,13 +780,13 @@ export function CreateStory({
             }}
           />
           <Text style={common.muted}>
-            Photos up to 10 MB · Videos up to 100 MB · Audio up to 25 MB
+            {tr('Photos up to 10 MB · Videos up to 100 MB · Audio up to 25 MB')}
           </Text>
         </StoryToolPanel>
       )}
       {tool === 'background' && (
         <StoryToolPanel
-          title="Background"
+          title={tr('Background')}
           onClose={() => setTool(null)}
           onSave={() => setTool(null)}
         >
@@ -785,7 +795,7 @@ export function CreateStory({
               <Pressable
                 key={index}
                 accessibilityRole="button"
-                accessibilityLabel={`Background gradient ${index + 1}`}
+                accessibilityLabel={tr('Background gradient {index}', { index: index + 1 })}
                 onPress={() => setBackground(backgroundPreset(index))}
                 style={{
                   width: 64,
@@ -801,7 +811,7 @@ export function CreateStory({
             ))}
           </View>
           <StoryColorPicker
-            label="Canvas color"
+            label={tr('Canvas color')}
             value={/^#[\da-f]{6}$/i.test(background) ? background : '#181824'}
             colors={STORY_COLORS}
             onChange={setBackground}
@@ -809,7 +819,11 @@ export function CreateStory({
         </StoryToolPanel>
       )}
       {tool === 'layer' && (
-        <StoryToolPanel title="Layers" onClose={() => setTool(null)} onSave={() => setTool(null)}>
+        <StoryToolPanel
+          title={tr('Layers')}
+          onClose={() => setTool(null)}
+          onSave={() => setTool(null)}
+        >
           {layers.length ? (
             layers
               .slice()
@@ -818,7 +832,7 @@ export function CreateStory({
                 <Pressable
                   key={layer.id}
                   accessibilityRole="button"
-                  accessibilityLabel={`Select ${layer.type} layer ${layer.id}`}
+                  accessibilityLabel={tr('Select layer {index}', { index: layer.id })}
                   onPress={() => setSelectedId(layer.id)}
                   style={[s.layerRow, selectedId === layer.id && { borderColor: colors.purple }]}
                 >
@@ -826,18 +840,18 @@ export function CreateStory({
                     {layer.type === 'text'
                       ? layer.text.slice(0, 40)
                       : layer.type === 'image' && layer.isMainMedia
-                        ? 'Main photo'
+                        ? tr('Main photo')
                         : layer.type}
                   </Text>
                 </Pressable>
               ))
           ) : (
-            <Text style={common.muted}>Add text, a sticker or media to start.</Text>
+            <Text style={common.muted}>{tr('Add text, a sticker or media to start.')}</Text>
           )}
           {selected && (
             <>
               <StoryRange
-                label="Horizontal position (%)"
+                label={tr('Horizontal position (%)')}
                 value={selected.xPercent}
                 max={100}
                 onChange={(xPercent) =>
@@ -845,7 +859,7 @@ export function CreateStory({
                 }
               />
               <StoryRange
-                label="Vertical position (%)"
+                label={tr('Vertical position (%)')}
                 value={selected.yPercent}
                 max={100}
                 onChange={(yPercent) =>
@@ -853,7 +867,7 @@ export function CreateStory({
                 }
               />
               <StoryRange
-                label="Layer scale"
+                label={tr('Layer scale')}
                 value={selected.scale}
                 min={0.3}
                 max={3.5}
@@ -863,7 +877,7 @@ export function CreateStory({
                 }
               />
               <StoryRange
-                label="Layer rotation"
+                label={tr('Layer rotation')}
                 value={selected.rotation}
                 min={-180}
                 max={180}
@@ -873,7 +887,7 @@ export function CreateStory({
               />
               {selected.type === 'image' && (
                 <StoryRange
-                  label="Photo corner radius"
+                  label={tr('Photo corner radius')}
                   value={selected.borderRadius || 0}
                   max={64}
                   onChange={(borderRadius) =>
@@ -881,9 +895,13 @@ export function CreateStory({
                   }
                 />
               )}
-              <Button title="Edit selected layer" variant="secondary" onPress={editSelected} />
               <Button
-                title="Bring selected layer to front"
+                title={tr('Edit selected layer')}
+                variant="secondary"
+                onPress={editSelected}
+              />
+              <Button
+                title={tr('Bring selected layer to front')}
                 variant="secondary"
                 onPress={() =>
                   setLayers((previous) =>
@@ -894,16 +912,20 @@ export function CreateStory({
                   )
                 }
               />
-              <Button title="Remove selected layer" variant="danger" onPress={removeSelected} />
+              <Button
+                title={tr('Remove selected layer')}
+                variant="danger"
+                onPress={removeSelected}
+              />
             </>
           )}
         </StoryToolPanel>
       )}
       {tool === 'discard' && (
-        <StoryToolPanel title="Discard story?" onClose={() => setTool(null)}>
-          <Text style={common.text}>Your unpublished edits will be lost.</Text>
-          <Button title="Keep editing" onPress={() => setTool(null)} />
-          <Button title="Discard story" variant="danger" onPress={onClose} />
+        <StoryToolPanel title={tr('Discard story?')} onClose={() => setTool(null)}>
+          <Text style={common.text}>{tr('Your unpublished edits will be lost.')}</Text>
+          <Button title={tr('Keep editing')} onPress={() => setTool(null)} />
+          <Button title={tr('Discard story')} variant="danger" onPress={onClose} />
         </StoryToolPanel>
       )}
     </View>
@@ -911,7 +933,7 @@ export function CreateStory({
   return embedded ? (
     content
   ) : (
-    <Sheet title="Create a story" hideHeader closeDisabled={busy} onClose={requestClose}>
+    <Sheet title={tr('Create a story')} hideHeader closeDisabled={busy} onClose={requestClose}>
       {content}
     </Sheet>
   );

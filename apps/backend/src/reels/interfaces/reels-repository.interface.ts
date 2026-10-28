@@ -1,4 +1,4 @@
-import type { Prisma } from '@prisma/client';
+import type { AvatarDecoration, Prisma } from '@prisma/client';
 
 export const REELS_REPOSITORY = Symbol('REELS_REPOSITORY');
 
@@ -40,14 +40,16 @@ export type ReelWithAuthor = Reel & {
     username: string;
     displayName: string | null;
     avatar: string | null;
-    activeDecoration?: any;
+    activeDecoration?: AvatarDecoration | null;
     isVerified?: boolean;
     followers?: { followerId: string }[];
   };
   likes?: { userId: string }[];
+  saves?: { userId: string }[];
   _count?: {
     likes: number;
     comments: number;
+    saves?: number;
   };
 };
 
@@ -57,13 +59,33 @@ export type ReelCommentWithUser = ReelComment & {
     username: string;
     displayName: string | null;
     avatar: string | null;
-    activeDecoration?: any;
+    activeDecoration?: AvatarDecoration | null;
     isVerified?: boolean;
   };
 };
 
+export interface ReelsFeedExclusions {
+  reelIds: string[];
+  authorIds: string[];
+}
+
 export interface IReelsRepository {
-  findAllPaginated(limit: number, after?: string, viewerId?: string): Promise<ReelWithAuthor[]>;
+  findSaved(
+    userId: string,
+    limit: number,
+    after?: string,
+  ): Promise<{ id: string; reel: ReelWithAuthor }[]>;
+  setSaved(
+    reelId: string,
+    userId: string,
+    saved: boolean,
+  ): Promise<{ saved: boolean; savedCount: number }>;
+  findAllPaginated(
+    limit: number,
+    after?: string,
+    viewerId?: string,
+    exclusions?: ReelsFeedExclusions,
+  ): Promise<ReelWithAuthor[]>;
   findByUserId(
     userId: string,
     limit: number,
@@ -79,10 +101,5 @@ export interface IReelsRepository {
   incrementShares(reelId: string): Promise<void>;
   addComment(reelId: string, userId: string, content: string): Promise<ReelCommentWithUser>;
   findComments(reelId: string, limit?: number, after?: string): Promise<ReelCommentWithUser[]>;
-  reportReel?(
-    reelId: string,
-    reporterId: string,
-    category: string,
-    details?: string,
-  ): Promise<void>;
+  reportReel(reelId: string, reporterId: string, category: string, details?: string): Promise<void>;
 }

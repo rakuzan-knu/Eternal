@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import { getLanguageName, useLocale } from '@/shared/lib/language/locale';
 import {
   Heart,
   MessageCircle,
@@ -13,9 +14,6 @@ import {
   CheckCircle2,
   Plus,
   Check,
-  EyeOff,
-  Undo2,
-  ChevronDown,
   AlertCircle,
   RefreshCw,
 } from 'lucide-react';
@@ -34,6 +32,7 @@ import { useAuthStore } from '@/shared/model/useAuthStore';
 import { BlurHashImage } from '@/shared/ui/BlurHashImage';
 import { ReelCommentsDrawer } from './ReelCommentsDrawer';
 import { ReelShareModal } from './ReelShareModal';
+import type { ReelDirectMessageSender } from './ReelSendFriendsModal';
 import { ReelOptionsMenu } from './ReelOptionsMenu';
 import { ReelReportModal } from './ReelReportModal';
 import { ReelProgressBar } from './ReelProgressBar';
@@ -48,6 +47,7 @@ import {
 } from '../lib/reelSubtitles';
 
 export interface ReelCardProps {
+  sendMessage?: ReelDirectMessageSender;
   reel: ReelItem;
   videoPool: ReelVideoPool;
   isActive: boolean;
@@ -58,6 +58,7 @@ export interface ReelCardProps {
 }
 
 export const ReelCardComponent: React.FC<ReelCardProps> = ({
+  sendMessage,
   reel,
   videoPool,
   isActive,
@@ -66,9 +67,9 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
   onNavigateNext,
   onRemoveReel,
 }) => {
+  const locale = useLocale();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const captionRef = useRef<HTMLParagraphElement | null>(null);
-  const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const currentUserId = useAuthStore((s) => s.userId);
 
   const [volume, setVolume] = useState(() => {
@@ -91,8 +92,7 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isCaptionExpanded, setIsCaptionExpanded] = useState(false);
   const [isCaptionOverflowing, setIsCaptionOverflowing] = useState(false);
-  const [notInterestedNotice, setNotInterestedNotice] = useState<string | null>(null);
-  const [notInterestedCountdown, setNotInterestedCountdown] = useState<number>(5);
+  const [actionError, setActionError] = useState<'save' | 'hide' | null>(null);
 
   // Follow state with animation
   const [isFollowing, setIsFollowing] = useState(Boolean(reel.author.isFollowing));
@@ -206,66 +206,30 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
     }
   }, [isPlaying, playVideo, pauseVideo]);
 
-  // "Not interested" countdown and auto-scroll (Requirement 9)
+  const handleSave = useCallback(() => {
+    if (toggleSaveMutation.isPending) return;
+    setActionError(null);
+    toggleSaveMutation.mutate(
+      { reelId: reel.id, saved: !reel.isSaved },
+      {
+        onSuccess: ({ saved }) => showToast(saved ? 'Saved to favorites' : 'Removed from saved'),
+        onError: () => setActionError('save'),
+      },
+    );
+  }, [reel.id, reel.isSaved, toggleSaveMutation]);
+
   const handleNotInterested = useCallback(() => {
-    notInterestedMutation.mutate(reel.id);
-    setNotInterestedNotice("Thanks! We'll show less content like this.");
-    setNotInterestedCountdown(5);
-
-    // Pause video
-    pauseVideo();
-
-    if (countdownIntervalRef.current) {
-      clearInterval(countdownIntervalRef.current);
-    }
-
-    let timeLeft = 5;
-    countdownIntervalRef.current = setInterval(() => {
-      timeLeft -= 1;
-      setNotInterestedCountdown(timeLeft);
-      if (timeLeft <= 0) {
-        if (countdownIntervalRef.current) {
-          clearInterval(countdownIntervalRef.current);
-          countdownIntervalRef.current = null;
-        }
-        onNavigateNext?.();
-        setTimeout(() => {
-          onRemoveReel?.(reel.id);
-        }, 300);
-      }
-    }, 1000);
+    if (notInterestedMutation.isPending) return;
+    setActionError(null);
+    notInterestedMutation.mutate(reel.id, {
+      onSuccess: () => {
+        pauseVideo();
+        if (onRemoveReel) onRemoveReel(reel.id);
+        else onNavigateNext?.();
+      },
+      onError: () => setActionError('hide'),
+    });
   }, [reel.id, notInterestedMutation, onNavigateNext, onRemoveReel, pauseVideo]);
-
-  const handleCancelNotInterested = useCallback(() => {
-    if (countdownIntervalRef.current) {
-      clearInterval(countdownIntervalRef.current);
-      countdownIntervalRef.current = null;
-    }
-    setNotInterestedNotice(null);
-    setNotInterestedCountdown(5);
-    void playVideo();
-    showToast('Action cancelled');
-  }, [playVideo]);
-
-  const handleSkipNow = useCallback(() => {
-    if (countdownIntervalRef.current) {
-      clearInterval(countdownIntervalRef.current);
-      countdownIntervalRef.current = null;
-    }
-    onNavigateNext?.();
-    setTimeout(() => {
-      onRemoveReel?.(reel.id);
-    }, 300);
-  }, [onNavigateNext, onRemoveReel, reel.id]);
-
-  // Clean up countdown timer on unmount
-  useEffect(() => {
-    return () => {
-      if (countdownIntervalRef.current) {
-        clearInterval(countdownIntervalRef.current);
-      }
-    };
-  }, []);
 
   // Keyboard shortcuts for enterprise power users
   useEffect(() => {
@@ -282,8 +246,7 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
         toggleLikeMutation.mutate(reel.id);
       } else if (e.key === 'b' || e.key === 'B') {
         e.preventDefault();
-        toggleSaveMutation.mutate(reel.id);
-        showToast(reel.isSaved ? 'Removed from saved' : '🔖 Saved to favorites');
+        handleSave();
       } else if (e.key === 'c' || e.key === 'C') {
         e.preventDefault();
         setShowComments((prev) => !prev);
@@ -294,7 +257,7 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isActive, reel.id, reel.isSaved, toggleLikeMutation, toggleSaveMutation, handleTogglePlay]);
+  }, [isActive, reel.id, toggleLikeMutation, handleSave, handleTogglePlay]);
 
   // Sync mute and volume state with localStorage persistence
   useEffect(() => {
@@ -471,8 +434,10 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            toggleSaveMutation.mutate(reel.id);
+            handleSave();
           }}
+          disabled={toggleSaveMutation.isPending}
+          aria-busy={toggleSaveMutation.isPending}
           className="flex flex-col items-center group cursor-pointer"
           aria-label={reel.isSaved ? 'Remove from saved' : 'Save to favorites'}
         >
@@ -489,7 +454,7 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
               }`}
             />
           </div>
-          <span className={countBadgeClass}>{formatCount(reel.savedCount ?? 98600)}</span>
+          <span className={countBadgeClass}>{formatCount(reel.savedCount ?? 0)}</span>
         </button>
 
         {/* 5. Share Button with Count */}
@@ -637,7 +602,10 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
 
         {/* Floating Action Feedback Toast (Speed, Quality, Subtitles, PiP, Copy, etc.) */}
         {toastMessage && (
-          <div className="absolute top-14 left-1/2 -translate-x-1/2 z-40 bg-black/90 backdrop-blur-xl border border-white/20 px-4 py-2 rounded-full text-xs sm:text-sm font-bold text-white shadow-2xl animate-in fade-in slide-in-from-top-2 duration-150 flex items-center gap-2 pointer-events-none whitespace-nowrap">
+          <div
+            role="status"
+            className="absolute top-14 left-1/2 -translate-x-1/2 z-40 bg-black/90 backdrop-blur-xl border border-white/20 px-4 py-2 rounded-full text-xs sm:text-sm font-bold text-white shadow-2xl animate-in fade-in slide-in-from-top-2 duration-150 flex items-center gap-2 pointer-events-none whitespace-nowrap"
+          >
             <span>{toastMessage}</span>
           </div>
         )}
@@ -762,6 +730,7 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
               showToast(`💬 Subtitles: ${label}`);
             }}
             onNotInterested={handleNotInterested}
+            isNotInterestedPending={notInterestedMutation.isPending}
             onOpenReport={() => setIsReportModalOpen(true)}
           />
         </div>
@@ -776,50 +745,32 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
           />
         )}
 
-        {/* "Not Interested" Feedback Card with 5s countdown, Cancel & Skip now (Requirement 9) */}
-        {notInterestedNotice && (
-          <div className="absolute inset-0 z-40 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-200">
-            <div className="w-14 h-14 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center mb-3 shadow-lg ring-2 ring-amber-500/30">
-              <EyeOff className="w-7 h-7" />
-            </div>
-            <h3 className="text-white font-black text-base sm:text-lg mb-1 tracking-tight">
-              Video hidden
-            </h3>
-            <p className="text-zinc-400 text-xs sm:text-sm max-w-xs mb-4 leading-relaxed">
-              Algorithm updated: we will show less content like this in your feed.
+        {notInterestedMutation.isPending && (
+          <p
+            role="status"
+            className="absolute top-28 inset-x-4 z-40 rounded-xl bg-black/90 px-4 py-3 text-sm text-white"
+          >
+            Updating your preference...
+          </p>
+        )}
+        {actionError && (
+          <div
+            role="alert"
+            className="absolute top-28 inset-x-4 z-40 rounded-xl bg-black/90 px-4 py-3 text-sm text-white"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <p>
+              {actionError === 'save'
+                ? 'Could not update saved videos.'
+                : 'Could not update your preference.'}
             </p>
-
-            {/* Countdown Badge */}
-            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/15 text-xs font-semibold text-zinc-200 mb-5">
-              <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-              <span>
-                Next video in{' '}
-                <strong className="text-white font-black text-sm font-mono">
-                  {notInterestedCountdown}
-                </strong>{' '}
-                s
-              </span>
-            </div>
-
-            {/* Actions: Cancel (Undo) and Skip Now */}
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={handleCancelNotInterested}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-white font-bold text-xs sm:text-sm transition-all cursor-pointer"
-              >
-                <Undo2 className="w-4 h-4" />
-                <span>Cancel</span>
-              </button>
-              <button
-                type="button"
-                onClick={handleSkipNow}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-pink-600 to-indigo-600 hover:opacity-90 active:scale-95 text-white font-bold text-xs sm:text-sm transition-all cursor-pointer shadow-lg"
-              >
-                <span>Skip now</span>
-                <ChevronDown className="w-4 h-4" />
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={actionError === 'save' ? handleSave : handleNotInterested}
+              className="mt-2 rounded-lg border border-white/30 px-3 py-2 font-semibold focus-visible:outline-2 focus-visible:outline-white"
+            >
+              Try again
+            </button>
           </div>
         )}
 
@@ -898,7 +849,7 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
             >
               {isTranslated
                 ? 'Show original'
-                : `Translation (${translationInfo.targetLang.toUpperCase()})`}
+                : `Translate to ${getLanguageName(translationInfo.targetLang, locale)}`}
             </button>
           )}
         </div>
@@ -934,6 +885,7 @@ export const ReelCardComponent: React.FC<ReelCardProps> = ({
       {/* Lazily-mounted Share Modal */}
       {isShareModalOpen && (
         <ReelShareModal
+          sendMessage={sendMessage}
           reel={reel}
           isOpen={isShareModalOpen}
           onClose={() => setIsShareModalOpen(false)}
@@ -971,6 +923,7 @@ export const ReelCard = React.memo(ReelCardComponent, (prev, next) => {
     prev.isMuted === next.isMuted &&
     prev.onToggleMute === next.onToggleMute &&
     prev.onNavigateNext === next.onNavigateNext &&
+    prev.sendMessage === next.sendMessage &&
     prev.onRemoveReel === next.onRemoveReel
   );
 });

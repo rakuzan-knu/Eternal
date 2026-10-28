@@ -5,6 +5,7 @@ import { ConversationsRepository } from '../conversations.repository';
 describe('ConversationsRepository', () => {
   let repository: ConversationsRepository;
   let mockPrisma: {
+    communityMember: { findMany: jest.Mock };
     conversation: {
       findFirst: jest.Mock;
       create: jest.Mock;
@@ -38,6 +39,7 @@ describe('ConversationsRepository', () => {
       count: jest.Mock;
     };
     $transaction: jest.Mock;
+    $queryRaw: jest.Mock;
   };
 
   const sampleConv = {
@@ -49,6 +51,7 @@ describe('ConversationsRepository', () => {
 
   beforeEach(() => {
     mockPrisma = {
+      communityMember: { findMany: jest.fn().mockResolvedValue([]) },
       conversation: {
         findFirst: jest.fn(),
         create: jest.fn(),
@@ -92,7 +95,13 @@ describe('ConversationsRepository', () => {
       message: {
         count: jest.fn().mockResolvedValue(4),
       },
-      $transaction: jest.fn().mockImplementation((promises) => Promise.all(promises)),
+      $queryRaw: jest.fn().mockResolvedValue([]),
+      $transaction: jest
+        .fn()
+        .mockImplementation(
+          (operation: ((tx: typeof mockPrisma) => unknown) | Promise<unknown>[]) =>
+            typeof operation === 'function' ? operation(mockPrisma) : Promise.all(operation),
+        ),
     };
 
     repository = new ConversationsRepository(mockPrisma as unknown as PrismaService);
@@ -113,6 +122,34 @@ describe('ConversationsRepository', () => {
       },
     });
     expect(conv).toEqual(sampleConv);
+  });
+
+  it('hydrates only requester-owned active server preferences for channel list and detail', async () => {
+    const conversation = {
+      ...sampleConv,
+      communityChannel: { communityId: 'community', isPrivate: true, archivedAt: null },
+    };
+    const preference = {
+      communityId: 'community',
+      notificationMode: 'MENTIONS',
+      notificationMutedUntil: new Date('2030-01-01'),
+    };
+    mockPrisma.conversation.findMany.mockResolvedValue([conversation]);
+    mockPrisma.conversation.findFirst.mockResolvedValue({ ...conversation });
+    mockPrisma.communityMember.findMany.mockResolvedValue([preference]);
+    const list = await repository.findAllForUser('usr-1');
+    const detail = await repository.findOneForUser('conv-1', 'usr-1');
+    expect(list[0].ownCommunityNotificationPreferences).toEqual({
+      notificationMode: 'MENTIONS',
+      notificationMutedUntil: preference.notificationMutedUntil,
+    });
+    expect(detail?.ownCommunityNotificationPreferences).toEqual(
+      list[0].ownCommunityNotificationPreferences,
+    );
+    expect(mockPrisma.communityMember.findMany).toHaveBeenCalledWith({
+      where: { userId: 'usr-1', state: 'ACTIVE', communityId: { in: ['community'] } },
+      select: { communityId: true, notificationMode: true, notificationMutedUntil: true },
+    });
   });
 
   it('findAllForUser and findOneForUser', async () => {
@@ -235,7 +272,7 @@ describe('ConversationsRepository', () => {
     await repository.pinMessage('conv-1', 'msg-1', 'usr-1');
     expect(mockPrisma.pinnedMessage.upsert).toHaveBeenCalled();
 
-    await repository.unpinMessage('conv-1', 'msg-1');
+    await repository.unpinMessage('conv-1', 'msg-1', 'usr-1');
     expect(mockPrisma.pinnedMessage.delete).toHaveBeenCalled();
   });
   it('restores preview and pinned message bodies before returning a conversation', async () => {

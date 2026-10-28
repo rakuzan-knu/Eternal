@@ -1,20 +1,39 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { X, Repeat, Send, Link2, Code2, Check, Phone, MessageSquare, Download } from 'lucide-react';
+import Modal from '@/shared/ui/Modal';
 import type { ReelItem } from '../api/reelsApi';
 import { useRecordReelShare } from '../api/reelsApi';
-import { ReelSendFriendsModal } from './ReelSendFriendsModal';
+import { ReelSendFriendsModal, type ReelDirectMessageSender } from './ReelSendFriendsModal';
 
 interface ReelShareModalProps {
   reel: ReelItem;
   isOpen: boolean;
   onClose: () => void;
+  sendMessage?: ReelDirectMessageSender;
 }
 
-export const ReelShareModal: React.FC<ReelShareModalProps> = ({ reel, isOpen, onClose }) => {
+export const ReelShareModal: React.FC<ReelShareModalProps> = ({
+  reel,
+  isOpen,
+  onClose,
+  sendMessage,
+}) => {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isCopied, setIsCopied] = useState(false);
   const [isSendFriendsOpen, setIsSendFriendsOpen] = useState(false);
+  const [showRepostHint, setShowRepostHint] = useState(false);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const copyLinkRef = useRef<HTMLSpanElement>(null);
   const recordShareMutation = useRecordReelShare();
+
+  useEffect(
+    () => () => {
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+      if (copiedTimer.current) clearTimeout(copiedTimer.current);
+    },
+    [],
+  );
 
   if (!isOpen) return null;
 
@@ -23,7 +42,8 @@ export const ReelShareModal: React.FC<ReelShareModalProps> = ({ reel, isOpen, on
 
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 2500);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToastMessage(null), 2500);
   };
 
   const handleCopyLink = async () => {
@@ -35,26 +55,34 @@ export const ReelShareModal: React.FC<ReelShareModalProps> = ({ reel, isOpen, on
         textArea.value = reelUrl;
         textArea.style.position = 'fixed';
         textArea.style.left = '-999999px';
-        document.body.appendChild(textArea);
+        const previousFocus = document.activeElement;
+        (copyLinkRef.current ?? document.body).appendChild(textArea);
         textArea.focus();
         textArea.select();
-        document.execCommand('copy');
-        textArea.remove();
+        try {
+          if (!document.execCommand('copy')) throw new Error('Clipboard copy failed');
+        } finally {
+          textArea.remove();
+          if (previousFocus instanceof HTMLElement) previousFocus.focus();
+        }
       }
       setIsCopied(true);
       recordShareMutation.mutate(reel.id);
       triggerToast('Link copied!');
-      setTimeout(() => setIsCopied(false), 2000);
+      if (copiedTimer.current) clearTimeout(copiedTimer.current);
+      copiedTimer.current = setTimeout(() => setIsCopied(false), 2000);
+      return true;
     } catch {
       triggerToast('Failed to copy link');
+      return false;
     }
   };
 
   const handleDownload = async () => {
-    recordShareMutation.mutate(reel.id);
     triggerToast('⬇ Downloading video...');
     try {
       const response = await fetch(reel.videoUrl);
+      if (!response.ok) throw new Error('Video download failed');
       const blob = await response.blob();
       const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -64,21 +92,15 @@ export const ReelShareModal: React.FC<ReelShareModalProps> = ({ reel, isOpen, on
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(blobUrl);
+      recordShareMutation.mutate(reel.id);
+      triggerToast('Download started');
     } catch {
-      const a = document.createElement('a');
-      a.href = reel.videoUrl;
-      a.download = `reel-${reel.id}.mp4`;
-      a.target = '_blank';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      triggerToast('Could not download video. Try again.');
     }
   };
 
   const handleRepost = () => {
-    recordShareMutation.mutate(reel.id);
-    triggerToast('Repost shared to your feed!');
-    setTimeout(() => onClose(), 1200);
+    setShowRepostHint(true);
   };
 
   const handleSendToFriends = () => {
@@ -97,8 +119,16 @@ export const ReelShareModal: React.FC<ReelShareModalProps> = ({ reel, isOpen, on
   };
 
   const handleExternalShare = (platform: string, url: string) => {
+    const shareWindow = window.open(
+      url,
+      `_share_${platform}`,
+      'width=600,height=500,location=no,menubar=no',
+    );
+    if (!shareWindow) {
+      triggerToast('Share window blocked. Allow popups and try again.');
+      return;
+    }
     recordShareMutation.mutate(reel.id);
-    window.open(url, `_share_${platform}`, 'width=600,height=500,location=no,menubar=no');
   };
 
   const shareActions = [
@@ -218,89 +248,101 @@ export const ReelShareModal: React.FC<ReelShareModalProps> = ({ reel, isOpen, on
       label: 'Message',
       icon: <MessageSquare className="w-6 h-6 text-white stroke-[2.5]" />,
       bg: 'bg-indigo-600 hover:bg-indigo-500',
-      onClick: () => {
-        handleCopyLink();
-        triggerToast('Link copied! Paste into any chat.');
+      onClick: async () => {
+        if (await handleCopyLink()) triggerToast('Link copied! Paste into any chat.');
       },
     },
   ];
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-in fade-in duration-200"
-      onClick={onClose}
+    <Modal
+      onClose={onClose}
+      aria-label="Share"
+      className="relative w-[calc(100%-2rem)] max-w-lg glass-modal border border-black/10 dark:border-white/10 rounded-3xl p-5 sm:p-6 shadow-2xl flex flex-col gap-4 animate-in zoom-in-95 duration-200 backdrop-blur-md text-gray-900 dark:text-white"
     >
-      <div
-        className="relative w-full max-w-lg glass-modal border border-black/10 dark:border-white/10 rounded-3xl p-5 sm:p-6 shadow-2xl flex flex-col gap-4 animate-in zoom-in-95 duration-200 text-gray-900 dark:text-white"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Toast notification overlay */}
-        {toastMessage && (
-          <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-full shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 z-50 whitespace-nowrap">
-            {toastMessage}
-          </div>
-        )}
-
-        {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-black/10 dark:border-white/10 pb-3">
-          <div className="w-8" />
-          <h3 className="text-gray-900 dark:text-white font-bold text-base sm:text-lg tracking-wide text-center">
-            Share
-          </h3>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-gray-500 hover:text-gray-950 hover:bg-black/5 dark:text-zinc-400 dark:hover:text-white dark:hover:bg-white/10 transition-colors cursor-pointer"
-            aria-label="Close"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Horizontal Action Buttons Row (Matching the photo) */}
-        <div className="flex items-start gap-4 sm:gap-5 overflow-x-auto py-3 px-1 scrollbar-none snap-x touch-pan-x">
-          {shareActions.map((action) => (
-            <button
-              key={action.id}
-              onClick={action.onClick}
-              className="flex flex-col items-center gap-2 group shrink-0 snap-start focus:outline-none cursor-pointer"
-              style={{ width: '72px' }}
+      {(requestClose) => (
+        <>
+          {/* Toast notification overlay */}
+          {toastMessage && (
+            <div
+              role="status"
+              className="absolute -top-12 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-full shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 z-50 w-max max-w-full text-center"
             >
-              <div
-                className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-transform duration-200 group-hover:scale-110 active:scale-95 ${action.bg}`}
-              >
-                {action.icon}
-              </div>
-              <span className="text-[12px] font-medium text-gray-700 group-hover:text-gray-950 dark:text-zinc-300 dark:group-hover:text-white text-center leading-tight line-clamp-2 transition-colors">
-                {action.label}
-              </span>
+              {toastMessage}
+            </div>
+          )}
+
+          {/* Modal Header */}
+          <div className="flex items-center justify-between border-b border-black/10 dark:border-white/10 pb-3">
+            <div className="w-8" />
+            <h3 className="text-gray-900 dark:text-white font-bold text-base sm:text-lg tracking-wide text-center">
+              Share
+            </h3>
+            <button
+              onClick={requestClose}
+              className="w-8 h-8 rounded-full flex items-center justify-center text-gray-500 hover:text-gray-950 hover:bg-black/5 dark:text-zinc-400 dark:hover:text-white dark:hover:bg-white/10 transition-colors cursor-pointer"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5" />
             </button>
-          ))}
-        </div>
+          </div>
 
-        {/* Bottom Copy Link Shortcut Bar */}
-        <div className="flex items-center gap-2 bg-black/5 dark:bg-zinc-900/90 border border-black/10 dark:border-white/10 rounded-2xl p-1.5 pl-3">
-          <span className="text-xs text-gray-600 dark:text-zinc-400 truncate flex-1 select-all font-mono">
-            {reelUrl}
-          </span>
-          <button
-            onClick={handleCopyLink}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
-              isCopied
-                ? 'bg-emerald-600 text-white'
-                : 'bg-gray-900 text-white hover:bg-gray-800 dark:bg-white/10 dark:text-white dark:hover:bg-white/20 active:scale-95'
-            }`}
-          >
-            {isCopied ? 'Copied!' : 'Copy'}
-          </button>
-        </div>
-      </div>
+          {showRepostHint && (
+            <p role="status" className="text-sm text-gray-600 dark:text-zinc-300">
+              Reposting to your feed is not available yet. Choose Send to Friends to share this
+              reel.
+            </p>
+          )}
 
-      <ReelSendFriendsModal
-        reel={reel}
-        isOpen={isSendFriendsOpen}
-        onClose={() => setIsSendFriendsOpen(false)}
-        onShowToast={triggerToast}
-      />
-    </div>
+          {/* Horizontal Action Buttons Row (Matching the photo) */}
+          <div className="flex items-start gap-4 sm:gap-5 overflow-x-auto py-3 px-1 scrollbar-none snap-x touch-pan-x">
+            {shareActions.map((action) => (
+              <button
+                key={action.id}
+                onClick={action.onClick}
+                className="flex flex-col items-center gap-2 group shrink-0 snap-start focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 rounded-lg cursor-pointer"
+                style={{ width: '72px' }}
+              >
+                <div
+                  className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-transform duration-200 group-hover:scale-110 active:scale-95 ${action.bg}`}
+                >
+                  {action.icon}
+                </div>
+                <span className="text-[12px] font-medium text-gray-700 group-hover:text-gray-950 dark:text-zinc-300 dark:group-hover:text-white text-center leading-tight line-clamp-2 transition-colors">
+                  {action.label}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* Bottom Copy Link Shortcut Bar */}
+          <div className="flex items-center gap-2 bg-black/5 dark:bg-zinc-900/90 border border-black/10 dark:border-white/10 rounded-2xl p-1.5 pl-3">
+            <span
+              ref={copyLinkRef}
+              className="text-xs text-gray-600 dark:text-zinc-400 truncate flex-1 select-all font-mono"
+            >
+              {reelUrl}
+            </span>
+            <button
+              onClick={handleCopyLink}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                isCopied
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-gray-900 text-white hover:bg-gray-800 dark:bg-white/10 dark:text-white dark:hover:bg-white/20 active:scale-95'
+              }`}
+            >
+              {isCopied ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+          <ReelSendFriendsModal
+            reel={reel}
+            isOpen={isSendFriendsOpen}
+            onClose={() => setIsSendFriendsOpen(false)}
+            onShowToast={triggerToast}
+            sendMessage={sendMessage}
+          />
+        </>
+      )}
+    </Modal>
   );
 };

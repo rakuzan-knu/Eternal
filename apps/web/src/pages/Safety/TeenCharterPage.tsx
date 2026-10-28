@@ -3,7 +3,7 @@ import { useLanguageStore } from '../../shared/lib/language/languageStore';
 import { PrivacyNavbar } from '../Privacy/ui/PrivacyNavbar';
 import { EternalFooter } from '@/widgets/footer';
 import { SEOHead } from '../../shared/seo';
-import { TEEN_CHARTER_EN, TEEN_CHARTER_UK } from './data/teenCharterData';
+import { TEEN_CHARTER_EN, TEEN_CHARTER_UK } from '@social-network/shared-content';
 import {
   TeenCharterRoundtableIllustration,
   CharterParchmentIllustration,

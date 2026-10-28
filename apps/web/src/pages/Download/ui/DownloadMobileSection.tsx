@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  Apple,
   ChevronLeft,
   Phone,
   Video,
@@ -12,26 +11,22 @@ import {
   Signal,
   Wifi,
 } from 'lucide-react';
-import { triggerInstallerDownload } from '../data/downloadData';
 
 export const DownloadMobileSection: React.FC<{
   heading: string;
   subtitle: string;
   appStoreLabel: string;
   googlePlayLabel: string;
-  onDownloadNotice?: (pkg: string) => void;
-}> = ({ heading, subtitle, appStoreLabel, googlePlayLabel, onDownloadNotice }) => {
-  const handleMobileDownload = (store: string) => {
-    triggerInstallerDownload(store === 'ios' ? 'eternal-ios.ipa' : 'eternal-android.apk');
-    if (onDownloadNotice)
-      onDownloadNotice(store === 'ios' ? 'iOS (App Store)' : 'Android (Google Play)');
-  };
-
+  unavailableLabel: string;
+}> = ({ heading, subtitle, appStoreLabel, googlePlayLabel, unavailableLabel }) => {
   return (
     <section className="py-24 px-6 lg:px-12 max-w-7xl mx-auto w-full relative z-10 select-text">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
         {/* Left Column: Soft Purple Gradient Card with Real iPhone Proportions & 1:1 Messenger Mockup */}
-        <div className="lg:col-span-6 rounded-[44px] bg-gradient-to-br from-[#7289da] via-[#8598e8] to-[#a29bfe] p-6 sm:p-12 shadow-[0_30px_90px_rgba(114,137,218,0.35)] flex items-center justify-center relative overflow-hidden select-none">
+        <div
+          aria-hidden="true"
+          className="lg:col-span-6 rounded-[44px] bg-gradient-to-br from-[#7289da] via-[#8598e8] to-[#a29bfe] p-6 sm:p-12 shadow-[0_30px_90px_rgba(114,137,218,0.35)] flex items-center justify-center relative overflow-hidden select-none"
+        >
           {/* Realistic iPhone Device Mockup */}
           <div className="w-full max-w-[320px] sm:max-w-[340px] rounded-[48px] bg-[#0c091e] border-[6px] border-[#221c38] shadow-[0_35px_80px_rgba(0,0,0,0.85)] overflow-hidden flex flex-col min-h-[580px] sm:min-h-[620px] relative">
             {/* 1:1 iPhone Top Status Bar with Dynamic Island */}
@@ -128,7 +123,7 @@ export const DownloadMobileSection: React.FC<{
               {/* Sent Message 1 */}
               <div className="flex flex-col items-end max-w-[85%] self-end text-right">
                 <div className="p-3 rounded-2xl rounded-tr-sm bg-gradient-to-br from-[#5822b4] to-[#7c3aed] text-white text-[11px] leading-relaxed shadow-md font-medium">
-                  Works super smoothly on iOS & Android! 💜
+                  Love catching up with everyone here! 💜
                 </div>
                 <div className="flex items-center gap-1 text-[9px] text-neutral-400 mt-0.5 pr-1">
                   <span>14:16</span>
@@ -185,31 +180,14 @@ export const DownloadMobileSection: React.FC<{
             </p>
           </div>
 
-          {/* App Store & Google Play Buttons */}
-          <div className="flex flex-wrap items-center gap-4">
-            {/* 1. App Store */}
-            <button
-              type="button"
-              onClick={() => handleMobileDownload('ios')}
-              className="px-7 py-3.5 rounded-full bg-white hover:bg-neutral-100 text-black text-xs font-black tracking-wide shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-2.5 cursor-pointer"
-            >
-              <Apple size={18} className="fill-black" />
-              <span>{appStoreLabel}</span>
-            </button>
-
-            {/* 2. Google Play */}
-            <button
-              type="button"
-              onClick={() => handleMobileDownload('android')}
-              className="px-7 py-3.5 rounded-full bg-white hover:bg-neutral-100 text-black text-xs font-black tracking-wide shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-2.5 cursor-pointer"
-            >
-              {/* Google Play Icon */}
-              <svg className="w-4 h-4 fill-black" viewBox="0 0 24 24">
-                <path d="M3.609 1.814L13.792 12 3.61 22.186a1.996 1.996 0 0 1-.61-.914V2.728c0-.341.137-.667.61-.914zM15.207 13.414l2.457 2.457-11.455 6.612 8.998-9.069zm0-2.828L6.209 1.517l11.455 6.612-2.457 2.457zm1.414 1.414l3.568 2.06c.725.419.725 1.101 0 1.52l-3.568 2.06-2.121-2.121 2.121-3.519z" />
-              </svg>
-              <span>{googlePlayLabel}</span>
-            </button>
-          </div>
+          <ul className="flex flex-wrap items-center gap-4">
+            {[appStoreLabel, googlePlayLabel].map((label) => (
+              <li key={label} className="rounded-2xl border border-white/15 px-5 py-3">
+                <span className="block text-sm font-semibold text-white">{label}</span>
+                <span className="text-sm text-neutral-300">{unavailableLabel}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </section>

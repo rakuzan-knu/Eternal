@@ -1,6 +1,6 @@
 import React from 'react';
 import { Heart, MessageCircle, Repeat2, Bookmark, Crown, CheckCheck } from 'lucide-react';
-import { BlogUpdateItem } from '../data/newsroomData';
+import { BlogUpdateItem } from '@social-network/shared-content';
 
 /**
  * 1:1 Clean Minimalist Blog Visual Previews

@@ -92,7 +92,7 @@ export default function OnlineStatusIndicator({
     const songDetails = activity?.subtitle || activity?.artist || '';
     return (
       <span
-        aria-label={isPaused ? 'Paused on Spotify' : 'Listening to Spotify'}
+        aria-label={isPaused ? 'Music paused' : 'Listening to music'}
         title={`${isPaused ? 'Paused: ' : 'Listening to '}${activity?.title || 'music'}${songDetails ? ` — ${songDetails}` : ''}`}
         className={`${isStatic ? 'inline-flex' : `absolute ${badgePadding} bg-[#16161a] rounded-full`} flex items-center justify-center pointer-events-none drop-shadow-[0_0_6px_${isPaused ? 'rgba(245,158,11,0.85)' : 'rgba(29,185,84,0.85)'}] z-10 ${className}`}
       >

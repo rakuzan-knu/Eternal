@@ -1,5 +1,5 @@
 import React from 'react';
-import { BlogPost } from '../data/blogData';
+import { BlogPost } from '@social-network/shared-content';
 import { BlogVisualMockup } from './BlogVisualMockups';
 
 export const FeaturedArticlesGrid: React.FC<{

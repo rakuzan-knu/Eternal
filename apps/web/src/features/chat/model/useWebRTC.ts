@@ -912,6 +912,7 @@ export function useWebRTC(options: WebRTCOptions = {}) {
     async (
       onIceCandidate: (candidate: RTCIceCandidate) => void,
       targetUserId?: string,
+      preallocateTransceivers = true,
     ): Promise<RTCPeerConnection> => {
       const generation = setupGenerationRef.current;
       ensureCurrentSetup(generation);
@@ -937,7 +938,7 @@ export function useWebRTC(options: WebRTCOptions = {}) {
       // SDP offer/answer always contains both m=audio and m=video sections.
       // This allows instant video/screen-share track replacement without renegotiation glitches.
       try {
-        if (typeof pc.addTransceiver === 'function') {
+        if (preallocateTransceivers && typeof pc.addTransceiver === 'function') {
           const transceivers = pc.getTransceivers();
           if (!transceivers.some((t) => t.receiver.track.kind === 'audio')) {
             pc.addTransceiver('audio', { direction: 'sendrecv' });
@@ -1453,52 +1454,65 @@ export function useWebRTC(options: WebRTCOptions = {}) {
     ],
   );
 
-  const attachLocalStream = useCallback((pc: RTCPeerConnection, stream: MediaStream) => {
-    stream.getTracks().forEach((track) => {
-      const transceivers = typeof pc.getTransceivers === 'function' ? pc.getTransceivers() : [];
-      const matchingTransceiver = transceivers.find(
-        (t) =>
-          t.sender.track?.id === track.id ||
-          t.sender.track?.kind === track.kind ||
-          (!t.sender.track && t.receiver.track.kind === track.kind),
-      );
-      if (matchingTransceiver) {
-        matchingTransceiver.direction = 'sendrecv';
-        if (matchingTransceiver.sender.track?.id !== track.id) {
-          void matchingTransceiver.sender.replaceTrack(track);
-        }
-        if (track.kind === 'video' && cryptoKeyRef.current && pc.signalingState === 'stable') {
-          attachSenderScriptTransform(matchingTransceiver.sender, {
-            cryptoKey: cryptoKeyRef.current,
-          });
-        }
-      } else {
-        const existingSenders = pc.getSenders();
-        const existingSenderForKind = existingSenders.find(
-          (s) => s.track?.id === track.id || s.track?.kind === track.kind,
+  const attachLocalStream = useCallback(
+    async (pc: RTCPeerConnection, stream: MediaStream) => {
+      const generation = setupGenerationRef.current;
+      for (const track of stream.getTracks()) {
+        ensureCurrentSetup(generation, stream);
+        const transceivers = typeof pc.getTransceivers === 'function' ? pc.getTransceivers() : [];
+        const matchingTransceiver = transceivers.find(
+          (t) =>
+            t.sender.track?.id === track.id ||
+            t.sender.track?.kind === track.kind ||
+            (!t.sender.track && t.receiver.track.kind === track.kind),
         );
-        if (existingSenderForKind) {
-          if (existingSenderForKind.track?.id !== track.id) {
-            void existingSenderForKind.replaceTrack(track);
+        if (matchingTransceiver) {
+          matchingTransceiver.direction = 'sendrecv';
+          if (matchingTransceiver.sender.track?.id !== track.id) {
+            await awaitCurrentSetup(
+              generation,
+              matchingTransceiver.sender.replaceTrack(track),
+              stream,
+            );
           }
-        } else {
-          const sender = pc.addTrack(track, stream);
-
-          // Attach RTCRtpScriptTransform only to video tracks if signaling is already stable
-          if (
-            track.kind === 'video' &&
-            cryptoKeyRef.current &&
-            sender &&
-            pc.signalingState === 'stable'
-          ) {
-            attachSenderScriptTransform(sender, {
+          if (track.kind === 'video' && cryptoKeyRef.current && pc.signalingState === 'stable') {
+            attachSenderScriptTransform(matchingTransceiver.sender, {
               cryptoKey: cryptoKeyRef.current,
             });
           }
+        } else {
+          const existingSenders = pc.getSenders();
+          const existingSenderForKind = existingSenders.find(
+            (s) => s.track?.id === track.id || s.track?.kind === track.kind,
+          );
+          if (existingSenderForKind) {
+            if (existingSenderForKind.track?.id !== track.id) {
+              await awaitCurrentSetup(
+                generation,
+                existingSenderForKind.replaceTrack(track),
+                stream,
+              );
+            }
+          } else {
+            const sender = pc.addTrack(track, stream);
+
+            // Attach RTCRtpScriptTransform only to video tracks if signaling is already stable
+            if (
+              track.kind === 'video' &&
+              cryptoKeyRef.current &&
+              sender &&
+              pc.signalingState === 'stable'
+            ) {
+              attachSenderScriptTransform(sender, {
+                cryptoKey: cryptoKeyRef.current,
+              });
+            }
+          }
         }
       }
-    });
-  }, []);
+    },
+    [ensureCurrentSetup, awaitCurrentSetup],
+  );
 
   const createOffer = useCallback(
     async (
@@ -1511,7 +1525,8 @@ export function useWebRTC(options: WebRTCOptions = {}) {
       ensureCurrentSetup(generation);
       const stream = await acquireLocalMedia(callType);
       ensureCurrentSetup(generation, stream);
-      attachLocalStream(pc, stream);
+      await attachLocalStream(pc, stream);
+      ensureCurrentSetup(generation, stream);
 
       globalCallExternalStore.transition('CALLING');
       globalCallExternalStore.transition('SIGNALING');
@@ -1658,11 +1673,10 @@ export function useWebRTC(options: WebRTCOptions = {}) {
       ensureCurrentSetup(generation, stream);
 
       console.log('[handleOffer] STEP 2: initPeerConnection...');
-      const pc = await initPeerConnection(onIceCandidate, callerUserId);
+      // Answer using the offer's media sections; locally preallocated senders
+      // can remain unassociated while remote sections become receive-only.
+      const pc = await initPeerConnection(onIceCandidate, callerUserId, false);
       ensureCurrentSetup(generation, stream);
-
-      console.log('[handleOffer] STEP 2.5: attachLocalStream...');
-      attachLocalStream(pc, stream);
 
       console.log(
         '[handleOffer] STEP 3: setRemoteDescription...',
@@ -1681,6 +1695,9 @@ export function useWebRTC(options: WebRTCOptions = {}) {
         console.error('[handleOffer] STEP 3 setRemoteDescription EXCEPTION:', e);
         throw e;
       }
+
+      await attachLocalStream(pc, stream);
+      ensureCurrentSetup(generation, stream);
 
       // Flush any queued candidates that arrived before remoteDescription
       while (queuedCandidatesRef.current.length > 0) {

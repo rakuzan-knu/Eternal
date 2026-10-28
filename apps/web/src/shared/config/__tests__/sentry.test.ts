@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { initSentry } from '../sentry';
+import { containsInvitationCredential, initSentry } from '../sentry';
 import * as Sentry from '@sentry/react';
 
 vi.mock('@sentry/react', () => ({
@@ -9,6 +9,17 @@ vi.mock('@sentry/react', () => ({
 }));
 
 describe('sentry', () => {
+  it('identifies invitation credentials in errors, breadcrumbs and navigation URLs', () => {
+    expect(
+      containsInvitationCredential({ data: { url: 'https://eternal.test/invite/secret' } }),
+    ).toBe(true);
+    expect(
+      containsInvitationCredential({
+        request: { url: '/messenger/communities/invites/secret/accept' },
+      }),
+    ).toBe(true);
+    expect(containsInvitationCredential({ url: '/communities/public-id' })).toBe(false);
+  });
   beforeEach(() => {
     vi.clearAllMocks();
   });

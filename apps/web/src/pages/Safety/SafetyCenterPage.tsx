@@ -4,7 +4,7 @@ import { PrivacyNavbar } from '../Privacy/ui/PrivacyNavbar';
 import { EternalFooter } from '@/widgets/footer';
 import { useLanguageStore } from '../../shared/lib/language/languageStore';
 import { SEOHead } from '../../shared/seo';
-import { SAFETY_CENTER_TRANSLATIONS } from './data/safetyCenterData';
+import { SAFETY_CENTER_TRANSLATIONS } from '@social-network/shared-content';
 import {
   SafetyHeroShieldIllustration,
   SafetyHeroEggIllustration,

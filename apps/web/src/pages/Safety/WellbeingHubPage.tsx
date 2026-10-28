@@ -4,7 +4,11 @@ import { useLanguageStore } from '../../shared/lib/language/languageStore';
 import { PrivacyNavbar } from '../Privacy/ui/PrivacyNavbar';
 import { EternalFooter } from '@/widgets/footer';
 import { SEOHead } from '../../shared/seo';
-import { WELLBEING_HUB_EN, WELLBEING_HUB_UK, WellbeingArticleCard } from './data/wellbeingHubData';
+import {
+  WELLBEING_HUB_EN,
+  WELLBEING_HUB_UK,
+  WellbeingArticleCard,
+} from '@social-network/shared-content';
 import { ParentHubIllustration, TeenCharterIllustration } from './ui/SafetyCenterIllustrations';
 import {
   WellbeingHeroShieldIllustration,
@@ -145,6 +149,16 @@ export const WellbeingHubPage: React.FC = () => {
                   <PhoneCall className="w-4 h-4 text-emerald-700" />
                   <span>{data.resourcesSection.resources[1].badgeText}</span>
                 </div>
+                <a
+                  href={data.resourcesSection.resources[1].linkUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-fit rounded text-sm text-emerald-100 underline underline-offset-4 hover:text-white focus-visible:outline-2 focus-visible:outline-white"
+                >
+                  {isUkrainian
+                    ? 'Офіційні контакти Crisis Text Line (нове вікно)'
+                    : 'Official Crisis Text Line support options (opens in a new tab)'}
+                </a>
               </div>
 
               {/* 3D Heart Gem Illustration */}

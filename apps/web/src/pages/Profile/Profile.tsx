@@ -17,7 +17,7 @@ import CreatePost from '../../features/posts/ui/CreatePost';
 import { BoundedPostList } from '@/widgets/post/ui/BoundedPostList';
 import { SkeletonFeed } from '../../entities/post/ui/SkeletonPostCard';
 import { SavedPostsView } from '@/widgets/profile';
-import { UserReelsView } from '@/features/reels';
+import { UserReelsView, SavedReelsView } from '@/features/reels';
 import { isReservedUsername } from '@/features/profile/model/profileSchema';
 import { SEOHead } from '@/shared/seo';
 import { storiesApi } from '@/features/stories/api/storiesApi';
@@ -68,7 +68,10 @@ export default function ProfilePage() {
 
   const baseTab: ProfileTabType =
     tabParam &&
-    (tabParam === 'posts' || tabParam === 'reposts' || (tabParam === 'saved' && isOwnProfile))
+    (tabParam === 'posts' ||
+      tabParam === 'reposts' ||
+      tabParam === 'reels' ||
+      (tabParam === 'saved' && isOwnProfile))
       ? tabParam
       : localTab;
 
@@ -87,6 +90,35 @@ export default function ProfilePage() {
   };
 
   const openEditProfile = useUIStore((state) => state.openEditProfile);
+
+  useEffect(() => {
+    if (!user?.id || activeTab === 'posts') return;
+    let frame = 0;
+    const alignPanel = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        document
+          .getElementById('profile-feed-panel')
+          ?.scrollIntoView({ block: 'start', behavior: 'instant' });
+      });
+    };
+    // Deferred showcase content can change header height after the tab mounts.
+    // Keep the requested panel aligned until the user takes over scrolling.
+    const header = document.getElementById('profile-header');
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(alignPanel);
+    if (header) observer?.observe(header);
+    const stop = () => {
+      observer?.disconnect();
+      cancelAnimationFrame(frame);
+    };
+    const events = ['wheel', 'touchstart', 'pointerdown', 'keydown'] as const;
+    events.forEach((event) => window.addEventListener(event, stop, { once: true, passive: true }));
+    alignPanel();
+    return () => {
+      stop();
+      events.forEach((event) => window.removeEventListener(event, stop));
+    };
+  }, [activeTab, user?.id]);
 
   const postsQuery = useUserPosts(user?.id ?? '');
   const repostsQuery = useUserReposts(user?.id ?? '');
@@ -284,6 +316,7 @@ export default function ProfilePage() {
           className="mb-6"
         >
           <div
+            id="profile-header"
             className={`border rounded-[2.5rem] overflow-hidden shadow-[0_16px_50px_rgba(0,0,0,0.6)] transition-all duration-300 relative ${
               profileTheme ? 'border-white/15' : 'glass-card border-white/5'
             }`}
@@ -352,6 +385,7 @@ export default function ProfilePage() {
 
         <div
           id="profile-feed-panel"
+          className="scroll-mt-24"
           role="tabpanel"
           aria-labelledby={`profile-tab-${activeTab}`}
           tabIndex={0}
@@ -368,7 +402,12 @@ export default function ProfilePage() {
           )}
 
           {activeTab === 'saved' && isOwnProfile ? (
-            <SavedPostsView userId={user.id} />
+            <div className="space-y-8">
+              <SavedReelsView key={user.id} userId={user.id} />
+              <section aria-label="Saved post collections">
+                <SavedPostsView userId={user.id} />
+              </section>
+            </div>
           ) : activeTab === 'reels' ? (
             <UserReelsView userId={user.id} />
           ) : activeQuery.isLoading ? (

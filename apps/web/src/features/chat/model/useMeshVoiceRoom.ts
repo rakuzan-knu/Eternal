@@ -29,6 +29,13 @@ export function useMeshVoiceRoom() {
     };
 
     const manager = new MeshVoiceRoomManager(currentUserId, emitFn, {
+      onDisconnected: () => {
+        setCurrentRoomId(null);
+        setIsConnected(false);
+        setPeers([]);
+        setSpeakingPeers(new Set());
+        setIsLocalSpeaking(false);
+      },
       onPeersChange: (newPeers) => {
         setPeers(newPeers);
       },
@@ -86,6 +93,7 @@ export function useMeshVoiceRoom() {
   const joinRoom = useCallback(async (roomId: string) => {
     if (!managerRef.current) return;
     await managerRef.current.join(roomId);
+    if (managerRef.current?.getRoomId() !== roomId) return;
     setCurrentRoomId(roomId);
     setIsConnected(true);
     setIsMuted(false);

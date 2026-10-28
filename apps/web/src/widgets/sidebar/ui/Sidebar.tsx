@@ -15,6 +15,9 @@ import {
   Zap,
   Menu,
   X,
+  Pin,
+  PanelLeftClose,
+  Users,
 } from 'lucide-react';
 import { useUIStore } from '../../../shared/model/useUIStore';
 import { useCurrentUser } from '@/entities/profile/model/useCurrentUser';
@@ -35,6 +38,7 @@ const menuItems = [
   { to: '/reels', icon: <Film size={24} />, label: 'Reels' },
   { to: '/music', icon: <Music2 size={24} />, label: 'Music Hub' },
   { to: '/messages', icon: <MessageSquare size={24} />, label: 'Message' },
+  { to: '/communities', icon: <Users size={24} />, label: 'Communities' },
   { to: '/notifications', icon: <Bell size={24} />, label: 'Notifications' },
   { to: '/create', icon: <PlusSquare size={24} />, label: 'Create', isAction: true },
   { to: '/shop', icon: <Store size={24} />, label: 'Shop' },
@@ -43,6 +47,8 @@ const menuItems = [
 export default function Sidebar() {
   const isSidebarExpanded = useUIStore((s) => s.isSidebarExpanded);
   const setSidebarExpanded = useUIStore((s) => s.setSidebarExpanded);
+  const isSidebarPinned = useUIStore((s) => s.isSidebarPinned);
+  const toggleSidebarPin = useUIStore((s) => s.toggleSidebarPin);
   const openCreateReel = useUIStore((s) => s.openCreateReel);
   const isEditProfileOpen = useUIStore((s) => s.isEditProfileOpen);
   const isShareModalOpen = useUIStore((s) => s.isShareModalOpen);
@@ -136,7 +142,7 @@ export default function Sidebar() {
       enterTimerRef.current = null;
     }
     lastMousePosRef.current = null;
-    if (isCreateMenuOpen || isMoreMenuOpen) return;
+    if (isCreateMenuOpen || isMoreMenuOpen || isSidebarPinned) return;
     if (!isSidebarExpanded) return;
 
     const isTest =
@@ -288,7 +294,7 @@ export default function Sidebar() {
       <aside
         id="app-navigation"
         onKeyDown={(event) => {
-          if (event.key === 'Escape') setSidebarExpanded(false);
+          if (event.key === 'Escape' && !isSidebarPinned) setSidebarExpanded(false);
         }}
         onMouseEnter={handleMouseEnter}
         onMouseMove={handleMouseMove}
@@ -300,7 +306,7 @@ export default function Sidebar() {
         <div className="flex flex-col w-full h-full min-h-0">
           <div
             className={`flex items-center sidebar-navigation-brand h-12 mb-6 overflow-hidden w-full transition-all duration-200 shrink-0 ${
-              isSidebarExpanded ? 'px-4' : 'justify-center'
+              isSidebarExpanded ? 'px-2 justify-between' : 'justify-center'
             }`}
           >
             <span
@@ -312,10 +318,41 @@ export default function Sidebar() {
             >
               Eternal
             </span>
+            {isSidebarExpanded && (
+              <div className="hidden md:flex items-center">
+                <button
+                  type="button"
+                  onClick={toggleSidebarPin}
+                  aria-label="Keep sidebar open"
+                  aria-pressed={isSidebarPinned}
+                  title={isSidebarPinned ? 'Sidebar stays open' : 'Keep sidebar open'}
+                  className="flex items-center justify-center size-11 rounded-xl cursor-pointer text-gray-500 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-500 aria-pressed:text-purple-500 aria-pressed:bg-purple-500/10"
+                >
+                  <Pin size={17} aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Collapse navigation"
+                  title="Collapse navigation"
+                  onClick={() => {
+                    if (isSidebarPinned) toggleSidebarPin();
+                    setSidebarExpanded(false);
+                  }}
+                  className="flex items-center justify-center size-11 rounded-xl cursor-pointer text-gray-500 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-500"
+                >
+                  <PanelLeftClose size={18} aria-hidden="true" />
+                </button>
+              </div>
+            )}
             {!isSidebarExpanded && (
-              <span className="font-sans font-bold text-xl text-gray-950 dark:text-white opacity-80">
+              <button
+                type="button"
+                aria-label="Expand navigation"
+                onClick={() => setSidebarExpanded(true)}
+                className="size-11 flex items-center justify-center rounded-xl cursor-pointer font-sans font-bold text-xl text-gray-950 dark:text-white opacity-80 hover:bg-black/5 dark:hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-500"
+              >
                 E
-              </span>
+              </button>
             )}
           </div>
 

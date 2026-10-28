@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useId } from 'react';
 import { Bookmark, Plus, ArrowLeft, Trash2, Lock, Layers } from 'lucide-react';
 import { useSavedPosts } from '@/entities/post/model/useSavedPosts';
 import { useSavedCollectionsStore } from '@/entities/post/model/useSavedCollectionsStore';
@@ -7,6 +7,7 @@ import { SkeletonFeed } from '@/entities/post/ui/SkeletonPostCard';
 import { CreateCollectionModal } from './CreateCollectionModal';
 import { CollectionCardCover } from './CollectionCardCover';
 import { SAVED_POSTS_KEY } from '@/shared/api/queryKeys';
+import Modal from '@/shared/ui/Modal';
 
 interface SavedPostsViewProps {
   userId: string;
@@ -15,6 +16,8 @@ interface SavedPostsViewProps {
 export function SavedPostsView({ userId }: SavedPostsViewProps) {
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const deleteTitleId = useId();
 
   const allCollections = useSavedCollectionsStore((s) => s.collections);
   const collections = React.useMemo(
@@ -60,6 +63,26 @@ export function SavedPostsView({ userId }: SavedPostsViewProps) {
     return <SkeletonFeed count={3} />;
   }
 
+  if (savedQuery.isError && !data) {
+    return (
+      <div
+        role="alert"
+        className="rounded-2xl border border-red-500/20 p-6 space-y-3 text-gray-900 dark:text-white"
+      >
+        <p className="text-sm">
+          Saved posts could not be loaded. Your collections have not been changed.
+        </p>
+        <button
+          type="button"
+          onClick={() => void savedQuery.refetch()}
+          className="min-h-11 px-4 rounded-xl border border-purple-500/30 cursor-pointer hover:bg-purple-500/10"
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
+
   // Inside a selected collection
   if (selectedCollectionId !== null) {
     const isAll = selectedCollectionId === 'all';
@@ -92,12 +115,7 @@ export function SavedPostsView({ userId }: SavedPostsViewProps) {
             {!isAll && activeCollection && (
               <button
                 type="button"
-                onClick={() => {
-                  if (confirm(`Delete collection "${activeCollection.name}"?`)) {
-                    deleteCollection(activeCollection.id);
-                    setSelectedCollectionId(null);
-                  }
-                }}
+                onClick={() => setIsDeleteOpen(true)}
                 className="p-2 rounded-xl text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer"
                 title="Delete collection"
               >
@@ -106,6 +124,42 @@ export function SavedPostsView({ userId }: SavedPostsViewProps) {
             )}
           </div>
         </div>
+
+        {isDeleteOpen && activeCollection && (
+          <Modal onClose={() => setIsDeleteOpen(false)} aria-labelledby={deleteTitleId}>
+            {(close) => (
+              <div className="w-full max-w-md rounded-3xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950 p-6 shadow-2xl text-gray-900 dark:text-white">
+                <h2 id={deleteTitleId} className="text-lg font-bold">
+                  Delete collection “{activeCollection.name}”?
+                </h2>
+                <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                  This removes the collection from this browser. The posts will remain in All posts.
+                </p>
+                <div className="mt-6 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    autoFocus
+                    onClick={close}
+                    className="min-h-11 px-4 rounded-xl border border-black/10 dark:border-white/10 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5"
+                  >
+                    Keep collection
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      deleteCollection(activeCollection.id);
+                      setIsDeleteOpen(false);
+                      setSelectedCollectionId(null);
+                    }}
+                    className="min-h-11 px-4 rounded-xl bg-red-600 hover:bg-red-500 text-white font-semibold cursor-pointer"
+                  >
+                    Delete collection
+                  </button>
+                </div>
+              </div>
+            )}
+          </Modal>
+        )}
 
         <div>
           <h2 className="text-xl font-bold text-white mb-1">{activeTitle}</h2>
@@ -148,10 +202,10 @@ export function SavedPostsView({ userId }: SavedPostsViewProps) {
   return (
     <div className="w-full flex flex-col gap-6 animate-fadeIn">
       {/* Top action header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-xs text-gray-500">
           <Lock size={13} className="text-gray-400" />
-          <span>Only you can see saved posts</span>
+          <span>Only you can see saved posts · Collections stay in this browser</span>
         </div>
 
         <button
@@ -165,7 +219,7 @@ export function SavedPostsView({ userId }: SavedPostsViewProps) {
       </div>
 
       {allSavedPosts.length === 0 && collections.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center border border-dashed border-white/10 rounded-[2.5rem] bg-white/[0.01]">
+        <div className="flex flex-col items-center justify-center px-5 py-12 sm:py-24 text-center border border-dashed border-white/10 rounded-[2.5rem] bg-white/[0.01]">
           <div className="w-20 h-20 rounded-full bg-white/[0.04] border border-white/10 flex items-center justify-center mb-5 text-gray-400 shadow-xl">
             <Bookmark size={36} />
           </div>

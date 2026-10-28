@@ -3,6 +3,7 @@ import { UploadCloud } from 'lucide-react';
 import { MAX_ATTACHMENTS_PER_MESSAGE } from '@/shared/lib/attachmentLimits';
 
 interface AttachmentDropZoneProps {
+  disabled?: boolean;
   onFilesDropped: (files: File[]) => void;
   children: React.ReactNode;
   className?: string;
@@ -33,6 +34,7 @@ function DefaultDropzoneOverlay({ isDragging }: { isDragging: boolean }) {
 }
 
 export default function AttachmentDropZone({
+  disabled = false,
   onFilesDropped,
   children,
   className = 'relative flex-1 flex flex-col min-h-0',
@@ -45,7 +47,7 @@ export default function AttachmentDropZone({
 
   const handleDragEnter = (e: React.DragEvent) => {
     e.preventDefault();
-    if (!hasFiles(e)) return;
+    if (disabled || !hasFiles(e)) return;
     dragCounter.current += 1;
     setIsDragging(true);
   };
@@ -64,7 +66,7 @@ export default function AttachmentDropZone({
     e.preventDefault();
     dragCounter.current = 0;
     setIsDragging(false);
-    if (e.dataTransfer.files?.length) onFilesDropped(Array.from(e.dataTransfer.files));
+    if (!disabled && e.dataTransfer.files?.length) onFilesDropped(Array.from(e.dataTransfer.files));
   };
 
   return (

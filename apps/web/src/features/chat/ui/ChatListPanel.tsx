@@ -39,13 +39,6 @@ const MAX_WIDTH = 480;
 const DEFAULT_WIDTH = 360;
 const COLLAPSED_WIDTH = 64;
 
-function getConversationActivityTime(conversation: ConversationView) {
-  const activityAt =
-    conversation.lastMessage?.createdAt ?? conversation.updatedAt ?? conversation.createdAt;
-  const time = new Date(activityAt).getTime();
-  return Number.isNaN(time) ? 0 : time;
-}
-
 interface ChatListPanelProps {
   onBack?: () => void;
   className?: string;
@@ -480,21 +473,26 @@ export default function ChatListPanel({
           </div>
 
           <div className="px-5 mb-4">
-            <div
+            <button
+              type="button"
+              aria-label="Search in Messenger"
               onClick={() => useUIStore.getState().openGlobalSearch()}
-              className="relative cursor-pointer group"
+              className="relative w-full text-left cursor-pointer group rounded-full focus-visible:outline-2 focus-visible:outline-[var(--app-accent-color)]"
             >
               <Search
                 size={16}
                 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 group-hover:text-gray-300 transition-colors pointer-events-none"
               />
-              <div className="w-full h-10 pl-10 pr-14 flex items-center rounded-full bg-white/5 border border-white/5 text-sm text-gray-400 group-hover:bg-white/10 group-hover:border-white/10 transition-all select-none">
+              <span className="w-full h-10 pl-10 pr-4 md:pr-14 flex items-center rounded-full bg-white/5 border border-white/5 text-sm text-gray-400 group-hover:bg-white/10 group-hover:border-white/10 transition-all select-none">
                 <span className="truncate">Search in Messenger</span>
-              </div>
-              <kbd className="absolute right-3 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[10px] font-semibold text-gray-400 bg-white/5 border border-white/10 rounded pointer-events-none">
+              </span>
+              <kbd
+                aria-hidden="true"
+                className="hidden md:block absolute right-3 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[10px] font-semibold text-gray-400 bg-white/5 border border-white/10 rounded pointer-events-none"
+              >
                 Ctrl K
               </kbd>
-            </div>
+            </button>
           </div>
 
           <ChatFolderRail

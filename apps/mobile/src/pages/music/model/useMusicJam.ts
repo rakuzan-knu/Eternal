@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { useAuthStore } from '@social-network/shared-stores';
 import { messengerOrigin, getMobileApi } from '@/shared/api/client';
 import { trackSchema, type Track } from './music';
+import { tr } from '@/shared/lib/i18n';
 
 const roomSchema = z.object({
   roomId: z.string(),
@@ -108,8 +109,8 @@ export function useMusicJam(player: Player) {
           .then(() => {
             if (socket.current === connection) connection.connect();
           })
-          .catch(() => setError('Live listening is unavailable. Reconnect and try again.'));
-      } else setError('Live listening is unavailable. Reconnect and try again.');
+          .catch(() => setError(tr('Live listening is unavailable. Reconnect and try again.')));
+      } else setError(tr('Live listening is unavailable. Reconnect and try again.'));
     });
     connection.on('jam:pong', (data: unknown) => {
       const parsed = z.object({ t0: z.number(), serverTime: z.number() }).safeParse(data);
@@ -213,7 +214,7 @@ export function useMusicJam(player: Player) {
   }, [player.current?.id, player.playing, room?.roomId, connected]);
   function emit(event: string, payload: unknown) {
     if (!socket.current?.connected) {
-      setError('Connect to live listening before continuing.');
+      setError(tr('Connect to live listening before continuing.'));
       return;
     }
     setError(null);
@@ -229,7 +230,7 @@ export function useMusicJam(player: Player) {
     join: (input: string) => {
       const id = input.match(/[?&]jam=([^&]+)/)?.[1] || input.trim();
       if (!/^jam_[a-zA-Z0-9_-]{1,64}$/.test(id)) {
-        setError('Enter a valid Jam room code or invitation link.');
+        setError(tr('Enter a valid Jam room code or invitation link.'));
         return;
       }
       setPaused(false);

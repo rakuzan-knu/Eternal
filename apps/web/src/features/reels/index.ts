@@ -3,6 +3,7 @@ export * from './ui/ReelCard';
 export * from './ui/ReelCommentsDrawer';
 export * from './ui/CreateReelModal';
 export * from './ui/UserReelsView';
+export * from './ui/SavedReelsView';
 export * from './ui/ReelShareModal';
 export * from './ui/ReelOptionsMenu';
 export * from './ui/ReelReportModal';

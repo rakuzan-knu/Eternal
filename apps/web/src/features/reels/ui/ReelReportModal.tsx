@@ -33,6 +33,7 @@ export const ReelReportModal: React.FC<ReelReportModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (reportMutation.isPending) return;
     try {
       await reportMutation.mutateAsync({
         reelId,
@@ -71,6 +72,7 @@ export const ReelReportModal: React.FC<ReelReportModalProps> = ({
           </div>
           <button
             onClick={onClose}
+            aria-label="Close report"
             className="p-1.5 rounded-full text-gray-500 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
@@ -84,12 +86,16 @@ export const ReelReportModal: React.FC<ReelReportModalProps> = ({
             </div>
             <h4 className="text-lg font-bold text-gray-900 dark:text-white">Report Submitted</h4>
             <p className="text-xs text-gray-600 dark:text-zinc-400 max-w-xs leading-relaxed">
-              Thank you for your vigilance. Our moderation team will review this content within 24
-              hours.
+              Your report has been sent to our moderation team for review.
             </p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form
+            noValidate
+            onSubmit={handleSubmit}
+            aria-busy={reportMutation.isPending}
+            className="space-y-4"
+          >
             <p className="text-xs text-gray-600 dark:text-zinc-400">
               Select a reason why this video should not be shown:
             </p>
@@ -118,10 +124,15 @@ export const ReelReportModal: React.FC<ReelReportModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-zinc-400 mb-1.5">
+              <label
+                htmlFor="reel-report-details"
+                className="block text-xs font-medium text-gray-600 dark:text-zinc-400 mb-1.5"
+              >
                 Additional comments (optional):
               </label>
               <textarea
+                id="reel-report-details"
+                aria-describedby={reportMutation.isError ? 'reel-report-error' : undefined}
                 value={details}
                 onChange={(e) => setDetails(e.target.value)}
                 placeholder="Describe details of the violation..."
@@ -130,6 +141,15 @@ export const ReelReportModal: React.FC<ReelReportModalProps> = ({
               />
             </div>
 
+            {reportMutation.isError && (
+              <p
+                id="reel-report-error"
+                role="alert"
+                className="text-sm text-red-700 dark:text-red-300"
+              >
+                Your report was not sent. Your details are preserved; try submitting again.
+              </p>
+            )}
             <div className="flex justify-end gap-2.5 pt-2">
               <button
                 type="button"

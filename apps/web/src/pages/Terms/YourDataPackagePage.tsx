@@ -16,7 +16,7 @@ import {
   Lightbulb,
 } from 'lucide-react';
 import { useLanguageStore } from '../../shared/lib/language/languageStore';
-import { DATA_PACKAGE_DATA } from './data/dataPackageData';
+import { DATA_PACKAGE_DATA } from '@social-network/shared-content';
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   Package: <Package className="w-4 h-4" />,

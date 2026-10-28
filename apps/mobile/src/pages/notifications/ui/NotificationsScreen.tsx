@@ -50,6 +50,7 @@ import {
   useNotifications,
   useUnreadNotifications,
 } from '../model/queries';
+import { tr } from '@/shared/lib/i18n';
 
 function notificationBadge(type: NotificationType) {
   switch (type) {
@@ -87,23 +88,23 @@ function PostDetails({
   return (
     <View style={s.screen}>
       <View style={s.titleRow}>
-        <IconButton label="Back to notifications" onPress={onClose}>
+        <IconButton label={tr('Back to notifications')} onPress={onClose}>
           <ArrowLeft size={22} color={colors.text} />
         </IconButton>
         <Text accessibilityRole="header" style={s.title}>
-          Post
+          {tr('Post')}
         </Text>
       </View>
       <ScrollView contentContainerStyle={s.details}>
         {query.isPending ? (
           query.fetchStatus === 'paused' ? (
-            <Text style={common.text}>Connect to the internet to open this post.</Text>
+            <Text style={common.text}>{tr('Connect to the internet to open this post.')}</Text>
           ) : (
-            <ActivityIndicator accessibilityLabel="Loading post" color={colors.purple} />
+            <ActivityIndicator accessibilityLabel={tr('Loading post')} color={colors.purple} />
           )
         ) : query.isError ? (
           <ErrorNotice
-            message="This post couldn't be opened. It may have been removed or made private."
+            message={tr("This post couldn't be opened. It may have been removed or made private.")}
             onRetry={() => {
               void query.refetch();
             }}
@@ -126,11 +127,13 @@ export function NotificationsScreen({
   user,
   isOnline,
   onBack,
+  onOpenProfile,
   onNavigationError,
 }: {
   user: UserSessionProfile;
   isOnline: boolean;
   onBack: () => void;
+  onOpenProfile: (username: string) => void;
   onNavigationError: (failed: boolean) => void;
 }) {
   const [filter, setFilter] = React.useState<NotificationFilterType>('all');
@@ -175,6 +178,7 @@ export function NotificationsScreen({
     if (!item.isRead && isOnline) actions.mutate({ kind: 'read', id: item.id });
     const target = notificationTarget(item, user.username);
     if (target.kind === 'post') setSelected(target);
+    else if (target.kind === 'profile') onOpenProfile(target.username);
     else if (target.kind === 'web') void openWebSection(target.path, onNavigationError);
   }
 
@@ -192,11 +196,11 @@ export function NotificationsScreen({
     <View style={s.screen} testID="mobile-notifications">
       <View style={s.pageHeader}>
         <View style={s.titleRow}>
-          <IconButton label="Back to feed" onPress={onBack}>
+          <IconButton label={tr('Back to feed')} onPress={onBack}>
             <ArrowLeft size={22} color={colors.text} />
           </IconButton>
           <Text accessibilityRole="header" style={s.title}>
-            Notifications
+            {tr('Notifications')}
           </Text>
           {!!counts?.total && (
             <View style={s.newBadge}>
@@ -209,8 +213,10 @@ export function NotificationsScreen({
             accessibilityRole="button"
             accessibilityLabel={
               filter === 'all'
-                ? 'Mark all notifications as read'
-                : `Mark all ${currentFilter?.label.toLowerCase()} as read`
+                ? tr('Mark all notifications as read')
+                : tr('Mark all as read: {filter}', {
+                    filter: currentFilter ? tr(currentFilter.label).toLowerCase() : '',
+                  })
             }
             disabled={!isOnline || busy}
             onPress={() => actions.mutate({ kind: 'readAll', filter })}
@@ -219,8 +225,8 @@ export function NotificationsScreen({
             <CheckCheck size={17} color="#c084fc" />
             <Text style={s.markText}>
               {actions.isPending && actions.variables?.kind === 'readAll'
-                ? 'Marking read…'
-                : 'Mark all read'}
+                ? tr('Marking read…')
+                : tr('Mark all read')}
             </Text>
           </Pressable>
         )}
@@ -230,7 +236,7 @@ export function NotificationsScreen({
         showsHorizontalScrollIndicator={false}
         style={s.filters}
         contentContainerStyle={s.filterContent}
-        accessibilityLabel="Notification filters"
+        accessibilityLabel={tr('Notification filters')}
       >
         {notificationFilters.map((item) => {
           const active = item.type === filter;
@@ -239,12 +245,18 @@ export function NotificationsScreen({
             <Pressable
               key={item.type}
               accessibilityRole="button"
-              accessibilityLabel={`${item.label}${active ? ', selected' : ''}${count ? `, ${count} unread` : ''}`}
+              accessibilityLabel={[
+                tr(item.label),
+                active ? tr('selected') : '',
+                count ? tr('{count} unread', { count }) : '',
+              ]
+                .filter(Boolean)
+                .join(', ')}
               accessibilityState={{ selected: active }}
               onPress={() => setFilter(item.type)}
               style={[s.filter, active && s.activeFilter]}
             >
-              <Text style={[s.filterText, active && s.activeFilterText]}>{item.label}</Text>
+              <Text style={[s.filterText, active && s.activeFilterText]}>{tr(item.label)}</Text>
               {count > 0 && (
                 <View style={s.filterCount}>
                   <Text style={s.filterCountText}>{count > 99 ? '99+' : count}</Text>
@@ -257,7 +269,7 @@ export function NotificationsScreen({
       {actions.isError && (
         <View style={s.error}>
           <ErrorNotice
-            message="The notification couldn't be updated. Please try again."
+            message={tr("The notification couldn't be updated. Please try again.")}
             onRetry={() => {
               if (actions.variables) actions.mutate(actions.variables);
             }}
@@ -285,14 +297,16 @@ export function NotificationsScreen({
         }
         ListHeaderComponent={
           <View style={s.recent}>
-            <Text style={s.recentLabel}>RECENT</Text>
-            {items.length > 0 && <Text style={common.muted}>{items.length} loaded</Text>}
+            <Text style={s.recentLabel}>{tr('Recent')}</Text>
+            {items.length > 0 && (
+              <Text style={common.muted}>{tr('{count} loaded', { count: items.length })}</Text>
+            )}
           </View>
         }
         renderItem={({ item, index }) => {
           const { Icon, color } = notificationBadge(item.type);
           const name = item.actor?.displayName || item.actor?.username || 'Eternal';
-          const text = item.actionText || 'You have a new notification';
+          const text = item.actionText || tr('You have a new notification');
           const preview = item.story || item.post;
           const mediaUrl = preview?.mediaUrl;
           return (
@@ -301,8 +315,14 @@ export function NotificationsScreen({
             >
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`${text}. ${item.isRead ? '' : 'Unread. '}${relativeTime(item.createdAt)} ago`}
-                accessibilityHint="Opens the related content when available"
+                accessibilityLabel={[
+                  text,
+                  item.isRead ? '' : tr('Unread'),
+                  relativeTime(item.createdAt),
+                ]
+                  .filter(Boolean)
+                  .join('. ')}
+                accessibilityHint={tr('Opens the related content when available')}
                 onPress={() => open(item)}
                 style={s.rowContent}
               >
@@ -332,12 +352,12 @@ export function NotificationsScreen({
                   <Image
                     source={{ uri: mediaUrl }}
                     style={s.thumbnail}
-                    accessibilityLabel={item.story ? 'Story preview' : 'Post preview'}
+                    accessibilityLabel={item.story ? tr('Story preview') : tr('Post preview')}
                   />
                 )}
               </Pressable>
               <IconButton
-                label={`Notification options: ${text}`}
+                label={tr('Notification options: {text}', { text })}
                 onPress={() => {
                   setConfirmDelete(false);
                   setMenu(item);
@@ -353,24 +373,24 @@ export function NotificationsScreen({
             query.fetchStatus === 'paused' ? (
               <View style={s.empty}>
                 <Bell size={28} color={colors.purple} />
-                <Text style={common.title}>You're offline</Text>
-                <Text style={s.emptyText}>Connect to load your notifications.</Text>
+                <Text style={common.title}>{tr("You're offline")}</Text>
+                <Text style={s.emptyText}>{tr('Connect to load your notifications.')}</Text>
               </View>
             ) : (
               <View
-                accessibilityLabel="Loading notifications"
+                accessibilityLabel={tr('Loading notifications')}
                 accessibilityState={{ busy: true }}
                 aria-busy
                 style={s.empty}
               >
                 <ActivityIndicator color={colors.purple} />
-                <Text style={common.muted}>Loading notifications…</Text>
+                <Text style={common.muted}>{tr('Loading notifications…')}</Text>
               </View>
             )
           ) : query.isError ? (
             <View style={s.error}>
               <ErrorNotice
-                message="Notifications couldn't be loaded."
+                message={tr("Notifications couldn't be loaded.")}
                 onRetry={() => {
                   void query.refetch();
                 }}
@@ -383,12 +403,15 @@ export function NotificationsScreen({
               </View>
               <Text style={common.title}>
                 {filter === 'all'
-                  ? 'No notifications yet'
-                  : `No ${currentFilter?.label.toLowerCase()} yet`}
+                  ? tr('No notifications yet')
+                  : tr('Nothing here yet: {filter}', {
+                      filter: currentFilter ? tr(currentFilter.label).toLowerCase() : '',
+                    })}
               </Text>
               <Text style={s.emptyText}>
-                When someone likes, comments, mentions you, or follows your profile, you'll see it
-                here.
+                {tr(
+                  "When someone likes, comments, mentions you, or follows your profile, you'll see it here.",
+                )}
               </Text>
             </View>
           )
@@ -402,7 +425,9 @@ export function NotificationsScreen({
           <View style={s.footer}>
             {query.isRefetchError && items.length > 0 && (
               <ErrorNotice
-                message="Notifications couldn't be refreshed. Previously loaded activity is shown."
+                message={tr(
+                  "Notifications couldn't be refreshed. Previously loaded activity is shown.",
+                )}
                 onRetry={() => {
                   void query.refetch();
                 }}
@@ -410,13 +435,13 @@ export function NotificationsScreen({
             )}
             {query.isFetchingNextPage && (
               <ActivityIndicator
-                accessibilityLabel="Loading more notifications"
+                accessibilityLabel={tr('Loading more notifications')}
                 color={colors.purple}
               />
             )}
             {query.isFetchNextPageError && (
               <ErrorNotice
-                message="More notifications couldn't be loaded."
+                message={tr("More notifications couldn't be loaded.")}
                 onRetry={() => {
                   void query.fetchNextPage();
                 }}
@@ -424,7 +449,7 @@ export function NotificationsScreen({
             )}
             {query.hasNextPage && !query.isFetching && !query.isError && (
               <Button
-                title="Load more notifications"
+                title={tr('Load more notifications')}
                 variant="ghost"
                 disabled={!isOnline || busy}
                 onPress={() => {
@@ -437,20 +462,24 @@ export function NotificationsScreen({
       />
       {menu && (
         <Sheet
-          title={confirmDelete ? 'Delete notification?' : 'Notification options'}
+          title={confirmDelete ? tr('Delete notification?') : tr('Notification options')}
           closeDisabled={busy}
           onClose={() => setMenu(null)}
         >
           <View style={s.details}>
             <Text style={common.text}>{menu.actionText}</Text>
             {actions.isError && (
-              <ErrorNotice message="The notification couldn't be updated. Please try again." />
+              <ErrorNotice
+                message={tr("The notification couldn't be updated. Please try again.")}
+              />
             )}
             {confirmDelete ? (
               <>
-                <Text style={common.muted}>This notification will be permanently removed.</Text>
+                <Text style={common.muted}>
+                  {tr('This notification will be permanently removed.')}
+                </Text>
                 <Button
-                  title="Delete notification"
+                  title={tr('Delete notification')}
                   variant="danger"
                   loading={busy}
                   disabled={!isOnline}
@@ -463,7 +492,7 @@ export function NotificationsScreen({
                   }
                 />
                 <Button
-                  title="Cancel"
+                  title={tr('Cancel')}
                   variant="secondary"
                   disabled={busy}
                   onPress={() => setConfirmDelete(false)}
@@ -473,7 +502,7 @@ export function NotificationsScreen({
               <>
                 {!menu.isRead && (
                   <Button
-                    title="Mark as read"
+                    title={tr('Mark as read')}
                     variant="secondary"
                     disabled={!isOnline || busy}
                     onPress={() =>
@@ -485,7 +514,7 @@ export function NotificationsScreen({
                   />
                 )}
                 <Button
-                  title="Delete notification"
+                  title={tr('Delete notification')}
                   variant="secondary"
                   disabled={!isOnline || busy}
                   leftIcon={<Trash2 size={18} color={colors.danger} />}

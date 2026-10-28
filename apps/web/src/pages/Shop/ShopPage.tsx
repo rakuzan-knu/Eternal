@@ -766,6 +766,14 @@ export default function ShopPage() {
           className="flex-1 overflow-y-auto custom-scrollbar px-4 sm:px-8 lg:px-12 py-8 pb-24"
         >
           <div className="max-w-7xl mx-auto">
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-purple-500/20 bg-purple-500/5 px-4 py-3 text-gray-700 dark:text-gray-300">
+              <p className="text-sm font-semibold">
+                Preview the collection · Sales are not open yet
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Try on designs, save favorites, and use items you already own.
+              </p>
+            </div>
             {isWishlist ? (
               /* ================== 3. DISCORD 1:1 WISHLIST VIEW ================== */
               <div className="animate-in fade-in zoom-in-[0.99] duration-300">

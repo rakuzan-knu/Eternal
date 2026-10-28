@@ -14,6 +14,7 @@ import { ReelCard } from '@/features/reels/ui/ReelCard';
 import { ReelPlaceholder } from '@/features/reels/ui/ReelPlaceholder';
 import SkeletonBone from '@/shared/ui/SkeletonBone';
 import { ReelVideoPool } from '@/features/reels/lib/reelVideoPool';
+import { sendDirectMessage } from '@/features/chat';
 
 const CreateReelModal = lazy(() =>
   import('@/features/reels/ui/CreateReelModal').then((module) => ({
@@ -452,6 +453,7 @@ export const ReelsPage: React.FC = () => {
               >
                 {isInViewportWindow ? (
                   <ReelCard
+                    sendMessage={sendDirectMessage}
                     reel={reel}
                     videoPool={videoPool}
                     isActive={index === activeReelIndex}

@@ -36,6 +36,8 @@ Use the existing R2 account with R2_ENDPOINT ending in `.r2.cloudflarestorage.co
 
 Web build variables: VITE_API_URL (core), VITE_MESSENGER_API_URL, VITE_REELS_API_URL, VITE_MUSIC_API_URL. VITE_WS_URL may explicitly select messenger; otherwise the messenger API variable is used. Origins can include a trailing `/v1`; socket code removes it.
 
+Mobile push is registered on core (`/notifications/push-devices`) and delivered by the messenger notification and message workers through Expo Push. Messenger may set PUSH_ENABLED=false to pause delivery and EXPO_ACCESS_TOKEN when Expo enhanced push security is on; neither belongs in any client variable. Native builds need an EAS projectId with FCM and APNs credentials configured in EAS.
+
 Mobile build variables: EXPO_PUBLIC_API_URL (core), EXPO_PUBLIC_MESSENGER_API_URL, EXPO_PUBLIC_REELS_API_URL, EXPO_PUBLIC_MUSIC_API_URL. Mobile Jam uses exported messengerOrigin, not apiOrigin. Missing feature origins preserve the monolith fallback for development and older builds.
 
 Deploy the existing desktop web app and Expo Web as separate Vercel projects. The desktop project uses the repository root and root vercel.json. The Expo project uses Root Directory=apps/mobile, includes files outside that directory, and reads apps/mobile/vercel.json; build with `pnpm build:web` and serve dist. Its EXPO_PUBLIC_WEB_URL points to the desktop website. Expo Web is a browser build; Android and iOS need separate native builds and distribution. Never deploy backend workers or databases to Vercel. Keep production domains in all services' CORS_ORIGIN.

@@ -267,7 +267,11 @@ jobs:
           fail-on-cache-miss: true
 
       - name: Install FFmpeg for media validation
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+        # FFmpeg comes from Ubuntu; unrelated preinstalled vendor repositories can fail.
+        run: |
+          test -f /etc/apt/sources.list.d/ubuntu.sources
+          sudo apt-get update -o Dir::Etc::sourcelist=sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=-
+          sudo apt-get install -y --no-install-recommends ffmpeg
 
       - name: Run backend unit tests
         if: github.event_name == 'pull_request'
@@ -431,7 +435,11 @@ jobs:
         run: pnpm exec prisma migrate deploy
 
       - name: Install FFmpeg for media validation
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+        # Keep the same signed Ubuntu-only refresh as the unit-test job above.
+        run: |
+          test -f /etc/apt/sources.list.d/ubuntu.sources
+          sudo apt-get update -o Dir::Etc::sourcelist=sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=-
+          sudo apt-get install -y --no-install-recommends ffmpeg
 
       - name: Run E2E tests (${{ matrix.module }})
         working-directory: apps/backend

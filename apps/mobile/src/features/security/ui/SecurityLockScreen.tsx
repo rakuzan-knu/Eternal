@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useAuthStore } from '@social-network/shared-stores';
 import { Button, GlassCard } from '@/shared/ui';
 import { Lock, ScanFace, LogOut } from 'lucide-react-native';
+import { tr } from '@/shared/lib/i18n';
 
 export interface SecurityLockScreenProps {
   onUnlock: () => void;
@@ -49,9 +50,9 @@ export function SecurityLockScreen({ onUnlock }: SecurityLockScreenProps) {
           <Lock size={32} color="#c084fc" />
         </View>
 
-        <Text style={styles.title}>Eternal Locked</Text>
+        <Text style={styles.title}>{tr('Eternal Locked')}</Text>
         <Text style={styles.subtitle}>
-          The app was locked for your security after being in the background.
+          {tr('The app was locked for your security after being in the background.')}
         </Text>
 
         {user && (
@@ -62,25 +63,25 @@ export function SecurityLockScreen({ onUnlock }: SecurityLockScreenProps) {
         )}
 
         <Button
-          title="Unlock with Biometrics"
+          title={tr('Unlock with Biometrics')}
           variant="primary"
           size="lg"
           loading={unlocking}
           leftIcon={<ScanFace size={18} color="#000000" />}
           onPress={handleManualUnlock}
-          accessibilityLabel="Unlock with Biometrics"
-          accessibilityHint="Requests Face ID or Touch ID authentication"
+          accessibilityLabel={tr('Unlock with Biometrics')}
+          accessibilityHint={tr('Requests Face ID or Touch ID authentication')}
           style={styles.unlockBtn}
         />
 
         <Button
-          title="Log Out"
+          title={tr('Log Out')}
           variant="ghost"
           size="md"
           leftIcon={<LogOut size={16} color="#71717a" />}
           onPress={clearSession}
-          accessibilityLabel="Log Out"
-          accessibilityHint="Signs out from current account"
+          accessibilityLabel={tr('Log Out')}
+          accessibilityHint={tr('Signs out from current account')}
           style={styles.logoutBtn}
           textStyle={styles.logoutText}
         />

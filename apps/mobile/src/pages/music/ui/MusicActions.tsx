@@ -22,6 +22,7 @@ import { useMusic } from '../model/MusicProvider';
 import { musicApi } from '../api/musicApi';
 import { musicLink, type Track, type Playlist, type Folder } from '../model/music';
 import { Cover, m } from './primitives';
+import { tr } from '@/shared/lib/i18n';
 
 export type MusicAction =
   | { type: 'track'; track: Track; playlist?: Playlist }
@@ -73,7 +74,7 @@ export function MusicActions({
     (action.type === 'folder'
       ? action.folder.name
       : action.type === 'history'
-        ? 'Clear history'
+        ? tr('Clear history')
         : 'Create');
   const url = musicLink(track ? 'track' : 'playlist', track?.id || playlist?.id || '', webOrigin);
   const following = useInfiniteQuery({
@@ -122,7 +123,7 @@ export function MusicActions({
         Platform.OS !== 'web' &&
         !(await ImagePicker.requestMediaLibraryPermissionsAsync()).granted
       ) {
-        setError('Allow photo access to choose a playlist cover.');
+        setError(tr('Allow photo access to choose a playlist cover.'));
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -140,14 +141,14 @@ export function MusicActions({
       const mimeType = Platform.OS === 'web' ? photo.mimeType || 'image/jpeg' : 'image/jpeg';
       setCover(`data:${mimeType};base64,${photo.base64}`);
     } catch (failure) {
-      setError(failure instanceof Error ? failure.message : 'The cover could not be opened.');
+      setError(failure instanceof Error ? failure.message : tr('The cover could not be opened.'));
     } finally {
       setPicking(false);
     }
   }
   async function save() {
     if (!name.trim()) {
-      setError('Enter a name.');
+      setError(tr('Enter a name.'));
       return;
     }
     if (mode === 'newFolder')
@@ -198,14 +199,14 @@ export function MusicActions({
     <>
       {button(
         'Share link',
-        () => void shareLink(title, url).catch(() => setError('Sharing is unavailable.')),
+        () => void shareLink(title, url).catch(() => setError(tr('Sharing is unavailable.'))),
       )}
       {button(
         'Copy link',
         () =>
           void Clipboard.setStringAsync(url)
-            .then(() => music.setNotice('Link copied'))
-            .catch(() => setError('The link could not be copied.')),
+            .then(() => music.setNotice(tr('Link copied')))
+            .catch(() => setError(tr('The link could not be copied.'))),
       )}
       {button('Send to chat', () => setMode('share'), !music.isOnline)}
     </>
@@ -216,16 +217,16 @@ export function MusicActions({
         mode === 'menu'
           ? title
           : mode === 'delete'
-            ? 'Confirm removal'
+            ? tr('Confirm removal')
             : mode === 'share'
-              ? 'Share to chat'
+              ? tr('Share to chat')
               : mode === 'add'
-                ? 'Add to playlist'
+                ? tr('Add to playlist')
                 : mode === 'move'
-                  ? 'Move to folder'
+                  ? tr('Move to folder')
                   : mode === 'collaborators'
                     ? 'Collaborators'
-                    : 'Playlist details'
+                    : tr('Playlist details')
       }
       onClose={onClose}
       closeDisabled={music.busy || picking}
@@ -248,8 +249,8 @@ export function MusicActions({
                 </View>
                 {button(
                   music.liked.data?.some((item) => item.id === track.id)
-                    ? 'Remove from Liked Songs'
-                    : 'Save to Liked Songs',
+                    ? tr('Remove from Liked Songs')
+                    : tr('Save to Liked Songs'),
                   () => void music.like(track),
                   !music.isOnline,
                 )}
@@ -263,7 +264,7 @@ export function MusicActions({
                     () => music.jam.add(track),
                     !music.jam.isHost && music.jam.room.queuePolicy === 'dj_only',
                   )}
-                {button('Add to playlist', () => setMode('add'), !music.isOnline)}
+                {button(tr('Add to playlist'), () => setMode('add'), !music.isOnline)}
                 {action.type === 'track' &&
                   action.playlist?.creatorId === music.userId &&
                   button(
@@ -283,8 +284,8 @@ export function MusicActions({
               <>
                 {button(
                   music.preferences.pinned.includes(playlist.id)
-                    ? 'Unpin playlist'
-                    : 'Pin playlist',
+                    ? tr('Unpin playlist')
+                    : tr('Pin playlist'),
                   () => {
                     music.pin(playlist.id);
                     onClose();
@@ -294,8 +295,8 @@ export function MusicActions({
                   playlist.id !== 'liked-songs' &&
                   button(
                     music.preferences.saved.some((item) => item.id === playlist.id)
-                      ? 'Remove from your library'
-                      : 'Save to your library',
+                      ? tr('Remove from your library')
+                      : tr('Save to your library'),
                     () => {
                       music.save(playlist);
                       onClose();
@@ -305,7 +306,7 @@ export function MusicActions({
                   <>
                     {button('Edit details', () => setMode('edit'), !music.isOnline)}
                     {button(
-                      playlist.isPrivate ? 'Make public' : 'Make private',
+                      playlist.isPrivate ? tr('Make public') : tr('Make private'),
                       () =>
                         void complete(
                           () => musicApi.update(playlist.id, { isPublic: !!playlist.isPrivate }),
@@ -313,7 +314,7 @@ export function MusicActions({
                         ),
                       !music.isOnline,
                     )}
-                    {button('Move to folder', () => setMode('move'), !music.isOnline)}
+                    {button(tr('Move to folder'), () => setMode('move'), !music.isOnline)}
                     {button('Collaborators', () => setMode('collaborators'))}
                     {button('Delete playlist', () => setMode('delete'), !music.isOnline)}
                   </>
@@ -321,7 +322,9 @@ export function MusicActions({
                 {playlist.id !== 'liked-songs' && !playlist.isPrivate && shareButtons}
                 {playlist.isPrivate && (
                   <Text style={m.muted}>
-                    Only you can open this private playlist. Make it public before sharing its link.
+                    {tr(
+                      'Only you can open this private playlist. Make it public before sharing its link.',
+                    )}
                   </Text>
                 )}
               </>
@@ -342,10 +345,10 @@ export function MusicActions({
         )}
         {['newPlaylist', 'newFolder', 'folderEdit', 'edit'].includes(mode) && (
           <>
-            <Text style={m.muted}>Name</Text>
+            <Text style={m.muted}>{tr('Name')}</Text>
             <TextInput
-              accessibilityLabel="Name"
-              placeholder="Give it a name"
+              accessibilityLabel={tr('Name')}
+              placeholder={tr('Give it a name')}
               placeholderTextColor={colors.muted}
               value={name}
               onChangeText={setName}
@@ -355,9 +358,9 @@ export function MusicActions({
             />
             {['newPlaylist', 'edit'].includes(mode) && (
               <>
-                <Text style={m.muted}>Description</Text>
+                <Text style={m.muted}>{tr('Description')}</Text>
                 <TextInput
-                  accessibilityLabel="Playlist description"
+                  accessibilityLabel={tr('Playlist description')}
                   value={description}
                   onChangeText={setDescription}
                   maxLength={1000}
@@ -373,9 +376,9 @@ export function MusicActions({
                 </View>
                 {!!cover && button('Remove cover', () => setCover(''))}
                 <View style={[m.row, { justifyContent: 'space-between', paddingVertical: 10 }]}>
-                  <Text style={m.text}>Private playlist</Text>
+                  <Text style={m.text}>{tr('Private playlist')}</Text>
                   <Switch
-                    accessibilityLabel="Private playlist"
+                    accessibilityLabel={tr('Private playlist')}
                     value={privatePlaylist}
                     onValueChange={setPrivate}
                     disabled={music.busy}
@@ -385,7 +388,7 @@ export function MusicActions({
               </>
             )}
             <Button
-              title="Save"
+              title={tr('Save')}
               loading={music.busy || picking}
               disabled={!name.trim() || !music.isOnline}
               onPress={() => void save()}
@@ -402,7 +405,7 @@ export function MusicActions({
               ),
             )}
             {!music.playlists.data?.length && (
-              <Text style={m.muted}>Create your first playlist above.</Text>
+              <Text style={m.muted}>{tr('Create your first playlist above.')}</Text>
             )}
           </>
         )}
@@ -427,7 +430,7 @@ export function MusicActions({
               ),
             )}
             {!music.folders.data?.length && (
-              <Text style={m.muted}>Create a folder in Your Library first.</Text>
+              <Text style={m.muted}>{tr('Create a folder in Your Library first.')}</Text>
             )}
           </>
         )}
@@ -435,14 +438,19 @@ export function MusicActions({
           <>
             <Text style={m.text}>
               {action.type === 'history'
-                ? 'Clear your listening history on this device?'
+                ? tr('Clear your listening history on this device?')
                 : action.type === 'folder'
-                  ? 'Delete this folder? Its playlists will remain in your library.'
-                  : 'Delete this playlist? This cannot be undone.'}
+                  ? tr('Delete this folder? Its playlists will remain in your library.')
+                  : tr('Delete this playlist? This cannot be undone.')}
             </Text>
-            <Button title="Keep it" variant="secondary" onPress={onClose} disabled={music.busy} />
             <Button
-              title="Confirm removal"
+              title={tr('Keep it')}
+              variant="secondary"
+              onPress={onClose}
+              disabled={music.busy}
+            />
+            <Button
+              title={tr('Confirm removal')}
               loading={music.busy}
               onPress={() => {
                 if (action.type === 'history') {
@@ -462,12 +470,12 @@ export function MusicActions({
               !following.isError &&
               !following.data?.pages.some((page) => page.items.length > 0) && (
                 <Text style={m.muted}>
-                  Follow a friend to send music to their chat. You can also share the link.
+                  {tr('Follow a friend to send music to their chat. You can also share the link.')}
                 </Text>
               )}
             <TextInput
-              accessibilityLabel="Find a friend"
-              placeholder="Find a friend"
+              accessibilityLabel={tr('Find a friend')}
+              placeholder={tr('Find a friend')}
               placeholderTextColor={colors.muted}
               value={friendFilter}
               onChangeText={setFriendFilter}
@@ -477,7 +485,7 @@ export function MusicActions({
               <ActivityIndicator color={colors.purple} />
             ) : following.isError ? (
               <ErrorNotice
-                message="Friends couldn't be loaded."
+                message={tr("Friends couldn't be loaded.")}
                 onRetry={() => void following.refetch()}
               />
             ) : (
@@ -493,7 +501,9 @@ export function MusicActions({
                     key={person.id}
                     accessibilityRole="radio"
                     accessibilityState={{ checked: recipient === person.id }}
-                    accessibilityLabel={`Send to ${person.displayName || person.username}`}
+                    accessibilityLabel={tr('Send to {name}', {
+                      name: person.displayName || person.username,
+                    })}
                     onPress={() => setRecipient(person.id)}
                     style={[
                       m.row,
@@ -516,8 +526,8 @@ export function MusicActions({
                 following.isFetchingNextPage,
               )}
             <TextInput
-              accessibilityLabel="Message with music"
-              placeholder="Add a message (optional)"
+              accessibilityLabel={tr('Message with music')}
+              placeholder={tr('Add a message (optional)')}
               placeholderTextColor={colors.muted}
               value={message}
               onChangeText={setMessage}
@@ -526,7 +536,7 @@ export function MusicActions({
               style={m.input}
             />
             <Button
-              title="Send music"
+              title={tr('Send music')}
               disabled={!recipient || !music.isOnline}
               loading={music.busy}
               onPress={() =>
@@ -548,12 +558,12 @@ export function MusicActions({
         )}
         {mode === 'collaborators' && (
           <>
-            <Text style={m.text}>Manage playlist collaborators in the web Music Hub.</Text>
+            <Text style={m.text}>{tr('Manage playlist collaborators in the web Music Hub.')}</Text>
             {button(
               'Open web collaboration',
               () =>
                 void Linking.openURL(url).catch(() =>
-                  setError('The web Music Hub could not be opened.'),
+                  setError(tr('The web Music Hub could not be opened.')),
                 ),
             )}
           </>

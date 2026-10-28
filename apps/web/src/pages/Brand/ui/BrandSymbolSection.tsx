@@ -1,6 +1,7 @@
 import React from 'react';
 import { Download } from 'lucide-react';
-import { downloadSvgFile, LOGO_SVGS } from '../data/brandingData';
+import { LOGO_SVGS } from '@social-network/shared-content';
+import { downloadSvgFile } from '../lib/downloadSvgFile';
 
 export const BrandSymbolSection: React.FC<{
   heading: string;

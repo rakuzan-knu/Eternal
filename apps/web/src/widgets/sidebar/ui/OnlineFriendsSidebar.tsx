@@ -770,10 +770,28 @@ export function OnlineFriendsSidebar() {
               ))}
             </div>
           ) : onlineFriends.length === 0 && offlineFriends.length === 0 ? (
-            <div className="text-xs text-gray-400 text-center py-6">
-              {hasFilter
-                ? `No friends found matching "${searchQuery}"`
-                : 'No friends yet. Follow creators above to start chatting!'}
+            <div className="text-xs text-gray-500 dark:text-gray-400 text-center py-6 space-y-3">
+              <p>
+                {hasFilter
+                  ? `No friends found matching "${searchQuery}"`
+                  : 'Friends are people who follow each other. Your chats are always available in Messages.'}
+              </p>
+              {!hasFilter && (
+                <div className="flex flex-wrap justify-center gap-2">
+                  <Link
+                    to="/search"
+                    className="min-h-11 inline-flex items-center px-3 rounded-xl border border-purple-500/20 text-purple-500 hover:bg-purple-500/10 focus-visible:outline-2 focus-visible:outline-purple-500"
+                  >
+                    Find people
+                  </Link>
+                  <Link
+                    to="/messages"
+                    className="min-h-11 inline-flex items-center px-3 rounded-xl border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-purple-500"
+                  >
+                    Open messages
+                  </Link>
+                </div>
+              )}
             </div>
           ) : (
             <>

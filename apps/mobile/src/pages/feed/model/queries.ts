@@ -26,13 +26,14 @@ export const feedKeys = {
     ['mobile', userId, ...queryKeys.posts.comments(postId)] as const,
 };
 
-export function useFeed(userId: string, mode: FeedMode) {
+export function useFeed(userId: string, mode: FeedMode, enabled = true) {
   return useInfiniteQuery({
     queryKey: feedKeys.feed(userId, mode),
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam, signal }) => feedApi.posts(mode, pageParam, signal),
     getNextPageParam: nextCursor,
     staleTime: 60_000,
+    enabled,
   });
 }
 

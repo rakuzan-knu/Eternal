@@ -34,15 +34,18 @@ export class PendingMediaCleanupService {
     const deadline = Date.now() + 45_000;
     try {
       await this.pending.pruneDeleted(new Date(Date.now() - 30 * 86400_000));
-      for (const { key } of await this.pending.candidates(before)) {
+      for (const { key, bucket } of await this.pending.candidates(before)) {
         if (Date.now() >= deadline) break;
         try {
           if (!(await this.pending.claimDeletion(key, before))) continue;
           await this.storage
             .getS3Client()
-            .send(new DeleteObjectCommand({ Bucket: this.r2.getDefaultBucket(), Key: key }), {
-              abortSignal: AbortSignal.timeout(10_000),
-            });
+            .send(
+              new DeleteObjectCommand({ Bucket: bucket ?? this.r2.getDefaultBucket(), Key: key }),
+              {
+                abortSignal: AbortSignal.timeout(10_000),
+              },
+            );
           await this.pending.deleted(key);
         } catch {
           // DELETING stays durable and excludes publication until a later retry succeeds.

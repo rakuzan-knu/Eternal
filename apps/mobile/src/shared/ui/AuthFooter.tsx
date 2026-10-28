@@ -1,8 +1,9 @@
 import * as React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { tr } from '@/shared/lib/i18n';
 
 export function AuthFooter() {
-  const links = ['Privacy Policy', 'Terms of Service', 'Cookies', 'About', 'Help'];
+  const links = [tr('Privacy Policy'), 'Terms of Service', 'Cookies', 'About', 'Help'];
 
   return (
     <View style={styles.footer} accessibilityRole={'contentinfo' as any}>
@@ -12,7 +13,7 @@ export function AuthFooter() {
             key={link}
             accessibilityRole="link"
             accessibilityLabel={link}
-            accessibilityHint={`Opens ${link}`}
+            accessibilityHint={tr('Opens {name}', { name: link })}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             style={styles.linkButton}
           >

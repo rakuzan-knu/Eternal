@@ -13,6 +13,7 @@ export interface OutboxChatMessagePayload {
   conversationId: string;
   text?: string;
   replyToId?: string;
+  mentionedUserIds?: string[];
   attachments?: unknown[];
   clientSeq?: number;
 }

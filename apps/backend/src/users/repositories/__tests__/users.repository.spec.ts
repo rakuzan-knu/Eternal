@@ -81,6 +81,7 @@ describe('UsersRepository', () => {
       passwordHash: 'argon2-hash',
       displayName: 'New Display Name',
       birthDate: new Date('2000-01-01'),
+      gender: 'Female',
     });
 
     mockPrisma.user.create.mockResolvedValueOnce({
@@ -102,6 +103,7 @@ describe('UsersRepository', () => {
         passwordHash: 'argon2-hash',
         displayName: 'New Display Name',
         birthDate: dto.birthDate,
+        gender: 'Female',
       },
     });
     expect(created.id).toBe('usr-new');
@@ -146,6 +148,7 @@ describe('UsersRepository', () => {
     mockPrisma.$transaction.mockImplementationOnce(
       async (callback: (tx: unknown) => Promise<unknown>) => {
         const tx = {
+          community: { count: jest.fn().mockResolvedValue(0) },
           post: { deleteMany: jest.fn() },
           follow: { deleteMany: jest.fn() },
           user: { delete: jest.fn() },
@@ -163,6 +166,20 @@ describe('UsersRepository', () => {
 
     await repository.deleteUser('usr-to-delete');
     expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1);
+  });
+
+  it('requires ownership transfer before deleting an account without removing any content', async () => {
+    const tx = {
+      community: { count: jest.fn().mockResolvedValue(1) },
+      user: { delete: jest.fn() },
+      post: { deleteMany: jest.fn() },
+    };
+    mockPrisma.$transaction.mockImplementationOnce((callback: (value: unknown) => Promise<void>) =>
+      callback(tx),
+    );
+    await expect(repository.deleteUser('owner')).rejects.toThrow('Transfer ownership');
+    expect(tx.user.delete).not.toHaveBeenCalled();
+    expect(tx.post.deleteMany).not.toHaveBeenCalled();
   });
 
   it('blockUser executes upsert and removes follow relations via transaction', async () => {

@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import AddMembersModal from '../AddMembersModal';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as userSearchModule from '../../model/useUserSearch';
@@ -7,8 +7,12 @@ import { chatApi } from '../../api/chatApi';
 import * as mutationsModule from '../../model/useConversationMutations';
 
 describe('AddMembersModal', () => {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
+  let queryClient: QueryClient;
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
   });
 
   it('renders add members title, search input, and add button disabled initially', () => {
@@ -33,6 +37,8 @@ describe('AddMembersModal', () => {
         { id: 'usr-3', username: 'bob', displayName: null, avatar: null },
       ],
       isSearching: false,
+      isError: false,
+      retry: async () => {},
     });
 
     render(
@@ -80,5 +86,77 @@ describe('AddMembersModal', () => {
     );
 
     expect(screen.getByText('Adding…')).toBeInTheDocument();
+  });
+
+  it('exposes named search, clear, close and input Escape controls', async () => {
+    const onClose = vi.fn();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <AddMembersModal conversationId="conv-1" existingMemberIds={[]} onClose={onClose} />
+      </QueryClientProvider>,
+    );
+    expect(screen.getByRole('dialog', { name: 'Add members' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Close add members' })).toBeInTheDocument();
+    const search = screen.getByRole('textbox', { name: 'Search by username' });
+    fireEvent.change(search, { target: { value: 'alice' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Clear people search' }));
+    expect(search).toHaveValue('');
+    expect(search).toHaveFocus();
+    fireEvent.keyDown(search, { key: 'Escape' });
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
+  });
+
+  it('keeps selected people after failed add and permits retry', async () => {
+    const onClose = vi.fn();
+    const add = vi
+      .spyOn(chatApi, 'addMembers')
+      .mockRejectedValueOnce(new Error('Offline'))
+      .mockResolvedValueOnce(undefined);
+    vi.spyOn(userSearchModule, 'useUserSearch').mockReturnValue({
+      results: [{ id: 'usr-2', username: 'alice', displayName: 'Alice', avatar: null }],
+      isSearching: false,
+      isError: false,
+      retry: async () => {},
+    });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <AddMembersModal conversationId="conv-1" existingMemberIds={[]} onClose={onClose} />
+      </QueryClientProvider>,
+    );
+    fireEvent.click(screen.getByText('@alice'));
+    fireEvent.click(screen.getByRole('button', { name: 'Add (1)' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Your selection is kept');
+    expect(screen.getByText('1/100 selected · Add up to 100 people at a time')).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Add (1)' }));
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
+    expect(add).toHaveBeenNthCalledWith(2, 'conv-1', ['usr-2']);
+  });
+
+  it('caps each request at 100 selected users while preserving deselection', () => {
+    const people = Array.from({ length: 101 }, (_, index) => ({
+      id: `usr-${index}`,
+      username: `person${index}`,
+      displayName: `Person ${index}`,
+      avatar: null,
+    }));
+    vi.spyOn(userSearchModule, 'useUserSearch').mockReturnValue({
+      results: people,
+      isSearching: false,
+      isError: false,
+      retry: async () => {},
+    });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <AddMembersModal conversationId="conv-1" existingMemberIds={[]} onClose={vi.fn()} />
+      </QueryClientProvider>,
+    );
+    act(() => people.forEach((person) => fireEvent.click(screen.getByText(`@${person.username}`))));
+    expect(
+      screen.getByText('100/100 selected · Add up to 100 people at a time'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('@person100').closest('button')).toBeDisabled();
+    fireEvent.click(screen.getByText('@person0'));
+    expect(screen.getByText('@person100').closest('button')).toBeEnabled();
   });
 });

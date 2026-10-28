@@ -37,7 +37,13 @@ describe('WellbeingHubPage', () => {
     expect(screen.getByText('WELLBEING & EMPOWERMENT RESOURCES')).toBeInTheDocument();
     expect(screen.getByText('Eternal Player’s Guide')).toBeInTheDocument();
     expect(screen.getByText('Crisis Text Line')).toBeInTheDocument();
-    expect(screen.getByText('Text ETERNAL to 741741')).toBeInTheDocument();
+    expect(screen.getByText('US: Text HOME to 741741')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /Official Crisis Text Line support options/ }),
+    ).toHaveAttribute('href', 'https://www.crisistextline.org/');
+    expect(
+      screen.getByText(/Other countries use different services and numbers/),
+    ).toBeInTheDocument();
     expect(screen.getByText('ThroughLine')).toBeInTheDocument();
     expect(
       screen.getByText(
@@ -134,7 +140,7 @@ describe('WellbeingHubPage', () => {
     expect(screen.getByText('ХАБ БЛАГОПОЛУЧЧЯ ETERNAL')).toBeInTheDocument();
     expect(screen.getByText('РЕСУРСИ БЛАГОПОЛУЧЧЯ ТА ПІДТРИМКИ')).toBeInTheDocument();
     expect(screen.getByText('Посібник гравця Eternal')).toBeInTheDocument();
-    expect(screen.getByText('Надішліть ETERNAL на 741741')).toBeInTheDocument();
+    expect(screen.getByText('США: надішліть HOME на 741741')).toBeInTheDocument();
     expect(screen.getByText('ПРИНЦИПИ БЛАГОПОЛУЧЧЯ ТА ПІДТРИМКИ')).toBeInTheDocument();
     expect(screen.getByText('Ігри формують щирі зв’язки')).toBeInTheDocument();
     expect(screen.getByText('БІЛЬШЕ РЕСУРСІВ')).toBeInTheDocument();

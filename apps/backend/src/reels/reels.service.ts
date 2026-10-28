@@ -20,6 +20,7 @@ import {
   type IReelsRepository,
   type ReelCommentWithUser,
   type ReelWithAuthor,
+  type ReelsFeedExclusions,
   REELS_REPOSITORY,
 } from './interfaces/reels-repository.interface';
 import { REELS_S3_CLIENT } from './s3-provider';
@@ -83,6 +84,8 @@ export class ReelsService {
       commentsCount: reel.commentsCount,
       sharesCount: reel.sharesCount,
       isLiked,
+      isSaved: Boolean(viewerId && reel.saves?.length),
+      savedCount: reel._count?.saves ?? 0,
       createdAt: reel.createdAt.toISOString(),
       author: {
         id: reel.author.id,
@@ -122,115 +125,31 @@ export class ReelsService {
     }
   }
 
-  private getSeedFeed(): Paginated<ReelResponseDto> {
-    const seed: ReelResponseDto[] = [
-      {
-        id: 'reel-profkino-1',
-        authorId: 'user-profkino',
-        caption: 'Loud neighbor was blasting music all night, until the unexpected happened',
-        videoUrl: '/videos/sample-reel.mp4',
-        hlsUrl: null,
-        thumbnailUrl: null,
-        blurhash: 'U35;y-of00ay_3j[00ay00fQ~qj[00j[00ay',
-        thumbhash: null,
-        duration: 15,
-        width: 720,
-        height: 1280,
-        audioTitle: 'Editing made easy · CapCut Sound',
-        audioArtist: 'CapCut',
-        audioUrl: null,
-        viewsCount: 1250000,
-        likesCount: 442100,
-        commentsCount: 5,
-        sharesCount: 19900,
-        isLiked: false,
-        createdAt: new Date().toISOString(),
-        author: {
-          id: 'user-profkino',
-          username: 'PROFKINO',
-          displayName: 'PROFKINO',
-          avatar:
-            'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-          isVerified: true,
-          isFollowing: false,
-        },
-      },
-      {
-        id: 'reel-city-2',
-        authorId: 'user-anna',
-        caption: 'Night lights of the big city 🌃 Atmospheric walk and cinematic aesthetics',
-        videoUrl: '/videos/sample-reel-2.mp4',
-        hlsUrl: null,
-        thumbnailUrl: null,
-        blurhash: 'U66t$0of00ay~qj[00ay00fQ~qj[00j[00ay',
-        thumbhash: null,
-        duration: 10,
-        width: 720,
-        height: 1280,
-        audioTitle: 'Night Mood (Lofi Chill)',
-        audioArtist: 'ChillCity Beats',
-        audioUrl: null,
-        viewsCount: 890000,
-        likesCount: 156300,
-        commentsCount: 34,
-        sharesCount: 8200,
-        isLiked: true,
-        createdAt: new Date().toISOString(),
-        author: {
-          id: 'user-anna',
-          username: 'anna_cinema',
-          displayName: 'Anna Cinema',
-          avatar:
-            'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
-          isVerified: true,
-          isFollowing: true,
-        },
-      },
-    ];
-    return {
-      data: seed,
-      meta: {
-        hasNextPage: false,
-        nextCursor: null,
-      },
-    };
-  }
-
   async getFeed(
     limit = 10,
     after?: string,
     viewerId?: string,
   ): Promise<Paginated<ReelResponseDto>> {
-    try {
-      // Fetch limit + 5 to determine hasNextPage and allow for not_interested filtering
-      let rows = await this.reelsRepository.findAllPaginated(limit + 5, after, viewerId);
-
-      if (rows.length === 0 && !after) {
-        return this.getSeedFeed();
+    let exclusions: ReelsFeedExclusions | undefined;
+    if (viewerId) {
+      try {
+        const client = this.redis.getClient();
+        const [reelIds, authorIds] = await Promise.all([
+          client.smembers(`reels:not_interested:${viewerId}:reels`),
+          client.smembers(`reels:not_interested:${viewerId}:authors`),
+        ]);
+        exclusions = { reelIds, authorIds };
+      } catch {
+        // Preference filtering degrades on Redis failure; authorization never does.
       }
-
-      if (viewerId) {
-        try {
-          const redisClient = this.redis.getClient();
-          const [hiddenReels, hiddenAuthors] = await Promise.all([
-            redisClient.smembers(`reels:not_interested:${viewerId}:reels`),
-            redisClient.smembers(`reels:not_interested:${viewerId}:authors`),
-          ]);
-          const hiddenReelsSet = new Set(hiddenReels || []);
-          const hiddenAuthorsSet = new Set(hiddenAuthors || []);
-          rows = rows.filter((r) => !hiddenReelsSet.has(r.id) && !hiddenAuthorsSet.has(r.authorId));
-        } catch {
-          // Fallback gracefully if Redis is unavailable
-        }
-      }
-
-      return paginate(rows, limit, (item) => this.mapToDto(item, viewerId));
-    } catch (err) {
-      this.logger.warn(
-        `Could not load reels from repository: ${String(err)}. Returning seed feed.`,
-      );
-      return this.getSeedFeed();
     }
+    const rows = await this.reelsRepository.findAllPaginated(
+      limit + 1,
+      after,
+      viewerId,
+      exclusions,
+    );
+    return paginate(rows, limit, (item) => this.mapToDto(item, viewerId));
   }
 
   async getUserReels(
@@ -239,31 +158,27 @@ export class ReelsService {
     after?: string,
     viewerId?: string,
   ): Promise<Paginated<ReelResponseDto>> {
-    try {
-      const rows = await this.reelsRepository.findByUserId(userId, limit + 1, after, viewerId);
-      return paginate(rows, limit, (item) => this.mapToDto(item, viewerId));
-    } catch {
-      return {
-        data: [],
-        meta: { hasNextPage: false, nextCursor: null },
-      };
-    }
+    const rows = await this.reelsRepository.findByUserId(userId, limit + 1, after, viewerId);
+    return paginate(rows, limit, (item) => this.mapToDto(item, viewerId));
   }
 
   async getReelById(id: string, viewerId?: string): Promise<ReelResponseDto> {
-    try {
-      const reel = await this.reelsRepository.findById(id, viewerId);
-      if (!reel) {
-        const seedItem = this.getSeedFeed().data.find((r) => r.id === id);
-        if (seedItem) return seedItem;
-        throw new NotFoundException('Reel not found');
-      }
-      return this.mapToDto(reel, viewerId);
-    } catch (err) {
-      const seedItem = this.getSeedFeed().data.find((r) => r.id === id);
-      if (seedItem) return seedItem;
-      throw err;
-    }
+    const reel = await this.reelsRepository.findById(id, viewerId);
+    if (!reel) throw new NotFoundException('Reel not found');
+    return this.mapToDto(reel, viewerId);
+  }
+
+  async getSavedReels(
+    userId: string,
+    limit = 12,
+    after?: string,
+  ): Promise<Paginated<ReelResponseDto>> {
+    const rows = await this.reelsRepository.findSaved(userId, limit + 1, after);
+    return paginate(rows, limit, (item) => this.mapToDto(item.reel, userId));
+  }
+
+  async setSaved(reelId: string, userId: string, saved: boolean) {
+    return this.reelsRepository.setSaved(reelId, userId, saved);
   }
 
   async createReel(
@@ -371,7 +286,7 @@ export class ReelsService {
     reelId: string,
     userId: string,
   ): Promise<{ liked: boolean; likesCount: number }> {
-    const reel = await this.reelsRepository.findById(reelId);
+    const reel = await this.reelsRepository.findById(reelId, userId);
     if (!reel) {
       throw new NotFoundException('Reel not found');
     }
@@ -381,25 +296,38 @@ export class ReelsService {
   async recordView(
     reelId: string,
     viewerIdentifier: string,
+    viewerId?: string,
   ): Promise<{ success: boolean; counted: boolean }> {
+    await this.getReelById(reelId, viewerId);
     const key = `reels:view:${reelId}:${viewerIdentifier}`;
+    let counted = true;
+    let reserved = false;
     try {
-      const redisClient = this.redis.getClient();
-      // Set key with 300s TTL only if not exists (debounced view)
-      const res = await redisClient.set(key, '1', 'EX', 300, 'NX');
-      if (res === 'OK') {
-        await this.reelsRepository.incrementViews(reelId);
-        return { success: true, counted: true };
-      }
-      return { success: true, counted: false };
+      const res = await this.redis.getClient().set(key, '1', 'EX', 300, 'NX');
+      counted = res === 'OK';
+      reserved = counted;
     } catch {
-      // Degraded / passive mode: increment directly
-      await this.reelsRepository.incrementViews(reelId);
-      return { success: true, counted: true };
+      // Redis failure only degrades view deduplication, never persistence errors.
     }
+    if (counted) {
+      try {
+        await this.reelsRepository.incrementViews(reelId);
+      } catch (error) {
+        if (reserved) {
+          try {
+            await this.redis.getClient().del(key);
+          } catch {
+            // Preserve the original persistence error even if Redis is unavailable.
+          }
+        }
+        throw error;
+      }
+    }
+    return { success: true, counted };
   }
 
-  async recordShare(reelId: string): Promise<{ success: boolean }> {
+  async recordShare(reelId: string, viewerId?: string): Promise<{ success: boolean }> {
+    await this.getReelById(reelId, viewerId);
     await this.reelsRepository.incrementShares(reelId);
     return { success: true };
   }
@@ -409,7 +337,7 @@ export class ReelsService {
     userId: string,
     content: string,
   ): Promise<ReelCommentResponseDto> {
-    const reel = await this.reelsRepository.findById(reelId);
+    const reel = await this.reelsRepository.findById(reelId, userId);
     if (!reel) {
       throw new NotFoundException('Reel not found');
     }
@@ -417,13 +345,19 @@ export class ReelsService {
     return this.mapCommentToDto(comment);
   }
 
-  async getComments(reelId: string, limit = 20, after?: string): Promise<ReelCommentResponseDto[]> {
+  async getComments(
+    reelId: string,
+    limit = 20,
+    after?: string,
+    viewerId?: string,
+  ): Promise<ReelCommentResponseDto[]> {
+    await this.getReelById(reelId, viewerId);
     const comments = await this.reelsRepository.findComments(reelId, limit, after);
     return comments.map((c) => this.mapCommentToDto(c));
   }
 
   async deleteReel(id: string, userId: string): Promise<void> {
-    const reel = await this.reelsRepository.findById(id);
+    const reel = await this.reelsRepository.findById(id, userId);
     if (!reel) {
       throw new NotFoundException('Reel not found');
     }
@@ -435,9 +369,9 @@ export class ReelsService {
   }
 
   async markNotInterested(reelId: string, userId: string): Promise<{ success: boolean }> {
-    const reel = await this.reelsRepository.findById(reelId);
+    const reel = await this.reelsRepository.findById(reelId, userId);
     if (!reel) {
-      return { success: true };
+      throw new NotFoundException('Reel not found');
     }
     try {
       const redisClient = this.redis.getClient();
@@ -455,9 +389,13 @@ export class ReelsService {
         pipeline.sadd(`reels:not_interested:${userId}:tags`, ...hashtags);
         pipeline.expire(`reels:not_interested:${userId}:tags`, 60 * 60 * 24 * 30);
       }
-      await pipeline.exec();
+      const results = await pipeline.exec();
+      if (!results || results.some(([error]) => error)) {
+        throw new Error('Could not save your reel preference');
+      }
     } catch (e) {
       this.logger.warn(`Failed to save not_interested in redis: ${String(e)}`);
+      throw e;
     }
     return { success: true };
   }
@@ -468,13 +406,11 @@ export class ReelsService {
     category: string,
     details?: string,
   ): Promise<{ success: boolean; message: string }> {
-    const reel = await this.reelsRepository.findById(reelId);
+    const reel = await this.reelsRepository.findById(reelId, userId);
     if (!reel) {
-      return { success: true, message: 'Report submitted successfully' };
+      throw new NotFoundException('Reel not found');
     }
-    if (this.reelsRepository.reportReel) {
-      await this.reelsRepository.reportReel(reelId, userId, category, details);
-    }
+    await this.reelsRepository.reportReel(reelId, userId, category, details);
     return { success: true, message: 'Report submitted successfully' };
   }
 }

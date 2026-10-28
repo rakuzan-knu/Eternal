@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DefaultAvatar } from './DefaultAvatar';
 import { X } from 'lucide-react-native';
+import { tr } from '@/shared/lib/i18n';
 
 export const colors = {
   background: '#070709',
@@ -40,7 +41,7 @@ export function Avatar({
   return (
     <View
       style={[s.avatar, { width: size, height: size, borderRadius: size / 2 }]}
-      accessibilityLabel={`${name}'s avatar`}
+      accessibilityLabel={tr('{name} avatar', { name })}
       accessibilityRole="image"
     >
       {uri && !failed ? (
@@ -89,7 +90,7 @@ export function ErrorNotice({ message, onRetry }: { message: string; onRetry?: (
       <Text style={s.errorText}>{message}</Text>
       {onRetry && (
         <Pressable accessibilityRole="button" onPress={onRetry} style={s.retry}>
-          <Text style={s.retryText}>Try again</Text>
+          <Text style={s.retryText}>{tr('Try again')}</Text>
         </Pressable>
       )}
     </View>
@@ -125,7 +126,11 @@ export function Sheet({
             <Text accessibilityRole="header" style={s.sheetTitle}>
               {title}
             </Text>
-            <IconButton label={`Close ${title}`} disabled={closeDisabled} onPress={onClose}>
+            <IconButton
+              label={tr('Close {name}', { name: title })}
+              disabled={closeDisabled}
+              onPress={onClose}
+            >
               <X size={22} color={colors.text} />
             </IconButton>
           </View>

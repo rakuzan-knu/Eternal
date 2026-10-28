@@ -1,5 +1,15 @@
 import * as Sentry from '@sentry/react';
 
+// Invitation URLs are bearer credentials. Suppress telemetry containing them,
+// including failed Axios requests and navigation breadcrumbs.
+export function containsInvitationCredential(value: unknown): boolean {
+  try {
+    return /\/(?:messenger\/communities\/invites|invite)\//i.test(JSON.stringify(value) ?? '');
+  } catch {
+    return true;
+  }
+}
+
 export function initSentry(): void {
   // Never initialize Sentry or Session Replay in development mode or with mock DSNs
   if (!import.meta.env.PROD) {
@@ -23,6 +33,16 @@ export function initSentry(): void {
       dsn,
       environment: import.meta.env.MODE,
       integrations: [Sentry.browserTracingIntegration()],
+      beforeBreadcrumb: (breadcrumb) =>
+        containsInvitationCredential(breadcrumb) ? null : breadcrumb,
+      beforeSend: (event) =>
+        containsInvitationCredential(event) || containsInvitationCredential(location.pathname)
+          ? null
+          : event,
+      beforeSendTransaction: (event) =>
+        containsInvitationCredential(event) || containsInvitationCredential(location.pathname)
+          ? null
+          : event,
       tracesSampleRate: import.meta.env.PROD ? 0.2 : 0,
       replaysSessionSampleRate: 0,
       replaysOnErrorSampleRate: 0.5,

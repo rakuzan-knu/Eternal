@@ -7,7 +7,7 @@ import { useLanguageStore } from '../../shared/lib/language/languageStore';
 import { SEOHead } from '../../shared/seo';
 import { useAuthStore } from '../../shared/model/useAuthStore';
 import { useUIStore } from '../../shared/model/useUIStore';
-import { FAMILY_CENTER_TRANSLATIONS } from './data/familyCenterData';
+import { FAMILY_CENTER_TRANSLATIONS } from '@social-network/shared-content';
 import {
   HourglassIllustration,
   CrestShieldIllustration,

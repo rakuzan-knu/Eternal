@@ -4,7 +4,7 @@ import { PrivacyNavbar } from '../Privacy/ui/PrivacyNavbar';
 import { EternalFooter } from '@/widgets/footer';
 import { useLanguageStore } from '../../shared/lib/language/languageStore';
 import { SEOHead } from '../../shared/seo';
-import { BRANDING_TRANSLATIONS } from './data/brandingData';
+import { BRANDING_TRANSLATIONS } from '@social-network/shared-content';
 import {
   BrandMascotAnimated3D,
   EternalCrystalCube3D,

@@ -5,7 +5,7 @@ import { EternalFooter } from '@/widgets/footer';
 import { SEOHead } from '../../shared/seo';
 import { Cookie, Settings, Mail, Printer, ArrowUp, FileText } from 'lucide-react';
 import { useLanguageStore } from '../../shared/lib/language/languageStore';
-import { COOKIE_POLICY_DATA } from './data/cookiePolicyData';
+import { COOKIE_POLICY_DATA } from '@social-network/shared-content';
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   Cookie: <Cookie className="w-4 h-4" />,

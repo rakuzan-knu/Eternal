@@ -112,7 +112,13 @@ export function resetSessionStores() {
     usePresenceStore.setState({ onlineUserIds: new Set(), userActivities: {} });
     useMessageToastStore.getState().dismissAll();
     useHiddenPostsStore.setState({ hiddenIds: new Set() });
-    useUIStore.setState({ ...UI_INITIAL_STATE });
+    useUIStore.setState({
+      ...UI_INITIAL_STATE,
+      isSidebarExpanded:
+        useUIStore.getState().isSidebarPinned &&
+        typeof window !== 'undefined' &&
+        window.innerWidth >= 768,
+    });
   } catch {
     // Ignore in tests
   }

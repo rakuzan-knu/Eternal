@@ -105,6 +105,38 @@ describe('EditProfileModal', () => {
     expect(document.querySelector('input[name="displayName"]')).not.toBeInTheDocument();
   });
 
+  it('opens settings navigation and returns to the selected settings page', async () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn((query: string) => ({
+        matches: query === '(max-width: 639px)',
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    );
+    await openAndWaitForProfile();
+    const toggle = screen.getByRole('button', { name: 'All settings' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(toggle);
+    expect(screen.getByRole('button', { name: 'Back to settings page' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Account Information' }));
+    expect(screen.getByRole('button', { name: 'All settings' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
+    expect(getUsernameInput()).toHaveValue('my_profile');
+    expect(screen.getByRole('button', { name: 'All settings' })).toHaveFocus();
+    vi.unstubAllGlobals();
+  });
+
   it('calls closeEditProfile when the close (X) button is clicked', async () => {
     const user = userEvent.setup({ delay: null });
     await openAndWaitForProfile();

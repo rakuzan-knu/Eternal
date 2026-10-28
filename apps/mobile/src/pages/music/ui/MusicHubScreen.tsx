@@ -46,8 +46,24 @@ import {
 import { MusicActions, type MusicAction } from './MusicActions';
 import { MusicJam } from './MusicJam';
 import { MusicMenu, type MusicMenuItem } from './MusicMenu';
+import { plural, tr } from '@/shared/lib/i18n';
 
 type Page = 'Home' | 'Search' | 'Library' | 'History' | 'Playlist' | 'Track' | 'Jam';
+const sortLabel = (value: string) =>
+  value === 'Custom order'
+    ? tr('Custom order')
+    : value === 'Title'
+      ? tr('Title')
+      : value === 'Artist'
+        ? tr('Artist')
+        : value === 'Album'
+          ? tr('Album')
+          : value === 'Recently added'
+            ? tr('Recently added')
+            : value === 'Duration'
+              ? tr('Duration')
+              : value;
+
 const genres = ['For you', 'Phonk', 'Hip-Hop', 'Electronic', 'Lo-Fi', 'Rock', 'Pop'];
 export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: () => void }) {
   const music = useMusic();
@@ -258,7 +274,7 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
   const openLiked = () =>
     openPlaylist({
       id: 'liked-songs',
-      title: 'Liked Songs',
+      title: tr('Liked Songs'),
       creator: 'You',
       tracks: music.liked.data || [],
     });
@@ -325,37 +341,43 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
   const heading =
     page === 'Library'
       ? folder
-        ? music.folders.data?.find((item) => item.id === folder)?.name || 'Folder'
+        ? music.folders.data?.find((item) => item.id === folder)?.name || tr('Folder')
         : libraryFilter === 'All'
-          ? 'Library'
-          : libraryFilter
+          ? tr('Library')
+          : libraryFilter === 'Folders'
+            ? tr('Folders')
+            : libraryFilter === 'Playlists'
+              ? tr('Playlists')
+              : libraryFilter === 'Tracks'
+                ? tr('Liked songs')
+                : libraryFilter
       : page === 'Playlist'
-        ? 'Playlist'
+        ? tr('Playlist')
         : page === 'History'
-          ? 'Recently played'
+          ? tr('Recently played')
           : page === 'Jam'
-            ? 'Listen together'
+            ? tr('Listen together')
             : page === 'Search'
-              ? 'Search'
+              ? tr('Search')
               : page === 'Track'
-                ? 'Track'
-                : 'Music Hub';
+                ? tr('Track')
+                : tr('Music Hub');
   React.useEffect(() => {
     if (active && Platform.OS === 'web' && typeof document !== 'undefined')
       document.title = `${page === 'Playlist' ? playlist?.title || heading : heading} • Music • Eternal`;
   }, [active, heading, page, playlist?.title]);
   const menuTitle =
     menu === 'source'
-      ? 'Music catalog'
+      ? tr('Music catalog')
       : menu === 'sort'
-        ? 'Sort by'
+        ? tr('Sort by')
         : menu === 'genre'
-          ? 'Explore genres'
-          : 'Your music';
+          ? tr('Explore genres')
+          : tr('Your music');
   const menuItems: MusicMenuItem[] =
     menu === 'source'
       ? (['all', 'soundcloud', 'spotify'] as const).map((value) => ({
-          label: value === 'all' ? 'All music' : value === 'spotify' ? 'Spotify' : 'SoundCloud',
+          label: value === 'all' ? tr('All music') : value === 'spotify' ? 'Spotify' : 'SoundCloud',
           selected: source === value,
           onPress: () => setSource(value),
         }))
@@ -366,31 +388,31 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
               ? ['Custom order', 'Title', 'Recently added']
               : ['Custom order', 'Title', 'Artist', 'Recently added']
           ).map((value) => ({
-            label: value,
+            label: sortLabel(value),
             selected: sort === value,
             onPress: () => setSort(value),
           }))
         : menu === 'genre'
           ? genres.map((value) => ({
-              label: value,
+              label: value === 'For you' ? tr('For you') : value,
               selected: genre === value,
               onPress: () => setGenre(value),
             }))
           : [
               {
-                label: 'Game Mode',
-                description: 'Your music. Fewer distractions.',
+                label: tr('Game Mode'),
+                description: tr('Your music. Fewer distractions.'),
                 icon: <Gamepad2 size={23} color={colors.purple} />,
                 onPress: music.enterGameMode,
               },
               {
-                label: 'Listen together · Jam',
-                description: 'Start or join a listening room',
+                label: tr('Listen together · Jam'),
+                description: tr('Start or join a listening room'),
                 icon: <Users size={23} color={colors.purple} />,
                 onPress: () => navigate('Jam'),
               },
               {
-                label: 'Listening history',
+                label: tr('Listening history'),
                 icon: <History size={23} color={colors.purple} />,
                 onPress: () => navigate('History'),
               },
@@ -400,7 +422,7 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
       <View key={item.id} style={m.row}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Open playlist ${item.title}`}
+          accessibilityLabel={tr('Open playlist {name}', { name: item.title })}
           onPress={() => openPlaylist(item)}
           style={m.trackMain}
         >
@@ -411,12 +433,12 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
               {item.title}
             </Text>
             <Text style={m.muted}>
-              {item.isPrivate ? 'Private playlist' : 'Playlist'} · {item.creator || 'You'}
+              {item.isPrivate ? tr('Private playlist') : 'Playlist'} · {item.creator || 'You'}
             </Text>
           </View>
         </Pressable>
         <IconButton
-          label={`Playlist options for ${item.title}`}
+          label={tr('Playlist options for {name}', { name: item.title })}
           onPress={() => setAction({ type: 'playlist', playlist: item })}
         >
           <MoreHorizontal size={21} color={colors.muted} />
@@ -427,7 +449,7 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
   return (
     <View style={m.flex} testID="music-hub">
       <View style={[m.row, { paddingHorizontal: 12, paddingTop: 6, paddingBottom: 6, gap: 6 }]}>
-        <IconButton label="Back from Music Hub" onPress={back}>
+        <IconButton label={tr('Back from Music Hub')} onPress={back}>
           <ArrowLeft size={22} color="white" />
         </IconButton>
         <Text accessibilityRole="header" style={[m.heading, m.flex, { fontSize: 28 }]}>
@@ -436,7 +458,7 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
         {page === 'Library' &&
           (allLibrary.length > 0 || !!music.folders.data?.length || librarySearch) && (
             <IconButton
-              label={librarySearch ? 'Close library search' : 'Search your library'}
+              label={librarySearch ? tr('Close library search') : tr('Search your library')}
               selected={librarySearch}
               onPress={() => {
                 setLibrarySearch(!librarySearch);
@@ -448,7 +470,7 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
           )}
         {page === 'Library' ? (
           <IconButton
-            label="Create playlist or folder"
+            label={tr('Create playlist or folder')}
             disabled={!music.isOnline}
             onPress={() => setAction({ type: 'create' })}
           >
@@ -456,22 +478,26 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
           </IconButton>
         ) : page === 'Home' ? (
           <View style={m.row}>
-            <IconButton label="Enter Game Mode" onPress={music.enterGameMode}>
+            <IconButton label={tr('Enter Game Mode')} onPress={music.enterGameMode}>
               <Gamepad2 size={24} color="#c9a4ff" />
             </IconButton>
-            <IconButton label="Music options" onPress={() => setMenu('more')}>
+            <IconButton label={tr('Music options')} onPress={() => setMenu('more')}>
               <MoreHorizontal size={24} color="white" />
             </IconButton>
           </View>
         ) : null}
       </View>
       {['Home', 'Search', 'Library'].includes(page) && (
-        <View accessibilityRole="tablist" accessibilityLabel="Music navigation" style={s.tabs}>
+        <View
+          accessibilityRole="tablist"
+          accessibilityLabel={tr('Music navigation')}
+          style={s.tabs}
+        >
           {(['Home', 'Search', 'Library'] as const).map((tab) => (
             <Pressable
               key={tab}
               accessibilityRole="tab"
-              accessibilityLabel={`Music ${tab}`}
+              accessibilityLabel={tr('Music {name}', { name: tr(tab) })}
               accessibilityState={{ selected: page === tab }}
               aria-selected={page === tab}
               onPress={() => {
@@ -485,7 +511,7 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
               style={[s.tab, page === tab && s.activeTab]}
             >
               <Text style={[s.tabText, page === tab && { color: '#fff', fontWeight: '700' }]}>
-                {tab === 'Home' ? 'Discover' : tab}
+                {tr(tab === 'Home' ? 'Discover' : tab)}
               </Text>
             </Pressable>
           ))}
@@ -494,7 +520,7 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
       {music.notice && (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Dismiss: ${music.notice}`}
+          accessibilityLabel={tr('Dismiss: {text}', { text: music.notice })}
           onPress={() => music.setNotice(null)}
           style={{ paddingHorizontal: 20, paddingVertical: 8 }}
         >
@@ -509,7 +535,7 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
           accessibilityLiveRegion="polite"
           style={[m.muted, { paddingHorizontal: 20, paddingVertical: 8 }]}
         >
-          You're offline. Connect to search, play music or update your library.
+          {tr("You're offline. Connect to search, play music or update your library.")}
         </Text>
       )}
       <FlatList
@@ -537,7 +563,7 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
                 {!!music.preferences.history.length && (
                   <>
                     <Section
-                      title="Jump back in"
+                      title={tr('Jump back in')}
                       action="See all"
                       onAction={() => navigate('History')}
                     />
@@ -550,7 +576,10 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
                         <Pressable
                           key={track.id}
                           accessibilityRole="button"
-                          accessibilityLabel={`Play ${track.title} by ${track.artist}`}
+                          accessibilityLabel={tr('Play {title} by {artist}', {
+                            title: track.title,
+                            artist: track.artist,
+                          })}
                           onPress={() => music.play(track, music.preferences.history)}
                           style={m.card}
                         >
@@ -567,35 +596,35 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
                   </>
                 )}
                 <Section
-                  title="Made for you"
-                  action={genre === 'For you' ? 'Genres' : genre}
+                  title={tr('Made for you')}
+                  action={genre === 'For you' ? tr('Genres') : genre}
                   onAction={() => setMenu('genre')}
                 />
                 {home.isFetching && !home.data ? (
                   <ActivityIndicator
                     color={colors.purple}
-                    accessibilityLabel="Loading recommendations"
+                    accessibilityLabel={tr('Loading recommendations')}
                   />
                 ) : home.isError ? (
                   <MusicStatus
-                    message="Recommendations couldn't be loaded."
+                    message={tr("Recommendations couldn't be loaded.")}
                     onRetry={() => void home.refetch()}
                   />
                 ) : home.data?.length ? (
                   home.data.slice(0, 5).map((track) => row(track, home.data || []))
                 ) : (
-                  <Text style={m.muted}>Find your next favourite in Search.</Text>
+                  <Text style={m.muted}>{tr('Find your next favourite in Search.')}</Text>
                 )}
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Listen together · Jam"
+                  accessibilityLabel={tr('Listen together · Jam')}
                   onPress={() => navigate('Jam')}
                   style={s.jamCard}
                 >
                   <Users size={26} color="#c49bf9" />
                   <View style={m.flex}>
-                    <Text style={[m.trackTitle, { fontSize: 16 }]}>Better together</Text>
-                    <Text style={m.muted}>Start or join a listening room</Text>
+                    <Text style={[m.trackTitle, { fontSize: 16 }]}>{tr('Better together')}</Text>
+                    <Text style={m.muted}>{tr('Start or join a listening room')}</Text>
                   </View>
                   <ArrowLeft
                     size={19}
@@ -603,12 +632,15 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
                     style={{ transform: [{ rotate: '180deg' }] }}
                   />
                 </Pressable>
-                <Section title="Discover playlists" />
+                <Section title={tr('Discover playlists')} />
                 {popular.isFetching && !popular.data ? (
-                  <ActivityIndicator color={colors.purple} accessibilityLabel="Loading playlists" />
+                  <ActivityIndicator
+                    color={colors.purple}
+                    accessibilityLabel={tr('Loading playlists')}
+                  />
                 ) : popular.isError ? (
                   <MusicStatus
-                    message="Playlists couldn't be loaded."
+                    message={tr("Playlists couldn't be loaded.")}
                     onRetry={() => void popular.refetch()}
                   />
                 ) : (
@@ -634,8 +666,8 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
                   <Search size={19} color={colors.muted} />
                   <TextInput
                     ref={searchRef}
-                    accessibilityLabel="Search music"
-                    placeholder="Songs, artists, playlists"
+                    accessibilityLabel={tr('Search music')}
+                    placeholder={tr('Songs, artists, playlists')}
                     placeholderTextColor={colors.muted}
                     value={query}
                     onChangeText={setQuery}
@@ -644,7 +676,7 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
                     style={[m.text, m.flex, { minHeight: 48 }]}
                   />
                   {!!query && (
-                    <IconButton label="Clear music search" onPress={() => setQuery('')}>
+                    <IconButton label={tr('Clear music search')} onPress={() => setQuery('')}>
                       <X size={19} color={colors.muted} />
                     </IconButton>
                   )}
@@ -673,13 +705,13 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
                   </View>
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel="Choose music catalog"
+                    accessibilityLabel={tr('Choose music catalog')}
                     onPress={() => setMenu('source')}
                     style={[m.touch, m.row, { gap: 4 }]}
                   >
                     <Text style={m.muted}>
                       {source === 'all'
-                        ? 'All music'
+                        ? tr('All music')
                         : source === 'spotify'
                           ? 'Spotify'
                           : 'SoundCloud'}
@@ -690,13 +722,13 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
                 {!query.trim() && (
                   <View style={m.empty}>
                     <Search size={36} color={colors.purple} />
-                    <Text style={m.heading}>What do you want to hear?</Text>
-                    <Text style={m.muted}>Search SoundCloud and Spotify together.</Text>
+                    <Text style={m.heading}>{tr('What do you want to hear?')}</Text>
+                    <Text style={m.muted}>{tr('Search SoundCloud and Spotify together.')}</Text>
                   </View>
                 )}
                 {searchSettled && search.isError && !!debounced && (
                   <ErrorNotice
-                    message="Music search is unavailable."
+                    message={tr('Music search is unavailable.')}
                     onRetry={() => void search.refetch()}
                   />
                 )}
@@ -704,7 +736,9 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
                   !!debounced &&
                   !!search.data?.pages.some((item) => item.unavailable.length) && (
                     <ErrorNotice
-                      message="One catalog is temporarily unavailable. Showing available results."
+                      message={tr(
+                        'One catalog is temporarily unavailable. Showing available results.',
+                      )}
                       onRetry={() => void search.refetch()}
                     />
                   )}
@@ -725,7 +759,9 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
                   search.isSuccess &&
                   !searchPlaylists.length && (
                     <View style={m.empty}>
-                      <Text style={m.muted}>No playlists found. Try another artist or title.</Text>
+                      <Text style={m.muted}>
+                        {tr('No playlists found. Try another artist or title.')}
+                      </Text>
                     </View>
                   )}
               </>
@@ -738,10 +774,12 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
                     <TextInput
                       autoFocus
                       accessibilityLabel={
-                        libraryFilter === 'Folders' ? 'Search folders' : 'Search your music library'
+                        libraryFilter === 'Folders'
+                          ? tr('Search folders')
+                          : tr('Search your music library')
                       }
                       placeholder={
-                        libraryFilter === 'Folders' ? 'Find a folder' : 'Find a playlist'
+                        libraryFilter === 'Folders' ? tr('Find a folder') : tr('Find a playlist')
                       }
                       placeholderTextColor={colors.muted}
                       value={filter}
@@ -749,7 +787,7 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
                       style={[m.flex, m.text, { minHeight: 48 }]}
                     />
                     {!!filter && (
-                      <IconButton label="Clear library search" onPress={() => setFilter('')}>
+                      <IconButton label={tr('Clear library search')} onPress={() => setFilter('')}>
                         <X size={18} color={colors.muted} />
                       </IconButton>
                     )}
@@ -757,7 +795,7 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
                 )}
                 {(music.playlists.isError || music.liked.isError || music.folders.isError) && (
                   <MusicStatus
-                    message="Some saved music couldn't load."
+                    message={tr("Some saved music couldn't load.")}
                     onRetry={() => void refresh()}
                   />
                 )}
@@ -765,30 +803,30 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
                   <>
                     <View style={{ marginTop: 12 }}>
                       <LibraryRow
-                        title="Liked songs"
+                        title={tr('Liked songs')}
                         subtitle={queryCount(music.liked, 'songs')}
                         icon={<Heart size={23} color="#c49bf9" fill="#c49bf9" />}
                         onPress={openLiked}
                       />
                       <LibraryRow
-                        title="Playlists"
+                        title={tr('Playlists')}
                         subtitle={
                           music.playlists.data
-                            ? `${allLibrary.length} saved`
+                            ? countLabel(allLibrary.length, 'saved')
                             : queryCount(music.playlists, 'saved')
                         }
                         icon={<ListMusic size={23} color="#c49bf9" />}
                         onPress={() => setLibraryFilter('Playlists')}
                       />
                       <LibraryRow
-                        title="Folders"
+                        title={tr('Folders')}
                         subtitle={queryCount(music.folders, 'folders')}
                         icon={<Folder size={23} color="#c49bf9" />}
                         onPress={() => setLibraryFilter('Folders')}
                       />
                       <LibraryRow
-                        title="Recently played"
-                        subtitle="Your listening history"
+                        title={tr('Recently played')}
+                        subtitle={tr('Your listening history')}
                         icon={<History size={23} color="#c49bf9" />}
                         onPress={() => navigate('History')}
                       />
@@ -796,7 +834,7 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
                     {!!library.length && (
                       <>
                         <Section
-                          title="Your playlists"
+                          title={tr('Your playlists')}
                           action="See all"
                           onAction={() => setLibraryFilter('Playlists')}
                         />
@@ -812,13 +850,13 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
                       !music.folders.isError && (
                         <View style={m.empty}>
                           <Text style={[m.heading, { textAlign: 'center' }]}>
-                            Keep the music you love
+                            {tr('Keep the music you love')}
                           </Text>
                           <Text style={[m.muted, { textAlign: 'center' }]}>
-                            Like a song or save a playlist. It'll be waiting here.
+                            {tr("Like a song or save a playlist. It'll be waiting here.")}
                           </Text>
                           <Button
-                            title="Find music"
+                            title={tr('Find music')}
                             variant="secondary"
                             onPress={() => navigate('Search')}
                           />
@@ -831,14 +869,14 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
                     <View style={[m.row, { justifyContent: 'space-between', marginTop: 12 }]}>
                       <Text style={m.muted}>
                         {folder
-                          ? 'In this folder'
+                          ? tr('In this folder')
                           : libraryFilter === 'Folders'
-                            ? 'Your folders'
-                            : 'Saved playlists'}
+                            ? tr('Your folders')
+                            : tr('Saved playlists')}
                       </Text>
                       <Pressable
                         accessibilityRole="button"
-                        accessibilityLabel="Sort library"
+                        accessibilityLabel={tr('Sort library')}
                         onPress={() => setMenu('sort')}
                         style={[m.touch, m.row, { gap: 6 }]}
                       >
@@ -851,14 +889,14 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
                         {music.folders.isFetching && !music.folders.data && (
                           <ActivityIndicator
                             color={colors.purple}
-                            accessibilityLabel="Loading folders"
+                            accessibilityLabel={tr('Loading folders')}
                           />
                         )}
                         {visibleFolders.map((item) => (
                           <View key={item.id} style={m.row}>
                             <Pressable
                               accessibilityRole="button"
-                              accessibilityLabel={`Open folder ${item.name}`}
+                              accessibilityLabel={tr('Open folder {name}', { name: item.name })}
                               onPress={() => {
                                 setFolder(item.id);
                                 setLibraryFilter('Playlists');
@@ -874,7 +912,7 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
                               </View>
                             </Pressable>
                             <IconButton
-                              label={`Folder options for ${item.name}`}
+                              label={tr('Folder options for {name}', { name: item.name })}
                               onPress={() => setAction({ type: 'folder', folder: item })}
                             >
                               <MoreHorizontal size={22} color={colors.muted} />
@@ -887,16 +925,18 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
                             <View style={m.empty}>
                               <Folder size={36} color={colors.purple} />
                               <Text style={m.heading}>
-                                {filter ? 'No matching folders' : 'A place for your playlists'}
+                                {filter
+                                  ? tr('No matching folders')
+                                  : tr('A place for your playlists')}
                               </Text>
                               <Text style={[m.muted, { textAlign: 'center' }]}>
                                 {filter
-                                  ? 'Try a different name.'
-                                  : 'Create a folder to organise your collection.'}
+                                  ? tr('Try a different name.')
+                                  : tr('Create a folder to organise your collection.')}
                               </Text>
                               {!filter && (
                                 <Button
-                                  title="Create a folder"
+                                  title={tr('Create a folder')}
                                   disabled={!music.isOnline}
                                   onPress={() => setAction({ type: 'create' })}
                                 />
@@ -909,7 +949,7 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
                         {music.playlists.isFetching && !music.playlists.data && (
                           <ActivityIndicator
                             color={colors.purple}
-                            accessibilityLabel="Loading your playlists"
+                            accessibilityLabel={tr('Loading your playlists')}
                           />
                         )}
                         {library.map(playlistRow)}
@@ -918,21 +958,21 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
                             <ListMusic size={36} color={colors.purple} />
                             <Text style={m.heading}>
                               {filter
-                                ? 'No matching playlists'
+                                ? tr('No matching playlists')
                                 : folder
-                                  ? 'This folder is empty'
-                                  : 'Your next favourite mix'}
+                                  ? tr('This folder is empty')
+                                  : tr('Your next favourite mix')}
                             </Text>
                             <Text style={[m.muted, { textAlign: 'center' }]}>
                               {filter
-                                ? 'Try a different name.'
+                                ? tr('Try a different name.')
                                 : folder
-                                  ? 'Move a playlist here from its options menu.'
-                                  : 'Bring your favourite tracks together in a playlist.'}
+                                  ? tr('Move a playlist here from its options menu.')
+                                  : tr('Bring your favourite tracks together in a playlist.')}
                             </Text>
                             {!filter && (
                               <Button
-                                title="Create a playlist"
+                                title={tr('Create a playlist')}
                                 disabled={!music.isOnline}
                                 onPress={() => setAction({ type: 'create' })}
                               />
@@ -958,8 +998,8 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
                     {playlist.creator || 'You'} ·{' '}
                     {selected?.id === 'liked-songs'
                       ? queryCount(music.liked, 'songs')
-                      : `${playlist.tracks.length || playlist.trackCount || 0} tracks`}
-                    {playlist.isPrivate ? ' · Private' : ''}
+                      : countLabel(playlist.tracks.length || playlist.trackCount || 0, 'tracks')}
+                    {playlist.isPrivate ? ` · ${tr('Private')}` : ''}
                   </Text>
                   {!!playlist.description && (
                     <Text style={[m.muted, { textAlign: 'center' }]}>{playlist.description}</Text>
@@ -967,26 +1007,26 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
                 </View>
                 <View style={[m.row, { justifyContent: 'space-between', paddingVertical: 12 }]}>
                   <IconButton
-                    label="Playlist options"
+                    label={tr('Playlist options')}
                     onPress={() => setAction({ type: 'playlist', playlist })}
                   >
                     <MoreHorizontal size={26} color="white" />
                   </IconButton>
                   <PlayButton
-                    label={`Play ${playlist.title}`}
+                    label={tr('Play {name}', { name: playlist.title })}
                     disabled={!playlist.tracks.length || !music.isOnline}
                     onPress={() => music.play(playlist.tracks[0], playlist.tracks)}
                   />
                 </View>
                 {playlistQuery.isError && selected?.id !== 'liked-songs' && (
                   <ErrorNotice
-                    message="This playlist is unavailable or private."
+                    message={tr('This playlist is unavailable or private.')}
                     onRetry={() => void playlistQuery.refetch()}
                   />
                 )}
                 {selected?.id === 'liked-songs' && music.liked.isError && (
                   <MusicStatus
-                    message="Liked songs couldn't be loaded."
+                    message={tr("Liked songs couldn't be loaded.")}
                     onRetry={() => void music.liked.refetch()}
                   />
                 )}
@@ -994,7 +1034,7 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
                   <View style={[m.row, { justifyContent: 'space-between' }]}>
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel="Search this playlist"
+                      accessibilityLabel={tr('Search this playlist')}
                       onPress={() => {
                         setPlaylistSearch(!playlistSearch);
                         setFilter('');
@@ -1002,11 +1042,11 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
                       style={[m.touch, m.row, { gap: 6 }]}
                     >
                       <Search size={17} color={colors.muted} />
-                      <Text style={m.muted}>Find a song</Text>
+                      <Text style={m.muted}>{tr('Find a song')}</Text>
                     </Pressable>
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel="Sort playlist"
+                      accessibilityLabel={tr('Sort playlist')}
                       onPress={() => setMenu('sort')}
                       style={[m.touch, m.row, { gap: 6 }]}
                     >
@@ -1018,8 +1058,8 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
                 {playlistSearch && (
                   <TextInput
                     autoFocus
-                    accessibilityLabel="Find in playlist"
-                    placeholder="Find in playlist"
+                    accessibilityLabel={tr('Find in playlist')}
+                    placeholder={tr('Find in playlist')}
                     placeholderTextColor={colors.muted}
                     value={filter}
                     onChangeText={setFilter}
@@ -1028,7 +1068,7 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
                 )}
                 {!!filter && !!playlist.tracks.length && !tracks.length && (
                   <Text style={[m.muted, { textAlign: 'center', padding: 20 }]}>
-                    No songs match this search.
+                    {tr('No songs match this search.')}
                   </Text>
                 )}
                 {!playlist.tracks.length &&
@@ -1038,8 +1078,8 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
                     : !!playlistQuery.data && !playlistQuery.isError) && (
                     <View style={m.empty}>
                       <ListMusic size={35} color={colors.purple} />
-                      <Text style={m.heading}>Let's find something to play</Text>
-                      <Button title="Search for songs" onPress={() => navigate('Search')} />
+                      <Text style={m.heading}>{tr("Let's find something to play")}</Text>
+                      <Button title={tr('Search for songs')} onPress={() => navigate('Search')} />
                     </View>
                   )}
               </>
@@ -1053,7 +1093,7 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
                   <View style={m.row}>
                     <PlayButton onPress={() => music.play(selectedTrack)} />
                     <IconButton
-                      label="Track options"
+                      label={tr('Track options')}
                       onPress={() => setAction({ type: 'track', track: selectedTrack })}
                     >
                       <MoreHorizontal size={24} color="white" />
@@ -1065,10 +1105,10 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
                     .filter(Boolean)
                     .join(' · ')}
                 </Text>
-                <Section title="More like this" />
+                <Section title={tr('More like this')} />
                 {related.isError && (
                   <ErrorNotice
-                    message="Related music couldn't be loaded."
+                    message={tr("Related music couldn't be loaded.")}
                     onRetry={() => void related.refetch()}
                   />
                 )}
@@ -1076,9 +1116,9 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
             )}
             {page === 'History' && (
               <View style={m.row}>
-                <Text style={[m.muted, m.flex]}>Your recently played tracks</Text>
+                <Text style={[m.muted, m.flex]}>{tr('Your recently played tracks')}</Text>
                 <Button
-                  title="Clear history"
+                  title={tr('Clear history')}
                   variant="ghost"
                   fullWidth={false}
                   disabled={!music.preferences.history.length}
@@ -1087,7 +1127,7 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
               </View>
             )}
             {loading && (
-              <ActivityIndicator color={colors.purple} accessibilityLabel="Loading music" />
+              <ActivityIndicator color={colors.purple} accessibilityLabel={tr('Loading music')} />
             )}
           </>
         }
@@ -1102,8 +1142,8 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
             <View style={m.empty}>
               <Text style={m.muted}>
                 {page === 'History'
-                  ? 'Play something you love. It will appear here.'
-                  : 'No tracks found. Try another artist or title.'}
+                  ? tr('Play something you love. It will appear here.')
+                  : tr('No tracks found. Try another artist or title.')}
               </Text>
             </View>
           ) : null
@@ -1111,7 +1151,7 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
         ListFooterComponent={
           page === 'Search' && searchSettled && !!debounced && search.hasNextPage ? (
             <Button
-              title={search.isFetchingNextPage ? 'Loading…' : 'Load more results'}
+              title={search.isFetchingNextPage ? tr('Loading…') : tr('Load more results')}
               loading={search.isFetchingNextPage}
               disabled={!music.isOnline}
               variant="ghost"
@@ -1132,13 +1172,23 @@ export function MusicHubScreen({ active, onBack }: { active: boolean; onBack: ()
     </View>
   );
 }
+function countLabel(count: number, unit: 'songs' | 'saved' | 'folders' | 'tracks') {
+  if (unit === 'songs') return plural(count, { one: '{count} song', other: '{count} songs' });
+  if (unit === 'folders') return plural(count, { one: '{count} folder', other: '{count} folders' });
+  if (unit === 'tracks') return plural(count, { one: '{count} track', other: '{count} tracks' });
+  return tr('{count} saved', { count });
+}
+
 function queryCount(
   query: { data?: unknown[]; isFetching?: boolean; isError: boolean },
-  unit: string,
+  unit: 'songs' | 'saved' | 'folders',
 ) {
-  if (query.data)
-    return `${query.data.length} ${query.data.length === 1 && unit.endsWith('s') ? unit.slice(0, -1) : unit}`;
-  return query.isError ? 'Unavailable' : query.isFetching ? 'Loading…' : 'Connect to load';
+  if (query.data) return countLabel(query.data.length, unit);
+  return query.isError
+    ? tr('Unavailable')
+    : query.isFetching
+      ? tr('Loading…')
+      : tr('Connect to load');
 }
 const s = StyleSheet.create({
   tabs: {

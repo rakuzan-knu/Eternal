@@ -62,6 +62,33 @@ export class ReelsController {
     return this.reelsService.getUserReels(userId, query.limit ?? 12, query.after, user?.id);
   }
 
+  @Get('saved')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get your saved reels' })
+  getSavedReels(
+    @Query(new ZodValidationPipe(getReelsQuerySchema)) query: GetReelsQueryDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.reelsService.getSavedReels(user.id, query.limit, query.after);
+  }
+
+  @Post(':id/save')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  saveReel(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    return this.reelsService.setSaved(id, user.id, true);
+  }
+
+  @Delete(':id/save')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  unsaveReel(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    return this.reelsService.setSaved(id, user.id, false);
+  }
+
   @Get(':id')
   @UseGuards(OptionalJwtAuthGuard)
   @ApiBearerAuth()
@@ -111,7 +138,7 @@ export class ReelsController {
     @Req() req?: { ip?: string },
   ) {
     const viewerIdentifier = user?.id ?? req?.ip ?? 'anon';
-    return this.reelsService.recordView(id, viewerIdentifier);
+    return this.reelsService.recordView(id, viewerIdentifier, user?.id);
   }
 
   @Post(':id/share')
@@ -120,8 +147,8 @@ export class ReelsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Register a share on a reel' })
   @ApiResponse({ status: 200, description: 'Share recorded' })
-  recordShare(@Param('id') id: string) {
-    return this.reelsService.recordShare(id);
+  recordShare(@Param('id') id: string, @CurrentUser() user?: RequestUser) {
+    return this.reelsService.recordShare(id, user?.id);
   }
 
   @Get(':id/comments')
@@ -133,8 +160,9 @@ export class ReelsController {
     @Param('id') id: string,
     @Query('limit') limit?: number,
     @Query('after') after?: string,
+    @CurrentUser() user?: RequestUser,
   ) {
-    return this.reelsService.getComments(id, limit ? Number(limit) : 20, after);
+    return this.reelsService.getComments(id, limit ? Number(limit) : 20, after, user?.id);
   }
 
   @Post(':id/comments')

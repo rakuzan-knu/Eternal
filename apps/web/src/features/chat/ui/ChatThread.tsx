@@ -46,11 +46,19 @@ import { ensureMessageIdentityRegistered } from '../lib/e2ee/messageE2ee';
 
 interface ChatThreadProps {
   conversation: ConversationView;
+  communityName?: string;
+  onClose?: () => void;
+  onSelectConversation?: (conversationId: string) => void;
 }
 
 type RightPanel = 'details' | 'search' | null;
 
-export default function ChatThread({ conversation }: ChatThreadProps) {
+export default function ChatThread({
+  conversation,
+  communityName,
+  onClose,
+  onSelectConversation,
+}: ChatThreadProps) {
   const navigate = useNavigate();
   const userId = useAuthStore((s) => s.userId);
   const [searchParams] = useSearchParams();
@@ -102,6 +110,10 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
   const archiveConversation = useArchiveConversation();
   const { initiateCall } = useCall();
   const voiceRoom = useMeshVoiceRoom();
+  const { currentRoomId: meshRoomId, leaveRoom: leaveMeshRoom } = voiceRoom;
+  useEffect(() => {
+    if (conversation.communityChannelArchivedAt && meshRoomId === conversation.id) leaveMeshRoom();
+  }, [conversation.communityChannelArchivedAt, conversation.id, meshRoomId, leaveMeshRoom]);
   const isVoiceInThisRoom = voiceRoom.isConnected && voiceRoom.currentRoomId === conversation.id;
 
   const [replyingTo, setReplyingTo] = useState<MessageView | null>(null);
@@ -140,14 +152,22 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
   const panelCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [isClosingChat, setIsClosingChat] = useState(false);
+  const chatCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (chatCloseTimerRef.current !== null) clearTimeout(chatCloseTimerRef.current);
+    },
+    [],
+  );
 
   const handleCloseChat = useCallback(() => {
     if (isClosingChat) return;
     setIsClosingChat(true);
-    setTimeout(() => {
-      navigate('/messages');
+    chatCloseTimerRef.current = setTimeout(() => {
+      if (onClose) onClose();
+      else navigate('/messages');
     }, 240);
-  }, [isClosingChat, navigate]);
+  }, [isClosingChat, navigate, onClose]);
 
   const handleOpenMedia = useCallback(
     (attachment: AttachmentView, rect?: DOMRect, msg?: MessageView) => {
@@ -725,6 +745,9 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
     >
       <div ref={chatPaneRef} className="flex-1 flex flex-col min-h-0 min-w-0">
         <ChatThreadHeader
+          readOnly={Boolean(conversation.communityChannelArchivedAt)}
+          communityName={communityName}
+          onBack={onClose ? handleCloseChat : undefined}
           conversationId={conversation.id}
           display={display}
           otherUserId={otherParticipant?.userId ?? null}
@@ -836,6 +859,7 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
           </div>
 
           <AttachmentDropZone
+            disabled={Boolean(conversation.communityChannelArchivedAt)}
             onFilesDropped={staged.addFiles}
             className="relative z-10 flex-1 flex flex-col min-h-0 bg-transparent"
           >
@@ -859,6 +883,7 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
             )}
             {(!isMessagesError || messages.length > 0) && (
               <MessageList
+                readOnly={Boolean(conversation.communityChannelArchivedAt)}
                 messages={messages}
                 currentUserId={userId}
                 otherParticipantId={otherParticipant?.userId ?? null}
@@ -995,7 +1020,12 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
                 paddingBottom: `${composerPaddingBottom}px`,
               }}
             >
-              {isBlocked && otherParticipant ? (
+              {conversation.communityChannelArchivedAt ? (
+                <div role="status" className="p-4 text-sm">
+                  This channel is archived. History and search remain available. An administrator
+                  can restore posting from Manage channels.
+                </div>
+              ) : isBlocked && otherParticipant ? (
                 <BlockedComposerBanner
                   otherUserId={otherParticipant.userId}
                   blockedByMe={conversation.blockedByMe}
@@ -1126,7 +1156,11 @@ export default function ChatThread({ conversation }: ChatThreadProps) {
               onClose={() => setRightPanel(null)}
               onJumpToMessage={handleJumpToMessage}
               onOpenDatePicker={(rect) => handleOpenDatePicker(undefined, rect)}
-              onSelectConversation={(targetConvId) => navigate(`/messages/${targetConvId}`)}
+              onSelectConversation={(targetConvId) =>
+                onSelectConversation
+                  ? onSelectConversation(targetConvId)
+                  : navigate(`/messages/${targetConvId}`)
+              }
             />
           )}
         </div>

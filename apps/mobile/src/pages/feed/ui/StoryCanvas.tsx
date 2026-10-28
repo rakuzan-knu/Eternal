@@ -17,6 +17,7 @@ import Svg, { Defs, Filter, FeColorMatrix, Image as SvgImage } from 'react-nativ
 import type { AudioOverlay, StoryOverlay, TextOverlay } from '@social-network/shared-contracts';
 import { clamp, snapAngle, snapCoordinate, STORY_FILTERS } from '../model/storyEditor';
 import { isLoaded } from 'expo-font';
+import { tr } from '@/shared/lib/i18n';
 
 export function StoryBackground({ value }: { value: string }) {
   const matches = value.match(/#[\da-f]{3,8}|rgba?\([\d.,\s]+\)/gi);
@@ -315,7 +316,7 @@ export function MusicSticker({ overlay }: { overlay: AudioOverlay }) {
             textAlign: style === 'card' ? 'left' : 'center',
           }}
         >
-          {overlay.title || 'Music'}
+          {overlay.title || tr('Music')}
         </Text>
         <Text
           numberOfLines={1}
@@ -325,7 +326,7 @@ export function MusicSticker({ overlay }: { overlay: AudioOverlay }) {
             textAlign: style === 'card' ? 'left' : 'center',
           }}
         >
-          {overlay.artist || 'Original audio'}
+          {overlay.artist || tr('Original audio')}
         </Text>
       </View>
     </View>
@@ -452,8 +453,10 @@ export function StoryLayer({
       disabled={disabled || !onSelect}
       accessible={!!onSelect}
       accessibilityRole="button"
-      accessibilityLabel={`Select ${overlay.type} layer`}
-      accessibilityHint="Drag to move. Pinch with two fingers to resize and rotate. Use layer controls for precise adjustments."
+      accessibilityLabel={tr('Select layer')}
+      accessibilityHint={tr(
+        'Drag to move. Pinch with two fingers to resize and rotate. Use layer controls for precise adjustments.',
+      )}
       accessibilityState={{ selected, disabled }}
       onLayout={(event) => setMeasuredHeight(event.nativeEvent.layout.height)}
       style={layerStyle}

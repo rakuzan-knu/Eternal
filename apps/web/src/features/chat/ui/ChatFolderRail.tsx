@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { ChevronRight } from 'lucide-react';
 import { ConversationView } from '../../../entities/chat/model/types';
 import { getFolderUnreadCount } from '../lib/chatFolderUtils';
 import { ChatFolder } from '../model/useChatFoldersStore';
@@ -29,6 +30,7 @@ export default function ChatFolderRail({
   countsComplete = true,
 }: ChatFolderRailProps) {
   const railRef = useRef<HTMLDivElement>(null);
+  const railId = useId();
   const longPressTimer = useRef<number | null>(null);
   const dragStateRef = useRef<{
     folderId: string;
@@ -234,13 +236,14 @@ export default function ChatFolderRail({
   }, [clearLongPress, endDrag, folders, startDrag]);
 
   return (
-    <div className="relative mb-4 flex items-center gap-2 pl-5 pr-5">
+    <div className="relative mb-4 flex min-w-0 items-start gap-2 px-5">
       <div
+        id={railId}
         ref={railRef}
         onWheel={handleWheel}
-        className={`no-scrollbar flex min-w-0 flex-1 items-center gap-2 overflow-x-auto scroll-smooth ${
-          isOverflowing ? 'pr-12' : ''
-        }`}
+        role="group"
+        aria-label="Chat folders"
+        className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto pb-2 scroll-smooth motion-reduce:scroll-auto"
       >
         {folders.map((folder) => {
           const unreadCount = getFolderUnreadCount(folder, conversations, forcedUnreadIds);
@@ -259,6 +262,7 @@ export default function ChatFolderRail({
               key={folder.id}
               data-folder-id={folder.id}
               type="button"
+              aria-pressed={isActive}
               onPointerDown={(event) => handlePointerDown(event, folder)}
               onClick={(event) => {
                 if (draggingFolderId || suppressNextClickRef.current) {
@@ -332,15 +336,25 @@ export default function ChatFolderRail({
             </button>
           );
         })}
-
-        {!isOverflowing && <CreateFolderButton onCreate={onCreate} className="shrink-0" />}
       </div>
 
       {isOverflowing && (
-        <div className="pointer-events-none absolute right-5 top-0 flex h-9 items-center bg-gradient-to-l from-[var(--app-glass-sidebar-bg,rgba(16,16,20,0.9))] via-[var(--app-glass-sidebar-bg,rgba(16,16,20,0.7))] to-transparent pl-8">
-          <CreateFolderButton onCreate={onCreate} className="pointer-events-auto" />
-        </div>
+        <button
+          type="button"
+          aria-label="Show more chat folders"
+          aria-controls={railId}
+          onClick={() => {
+            const rail = railRef.current;
+            if (!rail) return;
+            const atEnd = rail.scrollLeft + rail.clientWidth >= rail.scrollWidth - 4;
+            rail.scrollLeft = atEnd ? 0 : rail.scrollLeft + rail.clientWidth * 0.75;
+          }}
+          className="flex h-9 w-8 shrink-0 items-center justify-center rounded-full text-gray-400 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-white"
+        >
+          <ChevronRight size={16} aria-hidden="true" />
+        </button>
       )}
+      <CreateFolderButton onCreate={onCreate} className="shrink-0" />
 
       {dragPreview && (
         <div

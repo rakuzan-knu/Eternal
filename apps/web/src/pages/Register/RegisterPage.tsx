@@ -5,12 +5,14 @@ import { GlassCard } from '../../shared/ui/GlassCard';
 import { Button } from '../../shared/ui/Button';
 import { AuthFooter } from '../../shared/ui/AuthFooter';
 import { RegisterForm } from '../../features/auth/ui/RegisterForm';
+import { SEOHead } from '@/shared/seo';
 
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-between px-4 py-6 md:px-6 md:py-8 text-neutral-200 font-sans">
+      <SEOHead title="Create an account" canonical="/register" noindex />
       <div className="flex-1 flex items-center justify-center w-full z-10 my-4">
         <div className="w-full max-w-[460px] flex flex-col gap-4 animate-fadeIn">
           <div className="flex items-center gap-3 pl-1 mb-1">

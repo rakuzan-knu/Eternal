@@ -1,5 +1,6 @@
 import * as LocalAuthentication from 'expo-local-authentication';
 import { Platform } from 'react-native';
+import { tr } from '@/shared/lib/i18n';
 
 export interface BiometricCapability {
   isAvailable: boolean;
@@ -19,7 +20,7 @@ export async function checkBiometricCapability(): Promise<BiometricCapability> {
       hasHardware: false,
       isEnrolled: false,
       biometryType: 'none',
-      biometryName: 'Biometrics',
+      biometryName: tr('Biometrics|name'),
     };
   }
 
@@ -29,17 +30,17 @@ export async function checkBiometricCapability(): Promise<BiometricCapability> {
     const supportedTypes = await LocalAuthentication.supportedAuthenticationTypesAsync();
 
     let biometryType: BiometricCapability['biometryType'] = 'none';
-    let biometryName = 'Biometrics';
+    let biometryName = tr('Biometrics|name');
 
     if (supportedTypes.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
       biometryType = 'face';
       biometryName = 'Face ID';
     } else if (supportedTypes.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
       biometryType = 'fingerprint';
-      biometryName = 'Fingerprint';
+      biometryName = tr('Fingerprint');
     } else if (supportedTypes.includes(LocalAuthentication.AuthenticationType.IRIS)) {
       biometryType = 'iris';
-      biometryName = 'Iris Scan';
+      biometryName = tr('Iris scan');
     }
 
     return {
@@ -55,7 +56,7 @@ export async function checkBiometricCapability(): Promise<BiometricCapability> {
       hasHardware: false,
       isEnrolled: false,
       biometryType: 'none',
-      biometryName: 'Biometrics',
+      biometryName: tr('Biometrics|name'),
     };
   }
 }
@@ -64,15 +65,15 @@ export async function checkBiometricCapability(): Promise<BiometricCapability> {
  * Triggers native Face ID / Touch ID / Fingerprint prompt.
  */
 export async function authenticateWithBiometrics(
-  promptMessage = 'Log in to Eternal',
+  promptMessage = tr('Log in to Eternal'),
 ): Promise<boolean> {
   if (Platform.OS === 'web') return false;
 
   try {
     const result = await LocalAuthentication.authenticateAsync({
       promptMessage,
-      fallbackLabel: 'Use password',
-      cancelLabel: 'Cancel',
+      fallbackLabel: tr('Use password'),
+      cancelLabel: tr('Cancel'),
       disableDeviceFallback: false,
     });
     return result.success;

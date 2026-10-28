@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useForm, Controller, Control, useWatch } from 'react-hook-form';
+import React, { useState, useEffect, useMemo, useRef, useId } from 'react';
+import { useForm, Controller, Control, UseFormSetValue, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
@@ -12,7 +12,7 @@ import { useAuthMutations } from '../api/useAuth';
 import { PasswordRequirements } from './PasswordRequirements';
 
 import { RegisterPayload, AuthResponse } from '../api/authApi';
-import { registerSchema, type RegisterFields } from '../model/registerSchema';
+import { registerSchema, BIRTH_MONTHS, type RegisterFields } from '../model/registerSchema';
 import { useCheckUsername } from '@/entities/profile/model/useCheckUsername';
 import { useAuthStore } from '@/shared/model/useAuthStore';
 import { useAccountsStore } from '@/shared/model/useAccountsStore';
@@ -20,22 +20,8 @@ import { useDebounce } from '@/shared/lib/useDebounce';
 
 import { HelpCircle, Loader2, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
-const MONTHS = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-];
-
-const YEARS = Array.from({ length: 2026 - 1876 + 1 }, (_, i) => String(2026 - i));
+const CURRENT_YEAR = new Date().getFullYear();
+const YEARS = Array.from({ length: 151 }, (_, i) => String(CURRENT_YEAR - i));
 
 const InfoTooltip: React.FC<{ text: string }> = ({ text }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -116,16 +102,27 @@ const UsernameField: React.FC<{
   );
 };
 
-const BirthdayFields: React.FC<{ control: Control<RegisterFields> }> = ({ control }) => {
+const BirthdayFields: React.FC<{
+  control: Control<RegisterFields>;
+  setValue: UseFormSetValue<RegisterFields>;
+}> = ({ control, setValue }) => {
+  const birthdayId = useId();
   const selectedMonth = useWatch({ control, name: 'birthMonth' });
   const selectedYear = useWatch({ control, name: 'birthYear' });
+  const selectedDay = useWatch({ control, name: 'birthDay' });
 
   const daysInMonth = useMemo(() => {
-    const monthIndex = MONTHS.indexOf(selectedMonth);
+    const monthIndex = BIRTH_MONTHS.findIndex((month) => month === selectedMonth);
     if (monthIndex === -1) return 31;
     const year = parseInt(selectedYear, 10) || 2000;
     return new Date(year, monthIndex + 1, 0).getDate();
   }, [selectedMonth, selectedYear]);
+
+  useEffect(() => {
+    if (Number(selectedDay) > daysInMonth) {
+      setValue('birthDay', '', { shouldValidate: true });
+    }
+  }, [selectedDay, daysInMonth, setValue]);
 
   const daysOptions = Array.from({ length: daysInMonth }, (_, i) => String(i + 1));
 
@@ -134,17 +131,74 @@ const BirthdayFields: React.FC<{ control: Control<RegisterFields> }> = ({ contro
       <Controller
         control={control}
         name="birthMonth"
-        render={({ field }) => <Select {...field} aria-label="Birth month" options={MONTHS} />}
+        render={({ field, fieldState: { error } }) => (
+          <div className="min-w-0">
+            <Select
+              {...field}
+              aria-label="Birth month"
+              aria-invalid={!!error}
+              aria-describedby={error ? `${birthdayId}-month-error` : undefined}
+              options={[{ value: '', label: 'Month' }, ...BIRTH_MONTHS]}
+            />
+            {error && (
+              <p
+                id={`${birthdayId}-month-error`}
+                role="alert"
+                className="mt-1.5 text-xs text-red-400"
+              >
+                {error.message}
+              </p>
+            )}
+          </div>
+        )}
       />
       <Controller
         control={control}
         name="birthDay"
-        render={({ field }) => <Select {...field} aria-label="Birth day" options={daysOptions} />}
+        render={({ field, fieldState: { error } }) => (
+          <div className="min-w-0">
+            <Select
+              {...field}
+              aria-label="Birth day"
+              aria-invalid={!!error}
+              aria-describedby={error ? `${birthdayId}-day-error` : undefined}
+              options={[{ value: '', label: 'Day' }, ...daysOptions]}
+            />
+            {error && (
+              <p
+                id={`${birthdayId}-day-error`}
+                role="alert"
+                className="mt-1.5 text-xs text-red-400"
+              >
+                {error.message}
+              </p>
+            )}
+          </div>
+        )}
       />
       <Controller
         control={control}
         name="birthYear"
-        render={({ field }) => <Select {...field} aria-label="Birth year" options={YEARS} />}
+        render={({ field, fieldState: { error } }) => (
+          <div className="min-w-0">
+            <Select
+              {...field}
+              aria-label="Birth year"
+              aria-invalid={!!error}
+              aria-describedby={error ? `${birthdayId}-year-error` : undefined}
+              options={[{ value: '', label: 'Year' }, ...YEARS]}
+            />
+            {error && (
+              <p
+                id={`${birthdayId}-year-error`}
+                role="alert"
+                className="mt-1.5 text-xs text-red-400"
+              >
+                {error.message}
+              </p>
+            )}
+          </div>
+        )}
       />
     </div>
   );
@@ -160,6 +214,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   redirectOnSuccess = true,
 }) => {
   const { registerMutation } = useAuthMutations();
+  const genderErrorId = useId();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -178,10 +233,10 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     mode: 'onChange',
     defaultValues: {
       username: '@',
-      birthMonth: 'January',
-      birthDay: '1',
-      birthYear: '2000',
-      gender: 'Male',
+      birthMonth: '',
+      birthDay: '',
+      birthYear: '',
+      gender: '',
       password: '',
       confirmPassword: '',
     },
@@ -200,9 +255,10 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
   const onSubmit = async (data: RegisterFields) => {
     if (isUsernameTaken) return;
+    if (data.gender !== 'Male' && data.gender !== 'Female' && data.gender !== 'Custom') return;
     setServerError(null);
 
-    const monthIndex = MONTHS.indexOf(data.birthMonth);
+    const monthIndex = BIRTH_MONTHS.findIndex((month) => month === data.birthMonth);
     const birthDate = new Date(
       parseInt(data.birthYear, 10),
       monthIndex >= 0 ? monthIndex : 0,
@@ -219,6 +275,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       displayName,
       password: data.password,
       birthDate,
+      gender: data.gender,
       turnstileToken,
     };
 
@@ -276,11 +333,15 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
   return (
     <form
+      noValidate
       onSubmit={handleSubmit(onSubmit)}
       className="flex flex-col gap-4 text-left w-full max-w-md mx-auto"
     >
       {serverError && (
-        <div className="p-3.5 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-2.5 text-xs text-neutral-300 animate-fadeIn">
+        <div
+          role="alert"
+          className="p-3.5 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-2.5 text-xs text-neutral-300 animate-fadeIn"
+        >
           <AlertCircle size={16} className="text-red-500 mt-0.5 shrink-0" />
           <div className="text-left leading-relaxed">{serverError}</div>
         </div>
@@ -299,7 +360,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           error={errors.firstName?.message}
         />
         <Input
-          label="ㅤ"
+          label="Last name"
           placeholder="Last name"
           autoComplete="family-name"
           autoCapitalize="words"
@@ -324,7 +385,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           </span>
           <InfoTooltip text="Providing your birthday helps make sure you get the right experience for your age." />
         </div>
-        <BirthdayFields control={control} />
+        <BirthdayFields control={control} setValue={setValue} />
       </div>
 
       <div className="flex flex-col gap-1.5">
@@ -337,8 +398,21 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         <Controller
           control={control}
           name="gender"
-          render={({ field }) => (
-            <Select {...field} aria-label="Gender" options={['Male', 'Female', 'Custom']} />
+          render={({ field, fieldState: { error } }) => (
+            <div>
+              <Select
+                {...field}
+                aria-label="Gender"
+                aria-invalid={!!error}
+                aria-describedby={error ? genderErrorId : undefined}
+                options={[{ value: '', label: 'Select gender' }, 'Male', 'Female', 'Custom']}
+              />
+              {error && (
+                <p id={genderErrorId} role="alert" className="mt-1.5 text-xs text-red-400">
+                  {error.message}
+                </p>
+              )}
+            </div>
           )}
         />
       </div>
@@ -367,7 +441,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
             onClick={() => setShowPassword(!showPassword)}
             aria-label={showPassword ? 'Hide password' : 'Show password'}
             aria-pressed={showPassword}
-            className="text-neutral-500 hover:text-neutral-300 transition-colors focus:outline-none flex items-center justify-center"
+            className="text-neutral-500 hover:text-neutral-300 transition-colors focus-visible:outline-2 focus-visible:outline-purple-400 flex items-center justify-center"
           >
             {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
           </button>
@@ -389,7 +463,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
             aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
             aria-pressed={showConfirmPassword}
-            className="text-neutral-500 hover:text-neutral-300 transition-colors flex items-center justify-center"
+            className="text-neutral-500 hover:text-neutral-300 transition-colors focus-visible:outline-2 focus-visible:outline-purple-400 flex items-center justify-center"
           >
             {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
           </button>

@@ -3,12 +3,13 @@ import { StyleSheet, View } from 'react-native';
 import { Video } from './MediaGallery';
 import { storyVideoFilter } from './StoryCanvas';
 import type { StoryVideoProps } from './storyVideoTypes';
+import { tr } from '@/shared/lib/i18n';
 export function StoryVideo({
   uri,
   active,
   volume = 1,
   filter,
-  label = 'Story video',
+  label = tr('Story video'),
 }: StoryVideoProps) {
   return (
     <View style={[StyleSheet.absoluteFill, { filter: storyVideoFilter(filter) }]}>

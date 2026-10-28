@@ -33,6 +33,32 @@ describe('NewGroupModal', () => {
     expect(screen.getByRole('button', { name: /create/i })).toBeDisabled();
   });
 
+  it('closes with Escape while searching and exposes a named dialog', async () => {
+    const onClose = vi.fn();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <NewGroupModal onClose={onClose} onCreated={vi.fn()} />
+      </QueryClientProvider>,
+    );
+    expect(screen.getByRole('dialog', { name: 'New group chat' })).toBeInTheDocument();
+    const input = screen.getByRole('textbox', { name: 'Search by username' });
+    fireEvent.keyDown(input, { key: 'Escape' });
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
+  });
+
+  it('clears the people search and returns focus to the field', () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <NewGroupModal onClose={vi.fn()} onCreated={vi.fn()} />
+      </QueryClientProvider>,
+    );
+    const input = screen.getByRole('textbox', { name: 'Search by username' });
+    fireEvent.change(input, { target: { value: 'bob' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Clear people search' }));
+    expect(input).toHaveValue('');
+    expect(input).toHaveFocus();
+  });
+
   it('searches users, selects user chips, and triggers group creation', async () => {
     const { userSearchApi } = await import('@/entities/user/api/userSearchApi');
     const { chatApi } = await import('../../api/chatApi');
@@ -72,5 +98,38 @@ describe('NewGroupModal', () => {
     fireEvent.click(createBtn);
     await waitFor(() => expect(onCreated).toHaveBeenCalledWith('conv-new-group'));
     expect(chatApi.createGroupConversation).toHaveBeenCalledWith('bob', ['usr-1']);
+  });
+
+  it('accepts more than ten members and keeps a long generated name within the API contract', async () => {
+    const { userSearchApi } = await import('@/entities/user/api/userSearchApi');
+    const { chatApi } = await import('../../api/chatApi');
+    const people = Array.from({ length: 11 }, (_, index) => ({
+      id: `usr-${index}`,
+      username: `participant_${index}_with_long_name`,
+      displayName: `Person ${index}`,
+      avatar: null,
+    }));
+    vi.mocked(userSearchApi.search).mockReset().mockResolvedValue(people);
+    vi.mocked(chatApi.createGroupConversation).mockReset().mockRejectedValue(new Error('Offline'));
+    render(
+      <QueryClientProvider client={queryClient}>
+        <NewGroupModal onClose={vi.fn()} onCreated={vi.fn()} />
+      </QueryClientProvider>,
+    );
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search by username' }), {
+      target: { value: 'participant' },
+    });
+    await screen.findByText('@participant_0_with_long_name');
+    people.forEach((person) => fireEvent.click(screen.getByText(`@${person.username}`)));
+    expect(screen.getByText('11/100 selected')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Create group (12)' }));
+    await waitFor(() =>
+      expect(chatApi.createGroupConversation).toHaveBeenCalledWith(
+        'New group',
+        people.map((person) => person.id),
+      ),
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent('Your selection is saved');
+    expect(screen.getByText('11/100 selected')).toBeInTheDocument();
   });
 });

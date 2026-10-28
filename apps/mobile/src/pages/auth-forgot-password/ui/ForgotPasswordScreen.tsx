@@ -20,6 +20,7 @@ import { Button, Input, PasswordInput, Alert, GlassCard, AuthFooter } from '@/sh
 import { haptics, useScreenSecurity, getClipboardEmail } from '@/shared/lib';
 import { ChevronLeft, MailCheck, KeyRound } from 'lucide-react-native';
 import axios from 'axios';
+import { tr, trKnown } from '@/shared/lib/i18n';
 
 export interface ForgotPasswordScreenProps {
   onNavigateLogin: () => void;
@@ -91,7 +92,7 @@ export function ForgotPasswordScreen({
       return;
     }
     if (newPassword !== confirmPassword) {
-      setResetFormError('Passwords do not match');
+      setResetFormError(tr('Passwords do not match'));
       haptics.error();
       return;
     }
@@ -112,7 +113,7 @@ export function ForgotPasswordScreen({
       haptics.error();
       if (axios.isAxiosError(err)) {
         setResetFormError(
-          err.response?.data?.message || 'Failed to reset password. The link may have expired.',
+          err.response?.data?.message || tr('Failed to reset password. The link may have expired.'),
         );
       } else {
         setResetFormError('A connection error occurred. Please try again.');
@@ -152,7 +153,7 @@ export function ForgotPasswordScreen({
         setErrorMessage(
           typeof msg === 'string'
             ? msg
-            : 'Could not send reset instructions. Please check the email entered.',
+            : tr('Could not send reset instructions. Please check the email entered.'),
         );
       } else {
         setErrorMessage('Failed to connect to the server. Please check your internet connection.');
@@ -189,8 +190,8 @@ export function ForgotPasswordScreen({
             <View style={styles.topBar}>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Go back to Login screen"
-                accessibilityHint="Returns to sign in page"
+                accessibilityLabel={tr('Go back to Login screen')}
+                accessibilityHint={tr('Returns to sign in page')}
                 onPress={onNavigateLogin}
                 disabled={isPending}
                 style={styles.backCircleBtn}
@@ -214,9 +215,9 @@ export function ForgotPasswordScreen({
                 /* Deep Link Reset Password Flow */
                 <View>
                   <View style={styles.header} accessibilityRole="header">
-                    <Text style={styles.title}>Set new password</Text>
+                    <Text style={styles.title}>{tr('Set new password')}</Text>
                     <Text style={styles.subtitle}>
-                      Enter a new secure password for your account.
+                      {tr('Enter a new secure password for your account.')}
                     </Text>
                   </View>
 
@@ -228,7 +229,7 @@ export function ForgotPasswordScreen({
 
                   {resetCompleted && (
                     <Alert variant="success">
-                      Password updated successfully! Redirecting to login...
+                      {tr('Password updated successfully! Redirecting to login...')}
                     </Alert>
                   )}
 
@@ -236,8 +237,8 @@ export function ForgotPasswordScreen({
                     <>
                       <PasswordInput
                         ref={newPasswordRef}
-                        label="New Password"
-                        placeholder="At least 8 characters"
+                        label={tr('New Password')}
+                        placeholder={tr('At least 8 characters')}
                         autoComplete="new-password"
                         textContentType="newPassword"
                         returnKeyType="next"
@@ -249,8 +250,8 @@ export function ForgotPasswordScreen({
 
                       <PasswordInput
                         ref={confirmPasswordRef}
-                        label="Confirm New Password"
-                        placeholder="Repeat new password"
+                        label={tr('Confirm New Password')}
+                        placeholder={tr('Repeat new password')}
                         autoComplete="new-password"
                         textContentType="newPassword"
                         returnKeyType="done"
@@ -261,23 +262,23 @@ export function ForgotPasswordScreen({
                       />
 
                       <Button
-                        title="Update Password"
+                        title={tr('Update Password')}
                         variant="primary"
                         size="lg"
                         loading={isPending}
-                        accessibilityLabel="Update Password"
-                        accessibilityHint="Saves your new password"
+                        accessibilityLabel={tr('Update Password')}
+                        accessibilityHint={tr('Saves your new password')}
                         onPress={handleResetPassword}
                         style={styles.submitBtn}
                       />
 
                       <Button
-                        title="Back to Sign In"
+                        title={tr('Back to Sign In')}
                         variant="secondary"
                         size="lg"
                         disabled={isPending}
-                        accessibilityLabel="Back to Sign In"
-                        accessibilityHint="Returns to the login page"
+                        accessibilityLabel={tr('Back to Sign In')}
+                        accessibilityHint={tr('Returns to the login page')}
                         onPress={onNavigateLogin}
                         style={styles.secondaryBtn}
                       />
@@ -295,7 +296,7 @@ export function ForgotPasswordScreen({
                     <MailCheck size={32} color="#c084fc" />
                   </View>
 
-                  <Text style={styles.successTitle}>Check Your Email</Text>
+                  <Text style={styles.successTitle}>{tr('Check Your Email')}</Text>
                   <Text style={styles.successMessage}>
                     We have sent password recovery instructions to{' '}
                     <Text style={styles.highlightedEmail}>{submittedEmail}</Text>.
@@ -303,25 +304,31 @@ export function ForgotPasswordScreen({
 
                   <View style={styles.successActions}>
                     <Button
-                      title={cooldown > 0 ? `Resend email (${cooldown}s)` : 'Resend Email'}
+                      title={
+                        cooldown > 0
+                          ? tr('Resend email ({count}s)', { count: cooldown })
+                          : tr('Resend Email')
+                      }
                       variant="secondary"
                       size="lg"
                       disabled={cooldown > 0 || isPending}
                       loading={isPending}
                       accessibilityLabel={
-                        cooldown > 0 ? `Resend email in ${cooldown} seconds` : 'Resend Email'
+                        cooldown > 0
+                          ? tr('Resend email in {count} seconds', { count: cooldown })
+                          : tr('Resend Email')
                       }
-                      accessibilityHint="Sends another password reset link to your email"
+                      accessibilityHint={tr('Sends another password reset link to your email')}
                       onPress={handleResend}
                       style={styles.actionBtn}
                     />
 
                     <Button
-                      title="Return to Login"
+                      title={tr('Return to Login')}
                       variant="primary"
                       size="lg"
-                      accessibilityLabel="Return to Login"
-                      accessibilityHint="Returns to the sign in screen"
+                      accessibilityLabel={tr('Return to Login')}
+                      accessibilityHint={tr('Returns to the sign in screen')}
                       onPress={onNavigateLogin}
                       style={styles.actionBtn}
                     />
@@ -331,8 +338,10 @@ export function ForgotPasswordScreen({
                 /* Form State */
                 <View>
                   <View style={styles.header} accessibilityRole="header">
-                    <Text style={styles.title}>Find your account</Text>
-                    <Text style={styles.subtitle}>Enter your mobile number or email address.</Text>
+                    <Text style={styles.title}>{tr('Find your account')}</Text>
+                    <Text style={styles.subtitle}>
+                      {tr('Enter your mobile number or email address.')}
+                    </Text>
                   </View>
 
                   {errorMessage && (
@@ -347,7 +356,7 @@ export function ForgotPasswordScreen({
                     render={({ field: { onChange, onBlur, value } }) => (
                       <Input
                         ref={emailRef}
-                        placeholder="Email address or phone number"
+                        placeholder={tr('Email address or phone number')}
                         keyboardType="email-address"
                         autoCapitalize="none"
                         autoCorrect={false}
@@ -359,8 +368,8 @@ export function ForgotPasswordScreen({
                         onChangeText={onChange}
                         onBlur={onBlur}
                         editable={!isPending}
-                        error={errors.email?.message}
-                        hint="We will send a one-time reset code to this address"
+                        error={trKnown(errors.email?.message)}
+                        hint={tr('We will send a one-time reset code to this address')}
                         showClearButton={Boolean(value)}
                         onClear={() => setValue('email', '', { shouldValidate: true })}
                         pasteSuggestion={clipboardEmail}
@@ -376,23 +385,23 @@ export function ForgotPasswordScreen({
                   />
 
                   <Button
-                    title="Send Recovery Instructions"
+                    title={tr('Send Recovery Instructions')}
                     variant="primary"
                     size="lg"
                     loading={isPending}
-                    accessibilityLabel="Send Recovery Instructions"
-                    accessibilityHint="Submits email to receive password reset instructions"
+                    accessibilityLabel={tr('Send Recovery Instructions')}
+                    accessibilityHint={tr('Submits email to receive password reset instructions')}
                     onPress={handleSubmit(onSubmit, onValidationError)}
                     style={styles.submitBtn}
                   />
 
                   <Button
-                    title="Back to Sign In"
+                    title={tr('Back to Sign In')}
                     variant="secondary"
                     size="lg"
                     disabled={isPending}
-                    accessibilityLabel="Back to Sign In"
-                    accessibilityHint="Returns to the login page"
+                    accessibilityLabel={tr('Back to Sign In')}
+                    accessibilityHint={tr('Returns to the login page')}
                     onPress={onNavigateLogin}
                     style={styles.secondaryBtn}
                   />

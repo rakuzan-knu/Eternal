@@ -6,6 +6,28 @@ import { Select } from '../Select';
 const OPTIONS = ['Alpha', 'Beta', 'Gamma'];
 
 describe('Select', () => {
+  it('associates inline validation with its interactive combobox and clears it after correction', () => {
+    const { rerender } = render(
+      <>
+        <Select
+          aria-label="Birthday"
+          value=""
+          options={OPTIONS}
+          onChange={vi.fn()}
+          aria-invalid
+          aria-describedby="birthday-error"
+        />
+        <p id="birthday-error">Select a birthday</p>
+      </>,
+    );
+    const control = screen.getByRole('combobox', { name: 'Birthday' });
+    expect(control).toHaveAttribute('aria-invalid', 'true');
+    expect(control).toHaveAccessibleDescription('Select a birthday');
+    rerender(<Select aria-label="Birthday" value="Alpha" options={OPTIONS} onChange={vi.fn()} />);
+    expect(control).not.toHaveAttribute('aria-invalid');
+    expect(control).not.toHaveAttribute('aria-describedby');
+  });
+
   it('preserves rich option labels while committing their values from the keyboard', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();

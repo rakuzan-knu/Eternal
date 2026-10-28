@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import type { Prisma, User } from '@prisma/client';
 import { PrismaService } from '@common/prisma';
@@ -31,6 +31,7 @@ export class UsersRepository implements IUsersRepository {
         passwordHash: dto.passwordHash,
         displayName: dto.displayName ?? null,
         birthDate: dto.birthDate ?? null,
+        gender: dto.gender ?? null,
       },
     });
   }
@@ -64,6 +65,11 @@ export class UsersRepository implements IUsersRepository {
 
   async deleteUser(id: string): Promise<void> {
     await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      if (await tx.community.count({ where: { ownerId: id } })) {
+        throw new ConflictException(
+          'Transfer ownership of your communities before deleting your account.',
+        );
+      }
       await tx.post.deleteMany({ where: { authorId: id } });
       await tx.follow.deleteMany({
         where: {

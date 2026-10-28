@@ -1,14 +1,36 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import App from '../App';
 import { useAuthStore } from '@/shared/model/useAuthStore';
 import { renderWithProviders } from '@/test/renderWithProviders';
 
+vi.mock('@/widgets/sidebar/ui/Sidebar', () => ({
+  default: () => <nav aria-label="Application sidebar" />,
+}));
+
 describe('Public Pages Routing Integration', () => {
   beforeEach(() => {
     useAuthStore.setState({ isAuthenticated: false, userId: null });
   });
+
+  it.each([false, true])(
+    'renders /creators without the application sidebar (authenticated: %s)',
+    async (isAuthenticated) => {
+      useAuthStore.setState({ isAuthenticated, userId: isAuthenticated ? 'user-123' : null });
+      renderWithProviders(<App />, { initialEntries: ['/creators'] });
+
+      const heading = await screen.findByRole('heading', { level: 1, name: /WELCOME CREATORS/i });
+      expect(heading).toBeInTheDocument();
+      expect(
+        screen.queryByRole('navigation', { name: 'Application sidebar' }),
+      ).not.toBeInTheDocument();
+      if (isAuthenticated) {
+        expect(heading.closest('main')).not.toHaveClass('pl-24');
+        expect(heading.closest('main')).not.toHaveClass('pl-72');
+      }
+    },
+  );
 
   it('is publicly accessible directly via /blog without requiring login', async () => {
     renderWithProviders(<App />, { initialEntries: ['/blog'] });
@@ -95,7 +117,7 @@ describe('Public Pages Routing Integration', () => {
         expect(
           screen.getByRole('heading', {
             level: 1,
-            name: /DOWNLOAD ETERNAL WHEREVER YOU HANG OUT/i,
+            name: /ETERNAL IN YOUR BROWSER/i,
           }),
         ).toBeInTheDocument();
       },

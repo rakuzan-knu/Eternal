@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, TextInput, View, Pressable } from 'react-
 import Slider from '@react-native-community/slider';
 import { Check, X } from 'lucide-react-native';
 import { colors, common, IconButton } from './primitives';
+import { tr } from '@/shared/lib/i18n';
 
 export function StoryToolPanel({
   title,
@@ -20,14 +21,18 @@ export function StoryToolPanel({
   return (
     <View style={s.panel} accessibilityViewIsModal testID="story-tool-panel">
       <View style={s.header}>
-        <IconButton label={`Cancel ${title}`} onPress={onClose}>
+        <IconButton label={tr('Cancel {name}', { name: title })} onPress={onClose}>
           <X size={21} color="white" />
         </IconButton>
         <Text accessibilityRole="header" style={common.title}>
           {title}
         </Text>
         {onSave ? (
-          <IconButton label={`Save ${title}`} disabled={saveDisabled} onPress={onSave}>
+          <IconButton
+            label={tr('Save {name}', { name: title })}
+            disabled={saveDisabled}
+            onPress={onSave}
+          >
             <Check size={22} color={colors.green} />
           </IconButton>
         ) : (
@@ -155,7 +160,7 @@ export function StoryColorPicker({
         ))}
       </ScrollView>
       <StoryField
-        label={`Custom ${label.toLowerCase()} (hex)`}
+        label={tr('Custom {name} (hex)', { name: label.toLowerCase() })}
         value={hex}
         onChange={(next) => {
           setHex(next);

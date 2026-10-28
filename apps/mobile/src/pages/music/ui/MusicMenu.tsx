@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Check, X } from 'lucide-react-native';
 import { colors, IconButton } from '../../feed/ui/primitives';
 import { m } from './primitives';
+import { tr } from '@/shared/lib/i18n';
 
 export interface MusicMenuItem {
   label: string;
@@ -38,7 +39,7 @@ export function MusicMenu({
             <Text accessibilityRole="header" style={[m.heading, m.flex]}>
               {title}
             </Text>
-            <IconButton label={`Close ${title}`} onPress={onClose}>
+            <IconButton label={tr('Close {name}', { name: title })} onPress={onClose}>
               <X size={22} color={colors.text} />
             </IconButton>
           </View>

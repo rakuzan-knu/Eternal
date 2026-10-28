@@ -1,7 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React from 'react';
 import {
-  Apple,
-  ChevronDown,
   Search,
   Plus,
   Phone,
@@ -19,7 +17,6 @@ import {
   Bell,
   PlusSquare,
 } from 'lucide-react';
-import { triggerInstallerDownload } from '../data/downloadData';
 
 export const DownloadDesktopSection: React.FC<{
   heading: string;
@@ -27,33 +24,13 @@ export const DownloadDesktopSection: React.FC<{
   macosLabel: string;
   windowsLabel: string;
   linuxLabel: string;
-  onDownloadNotice?: (pkg: string) => void;
-}> = ({ heading, subtitle, macosLabel, windowsLabel, linuxLabel, onDownloadNotice }) => {
-  const [openDropdown, setOpenDropdown] = useState<'windows' | 'linux' | null>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // Close dropdown on click outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setOpenDropdown(null);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleDownload = (pkgName: string) => {
-    triggerInstallerDownload(pkgName);
-    if (onDownloadNotice) onDownloadNotice(pkgName);
-    setOpenDropdown(null);
-  };
-
+  unavailableLabel: string;
+}> = ({ heading, subtitle, macosLabel, windowsLabel, linuxLabel, unavailableLabel }) => {
   return (
     <section className="py-24 px-6 lg:px-12 max-w-7xl mx-auto w-full relative z-10 select-text">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
         {/* Left Column: Heading, Subtitle & 3 OS Dropdown Buttons */}
-        <div className="lg:col-span-5 flex flex-col gap-8 text-left" ref={dropdownRef}>
+        <div className="lg:col-span-5 flex flex-col gap-8 text-left">
           <div className="flex flex-col gap-4">
             <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight uppercase leading-tight">
               {heading}
@@ -63,124 +40,22 @@ export const DownloadDesktopSection: React.FC<{
             </p>
           </div>
 
-          {/* 3 OS Selection Buttons */}
-          <div className="flex flex-wrap items-center gap-3.5 relative z-20">
-            {/* 1. macOS Button */}
-            <button
-              type="button"
-              onClick={() => handleDownload('eternal-macos-universal.dmg')}
-              className="px-6 py-3.5 rounded-full bg-white hover:bg-neutral-100 text-black text-xs font-black tracking-wide shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
-            >
-              <Apple size={16} className="fill-black" />
-              <span>{macosLabel}</span>
-            </button>
-
-            {/* 2. Windows Button with Dropdown (x64 / ARM64) */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setOpenDropdown((curr) => (curr === 'windows' ? null : 'windows'))}
-                className="px-6 py-3.5 rounded-full bg-white hover:bg-neutral-100 text-black text-xs font-black tracking-wide shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
-              >
-                {/* Windows 4-Square SVG Icon */}
-                <svg className="w-3.5 h-3.5 fill-black" viewBox="0 0 24 24">
-                  <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.551H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.951-1.8" />
-                </svg>
-                <span>{windowsLabel}</span>
-                <ChevronDown
-                  size={14}
-                  className={`transition-transform duration-200 ${
-                    openDropdown === 'windows' ? 'rotate-180' : ''
-                  }`}
-                />
-              </button>
-
-              {/* Windows Dropdown (x64 / ARM64) */}
-              {openDropdown === 'windows' && (
-                <div className="absolute top-full left-0 mt-2 w-48 rounded-2xl bg-white text-black shadow-2xl p-2 border border-black/10 flex flex-col gap-1 z-30 animate-fadeIn font-bold text-xs">
-                  <button
-                    type="button"
-                    onClick={() => handleDownload('eternal-setup-x64.exe')}
-                    className="w-full px-3.5 py-2.5 rounded-xl hover:bg-neutral-100 text-left flex items-center justify-between transition-colors cursor-pointer"
-                  >
-                    <span>x64</span>
-                    <span className="text-[10px] text-neutral-500 font-mono">64-bit Installer</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDownload('eternal-setup-arm64.exe')}
-                    className="w-full px-3.5 py-2.5 rounded-xl hover:bg-neutral-100 text-left flex items-center justify-between transition-colors cursor-pointer"
-                  >
-                    <span>ARM64</span>
-                    <span className="text-[10px] text-neutral-500 font-mono">ARM Edition</span>
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* 3. Linux Button with Dropdown (deb, tar.gz, rpm, pkg.tar.zst) */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setOpenDropdown((curr) => (curr === 'linux' ? null : 'linux'))}
-                className="px-6 py-3.5 rounded-full bg-white hover:bg-neutral-100 text-black text-xs font-black tracking-wide shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
-              >
-                {/* Linux Penguin Icon */}
-                <svg className="w-3.5 h-3.5 fill-black" viewBox="0 0 24 24">
-                  <path d="M12 0C8.686 0 6 2.686 6 6c0 1.15.32 2.227.875 3.146C5.748 10.237 5 11.776 5 13.5c0 2.485 1.515 4.5 3.5 4.5.31 0 .612-.05.902-.137C10.02 18.57 10.98 19 12 19s1.98-.43 2.598-1.137c.29.087.592.137.902.137 1.985 0 3.5-2.015 3.5-4.5 0-1.724-.748-3.263-1.875-4.354C17.68 8.227 18 7.15 18 6c0-3.314-2.686-6-6-6z" />
-                </svg>
-                <span>{linuxLabel}</span>
-                <ChevronDown
-                  size={14}
-                  className={`transition-transform duration-200 ${
-                    openDropdown === 'linux' ? 'rotate-180' : ''
-                  }`}
-                />
-              </button>
-
-              {/* Linux Dropdown (deb, tar.gz, rpm, pkg.tar.zst) */}
-              {openDropdown === 'linux' && (
-                <div className="absolute top-full left-0 mt-2 w-52 rounded-2xl bg-white text-black shadow-2xl p-2 border border-black/10 flex flex-col gap-1 z-30 animate-fadeIn font-bold text-xs">
-                  <button
-                    type="button"
-                    onClick={() => handleDownload('eternal_amd64.deb')}
-                    className="w-full px-3.5 py-2 rounded-xl hover:bg-neutral-100 text-left flex items-center justify-between transition-colors cursor-pointer"
-                  >
-                    <span>deb</span>
-                    <span className="text-[10px] text-neutral-500 font-mono">Ubuntu / Debian</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDownload('eternal-linux-x64.tar.gz')}
-                    className="w-full px-3.5 py-2 rounded-xl hover:bg-neutral-100 text-left flex items-center justify-between transition-colors cursor-pointer"
-                  >
-                    <span>tar.gz</span>
-                    <span className="text-[10px] text-neutral-500 font-mono">Generic Linux</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDownload('eternal.x86_64.rpm')}
-                    className="w-full px-3.5 py-2 rounded-xl hover:bg-neutral-100 text-left flex items-center justify-between transition-colors cursor-pointer"
-                  >
-                    <span>rpm</span>
-                    <span className="text-[10px] text-neutral-500 font-mono">Fedora / RedHat</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDownload('eternal-x86_64.pkg.tar.zst')}
-                    className="w-full px-3.5 py-2 rounded-xl hover:bg-neutral-100 text-left flex items-center justify-between transition-colors cursor-pointer"
-                  >
-                    <span>pkg.tar.zst</span>
-                    <span className="text-[10px] text-neutral-500 font-mono">Arch / Manjaro</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
+          <ul className="flex flex-wrap items-center gap-3.5">
+            {[macosLabel, windowsLabel, linuxLabel].map((label) => (
+              <li key={label} className="rounded-2xl border border-white/15 px-5 py-3">
+                <span className="block text-sm font-semibold text-white">{label}</span>
+                <span className="text-sm text-neutral-300">{unavailableLabel}</span>
+              </li>
+            ))}
+          </ul>
         </div>
 
         {/* Right Column: Tall Mint Green Rounded Card with 1:1 Eternal Messenger Desktop Mockup */}
-        <div className="lg:col-span-7 rounded-[44px] bg-gradient-to-br from-[#38f2a5] via-[#20d885] to-[#10b981] p-4 sm:p-7 lg:p-9 shadow-[0_30px_90px_rgba(32,216,133,0.35)] relative overflow-hidden select-none">
+        <div
+          aria-hidden="true"
+          inert
+          className="lg:col-span-7 rounded-[44px] bg-gradient-to-br from-[#38f2a5] via-[#20d885] to-[#10b981] p-4 sm:p-7 lg:p-9 shadow-[0_30px_90px_rgba(32,216,133,0.35)] relative overflow-hidden select-none"
+        >
           {/* Internal Desktop Window Mockup with Full Messenger UI */}
           <div className="rounded-[28px] bg-[#09090b] border border-white/[0.12] shadow-2xl overflow-hidden flex flex-col h-[560px] sm:h-[620px]">
             {/* Top Mac Window Bar */}
@@ -268,7 +143,6 @@ export const DownloadDesktopSection: React.FC<{
 
                 {/* Conversations List */}
                 <div
-                  tabIndex={0}
                   role="region"
                   aria-label="Conversation preview"
                   className="flex flex-col gap-1 overflow-y-auto pr-0.5"
@@ -376,7 +250,6 @@ export const DownloadDesktopSection: React.FC<{
 
                 {/* Message Stream */}
                 <div
-                  tabIndex={0}
                   role="region"
                   aria-label="Message preview"
                   className="flex flex-col gap-3 py-3 overflow-y-auto"

@@ -12,7 +12,6 @@ import { RedisService } from '../../redis/redis.service';
 import { QueueService } from '../../queue/queue.service';
 import { SearchJobType, MessageJobType, NotificationJobType } from '../../queue/queue.constants';
 import { MessengerGateway } from '../../messenger/gateway/messenger.gateway';
-import { WS_EVENTS } from '../../messenger/events/ws-events';
 import { TraceContext } from '../tracing/trace-context';
 import {
   OUTBOX_REPOSITORY,
@@ -170,6 +169,23 @@ export class OutboxPublisherService implements OnModuleInit, OnModuleDestroy {
 
     // 2. Dispatch to external queues / brokers based on event type
     switch (event.eventType) {
+      case OUTBOX_EVENT_TYPES.COMMUNITY_CHANGED: {
+        if (!this.gateway) throw new Error('Community event gateway unavailable');
+        const communityId = typeof payload.communityId === 'string' ? payload.communityId : null;
+        const strings = (value: unknown): string[] =>
+          Array.isArray(value)
+            ? [...new Set(value.filter((entry): entry is string => typeof entry === 'string'))]
+            : [];
+        if (!communityId) throw new Error('Invalid community event');
+        await this.gateway.emitCommunityChanged(
+          communityId,
+          strings(payload.recipientIds),
+          strings(payload.removedUserIds),
+          strings(payload.conversationIds),
+          event.id,
+        );
+        break;
+      }
       case OUTBOX_EVENT_TYPES.POST_CREATED: {
         if (this.queueService) {
           const postId = typeof payload.postId === 'string' ? payload.postId : undefined;
@@ -203,13 +219,16 @@ export class OutboxPublisherService implements OnModuleInit, OnModuleDestroy {
           });
         }
 
-        if (this.gateway && payload.recipientIds && Array.isArray(payload.recipientIds)) {
-          for (const recipientId of payload.recipientIds as string[]) {
-            this.gateway.emitToUser(recipientId, WS_EVENTS.NEW_MESSAGE, {
-              conversationId: payload.conversationId,
-              message: payload.messageView,
-            });
-          }
+        if (
+          this.gateway &&
+          typeof payload.conversationId === 'string' &&
+          Array.isArray(payload.recipientIds)
+        ) {
+          await this.gateway.emitNewMessageToParticipants(
+            payload.conversationId,
+            payload.recipientIds.filter((value): value is string => typeof value === 'string'),
+            payload.messageView,
+          );
         }
         break;
       }

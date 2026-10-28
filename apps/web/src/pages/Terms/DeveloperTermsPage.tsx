@@ -15,7 +15,7 @@ import {
   FileText,
 } from 'lucide-react';
 import { useLanguageStore } from '../../shared/lib/language/languageStore';
-import { DEVELOPER_TERMS_DATA } from './data/developerTermsData';
+import { DEVELOPER_TERMS_DATA } from '@social-network/shared-content';
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   Code: <Code className="w-4 h-4" />,

@@ -4,7 +4,7 @@ import { useLanguageStore } from '../../shared/lib/language/languageStore';
 import { PrivacyNavbar } from '../Privacy/ui/PrivacyNavbar';
 import { EternalFooter } from '@/widgets/footer';
 import { SEOHead } from '../../shared/seo';
-import { PRIVACY_HUB_DATA } from './data/privacyHubData';
+import { PRIVACY_HUB_DATA } from '@social-network/shared-content';
 import {
   PrivacyHeroSunglassesIllustration,
   PrivacyHeroShieldIllustration,

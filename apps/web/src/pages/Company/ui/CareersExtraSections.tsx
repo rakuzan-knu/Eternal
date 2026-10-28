@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Minus, Layers, Award, Sparkles, Clock, Compass, Heart } from 'lucide-react';
-import { EarlyTeamPerk, FunClub, FAQItem } from '../data/careersData';
+import { EarlyTeamPerk, FunClub, FAQItem } from '@social-network/shared-content';
 
 /**
  * 3D Icon Badges for Experience Life at Eternal Section

@@ -6,6 +6,7 @@ import { AuthFooter } from '../../shared/ui/AuthFooter';
 import { FindAccount } from '../../features/auth/ui/FindAccount';
 import { ResetMethod } from '../../features/auth/ui/ResetMethod';
 import { FoundUserResponse } from '../../features/auth/model/types';
+import { SEOHead } from '@/shared/seo';
 
 export const ForgotPasswordPage: React.FC = () => {
   const navigate = useNavigate();
@@ -14,6 +15,7 @@ export const ForgotPasswordPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-between px-6 py-8 text-neutral-200 font-sans">
+      <SEOHead title="Recover your account" canonical="/forgot-password" noindex />
       <div className="flex-1 flex items-center justify-center w-full z-10 mt-6">
         <div className="w-full max-w-[460px] flex flex-col gap-4 animate-fadeIn">
           <div className="flex items-center gap-3 pl-1">

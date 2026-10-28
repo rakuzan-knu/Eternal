@@ -23,6 +23,7 @@ import {
 export type ClusterPosition = 'single' | 'first' | 'middle' | 'last';
 
 interface MessageListProps {
+  readOnly?: boolean;
   messages: MessageView[];
   currentUserId: string | null;
   otherParticipantId: string | null;
@@ -215,6 +216,7 @@ function buildRows(messages: MessageView[]): Row[] {
 }
 
 export default function MessageList({
+  readOnly = false,
   messages,
   currentUserId,
   otherParticipantId,
@@ -789,6 +791,7 @@ export default function MessageList({
                       }`}
                     >
                       <MessageBubble
+                        readOnly={readOnly}
                         message={message}
                         isOwnMessage={isOwnMessage}
                         showAvatar={showAvatar}

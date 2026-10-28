@@ -80,6 +80,7 @@ export class AuthService {
           displayName: dto.displayName,
           passwordHash,
           birthDate: dto.birthDate ? new Date(dto.birthDate) : undefined,
+          gender: dto.gender,
         }),
       );
     } catch (error) {

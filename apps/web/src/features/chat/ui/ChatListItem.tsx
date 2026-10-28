@@ -1,4 +1,5 @@
 import { Nameplate } from '@/shared/ui/Nameplate';
+import { useLocale } from '@/shared/lib/language/locale';
 import React, { useEffect, useRef, useState } from 'react';
 import { MoreHorizontal, Pin, BellOff } from 'lucide-react';
 import Avatar from '../../../shared/ui/Avatar';
@@ -50,21 +51,26 @@ interface ChatListItemProps {
   onCreateFolder?: () => void;
 }
 
-function formatChatListTime(iso: string | Date) {
+function formatChatListTime(iso: string | Date, locale: string) {
   const date = new Date(iso);
   const diffMs = Date.now() - date.getTime();
   const diffMinutes = Math.max(0, Math.floor(diffMs / 60_000));
 
-  if (diffMinutes < 1) return 'now';
-  if (diffMinutes < 60) return `${diffMinutes}m`;
+  if (diffMinutes < 1)
+    return new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }).format(0, 'second');
+  const unit = (count: number, name: string) =>
+    new Intl.NumberFormat(locale, { style: 'unit', unit: name, unitDisplay: 'narrow' }).format(
+      count,
+    );
+  if (diffMinutes < 60) return unit(diffMinutes, 'minute');
 
   const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) return `${diffHours}h`;
+  if (diffHours < 24) return unit(diffHours, 'hour');
 
   const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 7) return `${diffDays}d`;
+  if (diffDays < 7) return unit(diffDays, 'day');
 
-  return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  return date.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
 }
 
 export default function ChatListItem({
@@ -79,6 +85,7 @@ export default function ChatListItem({
   onMarkReadLocally,
   onCreateFolder,
 }: ChatListItemProps) {
+  const locale = useLocale();
   const [isMenuOpen, setMenuOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
@@ -224,7 +231,7 @@ export default function ChatListItem({
           <div className="flex flex-col items-end gap-1">
             {conversation.lastMessage && (
               <span className="text-[12px] leading-none text-gray-500 whitespace-nowrap">
-                {formatChatListTime(conversation.lastMessage.createdAt)}
+                {formatChatListTime(conversation.lastMessage.createdAt, locale)}
               </span>
             )}
             {hasUnread && (

@@ -1,6 +1,6 @@
 import React, { useId, useState } from 'react';
 import { X, CheckCircle, MapPin, Sparkles, Send, Users, Shield, Code, Palette } from 'lucide-react';
-import { JobOpening, CareersTranslations } from '../data/careersData';
+import { JobOpening, CareersTranslations } from '@social-network/shared-content';
 import Modal from '@/shared/ui/Modal';
 
 interface JobDetailsModalProps {

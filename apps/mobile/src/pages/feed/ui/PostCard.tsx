@@ -33,6 +33,7 @@ import { Avatar, colors, common, ErrorNotice, IconButton, Sheet } from './primit
 import { MediaGallery } from './MediaGallery';
 import { CommentsSheet } from './CommentsSheet';
 import { shareLink } from './shareLink';
+import { plural, tr } from '@/shared/lib/i18n';
 
 function compactCount(count: number) {
   return count >= 1000 ? `${(count / 1000).toFixed(count >= 10000 ? 0 : 1)}K` : String(count);
@@ -152,10 +153,10 @@ export const PostCard = React.memo(function PostCard({
         accessibilityRole="button"
         accessibilityLabel={
           requested
-            ? 'Cancel follow request'
+            ? tr('Cancel follow request')
             : following
-              ? `Unfollow ${post.author}`
-              : `Follow ${post.author}`
+              ? tr('Unfollow {name}', { name: post.author })
+              : tr('Follow {name}', { name: post.author })
         }
         accessibilityState={{ disabled: followingBusy, busy: followingBusy }}
         disabled={followingBusy}
@@ -163,7 +164,13 @@ export const PostCard = React.memo(function PostCard({
         style={s.follow}
       >
         <Text style={s.followText}>
-          {followingBusy ? '...' : requested ? 'Requested' : following ? 'Following' : 'Follow'}
+          {followingBusy
+            ? '...'
+            : requested
+              ? tr('Requested')
+              : following
+                ? tr('Following|button')
+                : tr('Follow')}
         </Text>
       </Pressable>
     ) : null;
@@ -172,13 +179,13 @@ export const PostCard = React.memo(function PostCard({
       {post.isPinned && (
         <View style={common.row}>
           <Pin size={13} color={colors.purple} />
-          <Text style={s.pinned}>Pinned post</Text>
+          <Text style={s.pinned}>{tr('Pinned post')}</Text>
         </View>
       )}
       <View style={s.header}>
         <Pressable
           accessibilityRole="link"
-          accessibilityLabel={`Open ${post.author}'s profile`}
+          accessibilityLabel={tr('Open {name} profile', { name: post.author })}
           style={s.avatarLink}
           onPress={openProfile}
         >
@@ -186,7 +193,13 @@ export const PostCard = React.memo(function PostCard({
         </Pressable>
         <Pressable
           accessibilityRole="link"
-          accessibilityLabel={`${post.author}${post.isVerified ? ', verified account' : ''}, @${post.handle}`}
+          accessibilityLabel={[
+            post.author,
+            post.isVerified ? tr('verified account') : '',
+            `@${post.handle}`,
+          ]
+            .filter(Boolean)
+            .join(', ')}
           onPress={openProfile}
           style={[common.flex, s.authorLink]}
         >
@@ -204,7 +217,7 @@ export const PostCard = React.memo(function PostCard({
           </Text>
         </Pressable>
         {!compactHeader && followControl}
-        <IconButton label="Post options" onPress={() => setMenu(true)}>
+        <IconButton label={tr('Post options')} onPress={() => setMenu(true)}>
           <MoreHorizontal size={22} color={colors.muted} />
         </IconButton>
       </View>
@@ -223,7 +236,7 @@ export const PostCard = React.memo(function PostCard({
                 onPress={() => setExpanded((current) => !current)}
                 style={s.readMore}
               >
-                <Text style={s.accent}>{expanded ? 'Show less' : 'Read more'}</Text>
+                <Text style={s.accent}>{expanded ? tr('Show less') : tr('Read more')}</Text>
               </Pressable>
             )}
           </View>
@@ -242,7 +255,13 @@ export const PostCard = React.memo(function PostCard({
                   key={option.id}
                   disabled={!poll.isActive || vote.isPending}
                   accessibilityRole="button"
-                  accessibilityLabel={`${option.text}${results ? `, ${percentage}%` : ''}${selected ? ', your vote' : ''}`}
+                  accessibilityLabel={[
+                    option.text,
+                    results ? `${percentage}%` : '',
+                    selected ? tr('your vote') : '',
+                  ]
+                    .filter(Boolean)
+                    .join(', ')}
                   accessibilityState={{ selected, disabled: !poll.isActive || vote.isPending }}
                   onPress={() => vote.mutate(option.id)}
                   style={[s.option, selected && s.selectedOption]}
@@ -255,39 +274,39 @@ export const PostCard = React.memo(function PostCard({
               );
             })}
             <Text style={common.muted}>
-              {poll.totalVotes.toLocaleString()} votes ·{' '}
-              {poll.isActive ? 'Select an option to vote' : 'Poll closed'}
+              {plural(poll.totalVotes, { one: '{count} vote', other: '{count} votes' })} ·{' '}
+              {poll.isActive ? tr('Select an option to vote') : tr('Poll closed')}
             </Text>
             {vote.isPending && <ActivityIndicator color={colors.purple} />}
             {vote.isError && (
-              <ErrorNotice message="Your vote couldn't be saved. Please try again." />
+              <ErrorNotice message={tr("Your vote couldn't be saved. Please try again.")} />
             )}
           </View>
         )}
       </View>
       {follow.isError && (
-        <ErrorNotice message="Follow status could not be updated. Please try again." />
+        <ErrorNotice message={tr('Follow status could not be updated. Please try again.')} />
       )}
       {action.isError && (
         <ErrorNotice
-          message="This action couldn't be saved."
+          message={tr("This action couldn't be saved.")}
           onRetry={() => {
             if (action.variables) action.mutate(action.variables);
           }}
         />
       )}
       {shareError && (
-        <ErrorNotice message="The link couldn't be opened or shared. Please try again." />
+        <ErrorNotice message={tr("The link couldn't be opened or shared. Please try again.")} />
       )}
       {linkCopied && (
         <Text accessibilityLiveRegion="polite" aria-live="polite" style={s.accent}>
-          Link copied
+          {tr('Link copied')}
         </Text>
       )}
       <View style={s.actions}>
         <IconButton
           style={s.action}
-          label={`${post.isLiked ? 'Unlike' : 'Like'} post, ${post.likesCount} likes`}
+          label={`${post.isLiked ? tr('Unlike') : tr('Like')} post, ${post.likesCount} likes`}
           selected={post.isLiked}
           disabled={action.isPending}
           onPress={() => toggle('like', post.isLiked)}
@@ -301,7 +320,7 @@ export const PostCard = React.memo(function PostCard({
         </IconButton>
         <IconButton
           style={s.action}
-          label={`Comments, ${post.commentsCount}`}
+          label={tr('Comments, {count}', { count: post.commentsCount })}
           onPress={() => setComments(true)}
         >
           <MessageSquare size={16} color={colors.muted} />
@@ -309,7 +328,7 @@ export const PostCard = React.memo(function PostCard({
         </IconButton>
         <IconButton
           style={s.action}
-          label={`${post.isReposted ? 'Undo repost' : 'Repost'}, ${post.repostsCount} reposts`}
+          label={`${post.isReposted ? tr('Undo repost') : tr('Repost')}, ${post.repostsCount} reposts`}
           selected={post.isReposted}
           disabled={action.isPending}
           onPress={() => toggle('repost', post.isReposted)}
@@ -319,7 +338,7 @@ export const PostCard = React.memo(function PostCard({
         </IconButton>
         <IconButton
           style={s.action}
-          label="Share post"
+          label={tr('Share post')}
           disabled={shareBusy}
           onPress={() => {
             void sharePost();
@@ -329,7 +348,7 @@ export const PostCard = React.memo(function PostCard({
           <Text style={s.count}>{compactCount(post.sharesCount ?? 0)}</Text>
         </IconButton>
         <IconButton
-          label={post.isSaved ? 'Unsave post' : 'Save post'}
+          label={post.isSaved ? tr('Unsave post') : tr('Save post')}
           selected={post.isSaved}
           disabled={action.isPending}
           onPress={() => toggle('save', post.isSaved)}
@@ -342,15 +361,19 @@ export const PostCard = React.memo(function PostCard({
         </IconButton>
       </View>
       {action.isPending && (
-        <ActivityIndicator size="small" color={colors.purple} accessibilityLabel="Saving action" />
+        <ActivityIndicator
+          size="small"
+          color={colors.purple}
+          accessibilityLabel={tr('Saving action')}
+        />
       )}
       {comments && <CommentsSheet userId={userId} post={post} onClose={() => setComments(false)} />}
       {menu && (
-        <Sheet title="Post options" onClose={() => setMenu(false)}>
+        <Sheet title={tr('Post options')} onClose={() => setMenu(false)}>
           <ScrollView contentContainerStyle={s.menu}>
             <Button
               variant="secondary"
-              title={post.isSaved ? 'Remove from saved' : 'Save for later'}
+              title={post.isSaved ? tr('Remove from saved') : tr('Save for later')}
               leftIcon={<Bookmark size={18} color={colors.purple} />}
               disabled={action.isPending}
               onPress={() => {
@@ -360,7 +383,7 @@ export const PostCard = React.memo(function PostCard({
             />
             <Button
               variant="secondary"
-              title="Share post"
+              title={tr('Share post')}
               disabled={shareBusy}
               leftIcon={<Share2 size={18} color={colors.purple} />}
               onPress={() => {
@@ -370,7 +393,7 @@ export const PostCard = React.memo(function PostCard({
             />
             <Button
               variant="secondary"
-              title="Hide from this feed"
+              title={tr('Hide from this feed')}
               leftIcon={<EyeOff size={18} color={colors.muted} />}
               onPress={() => {
                 setMenu(false);
