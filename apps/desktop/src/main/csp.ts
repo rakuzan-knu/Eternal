@@ -1,7 +1,11 @@
 import { createHash } from 'node:crypto';
 
 export function createContentSecurityPolicy(html: string, development = false): string {
-  const hashes = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)]
+  const hashes = [
+    ...html.matchAll(
+      /<script(?=[\t\n\f\r />])(?:[^>"']|"[^"]*"|'[^']*')*>([\s\S]*?)<\/script(?=[\t\n\f\r />])(?:[^>"']|"[^"]*"|'[^']*')*>/gi,
+    ),
+  ]
     .filter((match) => match[1]?.trim())
     .map(
       (match) =>

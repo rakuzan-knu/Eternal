@@ -26,4 +26,14 @@ describe('Vercel route generation', () => {
       generateRouteTable({ rewrites: [{ source: '/v1', destination: 'http://api.test' }] }),
     ).toThrow('Unsupported rewrite');
   });
+
+  it('matches static dots literally and rejects regex or backslash injection', () => {
+    const route = new RegExp(compileRouteSource('/.well-known/eternal.v1-2'));
+    expect(route.test('/.well-known/eternal.v1-2')).toBe(true);
+    expect(route.test('/.well-known/eternal.v1-2/')).toBe(true);
+    expect(route.test('/xwell-known/eternalXv1-2')).toBe(false);
+    expect(route.test('/.well-known/eternal.v1-2/extra')).toBe(false);
+    for (const source of ['/v1\\.*', '/v1\\.api', '/v1/(admin)', '/v1/a|b', '/v1/a+b', '/v1/[ab]'])
+      expect(() => compileRouteSource(source)).toThrow('Unsupported rewrite');
+  });
 });

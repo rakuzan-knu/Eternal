@@ -78,6 +78,26 @@ describe('opt-in autostart', () => {
     );
   });
 
+  it.each([
+    ['\\', '\\'.repeat(4)],
+    ['"', '\\'.repeat(2) + '"'],
+    ['`', '\\'.repeat(2) + '`'],
+    ['$', '\\'.repeat(2) + '$'],
+    ['%', '%%'],
+    ['%f', '%%f'],
+    ['\\"', '\\'.repeat(4) + '\\'.repeat(2) + '"'],
+    [
+      '$HOME; --other "argument"',
+      '\\'.repeat(2) + '$HOME; --other ' + '\\'.repeat(2) + '"argument' + '\\'.repeat(2) + '"',
+    ],
+  ])('encodes %j for both desktop string and Exec quoting layers', (character, escaped) => {
+    const entry = createAutostartEntry(`/opt/Eternal ${character}.AppImage`);
+    expect(entry.split('\n').find((line) => line.startsWith('Exec='))).toBe(
+      `Exec="/opt/Eternal ${escaped}.AppImage"`,
+    );
+    expect(entry.split('\n').filter((line) => line.startsWith('Exec='))).toHaveLength(1);
+  });
+
   it('uses OS login items and reports a failed update', async () => {
     vi.spyOn(process, 'platform', 'get').mockReturnValue('win32');
     app.getLoginItemSettings.mockReturnValue({ openAtLogin: false });

@@ -14,7 +14,8 @@ export function compileRouteSource(source: string): string {
   for (const segment of segments) {
     if (/^:[a-zA-Z]\w*\*$/.test(segment)) pattern += '(?:/.*)?';
     else if (/^:[a-zA-Z]\w*$/.test(segment)) pattern += '/[^/]+';
-    else if (/^[\w.-]+$/.test(segment)) pattern += `/${segment.replace(/\./g, '\\.')}`;
+    else if (/^[\w.-]+$/.test(segment))
+      pattern += `/${segment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`;
     else throw new Error(`Unsupported rewrite source: ${source}`);
   }
   return `${pattern}/?$`;

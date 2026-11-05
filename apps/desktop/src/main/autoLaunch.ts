@@ -18,10 +18,11 @@ export function createAutostartEntry(executable: string): string {
     !isAbsolute(executable)
   )
     throw new Error('Invalid application path');
-  const escaped = executable
-    .replace(/[\\"`$]/g, '\\$&')
-    .replace(/\\/g, '\\\\')
-    .replace(/%/g, '%%');
+  const escaped = executable.replace(/[\\"`$%]/g, (character) => {
+    if (character === '\\') return '\\\\\\\\';
+    if (character === '%') return '%%';
+    return `\\\\${character}`;
+  });
   return `[Desktop Entry]\nType=Application\nName=Eternal\nExec="${escaped}"\nTerminal=false\nX-GNOME-Autostart-enabled=true\n`;
 }
 
