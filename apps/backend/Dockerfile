@@ -73,6 +73,7 @@ ENV PATH="/app/node_modules/.bin:${PATH}"
 COPY --from=deployer /app/deploy ./
 # Ensure compiled dist is always present in runtime
 COPY --from=builder /app/apps/backend/dist ./dist
+COPY --from=builder /app/apps/backend/certs ./certs
 
 # Symlink /app/apps/backend/prisma -> /app/prisma and /app/apps/backend/dist -> /app/dist
 # for full backward compatibility with docker-compose commands and external tooling
