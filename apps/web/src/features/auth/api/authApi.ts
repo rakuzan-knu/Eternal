@@ -1,3 +1,4 @@
+import { registrationPolicySchema } from '@social-network/shared-contracts';
 import { apiClient as api } from '@/shared/api/httpClient';
 import type { FoundUserResponse } from '../model/types';
 import type { UserProfile } from '@/entities/profile/model/types';
@@ -15,7 +16,7 @@ export type RegisterPayload = Partial<RegisterDto> & {
   username: string;
   displayName?: string;
   password?: string;
-  birthDate?: string;
+  birthDate: string;
   gender?: 'Male' | 'Female' | 'Custom';
   turnstileToken?: string;
 };
@@ -39,6 +40,13 @@ export interface AuthResponse {
 }
 
 export const authApi = {
+  registrationPolicy: async (signal?: AbortSignal) => {
+    const response = await api.get<unknown>(
+      '/auth/registration-policy',
+      ...(signal ? [{ signal }] : []),
+    );
+    return registrationPolicySchema.parse(response.data);
+  },
   login: (data: LoginPayload, signal?: AbortSignal) =>
     api
       .post<AuthResponse>('/auth/login', data, ...(signal ? [{ signal }] : []))

@@ -10,6 +10,14 @@ Personal @username mentions resolve only known authorized conversation participa
 
 ## Scope and ownership
 
+Data downloads reuse `shared/ui/Modal` for focus, Escape, dismissal and focus return,
+and `shared/ui/Input` for the current password. Native checkboxes own category selection.
+The profile feature owns the bounded JSON request and browser download; the public guide
+reuses that action. Passwords and export contents remain outside persistent client stores.
+Cancellation, account switching and unmount abort the request. A download is announced
+only after all selected pages validate; there is no fake percentage or email-delivery success.
+Mobile opens the same guide in a browser with an explicit sign-in requirement and error recovery.
+
 This contract records the community workspace and its reused chat boundaries. Existing application behavior outside these surfaces remains owned by its feature and maintained docs/design guides.
 
 - Visual identity: runtime `apps/web/src/index.css` and `useThemeStore`; typed foundation tokens remain generated through the existing design scripts.

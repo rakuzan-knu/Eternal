@@ -1,4 +1,16 @@
+export {
+  getRegistrationPolicy,
+  registrationPolicySchema,
+  type RegistrationPolicy,
+} from './registration-policy';
 import { z } from 'zod';
+import { registrationBirthDateError } from './registration-age';
+
+export {
+  calendarBirthDate,
+  registrationBirthDateError,
+  MINIMUM_REGISTRATION_AGE,
+} from './registration-age';
 
 export const HARDENED_USERNAME_REGEX = /^(?![._])(?!.*[._]{2})[a-zA-Z0-9._]{2,32}(?<![._])$/;
 
@@ -222,7 +234,13 @@ export const registerSchema = z.object({
     .transform((val) => val.replace(/^@+/, '').trim().toLowerCase()),
   displayName: z.string().max(64).optional(),
   password: z.string().min(8).max(128),
-  birthDate: z.string().datetime().optional(),
+  birthDate: z
+    .string()
+    .datetime()
+    .superRefine((value, context) => {
+      const message = registrationBirthDateError(value);
+      if (message) context.addIssue({ code: 'custom', message });
+    }),
   gender: z.enum(['Male', 'Female', 'Custom']).optional(),
   turnstileToken: z.string().max(2048).optional(),
 });

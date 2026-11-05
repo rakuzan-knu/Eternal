@@ -1,5 +1,6 @@
 // PrivacyTab.tsx
 import { useState } from 'react';
+import { useLanguageStore } from '@/shared/lib/language/languageStore';
 import { ChevronRight, UserCheck, AlertTriangle } from 'lucide-react';
 import { usePrivacy } from '../../model/usePrivacy';
 import { useFollowRequestsCount } from '../../model/useFollowRequests';
@@ -25,6 +26,7 @@ const DIMENSIONS: { dimension: PrivacyDimension; title: string }[] = [
 ];
 
 export default function PrivacyTab() {
+  const isUkrainian = useLanguageStore((state) => state.currentLanguage === 'Українська');
   const { data: privacy, isLoading, isError, error } = usePrivacy();
   const { data: pendingCount = 0 } = useFollowRequestsCount();
 
@@ -100,9 +102,13 @@ export default function PrivacyTab() {
       {/* Request Data Package Section */}
       <section className="p-4 rounded-2xl border border-black/10 dark:border-white/10 bg-black/[0.03] dark:bg-white/[0.03] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="space-y-0.5">
-          <p className="text-sm font-bold text-gray-950 dark:text-white">Request All of My Data</p>
+          <p className="text-sm font-bold text-gray-950 dark:text-white">
+            {isUkrainian ? 'Завантажити свої дані' : 'Download your data'}
+          </p>
           <p className="text-xs text-gray-600 dark:text-gray-400">
-            Request an encrypted ZIP package with your account records, messages, and activity.
+            {isUkrainian
+              ? 'Незашифрований JSON з обраними даними; склад і винятки зазначені перед завантаженням.'
+              : 'Unencrypted JSON with selected records; included data and exclusions are shown before download.'}
           </p>
         </div>
         <button
@@ -110,7 +116,7 @@ export default function PrivacyTab() {
           onClick={() => setIsDataModalOpen(true)}
           className="px-4 py-2 rounded-xl text-xs font-bold bg-gray-950 text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-white/90 shadow-sm transition-all shrink-0 cursor-pointer"
         >
-          Request Data
+          {isUkrainian ? 'Завантажити дані' : 'Download data'}
         </button>
       </section>
 

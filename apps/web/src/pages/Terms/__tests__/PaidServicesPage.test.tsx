@@ -17,7 +17,7 @@ describe('PaidServicesPage', () => {
     );
 
     expect(screen.getByText('PAID SERVICES & REFUND POLICY')).toBeInTheDocument();
-    expect(screen.getByText(/Effective: September 1, 2026/i)).toBeInTheDocument();
+    expect(screen.getByText(/Updated: November 5, 2026/i)).toBeInTheDocument();
   });
 
   it('renders all 5 main sections in TOC and content', () => {
@@ -27,19 +27,13 @@ describe('PaidServicesPage', () => {
       </MemoryRouter>,
     );
 
+    expect(screen.getAllByText('Current Availability').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Billing and Subscriptions').length).toBeGreaterThanOrEqual(1);
     expect(
-      screen.getAllByText('Eternal Premium & Paid Features Overview').length,
+      screen.getAllByText('Consumer Rights and Disputed Charges').length,
     ).toBeGreaterThanOrEqual(1);
-    expect(
-      screen.getAllByText('Billing, Recurring Subscriptions & Pricing').length,
-    ).toBeGreaterThanOrEqual(1);
-    expect(
-      screen.getAllByText('Refund Policy & Statutory Withdrawal Rights').length,
-    ).toBeGreaterThanOrEqual(1);
-    expect(
-      screen.getAllByText('Creator Monetization & Virtual Tipping').length,
-    ).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText('Billing Support & Inquiries').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Future Paid Features').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Contact').length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders EU 14-day withdrawal right and billing contact info', () => {
@@ -49,10 +43,8 @@ describe('PaidServicesPage', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText(/14-Day Right of Withdrawal/i)).toBeInTheDocument();
-    expect(
-      screen.getAllByText(/private contact address has not been provided/i).length,
-    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/Your Rights Remain/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/eternalnet\.support@proton\.me/i).length).toBeGreaterThanOrEqual(1);
   });
 
   it('supports Ukrainian language switching', () => {
@@ -65,8 +57,6 @@ describe('PaidServicesPage', () => {
     );
 
     expect(screen.getByText('УМОВИ ПЛАТНИХ ПОСЛУГ ТА ПОВЕРНЕННЯ КОШТІВ')).toBeInTheDocument();
-    expect(
-      screen.getAllByText('Огляд Eternal Premium та платних можливостей').length,
-    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Поточна доступність').length).toBeGreaterThanOrEqual(1);
   });
 });

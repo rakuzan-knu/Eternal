@@ -90,6 +90,7 @@ describe('Common Contracts & Zod Schemas', () => {
       const valid = registerSchema.parse({
         email: 'Alice@EXAMPLE.COM',
         username: 'alice_01',
+        birthDate: '2000-01-01T00:00:00.000Z',
         password: 'Password123!',
       });
       expect(valid.email).toBe('alice@example.com');
@@ -214,6 +215,7 @@ describe('Common Contracts & Zod Schemas', () => {
         email: 'user@test.com',
         username: 'testuser',
         passwordHash: 'argon2-hash',
+        birthDate: new Date('2000-01-01T00:00:00.000Z'),
         displayName: 'Test',
       });
       expect(dto.email).toBe('user@test.com');

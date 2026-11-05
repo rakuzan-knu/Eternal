@@ -20,7 +20,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
     number: '1',
     title: 'Welcome to Eternal & The Basics',
     iconName: 'ShieldCheck',
-    tldr: 'Eternal brings together feeds, direct chats, voice rooms, and music listening into one platform. We respect your privacy, never sell your data, and require all users to be at least 13 years old (or 16+ where local laws apply).',
+    tldr: 'Eternal combines feeds, direct chats, voice rooms, and music features. Our minimum account age is 13, subject to higher local age limits and other applicable requirements. We do not sell your personal data.',
     subsections: [
       {
         id: 'our-mission',
@@ -39,7 +39,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
         id: 'age-requirements',
         title: '1.2 Age Limits & Child Privacy',
         content: [
-          'You must be at least 13 years old to create an account and use Eternal. If the law in your country requires you to be older to consent to online services without parental permission (such as 16 in certain European Union countries), you must meet that higher age requirement.',
+          'The minimum account age is 13, subject to higher local account-age restrictions and other admission requirements. The age at which a child may consent to a particular use of personal data is a separate question. Required parental authorization and child-safety procedures cannot be replaced by accepting these Terms.',
           'We do not knowingly collect personal data from anyone under the minimum age. If we discover that a user is under the required age limit, we will immediately close the account and remove their personal information from our active databases.',
         ],
       },
@@ -47,7 +47,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
         id: 'who-we-are',
         title: '1.3 Who Runs Eternal',
         content: [
-          'Eternal is operated in Ukraine by its founders. Complete operator identification has not been published. When you use our services, we act as the data controller of your personal information under applicable global data protection regulations.',
+          'Eternal is jointly operated by Mykola Agh and Michal Agh, two individuals operating from Ukraine. They jointly determine the purposes and means of processing personal data for Eternal. Contact both operators at eternalnet.support@proton.me. Their respective responsibilities and applicable regional notices still need to be published.',
         ],
       },
     ],
@@ -173,7 +173,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
     number: '5',
     title: 'How Long We Keep Data & How to Delete It',
     iconName: 'KeyRound',
-    tldr: 'You own your data. When you delete your account or posts, they are hidden instantly. Full erasure from backup archives takes up to 30 days.',
+    tldr: 'You can request access, correction, or deletion. Account deletion is permanent. Exact backup and media-purge periods have not yet been verified.',
     subsections: [
       {
         id: 'retention-periods',
@@ -185,7 +185,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
           'Live Voice & Video: 0 seconds (streamed in real time, never recorded or stored).',
           'Disappearing Messages: Automatically erased from active servers once the countdown timer expires.',
           'Posts & Media: Stored until you edit or delete them.',
-          'Account Deletion & Backup Purge: When you request account deletion, your profile, posts, and messages become immediately invisible to all users. Complete, permanent erasure across all active databases and cycling out of encrypted disaster-recovery backups is completed within up to 30 days.',
+          'Account deletion: the current process permanently deletes your account from the active database after password verification. Community owners must transfer ownership first. There is no recovery grace period. Backup, media-storage, and other service purge procedures remain under review; a 30-day purge has not been verified.',
           'Security Records: Minimal security identifiers (such as ban hashes to prevent repeat bad actors) are retained strictly as necessary for fraud prevention and legal compliance.',
         ],
       },
@@ -193,10 +193,10 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
         id: 'your-rights-and-deletion',
         title: '5.2 Your Rights & 1-Click Account Deletion',
         content: [
-          'Under privacy laws worldwide (including GDPR in Europe and CCPA in California), you have clear, guaranteed rights:',
+          'Your rights depend on the law applicable to your situation. These may include access, correction, erasure, portability, objection, and a complaint to a competent supervisory authority. The download tool does not limit those rights:',
         ],
         bullets: [
-          'Download Your Data: You can request a complete export of your posts, messages, and profile info anytime.',
+          'Download your data: the self-service JSON download includes selected records and lists its exclusions. For other access or portability requests, contact eternalnet.support@proton.me.',
           'Edit Your Information: Update your username, email, password, or bio in Settings whenever you want.',
           '1-Click Account Deletion: Go to Settings → Security → Delete Account. Confirm with your password, and your deletion process begins immediately.',
           'We Never Sell Your Data: We do not sell, rent, or trade your personal data with third-party data brokers.',
@@ -209,7 +209,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
     number: '6',
     title: 'Third-Party Platform Integrations & API Developer Compliance',
     iconName: 'ShieldCheck',
-    tldr: 'We provide optional integrations with YouTube, Spotify, Twitch, Steam, Roblox, and GitHub. We strictly adhere to each provider’s developer policies, never sell your data, request only minimal read-only permissions, and give you 1-click unlinking and complete revocation options.',
+    tldr: 'Third-party connections are optional. Permissions vary by provider and feature; Spotify permissions include library changes and playback control. Review the provider authorization screen before connecting, and revoke access in the provider account settings when needed.',
     subsections: [
       {
         id: 'third-party-overview',
@@ -217,12 +217,12 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
         content: [
           'Eternal offers optional third-party integrations to enrich your profile showcase with verified gaming ranks, streaming presence, repositories, and music playlists. Connecting any external service is completely voluntary.',
           'We adhere to a strict Zero Data-Broker standard: Eternal never sells, rents, monetizes, or transfers your third-party account data, credentials, or statistics to advertisers, data brokers, or any commercial third parties.',
-          'You retain full control over your connections at all times. You can disconnect any platform with one click in Settings → Connected Accounts & Integrations, which immediately purges all associated tokens and cached showcase data from our databases and Redis cache.',
+          'You can disconnect a platform in Settings → Connected Accounts & Integrations. Also use the provider account settings to revoke provider-side permission. Full retention and cache-purge procedures remain under review; disconnecting does not establish that every historical copy has been erased.',
         ],
         bullets: [
-          'Strictly Read-Only Access: We only request public profile statistics, activity presence, and ranks.',
-          'No Password Storage: All authentication flows operate through official OAuth 2.0 or OpenID protocols.',
-          'Instant 1-Click Revocation: Unlinking in your profile permanently deletes stored tokens and cached data.',
+          'Provider permissions: some integrations read profile and activity data; Spotify also requests permission to modify your library and control playback.',
+          'Provider sign-in: OAuth or OpenID is used where supported. Some public-profile lookups do not use OAuth. Do not enter your provider password into Eternal.',
+          'Disconnect in Eternal settings; revoke provider-side access separately in the provider account settings.',
         ],
       },
       {
@@ -247,7 +247,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
         title: '6.3 Spotify Developer Policy & Web API Compliance',
         content: [
           'Eternal integrates with the official Spotify Web API to enable real-time music presence, track showcase cards, and audio preview playback.',
-          'Authorized Scopes: When linking Spotify, we request permission to read your public profile, current playback state, top tracks, liked songs, and playlists. We never access your billing details, credit cards, or Spotify account passwords.',
+          'Spotify permissions include reading profile and playback information, top tracks, saved songs and playlists, modifying your music library, and controlling playback. Spotify presents the requested permissions during authorization. We do not receive your Spotify password or payment-card details through this authorization.',
           'Streaming & Audio Protection: Eternal does not store, rip, record, distribute, or permanently cache streaming audio files or music streams. All audio previews and playback controls communicate directly with official Spotify endpoints.',
           'Intellectual Property Notice: All song titles, artist names, album artwork, and audio content are the intellectual property of Spotify AB or their respective rights holders and licensors.',
           'Revocation of Access: You can disconnect Spotify at any time in Eternal Settings, which immediately deletes all stored Spotify access tokens and refresh tokens. You can also revoke access directly in your Spotify Account Apps page at https://www.spotify.com/account/apps/.',
@@ -322,15 +322,15 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
     number: '7',
     title: 'Contact Us',
     iconName: 'Mail',
-    tldr: 'A private contact address has not been provided. A DPO appointment has not been confirmed.',
+    tldr: 'Contact: eternalnet.support@proton.me. A DPO appointment has not been confirmed.',
     subsections: [
       {
         id: 'reach-out',
         title: '7.1 How to Contact Our Privacy Team',
         content: [
-          'A private contact address has not been provided. Do not submit personal data through public issues.',
-          'A DPO appointment has not been confirmed. A private contact address has not been provided. Do not submit personal data through public issues.',
-          'A private contact address has not been provided. Do not submit personal data through public issues.',
+          'Contact: eternalnet.support@proton.me. Do not submit personal data through public issues.',
+          'A DPO appointment has not been confirmed. Contact: eternalnet.support@proton.me. Do not submit personal data through public issues.',
+          'Contact: eternalnet.support@proton.me. Do not submit personal data through public issues.',
         ],
       },
     ],

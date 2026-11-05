@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Inject,
   Injectable,
@@ -17,6 +18,7 @@ import { UsersService } from '../users/users.service';
 import { SessionsService, type RequestMeta } from '../sessions/sessions.service';
 import {
   CreateUserDto,
+  registrationBirthDateError,
   type ChangePasswordDto,
   type LoginDto,
   type FoundAccountResponse,
@@ -29,6 +31,7 @@ import { TokenPair } from './interfaces/token-pair.interface';
 import { TokenRevocationService } from './token-revocation.service';
 import { InMemoryBloomFilterService } from '../common/bloom/in-memory-bloom-filter.service';
 import { makeJwtAccessPayload, makeJwtRefreshPayload } from '../common/v8/shape-stable';
+import { RegistrationPolicyService } from './registration-policy.service';
 import { timingSafeEqual } from '../common/crypto/timing-safe';
 
 @Injectable()
@@ -42,6 +45,7 @@ export class AuthService {
     @Inject(forwardRef(() => SessionsService))
     private readonly sessionsService: SessionsService,
     private readonly bloomFilter: InMemoryBloomFilterService,
+    private readonly registrationPolicy: RegistrationPolicyService,
   ) {}
 
   async checkUsername(rawUsername: string): Promise<{ isAvailable: boolean }> {
@@ -57,6 +61,9 @@ export class AuthService {
   }
 
   async register(dto: RegisterDto, meta: RequestMeta = {}) {
+    this.registrationPolicy.assertRegistrationOpen();
+    const birthdayError = registrationBirthDateError(dto.birthDate);
+    if (birthdayError) throw new BadRequestException(birthdayError);
     const [existingByEmail, existingByUsername] = await Promise.all([
       this.usersService.findByEmail(dto.email),
       this.usersService.findByUsername(dto.username),
@@ -79,7 +86,7 @@ export class AuthService {
           username: dto.username,
           displayName: dto.displayName,
           passwordHash,
-          birthDate: dto.birthDate ? new Date(dto.birthDate) : undefined,
+          birthDate: new Date(dto.birthDate),
           gender: dto.gender,
         }),
       );

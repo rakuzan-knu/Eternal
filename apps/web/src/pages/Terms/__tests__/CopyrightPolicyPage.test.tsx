@@ -17,7 +17,7 @@ describe('CopyrightPolicyPage', () => {
     );
 
     expect(screen.getByText('DMCA & COPYRIGHT POLICY')).toBeInTheDocument();
-    expect(screen.getByText(/Effective: September 1, 2026/i)).toBeInTheDocument();
+    expect(screen.getByText(/Updated: November 5, 2026/i)).toBeInTheDocument();
     expect(screen.getAllByText(/Designated Copyright Agent/i).length).toBeGreaterThanOrEqual(1);
   });
 
@@ -55,9 +55,7 @@ describe('CopyrightPolicyPage', () => {
       </MemoryRouter>,
     );
 
-    expect(
-      screen.getAllByText(/private contact address has not been provided/i).length,
-    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/eternalnet\.support@proton\.me/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText(/Ukraine/i).length).toBeGreaterThanOrEqual(1);
   });
 

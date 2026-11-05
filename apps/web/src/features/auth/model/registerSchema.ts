@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { calendarBirthDate, registrationBirthDateError } from '@social-network/shared-contracts';
 import { isReservedUsername, HARDENED_USERNAME_REGEX } from '@/entities/user';
 
 export const BIRTH_MONTHS = [
@@ -74,27 +75,13 @@ export const registerSchema = z
     const month = BIRTH_MONTHS.findIndex((value) => value === data.birthMonth);
     const year = Number(data.birthYear);
     const day = Number(data.birthDay);
-    const date = new Date(year, month, day);
-    if (
-      month < 0 ||
-      !/^\d{4}$/.test(data.birthYear) ||
-      !/^\d{1,2}$/.test(data.birthDay) ||
-      date.getFullYear() !== year ||
-      date.getMonth() !== month ||
-      date.getDate() !== day
-    ) {
+    const date = calendarBirthDate(year, month, day);
+    if (!/^\d{4}$/.test(data.birthYear) || !/^\d{1,2}$/.test(data.birthDay) || !date) {
       context.addIssue({ code: 'custom', message: 'Select a valid birthday', path: ['birthDay'] });
       return;
     }
-    const today = new Date();
-    today.setHours(23, 59, 59, 999);
-    if (date > today) {
-      context.addIssue({
-        code: 'custom',
-        message: 'Birthday cannot be in the future',
-        path: ['birthYear'],
-      });
-    }
+    const message = registrationBirthDateError(date);
+    if (message) context.addIssue({ code: 'custom', message, path: ['birthYear'] });
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: 'Passwords do not match',

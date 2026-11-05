@@ -41,7 +41,7 @@ export const TERMS_SECTIONS: TermsSection[] = [
         id: 'company-details',
         title: '1.2 Who Runs Eternal',
         content: [
-          'When we say "Eternal", "we", "us", or "our", we mean the project founders (operator identity not published), operating the Eternal project in Ukraine.',
+          'When we say "Eternal", "we", "us", or "our", we mean Mykola Agh and Michal Agh, operating the Eternal project in Ukraine.',
         ],
       },
     ],
@@ -51,21 +51,21 @@ export const TERMS_SECTIONS: TermsSection[] = [
     number: '2',
     title: 'Age Requirements & Guardian Responsibility',
     iconName: 'Database',
-    tldr: 'You must be at least 13 years old (or 16+ in the EU) to use Eternal. Parents and legal guardians are responsible for accounts created by minors.',
+    tldr: 'The minimum account age is 13. Higher local age limits, parental consent requirements, and other protections for minors may also apply.',
     subsections: [
       {
         id: 'minimum-age',
         title: '2.1 Minimum Age Requirements',
         content: [
-          'By accessing Eternal, you confirm that you are at least 13 years old and meet the minimum digital consent age required by the laws in your country (such as 16 in certain European Union countries).',
-          'Our services are not intended for children under 13. If we learn that an account belongs to someone under the required age, we will immediately terminate the account and remove their data.',
+          'The minimum account age is 13, subject to higher local account-age restrictions and other admission requirements. A data-protection consent threshold is not a universal account-age rule. Required parental authorization and child-safety procedures cannot be replaced by accepting these Terms.',
+          'Accounts below the applicable minimum age are prohibited. New registrations remain closed pending regional admission review. Report a suspected under-age account to eternalnet.support@proton.me; required review and handling procedures are not yet complete.',
         ],
       },
       {
         id: 'parents-and-guardians',
         title: '2.2 Responsibility of Parents and Guardians',
         content: [
-          'If you are a parent or legal guardian allowing a minor (who meets the minimum age in your jurisdiction) to use Eternal, you agree to be bound by these Terms and are responsible for their activity, safety settings, and any purchases made on the platform.',
+          'Parents and guardians can contact eternalnet.support@proton.me about a minor’s account or privacy rights. A child accepting these Terms, or using a family feature, does not by itself establish verified parental authorization or bind an absent guardian to a contract. Regional admission and required parental procedures are not yet complete; new registrations remain closed.',
         ],
       },
     ],
@@ -109,7 +109,7 @@ export const TERMS_SECTIONS: TermsSection[] = [
         title: '4.1 Creating and Securing Your Account',
         content: [
           'To use Eternal, you must create an account with an email, username, and secure password. You agree to provide accurate information and keep it up to date.',
-          'You are responsible for all activity that occurs under your account. We strongly recommend enabling Two-Factor Authentication (2FA) and using a unique, strong password. A private contact address has not been provided. Do not submit personal data through public issues.',
+          'You are responsible for all activity that occurs under your account. We strongly recommend enabling Two-Factor Authentication (2FA) and using a unique, strong password. Contact: eternalnet.support@proton.me. Do not submit personal data through public issues.',
         ],
       },
       {
@@ -293,7 +293,7 @@ export const TERMS_SECTIONS: TermsSection[] = [
         id: 'dmca-notices',
         title: '7.1 DMCA & Copyright Infringement Notices',
         content: [
-          'Copyright owners and authorized representatives may seek removal of infringing content. A private copyright contact address has not been provided; this notice does not remove those rights. Do not submit personal data through public issues.',
+          'Copyright owners and authorized representatives may seek removal of infringing content. Copyright notices may be sent to eternalnet.support@proton.me; this notice does not limit those rights. Do not submit personal data through public issues.',
           'We will respond promptly to valid notices and terminate the accounts of repeat infringers in appropriate circumstances.',
         ],
       },
@@ -310,14 +310,14 @@ export const TERMS_SECTIONS: TermsSection[] = [
         id: 'user-termination',
         title: '8.1 Your Right to Terminate',
         content: [
-          'You may discontinue your use of Eternal and delete your account at any time via Settings → Security → Delete Account. Your content is hidden instantly, and permanently purged from backups within 30 days.',
+          'You may stop using Eternal and request permanent account deletion through account settings. Your password is required; transfer ownership of your communities first. There is no recovery grace period. Exact backup and media-purge periods are not yet confirmed; see the Retention Policy or contact eternalnet.support@proton.me.',
         ],
       },
       {
         id: 'eternal-termination-appeals',
         title: '8.2 Account Suspension & Appeals',
         content: [
-          'We may suspend or terminate accounts that repeatedly or severely violate these Terms or our Community Guidelines. You may contest a moderation decision. A private appeal contact address has not been provided. Do not submit personal data through public issues.',
+          'We may suspend or terminate accounts that repeatedly or severely violate these Terms or our Community Guidelines. You may contest a moderation decision. Appeals may be sent to eternalnet.support@proton.me. Do not submit personal data through public issues.',
         ],
       },
     ],
@@ -340,7 +340,7 @@ export const TERMS_SECTIONS: TermsSection[] = [
         id: 'dispute-resolution',
         title: '9.2 Informal Dispute Resolution',
         content: [
-          'A private dispute contact address has not been provided. This missing contact channel does not limit your mandatory rights or access to a competent court or supervisory authority. Do not submit personal data through public issues.',
+          'Disputes may be sent to eternalnet.support@proton.me. This does not limit your mandatory rights or access to a competent court or supervisory authority. Do not submit personal data through public issues.',
         ],
       },
     ],
@@ -356,7 +356,7 @@ export const TERMS_SECTIONS: TermsSection[] = [
         id: 'contact-details',
         title: '10.1 How to Contact Us',
         content: [
-          'A private contact address has not been provided. Do not submit personal data through public issues.',
+          'Contact: eternalnet.support@proton.me. Do not submit personal data through public issues.',
         ],
       },
     ],
@@ -388,7 +388,7 @@ export const TERMS_SECTIONS_UK: TermsSection[] = [
         id: 'company-details',
         title: '1.2 Хто керує Eternal',
         content: [
-          'Під назвою «Eternal», «ми», «нас» або «наш» маються на увазі засновники проєкту (ідентифікаційні дані операторів не опубліковано), які керують проєктом Eternal в Україні.',
+          'Під назвою «Eternal», «ми», «нас» або «наш» маються на увазі Mykola Agh та Michal Agh, які керують проєктом Eternal в Україні.',
         ],
       },
     ],
@@ -398,21 +398,21 @@ export const TERMS_SECTIONS_UK: TermsSection[] = [
     number: '2',
     title: 'Вікові обмеження та відповідальність батьків',
     iconName: 'Database',
-    tldr: 'Вам має бути не менше 13 років (або 16+ у ЄС) для використання Eternal. Батьки та опікуни несуть відповідальність за акаунти неповнолітніх.',
+    tldr: 'Мінімальний вік для облікового запису — 13 років. Також можуть діяти вищі місцеві вікові пороги, вимоги до батьківської згоди та інші заходи захисту неповнолітніх.',
     subsections: [
       {
         id: 'minimum-age',
         title: '2.1 Мінімальний вік користувачів',
         content: [
-          'Отримуючи доступ до сервісу, ви підтверджуєте, що вам виповнилося 13 років і ви досягли встановленого законом віку цифрової згоди у вашій країні (наприклад, 16 років у деяких країнах ЄС).',
-          'Наші послуги не призначені для дітей віком до 13 років. Якщо ми виявимо акаунт дитини молодшого віку, він буде негайно заблокований, а дані видалені.',
+          'Мінімальний вік для облікового запису — 13 років із вищими місцевими порогами та іншими вимогами допуску. Поріг самостійної згоди на обробку даних не є універсальним правилом віку для облікового запису. Прийняття умов не замінює необхідної батьківської згоди чи процедур захисту дітей.',
+          'Облікові записи осіб молодших за застосовний мінімальний вік заборонені. Нові реєстрації закриті до перевірки регіонального допуску. Про можливий обліковий запис дитини молодшого віку повідомляйте на eternalnet.support@proton.me; необхідні процедури перевірки й реагування ще не завершено.',
         ],
       },
       {
         id: 'parents-and-guardians',
         title: '2.2 Відповідальність батьків та опікунів',
         content: [
-          'Якщо ви є батьком або опікуном і дозволяєте неповнолітньому користуватися Eternal, ви погоджуєтеся з цими Умовами та несете відповідальність за його активність та покупки.',
+          'Батьки й опікуни можуть звернутися на eternalnet.support@proton.me щодо облікового запису дитини чи її прав на приватність. Прийняття умов дитиною або використання сімейної функції саме по собі не підтверджує батьківської згоди та не укладає договір з відсутнім опікуном. Регіональні умови допуску й необхідні батьківські процедури ще не завершено; нові реєстрації закриті.',
         ],
       },
     ],
@@ -456,7 +456,7 @@ export const TERMS_SECTIONS_UK: TermsSection[] = [
         title: '4.1 Створення та захист профілю',
         content: [
           'Для користування Eternal ви створюєте профіль із надійним паролем. Ви зобов’язуєтеся надавати актуальну інформацію.',
-          'Ви відповідаєте за всі дії у своєму акаунті. Рекомендуємо увімкнути двофакторну автентифікацію (2FA). Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
+          'Ви відповідаєте за всі дії у своєму акаунті. Рекомендуємо увімкнути двофакторну автентифікацію (2FA). Контакт: eternalnet.support@proton.me. Не надсилайте персональні дані через публічні звернення.',
         ],
       },
       {
@@ -600,7 +600,7 @@ export const TERMS_SECTIONS_UK: TermsSection[] = [
         id: 'user-termination',
         title: '8.1 Видалення акаунта користувачем',
         content: [
-          'Ви можете видалити свій профіль у будь-який момент у меню Налаштування → Безпека → Видалити акаунт. Контент приховується миттєво і повністю очищається з бекапів протягом 30 днів.',
+          'Ви можете припинити користування Eternal і запросити постійне видалення облікового запису в налаштуваннях. Потрібно ввести пароль і спершу передати права власності на свої спільноти. Пільгового періоду відновлення немає. Точні строки очищення резервних копій і медіа ще не підтверджено; дивіться політику зберігання або пишіть на eternalnet.support@proton.me.',
         ],
       },
       {
@@ -646,7 +646,7 @@ export const TERMS_SECTIONS_UK: TermsSection[] = [
         id: 'contact-details',
         title: '10.1 Контактна інформація',
         content: [
-          'Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
+          'Контакт: eternalnet.support@proton.me. Не надсилайте персональні дані через публічні звернення.',
         ],
       },
     ],
@@ -656,14 +656,13 @@ export const TERMS_SECTIONS_UK: TermsSection[] = [
 export const TERMS_HERO: Record<'en' | 'uk', LegalDocumentHero> = {
   en: {
     title: "ETERNAL'S TERMS OF SERVICE",
-    effectiveDate: 'Effective Date: September 1, 2026 • Last Updated: August 28, 2026',
+    effectiveDate: 'Updated: November 5, 2026',
     description:
       'These Terms of Service set forth our mutual legal agreement when you use Eternal’s visual feeds, instant chats, voice rooms, and music streaming. We made them clear, transparent, and user-first.',
   },
   uk: {
     title: 'УМОВИ ВИКОРИСТАННЯ ETERNAL',
-    effectiveDate:
-      'Дата набрання чинності: 1 вересня 2026 р. • Останнє оновлення: 28 серпня 2026 р.',
+    effectiveDate: 'Оновлено: 5 листопада 2026 р.',
     description:
       'Ці Умови використання регулюють використання стрічки публікацій, чатів, голосових кімнат та музики в Eternal. Ми зробили їх простими, прозорими та орієнтованими на користувача.',
   },

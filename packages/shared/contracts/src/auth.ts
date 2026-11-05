@@ -1,4 +1,16 @@
+export {
+  getRegistrationPolicy,
+  registrationPolicySchema,
+  type RegistrationPolicy,
+} from './registration-policy';
 import { z } from 'zod';
+import { calendarBirthDate, registrationBirthDateError } from './registration-age';
+
+export {
+  calendarBirthDate,
+  registrationBirthDateError,
+  MINIMUM_REGISTRATION_AGE,
+} from './registration-age';
 
 export const HARDENED_USERNAME_REGEX = /^(?![._])(?!.*[._]{2})[a-zA-Z0-9._]{2,32}(?<![._])$/;
 
@@ -222,7 +234,13 @@ export const registerSchema = z.object({
     .transform((val) => val.replace(/^@+/, '').trim().toLowerCase()),
   displayName: z.string().max(64).optional(),
   password: z.string().min(8).max(128),
-  birthDate: z.string().datetime().optional(),
+  birthDate: z
+    .string()
+    .datetime()
+    .superRefine((value, context) => {
+      const message = registrationBirthDateError(value);
+      if (message) context.addIssue({ code: 'custom', message });
+    }),
   gender: z.enum(['Male', 'Female', 'Custom']).optional(),
   turnstileToken: z.string().max(2048).optional(),
 });
@@ -353,6 +371,30 @@ export const registerFormSchema = z
       .string({ required_error: 'Please confirm your password' })
       .min(1, 'Please confirm your password'),
     turnstileToken: z.string().max(2048).optional(),
+  })
+  .superRefine((data, context) => {
+    if (!data.birthMonth || !data.birthDay || !data.birthYear) return;
+    const month = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ].indexOf(data.birthMonth);
+    const date = calendarBirthDate(Number(data.birthYear), month, Number(data.birthDay));
+    if (!/^\d{4}$/.test(data.birthYear) || !/^\d{1,2}$/.test(data.birthDay) || !date) {
+      context.addIssue({ code: 'custom', message: 'Select a valid birthday', path: ['birthDay'] });
+      return;
+    }
+    const message = registrationBirthDateError(date);
+    if (message) context.addIssue({ code: 'custom', message, path: ['birthYear'] });
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: 'Passwords do not match',

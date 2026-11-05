@@ -1,283 +1,275 @@
-import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import axios from 'axios';
+import { Download, Eye, EyeOff, X } from 'lucide-react';
 import {
-  X,
-  Download,
-  CheckSquare,
-  Square,
-  ShieldCheck,
-  Clock,
-  User,
-  Activity,
-  Gamepad2,
-  MessageSquare,
-  Server,
-  Megaphone,
-  LifeBuoy,
-} from 'lucide-react';
+  CORE_DATA_EXPORT_SECTIONS,
+  MESSENGER_DATA_EXPORT_SECTIONS,
+  type DataExportSection,
+} from '@social-network/shared-contracts';
+import Modal from '@/shared/ui/Modal';
+import { Input } from '@/shared/ui/Input';
+import { useAuthStore } from '@/shared/model/useAuthStore';
+import { useLanguageStore } from '@/shared/lib/language/languageStore';
+import { prepareDataExport, saveDataExport } from '../../api/dataExportApi';
 
-interface RequestDataPackageModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
+const SECTIONS = [...CORE_DATA_EXPORT_SECTIONS, ...MESSENGER_DATA_EXPORT_SECTIONS];
+const COPY = {
+  en: {
+    title: 'Download your Eternal data',
+    intro:
+      'Choose the data to download as a JSON file on this device. No email or encrypted ZIP is sent.',
+    scope:
+      'Includes selected account, profile, settings, own posts, comments, and eligible sent messages. Media files, stories, reels, integrations, relationships, logs, and reports are excluded. Messages from conversations you can no longer access are excluded. Encrypted messages remain encrypted. The file lists further limitations.',
+    safety:
+      'The downloaded file is not encrypted and may contain private information. Keep it in a safe place. For other personal-data requests, contact eternalnet.support@proton.me.',
+    password: 'Current password',
+    show: 'Show password',
+    hide: 'Hide password',
+    select: 'Select all',
+    deselect: 'Deselect all',
+    download: 'Download JSON',
+    cancel: 'Cancel',
+    close: 'Close',
+    preparing: 'Preparing',
+    records: 'records received',
+    done: 'File prepared. Your browser download has started.',
+    error:
+      'Could not prepare the file. No partial file was downloaded. Check your connection and try again.',
+    credentials:
+      'The password or session could not be verified. Check your password and sign in again if needed.',
+    limit:
+      'This export exceeds the download limit. Select fewer categories or contact eternalnet.support@proton.me for assistance.',
+    rate: 'Too many requests. Wait a minute and try again, or contact eternalnet.support@proton.me for assistance with a larger export.',
+    sections: {
+      account: 'Account information',
+      profile: 'Profile',
+      settings: 'Settings',
+      posts: 'Your posts',
+      comments: 'Your comments',
+      messages: 'Your eligible sent messages',
+    },
+  },
+  uk: {
+    title: 'Завантажити дані Eternal',
+    intro:
+      'Оберіть дані для завантаження у файлі JSON на цей пристрій. Лист та зашифрований ZIP не надсилаються.',
+    scope:
+      'Доступні вибрані дані облікового запису, профіль, налаштування, власні дописи, коментарі й доступні надіслані повідомлення. Медіафайли, історії, рілси, інтеграції, зв’язки, журнали й скарги не входять до файлу. Повідомлення з розмов, до яких ви втратили доступ, не входять до файлу. Зашифровані повідомлення залишаються зашифрованими. Інші обмеження зазначено у файлі.',
+    safety:
+      'Завантажений файл не зашифрований і може містити приватну інформацію. Зберігайте його в безпечному місці. Інші запити щодо персональних даних можна надіслати на eternalnet.support@proton.me.',
+    password: 'Поточний пароль',
+    show: 'Показати пароль',
+    hide: 'Сховати пароль',
+    select: 'Обрати все',
+    deselect: 'Скасувати вибір',
+    download: 'Завантажити JSON',
+    cancel: 'Скасувати',
+    close: 'Закрити',
+    preparing: 'Підготовка',
+    records: 'отримано записів',
+    done: 'Файл підготовлено. Завантаження у браузері розпочато.',
+    error:
+      'Не вдалося підготувати файл. Частковий файл не завантажено. Перевірте з’єднання та спробуйте ще раз.',
+    credentials:
+      'Не вдалося перевірити пароль або сеанс. Перевірте пароль і за потреби увійдіть повторно.',
+    limit:
+      'Експорт перевищує ліміт завантаження. Оберіть менше категорій або зверніться по допомогу на eternalnet.support@proton.me.',
+    rate: 'Забагато запитів. Зачекайте хвилину та повторіть спробу або зверніться на eternalnet.support@proton.me по допомогу з великим експортом.',
+    sections: {
+      account: 'Обліковий запис',
+      profile: 'Профіль',
+      settings: 'Налаштування',
+      posts: 'Ваші дописи',
+      comments: 'Ваші коментарі',
+      messages: 'Ваші доступні надіслані повідомлення',
+    },
+  },
+};
 
-interface DataCategory {
-  id: string;
-  icon: React.ReactNode;
-  title: string;
-  titleEn: string;
-  description: string;
-  descriptionEn: string;
-}
+function DataPackageDialog({ onClose }: { onClose: () => void }) {
+  const language = useLanguageStore((state) => state.currentLanguage);
+  const t = COPY[language === 'Українська' ? 'uk' : 'en'];
+  const [selected, setSelected] = useState<DataExportSection[]>(SECTIONS);
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [status, setStatus] = useState('');
+  const [error, setError] = useState('');
+  const running = useRef<AbortController | null>(null);
+  useEffect(() => () => running.current?.abort(), []);
 
-const DATA_CATEGORIES: DataCategory[] = [
-  {
-    id: 'account',
-    icon: <User className="w-4 h-4 text-gray-950 dark:text-white" />,
-    title: 'Account Information',
-    titleEn: 'Account Information',
-    description: 'User ID, username, email, avatar history, and account settings.',
-    descriptionEn: 'User ID, username, email, avatar history, and account settings.',
-  },
-  {
-    id: 'activity',
-    icon: <Activity className="w-4 h-4 text-gray-950 dark:text-white" />,
-    title: 'Your Activity & Analytics',
-    titleEn: 'Your Activity & Analytics',
-    description: 'Telemetry diagnostics, platform navigation logs, and feature usage.',
-    descriptionEn: 'Telemetry diagnostics, platform navigation logs, and feature usage.',
-  },
-  {
-    id: 'activities',
-    icon: <Gamepad2 className="w-4 h-4 text-gray-950 dark:text-white" />,
-    title: 'Activities & Integrations',
-    titleEn: 'Activities & Integrations',
-    description: 'Minigames scores, rich presence data (Spotify, Steam, GitHub).',
-    descriptionEn: 'Minigames scores, rich presence data (Spotify, Steam, GitHub).',
-  },
-  {
-    id: 'messages',
-    icon: <MessageSquare className="w-4 h-4 text-gray-950 dark:text-white" />,
-    title: 'Messages & Media Transcripts',
-    titleEn: 'Messages & Media Transcripts',
-    description: 'Complete history of sent direct messages and channel posts.',
-    descriptionEn: 'Complete history of sent direct messages and channel posts.',
-  },
-  {
-    id: 'servers',
-    icon: <Server className="w-4 h-4 text-gray-950 dark:text-white" />,
-    title: 'Servers & Communities',
-    titleEn: 'Servers & Communities',
-    description: 'Servers you own or belong to, assigned roles, and channel permissions.',
-    descriptionEn: 'Servers you own or belong to, assigned roles, and channel permissions.',
-  },
-  {
-    id: 'ads',
-    icon: <Megaphone className="w-4 h-4 text-gray-950 dark:text-white" />,
-    title: 'Personalization & Advertising',
-    titleEn: 'Personalization & Advertising',
-    description: 'Interactions with featured servers, partner quests, and explore feeds.',
-    descriptionEn: 'Interactions with featured servers, partner quests, and explore feeds.',
-  },
-  {
-    id: 'support',
-    icon: <LifeBuoy className="w-4 h-4 text-gray-950 dark:text-white" />,
-    title: 'Support Tickets & Safety Appeals',
-    titleEn: 'Support Tickets & Safety Appeals',
-    description: 'Correspondence with Eternal Customer Support and Trust & Safety tickets.',
-    descriptionEn: 'Correspondence with Eternal Customer Support and Trust & Safety tickets.',
-  },
-];
-
-export const RequestDataPackageModal: React.FC<RequestDataPackageModalProps> = ({
-  isOpen,
-  onClose,
-}) => {
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(
-    DATA_CATEGORIES.map((c) => c.id),
-  );
-  const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown, true);
-    return () => window.removeEventListener('keydown', handleKeyDown, true);
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
-
-  const toggleCategory = (id: string) => {
-    setSelectedCategories((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
-    );
+  const cancel = () => {
+    running.current?.abort();
+    running.current = null;
+    setPassword('');
   };
-
-  const toggleAll = () => {
-    if (selectedCategories.length === DATA_CATEGORIES.length) {
-      setSelectedCategories([]);
-    } else {
-      setSelectedCategories(DATA_CATEGORIES.map((c) => c.id));
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (running.current || !password || selected.length === 0) return;
+    const controller = new AbortController();
+    running.current = controller;
+    setPending(true);
+    setError('');
+    setStatus(t.preparing);
+    const currentPassword = password;
+    setPassword('');
+    try {
+      const file = await prepareDataExport({
+        password: currentPassword,
+        sections: selected,
+        signal: controller.signal,
+        onProgress: ({ section, records }) => {
+          if (!controller.signal.aborted)
+            setStatus(`${t.preparing}: ${t.sections[section]} · ${records} ${t.records}`);
+        },
+      });
+      if (controller.signal.aborted) return;
+      saveDataExport(file);
+      setStatus(t.done);
+    } catch (failure) {
+      if (controller.signal.aborted) return;
+      const responseStatus = axios.isAxiosError(failure) ? failure.response?.status : undefined;
+      setStatus('');
+      setError(
+        responseStatus === 401
+          ? t.credentials
+          : responseStatus === 429
+            ? t.rate
+            : responseStatus === 413 ||
+                (failure instanceof Error && failure.message === 'EXPORT_LIMIT')
+              ? t.limit
+              : t.error,
+      );
+    } finally {
+      if (running.current === controller) {
+        running.current = null;
+        setPending(false);
+      }
     }
   };
 
-  const handleSubmit = () => {
-    setIsSubmitted(true);
-    setTimeout(() => {
-      setIsSubmitted(false);
-      onClose();
-    }, 1200);
-  };
-
-  return createPortal(
-    <div
-      data-modal-open="true"
-      data-submodal-open="true"
-      onClick={onClose}
-      className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn"
+  return (
+    <Modal
+      onClose={onClose}
+      onBeforeClose={() => {
+        cancel();
+        return true;
+      }}
+      closeOnInputEscape
+      aria-label={t.title}
     >
-      <div
-        className="relative w-full max-w-xl glass-modal border border-black/10 dark:border-white/10 rounded-[28px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] text-gray-950 dark:text-white backdrop-blur-3xl animate-modalPop"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Modal Header */}
-        <div className="p-6 border-b border-black/10 dark:border-white/10 flex items-start justify-between gap-4 bg-black/[0.03] dark:bg-white/[0.03]">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/10 flex items-center justify-center text-gray-950 dark:text-white shrink-0 shadow-xs">
-              <Download className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-gray-950 dark:text-white">
-                Request Your Eternal Data Package
-              </h3>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-                Select the information categories you want to include in your ZIP archive
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="p-1.5 rounded-xl text-gray-400 hover:text-gray-950 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Modal Body */}
-        <div className="p-6 overflow-y-auto space-y-5 flex-1 custom-scrollbar">
-          {/* Timeline & Processing Notice Box */}
-          <div className="p-4 rounded-2xl bg-black/[0.03] dark:bg-white/[0.04] border border-black/10 dark:border-white/10 flex items-start gap-3 text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
-            <Clock className="w-4 h-4 text-gray-950 dark:text-white shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold text-gray-950 dark:text-white">Preparation timeframe:</p>
-              <p className="mt-1 text-gray-600 dark:text-gray-400">
-                Compiling and encrypting your personal data package can take up to 30 calendar days.
-                Once ready, a secure download link will be dispatched to your verified email
-                address. The download link remains active for 30 days.
-              </p>
-            </div>
-          </div>
-
-          {/* Select All Toggle Bar */}
-          <div className="flex items-center justify-between px-1">
-            <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-              Data Categories ({selectedCategories.length}/{DATA_CATEGORIES.length})
-            </span>
+      {(requestClose) => (
+        <form
+          noValidate
+          onSubmit={submit}
+          aria-busy={pending}
+          className="relative w-full max-w-xl glass-modal border border-black/10 dark:border-white/10 rounded-3xl shadow-2xl flex flex-col max-h-[90dvh] text-gray-950 dark:text-white"
+        >
+          <div className="p-6 pr-14 border-b border-black/10 dark:border-white/10">
+            <h2 className="text-lg font-bold">{t.title}</h2>
+            <p className="text-sm mt-2">{t.intro}</p>
             <button
               type="button"
-              onClick={toggleAll}
-              className="text-xs font-semibold text-gray-950 dark:text-white hover:underline transition-colors cursor-pointer"
+              onClick={requestClose}
+              aria-label={t.close}
+              className="absolute top-4 right-4 p-2 rounded-xl hover:bg-black/10 dark:hover:bg-white/10 focus-visible:outline cursor-pointer"
             >
-              {selectedCategories.length === DATA_CATEGORIES.length ? 'Deselect All' : 'Select All'}
+              <X size={18} />
             </button>
           </div>
-
-          {/* Category Checkboxes List */}
-          <div className="space-y-2">
-            {DATA_CATEGORIES.map((category) => {
-              const isSelected = selectedCategories.includes(category.id);
-              return (
-                <div
-                  key={category.id}
-                  onClick={() => toggleCategory(category.id)}
-                  className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-start gap-3 select-none ${
-                    isSelected
-                      ? 'bg-black/10 dark:bg-white/10 border-black/20 dark:border-white/20 shadow-xs'
-                      : 'bg-black/[0.02] dark:bg-white/[0.02] border-black/5 dark:border-white/5 hover:bg-black/[0.05] dark:hover:bg-white/[0.05]'
-                  }`}
+          <div className="overflow-y-auto p-6 space-y-4">
+            <p className="text-xs leading-relaxed">{t.scope}</p>
+            <p className="text-xs leading-relaxed">{t.safety}</p>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => setSelected(selected.length === SECTIONS.length ? [] : SECTIONS)}
+              className="text-sm underline focus-visible:outline cursor-pointer disabled:cursor-not-allowed"
+            >
+              {selected.length === SECTIONS.length ? t.deselect : t.select}
+            </button>
+            <fieldset disabled={pending} className="grid gap-2">
+              <legend className="sr-only">{t.title}</legend>
+              {SECTIONS.map((section) => (
+                <label
+                  key={section}
+                  className="flex items-center gap-3 p-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer"
                 >
-                  <div className="mt-0.5 text-gray-950 dark:text-white shrink-0">
-                    {isSelected ? (
-                      <CheckSquare className="w-5 h-5 text-gray-950 dark:text-white" />
-                    ) : (
-                      <Square className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-                    )}
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      {category.icon}
-                      <span className="text-xs font-bold text-gray-950 dark:text-white">
-                        {category.title}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-gray-600 dark:text-gray-400 mt-1 leading-normal">
-                      {category.description}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Modal Footer Actions */}
-        <div className="p-5 border-t border-black/10 dark:border-white/10 bg-black/[0.03] dark:bg-white/[0.03] flex items-center justify-end gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2.5 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-950 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
-          >
-            I changed my mind
-          </button>
-
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={selectedCategories.length === 0 || isSubmitted}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              isSubmitted
-                ? 'bg-emerald-600 text-white'
-                : selectedCategories.length === 0
-                  ? 'bg-black/10 dark:bg-white/10 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                  : 'bg-gray-950 text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-white/90 shadow-md'
-            }`}
-          >
-            {isSubmitted ? (
-              <>
-                <ShieldCheck className="w-4 h-4" />
-                <span>Request Submitted!</span>
-              </>
-            ) : (
-              <>
-                <Download className="w-4 h-4" />
-                <span>Request My Data</span>
-              </>
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(section)}
+                    onChange={() =>
+                      setSelected((values) =>
+                        values.includes(section)
+                          ? values.filter((value) => value !== section)
+                          : [...values, section],
+                      )
+                    }
+                    className="size-4 accent-purple-600"
+                  />
+                  <span className="text-sm">{t.sections[section]}</span>
+                </label>
+              ))}
+            </fieldset>
+            <Input
+              label={t.password}
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              maxLength={256}
+              value={password}
+              disabled={pending}
+              onChange={(event) => setPassword(event.target.value)}
+              className="text-gray-950 dark:text-white"
+              rightElement={
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? t.hide : t.show}
+                  className="p-1 focus-visible:outline cursor-pointer"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              }
+            />
+            <p role="status" className="text-sm min-h-5">
+              {status}
+            </p>
+            {error && (
+              <p role="alert" className="text-sm text-red-700 dark:text-red-300">
+                {error}
+              </p>
             )}
-          </button>
-        </div>
-      </div>
-    </div>,
-    document.body,
+          </div>
+          <div className="p-5 border-t border-black/10 dark:border-white/10 flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={requestClose}
+              className="px-4 py-2 rounded-xl hover:bg-black/10 dark:hover:bg-white/10 focus-visible:outline cursor-pointer"
+            >
+              {t.cancel}
+            </button>
+            <button
+              type="submit"
+              disabled={pending || !password || !selected.length}
+              className="min-w-40 px-4 py-2 rounded-xl bg-purple-700 text-white hover:bg-purple-600 focus-visible:outline focus-visible:outline-offset-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              <Download size={16} />
+              {pending ? t.preparing : t.download}
+            </button>
+          </div>
+        </form>
+      )}
+    </Modal>
   );
-};
+}
+
+export function RequestDataPackageModal({
+  isOpen,
+  onClose,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}) {
+  const userId = useAuthStore((state) => state.userId);
+  return isOpen ? <DataPackageDialog key={userId} onClose={onClose} /> : null;
+}
