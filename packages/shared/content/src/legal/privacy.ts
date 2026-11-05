@@ -49,7 +49,7 @@ export const PRIVACY_SECTIONS_EN: PrivacySection[] = [
         id: 'who-we-are',
         title: '1.3 Who Runs Eternal',
         content: [
-          'Eternal is operated in Ukraine by its founders the project founders (operator identity not published). When you use our services, we act as the data controller of your account information under applicable global privacy regulations.',
+          'Eternal is operated in Ukraine by its founders. Complete operator identification has not been published. When you use our services, we act as the data controller of your account information under applicable global privacy regulations.',
         ],
       },
     ],
@@ -310,15 +310,15 @@ export const PRIVACY_SECTIONS_EN: PrivacySection[] = [
     number: '7',
     title: 'Contact Us',
     iconName: 'Mail',
-    tldr: 'If you ever have a question about your privacy, need help with your data, or want to speak with our Data Protection Officer, we are here to help.',
+    tldr: 'A private contact address has not been provided. A DPO appointment has not been confirmed.',
     subsections: [
       {
         id: 'reach-out',
         title: '7.1 How to Contact Our Privacy Team',
         content: [
-          'Email us at privacy@eternal.app with any questions about this Privacy Policy or how we process your information. We will be happy to help.',
-          'To contact Eternal’s Data Protection Officer, please email dpo@eternal.app.',
-          'For security vulnerability disclosures or bug bounty reports, email security@eternal.app.',
+          'A private contact address has not been provided. Do not submit personal data through public issues.',
+          'A DPO appointment has not been confirmed. A private contact address has not been provided. Do not submit personal data through public issues.',
+          'A private contact address has not been provided. Do not submit personal data through public issues.',
         ],
       },
     ],
@@ -358,7 +358,7 @@ export const PRIVACY_SECTIONS_UK: PrivacySection[] = [
         id: 'who-we-are',
         title: '1.3 Хто керує Eternal',
         content: [
-          'Eternal — це проєкт, яким керують засновники засновники проєкту (ідентифікаційні дані операторів не опубліковано), які керують проєктом Eternal в Україні. Ми виступаємо розпорядником даних вашого облікового запису відповідно до міжнародного законодавства про захист персональних даних.',
+          'Eternal — проєкт, яким керують його засновники з України. Повні ідентифікаційні дані операторів не опубліковано. Під час використання сервісу оператори визначають цілі та способи обробки даних вашого облікового запису.',
         ],
       },
     ],
@@ -619,9 +619,9 @@ export const PRIVACY_SECTIONS_UK: PrivacySection[] = [
         id: 'reach-out',
         title: '7.1 Як зв’язатися з відділом конфіденційності',
         content: [
-          'Напишіть нам на privacy@eternal.app із будь-якими запитаннями щодо цієї Політики конфіденційності або обробки ваших даних.',
-          'Для зв’язку з офіцером із захисту даних (DPO): dpo@eternal.app.',
-          'Звіти про безпеку та вразливості: security@eternal.app.',
+          'Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
+          'Призначення DPO не підтверджено. Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
+          'Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
         ],
       },
     ],

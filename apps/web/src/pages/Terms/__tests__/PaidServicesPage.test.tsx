@@ -50,7 +50,9 @@ describe('PaidServicesPage', () => {
     );
 
     expect(screen.getByText(/14-Day Right of Withdrawal/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/billing@eternal\.app/i).length).toBeGreaterThanOrEqual(1);
+    expect(
+      screen.getAllByText(/private contact address has not been provided/i).length,
+    ).toBeGreaterThanOrEqual(1);
   });
 
   it('supports Ukrainian language switching', () => {

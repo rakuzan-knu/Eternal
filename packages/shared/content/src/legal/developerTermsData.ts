@@ -145,7 +145,7 @@ export const DEVELOPER_TERMS_DATA: Record<'en' | 'uk', DeveloperTermsTranslation
         number: '6',
         title: 'Developer Support & Inquiries',
         iconName: 'Mail',
-        tldr: 'For API technical assistance, developer tier upgrades, or bot verification, contact developers@eternal.app.',
+        tldr: 'A private contact address has not been provided. Do not submit personal data through public issues.',
         subsections: [
           {
             id: 'dev-contacts',
@@ -154,9 +154,7 @@ export const DEVELOPER_TERMS_DATA: Record<'en' | 'uk', DeveloperTermsTranslation
               'For developer support, API partnership inquiries, or bot verification requests, please reach out to:',
             ],
             bullets: [
-              'Developer Operations: developers@eternal.app',
-              'Security & Vulnerability Reports: security@eternal.app',
-              'Legal & Licensing: legal@eternal.app',
+              'A private contact address has not been provided. Do not submit personal data through public issues.',
               'Project operators: the project founders (operator identity not published), Ukraine',
             ],
           },
@@ -272,16 +270,14 @@ export const DEVELOPER_TERMS_DATA: Record<'en' | 'uk', DeveloperTermsTranslation
         number: '6',
         title: 'Підтримка розробників',
         iconName: 'Mail',
-        tldr: 'З технічних питань та верифікації ботів звертайтеся на developers@eternal.app.',
+        tldr: 'Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
         subsections: [
           {
             id: 'dev-contacts',
             title: '6.1 Контактні реквізити',
             content: ['Служба підтримки розробників Eternal:'],
             bullets: [
-              'Відділ розробників: developers@eternal.app',
-              'Безпека та баг-баунті: security@eternal.app',
-              'Юридичний відділ: legal@eternal.app',
+              'Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
               'Оператори проєкту: засновники проєкту (ідентифікаційні дані операторів не опубліковано), Україна',
             ],
           },
