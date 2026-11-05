@@ -31,6 +31,7 @@ import {
   PaginatedMessages,
 } from '../../../entities/chat/model/types';
 import { mutationOutbox, mutationOutboxDb } from '@/shared/lib/outbox/mutationOutbox';
+import { isDesktop } from '@/shared/lib/platform';
 
 const clientSeqMap = new Map<string, number>();
 
@@ -937,6 +938,7 @@ export function useMessageActions(conversationId: string | null) {
   const markRead = useCallback(
     (lastReadMessageId?: string) => {
       if (!conversationId) return;
+      if (isDesktop() && document.hidden) return;
       if (lastReadMessageId && lastReadMessageIdRef.current === lastReadMessageId) return;
       if (lastReadMessageId) lastReadMessageIdRef.current = lastReadMessageId;
 
@@ -945,6 +947,7 @@ export function useMessageActions(conversationId: string | null) {
       }
 
       markReadTimeoutRef.current = setTimeout(() => {
+        if (isDesktop() && (document.hidden || useAuthStore.getState().userId !== userId)) return;
         flushRealtimeChatBatch(queryClient);
         updateConversationLists(queryClient, (prev: ConversationView[] | undefined) =>
           prev?.map((conversation: ConversationView) =>
@@ -955,8 +958,21 @@ export function useMessageActions(conversationId: string | null) {
         chatApi.markRead?.(conversationId)?.catch?.(() => {});
       }, 350);
     },
-    [socket, conversationId, queryClient],
+    [socket, conversationId, queryClient, userId],
   );
+
+  useEffect(() => {
+    if (!isDesktop()) return;
+    const visible = () => {
+      if (!document.hidden) markRead();
+    };
+    document.addEventListener('visibilitychange', visible);
+    return () => {
+      document.removeEventListener('visibilitychange', visible);
+      if (markReadTimeoutRef.current) clearTimeout(markReadTimeoutRef.current);
+      lastReadMessageIdRef.current = null;
+    };
+  }, [markRead]);
 
   const batchDeleteMessages = useCallback(
     async (messageIds: string[], forAll: boolean) => {

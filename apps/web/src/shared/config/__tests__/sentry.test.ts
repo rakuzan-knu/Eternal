@@ -9,6 +9,21 @@ vi.mock('@sentry/react', () => ({
 }));
 
 describe('sentry', () => {
+  it('respects the synchronous desktop telemetry policy before initializing', () => {
+    vi.stubEnv('PROD', true);
+    vi.stubEnv('VITE_SENTRY_DSN', 'https://prodkey@sentry.io/12345');
+    Object.defineProperty(window, 'desktop', {
+      configurable: true,
+      value: { telemetryDisabled: true },
+    });
+    try {
+      initSentry();
+      expect(Sentry.init).not.toHaveBeenCalled();
+    } finally {
+      Reflect.deleteProperty(window, 'desktop');
+      vi.unstubAllEnvs();
+    }
+  });
   it('identifies invitation credentials in errors, breadcrumbs and navigation URLs', () => {
     expect(
       containsInvitationCredential({ data: { url: 'https://eternal.test/invite/secret' } }),

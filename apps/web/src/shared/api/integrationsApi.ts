@@ -1,6 +1,27 @@
 import { apiClient } from '@/shared/api/httpClient';
 
 export const integrationsApi = {
+  startDesktopYouTube: async (
+    challenge: string,
+    signal?: AbortSignal,
+  ): Promise<{ url: string; transaction: string }> => {
+    const response = await apiClient.post<{ url: string; transaction: string }>(
+      '/integrations/youtube/desktop/start',
+      { challenge },
+      { signal },
+    );
+    return response.data;
+  },
+  redeemDesktopYouTube: async (
+    body: { code: string; transaction: string; verifier: string },
+    signal?: AbortSignal,
+  ): Promise<{ success: boolean; data: Record<string, unknown> | null }> => {
+    const response = await apiClient.post<{
+      success: boolean;
+      data: Record<string, unknown> | null;
+    }>('/integrations/youtube/desktop/redeem', body, { signal });
+    return response.data;
+  },
   startOAuth: async (
     platform: string,
     signal?: AbortSignal,

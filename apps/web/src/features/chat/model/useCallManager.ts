@@ -4,6 +4,7 @@ import { CONVERSATIONS_KEY } from '@/shared/api/queryKeys';
 import { useCallStore, type IncomingCallData } from './callStore';
 import { useWebRTC } from './useWebRTC';
 import { useWakeLock } from './useWakeLock';
+import { useDesktopCallActions } from './useDesktopCallActions';
 import { getSocket } from '@/shared/api/socket';
 import { WS_EVENTS } from '@backend/messenger/events/ws-events';
 import {
@@ -484,7 +485,7 @@ export function useCallManager(initialIncomingCall: IncomingCallData | null = nu
           title: `Incoming ${normalizedCallType === 'video' ? 'Video' : 'Voice'} Call`,
           body: `${data.caller.displayName || data.caller.username} is calling you...`,
           icon: data.caller.avatar,
-          url: `/chat?conv=${data.conversationId}&callId=${data.callId}`,
+          url: `/messages/${encodeURIComponent(data.conversationId)}?callId=${encodeURIComponent(data.callId)}`,
           tag: `incoming-call-${data.callId}`,
         });
       }
@@ -1281,6 +1282,18 @@ export function useCallManager(initialIncomingCall: IncomingCallData | null = nu
   rejectCallRef.current = rejectCall;
   endCallRef.current = endCall;
   toggleMuteRef.current = toggleMute;
+  const desktopToggleMute = useCallback(() => {
+    const state = useCallStore.getState();
+    if (!state.isPTTEnabled || !state.isMuted) toggleMute();
+  }, [toggleMute]);
+  const desktopPttKey = useCallStore((s) => s.pttKey);
+  useDesktopCallActions(callStatus === 'connected', 'call', desktopToggleMute, {
+    enabled: ptt.isPTTEnabled,
+    key: desktopPttKey,
+    press: ptt.startTalking,
+    release: ptt.stopTalkingWithTail,
+    reset: ptt.stopTalkingImmediately,
+  });
 
   return useMemo(
     () => ({

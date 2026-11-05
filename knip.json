@@ -24,6 +24,16 @@
   ],
   "ignoreBinaries": ["msw", "chromatic"],
   "workspaces": {
+    "apps/desktop": {
+      "entry": [
+        "src/main/index.ts",
+        "src/preload/index.ts",
+        "*.config.ts",
+        "scripts/*.ts",
+        "e2e/*.ts"
+      ],
+      "project": ["src/**/*.ts", "scripts/**/*.ts", "e2e/**/*.ts"]
+    },
     ".": {
       "entry": [
         "scripts/utils/log.js",

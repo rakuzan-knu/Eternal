@@ -14,6 +14,7 @@ import { useCallStore } from './callStore';
 import { playPTTPressChirp, playPTTReleaseChirp } from '../lib/callRingtone';
 import { triggerHaptic } from '../lib/webrtc/hapticFeedback';
 import { isEditableElement, matchesPTTKey } from './usePushToTalk';
+import { isDesktop } from '@/shared/lib/platform';
 
 export interface UseCallKeyboardShortcutsOptions {
   onToggleMute?: () => void;
@@ -93,7 +94,13 @@ export function useCallKeyboardShortcuts(options: UseCallKeyboardShortcutsOption
       const hasModifiers = e.ctrlKey || e.metaKey || e.altKey;
 
       // 1. Push-to-Talk (Hold) - only when NOT modified by Ctrl / Meta / Alt
-      if (currentPTTEnabled && !hasModifiers && matchesPTTKey(e, currentPttKey) && !e.repeat) {
+      if (
+        !isDesktop() &&
+        currentPTTEnabled &&
+        !hasModifiers &&
+        matchesPTTKey(e, currentPttKey) &&
+        !e.repeat
+      ) {
         e.preventDefault();
         startTalking();
         return;
@@ -141,14 +148,14 @@ export function useCallKeyboardShortcuts(options: UseCallKeyboardShortcutsOption
       const currentPTTEnabled = useCallStore.getState().isPTTEnabled;
       const currentPttKey = useCallStore.getState().pttKey || 'KeyV';
 
-      if (currentPTTEnabled && matchesPTTKey(e, currentPttKey)) {
+      if (!isDesktop() && currentPTTEnabled && matchesPTTKey(e, currentPttKey)) {
         e.preventDefault();
         stopTalkingWithTail();
       }
     };
 
     const handleBlur = () => {
-      if (useCallStore.getState().isPTTActive) {
+      if (!isDesktop() && useCallStore.getState().isPTTActive) {
         stopTalkingWithTail();
       }
     };

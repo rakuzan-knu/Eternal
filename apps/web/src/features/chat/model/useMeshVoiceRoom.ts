@@ -2,6 +2,9 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useChatSocket } from './useChatSocket';
 import { useAuthStore } from '@/shared/model/useAuthStore';
 import { MeshVoiceRoomManager, VoiceMeshSignalPayload } from '../lib/webrtc/meshVoiceRoom';
+import { useWakeLock } from './useWakeLock';
+import { useDesktopCallActions } from './useDesktopCallActions';
+import { useMeshPushToTalk } from './useMeshPushToTalk';
 
 export function useMeshVoiceRoom() {
   const socket = useChatSocket();
@@ -16,6 +19,7 @@ export function useMeshVoiceRoom() {
   const [isDeafened, setIsDeafened] = useState(false);
 
   const managerRef = useRef<MeshVoiceRoomManager | null>(null);
+  useWakeLock(isConnected, 'mesh');
 
   useEffect(() => {
     if (!currentUserId || !socket) return;
@@ -110,17 +114,29 @@ export function useMeshVoiceRoom() {
     setIsLocalSpeaking(false);
   }, []);
 
+  const setMicrophoneMuted = useCallback((muted: boolean) => {
+    if (!managerRef.current) return;
+    setIsMuted(managerRef.current.toggleMute(muted));
+  }, []);
+  const ptt = useMeshPushToTalk(isConnected, isDeafened, setMicrophoneMuted);
+
   const toggleMute = useCallback(() => {
     if (!managerRef.current) return;
+    if (ptt.enabled && isMuted) return;
     const next = managerRef.current.toggleMute();
     setIsMuted(next);
-  }, []);
+  }, [ptt.enabled, isMuted]);
 
   const toggleDeafen = useCallback(() => {
     if (!managerRef.current) return;
     const next = managerRef.current.toggleDeafen();
     setIsDeafened(next);
   }, []);
+
+  const desktopToggleMute = useCallback(() => {
+    if (!ptt.enabled || !isMuted) toggleMute();
+  }, [ptt.enabled, isMuted, toggleMute]);
+  useDesktopCallActions(isConnected, 'mesh', desktopToggleMute, ptt);
 
   return {
     isConnected,
