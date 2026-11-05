@@ -53,16 +53,17 @@ describe('YourDataPackagePage', () => {
     ).toBeGreaterThanOrEqual(1);
   });
 
-  it('renders DPO contact information with Kyiv, Ukraine address', () => {
+  it('renders DPO contact information with Ukraine address', () => {
     render(
       <MemoryRouter>
         <YourDataPackagePage />
       </MemoryRouter>,
     );
 
-    expect(screen.getAllByText(/dpo@eternal\.app/i).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText(/privacy@eternal\.app/i).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText(/Kyiv, Ukraine/i).length).toBeGreaterThanOrEqual(1);
+    expect(
+      screen.getAllByText(/private contact address has not been provided/i).length,
+    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/Ukraine/i).length).toBeGreaterThanOrEqual(1);
   });
 
   it('supports Ukrainian language switching', () => {

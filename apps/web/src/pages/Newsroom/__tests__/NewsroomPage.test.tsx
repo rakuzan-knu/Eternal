@@ -102,7 +102,11 @@ describe('Newsroom Page (/newsroom)', () => {
     expect(contactBtn).toBeInTheDocument();
 
     fireEvent.click(contactBtn);
-    expect(window.location.href).toBe('mailto:aghnikolaj1@gmail.com');
+    expect(contactBtn).toBeDisabled();
+    expect(window.location.href).toBe('');
+    expect(
+      screen.getByText(/private press contact address has not been provided/i),
+    ).toBeInTheDocument();
 
     // Restore location
     Object.defineProperty(window, 'location', {

@@ -41,7 +41,7 @@ export const TERMS_SECTIONS: TermsSection[] = [
         id: 'company-details',
         title: '1.2 Who Runs Eternal',
         content: [
-          'When we say "Eternal", "we", "us", or "our", we mean Ag Mykola and Ag Mihal, the founders operating the Eternal project in Ukraine.',
+          'When we say "Eternal", "we", "us", or "our", we mean the project founders (operator identity not published), operating the Eternal project in Ukraine.',
         ],
       },
     ],
@@ -109,7 +109,7 @@ export const TERMS_SECTIONS: TermsSection[] = [
         title: '4.1 Creating and Securing Your Account',
         content: [
           'To use Eternal, you must create an account with an email, username, and secure password. You agree to provide accurate information and keep it up to date.',
-          'You are responsible for all activity that occurs under your account. We strongly recommend enabling Two-Factor Authentication (2FA) and using a unique, strong password. If you suspect your account has been compromised, notify us immediately at security@eternal.app.',
+          'You are responsible for all activity that occurs under your account. We strongly recommend enabling Two-Factor Authentication (2FA) and using a unique, strong password. A private contact address has not been provided. Do not submit personal data through public issues.',
         ],
       },
       {
@@ -293,7 +293,7 @@ export const TERMS_SECTIONS: TermsSection[] = [
         id: 'dmca-notices',
         title: '7.1 DMCA & Copyright Infringement Notices',
         content: [
-          'If you are a copyright owner or authorized agent and believe content hosted on Eternal infringes your copyright, you may submit a formal notification to copyright@eternal.app with details of the copyrighted work, URL location, and your contact info.',
+          'Copyright owners and authorized representatives may seek removal of infringing content. A private copyright contact address has not been provided; this notice does not remove those rights. Do not submit personal data through public issues.',
           'We will respond promptly to valid notices and terminate the accounts of repeat infringers in appropriate circumstances.',
         ],
       },
@@ -317,7 +317,7 @@ export const TERMS_SECTIONS: TermsSection[] = [
         id: 'eternal-termination-appeals',
         title: '8.2 Account Suspension & Appeals',
         content: [
-          'We may suspend or terminate accounts that repeatedly or severely violate these Terms or our Community Guidelines. If you believe a moderation action was taken in error, you can submit an appeal through our support portal or by emailing appeals@eternal.app.',
+          'We may suspend or terminate accounts that repeatedly or severely violate these Terms or our Community Guidelines. You may contest a moderation decision. A private appeal contact address has not been provided. Do not submit personal data through public issues.',
         ],
       },
     ],
@@ -340,7 +340,7 @@ export const TERMS_SECTIONS: TermsSection[] = [
         id: 'dispute-resolution',
         title: '9.2 Informal Dispute Resolution',
         content: [
-          'If you have a dispute with Eternal, you agree to first contact us at legal@eternal.app and attempt to resolve the issue informally and in good faith before initiating formal arbitration or court proceedings.',
+          'A private dispute contact address has not been provided. This missing contact channel does not limit your mandatory rights or access to a competent court or supervisory authority. Do not submit personal data through public issues.',
         ],
       },
     ],
@@ -356,9 +356,7 @@ export const TERMS_SECTIONS: TermsSection[] = [
         id: 'contact-details',
         title: '10.1 How to Contact Us',
         content: [
-          'For legal and terms questions: legal@eternal.app',
-          'For privacy and data protection: privacy@eternal.app',
-          'For general support and feedback: support@eternal.app',
+          'A private contact address has not been provided. Do not submit personal data through public issues.',
         ],
       },
     ],
@@ -390,7 +388,7 @@ export const TERMS_SECTIONS_UK: TermsSection[] = [
         id: 'company-details',
         title: '1.2 Хто керує Eternal',
         content: [
-          'Під назвою «Eternal», «ми», «нас» або «наш» маються на увазі засновники Ag Mykola та Ag Mihal, які керують проєктом Eternal в Україні.',
+          'Під назвою «Eternal», «ми», «нас» або «наш» маються на увазі засновники проєкту (ідентифікаційні дані операторів не опубліковано), які керують проєктом Eternal в Україні.',
         ],
       },
     ],
@@ -458,7 +456,7 @@ export const TERMS_SECTIONS_UK: TermsSection[] = [
         title: '4.1 Створення та захист профілю',
         content: [
           'Для користування Eternal ви створюєте профіль із надійним паролем. Ви зобов’язуєтеся надавати актуальну інформацію.',
-          'Ви відповідаєте за всі дії у своєму акаунті. Рекомендуємо увімкнути двофакторну автентифікацію (2FA). У разі підозри на злам негайно напишіть нам на security@eternal.app.',
+          'Ви відповідаєте за всі дії у своєму акаунті. Рекомендуємо увімкнути двофакторну автентифікацію (2FA). Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
         ],
       },
       {
@@ -586,7 +584,7 @@ export const TERMS_SECTIONS_UK: TermsSection[] = [
         id: 'dmca-notices',
         title: '7.1 Повідомлення про порушення авторських прав',
         content: [
-          'Якщо ви вважаєте, що контент на Eternal порушує ваші авторські права, надішліть офіційне повідомлення на copyright@eternal.app.',
+          'Правовласники та їхні уповноважені представники можуть вимагати видалення контенту, що порушує їхні права. Приватну контактну адресу для таких звернень не надано; це не скасовує зазначених прав. Не надсилайте персональні дані через публічні звернення.',
         ],
       },
     ],
@@ -609,7 +607,7 @@ export const TERMS_SECTIONS_UK: TermsSection[] = [
         id: 'eternal-termination-appeals',
         title: '8.2 Блокування акаунтів та апеляції',
         content: [
-          'Ми можемо призупинити дію акаунтів за грубі порушення Умов. Ви можете подати апеляцію, написавши на appeals@eternal.app.',
+          'Ми можемо призупинити дію акаунтів за грубі порушення Умов. Ви можете оскаржувати рішення модерації. Приватну контактну адресу для апеляцій не надано. Не надсилайте персональні дані через публічні звернення.',
         ],
       },
     ],
@@ -632,7 +630,7 @@ export const TERMS_SECTIONS_UK: TermsSection[] = [
         id: 'dispute-resolution',
         title: '9.2 Досудове врегулювання спорів',
         content: [
-          'У разі виникнення спорів ви погоджуєтеся спочатку звернутися до нас за адресою legal@eternal.app для мирного вирішення питання.',
+          'Приватну контактну адресу для врегулювання спорів не надано. Відсутність цього каналу не обмежує ваших невідчужуваних прав або звернення до компетентного суду чи наглядового органу. Не надсилайте персональні дані через публічні звернення.',
         ],
       },
     ],
@@ -648,9 +646,7 @@ export const TERMS_SECTIONS_UK: TermsSection[] = [
         id: 'contact-details',
         title: '10.1 Контактна інформація',
         content: [
-          'Юридичні питання: legal@eternal.app',
-          'Конфіденційність: privacy@eternal.app',
-          'Служба підтримки: support@eternal.app',
+          'Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
         ],
       },
     ],

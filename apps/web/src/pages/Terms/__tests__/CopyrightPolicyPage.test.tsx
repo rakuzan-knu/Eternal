@@ -48,15 +48,17 @@ describe('CopyrightPolicyPage', () => {
     ).toBeGreaterThanOrEqual(1);
   });
 
-  it('renders Designated Agent email and Kyiv location', () => {
+  it('renders Designated Agent email and country and missing contact', () => {
     render(
       <MemoryRouter>
         <CopyrightPolicyPage />
       </MemoryRouter>,
     );
 
-    expect(screen.getAllByText(/copyright@eternal\.app/i).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText(/Kyiv, Ukraine/i).length).toBeGreaterThanOrEqual(1);
+    expect(
+      screen.getAllByText(/private contact address has not been provided/i).length,
+    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/Ukraine/i).length).toBeGreaterThanOrEqual(1);
   });
 
   it('supports Ukrainian language switching', () => {

@@ -283,7 +283,7 @@ export const DATA_PACKAGE_DATA: Record<'en' | 'uk', DataPackageTranslation> = {
         number: '5',
         title: 'Legal Rights & Data Protection Officer',
         iconName: 'ShieldAlert',
-        tldr: 'Under GDPR Article 20 and Ukrainian Law No. 2297-VI, you hold full data portability rights. Contact our DPO in Kyiv, Ukraine for inquiries.',
+        tldr: 'A private contact address has not been provided. A DPO appointment has not been confirmed.',
         subsections: [
           {
             id: 'legal-compliance',
@@ -293,9 +293,9 @@ export const DATA_PACKAGE_DATA: Record<'en' | 'uk', DataPackageTranslation> = {
               'If you permanently lose access to your account and require your data package for legal proceedings or personal records, you can submit an off-platform verified request to our privacy team.',
             ],
             bullets: [
-              'Data Protection Officer (DPO): dpo@eternal.app',
-              'Legal & Privacy Inquiries: privacy@eternal.app',
-              'Project operators: Ag Mykola and Ag Mihal, Ukraine',
+              'A DPO appointment has not been confirmed. A private contact address has not been provided. Do not submit personal data through public issues.',
+              'A private contact address has not been provided. Do not submit personal data through public issues.',
+              'Project operators: the project founders (operator identity not published), Ukraine',
             ],
           },
         ],
@@ -532,7 +532,7 @@ export const DATA_PACKAGE_DATA: Record<'en' | 'uk', DataPackageTranslation> = {
         number: '5',
         title: 'Права на перенесення даних та контакти DPO',
         iconName: 'ShieldAlert',
-        tldr: 'Згідно зі ст. 20 GDPR та Законом України № 2297-VI, ви маєте право на перенесення даних. Контакти DPO у м. Київ, Україна.',
+        tldr: 'Згідно зі ст. 20 GDPR та Законом України № 2297-VI, ви маєте право на перенесення даних. Контакти DPO у м. Україна (поштову адресу не надано).',
         subsections: [
           {
             id: 'legal-compliance',
@@ -542,9 +542,9 @@ export const DATA_PACKAGE_DATA: Record<'en' | 'uk', DataPackageTranslation> = {
               'Якщо ви втратили доступ до облікового запису та потребуєте копію даних для юридичних цілей, зверніться до нашої служби безпеки:',
             ],
             bullets: [
-              'Офіцер із захисту даних (DPO): dpo@eternal.app',
-              'Юридичний відділ: privacy@eternal.app',
-              'Оператори проєкту: Ag Mykola та Ag Mihal, Україна',
+              'Призначення DPO не підтверджено. Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
+              'Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
+              'Оператори проєкту: засновники проєкту (ідентифікаційні дані операторів не опубліковано), Україна',
             ],
           },
         ],

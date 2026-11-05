@@ -142,7 +142,7 @@ export const RETENTION_POLICY_DATA: Record<'en' | 'uk', RetentionPolicyTranslati
         number: '5',
         title: 'Your Legal Rights & Contact Information',
         iconName: 'Mail',
-        tldr: 'You have full rights under GDPR and Ukrainian law to access, rectify, or erase your data. Contact our Data Protection Officer in Kyiv, Ukraine.',
+        tldr: 'A private contact address has not been provided. A DPO appointment has not been confirmed.',
         subsections: [
           {
             id: 'dpo-retention-contacts',
@@ -151,9 +151,9 @@ export const RETENTION_POLICY_DATA: Record<'en' | 'uk', RetentionPolicyTranslati
               'If you have questions regarding our data retention schedules, need assistance deleting specific historical content, or wish to exercise your rights of access or erasure, please reach out directly:',
             ],
             bullets: [
-              'Data Protection Officer (DPO): dpo@eternal.app',
-              'Privacy & Legal Department: privacy@eternal.app',
-              'Project operators: Ag Mykola and Ag Mihal, Ukraine',
+              'A DPO appointment has not been confirmed. A private contact address has not been provided. Do not submit personal data through public issues.',
+              'A private contact address has not been provided. Do not submit personal data through public issues.',
+              'Project operators: the project founders (operator identity not published), Ukraine',
               'Supervisory Inquiries: Secretariat of the Ukrainian Parliament Commissioner for Human Rights or your local European DPA.',
             ],
           },
@@ -168,7 +168,7 @@ export const RETENTION_POLICY_DATA: Record<'en' | 'uk', RetentionPolicyTranslati
       effectiveDate: 'Набуття чинності: 1 вересня 2026 р. • Останнє оновлення: 30 серпня 2026 р.',
       lastUpdated: 'Останнє оновлення: 30 серпня 2026 р.',
       description:
-        'Ця Політика зберігання описує строки та підстави збереження різних категорій персональних даних проєктом Eternal, яким керують Ag Mykola та Ag Mihal в Україні, умови їх автоматичного видалення та інструменти самостійного керування контентом.',
+        'Ця Політика зберігання описує строки та підстави збереження різних категорій персональних даних проєктом Eternal, яким керують засновники проєкту (ідентифікаційні дані операторів не опубліковано) в Україні, умови їх автоматичного видалення та інструменти самостійного керування контентом.',
     },
     toc: {
       contents: 'Зміст документа',
@@ -267,18 +267,16 @@ export const RETENTION_POLICY_DATA: Record<'en' | 'uk', RetentionPolicyTranslati
         number: '5',
         title: 'Ваші права та контакти',
         iconName: 'Mail',
-        tldr: 'Ви маєте право на доступ, виправлення та повне видалення своїх даних. Звертайтеся до нашого Офіцера із захисту даних у м. Київ, Україна.',
+        tldr: 'Приватну контактну адресу не надано. Призначення DPO не підтверджено.',
         subsections: [
           {
             id: 'dpo-retention-contacts',
             title: '5.1 Контактна інформація',
-            content: [
-              'З усіх питань щодо строків зберігання та видалення персональних даних звертайтеся:',
-            ],
+            content: ['Призначення DPO та приватний канал зв’язку не підтверджено.'],
             bullets: [
-              'Офіцер із захисту даних (DPO): dpo@eternal.app',
-              'Юридичний департамент: privacy@eternal.app',
-              'Оператори проєкту: Ag Mykola та Ag Mihal, Україна',
+              'Призначення DPO не підтверджено. Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
+              'Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
+              'Оператори проєкту: засновники проєкту (ідентифікаційні дані операторів не опубліковано), Україна',
               'Секретаріат Уповноваженого ВРУ з прав людини: hotline@ombudsman.gov.ua',
             ],
           },

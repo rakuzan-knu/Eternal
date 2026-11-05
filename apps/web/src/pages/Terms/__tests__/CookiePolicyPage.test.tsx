@@ -47,16 +47,17 @@ describe('CookiePolicyPage', () => {
     expect(screen.getByText(/Performance & Analytics Cookies:/i)).toBeInTheDocument();
   });
 
-  it('renders contact details with Kyiv location and emails', () => {
+  it('renders contact details with country and missing contact and emails', () => {
     render(
       <MemoryRouter>
         <CookiePolicyPage />
       </MemoryRouter>,
     );
 
-    expect(screen.getByText(/privacy@eternal\.app/i)).toBeInTheDocument();
-    expect(screen.getByText(/dpo@eternal\.app/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/Kyiv, Ukraine/i).length).toBeGreaterThanOrEqual(1);
+    expect(
+      screen.getAllByText(/private contact address has not been provided/i).length,
+    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/Ukraine/i).length).toBeGreaterThanOrEqual(1);
   });
 
   it('supports Ukrainian language switching', () => {

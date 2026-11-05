@@ -104,7 +104,7 @@ Remaining original audit recommendations are not automatically closed by these c
 - All **18 Playwright scenarios passed in a single production-preview run** (1.2 minutes), using the built assets at 390px and 1280px with mocked APIs. This includes the two new malformed-response recovery scenarios and the existing ten audit regressions. The prior 16-test development-server run also passed. No build or source edit ran concurrently with this final browser run.
 - Chrome manual recheck confirmed that the same-origin HTML API fallback now renders the community error/retry surface instead of the global application error, including after the earlier bad response had been cached.
 - Final response-boundary suite: seven tests passed. Final hook-consumer/recipient retry compatibility run: 13 tests passed. Design generation/check, changed-boundary ESLint and diff whitespace checks passed with the existing lint warnings described above; no lint/typecheck rule was disabled.
-- Production-preview screenshots with explicit fixture data: `C:/Users/unbeatable/.codex/visualizations/2026/10/21/01a15dda-4c8f-7312-bd97-55ab0f50e492/premium-community-invite-desktop.png` and `premium-community-invite-mobile.png` in the same folder. They show the UI and are not proof of a deployed backend or real message delivery.
+- Production-preview screenshots with explicit fixture data: `<local-artifact>` and `premium-community-invite-mobile.png` in the same folder. They show the UI and are not proof of a deployed backend or real message delivery.
 
 ## Community workspace redesign — 22 October 2026
 
@@ -133,7 +133,7 @@ Production services, database migrations, two-account delivery, actual calls, al
 - All **24 Playwright scenarios passed in one production-preview run (1.9 minutes)** at 390px, 1280px and 1440px, with mocked APIs. This includes six new workspace scenarios for context, existing chat/draft continuity, channel filtering/focus, members, forged-channel rejection and invitation preview without acceptance. The previous run passed 22 and failed two invitation tests because a global locator matched both legitimate Invite people buttons. Scoping that locator to Community navigation fixed the tests without removing either action.
 - After the final header refinement, all 11 resolver/ChatThread tests passed. The existing JSDOM chat tests still log unsuccessful background XMLHttpRequests; the suite passes, but this is not evidence of real network delivery.
 - Final changed-boundary ESLint has zero errors and two existing ChatThread hook-dependency warnings. Design inventory generation/check, 26-guide documentation validation and diff whitespace checks passed. No lint rule, hook or type constraint was bypassed.
-- Final desktop/mobile channel screenshots and overview were visually inspected. Stable artifacts: `C:/Users/unbeatable/.codex/visualizations/2026/10/21/01a15dda-4c8f-7312-bd97-55ab0f50e492/eternal-community-workspace-desktop.png`, `eternal-community-workspace-mobile.png` and `eternal-community-overview.png` in the same directory. All use explicit fictional fixtures; no private Discord content is included.
+- Final desktop/mobile channel screenshots and overview were visually inspected. Stable artifacts: `<local-artifact>`, `eternal-community-workspace-mobile.png` and `eternal-community-overview.png` in the same directory. All use explicit fictional fixtures; no private Discord content is included.
 
 ## Channel organization continuation — 22 October 2026
 

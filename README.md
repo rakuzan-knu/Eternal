@@ -124,7 +124,7 @@ Detailed documentation, architecture deep dives, API specs, and runbooks are ava
 
 ## 📄 License
 
-Eternal's original proprietary materials are subject to the [Proprietary Software and Intellectual Property Notice](./LICENSE.md). Copyright © 2026 Ag Mykola and Ag Mihal. All rights reserved.
+Eternal's original proprietary materials are subject to the [Proprietary Software and Intellectual Property Notice](./LICENSE.md). Copyright © 2026 Eternal contributors. All rights reserved.
 
 Repository access does not grant a general license to copy, modify, run, self-host, or redistribute proprietary code. Applicable law, hosting-platform permissions, third-party licenses. See [third-party attributions](./apps/web/src/pages/Licenses/data/licensesData.ts) and the [licensing and contribution policy](./docs/legal/README.md).
 

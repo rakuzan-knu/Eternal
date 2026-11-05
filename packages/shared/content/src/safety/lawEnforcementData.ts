@@ -39,7 +39,7 @@ export const LAW_ENFORCEMENT_DATA: Record<'en' | 'uk', LawEnforcementTranslation
       effectiveDate: 'Effective: September 1, 2026 • Last updated: August 30, 2026',
       lastUpdated: 'Last Updated: August 30, 2026',
       description:
-        'These guidelines provide information for domestic and international law enforcement agencies, government authorities, and courts seeking user records or emergency disclosures from the Eternal project, operated by Ag Mykola and Ag Mihal, the founders operating the Eternal project in Ukraine.',
+        'These guidelines provide information for domestic and international law enforcement agencies, government authorities, and courts seeking user records or emergency disclosures from the Eternal project, operated by the project founders (operator identity not published), operating the Eternal project in Ukraine.',
     },
     toc: {
       contents: 'Table of Contents',
@@ -88,7 +88,7 @@ export const LAW_ENFORCEMENT_DATA: Record<'en' | 'uk', LawEnforcementTranslation
               '2. Identity of the person in immediate danger.',
               '3. Specific account identifiers (Eternal username, user ID, email address).',
               '4. Official law enforcement credentials, agency name, badge number, and government-issued email address.',
-              '5. Submit directly to legal@eternal.app with subject line: "EMERGENCY DATA REQUEST - [AGENCY NAME]".',
+              '5. A private contact address has not been provided. Do not submit personal data through public issues.',
             ],
           },
         ],
@@ -136,7 +136,7 @@ export const LAW_ENFORCEMENT_DATA: Record<'en' | 'uk', LawEnforcementTranslation
         number: '5',
         title: 'User Notification & Contact Channel',
         iconName: 'Mail',
-        tldr: 'We notify affected users unless legally prohibited by a non-disclosure order. Official legal service is accepted at legal@eternal.app.',
+        tldr: 'We notify affected users unless legally prohibited by a non-disclosure order. A private contact address has not been provided. Do not submit personal data through public issues.',
         subsections: [
           {
             id: 'notice-policy',
@@ -152,9 +152,8 @@ export const LAW_ENFORCEMENT_DATA: Record<'en' | 'uk', LawEnforcementTranslation
               'All formal legal process, subpoenas, and preservation requests must be transmitted electronically from an official government domain to:',
             ],
             bullets: [
-              'Legal & Law Enforcement Operations: legal@eternal.app',
-              'Safety & Urgent Reports: safety@eternal.app',
-              'Project operators: Ag Mykola and Ag Mihal, Ukraine. Contact the published legal channel to confirm arrangements for service of legal process.',
+              'A private contact address has not been provided. Do not submit personal data through public issues.',
+              'Project operators: the project founders (operator identity not published), Ukraine. Contact the published legal channel to confirm arrangements for service of legal process.',
             ],
           },
         ],
@@ -168,7 +167,7 @@ export const LAW_ENFORCEMENT_DATA: Record<'en' | 'uk', LawEnforcementTranslation
       effectiveDate: 'Набуття чинності: 1 вересня 2026 р. • Останнє оновлення: 30 серпня 2026 р.',
       lastUpdated: 'Останнє оновлення: 30 серпня 2026 р.',
       description:
-        'Цей документ містить правила та процедури взаємодії з правоохоронними органами, судами та державними регуляторами, які звертаються із запитами щодо надання інформації про користувачів до проєкту Eternal, яким керують Ag Mykola та Ag Mihal в Україні.',
+        'Цей документ містить правила та процедури взаємодії з правоохоронними органами, судами та державними регуляторами, які звертаються із запитами щодо надання інформації про користувачів до проєкту Eternal, яким керують засновники проєкту (ідентифікаційні дані операторів не опубліковано) в Україні.',
     },
     toc: {
       contents: 'Зміст документа',
@@ -204,7 +203,7 @@ export const LAW_ENFORCEMENT_DATA: Record<'en' | 'uk', LawEnforcementTranslation
             id: 'emergency-procedure',
             title: '2.1 Порядок подання екстреного запиту',
             content: [
-              'У невідкладних випадках співробітники правоохоронних органів можуть надіслати терміновий запит на legal@eternal.app із зазначенням характеру загрози, ідентифікаторів профілю та службових контактів.',
+              'Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
             ],
           },
         ],
@@ -248,7 +247,7 @@ export const LAW_ENFORCEMENT_DATA: Record<'en' | 'uk', LawEnforcementTranslation
         number: '5',
         title: 'Повідомлення користувачів та офіційні контакти',
         iconName: 'Mail',
-        tldr: 'Ми повідомляємо користувачів про запити, якщо інше не заборонено судом. Офіційні запити приймаються на legal@eternal.app.',
+        tldr: 'Ми повідомляємо користувачів про запити, якщо інше не заборонено судом. Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
         subsections: [
           {
             id: 'contact-channel',
@@ -257,9 +256,8 @@ export const LAW_ENFORCEMENT_DATA: Record<'en' | 'uk', LawEnforcementTranslation
               'Усі запити мають надходити з офіційних державних доменів на електронну пошту юридичного департаменту:',
             ],
             bullets: [
-              'Юридичний департамент: legal@eternal.app',
-              'Служба безпеки: safety@eternal.app',
-              'Оператори проєкту: Ag Mykola та Ag Mihal, Україна',
+              'Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
+              'Оператори проєкту: засновники проєкту (ідентифікаційні дані операторів не опубліковано), Україна',
             ],
           },
         ],

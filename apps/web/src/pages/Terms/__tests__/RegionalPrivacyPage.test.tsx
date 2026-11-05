@@ -48,7 +48,7 @@ describe('RegionalPrivacyPage', () => {
     ).toBeGreaterThanOrEqual(1);
   });
 
-  it('renders Ukrainian Law No. 2297-VI details and Kyiv address', () => {
+  it('renders Ukrainian Law No. 2297-VI details and country and missing contact', () => {
     render(
       <MemoryRouter>
         <RegionalPrivacyPage />
@@ -58,8 +58,10 @@ describe('RegionalPrivacyPage', () => {
     expect(
       screen.getAllByText(/Law of Ukraine "On Personal Data Protection"/i).length,
     ).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText(/Kyiv, Ukraine/i).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText(/aghnikolaj1@gmail.com/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/Ukraine/i).length).toBeGreaterThanOrEqual(1);
+    expect(
+      screen.getAllByText(/private contact address has not been provided/i).length,
+    ).toBeGreaterThanOrEqual(1);
   });
 
   it('supports Ukrainian language switching', () => {

@@ -1,12 +1,12 @@
 # Eternal Proprietary Software License and Intellectual Property Notice
 
-Copyright © 2026 Ag Mykola and Ag Mihal. All rights reserved.
+Copyright © 2026 Eternal contributors. All rights reserved.
 
 Effective date: October 13, 2026.
 
 ## 1. Covered Materials
 
-This notice governs the proprietary materials owned or controlled by Ag Mykola and Ag Mihal, together with their lawful successors and assigns (the "Rights Holders"), distributed as part of the Eternal software or repository (the "Materials"). The Materials include:
+This notice governs the proprietary materials owned or controlled by the respective authors and other lawful rights holders, together with their lawful successors and assigns (the "Rights Holders"), distributed as part of the Eternal software or repository (the "Materials"). The Materials include:
 
 - source and object code, applications, libraries, scripts, build configurations, and deployment tooling;
 - original user-interface and user-experience implementations, components, design-system assets, design tokens, stylesheets, layouts, animations, and graphical assets;

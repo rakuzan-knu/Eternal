@@ -47,7 +47,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
         id: 'who-we-are',
         title: '1.3 Who Runs Eternal',
         content: [
-          'Eternal is operated in Ukraine by its founders Ag Mykola and Ag Mihal. When you use our services, we act as the data controller of your personal information under applicable global data protection regulations.',
+          'Eternal is operated in Ukraine by its founders. Complete operator identification has not been published. When you use our services, we act as the data controller of your personal information under applicable global data protection regulations.',
         ],
       },
     ],
@@ -322,15 +322,15 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
     number: '7',
     title: 'Contact Us',
     iconName: 'Mail',
-    tldr: 'If you ever have a question about your privacy, need help with your data, or want to speak with our Data Protection Officer, we are here to help.',
+    tldr: 'A private contact address has not been provided. A DPO appointment has not been confirmed.',
     subsections: [
       {
         id: 'reach-out',
         title: '7.1 How to Contact Our Privacy Team',
         content: [
-          'Email us at privacy@eternal.app with any questions about this Privacy Policy or how we process your information. We will be happy to help.',
-          'To contact Eternal’s Data Protection Officer, please email dpo@eternal.app.',
-          'For security vulnerability disclosures or bug bounty reports, email security@eternal.app.',
+          'A private contact address has not been provided. Do not submit personal data through public issues.',
+          'A DPO appointment has not been confirmed. A private contact address has not been provided. Do not submit personal data through public issues.',
+          'A private contact address has not been provided. Do not submit personal data through public issues.',
         ],
       },
     ],

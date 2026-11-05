@@ -30,7 +30,7 @@ function presentationRendererPlugin(): Plugin {
             return;
           }
 
-          const cacheBaseDir = path.resolve('C:/Users/Ayate/Desktop/SocialMedia/.ppt_render_cache');
+          const cacheBaseDir = path.resolve('.ppt_render_cache');
           if (!fs.existsSync(cacheBaseDir)) {
             fs.mkdirSync(cacheBaseDir, { recursive: true });
           }

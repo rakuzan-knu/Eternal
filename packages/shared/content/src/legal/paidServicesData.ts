@@ -107,7 +107,7 @@ export const PAID_SERVICES_DATA: Record<'en' | 'uk', PaidServicesTranslation> = 
             title: '3.1 European Union & UK 14-Day Right of Withdrawal',
             content: [
               'If you reside in the European Union, European Economic Area, or United Kingdom, you have the statutory legal right to withdraw from your purchase without giving any reason within fourteen (14) days from the initial transaction date (EU Consumer Rights Directive).',
-              'To exercise your right of withdrawal for web purchases, submit a refund request to billing@eternal.app with your account username and invoice ID within the 14-day window.',
+              'A private contact address has not been provided. Do not submit personal data through public issues.',
             ],
           },
           {
@@ -156,7 +156,7 @@ export const PAID_SERVICES_DATA: Record<'en' | 'uk', PaidServicesTranslation> = 
         number: '5',
         title: 'Billing Support & Inquiries',
         iconName: 'Mail',
-        tldr: 'For invoice copies, VAT questions, or refund inquiries, contact our dedicated billing team at billing@eternal.app.',
+        tldr: 'A private contact address has not been provided. Do not submit personal data through public issues.',
         subsections: [
           {
             id: 'billing-contacts',
@@ -165,10 +165,8 @@ export const PAID_SERVICES_DATA: Record<'en' | 'uk', PaidServicesTranslation> = 
               'If you have questions about an unknown charge, need an updated VAT invoice, or require billing assistance, please reach out to:',
             ],
             bullets: [
-              'Billing Operations: billing@eternal.app',
-              'General Support: support@eternal.app',
-              'Legal & Disputes: legal@eternal.app',
-              'Project operators: Ag Mykola and Ag Mihal, Ukraine',
+              'A private contact address has not been provided. Do not submit personal data through public issues.',
+              'Project operators: the project founders (operator identity not published), Ukraine',
             ],
           },
         ],
@@ -248,7 +246,7 @@ export const PAID_SERVICES_DATA: Record<'en' | 'uk', PaidServicesTranslation> = 
             id: 'eu-withdrawal-right',
             title: '3.1 14-денне право на відмову для жителів ЄС (Right of Withdrawal)',
             content: [
-              'Згідно з Директивою ЄС про права споживачів, користувачі з країн ЄС та Великої Британії мають законне право відмовитися від онлайн-покупки та отримати повне повернення коштів протягом 14 днів з моменту оплати, звернувшись на billing@eternal.app.',
+              'Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
             ],
           },
           {
@@ -281,17 +279,15 @@ export const PAID_SERVICES_DATA: Record<'en' | 'uk', PaidServicesTranslation> = 
         number: '5',
         title: 'Контакти фінансового відділу',
         iconName: 'Mail',
-        tldr: 'З питань рахунків, податкових накладних та повернення коштів пишіть на billing@eternal.app.',
+        tldr: 'Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
         subsections: [
           {
             id: 'billing-contacts',
             title: '5.1 Зворотний зв’язок',
             content: ['Для вирішення фінансових питань зв’яжіться з нашою службою білінгу:'],
             bullets: [
-              'Фінансовий департамент: billing@eternal.app',
-              'Служба підтримки: support@eternal.app',
-              'Юридичний відділ: legal@eternal.app',
-              'Оператори проєкту: Ag Mykola та Ag Mihal, Україна',
+              'Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
+              'Оператори проєкту: засновники проєкту (ідентифікаційні дані операторів не опубліковано), Україна',
             ],
           },
         ],
