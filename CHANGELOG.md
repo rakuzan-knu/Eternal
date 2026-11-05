@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.12.1](https://github.com/rakuzan-knu/Eternal/compare/v1.12.0...v1.12.1) (2026-11-05)
+
+### 🐛 Bug Fixes
+
+* **frontend:** remove personal email and unsupported legal contacts ([#146](https://github.com/rakuzan-knu/Eternal/issues/146)) ([a06a85f](https://github.com/rakuzan-knu/Eternal/commit/a06a85f21899e01c1065ef4da2765c4fde249e3e))
+
 ## [1.12.0](https://github.com/rakuzan-knu/Eternal/compare/v1.11.0...v1.12.0) (2026-10-28)
 
 ### ✨ Features
