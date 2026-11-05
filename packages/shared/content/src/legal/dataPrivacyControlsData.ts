@@ -188,7 +188,7 @@ export const DATA_PRIVACY_CONTROLS_DATA: Record<'en' | 'uk', PrivacyControlsTran
         number: '6',
         title: 'Questions and Data Protection Officer',
         iconName: 'Mail',
-        tldr: 'For privacy inquiries, technical assistance, or dispute resolution, contact our Data Protection Officer in Kyiv, Ukraine.',
+        tldr: 'A private contact address has not been provided. A DPO appointment has not been confirmed.',
         subsections: [
           {
             id: 'dpo-contact-info',
@@ -197,8 +197,8 @@ export const DATA_PRIVACY_CONTROLS_DATA: Record<'en' | 'uk', PrivacyControlsTran
               'If you need assistance configuring your privacy settings or have questions regarding our data practices, reach out to our team:',
             ],
             bullets: [
-              'Data Protection Officer (DPO): private-contact-not-provided',
-              'Privacy & Legal Operations: privacy@eternal.com',
+              'A DPO appointment has not been confirmed. A private contact address has not been provided. Do not submit personal data through public issues.',
+              'A private contact address has not been provided. Do not submit personal data through public issues.',
               'Project operators: the project founders (operator identity not published), Ukraine',
             ],
           },
@@ -344,15 +344,15 @@ export const DATA_PRIVACY_CONTROLS_DATA: Record<'en' | 'uk', PrivacyControlsTran
         number: '6',
         title: 'Контакти Офіцера із захисту даних',
         iconName: 'Mail',
-        tldr: 'З усіх питань налаштування приватності звертайтеся до нашого DPO в м. Київ, Україна.',
+        tldr: 'З усіх питань налаштування приватності звертайтеся до приватного каналу зв’язку з питань конфіденційності (не надано).',
         subsections: [
           {
             id: 'dpo-contact-info',
             title: '6.1 Контактні канали',
-            content: ['З усіх питань щодо налаштувань конфіденційності звертайтеся:'],
+            content: ['Призначення DPO та приватний канал зв’язку не підтверджено.'],
             bullets: [
-              'Офіцер із захисту даних (DPO): private-contact-not-provided',
-              'Юридичний відділ: privacy@eternal.com',
+              'Призначення DPO не підтверджено. Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
+              'Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
               'Оператори проєкту: засновники проєкту (ідентифікаційні дані операторів не опубліковано), Україна',
             ],
           },

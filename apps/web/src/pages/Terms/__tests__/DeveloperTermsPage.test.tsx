@@ -53,7 +53,9 @@ describe('DeveloperTermsPage', () => {
     );
 
     expect(screen.getAllByText(/HTTP 429/i).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText(/developers@eternal\.app/i).length).toBeGreaterThanOrEqual(1);
+    expect(
+      screen.getAllByText(/private contact address has not been provided/i).length,
+    ).toBeGreaterThanOrEqual(1);
   });
 
   it('supports Ukrainian language switching', () => {

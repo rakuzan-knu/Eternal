@@ -8,10 +8,6 @@ export const PressContactSection: React.FC<{
   subtitle: string;
   buttonText: string;
 }> = ({ heading, subtitle, buttonText }) => {
-  const handleContactPress = () => {
-    window.location.href = 'mailto:private-contact-not-provided';
-  };
-
   return (
     <section className="py-24 px-6 lg:px-12 max-w-7xl mx-auto w-full relative z-10 select-text">
       <div className="relative rounded-[44px] bg-[#07050f] p-8 sm:p-14 flex items-center justify-between overflow-hidden">
@@ -33,8 +29,8 @@ export const PressContactSection: React.FC<{
           </p>
           <button
             type="button"
-            onClick={handleContactPress}
-            className="mt-2 px-8 py-3.5 rounded-full bg-[#5822b4] hover:bg-[#6b2bd8] text-white text-xs font-black tracking-wide shadow-[0_0_30px_rgba(88,34,180,0.5)] hover:scale-105 active:scale-95 transition-all flex items-center gap-2.5 cursor-pointer"
+            disabled
+            className="mt-2 px-8 py-3.5 rounded-full bg-[#5822b4] text-white text-xs font-black tracking-wide shadow-[0_0_30px_rgba(88,34,180,0.5)] transition-all flex items-center gap-2.5 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <Mail size={15} />
             <span>{buttonText}</span>

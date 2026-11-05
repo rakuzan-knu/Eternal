@@ -58,16 +58,17 @@ describe('RetentionPolicyPage', () => {
     expect(screen.getByText(/Trust, Safety & Fraud Prevention:/i)).toBeInTheDocument();
   });
 
-  it('renders DPO contact information with Kyiv location', () => {
+  it('renders DPO contact information with country and missing contact', () => {
     render(
       <MemoryRouter>
         <RetentionPolicyPage />
       </MemoryRouter>,
     );
 
-    expect(screen.getAllByText(/dpo@eternal\.app/i).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText(/privacy@eternal\.app/i).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText(/Kyiv, Ukraine/i).length).toBeGreaterThanOrEqual(1);
+    expect(
+      screen.getAllByText(/private contact address has not been provided/i).length,
+    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/Ukraine/i).length).toBeGreaterThanOrEqual(1);
   });
 
   it('supports Ukrainian language switching', () => {

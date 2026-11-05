@@ -104,7 +104,7 @@ export const COOKIE_POLICY_DATA: Record<'en' | 'uk', CookiePolicyTranslation> = 
         number: '3',
         title: 'Questions and Contact Information',
         iconName: 'Mail',
-        tldr: 'For any questions regarding our Cookie Policy or privacy practices, reach out to our team in Kyiv, Ukraine or email our Data Protection Officer.',
+        tldr: 'A private contact address has not been provided. A DPO appointment has not been confirmed.',
         subsections: [
           {
             id: 'contact-details',
@@ -113,8 +113,8 @@ export const COOKIE_POLICY_DATA: Record<'en' | 'uk', CookiePolicyTranslation> = 
               'If you have questions, feedback, or concerns about this Cookie Policy or how Eternal uses tracking technologies, please contact us at:',
             ],
             bullets: [
-              'Privacy & Legal Operations: privacy@eternal.app',
-              'Data Protection Officer: dpo@eternal.app',
+              'A private contact address has not been provided. Do not submit personal data through public issues.',
+              'A DPO appointment has not been confirmed. A private contact address has not been provided. Do not submit personal data through public issues.',
               'Project operators: the project founders (operator identity not published), Ukraine',
             ],
           },
@@ -195,7 +195,7 @@ export const COOKIE_POLICY_DATA: Record<'en' | 'uk', CookiePolicyTranslation> = 
         number: '3',
         title: 'Запитання та контакти',
         iconName: 'Mail',
-        tldr: 'Якщо у вас виникли запитання щодо використання файлів cookie, зв’яжіться з нашою командою в м. Київ, Україна або надішліть листа DPO.',
+        tldr: 'Якщо у вас виникли запитання щодо використання файлів cookie, зв’яжіться з нашою командою в м. Україна (поштову адресу не надано) або надішліть листа DPO.',
         subsections: [
           {
             id: 'contact-details',
@@ -204,8 +204,8 @@ export const COOKIE_POLICY_DATA: Record<'en' | 'uk', CookiePolicyTranslation> = 
               'З усіх запитань щодо Політики використання файлів cookie звертайтеся до нашої команди:',
             ],
             bullets: [
-              'Юридичний відділ: privacy@eternal.app',
-              'Офіцер із захисту даних (DPO): dpo@eternal.app',
+              'Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
+              'Призначення DPO не підтверджено. Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
               'Оператори проєкту: засновники проєкту (ідентифікаційні дані операторів не опубліковано), Україна',
             ],
           },

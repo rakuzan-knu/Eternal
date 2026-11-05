@@ -70,20 +70,19 @@ export const COPYRIGHT_POLICY_DATA: Record<'en' | 'uk', CopyrightPolicyTranslati
         number: '2',
         title: 'Designated Copyright Agent Contact',
         iconName: 'Mail',
-        tldr: 'Formal copyright infringement notices and counter-notices should be submitted to our Designated DMCA Agent at copyright@eternal.app.',
+        tldr: 'A private contact address has not been provided. Do not submit personal data through public issues.',
         subsections: [
           {
             id: 'agent-details',
             title: '2.1 Designated Agent Details',
             content: [
-              'Please send all formal DMCA notices, trademark infringement reports, and counter-notices to our designated compliance officer:',
+              'A designated copyright agent and private contact channel have not been confirmed. This contact section is incomplete:',
             ],
             bullets: [
-              'Designated Agent: DMCA Copyright Compliance Officer',
+              'A registered DMCA agent has not been confirmed.',
               'Project operators: the project founders (operator identity not published), Ukraine',
-              'Physical Address: Kyiv, Ukraine',
-              'Email: copyright@eternal.app',
-              'Legal & Inquiries: legal@eternal.app',
+              'Physical Address: Ukraine (postal address not provided)',
+              'A private contact address has not been provided. Do not submit personal data through public issues.',
             ],
           },
         ],
@@ -123,7 +122,7 @@ export const COPYRIGHT_POLICY_DATA: Record<'en' | 'uk', CopyrightPolicyTranslati
             id: 'counter-notice-rules',
             title: '4.1 Submitting a Counter-Notification (17 U.S.C. § 512(g)(3))',
             content: [
-              'If you believe that your content was removed or disabled as a result of mistake or misidentification (such as fair use, public domain, or valid license), you may send a written counter-notification to copyright@eternal.app containing:',
+              'A private contact address has not been provided. Do not submit personal data through public issues.',
             ],
             bullets: [
               '1. Your physical or electronic signature.',
@@ -223,18 +222,19 @@ export const COPYRIGHT_POLICY_DATA: Record<'en' | 'uk', CopyrightPolicyTranslati
         number: '2',
         title: 'Контакти уповноваженого агента з авторських прав',
         iconName: 'Mail',
-        tldr: 'Офіційні скарги та зустрічні повідомлення слід надсилати на copyright@eternal.app.',
+        tldr: 'Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
         subsections: [
           {
             id: 'agent-details',
             title: '2.1 Контактні реквізити',
-            content: ['Офіційні звернення правовласників приймаються уповноваженим представником:'],
+            content: [
+              'Призначення агента з авторських прав і приватний канал зв’язку не підтверджено. Цей розділ неповний:',
+            ],
             bullets: [
-              'Уповноважена особа: Уповноважений агент з авторських прав (DMCA Compliance Officer)',
+              'Реєстрацію агента DMCA не підтверджено.',
               'Оператори проєкту: засновники проєкту (ідентифікаційні дані операторів не опубліковано), Україна',
-              'Місцезнаходження: м. Київ, Україна',
-              'E-mail для скарг: copyright@eternal.app',
-              'Юридичний відділ: legal@eternal.app',
+              'Місцезнаходження: м. Україна (поштову адресу не надано)',
+              'Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
             ],
           },
         ],
@@ -272,7 +272,7 @@ export const COPYRIGHT_POLICY_DATA: Record<'en' | 'uk', CopyrightPolicyTranslati
             id: 'counter-notice-rules',
             title: '4.1 Порядок подання зустрічного повідомлення',
             content: [
-              'Якщо ваш пост або рілс було видалено помилково або на підставі добросовісного використання (Fair Use), надішліть листа на copyright@eternal.app з підписом, посиланням на матеріал та заявою про згоду на юрисдикцію суду.',
+              'Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
             ],
           },
           {

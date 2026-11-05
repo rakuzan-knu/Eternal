@@ -9,7 +9,7 @@ describe('ApplicantCandidatePrivacyPage', () => {
     useLanguageStore.setState({ currentLanguage: 'English' });
   });
 
-  it('renders hero header and company notice with Kyiv location', () => {
+  it('renders hero header and company notice with country and missing contact', () => {
     render(
       <MemoryRouter>
         <ApplicantCandidatePrivacyPage />
@@ -20,7 +20,7 @@ describe('ApplicantCandidatePrivacyPage', () => {
     expect(
       screen.getByText(/Notice of Data Collection, Processing and Transfer/i),
     ).toBeInTheDocument();
-    expect(screen.getAllByText(/Kyiv, Ukraine/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/Ukraine/i).length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders all 6 numbered policy sections in TOC and main content', () => {
@@ -49,8 +49,9 @@ describe('ApplicantCandidatePrivacyPage', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getAllByText(/private-contact-not-provided/i).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText(/privacy@eternal.com/i).length).toBeGreaterThanOrEqual(1);
+    expect(
+      screen.getAllByText(/private contact address has not been provided/i).length,
+    ).toBeGreaterThanOrEqual(1);
   });
 
   it('supports Ukrainian language switching', () => {
