@@ -1,23 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import {
-  microsoftStoreIdentity,
-  snapName,
-  stableStoreVersion,
-  storeRegistration,
-} from './store-config';
+import { microsoftStoreIdentity, snapName, stableStoreVersion } from './store-config';
 
 describe('store submission preflight', () => {
-  it('uses the registered identity when CI variables are absent or empty', () => {
-    const { identityName, publisher, publisherDisplayName } = storeRegistration.microsoft;
-    const expected = { identityName, publisher, publisherDisplayName };
-    expect(microsoftStoreIdentity({})).toEqual(expected);
-    expect(
+  it('requires explicit Store identity rather than embedding personal registration data', () => {
+    expect(() => microsoftStoreIdentity({})).toThrow();
+    expect(() =>
       microsoftStoreIdentity({
         ETERNAL_DESKTOP_STORE_IDENTITY: '',
         ETERNAL_DESKTOP_STORE_PUBLISHER: '',
         ETERNAL_DESKTOP_STORE_PUBLISHER_DISPLAY_NAME: '',
       }),
-    ).toEqual(expected);
+    ).toThrow();
     expect(snapName()).toBe('eternal-desktop');
   });
   it('validates explicit Partner Center overrides', () => {

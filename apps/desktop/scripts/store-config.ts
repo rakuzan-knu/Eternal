@@ -2,9 +2,6 @@ import { z } from 'zod';
 
 export const storeRegistration = {
   microsoft: {
-    identityName: 'STORE_IDENTITY_NOT_CONFIGURED',
-    publisher: 'CN=74CE90A6-3E99-4A37-B2D1-9DC6DAD9416A',
-    publisherDisplayName: 'Publisher display name not configured',
     displayName: 'Eternal Desktop',
     productId: '9N2XFD2B14JG',
   },
@@ -27,11 +24,9 @@ const storeIdentitySchema = z.object({
 
 export function microsoftStoreIdentity(env: NodeJS.ProcessEnv) {
   return storeIdentitySchema.parse({
-    identityName: env.ETERNAL_DESKTOP_STORE_IDENTITY || storeRegistration.microsoft.identityName,
-    publisher: env.ETERNAL_DESKTOP_STORE_PUBLISHER || storeRegistration.microsoft.publisher,
-    publisherDisplayName:
-      env.ETERNAL_DESKTOP_STORE_PUBLISHER_DISPLAY_NAME ||
-      storeRegistration.microsoft.publisherDisplayName,
+    identityName: env.ETERNAL_DESKTOP_STORE_IDENTITY,
+    publisher: env.ETERNAL_DESKTOP_STORE_PUBLISHER,
+    publisherDisplayName: env.ETERNAL_DESKTOP_STORE_PUBLISHER_DISPLAY_NAME,
   });
 }
 

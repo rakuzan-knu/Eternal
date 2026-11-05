@@ -221,7 +221,7 @@ export const GUIDELINES_SECTIONS: GuidelinesSection[] = [
         id: 'appeals-process',
         title: '7.2 Submitting an Appeal',
         content: [
-          'If you believe a moderation action on your account or server was made in error, you can submit an appeal to appeals@eternal.app with your username, case ID, and explanation. EU residents may submit appeals within 6 months of notice.',
+          'EU residents may submit appeals within 6 months of notice. A private contact address has not been provided. Do not submit personal data through public issues.',
         ],
       },
     ],
@@ -238,7 +238,7 @@ export const GUIDELINES_SECTIONS: GuidelinesSection[] = [
         title: '8.1 How to Report Violations',
         content: [
           'To report a post, message, or user directly in Eternal: click the three dots (...) next to any message or post and select "Report".',
-          'For urgent safety concerns, bug bounties, or law enforcement inquiries, email safety@eternal.app or security@eternal.app.',
+          'A private contact address has not been provided. Do not submit personal data through public issues.',
         ],
       },
     ],
@@ -439,7 +439,7 @@ export const GUIDELINES_SECTIONS_UK: GuidelinesSection[] = [
         id: 'appeals-process',
         title: '7.2 Подання апеляції',
         content: [
-          'Якщо ви вважаєте, що покарання було помилковим, надішліть апеляцію на appeals@eternal.app із вашим нікнеймом та описом ситуації.',
+          'Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
         ],
       },
     ],
@@ -456,7 +456,7 @@ export const GUIDELINES_SECTIONS_UK: GuidelinesSection[] = [
         title: '8.1 Повідомлення про порушення',
         content: [
           'Щоб поскаржитися на допис чи користувача, натисніть три крапки (...) біля повідомлення чи профілю та виберіть «Поскаржитися».',
-          'Служба безпеки: safety@eternal.app | Технічна безпека: security@eternal.app.',
+          'Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
         ],
       },
     ],

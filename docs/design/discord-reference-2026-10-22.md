@@ -229,7 +229,7 @@ Backend build/typecheck, змінені ESLint-межі, Prettier, design genera
 - Після виправлення delayed-close таймера фінальна production-збірка пройшла TypeScript/Vite та 32 SEO prerenders.
 - Фінальний `AUDIT_PREVIEW=1 VITE_API_URL=http://localhost:3000 pnpm --filter frontend exec playwright test --config playwright.audit.config.ts e2e/community-workspace.spec.ts`: **8/8 passed (1.5m)** на 390px і 1440px. Перевірено original chat tools/drafts, швидкий перехід до Members, редактор категорій/порядку, dirty Escape, конфлікт, save/reload, forged channel та internal invite preview. API mocked. Build/runtime sources не змінювалися під час цього прогону.
 - Попередній повний прогін після cache-виправлення: 25/26; єдиний збій відтворив delayed-close race, виправлену вище. Немає твердження про фінальний повтор усіх 26 після timer fix: повторено всі 8 affected workspace tests; 18 audit-remediation tests пройшли до timer fix, а shared chat має окремі unit checks.
-- Стабільні скриншоти з fictional fixtures: `<private-local-path>` та `eternal-channel-layout-desktop.png`. Мобільну й desktop композиції візуально оглянуто; це не production-контент.
+- Стабільні скриншоти з fictional fixtures: `<local-artifact>` та `eternal-channel-layout-desktop.png`. Мобільну й desktop композиції візуально оглянуто; це не production-контент.
 - Усі зміни залишені локально, попередню незакомічену роботу збережено. Новий архівний lifecycle ще не реалізовано. Реальні two-account WebSocket/calls, всі теми/мови, screen reader і native телефони залишаються відкритими.
 
 ## Продовження: архівування та відновлення каналів — 22 жовтня 2026
@@ -280,7 +280,7 @@ Archived channels залишаються в окремій навігаційн�
 - `AUDIT_PREVIEW=1 VITE_API_URL=http://localhost:3000 pnpm --filter frontend exec playwright test --config playwright.audit.config.ts e2e/community-workspace.spec.ts`: **10/10 passed (1.3m)** на 390px і 1440px з mocked API. Перевірено попередню навігацію/chat drafts, layout editor, archive/restore confirmation, безпечний Cancel focus, archived navigation, stable links/reload, forged channel і invite preview. Composer/call disabled state перевірений окремим unit-тестом, реальна історія/search/read — PostgreSQL інтеграцією; browser fixture цього сам не доводить.
 - Design generation/check, Prettier і whitespace пройшли. Тимчасовий `eternal-channel-archive-test` контейнер зупинено та автоматично видалено. Всі зміни залишені локально, попередню роботу збережено.
 
-Окремий visual QA repeat після очікування завершення opacity-анімації: archive/restore 2/2 passed (20.9s). Стабільні PNG зі fictional fixtures візуально оглянуто: `<private-local-path>` та `eternal-channel-archive-desktop.png`. Перші screencast JPEG були проміжними кадрами анімації й не є фінальними візуальними артефактами.
+Окремий visual QA repeat після очікування завершення opacity-анімації: archive/restore 2/2 passed (20.9s). Стабільні PNG зі fictional fixtures візуально оглянуто: `<local-artifact>` та `eternal-channel-archive-desktop.png`. Перші screencast JPEG були проміжними кадрами анімації й не є фінальними візуальними артефактами.
 
 
 ## Продовження: серверний доступ до приватних текстових каналів — 22 жовтня 2026

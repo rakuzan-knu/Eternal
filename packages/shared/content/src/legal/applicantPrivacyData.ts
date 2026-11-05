@@ -40,7 +40,7 @@ export const APPLICANT_PRIVACY_DATA: Record<'en' | 'uk', CandidatePolicyTranslat
       title: 'APPLICANT AND CANDIDATE PRIVACY POLICY',
       effectiveDate: 'Last updated: September 15, 2025 • Effective: September 1, 2026',
       introLead:
-        'This Notice of Data Collection, Processing and Transfer (“Notice”) for the Eternal project, operated in Ukraine by its founders the project founders (operator identity not published), describes, in the context of your candidacy for employment at Eternal:',
+        'This Notice of Data Collection, Processing and Transfer (“Notice”) for the Eternal project, operated in Ukraine by its founders. Complete operator identification has not been published, describes, in the context of your candidacy for employment at Eternal:',
       introBullets: [
         'What data Eternal collects about you',
         'How Eternal processes your information',
@@ -116,7 +116,7 @@ export const APPLICANT_PRIVACY_DATA: Record<'en' | 'uk', CandidatePolicyTranslat
             title: '2.2 Employment Records & AI Tooling Notice',
             content: [
               'Additionally, if you become employed by Eternal, your candidate information will become part of your permanent employment record and will be processed in accordance with the Eternal Employee Privacy Policy.',
-              'We may use AI tooling to assist in the initial organization, formatting, and administrative evaluation of your application. If you prefer to opt out of the use of AI tooling to process your application, you can do so by contacting our talent operations team or our Data Protection Officer.',
+              'We may use AI tooling to assist in the initial organization, formatting, and administrative evaluation of your application. If you prefer to opt out of the use of AI tooling to process your application, you can do so by contacting our talent operations team or the private privacy contact channel (not provided).',
             ],
           },
         ],
@@ -168,9 +168,9 @@ export const APPLICANT_PRIVACY_DATA: Record<'en' | 'uk', CandidatePolicyTranslat
             title: '5.1 Access, Rectification, and Erasure',
             content: [
               'You have specific rights under applicable data protection legislation (including the Law of Ukraine on Personal Data Protection and GDPR where applicable):',
-              'You may request access to your Personal Data and request that the Company update, correct, or delete (the “right to be forgotten”) your information. You also have the right to restrict or object to the Company’s processing of your Personal Data and to request data portability in a structured, commonly used electronic format.',
+              'You may request access to your Personal Data and request that Eternal update, correct, or delete (the “right to be forgotten”) your information. You also have the right to restrict or object to the processing by Eternal of your Personal Data and to request data portability in a structured, commonly used electronic format.',
               'Right To Object: You have the right to object to the processing of your Personal Data based on legitimate interests. Upon receiving your objection, processing will cease unless compelling legitimate grounds override your interests or processing is required for legal claims.',
-              'You may exercise any of these rights at any time by sending an email to privacy@eternal.com or directly to our Data Protection Officer.',
+              'A DPO appointment has not been confirmed. A private contact address has not been provided. Do not submit personal data through public issues.',
             ],
           },
           {
@@ -188,17 +188,15 @@ export const APPLICANT_PRIVACY_DATA: Record<'en' | 'uk', CandidatePolicyTranslat
         number: '6',
         title: 'Data Protection Officer',
         iconName: 'Mail',
-        tldr: 'Reach out to our dedicated Data Protection Officer for any candidate privacy inquiries at Kyiv, Ukraine or via email.',
+        tldr: 'A DPO appointment and private contact channel have not been confirmed. This contact section is incomplete.',
         subsections: [
           {
             id: 'dpo-contacts',
             title: '6.1 Contact Information',
-            content: [
-              'Eternal is a project operated by the project founders (operator identity not published) in Ukraine. For any questions, requests, or concerns regarding your candidacy data or this Notice, please contact our Data Protection Officer directly:',
-            ],
+            content: ['A DPO appointment and private contact channel have not been confirmed.'],
             bullets: [
-              'Data Protection Officer Email: private-contact-not-provided',
-              'Privacy & Legal Operations: privacy@eternal.com',
+              'A DPO appointment has not been confirmed. A private contact address has not been provided. Do not submit personal data through public issues.',
+              'A private contact address has not been provided. Do not submit personal data through public issues.',
               'Project operators: the project founders (operator identity not published), Ukraine',
             ],
           },
@@ -284,7 +282,7 @@ export const APPLICANT_PRIVACY_DATA: Record<'en' | 'uk', CandidatePolicyTranslat
             title: '2.2 Кадрові записи та використання інструментів ШІ',
             content: [
               'У разі прийняття на роботу в Eternal інформація з вашої анкети кандидата стає частиною вашої особової справи співробітника.',
-              'Ми можемо застосовувати допоміжні інструменти штучного інтелекту для первинної структуризації резюме. Ви маєте право відмовитися від автоматизованої обробки, повідомивши про це команду найму або нашого Офіцера із захисту даних.',
+              'Ми можемо застосовувати допоміжні інструменти штучного інтелекту для первинної структуризації резюме. Ви маєте право відмовитися від автоматизованої обробки, повідомивши про це команду найму (приватну контактну адресу не надано).',
             ],
           },
         ],
@@ -337,8 +335,8 @@ export const APPLICANT_PRIVACY_DATA: Record<'en' | 'uk', CandidatePolicyTranslat
             content: [
               'Відповідно до Закону України «Про захист персональних даних» та міжнародних стандартів (зокрема GDPR), ви маєте такі права:',
               'Право на доступ до своїх персональних даних, внесення змін, виправлення або повне видалення («право бути забутим»). Ви також маєте право на обмеження обробки та перенесення даних в електронному форматі.',
-              'Право на заперечення: Ви маєте право будь-коли заперечити проти обробки ваших даних на підставі законного інтересу компанії.',
-              'Для реалізації своїх прав напишіть нам на адресу privacy@eternal.com або безпосередньо Офіцеру із захисту даних.',
+              'Право на заперечення: Ви маєте право будь-коли заперечити проти обробки ваших даних на підставі законного інтересу операторів проєкту.',
+              'Призначення DPO не підтверджено. Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
             ],
           },
           {
@@ -356,17 +354,15 @@ export const APPLICANT_PRIVACY_DATA: Record<'en' | 'uk', CandidatePolicyTranslat
         number: '6',
         title: 'Офіцер із захисту даних (DPO)',
         iconName: 'Mail',
-        tldr: 'Зв’яжіться з нашим Офіцером із захисту даних у м. Київ, Україна щодо будь-яких питань кандидатської конфіденційності.',
+        tldr: 'Зв’яжіться з нашим Офіцером із захисту даних у м. Україна (поштову адресу не надано) щодо будь-яких питань кандидатської конфіденційності.',
         subsections: [
           {
             id: 'dpo-contacts',
             title: '6.1 Контактна інформація',
-            content: [
-              'Проєктом Eternal в Україні керують засновники проєкту (ідентифікаційні дані операторів не опубліковано). З усіх питань щодо захисту даних кандидатів звертайтеся:',
-            ],
+            content: ['Призначення DPO та приватний канал зв’язку не підтверджено.'],
             bullets: [
-              'Електронна пошта DPO: private-contact-not-provided',
-              'Юридичний відділ: privacy@eternal.com',
+              'Призначення DPO не підтверджено. Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
+              'Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
               'Оператори проєкту: засновники проєкту (ідентифікаційні дані операторів не опубліковано), Україна',
             ],
           },

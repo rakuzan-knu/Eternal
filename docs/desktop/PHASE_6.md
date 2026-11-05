@@ -53,9 +53,9 @@ Windows підписується стандартними параметрами
 `ETERNAL_DESKTOP_STORE_IDENTITY` і `ETERNAL_DESKTOP_STORE_PUBLISHER` із Partner
 Center; початкове `Eternal.Desktop` не є зареєстрованою Store identity.
 
-5 листопада 2026 зареєстровані реквізити `STORE_IDENTITY_NOT_CONFIGURED` додано як
-defaults для MSIX. Environment variables тепер потрібні тільки для їх явного
-перевизначення; актуальні реквізити наведено у [фазі 9](PHASE_9.md).
+5 листопада 2026 персоналізовані реквізити Microsoft прибрано з вихідного коду.
+MSIX вимагає точні значення трьох environment variables з Partner Center;
+див. [фазу 9](PHASE_9.md).
 
 Оновлення фази 9: `package:msix` також вимагає точний
 `ETERNAL_DESKTOP_STORE_PUBLISHER_DISPLAY_NAME` та стабільну версію від 1.0.0.

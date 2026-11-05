@@ -36,15 +36,16 @@
 
 ## Налаштування й запуск
 
-Публічні зареєстровані реквізити збережено в `scripts/store-config.ts`.
-Опційні GitHub repository variables перевизначають їх; порожні значення
-використовують зареєстровані defaults. Ці реквізити не є секретами.
+Персоналізовані реквізити Microsoft не зберігаються в коді. Три змінні
+ідентифікації Microsoft є обов’язковими для MSIX; порожні або відсутні значення
+зупиняють пакування. Значення беруться з Partner Center. У готовому MSIX ці
+реквізити обов’язково залишаються видимими; змінні не анонімізують пакет.
 
 | Variable | Значення |
 | --- | --- |
-| `ETERNAL_DESKTOP_STORE_IDENTITY` | Default: `STORE_IDENTITY_NOT_CONFIGURED` |
-| `ETERNAL_DESKTOP_STORE_PUBLISHER` | Default: `CN=74CE90A6-3E99-4A37-B2D1-9DC6DAD9416A` |
-| `ETERNAL_DESKTOP_STORE_PUBLISHER_DISPLAY_NAME` | Default: `Publisher display name not configured` |
+| `ETERNAL_DESKTOP_STORE_IDENTITY` | Обов’язково: точна Package Identity з Partner Center |
+| `ETERNAL_DESKTOP_STORE_PUBLISHER` | Обов’язково: точний Publisher з Partner Center |
+| `ETERNAL_DESKTOP_STORE_PUBLISHER_DISPLAY_NAME` | Обов’язково: точний PublisherDisplayName з Partner Center |
 | `ETERNAL_DESKTOP_SNAP_NAME` | Default: зареєстроване `eternal-desktop` |
 | `DESKTOP_FLATHUB_LISTING` | JSON нижче з фактичними даними |
 
@@ -221,9 +222,7 @@ sandbox-дозволу, встановлення пакетів та підтв�
 
 - **Microsoft Store:** `Eternal` недоступна; зарезервовано **Eternal Desktop**
   як MSIX/PWA app. Store ID: `9N2XFD2B14JG`; стан — draft.
-  Package Identity: `STORE_IDENTITY_NOT_CONFIGURED`; Publisher:
-  `CN=74CE90A6-3E99-4A37-B2D1-9DC6DAD9416A`; PublisherDisplayName: `Publisher display name not configured`.
-  PFN: `STORE_PFN_NOT_CONFIGURED`.
+  Персоналізовані Package Identity, PublisherDisplayName та PFN прибрано з документації; точні значення доступні в кабінеті власника.
   [Product identity](https://partner.microsoft.com/en-US/dashboard/products/9N2XFD2B14JG/identity).
   Зарезервована назва не є публікацією; форма Microsoft вказує строк подання
   протягом трьох місяців, інакше резервування буде втрачено.
@@ -232,9 +231,8 @@ sandbox-дозволу, встановлення пакетів та підтв�
   [Snap dashboard](https://dashboard.snapcraft.io/snaps/eternal-desktop/).
   Бінарні revisions ще не завантажувалися.
 
-MSIX display name і Snap executable/name тепер беруться із зареєстрованих
-defaults. CI більше не вимагає дублювати три публічні Microsoft поля в variables;
-явні overrides залишаються валідованими. `DESKTOP_FLATHUB_LISTING`, stable
+Snap executable/name має зареєстрований default. MSIX вимагає всі три
+ідентифікаційні змінні Microsoft із кабінету власника. `DESKTOP_FLATHUB_LISTING`, stable
 desktop-release фази 8 та погодження Snap sandbox залишаються необхідними.
 
 Перевірка цього оновлення: 13 релевантних тестів (store-config/prepare-flathub),
