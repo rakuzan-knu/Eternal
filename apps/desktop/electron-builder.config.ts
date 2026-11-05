@@ -1,5 +1,4 @@
 import type { Configuration } from 'electron-builder';
-import hardenElectron from './scripts/fuses.ts';
 import { distributionSchema } from './src/shared/distribution.ts';
 import { microsoftStoreIdentity, snapName, storeRegistration } from './scripts/store-config.ts';
 
@@ -115,7 +114,15 @@ const config: Configuration = {
   npmRebuild: false,
   directories: { output: 'release', buildResources: 'build' },
   files: ['out/**', 'package.json'],
-  afterPack: hardenElectron,
+  electronFuses: {
+    runAsNode: false,
+    enableCookieEncryption: true,
+    enableNodeOptionsEnvironmentVariable: false,
+    enableNodeCliInspectArguments: false,
+    enableEmbeddedAsarIntegrityValidation: true,
+    onlyLoadAppFromAsar: true,
+    resetAdHocDarwinSignature: process.platform === 'darwin',
+  },
   mac: {
     x64ArchFiles:
       '**/node_modules/{uiohook-napi/prebuilds/darwin-*,@oxc-parser/binding-darwin-*}/**',

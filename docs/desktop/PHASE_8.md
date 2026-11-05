@@ -39,9 +39,18 @@
 
 MSIX, Flatpak, Snap та публікація в магазини належать фазі 9. Формати пакуються
 окремими викликами чинного `scripts/package.ts`, завжди `--publish never`,
-щоб зберегти правильне `eternalDistribution`. Fuses застосовує чинний afterPack.
+щоб зберегти правильне `eternalDistribution`. Fuses застосовує electron-builder
+через `electronFuses`, після злиття universal macOS і перед підписом.
 Підпис/нотаризація використовують secrets за наявності, як у фазі 6;
 без них Windows installer непідписаний, macOS має ad-hoc підпис.
+
+Власного hook, який змінює або повторно підписує проміжні x64/arm64 bundles,
+немає: різні seals `CodeResources` у цих bundles заважали перевірці злиття.
+Перевірки SHA у `@electron/universal` збережено. На macOS після fuses
+оновлюється ad-hoc seal; release-підпис/нотаризація далі використовують чинну
+конфігурацію. Ad-hoc не підтверджує видавця й не замінює Developer ID/нотаризацію.
+Локальна перевірка порядку на Windows не замінює реальну macOS CI-збірку та
+перевірку запуску підписаного застосунку.
 
 Кожен runner виконує desktop ESLint, strict TypeScript (у build), Vitest,
 `validate:actions`, повний `build:desktop` і наявний `e2e/smoke.spec.ts`.

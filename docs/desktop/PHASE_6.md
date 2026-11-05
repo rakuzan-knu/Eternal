@@ -38,7 +38,8 @@ DMG/ZIP створюються на macOS; Linux-пакети перевірят
 
 Ресурси ICO, ICNS, PNG 16–1024 і Store tiles лежать у `apps/desktop/build`;
 походження та регенерація описані в його README. Entitlements macOS зберігають
-JIT, камеру й мікрофон. Чинний afterPack продовжує застосовувати fuses.
+JIT, камеру й мікрофон. Fuses задано через `electronFuses` electron-builder:
+для universal macOS вони застосовуються після злиття архітектур і перед підписом.
 
 Без `CSC_LINK` macOS використовує ad-hoc підпис. Нотаризація вмикається за
 наявності `CSC_LINK`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`.
