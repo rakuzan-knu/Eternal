@@ -17,6 +17,12 @@ import { createNativePtt } from './nativePtt';
 beforeEach(() => {
   vi.clearAllMocks();
   events.removeAllListeners();
+  vi.spyOn(process, 'platform', 'get').mockReturnValue('linux');
+  vi.stubEnv('DISPLAY', ':0');
+  vi.stubEnv('XDG_SESSION_TYPE', 'x11');
+  vi.stubEnv('WAYLAND_DISPLAY', '');
+  vi.stubEnv('SNAP', '');
+  vi.stubEnv('FLATPAK_ID', '');
 });
 
 afterEach(() => {
@@ -26,9 +32,18 @@ afterEach(() => {
 
 describe('native push-to-talk', () => {
   it.each(['SNAP', 'FLATPAK_ID'])('keeps native input hooks off under %s', async (key) => {
-    vi.spyOn(process, 'platform', 'get').mockReturnValue('linux');
     vi.stubEnv(key, 'eternal');
     vi.stubEnv('DISPLAY', ':0');
+    const controller = createNativePtt(() => false, vi.fn());
+    expect(await controller.configure(true, 'KeyV')).toBe(false);
+    expect(hook.start).not.toHaveBeenCalled();
+  });
+  it.each([
+    ['DISPLAY', ''],
+    ['XDG_SESSION_TYPE', 'wayland'],
+    ['WAYLAND_DISPLAY', 'wayland-0'],
+  ])('does not start native input hooks in an unsupported session: %s=%s', async (key, value) => {
+    vi.stubEnv(key, value);
     const controller = createNativePtt(() => false, vi.fn());
     expect(await controller.configure(true, 'KeyV')).toBe(false);
     expect(hook.start).not.toHaveBeenCalled();
