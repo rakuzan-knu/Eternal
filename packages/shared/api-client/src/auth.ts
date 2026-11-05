@@ -1,4 +1,3 @@
-import { registrationPolicySchema } from '@social-network/shared-contracts';
 import type { AxiosInstance } from 'axios';
 import { useMutation, useQuery, type UseMutationOptions } from '@tanstack/react-query';
 import { createApiClient } from './client';
@@ -84,6 +83,7 @@ export function setApiClient(client: AxiosInstance): void {
 
 export const authApi = {
   registrationPolicy: async (options?: { client?: AxiosInstance; signal?: AbortSignal }) => {
+    const { registrationPolicySchema } = await import('@social-network/shared-contracts');
     const client = options?.client ?? getApiClient();
     const response = await client.get<unknown>(
       '/auth/registration-policy',

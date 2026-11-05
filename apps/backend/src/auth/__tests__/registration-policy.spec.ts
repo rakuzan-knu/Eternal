@@ -56,7 +56,7 @@ describe('closed registration publication policy', () => {
       body: '{}',
     });
     expect(signup.status).toBe(403);
-    expect(await signup.json()).toMatchObject({ code: 'REGISTRATION_UNAVAILABLE' });
+    expect(await signup.json()).toMatchObject({ errorCode: 'REGISTRATION_UNAVAILABLE' });
     expect(register).not.toHaveBeenCalled();
     expect(verifyToken).not.toHaveBeenCalled();
 

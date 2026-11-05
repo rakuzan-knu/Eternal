@@ -1,4 +1,3 @@
-import { registrationPolicySchema } from '@social-network/shared-contracts';
 import { apiClient as api } from '@/shared/api/httpClient';
 import type { FoundUserResponse } from '../model/types';
 import type { UserProfile } from '@/entities/profile/model/types';
@@ -41,6 +40,7 @@ export interface AuthResponse {
 
 export const authApi = {
   registrationPolicy: async (signal?: AbortSignal) => {
+    const { registrationPolicySchema } = await import('@social-network/shared-contracts');
     const response = await api.get<unknown>(
       '/auth/registration-policy',
       ...(signal ? [{ signal }] : []),

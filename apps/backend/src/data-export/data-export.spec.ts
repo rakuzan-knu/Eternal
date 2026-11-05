@@ -304,7 +304,7 @@ describe('data export repository privacy boundary', () => {
     ];
     prisma.message.findMany.mockResolvedValue(rows);
     hydrate.mockImplementation(async <T>(value: T): Promise<T> => {
-      rows[0]!.body = 'archived content';
+      rows[0].body = 'archived content';
       return value;
     });
     const records = await repository.messages(owner, { snapshot }, 51);
