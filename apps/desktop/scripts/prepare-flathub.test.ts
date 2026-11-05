@@ -21,7 +21,7 @@ async function fixture(run: (directory: string) => Promise<void>) {
         tag: 'v1.12.0',
         commit: 'a'.repeat(40),
       }),
-      'Eternal-1.12.0-linux-x64.deb': 'x64 test fixture',
+      'Eternal-1.12.0-linux-amd64.deb': 'x64 test fixture',
       'Eternal-1.12.0-linux-arm64.deb': 'arm64 test fixture',
     };
     let sums = '';
@@ -46,7 +46,9 @@ describe('Flathub submission bundle', () => {
         expect.objectContaining({ type: 'extra-data', 'only-arches': ['x86_64'], size: 16 }),
         expect.objectContaining({ type: 'extra-data', 'only-arches': ['aarch64'], size: 18 }),
       ]);
-      expect(manifest.modules[0].sources[0].url).toContain('/v1.12.0/Eternal-1.12.0-linux-x64.deb');
+      expect(manifest.modules[0].sources[0].url).toContain(
+        '/v1.12.0/Eternal-1.12.0-linux-amd64.deb',
+      );
       const metadata = await readFile(join(output, 'com.eternal.desktop.metainfo.xml'), 'utf8');
       expect(metadata).toContain('Eternal &amp; contributors');
       expect(metadata).toContain('a=1&amp;b=2');

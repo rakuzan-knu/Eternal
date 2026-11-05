@@ -51,7 +51,7 @@ jobs:
           gh attestation verify release-source/SHA256SUMS --repo "$GITHUB_REPOSITORY"
           gh attestation verify release-source/desktop-release.json --repo "$GITHUB_REPOSITORY"
           jq -e --arg tag "$TAG" --arg commit "$commit" '.tag == $tag and .version == ($tag | ltrimstr("v")) and .commit == $commit' release-source/desktop-release.json
-          test -s "release-source/Eternal-${TAG#v}-linux-x64.deb"
+          test -s "release-source/Eternal-${TAG#v}-linux-amd64.deb"
           test -s "release-source/Eternal-${TAG#v}-linux-arm64.deb"
           echo "commit=$commit" >> "$GITHUB_OUTPUT"
           echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"

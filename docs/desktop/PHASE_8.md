@@ -59,6 +59,18 @@ SBOM, перевіряє версії, filenames, SHA512 і size із updater me
 Поле `blockMapSize` зберігається для диференціальних оновлень AppImage.
 Бюджет одного інсталятора — 250 MiB. Частковий набір не публікується.
 
+Логічні архітектури матриці та manifest залишаються `x64` / `arm64`, але імена
+файлів відповідають electron-builder: x64 AppImage/rpm — `x86_64`, x64 deb —
+`amd64`, arm64 rpm — `aarch64`; arm64 AppImage/deb — `arm64`. Staging не
+перейменовує інсталятори та не переписує updater metadata. Flathub використовує
+той самий `targetFiles` для вибору deb. Регресія викликає встановлений
+electron-builder для порівняння імен та перевірки Linux package metadata.
+
+Для deb/rpm у metadata задано підтверджену сторінку проєкту
+`https://eternalnet.vercel.app` і контакт супроводу
+`Eternal contributors <eternalnet.support@proton.me>`. Це не свідчить про
+реєстрацію юридичної особи та не замінює реквізити операторів у політиках.
+
 Для Windows файли обох архітектур об'єднуються в один `latest.yml` / `beta.yml`.
 На macOS об'єднуються DMG/ZIP; Linux зберігає окремі `*-linux.yml` та
 `*-linux-arm64.yml`. Це відповідає названню metadata у встановленому

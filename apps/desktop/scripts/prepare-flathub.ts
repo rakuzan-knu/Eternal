@@ -5,6 +5,7 @@ import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { z } from 'zod';
 import { stableStoreVersion } from './store-config.ts';
+import { targetFiles } from './release-artifacts.ts';
 
 const appId = 'com.eternal.desktop';
 const listingSchema = z.object({
@@ -69,7 +70,7 @@ export async function prepareFlathub(
     ['x64', 'x86_64'],
     ['arm64', 'aarch64'],
   ] as const) {
-    const filename = `Eternal-${version}-linux-${arch}.deb`;
+    const filename = targetFiles(version, 'deb', arch)[0];
     const digest = await verify(filename);
     if (!digest.size) throw new Error(`Empty package: ${filename}`);
     sources.push({

@@ -18,6 +18,7 @@ const config: Configuration = {
   copyright: 'Copyright © Eternal',
   extraMetadata: {
     description: 'Eternal desktop social application',
+    homepage: 'https://eternalnet.vercel.app',
     author: { name: 'Eternal' },
     eternalDistribution: distribution,
   },
@@ -41,7 +42,7 @@ const config: Configuration = {
     ],
     icon: 'build/icons',
     category: 'Network;InstantMessaging',
-    maintainer: 'Eternal contributors <rakuzan-knu@users.noreply.github.com>',
+    maintainer: 'Eternal contributors <eternalnet.support@proton.me>',
     desktop: { entry: { StartupWMClass: 'eternal' } },
   },
   win: {

@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { dump, load } from 'js-yaml';
@@ -71,6 +71,37 @@ async function fixtures(version = '1.2.3') {
 }
 
 describe('desktop release assets', () => {
+  it('stages the real x64 AppImage filename without rewriting updater metadata', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'eternal-appimage-stage-'));
+    const destination = join(root, 'staged');
+    const filename = 'Eternal-0.0.0-linux-x86_64.AppImage';
+    const body = 'appimage fixture from the observed CI filename';
+    const sha512 = createHash('sha512').update(body).digest('base64');
+    const metadata = dump({
+      version: '0.0.0',
+      files: [{ url: filename, sha512, size: Buffer.byteLength(body), blockMapSize: 10 }],
+      path: filename,
+      sha512,
+    });
+    await writeFile(join(root, filename), body);
+    await writeFile(join(root, `${filename}.blockmap`), 'blockmap');
+    await writeFile(join(root, 'latest-linux.yml'), metadata);
+    await writeFile(join(root, 'Eternal-0.0.0-linux-x64.AppImage'), 'unexpected artifact');
+    await stageArtifacts('0.0.0', 'AppImage', 'x64', root, destination, commit);
+    expect((await readdir(destination)).sort()).toEqual([
+      filename,
+      `${filename}.blockmap`,
+      'latest-linux.yml',
+      'manifest.json',
+    ]);
+    expect(await readFile(join(destination, 'latest-linux.yml'), 'utf8')).toBe(metadata);
+    expect(JSON.parse(await readFile(join(destination, 'manifest.json'), 'utf8'))).toMatchObject({
+      target: 'AppImage',
+      arch: 'x64',
+      files: [filename, 'latest-linux.yml', `${filename}.blockmap`],
+    });
+  });
+
   it.each(['v1.2.3', 'v1.2.3-beta.1'])('accepts supported semantic-release tag %s', (tag) => {
     expect(releaseVersion(tag)).toBe(tag.slice(1));
   });
@@ -106,6 +137,10 @@ describe('desktop release assets', () => {
         load(await readFile(join(output, `${channel}-linux-arm64.yml`), 'utf8')),
       ).toMatchObject({
         files: [{ blockMapSize: 10 }],
+      });
+      expect(load(await readFile(join(output, `${channel}-linux.yml`), 'utf8'))).toMatchObject({
+        path: `Eternal-${version}-linux-x86_64.AppImage`,
+        files: [{ url: `Eternal-${version}-linux-x86_64.AppImage` }],
       });
       expect(JSON.parse(await readFile(join(output, 'desktop-release.json'), 'utf8'))).toEqual({
         version,

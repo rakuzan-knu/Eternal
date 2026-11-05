@@ -60,7 +60,15 @@ export function targetFiles(version: string, target: string, arch: string): stri
   );
   if (!row) throw new Error('Unsupported release target/architecture');
   const extension = target === 'nsis' ? 'exe' : target;
-  const artifact = `Eternal-${version}-${row.os}-${arch}.${extension}`;
+  const artifactArch =
+    arch === 'x64' && ['AppImage', 'rpm'].includes(target)
+      ? 'x86_64'
+      : arch === 'x64' && target === 'deb'
+        ? 'amd64'
+        : arch === 'arm64' && target === 'rpm'
+          ? 'aarch64'
+          : arch;
+  const artifact = `Eternal-${version}-${row.os}-${artifactArch}.${extension}`;
   return target === 'nsis' ? [artifact, `${artifact}.blockmap`] : [artifact];
 }
 
