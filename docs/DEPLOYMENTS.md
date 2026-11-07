@@ -66,6 +66,24 @@ Before opening registration, establish a shared TLS endpoint and verify persiste
 Changing the URL scheme alone cannot enable TLS on this plan. A provider migration
 requires a coordinated cutover that preserves jobs and unexpired security state.
 
+On 7 November 2026, a separate Aiven Valkey 9.1.3 Free-1 service was prepared in
+Europe. No production service has been switched to it. Verified TLS, `noeviction`,
+BullMQ retry/deduplication/delayed jobs and cross-node Socket.IO probes passed.
+Provider backups are enabled, but their recovery has not been tested; do not
+infer a recovery-time or recovery-point guarantee from the plan description.
+The [Free tier](https://aiven.io/docs/platform/concepts/service-pricing#free-tier)
+has no time limit under the current terms and is separate from trial credits;
+inactive services can be powered off and provider terms can change.
+
+The existing Redis Cloud instance reports Redis 8.6.2. Actual isolated probes of
+binary strings, bitmaps, hashes, lists, sets, sorted sets and streams rejected
+native DUMP/RESTORE in both directions: Redis emits format 13 and Valkey emits
+format 80. Do not use native RESTORE or change the dump footer to bypass this.
+A migration requires a rehearsed logical copy preserving bytes, expiries, queue
+IDs and stream state, plus a reverse-copy plan after any new production writes.
+Keep all four API/worker roles stopped during the consistent snapshot and copy;
+`BACKGROUND_ENABLED=false` alone does not stop HTTP producers or Socket.IO.
+
 ### Generic OAuth popup state
 
 GitHub starts with authenticated `POST /auth/github/oauth/start` on Core; other provider starts use `POST /integrations/:platform/oauth/start` on Music. Starts return a 60-second first-party launch URL with a ticket fragment and a separate `launchProof`. The opener checks exact origin and source before sharing the proof; the backend popup sets the encrypted HttpOnly Secure SameSite=Lax provider cookie before redirecting to the provider. Keep launch bodies out of error telemetry. Steam retains its separate OpenID signed-field/nonce verification.
