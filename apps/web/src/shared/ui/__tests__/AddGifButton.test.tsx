@@ -32,6 +32,7 @@ describe('AddGifButton', () => {
     await user.keyboard('{Enter}');
     expect(onGifSelect).toHaveBeenCalledWith(page.gifs[0].url);
     expect(screen.getByTitle('Add GIF')).toHaveFocus();
+    expect(screen.getByRole('img', { name: 'Powered by GIPHY' })).toBeVisible();
   });
   it('does not request GIFs while closed or disabled', () => {
     const { rerender } = render(
@@ -40,6 +41,7 @@ describe('AddGifButton', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     rerender(<AddGifButton isOpen disabled onToggle={vi.fn()} onGifSelect={vi.fn()} />);
     expect(searchGifs).not.toHaveBeenCalled();
+    expect(screen.queryByRole('img', { name: 'Powered by GIPHY' })).not.toBeInTheDocument();
   });
   it('loads trending GIFs and selects the animated URL', async () => {
     const select = vi.fn(),
@@ -49,6 +51,11 @@ describe('AddGifButton', () => {
     expect(searchGifs).toHaveBeenCalledWith('', 0, expect.any(AbortSignal), 'posts');
     expect(select).toHaveBeenCalledWith(page.gifs[0].url);
     expect(toggle).not.toHaveBeenCalled();
+    const attribution = screen.getByRole('img', { name: 'Powered by GIPHY' });
+    expect(attribution).toBeVisible();
+    expect(attribution).toHaveAttribute('src', '/attribution/powered-by-giphy-dark.png');
+    expect(attribution).toHaveAttribute('width', '200');
+    expect(attribution).toHaveAttribute('height', '26');
   });
   it('debounces search and resets pagination for a new query', async () => {
     render(<AddGifButton isOpen onToggle={vi.fn()} onGifSelect={vi.fn()} />);
@@ -67,6 +74,7 @@ describe('AddGifButton', () => {
     vi.mocked(searchGifs).mockImplementation(() => new Promise(() => {}));
     const { rerender } = render(<AddGifButton isOpen onToggle={vi.fn()} onGifSelect={vi.fn()} />);
     expect(await screen.findByRole('status')).toHaveTextContent('Loading GIFs');
+    expect(screen.getByRole('img', { name: 'Powered by GIPHY' })).toBeVisible();
     expect(document.querySelectorAll('.skeleton-shimmer')).toHaveLength(6);
     const signal = vi.mocked(searchGifs).mock.calls[0][2];
     rerender(<AddGifButton isOpen={false} onToggle={vi.fn()} onGifSelect={vi.fn()} />);
@@ -77,6 +85,7 @@ describe('AddGifButton', () => {
     await screen.findByRole('button', { name: 'Select Happy cat' });
     expect(isGifSearchConfigured).toHaveBeenCalledWith('chat');
     expect(searchGifs).toHaveBeenCalledWith('', 0, expect.any(AbortSignal), 'chat');
+    expect(screen.getByRole('img', { name: 'Powered by GIPHY' })).toBeVisible();
   });
   it('ignores a stale response after changing search', async () => {
     let resolveOld: (value: GifPage) => void = () => {};
@@ -90,6 +99,7 @@ describe('AddGifButton', () => {
     render(<AddGifButton isOpen onToggle={vi.fn()} onGifSelect={vi.fn()} />);
     await userEvent.type(screen.getByRole('searchbox'), 'dogs');
     await screen.findByText('No GIFs found. Try another search.');
+    expect(screen.getByRole('img', { name: 'Powered by GIPHY' })).toBeVisible();
     resolveOld(page);
     await waitFor(() =>
       expect(screen.queryByRole('button', { name: 'Select Happy cat' })).not.toBeInTheDocument(),
@@ -99,6 +109,7 @@ describe('AddGifButton', () => {
     vi.mocked(searchGifs).mockRejectedValueOnce(new Error('offline'));
     render(<AddGifButton isOpen onToggle={vi.fn()} onGifSelect={vi.fn()} />);
     expect(await screen.findByRole('alert')).toHaveTextContent('GIFs could not load.');
+    expect(screen.getByRole('img', { name: 'Powered by GIPHY' })).toBeVisible();
     await userEvent.click(screen.getByRole('button', { name: 'Retry GIFs' }));
     expect(await screen.findByRole('button', { name: 'Select Happy cat' })).toBeVisible();
   });
@@ -107,6 +118,7 @@ describe('AddGifButton', () => {
     render(<AddGifButton isOpen onToggle={vi.fn()} onGifSelect={vi.fn()} />);
     expect(screen.getByText('GIF search is not available yet.')).toBeVisible();
     expect(searchGifs).not.toHaveBeenCalled();
+    expect(screen.queryByRole('img', { name: 'Powered by GIPHY' })).not.toBeInTheDocument();
   });
   it('portals above the modal and closes on outside click or Escape', async () => {
     const toggle = vi.fn();

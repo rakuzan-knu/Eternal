@@ -35,6 +35,12 @@ Verify the public HTML and JS assets, all four built API origins, CORS for both 
 
 Keep credentials in server environment variables and approved private local credential stores, never this document, Git, public build variables or logs. R2 uses an object-only key scoped to `social-network-media`; coordinate key rotation across all four services before revoking the previous key. Provider callback URLs also need registration in their own dashboards; setting a Render variable alone does not register a redirect URI.
 
+The Supabase connection must use verified TLS for both runtime and migrations.
+Follow the [bundled public CA and driver-specific settings](../apps/backend/certs/README.md).
+Preserve each service's role and migration ownership when updating environment
+variables. Use Render's single-variable update endpoint; a bulk environment PUT
+replaces the complete set and can erase unrelated secrets and role settings.
+
 Expo Web is a browser app. Native Android/iOS builds and distribution remain separate work. Free Render services sleep when idle; cold starts and limited CPU remain, and this deployment does not establish a load-test guarantee or implement production video transcoding.
 
 ## GIPHY web picker
@@ -43,7 +49,7 @@ Set `VITE_GIPHY_API_KEY` (posts) and `VITE_GIPHY_CHAT_API_KEY` (messages) on the
 
 API and media requests go directly from the browser to GIPHY. Core and Messenger validate approved provider URLs and preserve their original query parameters; they do not download or rehost provider GIFs. Existing uploaded media keeps its ownership and byte validation. Deploy the compatible APIs before promoting the web client; no schema migration or historical-media rewrite is needed.
 
-The picker footer branding is hidden at the product owner's request. GIPHY requires visible attribution under its API terms; hiding it does not satisfy that requirement. See the [GIPHY API integration requirements](https://developers.giphy.com/docs/api/) for attribution, key limits and direct media delivery.
+The configured posts and chat GIF picker displays the official static "Powered by GIPHY" mark outside the scrolling results, including loading, empty and error states. The desktop client reuses this web picker. Preserve this visible attribution when changing the picker. See the [GIPHY API integration requirements](https://developers.giphy.com/docs/api/#attribution) for attribution, key limits and direct media delivery, and the [asset provenance](../apps/web/public/attribution/README.md).
 
 ## Direct media rollout
 
@@ -52,6 +58,13 @@ Follow [DIRECT_MEDIA_UPLOADS.md](DIRECT_MEDIA_UPLOADS.md). Disable Auto-assign C
 Render uses DIRECT_UPLOADS_REQUIRED=true, VIDEO_TRANSCODE_ENABLED=false and SOUNDCLOUD_AUDIO_PROXY_ENABLED=false. Music's STEAM_CALLBACK_URL is its canonical `/v1/integrations/steam/callback`; Steam starts through an authenticated POST and first-party popup launch. Preserve the popup's COOP unsafe-none response header and exact origin/source proof checks. Do not reintroduce a GET start with userId/state selected by the caller.
 
 Free quota diagnostics run hourly on Core using existing connections: PostgreSQL warns at400MB, Redis at80% memory and26 connections. Media admission warns at80%; these are server log warnings, not a configured email paging service. Provider billing dashboards remain authoritative for monthly Render outbound bandwidth and R2 operations. Do not describe application counters as a provider spending cap.
+
+The current Redis Cloud Free configuration uses `redis://`. The provider's Free
+plan does not support [TLS](https://redis.io/docs/latest/operate/rc/security/database-security/tls-ssl/).
+Before opening registration, establish a shared TLS endpoint and verify persistence,
+`noeviction`, queue recovery, revocation state and Socket.IO across all four roles.
+Changing the URL scheme alone cannot enable TLS on this plan. A provider migration
+requires a coordinated cutover that preserves jobs and unexpired security state.
 
 ### Generic OAuth popup state
 

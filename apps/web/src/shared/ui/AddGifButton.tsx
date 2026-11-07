@@ -281,6 +281,17 @@ export const AddGifButton: React.FC<AddGifButtonProps> = ({
           </>
         )}
       </div>
+      {configured && (
+        <div className="mt-3 border-t border-white/10 pt-3 flex justify-center">
+          <img
+            src="/attribution/powered-by-giphy-dark.png"
+            alt="Powered by GIPHY"
+            width={200}
+            height={26}
+            className="h-[26px] w-[200px] max-w-full object-contain"
+          />
+        </div>
+      )}
     </div>
   );
 
