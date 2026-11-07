@@ -623,7 +623,7 @@ jobs:
 
       - name: Run Playwright E2E suite (Shard ${{ matrix.shard }}/2)
         working-directory: apps/web
-        run: pnpm test:e2e -- --shard=${{ matrix.shard }}/2
+        run: pnpm exec playwright test --shard=${{ matrix.shard }}/2
         timeout-minutes: 15
 
       - name: Upload Playwright report
