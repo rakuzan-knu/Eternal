@@ -637,7 +637,7 @@ importers:
         specifier: ^3.0.2
         version: 3.0.2
       zod:
-        specifier: ^3.25.76
+        specifier: ^3.24.2
         version: 3.25.76(patch_hash=d165a14757d34869c0f2b9cc1fb992605bed6954111d14837c4d764f640ca3e9)
       zustand:
         specifier: ^5.0.3
@@ -984,7 +984,7 @@ importers:
   packages/shared/contracts:
     dependencies:
       zod:
-        specifier: ^3.25.76
+        specifier: ^3.24.2
         version: 3.25.76(patch_hash=d165a14757d34869c0f2b9cc1fb992605bed6954111d14837c4d764f640ca3e9)
     devDependencies:
       typescript:
