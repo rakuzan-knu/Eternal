@@ -189709,6 +189709,7 @@
         "max-w-[70px]",
         "mb-3",
         "min-h-10",
+        "min-w-0",
         "opacity-70",
         "overflow-hidden",
         "overflow-x-auto",
@@ -189798,7 +189799,7 @@
         {
           "line": 91,
           "attribute": "className",
-          "expression": "\"flex items-center justify-between gap-3 px-1 py-2\""
+          "expression": "\"flex min-w-0 flex-wrap items-center justify-between gap-3 px-1 py-2\""
         },
         {
           "line": 93,

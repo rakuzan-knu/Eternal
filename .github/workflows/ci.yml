@@ -882,6 +882,24 @@ jobs:
             --mount type=bind,source="$PWD",target=/workspace,readonly \
             --workdir /workspace social-network-backend:ci-${{ github.sha }} \
             --test scripts/deploy/__tests__/prepare-cassandra-bundle.test.mjs
+      - name: Verify database trust anchor as the runtime user
+        run: |
+          docker run --rm -i --entrypoint node \
+            -e PGSSLMODE=verify-full \
+            -e NODE_EXTRA_CA_CERTS=/app/certs/supabase-root-2021.crt \
+            social-network-backend:ci-${{ github.sha }} --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { readFileSync } from 'node:fs';
+          import { X509Certificate } from 'node:crypto';
+          import pg from 'pg';
+          assert.equal(process.getuid(), 1001);
+          const ca = new X509Certificate(readFileSync(process.env.NODE_EXTRA_CA_CERTS));
+          assert.equal(ca.ca, true);
+          assert.equal(ca.fingerprint256, '80:70:25:AD:50:D4:ED:21:9D:2C:9C:7D:29:9C:00:4F:82:4E:B0:0C:F7:F6:5A:FE:F6:07:D0:7B:72:E6:CA:FA');
+          assert.ok(Date.parse(ca.validTo) > Date.now());
+          assert.equal(new pg.Client({ connectionString: 'postgresql://fixture:fixture@localhost/fixture' }).ssl, true);
+          console.log('Runtime user can read the verified CA and the configured driver requires TLS');
+          NODE
       - name: Test container health (Smoke Test)
         run: |
           set -euo pipefail
