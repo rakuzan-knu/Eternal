@@ -149,6 +149,7 @@ describe('Public Careers availability', () => {
     );
     expect(screen.getByRole('heading', { level: 1, name: title })).toBeInTheDocument();
     expect(screen.getByRole('status')).not.toBeEmptyDOMElement();
+    expect(screen.queryByText('Hiring')).not.toBeInTheDocument();
     expect(
       screen.queryByText(/Application Security \(AppSec\) Contributor/i),
     ).not.toBeInTheDocument();
