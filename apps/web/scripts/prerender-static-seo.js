@@ -25,9 +25,10 @@ const STATIC_ROUTES = [
     path: '/company-information',
     title: 'Company Information & Impressum • Eternal',
     description:
-      'Official corporate details, registration, headquarters, and legal representatives of Eternal Network.',
+      'Eternal project operators in Ukraine and the verified contact for support, privacy, and complaints.',
     heading: 'Company Information & Impressum',
-    bodyText: 'Official legal information, company registration, and contact details for Eternal.',
+    bodyText:
+      'Eternal is jointly operated by two individuals in Ukraine. Contact: eternalnet.support@proton.me.',
   },
   {
     path: '/privacy',
@@ -201,11 +202,11 @@ const STATIC_ROUTES = [
   },
   {
     path: '/careers',
-    title: 'Careers at Eternal • Build the Future of Social',
+    title: 'Careers at Eternal • No recruitment announced',
     description:
-      'Explore open engineering, design, and product roles at Eternal. Work on distributed systems, modern UI, and privacy-first social tech.',
+      'There is currently no confirmed recruitment programme. Applications are not accepted on this page.',
     heading: 'Careers at Eternal',
-    bodyText: 'Join our team to build next-generation social technologies and messaging apps.',
+    bodyText: 'No recruitment announced. General project contact: eternalnet.support@proton.me.',
   },
   {
     path: '/brand',

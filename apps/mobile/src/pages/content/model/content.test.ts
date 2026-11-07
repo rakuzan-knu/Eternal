@@ -77,3 +77,12 @@ it('only links to paths the app can open', async () => {
         expect(resolveContentPath(link).kind, `${id}: ${link}`).not.toBe('web');
     }
 });
+
+it.each(['en', 'uk'] as const)('hides unconfirmed recruitment offers in %s', async (language) => {
+  const page = await loadContentPage('careers', language);
+  expect(page.title).toBe(language === 'uk' ? 'Набір не оголошено' : 'No recruitment announced');
+  expect(page.blocks).toEqual([
+    { kind: 'text', title: expect.any(String), paragraphs: ['eternalnet.support@proton.me'] },
+  ]);
+  expect(JSON.stringify(page)).not.toMatch(/AppSec|internship|equity|стажування/);
+});

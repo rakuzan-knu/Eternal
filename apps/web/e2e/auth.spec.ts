@@ -1,37 +1,19 @@
+import { getRegistrationPolicy } from '@social-network/shared-contracts';
 import { test, expect, mockApi } from './fixtures';
 
 test.describe('Authentication (unauthenticated)', () => {
-  test('shows mobile-style password indicators and validates confirmation', async ({ page }) => {
-    await mockApi(page, '/auth/check-username', { json: { isAvailable: true } });
+  test('keeps registration closed on policy errors and supports an explicit retry', async ({
+    page,
+  }) => {
+    await mockApi(page, '/auth/registration-policy', { status: 503 });
     await page.goto('/register');
-    await expect(page.getByLabel('8+ characters: Not met')).toBeVisible();
-    await expect(
-      page.getByText('By creating an account, you agree to our', { exact: false }),
-    ).toBeVisible();
-
-    const password = page.getByLabel('Password', { exact: true });
-    await password.fill('abc');
-    await expect(page.getByLabel('8+ characters: Partially met')).toBeVisible();
-    await password.fill('Abcdefg1');
-    await expect(page.getByLabel('8+ characters: Met')).toBeVisible();
-    await expect(page.getByLabel('Latin letters (A-Z, a-z): Met')).toBeVisible();
-    await expect(page.getByLabel('Number or symbol: Met')).toBeVisible();
-
-    await page.getByLabel('Confirm Password', { exact: true }).fill('different123');
-    await expect(page.getByText('Passwords do not match')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Create Account', exact: true })).toBeDisabled();
-    await page.getByLabel('Confirm Password', { exact: true }).fill('Abcdefg1');
-    await expect(page.getByText('Passwords do not match')).toBeHidden();
-
-    await password.fill('AbcЖ1234');
-    await expect(page.getByLabel('Latin letters (A-Z, a-z): Invalid')).toBeVisible();
-    await expect(page.getByText('Passwords do not match')).toBeVisible();
-    await page.getByRole('button', { name: 'Show confirm password', exact: true }).click();
-    await expect(page.getByLabel('Confirm Password', { exact: true })).toHaveAttribute(
-      'type',
-      'text',
-    );
-    await expect(password).toHaveAttribute('type', 'password');
+    await expect(page.getByRole('alert')).toContainText('Registration remains closed');
+    await expect(page.getByRole('textbox')).toHaveCount(0);
+    await expect(page.getByRole('combobox')).toHaveCount(0);
+    await mockApi(page, '/auth/registration-policy', { json: getRegistrationPolicy() });
+    await page.getByRole('button', { name: 'Try again' }).click();
+    await expect(page.getByRole('status')).toContainText('No market is currently open');
+    await expect(page.getByRole('button', { name: 'Create Account', exact: true })).toHaveCount(0);
   });
 
   test('redirects unauthenticated visitors from / to /login', async ({ page }) => {
@@ -92,15 +74,17 @@ test.describe('Authentication (unauthenticated)', () => {
   });
 
   test('navigates from login to register via "Create new account"', async ({ page }) => {
+    await mockApi(page, '/auth/registration-policy', { json: getRegistrationPolicy() });
     await page.goto('/login');
 
     await page.getByRole('button', { name: 'Create new account' }).click();
 
     await expect(page).toHaveURL(/\/register$/);
-    await expect(page.getByPlaceholder('First name')).toBeVisible();
-    await expect(page.getByPlaceholder('Last name')).toBeVisible();
-    await expect(page.getByPlaceholder('Mobile number or email')).toBeVisible();
-    await expect(page.getByPlaceholder('New password')).toBeVisible();
+    await expect(page.getByRole('status')).toContainText('No market is currently open');
+    await expect(page.getByRole('textbox')).toHaveCount(0);
+    await expect(
+      page.getByRole('link', { name: 'Sign in to an existing account', exact: true }),
+    ).toHaveAttribute('href', '/login');
   });
 
   test('renders the forgot-password page from the login link', async ({ page }) => {

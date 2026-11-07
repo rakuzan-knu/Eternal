@@ -135,7 +135,7 @@ const companyLinks: Record<ContentLanguage, { label: string; text: string; path:
     { label: 'About Eternal', text: 'Our story and where we are heading', path: '/about' },
     { label: 'Blog', text: 'Product news, engineering and community stories', path: '/blog' },
     { label: 'Newsroom', text: 'Press releases and media resources', path: '/newsroom' },
-    { label: 'Careers', text: 'Open roles and life on the team', path: '/careers' },
+    { label: 'Careers', text: 'Recruitment status', path: '/careers' },
     { label: 'Creators', text: 'Guides for growing a community', path: '/creators' },
     { label: 'Brand', text: 'Logos, colors and usage rules', path: '/branding' },
     { label: 'Download', text: 'Get Eternal on your devices', path: '/download' },
@@ -144,7 +144,7 @@ const companyLinks: Record<ContentLanguage, { label: string; text: string; path:
     { label: 'Про Eternal', text: 'Наша історія та плани', path: '/about' },
     { label: 'Блог', text: 'Новини продукту, інженерія та історії спільноти', path: '/blog' },
     { label: 'Пресцентр', text: 'Пресрелізи та матеріали для медіа', path: '/newsroom' },
-    { label: 'Кар’єра', text: 'Відкриті вакансії та життя команди', path: '/careers' },
+    { label: 'Кар’єра', text: 'Стан оголошень про набір', path: '/careers' },
     { label: 'Креаторам', text: 'Посібники зі створення спільноти', path: '/creators' },
     { label: 'Бренд', text: 'Логотипи, кольори та правила використання', path: '/branding' },
     { label: 'Завантажити', text: 'Eternal на ваших пристроях', path: '/download' },
@@ -158,6 +158,47 @@ const companyTitle: Record<ContentLanguage, { title: string; lead: string }> = {
 
 type Shared = typeof SharedContent;
 type Loader = (lang: ContentLanguage, c: Shared) => ContentPage;
+
+export const loadCareersDesign: Loader = (lang, c) => {
+  const t = byName(c.CAREERS_TRANSLATIONS, lang);
+  return {
+    title: caps(t.heroTitle),
+    lead: t.heroSubtitle,
+    blocks: [
+      {
+        kind: 'cards',
+        title: t.allJobsHeading,
+        intro: t.allJobsSubtitle,
+        items: t.jobs.map((job) => ({
+          id: job.id,
+          eyebrow: job.department,
+          title: job.title,
+          text: job.targetAudience,
+          meta: [job.location, job.type],
+          details: {
+            lists: [
+              { title: t.tasksLabel, items: job.responsibilities },
+              { title: t.requirementsLabel, items: job.requirements },
+              { title: t.benefitsLabel, items: job.benefits },
+            ],
+          },
+        })),
+      },
+      {
+        kind: 'cards',
+        title: t.experienceHeading,
+        intro: t.experienceSubtitle,
+        items: t.perks.map((perk) => ({
+          id: perk.id,
+          eyebrow: perk.badge,
+          title: perk.title,
+          text: perk.desc,
+        })),
+      },
+      { kind: 'faq', title: t.faqHeading, intro: t.faqSubtitle, items: t.faqItems },
+    ],
+  };
+};
 
 const LOADERS: Record<ContentPageId, Loader> = {
   company: (lang, c) => ({
@@ -276,43 +317,11 @@ const LOADERS: Record<ContentPageId, Loader> = {
     };
   },
   careers: (lang, c) => {
-    const t = byName(c.CAREERS_TRANSLATIONS, lang);
+    const t = byName(c.CAREERS_AVAILABILITY_TRANSLATIONS, lang);
     return {
-      title: caps(t.heroTitle),
-      lead: t.heroSubtitle,
-      blocks: [
-        {
-          kind: 'cards',
-          title: t.allJobsHeading,
-          intro: t.allJobsSubtitle,
-          items: t.jobs.map((job) => ({
-            id: job.id,
-            eyebrow: job.department,
-            title: job.title,
-            text: job.targetAudience,
-            meta: [job.location, job.type],
-            details: {
-              lists: [
-                { title: t.tasksLabel, items: job.responsibilities },
-                { title: t.requirementsLabel, items: job.requirements },
-                { title: t.benefitsLabel, items: job.benefits },
-              ],
-            },
-          })),
-        },
-        {
-          kind: 'cards',
-          title: t.experienceHeading,
-          intro: t.experienceSubtitle,
-          items: t.perks.map((perk) => ({
-            id: perk.id,
-            eyebrow: perk.badge,
-            title: perk.title,
-            text: perk.desc,
-          })),
-        },
-        { kind: 'faq', title: t.faqHeading, intro: t.faqSubtitle, items: t.faqItems },
-      ],
+      title: t.title,
+      lead: t.message,
+      blocks: [{ kind: 'text', title: t.contact, paragraphs: ['eternalnet.support@proton.me'] }],
     };
   },
   creators: (lang, c) => {

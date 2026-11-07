@@ -73,6 +73,21 @@ function fillMinimumValidForm(includePersonalDetails = true) {
 }
 
 describe('RegistrationFields behind the closed registration gate', () => {
+  it('keeps distinct birthday and gender names and keyboard selection when the fields are rendered', async () => {
+    setupMutations();
+    renderWithProviders(<RegisterForm />);
+    for (const name of ['Birth month', 'Birth day', 'Birth year', 'Gender']) {
+      expect(screen.getByRole('combobox', { name })).toBeInTheDocument();
+    }
+    const user = userEvent.setup();
+    const month = screen.getByRole('combobox', { name: 'Birth month' });
+    month.focus();
+    await user.keyboard('[ArrowDown]');
+    expect(month).toHaveAttribute('aria-activedescendant', expect.stringMatching(/option-/));
+    await user.keyboard('[Escape]');
+    expect(month).toHaveFocus();
+  });
+
   it('requires a deliberate birthday and gender selection without default personal data', async () => {
     const mutate = setupMutations();
     renderWithProviders(<RegisterForm />);
@@ -124,6 +139,22 @@ describe('RegistrationFields behind the closed registration gate', () => {
     expect(getSubmitButton()).toBeDisabled();
     fireEvent.submit(getSubmitButton().closest('form')!);
     expect(mutate).not.toHaveBeenCalled();
+  });
+
+  it('updates password requirements without accepting non-Latin letters', () => {
+    setupMutations();
+    renderWithProviders(<RegisterForm />);
+    expect(screen.getByLabelText('8+ characters: Not met')).toBeInTheDocument();
+    const password = screen.getByLabelText('Password', { exact: true });
+    fireEvent.change(password, { target: { value: 'abc' } });
+    expect(screen.getByLabelText('8+ characters: Partially met')).toBeInTheDocument();
+    fireEvent.change(password, { target: { value: 'Abcdefg1' } });
+    expect(screen.getByLabelText('8+ characters: Met')).toBeInTheDocument();
+    expect(screen.getByLabelText('Latin letters (A-Z, a-z): Met')).toBeInTheDocument();
+    expect(screen.getByLabelText('Number or symbol: Met')).toBeInTheDocument();
+    fireEvent.change(password, { target: { value: 'AbcЖ1234' } });
+    expect(screen.getByLabelText('Latin letters (A-Z, a-z): Invalid')).toBeInTheDocument();
+    expect(getSubmitButton()).toBeDisabled();
   });
 
   it('blocks mismatched confirmation and revalidates when the original password changes', async () => {
