@@ -59,6 +59,27 @@ MSIX, Flatpak, Snap та публікація в магазини належат
 він залежить від доступності `https://eternalnet.vercel.app` і не доводить
 інсталяцію, роботу fuses чи оновлення вже встановленого клієнта.
 
+## Довіра до джерела релізу
+
+`release-source.ts` працює без встановлення залежностей із revision workflow
+(`github.workflow_sha`). Для публікації він перевіряє через GitHub API чинний
+захист гілки, наявність недрафтового Release, відповідність stable/beta,
+розкриває annotated tags до commit і перевіряє ancestry джерела та workflow
+відносно поточного head відповідної гілки. SHA або наявність тега самі по собі
+не надають довіру. Stable запускається з `main`, beta — з `develop`.
+
+6 листопада 2026 GitHub API підтвердив захист `main`; `develop` повернула 404.
+Beta лишається каналом у semantic-release, але desktop-публікація цього каналу
+закрита, доки гілка реально не існуватиме та не буде захищена. Workflow не
+створює гілки й не змінює правила захисту.
+
+PR виконує preview без signing secrets і без дозволу публікації. Jobs, що
+виконують resolved source, не використовують pnpm cache або автоматичний
+package-manager cache setup-node. Привілейований publish job завантажує лише
+workflow revision, повторює API-перевірку SHA до доступу до GPG і перед upload;
+він не checkout-ить код із release tag. Не вимикати ці перевірки для обходу
+помилок API, відсутньої гілки, переміщеного тега або невідповідної ancestry.
+
 ## Цілісність та оновлення
 
 `release-artifacts.ts stage` збирає лише очікувані installer/blockmap/metadata.

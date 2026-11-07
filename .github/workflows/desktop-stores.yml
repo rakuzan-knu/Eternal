@@ -21,6 +21,7 @@ defaults:
 
 jobs:
   prepare:
+    if: github.ref == 'refs/heads/main' && github.ref_protected
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -29,21 +30,33 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          fetch-depth: 0
+          ref: ${{ github.workflow_sha }}
           persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version-file: '.nvmrc'
+          package-manager-cache: false
+      - name: Verify stable release source on the protected branch
+        id: source
+        env:
+          REQUESTED_TAG: ${{ inputs.tag }}
+          TRUSTED_WORKFLOW_SHA: ${{ github.workflow_sha }}
+          GH_TOKEN: ${{ github.token }}
+          STABLE_ONLY: 'true'
+        run: node apps/desktop/scripts/release-source.ts
       - name: Require an existing stable desktop release
         id: release
         env:
           TAG: ${{ inputs.tag }}
           GH_TOKEN: ${{ github.token }}
           FLATHUB_LISTING: ${{ vars.DESKTOP_FLATHUB_LISTING }}
+          SOURCE_COMMIT: ${{ steps.source.outputs.commit }}
         run: |
           set -euo pipefail
           [[ "$GITHUB_REF" == refs/heads/main ]]
           [[ "$TAG" =~ ^v[1-9][0-9]*\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
           test -n "$FLATHUB_LISTING"
-          commit=$(git rev-parse --verify "refs/tags/$TAG^{commit}")
-          git cat-file -e "$commit:apps/desktop/scripts/prepare-flathub.ts"
+          commit="$SOURCE_COMMIT"
           gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft,isPrerelease --jq '(.isDraft or .isPrerelease) | not' | grep -qx true
           mkdir release-source
           gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir release-source --pattern desktop-release.json --pattern SHA256SUMS --pattern 'Eternal-*-linux-*.deb'
@@ -91,7 +104,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version-file: '.nvmrc'
-          cache: pnpm
+          package-manager-cache: false
       - run: |
           printf '\nsupportedArchitectures:\n  cpu: [x64, arm64]\n' >> pnpm-workspace.yaml
           pnpm install --frozen-lockfile
@@ -148,7 +161,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version-file: '.nvmrc'
-          cache: pnpm
+          package-manager-cache: false
       - run: pnpm install --frozen-lockfile --ignore-scripts --filter @eternal/desktop...
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
