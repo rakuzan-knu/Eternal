@@ -27,8 +27,7 @@
     "package:flatpak": "node scripts/package.ts flatpak",
     "package:snap": "node scripts/package.ts snap",
     "generate:icons": "node scripts/generate-icons.ts",
-    "package:msix": "node scripts/package.ts msix",
-    "prepare:flathub": "node scripts/prepare-flathub.ts"
+    "package:msix": "node scripts/package.ts msix"
   },
   "dependencies": {
     "@sentry/electron": "8.3.0",

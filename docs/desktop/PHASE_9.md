@@ -11,7 +11,7 @@
 - `.github/workflows/desktop-stores.yml`: лише ручний запуск із `main`, за
   наявним стабільним тегом. Перевіряє GitHub Release, контрольні суми, GitHub
   attestations для SHA256SUMS і desktop-release.json, відповідність tagged commit.
-  Пакує MSIX x64/arm64 та Snap на native Linux x64/arm64, формує Flathub-подання.
+  Пакує MSIX x64/arm64 та Snap на native Linux x64/arm64.
   Результат — workflow artifacts на 7 днів; завантаження в магазини відсутнє.
 - MSIX вимагає три справжні Partner Center поля, stable-версію від 1.0.0 з
   компонентами до 65535. Четвертий Windows-компонент залишається 0 незалежно
@@ -21,11 +21,6 @@
   `browser-support.allow-sandbox: true` зберігає Chromium sandbox: стандартний
   launcher builder додавав би `--no-sandbox`. Цей дозвіл потребує окремого
   погодження Snap Store; без погодження подання заблоковане.
-- Flathub-генератор використовує вже зібрані deb x64/arm64 з перевіреного
-  desktop-релізу, фіксує SHA256/size та URLs. `extra-data` завантажує застосунок
-  під час встановлення, а Flathub зберігає обгортку й метадані. Немає нового
-  неперевіреного rebuild або дозволу Flathub поширювати proprietary binary.
-  Обгортка використовує Electron BaseApp 25.08 і Zypak без `--no-sandbox`.
 - У Snap/Flatpak автозапуск не записує неефективний файл усередині sandbox,
   а глобальний native input hook не запускається. Клавіші в активному вікні
   залишаються на наявному web-шляху. MSIX автозапуск також не заявляється без
@@ -47,25 +42,20 @@
 | `ETERNAL_DESKTOP_STORE_PUBLISHER` | Обов’язково: точний Publisher з Partner Center |
 | `ETERNAL_DESKTOP_STORE_PUBLISHER_DISPLAY_NAME` | Обов’язково: точний PublisherDisplayName з Partner Center |
 | `ETERNAL_DESKTOP_SNAP_NAME` | Default: зареєстроване `eternal-desktop` |
-| `DESKTOP_FLATHUB_LISTING` | JSON нижче з фактичними даними |
 
-```json
-{
-  "developerName": "Actual rights holder",
-  "metadataLicense": "CC0-1.0",
-  "screenshotUrl": "https://your-domain.example/actual-desktop-screenshot.png",
-  "releaseDate": "2026-11-01"
-}
-```
+## Обмеження Flathub, перевірені 7 листопада 2026
 
-Приклад — лише структура, його не слід публікувати. Вказати реального
-правовласника, доступний screenshot без приватних даних і дату обраного релізу.
-`metadataLicense` означає окремий дозвіл CC0 для **створених MetaInfo-метаданих**;
-перед його налаштуванням потрібне рішення правовласника. Це не змінює ліцензію
-застосунку. Обгортка/іконка також потребують дозволу на публічне розповсюдження.
-Перевірити OARS-рейтинг, опис, privacy/support URLs і право на app ID
-`com.eternal.desktop`. Генератор не доводить володіння доменом або відповідність
-усім вимогам магазину. Чинний LICENSE.md не змінено.
+Чинна [Generative AI policy](https://docs.flathub.org/docs/for-app-authors/requirements#generative-ai-policy)
+вимагає, щоб маніфест був написаний людиною. Вона забороняє AI-generated та
+AI-assisted вміст маніфестів, а також відкриття й автоматизацію submission PR
+агентами, написання ними commit messages, описів і відповідей у review.
+Попередній AI-assisted генератор вилучено разом із CI job формування подання.
+
+Для продовження автор має самостійно підготувати маніфест і submission.
+Інші AI-generated матеріали застосунку потребують правдивого розкриття відповідно
+до правил Flathub. Також потрібні належні права на metadata/artwork, реальний
+реліз і перевірений app ID. Домен `eternal.com` у власності проєкту не підтверджено.
+GitHub-based ID має відповідати справжньому контрольованому репозиторію.
 
 Після успішної фази 8 запустити **Desktop store packages** з потрібним тегом.
 Store accounts, tokens, резервування назв і підтвердження угод workflow не створює.
@@ -96,30 +86,6 @@ pnpm --filter @eternal/desktop package:snap --x64 --version 1.12.0
 також як executable name всередині цього пакета. Перевірити фактичну назву
 згенерованого `.desktop` та protocol handler після встановлення.
 
-Для Flathub з кореня репозиторію, після незалежної перевірки release fingerprint,
-GPG-підпису SHA256SUMS та GitHub attestations за [фазою 8](PHASE_8.md):
-
-```sh
-pnpm --filter @eternal/desktop prepare:flathub 1.12.0 /absolute/verified-release-assets /absolute/new-flathub-submission /absolute/listing.json
-```
-
-У release-assets потрібні SHA256SUMS, desktop-release.json та обидва deb. Генератор
-перевіряє вміст за контрольними сумами, але локально не встановлює довіру до самого
-SHA256SUMS. Вихідний каталог має бути новим: наявне подання не перезаписується.
-У ньому немає deb: тільки manifest, apply_extra, Zypak launcher, desktop entry,
-MetaInfo та іконка. Не комітити фіктивні hashes/URLs або version placeholders.
-
-На Linux у каталозі подання:
-
-```sh
-flatpak-builder --user --install --install-deps-from=flathub build-dir com.eternal.desktop.json
-flatpak run com.eternal.desktop
-flatpak run --command=flatpak-builder-lint org.flatpak.Builder manifest com.eternal.desktop.json
-```
-
-Потрібні актуальні Flatpak/flatpak-builder, runtime/BaseApp і appstream validation.
-Окремий `package:flatpak` збирає standalone bundle; він не замінює Flathub submission.
-
 ## Публікація та приймання
 
 1. **Microsoft Store:** зареєструвати застосунок у Partner Center, звірити
@@ -128,12 +94,8 @@ flatpak run --command=flatpak-builder-lint org.flatpak.Builder manifest com.eter
    Certification Kit; заповнити screenshots, privacy, age rating і пояснення
    runFullTrust. Store може прийняти непідписаний MSIX і підписує його після
    сертифікації; для sideload потрібен власний довірений підпис.
-2. **Flathub:** погодити права на packaging/artwork/metadata, перевірити app ID,
-   appstream/Flathub lint і встановлення на x86_64/aarch64. Надіслати manifest та
-   допоміжні файли в submission PR до `flathub/flathub`; не включати build-dir,
-   deb, локальні caches або встановлений runtime. Повідомити про AI-assisted
-   packaging відповідно до актуальної submission policy. Публічний PR у цьому
-   чаті не створюється без окремої просьби згідно з DESKTOP_PLAN.md.
+2. **Flathub:** автор самостійно готує й подає маніфест згідно з чинною
+   Generative AI policy та перевіряє права, app ID і встановлення.
 3. **Snap Store:** зарезервувати назву, погодити `allow-sandbox`, протестувати
    strict-пакет на Linux x64/arm64. Лише після цього `snapcraft upload <file.snap>
    --release=candidate`, перевірка встановлення з candidate і promotion у stable.
@@ -232,8 +194,8 @@ sandbox-дозволу, встановлення пакетів та підтв�
   Бінарні revisions ще не завантажувалися.
 
 Snap executable/name має зареєстрований default. MSIX вимагає всі три
-ідентифікаційні змінні Microsoft із кабінету власника. `DESKTOP_FLATHUB_LISTING`, stable
-desktop-release фази 8 та погодження Snap sandbox залишаються необхідними.
+ідентифікаційні змінні Microsoft із кабінету власника. Stable desktop-release
+фази 8 та погодження Snap sandbox залишаються необхідними.
 
 Перевірка цього оновлення: 13 релевантних тестів (store-config/prepare-flathub),
 desktop TypeScript/ESLint, actionlint, validate:actions та git diff --check —
