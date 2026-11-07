@@ -120,6 +120,19 @@ jobs:
           pnpm --filter @eternal/desktop lint
           pnpm --filter @eternal/desktop test --maxWorkers=2
           pnpm build:desktop
+      - name: Use the host Windows SDK for MakeAppx
+        if: matrix.target == 'msix'
+        shell: pwsh
+        run: |
+          $kitsRoot = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits/10/bin'
+          $kit = Get-ChildItem $kitsRoot -Directory |
+            Where-Object Name -Match '^\d+\.\d+\.\d+\.\d+$' |
+            Sort-Object { [version]$_.Name } -Descending |
+            Where-Object { Test-Path (Join-Path $_.FullName 'x64/makeappx.exe') } |
+            Select-Object -First 1
+          if (-not $kit) { throw 'The x64 runner requires a host Windows SDK with MakeAppx' }
+          $kitPath = Join-Path $kit.FullName 'x64'
+          "ELECTRON_BUILDER_WINDOWS_KITS_PATH=$kitPath" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Package without uploading to stores
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
@@ -144,4 +157,18 @@ jobs:
             apps/desktop/release/*.msix
             apps/desktop/release/*.snap
           if-no-files-found: error
+          retention-days: 7
+      - name: Collect Snap build diagnostics
+        if: failure() && matrix.target == 'snap'
+        run: |
+          sudo lxc network list
+          sudo iptables -S FORWARD
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: failure() && matrix.target == 'snap'
+        with:
+          name: desktop-store-snap-diagnostics-${{ matrix.arch }}
+          path: |
+            ~/.local/state/snapcraft/log/*.log
+            apps/desktop/release/__snap-*/snap/snapcraft.yaml
+          if-no-files-found: warn
           retention-days: 7
