@@ -1440,7 +1440,7 @@
         "apps/web/src/pages/Company/ui/CareersGallery.tsx:35",
         "apps/web/src/shared/lib/extractDominantColors.ts:135",
         "apps/web/src/shared/lib/extractDominantColors.ts:40",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:160",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:162",
         "apps/web/src/shared/model/useThemeStore.ts:77",
         "apps/web/src/shared/model/useThemeStore.ts:78",
         "apps/web/src/widgets/player/SpotifySquareDock.tsx:444",
@@ -1779,7 +1779,7 @@
     {
       "value": "#0c0d12",
       "references": [
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:165",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:167",
         "apps/web/src/shared/ui/CodeSandboxPreview.tsx:313",
         "apps/web/src/shared/ui/VideoEditorModal.tsx:1437"
       ]
@@ -2191,7 +2191,7 @@
         "apps/web/src/pages/Safety/ui/WellbeingIllustrations.tsx:685",
         "apps/web/src/shared/lib/cursorEngine.ts:541",
         "apps/web/src/shared/lib/themeContrastEngine.ts:119",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:134",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:136",
         "apps/web/src/shared/model/useThemeStore.ts:440",
         "apps/web/src/shared/model/useThemeStore.ts:443",
         "apps/web/src/shared/model/useThemeStore.ts:448"
@@ -2600,7 +2600,7 @@
     },
     {
       "value": "#11131a",
-      "references": ["apps/web/src/shared/lib/useLiquidGlassTheme.ts:160"]
+      "references": ["apps/web/src/shared/lib/useLiquidGlassTheme.ts:162"]
     },
     {
       "value": "#111520",
@@ -3647,7 +3647,7 @@
         "apps/web/src/pages/Shop/ui/ShopBrowseFilterSidebar.tsx:49",
         "apps/web/src/shared/lib/colorContrast.ts:143",
         "apps/web/src/shared/lib/colorContrast.ts:166",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:157",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:159",
         "apps/web/src/shared/ui/StyledDisplayName.tsx:85",
         "apps/web/src/widgets/profile/showcase/LivePresenceWidget.tsx:139",
         "apps/web/src/widgets/profile/showcase/LivePresenceWidget.tsx:165",
@@ -3726,8 +3726,8 @@
         "apps/web/src/features/profile/ui/ProfileCustomizeSettingsSection.tsx:4890",
         "apps/web/src/features/profile/ui/appearance/TypographySection.tsx:253",
         "apps/web/src/features/profile/ui/appearance/TypographySection.tsx:339",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:165",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:180"
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:167",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:182"
       ]
     },
     {
@@ -4498,7 +4498,7 @@
         "apps/web/src/shared/lib/cursorEngine.ts:531",
         "apps/web/src/shared/lib/cursorEngine.ts:541",
         "apps/web/src/shared/lib/cursorEngine.ts:555",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:133"
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:135"
       ]
     },
     {
@@ -4999,7 +4999,7 @@
         "apps/web/index.html:214",
         "apps/web/src/features/profile/ui/appearance/CanvasThemesSection.tsx:15",
         "apps/web/src/index.css:111",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:157",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:159",
         "apps/web/src/shared/model/useThemeStore.ts:95"
       ]
     },
@@ -5736,9 +5736,9 @@
         "apps/web/src/pages/Safety/ui/TransparencyIllustrations.tsx:522",
         "apps/web/src/pages/Safety/ui/WellbeingIllustrations.tsx:31",
         "apps/web/src/pages/Safety/ui/WellbeingIllustrations.tsx:554",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:101",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:111",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:154",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:103",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:113",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:156",
         "apps/web/src/shared/ui/ImageEditorModal.tsx:30",
         "apps/web/src/shared/ui/VideoEditorModal.tsx:88",
         "apps/web/src/widgets/profile/showcase/ShowcaseQuickEditor.tsx:121"
@@ -7096,11 +7096,11 @@
         "apps/web/src/pages/Safety/ui/SafetyCenterIllustrations.tsx:125",
         "apps/web/src/pages/Safety/ui/SafetyCenterIllustrations.tsx:191",
         "apps/web/src/pages/Safety/ui/SafetyCenterIllustrations.tsx:362",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:132",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:151",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:157",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:160",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:165",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:134",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:153",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:159",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:162",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:167",
         "apps/web/src/shared/model/useThemeStore.ts:283",
         "apps/web/src/shared/model/useThemeStore.ts:623",
         "apps/web/src/shared/model/useThemeStore.ts:83",
@@ -7205,8 +7205,8 @@
         "apps/web/src/pages/Shop/ui/WishlistCard.tsx:66",
         "apps/web/src/shared/lib/animations/reactionBurstEngine.ts:447",
         "apps/web/src/shared/lib/cursorVfxEngine.ts:590",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:101",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:111",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:103",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:113",
         "apps/web/src/widgets/feed/ui/StoriesBar.tsx:182",
         "apps/web/src/widgets/feed/ui/StoriesBar.tsx:247"
       ]
@@ -8567,7 +8567,7 @@
         "apps/web/src/shared/lib/cursorEngine.ts:383",
         "apps/web/src/shared/lib/cursorEngine.ts:525",
         "apps/web/src/shared/lib/themeContrastEngine.ts:168",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:133",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:135",
         "apps/web/src/shared/model/useThemeStore.ts:452",
         "apps/web/src/shared/model/useThemeStore.ts:455",
         "apps/web/src/shared/ui/VideoEditorModal.tsx:579"
@@ -8891,8 +8891,8 @@
         "apps/web/src/shared/lib/cursorEngine.ts:342",
         "apps/web/src/shared/lib/cursorPresets.ts:64",
         "apps/web/src/shared/lib/themeContrastEngine.ts:167",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:154",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:164",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:156",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:166",
         "apps/web/src/shared/model/useThemeStore.ts:451",
         "apps/web/src/shared/model/useThemeStore.ts:454"
       ]
@@ -9175,8 +9175,8 @@
         "apps/web/src/shared/lib/animations/reactionBurstEngine.ts:447",
         "apps/web/src/shared/lib/animations/reactionBurstEngine.ts:689",
         "apps/web/src/shared/lib/cursorEngine.ts:412",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:101",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:111",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:103",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:113",
         "apps/web/src/shared/ui/StyledDisplayName.tsx:160",
         "apps/web/src/shared/ui/VideoEditorModal.tsx:90",
         "apps/web/src/widgets/comment/ui/CommentModal.tsx:497",
@@ -9298,7 +9298,7 @@
         "apps/web/src/pages/Safety/ui/WellbeingIllustrations.tsx:125",
         "apps/web/src/pages/Safety/ui/WellbeingIllustrations.tsx:650",
         "apps/web/src/shared/lib/animations/reactionBurstEngine.ts:641",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:134",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:136",
         "apps/web/src/shared/ui/VideoEditorModal.tsx:330"
       ]
     },
@@ -9626,9 +9626,9 @@
         "apps/web/src/shared/lib/animations/reactionBurstEngine.ts:616",
         "apps/web/src/shared/lib/cursorEngine.ts:390",
         "apps/web/src/shared/lib/cursorEngine.ts:524",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:154",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:164",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:180",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:156",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:166",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:182",
         "apps/web/src/shared/model/useThemeStore.ts:94"
       ]
     },
@@ -10693,7 +10693,7 @@
         "apps/web/src/shared/lib/themeContrastEngine.ts:77",
         "apps/web/src/shared/lib/themeContrastEngine.ts:79",
         "apps/web/src/shared/lib/themeContrastEngine.ts:82",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:164",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:166",
         "apps/web/src/shared/model/useThemeStore.ts:122",
         "apps/web/src/shared/model/useThemeStore.ts:330",
         "apps/web/src/shared/model/useThemeStore.ts:331",
@@ -10929,46 +10929,46 @@
     {
       "value": "rgba(${c1.r}, ${c1.g}, ${c1.b}, 0.18)",
       "references": [
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:186",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:187"
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:188",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:189"
       ]
     },
     {
       "value": "rgba(${c1.r}, ${c1.g}, ${c1.b}, 0.40)",
-      "references": ["apps/web/src/shared/lib/useLiquidGlassTheme.ts:192"]
+      "references": ["apps/web/src/shared/lib/useLiquidGlassTheme.ts:194"]
     },
     {
       "value": "rgba(${c1.r}, ${c1.g}, ${c1.b}, 0.42)",
-      "references": ["apps/web/src/shared/lib/useLiquidGlassTheme.ts:193"]
+      "references": ["apps/web/src/shared/lib/useLiquidGlassTheme.ts:195"]
     },
     {
       "value": "rgba(${c2.r}, ${c2.g}, ${c2.b}, 0.08)",
       "references": [
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:186",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:187"
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:188",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:189"
       ]
     },
     {
       "value": "rgba(${c2.r}, ${c2.g}, ${c2.b}, 0.22)",
       "references": [
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:192",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:193"
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:194",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:195"
       ]
     },
     {
       "value": "rgba(${c3.r}, ${c3.g}, ${c3.b}, 0.14)",
       "references": [
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:186",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:187"
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:188",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:189"
       ]
     },
     {
       "value": "rgba(${c3.r}, ${c3.g}, ${c3.b}, 0.34)",
-      "references": ["apps/web/src/shared/lib/useLiquidGlassTheme.ts:192"]
+      "references": ["apps/web/src/shared/lib/useLiquidGlassTheme.ts:194"]
     },
     {
       "value": "rgba(${c3.r}, ${c3.g}, ${c3.b}, 0.36)",
-      "references": ["apps/web/src/shared/lib/useLiquidGlassTheme.ts:193"]
+      "references": ["apps/web/src/shared/lib/useLiquidGlassTheme.ts:195"]
     },
     {
       "value": "rgba(${cardRgb}, ${cardAlpha})",
@@ -11042,7 +11042,7 @@
       "references": [
         "apps/web/src/index.css:106",
         "apps/web/src/index.css:751",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:208",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:210",
         "apps/web/src/shared/model/useThemeStore.ts:434",
         "apps/web/src/widgets/player/SpotifyBottomDock.tsx:359"
       ]
@@ -11063,7 +11063,7 @@
         "apps/web/src/features/chat/lib/themeUtils.ts:281",
         "apps/web/src/index.css:551",
         "apps/web/src/index.css:554",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:208",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:210",
         "apps/web/src/shared/ui/AddEmojiButton.tsx:217"
       ]
     },
@@ -11110,7 +11110,7 @@
       "value": "rgba(0, 0, 0, 0.14)",
       "references": [
         "apps/web/src/index.css:558",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:208"
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:210"
       ]
     },
     {
@@ -11198,7 +11198,7 @@
         "apps/web/src/index.css:1063",
         "apps/web/src/index.css:1106",
         "apps/web/src/index.css:288",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:209",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:211",
         "apps/web/src/widgets/player/JamRoomPopover.tsx:140",
         "apps/web/src/widgets/player/SpotifyBottomDock.tsx:1051",
         "apps/web/src/widgets/player/SpotifyLyricsModal.tsx:153",
@@ -11239,7 +11239,7 @@
       "references": [
         "apps/web/src/features/chat/ui/DocumentPreviewModal.tsx:423",
         "apps/web/src/index.css:1924",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:209",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:211",
         "apps/web/src/widgets/player/JamAutoplayBanner.tsx:33",
         "apps/web/src/widgets/player/JamRoomPopover.tsx:140",
         "apps/web/src/widgets/player/SpotifyBottomDock.tsx:1051",
@@ -11411,7 +11411,7 @@
     },
     {
       "value": "rgba(10, 11, 16, 0.76)",
-      "references": ["apps/web/src/shared/lib/useLiquidGlassTheme.ts:192"]
+      "references": ["apps/web/src/shared/lib/useLiquidGlassTheme.ts:194"]
     },
     {
       "value": "rgba(100, 116, 139, 0.45)",
@@ -11828,7 +11828,7 @@
     },
     {
       "value": "rgba(20, 22, 30, 0.82)",
-      "references": ["apps/web/src/shared/lib/useLiquidGlassTheme.ts:193"]
+      "references": ["apps/web/src/shared/lib/useLiquidGlassTheme.ts:195"]
     },
     {
       "value": "rgba(20, 22, 34, 0.88)",
@@ -11893,7 +11893,7 @@
     },
     {
       "value": "rgba(22, 25, 34, 0.64)",
-      "references": ["apps/web/src/shared/lib/useLiquidGlassTheme.ts:192"]
+      "references": ["apps/web/src/shared/lib/useLiquidGlassTheme.ts:194"]
     },
     {
       "value": "rgba(220, 38, 38, 0.60)",
@@ -11994,7 +11994,7 @@
     },
     {
       "value": "rgba(244, 246, 250, 0.84)",
-      "references": ["apps/web/src/shared/lib/useLiquidGlassTheme.ts:186"]
+      "references": ["apps/web/src/shared/lib/useLiquidGlassTheme.ts:188"]
     },
     {
       "value": "rgba(244, 63, 94, 0)",
@@ -12029,7 +12029,7 @@
     },
     {
       "value": "rgba(248, 250, 252, 0.94)",
-      "references": ["apps/web/src/shared/lib/useLiquidGlassTheme.ts:187"]
+      "references": ["apps/web/src/shared/lib/useLiquidGlassTheme.ts:189"]
     },
     {
       "value": "rgba(249, 115, 22, 0.45)",
@@ -12145,7 +12145,7 @@
       "value": "rgba(255, 255, 255, 0.04)",
       "references": [
         "apps/web/src/features/chat/lib/webrtc/virtualBackground.ts:573",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:209",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:211",
         "apps/web/src/widgets/player/JamRoomPopover.tsx:140",
         "apps/web/src/widgets/player/SpotifyBottomDock.tsx:1051",
         "apps/web/src/widgets/player/SpotifyBottomDock.tsx:360",
@@ -12196,7 +12196,7 @@
         "apps/web/src/index.css:1580",
         "apps/web/src/index.css:1602",
         "apps/web/src/index.css:290",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:209",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:211",
         "apps/web/src/shared/ui/AddEmojiButton.tsx:217",
         "apps/web/src/shared/ui/AddEmojiButton.tsx:218",
         "apps/web/src/widgets/player/JamAutoplayBanner.tsx:33",
@@ -12321,7 +12321,7 @@
       "references": [
         "apps/web/src/index.css:1056",
         "apps/web/src/index.css:1099",
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:209",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:211",
         "apps/web/src/widgets/player/JamAutoplayBanner.tsx:33",
         "apps/web/src/widgets/player/JamRoomPopover.tsx:140",
         "apps/web/src/widgets/player/SpotifyBottomDock.tsx:1051",
@@ -12358,7 +12358,7 @@
     {
       "value": "rgba(255, 255, 255, 0.75)",
       "references": [
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:186",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:188",
         "apps/web/src/shared/model/useThemeStore.ts:457"
       ]
     },
@@ -12375,7 +12375,7 @@
     },
     {
       "value": "rgba(255, 255, 255, 0.88)",
-      "references": ["apps/web/src/shared/lib/useLiquidGlassTheme.ts:187"]
+      "references": ["apps/web/src/shared/lib/useLiquidGlassTheme.ts:189"]
     },
     {
       "value": "rgba(255, 255, 255, 0.9)",
@@ -12394,7 +12394,7 @@
     {
       "value": "rgba(255, 255, 255, 0.95)",
       "references": [
-        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:208",
+        "apps/web/src/shared/lib/useLiquidGlassTheme.ts:210",
         "apps/web/src/widgets/player/JamRoomPopover.tsx:139",
         "apps/web/src/widgets/player/SpotifyBottomDock.tsx:359",
         "apps/web/src/widgets/player/SpotifyQueuePopover.tsx:138"
@@ -12848,7 +12848,7 @@
     },
     {
       "value": "rgba(9, 10, 15, 0.90)",
-      "references": ["apps/web/src/shared/lib/useLiquidGlassTheme.ts:193"]
+      "references": ["apps/web/src/shared/lib/useLiquidGlassTheme.ts:195"]
     },
     {
       "value": "rgba(92, 126, 16, 0.4)",
