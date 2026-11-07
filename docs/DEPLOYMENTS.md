@@ -84,6 +84,16 @@ IDs and stream state, plus a reverse-copy plan after any new production writes.
 Keep all four API/worker roles stopped during the consistent snapshot and copy;
 `BACKGROUND_ENABLED=false` alone does not stop HTTP producers or Socket.IO.
 
+The subsequent logical-copy rehearsal passed both directions for all seven
+types, including binary content, absolute expiries, deleted-entry stream
+metadata, collision protection and partial-write cleanup. An independent review
+covered the transfer guards. A read-only live preflight found 83 keys (40,540
+serialized bytes), all within the tested bounds, an empty destination and no
+pending/active/failed jobs in the six queues. These are point-in-time observations,
+not a completed cutover or a consistent production backup. Hash field expiries,
+consumer groups and unsupported/oversized payloads must abort the transfer.
+After an ambiguous timeout, reconcile content and expiry before retry or cleanup.
+
 ### Generic OAuth popup state
 
 GitHub starts with authenticated `POST /auth/github/oauth/start` on Core; other provider starts use `POST /integrations/:platform/oauth/start` on Music. Starts return a 60-second first-party launch URL with a ticket fragment and a separate `launchProof`. The opener checks exact origin and source before sharing the proof; the backend popup sets the encrypted HttpOnly Secure SameSite=Lax provider cookie before redirecting to the provider. Keep launch bodies out of error telemetry. Steam retains its separate OpenID signed-field/nonce verification.
