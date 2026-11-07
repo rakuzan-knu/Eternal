@@ -28,6 +28,7 @@ COPY apps/backend/src/common/contracts ./apps/backend/src/common/contracts
 COPY apps/backend/src/messenger/events/ws-events.ts ./apps/backend/src/messenger/events/ws-events.ts
 COPY apps/backend/tsconfig.json ./apps/backend/tsconfig.json
 COPY apps/desktop/src/shared ./apps/desktop/src/shared
+COPY apps/desktop/src/main/deepLinks.ts ./apps/desktop/src/main/deepLinks.ts
 
 # Copy frontend source code
 COPY apps/web ./apps/web
