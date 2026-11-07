@@ -115,6 +115,14 @@ jobs:
           sudo lxd waitready
           sudo lxd init --auto
           sudo usermod -aG lxd "$USER"
+          for firewall in iptables ip6tables; do
+            if sudo "$firewall" -S DOCKER-USER > /dev/null 2>&1; then
+              sudo "$firewall" -C DOCKER-USER -i lxdbr0 -j ACCEPT 2> /dev/null ||
+                sudo "$firewall" -I DOCKER-USER -i lxdbr0 -j ACCEPT
+              sudo "$firewall" -C DOCKER-USER -o lxdbr0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2> /dev/null ||
+                sudo "$firewall" -I DOCKER-USER -o lxdbr0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+            fi
+          done
       - name: Validate and build
         run: |
           pnpm --filter @eternal/desktop lint
