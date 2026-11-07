@@ -1206,7 +1206,7 @@
         "apps/web/src/pages/Company/CareersPage.tsx:74",
         "apps/web/src/pages/Company/CompanyAboutPage.tsx:69",
         "apps/web/src/pages/Company/CompanyAboutPage.tsx:83",
-        "apps/web/src/pages/Company/CompanyInformationPage.tsx:141",
+        "apps/web/src/pages/Company/CompanyInformationPage.tsx:129",
         "apps/web/src/pages/Company/ui/CareersGallery.tsx:475",
         "apps/web/src/pages/Creators/CreatorsPage.tsx:104",
         "apps/web/src/pages/Creators/CreatorsPage.tsx:158",
@@ -1362,7 +1362,7 @@
       "value": "#090615",
       "references": [
         "apps/web/src/pages/Company/CompanyAboutPage.tsx:237",
-        "apps/web/src/pages/Company/CompanyInformationPage.tsx:215",
+        "apps/web/src/pages/Company/CompanyInformationPage.tsx:203",
         "apps/web/src/pages/Company/ui/CareersGallery.tsx:488",
         "apps/web/src/pages/Download/ui/DownloadHeroPreview.tsx:47",
         "apps/web/src/pages/Download/ui/DownloadMobileSection.tsx:33",
@@ -1949,7 +1949,7 @@
         "apps/web/src/pages/Company/CompanyAboutPage.tsx:495",
         "apps/web/src/pages/Company/CompanyAboutPage.tsx:530",
         "apps/web/src/pages/Company/CompanyAboutPage.tsx:555",
-        "apps/web/src/pages/Company/CompanyInformationPage.tsx:165",
+        "apps/web/src/pages/Company/CompanyInformationPage.tsx:153",
         "apps/web/src/pages/Guidelines/GuidelinesPage.tsx:219",
         "apps/web/src/pages/Guidelines/GuidelinesPage.tsx:315",
         "apps/web/src/pages/Licenses/LicensesPage.tsx:233",
@@ -3002,9 +3002,9 @@
         "apps/web/src/features/cookies/ui/CookiePreferencesModal.tsx:131",
         "apps/web/src/features/cookies/ui/CookiePreferencesModal.tsx:83",
         "apps/web/src/pages/Acknowledgements/AcknowledgementsPage.tsx:457",
+        "apps/web/src/pages/Company/CompanyInformationPage.tsx:169",
         "apps/web/src/pages/Company/CompanyInformationPage.tsx:181",
-        "apps/web/src/pages/Company/CompanyInformationPage.tsx:193",
-        "apps/web/src/pages/Company/CompanyInformationPage.tsx:206",
+        "apps/web/src/pages/Company/CompanyInformationPage.tsx:194",
         "apps/web/src/pages/Licenses/LicensesPage.tsx:456"
       ]
     },
@@ -7605,7 +7605,7 @@
       "value": "#E0E0E6",
       "references": [
         "apps/web/src/pages/Acknowledgements/AcknowledgementsPage.tsx:230",
-        "apps/web/src/pages/Company/CompanyInformationPage.tsx:141",
+        "apps/web/src/pages/Company/CompanyInformationPage.tsx:129",
         "apps/web/src/pages/Guidelines/GuidelinesPage.tsx:161",
         "apps/web/src/pages/Licenses/LicensesPage.tsx:214",
         "apps/web/src/pages/NotFound/NotFoundPage.tsx:36",
@@ -126189,49 +126189,74 @@
       "colorLiterals": ["#07050f", "#090615", "#0e0a1f", "#140e2e", "#E0E0E6"],
       "presentation": [
         {
-          "line": 141,
+          "line": 129,
           "attribute": "className",
           "expression": "\"min-h-screen bg-[#07050f] text-[#E0E0E6] font-sans antialiased selection:bg-purple-600 selection:text-white flex flex-col justify-between\""
         },
         {
-          "line": 155,
+          "line": 143,
           "attribute": "className",
           "expression": "\"max-w-4xl mx-auto px-6 lg:px-12 pt-32 pb-16 w-full flex-1 flex flex-col gap-8 select-text\""
         },
         {
-          "line": 158,
+          "line": 146,
           "attribute": "className",
           "expression": "\"text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight mb-3\""
         },
         {
-          "line": 161,
+          "line": 149,
           "attribute": "className",
           "expression": "\"text-base sm:text-lg text-neutral-400\""
         },
         {
-          "line": 165,
+          "line": 153,
           "attribute": "className",
           "expression": "\"p-8 sm:p-10 rounded-3xl bg-[#0e0a1f]/80 border border-purple-800/30 backdrop-blur-xl shadow-2xl flex flex-col gap-8\""
         },
         {
-          "line": 167,
+          "line": 155,
           "attribute": "className",
           "expression": "\"flex items-center gap-4 pb-6 border-b border-purple-800/30\""
         },
         {
-          "line": 168,
+          "line": 156,
           "attribute": "className",
           "expression": "\"w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500 flex items-center justify-center text-2xl font-black text-white shadow-[0_0_20px_rgba(139,92,246,0.4)]\""
         },
         {
-          "line": 172,
+          "line": 160,
           "attribute": "className",
           "expression": "\"text-2xl sm:text-3xl font-black text-white tracking-tight\""
         },
         {
-          "line": 179,
+          "line": 167,
           "attribute": "className",
           "expression": "\"grid grid-cols-1 md:grid-cols-2 gap-6\""
+        },
+        {
+          "line": 169,
+          "attribute": "className",
+          "expression": "\"p-5 rounded-2xl bg-[#140e2e]/50 border border-purple-800/30 flex flex-col gap-2\""
+        },
+        {
+          "line": 170,
+          "attribute": "className",
+          "expression": "\"flex items-center gap-2 text-purple-400 font-bold text-xs uppercase tracking-wider\""
+        },
+        {
+          "line": 171,
+          "attribute": "className",
+          "expression": "\"w-4 h-4\""
+        },
+        {
+          "line": 174,
+          "attribute": "className",
+          "expression": "\"text-lg font-bold text-white\""
+        },
+        {
+          "line": 175,
+          "attribute": "className",
+          "expression": "\"text-xs text-neutral-400 font-mono\""
         },
         {
           "line": 181,
@@ -126241,32 +126266,32 @@
         {
           "line": 182,
           "attribute": "className",
-          "expression": "\"flex items-center gap-2 text-purple-400 font-bold text-xs uppercase tracking-wider\""
+          "expression": "\"flex items-center justify-between\""
         },
         {
           "line": 183,
           "attribute": "className",
+          "expression": "\"flex items-center gap-2 text-purple-400 font-bold text-xs uppercase tracking-wider\""
+        },
+        {
+          "line": 184,
+          "attribute": "className",
           "expression": "\"w-4 h-4\""
         },
         {
-          "line": 186,
+          "line": 188,
           "attribute": "className",
           "expression": "\"text-lg font-bold text-white\""
         },
         {
-          "line": 187,
+          "line": 189,
           "attribute": "className",
-          "expression": "\"text-xs text-neutral-400 font-mono\""
-        },
-        {
-          "line": 193,
-          "attribute": "className",
-          "expression": "\"p-5 rounded-2xl bg-[#140e2e]/50 border border-purple-800/30 flex flex-col gap-2\""
+          "expression": "\"text-xs text-neutral-400\""
         },
         {
           "line": 194,
           "attribute": "className",
-          "expression": "\"flex items-center justify-between\""
+          "expression": "\"p-6 rounded-2xl bg-[#140e2e]/50 border border-purple-800/30 flex flex-col gap-4\""
         },
         {
           "line": 195,
@@ -126279,62 +126304,37 @@
           "expression": "\"w-4 h-4\""
         },
         {
-          "line": 200,
-          "attribute": "className",
-          "expression": "\"text-lg font-bold text-white\""
-        },
-        {
-          "line": 201,
-          "attribute": "className",
-          "expression": "\"text-xs text-neutral-400\""
-        },
-        {
-          "line": 206,
-          "attribute": "className",
-          "expression": "\"p-6 rounded-2xl bg-[#140e2e]/50 border border-purple-800/30 flex flex-col gap-4\""
-        },
-        {
-          "line": 207,
-          "attribute": "className",
-          "expression": "\"flex items-center gap-2 text-purple-400 font-bold text-xs uppercase tracking-wider\""
-        },
-        {
-          "line": 208,
-          "attribute": "className",
-          "expression": "\"w-4 h-4\""
-        },
-        {
-          "line": 211,
+          "line": 199,
           "attribute": "className",
           "expression": "\"grid grid-cols-1 sm:grid-cols-3 gap-3\""
         },
         {
-          "line": 215,
+          "line": 203,
           "attribute": "className",
           "expression": "\"p-4 rounded-xl bg-[#090615] border border-purple-900/40 flex items-center gap-3 shadow-inner\""
         },
         {
-          "line": 217,
+          "line": 205,
           "attribute": "className",
           "expression": "\"w-8 h-8 rounded-full bg-purple-900/50 border border-purple-700/40 flex items-center justify-center text-xs font-black text-purple-300 select-none\""
         },
         {
-          "line": 221,
+          "line": 209,
           "attribute": "className",
           "expression": "\"font-bold text-sm text-white block\""
         },
         {
-          "line": 222,
+          "line": 210,
           "attribute": "className",
           "expression": "\"text-[11px] text-purple-300 font-semibold\""
         },
         {
-          "line": 230,
+          "line": 218,
           "attribute": "className",
           "expression": "\"pt-4 border-t border-purple-800/30 text-xs sm:text-sm text-neutral-400 leading-relaxed font-sans\""
         },
         {
-          "line": 231,
+          "line": 219,
           "attribute": "className",
           "expression": "\"font-semibold text-white mb-1\""
         }
