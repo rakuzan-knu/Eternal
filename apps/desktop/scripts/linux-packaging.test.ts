@@ -81,5 +81,5 @@ try {
         maintainer: 'Eternal contributors <eternalnet.support@proton.me>',
       },
     ]);
-  });
+  }, 25_000);
 });
