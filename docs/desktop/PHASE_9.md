@@ -301,7 +301,20 @@ PowerShell для registry policy. Для MSIX додано окреме machine
 та лише відповідей `RELATED,ESTABLISHED` у Docker user chain, без зміни глобальної
 політики. Новий run
 [42417570760](https://github.com/rakuzan-knu/Eternal/actions/runs/42417570760)
-ще перевіряє це виправлення. Сам запуск не підтверджує готовність Snap.
+підтвердив доступ мережі: збірка пройшла `apt-get update` і дійшла до формування
+desktop integration. Далі виявлено помилку electron-builder 26.18: descriptor
+посилався на майбутній `meta/gui/*.desktop` до копіювання `snap/gui/`.
+Точковий `patches/app-builder-lib@26.18.0.patch` прибирає лише цей зайвий override,
+щоб Snapcraft використав звичайний `snap/gui/` шлях. Версії залежностей не
+оновлено. 8 листопада локальна перевірка фактичного stager підтвердила desktop entry,
+`eternal://`, launcher без `--no-sandbox` та збережений sandbox helper.
+Це не перевірка завершеного `.snap` або його встановлення; повторний Linux build
+нового стабільного релізу ще потрібен.
+
+Перевірки обох нових виправлень: 262 desktop-тести у 29 файлах, desktop
+TypeScript, scoped ESLint, main/preload build і Prettier — успішні.
+Frozen offline перевірка lockfile пройшла. Ці результати не замінюють
+реальне пакування, встановлення й перевірку нового release source.
 `allow-sandbox` потребує погодження магазину; AI-assisted подання Flathub
 заборонене чинною політикою Flathub, тому маніфест і submission має самостійно
 підготувати людина.

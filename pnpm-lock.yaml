@@ -56,6 +56,9 @@ overrides:
 packageExtensionsChecksum: sha256-t6udugtWhto9Iz9EFPbwu3s760doyhoq4whWkEbRhMo=
 
 patchedDependencies:
+  app-builder-lib@26.18.0:
+    hash: 9686e3efcbfccbc9af964903057a320a03ee6cb82d9e7ed2c2943e801da369c0
+    path: patches/app-builder-lib@26.18.0.patch
   zod@3.25.76:
     hash: d165a14757d34869c0f2b9cc1fb992605bed6954111d14837c4d764f640ca3e9
     path: patches/zod@3.25.76.patch
@@ -20699,7 +20702,7 @@ snapshots:
       normalize-path: 3.0.0
       picomatch: 4.0.7
 
-  app-builder-lib@26.18.0(dmg-builder@26.18.0)(electron-builder-squirrel-windows@26.18.0):
+  app-builder-lib@26.18.0(patch_hash=9686e3efcbfccbc9af964903057a320a03ee6cb82d9e7ed2c2943e801da369c0)(dmg-builder@26.18.0)(electron-builder-squirrel-windows@26.18.0):
     dependencies:
       '@electron/asar': 3.4.1
       '@electron/fuses': 1.8.0
@@ -22105,7 +22108,7 @@ snapshots:
 
   dmg-builder@26.18.0(electron-builder-squirrel-windows@26.18.0):
     dependencies:
-      app-builder-lib: 26.18.0(dmg-builder@26.18.0)(electron-builder-squirrel-windows@26.18.0)
+      app-builder-lib: 26.18.0(patch_hash=9686e3efcbfccbc9af964903057a320a03ee6cb82d9e7ed2c2943e801da369c0)(dmg-builder@26.18.0)(electron-builder-squirrel-windows@26.18.0)
       builder-util: 26.16.0
       fs-extra: 10.1.0
       js-yaml: 5.4.3
@@ -22214,7 +22217,7 @@ snapshots:
 
   electron-builder-squirrel-windows@26.18.0(dmg-builder@26.18.0):
     dependencies:
-      app-builder-lib: 26.18.0(dmg-builder@26.18.0)(electron-builder-squirrel-windows@26.18.0)
+      app-builder-lib: 26.18.0(patch_hash=9686e3efcbfccbc9af964903057a320a03ee6cb82d9e7ed2c2943e801da369c0)(dmg-builder@26.18.0)(electron-builder-squirrel-windows@26.18.0)
       builder-util: 26.16.0
       electron-winstaller: 5.4.0
     transitivePeerDependencies:
@@ -22223,7 +22226,7 @@ snapshots:
 
   electron-builder@26.18.0(electron-builder-squirrel-windows@26.18.0):
     dependencies:
-      app-builder-lib: 26.18.0(dmg-builder@26.18.0)(electron-builder-squirrel-windows@26.18.0)
+      app-builder-lib: 26.18.0(patch_hash=9686e3efcbfccbc9af964903057a320a03ee6cb82d9e7ed2c2943e801da369c0)(dmg-builder@26.18.0)(electron-builder-squirrel-windows@26.18.0)
       builder-util: 26.16.0
       builder-util-runtime: 9.7.0
       chalk: 4.1.2

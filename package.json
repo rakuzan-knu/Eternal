@@ -176,7 +176,8 @@
       "vite@6": "^6.4.5"
     },
     "patchedDependencies": {
-      "zod@3.25.76": "patches/zod@3.25.76.patch"
+      "zod@3.25.76": "patches/zod@3.25.76.patch",
+      "app-builder-lib@26.18.0": "patches/app-builder-lib@26.18.0.patch"
     }
   },
   "resolutions": {
