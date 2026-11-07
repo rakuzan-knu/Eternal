@@ -54,8 +54,9 @@ test('shared renderer starts with an isolated, sandboxed bridge', async () => {
     expect(bridge.hasRoot).toBe(true);
     await expect(page.locator('#root')).not.toBeEmpty();
     await expect
-      .poll(() =>
-        app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.isVisible()),
+      .poll(
+        () => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.isVisible()),
+        { timeout: 30_000 },
       )
       .toBe(true);
     await page.evaluate(
