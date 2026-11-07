@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.13.1](https://github.com/rakuzan-knu/Eternal/compare/v1.13.0...v1.13.1) (2026-11-07)
+
+### 🐛 Bug Fixes
+
+* **desktop:** preserve Snapcraft desktop asset discovery ([4b1b658](https://github.com/rakuzan-knu/Eternal/commit/4b1b658ee128eb5fc07f927bfb9019ee8b86da63))
+* **desktop:** read MSIX policies without launching PowerShell ([78bc5d5](https://github.com/rakuzan-knu/Eternal/commit/78bc5d51206c8671e759306244150f78794a32b6))
+
+### 👷 CI/CD & Automation
+
+* **desktop:** allow LXD build egress through Docker forwarding ([721e094](https://github.com/rakuzan-knu/Eternal/commit/721e094f3998aad85df2232e6d9a589dc83316bc))
+* **desktop:** normalize blank optional macOS certificate input ([c171225](https://github.com/rakuzan-knu/Eternal/commit/c17122586ce48b498b4efb110794bb91b4bdffc9))
+* **desktop:** use host SDK for cross-architecture MSIX packaging ([df1a8cf](https://github.com/rakuzan-knu/Eternal/commit/df1a8cfbd16add85ede06235ce7f3ff37ccd0908))
+
 ## [1.13.0](https://github.com/rakuzan-knu/Eternal/compare/v1.12.3...v1.13.0) (2026-11-07)
 
 ### ✨ Features
