@@ -12,12 +12,13 @@ WORKDIR /app
 COPY pnpm-lock.yaml package.json pnpm-workspace.yaml tsconfig.base.json ./
 COPY patches ./patches/
 COPY apps/web/package.json ./apps/web/
+COPY apps/desktop/package.json ./apps/desktop/
 COPY packages ./packages/
 COPY scripts ./scripts/
 
 # Install dependencies strictly for frontend and its workspace dependencies
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile --filter frontend...
+    ELECTRON_SKIP_BINARY_DOWNLOAD=1 pnpm install --frozen-lockfile --filter frontend... --filter @eternal/desktop
 
 # Copy packages source code
 COPY packages ./packages
@@ -26,6 +27,7 @@ COPY packages ./packages
 COPY apps/backend/src/common/contracts ./apps/backend/src/common/contracts
 COPY apps/backend/src/messenger/events/ws-events.ts ./apps/backend/src/messenger/events/ws-events.ts
 COPY apps/backend/tsconfig.json ./apps/backend/tsconfig.json
+COPY apps/desktop/src/shared ./apps/desktop/src/shared
 
 # Copy frontend source code
 COPY apps/web ./apps/web

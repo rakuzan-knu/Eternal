@@ -53,6 +53,17 @@ test('shared renderer starts with an isolated, sandboxed bridge', async () => {
     expect(bridge.hasProcess).toBe(false);
     expect(bridge.hasRoot).toBe(true);
     await expect(page.locator('#root')).not.toBeEmpty();
+    await expect
+      .poll(() =>
+        app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.isVisible()),
+      )
+      .toBe(true);
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+        ),
+    );
     await page.screenshot({ path: info.outputPath('renderer.png') });
     expect(bridge.bridgeKeys).toEqual([
       'cancelYouTube',

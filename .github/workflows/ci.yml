@@ -821,12 +821,24 @@ jobs:
             apps/web/test-results-data-window/
           retention-days: 14
 
+      - name: Prepare isolated dependency installation for bundle comparison
+        run: |
+          cat > "$RUNNER_TEMP/compressed-size-install.sh" <<'SH'
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE"
+          find . -type d -name node_modules -prune -exec rm -rf -- {} +
+          find apps/web -name '*.tsbuildinfo' -type f -delete
+          ELECTRON_SKIP_BINARY_DOWNLOAD=1 pnpm install --frozen-lockfile
+          SH
+
       - name: Check bundle size changes
         uses: preactjs/compressed-size-action@f322c295dde06a1cb7ccaef105732dd8a726d1d9 # v2.10.0
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-          pattern: 'apps/web/dist/**/*.{js,css}'
+          cwd: 'apps/web'
+          pattern: 'dist/**/*.{js,css}'
           strip-hash: "\\b\\w{8}\\."
+          install-script: 'bash ${{ runner.temp }}/compressed-size-install.sh'
           build-script: 'build'
 
   dependency-review:
