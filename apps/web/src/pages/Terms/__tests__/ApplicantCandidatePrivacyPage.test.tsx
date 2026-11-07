@@ -49,9 +49,7 @@ describe('ApplicantCandidatePrivacyPage', () => {
       </MemoryRouter>,
     );
 
-    expect(
-      screen.getAllByText(/private contact address has not been provided/i).length,
-    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/eternalnet\.support@proton\.me/i).length).toBeGreaterThanOrEqual(1);
   });
 
   it('supports Ukrainian language switching', () => {

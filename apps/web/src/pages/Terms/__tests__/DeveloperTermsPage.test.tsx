@@ -17,7 +17,7 @@ describe('DeveloperTermsPage', () => {
     );
 
     expect(screen.getByText('DEVELOPER & BOT API TERMS OF SERVICE')).toBeInTheDocument();
-    expect(screen.getByText(/Effective: September 1, 2026/i)).toBeInTheDocument();
+    expect(screen.getByText(/Updated: November 5, 2026/i)).toBeInTheDocument();
   });
 
   it('renders all 6 developer sections in TOC and main content', () => {
@@ -53,9 +53,7 @@ describe('DeveloperTermsPage', () => {
     );
 
     expect(screen.getAllByText(/HTTP 429/i).length).toBeGreaterThanOrEqual(1);
-    expect(
-      screen.getAllByText(/private contact address has not been provided/i).length,
-    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/eternalnet\.support@proton\.me/i).length).toBeGreaterThanOrEqual(1);
   });
 
   it('supports Ukrainian language switching', () => {

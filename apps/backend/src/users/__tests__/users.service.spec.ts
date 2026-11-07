@@ -208,8 +208,37 @@ describe('UsersService', () => {
         username: 'alex_dev',
         displayName: 'Alex',
         passwordHash: 'hashed_pw',
+        birthDate: new Date('2000-01-01T00:00:00.000Z'),
       });
       expect(res.id).toBe('usr-100');
+    });
+
+    it.each([new Date('invalid'), new Date('2999-01-01'), new Date()])(
+      'rejects a direct create with ineligible birthday %s without a database write',
+      async (birthDate) => {
+        await expect(
+          service.create({
+            email: 'alex@example.com',
+            username: 'alex_dev',
+            passwordHash: 'hashed_pw',
+            birthDate,
+          }),
+        ).rejects.toThrow(BadRequestException);
+        expect(mockUsersRepository.create).not.toHaveBeenCalled();
+      },
+    );
+
+    it('rejects direct runtime creation with an omitted birthday', async () => {
+      await expect(
+        Reflect.apply(service.create, service, [
+          {
+            email: 'alex@example.com',
+            username: 'alex_dev',
+            passwordHash: 'hashed_pw',
+          },
+        ]),
+      ).rejects.toThrow(BadRequestException);
+      expect(mockUsersRepository.create).not.toHaveBeenCalled();
     });
 
     it('finds by id, username, email', async () => {

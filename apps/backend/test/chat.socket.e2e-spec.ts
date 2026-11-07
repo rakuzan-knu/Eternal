@@ -7,6 +7,10 @@ import type { App } from 'supertest/types';
 import { io, type Socket } from 'socket.io-client';
 import msgpackParser from 'socket.io-msgpack-parser';
 import { AppModule } from '../src/app.module';
+import {
+  assertIsolatedAuthFixtureEnvironment,
+  seedAndLoginExistingAuthUser,
+} from './existing-auth-user';
 import { RedisIoAdapter } from '../src/common/adapters/redis-io.adapter';
 
 interface AuthedUser {
@@ -15,20 +19,6 @@ interface AuthedUser {
 }
 
 const runId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-
-async function registerUser(app: INestApplication<App>, name: string): Promise<AuthedUser> {
-  const response = await request(app.getHttpServer())
-    .post('/auth/register')
-    .send({
-      email: `${name}.${runId}@example.com`,
-      username: `${name}${runId}`,
-      displayName: name,
-      password: 'Password123!',
-    })
-    .expect(201);
-  const body = response.body as { user: { id: string }; accessToken: string };
-  return { id: body.user.id, token: body.accessToken };
-}
 
 /** Resolves with the next payload for `event`, or rejects after `ms`. */
 function waitForEvent<T>(socket: Socket, event: string, ms = 8000): Promise<T> {
@@ -63,6 +53,7 @@ describe('Chat & notifications over WebSocket (e2e)', () => {
   let bobSocket: Socket;
 
   beforeAll(async () => {
+    assertIsolatedAuthFixtureEnvironment();
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -74,8 +65,8 @@ describe('Chat & notifications over WebSocket (e2e)', () => {
     // A real listening port is required for the Socket.IO gateway.
     await app.listen(0);
 
-    alice = await registerUser(app, 'alice');
-    bob = await registerUser(app, 'bob');
+    alice = await seedAndLoginExistingAuthUser(app, 'alice', runId);
+    bob = await seedAndLoginExistingAuthUser(app, 'bob', runId);
 
     aliceSocket = connect(app, alice.token);
     bobSocket = connect(app, bob.token);

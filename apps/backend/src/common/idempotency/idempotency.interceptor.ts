@@ -22,6 +22,7 @@ import {
   IDEMPOTENT_METADATA_KEY,
   IN_FLIGHT_LOCK_TTL_MS,
   REDIS_IDEMPOTENCY_PREFIX,
+  SKIP_IDEMPOTENCY_METADATA_KEY,
   type IdempotencyRecord,
 } from './idempotency.constants';
 import type { IdempotentOptions } from './idempotency.decorator';
@@ -39,6 +40,14 @@ export class IdempotencyInterceptor implements NestInterceptor {
     if (context.getType() !== 'http') {
       return next.handle();
     }
+
+    if (
+      this.reflector.getAllAndOverride<boolean>(SKIP_IDEMPOTENCY_METADATA_KEY, [
+        context.getHandler(),
+        context.getClass(),
+      ])
+    )
+      return next.handle();
 
     const http = context.switchToHttp();
     const req = http.getRequest<Request & { user?: { id?: string } }>();

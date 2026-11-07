@@ -88,7 +88,7 @@ export function StoriesBar() {
       <div
         role="region"
         aria-label="Stories"
-        className="flex items-center justify-between gap-3 px-1 py-2"
+        className="flex min-w-0 flex-wrap items-center justify-between gap-3 px-1 py-2"
       >
         <span className="text-sm text-gray-500 dark:text-gray-400">
           Share a moment with your followers

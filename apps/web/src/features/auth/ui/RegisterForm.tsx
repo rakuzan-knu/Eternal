@@ -3,6 +3,9 @@ import { useForm, Controller, Control, UseFormSetValue, useWatch } from 'react-h
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
+import { useRegistrationPolicy } from '../api/useRegistrationPolicy';
+import { useLanguageStore } from '@/shared/lib/language/languageStore';
+import { calendarBirthDate } from '@social-network/shared-contracts';
 
 import { Input } from '../../../shared/ui/Input';
 import { Button } from '../../../shared/ui/Button';
@@ -209,7 +212,7 @@ interface RegisterFormProps {
   redirectOnSuccess?: boolean;
 }
 
-export const RegisterForm: React.FC<RegisterFormProps> = ({
+export const RegistrationFields: React.FC<RegisterFormProps> = ({
   onSuccess,
   redirectOnSuccess = true,
 }) => {
@@ -259,12 +262,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     setServerError(null);
 
     const monthIndex = BIRTH_MONTHS.findIndex((month) => month === data.birthMonth);
-    const birthDate = new Date(
-      parseInt(data.birthYear, 10),
-      monthIndex >= 0 ? monthIndex : 0,
-      parseInt(data.birthDay, 10),
-      12,
-    ).toISOString();
+    const birthday = calendarBirthDate(Number(data.birthYear), monthIndex, Number(data.birthDay));
+    if (!birthday) return;
+    const birthDate = birthday.toISOString();
 
     const cleanUsername = data.username.replace(/^@+/, '').trim();
     const displayName = `${data.firstName.trim()} ${data.lastName.trim()}`.trim() || undefined;
@@ -497,5 +497,72 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         Create Account
       </Button>
     </form>
+  );
+};
+
+export const RegisterForm: React.FC<RegisterFormProps> = (props) => {
+  const policy = useRegistrationPolicy();
+  const language = useLanguageStore((state) => state.currentLanguage);
+  const ukrainian = language === 'Українська';
+  const titleId = useId();
+  if (policy.isSuccess && policy.data.registrationOpen) return <RegistrationFields {...props} />;
+  const title = ukrainian
+    ? 'Нові реєстрації тимчасово недоступні'
+    : 'New registrations are temporarily unavailable';
+  const message = policy.isPending
+    ? ukrainian
+      ? 'Перевіряємо доступність реєстрації…'
+      : 'Checking registration availability…'
+    : policy.isError
+      ? ukrainian
+        ? 'Не вдалося перевірити доступність. Реєстрація залишається закритою; спробуйте ще раз.'
+        : 'Availability could not be checked. Registration remains closed; please try again.'
+      : ukrainian
+        ? 'Ми перевіряємо регіональні вимоги до допуску й захисту неповнолітніх. Наразі жоден ринок не відкрито для нових реєстрацій.'
+        : 'We are reviewing regional admission requirements and protections for minors. No market is currently open for new registrations.';
+  return (
+    <section
+      aria-labelledby={titleId}
+      className="flex flex-col gap-4 text-left w-full max-w-md mx-auto"
+    >
+      <h3 id={titleId} className="text-lg font-semibold text-white">
+        {title}
+      </h3>
+      <p
+        role={policy.isError ? 'alert' : 'status'}
+        className="text-sm text-neutral-300 leading-relaxed"
+      >
+        {message}
+      </p>
+      <p className="text-sm text-neutral-400 leading-relaxed">
+        {ukrainian
+          ? 'Наявні акаунти можуть входити, експортувати свої дані та користуватися налаштуваннями приватності. Запити на видалення й інші звернення щодо ваших прав залишаються доступними.'
+          : 'Existing accounts can still sign in, export their data, and use privacy settings. Deletion requests and other privacy-rights requests remain available.'}
+      </p>
+      <Link
+        to="/login"
+        className="text-sm text-purple-400 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4"
+      >
+        {ukrainian ? 'Увійти в наявний акаунт' : 'Sign in to an existing account'}
+      </Link>
+      <a
+        href="mailto:eternalnet.support@proton.me"
+        className="text-sm text-purple-400 break-all hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4"
+      >
+        eternalnet.support@proton.me
+      </a>
+      {policy.isError && (
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => {
+            void policy.refetch();
+          }}
+          loading={policy.isFetching}
+        >
+          {ukrainian ? 'Спробувати ще раз' : 'Try again'}
+        </Button>
+      )}
+    </section>
   );
 };

@@ -17,9 +17,9 @@ describe('LawEnforcementPage', () => {
     );
 
     expect(screen.getByText('GUIDELINES FOR LAW ENFORCEMENT')).toBeInTheDocument();
-    expect(screen.getByText(/Effective: September 1, 2026/i)).toBeInTheDocument();
+    expect(screen.getByText(/Updated: November 5, 2026/i)).toBeInTheDocument();
     expect(
-      screen.getByText(/Eternal project, operated by the project founders/i),
+      screen.getByText(/Eternal project, operated by Mykola Agh and Michal Agh/i),
     ).toBeInTheDocument();
   });
 
@@ -53,9 +53,7 @@ describe('LawEnforcementPage', () => {
     );
 
     expect(screen.getByText(/Zero-Knowledge & Ephemeral Storage/i)).toBeInTheDocument();
-    expect(
-      screen.getAllByText(/private contact address has not been provided/i).length,
-    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/eternalnet\.support@proton\.me/i).length).toBeGreaterThanOrEqual(1);
   });
 
   it('supports Ukrainian language switching', () => {

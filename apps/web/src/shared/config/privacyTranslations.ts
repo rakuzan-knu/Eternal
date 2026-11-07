@@ -339,7 +339,7 @@ const DE_UI: LegalUITranslation = {
   },
   hero: {
     title: 'ETERNAL DATENSCHUTZRICHTLINIE',
-    effectiveDate: 'Gültig ab: 1. September 2026 • Zuletzt aktualisiert: 28. August 2026',
+    effectiveDate: 'Zuletzt aktualisiert: 2026-11-05',
     description:
       'Wir haben Eternal mit Transparenz, Sicherheit und Datenschutz im Mittelpunkt entwickelt. Diese Seite erklärt in klaren Worten, wie wir mit deinen Beiträgen, Nachrichten, Sprachräumen und Musik-Streams umgehen.',
   },
@@ -421,8 +421,7 @@ const ES_UI: LegalUITranslation = {
   },
   hero: {
     title: 'POLÍTICA DE PRIVACIDAD DE ETERNAL',
-    effectiveDate:
-      'Fecha de vigencia: 1 de septiembre de 2026 • Última actualización: 28 de agosto de 2026',
+    effectiveDate: 'Última actualización: 2026-11-05',
     description:
       'Construimos Eternal pensando en la transparencia y la privacidad. Esta página explica en palabras sencillas cómo manejamos tus publicaciones, mensajes, salas de voz y música.',
   },
@@ -504,8 +503,7 @@ const FR_UI: LegalUITranslation = {
   },
   hero: {
     title: 'POLITIQUE DE CONFIDENTIALITÉ D’ETERNAL',
-    effectiveDate:
-      'Date d’entrée en vigueur : 1er septembre 2026 • Dernière mise à jour : 28 août 2026',
+    effectiveDate: 'Dernière mise à jour: 2026-11-05',
     description:
       'Nous avons conçu Eternal avec transparence et sécurité. Cette page explique simplement comment nous traitons vos publications, messages, salons vocaux et musique partagée.',
   },
@@ -587,8 +585,7 @@ const IT_UI: LegalUITranslation = {
   },
   hero: {
     title: 'INFORMATIVA SULLA PRIVACY DI ETERNAL',
-    effectiveDate:
-      'Data di entrata in vigore: 1 settembre 2026 • Ultimo aggiornamento: 28 agosto 2026',
+    effectiveDate: 'Ultimo aggiornamento: 2026-11-05',
     description:
       'Abbiamo creato Eternal pensando a trasparenza, sicurezza e controllo degli utenti.',
   },
@@ -670,8 +667,7 @@ const HU_UI: LegalUITranslation = {
   },
   hero: {
     title: 'ETERNAL ADATVÉDELMI IRÁNYELVEK',
-    effectiveDate:
-      'Hatálybalépés dátuma: 2026. szeptember 1. • Utolsó frissítés: 2026. augusztus 28.',
+    effectiveDate: 'Utolsó frissítés: 2026-11-05',
     description:
       'Az Eternal platformot az átláthatóság és a felhasználói biztonság jegyében építettük fel.',
   },
@@ -753,7 +749,7 @@ const NL_UI: LegalUITranslation = {
   },
   hero: {
     title: 'ETERNAL PRIVACYBELEID',
-    effectiveDate: 'Ingangsdatum: 1 september 2026 • Laatst bijgewerkt: 28 augustus 2026',
+    effectiveDate: 'Laatst bijgewerkt: 2026-11-05',
     description: 'We hebben Eternal gebouwd met transparantie en veiligheid als prioriteit.',
   },
   toc: {
@@ -834,8 +830,7 @@ const PL_UI: LegalUITranslation = {
   },
   hero: {
     title: 'POLITYKA PRYWATNOŚCI ETERNAL',
-    effectiveDate:
-      'Data wejścia w życie: 1 września 2026 • Ostatnia aktualizacja: 28 sierpnia 2026',
+    effectiveDate: 'Ostatnia aktualizacja: 2026-11-05',
     description:
       'Stworzyliśmy Eternal z myślą o pełnej przejrzystości, bezpieczeństwie i kontroli użytkownika.',
   },
@@ -917,8 +912,7 @@ const PT_UI: LegalUITranslation = {
   },
   hero: {
     title: 'POLÍTICA DE PRIVACIDADE DA ETERNAL',
-    effectiveDate:
-      'Data de vigência: 1 de setembro de 2026 • Última atualização: 28 de agosto de 2026',
+    effectiveDate: 'Última atualização: 2026-11-05',
     description:
       'Construímos o Eternal com transparência e segurança como princípios fundamentais.',
   },
@@ -1000,7 +994,7 @@ const TR_UI: LegalUITranslation = {
   },
   hero: {
     title: 'ETERNAL GİZLİLİK POLİTİKASI',
-    effectiveDate: 'Yürürlük Tarihi: 1 Eylül 2026 • Son Güncelleme: 28 Ağustos 2026',
+    effectiveDate: 'Son Güncelleme: 2026-11-05',
     description:
       "Eternal'ı şeffaflık, güvenlik ve kullanıcı kontrolünü ön planda tutarak geliştirdik.",
   },
@@ -1082,7 +1076,7 @@ const JA_UI: LegalUITranslation = {
   },
   hero: {
     title: 'ETERNAL プライバシーポリシー',
-    effectiveDate: '発効日：2026年9月1日 • 最終更新：2026年8月28日',
+    effectiveDate: '最終更新: 2026-11-05',
     description:
       'Eternalは透明性とセキュリティを最優先に設計されています。投稿、メッセージ、ボイスルーム、音楽共有の取り扱いと、お客様のデータ管理方法について説明します。',
   },
@@ -1164,7 +1158,7 @@ const KO_UI: LegalUITranslation = {
   },
   hero: {
     title: 'ETERNAL 개인정보 처리방침',
-    effectiveDate: '시행일: 2026년 9월 1일 • 최종 수정일: 2026년 8월 28일',
+    effectiveDate: '최종 수정일: 2026-11-05',
     description: 'Eternal은 투명성, 보안 및 사용자 개인정보 보호를 최우선으로 설계되었습니다.',
   },
   toc: {
@@ -1245,7 +1239,7 @@ const ZHT_UI: LegalUITranslation = {
   },
   hero: {
     title: 'ETERNAL 隱私權政策',
-    effectiveDate: '生效日期：2026年9月1日 • 上次更新：2026年8月28日',
+    effectiveDate: '上次更新: 2026-11-05',
     description: '我們以透明、安全和給予使用者完全控制權為核心打造了 Eternal。',
   },
   toc: {
@@ -1326,7 +1320,7 @@ const ZHS_UI: LegalUITranslation = {
   },
   hero: {
     title: 'ETERNAL 隐私政策',
-    effectiveDate: '生效日期：2026年9月1日 • 最近更新：2026年8月28日',
+    effectiveDate: '最近更新: 2026-11-05',
     description: '我们在设计 Eternal 时始终将透明度、安全性和用户控制权放在首位。',
   },
   toc: {

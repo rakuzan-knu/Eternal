@@ -36,8 +36,8 @@ export const DEVELOPER_TERMS_DATA: Record<'en' | 'uk', DeveloperTermsTranslation
     hero: {
       archivedLink: 'Developer & API Portal',
       title: 'DEVELOPER & BOT API TERMS OF SERVICE',
-      effectiveDate: 'Effective: September 1, 2026 • Last updated: August 30, 2026',
-      lastUpdated: 'Last Updated: August 30, 2026',
+      effectiveDate: 'Updated: November 5, 2026',
+      lastUpdated: 'Updated: November 5, 2026',
       description:
         'These Developer Terms govern your access to and use of Eternal’s APIs, SDKs, developer portals, and bot creation tools. They set forth security obligations, rate limits, and data protection standards for building custom bots and integrations.',
     },
@@ -145,7 +145,7 @@ export const DEVELOPER_TERMS_DATA: Record<'en' | 'uk', DeveloperTermsTranslation
         number: '6',
         title: 'Developer Support & Inquiries',
         iconName: 'Mail',
-        tldr: 'A private contact address has not been provided. Do not submit personal data through public issues.',
+        tldr: 'Contact: eternalnet.support@proton.me. Do not submit personal data through public issues.',
         subsections: [
           {
             id: 'dev-contacts',
@@ -154,8 +154,8 @@ export const DEVELOPER_TERMS_DATA: Record<'en' | 'uk', DeveloperTermsTranslation
               'For developer support, API partnership inquiries, or bot verification requests, please reach out to:',
             ],
             bullets: [
-              'A private contact address has not been provided. Do not submit personal data through public issues.',
-              'Project operators: the project founders (operator identity not published), Ukraine',
+              'Contact: eternalnet.support@proton.me. Do not submit personal data through public issues.',
+              'Project operators: Mykola Agh and Michal Agh, Ukraine',
             ],
           },
         ],
@@ -166,8 +166,8 @@ export const DEVELOPER_TERMS_DATA: Record<'en' | 'uk', DeveloperTermsTranslation
     hero: {
       archivedLink: 'Портал розробників та API',
       title: 'УМОВИ ВИКОРИСТАННЯ API ТА СТВОРЕННЯ БОТІВ',
-      effectiveDate: 'Набуття чинності: 1 вересня 2026 р. • Останнє оновлення: 30 серпня 2026 р.',
-      lastUpdated: 'Останнє оновлення: 30 серпня 2026 р.',
+      effectiveDate: 'Оновлено: 5 листопада 2026 р.',
+      lastUpdated: 'Оновлено: 5 листопада 2026 р.',
       description:
         'Ці умови регулюють доступ до API Eternal, SDK та інструментів розробки ботів. Документ визначає вимоги безпеки, захисту токенів, лімітів запитів (Rate Limits) та захисту конфіденційності користувачів.',
     },
@@ -270,15 +270,15 @@ export const DEVELOPER_TERMS_DATA: Record<'en' | 'uk', DeveloperTermsTranslation
         number: '6',
         title: 'Підтримка розробників',
         iconName: 'Mail',
-        tldr: 'Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
+        tldr: 'Контакт: eternalnet.support@proton.me. Не надсилайте персональні дані через публічні звернення.',
         subsections: [
           {
             id: 'dev-contacts',
             title: '6.1 Контактні реквізити',
             content: ['Служба підтримки розробників Eternal:'],
             bullets: [
-              'Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
-              'Оператори проєкту: засновники проєкту (ідентифікаційні дані операторів не опубліковано), Україна',
+              'Контакт: eternalnet.support@proton.me. Не надсилайте персональні дані через публічні звернення.',
+              'Оператори проєкту: Mykola Agh та Michal Agh, Україна',
             ],
           },
         ],

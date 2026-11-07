@@ -52,6 +52,7 @@ describe('auth contract schemas (auth.spec.ts)', () => {
       username: 'Alex_99',
       displayName: 'Alex',
       password: 'StrongPassword123!',
+      birthDate: '2000-01-01T00:00:00.000Z',
     });
     expect(result.email).toBe('alex@example.com');
     expect(result.username).toBe('alex_99');

@@ -36,8 +36,8 @@ export const REGIONAL_PRIVACY_DATA: Record<'en' | 'uk', RegionalPolicyTranslatio
     hero: {
       archivedLink: 'Archived Versions',
       title: 'REGIONAL PRIVACY POLICIES & LOCAL LAWS',
-      effectiveDate: 'Effective: September 1, 2026 • Last updated: August 30, 2026',
-      lastUpdated: 'Last Updated: August 30, 2026',
+      effectiveDate: 'Updated: November 5, 2026',
+      lastUpdated: 'Updated: November 5, 2026',
       description:
         'Depending on where you reside or access Eternal from, specific data protection statutes and local privacy regulations provide you with additional rights regarding your personal information. This Regional Privacy Policy supplements the Eternal Privacy Policy and outlines our legal compliance with regional frameworks across Europe, the United States, Ukraine, and worldwide.',
     },
@@ -59,7 +59,7 @@ export const REGIONAL_PRIVACY_DATA: Record<'en' | 'uk', RegionalPolicyTranslatio
             id: 'gdpr-legal-bases',
             title: '1.1 Legal Bases for Processing',
             content: [
-              'If you are located in the EEA, the United Kingdom, or Switzerland, the project founders (operator identity not published), operating the Eternal project in Ukraine, act as the Data Controllers for your personal data. We process your data under the following legal bases pursuant to Article 6 of the General Data Protection Regulation (GDPR):',
+              'If you are located in the EEA, the United Kingdom, or Switzerland, Mykola Agh and Michal Agh, operating the Eternal project in Ukraine, act as the Data Controllers for your personal data. We process your data under the following legal bases pursuant to Article 6 of the General Data Protection Regulation (GDPR):',
             ],
             bullets: [
               'Contractual Necessity: To provide, maintain, and deliver our core services, verify user accounts, process subscriptions, and facilitate real-time chat and voice communications in accordance with our Terms of Service.',
@@ -138,7 +138,7 @@ export const REGIONAL_PRIVACY_DATA: Record<'en' | 'uk', RegionalPolicyTranslatio
             id: 'ukraine-statute-rights',
             title: '3.1 Rights under the Law of Ukraine "On Personal Data Protection"',
             content: [
-              'Eternal is operated by the project founders (operator identity not published) in Ukraine. The Constitution of Ukraine and the Law of Ukraine "On Personal Data Protection" No. 2297-VI provide applicable protections for data subjects. Pursuant to Article 8 of the Law, data subjects have the right:',
+              'Eternal is operated by Mykola Agh and Michal Agh in Ukraine. The Constitution of Ukraine and the Law of Ukraine "On Personal Data Protection" No. 2297-VI provide applicable protections for data subjects. Pursuant to Article 8 of the Law, data subjects have the right:',
             ],
             bullets: [
               'To know about the sources of collection, location of their personal data, purpose of processing, and location of the controller/processor.',
@@ -176,7 +176,7 @@ export const REGIONAL_PRIVACY_DATA: Record<'en' | 'uk', RegionalPolicyTranslatio
         number: '5',
         title: 'How to Exercise Your Regional Privacy Rights',
         iconName: 'Key',
-        tldr: 'A private contact address has not been provided. A DPO appointment has not been confirmed.',
+        tldr: 'Contact: eternalnet.support@proton.me. A DPO appointment has not been confirmed.',
         subsections: [
           {
             id: 'submission-process',
@@ -187,7 +187,7 @@ export const REGIONAL_PRIVACY_DATA: Record<'en' | 'uk', RegionalPolicyTranslatio
             bullets: [
               'Self-Service Settings: Access, correct, and delete personal data directly in your Eternal Account Settings -> Privacy & Safety tab.',
               'Data Download Package: Request an automated export of your complete account history, messages, and profile records.',
-              'A DPO appointment has not been confirmed. A private contact address has not been provided. Do not submit personal data through public issues.',
+              'A DPO appointment has not been confirmed. Contact: eternalnet.support@proton.me. Do not submit personal data through public issues.',
               'Verification: To protect your account security, we will verify your identity by confirming access to your registered email address before processing deletion or access requests.',
               'Response Timelines: We respond to all verified requests within 30 calendar days (or within 45 days where permitted for complex US state requests with notice).',
             ],
@@ -199,7 +199,7 @@ export const REGIONAL_PRIVACY_DATA: Record<'en' | 'uk', RegionalPolicyTranslatio
         number: '6',
         title: 'Data Protection Officer and Supervisory Contacts',
         iconName: 'Mail',
-        tldr: 'A private contact address has not been provided. A DPO appointment has not been confirmed.',
+        tldr: 'Contact: eternalnet.support@proton.me. A DPO appointment has not been confirmed.',
         subsections: [
           {
             id: 'dpo-supervisory-details',
@@ -208,9 +208,9 @@ export const REGIONAL_PRIVACY_DATA: Record<'en' | 'uk', RegionalPolicyTranslatio
               'For any questions, concerns, or complaints regarding this Regional Privacy Policy or our compliance with local laws, please contact our team directly:',
             ],
             bullets: [
-              'A DPO appointment has not been confirmed. A private contact address has not been provided. Do not submit personal data through public issues.',
-              'A private contact address has not been provided. Do not submit personal data through public issues.',
-              'Project operators: the project founders (operator identity not published), Ukraine',
+              'A DPO appointment has not been confirmed. Contact: eternalnet.support@proton.me. Do not submit personal data through public issues.',
+              'Contact: eternalnet.support@proton.me. Do not submit personal data through public issues.',
+              'Project operators: Mykola Agh and Michal Agh, Ukraine',
               'Supervisory Authority (Ukraine): Secretariat of the Ukrainian Parliament Commissioner for Human Rights (hotline@ombudsman.gov.ua).',
               'Supervisory Authority (EU): You may also lodge a complaint with your national Data Protection Authority (DPA) in the EU member state where you reside.',
             ],
@@ -223,8 +223,8 @@ export const REGIONAL_PRIVACY_DATA: Record<'en' | 'uk', RegionalPolicyTranslatio
     hero: {
       archivedLink: 'Архівні версії',
       title: 'РЕГІОНАЛЬНІ ПОЛІТИКИ КОНФІДЕНЦІЙНОСТІ ТА МІСЦЕВІ ЗАКОНИ',
-      effectiveDate: 'Набуття чинності: 1 вересня 2026 р. • Останнє оновлення: 30 серпня 2026 р.',
-      lastUpdated: 'Останнє оновлення: 30 серпня 2026 р.',
+      effectiveDate: 'Оновлено: 5 листопада 2026 р.',
+      lastUpdated: 'Оновлено: 5 листопада 2026 р.',
       description:
         'Залежно від країни вашого проживання або місцезнаходження, спеціальні законодавчі акти у сфері захисту даних надають вам додаткові права. Ця Регіональна політика доповнює загальну Політику конфіденційності Eternal та закріплює наші зобов’язання перед користувачами в Європі, США, Україні та всьому світі.',
     },
@@ -246,7 +246,7 @@ export const REGIONAL_PRIVACY_DATA: Record<'en' | 'uk', RegionalPolicyTranslatio
             id: 'gdpr-legal-bases',
             title: '1.1 Правові підстави обробки даних',
             content: [
-              'Для користувачів з країн ЄЕЗ, Великобританії та Швейцарії засновники проєкту (ідентифікаційні дані операторів не опубліковано), які керують проєктом Eternal в Україні, виступають Контролерами персональних даних. Ми обробляємо персональні дані відповідно до статті 6 GDPR:',
+              'Для користувачів з країн ЄЕЗ, Великобританії та Швейцарії Mykola Agh та Michal Agh, які керують проєктом Eternal в Україні, виступають Контролерами персональних даних. Ми обробляємо персональні дані відповідно до статті 6 GDPR:',
             ],
             bullets: [
               'Виконання договору: забезпечення роботи платформи, аутентифікація, надання доступу до чатів, голосових серверів та підписок.',
@@ -305,7 +305,7 @@ export const REGIONAL_PRIVACY_DATA: Record<'en' | 'uk', RegionalPolicyTranslatio
             id: 'ukraine-statute-rights',
             title: '3.1 Права згідно із Законом України «Про захист персональних даних»',
             content: [
-              'Проєктом Eternal в Україні керують засновники проєкту (ідентифікаційні дані операторів не опубліковано). Відповідно до статті 8 Закону України «Про захист персональних даних» № 2297-VI, суб’єкт персональних даних має право:',
+              'Проєктом Eternal в Україні керують Mykola Agh та Michal Agh. Відповідно до статті 8 Закону України «Про захист персональних даних» № 2297-VI, суб’єкт персональних даних має право:',
             ],
             bullets: [
               'Знати про джерела збирання, місцезнаходження своїх персональних даних, мету їх обробки та місцезнаходження володільця чи розпорядника.',
@@ -339,7 +339,7 @@ export const REGIONAL_PRIVACY_DATA: Record<'en' | 'uk', RegionalPolicyTranslatio
         number: '5',
         title: 'Як реалізувати свої регіональні права',
         iconName: 'Key',
-        tldr: 'Подавайте запити через налаштування облікового запису, інструмент вивантаження даних або звертайтеся до приватного каналу зв’язку з питань конфіденційності (не надано).',
+        tldr: 'Подавайте запити через налаштування облікового запису, інструмент вивантаження даних або звертайтеся до адреси eternalnet.support@proton.me.',
         subsections: [
           {
             id: 'submission-process',
@@ -348,7 +348,7 @@ export const REGIONAL_PRIVACY_DATA: Record<'en' | 'uk', RegionalPolicyTranslatio
             bullets: [
               'Через налаштування акаунту: вкладка «Конфіденційність та безпека» дозволяє редагувати дані або видалити обліковий запис.',
               'Пакет даних Eternal: інструмент автоматичного вивантаження всієї історії профілю та повідомлень.',
-              'Призначення DPO не підтверджено. Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
+              'Призначення DPO не підтверджено. Контакт: eternalnet.support@proton.me. Не надсилайте персональні дані через публічні звернення.',
               'Термін відповіді: ми надаємо офіційну відповідь на всі верифіковані запити протягом 30 календарних днів.',
             ],
           },
@@ -366,9 +366,9 @@ export const REGIONAL_PRIVACY_DATA: Record<'en' | 'uk', RegionalPolicyTranslatio
             title: '6.1 Контактні дані',
             content: ['Призначення DPO та приватний канал зв’язку не підтверджено.'],
             bullets: [
-              'Призначення DPO не підтверджено. Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
-              'Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
-              'Оператори проєкту: засновники проєкту (ідентифікаційні дані операторів не опубліковано), Україна',
+              'Призначення DPO не підтверджено. Контакт: eternalnet.support@proton.me. Не надсилайте персональні дані через публічні звернення.',
+              'Контакт: eternalnet.support@proton.me. Не надсилайте персональні дані через публічні звернення.',
+              'Оператори проєкту: Mykola Agh та Michal Agh, Україна',
               'Національний наглядовий орган: Секретаріат Уповноваженого Верховної Ради України з прав людини (hotline@ombudsman.gov.ua).',
             ],
           },

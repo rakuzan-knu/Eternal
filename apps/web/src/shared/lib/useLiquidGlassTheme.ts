@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useThemeStore, GRADIENT_PRESETS, isCurrentThemeLight } from '@/shared/model/useThemeStore';
 import { hexToRgb, calculateRelativeLuminance } from './themeContrastEngine';
-import { extractDominantColorsFromImage } from '@/features/chat/lib/themeUtils';
 
 export interface RgbColor {
   r: number;
@@ -94,7 +93,10 @@ export function useLiquidGlassTheme(): LiquidGlassTheme {
     }
 
     let isMounted = true;
-    extractDominantColorsFromImage(wallpaper.url, 3)
+    import('@/features/chat/lib/themeUtils')
+      .then(({ extractDominantColorsFromImage }) =>
+        extractDominantColorsFromImage(wallpaper.url, 3),
+      )
       .then((colors) => {
         if (!isMounted) return;
         const validColors =
