@@ -21,13 +21,16 @@ describe('Company Information Page', () => {
     expect(screen.queryByText(/Eternal Inc\./i)).not.toBeInTheDocument();
     expect(screen.getByText(/software and digital communication project/i)).toBeInTheDocument();
     expect(screen.getAllByText(/Ukraine/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/Contact address not provided/i)).toBeInTheDocument();
-    expect(document.querySelector('a[href^="mailto:"]')).toBeNull();
+    expect(screen.getByRole('link', { name: 'eternalnet.support@proton.me' })).toHaveAttribute(
+      'href',
+      'mailto:eternalnet.support@proton.me',
+    );
+    expect(document.querySelectorAll('a[href^="mailto:"]')).toHaveLength(1);
     expect(screen.queryByRole('button', { name: /^Copy$/i })).not.toBeInTheDocument();
 
     // Verify Owners in English
-    expect(screen.getByText(/^Ag Mykola$/i)).toBeInTheDocument();
-    expect(screen.getByText(/^Ag Mihal$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Mykola Agh$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Michal Agh$/i)).toBeInTheDocument();
     expect(screen.queryByText(/Ilya Podorozhnyi/i)).not.toBeInTheDocument();
   });
 
@@ -46,8 +49,8 @@ describe('Company Information Page', () => {
     fireEvent.click(ukraineOption);
 
     expect(screen.getByText(/Інформація про проєкт Eternal/i)).toBeInTheDocument();
-    expect(screen.getByText(/^Ag Mykola$/i)).toBeInTheDocument();
-    expect(screen.getByText(/^Ag Mihal$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Mykola Agh$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Michal Agh$/i)).toBeInTheDocument();
     expect(screen.queryByText(/Ілля Подорожній/i)).not.toBeInTheDocument();
     expect(
       screen.getByText(/проєкт програмного забезпечення та цифрових комунікацій/i),

@@ -100,6 +100,7 @@ describe('users contract schemas and DTOs (users.spec.ts)', () => {
       email: 'dave@example.com',
       username: 'dave',
       passwordHash: 'hash123',
+      birthDate: new Date('2000-01-01T00:00:00.000Z'),
       displayName: 'Dave',
     });
     expect(createDto.email).toBe('dave@example.com');

@@ -36,8 +36,8 @@ export const COOKIE_POLICY_DATA: Record<'en' | 'uk', CookiePolicyTranslation> = 
     hero: {
       archivedLink: 'Archived Versions',
       title: 'COOKIE POLICY',
-      effectiveDate: 'Effective: April 15, 2024 • Latest update: September 1, 2026',
-      lastUpdated: 'Last Updated: March 15, 2024',
+      effectiveDate: 'Updated: November 5, 2026',
+      lastUpdated: 'Updated: November 5, 2026',
       description:
         'We may receive information from cookies (small text files placed on your computer or device) and similar technologies. First-party cookies are placed by us (and our third-party service providers) and allow you to use the services and help us analyze and improve your experience and the services. You can control cookies as described in the “How to control your privacy” section of Eternal’s Privacy Policy.',
     },
@@ -104,7 +104,7 @@ export const COOKIE_POLICY_DATA: Record<'en' | 'uk', CookiePolicyTranslation> = 
         number: '3',
         title: 'Questions and Contact Information',
         iconName: 'Mail',
-        tldr: 'A private contact address has not been provided. A DPO appointment has not been confirmed.',
+        tldr: 'Contact: eternalnet.support@proton.me. A DPO appointment has not been confirmed.',
         subsections: [
           {
             id: 'contact-details',
@@ -113,9 +113,9 @@ export const COOKIE_POLICY_DATA: Record<'en' | 'uk', CookiePolicyTranslation> = 
               'If you have questions, feedback, or concerns about this Cookie Policy or how Eternal uses tracking technologies, please contact us at:',
             ],
             bullets: [
-              'A private contact address has not been provided. Do not submit personal data through public issues.',
-              'A DPO appointment has not been confirmed. A private contact address has not been provided. Do not submit personal data through public issues.',
-              'Project operators: the project founders (operator identity not published), Ukraine',
+              'Contact: eternalnet.support@proton.me. Do not submit personal data through public issues.',
+              'A DPO appointment has not been confirmed. Contact: eternalnet.support@proton.me. Do not submit personal data through public issues.',
+              'Project operators: Mykola Agh and Michal Agh, Ukraine',
             ],
           },
         ],
@@ -126,9 +126,8 @@ export const COOKIE_POLICY_DATA: Record<'en' | 'uk', CookiePolicyTranslation> = 
     hero: {
       archivedLink: 'Архівні версії',
       title: 'ПОЛІТИКА ВИКОРИСТАННЯ ФАЙЛІВ COOKIE',
-      effectiveDate:
-        'Дата набрання чинності: 15 квітня 2024 р. • Останнє оновлення: 1 вересня 2026 р.',
-      lastUpdated: 'Останнє оновлення: 15 березня 2024 р.',
+      effectiveDate: 'Оновлено: 5 листопада 2026 р.',
+      lastUpdated: 'Оновлено: 5 листопада 2026 р.',
       description:
         'Ми можемо отримувати інформацію з файлів cookie (невеликих текстових файлів, які зберігаються на вашому пристрої) та схожих технологій. Основні файли cookie встановлюються нами (та нашими сервісними провайдерами), дозволяють користуватися сервісом та допомагають аналізувати й покращувати роботу Eternal.',
     },
@@ -195,7 +194,7 @@ export const COOKIE_POLICY_DATA: Record<'en' | 'uk', CookiePolicyTranslation> = 
         number: '3',
         title: 'Запитання та контакти',
         iconName: 'Mail',
-        tldr: 'Якщо у вас виникли запитання щодо використання файлів cookie, зв’яжіться з нашою командою в м. Україна (поштову адресу не надано) або надішліть листа DPO.',
+        tldr: 'З питань файлів cookie пишіть на eternalnet.support@proton.me. Призначення DPO не підтверджено.',
         subsections: [
           {
             id: 'contact-details',
@@ -204,9 +203,9 @@ export const COOKIE_POLICY_DATA: Record<'en' | 'uk', CookiePolicyTranslation> = 
               'З усіх запитань щодо Політики використання файлів cookie звертайтеся до нашої команди:',
             ],
             bullets: [
-              'Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
-              'Призначення DPO не підтверджено. Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
-              'Оператори проєкту: засновники проєкту (ідентифікаційні дані операторів не опубліковано), Україна',
+              'Контакт: eternalnet.support@proton.me. Не надсилайте персональні дані через публічні звернення.',
+              'Призначення DPO не підтверджено. Контакт: eternalnet.support@proton.me. Не надсилайте персональні дані через публічні звернення.',
+              'Оператори проєкту: Mykola Agh та Michal Agh, Україна',
             ],
           },
         ],

@@ -1,3 +1,4 @@
+import { getRegistrationPolicy } from '@social-network/shared-contracts';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { authApi } from '../authApi';
 import { apiClient } from '@/shared/api/httpClient';
@@ -5,6 +6,7 @@ import { apiClient } from '@/shared/api/httpClient';
 vi.mock('@/shared/api/httpClient', () => ({
   apiClient: {
     post: vi.fn(),
+    get: vi.fn(),
   },
 }));
 
@@ -12,6 +14,19 @@ describe('authApi', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+  });
+
+  it('loads and validates the public registration policy', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({ data: getRegistrationPolicy() });
+    expect(await authApi.registrationPolicy()).toEqual(getRegistrationPolicy());
+    expect(apiClient.get).toHaveBeenCalledWith('/auth/registration-policy');
+  });
+
+  it('rejects an unrecognized or open policy instead of displaying a registration form', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({
+      data: { ...getRegistrationPolicy(), registrationOpen: true },
+    });
+    await expect(authApi.registrationPolicy()).rejects.toThrow();
   });
 
   it('calls login endpoint and returns data', async () => {
@@ -28,7 +43,12 @@ describe('authApi', () => {
     const mockRes = { data: { user: { id: 'u2' }, accessToken: 'a2', refreshToken: 'r2' } };
     vi.mocked(apiClient.post).mockResolvedValue(mockRes);
 
-    const payload = { email: 'jane@example.com', username: 'jane', password: 'password123' };
+    const payload = {
+      email: 'jane@example.com',
+      username: 'jane',
+      password: 'password123',
+      birthDate: '2000-01-01T00:00:00.000Z',
+    };
     const res = await authApi.register(payload);
     expect(apiClient.post).toHaveBeenCalledWith('/auth/register', payload);
     expect(res).toEqual(mockRes.data);

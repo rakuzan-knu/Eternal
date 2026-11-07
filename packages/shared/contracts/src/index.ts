@@ -27,3 +27,4 @@ export * from './profile-effects';
 export * from './profile-frames';
 export * from './media-upload';
 export * from './push';
+export * from './data-export';

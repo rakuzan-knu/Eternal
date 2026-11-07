@@ -45,8 +45,8 @@ export const DATA_PRIVACY_CONTROLS_DATA: Record<'en' | 'uk', PrivacyControlsTran
     hero: {
       archivedLink: 'Archived Versions',
       title: 'DATA PRIVACY CONTROLS',
-      effectiveDate: 'Effective: September 1, 2026 • Last updated: August 30, 2026',
-      lastUpdated: 'Last Updated: August 30, 2026',
+      effectiveDate: 'Updated: November 5, 2026',
+      lastUpdated: 'Updated: November 5, 2026',
       description:
         'Eternal’s Data Privacy Controls explain how your personal information is used and provide granular options to manage who can see your profile, communicate with you, and how Eternal processes your data.',
       locationNote:
@@ -164,21 +164,21 @@ export const DATA_PRIVACY_CONTROLS_DATA: Record<'en' | 'uk', PrivacyControlsTran
       {
         id: 'requesting-data-package',
         number: '5',
-        title: 'Requesting Your Complete Data Package',
+        title: 'Downloading Your Data',
         iconName: 'Download',
-        tldr: 'Request an automated, machine-readable JSON archive containing your full message history, profile records, and server logs.',
+        tldr: 'Download selected account records as an unencrypted JSON file. Other personal-data requests can be sent to eternalnet.support@proton.me.',
         subsections: [
           {
             id: 'data-export-process',
             title: '5.1 Automated Data Portability',
             content: [
-              'Pursuant to GDPR Article 20 and CCPA guidelines, you can request an automated archive of all personal data held by Eternal:',
+              'The self-service download covers selected categories, rather than every personal-data record. For a broader access or portability request, contact eternalnet.support@proton.me.',
             ],
             bullets: [
-              'Click "Request All of My Data" under Data & Privacy controls.',
-              'A secure verification email will be dispatched to confirm your identity.',
-              'Our automated pipeline compiles a structured JSON and media archive within 24–48 hours.',
-              'A download link with 7-day expiration will be sent directly to your verified inbox.',
+              'Open the data package action in Privacy settings, select categories, and enter your current password.',
+              'Your current password is verified by the server for each page. Your password is not emailed or included in the downloaded file.',
+              'A JSON file is prepared on this device. Media files and other categories listed in the download dialog are excluded.',
+              'No emailed download link or server-hosted archive is created. Keep the unencrypted file private.',
             ],
           },
         ],
@@ -188,7 +188,7 @@ export const DATA_PRIVACY_CONTROLS_DATA: Record<'en' | 'uk', PrivacyControlsTran
         number: '6',
         title: 'Questions and Data Protection Officer',
         iconName: 'Mail',
-        tldr: 'A private contact address has not been provided. A DPO appointment has not been confirmed.',
+        tldr: 'Contact: eternalnet.support@proton.me. A DPO appointment has not been confirmed.',
         subsections: [
           {
             id: 'dpo-contact-info',
@@ -197,9 +197,9 @@ export const DATA_PRIVACY_CONTROLS_DATA: Record<'en' | 'uk', PrivacyControlsTran
               'If you need assistance configuring your privacy settings or have questions regarding our data practices, reach out to our team:',
             ],
             bullets: [
-              'A DPO appointment has not been confirmed. A private contact address has not been provided. Do not submit personal data through public issues.',
-              'A private contact address has not been provided. Do not submit personal data through public issues.',
-              'Project operators: the project founders (operator identity not published), Ukraine',
+              'A DPO appointment has not been confirmed. Contact: eternalnet.support@proton.me. Do not submit personal data through public issues.',
+              'Contact: eternalnet.support@proton.me. Do not submit personal data through public issues.',
+              'Project operators: Mykola Agh and Michal Agh, Ukraine',
             ],
           },
         ],
@@ -210,8 +210,8 @@ export const DATA_PRIVACY_CONTROLS_DATA: Record<'en' | 'uk', PrivacyControlsTran
     hero: {
       archivedLink: 'Архівні версії',
       title: 'ЕЛЕМЕНТИ КЕРУВАННЯ КОНФІДЕНЦІЙНІСТЮ',
-      effectiveDate: 'Набуття чинності: 1 вересня 2026 р. • Останнє оновлення: 30 серпня 2026 р.',
-      lastUpdated: 'Останнє оновлення: 30 серпня 2026 р.',
+      effectiveDate: 'Оновлено: 5 листопада 2026 р.',
+      lastUpdated: 'Оновлено: 5 листопада 2026 р.',
       description:
         'Елементи керування конфіденційністю Eternal пояснюють, як використовуються ваші персональні дані, та надають детальні налаштування для керування видимістю профілю, спілкуванням і способами обробки інформації.',
       locationNote:
@@ -322,19 +322,21 @@ export const DATA_PRIVACY_CONTROLS_DATA: Record<'en' | 'uk', PrivacyControlsTran
       {
         id: 'requesting-data-package',
         number: '5',
-        title: 'Запит повного пакета персональних даних',
+        title: 'Завантаження своїх даних',
         iconName: 'Download',
-        tldr: 'Отримайте повний структурований JSON-архів своєї історії повідомлень, профілю та налаштувань.',
+        tldr: 'Завантажте обрані записи облікового запису в незашифрованому JSON-файлі. Інші запити щодо персональних даних надсилайте на eternalnet.support@proton.me.',
         subsections: [
           {
             id: 'data-export-process',
             title: '5.1 Процес вивантаження даних',
-            content: ['Відповідно до ст. 20 GDPR та законів про переносність даних:'],
+            content: [
+              'Самостійне завантаження охоплює обрані категорії, а не всі персональні дані. Для ширшого запиту на доступ чи перенесення даних пишіть на eternalnet.support@proton.me.',
+            ],
             bullets: [
-              'Натисніть кнопку «Запросити всі мої дані» в розділі конфіденційності.',
-              'Підтвердьте запит через лист безпеки на електронній пошті.',
-              'Система сформує зашифрований архів протягом 24–48 годин.',
-              'Посилання для завантаження діє 7 календарних днів.',
+              'Відкрийте дію пакета даних у налаштуваннях приватності, оберіть категорії та введіть поточний пароль.',
+              'Сервер перевіряє поточний пароль для кожної сторінки. Пароль не надсилається поштою та не входить у файл.',
+              'JSON-файл готується на цьому пристрої. Медіафайли та інші категорії, зазначені у вікні завантаження, не включено.',
+              'Поштове посилання чи архів на сервері не створюються. Зберігайте незашифрований файл приватно.',
             ],
           },
         ],
@@ -344,16 +346,18 @@ export const DATA_PRIVACY_CONTROLS_DATA: Record<'en' | 'uk', PrivacyControlsTran
         number: '6',
         title: 'Контакти Офіцера із захисту даних',
         iconName: 'Mail',
-        tldr: 'З усіх питань налаштування приватності звертайтеся до приватного каналу зв’язку з питань конфіденційності (не надано).',
+        tldr: 'З питань приватності пишіть на eternalnet.support@proton.me. Призначення DPO не підтверджено.',
         subsections: [
           {
             id: 'dpo-contact-info',
             title: '6.1 Контактні канали',
-            content: ['Призначення DPO та приватний канал зв’язку не підтверджено.'],
+            content: [
+              'Контакт операторів: eternalnet.support@proton.me. Призначення DPO не підтверджено.',
+            ],
             bullets: [
-              'Призначення DPO не підтверджено. Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
-              'Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
-              'Оператори проєкту: засновники проєкту (ідентифікаційні дані операторів не опубліковано), Україна',
+              'Призначення DPO не підтверджено. Контакт: eternalnet.support@proton.me. Не надсилайте персональні дані через публічні звернення.',
+              'Контакт: eternalnet.support@proton.me. Не надсилайте персональні дані через публічні звернення.',
+              'Оператори проєкту: Mykola Agh та Michal Agh, Україна',
             ],
           },
         ],

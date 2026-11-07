@@ -17,8 +17,8 @@ describe('RetentionPolicyPage', () => {
     );
 
     expect(screen.getByText('DATA RETENTION POLICY')).toBeInTheDocument();
-    expect(screen.getByText(/Effective: September 1, 2026/i)).toBeInTheDocument();
-    expect(screen.getByText(/how long the Eternal project retains/i)).toBeInTheDocument();
+    expect(screen.getByText(/Updated: November 5, 2026/i)).toBeInTheDocument();
+    expect(screen.getByText(/Verified deletion behaviour/i)).toBeInTheDocument();
   });
 
   it('renders all 5 retention policy sections in TOC and main content', () => {
@@ -28,21 +28,13 @@ describe('RetentionPolicyPage', () => {
       </MemoryRouter>,
     );
 
+    expect(screen.getAllByText('Deleting Your Content').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Data Kept While You Use Eternal').length).toBeGreaterThanOrEqual(1);
     expect(
-      screen.getAllByText('Information You Can Delete Directly').length,
+      screen.getAllByText(/Backups, Media and Other Retention/i).length,
     ).toBeGreaterThanOrEqual(1);
-    expect(
-      screen.getAllByText('Information Retained During Account Lifetime').length,
-    ).toBeGreaterThanOrEqual(1);
-    expect(
-      screen.getAllByText(/Retention Periods for Specific Business & Legal Purposes/i).length,
-    ).toBeGreaterThanOrEqual(1);
-    expect(
-      screen.getAllByText('What Happens When You Delete Your Account').length,
-    ).toBeGreaterThanOrEqual(1);
-    expect(
-      screen.getAllByText('Your Legal Rights & Contact Information').length,
-    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Deleting Your Account').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Your Rights and Contact').length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders specific operational retention timeframes (60 days, 30-45 days, 5 years)', () => {
@@ -52,10 +44,13 @@ describe('RetentionPolicyPage', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText(/Age Verification Records:/i)).toBeInTheDocument();
-    expect(screen.getByText(/Database Backups:/i)).toBeInTheDocument();
-    expect(screen.getByText(/Tax & Financial Accounting:/i)).toBeInTheDocument();
-    expect(screen.getByText(/Trust, Safety & Fraud Prevention:/i)).toBeInTheDocument();
+    expect(
+      screen.getAllByText(
+        /retention periods.*not yet confirmed|retention periods.*not yet complete|not yet verified and published/i,
+      ).length,
+    ).toBeGreaterThan(0);
+    expect(screen.getByText(/no 15–30 day recovery window/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Age Verification Records:/i)).not.toBeInTheDocument();
   });
 
   it('renders DPO contact information with country and missing contact', () => {
@@ -65,9 +60,7 @@ describe('RetentionPolicyPage', () => {
       </MemoryRouter>,
     );
 
-    expect(
-      screen.getAllByText(/private contact address has not been provided/i).length,
-    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/eternalnet\.support@proton\.me/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText(/Ukraine/i).length).toBeGreaterThanOrEqual(1);
   });
 
@@ -81,8 +74,6 @@ describe('RetentionPolicyPage', () => {
     );
 
     expect(screen.getByText('ПОЛІТИКА ЗБЕРІГАННЯ ТА ВИДАЛЕННЯ ДАНИХ')).toBeInTheDocument();
-    expect(
-      screen.getAllByText('Інформація, яку ви можете видалити самостійно').length,
-    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Видалення свого контенту').length).toBeGreaterThanOrEqual(1);
   });
 });

@@ -94,6 +94,7 @@ describe('auth.contract', () => {
         username: 'Cool_User',
         displayName: 'Cool Person',
         password: 'securePassword123',
+        birthDate: '2000-01-01T00:00:00.000Z',
       });
       expect(parsed.email).toBe('user.test@example.com');
       expect(parsed.username).toBe('cool_user');
@@ -105,6 +106,7 @@ describe('auth.contract', () => {
           email: 'admin@example.com',
           username: 'admin',
           password: 'securePassword123',
+          birthDate: '2000-01-01T00:00:00.000Z',
         }),
       ).toThrow();
     });

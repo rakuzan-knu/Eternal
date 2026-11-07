@@ -17,7 +17,7 @@ describe('CookiePolicyPage', () => {
     );
 
     expect(screen.getByText('COOKIE POLICY')).toBeInTheDocument();
-    expect(screen.getByText(/Effective: April 15, 2024/i)).toBeInTheDocument();
+    expect(screen.getByText(/Updated: November 5, 2026/i)).toBeInTheDocument();
     expect(screen.getByText(/We may receive information from cookies/i)).toBeInTheDocument();
   });
 
@@ -54,9 +54,7 @@ describe('CookiePolicyPage', () => {
       </MemoryRouter>,
     );
 
-    expect(
-      screen.getAllByText(/private contact address has not been provided/i).length,
-    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/eternalnet\.support@proton\.me/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText(/Ukraine/i).length).toBeGreaterThanOrEqual(1);
   });
 

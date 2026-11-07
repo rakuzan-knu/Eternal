@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Check, Lock, MapPin, UserMinus, UserPlus, Users } from 'lucide-react-native';
 import type {
   ExceptionMode,
@@ -72,7 +72,22 @@ export function PrivacySettings({
   const update = useUpdatePrivacy(userId);
   const requests = useFollowRequestCount(userId, !!privacy.data?.isPrivate);
   const [dimension, setDimension] = React.useState<PrivacyDimension | null>(null);
+  const [openingExport, setOpeningExport] = React.useState(false);
+  const [exportError, setExportError] = React.useState(false);
   const data = privacy.data;
+
+  const openExport = async () => {
+    if (openingExport) return;
+    setOpeningExport(true);
+    setExportError(false);
+    try {
+      await Linking.openURL('https://eternalnet.vercel.app/privacy/data-package');
+    } catch {
+      setExportError(true);
+    } finally {
+      setOpeningExport(false);
+    }
+  };
 
   return (
     <SettingsPage
@@ -81,6 +96,25 @@ export function PrivacySettings({
       onBack={onBack}
       testID="mobile-settings-privacy"
     >
+      <SettingsGroup
+        title={tr('Your data')}
+        footer={tr(
+          'Open the website and sign in to download JSON. Native file export is not available. For other requests: eternalnet.support@proton.me.',
+        )}
+      >
+        <SettingsRow
+          label={tr('Download your data in a browser')}
+          disabled={openingExport}
+          onPress={() => void openExport()}
+        />
+        {exportError && (
+          <ErrorNotice
+            message={tr(
+              'Could not open the browser. Visit eternalnet.vercel.app/privacy/data-package or email eternalnet.support@proton.me.',
+            )}
+          />
+        )}
+      </SettingsGroup>
       {!data ? (
         <QueryState query={privacy} />
       ) : (

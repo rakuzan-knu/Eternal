@@ -38,7 +38,7 @@ export const APPLICANT_PRIVACY_DATA: Record<'en' | 'uk', CandidatePolicyTranslat
     hero: {
       archivedLink: 'Archived Versions',
       title: 'APPLICANT AND CANDIDATE PRIVACY POLICY',
-      effectiveDate: 'Last updated: September 15, 2025 • Effective: September 1, 2026',
+      effectiveDate: 'Updated: November 5, 2026',
       introLead:
         'This Notice of Data Collection, Processing and Transfer (“Notice”) for the Eternal project, operated in Ukraine by its founders. Complete operator identification has not been published, describes, in the context of your candidacy for employment at Eternal:',
       introBullets: [
@@ -116,7 +116,7 @@ export const APPLICANT_PRIVACY_DATA: Record<'en' | 'uk', CandidatePolicyTranslat
             title: '2.2 Employment Records & AI Tooling Notice',
             content: [
               'Additionally, if you become employed by Eternal, your candidate information will become part of your permanent employment record and will be processed in accordance with the Eternal Employee Privacy Policy.',
-              'We may use AI tooling to assist in the initial organization, formatting, and administrative evaluation of your application. If you prefer to opt out of the use of AI tooling to process your application, you can do so by contacting our talent operations team or the private privacy contact channel (not provided).',
+              'We may use AI tooling to assist in the initial organization, formatting, and administrative evaluation of your application. If you prefer to opt out of the use of AI tooling to process your application, you can do so by contacting the project operators at eternalnet.support@proton.me.',
             ],
           },
         ],
@@ -170,7 +170,7 @@ export const APPLICANT_PRIVACY_DATA: Record<'en' | 'uk', CandidatePolicyTranslat
               'You have specific rights under applicable data protection legislation (including the Law of Ukraine on Personal Data Protection and GDPR where applicable):',
               'You may request access to your Personal Data and request that Eternal update, correct, or delete (the “right to be forgotten”) your information. You also have the right to restrict or object to the processing by Eternal of your Personal Data and to request data portability in a structured, commonly used electronic format.',
               'Right To Object: You have the right to object to the processing of your Personal Data based on legitimate interests. Upon receiving your objection, processing will cease unless compelling legitimate grounds override your interests or processing is required for legal claims.',
-              'A DPO appointment has not been confirmed. A private contact address has not been provided. Do not submit personal data through public issues.',
+              'A DPO appointment has not been confirmed. Contact: eternalnet.support@proton.me. Do not submit personal data through public issues.',
             ],
           },
           {
@@ -195,9 +195,9 @@ export const APPLICANT_PRIVACY_DATA: Record<'en' | 'uk', CandidatePolicyTranslat
             title: '6.1 Contact Information',
             content: ['A DPO appointment and private contact channel have not been confirmed.'],
             bullets: [
-              'A DPO appointment has not been confirmed. A private contact address has not been provided. Do not submit personal data through public issues.',
-              'A private contact address has not been provided. Do not submit personal data through public issues.',
-              'Project operators: the project founders (operator identity not published), Ukraine',
+              'A DPO appointment has not been confirmed. Contact: eternalnet.support@proton.me. Do not submit personal data through public issues.',
+              'Contact: eternalnet.support@proton.me. Do not submit personal data through public issues.',
+              'Project operators: Mykola Agh and Michal Agh, Ukraine',
             ],
           },
         ],
@@ -208,9 +208,9 @@ export const APPLICANT_PRIVACY_DATA: Record<'en' | 'uk', CandidatePolicyTranslat
     hero: {
       archivedLink: 'Архівні версії',
       title: 'ПОЛІТИКА КОНФІДЕНЦІЙНОСТІ ДЛЯ КАНДИДАТІВ ТА ПРЕТЕНДЕНТІВ',
-      effectiveDate: 'Останнє оновлення: 15 вересня 2025 р. • Набуття чинності: 1 вересня 2026 р.',
+      effectiveDate: 'Оновлено: 5 листопада 2026 р.',
       introLead:
-        'Це Повідомлення про збір, обробку та передачу персональних даних («Повідомлення») для проєкту Eternal, яким керують засновники проєкту (ідентифікаційні дані операторів не опубліковано) в Україні, визначає в контексті вашої кандидатури на працевлаштування в Eternal:',
+        'Це Повідомлення про збір, обробку та передачу персональних даних («Повідомлення») для проєкту Eternal, яким керують Mykola Agh та Michal Agh в Україні, визначає в контексті вашої кандидатури на працевлаштування в Eternal:',
       introBullets: [
         'Які дані Eternal збирає про вас як кандидата',
         'Як саме Eternal обробляє вашу інформацію',
@@ -282,7 +282,7 @@ export const APPLICANT_PRIVACY_DATA: Record<'en' | 'uk', CandidatePolicyTranslat
             title: '2.2 Кадрові записи та використання інструментів ШІ',
             content: [
               'У разі прийняття на роботу в Eternal інформація з вашої анкети кандидата стає частиною вашої особової справи співробітника.',
-              'Ми можемо застосовувати допоміжні інструменти штучного інтелекту для первинної структуризації резюме. Ви маєте право відмовитися від автоматизованої обробки, повідомивши про це команду найму (приватну контактну адресу не надано).',
+              'Ми можемо застосовувати допоміжні інструменти штучного інтелекту для первинної структуризації резюме. Ви маєте право відмовитися від автоматизованої обробки, повідомивши про це операторів проєкту за адресою eternalnet.support@proton.me.',
             ],
           },
         ],
@@ -336,7 +336,7 @@ export const APPLICANT_PRIVACY_DATA: Record<'en' | 'uk', CandidatePolicyTranslat
               'Відповідно до Закону України «Про захист персональних даних» та міжнародних стандартів (зокрема GDPR), ви маєте такі права:',
               'Право на доступ до своїх персональних даних, внесення змін, виправлення або повне видалення («право бути забутим»). Ви також маєте право на обмеження обробки та перенесення даних в електронному форматі.',
               'Право на заперечення: Ви маєте право будь-коли заперечити проти обробки ваших даних на підставі законного інтересу операторів проєкту.',
-              'Призначення DPO не підтверджено. Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
+              'Призначення DPO не підтверджено. Контакт: eternalnet.support@proton.me. Не надсилайте персональні дані через публічні звернення.',
             ],
           },
           {
@@ -354,16 +354,16 @@ export const APPLICANT_PRIVACY_DATA: Record<'en' | 'uk', CandidatePolicyTranslat
         number: '6',
         title: 'Офіцер із захисту даних (DPO)',
         iconName: 'Mail',
-        tldr: 'Зв’яжіться з нашим Офіцером із захисту даних у м. Україна (поштову адресу не надано) щодо будь-яких питань кандидатської конфіденційності.',
+        tldr: 'З питань приватності кандидатів пишіть на eternalnet.support@proton.me. Призначення DPO не підтверджено.',
         subsections: [
           {
             id: 'dpo-contacts',
             title: '6.1 Контактна інформація',
             content: ['Призначення DPO та приватний канал зв’язку не підтверджено.'],
             bullets: [
-              'Призначення DPO не підтверджено. Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
-              'Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
-              'Оператори проєкту: засновники проєкту (ідентифікаційні дані операторів не опубліковано), Україна',
+              'Призначення DPO не підтверджено. Контакт: eternalnet.support@proton.me. Не надсилайте персональні дані через публічні звернення.',
+              'Контакт: eternalnet.support@proton.me. Не надсилайте персональні дані через публічні звернення.',
+              'Оператори проєкту: Mykola Agh та Michal Agh, Україна',
             ],
           },
         ],

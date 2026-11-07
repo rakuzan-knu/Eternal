@@ -10,6 +10,16 @@ vi.mock('../../../features/auth/api/useAuth', () => ({
   useAuthMutations: vi.fn(),
 }));
 
+vi.mock('../../../features/auth/api/useRegistrationPolicy', () => ({
+  useRegistrationPolicy: () => ({
+    isSuccess: true,
+    isPending: false,
+    isError: false,
+    isFetching: false,
+    data: { registrationOpen: false },
+  }),
+}));
+
 const mockedUseAuthMutations = vi.mocked(useAuthMutations);
 
 function renderRegisterPage() {
@@ -38,7 +48,8 @@ describe('RegisterPage', () => {
     renderRegisterPage();
 
     expect(screen.getByText('Get started on Eternal')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('First name')).toBeInTheDocument();
+    expect(screen.getByText('New registrations are temporarily unavailable')).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('First name')).not.toBeInTheDocument();
   });
 
   it('navigates back to /login when the back-chevron button is clicked', async () => {

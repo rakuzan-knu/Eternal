@@ -65,9 +65,7 @@ describe('DataPrivacyControlsPage', () => {
     expect(
       screen.getAllByText('Data Processing & Personalization Toggles').length,
     ).toBeGreaterThanOrEqual(1);
-    expect(
-      screen.getAllByText('Requesting Your Complete Data Package').length,
-    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Downloading Your Data').length).toBeGreaterThanOrEqual(1);
     expect(
       screen.getAllByText('Questions and Data Protection Officer').length,
     ).toBeGreaterThanOrEqual(1);

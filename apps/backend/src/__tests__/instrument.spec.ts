@@ -94,4 +94,39 @@ describe('instrument.ts', () => {
     const calls = initMock.mock.calls as unknown as [[SentryInitOptions]];
     expect(calls[0][0].tracesSampleRate).toBe(0.2);
   });
+
+  it.each([
+    'https://api.example.test/v1/users/me/data-export',
+    'https://messages.example.test/v1/messenger/me/data-export/',
+  ])(
+    'removes export passwords and cursors from Sentry events and transactions for %s',
+    async (url) => {
+      vi.resetModules();
+      await import('../instrument.js');
+      const options = vi.mocked(Sentry.init).mock.calls[0]?.[0];
+      if (!options?.beforeSend || !options.beforeSendTransaction)
+        throw new Error('Missing Sentry sanitization callbacks');
+      const request = {
+        url,
+        data: { password: 'must-not-leave-server', cursor: 'private-continuation' },
+        cookies: { session: 'private-cookie' },
+        query_string: 'private-query',
+        headers: { authorization: 'Bearer private-jwt', cookie: 'private-cookie' },
+      };
+      const event = await options.beforeSend(
+        { type: undefined, request: structuredClone(request) },
+        {},
+      );
+      const transaction = await options.beforeSendTransaction(
+        { type: 'transaction', request: structuredClone(request), transaction: 'data-export' },
+        {},
+      );
+      for (const sanitized of [event, transaction]) {
+        expect(sanitized?.request?.data).toBe('[REDACTED]');
+        expect(JSON.stringify(sanitized)).not.toMatch(
+          /must-not-leave-server|private-continuation|private-cookie|private-query|private-jwt/,
+        );
+      }
+    },
+  );
 });

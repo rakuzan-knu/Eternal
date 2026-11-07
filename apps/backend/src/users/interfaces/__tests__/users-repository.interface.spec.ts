@@ -78,6 +78,7 @@ describe('users-repository.interface', () => {
       email: 'usr@test.com',
       username: 'usr_test',
       passwordHash: 'hash',
+      birthDate: new Date('2000-01-01T00:00:00.000Z'),
     });
 
     expect(await mockRepo.create(createDto)).toEqual(mockUser);

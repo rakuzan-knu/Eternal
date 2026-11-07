@@ -27,14 +27,13 @@ export const PressContactSection: React.FC<{
           <p className="text-base sm:text-lg text-neutral-300 font-medium leading-relaxed">
             {subtitle}
           </p>
-          <button
-            type="button"
-            disabled
-            className="mt-2 px-8 py-3.5 rounded-full bg-[#5822b4] text-white text-xs font-black tracking-wide shadow-[0_0_30px_rgba(88,34,180,0.5)] transition-all flex items-center gap-2.5 disabled:opacity-60 disabled:cursor-not-allowed"
+          <a
+            href="mailto:eternalnet.support@proton.me"
+            className="mt-2 px-8 py-3.5 rounded-full bg-[#5822b4] text-white text-xs font-black tracking-wide shadow-[0_0_30px_rgba(88,34,180,0.5)] transition-all flex items-center gap-2.5 hover:bg-purple-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 cursor-pointer"
           >
             <Mail size={15} />
             <span>{buttonText}</span>
-          </button>
+          </a>
         </div>
 
         {/* Mascot 2: Right 3D Silver/Purple Eternal Coin */}
