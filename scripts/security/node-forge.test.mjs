@@ -73,10 +73,10 @@ function paddedSignature(privateKey, modulusBytes, encoded) {
   );
 }
 
-describe('Expo node-forge security backport', () => {
-  it('protects both Expo consumers with the same patched package', () => {
+describe('Expo node-forge security regression', () => {
+  it('protects both Expo consumers with the same upstream fixed package', () => {
     assert.equal(certificatesRequire.resolve('node-forge'), cliRequire.resolve('node-forge'));
-    assert.equal(cliRequire('node-forge/package.json').version, '1.4.0');
+    assert.equal(cliRequire('node-forge/package.json').version, '1.4.1');
   });
 
   it('preserves Expo certificate, CSR and update-manifest signing', () => {
