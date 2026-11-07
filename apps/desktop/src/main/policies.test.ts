@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { join } from 'node:path';
 
 const mocks = vi.hoisted(() => ({ read: vi.fn(), exec: vi.fn(), packaged: true }));
 vi.mock('node:fs', () => ({ readFileSync: mocks.read }));
@@ -23,6 +24,11 @@ beforeEach(() => {
   mocks.read.mockReset();
   mocks.exec.mockReset();
   mocks.packaged = true;
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
 });
 
 describe('enterprise policy boundary', () => {
@@ -65,6 +71,34 @@ describe('enterprise policy boundary', () => {
       ['-convert', 'json', '-o', '-', '/Library/Managed Preferences/com.eternal.desktop.plist'],
       expect.any(Object),
     );
+  });
+  it('loads machine policy in MSIX without launching an external executable', () => {
+    vi.stubGlobal('process', { ...process, platform: 'win32', windowsStore: true });
+    vi.stubEnv('ProgramData', '/managed-machine');
+    mocks.read.mockReturnValue('{"DisableTelemetry":true,"EnableDevTools":false}');
+    expect(loadPolicies(vi.fn())).toEqual({ DisableTelemetry: true, EnableDevTools: false });
+    expect(mocks.read).toHaveBeenCalledWith(
+      join('/managed-machine', 'Eternal', 'policies.json'),
+      'utf8',
+    );
+    expect(mocks.exec).not.toHaveBeenCalled();
+    expect(Object.isFrozen(getPolicies())).toBe(true);
+  });
+  it('allows absent MSIX policy and fails closed for unreadable or invalid machine policy', () => {
+    vi.stubGlobal('process', { ...process, platform: 'win32', windowsStore: true });
+    mocks.read.mockImplementation(() => {
+      throw Object.assign(new Error(), { code: 'ENOENT' });
+    });
+    expect(loadPolicies(vi.fn())).toEqual({});
+    mocks.read.mockImplementation(() => {
+      throw Object.assign(new Error(), { code: 'EACCES' });
+    });
+    expect(() => loadPolicies(vi.fn())).toThrow('Unable to read');
+    for (const content of ['{broken', '{"DisableTelemetry":"false"}', ' '.repeat(65537)]) {
+      mocks.read.mockReturnValue(content);
+      expect(() => loadPolicies(vi.fn())).toThrow();
+    }
+    expect(mocks.exec).not.toHaveBeenCalled();
   });
   it('allows missing Linux policy, rejects unreadable, malformed and oversized policy', () => {
     mocks.read.mockImplementation(() => {

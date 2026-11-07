@@ -22,7 +22,7 @@ export function parsePolicies(value: unknown, warn: (count: number) => void): De
 }
 
 export function readPolicySource(platform: NodeJS.Platform): unknown[] {
-  if (platform === 'win32') {
+  if (platform === 'win32' && !process.windowsStore) {
     const script = `
 $ErrorActionPreference = 'Stop'
 $result = @()
@@ -65,9 +65,11 @@ ConvertTo-Json -InputObject $result -Compress
     return z.array(z.unknown()).length(2).parse(JSON.parse(output));
   }
   const file =
-    platform === 'darwin'
-      ? '/Library/Managed Preferences/com.eternal.desktop.plist'
-      : '/etc/eternal/policies.json';
+    platform === 'win32'
+      ? join(process.env.ProgramData ?? 'C:\\ProgramData', 'Eternal', 'policies.json')
+      : platform === 'darwin'
+        ? '/Library/Managed Preferences/com.eternal.desktop.plist'
+        : '/etc/eternal/policies.json';
   let contents: string;
   try {
     contents = readFileSync(file, 'utf8');

@@ -67,7 +67,7 @@ DevTools вимкнено в packaged builds і ввімкнено у developmen
 читання реєстру зупиняють запуск. Це запобігає непомітному запуску без заборон.
 Відсутнє джерело означає відсутність політик. Файли/вивід обмежено 64 KiB.
 
-### Windows
+### Windows: NSIS і MSI
 
 64-bit registry view: `HKLM\Software\Policies\Eternal` має пріоритет над
 `HKCU\Software\Policies\Eternal` для кожного ключа. Ключі, відсутні у HKLM,
@@ -89,6 +89,26 @@ Windows Registry Editor Version 5.00
 `-NoProfile -NonInteractive`, Registry64 та timeout 10 секунд. У середовищах,
 де PowerShell/.NET Registry API заборонений application control, протестуйте
 доступність цього read-only шляху до розгортання.
+
+### Windows: MSIX / Microsoft Store
+
+Коли Electron підтверджує MSIX-контекст (`process.windowsStore`), політики
+читаються з `%ProgramData%\Eternal\policies.json` без запуску PowerShell або
+інших зовнішніх executables. Це окреме machine-level джерело для Store-каналу;
+HKLM/HKCU з попереднього розділу тут не читаються. Перед керованим переходом
+з MSI/NSIS перенесіть потрібні значення у цей файл.
+
+Використовуйте JSON object із тими самими boolean/string ключами, як у
+прикладі Linux нижче, UTF-8 без BOM і не більше 64 KiB. Каталог і файл
+розгортає адміністратор із правом запису лише для Administrators/SYSTEM та
+правом читання для користувачів. Застосунок не створює цей файл, не змінює ACL
+й не запитує elevation. Оновлюйте файл атомарно та перезапускайте застосунок.
+Відсутній файл означає відсутність політик; помилка доступу, некоректний JSON,
+неправильні типи чи перевищений розмір зупиняють запуск.
+
+Цей шлях усуває залежність старту від PowerShell у MSIX, але не замінює
+перевірку встановленого пакета та Windows S mode. Старий реліз v1.13.0 ще
+використовує registry/PowerShell і не підтверджений для S mode.
 
 ### macOS
 

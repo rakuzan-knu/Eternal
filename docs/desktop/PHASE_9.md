@@ -1,10 +1,11 @@
 # Фаза 9 — Microsoft Store, Flathub і Snap Store
 
 Підготовлено пакування та процедуру подання. **Фаза не прийнята: застосунок
-не опубліковано в магазинах.** Публічний GitHub API 1 листопада 2026 повернув
-стабільний `v1.12.0` без assets. Спочатку потрібен успішний desktop-реліз фази 8,
-який містить також код цієї фази. Стан доступу до кабінетів наведено нижче;
-зареєстровані ідентифікатори застосунку отримано 5 листопада 2026. Backend не змінювався.
+не опубліковано в магазинах.** 7 листопада перевірено стабільний desktop-реліз
+`v1.13.0` з assets, підписом і attestations. Зареєстровані ідентифікатори
+застосунку отримано 5 листопада; актуальний стан пакетів і кабінетів — у
+датованому розділі наприкінці документа. Саме store-пакування не змінює backend;
+окремі зміни інтеграцій і приватності описані у відповідній документації.
 
 ## Що реалізовано
 
@@ -66,8 +67,8 @@ Store accounts, tokens, резервування назв і підтвердж�
 Локальний MSIX після `pnpm build:desktop`:
 
 ```powershell
-pnpm --filter @eternal/desktop package:msix --x64 --version 1.12.0
-pnpm --filter @eternal/desktop package:msix --arm64 --version 1.12.0
+pnpm --filter @eternal/desktop package:msix --x64 --version 1.13.0
+pnpm --filter @eternal/desktop package:msix --arm64 --version 1.13.0
 ```
 
 Версія має відповідати справжньому desktop-релізу. У builder 26.18 `msix` усе
@@ -80,7 +81,7 @@ pnpm --filter @eternal/desktop package:msix --arm64 --version 1.12.0
 
 ```sh
 pnpm build:desktop
-pnpm --filter @eternal/desktop package:snap --x64 --version 1.12.0
+pnpm --filter @eternal/desktop package:snap --x64 --version 1.13.0
 ```
 
 Окремий запуск на arm64 дає arm64 Snap. Назва зарезервованого Snap використовується
@@ -125,7 +126,11 @@ minVersion раніше, ніж версія доступна у всіх маг
 API builder звірено з установленим 26.18: поточна вебдокументація містить також
 непридатний для цього проєкту v27 MSIX API.
 
-## Фактичні перевірки
+## Первинні локальні перевірки
+
+Це історичні результати до злиття PR145, а не поточний перелік CI-тестів.
+Згаданий нижче генератор Flathub і його тести згодом вилучені відповідно до
+політики Flathub; вони не є частиною чинного workflow.
 
 Перевірено локально на Windows x64:
 
@@ -235,3 +240,72 @@ Microsoft Submission 1 створено; Properties має статус Complete
 privacy URL `https://eternalnet.vercel.app/privacy` (HTTP 200), сайт і GitHub
 issues як support. Заявлено наявність опційних generative AI summaries;
 недоведені accessibility claims не позначено. Інші секції ще заповнюються.
+
+## Перевірений стабільний реліз — 7 листопада 2026
+
+PR145 злитий після 49 успішних CI-перевірок. Реліз
+[v1.13.0](https://github.com/rakuzan-knu/Eternal/releases/tag/v1.13.0) відповідає
+коміту `1690edf6ed6502fb55164e28d9fa91b6371ccbf8` і містить 30 файлів.
+Фактичний release run
+[42408792565](https://github.com/rakuzan-knu/Eternal/actions/runs/42408792565)
+успішно зібрав Windows x64/arm64, macOS universal та Linux x64/arm64.
+Перевірено 27 рядків SHA256SUMS проти digest опублікованих assets, завантажені
+release metadata, GPG-підпис із fingerprint
+`CACBA63FD0E64C10DB18F44F285F8FC2D8D07CFC` і GitHub attestations для
+SHA256SUMS та desktop-release.json. Це не повна перевірка встановлення кожного
+інсталятора й не доказ відтворюваності збірки.
+
+Перший macOS release run відхилив порожній `CSC_LINK` як шлях до каталогу.
+Workflow тепер прибирає лише порожнє/пробільне значення на macOS перед пакуванням;
+непорожній сертифікат зберігається. Повторний run використовував виправлений
+workflow з protected main і незмінний source tag v1.13.0. Збірка macOS має ad-hoc
+підпис; Apple Developer ID і нотаризація не підтверджені.
+
+Microsoft: Age ratings збережено після явного дозволу користувача на IARC Terms;
+статус Complete, Microsoft 12+, ESRB Teen. Це класифікація вмісту, а не заміна
+правил допуску 13+ та регіональних вимог. Pricing and availability, Properties
+і Submission Options мають статус Complete. Увімкнено ручну публікацію після
+сертифікації: `Don't publish this submission until I select Publish now`.
+MSIX x64 v1.13.0.0 завантажено й збережено: Partner Center показав `Validated`
+і Packages `Complete`. Пояснення `runFullTrust` збережено; воно ще потребує
+схвалення Microsoft під час сертифікації. Підтримку обмежено Windows Desktop;
+автоматичне додавання майбутніх device families вимкнено. Англійську та
+українську картки збережено із правдивим повідомленням про закриті реєстрації;
+через відсутність справжніх скриншотів Store listings має статус `Incomplete`.
+Заявку на сертифікацію не подано.
+
+Перший store workflow
+[42416010241](https://github.com/rakuzan-knu/Eternal/actions/runs/42416010241)
+зібрав MSIX x64. Виправлення вибору host SDK усунуло запуск arm64 MakeAppx на
+x64 runner; [42416724158](https://github.com/rakuzan-knu/Eternal/actions/runs/42416724158)
+успішно зібрав обидва MSIX. ZIP digests завантажених artifacts перевірено;
+manifest і PE headers підтвердили версію, реальну Store identity, capabilities,
+протокол і відповідну архітектуру. Пакети непідписані для подання в Store.
+
+WACK 10.0.26100.7705 перевірив MSIX x64 v1.13.0.0: загальний результат `PASS`,
+23 з 24 тестів успішні; необов'язковий `Blocked executables` має `FAIL`.
+Тест працював без application deployment, тому встановлення й runtime не
+підтверджені. Повний звіт містить локальні системні відомості й зберігається
+поза репозиторієм. Microsoft називає цей тест інформаційним, але рекомендує
+[перевірити зовнішні виклики](https://learn.microsoft.com/en-us/windows/uwp/debug-test-perf/windows-desktop-bridge-app-tests#42-blocked-executables).
+Окрім рядків Electron/dependencies, знайдено реальний виклик системного
+PowerShell для registry policy. Для MSIX додано окреме machine-level JSON
+джерело без external process; NSIS/MSI зберігають registry policy. Процедура
+переходу — в [ADMIN_GUIDE.md](ADMIN_GUIDE.md). Це виправлення ще потребує нового
+стабільного релізу, повторного пакування і встановленої S mode перевірки;
+воно не присутнє у v1.13.0.
+
+Обидва початкові Snap build зупинились на `apt-get update` усередині LXD.
+Діагностика підтвердила Docker `FORWARD DROP`; додано рекомендовані Canonical
+[дозволи вихідного трафіку LXD](https://canonical.com/lxd/docs/latest/howto/network_bridge_firewalld/#prevent-connectivity-issues-with-lxd-and-docker)
+та лише відповідей `RELATED,ESTABLISHED` у Docker user chain, без зміни глобальної
+політики. Новий run
+[42417570760](https://github.com/rakuzan-knu/Eternal/actions/runs/42417570760)
+ще перевіряє це виправлення. Сам запуск не підтверджує готовність Snap.
+`allow-sandbox` потребує погодження магазину; AI-assisted подання Flathub
+заборонене чинною політикою Flathub, тому маніфест і submission має самостійно
+підготувати людина.
+
+Жоден регіон нового допуску поки не відкритий. Публікацію в магазинах не слід
+позначати завершеною до перевірки пакетів, операційних процедур і застосовних
+умов із [реєстру відповідності](../legal/COMPLIANCE_REGISTER.md).
