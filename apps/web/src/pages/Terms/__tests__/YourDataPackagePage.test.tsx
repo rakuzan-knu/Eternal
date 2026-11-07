@@ -17,7 +17,7 @@ describe('YourDataPackagePage', () => {
     );
 
     expect(screen.getByText('Your Eternal Data Package')).toBeInTheDocument();
-    expect(screen.getByText(/Effective: September 1, 2026/i)).toBeInTheDocument();
+    expect(screen.getByText(/Updated November 5, 2026/i)).toBeInTheDocument();
     expect(screen.getByText('What this article covers:')).toBeInTheDocument();
   });
 
@@ -28,9 +28,11 @@ describe('YourDataPackagePage', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('Interactive Settings Preview')).toBeInTheDocument();
-    expect(screen.getAllByText('Request All of My Data').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText('Profile Privacy').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByRole('link', { name: 'Sign in to Eternal' })).toHaveAttribute(
+      'href',
+      '/login',
+    );
+    expect(screen.queryByText('Request Submitted!')).not.toBeInTheDocument();
   });
 
   it('renders all 5 main sections in TOC and article', () => {
@@ -41,16 +43,10 @@ describe('YourDataPackagePage', () => {
     );
 
     expect(screen.getAllByText('What Is A Data Package?').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText('How To Request A Data Package').length).toBeGreaterThanOrEqual(1);
-    expect(
-      screen.getAllByText('What Information Is Inside A Data Package?').length,
-    ).toBeGreaterThanOrEqual(1);
-    expect(
-      screen.getAllByText('Compilation Timelines & Link Expiration').length,
-    ).toBeGreaterThanOrEqual(1);
-    expect(
-      screen.getAllByText('Legal Rights & Data Protection Officer').length,
-    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('How To Download Your Data').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Included Data and Exclusions').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Download Limits and Errors').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Your Rights and Contact').length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders DPO contact information with Ukraine address', () => {
@@ -60,9 +56,7 @@ describe('YourDataPackagePage', () => {
       </MemoryRouter>,
     );
 
-    expect(
-      screen.getAllByText(/private contact address has not been provided/i).length,
-    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/eternalnet\.support@proton\.me/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText(/Ukraine/i).length).toBeGreaterThanOrEqual(1);
   });
 
@@ -76,7 +70,7 @@ describe('YourDataPackagePage', () => {
     );
 
     expect(screen.getByText('Ваш пакет даних Eternal')).toBeInTheDocument();
-    expect(screen.getByText(/Набуття чинності: 1 вересня 2026 р./i)).toBeInTheDocument();
+    expect(screen.getByText(/Оновлено 5 листопада 2026 р./i)).toBeInTheDocument();
     expect(screen.getAllByText('Що таке пакет даних?').length).toBeGreaterThanOrEqual(1);
   });
 });

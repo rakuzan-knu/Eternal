@@ -283,7 +283,7 @@ export class CreateUserDto {
   readonly username: string;
   readonly passwordHash: string;
   readonly displayName?: string | undefined;
-  readonly birthDate?: Date | null | undefined;
+  readonly birthDate: Date;
   readonly gender?: string | undefined;
 
   constructor(props: {
@@ -291,7 +291,7 @@ export class CreateUserDto {
     username: string;
     passwordHash: string;
     displayName?: string | undefined;
-    birthDate?: Date | null | undefined;
+    birthDate: Date;
     gender?: string | undefined;
   }) {
     this.email = props.email;

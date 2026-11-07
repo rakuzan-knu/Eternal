@@ -15,7 +15,7 @@ export type RegisterPayload = Partial<RegisterDto> & {
   username: string;
   displayName?: string;
   password?: string;
-  birthDate?: string;
+  birthDate: string;
   gender?: 'Male' | 'Female' | 'Custom';
   turnstileToken?: string;
 };
@@ -39,6 +39,14 @@ export interface AuthResponse {
 }
 
 export const authApi = {
+  registrationPolicy: async (signal?: AbortSignal) => {
+    const { registrationPolicySchema } = await import('@social-network/shared-contracts');
+    const response = await api.get<unknown>(
+      '/auth/registration-policy',
+      ...(signal ? [{ signal }] : []),
+    );
+    return registrationPolicySchema.parse(response.data);
+  },
   login: (data: LoginPayload, signal?: AbortSignal) =>
     api
       .post<AuthResponse>('/auth/login', data, ...(signal ? [{ signal }] : []))

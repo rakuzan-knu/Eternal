@@ -1,4 +1,10 @@
 export const settings = {
+  'Your data': 'Ваші дані',
+  'Download your data in a browser': 'Завантажити свої дані у браузері',
+  'Open the website and sign in to download JSON. Native file export is not available. For other requests: eternalnet.support@proton.me.':
+    'Відкрийте сайт і увійдіть, щоб завантажити JSON. Нативний експорт файлу недоступний. Інші запити: eternalnet.support@proton.me.',
+  'Could not open the browser. Visit eternalnet.vercel.app/privacy/data-package or email eternalnet.support@proton.me.':
+    'Не вдалося відкрити браузер. Відвідайте eternalnet.vercel.app/privacy/data-package або напишіть на eternalnet.support@proton.me.',
   Settings: 'Налаштування',
   Account: 'Акаунт',
   'Edit profile': 'Редагувати профіль',

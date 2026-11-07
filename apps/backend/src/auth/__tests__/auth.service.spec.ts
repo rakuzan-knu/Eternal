@@ -1,4 +1,6 @@
-import { ConflictException, UnauthorizedException } from '@nestjs/common';
+import { vi } from 'vitest';
+import { RegistrationPolicyService } from '../registration-policy.service';
+import { ConflictException, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 import type { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
@@ -12,8 +14,14 @@ import type { InMemoryBloomFilterService } from '../../common/bloom/in-memory-bl
 
 jest.setTimeout(30000);
 
+vi.mock('argon2', async (importOriginal) => {
+  const actual = await importOriginal<typeof argon2>();
+  return { ...actual, hash: vi.fn(actual.hash) };
+});
+
 describe('AuthService', () => {
   let service: AuthService;
+  let registrationPolicy: RegistrationPolicyService;
   let mockUsersService: {
     findByEmail: jest.Mock;
     findByUsername: jest.Mock;
@@ -94,6 +102,8 @@ describe('AuthService', () => {
       isTokenRevoked: jest.fn().mockResolvedValue(false),
     };
 
+    registrationPolicy = new RegistrationPolicyService();
+    jest.spyOn(registrationPolicy, 'assertRegistrationOpen').mockImplementation(() => undefined);
     service = new AuthService(
       mockUsersService as unknown as UsersService,
       mockJwtService as unknown as JwtService,
@@ -109,6 +119,7 @@ describe('AuthService', () => {
         getFilter: jest.fn(),
         getStats: jest.fn(),
       } as unknown as InMemoryBloomFilterService,
+      registrationPolicy,
     );
   });
 
@@ -145,7 +156,7 @@ describe('AuthService', () => {
     });
   });
 
-  describe('register', () => {
+  describe('register with an explicitly stubbed availability policy', () => {
     const registerDto = {
       email: 'newuser@example.com',
       username: 'new_user',
@@ -154,6 +165,40 @@ describe('AuthService', () => {
       birthDate: '2000-01-01T00:00:00.000Z',
       gender: 'Female' as const,
     };
+
+    it('rejects registration under the production policy before lookups or writes', async () => {
+      jest.spyOn(registrationPolicy, 'assertRegistrationOpen').mockRestore();
+      await expect(service.register(registerDto)).rejects.toThrow(ForbiddenException);
+      expect(mockUsersService.findByEmail).not.toHaveBeenCalled();
+      expect(mockUsersService.findByUsername).not.toHaveBeenCalled();
+      expect(mockUsersService.create).not.toHaveBeenCalled();
+      expect(mockJwtService.signAsync).not.toHaveBeenCalled();
+      expect(mockSessionsService.create).not.toHaveBeenCalled();
+    });
+
+    it.each(['not-a-date', '2999-01-01T00:00:00.000Z', new Date().toISOString()])(
+      'rejects ineligible birthday %s before lookups, hashing, creation, and token issuance',
+      async (birthDate) => {
+        const hash = vi.mocked(argon2.hash);
+        hash.mockClear();
+        await expect(service.register({ ...registerDto, birthDate })).rejects.toThrow();
+        expect(hash).not.toHaveBeenCalled();
+        expect(mockUsersService.findByEmail).not.toHaveBeenCalled();
+        expect(mockUsersService.findByUsername).not.toHaveBeenCalled();
+        expect(mockUsersService.create).not.toHaveBeenCalled();
+        expect(mockJwtService.signAsync).not.toHaveBeenCalled();
+        expect(mockSessionsService.create).not.toHaveBeenCalled();
+      },
+    );
+
+    it('rejects a runtime request without a birthday before creating a user', async () => {
+      const { birthDate: omitted, ...payload } = registerDto;
+      expect(omitted).toBeDefined();
+      await expect(Reflect.apply(service.register, service, [payload])).rejects.toThrow();
+      expect(mockUsersService.findByEmail).not.toHaveBeenCalled();
+      expect(mockUsersService.create).not.toHaveBeenCalled();
+      expect(mockJwtService.signAsync).not.toHaveBeenCalled();
+    });
 
     it('throws ConflictException if email is already registered', async () => {
       mockUsersService.findByEmail.mockResolvedValueOnce({ id: 'usr-1' });
@@ -485,6 +530,7 @@ describe('AuthService', () => {
         service.register({
           email: 'err@test.com',
           username: 'err_user',
+          birthDate: '2000-01-01T00:00:00.000Z',
           password: 'Password123!',
         }),
       ).rejects.toThrow(/Missing required environment variable/);

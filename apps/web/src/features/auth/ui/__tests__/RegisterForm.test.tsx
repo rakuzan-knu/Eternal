@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { RegisterForm } from '../RegisterForm';
+import { RegistrationFields as RegisterForm } from '../RegisterForm';
 import { useAuthMutations } from '../../api/useAuth';
 import { useCheckUsername } from '@/entities/profile/model/useCheckUsername';
 import { renderWithProviders } from '../../../../test/renderWithProviders';
@@ -72,7 +72,22 @@ function fillMinimumValidForm(includePersonalDetails = true) {
   });
 }
 
-describe('RegisterForm', () => {
+describe('RegistrationFields behind the closed registration gate', () => {
+  it('keeps distinct birthday and gender names and keyboard selection when the fields are rendered', async () => {
+    setupMutations();
+    renderWithProviders(<RegisterForm />);
+    for (const name of ['Birth month', 'Birth day', 'Birth year', 'Gender']) {
+      expect(screen.getByRole('combobox', { name })).toBeInTheDocument();
+    }
+    const user = userEvent.setup();
+    const month = screen.getByRole('combobox', { name: 'Birth month' });
+    month.focus();
+    await user.keyboard('[ArrowDown]');
+    expect(month).toHaveAttribute('aria-activedescendant', expect.stringMatching(/option-/));
+    await user.keyboard('[Escape]');
+    expect(month).toHaveFocus();
+  });
+
   it('requires a deliberate birthday and gender selection without default personal data', async () => {
     const mutate = setupMutations();
     renderWithProviders(<RegisterForm />);
@@ -109,8 +124,37 @@ describe('RegisterForm', () => {
     await waitFor(() => expect(getSubmitButton()).toBeEnabled());
     fireEvent.click(getSubmitButton());
     await waitFor(() => expect(mutate).toHaveBeenCalled());
-    expect(new Date(mutate.mock.calls[0][0].birthDate).getDate()).toBe(29);
+    expect(mutate.mock.calls[0][0].birthDate).toBe('2000-02-29T00:00:00.000Z');
     expect(mutate.mock.calls[0][0]).toHaveProperty('gender', 'Custom');
+  });
+
+  it('blocks a declared under-13 birthday before sending registration', async () => {
+    const mutate = setupMutations();
+    renderWithProviders(<RegisterForm />);
+    fillMinimumValidForm();
+    selectOption('Birth year', String(new Date().getUTCFullYear() - 12));
+    expect(
+      await screen.findByText('You must be at least 13 years old to create an account'),
+    ).toBeInTheDocument();
+    expect(getSubmitButton()).toBeDisabled();
+    fireEvent.submit(getSubmitButton().closest('form')!);
+    expect(mutate).not.toHaveBeenCalled();
+  });
+
+  it('updates password requirements without accepting non-Latin letters', () => {
+    setupMutations();
+    renderWithProviders(<RegisterForm />);
+    expect(screen.getByLabelText('8+ characters: Not met')).toBeInTheDocument();
+    const password = screen.getByLabelText('Password', { exact: true });
+    fireEvent.change(password, { target: { value: 'abc' } });
+    expect(screen.getByLabelText('8+ characters: Partially met')).toBeInTheDocument();
+    fireEvent.change(password, { target: { value: 'Abcdefg1' } });
+    expect(screen.getByLabelText('8+ characters: Met')).toBeInTheDocument();
+    expect(screen.getByLabelText('Latin letters (A-Z, a-z): Met')).toBeInTheDocument();
+    expect(screen.getByLabelText('Number or symbol: Met')).toBeInTheDocument();
+    fireEvent.change(password, { target: { value: 'AbcЖ1234' } });
+    expect(screen.getByLabelText('Latin letters (A-Z, a-z): Invalid')).toBeInTheDocument();
+    expect(getSubmitButton()).toBeDisabled();
   });
 
   it('blocks mismatched confirmation and revalidates when the original password changes', async () => {

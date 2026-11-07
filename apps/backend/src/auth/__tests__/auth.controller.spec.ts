@@ -1,3 +1,4 @@
+import { RegistrationPolicyService } from '../registration-policy.service';
 import type { Request, Response } from 'express';
 import { AuthController } from '../auth.controller';
 import type { AuthService } from '../auth.service';
@@ -35,6 +36,7 @@ describe('AuthController', () => {
     controller = new AuthController(
       mockAuthService as unknown as AuthService,
       mockTurnstileService as unknown as TurnstileService,
+      new RegistrationPolicyService(),
     );
   });
 
@@ -51,6 +53,7 @@ describe('AuthController', () => {
     const registerDto = {
       email: 'user@example.com',
       username: 'user_one',
+      birthDate: '2000-01-01T00:00:00.000Z',
       password: 'Password123!',
     };
     const mockRequest = { ip: '192.168.1.1' } as Request;

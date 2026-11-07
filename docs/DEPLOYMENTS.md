@@ -21,7 +21,7 @@ Both Vercel projects use GitHub repository `rakuzan-knu/Eternal`. Desktop uses t
 
 Render automatic deploys are disabled. Do not enable concurrent deploys for all four services: a Core or Messenger rolling deployment can temporarily exceed the shared Redis connection allowance even when steady state fits. Deploy one service at a time, wait for its live status and dependency readiness, and check actual Redis usage. At the 30-connection limit, first deploy Core with BACKGROUND_ENABLED=false (estimated overlap: 24+4=28). Update Messenger only after the old Core instance has stopped. Restore Core background work after the old Messenger instance has stopped (estimated overlap: 20+8=28). A Core-only update also uses the background-disabled stage before restoring its workers. These estimates include all four active roles; wait for old connections to close and verify actual usage before each next deployment. Core applies compatible migrations; other roles do not.
 
-The service split is in PR #115 on `codex/free-hosting-recovery`. Until it is merged through the normal protected-branch review, publishing an older `main` frontend could restore monolith routing and break specialty features. Both Vercel projects temporarily track the split branch for production, with staged production promotion during coordinated API changes. After the protected merge, return both projects' Production Branch Tracking to `main` and verify the split clients. Do not change branch protections to complete this rollout.
+Both Vercel projects were verified on 7 November 2026 to track `main` for production. Service-role routing is present on `main`; the earlier instruction about temporary production tracking of `codex/free-hosting-recovery` is obsolete. Before merging a coordinated API/client change, disable automatic custom-domain assignment on both projects, stage the production builds and promote only after the matching APIs pass verification. Preserve branch protections and restore the projects' previous domain-assignment settings after the rollout.
 
 Stage and inspect each frontend before promotion:
 
@@ -35,6 +35,12 @@ Verify the public HTML and JS assets, all four built API origins, CORS for both 
 
 Keep credentials in server environment variables and approved private local credential stores, never this document, Git, public build variables or logs. R2 uses an object-only key scoped to `social-network-media`; coordinate key rotation across all four services before revoking the previous key. Provider callback URLs also need registration in their own dashboards; setting a Render variable alone does not register a redirect URI.
 
+The Supabase connection must use verified TLS for both runtime and migrations.
+Follow the [bundled public CA and driver-specific settings](../apps/backend/certs/README.md).
+Preserve each service's role and migration ownership when updating environment
+variables. Use Render's single-variable update endpoint; a bulk environment PUT
+replaces the complete set and can erase unrelated secrets and role settings.
+
 Expo Web is a browser app. Native Android/iOS builds and distribution remain separate work. Free Render services sleep when idle; cold starts and limited CPU remain, and this deployment does not establish a load-test guarantee or implement production video transcoding.
 
 ## GIPHY web picker
@@ -43,7 +49,7 @@ Set `VITE_GIPHY_API_KEY` (posts) and `VITE_GIPHY_CHAT_API_KEY` (messages) on the
 
 API and media requests go directly from the browser to GIPHY. Core and Messenger validate approved provider URLs and preserve their original query parameters; they do not download or rehost provider GIFs. Existing uploaded media keeps its ownership and byte validation. Deploy the compatible APIs before promoting the web client; no schema migration or historical-media rewrite is needed.
 
-The picker footer branding is hidden at the product owner's request. GIPHY requires visible attribution under its API terms; hiding it does not satisfy that requirement. See the [GIPHY API integration requirements](https://developers.giphy.com/docs/api/) for attribution, key limits and direct media delivery.
+The configured posts and chat GIF picker displays the official static "Powered by GIPHY" mark outside the scrolling results, including loading, empty and error states. The desktop client reuses this web picker. Preserve this visible attribution when changing the picker. See the [GIPHY API integration requirements](https://developers.giphy.com/docs/api/#attribution) for attribution, key limits and direct media delivery, and the [asset provenance](../apps/web/public/attribution/README.md).
 
 ## Direct media rollout
 
@@ -52,6 +58,41 @@ Follow [DIRECT_MEDIA_UPLOADS.md](DIRECT_MEDIA_UPLOADS.md). Disable Auto-assign C
 Render uses DIRECT_UPLOADS_REQUIRED=true, VIDEO_TRANSCODE_ENABLED=false and SOUNDCLOUD_AUDIO_PROXY_ENABLED=false. Music's STEAM_CALLBACK_URL is its canonical `/v1/integrations/steam/callback`; Steam starts through an authenticated POST and first-party popup launch. Preserve the popup's COOP unsafe-none response header and exact origin/source proof checks. Do not reintroduce a GET start with userId/state selected by the caller.
 
 Free quota diagnostics run hourly on Core using existing connections: PostgreSQL warns at400MB, Redis at80% memory and26 connections. Media admission warns at80%; these are server log warnings, not a configured email paging service. Provider billing dashboards remain authoritative for monthly Render outbound bandwidth and R2 operations. Do not describe application counters as a provider spending cap.
+
+The current Redis Cloud Free configuration uses `redis://`. The provider's Free
+plan does not support [TLS](https://redis.io/docs/latest/operate/rc/security/database-security/tls-ssl/).
+Before opening registration, establish a shared TLS endpoint and verify persistence,
+`noeviction`, queue recovery, revocation state and Socket.IO across all four roles.
+Changing the URL scheme alone cannot enable TLS on this plan. A provider migration
+requires a coordinated cutover that preserves jobs and unexpired security state.
+
+On 7 November 2026, a separate Aiven Valkey 9.1.3 Free-1 service was prepared in
+Europe. No production service has been switched to it. Verified TLS, `noeviction`,
+BullMQ retry/deduplication/delayed jobs and cross-node Socket.IO probes passed.
+Provider backups are enabled, but their recovery has not been tested; do not
+infer a recovery-time or recovery-point guarantee from the plan description.
+The [Free tier](https://aiven.io/docs/platform/concepts/service-pricing#free-tier)
+has no time limit under the current terms and is separate from trial credits;
+inactive services can be powered off and provider terms can change.
+
+The existing Redis Cloud instance reports Redis 8.6.2. Actual isolated probes of
+binary strings, bitmaps, hashes, lists, sets, sorted sets and streams rejected
+native DUMP/RESTORE in both directions: Redis emits format 13 and Valkey emits
+format 80. Do not use native RESTORE or change the dump footer to bypass this.
+A migration requires a rehearsed logical copy preserving bytes, expiries, queue
+IDs and stream state, plus a reverse-copy plan after any new production writes.
+Keep all four API/worker roles stopped during the consistent snapshot and copy;
+`BACKGROUND_ENABLED=false` alone does not stop HTTP producers or Socket.IO.
+
+The subsequent logical-copy rehearsal passed both directions for all seven
+types, including binary content, absolute expiries, deleted-entry stream
+metadata, collision protection and partial-write cleanup. An independent review
+covered the transfer guards. A read-only live preflight found 83 keys (40,540
+serialized bytes), all within the tested bounds, an empty destination and no
+pending/active/failed jobs in the six queues. These are point-in-time observations,
+not a completed cutover or a consistent production backup. Hash field expiries,
+consumer groups and unsupported/oversized payloads must abort the transfer.
+After an ambiguous timeout, reconcile content and expiry before retry or cleanup.
 
 ### Generic OAuth popup state
 

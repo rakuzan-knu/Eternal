@@ -548,6 +548,9 @@ jobs:
         working-directory: apps/backend
         run: pnpm exec prisma migrate deploy
 
+      - name: Build backend workspace dependencies
+        run: pnpm build:native
+
       - name: Build backend
         working-directory: apps/backend
         run: pnpm build
@@ -620,7 +623,7 @@ jobs:
 
       - name: Run Playwright E2E suite (Shard ${{ matrix.shard }}/2)
         working-directory: apps/web
-        run: pnpm test:e2e -- --shard=${{ matrix.shard }}/2
+        run: pnpm exec playwright test --shard=${{ matrix.shard }}/2
         timeout-minutes: 15
 
       - name: Upload Playwright report
@@ -843,7 +846,7 @@ jobs:
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
         with:
           fail-on-severity: high
-          allow-ghsas: 'GHSA-fjxv-7rqg-78g4, GHSA-hmw2-7cc7-3qxx, GHSA-36jr-mh4h-2g58, GHSA-ggr8-5vv4-36mx, GHSA-3f6p-5ww8-9rcr, GHSA-7w5x-hrqm-74c2, GHSA-86w9-cpqp-85rv'
+          allow-ghsas: 'GHSA-fjxv-7rqg-78g4, GHSA-hmw2-7cc7-3qxx, GHSA-36jr-mh4h-2g58, GHSA-ggr8-5vv4-36mx, GHSA-3f6p-5ww8-9rcr, GHSA-7w5x-hrqm-74c2'
           retry-on-snapshot-warnings: true
           retry-on-snapshot-warnings-timeout: 600
 
@@ -882,6 +885,24 @@ jobs:
             --mount type=bind,source="$PWD",target=/workspace,readonly \
             --workdir /workspace social-network-backend:ci-${{ github.sha }} \
             --test scripts/deploy/__tests__/prepare-cassandra-bundle.test.mjs
+      - name: Verify database trust anchor as the runtime user
+        run: |
+          docker run --rm -i --entrypoint node \
+            -e PGSSLMODE=verify-full \
+            -e NODE_EXTRA_CA_CERTS=/app/certs/supabase-root-2021.crt \
+            social-network-backend:ci-${{ github.sha }} --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { readFileSync } from 'node:fs';
+          import { X509Certificate } from 'node:crypto';
+          import pg from 'pg';
+          assert.equal(process.getuid(), 1001);
+          const ca = new X509Certificate(readFileSync(process.env.NODE_EXTRA_CA_CERTS));
+          assert.equal(ca.ca, true);
+          assert.equal(ca.fingerprint256, '80:70:25:AD:50:D4:ED:21:9D:2C:9C:7D:29:9C:00:4F:82:4E:B0:0C:F7:F6:5A:FE:F6:07:D0:7B:72:E6:CA:FA');
+          assert.ok(Date.parse(ca.validTo) > Date.now());
+          assert.equal(new pg.Client({ connectionString: 'postgresql://fixture:fixture@localhost/fixture' }).ssl, true);
+          console.log('Runtime user can read the verified CA and the configured driver requires TLS');
+          NODE
       - name: Test container health (Smoke Test)
         run: |
           set -euo pipefail

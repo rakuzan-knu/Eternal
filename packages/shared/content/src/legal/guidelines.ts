@@ -85,21 +85,21 @@ export const GUIDELINES_SECTIONS: GuidelinesSection[] = [
     number: '3',
     title: 'Child & Teen Safety (Zero Tolerance)',
     iconName: 'ShieldCheck',
-    tldr: 'We maintain an absolute zero-tolerance policy against Child Sexual Exploitation and Abuse (CSAM) and strictly enforce our 13+ (or 16+ in EU) age limits.',
+    tldr: 'Child sexual exploitation, abuse, and grooming are prohibited. The minimum account age is 13, subject to higher local limits and other protections for minors.',
     subsections: [
       {
         id: 'csam-zero-tolerance',
         title: '3.1 Zero Tolerance for CSAM & Grooming',
         content: [
           'We have zero tolerance for any content that depicts, promotes, facilitates, or normalizes child sexual exploitation or abuse (CSAM). This includes real, simulated, drawn, animated, or AI-generated imagery involving minors.',
-          'We immediately report all instances of CSAM, grooming, or child endangerment to the National Center for Missing & Exploited Children (NCMEC) and law enforcement authorities worldwide.',
+          'Report suspected child exploitation using the reporting tools or eternalnet.support@proton.me. Do not download or redistribute suspected abuse material. For immediate danger, contact local emergency authorities. Reporting and escalation procedures are not yet complete; no automated reporting service or round-the-clock response is claimed.',
         ],
       },
       {
         id: 'minor-protection',
         title: '3.2 Protecting Young Users',
         content: [
-          'Users must meet the minimum digital age (13+, or 16+ in certain EU jurisdictions). Adults are strictly forbidden from soliciting, exchanging intimate media with, or engaging in inappropriate sexual behavior with minors.',
+          'Users must be at least 13 and meet any higher applicable local age limit and other admission requirements. Adults must not solicit minors, exchange intimate media with minors, or engage in sexual behaviour with minors.',
         ],
       },
     ],
@@ -109,14 +109,14 @@ export const GUIDELINES_SECTIONS: GuidelinesSection[] = [
     number: '4',
     title: 'Adult, Sensitive & Graphic Content',
     iconName: 'Eye',
-    tldr: 'Sexually explicit content is strictly restricted. Non-consensual imagery, self-harm, gore, and animal cruelty are completely prohibited.',
+    tldr: 'Sexually explicit content is prohibited throughout Eternal, including private messages and communities. Non-consensual intimate imagery, promotion of self-harm, gore, and animal cruelty are also prohibited.',
     subsections: [
       {
         id: 'adult-content-rules',
-        title: '4.1 Age-Restricted & Adult Content',
+        title: '4.1 Sexually Explicit Content',
         content: [
-          'Sexually explicit adult content must never be posted in open, non-age-restricted spaces. Avatars, bios, profile banners, stories, explore feeds, and emoji must remain suitable for general audiences.',
-          'Communities containing consensual adult discussions or artwork must be marked with age-restricted tags and are accessible only to verified adult users.',
+          'Do not upload, send, or share pornography, sexually explicit imagery, or content depicting sexual acts anywhere on Eternal, including private messages, private communities, profiles, stories, feeds, live streams, and screen sharing.',
+          'An 18+ label, an adult recipient, or a private community does not create an exception. Eternal does not currently offer an adult-content area. Non-graphic educational and safety discussions must remain appropriate for minors.',
         ],
       },
       {
@@ -221,7 +221,7 @@ export const GUIDELINES_SECTIONS: GuidelinesSection[] = [
         id: 'appeals-process',
         title: '7.2 Submitting an Appeal',
         content: [
-          'EU residents may submit appeals within 6 months of notice. A private contact address has not been provided. Do not submit personal data through public issues.',
+          'EU residents may submit appeals within 6 months of notice. Contact: eternalnet.support@proton.me. Do not submit personal data through public issues.',
         ],
       },
     ],
@@ -238,7 +238,7 @@ export const GUIDELINES_SECTIONS: GuidelinesSection[] = [
         title: '8.1 How to Report Violations',
         content: [
           'To report a post, message, or user directly in Eternal: click the three dots (...) next to any message or post and select "Report".',
-          'A private contact address has not been provided. Do not submit personal data through public issues.',
+          'Contact: eternalnet.support@proton.me. Do not submit personal data through public issues.',
         ],
       },
     ],
@@ -316,21 +316,21 @@ export const GUIDELINES_SECTIONS_UK: GuidelinesSection[] = [
     number: '3',
     title: 'Захист дітей та підлітків (Нульова толерантність)',
     iconName: 'ShieldCheck',
-    tldr: 'Ми дотримуємося нульової толерантності до сексуальної експлуатації дітей (CSAM) та суворо контролюємо віковий ценз 13+ (16+ у ЄС).',
+    tldr: 'Сексуальна експлуатація дітей, насильство та грумінг заборонені. Мінімальний вік для облікового запису — 13 років із вищими місцевими порогами та іншими вимогами захисту неповнолітніх.',
     subsections: [
       {
         id: 'csam-zero-tolerance',
         title: '3.1 Нульова толерантність до CSAM',
         content: [
           'Ми категорично забороняємо будь-який контент сексуального насильства чи експлуатації неповнолітніх (включно зі штучно згенерованим або мальованим).',
-          'Ми негайно передаємо всі матеріали про такі порушення до NCMEC та правоохоронних органів.',
+          'Про підозру на експлуатацію дітей повідомляйте через інструменти скарг або eternalnet.support@proton.me. Не завантажуйте й не поширюйте матеріали можливого насильства. За безпосередньої загрози зверніться до місцевих екстрених служб. Процедури повідомлення й реагування ще не завершено; автоматичне звітування та цілодобова відповідь не заявляються.',
         ],
       },
       {
         id: 'minor-protection',
         title: '3.2 Безпека юних користувачів',
         content: [
-          'Користувачі повинні відповідати віковим нормам (13+, 16+ у ЄС). Дорослим суворо заборонено схиляти підлітків до небажаного листування.',
+          'Користувачам має бути щонайменше 13 років; також слід відповідати вищим місцевим віковим порогам та іншим вимогам допуску. Дорослим заборонено домагатися неповнолітніх, обмінюватися з ними інтимними матеріалами чи вести сексуальне спілкування.',
         ],
       },
     ],
@@ -340,14 +340,14 @@ export const GUIDELINES_SECTIONS_UK: GuidelinesSection[] = [
     number: '4',
     title: 'Чутливий та дорослий контент',
     iconName: 'Eye',
-    tldr: 'Відвертий контент дозволений лише у вікових групах 18+. Зливи інтимних фото, пропаганда самоушкодження та жорстокість заборонені.',
+    tldr: 'Сексуально відвертий контент заборонений у всьому Eternal, включно з приватними повідомленнями та спільнотами. Інтимні матеріали без згоди, пропаганда самоушкодження та жорстокість також заборонені.',
     subsections: [
       {
         id: 'adult-content-rules',
-        title: '4.1 Контент для дорослих (18+)',
+        title: '4.1 Сексуально відвертий контент',
         content: [
-          'Відвертий контент суворо заборонений у відкритих місцях: аватарках, описах профілю, загальній стрічці та історіях.',
-          'Спільноти з дорослими обговореннями мають бути позначені міткою 18+.',
+          'Заборонено завантажувати, надсилати чи поширювати порнографію, сексуально відверті зображення та матеріали зі статевими актами будь-де в Eternal: у приватних повідомленнях, закритих спільнотах, профілях, історіях, стрічках, трансляціях і демонстраціях екрана.',
+          'Позначка 18+, повноліття отримувача чи закритість спільноти не створюють винятку. В Eternal наразі немає розділу для дорослого контенту. Неграфічні освітні обговорення та обговорення безпеки мають бути придатними для неповнолітніх.',
         ],
       },
       {
@@ -439,7 +439,7 @@ export const GUIDELINES_SECTIONS_UK: GuidelinesSection[] = [
         id: 'appeals-process',
         title: '7.2 Подання апеляції',
         content: [
-          'Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
+          'Контакт: eternalnet.support@proton.me. Не надсилайте персональні дані через публічні звернення.',
         ],
       },
     ],
@@ -456,7 +456,7 @@ export const GUIDELINES_SECTIONS_UK: GuidelinesSection[] = [
         title: '8.1 Повідомлення про порушення',
         content: [
           'Щоб поскаржитися на допис чи користувача, натисніть три крапки (...) біля повідомлення чи профілю та виберіть «Поскаржитися».',
-          'Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
+          'Контакт: eternalnet.support@proton.me. Не надсилайте персональні дані через публічні звернення.',
         ],
       },
     ],
@@ -466,14 +466,13 @@ export const GUIDELINES_SECTIONS_UK: GuidelinesSection[] = [
 export const GUIDELINES_HERO: Record<'en' | 'uk', LegalDocumentHero> = {
   en: {
     title: 'ETERNAL COMMUNITY GUIDELINES',
-    effectiveDate: 'Effective Date: September 1, 2026 • Last Updated: August 28, 2026',
+    effectiveDate: 'Updated: November 5, 2026',
     description:
       'Eternal brings people together around feeds, chats, voice channels, and music. Our Community Guidelines ensure everyone can express themselves safely and find belonging without harming others.',
   },
   uk: {
     title: 'ПРАВИЛА СПІЛЬНОТИ ETERNAL',
-    effectiveDate:
-      'Дата набрання чинності: 1 вересня 2026 р. • Останнє оновлення: 28 серпня 2026 р.',
+    effectiveDate: 'Оновлено: 5 листопада 2026 р.',
     description:
       'Eternal об’єднує людей навколо публікацій, чатів, голосових кімнат та музики. Наші Правила спільноти забезпечують безпечний простір для самовираження кожного користувача.',
   },

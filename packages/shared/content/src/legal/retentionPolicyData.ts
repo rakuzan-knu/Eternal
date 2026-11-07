@@ -34,12 +34,12 @@ export interface RetentionPolicyTranslation {
 export const RETENTION_POLICY_DATA: Record<'en' | 'uk', RetentionPolicyTranslation> = {
   en: {
     hero: {
-      archivedLink: 'Archived Versions',
+      archivedLink: 'Retention and deletion',
       title: 'DATA RETENTION POLICY',
-      effectiveDate: 'Effective: September 1, 2026 • Last updated: August 30, 2026',
-      lastUpdated: 'Last Updated: August 30, 2026',
+      effectiveDate: 'Updated: November 5, 2026',
+      lastUpdated: 'Updated: November 5, 2026',
       description:
-        'This Data Retention Policy describes how long the Eternal project retains different categories of personal information and content, the legal and operational reasons for our retention timeframes, and how you can manage or delete your data.',
+        'Verified deletion behaviour and remaining retention gaps. Exact backup, media, and log retention periods are not yet confirmed.',
     },
     toc: {
       contents: 'Table of Contents',
@@ -49,23 +49,18 @@ export const RETENTION_POLICY_DATA: Record<'en' | 'uk', RetentionPolicyTranslati
     },
     sections: [
       {
-        id: 'self-service-deletion',
+        id: 'deleting-content',
         number: '1',
-        title: 'Information You Can Delete Directly',
+        title: 'Deleting Your Content',
         iconName: 'Trash2',
-        tldr: 'You can instantly edit or delete your messages, media uploads, channels, and servers at any time while you have access to the space.',
+        tldr: 'Deleting a message for yourself and deleting it for everyone are different actions.',
         subsections: [
           {
-            id: 'content-deletion-overview',
-            title: '1.1 Direct Content Controls',
+            id: 'deleting-content-details',
+            title: 'Deleting Your Content',
             content: [
-              'You maintain full autonomy to edit or erase content that you generate and post within Eternal:',
-            ],
-            bullets: [
-              'Messages & Posts: You can edit or delete any chat message, thread reply, or media attachment you have sent if you still have access to the corresponding server or direct message channel.',
-              'Servers & Spaces: Server owners and administrators can permanently delete entire servers, categories, and channels at any time.',
-              'Clearance from Systems: Once you delete content, it becomes immediately unavailable to other users. The content is removed from active server caches within minutes and scheduled for permanent database removal.',
-              'Safety Preservation: Public messages flagged for safety violations or subject to mandatory legal preservation orders may be retained for up to 180 days to two years solely to maintain community integrity and train safety detection filters.',
+              'Use the deletion controls available for your posts and messages. Availability depends on the content type and your current access. A delete-for-me action does not delete another participant’s copy.',
+              'Content removal in the application does not prove that every storage object, cached copy, backup, downloaded file, or copy held by another person has been erased. Do not treat a hidden item as a verified purge of all copies.',
             ],
           },
         ],
@@ -73,20 +68,16 @@ export const RETENTION_POLICY_DATA: Record<'en' | 'uk', RetentionPolicyTranslati
       {
         id: 'account-lifetime-data',
         number: '2',
-        title: 'Information Retained During Account Lifetime',
+        title: 'Data Kept While You Use Eternal',
         iconName: 'UserCheck',
-        tldr: 'We keep your core account profile, username, email, and preferences for as long as your account remains active. Inactive accounts may be purged after 2 years.',
+        tldr: 'Account data and content are used to provide the service.',
         subsections: [
           {
-            id: 'active-account-retention',
-            title: '2.1 Core Profile Records & Inactivity Policy',
+            id: 'account-lifetime-data-details',
+            title: 'Data Kept While You Use Eternal',
             content: [
-              'We retain core personal data for the active lifespan of your Eternal account in order to deliver uninterrupted services:',
-            ],
-            bullets: [
-              'Account Profile Data: Includes your unique username, display name, registered email address, linked phone number, avatar, and server memberships.',
-              'Preferences & Configurations: Theme settings, audio/video input selections, notification preferences, and privacy toggles.',
-              'Account Inactivity: You may permanently delete your account at any time via Account Settings. If an account remains completely dormant without login for over two (2) consecutive years, Eternal may schedule it for automated deletion after sending prior notice to your email.',
+              'Eternal stores account details, profile settings, content, and other records used to provide its features. The detailed retention schedule for each category and each hosting provider is not yet complete.',
+              'No automatic deletion after two years of inactivity has been confirmed. You can request account deletion through account settings or contact eternalnet.support@proton.me for assistance.',
             ],
           },
         ],
@@ -94,23 +85,17 @@ export const RETENTION_POLICY_DATA: Record<'en' | 'uk', RetentionPolicyTranslati
       {
         id: 'specific-retention-periods',
         number: '3',
-        title: 'Retention Periods for Specific Business & Legal Purposes',
+        title: 'Backups, Media and Other Retention',
         iconName: 'Clock',
-        tldr: 'Specific timeframes apply to backups (30-45 days), age verification (60 days), accounting (statutory periods), trust/safety (180 days to 2 years), and legal disputes (5 years).',
+        tldr: 'Exact backup and media-purge periods have not been verified.',
         subsections: [
           {
-            id: 'statutory-and-security-timeframes',
-            title: '3.1 Operational Timeframes Schedule',
+            id: 'specific-retention-periods-details',
+            title: 'Backups, Media and Other Retention',
             content: [
-              'To satisfy statutory requirements, protect our community, and maintain continuity, specific categories of data follow predefined retention schedules:',
-            ],
-            bullets: [
-              'Age Verification Records: If you submit government identification to appeal an age restriction, identity documents are permanently purged within sixty (60) days after the appeal ticket is resolved.',
-              'Database Backups: Encrypted disaster recovery snapshots are retained on a rolling cycle for thirty to forty-five (30–45) days, after which they are automatically overwritten and purged.',
-              'Tax & Financial Accounting: Transaction records, invoice data, and Eternal Premium subscription billing history are retained for statutory periods required by Ukrainian and international tax laws (typically 3 to 7 years).',
-              'Trust, Safety & Fraud Prevention: Essential identifying markers (such as email hashes and IP records) associated with accounts banned for severe terms violations (e.g., child safety, harassment, malicious spam) are retained for up to two (2) years to prevent bad actors from creating new accounts.',
-              'Legal Claims & Support Logs: Customer support communications, access requests, and formal legal inquiries are retained for five (5) years following ticket closure to establish or defend legal claims.',
-              'Continuity of Communication: When an account is deleted, public messages in shared servers remain visible for conversation coherence, but all authorship links are permanently anonymized and detached.',
+              'The operators have not yet verified and published the actual retention periods for backups, stored media, diagnostic logs, moderation records, and support correspondence. No 30-day or 45-day guarantee applies by virtue of this notice.',
+              'Eternal does not currently offer paid services or an identity-document age-verification process. This policy does not claim that billing records or submitted identity documents are routinely collected. Do not email an identity document unless a necessary, proportionate verification process has first been explained.',
+              'Any lawful preservation for a legal obligation or claim needs an applicable basis, a defined purpose, access controls, and a limited retention period. This notice does not grant an unlimited right to retain data or use it to train safety systems.',
             ],
           },
         ],
@@ -118,21 +103,16 @@ export const RETENTION_POLICY_DATA: Record<'en' | 'uk', RetentionPolicyTranslati
       {
         id: 'account-deletion-lifecycle',
         number: '4',
-        title: 'What Happens When You Delete Your Account',
+        title: 'Deleting Your Account',
         iconName: 'ShieldAlert',
-        tldr: 'Accounts enter a 15-to-30 day recovery grace period, followed by complete anonymization of personal identifiers and backup scrubbing within 45 days.',
+        tldr: 'Account deletion is permanent; no login-based recovery grace period is implemented.',
         subsections: [
           {
-            id: 'deletion-phases',
-            title: '4.1 Deletion Lifecycle & Anonymization',
+            id: 'account-deletion-lifecycle-details',
+            title: 'Deleting Your Account',
             content: [
-              'When you initiate account deletion through your Eternal settings, the following phased process occurs:',
-            ],
-            bullets: [
-              'Phase 1: Grace Period (15–30 Days): Your account is deactivated and hidden from public search. You can log in at any time during this window to cancel deletion if initiated accidentally.',
-              'Phase 2: Permanent Identifier Scrubbing: After the grace period expires, our automated pipeline irreversibly deletes your email, phone number, passwords, IP logs, and profile avatars.',
-              'Phase 3: Backup Cycle Clearing: Secondary backup snapshots naturally purge all historical traces within forty-five (45) days.',
-              'Phase 4: Anonymized Analytics: We retain only aggregated, anonymized metrics that cannot be linked back to you as an individual.',
+              'The current account-deletion process verifies your password and deletes the account from the active database, together with associated database records according to their relationships. If you own communities, transfer their ownership before deleting your account.',
+              'There is no 15–30 day recovery window in the current implementation. Signing in again does not cancel a completed deletion. This account action does not by itself verify erasure across media storage, specialist services, third-party providers, or backups; those procedures remain under review.',
             ],
           },
         ],
@@ -140,21 +120,16 @@ export const RETENTION_POLICY_DATA: Record<'en' | 'uk', RetentionPolicyTranslati
       {
         id: 'rights-and-contacts',
         number: '5',
-        title: 'Your Legal Rights & Contact Information',
+        title: 'Your Rights and Contact',
         iconName: 'Mail',
-        tldr: 'A private contact address has not been provided. A DPO appointment has not been confirmed.',
+        tldr: 'Contact: eternalnet.support@proton.me.',
         subsections: [
           {
-            id: 'dpo-retention-contacts',
-            title: '5.1 Inquiries and Data Subject Requests',
+            id: 'rights-and-contacts-details',
+            title: 'Your Rights and Contact',
             content: [
-              'If you have questions regarding our data retention schedules, need assistance deleting specific historical content, or wish to exercise your rights of access or erasure, please reach out directly:',
-            ],
-            bullets: [
-              'A DPO appointment has not been confirmed. A private contact address has not been provided. Do not submit personal data through public issues.',
-              'A private contact address has not been provided. Do not submit personal data through public issues.',
-              'Project operators: the project founders (operator identity not published), Ukraine',
-              'Supervisory Inquiries: Secretariat of the Ukrainian Parliament Commissioner for Human Rights or your local European DPA.',
+              'For access, correction, deletion, retention questions, or an objection, contact eternalnet.support@proton.me. These implementation limits do not waive any applicable data-protection rights or the right to complain to a competent supervisory authority.',
+              'Eternal is jointly operated from Ukraine by Mykola Agh and Michal Agh. No DPO appointment has been confirmed. The incomplete retention schedule remains an operational compliance gap, not an exemption from applicable law.',
             ],
           },
         ],
@@ -163,36 +138,33 @@ export const RETENTION_POLICY_DATA: Record<'en' | 'uk', RetentionPolicyTranslati
   },
   uk: {
     hero: {
-      archivedLink: 'Архівні версії',
+      archivedLink: 'Зберігання та видалення',
       title: 'ПОЛІТИКА ЗБЕРІГАННЯ ТА ВИДАЛЕННЯ ДАНИХ',
-      effectiveDate: 'Набуття чинності: 1 вересня 2026 р. • Останнє оновлення: 30 серпня 2026 р.',
-      lastUpdated: 'Останнє оновлення: 30 серпня 2026 р.',
+      effectiveDate: 'Оновлено: 5 листопада 2026 р.',
+      lastUpdated: 'Оновлено: 5 листопада 2026 р.',
       description:
-        'Ця Політика зберігання описує строки та підстави збереження різних категорій персональних даних проєктом Eternal, яким керують засновники проєкту (ідентифікаційні дані операторів не опубліковано) в Україні, умови їх автоматичного видалення та інструменти самостійного керування контентом.',
+        'Підтверджена поведінка видалення та невирішені питання зберігання. Точні строки для резервних копій, медіа й журналів ще не підтверджено.',
     },
     toc: {
-      contents: 'Зміст документа',
+      contents: 'Зміст',
       readProgress: '% прочитано',
       print: 'Друк документа',
       backToTop: 'Нагору',
     },
     sections: [
       {
-        id: 'self-service-deletion',
+        id: 'deleting-content',
         number: '1',
-        title: 'Інформація, яку ви можете видалити самостійно',
+        title: 'Видалення свого контенту',
         iconName: 'Trash2',
-        tldr: 'Ви можете в будь-який момент відредагувати або видалити свої повідомлення, вкладення, створені канали та сервери.',
+        tldr: 'Видалення повідомлення для себе та для всіх — різні дії.',
         subsections: [
           {
-            id: 'content-deletion-overview',
-            title: '1.1 Самостійне видалення контенту',
-            content: ['Користувачі Eternal мають повний контроль над створеним контентом:'],
-            bullets: [
-              'Повідомлення та файли: ви можете видалити будь-яке надіслане повідомлення у чатах, якщо маєте доступ до каналу.',
-              'Сервери: власники серверів можуть у будь-який момент безповоротно видалити весь сервер разом з історією.',
-              'Очищення систем: видалений контент стає недоступним іншим учасникам і видаляється з активних серверів протягом лічених хвилин.',
-              'Захист безпеки: публічні дописи з порушеннями правил можуть зберігатися від 180 днів до 2 років виключно для навчання систем виявлення спаму та загроз.',
+            id: 'deleting-content-details',
+            title: 'Видалення свого контенту',
+            content: [
+              'Використовуйте доступні дії видалення для своїх дописів і повідомлень. Їх доступність залежить від типу контенту та поточних прав доступу. Видалення для себе не видаляє копію іншого учасника.',
+              'Прибирання контенту із застосунку не доводить видалення кожного об’єкта у сховищі, кешованої чи резервної копії, завантаженого файлу або копії іншої особи. Прихований запис не означає перевіреного очищення всіх копій.',
             ],
           },
         ],
@@ -200,20 +172,16 @@ export const RETENTION_POLICY_DATA: Record<'en' | 'uk', RetentionPolicyTranslati
       {
         id: 'account-lifetime-data',
         number: '2',
-        title: 'Інформація, що зберігається протягом дії акаунту',
+        title: 'Дані під час користування Eternal',
         iconName: 'UserCheck',
-        tldr: 'Основні дані профілю зберігаються, доки ви користуєтеся акаунтом. Неактивні понад 2 роки акаунти можуть бути автоматично видалені.',
+        tldr: 'Дані облікового запису та контент потрібні для надання сервісу.',
         subsections: [
           {
-            id: 'active-account-retention',
-            title: '2.1 Дані активного облікового запису',
+            id: 'account-lifetime-data-details',
+            title: 'Дані під час користування Eternal',
             content: [
-              'Ми зберігаємо мінімально необхідні дані для безперебійного функціонування вашого облікового запису:',
-            ],
-            bullets: [
-              'Дані профілю: ім’я користувача, нікнейм, адреса електронної пошти, аватар та список серверів.',
-              'Персональні параметри: налаштування теми, мікрофона, сповіщень та безпеки.',
-              'Неактивність: якщо акаунт не використовується понад 2 роки, Eternal може видалити його після попереднього сповіщення на e-mail.',
+              'Eternal зберігає дані облікового запису, профіль, налаштування, контент та інші записи для своїх функцій. Детальний графік зберігання за кожною категорією й провайдером ще не завершено.',
+              'Автоматичне видалення після двох років неактивності не підтверджено. Видалення облікового запису можна запросити у налаштуваннях; по допомогу пишіть на eternalnet.support@proton.me.',
             ],
           },
         ],
@@ -221,21 +189,17 @@ export const RETENTION_POLICY_DATA: Record<'en' | 'uk', RetentionPolicyTranslati
       {
         id: 'specific-retention-periods',
         number: '3',
-        title: 'Строки зберігання для спеціальних та юридичних цілей',
+        title: 'Резервні копії, медіа та інше зберігання',
         iconName: 'Clock',
-        tldr: 'Резервні копії зберігаються 30–45 днів, перевірка віку — 60 днів, фінансова звітність — згідно із законом, безпека — до 2 років, спори — 5 років.',
+        tldr: 'Точні строки очищення резервних копій і медіа не перевірено.',
         subsections: [
           {
-            id: 'statutory-and-security-timeframes',
-            title: '3.1 Графік строків зберігання',
-            content: ['Певні категорії інформації зберігаються відповідно до чітких регламентів:'],
-            bullets: [
-              'Підтвердження віку: документи для верифікації віку безповоротно видаляються протягом 60 днів після закриття запиту.',
-              'Резервні копії баз даних: зберігаються в зашифрованому вигляді за 30–45-денним циклом, після чого перезаписуються.',
-              'Бухгалтерський та податковий облік: дані транзакцій та оплат зберігаються відповідно до вимог законодавства України (від 3 до 7 років).',
-              'Безпека платформи: дані про заблокованих зловмисників зберігаються до 2 років для запобігання повторному створенню акаунтів.',
-              'Юридичні претензії: історія звернень до служби підтримки зберігається 5 років для вирішення правових спорів.',
-              'Неперервність спілкування: після видалення акаунту надіслані раніше публічні повідомлення знеособлюються та відв’язуються від автора.',
+            id: 'specific-retention-periods-details',
+            title: 'Резервні копії, медіа та інше зберігання',
+            content: [
+              'Оператори ще не перевірили й не опублікували фактичні строки зберігання резервних копій, медіа, діагностичних журналів, записів модерації та листування підтримки. Це повідомлення не встановлює гарантії очищення за 30 чи 45 днів.',
+              'Eternal наразі не пропонує платних послуг або перевірки віку через документи. Політика не стверджує, що платіжні записи чи копії документів регулярно збираються. Не надсилайте документ поштою без попереднього пояснення необхідної та пропорційної процедури перевірки.',
+              'Будь-яке правомірне збереження для законного обов’язку чи спору потребує застосовної підстави, визначеної мети, обмеження доступу та строку зберігання. Повідомлення не надає необмеженого права зберігати дані чи навчати на них системи безпеки.',
             ],
           },
         ],
@@ -243,21 +207,16 @@ export const RETENTION_POLICY_DATA: Record<'en' | 'uk', RetentionPolicyTranslati
       {
         id: 'account-deletion-lifecycle',
         number: '4',
-        title: 'Що відбувається під час видалення облікового запису',
+        title: 'Видалення облікового запису',
         iconName: 'ShieldAlert',
-        tldr: 'Після запиту на видалення діє 15–30-денний пільговий період відновлення, після чого персональні дані повністю знеособлюються.',
+        tldr: 'Видалення постійне; пільгового періоду відновлення через вхід немає.',
         subsections: [
           {
-            id: 'deletion-phases',
-            title: '4.1 Етапи процедури видалення',
+            id: 'account-deletion-lifecycle-details',
+            title: 'Видалення облікового запису',
             content: [
-              'Процедура видалення облікового запису складається з кількох послідовних етапів:',
-            ],
-            bullets: [
-              'Етап 1 (Пільговий період 15–30 днів): акаунт приховується, але ви можете відновити його, увійшовши до системи.',
-              'Етап 2 (Незворотне очищення): система остаточно видаляє e-mail, телефон, паролі та персональні ідентифікатори.',
-              'Етап 3 (Очищення бекапів): повне видалення з резервних копій відбувається протягом 45 днів.',
-              'Етап 4 (Знеособлена аналітика): залишаються лише загальні агреговані показники без прив’язки до особи.',
+              'Поточна процедура перевіряє пароль і видаляє обліковий запис з активної бази даних разом із пов’язаними записами відповідно до їхніх зв’язків. Якщо ви володієте спільнотами, передайте права власності до видалення облікового запису.',
+              'Відновлення протягом 15–30 днів у поточній реалізації немає. Повторний вхід не скасовує завершене видалення. Ця дія сама по собі не підтверджує очищення медіасховищ, окремих сервісів, сторонніх провайдерів чи резервних копій; відповідні процедури ще перевіряються.',
             ],
           },
         ],
@@ -265,19 +224,16 @@ export const RETENTION_POLICY_DATA: Record<'en' | 'uk', RetentionPolicyTranslati
       {
         id: 'rights-and-contacts',
         number: '5',
-        title: 'Ваші права та контакти',
+        title: 'Ваші права та контакт',
         iconName: 'Mail',
-        tldr: 'Приватну контактну адресу не надано. Призначення DPO не підтверджено.',
+        tldr: 'Контакт: eternalnet.support@proton.me.',
         subsections: [
           {
-            id: 'dpo-retention-contacts',
-            title: '5.1 Контактна інформація',
-            content: ['Призначення DPO та приватний канал зв’язку не підтверджено.'],
-            bullets: [
-              'Призначення DPO не підтверджено. Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
-              'Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
-              'Оператори проєкту: засновники проєкту (ідентифікаційні дані операторів не опубліковано), Україна',
-              'Секретаріат Уповноваженого ВРУ з прав людини: hotline@ombudsman.gov.ua',
+            id: 'rights-and-contacts-details',
+            title: 'Ваші права та контакт',
+            content: [
+              'З питань доступу, виправлення, видалення, строків зберігання чи заперечення пишіть на eternalnet.support@proton.me. Обмеження реалізації не скасовують застосовних прав на захист даних і звернення до компетентного наглядового органу.',
+              'Eternal спільно керують з України Mykola Agh та Michal Agh. Призначення DPO не підтверджено. Незавершений графік зберігання є прогалиною у процедурах, а не винятком із закону.',
             ],
           },
         ],

@@ -6,6 +6,7 @@ import {
   type FindAccountDto,
   type FoundAccountResponse,
   type RegisterDto,
+  type RegistrationPolicy,
   type VerifyPasswordDto,
   changePasswordSchema,
   checkUsernameSchema,
@@ -18,6 +19,7 @@ import {
   Body,
   Controller,
   Get,
+  Header,
   Headers,
   HttpCode,
   HttpStatus,
@@ -40,6 +42,8 @@ import { CurrentUser } from './decorators/current-user.decorator';
 import { AuthGuard } from './guards/jwt-auth.guard';
 import type { RequestUser } from './interfaces/jwt-payload.interface';
 import { TurnstileService } from './turnstile.service';
+import { RegistrationPolicyService } from './registration-policy.service';
+import { RegistrationOpenGuard } from './guards/registration-open.guard';
 import { HighPriority } from '../common/resilience/request-priority.decorator';
 import {
   setRefreshTokenCookie,
@@ -62,7 +66,15 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly turnstileService: TurnstileService,
+    private readonly registrationPolicy: RegistrationPolicyService,
   ) {}
+
+  @Get('registration-policy')
+  @Header('Cache-Control', 'no-store')
+  @ApiOperation({ summary: 'Public registration availability policy' })
+  getRegistrationPolicy(): RegistrationPolicy {
+    return this.registrationPolicy.getPolicy();
+  }
 
   @Get('check-username')
   @HttpCode(HttpStatus.OK)
@@ -79,6 +91,7 @@ export class AuthController {
   }
 
   @Post('register')
+  @UseGuards(RegistrationOpenGuard)
   @HighPriority()
   @Throttle({ default: { limit: 5, ttl: 3600_000 }, auth: { limit: 5, ttl: 3600_000 } })
   @ApiOperation({ summary: 'Register a new user account' })

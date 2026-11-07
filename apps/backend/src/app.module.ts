@@ -1,4 +1,5 @@
 import { DirectUploadsModule } from './common/media/direct-uploads.module';
+import { DataExportModule } from './data-export/data-export.module';
 import { redactRequestUrl } from './common/utils/redact-url.util';
 import { Module, ValidationPipe } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -233,6 +234,7 @@ import type { MiddlewareConsumer, NestModule } from '@nestjs/common';
     ScheduleModule.forRoot(),
     StorageModule,
     DirectUploadsModule,
+    DataExportModule,
     MetricsModule,
     PrismaModule,
     DataLoaderModule,

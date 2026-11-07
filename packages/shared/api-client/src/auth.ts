@@ -21,7 +21,7 @@ export type RegisterPayload = Partial<RegisterDto> & {
   username: string;
   displayName?: string;
   password?: string;
-  birthDate?: string;
+  birthDate: string;
   gender?: 'Male' | 'Female' | 'Custom';
   turnstileToken?: string;
 };
@@ -82,6 +82,15 @@ export function setApiClient(client: AxiosInstance): void {
 }
 
 export const authApi = {
+  registrationPolicy: async (options?: { client?: AxiosInstance; signal?: AbortSignal }) => {
+    const { registrationPolicySchema } = await import('@social-network/shared-contracts');
+    const client = options?.client ?? getApiClient();
+    const response = await client.get<unknown>(
+      '/auth/registration-policy',
+      options?.signal ? { signal: options.signal } : undefined,
+    );
+    return registrationPolicySchema.parse(response.data);
+  },
   login: async (
     data: LoginPayload,
     options?: { client?: AxiosInstance; signal?: AbortSignal },
@@ -233,5 +242,15 @@ export function useCheckUsername(username: string, options?: { enabled?: boolean
     gcTime: 60_000,
     retry: false,
     refetchOnWindowFocus: false,
+  });
+}
+
+export function useRegistrationPolicy() {
+  return useQuery({
+    queryKey: ['auth', 'registration-policy'],
+    queryFn: ({ signal }) => authApi.registrationPolicy({ signal }),
+    retry: false,
+    staleTime: 0,
+    gcTime: 0,
   });
 }

@@ -10,6 +10,8 @@ import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { TurnstileService } from './turnstile.service';
 import { TokenRevocationService } from './token-revocation.service';
+import { RegistrationPolicyService } from './registration-policy.service';
+import { RegistrationOpenGuard } from './guards/registration-open.guard';
 import { BloomModule } from '../common/bloom/bloom.module';
 
 @Module({
@@ -22,7 +24,14 @@ import { BloomModule } from '../common/bloom/bloom.module';
     BloomModule,
   ],
   controllers: roleControllers('core', [AuthController]),
-  providers: [AuthService, JwtStrategy, TurnstileService, TokenRevocationService],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    TurnstileService,
+    TokenRevocationService,
+    RegistrationPolicyService,
+    RegistrationOpenGuard,
+  ],
   exports: [AuthService, TurnstileService, TokenRevocationService],
 })
 export class AuthModule {}

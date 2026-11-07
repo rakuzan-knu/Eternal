@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { registerFormSchema } from '@social-network/shared-contracts';
 import { registerSchema } from '../registerSchema';
 
 describe('registerSchema', () => {
@@ -28,6 +29,30 @@ describe('registerSchema', () => {
       }).success,
     ).toBe(false);
   });
+
+  afterEach(() => vi.useRealTimers());
+
+  it.each([registerSchema, registerFormSchema])(
+    'enforces the same thirteenth birthday in web and mobile form contracts',
+    (schema) => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-11-05T00:00:00.000Z'));
+      const payload = {
+        ...validFields,
+        password: 'password123',
+        confirmPassword: 'password123',
+        birthMonth: 'November',
+        birthDay: '5',
+        birthYear: '2013',
+      };
+      expect(schema.safeParse(payload).success).toBe(true);
+      expect(schema.safeParse({ ...payload, birthDay: '6' }).success).toBe(false);
+      expect(schema.safeParse({ ...payload, birthYear: '2027' }).success).toBe(false);
+      expect(schema.safeParse({ ...payload, birthMonth: 'February', birthDay: '30' }).success).toBe(
+        false,
+      );
+    },
+  );
 
   it('accepts a real leap-day birthday', () => {
     expect(

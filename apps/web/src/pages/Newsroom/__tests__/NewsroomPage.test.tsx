@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { NewsroomPage } from '../NewsroomPage';
@@ -98,15 +98,12 @@ describe('Newsroom Page (/newsroom)', () => {
     expect(
       screen.getByRole('heading', { level: 2, name: /CONTACT OUR PRESS TEAM/i }),
     ).toBeInTheDocument();
-    const contactBtn = screen.getByRole('button', { name: /Contact Us/i });
+    const contactBtn = screen.getByRole('link', { name: /Contact Us/i });
     expect(contactBtn).toBeInTheDocument();
 
-    fireEvent.click(contactBtn);
-    expect(contactBtn).toBeDisabled();
+    expect(contactBtn).toHaveAttribute('href', 'mailto:eternalnet.support@proton.me');
     expect(window.location.href).toBe('');
-    expect(
-      screen.getByText(/private press contact address has not been provided/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Press contact: eternalnet\.support@proton\.me/i)).toBeInTheDocument();
 
     // Restore location
     Object.defineProperty(window, 'location', {

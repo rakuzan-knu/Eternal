@@ -34,12 +34,12 @@ export interface PaidServicesTranslation {
 export const PAID_SERVICES_DATA: Record<'en' | 'uk', PaidServicesTranslation> = {
   en: {
     hero: {
-      archivedLink: 'Subscriptions & Billing',
+      archivedLink: 'Paid Services',
       title: 'PAID SERVICES & REFUND POLICY',
-      effectiveDate: 'Effective: September 1, 2026 • Last updated: August 30, 2026',
-      lastUpdated: 'Last Updated: August 30, 2026',
+      effectiveDate: 'Updated: November 5, 2026',
+      lastUpdated: 'Updated: November 5, 2026',
       description:
-        'These Paid Services Terms govern purchases made on Eternal, including Eternal Premium memberships, creator tips, virtual badges, and digital goods. It explains recurring billing cycles, cancellation procedures, and your statutory refund rights under EU and global consumer protection laws.',
+        'Eternal is currently free. This notice explains the absence of paid offers and preserves applicable consumer rights.',
     },
     toc: {
       contents: 'Table of Contents',
@@ -51,21 +51,15 @@ export const PAID_SERVICES_DATA: Record<'en' | 'uk', PaidServicesTranslation> = 
       {
         id: 'paid-services-overview',
         number: '1',
-        title: 'Eternal Premium & Paid Features Overview',
+        title: 'Current Availability',
         iconName: 'Crown',
-        tldr: 'We offer Eternal Premium subscriptions and creator support. Core messaging and social features remain completely free for all users.',
+        tldr: 'Eternal is currently free. Paid subscriptions, digital purchases, tips, and creator payouts are unavailable.',
         subsections: [
           {
             id: 'premium-features',
-            title: '1.1 What Eternal Premium Includes',
+            title: '1.1 No Paid Offer',
             content: [
-              'Eternal is free to use for visual feeds, direct chats, voice hangouts, and music sharing. Users may choose to purchase optional paid upgrades ("Eternal Premium") to unlock enhanced capabilities:',
-            ],
-            bullets: [
-              'Enhanced 4K 60FPS screen sharing and ultra-low latency voice room priority.',
-              'Increased media upload limits (up to 500MB per attachment).',
-              'Exclusive animated profile banners, glowing badges, and custom reaction packs.',
-              'Multi-account switcher and priority customer support assistance.',
+              'Eternal does not currently offer Eternal Premium, paid upgrades, creator subscriptions, tips, or creator payouts. References to such features elsewhere are not an available offer or a promise of future availability.',
             ],
           },
         ],
@@ -73,24 +67,15 @@ export const PAID_SERVICES_DATA: Record<'en' | 'uk', PaidServicesTranslation> = 
       {
         id: 'billing-and-renewals',
         number: '2',
-        title: 'Billing, Recurring Subscriptions & Pricing',
+        title: 'Billing and Subscriptions',
         iconName: 'CreditCard',
-        tldr: 'Subscriptions renew automatically at your chosen billing interval (monthly or annual). You can cancel at any time in Settings.',
+        tldr: 'There is no active checkout or recurring billing offer.',
         subsections: [
           {
             id: 'recurring-charges',
-            title: '2.1 Automatic Renewal & Payment Methods',
+            title: '2.1 No Payment Authorization',
             content: [
-              'When you subscribe to Eternal Premium, you authorize Eternal (or our authorized payment processors such as Stripe, Apple, or Google) to charge your designated payment method on a recurring periodic basis until cancelled.',
-              'All subscription fees are billed in advance. Prices are clearly displayed before purchase and include applicable taxes (such as VAT in Europe). We will notify you at least 30 days in advance of any price modifications.',
-            ],
-          },
-          {
-            id: 'easy-cancellation',
-            title: '2.2 1-Click Subscription Cancellation',
-            content: [
-              'You may cancel your subscription at any time without fees or penalties via User Settings → Subscriptions → Cancel Subscription.',
-              'Upon cancellation, your Premium benefits remain active until the end of your current paid billing period, and no further recurring charges will occur.',
+              'Using Eternal does not authorize any payment or recurring charge. We do not currently identify Stripe, Apple, Google, or another provider as a processor for purchases on Eternal. Do not send card details, banking credentials, or payments to obtain unavailable features.',
             ],
           },
         ],
@@ -98,31 +83,16 @@ export const PAID_SERVICES_DATA: Record<'en' | 'uk', PaidServicesTranslation> = 
       {
         id: 'refund-policy',
         number: '3',
-        title: 'Refund Policy & Statutory Withdrawal Rights',
+        title: 'Consumer Rights and Disputed Charges',
         iconName: 'RefreshCw',
-        tldr: 'EU/EEA/UK users have a 14-day statutory right of withdrawal. Mobile purchases via Apple App Store or Google Play follow app store refund processes.',
+        tldr: 'This notice does not waive mandatory consumer rights.',
         subsections: [
           {
-            id: 'eu-withdrawal-right',
-            title: '3.1 European Union & UK 14-Day Right of Withdrawal',
-            content: [
-              'If you reside in the European Union, European Economic Area, or United Kingdom, you have the statutory legal right to withdraw from your purchase without giving any reason within fourteen (14) days from the initial transaction date (EU Consumer Rights Directive).',
-              'A private contact address has not been provided. Do not submit personal data through public issues.',
-            ],
-          },
-          {
-            id: 'app-store-purchases',
-            title: '3.2 Mobile Purchases (Apple App Store & Google Play)',
-            content: [
-              'If you purchased Eternal Premium through the Apple App Store or Google Play Store, the transaction is processed directly by Apple or Google under their respective terms.',
-              'To request a refund for iOS purchases, please visit Apple’s official portal at reportaproblem.apple.com. For Android purchases, request refunds via the Google Play Order History portal.',
-            ],
-          },
-          {
             id: 'general-refund-rules',
-            title: '3.3 Virtual Goods & Consumables',
+            title: '3.1 Your Rights Remain',
             content: [
-              'Except as provided by mandatory local consumer protection laws or where our service was provably defective, purchases of one-time consumable digital items (such as virtual tips, server boosts, or temporary event badges) that are immediately credited to your account are non-refundable.',
+              'This notice does not exclude any mandatory rights, including applicable withdrawal, refund, or payment-dispute rights. It does not impose a non-refundable policy for unavailable digital goods.',
+              'If a charge claims to be from Eternal, check the transaction with your bank or the payment provider and contact eternalnet.support@proton.me. Do not email a full card number, security code, password, or identification document.',
             ],
           },
         ],
@@ -130,23 +100,15 @@ export const PAID_SERVICES_DATA: Record<'en' | 'uk', PaidServicesTranslation> = 
       {
         id: 'creator-monetization',
         number: '4',
-        title: 'Creator Monetization & Virtual Tipping',
+        title: 'Future Paid Features',
         iconName: 'HeartHandshake',
-        tldr: 'Tips and creator subscriptions support verified creators. Chargeback fraud and money laundering are strictly prohibited.',
+        tldr: 'Paid features require separate launch terms and operational checks.',
         subsections: [
           {
             id: 'creator-terms',
-            title: '4.1 Supporting Creators on Eternal',
+            title: '4.1 Before Any Future Sale',
             content: [
-              'Fans may send voluntary tips and purchase creator subscriptions to support their favorite creators on Eternal.',
-              'Creators receive payouts in accordance with the Eternal Creator Monetization Schedule, subject to standard platform processing fees and identity verification (KYC/AML compliance).',
-            ],
-          },
-          {
-            id: 'chargeback-abuse',
-            title: '4.2 Chargebacks & Fraud Prevention',
-            content: [
-              'Initiating fraudulent chargebacks, using stolen payment cards, or abusing payment dispute mechanisms will result in immediate suspension of account privileges and possible permanent termination.',
+              'If paid features are introduced, the applicable seller, price, taxes, renewal and cancellation terms, refund and withdrawal information, and payment process must be disclosed before purchase. No launch date or creator monetization schedule has been established by this notice.',
             ],
           },
         ],
@@ -154,19 +116,15 @@ export const PAID_SERVICES_DATA: Record<'en' | 'uk', PaidServicesTranslation> = 
       {
         id: 'contact-billing',
         number: '5',
-        title: 'Billing Support & Inquiries',
+        title: 'Contact',
         iconName: 'Mail',
-        tldr: 'A private contact address has not been provided. Do not submit personal data through public issues.',
+        tldr: 'Contact: eternalnet.support@proton.me.',
         subsections: [
           {
             id: 'billing-contacts',
-            title: '5.1 Direct Billing Support',
+            title: '5.1 Project Operators',
             content: [
-              'If you have questions about an unknown charge, need an updated VAT invoice, or require billing assistance, please reach out to:',
-            ],
-            bullets: [
-              'A private contact address has not been provided. Do not submit personal data through public issues.',
-              'Project operators: the project founders (operator identity not published), Ukraine',
+              'Eternal is jointly operated from Ukraine by Mykola Agh and Michal Agh, two individuals. Contact both operators at eternalnet.support@proton.me. Do not post private transaction details in public issues.',
             ],
           },
         ],
@@ -175,38 +133,32 @@ export const PAID_SERVICES_DATA: Record<'en' | 'uk', PaidServicesTranslation> = 
   },
   uk: {
     hero: {
-      archivedLink: 'Підписки та платежі',
+      archivedLink: 'Платні послуги',
       title: 'УМОВИ ПЛАТНИХ ПОСЛУГ ТА ПОВЕРНЕННЯ КОШТІВ',
-      effectiveDate: 'Набуття чинності: 1 вересня 2026 р. • Останнє оновлення: 30 серпня 2026 р.',
-      lastUpdated: 'Останнє оновлення: 30 серпня 2026 р.',
+      effectiveDate: 'Оновлено: 5 листопада 2026 р.',
+      lastUpdated: 'Оновлено: 5 листопада 2026 р.',
       description:
-        'Ці умови регулюють придбання підписок Eternal Premium, фінансову підтримку авторів (донати), віртуальні бейджі та цифрові товари. Документ визначає порядок автоматичного подовження підписок, скасування та право на повернення коштів згідно з нормами ЄС і законодавством України.',
+        'Eternal наразі безкоштовний. Повідомлення пояснює відсутність платних пропозицій і зберігає застосовні права споживачів.',
     },
     toc: {
       contents: 'Зміст документа',
       readProgress: '% прочитано',
-      print: 'Друк умов',
+      print: 'Друк документа',
       backToTop: 'Нагору',
     },
     sections: [
       {
         id: 'paid-services-overview',
         number: '1',
-        title: 'Огляд Eternal Premium та платних можливостей',
+        title: 'Поточна доступність',
         iconName: 'Crown',
-        tldr: 'Eternal Premium — це додаткова підписка для розширених функцій. Основні функції спілкування та стрічки залишаються безкоштовними.',
+        tldr: 'Eternal наразі безкоштовний. Платні підписки, цифрові покупки, донати та виплати авторам недоступні.',
         subsections: [
           {
             id: 'premium-features',
-            title: '1.1 Що входить до Eternal Premium',
+            title: '1.1 Платної пропозиції немає',
             content: [
-              'Платформа Eternal є повністю безкоштовною для публікацій, спілкування у чатах, дзвінках та спільного прослуховування музики. Користувачі можуть добровільно придбати Eternal Premium для доступу до переваг:',
-            ],
-            bullets: [
-              'Трансляція екрану в 4K 60FPS та пріоритетна якість зв’язку у голосових кімнатах.',
-              'Збільшений ліміт завантаження файлів (до 500 МБ на файл).',
-              'Ексклюзивні анімовані банери профілю, сяючі бейджі та унікальні стікери.',
-              'Швидке перемикання між акаунтами та пріоритетна підтримка.',
+              'Eternal наразі не пропонує Eternal Premium, платні покращення, підписки на авторів, донати чи виплати авторам. Згадки таких функцій в інших матеріалах не є доступною пропозицією або обіцянкою їх появи.',
             ],
           },
         ],
@@ -214,23 +166,15 @@ export const PAID_SERVICES_DATA: Record<'en' | 'uk', PaidServicesTranslation> = 
       {
         id: 'billing-and-renewals',
         number: '2',
-        title: 'Тарифи, автоподовження та скасування підписки',
+        title: 'Платежі та підписки',
         iconName: 'CreditCard',
-        tldr: 'Підписка подовжується автоматично. Скасувати її можна в будь-який момент у налаштуваннях профілю в 1 клік.',
+        tldr: 'Активної оплати та пропозиції регулярних списань немає.',
         subsections: [
           {
             id: 'recurring-charges',
-            title: '2.1 Автоматичне списання та ціноутворення',
+            title: '2.1 Немає згоди на списання',
             content: [
-              'При оформленні підписки ви надаєте дозвіл Eternal (або платіжним операторам Stripe, Apple, Google) здійснювати періодичні списання коштів відповідно до обраного тарифу (щомісячно або щорічно).',
-              'Всі ціни зазначаються з урахуванням податків. Про будь-які зміни вартості ми повідомляємо щонайменше за 30 днів до набрання ними чинності.',
-            ],
-          },
-          {
-            id: 'easy-cancellation',
-            title: '2.2 Скасування підписки в 1 клік',
-            content: [
-              'Ви можете скасувати підписку будь-коли в меню: Налаштування → Підписки → Скасувати підписку. Переваги залишаться активними до кінця поточного оплаченого періоду.',
+              'Використання Eternal не надає дозволу на оплату чи регулярні списання. Наразі ми не визначаємо Stripe, Apple, Google або іншого провайдера як оператора платежів за покупки в Eternal. Не надсилайте дані карток, банківські паролі чи платежі для отримання недоступних функцій.',
             ],
           },
         ],
@@ -238,22 +182,16 @@ export const PAID_SERVICES_DATA: Record<'en' | 'uk', PaidServicesTranslation> = 
       {
         id: 'refund-policy',
         number: '3',
-        title: 'Політика повернення коштів (Refund Policy)',
+        title: 'Права споживачів та спірні списання',
         iconName: 'RefreshCw',
-        tldr: 'Користувачі в ЄС мають 14-денне право на відмову. Покупки через Apple/Google регулюються правилами магазинів додатків.',
+        tldr: 'Це повідомлення не скасовує обов’язкових прав споживачів.',
         subsections: [
           {
-            id: 'eu-withdrawal-right',
-            title: '3.1 14-денне право на відмову для жителів ЄС (Right of Withdrawal)',
+            id: 'general-refund-rules',
+            title: '3.1 Ваші права зберігаються',
             content: [
-              'Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
-            ],
-          },
-          {
-            id: 'app-store-purchases',
-            title: '3.2 Покупки через мобільні магазини (Apple та Google)',
-            content: [
-              'Оплата через мобільні додатки здійснюється безпосередньо Apple або Google. Для повернення коштів скористайтеся сервісом reportaproblem.apple.com (для iOS) або історією замовлень Google Play.',
+              'Це повідомлення не обмежує обов’язкових прав, зокрема застосовних прав на відмову, повернення коштів чи оскарження платежу. Воно не встановлює неповоротності оплати недоступних цифрових товарів.',
+              'Якщо списання позначене як платіж Eternal, перевірте його з банком або платіжним провайдером і напишіть на eternalnet.support@proton.me. Не надсилайте повний номер картки, код безпеки, пароль чи документ, що посвідчує особу.',
             ],
           },
         ],
@@ -261,15 +199,15 @@ export const PAID_SERVICES_DATA: Record<'en' | 'uk', PaidServicesTranslation> = 
       {
         id: 'creator-monetization',
         number: '4',
-        title: 'Монетизація та підтримка авторів',
+        title: 'Майбутні платні функції',
         iconName: 'HeartHandshake',
-        tldr: 'Донати та платні підписки на авторів допомагають розвивати спільноту. Шахрайські чарджбеки суворо заборонені.',
+        tldr: 'Для платних функцій потрібні окремі умови запуску та перевірка процедур.',
         subsections: [
           {
             id: 'creator-terms',
-            title: '4.1 Фінансова підтримка авторів',
+            title: '4.1 До початку будь-яких продажів',
             content: [
-              'Користувачі можуть надсилати добровільні донати та оформлювати підписки на улюблених креаторів. Виплати авторам здійснюються після проходження перевірки особи (KYC).',
+              'Якщо платні функції з’являться, до покупки мають бути розкриті продавець, ціна, податки, умови подовження та скасування, відмови й повернення коштів, а також порядок оплати. Це повідомлення не встановлює дати запуску чи графіка виплат авторам.',
             ],
           },
         ],
@@ -277,17 +215,15 @@ export const PAID_SERVICES_DATA: Record<'en' | 'uk', PaidServicesTranslation> = 
       {
         id: 'contact-billing',
         number: '5',
-        title: 'Контакти фінансового відділу',
+        title: 'Контакт',
         iconName: 'Mail',
-        tldr: 'Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
+        tldr: 'Контакт: eternalnet.support@proton.me.',
         subsections: [
           {
             id: 'billing-contacts',
-            title: '5.1 Зворотний зв’язок',
-            content: ['Для вирішення фінансових питань зв’яжіться з нашою службою білінгу:'],
-            bullets: [
-              'Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
-              'Оператори проєкту: засновники проєкту (ідентифікаційні дані операторів не опубліковано), Україна',
+            title: '5.1 Оператори проєкту',
+            content: [
+              'Eternal спільно керують з України Mykola Agh та Michal Agh — дві фізичні особи. Звернутися до обох операторів можна за адресою eternalnet.support@proton.me. Не публікуйте приватні відомості про платежі у відкритих зверненнях.',
             ],
           },
         ],

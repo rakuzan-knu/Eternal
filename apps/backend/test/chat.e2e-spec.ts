@@ -4,6 +4,10 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import type { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
+import {
+  assertIsolatedAuthFixtureEnvironment,
+  seedAndLoginExistingAuthUser,
+} from './existing-auth-user';
 
 interface AuthedUser {
   id: string;
@@ -12,20 +16,6 @@ interface AuthedUser {
 
 /** Unique suffix so repeated runs never collide on email/username uniqueness. */
 const runId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-
-async function registerUser(app: INestApplication<App>, name: string): Promise<AuthedUser> {
-  const response = await request(app.getHttpServer())
-    .post('/auth/register')
-    .send({
-      email: `${name}.${runId}@example.com`,
-      username: `${name}${runId}`,
-      displayName: name,
-      password: 'Password123!',
-    })
-    .expect(201);
-  const body = response.body as { user: { id: string }; accessToken: string };
-  return { id: body.user.id, token: body.accessToken };
-}
 
 type AuthedClient = {
   get: (path: string) => request.Test;
@@ -55,6 +45,7 @@ describe('Chat (e2e)', () => {
   let messageId: string;
 
   beforeAll(async () => {
+    assertIsolatedAuthFixtureEnvironment();
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -64,8 +55,8 @@ describe('Chat (e2e)', () => {
 
     client = makeClient(app);
 
-    alice = await registerUser(app, 'alice');
-    bob = await registerUser(app, 'bob');
+    alice = await seedAndLoginExistingAuthUser(app, 'alice', runId);
+    bob = await seedAndLoginExistingAuthUser(app, 'bob', runId);
   });
 
   afterAll(async () => {

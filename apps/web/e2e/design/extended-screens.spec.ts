@@ -42,6 +42,8 @@ async function openSurface(page: Page, screen: ExtendedScreen, state: ExtendedSt
     }
     await page.getByRole('button', { name: 'More', exact: true }).click();
     await page.getByRole('menu').getByRole('button', { name: 'Settings', exact: true }).click();
+    const allSettings = page.getByRole('button', { name: 'All settings', exact: true });
+    if ((page.viewportSize()?.width ?? 1280) < 640) await allSettings.click();
     await page.getByRole('button', { name: 'Security', exact: true }).click();
     await page.getByRole('button', { name: 'Password & Security', exact: true }).click();
     await page.getByText('Active sessions', { exact: true }).click();
@@ -98,7 +100,7 @@ async function assertState(page: Page, screen: ExtendedScreen, state: ExtendedSt
     const title = {
       search: 'No users found matching "alexandra"',
       notifications: 'No notifications yet',
-      reels: 'No comments yet.',
+      reels: 'No comments to display.',
       settings: 'No active sessions',
     };
     if (screen === 'stories') {
@@ -255,7 +257,10 @@ test('extended notifications: failed second page keeps loaded rows and retries t
   }));
   let failNext = true;
   await page.route(
-    (url) => url.port === '3000' && ['/notifications', '/v1/notifications'].includes(url.pathname),
+    (url) =>
+      ['localhost', '127.0.0.1'].includes(url.hostname) &&
+      ((url.port === '3000' && ['/notifications', '/v1/notifications'].includes(url.pathname)) ||
+        (url.port === '6007' && url.pathname === '/v1/notifications')),
     async (route) => {
       const next = new URL(route.request().url()).searchParams.get('cursor');
       await fulfillApi(

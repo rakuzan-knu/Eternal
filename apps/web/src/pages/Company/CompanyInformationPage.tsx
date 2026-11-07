@@ -32,16 +32,16 @@ const TRANSLATIONS: Record<string, CompanyTranslations> = {
     address: 'Ukraine',
     cityCountry: 'Ukraine',
     emailLabel: 'Direct Email',
-    email: 'Contact address not provided',
+    email: 'eternalnet.support@proton.me',
     supportHelpLabel: 'Customer Support',
     supportHelpText:
-      'A private support address has not been provided. Do not post personal data in public issues.',
+      'For support, privacy, and complaints, email eternalnet.support@proton.me. Do not post personal data in public issues.',
     ownersLabel: 'Project Founders',
     ownerRank: 'Founder',
-    owners: ['Ag Mykola', 'Ag Mihal'],
+    owners: ['Mykola Agh', 'Michal Agh'],
     legalStatusLabel: 'Project Status',
     legalStatusText:
-      'Eternal is a software and digital communication project started in Ukraine by Ag Mykola and Ag Mihal. These are authorship credits. Complete legal operator details and a private contact address have not been provided; this page is not a complete legal notice.',
+      'Eternal is a software and digital communication project started in Ukraine by Mykola Agh and Michal Agh. The project is jointly operated by these two individuals. Contact: eternalnet.support@proton.me. Applicable regional legal notices remain under review.',
   },
   Українська: {
     title: 'Інформація про проєкт Eternal',
@@ -51,16 +51,16 @@ const TRANSLATIONS: Record<string, CompanyTranslations> = {
     address: 'Україна',
     cityCountry: 'Україна',
     emailLabel: 'Електронна пошта',
-    email: 'Контактну адресу не надано',
+    email: 'eternalnet.support@proton.me',
     supportHelpLabel: 'Служба підтримки',
     supportHelpText:
-      'Приватну адресу підтримки не надано. Не публікуйте персональні дані у відкритих зверненнях.',
+      'З питань підтримки, приватності та скарг пишіть на eternalnet.support@proton.me. Не публікуйте персональні дані у відкритих зверненнях.',
     ownersLabel: 'Засновники проєкту',
     ownerRank: 'Засновник',
-    owners: ['Ag Mykola', 'Ag Mihal'],
+    owners: ['Mykola Agh', 'Michal Agh'],
     legalStatusLabel: 'Статус проєкту',
     legalStatusText:
-      'Eternal — проєкт програмного забезпечення та цифрових комунікацій, започаткований в Україні засновниками Ag Mykola та Ag Mihal. Імена наведено як авторство. Повні юридичні реквізити операторів і приватний контакт не надано; ця сторінка не є повним юридичним повідомленням.',
+      'Eternal — проєкт програмного забезпечення та цифрових комунікацій, започаткований в Україні засновниками Mykola Agh та Michal Agh. Ці дві фізичні особи спільно керують проєктом. Контакт: eternalnet.support@proton.me. Відповідні регіональні юридичні повідомлення ще перевіряються.',
   },
   Deutsch: {
     title: 'Eternal Projektinformationen',
@@ -70,16 +70,16 @@ const TRANSLATIONS: Record<string, CompanyTranslations> = {
     address: 'Ukraine',
     cityCountry: 'Ukraine',
     emailLabel: 'E-Mail',
-    email: 'Kontaktadresse nicht angegeben',
+    email: 'eternalnet.support@proton.me',
     supportHelpLabel: 'Kundensupport',
     supportHelpText:
-      'Eine private Support-Adresse wurde nicht angegeben. Veröffentlichen Sie keine personenbezogenen Daten in öffentlichen Anfragen.',
+      'Support, Datenschutz und Beschwerden: eternalnet.support@proton.me. Veröffentlichen Sie keine personenbezogenen Daten in öffentlichen Anfragen.',
     ownersLabel: 'Projektgründer',
     ownerRank: 'Gründer',
-    owners: ['Ag Mykola', 'Ag Mihal'],
+    owners: ['Mykola Agh', 'Michal Agh'],
     legalStatusLabel: 'Projektstatus',
     legalStatusText:
-      'Eternal ist ein von Ag Mykola und Ag Mihal in der Ukraine gestartetes Softwareprojekt. Die Namen nennen die Urheber. Vollständige rechtliche Betreiberangaben und eine private Kontaktadresse wurden nicht angegeben; diese Seite ist kein vollständiges Impressum.',
+      'Eternal ist ein von Mykola Agh und Michal Agh in der Ukraine gestartetes Softwareprojekt. Die beiden natürlichen Personen betreiben das Projekt gemeinsam. Kontakt: eternalnet.support@proton.me. Anwendbare regionale rechtliche Hinweise werden noch geprüft.',
   },
   Español: {
     title: 'Información del proyecto Eternal',
@@ -89,16 +89,16 @@ const TRANSLATIONS: Record<string, CompanyTranslations> = {
     address: 'Ucrania',
     cityCountry: 'Ucrania',
     emailLabel: 'Correo Electrónico',
-    email: 'Dirección de contacto no facilitada',
+    email: 'eternalnet.support@proton.me',
     supportHelpLabel: 'Soporte al Cliente',
     supportHelpText:
-      'No se ha facilitado una dirección privada de soporte. No publique datos personales en consultas públicas.',
+      'Soporte, privacidad y reclamaciones: eternalnet.support@proton.me. No publique datos personales en consultas públicas.',
     ownersLabel: 'Fundadores del proyecto',
     ownerRank: 'Fundador',
-    owners: ['Ag Mykola', 'Ag Mihal'],
+    owners: ['Mykola Agh', 'Michal Agh'],
     legalStatusLabel: 'Situación del proyecto',
     legalStatusText:
-      'Eternal es un proyecto de software iniciado en Ucrania por Ag Mykola y Ag Mihal. Los nombres reconocen la autoría. No se han facilitado los datos legales completos del operador ni un contacto privado; esta página no es un aviso legal completo.',
+      'Eternal es un proyecto de software iniciado en Ucrania por Mykola Agh y Michal Agh. Ambas personas físicas gestionan conjuntamente el proyecto. Contacto: eternalnet.support@proton.me. Los avisos legales regionales aplicables siguen en revisión.',
   },
   Français: {
     title: 'Informations sur le projet Eternal',
@@ -108,16 +108,16 @@ const TRANSLATIONS: Record<string, CompanyTranslations> = {
     address: 'Ukraine',
     cityCountry: 'Ukraine',
     emailLabel: 'E-mail',
-    email: 'Adresse de contact non fournie',
+    email: 'eternalnet.support@proton.me',
     supportHelpLabel: 'Support Client',
     supportHelpText:
-      'Aucune adresse privée de support n’a été fournie. Ne publiez pas de données personnelles dans les demandes publiques.',
+      'Assistance, confidentialité et réclamations : eternalnet.support@proton.me. Ne publiez pas de données personnelles dans les demandes publiques.',
     ownersLabel: 'Fondateurs du projet',
     ownerRank: 'Fondateur',
-    owners: ['Ag Mykola', 'Ag Mihal'],
+    owners: ['Mykola Agh', 'Michal Agh'],
     legalStatusLabel: 'Statut du projet',
     legalStatusText:
-      'Eternal est un projet logiciel lancé en Ukraine par Ag Mykola et Ag Mihal. Les noms reconnaissent les auteurs. Les coordonnées légales complètes des opérateurs et un contact privé n’ont pas été fournis ; cette page ne constitue pas des mentions légales complètes.',
+      'Eternal est un projet logiciel lancé en Ukraine par Mykola Agh et Michal Agh. Ces deux personnes physiques exploitent conjointement le projet. Contact : eternalnet.support@proton.me. Les mentions légales régionales applicables restent en cours de vérification.',
   },
 };
 
@@ -185,7 +185,12 @@ export const CompanyInformationPage: React.FC = () => {
                   <span>{t.emailLabel}</span>
                 </div>
               </div>
-              <p className="text-lg font-bold text-white">{t.email}</p>
+              <a
+                href="mailto:eternalnet.support@proton.me"
+                className="text-lg font-bold text-white hover:underline focus-visible:outline focus-visible:outline-offset-4"
+              >
+                {t.email}
+              </a>
               <p className="text-xs text-neutral-400">{t.supportHelpText}</p>
             </div>
           </div>

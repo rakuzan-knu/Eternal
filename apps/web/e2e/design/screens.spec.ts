@@ -76,9 +76,12 @@ for (const screen of ['feed', 'profile', 'chat'] as const) {
           page.getByText('No suggestions available right now.', { exact: true }),
         ).toBeVisible();
         await expect(
-          page.getByText('No friends yet. Follow creators above to start chatting!', {
-            exact: true,
-          }),
+          page.getByText(
+            'Friends are people who follow each other. Your chats are always available in Messages.',
+            {
+              exact: true,
+            },
+          ),
         ).toBeVisible();
       }
       const audit = await auditReadability(page);
@@ -112,9 +115,12 @@ for (const screen of ['feed', 'profile', 'chat'] as const) {
           page.getByText('No suggestions available right now.', { exact: true }),
         ).toBeVisible();
         await expect(
-          page.getByText('No friends yet. Follow creators above to start chatting!', {
-            exact: true,
-          }),
+          page.getByText(
+            'Friends are people who follow each other. Your chats are always available in Messages.',
+            {
+              exact: true,
+            },
+          ),
         ).toBeVisible();
       }
       await waitForScreenChrome(page);

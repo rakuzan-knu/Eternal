@@ -13,6 +13,7 @@ export { usePrivacyExceptions } from './model/usePrivacyExceptions';
 export { useSessions } from './model/useSessions';
 
 export { default as EditProfileModal } from './ui/EditProfileModal';
+export { RequestDataPackageModal } from './ui/privacy/RequestDataPackageModal';
 export { default as BadgeModal } from './ui/BadgeModal';
 export { default as BadgeList } from './ui/BadgeList';
 export { BadgeSettingsSection } from './ui/BadgeSettingsSection';

@@ -278,11 +278,7 @@ export const YourDataPackagePage: React.FC = () => {
               {data.hero.title}
             </h1>
 
-            <p className="text-sm text-purple-300/80 font-medium">
-              {isUkrainian
-                ? 'Набуття чинності: 1 вересня 2026 р. • Останнє оновлення: 30 серпня 2026 р.'
-                : 'Effective: September 1, 2026 • Last updated: August 30, 2026'}
-            </p>
+            <p className="text-sm text-purple-300/80 font-medium">{data.hero.updatedDate}</p>
 
             <p className="mt-2 text-base sm:text-lg text-neutral-300 leading-relaxed max-w-4xl">
               {data.hero.description}

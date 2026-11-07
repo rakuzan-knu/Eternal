@@ -31,6 +31,7 @@ import {
 } from '../notifications/events/notification.events';
 import {
   CreateUserDto,
+  registrationBirthDateError,
   FollowStatusView,
   RESERVED_USERNAMES,
   type UpdateUserDto,
@@ -131,7 +132,9 @@ export class UsersService {
     return this.usersRepository.findById(id);
   }
 
-  create(dto: CreateUserDto): Promise<User> {
+  async create(dto: CreateUserDto): Promise<User> {
+    const birthdayError = registrationBirthDateError(dto.birthDate);
+    if (birthdayError) throw new BadRequestException(birthdayError);
     return this.usersRepository.create(dto);
   }
 

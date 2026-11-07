@@ -36,8 +36,8 @@ export const COPYRIGHT_POLICY_DATA: Record<'en' | 'uk', CopyrightPolicyTranslati
     hero: {
       archivedLink: 'Safety & Legal Policies',
       title: 'DMCA & COPYRIGHT POLICY',
-      effectiveDate: 'Effective: September 1, 2026 • Last updated: August 30, 2026',
-      lastUpdated: 'Last Updated: August 30, 2026',
+      effectiveDate: 'Updated: November 5, 2026',
+      lastUpdated: 'Updated: November 5, 2026',
       description:
         'Eternal respects the intellectual property rights of creators and copyright holders. This policy outlines our procedures for submitting copyright takedown notices under the Digital Millennium Copyright Act (DMCA 17 U.S.C. § 512) and the EU Digital Services Act (DSA Art. 16), as well as filing counter-notifications and our repeat infringer policy.',
     },
@@ -70,7 +70,7 @@ export const COPYRIGHT_POLICY_DATA: Record<'en' | 'uk', CopyrightPolicyTranslati
         number: '2',
         title: 'Designated Copyright Agent Contact',
         iconName: 'Mail',
-        tldr: 'A private contact address has not been provided. Do not submit personal data through public issues.',
+        tldr: 'Contact: eternalnet.support@proton.me. Do not submit personal data through public issues.',
         subsections: [
           {
             id: 'agent-details',
@@ -80,9 +80,9 @@ export const COPYRIGHT_POLICY_DATA: Record<'en' | 'uk', CopyrightPolicyTranslati
             ],
             bullets: [
               'A registered DMCA agent has not been confirmed.',
-              'Project operators: the project founders (operator identity not published), Ukraine',
+              'Project operators: Mykola Agh and Michal Agh, Ukraine',
               'Physical Address: Ukraine (postal address not provided)',
-              'A private contact address has not been provided. Do not submit personal data through public issues.',
+              'Contact: eternalnet.support@proton.me. Do not submit personal data through public issues.',
             ],
           },
         ],
@@ -122,7 +122,7 @@ export const COPYRIGHT_POLICY_DATA: Record<'en' | 'uk', CopyrightPolicyTranslati
             id: 'counter-notice-rules',
             title: '4.1 Submitting a Counter-Notification (17 U.S.C. § 512(g)(3))',
             content: [
-              'A private contact address has not been provided. Do not submit personal data through public issues.',
+              'Contact: eternalnet.support@proton.me. Do not submit personal data through public issues.',
             ],
             bullets: [
               '1. Your physical or electronic signature.',
@@ -188,8 +188,8 @@ export const COPYRIGHT_POLICY_DATA: Record<'en' | 'uk', CopyrightPolicyTranslati
     hero: {
       archivedLink: 'Політики та правові норми',
       title: 'ПОЛІТИКА ЗАХИСТУ АВТОРСЬКИХ ПРАВ (DMCA)',
-      effectiveDate: 'Набуття чинності: 1 вересня 2026 р. • Останнє оновлення: 30 серпня 2026 р.',
-      lastUpdated: 'Останнє оновлення: 30 серпня 2026 р.',
+      effectiveDate: 'Оновлено: 5 листопада 2026 р.',
+      lastUpdated: 'Оновлено: 5 листопада 2026 р.',
       description:
         'Eternal поважає інтелектуальну власність авторів. Ця політика регулює процедуру подання повідомлень про порушення авторських прав згідно з DMCA (17 U.S.C. § 512), Законом ЄС про цифрові послуги (DSA Art. 16) та законодавством України, а також подання зустрічних повідомлень і політику повторних порушників.',
     },
@@ -222,7 +222,7 @@ export const COPYRIGHT_POLICY_DATA: Record<'en' | 'uk', CopyrightPolicyTranslati
         number: '2',
         title: 'Контакти уповноваженого агента з авторських прав',
         iconName: 'Mail',
-        tldr: 'Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
+        tldr: 'Контакт: eternalnet.support@proton.me. Не надсилайте персональні дані через публічні звернення.',
         subsections: [
           {
             id: 'agent-details',
@@ -232,9 +232,9 @@ export const COPYRIGHT_POLICY_DATA: Record<'en' | 'uk', CopyrightPolicyTranslati
             ],
             bullets: [
               'Реєстрацію агента DMCA не підтверджено.',
-              'Оператори проєкту: засновники проєкту (ідентифікаційні дані операторів не опубліковано), Україна',
-              'Місцезнаходження: м. Україна (поштову адресу не надано)',
-              'Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
+              'Оператори проєкту: Mykola Agh та Michal Agh, Україна',
+              'Країна діяльності: Україна; поштову адресу не надано',
+              'Контакт: eternalnet.support@proton.me. Не надсилайте персональні дані через публічні звернення.',
             ],
           },
         ],
@@ -272,7 +272,7 @@ export const COPYRIGHT_POLICY_DATA: Record<'en' | 'uk', CopyrightPolicyTranslati
             id: 'counter-notice-rules',
             title: '4.1 Порядок подання зустрічного повідомлення',
             content: [
-              'Приватну контактну адресу не надано. Не надсилайте персональні дані через публічні звернення.',
+              'Контакт: eternalnet.support@proton.me. Не надсилайте персональні дані через публічні звернення.',
             ],
           },
           {

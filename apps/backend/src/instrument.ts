@@ -36,7 +36,9 @@ Sentry.init({
     if (event.request) {
       if (
         event.request.url &&
-        /\/(?:integrations\/steam|oauth\/launch)(?:[/?#]|$)/.test(event.request.url)
+        /\/(?:integrations\/steam|oauth\/launch|users\/me\/data-export|messenger\/me\/data-export)(?:[/?#]|$)/.test(
+          event.request.url,
+        )
       )
         event.request.data = '[REDACTED]';
       if (event.request.url) event.request.url = redactRequestUrl(event.request.url);
@@ -54,7 +56,9 @@ Sentry.init({
     if (event.request) {
       if (
         event.request.url &&
-        /\/(?:integrations\/steam|oauth\/launch)(?:[/?#]|$)/.test(event.request.url)
+        /\/(?:integrations\/steam|oauth\/launch|users\/me\/data-export|messenger\/me\/data-export)(?:[/?#]|$)/.test(
+          event.request.url,
+        )
       )
         event.request.data = '[REDACTED]';
       if (event.request.url) event.request.url = redactRequestUrl(event.request.url);

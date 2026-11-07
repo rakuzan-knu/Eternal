@@ -5,6 +5,7 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   Platform,
+  Linking,
   Pressable,
   TextInput,
   TouchableWithoutFeedback,
@@ -19,11 +20,13 @@ import { useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   registerFormSchema,
+  calendarBirthDate,
   type RegisterFormDto,
   calculatePasswordStrength,
 } from '@social-network/shared-contracts';
 import {
   useRegister,
+  useRegistrationPolicy,
   useCheckUsername,
   type RegisterPayload,
 } from '@social-network/shared-api-client';
@@ -32,7 +35,7 @@ import { Button, Input, PasswordInput, Select, Alert, GlassCard, AuthFooter } fr
 import { haptics, useScreenSecurity, getClipboardEmail, useDebounce } from '@/shared/lib';
 import { ChevronLeft, Check, X } from 'lucide-react-native';
 import axios from 'axios';
-import { formatDate, msg, tr, trKnown } from '@/shared/lib/i18n';
+import { formatDate, msg, tr, trKnown, useLanguage } from '@/shared/lib/i18n';
 
 const monthName = (index: number) =>
   index < 0 ? '' : formatDate(new Date(2000, index, 1), { month: 'long' });
@@ -62,7 +65,7 @@ export interface RegisterScreenProps {
   onSuccess?: () => void;
 }
 
-export function RegisterScreen({ onNavigateLogin, onSuccess }: RegisterScreenProps) {
+export function RegistrationFields({ onNavigateLogin, onSuccess }: RegisterScreenProps) {
   // 1. Enterprise Screen Security: prevent screenshots / recordings
   useScreenSecurity(true);
 
@@ -147,10 +150,10 @@ export function RegisterScreen({ onNavigateLogin, onSuccess }: RegisterScreenPro
       firstName: '',
       lastName: '',
       username: '',
-      birthMonth: 'January',
-      birthDay: '1',
-      birthYear: '2000',
-      gender: 'Male',
+      birthMonth: '',
+      birthDay: '',
+      birthYear: '',
+      gender: '',
       identity: '',
       password: '',
       confirmPassword: '',
@@ -159,6 +162,7 @@ export function RegisterScreen({ onNavigateLogin, onSuccess }: RegisterScreenPro
 
   const selectedMonth = useWatch({ control, name: 'birthMonth' });
   const selectedYear = useWatch({ control, name: 'birthYear' });
+  const selectedDay = useWatch({ control, name: 'birthDay' });
   const passwordValue = useWatch({ control, name: 'password' }) || '';
   const strengthInfo = calculatePasswordStrength(passwordValue);
 
@@ -207,12 +211,9 @@ export function RegisterScreen({ onNavigateLogin, onSuccess }: RegisterScreenPro
       setErrorMessage(null);
 
       const monthIndex = MONTHS.indexOf(data.birthMonth);
-      const birthDate = new Date(
-        parseInt(data.birthYear, 10),
-        monthIndex >= 0 ? monthIndex : 0,
-        parseInt(data.birthDay, 10),
-        12,
-      ).toISOString();
+      const birthday = calendarBirthDate(Number(data.birthYear), monthIndex, Number(data.birthDay));
+      if (!birthday) return;
+      const birthDate = birthday.toISOString();
 
       const cleanUsername = data.username.trim().replace(/^@+/, '');
       const displayName = `${data.firstName.trim()} ${data.lastName.trim()}`.trim();
@@ -512,21 +513,22 @@ export function RegisterScreen({ onNavigateLogin, onSuccess }: RegisterScreenPro
                         name="birthMonth"
                         render={({ field: { onChange, value } }) => (
                           <Select
+                            placeholder={tr('Select a month')}
+                            error={trKnown(errors.birthMonth?.message)}
                             value={monthName(MONTHS.indexOf(value))}
                             options={MONTHS.map((_, index) => monthName(index))}
                             onChange={(label) => {
                               const val =
                                 MONTHS.find((_, index) => monthName(index) === label) ?? label;
                               onChange(val);
-                              // Ensure day doesn't exceed new month's max
                               const monthIdx = MONTHS.indexOf(val);
                               const maxDays = new Date(
-                                parseInt(selectedYear, 10),
+                                parseInt(selectedYear, 10) || 2000,
                                 monthIdx + 1,
                                 0,
                               ).getDate();
-                              if (parseInt(control._formValues.birthDay, 10) > maxDays) {
-                                setValue('birthDay', String(maxDays));
+                              if (parseInt(selectedDay, 10) > maxDays) {
+                                setValue('birthDay', '', { shouldValidate: true });
                               }
                             }}
                             disabled={isPending}
@@ -542,6 +544,8 @@ export function RegisterScreen({ onNavigateLogin, onSuccess }: RegisterScreenPro
                         render={({ field: { onChange, value } }) => (
                           <Select
                             value={value}
+                            placeholder={tr('Select a day')}
+                            error={trKnown(errors.birthDay?.message)}
                             options={daysOptions}
                             onChange={onChange}
                             disabled={isPending}
@@ -557,6 +561,8 @@ export function RegisterScreen({ onNavigateLogin, onSuccess }: RegisterScreenPro
                         render={({ field: { onChange, value } }) => (
                           <Select
                             value={value}
+                            placeholder={tr('Select a year')}
+                            error={trKnown(errors.birthYear?.message)}
                             options={YEARS}
                             onChange={(val) => {
                               onChange(val);
@@ -566,8 +572,8 @@ export function RegisterScreen({ onNavigateLogin, onSuccess }: RegisterScreenPro
                                 monthIdx + 1,
                                 0,
                               ).getDate();
-                              if (parseInt(control._formValues.birthDay, 10) > maxDays) {
-                                setValue('birthDay', String(maxDays));
+                              if (parseInt(selectedDay, 10) > maxDays) {
+                                setValue('birthDay', '', { shouldValidate: true });
                               }
                             }}
                             disabled={isPending}
@@ -601,6 +607,7 @@ export function RegisterScreen({ onNavigateLogin, onSuccess }: RegisterScreenPro
                             ? tr(value as (typeof GENDERS)[number])
                             : value
                         }
+                        placeholder={tr('Select gender')}
                         options={GENDERS.map((item) => tr(item))}
                         onChange={(next) =>
                           onChange(GENDERS.find((item) => tr(item) === next) ?? next)
@@ -781,6 +788,77 @@ export function RegisterScreen({ onNavigateLogin, onSuccess }: RegisterScreenPro
         <AuthFooter />
       </ScrollView>
     </KeyboardAvoidingView>
+  );
+}
+
+export function RegisterScreen(props: RegisterScreenProps) {
+  const policy = useRegistrationPolicy();
+  const language = useLanguage();
+  const [contactError, setContactError] = React.useState(false);
+  const ukrainian = language === 'uk';
+  if (policy.isSuccess && policy.data.registrationOpen) return <RegistrationFields {...props} />;
+  const title = ukrainian
+    ? 'Нові реєстрації тимчасово недоступні'
+    : 'New registrations are temporarily unavailable';
+  const message = policy.isPending
+    ? ukrainian
+      ? 'Перевіряємо доступність реєстрації…'
+      : 'Checking registration availability…'
+    : policy.isError
+      ? ukrainian
+        ? 'Не вдалося перевірити доступність. Реєстрація залишається закритою; спробуйте ще раз.'
+        : 'Availability could not be checked. Registration remains closed; please try again.'
+      : ukrainian
+        ? 'Ми перевіряємо регіональні вимоги до допуску й захисту неповнолітніх. Наразі жоден ринок не відкрито для нових реєстрацій.'
+        : 'We are reviewing regional admission requirements and protections for minors. No market is currently open for new registrations.';
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+      <View style={styles.contentWrapper}>
+        <GlassCard>
+          <Text accessibilityRole="header" style={styles.title}>
+            {title}
+          </Text>
+          <Alert variant={policy.isError ? 'error' : 'info'} style={{ marginTop: 16 }}>
+            {message}
+          </Alert>
+          <Text style={[styles.subtitle, { color: '#a3a3a3', marginVertical: 16 }]}>
+            {ukrainian
+              ? 'Наявні акаунти можуть входити й користуватися налаштуваннями приватності. Експорт даних, запити на видалення та інші звернення щодо ваших прав залишаються доступними.'
+              : 'Existing accounts can still sign in and use privacy settings. Data export, deletion requests, and other privacy-rights requests remain available.'}
+          </Text>
+          <Button
+            onPress={props.onNavigateLogin}
+            title={ukrainian ? 'Увійти в наявний акаунт' : 'Sign in to an existing account'}
+          />
+          <Button
+            variant="ghost"
+            onPress={() => {
+              void Linking.openURL('mailto:eternalnet.support@proton.me').catch(() =>
+                setContactError(true),
+              );
+            }}
+            title="eternalnet.support@proton.me"
+          />
+          {contactError && (
+            <Alert>
+              {ukrainian
+                ? 'Не вдалося відкрити пошту. Напишіть на eternalnet.support@proton.me зі своєї поштової програми.'
+                : 'The email app could not be opened. Write to eternalnet.support@proton.me from your email app.'}
+            </Alert>
+          )}
+          {policy.isError && (
+            <Button
+              variant="secondary"
+              onPress={() => {
+                void policy.refetch();
+              }}
+              loading={policy.isFetching}
+              title={ukrainian ? 'Спробувати ще раз' : 'Try again'}
+            />
+          )}
+        </GlassCard>
+      </View>
+    </ScrollView>
   );
 }
 
