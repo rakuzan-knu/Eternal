@@ -201,7 +201,7 @@ export const PAGE_SEO_PRESETS: Record<string, SEOProps> = {
   companyInformation: {
     title: 'Company Information & Impressum',
     description:
-      'Official corporate details, registration, headquarters, and legal representatives of Eternal Network.',
+      'Eternal project operators in Ukraine and the verified contact for support, privacy, and complaints.',
     canonical: '/company-information',
   },
   privacy: {
@@ -332,9 +332,9 @@ export const PAGE_SEO_PRESETS: Record<string, SEOProps> = {
     canonical: '/safety/law-enforcement',
   },
   careers: {
-    title: 'Careers at Eternal • Join the Team Shaping the Next Era of Social',
+    title: 'Careers at Eternal • No recruitment announced',
     description:
-      'Explore open engineering, design, and product roles at Eternal. Work on distributed systems, modern UI, and privacy-first social tech.',
+      'There is currently no confirmed recruitment programme. Applications are not accepted on this page.',
     canonical: '/careers',
   },
   brand: {

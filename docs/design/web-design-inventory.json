@@ -433,8 +433,8 @@
     }
   },
   "summary": {
-    "scannedSources": 997,
-    "designSources": 581,
+    "scannedSources": 998,
+    "designSources": 582,
     "literalColors": 1484,
     "assets": 690,
     "stories": 181
@@ -1202,8 +1202,9 @@
         "apps/web/src/pages/Brand/ui/BrandLogoSection.tsx:30",
         "apps/web/src/pages/Brand/ui/BrandNeedMoreSection.tsx:14",
         "apps/web/src/pages/Brand/ui/BrandSymbolSection.tsx:94",
-        "apps/web/src/pages/Company/CareersPage.tsx:60",
-        "apps/web/src/pages/Company/CareersPage.tsx:74",
+        "apps/web/src/pages/Company/CareersPage.tsx:12",
+        "apps/web/src/pages/Company/CareersPageDesign.tsx:60",
+        "apps/web/src/pages/Company/CareersPageDesign.tsx:74",
         "apps/web/src/pages/Company/CompanyAboutPage.tsx:69",
         "apps/web/src/pages/Company/CompanyAboutPage.tsx:83",
         "apps/web/src/pages/Company/CompanyInformationPage.tsx:129",
@@ -1854,9 +1855,9 @@
     {
       "value": "#0d0920",
       "references": [
-        "apps/web/src/pages/Company/CareersPage.tsx:139",
-        "apps/web/src/pages/Company/CareersPage.tsx:179",
-        "apps/web/src/pages/Company/ui/JobDetailsModal.tsx:53",
+        "apps/web/src/pages/Company/CareersPageDesign.tsx:139",
+        "apps/web/src/pages/Company/CareersPageDesign.tsx:179",
+        "apps/web/src/pages/Company/ui/JobDetailsModal.tsx:36",
         "apps/web/src/pages/Download/ui/DownloadHeroPreview.tsx:49"
       ]
     },
@@ -1941,6 +1942,7 @@
         "apps/web/src/features/cookies/ui/CookieConsentBanner.tsx:29",
         "apps/web/src/features/cookies/ui/CookiePreferencesModal.tsx:35",
         "apps/web/src/pages/Acknowledgements/AcknowledgementsPage.tsx:261",
+        "apps/web/src/pages/Company/CareersPage.tsx:16",
         "apps/web/src/pages/Company/CompanyAboutPage.tsx:495",
         "apps/web/src/pages/Company/CompanyAboutPage.tsx:530",
         "apps/web/src/pages/Company/CompanyAboutPage.tsx:555",
@@ -2781,8 +2783,8 @@
         "apps/web/src/pages/Brand/ui/BrandSymbolSection.tsx:31",
         "apps/web/src/pages/Brand/ui/BrandSymbolSection.tsx:65",
         "apps/web/src/pages/Brand/ui/BrandSymbolSection.tsx:93",
-        "apps/web/src/pages/Company/CareersPage.tsx:227",
-        "apps/web/src/pages/Company/CareersPage.tsx:244",
+        "apps/web/src/pages/Company/CareersPageDesign.tsx:227",
+        "apps/web/src/pages/Company/CareersPageDesign.tsx:244",
         "apps/web/src/pages/Company/ui/CareersExtraSections.tsx:135",
         "apps/web/src/pages/Company/ui/CareersExtraSections.tsx:86"
       ]
@@ -3457,7 +3459,7 @@
     },
     {
       "value": "#17132e",
-      "references": ["apps/web/src/pages/Company/CareersPage.tsx:224"]
+      "references": ["apps/web/src/pages/Company/CareersPageDesign.tsx:224"]
     },
     {
       "value": "#171330",
@@ -4156,8 +4158,8 @@
       "value": "#1c1538",
       "references": [
         "apps/web/src/pages/Brand/ui/BrandNeedMoreSection.tsx:14",
-        "apps/web/src/pages/Company/CareersPage.tsx:139",
-        "apps/web/src/pages/Company/CareersPage.tsx:179"
+        "apps/web/src/pages/Company/CareersPageDesign.tsx:139",
+        "apps/web/src/pages/Company/CareersPageDesign.tsx:179"
       ]
     },
     {
@@ -4816,7 +4818,7 @@
         "apps/web/src/pages/Blog/CategoryPage.tsx:178",
         "apps/web/src/pages/Blog/ui/BlogHeroSection.tsx:10",
         "apps/web/src/pages/Brand/BrandingPage.tsx:58",
-        "apps/web/src/pages/Company/CareersPage.tsx:74",
+        "apps/web/src/pages/Company/CareersPageDesign.tsx:74",
         "apps/web/src/pages/Company/CompanyAboutPage.tsx:83",
         "apps/web/src/pages/Download/DownloadPage.tsx:43",
         "apps/web/src/pages/Newsroom/NewsroomPage.tsx:46"
@@ -5459,7 +5461,7 @@
         "apps/web/src/pages/Blog/CategoryPage.tsx:178",
         "apps/web/src/pages/Blog/ui/BlogHeroSection.tsx:10",
         "apps/web/src/pages/Brand/BrandingPage.tsx:58",
-        "apps/web/src/pages/Company/CareersPage.tsx:74",
+        "apps/web/src/pages/Company/CareersPageDesign.tsx:74",
         "apps/web/src/pages/Company/CompanyAboutPage.tsx:83",
         "apps/web/src/pages/Download/DownloadPage.tsx:43",
         "apps/web/src/pages/Newsroom/NewsroomPage.tsx:46"
@@ -6160,8 +6162,8 @@
         "apps/web/src/pages/Blog/ui/BlogVisualMockups.tsx:614",
         "apps/web/src/pages/Brand/BrandingPage.tsx:101",
         "apps/web/src/pages/Brand/ui/BrandNeedMoreSection.tsx:42",
-        "apps/web/src/pages/Company/CareersPage.tsx:108",
-        "apps/web/src/pages/Company/CareersPage.tsx:244",
+        "apps/web/src/pages/Company/CareersPageDesign.tsx:108",
+        "apps/web/src/pages/Company/CareersPageDesign.tsx:244",
         "apps/web/src/pages/Download/DownloadPage.tsx:68",
         "apps/web/src/pages/Download/ui/DownloadDesktopSection.tsx:133",
         "apps/web/src/pages/Download/ui/DownloadDesktopSection.tsx:290",
@@ -6561,7 +6563,7 @@
       "references": [
         "apps/web/src/pages/Brand/BrandingPage.tsx:101",
         "apps/web/src/pages/Brand/ui/BrandNeedMoreSection.tsx:42",
-        "apps/web/src/pages/Company/CareersPage.tsx:108",
+        "apps/web/src/pages/Company/CareersPageDesign.tsx:108",
         "apps/web/src/pages/Download/DownloadPage.tsx:68",
         "apps/web/src/pages/Newsroom/NewsroomPage.tsx:81"
       ]
@@ -123993,6 +123995,79 @@
     {
       "path": "apps/web/src/pages/Company/CareersPage.tsx",
       "utilityLiterals": [
+        "bg-[#07050f]",
+        "bg-[#0e0a1f]/80",
+        "border-purple-800/30",
+        "flex",
+        "flex-1",
+        "flex-col",
+        "font-black",
+        "font-sans",
+        "inline-block",
+        "leading-relaxed",
+        "max-w-3xl",
+        "min-h-screen",
+        "mt-2",
+        "mt-5",
+        "mt-6",
+        "mx-auto",
+        "p-6",
+        "pb-20",
+        "pt-36",
+        "px-6",
+        "rounded-3xl",
+        "sm:p-10",
+        "sm:text-4xl",
+        "text-3xl",
+        "text-neutral-300",
+        "text-purple-300",
+        "text-sm",
+        "text-white",
+        "tracking-tight",
+        "w-full"
+      ],
+      "colorLiterals": ["#07050f", "#0e0a1f"],
+      "presentation": [
+        {
+          "line": 12,
+          "attribute": "className",
+          "expression": "\"min-h-screen bg-[#07050f] text-white font-sans antialiased flex flex-col\""
+        },
+        {
+          "line": 15,
+          "attribute": "className",
+          "expression": "\"flex-1 w-full max-w-3xl mx-auto px-6 pt-36 pb-20\""
+        },
+        {
+          "line": 16,
+          "attribute": "className",
+          "expression": "\"rounded-3xl border border-purple-800/30 bg-[#0e0a1f]/80 p-6 sm:p-10\""
+        },
+        {
+          "line": 17,
+          "attribute": "className",
+          "expression": "\"text-3xl sm:text-4xl font-black tracking-tight\""
+        },
+        {
+          "line": 18,
+          "attribute": "className",
+          "expression": "\"mt-5 text-neutral-300 leading-relaxed\""
+        },
+        {
+          "line": 21,
+          "attribute": "className",
+          "expression": "\"mt-6 text-sm text-neutral-300\""
+        },
+        {
+          "line": 23,
+          "attribute": "className",
+          "expression": "\"mt-2 inline-block text-purple-300 underline underline-offset-4 break-all\""
+        }
+      ]
+    },
+    {
+      "path": "apps/web/src/pages/Company/CareersPageDesign.tsx",
+      "utilityLiterals": [
         "-left-10",
         "-left-12",
         "-right-10",
@@ -129210,13 +129285,11 @@
       "utilityLiterals": [
         "absolute",
         "active:scale-[0.99]",
-        "animate-fadeIn",
         "bg-[#0d0920]",
         "bg-black/60",
         "bg-emerald-400",
         "bg-gradient-to-br",
         "bg-gradient-to-r",
-        "bg-green-500/20",
         "bg-indigo-400",
         "bg-purple-400",
         "bg-purple-950/40",
@@ -129224,7 +129297,6 @@
         "bg-white/[0.03]",
         "bg-white/[0.08]",
         "block",
-        "border-green-500/40",
         "border-purple-500/30",
         "border-purple-800/40",
         "border-white/10",
@@ -129249,9 +129321,7 @@
         "grid",
         "grid-cols-1",
         "h-1.5",
-        "h-16",
         "h-3.5",
-        "h-9",
         "hover:bg-white/[0.16]",
         "hover:scale-[1.01]",
         "hover:text-white",
@@ -129261,11 +129331,9 @@
         "leading-relaxed",
         "max-h-[90vh]",
         "max-w-2xl",
-        "max-w-md",
         "mb-1",
         "mt-1.5",
         "mt-2",
-        "mt-4",
         "mx-auto",
         "my-auto",
         "overflow-y-auto",
@@ -129278,7 +129346,6 @@
         "px-3.5",
         "px-6",
         "py-1",
-        "py-10",
         "py-2",
         "py-2.5",
         "py-3",
@@ -129289,7 +129356,6 @@
         "rounded-full",
         "rounded-xl",
         "select-text",
-        "shadow-[0_0_30px_rgba(74,222,128,0.3)]",
         "shadow-[0_30px_90px_rgba(0,0,0,0.9)]",
         "shadow-lg",
         "shadow-purple-600/30",
@@ -129302,7 +129368,6 @@
         "text-2xl",
         "text-[11px]",
         "text-blue-400",
-        "text-center",
         "text-green-400",
         "text-left",
         "text-neutral-200",
@@ -129322,292 +129387,290 @@
         "transition-all",
         "transition-colors",
         "w-1.5",
-        "w-16",
         "w-3.5",
-        "w-9",
         "w-full"
       ],
       "colorLiterals": ["#0d0920"],
       "presentation": [
         {
-          "line": 37,
+          "line": 20,
           "attribute": "className",
           "expression": "\"w-3.5 h-3.5 text-red-400\""
         },
         {
-          "line": 39,
+          "line": 22,
           "attribute": "className",
           "expression": "\"w-3.5 h-3.5 text-blue-400\""
         },
         {
-          "line": 42,
+          "line": 25,
           "attribute": "className",
           "expression": "\"w-3.5 h-3.5 text-pink-400\""
         },
         {
-          "line": 44,
+          "line": 27,
           "attribute": "className",
           "expression": "\"w-3.5 h-3.5 text-green-400\""
         },
         {
-          "line": 46,
+          "line": 29,
           "attribute": "className",
           "expression": "\"w-3.5 h-3.5 text-purple-400\""
         },
         {
-          "line": 51,
+          "line": 34,
           "attribute": "className",
           "expression": "\"w-full p-4 sm:p-6 select-text\""
         },
         {
-          "line": 53,
+          "line": 36,
           "attribute": "className",
           "expression": "\"relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-[#0d0920] border border-purple-500/30 rounded-[32px] p-6 sm:p-8 shadow-[0_30px_90px_rgba(0,0,0,0.9)] flex flex-col gap-6 text-left mx-auto my-auto\""
         },
         {
-          "line": 58,
+          "line": 41,
           "attribute": "className",
           "expression": "\"absolute top-6 right-6 p-2 rounded-full bg-white/[0.08] hover:bg-white/[0.16] text-neutral-300 hover:text-white transition-colors\""
         },
         {
-          "line": 61,
+          "line": 44,
           "attribute": "size",
           "expression": "{18}"
         },
         {
-          "line": 65,
+          "line": 48,
           "attribute": "className",
           "expression": "\"flex flex-col gap-3 pr-8\""
         },
         {
-          "line": 66,
+          "line": 49,
           "attribute": "className",
           "expression": "\"flex items-center gap-2 flex-wrap\""
         },
         {
-          "line": 67,
+          "line": 50,
           "attribute": "className",
           "expression": "\"inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-950/80 text-purple-300 text-xs font-bold border border-purple-800/40\""
         },
         {
-          "line": 71,
+          "line": 54,
           "attribute": "className",
           "expression": "\"inline-flex items-center gap-1 text-xs text-neutral-400\""
         },
         {
-          "line": 72,
+          "line": 55,
           "attribute": "className",
           "expression": "\"w-3.5 h-3.5 text-purple-400\""
         },
         {
-          "line": 77,
+          "line": 60,
           "attribute": "className",
           "expression": "\"text-2xl sm:text-3xl font-black text-white tracking-tight\""
         },
         {
-          "line": 80,
+          "line": 63,
           "attribute": "className",
           "expression": "\"text-xs text-purple-300 font-semibold\""
         },
         {
-          "line": 85,
-          "attribute": "className",
-          "expression": "\"flex flex-col items-center text-center py-10 gap-4 animate-fadeIn\""
-        },
-        {
-          "line": 86,
-          "attribute": "className",
-          "expression": "\"w-16 h-16 rounded-full bg-green-500/20 border border-green-500/40 flex items-center justify-center text-green-400 shadow-[0_0_30px_rgba(74,222,128,0.3)]\""
-        },
-        {
-          "line": 87,
-          "attribute": "className",
-          "expression": "\"w-9 h-9\""
-        },
-        {
-          "line": 89,
-          "attribute": "className",
-          "expression": "\"text-2xl font-black text-white\""
-        },
-        {
-          "line": 90,
-          "attribute": "className",
-          "expression": "\"text-sm text-neutral-300 max-w-md leading-relaxed\""
-        },
-        {
-          "line": 96,
-          "attribute": "className",
-          "expression": "\"mt-4 px-6 py-2.5 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold text-xs\""
-        },
-        {
-          "line": 103,
+          "line": 66,
           "attribute": "className",
           "expression": "\"flex flex-col gap-6\""
         },
         {
-          "line": 105,
+          "line": 68,
           "attribute": "className",
           "expression": "\"p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex flex-col gap-1.5\""
         },
         {
-          "line": 106,
+          "line": 69,
           "attribute": "className",
           "expression": "\"text-xs font-bold uppercase tracking-wider text-purple-300 flex items-center gap-1.5\""
         },
         {
-          "line": 107,
+          "line": 70,
           "attribute": "className",
           "expression": "\"w-3.5 h-3.5\""
         },
         {
-          "line": 110,
+          "line": 73,
           "attribute": "className",
           "expression": "\"text-xs sm:text-sm text-neutral-200 leading-relaxed font-medium\""
         },
         {
-          "line": 116,
+          "line": 79,
           "attribute": "className",
           "expression": "\"flex flex-col gap-2.5\""
         },
         {
-          "line": 117,
+          "line": 80,
           "attribute": "className",
           "expression": "\"text-xs font-bold uppercase tracking-wider text-purple-300\""
         },
         {
-          "line": 120,
+          "line": 83,
           "attribute": "className",
           "expression": "\"flex flex-col gap-2\""
         },
         {
-          "line": 124,
+          "line": 87,
           "attribute": "className",
           "expression": "\"flex items-start gap-2 text-xs sm:text-sm text-neutral-300\""
         },
         {
-          "line": 126,
+          "line": 89,
           "attribute": "className",
           "expression": "\"w-1.5 h-1.5 rounded-full bg-purple-400 shrink-0 mt-1.5\""
         },
         {
-          "line": 134,
+          "line": 97,
           "attribute": "className",
           "expression": "\"flex flex-col gap-2.5\""
         },
         {
-          "line": 135,
+          "line": 98,
           "attribute": "className",
           "expression": "\"text-xs font-bold uppercase tracking-wider text-purple-300\""
         },
         {
-          "line": 138,
+          "line": 101,
           "attribute": "className",
           "expression": "\"flex flex-col gap-2\""
         },
         {
-          "line": 142,
+          "line": 105,
           "attribute": "className",
           "expression": "\"flex items-start gap-2 text-xs sm:text-sm text-neutral-300\""
         },
         {
-          "line": 144,
+          "line": 107,
           "attribute": "className",
           "expression": "\"w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0 mt-1.5\""
         },
         {
-          "line": 152,
+          "line": 115,
           "attribute": "className",
           "expression": "\"p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-purple-950/60 to-indigo-950/40 border border-purple-800/40 flex flex-col gap-3\""
         },
         {
-          "line": 153,
+          "line": 116,
           "attribute": "className",
           "expression": "\"text-xs font-bold uppercase tracking-wider text-purple-300 flex items-center gap-1.5\""
         },
         {
-          "line": 154,
+          "line": 117,
           "attribute": "className",
           "expression": "\"w-3.5 h-3.5 text-yellow-400\""
         },
         {
-          "line": 157,
+          "line": 120,
           "attribute": "className",
           "expression": "\"flex flex-col gap-2.5\""
         },
         {
-          "line": 161,
+          "line": 124,
           "attribute": "className",
           "expression": "\"flex items-start gap-2 text-xs sm:text-sm text-neutral-200 leading-relaxed\""
         },
         {
-          "line": 163,
+          "line": 126,
           "attribute": "className",
           "expression": "\"w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 mt-1.5\""
         },
         {
-          "line": 173,
+          "line": 135,
           "attribute": "className",
-          "expression": "\"p-6 rounded-2xl bg-purple-950/40 border border-purple-800/40 flex flex-col gap-4 mt-2\""
+          "expression": "\"p-6 rounded-2xl bg-purple-950/40 border border-purple-800/40 flex flex-col gap-3 mt-2\""
         },
         {
-          "line": 175,
+          "line": 137,
           "attribute": "className",
           "expression": "\"font-bold text-sm text-white\""
         },
         {
-          "line": 177,
+          "line": 138,
+          "attribute": "className",
+          "expression": "\"text-sm text-neutral-300 leading-relaxed\""
+        },
+        {
+          "line": 143,
+          "attribute": "className",
+          "expression": "\"text-sm text-purple-300 underline underline-offset-4\""
+        },
+        {
+          "line": 150,
+          "attribute": "className",
+          "expression": "\"p-6 rounded-2xl bg-purple-950/40 border border-purple-800/40 flex flex-col gap-4 mt-2\""
+        },
+        {
+          "line": 152,
+          "attribute": "className",
+          "expression": "\"contents\""
+        },
+        {
+          "line": 153,
+          "attribute": "className",
+          "expression": "\"font-bold text-sm text-white\""
+        },
+        {
+          "line": 155,
           "attribute": "className",
           "expression": "\"grid grid-cols-1 sm:grid-cols-2 gap-3\""
         },
         {
-          "line": 181,
+          "line": 159,
           "attribute": "className",
           "expression": "\"text-[11px] font-bold text-neutral-300 block mb-1\""
         },
         {
-          "line": 192,
+          "line": 170,
           "attribute": "className",
           "expression": "\"w-full px-3.5 py-2 rounded-xl bg-black/60 border border-white/10 text-white text-xs placeholder:text-neutral-500 focus:outline-none focus:border-purple-500 transition-colors\""
         },
         {
-          "line": 199,
+          "line": 177,
           "attribute": "className",
           "expression": "\"text-[11px] font-bold text-neutral-300 block mb-1\""
         },
         {
-          "line": 210,
+          "line": 188,
           "attribute": "className",
           "expression": "\"w-full px-3.5 py-2 rounded-xl bg-black/60 border border-white/10 text-white text-xs placeholder:text-neutral-500 focus:outline-none focus:border-purple-500 transition-colors\""
         },
         {
-          "line": 218,
+          "line": 196,
           "attribute": "className",
           "expression": "\"text-[11px] font-bold text-neutral-300 block mb-1\""
         },
         {
-          "line": 228,
+          "line": 206,
           "attribute": "className",
           "expression": "\"w-full px-3.5 py-2 rounded-xl bg-black/60 border border-white/10 text-white text-xs placeholder:text-neutral-500 focus:outline-none focus:border-purple-500 transition-colors\""
         },
         {
-          "line": 235,
+          "line": 213,
           "attribute": "className",
           "expression": "\"text-[11px] font-bold text-neutral-300 block mb-1\""
         },
         {
-          "line": 245,
+          "line": 223,
           "attribute": "className",
           "expression": "\"w-full px-3.5 py-2 rounded-xl bg-black/60 border border-white/10 text-white text-xs placeholder:text-neutral-500 focus:outline-none focus:border-purple-500 transition-colors resize-none\""
         },
         {
-          "line": 252,
+          "line": 230,
           "attribute": "className",
           "expression": "\"w-full py-3 rounded-full bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-xs shadow-lg shadow-purple-600/30 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50\""
         },
         {
-          "line": 254,
+          "line": 232,
           "attribute": "className",
           "expression": "\"w-3.5 h-3.5\""
+        },
+        {
+          "line": 240,
+          "attribute": "className",
+          "expression": "\"self-end px-6 py-2.5 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold text-xs\""
         }
       ]
     },

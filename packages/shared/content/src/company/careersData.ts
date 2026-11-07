@@ -72,8 +72,9 @@ export interface CareersTranslations {
   applyFormPortfolio: string;
   applyFormAbout: string;
   applyFormSubmit: string;
-  applySuccessTitle: string;
-  applySuccessDesc: string;
+  applicationsUnavailableTitle: string;
+  applicationsUnavailableDesc: string;
+  generalContactLabel: string;
   closeModal: string;
 }
 
@@ -578,9 +579,9 @@ export const CAREERS_TRANSLATIONS: Record<string, CareersTranslations> = {
           'Absolutely! We love passionate individuals with curiosity and dedication. If you want to learn modern tools and solve real problems, our core team will mentor and support you.',
       },
       {
-        question: 'I submitted an application, when will I hear back from the founders?',
+        question: 'Can I submit an application through this page?',
         answer:
-          'Our founders review every application personally within 2–3 business days. We will contact you via Telegram or Email for a casual, friendly chat.',
+          'This page does not accept or send applications. No information has been submitted. For general project questions, use the contact below; no response time is promised.',
       },
       {
         question: 'Can I propose my own feature or join via Open Contributor?',
@@ -595,15 +596,16 @@ export const CAREERS_TRANSLATIONS: Record<string, CareersTranslations> = {
     tasksLabel: 'Key Tasks & Responsibilities',
     requirementsLabel: 'Requirements & Skills',
     benefitsLabel: 'What We Offer',
-    applyButton: 'Apply for this Role',
+    applyButton: 'View details',
     applyFormName: 'Your Full Name',
     applyFormEmail: 'Email Address / Telegram',
     applyFormPortfolio: 'GitHub / Portfolio / Resume Link',
     applyFormAbout: 'Why do you want to contribute to Eternal?',
     applyFormSubmit: 'Submit Application',
-    applySuccessTitle: 'Application Received! 🎉',
-    applySuccessDesc:
-      'Thank you for reaching out! Our team will review your application and get in touch shortly.',
+    applicationsUnavailableTitle: 'Applications unavailable on this page',
+    applicationsUnavailableDesc:
+      'This page does not accept or send applications. No information has been submitted. For general project questions, use the contact below; no response time is promised.',
+    generalContactLabel: 'General project contact',
     closeModal: 'Close',
   },
   Українська: {
@@ -755,9 +757,9 @@ export const CAREERS_TRANSLATIONS: Record<string, CareersTranslations> = {
           'Так, звісно! Головне — це щире бажання вчитися, ініціативність та любов до продукту. Команда засновників завжди готова підказати, провести рев’ю та допомогти розібратися.',
       },
       {
-        question: 'Я надіслав заявку, коли очікувати на відповідь?',
+        question: 'Чи можна надіслати заявку через цю сторінку?',
         answer:
-          'Засновники особисто переглядають кожну анкету протягом 2–3 робочих днів. Ми зв’яжемося з вами у Telegram або поштою для теплої неформальної бесіди.',
+          'Ця сторінка не приймає та не надсилає заявки. Жодної інформації не надіслано. Із загальних питань про проєкт звертайтеся за контактом нижче; строк відповіді не обіцяється.',
       },
       {
         question: 'Чи можу я запропонувати власну ідею або фічу через Wildcard?',
@@ -772,15 +774,16 @@ export const CAREERS_TRANSLATIONS: Record<string, CareersTranslations> = {
     tasksLabel: 'Основні завдання та обов’язки',
     requirementsLabel: 'Вимоги та навички',
     benefitsLabel: 'Що ми пропонуємо',
-    applyButton: 'Подати заявку на вакансію',
+    applyButton: 'Переглянути деталі',
     applyFormName: 'Ваше повне ім’я',
     applyFormEmail: 'Email / Telegram для зв’язку',
     applyFormPortfolio: 'Посилання на GitHub / Портфоліо / Резюме',
     applyFormAbout: 'Чому ви хочете приєднатися до Eternal?',
     applyFormSubmit: 'Надіслати заявку',
-    applySuccessTitle: 'Заявку надіслано! 🎉',
-    applySuccessDesc:
-      'Дякуємо за відгук! Наша команда розгляне вашу анкету та зв’яжеться з вами найближчим часом.',
+    applicationsUnavailableTitle: 'Заявки на цій сторінці недоступні',
+    applicationsUnavailableDesc:
+      'Ця сторінка не приймає та не надсилає заявки. Жодної інформації не надіслано. Із загальних питань про проєкт звертайтеся за контактом нижче; строк відповіді не обіцяється.',
+    generalContactLabel: 'Загальний контакт проєкту',
     closeModal: 'Закрити',
   },
   Deutsch: {
@@ -906,14 +909,16 @@ export const CAREERS_TRANSLATIONS: Record<string, CareersTranslations> = {
     tasksLabel: 'Aufgaben',
     requirementsLabel: 'Anforderungen',
     benefitsLabel: 'Was wir bieten',
-    applyButton: 'Jetzt bewerben',
+    applyButton: 'Details ansehen',
     applyFormName: 'Ihr Name',
     applyFormEmail: 'E-Mail-Adresse',
     applyFormPortfolio: 'GitHub / Portfolio Link',
     applyFormAbout: 'Ihre Motivation',
     applyFormSubmit: 'Bewerbung absenden',
-    applySuccessTitle: 'Bewerbung erhalten! 🎉',
-    applySuccessDesc: 'Wir melden uns in Kürze.',
+    applicationsUnavailableTitle: 'Bewerbungen auf dieser Seite nicht verfügbar',
+    applicationsUnavailableDesc:
+      'Diese Seite nimmt keine Bewerbungen an und versendet sie nicht. Es wurden keine Informationen übermittelt. Für allgemeine Projektfragen nutzen Sie den Kontakt unten; eine Antwortfrist wird nicht zugesagt.',
+    generalContactLabel: 'Allgemeiner Projektkontakt',
     closeModal: 'Schließen',
   },
   Español: {
@@ -1038,14 +1043,16 @@ export const CAREERS_TRANSLATIONS: Record<string, CareersTranslations> = {
     tasksLabel: 'Tareas principales',
     requirementsLabel: 'Requisitos',
     benefitsLabel: 'Lo que ofrecemos',
-    applyButton: 'Postularme ahora',
+    applyButton: 'Ver detalles',
     applyFormName: 'Nombre completo',
     applyFormEmail: 'Correo electrónico',
     applyFormPortfolio: 'Enlace a GitHub o Portfolio',
     applyFormAbout: '¿Por qué quieres unirte a Eternal?',
     applyFormSubmit: 'Enviar postulación',
-    applySuccessTitle: '¡Postulación recibida! 🎉',
-    applySuccessDesc: 'Nos pondremos en contacto contigo pronto.',
+    applicationsUnavailableTitle: 'Solicitudes no disponibles en esta página',
+    applicationsUnavailableDesc:
+      'Esta página no acepta ni envía solicitudes. No se ha enviado información. Para consultas generales sobre el proyecto, utiliza el contacto de abajo; no se promete un plazo de respuesta.',
+    generalContactLabel: 'Contacto general del proyecto',
     closeModal: 'Cerrar',
   },
   Français: {
@@ -1170,14 +1177,51 @@ export const CAREERS_TRANSLATIONS: Record<string, CareersTranslations> = {
     tasksLabel: 'Missions principales',
     requirementsLabel: 'Compétences requises',
     benefitsLabel: 'Ce que nous offrons',
-    applyButton: 'Postuler maintenant',
+    applyButton: 'Voir les détails',
     applyFormName: 'Nom complet',
     applyFormEmail: 'Adresse e-mail',
     applyFormPortfolio: 'Lien GitHub / Portfolio',
     applyFormAbout: 'Pourquoi souhaitez-vous nous rejoindre ?',
     applyFormSubmit: 'Envoyer ma candidature',
-    applySuccessTitle: 'Candidature reçue ! 🎉',
-    applySuccessDesc: 'Nous vous recontacterons très vite.',
+    applicationsUnavailableTitle: 'Candidatures indisponibles sur cette page',
+    applicationsUnavailableDesc:
+      'Cette page ne reçoit ni ne transmet de candidatures. Aucune information n’a été envoyée. Pour les questions générales sur le projet, utilisez le contact ci-dessous ; aucun délai de réponse n’est promis.',
+    generalContactLabel: 'Contact général du projet',
     closeModal: 'Fermer',
+  },
+};
+
+export const CAREERS_AVAILABILITY_TRANSLATIONS: Record<
+  string,
+  { title: string; message: string; contact: string }
+> = {
+  English: {
+    title: 'No recruitment announced',
+    message:
+      'There is currently no confirmed recruitment programme. Applications are not accepted on this page.',
+    contact: 'For general project questions',
+  },
+  Українська: {
+    title: 'Набір не оголошено',
+    message: 'Наразі немає підтвердженої програми набору. На цій сторінці заявки не приймаються.',
+    contact: 'Із загальних питань про проєкт',
+  },
+  Deutsch: {
+    title: 'Keine Personalsuche angekündigt',
+    message:
+      'Derzeit gibt es kein bestätigtes Einstellungsprogramm. Auf dieser Seite werden keine Bewerbungen angenommen.',
+    contact: 'Für allgemeine Fragen zum Projekt',
+  },
+  Español: {
+    title: 'No se ha anunciado una convocatoria',
+    message:
+      'Actualmente no hay un programa de contratación confirmado. Esta página no acepta solicitudes.',
+    contact: 'Para consultas generales sobre el proyecto',
+  },
+  Français: {
+    title: 'Aucun recrutement annoncé',
+    message:
+      'Aucun programme de recrutement n’est actuellement confirmé. Cette page n’accepte pas de candidatures.',
+    contact: 'Pour les questions générales sur le projet',
   },
 };

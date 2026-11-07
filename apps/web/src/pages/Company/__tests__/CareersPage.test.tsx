@@ -1,11 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within, waitFor } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
-import { CareersPage } from '../CareersPage';
+import { CareersPage as PublicCareersPage } from '../CareersPage';
+import { CareersPageDesign as CareersPage } from '../CareersPageDesign';
 import { useLanguageStore } from '../../../shared/lib/language/languageStore';
 
-describe('Careers Page (/careers, /jobs)', () => {
+describe('Unpublished Careers design', () => {
   beforeEach(() => {
     useLanguageStore.getState().setLanguage('English');
   });
@@ -73,34 +74,31 @@ describe('Careers Page (/careers, /jobs)', () => {
     ).toBeInTheDocument();
   });
 
-  it('opens and submits the job application details modal', async () => {
+  it('retains the form design disabled without pretending to send an application', async () => {
     render(
       <MemoryRouter>
         <CareersPage />
       </MemoryRouter>,
     );
 
-    // Click on AppSec position card
-    const appSecCard = screen.getByText(/Application Security \(AppSec\) Contributor/i);
-    fireEvent.click(appSecCard);
-
-    // Modal opens
-    expect(screen.getByText(/Key Tasks & Responsibilities/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/Nikolaj \/ Ilya \/ Elena/i)).toBeInTheDocument();
-
-    // Fill form and submit
-    fireEvent.change(screen.getByPlaceholderText(/Nikolaj \/ Ilya \/ Elena/i), {
-      target: { value: 'Nikolaj Contributor' },
-    });
-    fireEvent.change(screen.getByPlaceholderText(/@telegram or you@email.com/i), {
-      target: { value: '@nikolaj_sec' },
-    });
-
-    const submitBtn = screen.getByRole('button', { name: /Submit Application/i });
-    fireEvent.click(submitBtn);
-
-    // Should render without error
-    expect(submitBtn).toBeInTheDocument();
+    fireEvent.click(screen.getByText(/Application Security \(AppSec\) Contributor/i));
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText(/Key Tasks & Responsibilities/i)).toBeInTheDocument();
+    expect(within(dialog).getByRole('status')).toHaveTextContent(
+      'This page does not accept or send applications.',
+    );
+    expect(within(dialog).getByRole('status')).toHaveTextContent(
+      'No information has been submitted.',
+    );
+    for (const input of within(dialog).getAllByRole('textbox')) expect(input).toBeDisabled();
+    expect(within(dialog).getByRole('button', { name: 'Submit Application' })).toBeDisabled();
+    expect(within(dialog).queryByText(/Application Received/i)).not.toBeInTheDocument();
+    expect(within(dialog).getByRole('link', { name: /General project contact/i })).toHaveAttribute(
+      'href',
+      'mailto:eternalnet.support@proton.me',
+    );
+    fireEvent.click(within(dialog).getAllByRole('button', { name: 'Close' }).at(-1)!);
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
   it('switches to Ukrainian dynamically and updates all titles and FAQ content', () => {
@@ -132,5 +130,34 @@ describe('Careers Page (/careers, /jobs)', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: /ЗАПИТАННЯ\?/i })).toBeInTheDocument();
     expect(screen.getByText(/Реальний Продакшн Досвід/i)).toBeInTheDocument();
+  });
+});
+
+describe('Public Careers availability', () => {
+  it.each([
+    ['English', 'No recruitment announced'],
+    ['Українська', 'Набір не оголошено'],
+    ['Deutsch', 'Keine Personalsuche angekündigt'],
+    ['Español', 'No se ha anunciado una convocatoria'],
+    ['Français', 'Aucun recrutement annoncé'],
+  ] as const)('keeps unpublished offers and application fields hidden in %s', (language, title) => {
+    useLanguageStore.getState().setLanguage(language);
+    render(
+      <MemoryRouter>
+        <PublicCareersPage />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('heading', { level: 1, name: title })).toBeInTheDocument();
+    expect(screen.getByRole('status')).not.toBeEmptyDOMElement();
+    expect(
+      screen.queryByText(/Application Security \(AppSec\) Contributor/i),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    expect(document.querySelector('form')).toBeNull();
+    expect(screen.getByRole('link', { name: 'eternalnet.support@proton.me' })).toHaveAttribute(
+      'href',
+      'mailto:eternalnet.support@proton.me',
+    );
   });
 });

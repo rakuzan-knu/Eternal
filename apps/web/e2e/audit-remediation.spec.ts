@@ -1,3 +1,4 @@
+import { getRegistrationPolicy } from '@social-network/shared-contracts';
 import { test, expect, mockApi } from './fixtures';
 
 const communityFixture = {
@@ -106,7 +107,7 @@ for (const width of [390, 1280]) {
         await route.fulfill({
           contentType: 'application/json',
           headers: {
-            'Access-Control-Allow-Origin': 'http://127.0.0.1:5183',
+            'Access-Control-Allow-Origin': new URL(page.url()).origin,
             'Access-Control-Allow-Credentials': 'true',
           },
           body: JSON.stringify({
@@ -122,7 +123,7 @@ for (const width of [390, 1280]) {
       await dialog.getByRole('button', { name: 'Create invitation link' }).click();
       await expect(
         dialog.getByRole('textbox', { name: 'Invitation link', exact: true }),
-      ).toHaveValue(`http://127.0.0.1:5183/invite/${invitationToken}`);
+      ).toHaveValue(`${new URL(page.url()).origin}/invite/${invitationToken}`);
       await expect(dialog.getByRole('link', { name: 'Telegram', exact: true })).toHaveAttribute(
         'href',
         /t\.me\/share/,
@@ -182,19 +183,20 @@ for (const viewport of [
   test.describe(`Audit remediation ${viewport.width}px`, () => {
     test.use({ viewport });
 
-    test('registration keeps every field and starts with deliberate date and gender choices', async ({
+    test('closed registration remains readable without collecting personal information', async ({
       page,
     }) => {
+      await mockApi(page, '/auth/registration-policy', { json: getRegistrationPolicy() });
       await page.goto('/register', { waitUntil: 'domcontentloaded' });
-      await expect(page.getByRole('combobox', { name: 'Birth month' })).toContainText('Month');
-      await expect(page.getByRole('combobox', { name: 'Birth day' })).toContainText('Day');
-      await expect(page.getByRole('combobox', { name: 'Birth year' })).toContainText('Year');
-      await expect(page.getByRole('combobox', { name: 'Gender' })).toContainText('Select gender');
-      await expect(page.getByRole('textbox', { name: 'Last name' })).toBeVisible();
-      await page.getByRole('combobox', { name: 'Birth month' }).click();
-      await expect(page.getByRole('option', { name: 'February', exact: true })).toBeVisible();
-      await page.getByRole('option', { name: 'February', exact: true }).click();
-      await expect(page.getByRole('combobox', { name: 'Birth month' })).toContainText('February');
+      await expect(page.getByRole('status')).toContainText('No market is currently open');
+      await expect(page.getByRole('textbox')).toHaveCount(0);
+      await expect(page.getByRole('combobox')).toHaveCount(0);
+      await expect(
+        page.getByRole('link', { name: 'Sign in to an existing account', exact: true }),
+      ).toBeVisible();
+      await expect
+        .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+        .toBeLessThanOrEqual(viewport.width);
       await page.screenshot({ path: test.info().outputPath('registration.png'), fullPage: true });
     });
 
