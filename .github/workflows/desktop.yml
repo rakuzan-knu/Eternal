@@ -149,6 +149,9 @@ jobs:
           APPLE_TEAM_ID: ${{ github.event_name != 'pull_request' && needs.prepare.outputs.publish == 'true' && secrets.APPLE_TEAM_ID || '' }}
         run: |
           set -euo pipefail
+          if [[ "$RUNNER_OS" == macOS && ! "${CSC_LINK-}" =~ [^[:space:]] ]]; then
+            unset CSC_LINK
+          fi
           for target in $TARGETS; do
             pnpm --filter @eternal/desktop package "$target" "--$ARCH" --version "$VERSION"
             pnpm --filter @eternal/desktop exec node scripts/release-artifacts.ts stage "$VERSION" "$target" "$ARCH" release "release-ci/$target-$ARCH"
