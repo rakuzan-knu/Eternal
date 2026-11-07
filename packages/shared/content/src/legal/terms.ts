@@ -109,7 +109,7 @@ export const TERMS_SECTIONS: TermsSection[] = [
         title: '4.1 Creating and Securing Your Account',
         content: [
           'To use Eternal, you must create an account with an email, username, and secure password. You agree to provide accurate information and keep it up to date.',
-          'You are responsible for all activity that occurs under your account. We strongly recommend enabling Two-Factor Authentication (2FA) and using a unique, strong password. Contact: eternalnet.support@proton.me. Do not submit personal data through public issues.',
+          'You are responsible for all activity that occurs under your account. Use a unique, strong password and keep your login credentials private. Contact: eternalnet.support@proton.me. Do not submit personal data through public issues.',
         ],
       },
       {
@@ -456,7 +456,7 @@ export const TERMS_SECTIONS_UK: TermsSection[] = [
         title: '4.1 Створення та захист профілю',
         content: [
           'Для користування Eternal ви створюєте профіль із надійним паролем. Ви зобов’язуєтеся надавати актуальну інформацію.',
-          'Ви відповідаєте за всі дії у своєму акаунті. Рекомендуємо увімкнути двофакторну автентифікацію (2FA). Контакт: eternalnet.support@proton.me. Не надсилайте персональні дані через публічні звернення.',
+          'Ви відповідаєте за всі дії у своєму акаунті. Використовуйте унікальний надійний пароль і не розголошуйте дані входу. Контакт: eternalnet.support@proton.me. Не надсилайте персональні дані через публічні звернення.',
         ],
       },
       {

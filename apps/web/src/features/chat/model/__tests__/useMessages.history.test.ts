@@ -89,9 +89,11 @@ describe('bounded historical browsing', () => {
     expect(head.pages[0].data[0].id).toBe('m600');
     expect(history?.pages.length).toBeLessThanOrEqual(4);
     expect(history?.pageParams.length).toBe(history?.pages.length);
-    expect(result.current.messages).toHaveLength(80);
-    expect(result.current.messages[0].id).toBe('m1');
-    expect(result.current.messages.at(-1)?.id).toBe('m80');
+    await waitFor(() => {
+      expect(result.current.messages).toHaveLength(80);
+      expect(result.current.messages[0].id).toBe('m1');
+      expect(result.current.messages.at(-1)?.id).toBe('m80');
+    });
   });
 
   it('restores an evicted adjacent raw page when reversing without another REST request', async () => {
