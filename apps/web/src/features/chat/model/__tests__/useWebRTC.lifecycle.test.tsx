@@ -17,6 +17,18 @@ vi.mock('@/shared/api/socket', () => ({
   getSocket: () => ({ on: vi.fn(), off: vi.fn(), emit: vi.fn() }),
 }));
 describe('WebRTC idle lifecycle', () => {
+  it.each(['AbortError', 'NotAllowedError'])(
+    'does not reopen the picker after %s',
+    async (name) => {
+      const cancelled = new DOMException('Capture cancelled', name);
+      const capture = vi.fn().mockRejectedValue(cancelled);
+      vi.stubGlobal('navigator', { mediaDevices: { getDisplayMedia: capture } });
+      const { result, unmount } = renderHook(() => useWebRTC({}));
+      await expect(result.current.startScreenShare()).rejects.toBe(cancelled);
+      expect(capture).toHaveBeenCalledOnce();
+      unmount();
+    },
+  );
   beforeEach(() => {
     vi.useFakeTimers();
     useCallStore.setState({ localStream: null, screenShareStream: null, remoteStreams: {} });

@@ -1,5 +1,12 @@
 # 🖥️ Desktop Application (Coming Soon)
 
+Поточна реалізація Electron: [план](../../docs/desktop/DESKTOP_PLAN.md),
+[пакування](../../docs/desktop/PHASE_6.md),
+[адміністрування й політики](../../docs/desktop/ADMIN_GUIDE.md),
+[CI та релізи](../../docs/desktop/PHASE_8.md),
+[магазини та умови публікації](../../docs/desktop/PHASE_9.md).
+Нижче збережено історичну оцінку runtime до затвердження плану.
+
 ## 📌 Status: Under Evaluation
 
 The desktop client application is currently in the architectural evaluation stage. The team is evaluating two modern desktop application runtimes:

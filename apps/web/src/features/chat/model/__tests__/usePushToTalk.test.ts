@@ -24,6 +24,7 @@ describe('usePushToTalk Hook (Release Tail & Walkie-Talkie Audio)', () => {
       pttReleaseTailMs: 250,
       isPTTSoundEnabled: true,
       isMuted: true,
+      isDeafened: false,
     });
   });
 
@@ -94,5 +95,34 @@ describe('usePushToTalk Hook (Release Tail & Walkie-Talkie Audio)', () => {
     expect(useCallStore.getState().isPTTActive).toBe(false);
 
     document.body.removeChild(input);
+  });
+
+  it('does not unmute a deafened call from a global PTT press', () => {
+    useCallStore.setState({ isDeafened: true });
+    const toggleMuteTrack = vi.fn();
+    const { result } = renderHook(() => usePushToTalk({ toggleMuteTrack }));
+    act(() => result.current.startTalking());
+    expect(useCallStore.getState().isMuted).toBe(true);
+    expect(toggleMuteTrack).not.toHaveBeenCalled();
+  });
+
+  it('keeps the microphone closed after manual unmute while the PTT key is released', () => {
+    const toggleMuteTrack = vi.fn();
+    renderHook(() => usePushToTalk({ toggleMuteTrack }));
+    act(() => useCallStore.getState().setIsMuted(false));
+    expect(useCallStore.getState().isMuted).toBe(true);
+    expect(toggleMuteTrack).toHaveBeenLastCalledWith(true);
+  });
+
+  it('releases PTT even if keyboard focus moved into an editable field', () => {
+    const toggleMuteTrack = vi.fn();
+    renderHook(() => usePushToTalk({ toggleMuteTrack }));
+    act(() => window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space' })));
+    const input = document.createElement('input');
+    document.body.append(input);
+    act(() => input.dispatchEvent(new KeyboardEvent('keyup', { code: 'Space', bubbles: true })));
+    act(() => vi.advanceTimersByTime(250));
+    expect(toggleMuteTrack).toHaveBeenLastCalledWith(true);
+    input.remove();
   });
 });

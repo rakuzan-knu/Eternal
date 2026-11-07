@@ -14,6 +14,7 @@ permissions:
   pull-requests: write
   packages: write
   id-token: write
+  attestations: write
 
 jobs:
   release:
@@ -78,6 +79,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_PAT || (steps.app-token.outputs.token != '' && steps.app-token.outputs.token || secrets.GITHUB_TOKEN) }}
 
+  desktop:
+    name: Desktop release assets
+    needs: release
+    if: needs.release.outputs.new-release-published == 'true'
+    uses: ./.github/workflows/desktop.yml
+    with:
+      tag: v${{ needs.release.outputs.new-release-version }}
+    secrets: inherit
+
   sbom-attestation:
     name: SBOM Generation & Cosign Attestation
     runs-on: ubuntu-latest
@@ -105,7 +115,6 @@ jobs:
         with:
           name: sbom-release-v${{ needs.release.outputs.new-release-version }}
           path: sbom.spdx.json
-
 
   sentry-release:
     name: Sentry — Create Release & Upload Source Maps

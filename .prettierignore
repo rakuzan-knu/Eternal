@@ -16,6 +16,7 @@ public/mockServiceWorker.js
 *.lock
 package-lock.json
 pnpm-lock.yaml
+/apps/desktop/src/main/generated/
 yarn.lock
 bun.lockb
 benchmarks/k6/tokens.json

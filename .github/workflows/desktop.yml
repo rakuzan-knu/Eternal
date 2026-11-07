@@ -1,0 +1,292 @@
+name: Desktop
+
+on:
+  pull_request:
+    paths:
+      - 'apps/desktop/**'
+      - 'apps/web/**'
+      - 'packages/**'
+      - '*lock*'
+      - 'package.json'
+      - 'pnpm-workspace.yaml'
+      - 'tsconfig*.json'
+      - 'vercel.json'
+      - 'release.config.cjs'
+      - '.github/workflows/desktop.yml'
+      - '.github/workflows/desktop-stores.yml'
+      - '.github/workflows/release.yml'
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing semantic-release tag (v1.2.3 or v1.2.3-beta.1)
+        required: true
+        type: string
+
+concurrency:
+  group: desktop-${{ inputs.tag || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  prepare:
+    if: github.event_name == 'pull_request' || ((github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop') && github.ref_protected)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      tag: ${{ steps.release.outputs.tag }}
+      commit: ${{ steps.release.outputs.commit }}
+      publish: ${{ steps.release.outputs.publish }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version-file: '.nvmrc'
+          package-manager-cache: false
+      - name: Resolve immutable release source
+        id: release
+        env:
+          REQUESTED_TAG: ${{ inputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+          TRUSTED_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: node apps/desktop/scripts/release-source.ts
+
+  build:
+    needs: prepare
+    env:
+      DESKTOP_RELEASE_COMMIT: ${{ needs.prepare.outputs.commit }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-latest
+            os: win
+            arch: x64
+            targets: nsis msi
+            asar: win-unpacked/resources/app.asar
+          - runner: windows-latest
+            os: win
+            arch: arm64
+            targets: nsis msi
+            asar: win-arm64-unpacked/resources/app.asar
+          - runner: macos-latest
+            os: mac
+            arch: universal
+            targets: dmg zip
+            asar: mac-universal/Eternal.app/Contents/Resources/app.asar
+          - runner: ubuntu-latest
+            os: linux
+            arch: x64
+            targets: AppImage deb rpm
+            asar: linux-unpacked/resources/app.asar
+          - runner: ubuntu-24.04-arm
+            os: linux
+            arch: arm64
+            targets: AppImage deb rpm
+            asar: linux-arm64-unpacked/resources/app.asar
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ needs.prepare.outputs.commit }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version-file: '.nvmrc'
+          package-manager-cache: false
+      - name: Install dependencies
+        run: |
+          printf '\nsupportedArchitectures:\n  cpu: [x64, arm64]\n' >> pnpm-workspace.yaml
+          pnpm install --frozen-lockfile
+      - name: Linux packaging and Electron dependencies
+        if: runner.os == 'Linux'
+        run: |
+          pnpm --filter @eternal/desktop exec playwright install-deps chromium
+          sudo apt-get update
+          sudo apt-get install -y rpm libxtst6 libxt6
+      - name: Desktop lint and tests
+        run: |
+          pnpm --filter @eternal/desktop lint
+          pnpm --filter @eternal/desktop test --maxWorkers=2
+          pnpm validate:actions
+      - name: Build shared web renderer and Electron
+        run: pnpm build:desktop
+      - name: Electron smoke (native runner architecture)
+        if: matrix.os != 'win' || matrix.arch == 'x64'
+        run: |
+          if [ "$RUNNER_OS" = Linux ]; then
+            xvfb-run -a pnpm --filter @eternal/desktop e2e e2e/smoke.spec.ts
+          else
+            pnpm --filter @eternal/desktop e2e e2e/smoke.spec.ts
+          fi
+      - name: Package each distribution without publishing
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+          TARGETS: ${{ matrix.targets }}
+          ARCH: ${{ matrix.arch }}
+          CSC_LINK: ${{ github.event_name != 'pull_request' && needs.prepare.outputs.publish == 'true' && secrets.CSC_LINK || '' }}
+          CSC_KEY_PASSWORD: ${{ github.event_name != 'pull_request' && needs.prepare.outputs.publish == 'true' && secrets.CSC_KEY_PASSWORD || '' }}
+          WIN_CSC_LINK: ${{ github.event_name != 'pull_request' && needs.prepare.outputs.publish == 'true' && secrets.WIN_CSC_LINK || '' }}
+          WIN_CSC_KEY_PASSWORD: ${{ github.event_name != 'pull_request' && needs.prepare.outputs.publish == 'true' && secrets.WIN_CSC_KEY_PASSWORD || '' }}
+          APPLE_ID: ${{ github.event_name != 'pull_request' && needs.prepare.outputs.publish == 'true' && secrets.APPLE_ID || '' }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ github.event_name != 'pull_request' && needs.prepare.outputs.publish == 'true' && secrets.APPLE_APP_SPECIFIC_PASSWORD || '' }}
+          APPLE_TEAM_ID: ${{ github.event_name != 'pull_request' && needs.prepare.outputs.publish == 'true' && secrets.APPLE_TEAM_ID || '' }}
+        run: |
+          set -euo pipefail
+          for target in $TARGETS; do
+            pnpm --filter @eternal/desktop package "$target" "--$ARCH" --version "$VERSION"
+            pnpm --filter @eternal/desktop exec node scripts/release-artifacts.ts stage "$VERSION" "$target" "$ARCH" release "release-ci/$target-$ARCH"
+          done
+      - name: Extract packaged dependency inventory
+        env:
+          ASAR_PATH: ${{ matrix.asar }}
+        run: pnpm --filter @eternal/desktop exec node scripts/extract-sbom.ts "release/$ASAR_PATH" release-ci/sbom-source
+      - name: Install Syft
+        uses: anchore/sbom-action/download-syft@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c
+        with:
+          syft-version: v1.42.3
+      - name: CycloneDX SBOM from packaged ASAR
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+          TARGET_OS: ${{ matrix.os }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          mkdir -p "apps/desktop/release-ci/sbom-$TARGET_OS-$ARCH"
+          syft scan dir:apps/desktop/release-ci/sbom-source --select-catalogers +javascript-package-cataloger --source-name "Eternal-$TARGET_OS-$ARCH" --source-version "$VERSION" -o "cyclonedx-json=apps/desktop/release-ci/sbom-$TARGET_OS-$ARCH/Eternal-$VERSION-$TARGET_OS-$ARCH.cdx.json"
+      - name: Upload staged distributions
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: desktop-${{ matrix.os }}-${{ matrix.arch }}
+          path: |
+            apps/desktop/release-ci/*/manifest.json
+            apps/desktop/release-ci/*/Eternal-*
+            apps/desktop/release-ci/*/*.yml
+          if-no-files-found: error
+          retention-days: 7
+      - name: Upload Electron failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: desktop-smoke-${{ matrix.os }}-${{ matrix.arch }}
+          path: |
+            apps/desktop/test-results/
+            apps/desktop/playwright-report/
+          retention-days: 7
+
+  assemble:
+    needs: [prepare, build]
+    env:
+      DESKTOP_RELEASE_COMMIT: ${{ needs.prepare.outputs.commit }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ needs.prepare.outputs.commit }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version-file: '.nvmrc'
+          package-manager-cache: false
+      - run: pnpm install --frozen-lockfile --ignore-scripts --filter @eternal/desktop...
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          pattern: desktop-*
+          path: apps/desktop/release-ci/downloads
+          merge-multiple: true
+      - name: Validate complete matrix and merge update manifests
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: pnpm --filter @eternal/desktop exec node scripts/release-artifacts.ts assemble "$VERSION" release-ci/downloads release-ci/assets
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: desktop-release-assets
+          path: apps/desktop/release-ci/assets/*
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    if: github.event_name != 'pull_request' && needs.prepare.outputs.publish == 'true' && github.ref_protected && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    needs: [prepare, assemble]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version-file: '.nvmrc'
+          package-manager-cache: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          name: desktop-release-assets
+          path: desktop-assets
+      - name: Reverify release provenance before using signing credentials
+        env:
+          REQUESTED_TAG: ${{ needs.prepare.outputs.tag }}
+          EXPECTED_COMMIT: ${{ needs.prepare.outputs.commit }}
+          TRUSTED_WORKFLOW_SHA: ${{ github.workflow_sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: node apps/desktop/scripts/release-source.ts
+      - name: Verify checksums and sign release manifest
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.DESKTOP_GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.DESKTOP_GPG_PASSPHRASE }}
+          GPG_FINGERPRINT: ${{ vars.DESKTOP_GPG_FINGERPRINT }}
+        run: |
+          set -euo pipefail
+          export GNUPGHOME="$RUNNER_TEMP/desktop-gnupg"
+          mkdir -m 700 "$GNUPGHOME"
+          trap 'gpgconf --kill all; rm -rf "$GNUPGHOME"' EXIT
+          cd desktop-assets
+          sha256sum --check SHA256SUMS
+          gpg --batch --import <<< "$GPG_PRIVATE_KEY"
+          gpg --batch --armor --export "$GPG_FINGERPRINT" > desktop-release-key.asc
+          test -s desktop-release-key.asc
+          sha256sum desktop-release-key.asc >> SHA256SUMS
+          gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 --local-user "$GPG_FINGERPRINT" --armor --detach-sign SHA256SUMS <<< "$GPG_PASSPHRASE"
+          gpg --batch --verify SHA256SUMS.asc SHA256SUMS
+      - name: Attest installers, update metadata, SBOMs and checksums
+        id: attest
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a
+        with:
+          subject-path: desktop-assets/*
+      - name: Include offline provenance bundle
+        env:
+          BUNDLE_PATH: ${{ steps.attest.outputs.bundle-path }}
+        run: cp "$BUNDLE_PATH" desktop-assets/desktop-provenance.json
+      - name: Attach assets to existing semantic-release release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+          TRUSTED_WORKFLOW_SHA: ${{ github.workflow_sha }}
+          EXPECTED_COMMIT: ${{ needs.prepare.outputs.commit }}
+          REQUESTED_TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          set -euo pipefail
+          node apps/desktop/scripts/release-source.ts
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null
+          gh release upload "$TAG" desktop-assets/* --repo "$GITHUB_REPOSITORY" --clobber

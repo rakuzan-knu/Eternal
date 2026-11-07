@@ -33,6 +33,8 @@ import { chatApi } from '../api/chatApi';
 import { getRealtimeChatBatch } from './realtimeChatBatch';
 import { createSocketStateBatch } from './socketStateBatch';
 import { registerSessionResetHandler } from '@/shared/model/resetSession';
+import { isDesktop } from '@/shared/lib/platform';
+import { showBrowserPushNotification } from '@/shared/lib/browserPushNotifications';
 
 /**
  * Global messenger realtime binding (Socket.io → TanStack Query cache).
@@ -444,7 +446,8 @@ export function useMessengerRealtime(
                 lastMessage: message,
                 updatedAt: message.createdAt,
                 unreadCount:
-                  message.sender?.id === userId || c.id === activeConversationId
+                  message.sender?.id === userId ||
+                  (c.id === activeConversationRef.current && !(isDesktop() && document.hidden))
                     ? 0
                     : (c.unreadCount + 1) | 0,
               }
@@ -485,7 +488,8 @@ export function useMessengerRealtime(
       if (
         !settings.enableNotifications ||
         !(conversation?.type === 'GROUP' ? settings.groups : settings.privateChats) ||
-        activeConversationRef.current === message.conversationId ||
+        (activeConversationRef.current === message.conversationId &&
+          !(isDesktop() && document.hidden)) ||
         (settings.dndUntil && Date.parse(settings.dndUntil) > Date.now()) ||
         (message.sender?.id && settings.mutedActorIds.includes(message.sender.id)) ||
         !allowsChatAlert(conversation, userId, message.mentionedUserIds)
@@ -532,7 +536,8 @@ export function useMessengerRealtime(
           !alertSettings ||
           useAuthStore.getState().userId !== userId ||
           epoch !== preferencesEpoch.current ||
-          activeConversationRef.current === message.conversationId
+          (activeConversationRef.current === message.conversationId &&
+            !(isDesktop() && document.hidden))
         )
           return;
         const { showName, showText } = alertSettings;
@@ -567,6 +572,14 @@ export function useMessengerRealtime(
           toastAvatar = showName ? message.sender?.avatar || null : null;
         }
 
+        if (isDesktop() && document.hidden) {
+          void showBrowserPushNotification({
+            title: toastTitle,
+            body: toastBody,
+            url: `/messages/${encodeURIComponent(message.conversationId)}?messageId=${encodeURIComponent(message.id)}`,
+            tag: `message-${message.conversationId}`,
+          });
+        }
         addToast({
           id: message.id,
           conversationId: message.conversationId,

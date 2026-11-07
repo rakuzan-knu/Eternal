@@ -1,0 +1,46 @@
+{
+  "name": "desktop",
+  "sourceRoot": "apps/desktop/src",
+  "projectType": "application",
+  "targets": {
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": { "command": "pnpm dev:desktop", "forwardAllArgs": false }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "inputs": [
+        "production",
+        "^production",
+        "{workspaceRoot}/vercel.json",
+        "{workspaceRoot}/apps/web/**/*",
+        "{workspaceRoot}/packages/shared/**/*"
+      ],
+      "outputs": ["{projectRoot}/out", "{workspaceRoot}/apps/web/dist-desktop"],
+      "options": { "command": "pnpm build:desktop", "forwardAllArgs": false }
+    },
+    "package": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "outputs": ["{projectRoot}/release"],
+      "options": { "command": "pnpm package", "cwd": "apps/desktop", "forwardAllArgs": false }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": { "command": "pnpm lint", "cwd": "apps/desktop", "forwardAllArgs": false }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": { "command": "pnpm typecheck", "cwd": "apps/desktop", "forwardAllArgs": false }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": { "command": "pnpm test", "cwd": "apps/desktop", "forwardAllArgs": false }
+    },
+    "e2e": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "options": { "command": "pnpm e2e", "cwd": "apps/desktop", "forwardAllArgs": false }
+    }
+  }
+}

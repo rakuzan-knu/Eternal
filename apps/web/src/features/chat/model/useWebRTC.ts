@@ -2389,7 +2389,12 @@ export function useWebRTC(options: WebRTCOptions = {}) {
           noiseSuppression: false,
         },
       });
-    } catch {
+    } catch (error) {
+      if (
+        error instanceof DOMException &&
+        (error.name === 'NotAllowedError' || error.name === 'AbortError')
+      )
+        throw error;
       ensureCurrentSetup(generation);
       try {
         screenStream = await navigator.mediaDevices.getDisplayMedia({
@@ -2398,7 +2403,12 @@ export function useWebRTC(options: WebRTCOptions = {}) {
           },
           audio: true,
         });
-      } catch {
+      } catch (error) {
+        if (
+          error instanceof DOMException &&
+          (error.name === 'NotAllowedError' || error.name === 'AbortError')
+        )
+          throw error;
         ensureCurrentSetup(generation);
         screenStream = await navigator.mediaDevices.getDisplayMedia({
           video: true,

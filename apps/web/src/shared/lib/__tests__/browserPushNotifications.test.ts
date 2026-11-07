@@ -29,6 +29,18 @@ describe('browserPushNotifications', () => {
   });
 
   describe('registerServiceWorker', () => {
+    it('does not register the web service worker in desktop', async () => {
+      const register = vi.fn();
+      const getRegistration = vi.fn();
+      vi.stubGlobal('desktop', { getInfo: vi.fn(), openExternal: vi.fn() });
+      Object.defineProperty(navigator, 'serviceWorker', {
+        value: { register, getRegistration },
+        configurable: true,
+      });
+      expect(await registerServiceWorker()).toBeNull();
+      expect(register).not.toHaveBeenCalled();
+    });
+
     it('registers service worker successfully', async () => {
       const registerMock = vi.fn().mockResolvedValue({ scope: '/' });
       Object.defineProperty(navigator, 'serviceWorker', {
@@ -98,6 +110,46 @@ describe('browserPushNotifications', () => {
   });
 
   describe('showBrowserPushNotification', () => {
+    it('uses the native desktop bridge without browser permission or service-worker registration', async () => {
+      const showNotification = vi.fn().mockResolvedValue(true);
+      const browserNotification = vi.fn();
+      vi.stubGlobal('Notification', browserNotification);
+      vi.stubGlobal('desktop', { showNotification });
+      const getRegistration = vi.fn();
+      Object.defineProperty(navigator, 'serviceWorker', {
+        value: { getRegistration },
+        configurable: true,
+      });
+      await showBrowserPushNotification({
+        title: 'Private',
+        body: 'Message',
+        url: '/messages/one?messageId=two',
+        tag: 'one',
+      });
+      expect(showNotification).toHaveBeenCalledExactlyOnceWith({
+        title: 'Private',
+        body: 'Message',
+        path: '/messages/one?messageId=two',
+        tag: 'one',
+      });
+      expect(getRegistration).not.toHaveBeenCalled();
+      expect(browserNotification).not.toHaveBeenCalled();
+    });
+
+    it('rejects external notification destinations and handles native failures', async () => {
+      const showNotification = vi.fn().mockRejectedValue(new Error('Unavailable'));
+      vi.stubGlobal('desktop', { showNotification });
+      await showBrowserPushNotification({
+        title: 'Test',
+        body: '',
+        url: 'https://evil.example/messages',
+      });
+      expect(showNotification).not.toHaveBeenCalled();
+      await expect(
+        showBrowserPushNotification({ title: 'Test', body: '' }),
+      ).resolves.toBeUndefined();
+    });
+
     it('does nothing if not supported or not granted', async () => {
       const MockNotif = {
         permission: 'denied',

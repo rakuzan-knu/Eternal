@@ -4,6 +4,14 @@ import { useLocation, Navigate, Routes, Route } from 'react-router-dom';
 import Sidebar from '../widgets/sidebar/ui/Sidebar';
 import DeviceLockGate from '../features/profile/ui/security/DeviceLockGate';
 import { GlobalMessengerEvents } from './GlobalMessengerEvents';
+import { useDesktopIntegration } from './useDesktopIntegration';
+import { isDesktop } from '@/shared/lib/platform';
+const DesktopBadge = lazy(() =>
+  import('./DesktopBadge').then((module) => ({ default: module.DesktopBadge })),
+);
+const DesktopUpdates = lazy(() =>
+  import('./DesktopUpdates').then((module) => ({ default: module.DesktopUpdates })),
+);
 import { useStoryViewerStore } from '../features/stories/model/useStoryViewerStore';
 import { useStoryEditorStore } from '../features/stories/model/useStoryEditorStore';
 import { useHiddenUndoStore } from '../features/posts/model/useHiddenUndoStore';
@@ -225,6 +233,20 @@ function FeedLayout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  return (
+    <>
+      {isDesktop() && (
+        <Suspense fallback={null}>
+          <DesktopUpdates />
+        </Suspense>
+      )}
+      <AppContent />
+    </>
+  );
+}
+
+function AppContent() {
+  useDesktopIntegration();
   const isSidebarExpanded = useUIStore((state) => state.isSidebarExpanded);
   const isSidebarPinned = useUIStore((state) => state.isSidebarPinned);
   const isEditProfileOpen = useUIStore((state) => state.isEditProfileOpen);
@@ -562,6 +584,11 @@ export default function App() {
     <DeviceLockGate>
       <CallProvider>
         <GlobalMessengerEvents />
+        {isDesktop() && (
+          <Suspense fallback={null}>
+            <DesktopBadge />
+          </Suspense>
+        )}
         <div
           className={`relative ${isGameModeOpen || isReelsRoute ? 'h-screen overflow-hidden' : 'min-h-screen'} text-white transition-colors duration-200`}
           style={appBackgroundStyle}
