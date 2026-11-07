@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.12.3](https://github.com/rakuzan-knu/Eternal/compare/v1.12.2...v1.12.3) (2026-11-07)
+
+### 🐛 Bug Fixes
+
+* remove unavailable two-factor authentication guidance ([608463c](https://github.com/rakuzan-knu/Eternal/commit/608463c981d7e9c7f651419f17a899d3cb9a15f2))
+
 ## [1.12.2](https://github.com/rakuzan-knu/Eternal/compare/v1.12.1...v1.12.2) (2026-11-07)
 
 ### 🐛 Bug Fixes
