@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.13.0](https://github.com/rakuzan-knu/Eternal/compare/v1.12.3...v1.13.0) (2026-11-07)
+
+### ✨ Features
+
+* **frontend:** add desktop clients and store release pipeline ([#145](https://github.com/rakuzan-knu/Eternal/issues/145)) ([2b98bd3](https://github.com/rakuzan-knu/Eternal/commit/2b98bd3530704c6e3e4cc37d0ea7053911a790ed))
+
 ## [1.12.3](https://github.com/rakuzan-knu/Eternal/compare/v1.12.2...v1.12.3) (2026-11-07)
 
 ### 🐛 Bug Fixes
