@@ -291,9 +291,12 @@ WACK 10.0.26100.7705 перевірив MSIX x64 v1.13.0.0: загальний �
 Окрім рядків Electron/dependencies, знайдено реальний виклик системного
 PowerShell для registry policy. Для MSIX додано окреме machine-level JSON
 джерело без external process; NSIS/MSI зберігають registry policy. Процедура
-переходу — в [ADMIN_GUIDE.md](ADMIN_GUIDE.md). Це виправлення ще потребує нового
-стабільного релізу, повторного пакування і встановленої S mode перевірки;
-воно не присутнє у v1.13.0.
+переходу — в [ADMIN_GUIDE.md](ADMIN_GUIDE.md). Виправлення включено у
+[v1.13.1](https://github.com/rakuzan-knu/Eternal/releases/tag/v1.13.1), коміт
+`e72467a5e84c138ad90bec1ec63d99e11d517955`: усі п'ять конфігурацій збірки
+успішні, 30 release assets, 27 контрольних сум, GPG-підпис і дві attestations
+перевірені. Встановлення MSIX та S mode перевірка ще потрібні; у v1.13.0
+цього виправлення немає.
 
 Обидва початкові Snap build зупинились на `apt-get update` усередині LXD.
 Діагностика підтвердила Docker `FORWARD DROP`; додано рекомендовані Canonical
@@ -315,6 +318,29 @@ desktop integration. Далі виявлено помилку electron-builder 2
 TypeScript, scoped ESLint, main/preload build і Prettier — успішні.
 Frozen offline перевірка lockfile пройшла. Ці результати не замінюють
 реальне пакування, встановлення й перевірку нового release source.
+
+### Ліцензійні матеріали пакетів — 8 листопада
+
+У фактичному MSIX v1.13.0 знайдено Electron/Chromium notices, 47 license entries
+в ASAR-індексі та окремий native uiohook notice. Це не повна перевірка всіх умов.
+У npm-копіях `@sentry/server-runtime-injection@11.8.0`,
+`@sentry/server-utils@11.8.0` і `lazy-val@1.0.5` не знайдено окремих LICENSE.
+Додано `build/THIRD_PARTY_NOTICES.txt` як extra resource для наступних пакетів:
+для Sentry — незмінний upstream LICENSE тега 11.8.0, Git blob
+`32c62f9869e33a014141c75312f966791a0ff105`; для lazy-val — справжні metadata
+про MIT та автора й текст MIT permission/warranty terms без вигаданого
+copyright holder або року, яких npm-пакет не надає. Інші notices збережені.
+Локальний Windows packager включив файл у `resources/THIRD_PARTY_NOTICES.txt`;
+SHA256 збігається з джерелом. Це ще не підтвердження його наявності у
+наступному опублікованому інсталяторі або вже виданому релізі.
+
+### Доступ до форуму Snap — 8 листопада
+
+Користувач дозволив опублікувати підготовлений технічний запит щодо
+`allow-sandbox` у store-requests на forum.snapcraft.io. Користувач завершив
+окрему реєстрацію форумного акаунта; UI показав, що вхід потребує ручного
+схвалення модератором, про яке повідомлять поштою. Запит ще не опубліковано,
+дозвіл `allow-sandbox` не отримано. Обхід модерації не виконувався.
 `allow-sandbox` потребує погодження магазину; AI-assisted подання Flathub
 заборонене чинною політикою Flathub, тому маніфест і submission має самостійно
 підготувати людина.
