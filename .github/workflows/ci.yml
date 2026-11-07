@@ -548,6 +548,9 @@ jobs:
         working-directory: apps/backend
         run: pnpm exec prisma migrate deploy
 
+      - name: Build backend workspace dependencies
+        run: pnpm build:native
+
       - name: Build backend
         working-directory: apps/backend
         run: pnpm build
