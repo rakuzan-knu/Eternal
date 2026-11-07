@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.13.2](https://github.com/rakuzan-knu/Eternal/compare/v1.13.1...v1.13.2) (2026-11-07)
+
+### 🐛 Bug Fixes
+
+* **desktop:** ship supplemental dependency license notices ([3da1c9d](https://github.com/rakuzan-knu/Eternal/commit/3da1c9db2997dc709e4930593700e61e7021a3ba))
+
 ## [1.13.1](https://github.com/rakuzan-knu/Eternal/compare/v1.13.0...v1.13.1) (2026-11-07)
 
 ### 🐛 Bug Fixes
