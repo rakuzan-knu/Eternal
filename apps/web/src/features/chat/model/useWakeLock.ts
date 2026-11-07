@@ -6,11 +6,24 @@
  */
 
 import { useEffect, useRef } from 'react';
+import { getDesktopBridge } from '@/shared/lib/platform';
 
-export function useWakeLock(isActive: boolean): void {
+export function useWakeLock(isActive: boolean, scope: 'call' | 'mesh' = 'call'): void {
   const sentinelRef = useRef<WakeLockSentinel | null>(null);
 
   useEffect(() => {
+    const desktop = getDesktopBridge();
+    if (desktop?.setCallActive) {
+      if (!isActive) return;
+      void desktop
+        .setCallActive(scope, true)
+        .catch(() => console.debug('Desktop wake lock unavailable'));
+      return () => {
+        void desktop
+          .setCallActive(scope, false)
+          .catch(() => console.debug('Desktop wake lock release unavailable'));
+      };
+    }
     if (!isActive || typeof navigator === 'undefined' || !('wakeLock' in navigator)) {
       return;
     }
@@ -55,5 +68,5 @@ export function useWakeLock(isActive: boolean): void {
         sentinelRef.current = null;
       }
     };
-  }, [isActive]);
+  }, [isActive, scope]);
 }

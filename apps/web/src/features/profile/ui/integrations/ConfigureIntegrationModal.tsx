@@ -38,6 +38,8 @@ import { UnlinkConfirmationModal } from './UnlinkConfirmationModal';
 import { useSpotifyPlayerStore } from '@/shared/model/useSpotifyPlayerStore';
 import { isSpotifyUrl, sanitizeImageUrl } from '@/shared/lib/urlSecurity';
 import type { PlatformConfig } from './platforms';
+import { isDesktop } from '@/shared/lib/platform';
+import { connectDesktopYouTube } from '@/shared/lib/desktopYouTubeOAuth';
 
 export type { PlatformConfig };
 
@@ -121,7 +123,7 @@ export const ConfigureIntegrationModal: React.FC<ConfigureIntegrationModalProps>
       steamLaunchProofRef.current = null;
       oauthLaunchProofRef.current = null;
     };
-  }, [isOpen, platform?.id]);
+  }, [isOpen, platform?.id, currentUser?.id]);
 
   // Twitch, YouTube, Roblox settings
   const [showLiveStatus, setShowLiveStatus] = useState<boolean>(true);
@@ -532,6 +534,28 @@ export const ConfigureIntegrationModal: React.FC<ConfigureIntegrationModalProps>
     setIsAuthenticating(true);
     setOAuthError(null);
     const currentOrigin = window.location.origin;
+
+    if (platform.id === 'youtube' && isDesktop()) {
+      const abort = new AbortController();
+      oauthAbortRef.current = abort;
+      try {
+        const data = await connectDesktopYouTube(abort.signal);
+        if (abort.signal.aborted) return;
+        setActiveData(data);
+        onSaveSuccess('youtube', data);
+        for (const queryKey of [[USER_KEY], ['showcase'], ['user'], ['profile']]) {
+          void queryClient.invalidateQueries({ queryKey });
+        }
+      } catch (error) {
+        if (!abort.signal.aborted)
+          setOAuthError(
+            error instanceof Error ? error.message : 'Could not connect YouTube. Try again.',
+          );
+      } finally {
+        if (!abort.signal.aborted) setIsAuthenticating(false);
+      }
+      return;
+    }
 
     const width = 640;
     const height = 750;

@@ -12,6 +12,11 @@ import type { ConversationView } from '@/entities/chat';
 import { chatApi } from '../../api/chatApi';
 import { useAuthStore } from '@/shared/model/useAuthStore';
 import { useMessageToastStore } from '@/shared/model/useMessageToastStore';
+import { showBrowserPushNotification } from '@/shared/lib/browserPushNotifications';
+
+vi.mock('@/shared/lib/browserPushNotifications', () => ({
+  showBrowserPushNotification: vi.fn().mockResolvedValue(undefined),
+}));
 
 const mockEmit = vi.fn();
 const mockOn = vi.fn();
@@ -79,9 +84,69 @@ describe('useMessengerRealtime', () => {
     });
   });
   afterEach(() => {
+    vi.unstubAllGlobals();
     vi.useRealTimers();
     vi.restoreAllMocks();
   });
+
+  it.each(['hidden', 'foreground', 'muted', 'private'] as const)(
+    'delivers desktop messages with %s state and preserves unread metadata',
+    async (state) => {
+      vi.stubGlobal('desktop', {});
+      vi.spyOn(document, 'hidden', 'get').mockReturnValue(state !== 'foreground');
+      const addToast = vi.fn();
+      useMessageToastStore.setState({ toasts: [], addToast });
+      useNotificationSettingsStore.setState({
+        groups: true,
+        privateChats: true,
+        showName: state !== 'private',
+        showText: state !== 'private',
+      });
+      queryClient.setQueryData(queryKeys.conversations.root, [
+        {
+          id: 'conv-1',
+          type: 'GROUP',
+          name: 'Group',
+          participants: [],
+          myMuteLevel: state === 'muted' ? 'ALL' : 'NONE',
+          myEffectiveNotificationMode: state === 'muted' ? 'NONE' : 'ALL',
+          unreadCount: 2,
+        },
+      ]);
+      renderHook(() => useMessengerRealtime(['conv-1'], 'conv-1', true), {
+        wrapper: createWrapper(queryClient),
+      });
+      await act(async () => {
+        await registeredSocketEvents.newMessage?.({
+          conversationId: 'conv-1',
+          message: {
+            id: 'native-message',
+            conversationId: 'conv-1',
+            sender: { id: 'other', username: 'Other' },
+            body: 'Secret',
+            messageType: 'TEXT',
+            createdAt: new Date().toISOString(),
+          },
+        });
+        await vi.advanceTimersByTimeAsync(250);
+      });
+      if (state === 'foreground' || state === 'muted')
+        expect(showBrowserPushNotification).not.toHaveBeenCalled();
+      else
+        expect(showBrowserPushNotification).toHaveBeenCalledWith(
+          expect.objectContaining({
+            title: state === 'private' ? 'Eternal' : 'Group',
+            ...(state === 'private' ? { body: 'You have a new message' } : {}),
+            url: '/messages/conv-1?messageId=native-message',
+            tag: 'message-conv-1',
+          }),
+        );
+      expect(
+        queryClient.getQueryData<{ unreadCount: number }[]>(queryKeys.conversations.root)?.[0]
+          ?.unreadCount,
+      ).toBe(state === 'foreground' ? 0 : 3);
+    },
+  );
 
   it.each(['open', 'account', 'preferences'] as const)(
     'suppresses a deferred preview after %s changes',

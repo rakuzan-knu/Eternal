@@ -8,6 +8,8 @@ import { SteamPresenceService } from './steam-presence.service';
 import { SpotifyService } from './spotify.service';
 import { SpotifyPresenceService } from './spotify-presence.service';
 import { SoundCloudService } from './soundcloud.service';
+import { YouTubeDesktopController } from './youtube-desktop.controller';
+import { YouTubeDesktopService } from './youtube-desktop.service';
 import { RedisModule } from '../redis/redis.module';
 import { PrismaModule } from '@common/prisma';
 import { ShowcaseModule } from '../showcase/showcase.module';
@@ -20,7 +22,11 @@ import { MessengerModule } from '../messenger/messenger.module';
     forwardRef(() => ShowcaseModule),
     forwardRef(() => MessengerModule),
   ],
-  controllers: roleControllers('music', [IntegrationsController, SpotifyCallbackController]),
+  controllers: roleControllers('music', [
+    IntegrationsController,
+    SpotifyCallbackController,
+    YouTubeDesktopController,
+  ]),
   providers: [
     IntegrationsService,
     SteamAuthService,
@@ -28,6 +34,7 @@ import { MessengerModule } from '../messenger/messenger.module';
     SpotifyService,
     SpotifyPresenceService,
     SoundCloudService,
+    YouTubeDesktopService,
   ],
   exports: [
     IntegrationsService,

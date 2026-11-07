@@ -13,6 +13,8 @@ import { useCookieConsentStore } from '@/features/cookies/model/useCookieConsent
 import { CookiePreferencesModal } from '@/features/cookies/ui/CookiePreferencesModal';
 import { CookieConsentBanner } from '@/features/cookies/ui/CookieConsentBanner';
 
+const hiringBadgeEnabled = false;
+
 interface FooterLink {
   label: string;
   href: string;
@@ -91,7 +93,12 @@ export const EternalFooter: React.FC = () => {
       title: t.columns.company,
       links: [
         { label: t.columns.about, href: '/company', isRoute: true },
-        { label: t.columns.jobs, href: '/careers', isRoute: true, badge: 'Hiring' },
+        {
+          label: t.columns.jobs,
+          href: '/careers',
+          isRoute: true,
+          badge: hiringBadgeEnabled ? 'Hiring' : undefined,
+        },
         { label: t.columns.brand, href: '/branding', isRoute: true },
         { label: t.columns.newsroom, href: '/newsroom', isRoute: true },
       ],

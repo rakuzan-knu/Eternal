@@ -104,13 +104,18 @@ export async function consumeOAuthState(
   return data;
 }
 
+const developmentOAuthKey = randomBytes(32);
+
 function getOAuthEncryptionKey(): Buffer {
   const secret =
     process.env.COOKIE_ENCRYPTION_KEY ||
     process.env.SESSION_SECRET ||
     process.env.JWT_SECRET ||
-    'eternal-oauth-cookie-secure-fallback-key';
-  return createHash('sha256').update(secret).digest();
+    process.env.JWT_ACCESS_SECRET;
+  if (secret) return createHash('sha256').update(secret).digest();
+  if (process.env.NODE_ENV === 'production')
+    throw new Error('OAuth state encryption requires a configured secret');
+  return developmentOAuthKey;
 }
 
 export function encryptOAuthState(state: string): string {

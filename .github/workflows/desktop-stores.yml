@@ -1,0 +1,147 @@
+name: Desktop store packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing stable desktop release (v1.2.3)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-stores-${{ inputs.tag }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  prepare:
+    if: github.ref == 'refs/heads/main' && github.ref_protected
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      commit: ${{ steps.release.outputs.commit }}
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version-file: '.nvmrc'
+          package-manager-cache: false
+      - name: Verify stable release source on the protected branch
+        id: source
+        env:
+          REQUESTED_TAG: ${{ inputs.tag }}
+          TRUSTED_WORKFLOW_SHA: ${{ github.workflow_sha }}
+          GH_TOKEN: ${{ github.token }}
+          STABLE_ONLY: 'true'
+        run: node apps/desktop/scripts/release-source.ts
+      - name: Require an existing stable desktop release
+        id: release
+        env:
+          TAG: ${{ inputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_COMMIT: ${{ steps.source.outputs.commit }}
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_REF" == refs/heads/main ]]
+          [[ "$TAG" =~ ^v[1-9][0-9]*\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+          commit="$SOURCE_COMMIT"
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft,isPrerelease --jq '(.isDraft or .isPrerelease) | not' | grep -qx true
+          mkdir release-source
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir release-source --pattern desktop-release.json --pattern SHA256SUMS --pattern 'Eternal-*-linux-*.deb'
+          (cd release-source && sha256sum --check SHA256SUMS --ignore-missing)
+          gh attestation verify release-source/SHA256SUMS --repo "$GITHUB_REPOSITORY"
+          gh attestation verify release-source/desktop-release.json --repo "$GITHUB_REPOSITORY"
+          jq -e --arg tag "$TAG" --arg commit "$commit" '.tag == $tag and .version == ($tag | ltrimstr("v")) and .commit == $commit' release-source/desktop-release.json
+          test -s "release-source/Eternal-${TAG#v}-linux-amd64.deb"
+          test -s "release-source/Eternal-${TAG#v}-linux-arm64.deb"
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: desktop-store-source
+          path: release-source/
+          retention-days: 7
+          if-no-files-found: error
+
+  package:
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-latest
+            target: msix
+            arch: x64
+          - runner: windows-latest
+            target: msix
+            arch: arm64
+          - runner: ubuntu-latest
+            target: snap
+            arch: x64
+          - runner: ubuntu-24.04-arm
+            target: snap
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ needs.prepare.outputs.commit }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version-file: '.nvmrc'
+          package-manager-cache: false
+      - run: |
+          printf '\nsupportedArchitectures:\n  cpu: [x64, arm64]\n' >> pnpm-workspace.yaml
+          pnpm install --frozen-lockfile
+      - name: Set up isolated Snapcraft build provider
+        if: matrix.target == 'snap'
+        run: |
+          set -euo pipefail
+          sudo snap install snapcraft --classic
+          if ! snap list lxd > /dev/null 2>&1; then sudo snap install lxd; fi
+          sudo lxd waitready
+          sudo lxd init --auto
+          sudo usermod -aG lxd "$USER"
+      - name: Validate and build
+        run: |
+          pnpm --filter @eternal/desktop lint
+          pnpm --filter @eternal/desktop test --maxWorkers=2
+          pnpm build:desktop
+      - name: Package without uploading to stores
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+          TARGET: ${{ matrix.target }}
+          ARCH: ${{ matrix.arch }}
+          ETERNAL_DESKTOP_STORE_IDENTITY: ${{ vars.ETERNAL_DESKTOP_STORE_IDENTITY }}
+          ETERNAL_DESKTOP_STORE_PUBLISHER: ${{ vars.ETERNAL_DESKTOP_STORE_PUBLISHER }}
+          ETERNAL_DESKTOP_STORE_PUBLISHER_DISPLAY_NAME: ${{ vars.ETERNAL_DESKTOP_STORE_PUBLISHER_DISPLAY_NAME }}
+          ETERNAL_DESKTOP_SNAP_NAME: ${{ vars.ETERNAL_DESKTOP_SNAP_NAME }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: |
+          set -euo pipefail
+          if [ "$TARGET" = snap ]; then
+            sg lxd -c 'pnpm --filter @eternal/desktop package snap "--$ARCH" --version "$VERSION"'
+          else
+            pnpm --filter @eternal/desktop package "$TARGET" "--$ARCH" --version "$VERSION"
+          fi
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: desktop-store-${{ matrix.target }}-${{ matrix.arch }}
+          path: |
+            apps/desktop/release/*.msix
+            apps/desktop/release/*.snap
+          if-no-files-found: error
+          retention-days: 7

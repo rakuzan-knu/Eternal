@@ -124,6 +124,7 @@ test('500 media posts reuse three physical video nodes and release resources on 
   page.on('pageerror', (e) => errors.push(e.message));
   await page.addInitScript(() => {
     const create = Document.prototype.createElement;
+    const createElement: (tag: string, options?: ElementCreationOptions) => HTMLElement = create;
     const probe = { videosCreated: 0, events: [] as unknown[] };
     (window as unknown as { __mediaAllocation: typeof probe }).__mediaAllocation = probe;
     Document.prototype.createElement = function (
@@ -132,7 +133,7 @@ test('500 media posts reuse three physical video nodes and release resources on 
       options?: ElementCreationOptions,
     ) {
       if (tag.toLowerCase() === 'video') probe.videosCreated++;
-      return create.call(this, tag, options);
+      return createElement.call(this, tag, options);
     } as typeof create;
     for (const type of ['play', 'pause', 'canplay', 'loadeddata', 'error', 'emptied']) {
       document.addEventListener(

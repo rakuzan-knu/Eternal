@@ -392,6 +392,20 @@ export class IntegrationsService {
     const p = platform.toLowerCase();
     const identity = await consumeOAuthState(this.redis, p, state, userId, browserState);
     const targetUserId = identity.userId;
+    return this.exchangeVerifiedOAuthCode(p, code, redirectUri, targetUserId);
+  }
+
+  exchangeDesktopYouTubeCode(userId: string, code: string, redirectUri: string) {
+    return this.exchangeVerifiedOAuthCode('youtube', code, redirectUri, userId, true);
+  }
+
+  private async exchangeVerifiedOAuthCode(
+    p: string,
+    code: string,
+    redirectUri: string | undefined,
+    targetUserId: string,
+    exactRedirect = false,
+  ): Promise<{ success: boolean; data: Record<string, unknown> | null }> {
     let data: Record<string, unknown> | null = null;
 
     if (p === 'youtube' && process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
@@ -407,7 +421,7 @@ export class IntegrationsService {
       ].filter(Boolean) as string[];
 
       let tokenData: { access_token?: string } | null = null;
-      for (const uri of urisToTry) {
+      for (const uri of exactRedirect ? (redirectUri ? [redirectUri] : []) : urisToTry) {
         try {
           const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
             method: 'POST',
@@ -648,7 +662,7 @@ export class IntegrationsService {
         showFollowersCount: true,
       };
     } else {
-      throw new BadRequestException(`OAuth exchange not supported for platform: ${platform}`);
+      throw new BadRequestException(`OAuth exchange not supported for platform: ${p}`);
     }
 
     if (targetUserId && data) {

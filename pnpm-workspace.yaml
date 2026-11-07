@@ -2,6 +2,7 @@ packages:
   - 'apps/backend'
   - 'apps/web'
   - 'apps/mobile'
+  - 'apps/desktop'
   - 'packages/*'
   - 'packages/shared/*'
 
@@ -35,6 +36,7 @@ onlyBuiltDependencies:
   - '@swc/core'
   - 'argon2'
   - 'esbuild'
+  - 'electron'
   - 'msgpackr-extract'
   - 'msw'
   - 'nx'
@@ -42,6 +44,7 @@ onlyBuiltDependencies:
   - 'unrs-resolver'
 
 overrides:
+  'plist@3.1.0': '3.1.1'
   '@xmldom/xmldom': '>=0.8.15'
   axios: '>=1.20.0'
   compression: '>=1.8.2'

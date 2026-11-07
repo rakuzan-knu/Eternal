@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "types": ["node", "electron-vite/node"]
+  },
+  "include": ["src/**/*.ts", "scripts/**/*.ts", "e2e/**/*.ts", "*.ts", "../web/src/vite-env.d.ts"]
+}

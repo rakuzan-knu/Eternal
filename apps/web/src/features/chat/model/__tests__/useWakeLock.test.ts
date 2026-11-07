@@ -10,10 +10,24 @@ describe('useWakeLock', () => {
   });
 
   afterEach(() => {
+    vi.unstubAllGlobals();
     Object.defineProperty(window, 'navigator', {
       value: originalNavigator,
       writable: true,
     });
+  });
+
+  it('keeps desktop calls awake while hidden and releases the correct scope', async () => {
+    const setCallActive = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal('desktop', { setCallActive });
+    const { rerender, unmount } = renderHook(({ active }) => useWakeLock(active, 'mesh'), {
+      initialProps: { active: true },
+    });
+    expect(setCallActive).toHaveBeenCalledExactlyOnceWith('mesh', true);
+    rerender({ active: false });
+    expect(setCallActive).toHaveBeenLastCalledWith('mesh', false);
+    unmount();
+    expect(setCallActive).toHaveBeenCalledTimes(2);
   });
 
   it('requests screen wake lock when active', async () => {

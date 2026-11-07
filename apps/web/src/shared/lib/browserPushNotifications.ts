@@ -2,6 +2,8 @@
  * Browser Web Push & Native Notification Service
  */
 
+import { getDesktopBridge, isDesktop } from './platform';
+
 export function isNotificationSupported(): boolean {
   return (
     typeof window !== 'undefined' &&
@@ -11,7 +13,7 @@ export function isNotificationSupported(): boolean {
 }
 
 export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
-  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+  if (isDesktop() || typeof window === 'undefined' || !('serviceWorker' in navigator)) {
     return null;
   }
   try {
@@ -55,12 +57,28 @@ export async function showBrowserPushNotification({
   url,
   tag,
 }: ShowBrowserPushOptions): Promise<void> {
+  const desktop = getDesktopBridge();
+  if (desktop?.showNotification) {
+    try {
+      const destination = new URL(url || '/notifications', window.location.origin);
+      if (destination.origin !== window.location.origin) return;
+      await desktop.showNotification({
+        title: title.slice(0, 256),
+        body: body.slice(0, 4096),
+        path: `${destination.pathname}${destination.search}${destination.hash}`,
+        tag: tag?.slice(0, 256),
+      });
+    } catch {
+      console.debug('Desktop notification unavailable');
+    }
+    return;
+  }
   if (!isNotificationSupported() || Notification.permission !== 'granted') {
     return;
   }
 
   // If Service Worker is available, use showNotification for background OS push support
-  if ('serviceWorker' in navigator) {
+  if (!isDesktop() && 'serviceWorker' in navigator) {
     try {
       const reg = await navigator.serviceWorker.getRegistration();
       if (reg) {

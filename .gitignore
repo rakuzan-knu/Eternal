@@ -47,6 +47,8 @@ bower_components
 # Compiled binary addons (https://nodejs.org/api/addons.html)
 build/Release
 build/
+!apps/desktop/build/
+!apps/desktop/build/**
 
 .next/
 uploads/
@@ -84,6 +86,7 @@ web_modules/
 .env
 .env.*
 !.env.example
+!apps/web/.env.desktop
 secure-connect-*.zip
 
 # parcel-bundler cache (https://parceljs.org/)
@@ -93,6 +96,12 @@ secure-connect-*.zip
 # Next.js build output
 .next
 out
+/apps/web/dist-desktop/
+/apps/desktop/release/
+/apps/desktop/test-results/
+/apps/desktop/playwright-report/
+!apps/desktop/src/main/generated/
+!apps/desktop/src/main/generated/routeTable.ts
 
 # Nuxt.js build / generate output
 .nuxt
@@ -299,3 +308,4 @@ apps/web/playwright-platforms-report/
 apps/web/test-results-platforms/
 storybook-static/
 **/storybook-static/
+apps/desktop/release-ci/

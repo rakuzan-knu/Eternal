@@ -3,22 +3,28 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConfigureIntegrationModal, type PlatformConfig } from '../ConfigureIntegrationModal';
 
-const { startSteamAuth, startOAuth, invalidateQueries } = vi.hoisted(() => ({
-  startSteamAuth:
-    vi.fn<
-      (origin: string, signal?: AbortSignal) => Promise<{ url: string; launchProof: string }>
-    >(),
-  startOAuth:
-    vi.fn<
-      (platform: string, signal?: AbortSignal) => Promise<{ url: string; launchProof: string }>
-    >(),
-  invalidateQueries: vi.fn(),
-}));
+const { startSteamAuth, startOAuth, unlink, invalidateQueries, desktopMode, desktopConnect } =
+  vi.hoisted(() => ({
+    desktopMode: vi.fn<() => boolean>(),
+    desktopConnect: vi.fn<(signal: AbortSignal) => Promise<Record<string, unknown>>>(),
+    startSteamAuth:
+      vi.fn<
+        (origin: string, signal?: AbortSignal) => Promise<{ url: string; launchProof: string }>
+      >(),
+    startOAuth:
+      vi.fn<
+        (platform: string, signal?: AbortSignal) => Promise<{ url: string; launchProof: string }>
+      >(),
+    invalidateQueries: vi.fn(),
+    unlink: vi.fn<(platform: string) => Promise<void>>(),
+  }));
+vi.mock('@/shared/lib/platform', () => ({ isDesktop: desktopMode }));
+vi.mock('@/shared/lib/desktopYouTubeOAuth', () => ({ connectDesktopYouTube: desktopConnect }));
 vi.mock('@/entities/showcase', () => ({
   DotaRankMedal: () => null,
   CS2PremierBadge: () => null,
   ShowcaseIntegrationCard: () => null,
-  integrationsApi: { startSteamAuth, startOAuth },
+  integrationsApi: { startSteamAuth, startOAuth, unlink },
 }));
 vi.mock('@/entities/profile/model/useCurrentUser', () => ({
   useCurrentUser: () => ({ data: { id: 'current-user', username: 'owner' } }),
@@ -55,6 +61,8 @@ describe('Steam integration popup', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    desktopMode.mockReturnValue(false);
+    desktopConnect.mockReset();
     popup.closed = false;
     startSteamAuth.mockReset().mockResolvedValue({ url: launchUrl, launchProof });
     vi.stubGlobal('open', open);
@@ -205,5 +213,108 @@ describe('Steam integration popup', () => {
       'https://music.example',
     );
     expect(launchUrl).not.toContain(launchProof);
+  });
+
+  it.each([
+    ['github', 'GitHub'],
+    ['spotify', 'Spotify'],
+    ['steam', 'Steam'],
+    ['twitch', 'Twitch'],
+  ])('preserves %s connect, completion and disconnect with cache refresh', async (id, name) => {
+    const owner = id === 'github' ? 'https://core.example' : 'https://music.example';
+    const path = id === 'github' ? '/auth/github/oauth/launch' : '/integrations/oauth/launch';
+    startOAuth.mockResolvedValue({ url: `${owner}/v1${path}#${'a'.repeat(64)}`, launchProof });
+    unlink.mockResolvedValue();
+    show({ ...platform, id, name, authProviderName: name });
+    fireEvent.click(screen.getByRole('button', { name: `Sign in through ${name}` }));
+    await waitFor(() => expect(popup.location.replace).toHaveBeenCalled());
+    expect(open).toHaveBeenCalledWith('about:blank', `${id}_oauth_window`, expect.any(String));
+    if (id === 'steam') expect(startSteamAuth).toHaveBeenCalled();
+    else expect(startOAuth).toHaveBeenCalledWith(id, expect.any(AbortSignal));
+    const data = { username: 'linked-owner', steamId: '76561198000000001', verified: true };
+    const message = new MessageEvent('message', {
+      origin: owner,
+      data: { type: 'INTEGRATION_AUTH_SUCCESS', platform: id, data },
+    });
+    Object.defineProperty(message, 'source', { value: popup });
+    await act(async () => window.dispatchEvent(message));
+    expect(save).toHaveBeenCalledWith(id, data);
+    expect(popup.close).toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Disconnect Account' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Unlink' }));
+    await waitFor(() => expect(unlink).toHaveBeenCalledWith(id));
+    expect(save).toHaveBeenCalledWith(id, null);
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['showcase'] });
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['profile'] });
+  });
+
+  it('connects desktop YouTube through the native browser bridge and refreshes the profile', async () => {
+    desktopMode.mockReturnValue(true);
+    let finish: ((data: Record<string, unknown>) => void) | undefined;
+    desktopConnect.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    show({ ...platform, id: 'youtube', name: 'YouTube', authProviderName: 'Google OAuth' });
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in through YouTube' }));
+    expect(screen.getByRole('button', { name: /Connecting to YouTube/ })).toBeDisabled();
+    expect(open).not.toHaveBeenCalled();
+    expect(startOAuth).not.toHaveBeenCalled();
+    const data = { channelTitle: 'My YouTube', verified: true };
+    await act(async () => finish?.(data));
+    expect(save).toHaveBeenCalledWith('youtube', data);
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['showcase'] });
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['profile'] });
+  });
+
+  it('shows desktop YouTube errors and aborts on modal close without accepting late results', async () => {
+    desktopMode.mockReturnValue(true);
+    desktopConnect.mockRejectedValueOnce(
+      new Error('YouTube authentication was cancelled or denied'),
+    );
+    const youtube = {
+      ...platform,
+      id: 'youtube',
+      name: 'YouTube',
+      authProviderName: 'Google OAuth',
+    };
+    const view = show(youtube);
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in through YouTube' }));
+    await screen.findByText('YouTube authentication was cancelled or denied');
+    let finish: ((data: Record<string, unknown>) => void) | undefined;
+    desktopConnect.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in through YouTube' }));
+    const signal = desktopConnect.mock.calls[1][0];
+    view.rerender(
+      <ConfigureIntegrationModal
+        isOpen={false}
+        platform={youtube}
+        onClose={vi.fn()}
+        onSaveSuccess={save}
+      />,
+    );
+    expect(signal.aborted).toBe(true);
+    await act(async () => finish?.({ verified: true }));
+    expect(save).not.toHaveBeenCalled();
+    expect(open).not.toHaveBeenCalled();
+  });
+
+  it('preserves the browser YouTube popup flow', async () => {
+    startOAuth.mockResolvedValue({
+      url: `https://music.example/v1/integrations/oauth/launch#${'a'.repeat(64)}`,
+      launchProof,
+    });
+    show({ ...platform, id: 'youtube', name: 'YouTube', authProviderName: 'Google OAuth' });
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in through YouTube' }));
+    await waitFor(() => expect(popup.location.replace).toHaveBeenCalled());
+    expect(startOAuth).toHaveBeenCalledWith('youtube', expect.any(AbortSignal));
+    expect(desktopConnect).not.toHaveBeenCalled();
   });
 });

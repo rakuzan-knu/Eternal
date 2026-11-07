@@ -11,6 +11,7 @@ export function containsInvitationCredential(value: unknown): boolean {
 }
 
 export function initSentry(): void {
+  if (window.desktop?.telemetryDisabled) return;
   // Never initialize Sentry or Session Replay in development mode or with mock DSNs
   if (!import.meta.env.PROD) {
     return;

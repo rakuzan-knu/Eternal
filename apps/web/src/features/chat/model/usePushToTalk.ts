@@ -53,6 +53,7 @@ export function usePushToTalk(options: UsePushToTalkOptions = {}) {
     callStatus,
     isPTTEnabled,
     isPTTActive,
+    isMuted,
     pttKey,
     pttReleaseTailMs,
     isPTTSoundEnabled,
@@ -63,6 +64,8 @@ export function usePushToTalk(options: UsePushToTalkOptions = {}) {
   const releaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const startTalking = useCallback(() => {
+    const current = useCallStore.getState();
+    if (current.callStatus !== 'connected' || !current.isPTTEnabled || current.isDeafened) return;
     if (releaseTimerRef.current) {
       clearTimeout(releaseTimerRef.current);
       releaseTimerRef.current = null;
@@ -77,6 +80,17 @@ export function usePushToTalk(options: UsePushToTalkOptions = {}) {
       toggleMuteTrack?.(false);
     }
   }, [isPTTSoundEnabled, setIsPTTActive, setIsMuted, toggleMuteTrack]);
+
+  const stopTalkingImmediately = useCallback(() => {
+    if (releaseTimerRef.current) {
+      clearTimeout(releaseTimerRef.current);
+      releaseTimerRef.current = null;
+    }
+    if (!useCallStore.getState().isPTTActive) return;
+    setIsPTTActive(false);
+    setIsMuted(true);
+    toggleMuteTrack?.(true);
+  }, [setIsPTTActive, setIsMuted, toggleMuteTrack]);
 
   const stopTalkingWithTail = useCallback(() => {
     if (releaseTimerRef.current) {
@@ -102,7 +116,7 @@ export function usePushToTalk(options: UsePushToTalkOptions = {}) {
         toggleMuteTrack?.(true);
       }
     }
-  }, [callStatus, isPTTEnabled, isPTTActive, setIsMuted, toggleMuteTrack]);
+  }, [callStatus, isPTTEnabled, isPTTActive, isMuted, setIsMuted, toggleMuteTrack]);
 
   useEffect(() => {
     if (callStatus !== 'connected' || !isPTTEnabled) {
@@ -133,7 +147,11 @@ export function usePushToTalk(options: UsePushToTalkOptions = {}) {
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (!matchesPTTKey(e, currentKey) || isEditableElement(e.target)) return;
+      if (
+        !matchesPTTKey(e, currentKey) ||
+        (isEditableElement(e.target) && !useCallStore.getState().isPTTActive)
+      )
+        return;
       e.preventDefault();
       stopTalkingWithTail();
     };
@@ -173,7 +191,8 @@ export function usePushToTalk(options: UsePushToTalkOptions = {}) {
       isPTTActive,
       startTalking,
       stopTalkingWithTail,
+      stopTalkingImmediately,
     }),
-    [isPTTEnabled, isPTTActive, startTalking, stopTalkingWithTail],
+    [isPTTEnabled, isPTTActive, startTalking, stopTalkingWithTail, stopTalkingImmediately],
   );
 }

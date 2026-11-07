@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { extractAvatarTileTheme, useAvatarTileTheme } from '../useAvatarTileTheme';
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook } from '@testing-library/react';
 
 describe('useAvatarTileTheme', () => {
   beforeEach(() => {
@@ -30,7 +30,6 @@ describe('useAvatarTileTheme', () => {
   it('correctly calculates dominant color and contrast lightness from image', async () => {
     // Mock Image and canvas 2d context
     const originalImage = window.Image;
-    const originalCreateElement = document.createElement.bind(document);
 
     class MockImage {
       crossOrigin = '';
@@ -60,14 +59,7 @@ describe('useAvatarTileTheme', () => {
       }),
     });
 
-    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
-      if (tagName === 'canvas') {
-        const canvas = originalCreateElement('canvas');
-        canvas.getContext = mockGetContext as any;
-        return canvas;
-      }
-      return originalCreateElement(tagName);
-    });
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(mockGetContext);
 
     try {
       const theme = await extractAvatarTileTheme('https://example.com/avatar.jpg');
