@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.12.2](https://github.com/rakuzan-knu/Eternal/compare/v1.12.1...v1.12.2) (2026-11-07)
+
+### 🐛 Bug Fixes
+
+* **security:** gate registrations and replace simulated data export ([#147](https://github.com/rakuzan-knu/Eternal/issues/147)) ([4209fd3](https://github.com/rakuzan-knu/Eternal/commit/4209fd3bf78cf122a77ec254c654376c31eb245f))
+
 ## [1.12.1](https://github.com/rakuzan-knu/Eternal/compare/v1.12.0...v1.12.1) (2026-11-05)
 
 ### 🐛 Bug Fixes
