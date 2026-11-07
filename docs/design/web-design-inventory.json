@@ -40599,182 +40599,182 @@
       "colorLiterals": [],
       "presentation": [
         {
-          "line": 407,
+          "line": 423,
           "attribute": "style",
           "expression": "{{\n        width: isChatListExpanded ? width : COLLAPSED_WIDTH,\n        transitionDuration: isResizing ? '0ms' : '300ms',\n      }}"
         },
         {
-          "line": 411,
+          "line": 427,
           "attribute": "className",
           "expression": "{`relative h-full shrink-0 flex flex-col glass-sidebar border-r border-white/10 py-6 transition-[width] ease-in-out overflow-hidden ${className}`}"
         },
         {
-          "line": 417,
+          "line": 433,
           "attribute": "className",
           "expression": "\"md:hidden min-h-11 shrink-0 px-4 mb-3 flex items-center gap-2 text-sm text-gray-300\""
         },
         {
-          "line": 419,
+          "line": 435,
           "attribute": "size",
           "expression": "{18}"
         },
         {
-          "line": 423,
+          "line": 439,
           "attribute": "className",
           "expression": "\"h-full flex flex-col items-center pt-0 gap-4\""
         },
         {
-          "line": 428,
+          "line": 444,
           "attribute": "className",
           "expression": "\"w-10 h-10 flex items-center justify-center rounded-xl text-gray-400 hover:bg-white/5 hover:text-white transition-colors\""
         },
         {
-          "line": 430,
+          "line": 446,
           "attribute": "size",
           "expression": "{20}"
         },
         {
-          "line": 436,
+          "line": 452,
           "attribute": "className",
           "expression": "\"flex items-center justify-between px-5 mb-5 whitespace-nowrap\""
         },
         {
-          "line": 437,
+          "line": 453,
           "attribute": "className",
           "expression": "\"flex items-center gap-2\""
         },
         {
-          "line": 442,
+          "line": 458,
           "attribute": "className",
           "expression": "\"w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-white/5 hover:text-white transition-colors\""
         },
         {
-          "line": 444,
+          "line": 460,
           "attribute": "size",
           "expression": "{18}"
         },
         {
-          "line": 447,
+          "line": 463,
           "attribute": "className",
           "expression": "\"text-xl font-bold text-white\""
         },
         {
-          "line": 450,
+          "line": 466,
           "attribute": "className",
           "expression": "\"flex items-center gap-1 relative\""
         },
         {
-          "line": 454,
-          "attribute": "className",
-          "expression": "\"w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-white/5 hover:text-white transition-colors\""
-        },
-        {
-          "line": 456,
-          "attribute": "size",
-          "expression": "{20}"
-        },
-        {
-          "line": 468,
-          "attribute": "className",
-          "expression": "\"w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-white/5 hover:text-white transition-colors\""
-        },
-        {
           "line": 470,
+          "attribute": "className",
+          "expression": "\"w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-white/5 hover:text-white transition-colors\""
+        },
+        {
+          "line": 472,
           "attribute": "size",
           "expression": "{20}"
-        },
-        {
-          "line": 475,
-          "attribute": "className",
-          "expression": "\"px-5 mb-4\""
-        },
-        {
-          "line": 480,
-          "attribute": "className",
-          "expression": "\"relative w-full text-left cursor-pointer group rounded-full focus-visible:outline-2 focus-visible:outline-[var(--app-accent-color)]\""
-        },
-        {
-          "line": 483,
-          "attribute": "size",
-          "expression": "{16}"
         },
         {
           "line": 484,
           "attribute": "className",
-          "expression": "\"absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 group-hover:text-gray-300 transition-colors pointer-events-none\""
+          "expression": "\"w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-white/5 hover:text-white transition-colors\""
         },
         {
           "line": 486,
-          "attribute": "className",
-          "expression": "\"w-full h-10 pl-10 pr-4 md:pr-14 flex items-center rounded-full bg-white/5 border border-white/5 text-sm text-gray-400 group-hover:bg-white/10 group-hover:border-white/10 transition-all select-none\""
-        },
-        {
-          "line": 487,
-          "attribute": "className",
-          "expression": "\"truncate\""
+          "attribute": "size",
+          "expression": "{20}"
         },
         {
           "line": 491,
           "attribute": "className",
+          "expression": "\"px-5 mb-4\""
+        },
+        {
+          "line": 496,
+          "attribute": "className",
+          "expression": "\"relative w-full text-left cursor-pointer group rounded-full focus-visible:outline-2 focus-visible:outline-[var(--app-accent-color)]\""
+        },
+        {
+          "line": 499,
+          "attribute": "size",
+          "expression": "{16}"
+        },
+        {
+          "line": 500,
+          "attribute": "className",
+          "expression": "\"absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 group-hover:text-gray-300 transition-colors pointer-events-none\""
+        },
+        {
+          "line": 502,
+          "attribute": "className",
+          "expression": "\"w-full h-10 pl-10 pr-4 md:pr-14 flex items-center rounded-full bg-white/5 border border-white/5 text-sm text-gray-400 group-hover:bg-white/10 group-hover:border-white/10 transition-all select-none\""
+        },
+        {
+          "line": 503,
+          "attribute": "className",
+          "expression": "\"truncate\""
+        },
+        {
+          "line": 507,
+          "attribute": "className",
           "expression": "\"hidden md:block absolute right-3 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[10px] font-semibold text-gray-400 bg-white/5 border border-white/10 rounded pointer-events-none\""
         },
         {
-          "line": 525,
+          "line": 541,
           "attribute": "className",
           "expression": "\"flex-1 min-h-0 overflow-y-auto px-3\""
         },
         {
-          "line": 531,
+          "line": 547,
           "attribute": "className",
           "expression": "\"text-center text-sm text-red-400 mt-8\""
         },
         {
-          "line": 537,
+          "line": 553,
           "attribute": "style",
           "expression": "{{ height: virtualizer.getTotalSize(), position: 'relative' }}"
         },
         {
-          "line": 546,
+          "line": 562,
           "attribute": "style",
           "expression": "{{\n                        position: 'absolute',\n                        top: 0,\n                        left: 0,\n                        width: '100%',\n                        transform: `translateY(${item.start}px)`,\n                      }}"
         },
         {
-          "line": 571,
+          "line": 587,
           "attribute": "className",
           "expression": "\"flex items-center gap-3 px-2 pb-2 pt-1\""
         },
         {
-          "line": 572,
+          "line": 588,
           "attribute": "className",
           "expression": "\"text-[11px] font-bold uppercase tracking-wider text-gray-500\""
         },
         {
-          "line": 575,
+          "line": 591,
           "attribute": "className",
           "expression": "\"h-px flex-1 bg-white/8\""
         },
         {
-          "line": 582,
+          "line": 598,
           "attribute": "className",
           "expression": "\"text-center text-sm text-gray-500 mt-8\""
         },
         {
-          "line": 589,
+          "line": 605,
           "attribute": "className",
           "expression": "\"w-full py-3 text-sm text-gray-400\""
         },
         {
-          "line": 602,
+          "line": 618,
           "attribute": "className",
           "expression": "\"absolute top-0 right-0 h-full w-2 flex items-center justify-center z-10\""
         },
         {
-          "line": 603,
+          "line": 619,
           "attribute": "style",
           "expression": "{{ cursor: 'e-resize' }}"
         },
         {
-          "line": 606,
+          "line": 622,
           "attribute": "className",
           "expression": "{`h-full w-px transition-colors duration-150 ${\n                isHandleHovered || isResizing ? 'bg-gray-400' : 'bg-transparent'\n              }`}"
         }

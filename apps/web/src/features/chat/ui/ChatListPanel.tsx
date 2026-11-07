@@ -208,7 +208,7 @@ export default function ChatListPanel({
       !isFetchingNextPage &&
       virtualItems.some((item) => item.index >= rows.length - 5)
     )
-      void fetchNextPage();
+      void fetchNextPage({ cancelRefetch: false });
   }, [virtualItems, rows.length, hasNextPage, isFetchingNextPage, fetchNextPage]);
   const visibleDirectUserIds = virtualItems.flatMap((item) => {
     const conversation = rows[item.index].conversation;
@@ -248,14 +248,16 @@ export default function ChatListPanel({
   const hasNextPageRef = useRef(hasNextPage);
   hasNextPageRef.current = hasNextPage;
 
-  const isFetchingNextPageRef = useRef(isFetchingNextPage);
-  isFetchingNextPageRef.current = isFetchingNextPage;
+  const pagingScopeRef = useRef({ userId, activeFolderId });
+  pagingScopeRef.current = { userId, activeFolderId };
 
   const fetchNextPageRef = useRef(fetchNextPage);
   fetchNextPageRef.current = fetchNextPage;
 
   // Keyboard Shortcut: Alt+ArrowDown / Alt+ArrowUp to switch chats smoothly
   useEffect(() => {
+    let mounted = true;
+    let waitingForNextPage = false;
     const getCurrentActiveId = () => {
       if (typeof window !== 'undefined') {
         const match = window.location.pathname.match(/\/messages\/([^/?#]+)/);
@@ -300,11 +302,22 @@ export default function ChatListPanel({
         }
 
         if (index >= conversations.length - 1 && hasNextPageRef.current) {
-          if (isFetchingNextPageRef.current) return;
-          const next = await fetchNextPageRef.current();
+          if (waitingForNextPage) return;
+          const scope = pagingScopeRef.current;
+          waitingForNextPage = true;
+          const next = await fetchNextPageRef.current({ cancelRefetch: false }).finally(() => {
+            waitingForNextPage = false;
+          });
+          if (
+            !mounted ||
+            getCurrentActiveId() !== activeId ||
+            useAuthStore.getState().userId !== scope.userId ||
+            pagingScopeRef.current.activeFolderId !== scope.activeFolderId
+          )
+            return;
           const incoming = (next.data?.pages ?? []).flatMap((page) => page.data);
 
-          const mergedMap = new Map(conversations.map((c) => [c.id, c]));
+          const mergedMap = new Map(orderedConversationsRef.current.map((c) => [c.id, c]));
           for (const item of incoming) {
             mergedMap.set(item.id, item);
           }
@@ -339,7 +352,10 @@ export default function ChatListPanel({
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      mounted = false;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
 
   const handleOpenHeaderSection = (section: ChatListHeaderSection) => {
@@ -520,7 +536,7 @@ export default function ChatListPanel({
                 !isFetchingNextPage &&
                 el.scrollHeight - el.scrollTop - el.clientHeight < 300
               )
-                void fetchNextPage();
+                void fetchNextPage({ cancelRefetch: false });
             }}
             className="flex-1 min-h-0 overflow-y-auto px-3"
             role="list"
@@ -588,7 +604,7 @@ export default function ChatListPanel({
                 type="button"
                 className="w-full py-3 text-sm text-gray-400"
                 disabled={isFetchingNextPage}
-                onClick={() => void fetchNextPage()}
+                onClick={() => void fetchNextPage({ cancelRefetch: false })}
               >
                 {isFetchingNextPage ? 'Loading chats...' : 'Load more chats'}
               </button>
