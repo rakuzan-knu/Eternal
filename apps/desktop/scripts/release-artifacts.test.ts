@@ -162,6 +162,18 @@ describe('desktop release assets', () => {
     },
   );
 
+  it('identifies a candidate without claiming a published release tag', async () => {
+    const { source, output } = await fixtures('1.13.3');
+    await assembleArtifacts('1.13.3', source, output, commit, true);
+    expect(JSON.parse(await readFile(join(output, 'desktop-release.json'), 'utf8'))).toEqual({
+      version: '1.13.3',
+      tag: '',
+      commit,
+      candidate: true,
+    });
+    expect(await readFile(join(output, 'SHA256SUMS'), 'utf8')).toContain('desktop-release.json');
+  });
+
   it('rejects missing architectures', async () => {
     const { source, output } = await fixtures();
     await writeFile(join(source, 'msi-arm64', 'manifest.json'), '{}');

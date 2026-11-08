@@ -6,6 +6,7 @@ import { z } from 'zod';
 
 const stepSchema = z
   .object({
+    if: z.string().optional(),
     name: z.string().optional(),
     uses: z.string().optional(),
     run: z.string().optional(),
@@ -65,6 +66,34 @@ function secretExpressionValue(
 }
 
 describe('desktop workflow trust boundaries', () => {
+  it('keeps candidate packages separate from stable-release evidence', async () => {
+    const store = await workflow('desktop-stores.yml');
+    const prepare = store.jobs.prepare;
+    if (!prepare) throw new Error('Missing prepare job');
+    const gate = prepare.steps.find(
+      (step) => step.run === 'node apps/desktop/scripts/release-source.ts',
+    );
+    expect(gate?.env?.CANDIDATE_VERSION).toBe('${{ inputs.candidate_version }}');
+    const stable = prepare.steps.find(
+      (step) => step.name === 'Require an existing stable desktop release',
+    );
+    expect(stable?.if).toBe("steps.source.outputs.publish == 'true'");
+    expect(stable?.run).toContain('gh attestation verify');
+    const sourceArtifact = prepare.steps.find((step) =>
+      step.uses?.startsWith('actions/upload-artifact@'),
+    );
+    expect(sourceArtifact?.if).toBe("steps.source.outputs.publish == 'true'");
+    expect(
+      store.jobs.package?.steps.find((step) => step.uses?.startsWith('actions/upload-artifact@'))
+        ?.with?.name,
+    ).toContain("'candidate-'");
+    expect(
+      (await workflow('desktop.yml')).jobs.prepare?.steps.find(
+        (step) => step.run === 'node apps/desktop/scripts/release-source.ts',
+      )?.env?.CANDIDATE_VERSION,
+    ).toBe('${{ inputs.candidate_version }}');
+  });
+
   it.each(['desktop.yml', 'desktop-stores.yml'])(
     '%s runs the dependency-free provenance gate from workflow code before the resolved source',
     async (filename) => {

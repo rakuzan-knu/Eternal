@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { mkdtemp, readFile, realpath, rm } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
@@ -26,6 +26,7 @@ const manifestSchema = z.object({
 
 export const nativeLicenseDirectory = resolve(import.meta.dirname, '../build/licenses');
 export const nativeDependencyDirectory = dirname(require.resolve('uiohook-napi/package.json'));
+export const projectLicense = resolve(import.meta.dirname, '../../../LICENSE.md');
 
 export async function verifyNativeLicenseSource(
   resources = nativeLicenseDirectory,
@@ -59,6 +60,23 @@ export async function verifyNativeLicenseSource(
   return manifest;
 }
 
+export async function verifyPackagedLicenseMaterials(resources: string): Promise<void> {
+  const manifest = await verifyNativeLicenseSource();
+  const files = [
+    manifest.archive,
+    'native-source-manifest.json',
+    'README.NATIVE-SOURCE.txt',
+    'THIRD_PARTY_NOTICES.txt',
+    ...manifest.licenses.map((license) => license.file),
+  ];
+  for (const file of [...files, 'Eternal-LICENSE.md']) {
+    const source =
+      file === 'Eternal-LICENSE.md' ? projectLicense : join(nativeLicenseDirectory, file);
+    if (!(await readFile(join(resources, 'licenses', file))).equals(await readFile(source)))
+      throw new Error(`Packaged license material mismatch: ${file}`);
+  }
+}
+
 async function removeNativeSourceScratch(scratch: string): Promise<void> {
   const actual = await realpath(scratch);
   if (
@@ -69,7 +87,7 @@ async function removeNativeSourceScratch(scratch: string): Promise<void> {
   await rm(scratch, { recursive: true, force: true });
 }
 
-async function rebuildNativeLicenseSource(): Promise<void> {
+async function rebuildNativeLicenseSource(output?: string): Promise<void> {
   const manifest = await verifyNativeLicenseSource();
   const scratch = await mkdtemp(join(tmpdir(), 'eternal-native-source-'));
   const run = (command: string, args: string[], cwd: string) => {
@@ -97,6 +115,29 @@ async function rebuildNativeLicenseSource(): Promise<void> {
       ],
       source,
     );
+    if (output) {
+      await mkdir(output, { recursive: true });
+      const binary = join(source, 'build/Release/uiohook_napi.node');
+      await copyFile(binary, join(output, 'uiohook_napi.node'));
+      await writeFile(
+        join(output, 'source.json'),
+        JSON.stringify(
+          {
+            package: manifest.package,
+            version: manifest.version,
+            archiveSha256: manifest.archiveSha256,
+            binarySha256: createHash('sha256')
+              .update(await readFile(binary))
+              .digest('hex'),
+            platform: process.platform,
+            architecture: process.arch,
+            nodeVersion: process.versions.node,
+          },
+          null,
+          2,
+        ),
+      );
+    }
     process.stdout.write(
       JSON.stringify({ rebuilt: true, platform: process.platform, architecture: process.arch }) +
         '\n',
@@ -107,8 +148,11 @@ async function rebuildNativeLicenseSource(): Promise<void> {
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  if (process.argv[2] === 'rebuild') await rebuildNativeLicenseSource();
-  else if (!process.argv[2] || process.argv[2] === 'verify') {
+  if (process.argv[2] === 'rebuild') await rebuildNativeLicenseSource(process.argv[3]);
+  else if (process.argv[2] === 'verify-package' && process.argv[3]) {
+    await verifyPackagedLicenseMaterials(resolve(process.argv[3]));
+    process.stdout.write(JSON.stringify({ packagedLicensesVerified: true }) + '\n');
+  } else if (!process.argv[2] || process.argv[2] === 'verify') {
     const manifest = await verifyNativeLicenseSource();
     process.stdout.write(JSON.stringify({ verified: true, version: manifest.version }) + '\n');
   } else throw new Error('Unsupported native license source command');

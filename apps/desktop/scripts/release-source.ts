@@ -13,6 +13,7 @@ export interface ReleaseSourceInput {
   tag?: string;
   expectedCommit?: string;
   stableOnly?: boolean;
+  candidateVersion?: string;
 }
 
 export interface ReleaseSource {
@@ -73,7 +74,7 @@ export async function verifyReleaseSource(
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(input.repository))
     throw new Error('Invalid GitHub repository');
   if (input.event === 'pull_request') {
-    if (input.expectedCommit || input.stableOnly)
+    if (input.expectedCommit || input.stableOnly || input.candidateVersion !== undefined)
       throw new Error('Pull requests cannot publish release packages');
     return {
       version: '0.0.0',
@@ -85,12 +86,17 @@ export async function verifyReleaseSource(
   }
   if (!['workflow_dispatch', 'push', 'workflow_call'].includes(input.event))
     throw new Error('Unsupported release workflow event');
+  const candidate = input.candidateVersion !== undefined;
+  if (candidate && (input.event !== 'workflow_dispatch' || input.tag || input.expectedCommit))
+    throw new Error('Candidate builds require a manual invocation without a release tag');
   const match = /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-beta\.(0|[1-9]\d*))?$/.exec(
-    input.tag ?? '',
+    candidate ? `v${input.candidateVersion}` : (input.tag ?? ''),
   );
   if (!match) throw new Error('Unsupported release tag');
   const tag = match[0];
   const beta = Boolean(match[4]);
+  if (candidate && (beta || match[1] === '0'))
+    throw new Error('Candidates require a stable version >= 1.0.0 on protected main');
   if (input.stableOnly && (beta || match[1] === '0'))
     throw new Error('Store packages require a stable release >= 1.0.0');
   const branch = beta ? 'develop' : 'main';
@@ -102,6 +108,17 @@ export async function verifyReleaseSource(
     throw new Error('The release branch must exist and be protected');
   const branchHead = commitSha(object(branchInfo.commit).sha);
   await assertAncestor(api, base, commitSha(input.workflowSha), branchHead);
+  if (candidate) {
+    if (commitSha(input.runSha) !== input.workflowSha)
+      throw new Error('Candidate source must equal the trusted workflow commit');
+    return {
+      version: tag.slice(1),
+      tag: '',
+      commit: input.workflowSha,
+      branch,
+      publish: false,
+    };
+  }
   const release = object(await api(`${base}/releases/tags/${tag}`));
   if (release.tag_name !== tag || release.draft !== false || release.prerelease !== beta)
     throw new Error('Release status does not match its stable/beta channel');
@@ -129,6 +146,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
         workflowSha: process.env.TRUSTED_WORKFLOW_SHA ?? '',
         runSha: process.env.GITHUB_SHA ?? '',
         ...(process.env.REQUESTED_TAG ? { tag: process.env.REQUESTED_TAG } : {}),
+        ...(process.env.CANDIDATE_VERSION
+          ? { candidateVersion: process.env.CANDIDATE_VERSION }
+          : {}),
         ...(process.env.EXPECTED_COMMIT ? { expectedCommit: process.env.EXPECTED_COMMIT } : {}),
         stableOnly: process.env.STABLE_ONLY === 'true',
       },

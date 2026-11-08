@@ -114,6 +114,7 @@ export async function assembleArtifacts(
   source: string,
   destination: string,
   commit = commitSchema.parse(process.env.DESKTOP_RELEASE_COMMIT),
+  candidate = false,
 ) {
   releaseVersion(`v${version}`);
   commitSchema.parse(commit);
@@ -189,7 +190,13 @@ export async function assembleArtifacts(
   for (const [file, info] of metadata) await writeFile(join(destination, file), dump(info));
   await writeFile(
     join(destination, 'desktop-release.json'),
-    JSON.stringify({ version, tag: `v${version}`, commit }, null, 2),
+    JSON.stringify(
+      candidate
+        ? { version, tag: '', commit, candidate: true }
+        : { version, tag: `v${version}`, commit },
+      null,
+      2,
+    ),
   );
   await writeChecksums(destination);
 }
@@ -215,6 +222,12 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
     await stageArtifacts(version, target, arch, source, destination);
   } else if (command === 'assemble') {
     const [version, source, destination] = args;
-    await assembleArtifacts(version, source, destination);
+    await assembleArtifacts(
+      version,
+      source,
+      destination,
+      undefined,
+      process.env.DESKTOP_CANDIDATE === 'true',
+    );
   } else throw new Error('Expected stage or assemble command');
 }

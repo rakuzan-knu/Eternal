@@ -6,7 +6,9 @@ import { z } from 'zod';
 import {
   nativeDependencyDirectory,
   nativeLicenseDirectory,
+  projectLicense,
   verifyNativeLicenseSource,
+  verifyPackagedLicenseMaterials,
 } from './native-license-source';
 
 const scratch: string[] = [];
@@ -28,6 +30,31 @@ afterEach(async () => {
 });
 
 describe('native source distribution contract', () => {
+  async function packaged() {
+    const resources = await directory();
+    await cp(nativeLicenseDirectory, join(resources, 'licenses'), { recursive: true });
+    await copyFile(projectLicense, join(resources, 'licenses/Eternal-LICENSE.md'));
+    return resources;
+  }
+  it('accepts a complete packaged set including the application license exception', async () => {
+    await expect(verifyPackagedLicenseMaterials(await packaged())).resolves.toBeUndefined();
+  });
+  it.each(['README.NATIVE-SOURCE.txt', 'Eternal-LICENSE.md'])(
+    'rejects stale packaged %s',
+    async (file) => {
+      const resources = await packaged();
+      await writeFile(join(resources, 'licenses', file), 'stale materials');
+      await expect(verifyPackagedLicenseMaterials(resources)).rejects.toThrow(
+        `material mismatch: ${file}`,
+      );
+    },
+  );
+  it('rejects a package that dropped a GNU license copy', async () => {
+    const resources = await packaged();
+    await rm(join(resources, 'licenses/COPYING.LGPL-3.0.txt'));
+    await expect(verifyPackagedLicenseMaterials(resources)).rejects.toThrow();
+  });
+
   it('ships the license copies and archived sources matching the installed native dependency', async () => {
     const manifest = await verifyNativeLicenseSource();
     expect(manifest.sourceFiles['binding.gyp']).toBeDefined();

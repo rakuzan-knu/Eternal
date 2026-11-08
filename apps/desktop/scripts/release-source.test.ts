@@ -42,6 +42,69 @@ function fixture(beta = false) {
 }
 
 describe('release source authorization', () => {
+  it.each([false, true])(
+    'builds a manual candidate from trusted main without publication (store=%s)',
+    async (stableOnly) => {
+      const { input, api, tag } = fixture();
+      expect(
+        await verifyReleaseSource(
+          { ...input, tag: '', candidateVersion: '1.13.3', stableOnly },
+          api,
+        ),
+      ).toEqual({
+        version: '1.13.3',
+        tag: '',
+        commit: workflowSha,
+        branch: 'main',
+        publish: false,
+      });
+      expect(api).not.toHaveBeenCalledWith(`${root}/releases/tags/${tag}`);
+      expect(api).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  it.each([
+    { event: 'push', tag: '' },
+    { event: 'workflow_call', tag: '' },
+    { event: 'pull_request', tag: '' },
+    { tag: 'v1.2.3' },
+    { tag: '', expectedCommit: sourceSha },
+    { tag: '', ref: 'refs/heads/develop' },
+    { tag: '', ref: 'refs/heads/feature' },
+    { tag: '', refProtected: false },
+    { tag: '', runSha: sourceSha },
+    { tag: '', candidateVersion: '1.13.3-beta.1' },
+    { tag: '', candidateVersion: '0.9.0' },
+    { tag: '', candidateVersion: '1.13.3\ninjected=true' },
+  ])('rejects unauthorized or ambiguous candidate invocation %#', async (overrides) => {
+    const { input, api } = fixture();
+    await expect(
+      verifyReleaseSource({ ...input, candidateVersion: '1.13.3', ...overrides }, api),
+    ).rejects.toThrow();
+  });
+
+  it('requires server-side protection and ancestry for candidates', async () => {
+    const { input, api, responses } = fixture();
+    const candidate = { ...input, tag: '', candidateVersion: '1.13.3' };
+    responses.set(`${root}/branches/main`, {
+      name: 'main',
+      protected: false,
+      commit: { sha: branchSha },
+    });
+    await expect(verifyReleaseSource(candidate, api)).rejects.toThrow('exist and be protected');
+    responses.set(`${root}/branches/main`, {
+      name: 'main',
+      protected: true,
+      commit: { sha: branchSha },
+    });
+    responses.set(`${root}/compare/${workflowSha}...${branchSha}`, {
+      status: 'diverged',
+      behind_by: 1,
+      merge_base_commit: { sha: tagSha },
+    });
+    await expect(verifyReleaseSource(candidate, api)).rejects.toThrow('not an ancestor');
+  });
+
   it('keeps stable and beta aligned with the actual semantic-release branch policy', async () => {
     const require = createRequire(import.meta.url);
     const release: unknown = require('../../../release.config.cjs');

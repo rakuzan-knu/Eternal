@@ -5,14 +5,18 @@ on:
     inputs:
       tag:
         description: Existing stable desktop release (v1.2.3)
-        required: true
+        required: false
+        type: string
+      candidate_version:
+        description: Non-publishing candidate from protected main (1.2.3); leave tag empty
+        required: false
         type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: desktop-stores-${{ inputs.tag }}
+  group: desktop-stores-${{ inputs.tag || inputs.candidate_version }}
   cancel-in-progress: false
 
 defaults:
@@ -25,8 +29,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      commit: ${{ steps.release.outputs.commit }}
-      version: ${{ steps.release.outputs.version }}
+      commit: ${{ steps.source.outputs.commit }}
+      version: ${{ steps.source.outputs.version }}
+      publish: ${{ steps.source.outputs.publish }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -40,11 +45,13 @@ jobs:
         id: source
         env:
           REQUESTED_TAG: ${{ inputs.tag }}
+          CANDIDATE_VERSION: ${{ inputs.candidate_version }}
           TRUSTED_WORKFLOW_SHA: ${{ github.workflow_sha }}
           GH_TOKEN: ${{ github.token }}
           STABLE_ONLY: 'true'
         run: node apps/desktop/scripts/release-source.ts
       - name: Require an existing stable desktop release
+        if: steps.source.outputs.publish == 'true'
         id: release
         env:
           TAG: ${{ inputs.tag }}
@@ -67,6 +74,7 @@ jobs:
           echo "commit=$commit" >> "$GITHUB_OUTPUT"
           echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: steps.source.outputs.publish == 'true'
         with:
           name: desktop-store-source
           path: release-source/
@@ -110,6 +118,7 @@ jobs:
         if: matrix.target == 'snap'
         run: |
           set -euo pipefail
+          sudo apt-get update && sudo apt-get install -y squashfs-tools
           sudo snap install snapcraft --classic
           if ! snap list lxd > /dev/null 2>&1; then sudo snap install lxd; fi
           sudo lxd waitready
@@ -158,9 +167,40 @@ jobs:
           else
             pnpm --filter @eternal/desktop package "$TARGET" "--$ARCH" --version "$VERSION"
           fi
+      - name: Verify license materials inside MSIX
+        if: matrix.target == 'msix'
+        shell: pwsh
+        run: |
+          $packages = @(Get-ChildItem apps/desktop/release -Filter '*.msix' -File)
+          if ($packages.Count -ne 1) { throw 'Expected exactly one MSIX package' }
+          $inspection = Join-Path $env:RUNNER_TEMP 'eternal-msix-license-inspection'
+          $licenses = Join-Path $inspection 'licenses'
+          New-Item -ItemType Directory -Path $licenses -Force | Out-Null
+          $names = @((Get-ChildItem apps/desktop/build/licenses -File).Name) + @('Eternal-LICENSE.md')
+          $archive = [System.IO.Compression.ZipFile]::OpenRead($packages[0].FullName)
+          try {
+            foreach ($name in $names) {
+              $entry = $archive.GetEntry("app/resources/licenses/$name")
+              if (-not $entry) { throw "MSIX license material missing: $name" }
+              [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, (Join-Path $licenses $name), $true)
+            }
+          } finally { $archive.Dispose() }
+          pnpm --filter @eternal/desktop exec node scripts/native-license-source.ts verify-package $inspection
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify license materials inside Snap
+        if: matrix.target == 'snap'
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          packages=(apps/desktop/release/*.snap)
+          test "${#packages[@]}" -eq 1
+          inspection="$RUNNER_TEMP/eternal-snap-license-inspection-$ARCH"
+          unsquashfs -no-xattrs -d "$inspection" "${packages[0]}" app/resources/licenses
+          pnpm --filter @eternal/desktop exec node scripts/native-license-source.ts verify-package "$inspection/app/resources"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
-          name: desktop-store-${{ matrix.target }}-${{ matrix.arch }}
+          name: desktop-store-${{ needs.prepare.outputs.publish == 'false' && 'candidate-' || '' }}${{ matrix.target }}-${{ matrix.arch }}
           path: |
             apps/desktop/release/*.msix
             apps/desktop/release/*.snap

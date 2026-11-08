@@ -42,10 +42,16 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y build-essential libx11-dev libxrandr-dev libxtst-dev libxt-dev xvfb
       - name: Verify, rebuild and load the supplied native source on Linux
         if: runner.os == 'Linux'
-        run: xvfb-run -a pnpm --filter @eternal/desktop exec node scripts/native-license-source.ts rebuild
+        run: xvfb-run -a pnpm --filter @eternal/desktop exec node scripts/native-license-source.ts rebuild release/native-source
       - name: Verify, rebuild and load the supplied native source on Windows and macOS
         if: runner.os != 'Linux'
-        run: pnpm --filter @eternal/desktop exec node scripts/native-license-source.ts rebuild
+        run: pnpm --filter @eternal/desktop exec node scripts/native-license-source.ts rebuild release/native-source
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: desktop-native-source-${{ runner.os }}-${{ runner.arch }}
+          path: apps/desktop/release/native-source/
+          if-no-files-found: error
+          retention-days: 7
 
   release:
     name: Semantic Release

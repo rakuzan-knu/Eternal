@@ -24,11 +24,15 @@ on:
     inputs:
       tag:
         description: Existing semantic-release tag (v1.2.3 or v1.2.3-beta.1)
-        required: true
+        required: false
+        type: string
+      candidate_version:
+        description: Non-publishing candidate from protected main (1.2.3); leave tag empty
+        required: false
         type: string
 
 concurrency:
-  group: desktop-${{ inputs.tag || github.ref }}
+  group: desktop-${{ inputs.tag || inputs.candidate_version || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
@@ -61,6 +65,7 @@ jobs:
         id: release
         env:
           REQUESTED_TAG: ${{ inputs.tag }}
+          CANDIDATE_VERSION: ${{ inputs.candidate_version }}
           GH_TOKEN: ${{ github.token }}
           TRUSTED_WORKFLOW_SHA: ${{ github.workflow_sha }}
         run: node apps/desktop/scripts/release-source.ts
@@ -140,6 +145,7 @@ jobs:
           VERSION: ${{ needs.prepare.outputs.version }}
           TARGETS: ${{ matrix.targets }}
           ARCH: ${{ matrix.arch }}
+          ASAR_PATH: ${{ matrix.asar }}
           CSC_LINK: ${{ github.event_name != 'pull_request' && needs.prepare.outputs.publish == 'true' && secrets.CSC_LINK || '' }}
           CSC_KEY_PASSWORD: ${{ github.event_name != 'pull_request' && needs.prepare.outputs.publish == 'true' && secrets.CSC_KEY_PASSWORD || '' }}
           WIN_CSC_LINK: ${{ github.event_name != 'pull_request' && needs.prepare.outputs.publish == 'true' && secrets.WIN_CSC_LINK || '' }}
@@ -154,6 +160,7 @@ jobs:
           fi
           for target in $TARGETS; do
             pnpm --filter @eternal/desktop package "$target" "--$ARCH" --version "$VERSION"
+            pnpm --filter @eternal/desktop exec node scripts/native-license-source.ts verify-package "release/$(dirname "$ASAR_PATH")"
             pnpm --filter @eternal/desktop exec node scripts/release-artifacts.ts stage "$VERSION" "$target" "$ARCH" release "release-ci/$target-$ARCH"
           done
       - name: Extract packaged dependency inventory
@@ -196,6 +203,7 @@ jobs:
     needs: [prepare, build]
     env:
       DESKTOP_RELEASE_COMMIT: ${{ needs.prepare.outputs.commit }}
+      DESKTOP_CANDIDATE: ${{ github.event_name == 'workflow_dispatch' && inputs.candidate_version != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -220,7 +228,7 @@ jobs:
         run: pnpm --filter @eternal/desktop exec node scripts/release-artifacts.ts assemble "$VERSION" release-ci/downloads release-ci/assets
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
-          name: desktop-release-assets
+          name: desktop-${{ inputs.candidate_version != '' && 'candidate' || 'release' }}-assets
           path: apps/desktop/release-ci/assets/*
           if-no-files-found: error
           retention-days: 7
