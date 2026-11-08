@@ -7,6 +7,10 @@ export interface IUsersRepository {
   findByEmail(email: string): Promise<User | null>;
   findByUsername(username: string): Promise<User | null>;
   findById(id: string): Promise<User | null>;
+  findNearbyPreferences(id: string): Promise<{
+    birthDate: Date | null;
+    privacy: { allowNearbyRecommendations: boolean } | null;
+  } | null>;
   findFullProfile(id: string): Promise<
     | (User & {
         badges: { badgeId: string }[];

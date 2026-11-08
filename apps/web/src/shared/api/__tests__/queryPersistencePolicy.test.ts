@@ -35,6 +35,15 @@ describe('bounded offline snapshots', () => {
     expect(bounded.clientState.queries.some((q) => q.queryKey[0] === 'user-search')).toBe(false);
     client.clear();
   });
+  it('drops location-sensitive recommendations from existing offline snapshots', () => {
+    const client = new QueryClient();
+    client.setQueryData(['suggestedUsers', 5], [{ id: 'nearby-user', reason: 'Near you' }]);
+    client.setQueryData(['topFollowedUsers'], [{ id: 'popular-user' }]);
+    expect(
+      boundPersistedClient(snapshot(client)).clientState.queries.map((q) => q.queryKey),
+    ).toEqual([['topFollowedUsers']]);
+    client.clear();
+  });
   it('keeps matching pages/cursors while leaving the active history untouched', () => {
     const client = new QueryClient();
     const history = {

@@ -22,6 +22,7 @@ describe('UsersService', () => {
     findByEmail: jest.Mock;
     findByUsername: jest.Mock;
     findById: jest.Mock;
+    findNearbyPreferences: jest.Mock;
     create: jest.Mock;
     updateUser: jest.Mock;
     updateManyLastSeen: jest.Mock;
@@ -111,6 +112,7 @@ describe('UsersService', () => {
       findByEmail: jest.fn().mockResolvedValue(null),
       findByUsername: jest.fn().mockResolvedValue(null),
       findById: jest.fn().mockResolvedValue(baseDbUser),
+      findNearbyPreferences: jest.fn().mockResolvedValue(null),
       create: jest.fn().mockResolvedValue(baseDbUser),
       updateUser: jest.fn().mockResolvedValue(baseDbUser),
       updateManyLastSeen: jest.fn().mockResolvedValue(undefined),
@@ -351,6 +353,63 @@ describe('UsersService', () => {
 
       await service.dismissSuggestedUser('usr-1', 'usr-2');
       expect(mockRedis.dismissSuggestedUser).toHaveBeenCalledWith('usr-1', 'usr-2');
+    });
+
+    it.each([
+      { birthDate: sampleDate, privacy: { allowNearbyRecommendations: true } },
+      { birthDate: null, privacy: { allowNearbyRecommendations: true } },
+      { birthDate: new Date('1990-01-01'), privacy: { allowNearbyRecommendations: false } },
+      null,
+    ])('skips location processing for an ineligible viewer (%j)', async (preferences) => {
+      mockUsersRepository.findNearbyPreferences.mockResolvedValueOnce(preferences);
+      mockUsersRepository.getPopularUserIds.mockResolvedValueOnce([baseDbUser.id]);
+      mockUsersRepository.getCandidateUsersDetails.mockResolvedValueOnce([baseDbUser]);
+
+      const suggested = await service.getSuggestedUsers('viewer', 5, null, undefined, {
+        latitude: 50,
+        longitude: 30,
+      });
+
+      expect(suggested.map(({ id }) => id)).toEqual([baseDbUser.id]);
+      expect(mockRedis.geoadd).not.toHaveBeenCalled();
+      expect(mockRedis.geosearchMembers).not.toHaveBeenCalled();
+      expect(mockRedis.geodistMany).not.toHaveBeenCalled();
+      expect(mockRedis.mget).not.toHaveBeenCalled();
+    });
+
+    it('ignores stale nearby entries for minors and opt-outs while retaining non-location suggestions', async () => {
+      const adult = { ...baseDbUser, id: 'adult', birthDate: new Date('1990-01-01') };
+      const minor = { ...baseDbUser, id: 'minor', birthDate: sampleDate };
+      const optedOut = {
+        ...adult,
+        id: 'opted-out',
+        privacy: { allowNearbyRecommendations: false },
+      };
+      const unknownAge = { ...baseDbUser, id: 'unknown-age', birthDate: null };
+      mockUsersRepository.findNearbyPreferences.mockResolvedValueOnce(adult);
+      mockRedis.geosearchMembers.mockResolvedValueOnce([
+        adult.id,
+        minor.id,
+        optedOut.id,
+        unknownAge.id,
+      ]);
+      mockUsersRepository.getPopularUserIds.mockResolvedValueOnce([minor.id]);
+      mockUsersRepository.getCandidateUsersDetails.mockResolvedValueOnce([
+        minor,
+        optedOut,
+        unknownAge,
+        adult,
+      ]);
+
+      const suggested = await service.getSuggestedUsers('viewer', 5, null, undefined, {
+        latitude: 50,
+        longitude: 30,
+      });
+
+      expect(new Set(suggested.map(({ id }) => id))).toEqual(new Set([adult.id, minor.id]));
+      expect(mockRedis.geoadd).toHaveBeenCalledWith('user_geo:v2', 30, 50, 'viewer');
+      expect(mockRedis.geodistMany).toHaveBeenCalledWith('user_geo:v2', 'viewer', [adult.id], 'km');
+      expect(mockRedis.mget).toHaveBeenCalledWith([`user_city:v2:${adult.id}`]);
     });
 
     it('gets top followed users', async () => {
