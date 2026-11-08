@@ -39,8 +39,12 @@ jobs:
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Install Linux native build headers
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y build-essential libx11-dev libxrandr-dev libxtst-dev libxt-dev
-      - name: Verify, rebuild and load the supplied native source
+        run: sudo apt-get update && sudo apt-get install -y build-essential libx11-dev libxrandr-dev libxtst-dev libxt-dev xvfb
+      - name: Verify, rebuild and load the supplied native source on Linux
+        if: runner.os == 'Linux'
+        run: xvfb-run -a pnpm --filter @eternal/desktop exec node scripts/native-license-source.ts rebuild
+      - name: Verify, rebuild and load the supplied native source on Windows and macOS
+        if: runner.os != 'Linux'
         run: pnpm --filter @eternal/desktop exec node scripts/native-license-source.ts rebuild
 
   release:
