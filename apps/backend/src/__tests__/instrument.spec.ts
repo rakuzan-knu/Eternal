@@ -98,6 +98,7 @@ describe('instrument.ts', () => {
   it.each([
     'https://api.example.test/v1/users/me/data-export',
     'https://messages.example.test/v1/messenger/me/data-export/',
+    'https://api.example.test/v1/auth/register',
   ])(
     'removes export passwords and cursors from Sentry events and transactions for %s',
     async (url) => {

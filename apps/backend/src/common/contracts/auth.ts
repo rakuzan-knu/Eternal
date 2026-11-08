@@ -1,13 +1,18 @@
 export {
+  REGISTRATION_TERMS_VERSION,
+  registrationAdmissionSchema,
+  type RegistrationAdmission,
   getRegistrationPolicy,
   registrationPolicySchema,
   type RegistrationPolicy,
 } from './registration-policy';
 import { z } from 'zod';
+import { registrationAdmissionSchema } from './registration-policy';
 import { registrationBirthDateError } from './registration-age';
 
 export {
   calendarBirthDate,
+  registrationAgeBand,
   registrationBirthDateError,
   MINIMUM_REGISTRATION_AGE,
 } from './registration-age';
@@ -211,6 +216,7 @@ export interface FoundAccountResponse {
 }
 
 export const registerSchema = z.object({
+  admission: registrationAdmissionSchema.optional(),
   email: z
     .string()
     .email()

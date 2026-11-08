@@ -70,9 +70,44 @@ function fillMinimumValidForm(includePersonalDetails = true) {
   fireEvent.change(screen.getByPlaceholderText('Repeat your password'), {
     target: { value: 'secret123' },
   });
+  selectOption('Country of residence', 'Ukraine');
+  const acceptance = screen.getByRole<HTMLInputElement>('checkbox', { name: /I accept the Terms/ });
+  if (!acceptance.checked) fireEvent.click(acceptance);
 }
 
 describe('RegistrationFields behind the closed registration gate', () => {
+  it('requires the parent declaration for a 13-year-old and sends it with self-service signup', async () => {
+    const mutate = setupMutations();
+    renderWithProviders(<RegisterForm redirectOnSuccess={false} />);
+    fillMinimumValidForm();
+    selectOption('Birth year', String(new Date().getFullYear() - 13));
+    expect(getSubmitButton()).toBeDisabled();
+    fireEvent.click(screen.getByRole('checkbox', { name: /I am this child/ }));
+    await waitFor(() => expect(getSubmitButton()).toBeEnabled());
+    fireEvent.submit(getSubmitButton().closest('form')!);
+    await waitFor(() => expect(mutate).toHaveBeenCalledOnce());
+    expect(mutate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        admission: expect.objectContaining({
+          countryOfResidence: 'UA',
+          contractingRole: 'PARENT_FOR_CHILD',
+          guardianApproval: true,
+        }),
+      }),
+      expect.any(Object),
+    );
+  });
+
+  it('keeps another country unavailable without submitting the form', async () => {
+    const mutate = setupMutations();
+    renderWithProviders(<RegisterForm />);
+    fillMinimumValidForm();
+    selectOption('Country of residence', 'Another country');
+    expect(getSubmitButton()).toBeDisabled();
+    fireEvent.submit(getSubmitButton().closest('form')!);
+    await screen.findByText('The initial launch is available to residents of Ukraine.');
+    expect(mutate).not.toHaveBeenCalled();
+  });
   it('keeps distinct birthday and gender names and keyboard selection when the fields are rendered', async () => {
     setupMutations();
     renderWithProviders(<RegisterForm />);

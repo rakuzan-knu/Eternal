@@ -1,11 +1,15 @@
-import React, { useState, useEffect, useMemo, useRef, useId } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useId, useCallback } from 'react';
 import { useForm, Controller, Control, UseFormSetValue, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useRegistrationPolicy } from '../api/useRegistrationPolicy';
 import { useLanguageStore } from '@/shared/lib/language/languageStore';
-import { calendarBirthDate } from '@social-network/shared-contracts';
+import {
+  calendarBirthDate,
+  registrationAgeBand,
+  REGISTRATION_TERMS_VERSION,
+} from '@social-network/shared-contracts';
 
 import { Input } from '../../../shared/ui/Input';
 import { Button } from '../../../shared/ui/Button';
@@ -222,6 +226,11 @@ export const RegistrationFields: React.FC<RegisterFormProps> = ({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [turnstileToken, setTurnstileToken] = useState<string | undefined>(undefined);
+  const clearTurnstileToken = useCallback(() => setTurnstileToken(undefined), []);
+  const [countryOfResidence, setCountryOfResidence] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [guardianApproval, setGuardianApproval] = useState(false);
+  const ukrainian = useLanguageStore((state) => state.currentLanguage === 'Українська');
 
   const navigate = useNavigate();
 
@@ -246,6 +255,18 @@ export const RegistrationFields: React.FC<RegisterFormProps> = ({
   });
 
   const usernameValue = useWatch({ control, name: 'username' });
+  const [birthMonth, birthDay, birthYear] = useWatch({
+    control,
+    name: ['birthMonth', 'birthDay', 'birthYear'],
+  });
+  const selectedBirthday = calendarBirthDate(
+    Number(birthYear),
+    BIRTH_MONTHS.findIndex((month) => month === birthMonth),
+    Number(birthDay),
+  );
+  const band = selectedBirthday ? registrationAgeBand(selectedBirthday) : 'UNKNOWN';
+  const minor = band === 'AGE_13' || band === 'AGE_14_17';
+  useEffect(() => setGuardianApproval(false), [band]);
   const passwordValue = useWatch({ control, name: 'password' });
   const debouncedUsername = useDebounce(usernameValue, 500);
 
@@ -260,6 +281,7 @@ export const RegistrationFields: React.FC<RegisterFormProps> = ({
     if (isUsernameTaken) return;
     if (data.gender !== 'Male' && data.gender !== 'Female' && data.gender !== 'Custom') return;
     setServerError(null);
+    if (countryOfResidence !== 'UA' || !acceptedTerms || (minor && !guardianApproval)) return;
 
     const monthIndex = BIRTH_MONTHS.findIndex((month) => month === data.birthMonth);
     const birthday = calendarBirthDate(Number(data.birthYear), monthIndex, Number(data.birthDay));
@@ -277,6 +299,14 @@ export const RegistrationFields: React.FC<RegisterFormProps> = ({
       birthDate,
       gender: data.gender,
       turnstileToken,
+      admission: {
+        countryOfResidence: 'UA',
+        termsVersion: REGISTRATION_TERMS_VERSION,
+        acceptedTerms: true,
+        privacyNoticeAcknowledged: true,
+        contractingRole: band === 'AGE_13' ? 'PARENT_FOR_CHILD' : 'SELF',
+        guardianApproval: minor && guardianApproval,
+      },
     };
 
     registerMutation.mutate(payload, {
@@ -299,6 +329,15 @@ export const RegistrationFields: React.FC<RegisterFormProps> = ({
         if (axios.isAxiosError(error)) {
           const status = error.response?.status;
           const message = error.response?.data?.message;
+
+          if (error.response?.data?.errorCode === 'ACCOUNT_CREATED_SIGN_IN') {
+            setServerError(
+              ukrainian
+                ? 'Акаунт створено, але вхід тимчасово недоступний. Спробуйте увійти через форму входу.'
+                : 'Your account was created, but sign-in is temporarily unavailable. Please use the sign-in form.',
+            );
+            return;
+          }
 
           if (status === 409) {
             setServerError(
@@ -329,7 +368,13 @@ export const RegistrationFields: React.FC<RegisterFormProps> = ({
   };
 
   const isUsernameAvailable = usernameStatus?.isAvailable;
-  const isFormDisabled = !isValid || isCheckingUsername || isUsernameAvailable === false;
+  const isFormDisabled =
+    !isValid ||
+    isCheckingUsername ||
+    isUsernameAvailable === false ||
+    countryOfResidence !== 'UA' ||
+    !acceptedTerms ||
+    (minor && !guardianApproval);
 
   return (
     <form
@@ -470,23 +515,73 @@ export const RegistrationFields: React.FC<RegisterFormProps> = ({
         }
       />
 
+      <div className="flex flex-col gap-2">
+        <span className="text-sm text-neutral-300">
+          {ukrainian ? 'Країна проживання' : 'Country of residence'}
+        </span>
+        <Select
+          aria-label={ukrainian ? 'Країна проживання' : 'Country of residence'}
+          value={countryOfResidence}
+          onChange={setCountryOfResidence}
+          options={[
+            { value: '', label: ukrainian ? 'Оберіть країну' : 'Select your country' },
+            { value: 'UA', label: ukrainian ? 'Україна' : 'Ukraine' },
+            { value: 'OTHER', label: ukrainian ? 'Інша країна' : 'Another country' },
+          ]}
+        />
+        {countryOfResidence === 'OTHER' && (
+          <p role="status" className="text-sm text-neutral-300">
+            {ukrainian
+              ? 'Перший запуск доступний для мешканців України.'
+              : 'The initial launch is available to residents of Ukraine.'}
+          </p>
+        )}
+      </div>
+
+      {minor && (
+        <label className="flex items-start gap-2 text-sm text-neutral-300">
+          <input
+            type="checkbox"
+            checked={guardianApproval}
+            onChange={(event) => setGuardianApproval(event.target.checked)}
+            className="mt-1"
+          />
+          {band === 'AGE_13'
+            ? ukrainian
+              ? 'Я є одним із батьків або законним представником цієї дитини та приймаю умови від її імені.'
+              : 'I am this child’s parent or legal guardian and accept the terms on their behalf.'
+            : ukrainian
+              ? 'Мої батьки або законний представник прочитали умови та погодили моє користування Eternal.'
+              : 'My parent or legal guardian has read the terms and agreed to my use of Eternal.'}
+        </label>
+      )}
+
+      <label className="flex items-start gap-2 text-sm text-neutral-300">
+        <input
+          type="checkbox"
+          checked={acceptedTerms}
+          onChange={(event) => setAcceptedTerms(event.target.checked)}
+          className="mt-1"
+        />
+        {ukrainian
+          ? 'Я приймаю Умови користування та ознайомився/ознайомилася з Політикою приватності.'
+          : 'I accept the Terms of Use and have read the Privacy Policy.'}
+      </label>
       <p className="text-xs text-neutral-500 leading-relaxed mt-1">
-        By creating an account, you agree to our{' '}
         <Link to="/terms" target="_blank" className="text-purple-400 font-medium hover:underline">
-          Terms
+          {ukrainian ? 'Умови користування' : 'Terms'}
         </Link>
         ,{' '}
         <Link to="/privacy" target="_blank" className="text-purple-400 font-medium hover:underline">
-          Privacy Policy
-        </Link>{' '}
-        and{' '}
-        <span className="text-purple-400 font-medium cursor-pointer hover:underline">
-          Cookies Policy
-        </span>
-        .
+          {ukrainian ? 'Політика приватності' : 'Privacy Policy'}
+        </Link>
       </p>
 
-      <Turnstile onVerify={(token) => setTurnstileToken(token)} size="invisible" />
+      <Turnstile
+        onVerify={setTurnstileToken}
+        onError={clearTurnstileToken}
+        onExpire={clearTurnstileToken}
+      />
 
       <Button
         type="submit"
@@ -494,7 +589,7 @@ export const RegistrationFields: React.FC<RegisterFormProps> = ({
         loading={registerMutation.isPending}
         disabled={isFormDisabled}
       >
-        Create Account
+        {ukrainian ? 'Створити акаунт' : 'Create Account'}
       </Button>
     </form>
   );

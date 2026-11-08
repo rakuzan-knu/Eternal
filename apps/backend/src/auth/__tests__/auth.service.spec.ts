@@ -1,4 +1,5 @@
 import { vi } from 'vitest';
+import { REGISTRATION_TERMS_VERSION, type RegistrationAdmission } from '@common/contracts';
 import { RegistrationPolicyService } from '../registration-policy.service';
 import { ConflictException, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
@@ -13,6 +14,15 @@ import type { TokenRevocationService } from '../token-revocation.service';
 import type { InMemoryBloomFilterService } from '../../common/bloom/in-memory-bloom-filter.service';
 
 jest.setTimeout(30000);
+
+const declaredAdmission: RegistrationAdmission = {
+  countryOfResidence: 'UA',
+  termsVersion: REGISTRATION_TERMS_VERSION,
+  acceptedTerms: true,
+  privacyNoticeAcknowledged: true,
+  contractingRole: 'SELF',
+  guardianApproval: false,
+};
 
 vi.mock('argon2', async (importOriginal) => {
   const actual = await importOriginal<typeof argon2>();
@@ -158,6 +168,7 @@ describe('AuthService', () => {
 
   describe('register with an explicitly stubbed availability policy', () => {
     const registerDto = {
+      admission: declaredAdmission,
       email: 'newuser@example.com',
       username: 'new_user',
       displayName: 'New User',
@@ -165,6 +176,14 @@ describe('AuthService', () => {
       birthDate: '2000-01-01T00:00:00.000Z',
       gender: 'Female' as const,
     };
+
+    it('validates admission on direct service calls before database access', async () => {
+      await expect(service.register({ ...registerDto, admission: undefined })).rejects.toThrow(
+        /country of residence/,
+      );
+      expect(mockUsersService.findByEmail).not.toHaveBeenCalled();
+      expect(mockUsersService.create).not.toHaveBeenCalled();
+    });
 
     it('rejects registration under the production policy before lookups or writes', async () => {
       jest.spyOn(registrationPolicy, 'assertRegistrationOpen').mockRestore();
@@ -529,11 +548,12 @@ describe('AuthService', () => {
       await expect(
         service.register({
           email: 'err@test.com',
+          admission: declaredAdmission,
           username: 'err_user',
           birthDate: '2000-01-01T00:00:00.000Z',
           password: 'Password123!',
         }),
-      ).rejects.toThrow(/Missing required environment variable/);
+      ).rejects.toThrow(/account was created/);
     });
   });
 });

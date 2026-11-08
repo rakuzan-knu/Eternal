@@ -42,7 +42,7 @@ export const PRIVACY_SECTIONS_EN: PrivacySection[] = [
         title: '1.2 Age Limits & Child Safety',
         content: [
           'The minimum account age is 13, subject to higher local account-age restrictions and other admission requirements. The age at which a child may consent to a particular use of personal data is a separate question. Required parental authorization and child-safety procedures cannot be replaced by accepting these Terms.',
-          'Accounts below the applicable minimum age are prohibited. New registrations are currently closed pending regional admission and child-safety review. Report a suspected under-age account to eternalnet.support@proton.me. Required review and handling procedures are not yet complete.',
+          'Accounts below the applicable minimum age are prohibited. Registration availability is shown in the sign-up form. The initial registration market is Ukraine. We record the declared country of residence, the terms version, the acceptance time and any required parent or guardian declaration. Contact eternalnet.support@proton.me about an incorrect declaration or an under-age account.',
         ],
       },
       {
@@ -351,7 +351,7 @@ export const PRIVACY_SECTIONS_UK: PrivacySection[] = [
         title: '1.2 Вікові обмеження та захист дітей',
         content: [
           'Мінімальний вік для облікового запису — 13 років із вищими місцевими порогами та іншими умовами допуску. Вік самостійної згоди дитини на певну обробку даних є окремим питанням. Прийняття умов не замінює необхідної батьківської згоди та процедур захисту дітей.',
-          'Облікові записи осіб молодших за застосовний мінімальний вік заборонені. Нові реєстрації закриті до перевірки регіонального допуску й захисту дітей. Про можливий обліковий запис дитини молодшого віку повідомляйте на eternalnet.support@proton.me; необхідні процедури перевірки й реагування ще не завершено.',
+          'Облікові записи осіб молодших за застосовний мінімальний вік заборонені. Доступність реєстрації показана у формі. Перший ринок реєстрації — Україна. Ми зберігаємо заявлену країну проживання, версію умов, час їх прийняття та необхідну заяву щодо батьків або законного представника. Щодо неправильної заяви чи акаунта дитини молодшого віку звертайтеся на eternalnet.support@proton.me.',
         ],
       },
       {

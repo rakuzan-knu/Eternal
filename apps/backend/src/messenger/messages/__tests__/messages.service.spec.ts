@@ -6,6 +6,8 @@ import type { MessengerMapper } from '../../messenger.mapper';
 import type { PrismaService } from '@common/prisma';
 import type { ConfigService } from '@nestjs/config';
 import { AttachmentType, MessageType } from '@common/contracts';
+import { PrivacyDimension } from '@prisma/client';
+import { Readable } from 'node:stream';
 
 jest.mock('../../../common/media/image-processor', () => ({
   uploadToStorageWithFallback: jest
@@ -78,6 +80,7 @@ describe('MessagesService', () => {
     get: jest.Mock;
   };
   let assertOwnedUrl: jest.Mock;
+  let privacy: { loadContext: jest.Mock; resolve: jest.Mock };
 
   const sampleMsg = {
     id: 'msg-1',
@@ -174,6 +177,11 @@ describe('MessagesService', () => {
       get: jest.fn((key: string, def?: string) => def ?? 'test'),
     };
 
+    privacy = {
+      loadContext: jest.fn().mockResolvedValue({}),
+      resolve: jest.fn().mockReturnValue(true),
+    };
+
     service = new MessagesService(
       mockConvsRepo as unknown as IConversationsRepository,
       mockMessagesRepo as unknown as IMessagesRepository,
@@ -183,6 +191,7 @@ describe('MessagesService', () => {
     );
     assertOwnedUrl = jest.fn().mockResolvedValue(undefined);
     Object.assign(service, {
+      visibility: privacy,
       directUploads: {
         assertLegacyAllowed: jest.fn(),
         assertOwnedUrl,
@@ -227,6 +236,54 @@ describe('MessagesService', () => {
   });
 
   describe('send message and validations', () => {
+    it('enforces recipient messaging privacy before storing a direct message or outbox event', async () => {
+      privacy.resolve.mockReturnValue(false);
+      await expect(
+        service.send('conv-1', 'usr-1', { text: 'hello', messageType: MessageType.TEXT }),
+      ).rejects.toThrow(ForbiddenException);
+      expect(privacy.loadContext).toHaveBeenCalledWith(['usr-2'], 'usr-1');
+      expect(privacy.resolve).toHaveBeenCalledWith(
+        PrivacyDimension.MESSAGES,
+        'usr-2',
+        expect.anything(),
+      );
+      expect(mockPrisma.message.create).not.toHaveBeenCalled();
+      expect(mockPrisma.outboxEvent?.create).not.toHaveBeenCalled();
+    });
+
+    it('shares the same privacy check with WebSocket send authorization and attachment upload', async () => {
+      privacy.resolve.mockReturnValue(false);
+      await expect(service.assertCanSend('conv-1', 'usr-1', { text: 'hello' })).rejects.toThrow(
+        ForbiddenException,
+      );
+      const resolveUpload = jest.fn();
+      Object.assign(service, { directUploads: { resolve: resolveUpload } });
+      const file: Express.Multer.File = {
+        fieldname: 'file',
+        originalname: 'file.png',
+        encoding: '7bit',
+        mimetype: 'image/png',
+        size: 0,
+        buffer: Buffer.alloc(0),
+        stream: Readable.from([]),
+        destination: '',
+        filename: '',
+        path: '',
+      };
+      await expect(service.uploadAttachment('conv-1', 'usr-1', file, 'upload-id')).rejects.toThrow(
+        ForbiddenException,
+      );
+      expect(resolveUpload).not.toHaveBeenCalled();
+    });
+
+    it('does not apply direct-message privacy to messages in a group conversation', async () => {
+      mockPrisma.conversation.findUnique.mockResolvedValueOnce({ type: 'GROUP' });
+      privacy.resolve.mockReturnValue(false);
+      await expect(
+        service.assertCanSend('conv-1', 'usr-1', { text: 'hello' }),
+      ).resolves.toBeUndefined();
+      expect(privacy.loadContext).not.toHaveBeenCalled();
+    });
     it('persists explicit mention metadata with encrypted text and the replayable outbox view', async () => {
       const mentionedUserIds = ['usr-2'];
       mockPrisma.message.create.mockResolvedValue({ ...sampleMsg, mentionedUserIds });

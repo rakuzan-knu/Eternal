@@ -36,7 +36,7 @@ Sentry.init({
     if (event.request) {
       if (
         event.request.url &&
-        /\/(?:integrations\/steam|oauth\/launch|users\/me\/data-export|messenger\/me\/data-export)(?:[/?#]|$)/.test(
+        /\/(?:integrations\/steam|oauth\/launch|users\/me\/data-export|messenger\/me\/data-export|auth\/register)(?:[/?#]|$)/.test(
           event.request.url,
         )
       )
@@ -56,7 +56,7 @@ Sentry.init({
     if (event.request) {
       if (
         event.request.url &&
-        /\/(?:integrations\/steam|oauth\/launch|users\/me\/data-export|messenger\/me\/data-export)(?:[/?#]|$)/.test(
+        /\/(?:integrations\/steam|oauth\/launch|users\/me\/data-export|messenger\/me\/data-export|auth\/register)(?:[/?#]|$)/.test(
           event.request.url,
         )
       )

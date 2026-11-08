@@ -5,6 +5,7 @@ import {
   Injectable,
   NotFoundException,
   UnauthorizedException,
+  ServiceUnavailableException,
   forwardRef,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -19,6 +20,8 @@ import { SessionsService, type RequestMeta } from '../sessions/sessions.service'
 import {
   CreateUserDto,
   registrationBirthDateError,
+  registrationAdmissionSchema,
+  registrationAgeBand,
   type ChangePasswordDto,
   type LoginDto,
   type FoundAccountResponse,
@@ -64,6 +67,24 @@ export class AuthService {
     this.registrationPolicy.assertRegistrationOpen();
     const birthdayError = registrationBirthDateError(dto.birthDate);
     if (birthdayError) throw new BadRequestException(birthdayError);
+    const admission = registrationAdmissionSchema.safeParse(dto.admission);
+    if (!admission.success)
+      throw new BadRequestException('Confirm your country of residence and the current terms');
+    const band = registrationAgeBand(new Date(dto.birthDate));
+    if (
+      band === 'AGE_13' &&
+      (admission.data.contractingRole !== 'PARENT_FOR_CHILD' || !admission.data.guardianApproval)
+    ) {
+      throw new BadRequestException(
+        'A parent or legal guardian must accept the terms on behalf of a 13-year-old',
+      );
+    }
+    if (band === 'AGE_14_17' && !admission.data.guardianApproval) {
+      throw new BadRequestException('Your parent or legal guardian must agree to the terms');
+    }
+    if (band !== 'AGE_13' && admission.data.contractingRole !== 'SELF') {
+      throw new BadRequestException('Select the contracting role appropriate for your age');
+    }
     const [existingByEmail, existingByUsername] = await Promise.all([
       this.usersService.findByEmail(dto.email),
       this.usersService.findByUsername(dto.username),
@@ -88,6 +109,7 @@ export class AuthService {
           passwordHash,
           birthDate: new Date(dto.birthDate),
           gender: dto.gender,
+          admission: admission.data,
         }),
       );
     } catch (error) {
@@ -97,7 +119,15 @@ export class AuthService {
       throw error;
     }
 
-    const tokens = await this.issueTokenPair(user.id, user.email, user.username, meta);
+    let tokens: TokenPair;
+    try {
+      tokens = await this.issueTokenPair(user.id, user.email, user.username, meta);
+    } catch {
+      throw new ServiceUnavailableException({
+        errorCode: 'ACCOUNT_CREATED_SIGN_IN',
+        message: 'Your account was created, but the session could not be started. Please sign in.',
+      });
+    }
 
     // Seed Bloom Filter so future username/email checks hit the fast-path
     this.bloomFilter.add('username', user.username.toLowerCase());

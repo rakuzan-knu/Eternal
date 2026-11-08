@@ -1,5 +1,19 @@
 export const MINIMUM_REGISTRATION_AGE = 13;
 
+export function registrationAgeBand(
+  birthDate: Date,
+  now = new Date(),
+): 'UNDER_13' | 'AGE_13' | 'AGE_14_17' | 'ADULT' | 'UNKNOWN' {
+  if (!Number.isFinite(birthDate.getTime()) || !Number.isFinite(now.getTime())) return 'UNKNOWN';
+  const birthdayPending =
+    now.getUTCMonth() < birthDate.getUTCMonth() ||
+    (now.getUTCMonth() === birthDate.getUTCMonth() && now.getUTCDate() < birthDate.getUTCDate());
+  const age = now.getUTCFullYear() - birthDate.getUTCFullYear() - (birthdayPending ? 1 : 0);
+  if (age < 13) return 'UNDER_13';
+  if (age === 13) return 'AGE_13';
+  return age < 18 ? 'AGE_14_17' : 'ADULT';
+}
+
 export function calendarBirthDate(year: number, monthIndex: number, day: number): Date | null {
   if (
     !Number.isInteger(year) ||

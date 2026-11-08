@@ -238,6 +238,15 @@ describe('data export repository privacy boundary', () => {
         gender: true,
         createdAt: true,
         updatedAt: true,
+        registrationAdmission: {
+          select: {
+            countryOfResidence: true,
+            termsVersion: true,
+            contractingRole: true,
+            guardianApprovalDeclared: true,
+            acceptedAt: true,
+          },
+        },
       },
     });
     await repository.profile(owner);

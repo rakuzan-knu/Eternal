@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import React from 'react';
-import { RegisterForm } from './RegisterForm';
+import { RegisterForm, RegistrationFields } from './RegisterForm';
 
 const meta: Meta<typeof RegisterForm> = {
   title: 'Features/Auth/RegisterForm',
@@ -23,6 +23,10 @@ type Story = StoryObj<typeof RegisterForm>;
 
 export const Default: Story = {
   args: {
-    onSuccess: (data) => console.log('Registration success:', data),
+    onSuccess: () => undefined,
   },
+};
+
+export const UkraineSelfService: Story = {
+  render: (args) => <RegistrationFields {...args} redirectOnSuccess={false} />,
 };

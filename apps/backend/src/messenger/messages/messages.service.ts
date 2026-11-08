@@ -10,7 +10,8 @@ import {
   Optional,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AttachmentType, MessageType, type Prisma } from '@prisma/client';
+import { AttachmentType, MessageType, PrivacyDimension, type Prisma } from '@prisma/client';
+import { VisibilityResolver } from '../../users/privacy/visibility.resolver';
 import { S3Client } from '@aws-sdk/client-s3';
 import { uid } from 'uid';
 import { PrismaService } from '@common/prisma';
@@ -54,6 +55,9 @@ import { withUnreadWriteLock } from '../unread/unread-write-lock';
 
 @Injectable()
 export class MessagesService implements OnModuleDestroy {
+  @Inject(VisibilityResolver)
+  private readonly visibility!: VisibilityResolver;
+
   @Inject(DirectUploadsService)
   private readonly directUploads!: DirectUploadsService;
 
@@ -126,7 +130,7 @@ export class MessagesService implements OnModuleDestroy {
     height?: number;
   }> {
     await this.assertMember(conversationId, userId);
-    await this.assertNotBlockedDirect(conversationId, userId);
+    await this.assertDirectMessagingAllowed(conversationId, userId);
     await this.assertChannelWritable(conversationId, userId);
 
     if (uploadId) {
@@ -256,7 +260,7 @@ export class MessagesService implements OnModuleDestroy {
   ): Promise<void> {
     const participant = await this.assertMember(conversationId, userId);
     await this.assertChannelWritable(conversationId, userId);
-    await this.assertNotBlockedDirect(conversationId, userId);
+    await this.assertDirectMessagingAllowed(conversationId, userId);
     const custom = (participant as unknown as { permissions?: number }).permissions;
     const permissions =
       custom !== undefined && custom !== null && custom !== 0
@@ -1026,7 +1030,10 @@ export class MessagesService implements OnModuleDestroy {
     return Array.from(hidden);
   }
 
-  private async assertNotBlockedDirect(conversationId: string, senderId: string): Promise<void> {
+  private async assertDirectMessagingAllowed(
+    conversationId: string,
+    senderId: string,
+  ): Promise<void> {
     const conversation = await this.prisma.conversation.findUnique({
       where: { id: conversationId },
       select: {
@@ -1050,5 +1057,10 @@ export class MessagesService implements OnModuleDestroy {
       select: { blockerId: true },
     });
     if (block) throw new ForbiddenException('You cannot message this user');
+
+    const context = await this.visibility.loadContext([otherId], senderId);
+    if (!this.visibility.resolve(PrivacyDimension.MESSAGES, otherId, context)) {
+      throw new ForbiddenException('Messaging this user is not permitted');
+    }
   }
 }

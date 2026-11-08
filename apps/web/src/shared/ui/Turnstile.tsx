@@ -11,7 +11,7 @@ declare global {
           'error-callback'?: (error: unknown) => void;
           'expired-callback'?: () => void;
           theme?: 'light' | 'dark' | 'auto';
-          size?: 'normal' | 'compact' | 'invisible';
+          size?: 'normal' | 'compact' | 'flexible';
           appearance?: 'always' | 'execute' | 'interaction-only';
         },
       ) => string;
@@ -25,7 +25,7 @@ interface TurnstileProps {
   onVerify: (token: string) => void;
   onError?: () => void;
   onExpire?: () => void;
-  size?: 'normal' | 'compact' | 'invisible';
+  size?: 'normal' | 'compact' | 'flexible';
   theme?: 'light' | 'dark' | 'auto';
   className?: string;
 }
@@ -34,7 +34,7 @@ export const Turnstile: React.FC<TurnstileProps> = ({
   onVerify,
   onError,
   onExpire,
-  size = 'invisible',
+  size = 'flexible',
   theme = 'dark',
   className = '',
 }) => {
@@ -71,6 +71,7 @@ export const Turnstile: React.FC<TurnstileProps> = ({
           sitekey: siteKey,
           theme,
           size,
+          appearance: 'interaction-only',
           callback: (token: string) => {
             if (isMounted) {
               onVerify(token);
@@ -124,10 +125,6 @@ export const Turnstile: React.FC<TurnstileProps> = ({
       }
     };
   }, [siteKey, theme, size, onVerify, onError, onExpire]);
-
-  if (size === 'invisible') {
-    return <div ref={containerRef} className="hidden" aria-hidden="true" />;
-  }
 
   return <div ref={containerRef} className={className} />;
 };
