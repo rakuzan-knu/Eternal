@@ -3,6 +3,7 @@ import { profileEffectSchema } from './profile-effects';
 import { nameplateSchema } from './nameplates';
 import { avatarDecorationSchema } from './decorations';
 import { z } from 'zod';
+import type { RegistrationAdmission } from './registration-policy';
 import { liveActivityStatusSchema } from './showcase';
 export const Visibility = {
   EVERYBODY: 'EVERYBODY',
@@ -279,6 +280,7 @@ export const userProfileSchema = z.object({
 export type UserProfileDto = z.infer<typeof userProfileSchema>;
 
 export class CreateUserDto {
+  readonly admission?: RegistrationAdmission | undefined;
   readonly email: string;
   readonly username: string;
   readonly passwordHash: string;
@@ -287,6 +289,7 @@ export class CreateUserDto {
   readonly gender?: string | undefined;
 
   constructor(props: {
+    admission?: RegistrationAdmission | undefined;
     email: string;
     username: string;
     passwordHash: string;
@@ -295,6 +298,7 @@ export class CreateUserDto {
     gender?: string | undefined;
   }) {
     this.email = props.email;
+    this.admission = props.admission;
     this.username = props.username;
     this.passwordHash = props.passwordHash;
     this.displayName = props.displayName;

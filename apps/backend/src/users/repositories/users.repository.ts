@@ -2,7 +2,7 @@ import { ConflictException, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import type { Prisma, User } from '@prisma/client';
 import { PrismaService } from '@common/prisma';
-import type { CreateUserDto } from '@common/contracts';
+import { type CreateUserDto, registrationAgeBand } from '@common/contracts';
 import type { IUsersRepository } from '../interfaces/users-repository.interface';
 
 @Injectable()
@@ -29,6 +29,7 @@ export class UsersRepository implements IUsersRepository {
   }
 
   create(dto: CreateUserDto): Promise<User> {
+    const minor = registrationAgeBand(dto.birthDate) !== 'ADULT';
     return this.prisma.user.create({
       data: {
         // Prisma omits the UUID default when this ID also backs optional composite relations.
@@ -39,6 +40,32 @@ export class UsersRepository implements IUsersRepository {
         displayName: dto.displayName ?? null,
         birthDate: dto.birthDate ?? null,
         gender: dto.gender ?? null,
+        ...(dto.admission
+          ? {
+              registrationAdmission: {
+                create: {
+                  countryOfResidence: dto.admission.countryOfResidence,
+                  termsVersion: dto.admission.termsVersion,
+                  contractingRole: dto.admission.contractingRole,
+                  guardianApprovalDeclared: dto.admission.guardianApproval,
+                },
+              },
+            }
+          : {}),
+        ...(minor
+          ? {
+              isPrivate: true,
+              privacy: {
+                create: {
+                  birthday: 'NOBODY',
+                  allowNearbyRecommendations: false,
+                  calls: 'CONTACTS',
+                  messages: 'CONTACTS',
+                  groupInvites: 'CONTACTS',
+                },
+              },
+            }
+          : {}),
       },
     });
   }

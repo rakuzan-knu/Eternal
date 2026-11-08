@@ -70,6 +70,15 @@ export class DataExportRepository {
         gender: true,
         createdAt: true,
         updatedAt: true,
+        registrationAdmission: {
+          select: {
+            countryOfResidence: true,
+            termsVersion: true,
+            contractingRole: true,
+            guardianApprovalDeclared: true,
+            acceptedAt: true,
+          },
+        },
       },
     });
     return user
@@ -78,6 +87,12 @@ export class DataExportRepository {
           birthDate: user.birthDate?.toISOString() ?? null,
           createdAt: user.createdAt.toISOString(),
           updatedAt: user.updatedAt.toISOString(),
+          registrationAdmission: user.registrationAdmission
+            ? {
+                ...user.registrationAdmission,
+                acceptedAt: user.registrationAdmission.acceptedAt.toISOString(),
+              }
+            : null,
         }
       : null;
   }

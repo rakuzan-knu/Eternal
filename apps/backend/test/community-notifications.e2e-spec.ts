@@ -18,6 +18,9 @@ import { MESSAGES_REPOSITORY } from '../src/messenger/interfaces/messages-reposi
 import { MessagesService } from '../src/messenger/messages/messages.service';
 import { MessengerMapper } from '../src/messenger/messenger.mapper';
 import { UnreadProjectionService } from '../src/messenger/unread/unread-projection.service';
+import { VisibilityResolver } from '../src/users/privacy/visibility.resolver';
+import { PrivacyRepository } from '../src/users/privacy/repositories/privacy.repository';
+import { PRIVACY_REPOSITORY } from '../src/users/privacy/interfaces/privacy-repository.interface';
 
 const connectionString = process.env.COMMUNITY_TEST_DATABASE_URL;
 describe.skipIf(!connectionString)(
@@ -53,6 +56,8 @@ describe.skipIf(!connectionString)(
           ConversationsRepository,
           MessagesRepository,
           MessagesService,
+          VisibilityResolver,
+          { provide: PRIVACY_REPOSITORY, useClass: PrivacyRepository },
           MessengerMapper,
           UnreadProjectionService,
           OutboxService,
@@ -121,6 +126,34 @@ describe.skipIf(!connectionString)(
       }
       if (previousUrl === undefined) delete process.env.DATABASE_URL;
       else process.env.DATABASE_URL = previousUrl;
+    });
+
+    it('enforces persisted direct-message privacy before writes and after settings change', async () => {
+      const direct = await new ConversationsRepository(prisma).createDirect(owner, outsider);
+      try {
+        await prisma.userPrivacy.upsert({
+          where: { userId: outsider },
+          create: { userId: outsider, messages: 'CONTACTS' },
+          update: { messages: 'CONTACTS' },
+        });
+        const send = () =>
+          messages.send(direct.id, owner, { text: 'privacy fixture', messageType: 'TEXT' });
+        await expect(send()).rejects.toBeInstanceOf(ForbiddenException);
+        expect(await prisma.message.count({ where: { conversationId: direct.id } })).toBe(0);
+        await prisma.follow.create({
+          data: { followerId: owner, followingId: outsider, status: 'ACCEPTED' },
+        });
+        await expect(send()).resolves.toMatchObject({ conversationId: direct.id });
+        await prisma.userPrivacy.update({
+          where: { userId: outsider },
+          data: { messages: 'NOBODY' },
+        });
+        await expect(send()).rejects.toBeInstanceOf(ForbiddenException);
+        expect(await prisma.message.count({ where: { conversationId: direct.id } })).toBe(1);
+      } finally {
+        await prisma.follow.deleteMany({ where: { followerId: owner, followingId: outsider } });
+        await prisma.conversation.delete({ where: { id: direct.id } });
+      }
     });
 
     it('persists own preferences, inheritance/reset, mute expiry and self-only outbox without changing administration', async () => {

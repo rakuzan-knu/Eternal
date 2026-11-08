@@ -21485,7 +21485,6 @@
         "border-red-500/20",
         "bottom-full",
         "cursor-not-allowed",
-        "cursor-pointer",
         "duration-200",
         "flex",
         "flex-col",
@@ -21541,227 +21540,252 @@
       "colorLiterals": [],
       "presentation": [
         {
-          "line": 52,
+          "line": 56,
           "attribute": "className",
           "expression": "\"relative flex items-center\""
         },
         {
-          "line": 58,
+          "line": 62,
           "attribute": "className",
           "expression": "{`transition-colors focus-visible:outline-2 focus-visible:outline-purple-400 ${isOpen ? 'text-purple-400' : 'text-neutral-500 hover:text-neutral-300'}`}"
         },
         {
-          "line": 60,
+          "line": 64,
           "attribute": "size",
           "expression": "{15}"
         },
         {
-          "line": 63,
+          "line": 67,
           "attribute": "className",
           "expression": "\"absolute z-30 bottom-full left-0 mb-2 p-3 bg-neutral-900 border border-neutral-800 rounded-xl shadow-xl max-w-xs text-xs text-neutral-300 animate-fadeIn\""
         },
         {
-          "line": 92,
+          "line": 96,
           "attribute": "className",
           "expression": "{displayError ? 'border-red-500' : ''}"
         },
         {
-          "line": 94,
+          "line": 98,
           "attribute": "size",
           "expression": "{16}"
         },
         {
-          "line": 94,
+          "line": 98,
           "attribute": "className",
           "expression": "\"animate-spin text-neutral-500\""
         },
         {
-          "line": 133,
+          "line": 137,
           "attribute": "className",
           "expression": "\"grid grid-cols-3 gap-2\""
         },
         {
-          "line": 138,
+          "line": 142,
           "attribute": "className",
           "expression": "\"min-w-0\""
         },
         {
-          "line": 150,
+          "line": 154,
           "attribute": "className",
           "expression": "\"mt-1.5 text-xs text-red-400\""
         },
         {
-          "line": 162,
+          "line": 166,
           "attribute": "className",
           "expression": "\"min-w-0\""
         },
         {
-          "line": 174,
+          "line": 178,
           "attribute": "className",
           "expression": "\"mt-1.5 text-xs text-red-400\""
         },
         {
-          "line": 186,
+          "line": 190,
           "attribute": "className",
           "expression": "\"min-w-0\""
         },
         {
-          "line": 198,
+          "line": 202,
           "attribute": "className",
           "expression": "\"mt-1.5 text-xs text-red-400\""
-        },
-        {
-          "line": 338,
-          "attribute": "className",
-          "expression": "\"flex flex-col gap-4 text-left w-full max-w-md mx-auto\""
-        },
-        {
-          "line": 343,
-          "attribute": "className",
-          "expression": "\"p-3.5 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-2.5 text-xs text-neutral-300 animate-fadeIn\""
-        },
-        {
-          "line": 345,
-          "attribute": "size",
-          "expression": "{16}"
-        },
-        {
-          "line": 345,
-          "attribute": "className",
-          "expression": "\"text-red-500 mt-0.5 shrink-0\""
-        },
-        {
-          "line": 346,
-          "attribute": "className",
-          "expression": "\"text-left leading-relaxed\""
-        },
-        {
-          "line": 350,
-          "attribute": "className",
-          "expression": "\"grid grid-cols-2 gap-3\""
-        },
-        {
-          "line": 381,
-          "attribute": "className",
-          "expression": "\"flex flex-col gap-1.5\""
-        },
-        {
-          "line": 382,
-          "attribute": "className",
-          "expression": "\"flex items-center gap-1.5\""
         },
         {
           "line": 383,
           "attribute": "className",
-          "expression": "\"text-xs font-semibold text-neutral-400 uppercase tracking-wider\""
+          "expression": "\"flex flex-col gap-4 text-left w-full max-w-md mx-auto\""
+        },
+        {
+          "line": 388,
+          "attribute": "className",
+          "expression": "\"p-3.5 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-2.5 text-xs text-neutral-300 animate-fadeIn\""
+        },
+        {
+          "line": 390,
+          "attribute": "size",
+          "expression": "{16}"
+        },
+        {
+          "line": 390,
+          "attribute": "className",
+          "expression": "\"text-red-500 mt-0.5 shrink-0\""
         },
         {
           "line": 391,
           "attribute": "className",
+          "expression": "\"text-left leading-relaxed\""
+        },
+        {
+          "line": 395,
+          "attribute": "className",
+          "expression": "\"grid grid-cols-2 gap-3\""
+        },
+        {
+          "line": 426,
+          "attribute": "className",
           "expression": "\"flex flex-col gap-1.5\""
         },
         {
-          "line": 392,
+          "line": 427,
           "attribute": "className",
           "expression": "\"flex items-center gap-1.5\""
         },
         {
-          "line": 393,
+          "line": 428,
           "attribute": "className",
           "expression": "\"text-xs font-semibold text-neutral-400 uppercase tracking-wider\""
         },
         {
-          "line": 411,
+          "line": 436,
+          "attribute": "className",
+          "expression": "\"flex flex-col gap-1.5\""
+        },
+        {
+          "line": 437,
+          "attribute": "className",
+          "expression": "\"flex items-center gap-1.5\""
+        },
+        {
+          "line": 438,
+          "attribute": "className",
+          "expression": "\"text-xs font-semibold text-neutral-400 uppercase tracking-wider\""
+        },
+        {
+          "line": 456,
           "attribute": "className",
           "expression": "\"mt-1.5 text-xs text-red-400\""
         },
         {
-          "line": 444,
-          "attribute": "className",
-          "expression": "\"text-neutral-500 hover:text-neutral-300 transition-colors focus-visible:outline-2 focus-visible:outline-purple-400 flex items-center justify-center\""
-        },
-        {
-          "line": 446,
-          "attribute": "size",
-          "expression": "{16}"
-        },
-        {
-          "line": 446,
-          "attribute": "size",
-          "expression": "{16}"
-        },
-        {
-          "line": 466,
-          "attribute": "className",
-          "expression": "\"text-neutral-500 hover:text-neutral-300 transition-colors focus-visible:outline-2 focus-visible:outline-purple-400 flex items-center justify-center\""
-        },
-        {
-          "line": 468,
-          "attribute": "size",
-          "expression": "{16}"
-        },
-        {
-          "line": 468,
-          "attribute": "size",
-          "expression": "{16}"
-        },
-        {
-          "line": 473,
-          "attribute": "className",
-          "expression": "\"text-xs text-neutral-500 leading-relaxed mt-1\""
-        },
-        {
-          "line": 475,
-          "attribute": "className",
-          "expression": "\"text-purple-400 font-medium hover:underline\""
-        },
-        {
-          "line": 479,
-          "attribute": "className",
-          "expression": "\"text-purple-400 font-medium hover:underline\""
-        },
-        {
-          "line": 483,
-          "attribute": "className",
-          "expression": "\"text-purple-400 font-medium cursor-pointer hover:underline\""
-        },
-        {
           "line": 489,
+          "attribute": "className",
+          "expression": "\"text-neutral-500 hover:text-neutral-300 transition-colors focus-visible:outline-2 focus-visible:outline-purple-400 flex items-center justify-center\""
+        },
+        {
+          "line": 491,
           "attribute": "size",
-          "expression": "\"invisible\""
+          "expression": "{16}"
         },
         {
-          "line": 493,
-          "attribute": "className",
-          "expression": "{`mt-4 transition-all duration-200 ${isFormDisabled ? 'opacity-40 cursor-not-allowed select-none' : 'active:scale-[0.98]'}`}"
+          "line": 491,
+          "attribute": "size",
+          "expression": "{16}"
         },
         {
-          "line": 526,
+          "line": 511,
           "attribute": "className",
-          "expression": "\"flex flex-col gap-4 text-left w-full max-w-md mx-auto\""
+          "expression": "\"text-neutral-500 hover:text-neutral-300 transition-colors focus-visible:outline-2 focus-visible:outline-purple-400 flex items-center justify-center\""
         },
         {
-          "line": 528,
+          "line": 513,
+          "attribute": "size",
+          "expression": "{16}"
+        },
+        {
+          "line": 513,
+          "attribute": "size",
+          "expression": "{16}"
+        },
+        {
+          "line": 518,
           "attribute": "className",
-          "expression": "\"text-lg font-semibold text-white\""
+          "expression": "\"flex flex-col gap-2\""
+        },
+        {
+          "line": 519,
+          "attribute": "className",
+          "expression": "\"text-sm text-neutral-300\""
         },
         {
           "line": 533,
           "attribute": "className",
+          "expression": "\"text-sm text-neutral-300\""
+        },
+        {
+          "line": 542,
+          "attribute": "className",
+          "expression": "\"flex items-start gap-2 text-sm text-neutral-300\""
+        },
+        {
+          "line": 547,
+          "attribute": "className",
+          "expression": "\"mt-1\""
+        },
+        {
+          "line": 559,
+          "attribute": "className",
+          "expression": "\"flex items-start gap-2 text-sm text-neutral-300\""
+        },
+        {
+          "line": 564,
+          "attribute": "className",
+          "expression": "\"mt-1\""
+        },
+        {
+          "line": 570,
+          "attribute": "className",
+          "expression": "\"text-xs text-neutral-500 leading-relaxed mt-1\""
+        },
+        {
+          "line": 571,
+          "attribute": "className",
+          "expression": "\"text-purple-400 font-medium hover:underline\""
+        },
+        {
+          "line": 575,
+          "attribute": "className",
+          "expression": "\"text-purple-400 font-medium hover:underline\""
+        },
+        {
+          "line": 588,
+          "attribute": "className",
+          "expression": "{`mt-4 transition-all duration-200 ${isFormDisabled ? 'opacity-40 cursor-not-allowed select-none' : 'active:scale-[0.98]'}`}"
+        },
+        {
+          "line": 621,
+          "attribute": "className",
+          "expression": "\"flex flex-col gap-4 text-left w-full max-w-md mx-auto\""
+        },
+        {
+          "line": 623,
+          "attribute": "className",
+          "expression": "\"text-lg font-semibold text-white\""
+        },
+        {
+          "line": 628,
+          "attribute": "className",
           "expression": "\"text-sm text-neutral-300 leading-relaxed\""
         },
         {
-          "line": 537,
+          "line": 632,
           "attribute": "className",
           "expression": "\"text-sm text-neutral-400 leading-relaxed\""
         },
         {
-          "line": 544,
+          "line": 639,
           "attribute": "className",
           "expression": "\"text-sm text-purple-400 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4\""
         },
         {
-          "line": 550,
+          "line": 645,
           "attribute": "className",
           "expression": "\"text-sm text-purple-400 break-all hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4\""
         }
@@ -183541,16 +183565,11 @@
     },
     {
       "path": "apps/web/src/shared/ui/Turnstile.tsx",
-      "utilityLiterals": ["hidden"],
+      "utilityLiterals": [],
       "colorLiterals": [],
       "presentation": [
         {
           "line": 129,
-          "attribute": "className",
-          "expression": "\"hidden\""
-        },
-        {
-          "line": 132,
           "attribute": "className",
           "expression": "{className}"
         }

@@ -14,7 +14,7 @@ import type { PrismaService } from '@common/prisma';
 import type { ConfigService } from '@nestjs/config';
 import type { MessengerGateway } from '../../gateway/messenger.gateway';
 import type { RedisService } from '../../../redis/redis.service';
-import { MuteLevel, ReportCategory } from '@prisma/client';
+import { MuteLevel, ReportCategory, PrivacyDimension } from '@prisma/client';
 import { Permission } from '@common/contracts';
 
 describe('ConversationsService', () => {
@@ -100,6 +100,7 @@ describe('ConversationsService', () => {
     emitConversationDeleted: jest.Mock;
     emitMessagesCleared: jest.Mock;
   };
+  let privacy: { loadContext: jest.Mock; resolve: jest.Mock };
 
   const sampleDirectConv = {
     id: 'conv-1',
@@ -241,6 +242,11 @@ describe('ConversationsService', () => {
       mockRedis as unknown as RedisService,
       mockGateway as unknown as MessengerGateway,
     );
+    privacy = {
+      loadContext: jest.fn().mockResolvedValue({}),
+      resolve: jest.fn().mockReturnValue(true),
+    };
+    Object.assign(service, { visibility: privacy });
   });
 
   describe('getConversations & getConversation', () => {
@@ -260,6 +266,37 @@ describe('ConversationsService', () => {
   });
 
   describe('createDirect & createGroup', () => {
+    it('checks recipient messaging privacy before creating or reactivating a direct conversation', async () => {
+      privacy.resolve.mockReturnValue(false);
+      mockConvsRepo.findDirectBetween.mockResolvedValueOnce(sampleDirectConv);
+      await expect(service.createDirect('usr-1', { participantId: 'usr-2' })).rejects.toThrow(
+        ForbiddenException,
+      );
+      expect(privacy.loadContext).toHaveBeenCalledWith(['usr-2'], 'usr-1');
+      expect(privacy.resolve).toHaveBeenCalledWith(
+        PrivacyDimension.MESSAGES,
+        'usr-2',
+        expect.anything(),
+      );
+      expect(mockConvsRepo.findDirectBetween).not.toHaveBeenCalled();
+      expect(mockConvsRepo.createDirect).not.toHaveBeenCalled();
+      expect(mockPrisma.conversationParticipant.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('checks every proposed group member before creating the group', async () => {
+      mockPrisma.user.count.mockResolvedValueOnce(2);
+      privacy.resolve.mockImplementation((_dimension, memberId) => memberId !== 'usr-member');
+      await expect(
+        service.createGroup('usr-owner', { name: 'Group', memberIds: ['usr-admin', 'usr-member'] }),
+      ).rejects.toThrow(ForbiddenException);
+      expect(privacy.loadContext).toHaveBeenCalledWith(['usr-admin', 'usr-member'], 'usr-owner');
+      expect(privacy.resolve).toHaveBeenCalledWith(
+        PrivacyDimension.GROUP_INVITES,
+        'usr-member',
+        expect.anything(),
+      );
+      expect(mockConvsRepo.createGroup).not.toHaveBeenCalled();
+    });
     it('creates direct conversation or returns existing reactivated', async () => {
       // 1. Existing conversation
       mockConvsRepo.findDirectBetween.mockResolvedValueOnce(sampleDirectConv);
@@ -318,6 +355,16 @@ describe('ConversationsService', () => {
   });
 
   describe('updateGroup & member management', () => {
+    it('rejects member additions when a proposed member disallows invitations', async () => {
+      mockConvsRepo.findOneForUser.mockResolvedValueOnce(sampleGroupConv);
+      privacy.resolve.mockReturnValue(false);
+      await expect(
+        service.addMembers('conv-group', 'usr-owner', { memberIds: ['usr-new'] }),
+      ).rejects.toThrow(ForbiddenException);
+      expect(privacy.loadContext).toHaveBeenCalledWith(['usr-new'], 'usr-owner');
+      expect(mockConvsRepo.addParticipants).not.toHaveBeenCalled();
+      expect(mockPrisma.message.create).not.toHaveBeenCalled();
+    });
     const avatarFile: Express.Multer.File = {
       fieldname: 'avatar',
       originalname: 'avatar.png',

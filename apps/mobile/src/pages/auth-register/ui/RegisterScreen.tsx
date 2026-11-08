@@ -14,6 +14,7 @@ import {
   StyleSheet,
   Animated,
   ActivityIndicator,
+  Switch,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useForm, Controller, useWatch } from 'react-hook-form';
@@ -23,6 +24,8 @@ import {
   calendarBirthDate,
   type RegisterFormDto,
   calculatePasswordStrength,
+  registrationAgeBand,
+  REGISTRATION_TERMS_VERSION,
 } from '@social-network/shared-contracts';
 import {
   useRegister,
@@ -75,6 +78,12 @@ export function RegistrationFields({ onNavigateLogin, onSuccess }: RegisterScree
   const [clipboardEmail, setClipboardEmail] = React.useState<string | null>(null);
   const registerMutation = useRegister();
   const setSession = useAuthStore((state) => state.setSession);
+  const ukrainian = useLanguage() === 'uk';
+  const [countryOfResidence, setCountryOfResidence] = React.useState('');
+  const [acceptedTerms, setAcceptedTerms] = React.useState(false);
+  const [guardianApproval, setGuardianApproval] = React.useState(false);
+  const countryLabel = ukrainian ? 'Україна' : 'Ukraine';
+  const otherCountryLabel = ukrainian ? 'Інша країна' : 'Another country';
 
   // Apple Error Shake Animation
   const shakeAnim = React.useRef(new Animated.Value(0)).current;
@@ -163,6 +172,14 @@ export function RegistrationFields({ onNavigateLogin, onSuccess }: RegisterScree
   const selectedMonth = useWatch({ control, name: 'birthMonth' });
   const selectedYear = useWatch({ control, name: 'birthYear' });
   const selectedDay = useWatch({ control, name: 'birthDay' });
+  const selectedBirthday = calendarBirthDate(
+    Number(selectedYear),
+    MONTHS.indexOf(selectedMonth),
+    Number(selectedDay),
+  );
+  const band = selectedBirthday ? registrationAgeBand(selectedBirthday) : 'UNKNOWN';
+  const minor = band === 'AGE_13' || band === 'AGE_14_17';
+  React.useEffect(() => setGuardianApproval(false), [band]);
   const passwordValue = useWatch({ control, name: 'password' }) || '';
   const strengthInfo = calculatePasswordStrength(passwordValue);
 
@@ -209,6 +226,14 @@ export function RegistrationFields({ onNavigateLogin, onSuccess }: RegisterScree
       }
 
       setErrorMessage(null);
+      if (countryOfResidence !== 'UA' || !acceptedTerms || (minor && !guardianApproval)) {
+        setErrorMessage(
+          ukrainian
+            ? 'Оберіть країну проживання та підтвердіть необхідні умови.'
+            : 'Select your country of residence and confirm the required terms.',
+        );
+        return;
+      }
 
       const monthIndex = MONTHS.indexOf(data.birthMonth);
       const birthday = calendarBirthDate(Number(data.birthYear), monthIndex, Number(data.birthDay));
@@ -225,6 +250,14 @@ export function RegistrationFields({ onNavigateLogin, onSuccess }: RegisterScree
         password: data.password,
         birthDate,
         turnstileToken: data.turnstileToken,
+        admission: {
+          countryOfResidence: 'UA',
+          termsVersion: REGISTRATION_TERMS_VERSION,
+          acceptedTerms: true,
+          privacyNoticeAcknowledged: true,
+          contractingRole: band === 'AGE_13' ? 'PARENT_FOR_CHILD' : 'SELF',
+          guardianApproval: minor && guardianApproval,
+        },
       };
 
       const response = await registerMutation.mutateAsync(payload);
@@ -250,6 +283,15 @@ export function RegistrationFields({ onNavigateLogin, onSuccess }: RegisterScree
       if (axios.isAxiosError(err)) {
         const status = err.response?.status;
         const serverMessage = err.response?.data?.message;
+
+        if (err.response?.data?.errorCode === 'ACCOUNT_CREATED_SIGN_IN') {
+          setErrorMessage(
+            ukrainian
+              ? 'Акаунт створено, але вхід тимчасово недоступний. Спробуйте увійти через форму входу.'
+              : 'Your account was created, but sign-in is temporarily unavailable. Please use the sign-in form.',
+          );
+          return;
+        }
 
         if (status === 409) {
           setErrorMessage(
@@ -726,12 +768,75 @@ export function RegistrationFields({ onNavigateLogin, onSuccess }: RegisterScree
                   />
                 </View>
 
+                <Select
+                  label={ukrainian ? 'Країна проживання' : 'Country of residence'}
+                  placeholder={ukrainian ? 'Оберіть країну' : 'Select your country'}
+                  value={
+                    countryOfResidence === 'UA'
+                      ? countryLabel
+                      : countryOfResidence === 'OTHER'
+                        ? otherCountryLabel
+                        : ''
+                  }
+                  options={[countryLabel, otherCountryLabel]}
+                  onChange={(value) =>
+                    setCountryOfResidence(value === countryLabel ? 'UA' : 'OTHER')
+                  }
+                  disabled={isPending}
+                />
+                {countryOfResidence === 'OTHER' && (
+                  <Text style={styles.disclaimerText}>
+                    {ukrainian
+                      ? 'Перший запуск доступний для мешканців України.'
+                      : 'The initial launch is available to residents of Ukraine.'}
+                  </Text>
+                )}
+
+                {minor && (
+                  <View style={styles.sectionBlock}>
+                    <Text style={styles.disclaimerText}>
+                      {band === 'AGE_13'
+                        ? ukrainian
+                          ? 'Я є одним із батьків або законним представником цієї дитини та приймаю умови від її імені.'
+                          : 'I am this child’s parent or legal guardian and accept the terms on their behalf.'
+                        : ukrainian
+                          ? 'Мої батьки або законний представник прочитали умови та погодили моє користування Eternal.'
+                          : 'My parent or legal guardian has read the terms and agreed to my use of Eternal.'}
+                    </Text>
+                    <Switch
+                      accessibilityLabel={
+                        ukrainian
+                          ? 'Підтвердження участі законного представника'
+                          : 'Parent or guardian declaration'
+                      }
+                      value={guardianApproval}
+                      onValueChange={setGuardianApproval}
+                      disabled={isPending}
+                    />
+                  </View>
+                )}
+
+                <View style={styles.sectionBlock}>
+                  <Text style={styles.disclaimerText}>
+                    {ukrainian
+                      ? 'Я приймаю Умови користування та ознайомився/ознайомилася з Політикою приватності.'
+                      : 'I accept the Terms of Use and have read the Privacy Policy.'}
+                  </Text>
+                  <Switch
+                    accessibilityLabel={ukrainian ? 'Прийняття умов' : 'Accept terms'}
+                    value={acceptedTerms}
+                    onValueChange={setAcceptedTerms}
+                    disabled={isPending}
+                  />
+                </View>
                 <Text style={styles.disclaimerText}>
-                  By creating an account, you agree to our{' '}
                   <Text
                     style={styles.purpleLink}
                     accessibilityRole="link"
                     accessibilityLabel={tr('Terms')}
+                    onPress={() => {
+                      void Linking.openURL('https://eternalnet.vercel.app/terms');
+                    }}
                     {...({ hitSlop: { top: 8, bottom: 8, left: 8, right: 8 } } as any)}
                   >
                     {tr('Terms')}
@@ -741,20 +846,13 @@ export function RegistrationFields({ onNavigateLogin, onSuccess }: RegisterScree
                     style={styles.purpleLink}
                     accessibilityRole="link"
                     accessibilityLabel={tr('Privacy Policy')}
+                    onPress={() => {
+                      void Linking.openURL('https://eternalnet.vercel.app/privacy');
+                    }}
                     {...({ hitSlop: { top: 8, bottom: 8, left: 8, right: 8 } } as any)}
                   >
                     {tr('Privacy Policy')}
-                  </Text>{' '}
-                  and{' '}
-                  <Text
-                    style={styles.purpleLink}
-                    accessibilityRole="link"
-                    accessibilityLabel={tr('Cookies Policy')}
-                    {...({ hitSlop: { top: 8, bottom: 8, left: 8, right: 8 } } as any)}
-                  >
-                    {tr('Cookies Policy')}
                   </Text>
-                  .
                 </Text>
 
                 <Button
@@ -762,6 +860,9 @@ export function RegistrationFields({ onNavigateLogin, onSuccess }: RegisterScree
                   variant="primary"
                   size="lg"
                   loading={isPending}
+                  disabled={
+                    countryOfResidence !== 'UA' || !acceptedTerms || (minor && !guardianApproval)
+                  }
                   accessibilityLabel={tr('Create Account')}
                   accessibilityHint={tr('Submits registration form to create an account')}
                   onPress={handleSubmit(onSubmit, onValidationError)}

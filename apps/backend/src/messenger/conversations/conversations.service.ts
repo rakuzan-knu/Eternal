@@ -19,6 +19,7 @@ import {
 import { isR2Endpoint } from '../../common/storage/storage-url.util';
 import { safeJsonParse } from '../../common/utils/json.util';
 import { UsersService } from '../../users/users.service';
+import { VisibilityResolver } from '../../users/privacy/visibility.resolver';
 import { PrismaService } from '@common/prisma';
 import { RedisService } from '../../redis/redis.service';
 import { MessengerGateway } from '../gateway/messenger.gateway';
@@ -52,7 +53,7 @@ import {
 } from '@common/contracts';
 import { MessengerMapper } from '../messenger.mapper';
 import type { ReportCategory } from '@prisma/client';
-import { Prisma } from '@prisma/client';
+import { Prisma, PrivacyDimension } from '@prisma/client';
 import { WS_EVENTS } from '../events/ws-events';
 import { messageBodyOmit, messageInclude } from '../interfaces/types';
 
@@ -64,6 +65,9 @@ import { withUnreadWriteLock } from '../unread/unread-write-lock';
 
 @Injectable()
 export class ConversationsService implements OnModuleDestroy {
+  @Inject(VisibilityResolver)
+  private readonly visibility!: VisibilityResolver;
+
   private readonly s3: S3Client;
 
   onModuleDestroy(): void {
@@ -310,6 +314,11 @@ export class ConversationsService implements OnModuleDestroy {
     });
     if (block) throw new ForbiddenException('User is blocked');
 
+    const context = await this.visibility.loadContext([dto.participantId], userId);
+    if (!this.visibility.resolve(PrivacyDimension.MESSAGES, dto.participantId, context)) {
+      throw new ForbiddenException('Messaging this user is not permitted');
+    }
+
     const existing = await this.convsRepo.findDirectBetween(userId, dto.participantId);
     if (existing) {
       // Re-activate any participants who might have left the conversation
@@ -352,6 +361,8 @@ export class ConversationsService implements OnModuleDestroy {
       });
       if (block)
         throw new ForbiddenException('Cannot add members due to privacy settings / blocks');
+
+      await this.assertGroupInvitationsAllowed(userId, uniqueMemberIds);
     }
 
     const groupName = dto.name?.trim() || 'New Group';
@@ -475,6 +486,8 @@ export class ConversationsService implements OnModuleDestroy {
       });
       if (block)
         throw new ForbiddenException('Cannot add members due to privacy settings / blocks');
+
+      await this.assertGroupInvitationsAllowed(userId, newMemberIds);
 
       await this.convsRepo.addParticipants(conversationId, newMemberIds);
       return this.getConversation(conversationId, userId);
@@ -1300,6 +1313,20 @@ export class ConversationsService implements OnModuleDestroy {
     }
 
     return { success: true };
+  }
+
+  private async assertGroupInvitationsAllowed(
+    inviterId: string,
+    memberIds: string[],
+  ): Promise<void> {
+    const context = await this.visibility.loadContext(memberIds, inviterId);
+    if (
+      memberIds.some(
+        (memberId) => !this.visibility.resolve(PrivacyDimension.GROUP_INVITES, memberId, context),
+      )
+    ) {
+      throw new ForbiddenException('One or more users do not allow this group invitation');
+    }
   }
 
   private async broadcastToParticipants(

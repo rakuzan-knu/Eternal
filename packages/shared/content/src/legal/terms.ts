@@ -58,14 +58,14 @@ export const TERMS_SECTIONS: TermsSection[] = [
         title: '2.1 Minimum Age Requirements',
         content: [
           'The minimum account age is 13, subject to higher local account-age restrictions and other admission requirements. A data-protection consent threshold is not a universal account-age rule. Required parental authorization and child-safety procedures cannot be replaced by accepting these Terms.',
-          'Accounts below the applicable minimum age are prohibited. New registrations remain closed pending regional admission review. Report a suspected under-age account to eternalnet.support@proton.me; required review and handling procedures are not yet complete.',
+          'Accounts below the applicable minimum age are prohibited. Registration availability is shown in the registration form. The initial registration market is Ukraine, based on the country of residence declared during sign-up. Report a suspected under-age account to eternalnet.support@proton.me.',
         ],
       },
       {
         id: 'parents-and-guardians',
         title: '2.2 Responsibility of Parents and Guardians',
         content: [
-          'Parents and guardians can contact eternalnet.support@proton.me about a minor’s account or privacy rights. A child accepting these Terms, or using a family feature, does not by itself establish verified parental authorization or bind an absent guardian to a contract. Regional admission and required parental procedures are not yet complete; new registrations remain closed.',
+          'For an account in Ukraine belonging to a 13-year-old, a parent or legal guardian must complete the acceptance of these Terms on the child’s behalf. A user aged 14–17 must have the agreement of a parent or legal guardian before accepting these Terms. The registration form records these declarations. Parents and guardians can contact eternalnet.support@proton.me about a minor’s account, an incorrect declaration or privacy rights.',
         ],
       },
     ],
@@ -405,14 +405,14 @@ export const TERMS_SECTIONS_UK: TermsSection[] = [
         title: '2.1 Мінімальний вік користувачів',
         content: [
           'Мінімальний вік для облікового запису — 13 років із вищими місцевими порогами та іншими вимогами допуску. Поріг самостійної згоди на обробку даних не є універсальним правилом віку для облікового запису. Прийняття умов не замінює необхідної батьківської згоди чи процедур захисту дітей.',
-          'Облікові записи осіб молодших за застосовний мінімальний вік заборонені. Нові реєстрації закриті до перевірки регіонального допуску. Про можливий обліковий запис дитини молодшого віку повідомляйте на eternalnet.support@proton.me; необхідні процедури перевірки й реагування ще не завершено.',
+          'Облікові записи осіб молодших за застосовний мінімальний вік заборонені. Доступність реєстрації показана у формі. Перший ринок реєстрації — Україна, відповідно до країни проживання, заявленої під час створення акаунта. Про можливий обліковий запис дитини молодшого віку повідомляйте на eternalnet.support@proton.me.',
         ],
       },
       {
         id: 'parents-and-guardians',
         title: '2.2 Відповідальність батьків та опікунів',
         content: [
-          'Батьки й опікуни можуть звернутися на eternalnet.support@proton.me щодо облікового запису дитини чи її прав на приватність. Прийняття умов дитиною або використання сімейної функції саме по собі не підтверджує батьківської згоди та не укладає договір з відсутнім опікуном. Регіональні умови допуску й необхідні батьківські процедури ще не завершено; нові реєстрації закриті.',
+          'Для українського акаунта 13-річної дитини один із батьків або законний представник має прийняти ці Умови від її імені. Користувач віком 14–17 років має отримати погодження одного з батьків або законного представника до прийняття Умов. Форма реєстрації зберігає відповідні заяви. Батьки й законні представники можуть звернутися на eternalnet.support@proton.me щодо акаунта дитини, неправильної заяви чи прав на приватність.',
         ],
       },
     ],

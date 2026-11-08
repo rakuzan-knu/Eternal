@@ -1,10 +1,11 @@
 import * as Sentry from '@sentry/react';
 
-// Invitation URLs are bearer credentials. Suppress telemetry containing them,
-// including failed Axios requests and navigation breadcrumbs.
+// Suppress bearer invitations and registration requests, including Axios payloads.
 export function containsInvitationCredential(value: unknown): boolean {
   try {
-    return /\/(?:messenger\/communities\/invites|invite)\//i.test(JSON.stringify(value) ?? '');
+    return /\/(?:messenger\/communities\/invites|invite)\/|\/auth\/register(?:[/?#"\s]|$)/i.test(
+      JSON.stringify(value) ?? '',
+    );
   } catch {
     return true;
   }

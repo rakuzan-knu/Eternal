@@ -1,13 +1,18 @@
 export {
+  REGISTRATION_TERMS_VERSION,
+  registrationAdmissionSchema,
+  type RegistrationAdmission,
   getRegistrationPolicy,
   registrationPolicySchema,
   type RegistrationPolicy,
 } from './registration-policy';
 import { z } from 'zod';
+import { registrationAdmissionSchema } from './registration-policy';
 import { calendarBirthDate, registrationBirthDateError } from './registration-age';
 
 export {
   calendarBirthDate,
+  registrationAgeBand,
   registrationBirthDateError,
   MINIMUM_REGISTRATION_AGE,
 } from './registration-age';
@@ -217,6 +222,7 @@ export const loginSchema = z.object({
 export type LoginDto = z.infer<typeof loginSchema>;
 
 export const registerSchema = z.object({
+  admission: registrationAdmissionSchema.optional(),
   email: z
     .string()
     .max(255)

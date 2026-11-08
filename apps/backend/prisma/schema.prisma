@@ -139,11 +139,24 @@ model User {
   likedTracks              UserLikedTrack[]
   musicFolders             UserMusicFolder[]
   musicPlaylists           UserPlaylist[]
+  registrationAdmission   RegistrationAdmission?
 
   @@index([activeDecorationId])
   @@index([activeNameplateId])
   @@index([activeProfileFrameId])
   @@index([activeProfileEffectId])
+}
+
+model RegistrationAdmission {
+  userId                   String   @id @map("user_id")
+  countryOfResidence       String   @map("country_of_residence")
+  termsVersion             String   @map("terms_version")
+  contractingRole          String   @map("contracting_role")
+  guardianApprovalDeclared Boolean  @map("guardian_approval_declared")
+  acceptedAt               DateTime @default(now()) @map("accepted_at")
+  user                     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("registration_admissions")
 }
 
 model UserBadge {

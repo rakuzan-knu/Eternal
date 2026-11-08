@@ -66,6 +66,11 @@ describe('sentry', () => {
       }),
     ).toBe(true);
     expect(containsInvitationCredential({ url: '/communities/public-id' })).toBe(false);
+    expect(
+      containsInvitationCredential({
+        config: { url: '/auth/register', data: { password: 'private', admission: {} } },
+      }),
+    ).toBe(true);
   });
   beforeEach(() => {
     vi.clearAllMocks();

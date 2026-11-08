@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import React from 'react';
-import { RegisterForm } from './RegisterForm';
+import { RegisterForm, RegistrationFields } from './RegisterForm';
 
 const meta: Meta<typeof RegisterForm> = {
   title: 'Features/Auth/RegisterForm',
@@ -11,7 +11,7 @@ const meta: Meta<typeof RegisterForm> = {
   },
   decorators: [
     (Story) => (
-      <div className="w-[440px] max-w-full p-8 bg-neutral-900 border border-neutral-800 rounded-3xl shadow-2xl">
+      <div className="w-[calc(100vw-2rem)] max-w-[440px] p-8 bg-neutral-900 border border-neutral-800 rounded-3xl shadow-2xl">
         <Story />
       </div>
     ),
@@ -23,6 +23,10 @@ type Story = StoryObj<typeof RegisterForm>;
 
 export const Default: Story = {
   args: {
-    onSuccess: (data) => console.log('Registration success:', data),
+    onSuccess: () => undefined,
   },
+};
+
+export const UkraineSelfService: Story = {
+  render: (args) => <RegistrationFields {...args} redirectOnSuccess={false} />,
 };

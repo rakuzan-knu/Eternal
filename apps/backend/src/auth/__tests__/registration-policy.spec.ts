@@ -1,7 +1,12 @@
 import type { INestApplication } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { getRegistrationPolicy, registrationPolicySchema } from '@common/contracts';
+import {
+  getRegistrationPolicy,
+  registrationPolicySchema,
+  registrationAgeBand,
+} from '@common/contracts';
 import { AuthController } from '../auth.controller';
 import { AuthService } from '../auth.service';
 import { TurnstileService } from '../turnstile.service';
@@ -9,10 +14,20 @@ import { RegistrationPolicyService } from '../registration-policy.service';
 import { RegistrationOpenGuard } from '../guards/registration-open.guard';
 
 describe('closed registration publication policy', () => {
+  it.each([
+    ['2013-11-09T00:00:00.000Z', 'UNDER_13'],
+    ['2013-11-08T00:00:00.000Z', 'AGE_13'],
+    ['2012-11-09T00:00:00.000Z', 'AGE_13'],
+    ['2012-11-08T00:00:00.000Z', 'AGE_14_17'],
+    ['2008-11-09T00:00:00.000Z', 'AGE_14_17'],
+    ['2008-11-08T00:00:00.000Z', 'ADULT'],
+  ])('uses UTC birthday boundaries for %s', (birthday, band) => {
+    expect(registrationAgeBand(new Date(birthday), new Date('2026-11-08T00:00:00Z'))).toBe(band);
+  });
   let app: INestApplication | undefined;
   afterEach(async () => app?.close());
 
-  it('has no approved markets or environment-based opening switch', () => {
+  it('defaults to a closed policy and supports the explicit Ukrainian release switch', () => {
     expect(registrationPolicySchema.parse(getRegistrationPolicy())).toEqual({
       minimumAge: 13,
       registrationOpen: false,
@@ -23,6 +38,15 @@ describe('closed registration publication policy', () => {
     const service = new RegistrationPolicyService();
     expect(() => service.assertRegistrationOpen()).toThrow();
     expect(() => new RegistrationOpenGuard(service).canActivate()).toThrow();
+    const configured = new RegistrationPolicyService(
+      new ConfigService({ UA_PUBLIC_REGISTRATION_ENABLED: 'true' }),
+    );
+    expect(registrationPolicySchema.parse(configured.getPolicy())).toMatchObject({
+      registrationOpen: true,
+      reviewedMarkets: ['UA'],
+      reason: 'UKRAINE_SELF_REGISTRATION',
+    });
+    expect(() => configured.assertRegistrationOpen()).not.toThrow();
   });
 
   it('exposes policy publicly and rejects signup before validation or Turnstile while login remains reachable', async () => {
