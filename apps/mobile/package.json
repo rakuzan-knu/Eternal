@@ -64,7 +64,7 @@
     "react-native-webview": "13.12.5",
     "socket.io-client": "^4.8.3",
     "socket.io-msgpack-parser": "^3.0.2",
-    "zod": "^3.24.2",
+    "zod": "^4.6.7",
     "zustand": "^5.0.3"
   },
   "devDependencies": {

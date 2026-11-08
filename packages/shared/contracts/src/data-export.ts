@@ -29,7 +29,7 @@ export const dataExportPageSchema = z
     service: z.enum(['core', 'messenger']),
     section: z.enum([...CORE_DATA_EXPORT_SECTIONS, ...MESSENGER_DATA_EXPORT_SECTIONS]),
     exportedAt: z.string().datetime(),
-    items: z.array(z.record(z.unknown())).max(100),
+    items: z.array(z.record(z.string(), z.unknown())).max(100),
     nextCursor: z.string().max(2048).nullable(),
     limitations: z.array(z.string()),
   })

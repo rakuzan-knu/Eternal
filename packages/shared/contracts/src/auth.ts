@@ -187,7 +187,10 @@ export const RESERVED_USERNAMES = [
 export const loginSchema = z.object({
   email: z.string().email().max(255).optional(),
   identity: z
-    .string({ required_error: 'Please enter your email or mobile phone number' })
+    .string({
+      error: (issue) =>
+        issue.input === undefined ? 'Please enter your email or mobile phone number' : undefined,
+    })
     .min(1, 'Please enter your email or mobile phone number')
     .max(255)
     .refine(
@@ -203,7 +206,9 @@ export const loginSchema = z.object({
       },
     ),
   password: z
-    .string({ required_error: 'Please enter your password' })
+    .string({
+      error: (issue) => (issue.input === undefined ? 'Please enter your password' : undefined),
+    })
     .min(1, 'Please enter your password')
     .min(6, 'Password must contain at least 6 characters')
     .max(128, 'Password cannot exceed 128 characters'),
@@ -288,7 +293,10 @@ export type VerifyPasswordDto = z.infer<typeof verifyPasswordSchema>;
 
 export const forgotPasswordSchema = z.object({
   email: z
-    .string({ required_error: 'Email or mobile phone number is required' })
+    .string({
+      error: (issue) =>
+        issue.input === undefined ? 'Email or mobile phone number is required' : undefined,
+    })
     .min(1, 'Email or mobile phone number is required')
     .max(255)
     .refine(
@@ -309,17 +317,19 @@ export type ForgotPasswordDto = z.infer<typeof forgotPasswordSchema>;
 export const registerFormSchema = z
   .object({
     firstName: z
-      .string({ required_error: 'Enter first name' })
+      .string({ error: (issue) => (issue.input === undefined ? 'Enter first name' : undefined) })
       .min(1, 'Enter first name')
       .max(32, 'First name cannot exceed 32 characters')
       .regex(/^[\p{L}']+$/u, 'First name can only contain letters'),
     lastName: z
-      .string({ required_error: 'Enter last name' })
+      .string({ error: (issue) => (issue.input === undefined ? 'Enter last name' : undefined) })
       .min(1, 'Enter last name')
       .max(32, 'Last name cannot exceed 32 characters')
       .regex(/^[\p{L}']+$/u, 'Last name can only contain letters'),
     username: z
-      .string({ required_error: 'Username is required' })
+      .string({
+        error: (issue) => (issue.input === undefined ? 'Username is required' : undefined),
+      })
       .min(1, 'Username is required')
       .transform((val) => (val.startsWith('@') ? val.slice(1) : val))
       .pipe(
@@ -348,7 +358,10 @@ export const registerFormSchema = z
       message: 'Select gender',
     }),
     identity: z
-      .string({ required_error: 'Mobile number or email is required' })
+      .string({
+        error: (issue) =>
+          issue.input === undefined ? 'Mobile number or email is required' : undefined,
+      })
       .min(1, 'Mobile number or email is required')
       .max(255)
       .refine(
@@ -363,12 +376,16 @@ export const registerFormSchema = z
         },
       ),
     password: z
-      .string({ required_error: 'Password is required' })
+      .string({
+        error: (issue) => (issue.input === undefined ? 'Password is required' : undefined),
+      })
       .min(1, 'Password is required')
       .min(8, 'Password must be at least 8 characters')
       .max(128, 'Password cannot exceed 128 characters'),
     confirmPassword: z
-      .string({ required_error: 'Please confirm your password' })
+      .string({
+        error: (issue) => (issue.input === undefined ? 'Please confirm your password' : undefined),
+      })
       .min(1, 'Please confirm your password'),
     turnstileToken: z.string().max(2048).optional(),
   })

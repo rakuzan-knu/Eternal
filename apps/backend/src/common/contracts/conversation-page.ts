@@ -13,7 +13,7 @@ export const conversationPageQuerySchema = z.object({
   search: z.string().trim().max(120).default(''),
   archive: z.enum(['active', 'archived', 'all']).default('active'),
   filter: z.enum(['ALL', 'PERSONAL', 'GROUPS', 'UNREAD', 'CUSTOM', 'EMPTY']).default('ALL'),
-  folderId: z.string().uuid().optional(),
+  folderId: z.string().guid().optional(),
   includeIds: ids,
   excludeIds: ids,
   forcedUnreadIds: ids,

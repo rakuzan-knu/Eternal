@@ -663,7 +663,7 @@ export class MessengerGateway
   ): Promise<void> {
     const parseResult = sendMessageSchema.safeParse(rawPayload);
     if (!parseResult.success) {
-      const errMsg = parseResult.error.errors[0]?.message || 'Validation failed';
+      const errMsg = parseResult.error.issues[0]?.message || 'Validation failed';
       this.logger.warn(`sendMessage validation failed for user ${client.userId}: ${errMsg}`);
       client.emit('error', { message: errMsg });
       callback?.({

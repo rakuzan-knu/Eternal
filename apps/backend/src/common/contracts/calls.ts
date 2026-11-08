@@ -87,7 +87,7 @@ export type EndCallDto = z.infer<typeof endCallSchema>;
 
 export const iceCandidateSchema = z.object({
   callId: z.string().min(1).max(128),
-  candidate: z.unknown(),
+  candidate: z.unknown().optional(),
   targetUserId: z.string().max(128).optional(),
 });
 export type IceCandidateDto = z.infer<typeof iceCandidateSchema>;
@@ -121,7 +121,7 @@ export type CallReconnectDto = z.infer<typeof callReconnectSchema>;
 export const callReconnectAnswerSchema = z.object({
   callId: z.string().min(1).max(128),
   targetUserId: z.string().min(1).max(128).optional(),
-  sdpAnswer: z.unknown(),
+  sdpAnswer: z.unknown().optional(),
   iceCandidates: z.array(z.unknown()).optional(),
 });
 export type CallReconnectAnswerDto = z.infer<typeof callReconnectAnswerSchema>;
@@ -136,7 +136,7 @@ export type IceRestartDto = z.infer<typeof iceRestartSchema>;
 export const iceRestartAnswerSchema = z.object({
   callId: z.string().min(1).max(128),
   targetUserId: z.string().min(1).max(128).optional(),
-  sdpAnswer: z.unknown(),
+  sdpAnswer: z.unknown().optional(),
 });
 export type IceRestartAnswerDto = z.infer<typeof iceRestartAnswerSchema>;
 

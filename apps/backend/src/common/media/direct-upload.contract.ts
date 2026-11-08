@@ -24,7 +24,7 @@ export const directUploadSchema = z
       .positive()
       .max(20 * 1024 * 1024),
     filename: z.string().min(1).max(255),
-    conversationId: z.string().uuid().optional(),
+    conversationId: z.string().guid().optional(),
   })
   .strict();
 export type DirectUploadInput = z.infer<typeof directUploadSchema>;

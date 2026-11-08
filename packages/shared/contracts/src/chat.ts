@@ -37,7 +37,7 @@ export const MuteLevel = {
 export type MuteLevel = (typeof MuteLevel)[keyof typeof MuteLevel];
 
 export const conversationIdSchema = z.object({
-  conversationId: z.string().uuid(),
+  conversationId: z.string().guid(),
 });
 export type ConversationIdDto = z.infer<typeof conversationIdSchema>;
 
@@ -167,7 +167,7 @@ export const sendMessageSchema = z
     forwardedFromId: z.string().min(1).max(128).optional(),
     clientMessageId: z.string().max(64).optional(),
     mentionedUserIds: z
-      .array(z.string().uuid())
+      .array(z.string().guid())
       .max(50)
       .refine((ids) => new Set(ids).size === ids.length, 'Invalid mentions')
       .optional(),
@@ -521,18 +521,22 @@ export const createFolderSchema = z.object({
     .regex(/^#[0-9a-fA-F]{6}$/)
     .default('#8b5cf6'),
   filterType: z.nativeEnum(FolderFilterType).default('CUSTOM'),
-  includeIds: z.array(z.string().uuid()).default([]),
-  excludeIds: z.array(z.string().uuid()).default([]),
+  includeIds: z.array(z.string().guid()).default([]),
+  excludeIds: z.array(z.string().guid()).default([]),
 });
 export type CreateFolderDto = z.infer<typeof createFolderSchema>;
 
 export const updateFolderSchema = createFolderSchema.partial().extend({
+  color: createFolderSchema.shape.color.removeDefault().optional(),
+  filterType: createFolderSchema.shape.filterType.removeDefault().optional(),
+  includeIds: createFolderSchema.shape.includeIds.removeDefault().optional(),
+  excludeIds: createFolderSchema.shape.excludeIds.removeDefault().optional(),
   order: z.number().int().min(0).optional(),
 });
 export type UpdateFolderDto = z.infer<typeof updateFolderSchema>;
 
 export const reorderFoldersSchema = z.object({
-  folderIds: z.array(z.string().uuid()).min(1),
+  folderIds: z.array(z.string().guid()).min(1),
 });
 export type ReorderFoldersDto = z.infer<typeof reorderFoldersSchema>;
 
@@ -554,7 +558,7 @@ export interface ChatFolderView {
 export const globalSearchSchema = z.object({
   q: z.string().max(200).default(''),
   type: z.enum(['all', 'messages', 'media', 'music', 'files', 'links', 'people']).default('all'),
-  conversationId: z.string().uuid().optional(),
+  conversationId: z.string().guid().optional(),
   limit: z.coerce.number().min(1).max(50).default(20),
   offset: z.coerce.number().min(0).default(0),
 });

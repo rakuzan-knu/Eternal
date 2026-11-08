@@ -724,6 +724,26 @@ describe('MessengerGateway', () => {
       expect(cbWake).toHaveBeenCalledWith({ status: 'ok', currentSeq: 42 });
     });
 
+    it('handleSendMessage returns the first validation issue through the event and acknowledgement', async () => {
+      const callback = vi.fn<NonNullable<Parameters<MessengerGateway['handleSendMessage']>[2]>>();
+      await gateway.handleSendMessage(
+        mockSocket as unknown as AuthenticatedSocket,
+        { conversationId: 42, text: 'hello', clientMessageId: 'invalid-message', clientSeq: 3 },
+        callback,
+      );
+
+      expect(mockMessagesService.send).not.toHaveBeenCalled();
+      expect(callback).toHaveBeenCalledTimes(1);
+      const response = callback.mock.calls[0]?.[0];
+      expect(response?.error).toEqual(expect.any(String));
+      expect(response).toMatchObject({
+        status: 'error',
+        clientMessageId: 'invalid-message',
+        clientSeq: 3,
+      });
+      expect(mockSocket.emit).toHaveBeenCalledWith('error', { message: response?.error });
+    });
+
     it('handleSendMessage sends message, caches idempotency key, and broadcasts NEW_MESSAGE', async () => {
       mockRedisService.get.mockResolvedValueOnce(null);
       const cb = jest.fn();

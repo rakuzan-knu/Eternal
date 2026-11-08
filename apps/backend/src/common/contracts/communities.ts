@@ -33,7 +33,7 @@ export type UpdateCommunityChannelNotificationPreferencesDto = z.infer<
 
 export const communityPageSchema = z.object({
   q: z.string().trim().max(100).optional(),
-  after: z.string().uuid().optional(),
+  after: z.string().guid().optional(),
   limit: z.coerce.number().int().min(1).max(50).default(12),
 });
 export const createCommunitySchema = z.object({
@@ -45,7 +45,7 @@ export const createCommunityChannelSchema = z
     name: z.string().trim().min(1).max(80),
     description: z.string().trim().max(1000).optional(),
     isPrivate: z.boolean().optional(),
-    memberIds: z.array(z.string().uuid()).max(200).optional(),
+    memberIds: z.array(z.string().guid()).max(200).optional(),
   })
   .refine(
     (value) =>
@@ -58,7 +58,7 @@ export const createCommunityInviteSchema = z.object({
   maxUses: z.coerce.number().int().min(1).max(10000).optional(),
 });
 export const communityRoleSchema = z.object({ role: z.enum(['ADMIN', 'MEMBER']) });
-export const communityTransferSchema = z.object({ userId: z.string().uuid() });
+export const communityTransferSchema = z.object({ userId: z.string().guid() });
 export type CommunityPageQuery = z.infer<typeof communityPageSchema>;
 export type CreateCommunityDto = z.infer<typeof createCommunitySchema>;
 export type CreateCommunityChannelDto = z.infer<typeof createCommunityChannelSchema>;
@@ -70,7 +70,7 @@ export const communityChannelAccessSchema = z
   .object({
     isPrivate: z.boolean(),
     memberIds: z
-      .array(z.string().uuid())
+      .array(z.string().guid())
       .max(200)
       .refine((ids) => new Set(ids).size === ids.length, 'Duplicate member IDs'),
     revision: z.number().int().min(0),
@@ -89,14 +89,14 @@ export const communityChannelLayoutSchema = z
   .object({
     revision: z.number().int().min(0),
     categories: z
-      .array(z.object({ id: z.string().uuid(), name: z.string().trim().min(1).max(80) }))
+      .array(z.object({ id: z.string().guid(), name: z.string().trim().min(1).max(80) }))
       .max(50),
     channels: z.array(
       z.object({
-        id: z.string().uuid(),
+        id: z.string().guid(),
         name: z.string().trim().min(1).max(80),
         description: z.string().trim().max(1000),
-        categoryId: z.string().uuid().nullable(),
+        categoryId: z.string().guid().nullable(),
       }),
     ),
   })

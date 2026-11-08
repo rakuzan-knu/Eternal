@@ -311,11 +311,11 @@ importers:
         specifier: ^2.0.2
         version: 2.0.2
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76(patch_hash=d165a14757d34869c0f2b9cc1fb992605bed6954111d14837c4d764f640ca3e9)
+        specifier: ^4.6.7
+        version: 4.6.7
       zod-validation-error:
-        specifier: ^3.5.4
-        version: 3.5.4(zod@3.25.76(patch_hash=d165a14757d34869c0f2b9cc1fb992605bed6954111d14837c4d764f640ca3e9))
+        specifier: ^5.0.0
+        version: 5.0.0(zod@4.6.7)
     devDependencies:
       '@eslint/js':
         specifier: ^9.39.5
@@ -503,7 +503,7 @@ importers:
         version: 4.0.1(react-native@0.76.9(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.3.31)(react@18.3.1))
       '@hookform/resolvers':
         specifier: ^5.9.1
-        version: 5.9.1(@sinclair/typebox@0.34.52)(@standard-schema/spec@1.1.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(class-transformer@0.5.1)(class-validator@0.15.1)(effect@3.20.0)(react-hook-form@7.89.0(@types/react@18.3.31)(react@18.3.1))(valibot@1.4.2(typescript@5.9.3))(zod@3.25.76(patch_hash=d165a14757d34869c0f2b9cc1fb992605bed6954111d14837c4d764f640ca3e9))
+        version: 5.9.1(@sinclair/typebox@0.34.52)(@standard-schema/spec@1.1.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(class-transformer@0.5.1)(class-validator@0.15.1)(effect@3.20.0)(react-hook-form@7.89.0(@types/react@18.3.31)(react@18.3.1))(valibot@1.4.2(typescript@5.9.3))(zod@4.6.7)
       '@noble/ciphers':
         specifier: ^1.3.0
         version: 1.3.0
@@ -643,8 +643,8 @@ importers:
         specifier: ^3.0.2
         version: 3.0.2
       zod:
-        specifier: ^3.24.2
-        version: 3.25.76(patch_hash=d165a14757d34869c0f2b9cc1fb992605bed6954111d14837c4d764f640ca3e9)
+        specifier: ^4.6.7
+        version: 4.6.7
       zustand:
         specifier: ^5.0.3
         version: 5.0.15(@types/react@18.3.31)(react@18.3.1)
@@ -990,8 +990,8 @@ importers:
   packages/shared/contracts:
     dependencies:
       zod:
-        specifier: ^3.24.2
-        version: 3.25.76(patch_hash=d165a14757d34869c0f2b9cc1fb992605bed6954111d14837c4d764f640ca3e9)
+        specifier: ^4.6.7
+        version: 4.6.7
     devDependencies:
       typescript:
         specifier: ^5.9.3
@@ -14170,6 +14170,12 @@ packages:
     peerDependencies:
       zod: ^3.24.4
 
+  zod-validation-error@5.0.0:
+    resolution: {integrity: sha512-hmk+pkyKq7Q71PiWVSDUc3VfpzpvcRHZ3QPw9yEMVvmtCekaMeOHnbr3WbxfrgEnQTv6haGP4cmv0Ojmihzsxw==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      zod: ^3.25.0 || ^4.0.0
+
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
@@ -16603,7 +16609,7 @@ snapshots:
 
   '@hexagon/base64@1.1.28': {}
 
-  '@hookform/resolvers@5.9.1(@sinclair/typebox@0.34.52)(@standard-schema/spec@1.1.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(class-transformer@0.5.1)(class-validator@0.15.1)(effect@3.20.0)(react-hook-form@7.89.0(@types/react@18.3.31)(react@18.3.1))(valibot@1.4.2(typescript@5.9.3))(zod@3.25.76(patch_hash=d165a14757d34869c0f2b9cc1fb992605bed6954111d14837c4d764f640ca3e9))':
+  '@hookform/resolvers@5.9.1(@sinclair/typebox@0.34.52)(@standard-schema/spec@1.1.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(class-transformer@0.5.1)(class-validator@0.15.1)(effect@3.20.0)(react-hook-form@7.89.0(@types/react@18.3.31)(react@18.3.1))(valibot@1.4.2(typescript@5.9.3))(zod@4.6.7)':
     dependencies:
       '@standard-schema/utils': 0.3.0
       react-hook-form: 7.89.0(@types/react@18.3.31)(react@18.3.1)
@@ -16616,7 +16622,7 @@ snapshots:
       class-validator: 0.15.1
       effect: 3.20.0
       valibot: 1.4.2(typescript@5.9.3)
-      zod: 3.25.76(patch_hash=d165a14757d34869c0f2b9cc1fb992605bed6954111d14837c4d764f640ca3e9)
+      zod: 4.6.7
 
   '@hookform/resolvers@5.9.1(@sinclair/typebox@0.34.52)(@standard-schema/spec@1.1.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(class-transformer@0.5.1)(class-validator@0.15.1)(effect@3.20.0)(react-hook-form@7.89.0(@types/react@19.3.0)(react@19.3.0))(valibot@1.4.2(typescript@5.9.3))(zod@4.6.7)':
     dependencies:
@@ -29605,6 +29611,10 @@ snapshots:
   zod-validation-error@3.5.4(zod@3.25.76(patch_hash=d165a14757d34869c0f2b9cc1fb992605bed6954111d14837c4d764f640ca3e9)):
     dependencies:
       zod: 3.25.76(patch_hash=d165a14757d34869c0f2b9cc1fb992605bed6954111d14837c4d764f640ca3e9)
+
+  zod-validation-error@5.0.0(zod@4.6.7):
+    dependencies:
+      zod: 4.6.7
 
   zod@3.25.76(patch_hash=d165a14757d34869c0f2b9cc1fb992605bed6954111d14837c4d764f640ca3e9): {}
 

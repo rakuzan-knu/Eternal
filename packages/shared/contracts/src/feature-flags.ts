@@ -12,7 +12,7 @@ export const createFeatureFlagSchema = z.object({
   description: z.string().max(255).optional(),
   isEnabled: z.boolean().default(false),
   rolloutPercentage: z.number().int().min(0).max(100).default(0),
-  targetUserIds: z.array(z.string().uuid()).default([]),
+  targetUserIds: z.array(z.string().guid()).default([]),
   targetRoles: z.array(z.string()).default([]),
   variants: z
     .array(
@@ -27,7 +27,15 @@ export const createFeatureFlagSchema = z.object({
 
 export type CreateFeatureFlagDto = z.infer<typeof createFeatureFlagSchema>;
 
-export const updateFeatureFlagSchema = createFeatureFlagSchema.partial().omit({ key: true });
+export const updateFeatureFlagSchema = createFeatureFlagSchema
+  .partial()
+  .omit({ key: true })
+  .extend({
+    isEnabled: createFeatureFlagSchema.shape.isEnabled.removeDefault().optional(),
+    rolloutPercentage: createFeatureFlagSchema.shape.rolloutPercentage.removeDefault().optional(),
+    targetUserIds: createFeatureFlagSchema.shape.targetUserIds.removeDefault().optional(),
+    targetRoles: createFeatureFlagSchema.shape.targetRoles.removeDefault().optional(),
+  });
 export type UpdateFeatureFlagDto = z.infer<typeof updateFeatureFlagSchema>;
 
 export class FeatureFlagEvaluationDto {

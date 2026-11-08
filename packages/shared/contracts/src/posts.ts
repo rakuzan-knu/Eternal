@@ -108,7 +108,7 @@ export type EditPostDto = z.infer<typeof editPostSchema>;
 export const getPostsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(20),
   after: z.string().max(128).optional(),
-  algorithm: z.enum(['latest', 'ml']).default('latest').optional(),
+  algorithm: z.enum(['latest', 'ml']).optional(),
 });
 export type GetPostsQueryDto = z.infer<typeof getPostsQuerySchema>;
 

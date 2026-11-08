@@ -37,7 +37,7 @@ import { validateUploadedMedia } from './media-upload-validator';
 import { optimizeAvatar, optimizeBanner, optimizePostImage } from './image-processor';
 
 const receiptSchema = z.object({
-  uploadId: z.string().uuid(),
+  uploadId: z.string().guid(),
   url: z.string().url(),
   filename: z.string().max(255).optional(),
   contentType: z.string(),
@@ -49,7 +49,7 @@ const receiptSchema = z.object({
 });
 const intentSchema = directUploadSchema.extend({
   userId: z.string(),
-  uploadId: z.string().uuid(),
+  uploadId: z.string().guid(),
   tempKey: z.string(),
   finalKey: z.string(),
   bucket: z.string().optional(),
@@ -495,7 +495,7 @@ export class DirectUploadsService {
   }
 
   private async intent(userId: string, uploadId: string): Promise<Intent> {
-    if (!z.string().uuid().safeParse(uploadId).success)
+    if (!z.string().guid().safeParse(uploadId).success)
       throw new BadRequestException('Invalid upload ID');
     const raw = await this.client().get(this.key(uploadId));
     if (!raw) throw new BadRequestException('Upload reservation expired');

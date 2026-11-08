@@ -1,9 +1,12 @@
 # Zod collection size checks
 
-The web client uses the published Zod 4.6.7 release. Backend, mobile and shared
-contracts retain Zod 3.25.76 for API compatibility, with a local pnpm patch.
+Web, backend, mobile and shared contracts use the published Zod 4.6.7 release.
+The backend formatter uses zod-validation-error 5, whose default entry supports
+Zod 4 issues, including nested unions. The lockfile retains the local patch for
+Zod 3.25.76 used by transitive tooling dependencies; application dependencies are
+not forced back to v3 or globally overridden to v4.
 
-The patch adapts the early upper-bound rejection from
+The retained v3 patch adapts the early upper-bound rejection from
 [upstream PR 6652](https://github.com/colinhacks/zod/pull/6652), merged as
 `e06a510b6fc1e6e28e3201fd116ca2a76212f6be`, to Zod 3's parser. It is a local
 backport, not an upstream Zod 3 release or a claim that every Zod advisory is fixed.
@@ -37,7 +40,14 @@ callers to Zod 4 with contract verification.
 
 ## Verification
 
-`pnpm test:security` resolves the actual backend Zod package in both CommonJS and
-ESM formats. The collection tests check oversized sync/async parsing with child
+`pnpm test:security` resolves the actual backend Zod 4 package in both CommonJS
+and ESM formats. The collection tests check oversized sync/async parsing with child
 call counters, error paths/messages, accepted transforms, lower bounds, in-bound
-child errors and union alternatives. Frozen pnpm installs verify the patch hash.
+child errors and union alternatives. Frozen pnpm installs also verify the retained
+v3 patch hash. Backend compatibility tests cover omitted optional fields, partial
+updates without inserted creation defaults, optional unknown call fields,
+explicit authentication messages, record keys and nested union HTTP error
+status/shape/paths. Existing UUID-like
+contracts use `.guid()` to preserve v3 acceptance rather than adopt v4's stricter
+UUID variant checks. Standard generated Zod error wording may differ from v3;
+explicit application messages remain unchanged.

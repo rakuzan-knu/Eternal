@@ -45,6 +45,30 @@ describe('ZodValidationPipe', () => {
     expect(() => pipe.transform(undefined)).toThrow(BadRequestException);
   });
 
+  it('formats nested union errors as a 400 response with field paths', () => {
+    const unionPipe = new ZodValidationPipe(
+      z.object({
+        contact: z.union([
+          z.string({ error: 'Contact must be text' }),
+          z.number({ error: 'Contact must be a number' }),
+        ]),
+      }),
+    );
+    try {
+      unionPipe.transform({ contact: false });
+      throw new Error('Expected validation to fail');
+    } catch (error) {
+      if (!(error instanceof BadRequestException)) throw error;
+      expect(error.getStatus()).toBe(400);
+      expect(error.getResponse()).toEqual({
+        statusCode: 400,
+        error: 'Bad Request',
+        message:
+          'Validation error: Contact must be text at "contact" or Contact must be a number at "contact"',
+      });
+    }
+  });
+
   it('re-throws non-Zod errors untouched', () => {
     const throwingSchema = {
       parse: () => {

@@ -132,7 +132,7 @@ export const selfHealResponseSchema = z.object({
   triggered: z.boolean(),
   reason: z.string(),
   evictedCount: z.number(),
-  evictedPatterns: z.record(z.number()),
+  evictedPatterns: z.record(z.string(), z.number()),
   memoryBeforeBytes: z.number(),
   memoryAfterBytes: z.number(),
   freedBytes: z.number(),

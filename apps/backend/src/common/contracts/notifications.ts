@@ -321,5 +321,25 @@ export type NotificationSettingsDto = z.infer<typeof notificationSettingsSchema>
   mutedActors?: NotificationActorDto[];
 };
 
-export const updateNotificationSettingsSchema = notificationSettingsSchema.partial();
+export const updateNotificationSettingsSchema = notificationSettingsSchema.partial().extend({
+  enableNotifications: notificationSettingsSchema.shape.enableNotifications
+    .removeDefault()
+    .optional(),
+  allowSound: notificationSettingsSchema.shape.allowSound.removeDefault().optional(),
+  volume: notificationSettingsSchema.shape.volume.removeDefault().optional(),
+  showName: notificationSettingsSchema.shape.showName.removeDefault().optional(),
+  showText: notificationSettingsSchema.shape.showText.removeDefault().optional(),
+  privateChats: notificationSettingsSchema.shape.privateChats.removeDefault().optional(),
+  groups: notificationSettingsSchema.shape.groups.removeDefault().optional(),
+  reactions: notificationSettingsSchema.shape.reactions.removeDefault().optional(),
+  likes: notificationSettingsSchema.shape.likes.removeDefault().optional(),
+  comments: notificationSettingsSchema.shape.comments.removeDefault().optional(),
+  reposts: notificationSettingsSchema.shape.reposts.removeDefault().optional(),
+  followers: notificationSettingsSchema.shape.followers.removeDefault().optional(),
+  mentions: notificationSettingsSchema.shape.mentions.removeDefault().optional(),
+  system: notificationSettingsSchema.shape.system.removeDefault().optional(),
+  toastPosition: notificationSettingsSchema.shape.toastPosition.removeDefault().optional(),
+  maxToasts: notificationSettingsSchema.shape.maxToasts.removeDefault().optional(),
+  mutedActorIds: notificationSettingsSchema.shape.mutedActorIds.removeDefault().optional(),
+});
 export type UpdateNotificationSettingsDto = z.infer<typeof updateNotificationSettingsSchema>;
