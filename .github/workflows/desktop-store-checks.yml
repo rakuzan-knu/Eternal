@@ -48,7 +48,7 @@ jobs:
           - runner: windows-11-arm
             arch: arm64
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
@@ -101,6 +101,22 @@ jobs:
           $running | Select-Object Id, Path, MainWindowTitle | ConvertTo-Json | Set-Content msix-runtime.json
           Get-Process eternal | Where-Object { $_.Path -and $_.Path.StartsWith($installed.InstallLocation + '\') } | Stop-Process
           Remove-AppxPackage -Package $installed.PackageFullName
+      - name: Install the official certification toolkit when absent
+        shell: pwsh
+        run: |
+          $kit = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits/10/App Certification Kit/appcert.exe'
+          if (!(Test-Path -LiteralPath $kit)) {
+            $setup = Join-Path $env:RUNNER_TEMP 'winsdksetup.exe'
+            # Windows SDK 10.0.26100.9457, linked from Microsoft's SDK downloads page.
+            Invoke-WebRequest 'https://go.microsoft.com/fwlink/?linkid=2382321' -OutFile $setup
+            $signature = Get-AuthenticodeSignature -LiteralPath $setup
+            if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') {
+              throw 'Windows SDK installer is not signed by Microsoft'
+            }
+            $process = Start-Process -FilePath $setup -ArgumentList '/features OptionId.WindowsSoftwareLogoToolkit /quiet /norestart /ceip off' -Wait -PassThru -WindowStyle Hidden
+            if ($process.ExitCode -notin @(0, 3010)) { throw "SDK toolkit installation failed ($($process.ExitCode))" }
+            if (!(Test-Path -LiteralPath $kit)) { throw 'The SDK did not install the certification toolkit on this architecture' }
+          }
       - name: Run Windows App Certification Kit on the original package
         if: always()
         shell: pwsh
