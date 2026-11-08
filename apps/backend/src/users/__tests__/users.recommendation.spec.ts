@@ -27,6 +27,11 @@ describe('UsersService - Hybrid Recommendation Algorithm', () => {
       getRecentContentsByAuthors: jest.fn().mockResolvedValue([]),
       getRecentPublicPostsContent: jest.fn().mockResolvedValue([]),
       getNearbyUserCandidates: jest.fn().mockResolvedValue([]),
+      findNearbyPreferences: jest.fn().mockResolvedValue({
+        birthDate: new Date('2000-01-01T00:00:00Z'),
+        isPrivate: false,
+        privacy: { allowNearbyRecommendations: true },
+      }),
       getTopPostsForUsers: jest.fn().mockResolvedValue([]),
     };
 
@@ -96,6 +101,8 @@ describe('UsersService - Hybrid Recommendation Algorithm', () => {
                 displayName: 'Alex',
                 avatar: 'https://cdn.example.com/alex.jpg',
                 isVerified: false,
+                birthDate: new Date('2000-01-01T00:00:00Z'),
+                isPrivate: false,
                 privacy: { allowNearbyRecommendations: true },
                 _count: { followers: 100 },
                 followers: [
@@ -124,6 +131,8 @@ describe('UsersService - Hybrid Recommendation Algorithm', () => {
               displayName: 'Neighbor',
               avatar: null,
               isVerified: true,
+              birthDate: new Date('2000-01-01T00:00:00Z'),
+              isPrivate: false,
               privacy: { allowNearbyRecommendations: true },
               _count: { followers: 5 },
               followers: [],
@@ -165,6 +174,8 @@ describe('UsersService - Hybrid Recommendation Algorithm', () => {
             displayName: 'Private Geo',
             avatar: null,
             isVerified: false,
+            birthDate: new Date('2000-01-01T00:00:00Z'),
+            isPrivate: false,
             privacy: { allowNearbyRecommendations: false }, // User opted out of geo
             _count: { followers: 10 },
             followers: [],
@@ -181,9 +192,9 @@ describe('UsersService - Hybrid Recommendation Algorithm', () => {
       );
 
       const candidate = suggestions.find((s) => s.id === 'candidate-nearby');
-      expect(candidate).toBeDefined();
-      // Should NOT have proximity reason because allowNearbyRecommendations is false
-      expect(candidate?.recommendationReason?.type).not.toBe('NEARBY');
+      expect(candidate).toBeUndefined();
+      expect(redis.geodistMany).not.toHaveBeenCalled();
+      expect(redis.mget).not.toHaveBeenCalled();
     });
 
     it('excludes dismissed suggestion IDs from candidate pool', async () => {
@@ -199,6 +210,8 @@ describe('UsersService - Hybrid Recommendation Algorithm', () => {
             displayName: id === 'dismissed-user' ? 'Dismissed' : 'Valid',
             avatar: null,
             isVerified: false,
+            birthDate: new Date('2000-01-01T00:00:00Z'),
+            isPrivate: false,
             privacy: { allowNearbyRecommendations: true },
             _count: { followers: 10 },
             followers: [],
@@ -236,6 +249,8 @@ describe('UsersService - Hybrid Recommendation Algorithm', () => {
             displayName: id,
             avatar: null,
             isVerified: false,
+            birthDate: new Date('2000-01-01T00:00:00Z'),
+            isPrivate: false,
             privacy: { allowNearbyRecommendations: true },
             _count: { followers: id === 'cand-pop' ? 9999 : 0 },
             followers: [],
@@ -282,6 +297,8 @@ describe('UsersService - Hybrid Recommendation Algorithm', () => {
             displayName: id,
             avatar: null,
             isVerified: false,
+            birthDate: new Date('2000-01-01T00:00:00Z'),
+            isPrivate: false,
             privacy: { allowNearbyRecommendations: true },
             _count: { followers: 1 },
             followers: [],

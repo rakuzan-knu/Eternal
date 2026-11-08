@@ -204,6 +204,9 @@ describe('Self-service Ukraine registration with PostgreSQL, Redis and automatic
         expect(user.privacy).toMatchObject({
           birthday: 'NOBODY',
           allowNearbyRecommendations: false,
+          calls: 'CONTACTS',
+          messages: 'CONTACTS',
+          groupInvites: 'CONTACTS',
         });
       await request(app.getHttpServer())
         .post('/auth/login')
