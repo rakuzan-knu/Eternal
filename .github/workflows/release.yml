@@ -17,8 +17,35 @@ permissions:
   attestations: write
 
 jobs:
+  native-source:
+    name: Native addon source (${{ matrix.os }})
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version-file: '.nvmrc'
+          package-manager-cache: false
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Install Linux native build headers
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y build-essential libx11-dev libxrandr-dev libxtst-dev libxt-dev
+      - name: Verify, rebuild and load the supplied native source
+        run: pnpm --filter @eternal/desktop exec node scripts/native-license-source.ts rebuild
+
   release:
     name: Semantic Release
+    needs: native-source
     runs-on: ubuntu-latest
     timeout-minutes: 20
     outputs:

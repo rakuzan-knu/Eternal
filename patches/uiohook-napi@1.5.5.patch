@@ -1,0 +1,13 @@
+diff --git a/package.json b/package.json
+index 62ed76fa7075480b8c4c1e65cd0d4dcabf4fb5d1..0db311454206d8b7d9273d822068da4170cde049 100644
+--- a/package.json
++++ b/package.json
+@@ -8,7 +8,7 @@
+     "type": "git",
+     "url": "https://github.com/SnosMe/uiohook-napi.git"
+   },
+-  "license": "MIT",
++  "license": "MIT AND LGPL-3.0-or-later",
+   "keywords": [
+     "iohook",
+     "uiohook",

@@ -114,7 +114,10 @@ const config: Configuration = {
   npmRebuild: false,
   directories: { output: 'release', buildResources: 'build' },
   files: ['out/**', 'package.json'],
-  extraResources: [{ from: 'build/THIRD_PARTY_NOTICES.txt', to: 'THIRD_PARTY_NOTICES.txt' }],
+  extraResources: [
+    { from: 'build/licenses', to: 'licenses' },
+    { from: '../../LICENSE.md', to: 'licenses/Eternal-LICENSE.md' },
+  ],
   electronFuses: {
     runAsNode: false,
     enableCookieEncryption: true,

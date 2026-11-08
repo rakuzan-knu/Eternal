@@ -1,0 +1,55 @@
+{
+  "package": "uiohook-napi",
+  "version": "1.5.5",
+  "publishedIntegrity": "sha512-oSlTdnECw2GBfsJPTbBQBeE4v/EXP0EZmX6BJq5nzH/JgFaBE8JpFwEA/kLhiEP7HxQw28FViWiYgdIZzWuuJQ==",
+  "archive": "uiohook-napi-1.5.5-source.tar.gz",
+  "archiveSha256": "851a948f2df4d94f580328ddbbbc8202dde9297bb5968ff9828545a1491d0125",
+  "licenses": [
+    {
+      "file": "COPYING.GPL-3.0.txt",
+      "gitBlob": "d3e691f8c8987817268fdf0cb28cda9e8594e8a1",
+      "url": "https://github.com/kwhat/libuiohook/blob/f259ff3/COPYING.md",
+      "sha256": "7197726772381c35c87079bd872e3671f6c43466498368f885631deb351ca221"
+    },
+    {
+      "file": "COPYING.LGPL-3.0.txt",
+      "gitBlob": "a80ce0e7c697cb3ccf8480f73333efaa5ada38eb",
+      "url": "https://github.com/kwhat/libuiohook/blob/f259ff3/COPYING.LESSER.md",
+      "sha256": "7ad7cd468312ef58e478eac02729063dd07ab2320c35adc08c2ad00f840b9237"
+    }
+  ],
+  "sourceFiles": {
+    "LICENSE": "071c22737c45e77621eb378db221ebf88cf86138474371dbcc06382d6606980f",
+    "README.md": "07100269e849f3a1bb056648aaa851669d31204bcfe0ec029b29d472960c3ef8",
+    "binding.gyp": "08248eeed920fa320d49cc152731516b4308fb5a26c0dfae2fd96da33a4ebc9c",
+    "dist/index.d.ts": "341e218f7f7a9fef65be9230c5c00897cfd58b72d1aa91041ecdfe11d1350ce3",
+    "dist/index.js": "b927f8baf1180d79592900cd3a5eb5bd8ce2c2b0dcfe8a7da58fd37891d64b6c",
+    "dist/index.js.map": "22777e225b299e0b0cac6c8287e3f31e8f78bcea0f912dd5d841f70ed7baf39e",
+    "dist/prebuild-test-noop.d.ts": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "dist/prebuild-test-noop.js": "9a7b050e26b0ee0076ebebe7b44e779d1b4b90d50331550316b47ba1d82b8cfc",
+    "dist/prebuild-test-noop.js.map": "a4ce7fc9d8cecdaa9e93b6717740e9cf83f5896f0da7d21d74db438dd201a363",
+    "libuiohook/include/uiohook.h": "f752d74b8572e1fb833a9440341a45a4c4364a354fe627f6f645b959cd897b86",
+    "libuiohook/src/darwin/input_helper.c": "b0bf7ad4231638589ac96454044a8ec2cd545df152613c0475ac68a9abf54780",
+    "libuiohook/src/darwin/input_helper.h": "93064e88c32ebe57c72b94b3da4015ca940d25c5e2d41568eb7b124c13fc816e",
+    "libuiohook/src/darwin/input_hook.c": "58fd4b36ace091559efe8007bdafe26b1a9bab9912c284150cb71d9a4ffb71ab",
+    "libuiohook/src/darwin/post_event.c": "6797f21c8dd8f33717f2393d59574551ca9b3fc6fc39c6a4cfdf91a04a1c3ef5",
+    "libuiohook/src/darwin/system_properties.c": "4b325656c6319013d04380a52ffa9d1fc57cfde10a90a9fa42dd07bd72fba9fb",
+    "libuiohook/src/logger.c": "7c980d3a0590098b682b467a6f789751bc6f30658d9f3a761c280f8c573b258d",
+    "libuiohook/src/logger.h": "60a432037bc5488fb5f82a214315ecb93e24261c81363ce41e973138fa8e2cf7",
+    "libuiohook/src/windows/input_helper.c": "e6e7212e87b7796a7d4387728d991c9c3e188f898a7b9efcdcc5c1b13c537b41",
+    "libuiohook/src/windows/input_helper.h": "05a6728996ca1ad8699b2398b284a11e3749141475d4cb84dd0ac0b124fbc2e8",
+    "libuiohook/src/windows/input_hook.c": "ea0e810349be7055e86c183736c5c2692501cfab4b1665698f38066519a0f1ef",
+    "libuiohook/src/windows/post_event.c": "40119006fd5ed676084cfa5a0a5ff8841ecde15c326917e601513949fbc40c4c",
+    "libuiohook/src/windows/system_properties.c": "294dcc832cbb64463fa37e96bf35240a3b9b1814b4dff7d9f79c27c78fad1e3f",
+    "libuiohook/src/x11/input_helper.c": "a540a9b4609cab8db9bd7525a12a3beeb4401e70a49f5e04076cc37c6cec8b16",
+    "libuiohook/src/x11/input_helper.h": "4b02b9d69eb7d43b3c9b4db5197c77a36bac50a03c0a7c32abba096bb49c05f8",
+    "libuiohook/src/x11/input_hook.c": "fd77ed43059f15c29f9dd14010436ed944b84f1234104b45b70150654d83633f",
+    "libuiohook/src/x11/post_event.c": "4d37abe0ff1e145b90ae15bdc90339d6268bb77164cbc53214d8c2c0b6948f02",
+    "libuiohook/src/x11/system_properties.c": "644b6f0f5faf0b948ba6897cd956150579f73dd1940c87ca4fcee9d23dc9e967",
+    "src/lib/addon.c": "e8fbce3d54ecb92cd908832b2c12b5aa2625c62af7566e6f2b01fe3599f63a47",
+    "src/lib/napi_helpers.c": "04a8f6de366c6f82df91a90b07b8ebc009efc3a5ace2881b86cdc40e69625bea",
+    "src/lib/napi_helpers.h": "a3fb38e83a34d7978eb700ceee527c6b1e5f1b89cd21e25fc516cfbb08aa7cd8",
+    "src/lib/uiohook_worker.c": "29083d26828657f5c2d6f7924ae02cd168a11158ca651e0c13eacd73463256b4",
+    "src/lib/uiohook_worker.h": "f4dbc36bbaf5ef04d701365ea7e72a0f02f77537e9f517e6cc65ebc2f2776a0b"
+  }
+}

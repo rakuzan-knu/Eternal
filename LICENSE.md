@@ -4,6 +4,8 @@ Copyright © 2026 Eternal contributors. All rights reserved.
 
 Effective date: October 13, 2026.
 
+Last updated: November 8, 2026.
+
 ## 1. Covered Materials
 
 This notice governs the proprietary materials owned or controlled by the respective authors and other lawful rights holders, together with their lawful successors and assigns (the "Rights Holders"), distributed as part of the Eternal software or repository (the "Materials"). The Materials include:
@@ -54,6 +56,8 @@ Any permission expressly granted by separate official brand guidelines is limite
 Third-party components, dependencies, fonts, media, and other materials retain their respective licenses and notices. Their inclusion does not transfer their ownership to the Rights Holders. Where a third-party license applies, it governs the relevant component or portion, and all applicable notice, attribution, and source-availability obligations remain in effect.
 
 Software and font attributions maintained by the project are available in [licensesData.ts](./apps/web/src/pages/Licenses/data/licensesData.ts) and the application's software-licenses page. Applicable upstream license and notice files must be preserved in distributions.
+
+For a client containing a library covered by the GNU Lesser General Public License, the restrictions in this notice do not prohibit modification of the library portions, replacement or relinking with an interface-compatible modified library, or reverse engineering for debugging those modifications to the extent required by the applicable library license. The permission covers the necessary use of the accompanying application code and build materials for those purposes. It is limited to the rights required by the applicable third-party license. The desktop client's accompanying license materials identify the covered library, provide its source materials and describe rebuilding and replacement.
 
 ## 7. Contributions
 

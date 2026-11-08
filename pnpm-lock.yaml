@@ -59,6 +59,9 @@ patchedDependencies:
   app-builder-lib@26.18.0:
     hash: 9686e3efcbfccbc9af964903057a320a03ee6cb82d9e7ed2c2943e801da369c0
     path: patches/app-builder-lib@26.18.0.patch
+  uiohook-napi@1.5.5:
+    hash: 56a7ba3339489a65644b967ba1426f2df66b7dfddde9233c6a1724624341403a
+    path: patches/uiohook-napi@1.5.5.patch
   zod@3.25.76:
     hash: d165a14757d34869c0f2b9cc1fb992605bed6954111d14837c4d764f640ca3e9
     path: patches/zod@3.25.76.patch
@@ -445,7 +448,7 @@ importers:
         version: 6.8.12
       uiohook-napi:
         specifier: 1.5.5
-        version: 1.5.5
+        version: 1.5.5(patch_hash=56a7ba3339489a65644b967ba1426f2df66b7dfddde9233c6a1724624341403a)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -28825,7 +28828,7 @@ snapshots:
 
   uint8array-extras@1.6.0: {}
 
-  uiohook-napi@1.5.5:
+  uiohook-napi@1.5.5(patch_hash=56a7ba3339489a65644b967ba1426f2df66b7dfddde9233c6a1724624341403a):
     dependencies:
       node-gyp-build: 4.8.4
 

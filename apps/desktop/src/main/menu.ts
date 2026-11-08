@@ -3,6 +3,7 @@ import { isTrustedUrl } from './security';
 import type { DesktopUpdater } from './updater';
 import { devToolsEnabled, getPolicies } from './policies';
 import { exportLogs } from './logging';
+import { openLicenseMaterials } from './licenses';
 
 export function configureMenu(show: () => void, updater: DesktopUpdater): void {
   const reportError = () => {
@@ -120,6 +121,12 @@ export function configureMenu(show: () => void, updater: DesktopUpdater): void {
           },
         },
         {
+          label: 'Third-party licenses and sources…',
+          click: () => {
+            void openLicenseMaterials();
+          },
+        },
+        {
           label: 'About Eternal',
           click: () => {
             void dialog.showMessageBox({
@@ -127,7 +134,7 @@ export function configureMenu(show: () => void, updater: DesktopUpdater): void {
               title: 'Eternal',
               message: `Eternal ${app.getVersion()}`,
               detail:
-                'Close the window to keep Eternal running in the system tray. Use Quit Eternal to exit.',
+                'Close the window to keep Eternal running in the system tray. Use Quit Eternal to exit.\n\nIncludes libuiohook (LGPL-3.0-or-later). Copyright (C) 2006-2023 Alexander Barker. License copies and sources: Help → Third-party licenses and sources.',
             });
           },
         },

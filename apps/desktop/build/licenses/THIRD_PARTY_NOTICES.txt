@@ -6,6 +6,21 @@ This file supplements those notices; it does not replace them or claim a full
 license audit of every dependency.
 
 ======================================================================
+Native input hook: uiohook-napi 1.5.5 and libuiohook
+uiohook-napi wrapper: MIT, Copyright (c) 2020 Alexander Drozdov.
+libuiohook: GNU Lesser General Public License, version 3 or later.
+Copyright (C) 2006-2023 Alexander Barker. All Rights Reserved.
+The native addon statically links libuiohook; it is not an MIT-only binary.
+Repository: https://github.com/SnosMe/uiohook-napi
+Library: https://github.com/kwhat/libuiohook
+
+Accompanying license copies: COPYING.GPL-3.0.txt and COPYING.LGPL-3.0.txt.
+Source archive: uiohook-napi-1.5.5-source.tar.gz.
+Build and replacement information: README.NATIVE-SOURCE.txt.
+Original wrapper license and source copyright notices are preserved in the
+archive. The source provenance and hashes are in native-source-manifest.json.
+
+======================================================================
 @sentry/server-runtime-injection@11.8.0 and @sentry/server-utils@11.8.0
 Repository license: https://github.com/getsentry/sentry-javascript/blob/11.8.0/LICENSE
 Upstream Git blob: 32c62f9869e33a014141c75312f966791a0ff105

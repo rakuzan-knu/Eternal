@@ -3,6 +3,7 @@ import { createRequire } from 'node:module';
 import { distributionSchema } from '../src/shared/distribution.ts';
 import { versionSchema } from '../src/shared/updates.ts';
 import { microsoftStoreIdentity, stableStoreVersion } from './store-config.ts';
+import { verifyNativeLicenseSource } from './native-license-source.ts';
 
 const formats = {
   win32: ['nsis', 'msi', 'appx', 'msix'],
@@ -39,6 +40,7 @@ for (let index = 0; index < args.length; index++) {
   } else throw new Error(`Unsupported packaging argument: ${arg}`);
 }
 const require = createRequire(import.meta.url);
+await verifyNativeLicenseSource();
 if (format === 'msix') {
   stableStoreVersion(version);
   microsoftStoreIdentity(process.env);

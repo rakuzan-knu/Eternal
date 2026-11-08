@@ -177,7 +177,8 @@
     },
     "patchedDependencies": {
       "zod@3.25.76": "patches/zod@3.25.76.patch",
-      "app-builder-lib@26.18.0": "patches/app-builder-lib@26.18.0.patch"
+      "app-builder-lib@26.18.0": "patches/app-builder-lib@26.18.0.patch",
+      "uiohook-napi@1.5.5": "patches/uiohook-napi@1.5.5.patch"
     }
   },
   "resolutions": {
