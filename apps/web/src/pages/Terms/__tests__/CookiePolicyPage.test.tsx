@@ -17,7 +17,7 @@ describe('CookiePolicyPage', () => {
     );
 
     expect(screen.getByText('COOKIE POLICY')).toBeInTheDocument();
-    expect(screen.getByText(/Updated: November 5, 2026/i)).toBeInTheDocument();
+    expect(screen.getByText(/Updated: November 8, 2026/i)).toBeInTheDocument();
     expect(screen.getByText(/We may receive information from cookies/i)).toBeInTheDocument();
   });
 
@@ -44,7 +44,12 @@ describe('CookiePolicyPage', () => {
 
     expect(screen.getByText(/Strictly Necessary Cookies:/i)).toBeInTheDocument();
     expect(screen.getByText(/Functional Cookies:/i)).toBeInTheDocument();
-    expect(screen.getByText(/Performance & Analytics Cookies:/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/when you enable this option and Sentry is configured/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Choose Necessary Only or turn off Performance & Analytics/i),
+    ).toBeInTheDocument();
   });
 
   it('renders contact details with country and missing contact and emails', () => {
