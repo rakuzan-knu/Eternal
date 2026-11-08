@@ -418,7 +418,8 @@ MSIX x64/arm64 і Snap x64/arm64. Вони ще не містять нових L
 §4(c), покладає FOSS/source obligations на видавця; §4(i) вимагає надати
 власні умови або посилання через product materials і зберегти мінімальні
 права Microsoft Usage Rules. Саме завантаження MSIX не підтверджує виконання
-цих умов. Additional license terms у чернетці магазину ще не заповнено.
+цих умов. На момент цієї перевірки Additional license terms ще не заповнено;
+подальше збереження погоджених текстів описано нижче.
 
 ### Кандидат для перевірки до публікації
 
@@ -453,3 +454,53 @@ Electron 45.1.0 x64 завантажив її через штатну обгор
 завантаження Electron для Windows x64 та Linux ARM64. Окремий крок підготовки
 завантажує Electron штатним installer із перевіркою контрольних сум і має до
 трьох спроб. Тест запуску залишається обов’язковим.
+
+### Приймання кандидата 1.13.3 — 8 листопада
+
+[Desktop run 42477984618](https://github.com/rakuzan-knu/Eternal/actions/runs/42477984618)
+завершив усі п'ять build jobs з `c5804bb0`: Windows x64/ARM64, macOS universal,
+Linux x64/ARM64. Publish job пропущено штатно для кандидата.
+[Store run 42477988351](https://github.com/rakuzan-knu/Eternal/actions/runs/42477988351)
+зібрав чотири store-пакети з того самого commit. Їх завантажено поза Git і
+перевірено SHA256 artifact ZIP за GitHub digest.
+
+| Пакет | SHA256 файла |
+| --- | --- |
+| MSIX x64 | `2dcf066050ad1b7edf66f50e428439d96154b593ec443097ab32346a9997e4a3` |
+| MSIX ARM64 | `326184458776850f644f7b1f4b2da4b248f8c218c28aa264c11094a12a2587eb` |
+| Snap x64 | `74f1b6163f039a15793b6a792ed49a12013ff6ba7590da9329186c53a986eb26` |
+| Snap ARM64 | `c67157692619918d556fa2490a4c5c8778e6a073b5ffd41503b3a6f2e08dbcc9` |
+
+Workflow `Desktop store candidate checks` перевіряє успішний ручний source run
+із `main`, точний workflow ID, репозиторій і не прострочені candidate artifacts.
+Download action завершується помилкою при невідповідності digest.
+На тимчасовому Windows runner створюється локальний тестовий сертифікат,
+підписується копія MSIX, встановлюється й запускається через package identity.
+Перевіряються версія, шлях процесу всередині WindowsApps і наявність вікна.
+Після перевірки застосунок видаляється. Сертифікат не додається на комп'ютер
+операторів, оригінальний store-пакет не змінюється.
+
+У [run 42488160943](https://github.com/rakuzan-knu/Eternal/actions/runs/42488160943)
+MSIX x64 відкрив вікно `Log in · Eternal` на Windows Server 2025 runner.
+WACK для оригіналу повернув загальний
+`PASS`. Два тести з `OPTIONAL=TRUE` мають `FAIL`: Archive files usage вказав
+`uiohook-napi-1.5.5-source.tar.gz`; Blocked executables знайшов посилання в Electron,
+його ресурсах і app.asar. Архів окремо перевірено: 36 entries, жоден звичайний
+файл не починається з PE-сигнатури `MZ`. Це спостереження не підтверджує Windows
+S mode або майбутнє рішення сертифікації. XML і факт запуску збережені в artifact
+`msix-x64-certification-report`.
+
+Перший Snap runtime в тому самому run зупинився через cgroup hosted service.
+Після запуску в реальному systemd user scope обидва jobs у
+[run 42488633811](https://github.com/rakuzan-knu/Eternal/actions/runs/42488633811)
+успішні. Для кожного перевірено `snap debug confinement = strict`, локальне
+встановлення, ручне підключення browser-support, видиме вікно під Xvfb та
+AppArmor label процесу `snap.eternal-desktop.* (enforce)`.
+У команді запуску немає `--no-sandbox`. Ця перевірка не замінює погодження
+Store auto-connect, встановлення з candidate channel, Wayland, дзвінки або OAuth.
+
+8 листопада Partner Center прийняв у чернетку обидва MSIX 1.13.3.0; після Save
+стара версія 1.13.0 вилучена автоматично, Packages має статус Complete.
+Оператори погодили обидва тексти додаткових умов. Англійський та український
+варіанти збережено в Additional license terms і побайтово звірено як текст
+через повторне відкриття відповідних сторінок. Загальна заявка — In draft.

@@ -207,8 +207,8 @@ export const PAGE_SEO_PRESETS: Record<string, SEOProps> = {
   privacy: {
     title: 'Privacy Policy • How Eternal Protects Your Personal Data',
     description:
-      'Read the Eternal Privacy Policy. Learn about our end-to-end encryption, strict zero-data-selling pledge, and GDPR & CCPA privacy controls.',
-    keywords: ['Eternal Privacy Policy', 'GDPR Privacy', 'Zero Data Selling', 'Encryption'],
+      'Read how Eternal handles personal data, which services process it, and how to contact the operators about privacy requests.',
+    keywords: ['Eternal Privacy Policy', 'Data Rights', 'Account Privacy', 'Data Export'],
     canonical: '/privacy',
   },
   terms: {
@@ -224,15 +224,15 @@ export const PAGE_SEO_PRESETS: Record<string, SEOProps> = {
     canonical: '/terms/cookie-policy',
   },
   regionalPrivacy: {
-    title: 'Regional Privacy Rights • GDPR, CCPA/CPRA & Global Protections',
+    title: 'Regional Privacy Rights & Launch Requirements',
     description:
-      'Detailed regional privacy rights for users in the European Union (GDPR), California (CCPA/CPRA), Brazil (LGPD), and worldwide.',
+      'Information about regional privacy requests and the legal requirements considered before opening new markets.',
     canonical: '/terms/regional-privacy',
   },
   retentionPolicy: {
     title: 'Data Retention & Deletion Policy',
     description:
-      'Transparent breakdown of how long data is retained and how account deletion irreversibly removes all messages and media.',
+      'How to request deletion, which storage systems require review, and the current limits of data retention and deletion procedures.',
     canonical: '/terms/retention-policy',
   },
   dataPrivacyControls: {
@@ -244,43 +244,43 @@ export const PAGE_SEO_PRESETS: Record<string, SEOProps> = {
   yourDataPackage: {
     title: 'Your Eternal Data Package • Export & Portability Guide',
     description:
-      'Download your full Eternal account archive, message history, posts, and media in machine-readable JSON & ZIP formats.',
+      'Download the supported parts of your Eternal data in JSON and read the scope, exclusions, and process for further data requests.',
     canonical: '/terms/your-eternal-data-package',
   },
   copyright: {
     title: 'Copyright Policy, DMCA Notice & IP Protection',
     description:
-      'Eternal intellectual property guidelines, DMCA takedown procedures, and designated copyright agent information.',
+      'How to contact Eternal about alleged copyright infringement and what information to include in a notice.',
     canonical: '/copyright',
   },
   paidServices: {
     title: 'Paid Services, Premium Subscriptions & Refund Policy',
     description:
-      'Details on paid features, subscriber perks, payment processing, subscription management, and refund terms.',
+      'Paid services are currently unavailable. Read about applicable consumer rights and requirements before future paid features launch.',
     canonical: '/terms/paid-services',
   },
   developerTerms: {
     title: 'Developer Terms of Service & API Platform Guidelines',
     description:
-      'Terms and policies for developers building bots, extensions, and integrations with Eternal APIs and Webhooks.',
+      'Information for proposed Eternal integrations and the current availability of external developer access.',
     canonical: '/terms/developer',
   },
   candidatePrivacy: {
     title: 'Applicant & Candidate Recruitment Privacy Policy',
     description:
-      'How Eternal collects, stores, and protects personal data during job applications and hiring processes.',
+      'No recruitment is currently announced. Read the current status of applicant data collection and how to contact the project.',
     canonical: '/terms/applicant-candidate-privacy-policy',
   },
   safety: {
     title: 'Safety Center • Protecting Users, Youth & Communities',
     description:
-      'Explore Eternal Safety Center. Our proactive safety tools, real-time moderation, family resources, and teen wellbeing protections.',
+      'Read Eternal safety rules, reporting guidance, resources for younger users, and the current limits of safety features.',
     canonical: '/safety',
   },
   familyCenter: {
     title: 'Family Center & Parental Guidance Hub',
     description:
-      'Supervision controls, screen time tools, and safety education resources for parents and guardians on Eternal.',
+      'Guidance for parents and guardians, current feature limitations, and how to report concerns to Eternal.',
     canonical: '/safety/family-center',
   },
   safetyLibrary: {
@@ -290,15 +290,15 @@ export const PAGE_SEO_PRESETS: Record<string, SEOProps> = {
     canonical: '/safety/library',
   },
   privacyHub: {
-    title: 'Privacy Hub • Encryption, Zero-Tracking & Security Protocols',
+    title: 'Privacy Hub • Data Handling & Security Information',
     description:
-      'Deep dive into Eternal cryptographic protocols, biometric device gates, and anti-surveillance infrastructure.',
+      'Information about account privacy, supported security controls, and contacting the project about data rights.',
     canonical: '/safety/privacy',
   },
   transparency: {
-    title: 'Transparency Hub & Annual Law Enforcement Audit Reports',
+    title: 'Transparency Information & Publication Status',
     description:
-      'Verified transparency reports covering moderation actions, government requests, and copyright enforcement metrics.',
+      'Current publication status of moderation and government-request reporting, with the project contact for related questions.',
     canonical: '/safety/transparency',
   },
   safetyNews: {
@@ -310,23 +310,23 @@ export const PAGE_SEO_PRESETS: Record<string, SEOProps> = {
   policyHub: {
     title: 'Policy Hub • Unified Directory of Platform Rules & Standards',
     description:
-      'Complete index of community policies, moderation standards, appeal procedures, and terms.',
+      'Find Eternal community policies, moderation information, contact details, and service terms.',
     canonical: '/safety/policies',
   },
   teenCharter: {
     title: 'Teen Charter & Youth Digital Rights Code',
     description:
-      'Our dedicated charter guaranteeing age-appropriate privacy defaults, anti-grooming protections, and night mode quiet hours for teens.',
+      'Read Eternal rules for younger users, regional age restrictions, safety guidance, and the current limits on new registrations.',
     canonical: '/safety/teen-charter',
   },
   wellbeing: {
     title: 'Digital Wellbeing & Screen Time Management',
     description:
-      'Mindful scrolling alerts, break reminders, mute notifications, and wellness tools designed to prevent digital burnout.',
+      'Information about notification choices, account settings, and the current limits of digital wellbeing features.',
     canonical: '/safety/wellbeing',
   },
   lawEnforcement: {
-    title: 'Law Enforcement Guidelines & Emergency Request Portal',
+    title: 'Law Enforcement Requests & Contact Information',
     description:
       'Official procedures for verified legal authorities submitting subpoenas, court orders, and emergency disclosure requests.',
     canonical: '/safety/law-enforcement',

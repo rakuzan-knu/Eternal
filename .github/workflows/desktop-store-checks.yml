@@ -33,18 +33,26 @@ jobs:
             '
           gh api "$endpoint/runs/$PACKAGE_RUN/artifacts" | jq -e '
             [.artifacts[] | select(.expired == false) | .name] as $names |
-            ["desktop-store-candidate-msix-x64", "desktop-store-candidate-snap-x64",
+            ["desktop-store-candidate-msix-x64", "desktop-store-candidate-msix-arm64", "desktop-store-candidate-snap-x64",
              "desktop-store-candidate-snap-arm64"] | all(. as $name | $names | index($name) != null)
           '
 
   msix:
     needs: source
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-latest
+            arch: x64
+          - runner: windows-11-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 20
     steps:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
-          name: desktop-store-candidate-msix-x64
+          name: desktop-store-candidate-msix-${{ matrix.arch }}
           run-id: ${{ inputs.package_run }}
           github-token: ${{ github.token }}
           digest-mismatch: error
@@ -93,7 +101,7 @@ jobs:
           $running | Select-Object Id, Path, MainWindowTitle | ConvertTo-Json | Set-Content msix-runtime.json
           Get-Process eternal | Where-Object { $_.Path -and $_.Path.StartsWith($installed.InstallLocation + '\') } | Stop-Process
           Remove-AppxPackage -Package $installed.PackageFullName
-      - name: Run Windows App Certification Kit on the original x64 package
+      - name: Run Windows App Certification Kit on the original package
         if: always()
         shell: pwsh
         run: |
@@ -114,7 +122,7 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
-          name: msix-x64-certification-report
+          name: msix-${{ matrix.arch }}-certification-report
           path: |
             wack.xml
             msix-runtime.json
