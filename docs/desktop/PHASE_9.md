@@ -513,3 +513,36 @@ ARM64 MSIX також успішно встановився й відкрив в
 сертифікаційної перевірки обох архітектур на Windows x64; пропущеної перевірки
 не прирівнює до PASS. Запуск Windows S mode і ручні інтерактивні сценарії
 залишаються за межами цих автоматичних перевірок.
+
+### Підсумковий кандидат 1.13.4 — 8 листопада
+
+Для включення виправлених SEO-описів кандидат перебудовано з `11166618`.
+[Desktop run 42491682868](https://github.com/rakuzan-knu/Eternal/actions/runs/42491682868)
+успішно зібрав п'ять desktop targets і assemble; publish штатно пропущено.
+[Store run 42491677725](https://github.com/rakuzan-knu/Eternal/actions/runs/42491677725)
+успішно зібрав усі чотири MSIX/Snap із перевіркою ліцензій у готових пакетах.
+Усі чотири файли збережено поза Git зі звіренням GitHub artifact digest.
+
+| Пакет 1.13.4 | SHA256 файла |
+| --- | --- |
+| MSIX x64 | `d5c9d372aaabcc982423c7fb512cff55cb131c53f270ff57c042184e03fa7759` |
+| MSIX ARM64 | `818d1c918ba8f90506b356843e3b04a3bacac2a5df4fb83f5b2ca6934576dbe1` |
+| Snap x64 | `e16dedd9fc049cbc614602b2ced64492119b99646f1816e134b71db641dfdf90` |
+| Snap ARM64 | `e2c29fca3350bd6c4a4098ca1c661fd1745c2b499ff61c9079bd79af0de0da7d` |
+
+Усі сім jobs [run 42492395938](https://github.com/rakuzan-knu/Eternal/actions/runs/42492395938)
+успішні: source, два native MSIX runtime jobs, два WACK jobs на x64 та два strict
+Snap runtime jobs. Обидва XML WACK мають загальний PASS, 22 PASS і два optional
+FAIL, описані вище. Snap logs містять відмови D-Bus/AppArmor для discovery й
+sleep inhibition на headless hosts; ці результати засвідчують запуск вікна та
+ізоляцію, але не повне інтерактивне приймання. Wayland, дзвінки, OAuth і Windows
+S mode потребують окремих перевірок.
+
+Partner Center зберіг MSIX 1.13.4.0 x64/ARM64 зі статусом Packages Complete;
+попередні 1.13.3 прибрано автоматично. За окремим дорученням користувача
+створено приватний синтетичний акаунт із нульовими адміністративними flags для
+Microsoft certification. Дату народження й персональні дані людини для нього
+не вигадували. Реквізити збережено в захищеному локальному сховищі та в закритих
+Credentials Partner Center. На production через звичайні API перевірено вхід,
+відхилення неправильного пароля експорту, Core account export, порожній Messenger
+export, no-store і завершення тестової сесії. Публічна реєстрація лишилася закритою.
