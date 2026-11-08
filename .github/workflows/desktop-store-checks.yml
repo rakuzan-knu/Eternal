@@ -1,0 +1,177 @@
+name: Desktop store candidate checks
+
+on:
+  workflow_dispatch:
+    inputs:
+      package_run:
+        description: Successful Desktop store packages candidate run ID from main
+        required: true
+        type: string
+
+permissions:
+  actions: read
+
+jobs:
+  source:
+    if: github.ref == 'refs/heads/main' && github.ref_protected
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify source run and candidate artifact names
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PACKAGE_RUN: ${{ inputs.package_run }}
+        run: |
+          set -euo pipefail
+          [[ "$PACKAGE_RUN" =~ ^[0-9]+$ ]]
+          endpoint="repos/$GITHUB_REPOSITORY/actions"
+          workflow_id=$(gh api "$endpoint/workflows/desktop-stores.yml" --jq .id)
+          gh api "$endpoint/runs/$PACKAGE_RUN" | jq -e --argjson workflow "$workflow_id" \
+            --arg repo "$GITHUB_REPOSITORY" '
+              .workflow_id == $workflow and .head_repository.full_name == $repo and
+              .head_branch == "main" and .event == "workflow_dispatch" and .conclusion == "success"
+            '
+          gh api "$endpoint/runs/$PACKAGE_RUN/artifacts" | jq -e '
+            [.artifacts[] | select(.expired == false) | .name] as $names |
+            ["desktop-store-candidate-msix-x64", "desktop-store-candidate-snap-x64",
+             "desktop-store-candidate-snap-arm64"] | all(. as $name | $names | index($name) != null)
+          '
+
+  msix:
+    needs: source
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          name: desktop-store-candidate-msix-x64
+          run-id: ${{ inputs.package_run }}
+          github-token: ${{ github.token }}
+          digest-mismatch: error
+          path: candidate
+      - name: Install and launch a test-signed copy on the disposable runner
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $packages = @(Get-ChildItem candidate -Filter '*.msix' -File)
+          if ($packages.Count -ne 1) { throw 'Expected exactly one MSIX' }
+          Get-FileHash -Algorithm SHA256 -LiteralPath $packages[0].FullName
+          $archive = [System.IO.Compression.ZipFile]::OpenRead($packages[0].FullName)
+          try {
+            $reader = [System.IO.StreamReader]::new($archive.GetEntry('AppxManifest.xml').Open())
+            try { [xml]$manifest = $reader.ReadToEnd() } finally { $reader.Dispose() }
+          } finally { $archive.Dispose() }
+          $identity = $manifest.Package.Identity
+          $certificate = New-SelfSignedCertificate -Type Custom -Subject $identity.Publisher -KeyUsage DigitalSignature `
+            -CertStoreLocation Cert:\CurrentUser\My -TextExtension @('2.5.29.37={text}1.3.6.1.5.5.7.3.3', '2.5.29.19={text}')
+          $certificatePath = Join-Path $env:RUNNER_TEMP 'eternal-test.cer'
+          Export-Certificate -Cert $certificate -FilePath $certificatePath | Out-Null
+          Import-Certificate -FilePath $certificatePath -CertStoreLocation Cert:\LocalMachine\TrustedPeople | Out-Null
+          $signTool = Get-ChildItem "${env:ProgramFiles(x86)}/Windows Kits/10/bin/*/x64/signtool.exe" |
+            Sort-Object FullName -Descending | Select-Object -First 1
+          if (!$signTool) { throw 'Windows SDK SignTool is unavailable' }
+          $testPackage = Join-Path $env:RUNNER_TEMP 'eternal-test.msix'
+          Copy-Item -LiteralPath $packages[0].FullName -Destination $testPackage
+          & $signTool.FullName sign /fd SHA256 /s My /sha1 $certificate.Thumbprint $testPackage
+          if ($LASTEXITCODE -ne 0) { throw 'Test signing failed' }
+          Add-AppxPackage -Path $testPackage
+          $installed = Get-AppxPackage -Name $identity.Name
+          if (!$installed -or $installed.Version -ne $identity.Version) { throw 'Expected package was not installed' }
+          $appId = $manifest.Package.Applications.Application.Id
+          Start-Process explorer.exe -ArgumentList "shell:AppsFolder\$($installed.PackageFamilyName)!$appId"
+          $running = $null
+          for ($attempt = 0; $attempt -lt 30; $attempt++) {
+            $running = Get-Process eternal -ErrorAction SilentlyContinue | Where-Object {
+              $_.Path -and $_.Path.StartsWith($installed.InstallLocation + '\', [StringComparison]::OrdinalIgnoreCase) -and
+              $_.MainWindowHandle -ne 0
+            } | Select-Object -First 1
+            if ($running) { break }
+            Start-Sleep -Seconds 2
+          }
+          if (!$running) { throw 'Installed MSIX did not create a visible application window' }
+          $running | Select-Object Id, Path, MainWindowTitle | ConvertTo-Json | Set-Content msix-runtime.json
+          Get-Process eternal | Where-Object { $_.Path -and $_.Path.StartsWith($installed.InstallLocation + '\') } | Stop-Process
+          Remove-AppxPackage -Package $installed.PackageFullName
+      - name: Run Windows App Certification Kit on the original x64 package
+        if: always()
+        shell: pwsh
+        run: |
+          $packages = @(Get-ChildItem candidate -Filter '*.msix' -File)
+          if ($packages.Count -ne 1) { throw 'Expected exactly one MSIX' }
+          Get-FileHash -Algorithm SHA256 -LiteralPath $packages[0].FullName
+          $kit = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits/10/App Certification Kit/appcert.exe'
+          if (!(Test-Path -LiteralPath $kit)) { throw 'Windows App Certification Kit is unavailable on this runner' }
+          $report = Join-Path $PWD 'wack.xml'
+          & $kit reset
+          if ($LASTEXITCODE -ne 0) { throw "WACK reset failed ($LASTEXITCODE)" }
+          & $kit test -appxpackagepath $packages[0].FullName -reportoutputpath $report
+          $exitCode = $LASTEXITCODE
+          if (!(Test-Path -LiteralPath $report)) { throw "WACK produced no report (exit $exitCode)" }
+          [xml]$result = Get-Content -Raw -LiteralPath $report
+          $result.REPORT.REQUIREMENTS.REQUIREMENT.TEST | Select-Object NAME, OPTIONAL, RESULT | Format-Table -AutoSize
+          if ($exitCode -ne 0 -or $result.REPORT.OVERALL_RESULT -ne 'PASS') { throw 'WACK did not pass' }
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          name: msix-x64-certification-report
+          path: |
+            wack.xml
+            msix-runtime.json
+          if-no-files-found: ignore
+
+  snap:
+    needs: source
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            arch: x64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          name: desktop-store-candidate-snap-${{ matrix.arch }}
+          run-id: ${{ inputs.package_run }}
+          github-token: ${{ github.token }}
+          digest-mismatch: error
+          path: candidate
+      - name: Install and launch under strict confinement
+        run: |
+          set -euo pipefail
+          sudo snap wait system seed.loaded
+          snap debug confinement | grep -x strict
+          packages=(candidate/*.snap)
+          [[ ${#packages[@]} == 1 && -f ${packages[0]} ]]
+          sha256sum "${packages[0]}"
+          sudo snap install --dangerous "${packages[0]}"
+          # Local sideloading does not establish a Store auto-connect grant.
+          sudo snap connect eternal-desktop:browser-support :browser-support
+          snap connections eternal-desktop
+          sudo apt-get update
+          sudo apt-get install -y xvfb xauth xdotool
+          dbus-run-session -- xvfb-run -a bash -eu -o pipefail -c '
+            snap run eternal-desktop >snap-runtime.log 2>&1 &
+            app=$!
+            trap "kill $app 2>/dev/null || true" EXIT
+            for attempt in {1..30}; do
+              kill -0 "$app" || exit 1
+              if window=$(xdotool search --onlyvisible --pid "$app" --name "Eternal" | head -n1); then
+                test -n "$window"
+                sudo cat "/proc/$app/attr/current" | grep -E "^snap\.eternal-desktop\..* \(enforce\)$"
+                exit 0
+              fi
+              sleep 2
+            done
+            exit 1
+          '
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          name: snap-runtime-${{ matrix.arch }}
+          path: snap-runtime.log
+          if-no-files-found: ignore
