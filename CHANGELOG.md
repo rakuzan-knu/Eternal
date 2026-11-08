@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.14.0](https://github.com/rakuzan-knu/Eternal/compare/v1.13.4...v1.14.0) (2026-11-08)
+
+### ✨ Features
+
+* self-service registration for Ukraine with teen privacy ([#155](https://github.com/rakuzan-knu/Eternal/issues/155)) ([d689236](https://github.com/rakuzan-knu/Eternal/commit/d68923699d24b2082484c1ef3168d949ccaf3ece))
+
 ## [1.13.4](https://github.com/rakuzan-knu/Eternal/compare/v1.13.3...v1.13.4) (2026-11-08)
 
 ### 🐛 Bug Fixes
