@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.13.4](https://github.com/rakuzan-knu/Eternal/compare/v1.13.3...v1.13.4) (2026-11-08)
+
+### 🐛 Bug Fixes
+
+* restrict location-based recommendations ([#154](https://github.com/rakuzan-knu/Eternal/issues/154)) ([cc6f771](https://github.com/rakuzan-knu/Eternal/commit/cc6f7719dc3a4101cd16e1bfd9353124d947dd1a))
+
 ## [1.13.3](https://github.com/rakuzan-knu/Eternal/compare/v1.13.2...v1.13.3) (2026-11-08)
 
 ### 🐛 Bug Fixes
