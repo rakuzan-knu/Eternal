@@ -27,11 +27,8 @@ export const familyApi = {
     return res.data;
   },
 
-  pair: async (
-    code: string,
-    signal?: AbortSignal,
-  ): Promise<{ linkId: string; status: string; child: any }> => {
-    const res = await api.post<{ linkId: string; status: string; child: any }>(
+  pair: async (code: string, signal?: AbortSignal): Promise<{ linkId: string; status: string }> => {
+    const res = await api.post<{ linkId: string; status: string }>(
       '/family/pair',
       { code },
       ...(signal ? [{ signal }] : []),

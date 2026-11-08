@@ -487,5 +487,33 @@ describe('UsersService', () => {
       expect(hiddenProf.avatar).toBeNull();
       expect(hiddenProf.isOnline).toBe(false);
     });
+
+    it('does not expose a minor’s birth date even when birthday visibility allows it', () => {
+      const birthDate = '2008-11-09T00:00:00.000Z';
+      const raw = {
+        ...baseDbUser,
+        birthDate,
+        badges: [],
+        followersCount: 0,
+        followingCount: 0,
+        postsCount: 0,
+        lastSeenAt: null,
+        createdAt: sampleDate.toISOString(),
+        updatedAt: sampleDate.toISOString(),
+      };
+      const ctx: VisibilityContext = {
+        viewerId: 'viewer',
+        exceptions: new Map(),
+        visibility: new Map(),
+        acceptedFollowing: new Set(),
+        pendingFollowing: new Set(),
+        blocked: new Set(),
+      };
+      mockVisibility.resolve.mockReturnValue(true);
+      const before = Date.parse('2026-11-08T23:59:59.999Z');
+      expect(service.applyPrivacy(raw, 'viewer', ctx, before).birthDate).toBeUndefined();
+      expect(service.applyPrivacy(raw, raw.id, ctx, before).birthDate).toBe(birthDate);
+      expect(service.applyPrivacy(raw, 'viewer', ctx, before + 1).birthDate).toBe(birthDate);
+    });
   });
 });
