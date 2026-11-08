@@ -2,6 +2,41 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.13.3](https://github.com/rakuzan-knu/Eternal/compare/v1.13.2...v1.13.3) (2026-11-08)
+
+### 🐛 Bug Fixes
+
+* protect teen profiles and family safeguards ([#153](https://github.com/rakuzan-knu/Eternal/issues/153)) ([2eec6ee](https://github.com/rakuzan-knu/Eternal/commit/2eec6eeb9f659f63b6041eca4261c5d34e5aa42c))
+
+### 🔧 Tooling & Dependencies
+
+* **deps:** backport glob and minimatch security fixes ([8f2da0e](https://github.com/rakuzan-knu/Eternal/commit/8f2da0e455d23fa90e513f8c6bff422b1939c292))
+* **deps:** migrate direct validation schemas to patched Zod 4 ([1cc90bb](https://github.com/rakuzan-knu/Eternal/commit/1cc90bbcb273e93cebaf43a44e5aa09e035af21a))
+* **desktop:** bundle native library sources and verify rebuilds ([8a5687d](https://github.com/rakuzan-knu/Eternal/commit/8a5687dd01a1a092a73466ec0870f34e60397c23))
+* **frontend:** align legal metadata and record store candidate acceptance ([5b95107](https://github.com/rakuzan-knu/Eternal/commit/5b9510770ad62b47741c68bc1af4126780a0d6d3))
+* **frontend:** align privacy notices and diagnostics consent ([b7a883f](https://github.com/rakuzan-knu/Eternal/commit/b7a883fd8ceefc55065bc075ea7cfea3ef104f42))
+
+### 📝 Documentation
+
+* **frontend:** describe the actual diagnostics preference ([0340505](https://github.com/rakuzan-knu/Eternal/commit/034050541415ed3dde6c098309b89e2288e6a3c0))
+* **infra:** record Microsoft certification submission and publication hold ([bafce54](https://github.com/rakuzan-knu/Eternal/commit/bafce54be4cb99f7ccbb896332613a14f9020d02))
+* **infra:** record native licensing verification [skip ci] ([8150a9a](https://github.com/rakuzan-knu/Eternal/commit/8150a9a751c274c55d19ed2be7039aea01590464))
+
+### ✅ Tests
+
+* **backend:** verify data rights through isolated authenticated routes ([1116661](https://github.com/rakuzan-knu/Eternal/commit/1116661801876259182e53b2fa762a2965a07b86))
+* **frontend:** verify bootstrap diagnostics consent and record final candidates ([c3a2469](https://github.com/rakuzan-knu/Eternal/commit/c3a2469dac2ec3a466b83ebf4922ec1884646f4d))
+
+### 👷 CI/CD & Automation
+
+* **desktop:** validate installed store candidates on disposable runners ([16a0044](https://github.com/rakuzan-knu/Eternal/commit/16a0044ccb4f67d2b0fb2e5da97f9abedbf91f5a))
+* **infra:** give frontend coverage shards a fifteen minute budget ([1d6a253](https://github.com/rakuzan-knu/Eternal/commit/1d6a2535abb2553113a5599c5e73134a228c4c87))
+* **infra:** install missing Microsoft certification toolkit on runners ([5fdc720](https://github.com/rakuzan-knu/Eternal/commit/5fdc720a42ff6bd2c2117bd5b2edff64500bb7be))
+* **infra:** launch strict Snap checks in a systemd user scope ([9849a2d](https://github.com/rakuzan-knu/Eternal/commit/9849a2d911848cbdef2b7c41135e032fc92c6aca))
+* **infra:** provide a display for native source checks ([cb2a4bb](https://github.com/rakuzan-knu/Eternal/commit/cb2a4bb9b55878266bb5a99175e2e8b4196187a4))
+* **infra:** retry official Electron download before smoke tests ([c5804bb](https://github.com/rakuzan-knu/Eternal/commit/c5804bb062ed6c2b05805e7ee672e11b5f9b54bb))
+* **infra:** verify desktop candidates before publication ([a65563f](https://github.com/rakuzan-knu/Eternal/commit/a65563fdab41ad6255700f2db75cb37e085215a9))
+
 ## [1.13.2](https://github.com/rakuzan-knu/Eternal/compare/v1.13.1...v1.13.2) (2026-11-07)
 
 ### 🐛 Bug Fixes
