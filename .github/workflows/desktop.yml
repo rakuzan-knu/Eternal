@@ -132,6 +132,15 @@ jobs:
           pnpm validate:actions
       - name: Build shared web renderer and Electron
         run: pnpm build:desktop
+      - name: Prepare Electron for smoke tests
+        if: matrix.os != 'win' || matrix.arch == 'x64'
+        timeout-minutes: 9
+        run: |
+          for attempt in 1 2 3; do
+            if pnpm --filter @eternal/desktop exec install-electron; then exit 0; fi
+            if [ "$attempt" -lt 3 ]; then sleep "$((attempt * 5))"; fi
+          done
+          exit 1
       - name: Electron smoke (native runner architecture)
         if: matrix.os != 'win' || matrix.arch == 'x64'
         run: |
