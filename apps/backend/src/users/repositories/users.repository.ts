@@ -21,6 +21,13 @@ export class UsersRepository implements IUsersRepository {
     return this.prisma.user.findUnique({ where: { id } });
   }
 
+  findNearbyPreferences(id: string) {
+    return this.prisma.user.findUnique({
+      where: { id },
+      select: { birthDate: true, privacy: { select: { allowNearbyRecommendations: true } } },
+    });
+  }
+
   create(dto: CreateUserDto): Promise<User> {
     return this.prisma.user.create({
       data: {

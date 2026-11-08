@@ -15,6 +15,7 @@ export function isPersistableQuery(query: {
     !root.includes('search') &&
     root !== 'checkusername' &&
     root !== 'community-invite-preview' &&
+    root !== 'suggestedusers' &&
     root !== 'private-media'
   );
 }

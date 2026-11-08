@@ -61,6 +61,10 @@ import { levenshtein } from '@social-network/text-pipeline';
 import { TextPipelineService } from '../common/text-pipeline/text-pipeline.service';
 
 const MAX_SEARCH_TERM_LENGTH = 64;
+// Let the previous location index expire without carrying entries into the new policy.
+const NEARBY_INDEX = 'user_geo:v2';
+const NEARBY_CITY_PREFIX = 'user_city:v2:';
+const NEARBY_TTL_SECONDS = 30 * 86400;
 
 type RawProfile = {
   activeDecorationId?: string | null;
@@ -540,17 +544,20 @@ export class UsersService {
       .slice(0, limit);
   }
 
-  async getSuggestedUsers(
-    viewerId?: string | null,
-    limit = 5,
+  private canUseNearby(
+    user: Awaited<ReturnType<IUsersRepository['findNearbyPreferences']>>,
+    now: Date,
+  ): boolean {
+    const age = user?.birthDate ? completedYears(user.birthDate, now) : null;
+    return age !== null && age >= 18 && user?.privacy?.allowNearbyRecommendations !== false;
+  }
+
+  private resolveRecommendationLocation(
     clientIp?: string | null,
     headers?: Record<string, string | string[] | undefined>,
     explicitGeo?: { latitude: number; longitude: number } | null,
-  ): Promise<UserProfileDto[]> {
-    // 1. Resolve viewer GeoIP
-    let viewerGeo: { latitude: number; longitude: number; city: string | null } | null = explicitGeo
-      ? { latitude: explicitGeo.latitude, longitude: explicitGeo.longitude, city: null }
-      : null;
+  ): { latitude: number; longitude: number; city: string | null } | null {
+    if (explicitGeo) return { ...explicitGeo, city: null };
     const rawIp =
       (typeof headers?.['cf-connecting-ip'] === 'string' && headers['cf-connecting-ip']) ||
       (typeof headers?.['x-forwarded-for'] === 'string' &&
@@ -558,44 +565,40 @@ export class UsersService {
       (typeof headers?.['x-real-ip'] === 'string' && headers['x-real-ip']) ||
       clientIp;
 
-    if (!viewerGeo && rawIp) {
-      const isLocal =
-        rawIp === '127.0.0.1' ||
-        rawIp === '::1' ||
-        rawIp.startsWith('::ffff:127.0.0.1') ||
-        rawIp.startsWith('10.') ||
-        rawIp.startsWith('192.168.') ||
-        rawIp === 'localhost';
-
-      const lookup = geoip.lookup(rawIp);
-      if (lookup && lookup.ll) {
-        viewerGeo = {
-          latitude: lookup.ll[0],
-          longitude: lookup.ll[1],
-          city:
-            (typeof headers?.['cf-ipcity'] === 'string' ? headers['cf-ipcity'] : lookup.city) ||
-            null,
-        };
-      } else if (isLocal || process.env.NODE_ENV !== 'production') {
-        viewerGeo = {
-          latitude: 50.4501,
-          longitude: 30.5234,
-          city: 'Kyiv',
-        };
+    if (rawIp) {
+      const location = geoip.lookup(rawIp);
+      if (location?.ll) {
+        return { latitude: location.ll[0], longitude: location.ll[1], city: location.city || null };
       }
-    } else if (process.env.NODE_ENV !== 'production') {
-      viewerGeo = {
-        latitude: 50.4501,
-        longitude: 30.5234,
-        city: 'Kyiv',
-      };
     }
 
+    return process.env.NODE_ENV !== 'production'
+      ? { latitude: 50.4501, longitude: 30.5234, city: 'Kyiv' }
+      : null;
+  }
+
+  async getSuggestedUsers(
+    viewerId?: string | null,
+    limit = 5,
+    clientIp?: string | null,
+    headers?: Record<string, string | string[] | undefined>,
+    explicitGeo?: { latitude: number; longitude: number } | null,
+  ): Promise<UserProfileDto[]> {
+    const now = new Date();
+    const viewer = viewerId ? await this.usersRepository.findNearbyPreferences(viewerId) : null;
+    const viewerGeo = this.canUseNearby(viewer, now)
+      ? this.resolveRecommendationLocation(clientIp, headers, explicitGeo)
+      : null;
+
     if (viewerId && viewerGeo) {
-      await this.redis.geoadd('user_geo', viewerGeo.longitude, viewerGeo.latitude, viewerId);
-      await this.redis.expire('user_geo', 86400 * 30);
+      await this.redis.geoadd(NEARBY_INDEX, viewerGeo.longitude, viewerGeo.latitude, viewerId);
+      await this.redis.expire(NEARBY_INDEX, NEARBY_TTL_SECONDS);
       if (viewerGeo.city) {
-        await this.redis.set(`user_city:${viewerId}`, viewerGeo.city, 86400 * 30);
+        await this.redis.set(
+          `${NEARBY_CITY_PREFIX}${viewerId}`,
+          viewerGeo.city,
+          NEARBY_TTL_SECONDS,
+        );
       }
     }
 
@@ -623,7 +626,7 @@ export class UsersService {
     let pool1GeoIds: string[] = [];
     if (viewerGeo) {
       const geoCandidates = await this.redis.geosearchMembers(
-        'user_geo',
+        NEARBY_INDEX,
         viewerGeo.longitude,
         viewerGeo.latitude,
         100,
@@ -656,48 +659,47 @@ export class UsersService {
     }
 
     // 4. Fetch candidate user details & mutual followers in bulk
-    const candidateUsers = await this.usersRepository.getCandidateUsersDetails(
+    const nonGeoIds = new Set([...pool2FofIds, ...pool3PopularIds]);
+    const candidates = await this.usersRepository.getCandidateUsersDetails(
       candidateIds,
       [...RESERVED_USERNAMES],
       followingIds,
     );
+    const nearbyIds = viewerGeo
+      ? candidates.filter((candidate) => this.canUseNearby(candidate, now)).map(({ id }) => id)
+      : [];
+    const nearbySet = new Set(nearbyIds);
+    const candidateUsers = candidates.filter(({ id }) => nonGeoIds.has(id) || nearbySet.has(id));
 
-    // 5. Preload candidate cities & geodistances in TWO roundtrips total
-    // (was: up to 2xN). Privacy-gated members resolve to null without IO.
-    const [candidateCities, candidateDistances] = await Promise.all([
-      this.redis.mget(candidateUsers.map((u) => `user_city:${u.id}`)),
-      viewerId && viewerGeo
-        ? (async (): Promise<Array<number | null>> => {
-            const gatedIds: string[] = [];
-            const gatedIdx: number[] = [];
-            candidateUsers.forEach((u, i) => {
-              if (u.privacy?.allowNearbyRecommendations ?? true) {
-                gatedIds.push(u.id);
-                gatedIdx.push(i);
-              }
-            });
-            const fetched = await this.redis.geodistMany('user_geo', viewerId, gatedIds, 'km');
-            const distances: Array<number | null> = candidateUsers.map(() => null);
-            gatedIdx.forEach((orig, k) => {
-              distances[orig] = fetched[k];
-            });
-            return distances;
-          })()
-        : Promise.resolve(candidateUsers.map(() => null)),
-    ]);
+    // Read location data only for eligible candidates, including old index entries.
+    const [cities, distances] =
+      viewerId && nearbyIds.length > 0
+        ? await Promise.all([
+            this.redis.mget(nearbyIds.map((id) => `${NEARBY_CITY_PREFIX}${id}`)),
+            this.redis.geodistMany(NEARBY_INDEX, viewerId, nearbyIds, 'km'),
+          ])
+        : [[], []];
+    const nearbyData = new Map(
+      nearbyIds.map((id, index) => [id, { city: cities[index], distance: distances[index] }]),
+    );
 
     // 6. Score via @social-network/feed-score. Preset from FEED_PRESET
     // ('legacy' default = bit-identical legacy composite; 'balanced' adds
     // recency + affinity). lastSeenAt always maps (neutral under legacy).
     const preset = this.feedPreset();
     const interestCtx =
-      preset === 'balanced' ? await this.loadInterestContext(viewerId, candidateIds) : null;
+      preset === 'balanced'
+        ? await this.loadInterestContext(
+            viewerId,
+            candidateUsers.map(({ id }) => id),
+          )
+        : null;
     const ranked = rankCandidates(
-      candidateUsers.map((user, idx) => ({
+      candidateUsers.map((user) => ({
         id: user.id,
-        distKm: candidateDistances[idx],
-        allowNearby: user.privacy?.allowNearbyRecommendations ?? true,
-        city: candidateCities[idx],
+        distKm: nearbyData.get(user.id)?.distance ?? null,
+        allowNearby: nearbySet.has(user.id),
+        city: nearbyData.get(user.id)?.city ?? null,
         mutuals: user.followers.map((f) => ({
           id: f.follower.id,
           username: f.follower.username,

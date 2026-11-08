@@ -45,6 +45,7 @@ describe('users-repository.interface', () => {
       findByEmail: jest.fn().mockResolvedValue(mockUser),
       findByUsername: jest.fn().mockResolvedValue(mockUser),
       findById: jest.fn().mockResolvedValue(mockUser),
+      findNearbyPreferences: jest.fn().mockResolvedValue(null),
       create: jest.fn().mockResolvedValue(mockUser),
       updateUser: jest.fn().mockResolvedValue(mockUser),
       updateManyLastSeen: jest.fn().mockResolvedValue(undefined),
