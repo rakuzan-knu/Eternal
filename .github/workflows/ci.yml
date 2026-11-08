@@ -373,7 +373,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        module: [health, auth, posts, users, chat, chat.socket]
+        module: [health, auth, posts, users, data-rights, chat, chat.socket]
 
     services:
       postgres:
