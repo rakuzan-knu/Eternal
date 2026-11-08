@@ -1,14 +1,46 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { containsInvitationCredential, initSentry } from '../sentry';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { containsInvitationCredential, syncSentryConsent } from '../sentry';
 import * as Sentry from '@sentry/react';
 
+const sdk = vi.hoisted(() => {
+  const options = { enabled: true };
+  const close = vi.fn().mockResolvedValue(true);
+  const clearBreadcrumbs = vi.fn();
+  return { options, close, clearBreadcrumbs };
+});
 vi.mock('@sentry/react', () => ({
-  init: vi.fn(),
+  init: vi.fn(() => ({ getOptions: () => sdk.options, close: sdk.close })),
+  getIsolationScope: () => ({ clearBreadcrumbs: sdk.clearBreadcrumbs }),
   browserTracingIntegration: vi.fn().mockReturnValue({}),
   replayIntegration: vi.fn().mockReturnValue({}),
 }));
 
 describe('sentry', () => {
+  afterEach(() => {
+    syncSentryConsent(false);
+    vi.unstubAllEnvs();
+  });
+
+  it('starts only after analytics consent and disables the old client on withdrawal', () => {
+    vi.stubEnv('PROD', true);
+    vi.stubEnv('VITE_SENTRY_DSN', 'https://prodkey@sentry.io/12345');
+    sdk.options.enabled = true;
+    syncSentryConsent(false);
+    expect(Sentry.init).not.toHaveBeenCalled();
+    syncSentryConsent(true);
+    syncSentryConsent(true);
+    expect(Sentry.init).toHaveBeenCalledTimes(1);
+    const config = vi.mocked(Sentry.init).mock.calls[0]?.[0];
+    const breadcrumb = { category: 'navigation' };
+    expect(config?.beforeBreadcrumb?.(breadcrumb, {})).toEqual(breadcrumb);
+    syncSentryConsent(false);
+    expect(sdk.options.enabled).toBe(false);
+    expect(sdk.close).toHaveBeenCalledOnce();
+    expect(config?.beforeBreadcrumb?.(breadcrumb, {})).toBeNull();
+    syncSentryConsent(true);
+    expect(Sentry.init).toHaveBeenCalledTimes(2);
+    expect(config?.beforeBreadcrumb?.(breadcrumb, {})).toBeNull();
+  });
   it('respects the synchronous desktop telemetry policy before initializing', () => {
     vi.stubEnv('PROD', true);
     vi.stubEnv('VITE_SENTRY_DSN', 'https://prodkey@sentry.io/12345');
@@ -17,7 +49,7 @@ describe('sentry', () => {
       value: { telemetryDisabled: true },
     });
     try {
-      initSentry();
+      syncSentryConsent(true);
       expect(Sentry.init).not.toHaveBeenCalled();
     } finally {
       Reflect.deleteProperty(window, 'desktop');
@@ -41,19 +73,19 @@ describe('sentry', () => {
 
   it('skips initialization when DSN is empty or invalid', () => {
     vi.stubEnv('VITE_SENTRY_DSN', '');
-    initSentry();
+    syncSentryConsent(true);
     expect(Sentry.init).not.toHaveBeenCalled();
 
     vi.stubEnv('VITE_SENTRY_DSN', 'invalid-dsn');
-    initSentry();
+    syncSentryConsent(true);
     expect(Sentry.init).not.toHaveBeenCalled();
     vi.unstubAllEnvs();
   });
 
   it('initializes Sentry when valid DSN is provided', () => {
-    vi.stubEnv('PROD', true as any);
+    vi.stubEnv('PROD', true);
     vi.stubEnv('VITE_SENTRY_DSN', 'https://prodkey@sentry.io/12345');
-    initSentry();
+    syncSentryConsent(true);
     expect(Sentry.init).toHaveBeenCalledWith(
       expect.objectContaining({
         dsn: 'https://prodkey@sentry.io/12345',
@@ -68,28 +100,28 @@ describe('sentry', () => {
       throw new Error('Sentry init failed');
     });
 
-    vi.stubEnv('PROD', true as any);
+    vi.stubEnv('PROD', true);
     vi.stubEnv('VITE_SENTRY_DSN', 'https://prodkey@sentry.io/12345');
     // Should not throw - the catch block swallows errors
-    expect(() => initSentry()).not.toThrow();
+    expect(() => syncSentryConsent(true)).not.toThrow();
     vi.unstubAllEnvs();
   });
 
   it('skips initialization when DSN is "undefined" or "null" string', () => {
     vi.stubEnv('VITE_SENTRY_DSN', 'undefined');
-    initSentry();
+    syncSentryConsent(true);
     expect(Sentry.init).not.toHaveBeenCalled();
 
     vi.stubEnv('VITE_SENTRY_DSN', 'null');
-    initSentry();
+    syncSentryConsent(true);
     expect(Sentry.init).not.toHaveBeenCalled();
     vi.unstubAllEnvs();
   });
 
   it('sets tracesSampleRate to 0.2 in production environment', () => {
     vi.stubEnv('VITE_SENTRY_DSN', 'https://prodkey@sentry.io/12345');
-    vi.stubEnv('PROD', true as any);
-    initSentry();
+    vi.stubEnv('PROD', true);
+    syncSentryConsent(true);
     expect(Sentry.init).toHaveBeenCalledWith(
       expect.objectContaining({
         tracesSampleRate: 0.2,

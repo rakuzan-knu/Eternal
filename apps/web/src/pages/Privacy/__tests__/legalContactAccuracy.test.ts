@@ -59,6 +59,22 @@ describe('published legal contact accuracy', () => {
     );
   });
 
+  it('describes the limits of deletion, exports and recordings in both languages', () => {
+    const en = JSON.stringify(PRIVACY_SECTIONS_EN);
+    const uk = JSON.stringify(PRIVACY_SECTIONS_UK);
+    expect(en).toContain('Community owners must transfer ownership first');
+    expect(uk).toContain('Власникам спільнот спершу потрібно передати права власності');
+    expect(uk).toContain('JSON-експорт містить вибрані записи та перелік виключень');
+    expect(en).toContain('stored as chat attachments');
+    expect(uk).toContain('зберігаються як вкладення чату');
+    expect(en).not.toMatch(
+      /Zero-Recording Guarantee|ePrivacy Compliance|any commercial third parties|1-Click Account Deletion/,
+    );
+    expect(uk).not.toMatch(
+      /Гарантія без запису|всі свої пости та повідомлення|видалення в 1 клік/i,
+    );
+  });
+
   it('does not promise unavailable adult areas, paid services or emergency staffing', () => {
     expect(JSON.stringify(GUIDELINES_SECTIONS)).not.toContain(
       'accessible only to verified adult users',

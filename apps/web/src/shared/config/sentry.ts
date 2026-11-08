@@ -10,8 +10,15 @@ export function containsInvitationCredential(value: unknown): boolean {
   }
 }
 
-export function initSentry(): void {
-  if (window.desktop?.telemetryDisabled) return;
+let stopSentry: (() => void) | undefined;
+
+export function syncSentryConsent(analyticsAllowed: boolean): void {
+  if (!analyticsAllowed || window.desktop?.telemetryDisabled) {
+    stopSentry?.();
+    stopSentry = undefined;
+    return;
+  }
+  if (stopSentry) return;
   // Never initialize Sentry or Session Replay in development mode or with mock DSNs
   if (!import.meta.env.PROD) {
     return;
@@ -30,18 +37,24 @@ export function initSentry(): void {
   }
 
   try {
-    Sentry.init({
+    let active = true;
+    const client = Sentry.init({
       dsn,
       environment: import.meta.env.MODE,
       integrations: [Sentry.browserTracingIntegration()],
+      tracePropagationTargets: [],
       beforeBreadcrumb: (breadcrumb) =>
-        containsInvitationCredential(breadcrumb) ? null : breadcrumb,
+        !active || containsInvitationCredential(breadcrumb) ? null : breadcrumb,
       beforeSend: (event) =>
-        containsInvitationCredential(event) || containsInvitationCredential(location.pathname)
+        !active ||
+        containsInvitationCredential(event) ||
+        containsInvitationCredential(location.pathname)
           ? null
           : event,
       beforeSendTransaction: (event) =>
-        containsInvitationCredential(event) || containsInvitationCredential(location.pathname)
+        !active ||
+        containsInvitationCredential(event) ||
+        containsInvitationCredential(location.pathname)
           ? null
           : event,
       tracesSampleRate: import.meta.env.PROD ? 0.2 : 0,
@@ -56,6 +69,14 @@ export function initSentry(): void {
         'WebSocket is closed before the connection is established',
       ],
     });
+    if (client) {
+      stopSentry = () => {
+        active = false;
+        client.getOptions().enabled = false;
+        Sentry.getIsolationScope().clearBreadcrumbs();
+        void Promise.resolve(client.close(1000)).catch(() => {});
+      };
+    }
   } catch {
     // Gracefully ignore Sentry init errors
   }

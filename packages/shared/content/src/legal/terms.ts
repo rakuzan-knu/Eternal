@@ -84,7 +84,7 @@ export const TERMS_SECTIONS: TermsSection[] = [
         bullets: [
           'Visual Feeds: Photo and story sharing, reels, captions, and interactive comments.',
           'Direct Messaging: Real-time 1-on-1 chats, group conversations, media attachments, and optional disappearing messages.',
-          'Voice & Video Hangouts: Low-latency audio and video rooms with screen sharing and zero recordings.',
+          'Voice & Video Hangouts: Low-latency audio and video rooms with screen sharing.',
           'Music Integrations: Connecting Spotify or SoundCloud to show your currently playing song and enable friends to listen along.',
         ],
       },
@@ -177,7 +177,7 @@ export const TERMS_SECTIONS: TermsSection[] = [
     number: '6',
     title: 'Software, Voice Hangouts, Third-Party Integrations & Developer Bots',
     iconName: 'Cpu',
-    tldr: 'Client software is licensed, not sold. Voice hangouts are zero-recording. By connecting third-party platforms (YouTube, Spotify, Twitch, Steam, Roblox, GitHub), you agree to their respective terms of service and developer policies.',
+    tldr: 'Client software is licensed, not sold. Eternal does not make server-side recordings of live call audio or video. By connecting third-party platforms (YouTube, Spotify, Twitch, Steam, Roblox, GitHub), you agree to their respective terms of service and developer policies.',
     subsections: [
       {
         id: 'software-license',
@@ -188,9 +188,9 @@ export const TERMS_SECTIONS: TermsSection[] = [
       },
       {
         id: 'voice-hangouts-terms',
-        title: '6.2 Voice Hangouts & Zero-Recording Policy',
+        title: '6.2 Live voice and video calls',
         content: [
-          'Voice and video rooms operate in real time over WebRTC. Eternal never records, listens to, or saves live audio/video calls on our servers.',
+          'Voice and video rooms operate in real time over WebRTC. Eternal does not make server-side recordings of live call audio or video. Voice and video messages you send are stored as chat attachments.',
         ],
       },
       {
@@ -304,7 +304,7 @@ export const TERMS_SECTIONS: TermsSection[] = [
     number: '8',
     title: 'Termination & Appeals',
     iconName: 'KeyRound',
-    tldr: 'You can delete your account at any time in 1 click. We may suspend accounts that violate our rules. You have the right to appeal any enforcement decision.',
+    tldr: 'You can request account deletion in Settings and confirm it with your password. Community owners must transfer ownership first. We may suspend accounts that violate our rules. You have the right to appeal any enforcement decision.',
     subsections: [
       {
         id: 'user-termination',
@@ -431,7 +431,7 @@ export const TERMS_SECTIONS_UK: TermsSection[] = [
         bullets: [
           'Візуальна стрічка: Фотографії, історії, рілси, підписи та інтерактивні коментарі.',
           'Месенджер: Особисті та групові чати в реальному часі, зникаючі повідомлення.',
-          'Голосові та відеокімнати: Зв’язок із низькою затримкою, демонстрація екрана та відсутність запису розмов.',
+          'Голосові та відеокімнати: Зв’язок із низькою затримкою, демонстрація екрана.',
           'Музичні інтеграції: Підключення Spotify або SoundCloud із показом статусу та спільним прослуховуванням.',
         ],
       },
@@ -503,7 +503,7 @@ export const TERMS_SECTIONS_UK: TermsSection[] = [
     title:
       'Програмне забезпечення, сторонні інтеграції (YouTube, Spotify, Twitch, Steam, Roblox, GitHub) та боти',
     iconName: 'Cpu',
-    tldr: 'Клієнтське ПЗ надається за ліцензією. Голосові кімнати не записуються. Підключаючи сторонні платформи (YouTube, Spotify, Twitch, Steam, Roblox, GitHub), ви погоджуєтеся з їхніми умовами використання та політиками розробників.',
+    tldr: 'Клієнтське ПЗ надається за ліцензією. Eternal не створює серверних записів аудіо чи відео дзвінків наживо. Підключаючи сторонні платформи (YouTube, Spotify, Twitch, Steam, Roblox, GitHub), ви погоджуєтеся з їхніми умовами використання та політиками розробників.',
     subsections: [
       {
         id: 'software-license',
@@ -514,9 +514,9 @@ export const TERMS_SECTIONS_UK: TermsSection[] = [
       },
       {
         id: 'voice-hangouts-terms',
-        title: '6.2 Голосові кімнати та політика нульового запису',
+        title: '6.2 Голосові та відеодзвінки наживо',
         content: [
-          'Голосові та відеокімнати працюють у реальному часі за технологією WebRTC без запису чи збереження аудіо на серверах.',
+          'Дзвінки працюють у реальному часі через WebRTC. Eternal не створює серверних записів їхнього аудіо чи відео. Надіслані вами голосові та відеоповідомлення зберігаються як вкладення чату.',
         ],
       },
       {
@@ -594,7 +594,7 @@ export const TERMS_SECTIONS_UK: TermsSection[] = [
     number: '8',
     title: 'Припинення дії та апеляції',
     iconName: 'KeyRound',
-    tldr: 'Ви можете видалити акаунт у будь-який час в 1 клік. Ми можемо блокувати порушників правил. Ви маєте право подати апеляцію.',
+    tldr: 'Ви можете запросити видалення акаунта в налаштуваннях і підтвердити його паролем. Власникам спільнот спершу потрібно передати права власності. Ми можемо блокувати порушників правил. Ви маєте право подати апеляцію.',
     subsections: [
       {
         id: 'user-termination',
@@ -656,13 +656,13 @@ export const TERMS_SECTIONS_UK: TermsSection[] = [
 export const TERMS_HERO: Record<'en' | 'uk', LegalDocumentHero> = {
   en: {
     title: "ETERNAL'S TERMS OF SERVICE",
-    effectiveDate: 'Updated: November 5, 2026',
+    effectiveDate: 'Updated: November 8, 2026',
     description:
       'These Terms of Service set forth our mutual legal agreement when you use Eternal’s visual feeds, instant chats, voice rooms, and music streaming. We made them clear, transparent, and user-first.',
   },
   uk: {
     title: 'УМОВИ ВИКОРИСТАННЯ ETERNAL',
-    effectiveDate: 'Оновлено: 5 листопада 2026 р.',
+    effectiveDate: 'Оновлено: 8 листопада 2026 р.',
     description:
       'Ці Умови використання регулюють використання стрічки публікацій, чатів, голосових кімнат та музики в Eternal. Ми зробили їх простими, прозорими та орієнтованими на користувача.',
   },

@@ -7,14 +7,27 @@ import { AppMotion } from '@/shared/ui/AppMotion';
 
 import './index.css';
 import App from '@/app/App';
-import { initSentry } from '@/shared/config/sentry';
+import { syncSentryConsent } from '@/shared/config/sentry';
+import { useCookieConsentStore } from '@/features/cookies/model/useCookieConsentStore';
 import { ErrorFallback } from '@/shared/ui/ErrorFallback';
 import { queryClient, offlinePersistOptions } from '@/shared/api/queryClient';
 import { initCrossTabSync } from '@/shared/lib/broadcastSync';
 import { ensureDevAccounts } from '@/shared/lib/devAccounts';
 import { initializeVisualEffects } from '@/shared/model/useVisualEffects';
 
-initSentry();
+const syncAnalytics = ({
+  hasConsented,
+  preferences,
+}: ReturnType<typeof useCookieConsentStore.getState>) =>
+  syncSentryConsent(hasConsented === true && preferences.analytics === true);
+syncAnalytics(useCookieConsentStore.getState());
+const unsubscribeAnalytics = useCookieConsentStore.subscribe(syncAnalytics);
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    unsubscribeAnalytics();
+    syncSentryConsent(false);
+  });
+}
 initCrossTabSync();
 if (import.meta.env.DEV && import.meta.env.VITE_SEED_DEV_ACCOUNTS === 'true') {
   void ensureDevAccounts();

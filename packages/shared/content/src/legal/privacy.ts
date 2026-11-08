@@ -59,7 +59,7 @@ export const PRIVACY_SECTIONS_EN: PrivacySection[] = [
     number: '2',
     title: 'The Information We Collect',
     iconName: 'Database',
-    tldr: 'We collect the information you choose to give us (account details, posts, messages), your live music track when connected, and technical data like session tokens and device metrics. We never record your voice calls.',
+    tldr: 'We collect the information you choose to give us (account details, posts, messages), your live music track when connected, and technical data like session tokens and device metrics. Eternal does not make server-side recordings of live call audio or video.',
     subsections: [
       {
         id: 'account-information',
@@ -74,15 +74,15 @@ export const PRIVACY_SECTIONS_EN: PrivacySection[] = [
       },
       {
         id: 'voice-video-streaming',
-        title: '2.2 Voice & Video Hangouts (Zero-Recording Guarantee)',
+        title: '2.2 Live voice and video calls',
         content: [
           'Voice and video rooms are real-time audio and video sessions built on low-latency WebRTC streams.',
-          'We do NOT record, listen to, or save your live voice or video conversations on our servers. When screen-sharing, only transient cover thumbnails may be processed temporarily to deliver the video stream to participants.',
+          'Eternal does not make server-side recordings of live call audio or video. Call quality diagnostics and temporary screen-share previews may be processed separately. Voice and video messages you choose to send are stored as chat attachments.',
         ],
       },
       {
         id: 'cookies-and-storage',
-        title: '2.3 Cookies, Local Storage & Session Tokens (ePrivacy Compliance)',
+        title: '2.3 Cookies, local storage and session tokens',
         content: [
           'We use essential browser storage technologies to keep your session secure and your preferences saved:',
         ],
@@ -170,7 +170,7 @@ export const PRIVACY_SECTIONS_EN: PrivacySection[] = [
           'We keep your personal information only as long as your account remains active or as required by law:',
         ],
         bullets: [
-          'Live Voice & Video: 0 seconds (streamed in real time, never recorded or stored).',
+          'Live calls are streamed in real time. Eternal does not store recordings of their audio or video.',
           'Disappearing Messages: Automatically erased from active servers once the countdown timer expires.',
           'Posts & Media: Stored until you edit or delete them.',
           'Account deletion: the current process permanently deletes your account from the active database after password verification. Community owners must transfer ownership first. There is no recovery grace period. Backup, media-storage, and other service purge procedures remain under review; a 30-day purge has not been verified.',
@@ -179,14 +179,14 @@ export const PRIVACY_SECTIONS_EN: PrivacySection[] = [
       },
       {
         id: 'your-rights-and-deletion',
-        title: '5.2 Your Rights & 1-Click Account Deletion',
+        title: '5.2 Your rights and account deletion',
         content: [
           'Your rights depend on the law applicable to your situation. These may include access, correction, erasure, portability, objection, and a complaint to a competent supervisory authority. The download tool does not limit those rights:',
         ],
         bullets: [
           'Download your data: the self-service JSON download includes selected records and lists its exclusions. For other access or portability requests, contact eternalnet.support@proton.me.',
           'Edit Your Information: Update your username, email, password, or bio in Settings whenever you want.',
-          '1-Click Account Deletion: Go to Settings → Security → Delete Account. Confirm with your password, and your deletion process begins immediately.',
+          'Account deletion: Go to Settings → Security → Delete Account and confirm with your password. Community owners must transfer ownership first.',
           'We Never Sell Your Data: We do not sell, rent, or trade your personal data with third-party data brokers.',
         ],
       },
@@ -201,10 +201,10 @@ export const PRIVACY_SECTIONS_EN: PrivacySection[] = [
     subsections: [
       {
         id: 'third-party-overview',
-        title: '6.1 Overview, User Consent & Zero Data-Broker Promise',
+        title: '6.1 How connected accounts are used',
         content: [
           'Eternal offers optional third-party integrations to enrich your profile showcase with verified gaming ranks, streaming presence, repositories, and music playlists. Connecting any external service is completely voluntary.',
-          'We adhere to a strict Zero Data-Broker standard: Eternal never sells, rents, monetizes, or transfers your third-party account data, credentials, or statistics to advertisers, data brokers, or any commercial third parties.',
+          'We do not sell or rent connected-account data to advertisers or data brokers. Eternal uses authorization tokens to make requests to connected providers. Hosting and other service providers can process data when providing services to Eternal.',
           'You can disconnect a platform in Settings → Connected Accounts & Integrations. Also use the provider account settings to revoke provider-side permission. Full retention and cache-purge procedures remain under review; disconnecting does not establish that every historical copy has been erased.',
         ],
         bullets: [
@@ -368,7 +368,7 @@ export const PRIVACY_SECTIONS_UK: PrivacySection[] = [
     number: '2',
     title: 'Інформація, яку ми збираємо',
     iconName: 'Database',
-    tldr: 'Ми збираємо дані, які ви надаєте (профіль, дописи, повідомлення), поточний музичний трек при підключенні та технічні дані (токени сесії, діагностика). Ми ніколи не записуємо дзвінки.',
+    tldr: 'Ми збираємо дані, які ви надаєте (профіль, дописи, повідомлення), поточний музичний трек при підключенні та технічні дані (токени сесії, діагностика). Eternal не створює серверних записів аудіо чи відео дзвінків наживо.',
     subsections: [
       {
         id: 'account-information',
@@ -383,15 +383,15 @@ export const PRIVACY_SECTIONS_UK: PrivacySection[] = [
       },
       {
         id: 'voice-video-streaming',
-        title: '2.2 Голосові та відеокімнати (Гарантія без запису)',
+        title: '2.2 Голосові та відеодзвінки наживо',
         content: [
           'Голосові та відеокімнати транслюються наживо через WebRTC з мінімальною затримкою.',
-          'Ми НЕ записуємо, не прослуховуємо і не зберігаємо ваші розмови на серверах. При демонстрації екрана обробляються лише тимчасові кадри трансляції для передачі учасникам кімнати.',
+          'Eternal не створює серверних записів аудіо чи відео дзвінків наживо. Діагностика якості дзвінків і тимчасові зображення демонстрації екрана можуть оброблятися окремо. Надіслані вами голосові та відеоповідомлення зберігаються як вкладення чату.',
         ],
       },
       {
         id: 'cookies-and-storage',
-        title: '2.3 Файли cookie, Local Storage та токени сесії (ePrivacy)',
+        title: '2.3 Файли cookie, локальне сховище й токени сесії',
         content: [
           'Ми використовуємо необхідні технології збереження для авторизації та налаштувань:',
         ],
@@ -477,7 +477,7 @@ export const PRIVACY_SECTIONS_UK: PrivacySection[] = [
         title: '5.1 Терміни зберігання та цикл очищення бекапів',
         content: ['Ми зберігаємо інформацію лише доти, доки ваш обліковий запис активний:'],
         bullets: [
-          'Голосові та відеодзвінки: 0 секунд (передаються наживо, не зберігаються).',
+          'Дзвінки передаються наживо. Eternal не зберігає записів їхнього аудіо чи відео.',
           'Зникаючі повідомлення: Автоматично видаляються з серверів після завершення таймера.',
           'Контент і медіа: Зберігаються до моменту, поки ви самі їх не видалите.',
           'Видалення облікового запису: поточна процедура після перевірки пароля постійно видаляє обліковий запис з активної бази даних. Власникам спільнот спершу потрібно передати права власності. Пільгового періоду відновлення немає. Очищення резервних копій, медіасховищ та інших сервісів ще перевіряється; строк 30 днів не підтверджено.',
@@ -486,12 +486,12 @@ export const PRIVACY_SECTIONS_UK: PrivacySection[] = [
       },
       {
         id: 'your-rights-and-deletion',
-        title: '5.2 Ваші права та видалення в 1 клік',
+        title: '5.2 Ваші права та видалення облікового запису',
         content: ['Відповідно до міжнародних стандартів конфіденційності, ви маєте чіткі права:'],
         bullets: [
-          'Завантажити дані: Ви можете експортувати всі свої пости та повідомлення будь-коли.',
+          'Завантаження даних: JSON-експорт містить вибрані записи та перелік виключень. Щодо інших запитів на доступ або перенесення даних пишіть на eternalnet.support@proton.me.',
           'Редагувати профіль: Оновлюйте email, ім’я та дані в будь-який момент.',
-          'Видалити акаунт в 1 клік: Налаштування → Безпека → Видалити акаунт. Введіть пароль для підтвердження, і процес видалення почнеться негайно.',
+          'Видалення облікового запису: відкрийте Налаштування → Безпека → Видалити акаунт і підтвердьте дію паролем. Власникам спільнот спершу потрібно передати права власності.',
           'Жодного продажу даних: Ми не продаємо і не передаємо персональні дані посередникам.',
         ],
       },
@@ -506,10 +506,10 @@ export const PRIVACY_SECTIONS_UK: PrivacySection[] = [
     subsections: [
       {
         id: 'third-party-overview',
-        title: '6.1 Загальні положення, згода користувача та відсутність продажу даних',
+        title: '6.1 Як використовуються підключені облікові записи',
         content: [
           'Eternal надає користувачам можливість підключати сторонні платформи для відображення підтверджених ігрових рангів, стрімів, репозиторіїв та музичних плейлистів у профілі. Підключення є виключно добровільним.',
-          'Ми ніколи не продаємо, не здаємо в оренду та не передаємо ваші облікові дані, токени чи статистику брокерам даних або рекламодавцям.',
+          'Ми не продаємо й не здаємо в оренду дані підключених облікових записів рекламодавцям або брокерам даних. Eternal використовує токени авторизації для запитів до підключених провайдерів. Постачальники хостингу й інших послуг можуть обробляти дані під час надання послуг Eternal.',
           'Ви можете відв’язати платформу в Налаштуваннях → Підключені акаунти. Дозвіл на стороні провайдера також можна відкликати в його налаштуваннях. Повні процедури зберігання й очищення кешів ще перевіряються; відв’язання не підтверджує видалення всіх історичних копій.',
         ],
         bullets: [
@@ -631,13 +631,13 @@ export const PRIVACY_SECTIONS_UK: PrivacySection[] = [
 export const PRIVACY_HERO: Record<'en' | 'uk', LegalDocumentHero> = {
   en: {
     title: 'ETERNAL PRIVACY POLICY',
-    effectiveDate: 'Updated: November 5, 2026',
+    effectiveDate: 'Updated: November 8, 2026',
     description:
       'We built Eternal with transparency, security, and user control at the forefront. This policy outlines how your feeds, messages, voice channels, and music integrations are handled, and how you remain in complete control of your data.',
   },
   uk: {
     title: 'ПОЛІТИКА КОНФІДЕНЦІЙНОСТІ ETERNAL',
-    effectiveDate: 'Оновлено: 5 листопада 2026 р.',
+    effectiveDate: 'Оновлено: 8 листопада 2026 р.',
     description:
       'Ми створили Eternal із турботою про прозорість, безпеку та повний контроль даних. Тут зрозумілою мовою описано, як обробляються ваші публікації, чати, голосові канали та музика, а також як ви зберігаєте повний контроль над своєю інформацією.',
   },
