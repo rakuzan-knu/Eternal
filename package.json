@@ -33,7 +33,7 @@
     "test": "vitest run",
     "test:backend": "vitest run --project=backend",
     "test:frontend": "vitest run --project=frontend",
-    "test:security": "node --test scripts/security/node-forge.test.mjs scripts/security/redirect-credentials.test.mjs scripts/utils/__tests__/msw-origin-guard.test.mjs scripts/security/zod-collection-limits.test.mjs",
+    "test:security": "node --test scripts/security/__tests__/glob-minimatch-backports.test.mjs scripts/security/node-forge.test.mjs scripts/security/redirect-credentials.test.mjs scripts/utils/__tests__/msw-origin-guard.test.mjs scripts/security/zod-collection-limits.test.mjs",
     "test:cov": "vitest run --coverage",
     "test:e2e": "pnpm --filter backend test:e2e",
     "format": "prettier --write . --ignore-unknown --no-error-on-unmatched-pattern",
@@ -178,7 +178,12 @@
     "patchedDependencies": {
       "zod@3.25.76": "patches/zod@3.25.76.patch",
       "app-builder-lib@26.18.0": "patches/app-builder-lib@26.18.0.patch",
-      "uiohook-napi@1.5.5": "patches/uiohook-napi@1.5.5.patch"
+      "uiohook-napi@1.5.5": "patches/uiohook-napi@1.5.5.patch",
+      "minimatch@9.0.9": "patches/minimatch@9.0.9.patch",
+      "minimatch@10.2.5": "patches/minimatch@10.2.5.patch",
+      "minimatch@10.2.6": "patches/minimatch@10.2.6.patch",
+      "glob@10.5.0": "patches/glob@10.5.0.patch",
+      "glob@13.0.6": "patches/glob@13.0.6.patch"
     }
   },
   "resolutions": {

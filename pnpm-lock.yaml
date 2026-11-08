@@ -59,6 +59,21 @@ patchedDependencies:
   app-builder-lib@26.18.0:
     hash: 9686e3efcbfccbc9af964903057a320a03ee6cb82d9e7ed2c2943e801da369c0
     path: patches/app-builder-lib@26.18.0.patch
+  glob@10.5.0:
+    hash: 91b9d64105b33575107165525ed481febd40d0f6be59d27dc501ae12e9cced1c
+    path: patches/glob@10.5.0.patch
+  glob@13.0.6:
+    hash: 8583ee8302560991d764b50267770f1a30f091fdb143a9492dba141e87ac8d1a
+    path: patches/glob@13.0.6.patch
+  minimatch@10.2.5:
+    hash: 32092a92491674e0c69040f25d85f20ea81e156d1445d9c5b9f014c61d51d1c8
+    path: patches/minimatch@10.2.5.patch
+  minimatch@10.2.6:
+    hash: 32092a92491674e0c69040f25d85f20ea81e156d1445d9c5b9f014c61d51d1c8
+    path: patches/minimatch@10.2.6.patch
+  minimatch@9.0.9:
+    hash: 2f6752f2b96637d5fcc5d43e6563347397b55c91d57dc3bd1152dc3d4001f076
+    path: patches/minimatch@9.0.9.patch
   uiohook-napi@1.5.5:
     hash: 56a7ba3339489a65644b967ba1426f2df66b7dfddde9233c6a1724624341403a
     path: patches/uiohook-napi@1.5.5.patch
@@ -16018,7 +16033,7 @@ snapshots:
       debug: 4.4.3
       dir-compare: 4.2.0
       fs-extra: 11.4.0
-      minimatch: 9.0.9
+      minimatch: 9.0.9(patch_hash=2f6752f2b96637d5fcc5d43e6563347397b55c91d57dc3bd1152dc3d4001f076)
       plist: 3.1.1
     transitivePeerDependencies:
       - supports-color
@@ -16251,7 +16266,7 @@ snapshots:
       freeport-async: 2.0.0
       fs-extra: 8.1.0
       getenv: 1.0.0
-      glob: 10.5.0
+      glob: 10.5.0(patch_hash=91b9d64105b33575107165525ed481febd40d0f6be59d27dc501ae12e9cced1c)
       internal-ip: 4.3.0
       is-docker: 2.2.1
       is-wsl: 2.2.0
@@ -16305,7 +16320,7 @@ snapshots:
       chalk: 4.1.2
       debug: 4.4.3
       getenv: 1.0.0
-      glob: 10.5.0
+      glob: 10.5.0(patch_hash=91b9d64105b33575107165525ed481febd40d0f6be59d27dc501ae12e9cced1c)
       resolve-from: 5.0.0
       semver: 7.8.5
       slash: 3.0.0
@@ -16325,7 +16340,7 @@ snapshots:
       '@expo/json-file': 9.1.5
       deepmerge: 4.3.1
       getenv: 1.0.0
-      glob: 10.5.0
+      glob: 10.5.0(patch_hash=91b9d64105b33575107165525ed481febd40d0f6be59d27dc501ae12e9cced1c)
       require-from-string: 2.0.2
       resolve-from: 5.0.0
       resolve-workspace-root: 2.0.1
@@ -16410,7 +16425,7 @@ snapshots:
       debug: 4.4.3
       fs-extra: 9.1.0
       getenv: 1.0.0
-      glob: 10.5.0
+      glob: 10.5.0(patch_hash=91b9d64105b33575107165525ed481febd40d0f6be59d27dc501ae12e9cced1c)
       jsc-safe-url: 0.2.4
       lightningcss: 1.27.0
       minimatch: 3.1.5
@@ -16579,7 +16594,7 @@ snapshots:
       content-disposition: 3.0.0
       fastify-plugin: 6.0.0
       fastq: 1.20.3
-      glob: 13.0.6
+      glob: 13.0.6(patch_hash=8583ee8302560991d764b50267770f1a30f091fdb143a9492dba141e87ac8d1a)
 
   '@formatjs/ecma402-abstract@2.3.6':
     dependencies:
@@ -17218,7 +17233,7 @@ snapshots:
       chalk: 4.1.2
       collect-v8-coverage: 1.0.3
       exit-x: 0.2.2
-      glob: 13.0.6
+      glob: 13.0.6(patch_hash=8583ee8302560991d764b50267770f1a30f091fdb143a9492dba141e87ac8d1a)
       graceful-fs: 4.2.11
       istanbul-lib-coverage: 3.2.2
       istanbul-lib-instrument: 6.0.3
@@ -17344,7 +17359,7 @@ snapshots:
 
   '@joshwooding/vite-plugin-react-docgen-typescript@0.5.0(typescript@5.9.3)(vite@6.4.5(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))':
     dependencies:
-      glob: 10.5.0
+      glob: 10.5.0(patch_hash=91b9d64105b33575107165525ed481febd40d0f6be59d27dc501ae12e9cced1c)
       magic-string: 0.27.0
       react-docgen-typescript: 2.4.0(typescript@5.9.3)
       vite: 6.4.5(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -17516,7 +17531,7 @@ snapshots:
       cli-table3: 0.6.5
       commander: 4.1.1
       fork-ts-checker-webpack-plugin: 9.1.0(typescript@5.9.3)(webpack@5.106.2(@swc/core@1.16.0)(esbuild@0.28.2)(lightningcss@1.32.0))
-      glob: 13.0.6
+      glob: 13.0.6(patch_hash=8583ee8302560991d764b50267770f1a30f091fdb143a9492dba141e87ac8d1a)
       node-emoji: 1.11.0
       ora: 5.4.1
       tsconfig-paths: 4.2.0
@@ -18961,7 +18976,7 @@ snapshots:
     dependencies:
       '@sentry/core': 11.8.0
       dotenv: 17.4.2
-      glob: 13.0.6
+      glob: 13.0.6(patch_hash=8583ee8302560991d764b50267770f1a30f091fdb143a9492dba141e87ac8d1a)
       magic-string: 0.30.21
       oxc-parser: 0.152.0
       sentry: 0.45.0
@@ -19478,7 +19493,7 @@ snapshots:
       execa: 9.6.1
       json-rpc-2.0: 1.7.1
       lodash.groupby: 4.6.0
-      minimatch: 10.2.6
+      minimatch: 10.2.6(patch_hash=32092a92491674e0c69040f25d85f20ea81e156d1445d9c5b9f014c61d51d1c8)
       mutation-server-protocol: 0.4.1
       mutation-testing-elements: 3.8.4
       mutation-testing-metrics: 3.8.4
@@ -20177,7 +20192,7 @@ snapshots:
       '@typescript-eslint/types': 8.71.1
       '@typescript-eslint/visitor-keys': 8.71.1
       debug: 4.4.3
-      minimatch: 10.2.6
+      minimatch: 10.2.6(patch_hash=32092a92491674e0c69040f25d85f20ea81e156d1445d9c5b9f014c61d51d1c8)
       semver: 7.8.5
       tinyglobby: 0.2.17
       ts-api-utils: 2.5.0(typescript@5.9.3)
@@ -20745,7 +20760,7 @@ snapshots:
       js-yaml: 5.4.3
       json5: 2.2.3
       lazy-val: 1.0.5
-      minimatch: 10.2.6
+      minimatch: 10.2.6(patch_hash=32092a92491674e0c69040f25d85f20ea81e156d1445d9c5b9f014c61d51d1c8)
       pkijs: 3.4.1
       plist: 3.1.1
       proper-lockfile: 4.1.2
@@ -21306,7 +21321,7 @@ snapshots:
     dependencies:
       '@npmcli/fs': 3.1.1
       fs-minipass: 3.0.3
-      glob: 10.5.0
+      glob: 10.5.0(patch_hash=91b9d64105b33575107165525ed481febd40d0f6be59d27dc501ae12e9cced1c)
       lru-cache: 10.4.3
       minipass: 7.1.3
       minipass-collect: 2.0.1
@@ -23496,18 +23511,18 @@ snapshots:
 
   glob-to-regexp@0.4.1: {}
 
-  glob@10.5.0:
+  glob@10.5.0(patch_hash=91b9d64105b33575107165525ed481febd40d0f6be59d27dc501ae12e9cced1c):
     dependencies:
       foreground-child: 3.3.1
       jackspeak: 3.4.3
-      minimatch: 9.0.9
+      minimatch: 9.0.9(patch_hash=2f6752f2b96637d5fcc5d43e6563347397b55c91d57dc3bd1152dc3d4001f076)
       minipass: 7.1.3
       package-json-from-dist: 1.0.1
       path-scurry: 1.11.1
 
-  glob@13.0.6:
+  glob@13.0.6(patch_hash=8583ee8302560991d764b50267770f1a30f091fdb143a9492dba141e87ac8d1a):
     dependencies:
-      minimatch: 10.2.6
+      minimatch: 10.2.6(patch_hash=32092a92491674e0c69040f25d85f20ea81e156d1445d9c5b9f014c61d51d1c8)
       minipass: 7.1.3
       path-scurry: 2.0.2
 
@@ -24286,7 +24301,7 @@ snapshots:
       chalk: 4.1.2
       ci-info: 4.4.0
       deepmerge: 4.3.1
-      glob: 13.0.6
+      glob: 13.0.6(patch_hash=8583ee8302560991d764b50267770f1a30f091fdb143a9492dba141e87ac8d1a)
       graceful-fs: 4.2.11
       jest-circus: 30.5.2(babel-plugin-macros@3.1.0)
       jest-docblock: 30.5.0
@@ -24514,7 +24529,7 @@ snapshots:
       cjs-module-lexer: 2.2.1
       collect-v8-coverage: 1.0.3
       es-module-lexer: 2.3.1
-      glob: 13.0.6
+      glob: 13.0.6(patch_hash=8583ee8302560991d764b50267770f1a30f091fdb143a9492dba141e87ac8d1a)
       graceful-fs: 4.2.11
       jest-haste-map: 30.5.1
       jest-message-util: 30.5.1
@@ -25880,11 +25895,11 @@ snapshots:
 
   minimalistic-assert@1.0.1: {}
 
-  minimatch@10.2.5:
+  minimatch@10.2.5(patch_hash=32092a92491674e0c69040f25d85f20ea81e156d1445d9c5b9f014c61d51d1c8):
     dependencies:
       brace-expansion: 5.0.12
 
-  minimatch@10.2.6:
+  minimatch@10.2.6(patch_hash=32092a92491674e0c69040f25d85f20ea81e156d1445d9c5b9f014c61d51d1c8):
     dependencies:
       brace-expansion: 5.0.12
 
@@ -25896,7 +25911,7 @@ snapshots:
     dependencies:
       brace-expansion: 2.1.7
 
-  minimatch@9.0.9:
+  minimatch@9.0.9(patch_hash=2f6752f2b96637d5fcc5d43e6563347397b55c91d57dc3bd1152dc3d4001f076):
     dependencies:
       brace-expansion: 2.1.7
 
@@ -26286,7 +26301,7 @@ snapshots:
       lines-and-columns: 2.0.3
       log-symbols: 4.1.0
       mimic-fn: 2.1.0
-      minimatch: 10.2.5
+      minimatch: 10.2.5(patch_hash=32092a92491674e0c69040f25d85f20ea81e156d1445d9c5b9f014c61d51d1c8)
       minimist: 1.2.8
       npm-run-path: 4.0.1
       once: 1.4.0
@@ -28348,7 +28363,7 @@ snapshots:
     dependencies:
       '@jridgewell/gen-mapping': 0.3.13
       commander: 4.1.1
-      glob: 10.5.0
+      glob: 10.5.0(patch_hash=91b9d64105b33575107165525ed481febd40d0f6be59d27dc501ae12e9cced1c)
       lines-and-columns: 1.2.4
       mz: 2.7.0
       pirates: 4.0.7
@@ -28537,8 +28552,8 @@ snapshots:
   test-exclude@7.0.2:
     dependencies:
       '@istanbuljs/schema': 0.1.6
-      glob: 10.5.0
-      minimatch: 10.2.6
+      glob: 10.5.0(patch_hash=91b9d64105b33575107165525ed481febd40d0f6be59d27dc501ae12e9cced1c)
+      minimatch: 10.2.6(patch_hash=32092a92491674e0c69040f25d85f20ea81e156d1445d9c5b9f014c61d51d1c8)
 
   thenify-all@1.6.0:
     dependencies:
