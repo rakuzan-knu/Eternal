@@ -11,7 +11,7 @@ const meta: Meta<typeof RegisterForm> = {
   },
   decorators: [
     (Story) => (
-      <div className="w-[440px] max-w-full p-8 bg-neutral-900 border border-neutral-800 rounded-3xl shadow-2xl">
+      <div className="w-[calc(100vw-2rem)] max-w-[440px] p-8 bg-neutral-900 border border-neutral-800 rounded-3xl shadow-2xl">
         <Story />
       </div>
     ),
