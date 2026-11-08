@@ -45,6 +45,7 @@ import { RedisService } from '../redis/redis.service';
 import { VisibilityResolver } from './privacy/visibility.resolver';
 import type { VisibilityContext } from './privacy/visibility.resolver';
 import { toLastSeenGranularity } from './privacy/last-seen.util';
+import { completedYears } from '../common/utils/age.util';
 import { extractHashtags } from '../common/utils/safe-regex.util';
 import {
   buildInterestVector,
@@ -1010,7 +1011,11 @@ export class UsersService {
       base.bio = raw.bio;
     }
 
-    if (isOwner || this.visibility.resolve(PrivacyDimension.BIRTHDAY, raw.id, ctx)) {
+    const age = raw.birthDate ? completedYears(new Date(raw.birthDate), new Date(now)) : null;
+    if (
+      isOwner ||
+      (age !== null && age >= 18 && this.visibility.resolve(PrivacyDimension.BIRTHDAY, raw.id, ctx))
+    ) {
       base.birthDate = raw.birthDate;
     }
 

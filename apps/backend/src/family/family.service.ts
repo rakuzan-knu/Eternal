@@ -13,19 +13,20 @@ import {
 import { RedisService } from '../redis/redis.service';
 import { MessengerGateway } from '../messenger/gateway/messenger.gateway';
 import { PrismaService } from '@common/prisma';
+import { completedYears } from '../common/utils/age.util';
 import {
   FamilyLinkRecord,
   FamilyLinkStatus,
   FamilyActivitySummaryDto,
   FamilySettingsDto,
   PendingPairRequestDto,
-  ChildSafeguards,
 } from './family.types';
 import { FamilySafeguardService } from './family-safeguard.service';
 
 const MAX_CHILDREN_PER_PARENT = 8;
 const MAX_PARENTS_PER_CHILD = 2;
 const PAIR_CODE_TTL_SECONDS = 600; // 10 minutes
+const PAIR_REQUEST_TTL_MS = 600_000;
 const PAIR_RATE_LIMIT_MAX = 5;
 const PAIR_RATE_LIMIT_TTL = 600;
 
@@ -68,7 +69,7 @@ export class FamilyService {
     private readonly safeguardService?: FamilySafeguardService,
     @Optional() private readonly prisma?: PrismaService,
   ) {
-    this.seedDemoData();
+    if (!this.prisma) this.seedDemoData();
   }
 
   private seedDemoData(): void {
@@ -121,13 +122,22 @@ export class FamilyService {
     this.mockUsers.set(user.id, user);
   }
 
+  private async findPairingUser(id: string) {
+    if (!this.prisma) return this.mockUsers.get(id) ?? null;
+    return this.prisma.user.findUnique({
+      where: { id },
+      select: { id: true, username: true, displayName: true, avatar: true, birthDate: true },
+    });
+  }
+
   async generatePairQr(childId: string): Promise<{
     token: string;
     code: string;
     expiresAt: string;
   }> {
-    const child = this.mockUsers.get(childId);
-    if (child && calculateAgeFromBirthDate(child.birthDate) >= 18) {
+    const child = await this.findPairingUser(childId);
+    const age = child?.birthDate ? completedYears(child.birthDate) : null;
+    if (age === null || age >= 18) {
       throw new BadRequestException(
         'Generating a teen code is only available for accounts under 18 years old.',
       );
@@ -181,7 +191,7 @@ export class FamilyService {
     parentId: string,
     rawCodeOrToken: string,
     clientIp: string = '127.0.0.1',
-  ): Promise<{ linkId: string; status: FamilyLinkStatus; child: any }> {
+  ): Promise<{ linkId: string; status: FamilyLinkStatus }> {
     // 1. Anti-brute-force rate limiting: check attempt threshold
     const rateLimitKey = `rate:family:pair:${parentId || clientIp}`;
     if (this.redis) {
@@ -202,8 +212,9 @@ export class FamilyService {
     }
 
     // 2. Age check for parent
-    const parent = this.mockUsers.get(parentId);
-    if (parent && calculateAgeFromBirthDate(parent.birthDate) < 18) {
+    const parent = await this.findPairingUser(parentId);
+    const parentAge = parent?.birthDate ? completedYears(parent.birthDate) : null;
+    if (!parent || parentAge === null || parentAge < 18) {
       throw new ForbiddenException(
         'Parent/guardian setup is only available for accounts 18 and older.',
       );
@@ -264,7 +275,6 @@ export class FamilyService {
     if (childId === parentId) {
       throw new BadRequestException('You cannot link your own account as a teen.');
     }
-
     // 5. Check child's parent limit (max 2)
     const existingChildParents = Array.from(this.links.values()).filter(
       (l) => l.childId === childId && l.status === 'ACTIVE',
@@ -292,15 +302,12 @@ export class FamilyService {
       }
     }
 
-    const linkId = `link_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    const childUser = this.mockUsers.get(childId) || {
-      id: childId,
-      username: 'teen_user',
-      displayName: 'Young Member',
-      avatar: null,
-      birthDate: new Date(new Date().getFullYear() - 15, 0, 1),
-    };
+    const child = await this.findPairingUser(childId);
+    if (!child || !this.isTeenBirthDate(child.birthDate) || Date.now() > +inviteData.expiresAt) {
+      throw new BadRequestException('This account is not eligible for teen pairing.');
+    }
 
+    const linkId = `link_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const newLink: FamilyLinkRecord = {
       id: linkId,
       parentId,
@@ -308,14 +315,8 @@ export class FamilyService {
       status: 'PENDING_CONFIRMATION',
       createdAt: new Date(),
       updatedAt: new Date(),
-      parent: parent || {
-        id: parentId,
-        username: 'parent_user',
-        displayName: 'Guardian',
-        avatar: null,
-        birthDate: new Date(new Date().getFullYear() - 40, 0, 1),
-      },
-      child: childUser,
+      parent,
+      child,
     };
     this.links.set(linkId, newLink);
 
@@ -327,7 +328,7 @@ export class FamilyService {
       parentDisplayName: newLink.parent?.displayName || 'Guardian',
       parentAvatar: newLink.parent?.avatar || null,
       createdAt: newLink.createdAt.toISOString(),
-      expiresAt: new Date(Date.now() + 600000).toISOString(),
+      expiresAt: new Date(newLink.createdAt.getTime() + PAIR_REQUEST_TTL_MS).toISOString(),
     };
     this.pendingRequests.set(childId, pendingPayload);
 
@@ -342,7 +343,6 @@ export class FamilyService {
     return {
       linkId,
       status: 'PENDING_CONFIRMATION',
-      child: childUser,
     };
   }
 
@@ -358,8 +358,17 @@ export class FamilyService {
     if (link.childId !== childId) {
       throw new ForbiddenException('You cannot confirm a link request for another account.');
     }
+    if (link.status !== 'PENDING_CONFIRMATION') {
+      throw new BadRequestException('This link request is no longer pending.');
+    }
+    if (
+      Date.now() >= link.createdAt.getTime() + PAIR_REQUEST_TTL_MS ||
+      !this.isTeenBirthDate(link.child?.birthDate)
+    ) {
+      throw new BadRequestException('This link request has expired or is no longer eligible.');
+    }
 
-    this.pendingRequests.delete(childId);
+    if (this.pendingRequests.get(childId)?.linkId === linkId) this.pendingRequests.delete(childId);
 
     if (approved) {
       link.status = 'ACTIVE';
@@ -401,30 +410,36 @@ export class FamilyService {
   }
 
   getPendingInvite(childId: string): PendingPairRequestDto | null {
-    return this.pendingRequests.get(childId) || null;
+    const request = this.pendingRequests.get(childId);
+    return request &&
+      this.links.get(request.linkId)?.status === 'PENDING_CONFIRMATION' &&
+      Date.parse(request.expiresAt) > Date.now()
+      ? request
+      : null;
   }
 
-  getMembers(userId: string): {
+  async getMembers(userId: string): Promise<{
     role: 'parent' | 'child';
     connectedChildren: any[];
     connectedParents: any[];
     maxChildren: number;
     maxParents: number;
-  } {
-    const user = this.mockUsers.get(userId);
-    const age = user ? calculateAgeFromBirthDate(user.birthDate) : 25;
-    const isAdult = age >= 18;
+  }> {
+    const user = await this.findPairingUser(userId);
+    const isAdult = !this.isTeenBirthDate(user?.birthDate);
 
     const childrenLinks = Array.from(this.links.values()).filter(
-      (l) => l.parentId === userId && l.status === 'ACTIVE',
+      (l) =>
+        l.parentId === userId && l.status === 'ACTIVE' && this.isTeenBirthDate(l.child?.birthDate),
     );
     const parentLinks = Array.from(this.links.values()).filter(
-      (l) => l.childId === userId && l.status === 'ACTIVE',
+      (l) =>
+        l.childId === userId && l.status === 'ACTIVE' && this.isTeenBirthDate(l.child?.birthDate),
     );
 
     const connectedChildren = childrenLinks.map((l) => {
       const child = l.child || this.mockUsers.get(l.childId);
-      const childAge = calculateAgeFromBirthDate(child?.birthDate);
+      const childAge = child?.birthDate ? completedYears(child.birthDate) : null;
       const safeguards = this.safeguardService?.getSafeguards(l.childId);
       return {
         linkId: l.id,
@@ -432,7 +447,7 @@ export class FamilyService {
         username: child?.username || 'teen_user',
         displayName: child?.displayName || 'Child',
         avatar: child?.avatar || null,
-        birthDate: child?.birthDate ? child.birthDate.toISOString() : null,
+        birthDate: null,
         age: childAge,
         status: 'online',
         connectedAt: l.createdAt.toISOString(),
@@ -530,16 +545,26 @@ export class FamilyService {
     return updated;
   }
 
+  private isTeenBirthDate(birthDate?: Date | null): boolean {
+    const age = birthDate ? completedYears(birthDate) : null;
+    return age !== null && age < 18;
+  }
+
+  isActiveParentOf(parentId: string, childId: string): boolean {
+    return Array.from(this.links.values()).some(
+      (link) =>
+        link.parentId === parentId &&
+        link.childId === childId &&
+        link.status === 'ACTIVE' &&
+        this.isTeenBirthDate(link.child?.birthDate),
+    );
+  }
+
   async getActivitySummary(
     childId: string,
     requesterId: string,
   ): Promise<FamilyActivitySummaryDto> {
-    const isChildThemself = childId === requesterId;
-    const isConnectedParent = Array.from(this.links.values()).some(
-      (l) => l.parentId === requesterId && l.childId === childId && l.status === 'ACTIVE',
-    );
-
-    if (!isChildThemself && !isConnectedParent) {
+    if (childId !== requesterId && !this.isActiveParentOf(requesterId, childId)) {
       throw new ForbiddenException('You do not have permission to view activity for this account.');
     }
 

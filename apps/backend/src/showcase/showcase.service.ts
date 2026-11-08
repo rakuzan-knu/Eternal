@@ -1,4 +1,5 @@
 import { publicIntegrationData } from '../common/security/public-integration-data';
+import { completedYears } from '../common/utils/age.util';
 import {
   Inject,
   Injectable,
@@ -44,16 +45,6 @@ function getZodiacSign(date: Date): string {
   if ((month === 12 && day >= 22) || (month === 1 && day <= 19)) return '♑ Capricorn';
   if ((month === 1 && day >= 20) || (month === 2 && day <= 18)) return '♒ Aquarius';
   return '♓ Pisces';
-}
-
-function calculateAge(birthDate: Date): number {
-  const today = new Date();
-  let age = today.getUTCFullYear() - birthDate.getUTCFullYear();
-  const m = today.getUTCMonth() - birthDate.getUTCMonth();
-  if (m < 0 || (m === 0 && today.getUTCDate() < birthDate.getUTCDate())) {
-    age--;
-  }
-  return Math.max(0, age);
 }
 
 function formatLocalTime(timezoneStr: string): string {
@@ -152,14 +143,17 @@ export class ShowcaseService {
     let localTimeVal: string | null = null;
 
     if (metaAllowed) {
-      if (user.birthDate && rawShowcase.showBirthdate === true) {
-        birthDateStr = user.birthDate.toISOString().split('T')[0];
-      }
-      if (user.birthDate && isZodiacEnabled) {
-        zodiacVal = getZodiacSign(user.birthDate);
-      }
-      if (user.birthDate && rawShowcase.showAge === true) {
-        ageVal = calculateAge(user.birthDate);
+      const age = user.birthDate ? completedYears(user.birthDate) : null;
+      if (user.birthDate && age !== null && (relationship === 'SELF' || age >= 18)) {
+        if (rawShowcase.showBirthdate === true) {
+          birthDateStr = user.birthDate.toISOString().split('T')[0];
+        }
+        if (isZodiacEnabled) {
+          zodiacVal = getZodiacSign(user.birthDate);
+        }
+        if (rawShowcase.showAge === true) {
+          ageVal = age;
+        }
       }
       const effectiveGender = (personalInfo?.gender as string) || user.gender || null;
       if (rawShowcase.showGender === true && effectiveGender) {

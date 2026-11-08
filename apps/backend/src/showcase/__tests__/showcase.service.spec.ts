@@ -166,6 +166,34 @@ describe('ShowcaseService', () => {
       expect(result.activityStatus?.title).toBe('Starboy');
     });
 
+    it('hides a minor’s birthday, age and zodiac even from followers when display is enabled', async () => {
+      const birthDate = new Date();
+      birthDate.setUTCFullYear(birthDate.getUTCFullYear() - 16, 0, 1);
+      showcaseRepo.findUserWithShowcase.mockResolvedValue({ ...mockUser, birthDate });
+      showcaseRepo.getFollowStatus.mockResolvedValue(FollowStatus.ACCEPTED);
+
+      for (const viewer of [null, 'follower-user-2']) {
+        await expect(service.getShowcase('ayate', viewer)).resolves.toMatchObject({
+          birthDate: null,
+          age: null,
+          zodiacSign: null,
+        });
+      }
+      await expect(service.getShowcase('ayate', mockUser.id)).resolves.toMatchObject({
+        birthDate: birthDate.toISOString().slice(0, 10),
+        age: 16,
+        zodiacSign: expect.any(String),
+      });
+    });
+
+    it('preserves an adult’s existing showcase visibility choices', async () => {
+      await expect(service.getShowcase('ayate', null)).resolves.toMatchObject({
+        birthDate: '2000-08-15',
+        age: expect.any(Number),
+        zodiacSign: expect.stringContaining('Leo'),
+      });
+    });
+
     it('should throw NotFoundException if user does not exist', async () => {
       showcaseRepo.findUserWithShowcase.mockResolvedValueOnce(null);
 

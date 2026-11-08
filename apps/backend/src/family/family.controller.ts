@@ -10,15 +10,68 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { z } from 'zod';
 import { AuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/interfaces/jwt-payload.interface';
 import { FamilyService } from './family.service';
 import { FamilySafeguardService } from './family-safeguard.service';
 import { BypassCurfew } from './decorators/bypass-curfew.decorator';
-import { ChildSafeguards, FamilySettingsDto } from './family.types';
+import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
+import type { ChildSafeguards, FamilySettingsDto } from './family.types';
+
+const curfewTime = z.union([
+  z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/),
+  z.literal(''),
+  z.null(),
+]);
+const timeZone = z
+  .string()
+  .min(1)
+  .max(100)
+  .refine((value) => {
+    try {
+      new Intl.DateTimeFormat('en', { timeZone: value });
+      return true;
+    } catch {
+      return false;
+    }
+  });
+const safeguardPatch = z
+  .object({
+    dailyLimitMinutes: z.number().int().min(0).max(1440),
+    curfewStart: curfewTime,
+    curfewEnd: curfewTime,
+    timezone: timeZone,
+    curfewTimezone: timeZone,
+    restrictedDirectMessages: z.boolean(),
+    monthlyBudget: z.number().nonnegative(),
+    requirePurchaseApproval: z.boolean(),
+    profileSettingsLocked: z.boolean(),
+    profileLockedByParent: z.boolean(),
+  })
+  .partial()
+  .transform((input) => {
+    const patch: Partial<
+      Omit<ChildSafeguards, 'childId' | 'updatedByParentId' | 'updatedAt' | 'spentThisMonth'>
+    > = {};
+    const timezone = input.timezone ?? input.curfewTimezone;
+    const profileLock = input.profileSettingsLocked ?? input.profileLockedByParent;
+    if (timezone !== undefined) patch.timezone = timezone;
+    if (profileLock !== undefined) patch.profileSettingsLocked = profileLock;
+    if (input.dailyLimitMinutes !== undefined) patch.dailyLimitMinutes = input.dailyLimitMinutes;
+    if (input.curfewStart !== undefined) patch.curfewStart = input.curfewStart;
+    if (input.curfewEnd !== undefined) patch.curfewEnd = input.curfewEnd;
+    if (input.restrictedDirectMessages !== undefined)
+      patch.restrictedDirectMessages = input.restrictedDirectMessages;
+    if (input.monthlyBudget !== undefined) patch.monthlyBudget = input.monthlyBudget;
+    if (input.requirePurchaseApproval !== undefined)
+      patch.requirePurchaseApproval = input.requirePurchaseApproval;
+    return patch;
+  });
 
 @ApiTags('Family Center')
 @Controller('family')
@@ -102,17 +155,23 @@ export class FamilyController {
 
   @Get('children/:id/safeguards')
   @ApiOperation({ summary: 'Get single source of truth safeguards for child' })
-  async getSafeguards(@Param('id') childId: string) {
+  getSafeguards(@CurrentUser() user: RequestUser, @Param('id') childId: string) {
+    if (user.id !== childId && !this.familyService.isActiveParentOf(user.id, childId)) {
+      throw new ForbiddenException('You do not have permission to view these safeguards.');
+    }
     return this.safeguardService.getSafeguards(childId);
   }
 
   @Put('children/:id/safeguards')
   @ApiOperation({ summary: 'Update parental safeguards (screen time, spending, DMs)' })
-  async updateSafeguards(
+  updateSafeguards(
     @CurrentUser() user: RequestUser,
     @Param('id') childId: string,
-    @Body() body: Partial<ChildSafeguards>,
+    @Body(new ZodValidationPipe(safeguardPatch)) body: z.output<typeof safeguardPatch>,
   ) {
+    if (!this.familyService.isActiveParentOf(user.id, childId)) {
+      throw new ForbiddenException('You do not have permission to change these safeguards.');
+    }
     return this.safeguardService.updateSafeguards(childId, user.id, body);
   }
 }

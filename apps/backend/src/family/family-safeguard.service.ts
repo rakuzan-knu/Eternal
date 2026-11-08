@@ -45,7 +45,15 @@ export class FamilySafeguardService {
 
   constructor(@Optional() private readonly redis?: RedisService) {}
 
-  getSafeguards(childId: string): ChildSafeguards {
+  getSafeguards(childId: string) {
+    return this.toResponse(this.getOrCreateSafeguards(childId));
+  }
+
+  private toResponse(safeguards: ChildSafeguards) {
+    return { ...safeguards, profileLockedByParent: safeguards.profileSettingsLocked };
+  }
+
+  private getOrCreateSafeguards(childId: string): ChildSafeguards {
     const existing = this.safeguardsMap.get(childId);
     if (existing) return existing;
 
@@ -71,8 +79,8 @@ export class FamilySafeguardService {
     childId: string,
     parentId: string,
     partial: Partial<Omit<ChildSafeguards, 'childId' | 'updatedByParentId' | 'updatedAt'>>,
-  ): ChildSafeguards {
-    const current = this.getSafeguards(childId);
+  ) {
+    const current = this.getOrCreateSafeguards(childId);
     const updated: ChildSafeguards = {
       ...current,
       ...partial,
@@ -82,7 +90,7 @@ export class FamilySafeguardService {
     };
     this.safeguardsMap.set(childId, updated);
     this.logger.log(`Child safeguards updated for ${childId} by parent ${parentId}`);
-    return updated;
+    return this.toResponse(updated);
   }
 
   async trackScreenTimeTick(childId: string): Promise<number> {
