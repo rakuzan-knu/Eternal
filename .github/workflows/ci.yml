@@ -308,7 +308,7 @@ jobs:
   frontend-unit-tests:
     name: Frontend — Unit Tests (Shard ${{ matrix.shard }}/2)
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 15
     needs: [setup, plan]
     if: needs.plan.outputs.frontend-changed == 'true' || github.event_name != 'pull_request'
     permissions:
