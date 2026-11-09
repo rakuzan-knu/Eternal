@@ -1,4 +1,5 @@
 import { Test } from '@nestjs/testing';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PendingMediaRepository } from './pending-media.repository';
 
@@ -10,13 +11,19 @@ describe('durable pending media state transitions', () => {
     findMany: vi.fn(),
     deleteMany: vi.fn(),
   };
+  const queryRaw = vi.fn<(sql: Prisma.Sql) => Promise<unknown[]>>();
+  const privateObjects = { deleteMany: vi.fn() };
+  const tx = { pendingMediaObject: rows, privateMediaObject: privateObjects, $queryRaw: queryRaw };
   let pending: PendingMediaRepository;
   beforeEach(async () => {
     vi.resetAllMocks();
     const module = await Test.createTestingModule({
       providers: [
         PendingMediaRepository,
-        { provide: PrismaService, useValue: { pendingMediaObject: rows } },
+        {
+          provide: PrismaService,
+          useValue: { ...tx, $transaction: (run: (db: typeof tx) => Promise<unknown>) => run(tx) },
+        },
       ],
     }).compile();
     pending = module.get(PendingMediaRepository);
@@ -96,5 +103,28 @@ describe('durable pending media state transitions', () => {
     rows.findMany.mockResolvedValue([]);
     await pending.pruneDeleted(before);
     expect(rows.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it('requires the private rollout flag before considering retained orphans', async () => {
+    rows.updateMany.mockResolvedValue({ count: 0 });
+    expect(await pending.claimDeletion('private-key', new Date(0))).toBe(false);
+    expect(queryRaw).not.toHaveBeenCalled();
+    queryRaw
+      .mockResolvedValueOnce([{ key: 'private-key' }])
+      .mockResolvedValueOnce([{ key: 'private-key' }]);
+    expect(await pending.claimDeletion('private-key', new Date(0), true)).toBe(true);
+    expect(queryRaw).toHaveBeenCalledTimes(2);
+    expect(queryRaw.mock.calls[0]?.[0].text).toContain('FOR UPDATE');
+    expect(queryRaw.mock.calls[1]?.[0].text).toContain('"thumbnailUrl"');
+    expect(queryRaw.mock.calls[1]?.[0].text).toContain('"readyAt" IS NOT NULL');
+  });
+
+  it('keeps the locator until successful storage deletion and an atomic tombstone transition', async () => {
+    rows.updateMany.mockResolvedValueOnce({ count: 0 });
+    await pending.deleted('private-key');
+    expect(privateObjects.deleteMany).not.toHaveBeenCalled();
+    rows.updateMany.mockResolvedValueOnce({ count: 1 });
+    await pending.deleted('private-key');
+    expect(privateObjects.deleteMany).toHaveBeenCalledWith({ where: { key: 'private-key' } });
   });
 });

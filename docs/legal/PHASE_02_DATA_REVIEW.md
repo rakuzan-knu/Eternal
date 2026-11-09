@@ -134,3 +134,14 @@ secondary uses, правова кваліфікація діяльності, г
 Docker Desktop тепер запущений, engine29.7.2 відповідає. Тимчасові ресурси drill видалені. Фактичний production backup, міжсховищне відновлення і розгортання змін лишаються неперевіреними. Локальна синтетична перевірка підтверджує роботу інструмента restore, а не відновлюваність чинного production.
 
 Уточнення Aiven110203 запрошено як зовнішній доказ для реєстру. Дані до Aiven не переносили. Фази03–12 залишаються поза поточним виконанням.
+
+
+## Підготовлене узгодження Terms і приватне очищення
+
+Секція5.1 EN/UK тепер має однакові операції та лише необхідні цілі сервісу. Старий нормалізований source з SHA09d21afee6ac18a2c94eb44d7eaf81e75d7d73d4bd04abf9df7980e79f2f41ca збережений у docs/legal/terms-history. Новий digest586655bd8a8d57b846a7ab78ed2c07e3f537d413ca9b7b6e742b49fac0d6a222 внесено до обох contract mirrors. Для застарілого signup сервер повертає400 з інструкцією reload/update до побічних ефектів. Користувач підтвердив відсутність сторонніх установлених native/desktop збірок. Registration policy response не змінений. Новий frontend потрібно розгорнути узгоджено з backend. Existing admissions залишаються історичними.
+
+Додано guarded cleanup для завершених registered private media видалених owners без жодного URL/thumbnail attachment reference. Publication та cleanup ділять блокування registry. Claim повторно перевіряє посилання після очікування в ReadCommitted. Storage failure залишає locator і durable DELETING, успіх атомарно прибирає locator й фіксує tombstone. Новий MEDIA_PRIVATE_ORPHAN_CLEANUP_ENABLED типовоfalse. Спочатку розгорнути fence на всіх Messenger/all writers, потім увімкнути guarded cleanup на Core. Міграцій немає. Public/legacy media потребують окремого покриття й не включені до цього private predicate.
+
+Поточний production public-schema snapshot створено зашифрованим AES256GCM у приватному сховищі. Його authenticated stream відновлено в PostgreSQL17 без мережі, отримано74 базові таблиці й0 unvalidated constraints. Контейнер видалено. Ключі й вміст у repo/context не копіювали. Це підтвердження public-schema recovery, а не backup усіх сховищ.
+
+Додаткові перевірки пройшли9 реальних signup E2E на ізольованих PostgreSQL/Redis,12 frontend тестів Terms/policy,40 комбінованих backend тестів. В окремому worktree private feature пройшла92 unit/message тести й4 PostgreSQL race/reference регресії. Обидві частини переглянув той самий незалежний reviewer.

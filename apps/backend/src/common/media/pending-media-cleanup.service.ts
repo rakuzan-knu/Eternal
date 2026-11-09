@@ -32,12 +32,14 @@ export class PendingMediaCleanupService {
     this.running = true;
     const before = new Date(Date.now() - 2 * 86400_000);
     const deadline = Date.now() + 45_000;
+    const includePrivateOrphans =
+      this.config.get<string>('MEDIA_PRIVATE_ORPHAN_CLEANUP_ENABLED') === 'true';
     try {
       await this.pending.pruneDeleted(new Date(Date.now() - 30 * 86400_000));
-      for (const { key, bucket } of await this.pending.candidates(before)) {
+      for (const { key, bucket } of await this.pending.candidates(before, includePrivateOrphans)) {
         if (Date.now() >= deadline) break;
         try {
-          if (!(await this.pending.claimDeletion(key, before))) continue;
+          if (!(await this.pending.claimDeletion(key, before, includePrivateOrphans))) continue;
           await this.storage
             .getS3Client()
             .send(

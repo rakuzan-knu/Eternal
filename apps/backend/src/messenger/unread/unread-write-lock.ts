@@ -79,15 +79,27 @@ export async function withUnreadWriteLock<T>(
               throw new ForbiddenException(
                 'Upload attachments to private storage before sending to this channel.',
               );
-            if (privateIds.length) {
-              const ids = [...new Set(privateIds)];
-              const ready = await tx.$queryRaw<{ id: string }[]>(Prisma.sql`
-                SELECT m.id FROM private_media_objects m JOIN "PendingMediaObject" p ON p.key = m.key
-                WHERE m.id IN (${Prisma.join(ids)}) AND m."readyAt" IS NOT NULL AND p.state = 'RETAINED'
-              `);
-              if (ready.length !== ids.length)
-                throw new ForbiddenException('Private attachment is not ready for publication');
-            }
+          }
+          const privateIds = [
+            ...new Set(
+              (scope.attachmentUrls ?? [])
+                .map(privateMediaId)
+                .filter((id): id is string => id !== null),
+            ),
+          ];
+          if (privateIds.length) {
+            // Serialize every private attachment insertion (also forwards and
+            // thumbnails) against cleanup, even outside a private channel.
+            await tx.$queryRaw(Prisma.sql`
+              SELECT p.key FROM "PendingMediaObject" p JOIN private_media_objects m ON m.key = p.key
+              WHERE m.id IN (${Prisma.join(privateIds)}) ORDER BY p.key FOR UPDATE OF p
+            `);
+            const ready = await tx.$queryRaw<{ id: string }[]>(Prisma.sql`
+              SELECT m.id FROM private_media_objects m JOIN "PendingMediaObject" p ON p.key = m.key
+              WHERE m.id IN (${Prisma.join(privateIds)}) AND m."readyAt" IS NOT NULL AND p.state = 'RETAINED'
+            `);
+            if (ready.length !== privateIds.length)
+              throw new ForbiddenException('Private attachment is not ready for publication');
           }
           return write(tx);
         },

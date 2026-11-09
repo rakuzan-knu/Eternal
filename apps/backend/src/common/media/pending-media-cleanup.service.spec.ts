@@ -90,4 +90,21 @@ describe('pending media cleanup', () => {
     if (!(command instanceof DeleteObjectCommand)) throw new Error('Expected storage deletion');
     expect(command.input).toEqual({ Bucket: 'closed-media', Key: 'private-chat/orphan.bin' });
   });
+  it('keeps retained-private reclamation disabled until its separate coordinated rollout', async () => {
+    await cleanup.cleanup();
+    expect(pending.candidates).toHaveBeenLastCalledWith(expect.any(Date), false);
+    expect(pending.claimDeletion).toHaveBeenLastCalledWith(
+      'media/post/abandoned.webp',
+      expect.any(Date),
+      false,
+    );
+    config.set('MEDIA_PRIVATE_ORPHAN_CLEANUP_ENABLED', 'true');
+    await cleanup.cleanup();
+    expect(pending.candidates).toHaveBeenLastCalledWith(expect.any(Date), true);
+    expect(pending.claimDeletion).toHaveBeenLastCalledWith(
+      'media/post/abandoned.webp',
+      expect.any(Date),
+      true,
+    );
+  });
 });

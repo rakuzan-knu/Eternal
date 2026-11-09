@@ -5,6 +5,7 @@ export const envSchema = z
     SERVICE_ROLE: z.enum(['all', 'core', 'messenger', 'reels', 'music']).default('all'),
     BACKGROUND_ENABLED: z.enum(['true', 'false']).default('true'),
     MEDIA_ORPHAN_CLEANUP_ENABLED: z.enum(['true', 'false']).default('false'),
+    MEDIA_PRIVATE_ORPHAN_CLEANUP_ENABLED: z.enum(['true', 'false']).default('false'),
     MEDIA_PENDING_TRACKING_ENABLED: z.enum(['true', 'false']).default('false'),
     COMPUTE_WORKER_POOL_SIZE: z.coerce.number().int().min(1).max(4).optional(),
     SHARP_CONCURRENCY: z.coerce.number().int().min(1).max(8).optional(),

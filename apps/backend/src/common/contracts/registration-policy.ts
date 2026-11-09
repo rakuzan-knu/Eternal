@@ -1,11 +1,14 @@
 import { z } from 'zod';
 
 export const REGISTRATION_TERMS_VERSION =
-  '09d21afee6ac18a2c94eb44d7eaf81e75d7d73d4bd04abf9df7980e79f2f41ca';
+  '586655bd8a8d57b846a7ab78ed2c07e3f537d413ca9b7b6e742b49fac0d6a222';
 
 export const registrationAdmissionSchema = z.strictObject({
   countryOfResidence: z.literal('UA'),
-  termsVersion: z.literal(REGISTRATION_TERMS_VERSION),
+  termsVersion: z.literal(REGISTRATION_TERMS_VERSION, {
+    error:
+      'Terms updated. Reload this webpage or install the latest app version, then review the Terms before signing up. Умови оновлено. Перезавантажте вебсторінку або встановіть останню версію застосунку та перегляньте Умови перед реєстрацією.',
+  }),
   acceptedTerms: z.literal(true),
   privacyNoticeAcknowledged: z.literal(true),
   contractingRole: z.enum(['SELF', 'PARENT_FOR_CHILD']),

@@ -1,5 +1,17 @@
 import { ConflictException, ForbiddenException, Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+
+// Only completed, registered private uploads are eligible. Every surviving
+// attachment counts, including forwards and thumbnail-only references.
+const privateOrphan = Prisma.sql`EXISTS (
+  SELECT 1 FROM private_media_objects m
+  WHERE m.key = p.key AND m."ownerId" = p."ownerId" AND m.bucket = p.bucket
+    AND m."readyAt" IS NOT NULL
+    AND NOT EXISTS (SELECT 1 FROM "User" u WHERE u.id = m."ownerId")
+    AND NOT EXISTS (SELECT 1 FROM "MessageAttachment" a
+      WHERE a.url = 'private-media://' || m.id OR a."thumbnailUrl" = 'private-media://' || m.id)
+)`;
 
 @Injectable()
 export class PendingMediaRepository {
@@ -33,7 +45,14 @@ export class PendingMediaRepository {
     // Objects completed before this rollout have no registry entry and cannot be reclaimed.
   }
 
-  candidates(before: Date) {
+  candidates(before: Date, includePrivateOrphans = false) {
+    if (includePrivateOrphans)
+      return this.prisma.$queryRaw<{ key: string; bucket: string | null }[]>(Prisma.sql`
+        SELECT p.key, p.bucket FROM "PendingMediaObject" p
+        WHERE p.state = 'DELETING' OR (p.state = 'PENDING' AND p."createdAt" < ${before})
+          OR (p.state = 'RETAINED' AND ${privateOrphan})
+        ORDER BY p."createdAt" ASC LIMIT 100
+      `);
     return this.prisma.pendingMediaObject.findMany({
       where: { OR: [{ state: 'PENDING', createdAt: { lt: before } }, { state: 'DELETING' }] },
       orderBy: { createdAt: 'asc' },
@@ -42,7 +61,7 @@ export class PendingMediaRepository {
     });
   }
 
-  async claimDeletion(key: string, before: Date): Promise<boolean> {
+  async claimDeletion(key: string, before: Date, includePrivateOrphans = false): Promise<boolean> {
     const result = await this.prisma.pendingMediaObject.updateMany({
       where: {
         key,
@@ -50,14 +69,34 @@ export class PendingMediaRepository {
       },
       data: { state: 'DELETING' },
     });
-    return result.count === 1;
+    if (result.count === 1) return true;
+    if (!includePrivateOrphans) return false;
+    return this.prisma.$transaction(
+      async (tx) => {
+        // Publication takes the same row locks. Recheck references in a NEW
+        // statement after waiting, so a committed forward cannot be missed.
+        await tx.$queryRaw(Prisma.sql`
+        SELECT key FROM "PendingMediaObject" WHERE key = ${key} FOR UPDATE
+      `);
+        const claimed = await tx.$queryRaw<{ key: string }[]>(Prisma.sql`
+        UPDATE "PendingMediaObject" p SET state = 'DELETING'
+        WHERE p.key = ${key} AND p.state = 'RETAINED' AND ${privateOrphan}
+        RETURNING p.key
+      `);
+        return claimed.length === 1;
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
+    );
   }
 
   async deleted(key: string): Promise<void> {
     // Keep a tombstone: a consumer may have read object HEAD just before deletion.
-    await this.prisma.pendingMediaObject.updateMany({
-      where: { key, state: 'DELETING' },
-      data: { state: 'DELETED', deletedAt: new Date() },
+    await this.prisma.$transaction(async (tx) => {
+      const result = await tx.pendingMediaObject.updateMany({
+        where: { key, state: 'DELETING' },
+        data: { state: 'DELETED', deletedAt: new Date() },
+      });
+      if (result.count === 1) await tx.privateMediaObject.deleteMany({ where: { key } });
     });
   }
 
