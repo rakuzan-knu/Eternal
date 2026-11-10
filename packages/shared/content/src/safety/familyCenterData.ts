@@ -65,7 +65,7 @@ export const FAMILY_CENTER_EN: FamilyCenterTranslation = {
     heading: 'FOR PARENTS AND GUARDIANS',
     p1: 'Eternal is the communications platform that enables you to build meaningful connections around the joy of playing games through voice, video and text features.',
     p2: 'Family Center is designed to help you learn more about how your teen spends their time on Eternal and allows you to play an active role in their experience on Eternal.',
-    p3: 'Through an Activity Feed, weekly email summaries and tools to manage certain safety and privacy settings of your teen’s account, our goal is to empower families to start collaborative conversations around building positive online behaviors together.',
+    p3: 'Family Center shares limited activity totals and selected privacy controls after the teen confirms a connection. Weekly email summaries are not available. Pairing does not independently verify a legal guardian.',
     ctaButton: 'Open Family Center',
   },
   quoteCard: {
@@ -103,13 +103,13 @@ export const FAMILY_CENTER_EN: FamilyCenterTranslation = {
         id: 'faq-parents-1',
         question: 'How do I set up Family Center with my teen?',
         answer:
-          'Setting up Family Center is simple. Open your Eternal app, navigate to User Settings → Family Center, and generate a secure QR connection code. Have your teen scan the code using the Eternal camera in their mobile app to link accounts.',
+          'The teen generates a connection code in User Settings → Family Center. An adult enters that code in their account. The teen must then approve the request; a code alone does not activate a connection.',
       },
       {
         id: 'faq-parents-2',
         question: 'What information will I be able to see as a parent?',
         answer:
-          'Parents can see high-level activity insights: newly added friends, servers your teen has joined or participated in, direct message recipients, and a summary of weekly activity. You cannot see the contents of private messages or listen to voice calls.',
+          'A connected adult can see seven-day totals for new mutual friends, messaging contacts, call minutes and submitted reports. Family Center does not show contact lists, message contents, private photos or call audio.',
       },
       {
         id: 'faq-parents-3',
@@ -121,7 +121,7 @@ export const FAMILY_CENTER_EN: FamilyCenterTranslation = {
         id: 'faq-parents-4',
         question: 'How often are weekly email summaries sent?',
         answer:
-          'Weekly email summaries are sent every Monday morning with a snapshot of your teen’s activity, including newly joined servers, friend additions, and active voice channel stats from the previous 7 days.',
+          'Weekly email summaries are not available. View the seven-day totals inside Family Center. Email delivery and an operator response must not be assumed from a saved preference.',
       },
     ],
     teensFaqs: [
@@ -135,7 +135,7 @@ export const FAMILY_CENTER_EN: FamilyCenterTranslation = {
         id: 'faq-teens-2',
         question: 'Can I disconnect Family Center at any time?',
         answer:
-          'Yes. Both teens and parents can disconnect Family Center anytime in User Settings → Family Center. If you disconnect, your parent will receive a notification email.',
+          'Yes. Either member can disconnect in User Settings → Family Center, including during downtime. A connected session may receive an in-app update; no notification email is sent.',
       },
       {
         id: 'faq-teens-3',
@@ -164,7 +164,7 @@ export const FAMILY_CENTER_UK: FamilyCenterTranslation = {
     heading: 'ДЛЯ БАТЬКІВ ТА ОПІКУНІВ',
     p1: 'Eternal — це комунікаційна платформа, яка допомагає будувати щире спілкування навколо спільних інтересів та ігор за допомогою голосу, відео та тексту.',
     p2: 'Сімейний центр створений, щоб допомогти вам краще розуміти, як підліток проводить час в Eternal, та брати активну участь у формуванні безпечного середовища.',
-    p3: 'Завдяки стрічці активності, щотижневим дайджестам на email та інструментам налаштування приватності, наша мета — підтримувати довірливий діалог у родині щодо цифрової культури.',
+    p3: 'Після підтвердження зв’язку підлітком Сімейний центр показує обмежені підсумки активності та окремі налаштування приватності. Щотижневі email-звіти недоступні. Зв’язок не є незалежною перевіркою повноважень законного представника.',
     ctaButton: 'Відкрити Сімейний центр',
   },
   quoteCard: {
@@ -202,13 +202,13 @@ export const FAMILY_CENTER_UK: FamilyCenterTranslation = {
         id: 'faq-parents-1',
         question: 'Як налаштувати Сімейний центр разом із підлітком?',
         answer:
-          'Налаштування дуже просте: відкрийте додаток Eternal, перейдіть у Налаштування → Сімейний центр та згенеруйте QR-код. Підліток сканує його камерою у своєму додатку для створення зв’язку.',
+          'Підліток створює код у Налаштуваннях → Сімейний центр. Дорослий вводить його у своєму акаунті, після чого підліток підтверджує запит. Самого коду недостатньо для активації зв’язку.',
       },
       {
         id: 'faq-parents-2',
         question: 'Яку інформацію бачать батьки?',
         answer:
-          'Батьки бачать статистику високого рівня: нових доданих друзів, приєднані сервери та канали, список контактів і щотижневий звіт про активність. Текст повідомлень та дзвінки залишаються недоступними.',
+          'Пов’язаний дорослий бачить підсумки за сім днів: кількість нових взаємних контактів, співрозмовників, хвилин дзвінків і поданих скарг. Списки контактів, текст повідомлень, приватні фото й аудіо дзвінків Сімейний центр не показує.',
       },
       {
         id: 'faq-parents-3',
@@ -220,7 +220,7 @@ export const FAMILY_CENTER_UK: FamilyCenterTranslation = {
         id: 'faq-parents-4',
         question: 'Як часто надсилаються щотижневі звіти?',
         answer:
-          'Звіти надходять щопонеділка вранці на електронну пошту із підсумком приєднаних серверів, нових друзів та загального часу в додатку за минулі 7 днів.',
+          'Щотижневі email-звіти недоступні. Підсумки за сім днів можна переглянути в Сімейному центрі. Збережена опція не підтверджує доставку листа чи відповідь оператора.',
       },
     ],
     teensFaqs: [
@@ -234,7 +234,7 @@ export const FAMILY_CENTER_UK: FamilyCenterTranslation = {
         id: 'faq-teens-2',
         question: 'Чи можу я відключити Сімейний центр у будь-який момент?',
         answer:
-          'Так. І підліток, і батьки можуть будь-коли розірвати зв’язок у Налаштуваннях. У разі відключення батьки отримають сповіщення.',
+          'Так. Будь-який учасник може розірвати зв’язок у Налаштуваннях, зокрема під час обмеження доступу. Відкрита сесія іншого учасника може отримати оновлення в застосунку; email не надсилається.',
       },
       {
         id: 'faq-teens-3',

@@ -64,6 +64,8 @@ import { IntegrationsModule } from './integrations/integrations.module';
 import { StorageModule } from './common/storage/storage.module';
 import { ServiceRoleGuard } from './config/service-role.guard';
 import { FamilyModule } from './family/family.module';
+import { FamilySafetyModule } from './family/family-safety.module';
+import { FamilyAccessInterceptor } from './family/family-access.interceptor';
 import { DecorationsModule } from './decorations/decorations.module';
 import { ProfileFramesModule } from './profile-frames/profile-frames.module';
 import { ProfileEffectsModule } from './profile-effects/profile-effects.module';
@@ -76,6 +78,7 @@ import type { MiddlewareConsumer, NestModule } from '@nestjs/common';
 
 @Module({
   imports: [
+    FamilySafetyModule,
     DecorationsModule,
     NameplatesModule,
     ProfileEffectsModule,
@@ -285,6 +288,7 @@ import type { MiddlewareConsumer, NestModule } from '@nestjs/common';
 
   controllers: [],
   providers: [
+    { provide: APP_INTERCEPTOR, useClass: FamilyAccessInterceptor },
     { provide: APP_GUARD, useClass: ServiceRoleGuard },
     {
       provide: APP_FILTER,

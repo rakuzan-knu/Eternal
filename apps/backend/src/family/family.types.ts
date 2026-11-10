@@ -39,7 +39,7 @@ export interface ChildSafeguards {
   spentThisMonth: number;
   requirePurchaseApproval: boolean; // push prompt to parent for each purchase
   profileSettingsLocked: boolean; // prevent child from changing privacy
-  updatedByParentId: string;
+  updatedByParentId: string | null;
   updatedAt: Date;
 }
 

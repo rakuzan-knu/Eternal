@@ -1,3 +1,4 @@
+import { BypassCurfew } from '../family/decorators/bypass-curfew.decorator';
 import {
   Body,
   Controller,
@@ -190,6 +191,7 @@ export class ReelsController {
     return this.reelsService.markNotInterested(id, userId);
   }
 
+  @BypassCurfew()
   @Post(':id/report')
   @UseGuards(AuthGuard)
   @ApiBearerAuth()

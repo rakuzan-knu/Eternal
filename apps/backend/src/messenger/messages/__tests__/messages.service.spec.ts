@@ -192,6 +192,10 @@ describe('MessagesService', () => {
     assertOwnedUrl = jest.fn().mockResolvedValue(undefined);
     Object.assign(service, {
       visibility: privacy,
+      family: {
+        assertCanUse: jest.fn().mockResolvedValue(undefined),
+        assertCanDirectMessage: jest.fn().mockResolvedValue(undefined),
+      },
       directUploads: {
         assertLegacyAllowed: jest.fn(),
         assertOwnedUrl,
@@ -236,6 +240,17 @@ describe('MessagesService', () => {
   });
 
   describe('send message and validations', () => {
+    it('denies a family-restricted DM before writing a message or outbox event', async () => {
+      const deny = jest.fn().mockRejectedValue(new ForbiddenException('Family restriction'));
+      Object.assign(service, { family: { assertCanUse: jest.fn(), assertCanDirectMessage: deny } });
+      await expect(
+        service.send('conv-1', 'usr-1', { text: 'hello', messageType: MessageType.TEXT }),
+      ).rejects.toThrow(ForbiddenException);
+      expect(deny).toHaveBeenCalledWith('usr-1', 'usr-2');
+      expect(mockPrisma.message.create).not.toHaveBeenCalled();
+      expect(mockPrisma.outboxEvent?.create).not.toHaveBeenCalled();
+    });
+
     it('enforces recipient messaging privacy before storing a direct message or outbox event', async () => {
       privacy.resolve.mockReturnValue(false);
       await expect(

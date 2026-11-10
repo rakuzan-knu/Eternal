@@ -6,343 +6,285 @@ import {
   ForbiddenException,
   HttpException,
   HttpStatus,
+  ServiceUnavailableException,
   Optional,
   Inject,
   forwardRef,
 } from '@nestjs/common';
-import { RedisService } from '../redis/redis.service';
+import { createHash, randomBytes, randomInt } from 'node:crypto';
+import * as argon2 from 'argon2';
+import { Prisma } from '@prisma/client';
+import { Cron } from '@nestjs/schedule';
+import { runsBackground } from '../config/service-role';
 import { MessengerGateway } from '../messenger/gateway/messenger.gateway';
 import { PrismaService } from '@common/prisma';
 import { completedYears } from '../common/utils/age.util';
 import {
-  FamilyLinkRecord,
   FamilyLinkStatus,
   FamilyActivitySummaryDto,
   FamilySettingsDto,
   PendingPairRequestDto,
 } from './family.types';
 import { FamilySafeguardService } from './family-safeguard.service';
+import {
+  familyUserSelect,
+  familyMembersInclude,
+  hasActiveFamily,
+  isCurrentMinor,
+  lockFamilyUsers,
+} from './family.persistence';
 
-const MAX_CHILDREN_PER_PARENT = 8;
-const MAX_PARENTS_PER_CHILD = 2;
-const PAIR_CODE_TTL_SECONDS = 600; // 10 minutes
-const PAIR_REQUEST_TTL_MS = 600_000;
-const PAIR_RATE_LIMIT_MAX = 5;
-const PAIR_RATE_LIMIT_TTL = 600;
-
+const MAX_CHILDREN_PER_PARENT = 8,
+  MAX_PARENTS_PER_CHILD = 2,
+  PAIR_TTL_MS = 600_000;
+const hashInvite = (value: string) => createHash('sha256').update(value).digest('hex');
 export function calculateAgeFromBirthDate(birthDate?: Date | string | null): number {
-  if (!birthDate) return 24; // Default to adult if unspecified
-  const birth = new Date(birthDate);
-  if (isNaN(birth.getTime())) return 24;
-  const now = new Date();
-  let age = now.getFullYear() - birth.getFullYear();
-  const m = now.getMonth() - birth.getMonth();
-  if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) {
-    age--;
-  }
-  return Math.max(0, age);
+  if (!birthDate) return 24;
+  const age = completedYears(new Date(birthDate));
+  return age ?? 24;
 }
 
 @Injectable()
 export class FamilyService {
   private readonly logger = new Logger(FamilyService.name);
-
-  // In-memory persistent state (synced to Redis / DB)
-  private readonly links = new Map<string, FamilyLinkRecord>();
-  private readonly inviteTokens = new Map<
-    string,
-    { token: string; code: string; childId: string; expiresAt: Date }
-  >();
-  private readonly pendingRequests = new Map<string, PendingPairRequestDto>();
-
-  // Mock users database cache for tests & demo
-  private readonly mockUsers = new Map<
-    string,
-    { id: string; username: string; displayName: string; avatar: string | null; birthDate: Date }
-  >();
-
   constructor(
-    @Optional() private readonly redis?: RedisService,
+    private readonly prisma: PrismaService,
+    private readonly safeguardService: FamilySafeguardService,
     @Optional()
     @Inject(forwardRef(() => MessengerGateway))
     private readonly gateway?: MessengerGateway,
-    private readonly safeguardService?: FamilySafeguardService,
-    @Optional() private readonly prisma?: PrismaService,
-  ) {
-    if (!this.prisma) this.seedDemoData();
-  }
+  ) {}
 
-  private seedDemoData(): void {
-    // Seed initial demo users with realistic age calculation
-    const nowYear = new Date().getFullYear();
-    this.mockUsers.set('user-adult-1', {
-      id: 'user-adult-1',
-      username: 'ayate_parent',
-      displayName: 'Ayate (Guardian)',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-      birthDate: new Date(nowYear - 38, 4, 12), // 38 y.o.
-    });
-    this.mockUsers.set('child-1', {
-      id: 'child-1',
-      username: 'leo_gamer',
-      displayName: 'Leo (Teen)',
-      avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150',
-      birthDate: new Date(nowYear - 14, 2, 10), // 14 y.o.
-    });
-    this.mockUsers.set('child-2', {
-      id: 'child-2',
-      username: 'mia_art',
-      displayName: 'Mia (Child)',
-      avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150',
-      birthDate: new Date(nowYear - 11, 7, 22), // 11 y.o.
-    });
-
-    // Seed active family link for adult-1 and child-1
-    const link1: FamilyLinkRecord = {
-      id: 'link-demo-1',
-      parentId: 'user-adult-1',
-      childId: 'child-1',
-      status: 'ACTIVE',
-      createdAt: new Date(Date.now() - 86400000 * 14),
-      updatedAt: new Date(Date.now() - 86400000 * 14),
-      confirmedAt: new Date(Date.now() - 86400000 * 14),
-      parent: this.mockUsers.get('user-adult-1'),
-      child: this.mockUsers.get('child-1'),
-    };
-    this.links.set(link1.id, link1);
-  }
-
-  registerUserForTesting(user: {
-    id: string;
-    username: string;
-    displayName: string;
-    avatar: string | null;
-    birthDate: Date;
-  }): void {
-    this.mockUsers.set(user.id, user);
-  }
-
-  private async findPairingUser(id: string) {
-    if (!this.prisma) return this.mockUsers.get(id) ?? null;
-    return this.prisma.user.findUnique({
-      where: { id },
-      select: { id: true, username: true, displayName: true, avatar: true, birthDate: true },
-    });
-  }
-
-  async generatePairQr(childId: string): Promise<{
-    token: string;
-    code: string;
-    expiresAt: string;
-  }> {
-    const child = await this.findPairingUser(childId);
-    const age = child?.birthDate ? completedYears(child.birthDate) : null;
-    if (age === null || age >= 18) {
-      throw new BadRequestException(
-        'Generating a teen code is only available for accounts under 18 years old.',
+  onModuleInit(): void {
+    if (runsBackground('core')) {
+      this.logger.log(
+        `Family enrollment enabled: ${process.env.FAMILY_ENROLLMENT_ENABLED !== 'false'}`,
       );
     }
+  }
 
-    // Check parent limit
-    const existingParents = Array.from(this.links.values()).filter(
-      (l) => l.childId === childId && l.status === 'ACTIVE',
-    );
-    if (existingParents.length >= MAX_PARENTS_PER_CHILD) {
-      throw new BadRequestException(`Maximum linked parents reached (${MAX_PARENTS_PER_CHILD}).`);
+  private assertEnrollmentOpen(): void {
+    if (process.env.FAMILY_ENROLLMENT_ENABLED === 'false') {
+      throw new ServiceUnavailableException(
+        'Family connections are temporarily unavailable during an update. Existing connections and data rights remain accessible.',
+      );
     }
+  }
 
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    const code = `FC-${randomSuffix}`;
-    const token = `pair_tok_${Math.random().toString(36).substring(2)}_${Date.now()}`;
-    const expiresAt = new Date(Date.now() + PAIR_CODE_TTL_SECONDS * 1000);
+  @Cron('35 * * * *')
+  async cleanupExpiredState(): Promise<void> {
+    if (!runsBackground('core')) return;
+    const now = new Date();
+    await this.prisma.$transaction([
+      this.prisma.familyInvite.deleteMany({
+        where: { OR: [{ expiresAt: { lte: now } }, { consumedAt: { not: null } }] },
+      }),
+      this.prisma.familyLink.deleteMany({
+        where: { status: { not: 'ACTIVE' }, expiresAt: { lte: now } },
+      }),
+      this.prisma.familyPairAttempts.deleteMany({
+        where: { windowStart: { lte: new Date(now.getTime() - PAIR_TTL_MS) } },
+      }),
+      this.prisma.familyScreenUsage.deleteMany({
+        where: { utcDate: { lt: new Date(now.getTime() - 86400_000).toISOString().slice(0, 10) } },
+      }),
+    ]);
+    const adultCutoff = new Date(
+      Date.UTC(now.getUTCFullYear() - 18, now.getUTCMonth(), now.getUTCDate() + 1),
+    );
+    const agedOut = await this.prisma.familyLink.findMany({
+      where: {
+        status: 'ACTIVE',
+        child: { OR: [{ birthDate: null }, { birthDate: { lt: adultCutoff } }] },
+      },
+      select: { childId: true, parentId: true },
+      take: 100,
+    });
+    for (const link of agedOut) {
+      await this.prisma.$transaction(async (tx) => {
+        await lockFamilyUsers(tx, [link.childId, link.parentId]);
+        const child = await tx.user.findUnique({
+          where: { id: link.childId },
+          select: { birthDate: true },
+        });
+        if (isCurrentMinor(child?.birthDate)) return;
+        await tx.familyLink.deleteMany({ where: { childId: link.childId } });
+        await tx.familySafeguard.deleteMany({ where: { childId: link.childId } });
+        await tx.familyInvite.deleteMany({ where: { childId: link.childId } });
+        await tx.familyScreenUsage.deleteMany({ where: { userId: link.childId } });
+      });
+    }
+  }
 
-    // Save in Redis if available
-    if (this.redis) {
+  private async assertEligible(tx: Prisma.TransactionClient, parentId: string, childId: string) {
+    const [parent, child] = await Promise.all([
+      tx.user.findUnique({ where: { id: parentId }, select: familyUserSelect }),
+      tx.user.findUnique({ where: { id: childId }, select: familyUserSelect }),
+    ]);
+    const age = parent?.birthDate ? completedYears(parent.birthDate) : null;
+    if (!parent || age === null || age < 18)
+      throw new ForbiddenException(
+        'Parent/guardian setup is only available for accounts 18 and older.',
+      );
+    if (!child || !isCurrentMinor(child.birthDate) || childId === parentId)
+      throw new BadRequestException('This account is not eligible for teen pairing.');
+    const [children, parents, existing] = await Promise.all([
+      tx.familyLink.findMany({
+        where: { parentId, status: 'ACTIVE' },
+        include: { child: { select: { birthDate: true } } },
+      }),
+      tx.familyLink.count({ where: { childId, status: 'ACTIVE' } }),
+      tx.familyLink.count({ where: { parentId, childId, status: 'ACTIVE' } }),
+    ]);
+    if (
+      children.filter((link) => isCurrentMinor(link.child.birthDate)).length >=
+      MAX_CHILDREN_PER_PARENT
+    )
+      throw new BadRequestException('You have reached the maximum number of linked teens (8).');
+    if (parents >= MAX_PARENTS_PER_CHILD)
+      throw new BadRequestException(
+        'The teen already has the maximum number of linked parents (2).',
+      );
+    if (existing) throw new BadRequestException('These accounts are already linked.');
+    return { parent, child };
+  }
+
+  async generatePairQr(childId: string) {
+    this.assertEnrollmentOpen();
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const code = `FC-${randomInt(1000, 10000)}`,
+        token = randomBytes(32).toString('base64url');
+      const expiresAt = new Date(Date.now() + PAIR_TTL_MS);
       try {
-        const client = this.redis.getClient();
-        await client.set(
-          `family:invite:${code}`,
-          JSON.stringify({ token, childId }),
-          'EX',
-          PAIR_CODE_TTL_SECONDS,
-        );
-        await client.set(
-          `family:token:${token}`,
-          JSON.stringify({ code, childId }),
-          'EX',
-          PAIR_CODE_TTL_SECONDS,
-        );
-      } catch (err) {
-        this.logger.warn(`Redis invite save failed: ${(err as Error).message}`);
+        await this.prisma.$transaction(async (tx) => {
+          await lockFamilyUsers(tx, [childId]);
+          const child = await tx.user.findUnique({
+            where: { id: childId },
+            select: { birthDate: true },
+          });
+          if (!isCurrentMinor(child?.birthDate))
+            throw new BadRequestException(
+              'Generating a teen code is only available for accounts under 18 years old.',
+            );
+          if (
+            (await tx.familyLink.count({ where: { childId, status: 'ACTIVE' } })) >=
+            MAX_PARENTS_PER_CHILD
+          )
+            throw new BadRequestException('Maximum linked parents reached (2).');
+          await tx.familyInvite.deleteMany({
+            where: { OR: [{ childId }, { expiresAt: { lte: new Date() } }] },
+          });
+          await tx.familyInvite.create({
+            data: { childId, codeHash: hashInvite(code), tokenHash: hashInvite(token), expiresAt },
+          });
+        });
+        return { code, token, expiresAt: expiresAt.toISOString() };
+      } catch (error) {
+        if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== 'P2002')
+          throw error;
       }
     }
-
-    this.inviteTokens.set(code, { token, code, childId, expiresAt });
-    this.inviteTokens.set(token, { token, code, childId, expiresAt });
-
-    return {
-      token,
-      code,
-      expiresAt: expiresAt.toISOString(),
-    };
+    throw new BadRequestException('Please retry generating a pairing code.');
   }
 
   async pair(
     parentId: string,
     rawCodeOrToken: string,
-    clientIp: string = '127.0.0.1',
+    _clientIp = '127.0.0.1',
   ): Promise<{ linkId: string; status: FamilyLinkStatus }> {
-    // 1. Anti-brute-force rate limiting: check attempt threshold
-    const rateLimitKey = `rate:family:pair:${parentId || clientIp}`;
-    if (this.redis) {
-      try {
-        const client = this.redis.getClient();
-        const rawAttempts = await client.get(rateLimitKey);
-        const attempts = rawAttempts ? parseInt(rawAttempts, 10) : 0;
-        if (attempts >= PAIR_RATE_LIMIT_MAX) {
-          throw new HttpException(
-            'Too many pairing attempts. Please wait 10 minutes.',
-            HttpStatus.TOO_MANY_REQUESTS,
-          );
-        }
-      } catch (err) {
-        if (err instanceof HttpException) throw err;
-        this.logger.warn(`Rate limit check failed: ${(err as Error).message}`);
+    this.assertEnrollmentOpen();
+    if (typeof rawCodeOrToken !== 'string' || !rawCodeOrToken.trim() || rawCodeOrToken.length > 256)
+      throw new BadRequestException('A pairing code is required.');
+    const digest = hashInvite(rawCodeOrToken.trim());
+    // Resolve only the child ID before locking; consumption and eligibility are checked again under locks.
+    const lookup = await this.prisma.familyInvite.findFirst({
+      where: { OR: [{ codeHash: digest }, { tokenHash: digest }] },
+      select: { childId: true },
+    });
+    const outcome = await this.prisma.$transaction(async (tx) => {
+      await lockFamilyUsers(tx, lookup ? [parentId, lookup.childId] : [parentId]);
+      const parent = await tx.user.findUnique({
+        where: { id: parentId },
+        select: { birthDate: true },
+      });
+      const age = parent?.birthDate ? completedYears(parent.birthDate) : null;
+      if (age === null || age < 18)
+        throw new ForbiddenException(
+          'Parent/guardian setup is only available for accounts 18 and older.',
+        );
+      const now = new Date();
+      const previous = await tx.familyPairAttempts.findUnique({ where: { userId: parentId } });
+      const attempts =
+        previous && now.getTime() - previous.windowStart.getTime() < PAIR_TTL_MS
+          ? previous.attempts
+          : 0;
+      if (attempts >= 5) return { limited: true };
+      const invite = await tx.familyInvite.findFirst({
+        where: {
+          OR: [{ codeHash: digest }, { tokenHash: digest }],
+          consumedAt: null,
+          expiresAt: { gt: now },
+        },
+      });
+      if (!invite || invite.childId !== lookup?.childId) {
+        await tx.familyPairAttempts.upsert({
+          where: { userId: parentId },
+          create: { userId: parentId, attempts: 1, windowStart: now },
+          update: { attempts: attempts + 1, ...(attempts === 0 ? { windowStart: now } : {}) },
+        });
+        return { invalid: true };
       }
-    }
-
-    // 2. Age check for parent
-    const parent = await this.findPairingUser(parentId);
-    const parentAge = parent?.birthDate ? completedYears(parent.birthDate) : null;
-    if (!parent || parentAge === null || parentAge < 18) {
-      throw new ForbiddenException(
-        'Parent/guardian setup is only available for accounts 18 and older.',
+      const { parent: actor } = await this.assertEligible(tx, parentId, invite.childId);
+      const consumed = await tx.familyInvite.updateMany({
+        where: { id: invite.id, consumedAt: null, expiresAt: { gt: now } },
+        data: { consumedAt: now },
+      });
+      if (consumed.count !== 1) return { invalid: true };
+      await tx.familyPairAttempts.deleteMany({ where: { userId: parentId } });
+      // Replace stale pending prompts for this pair while preserving independent guardian requests.
+      await tx.familyLink.updateMany({
+        where: { parentId, childId: invite.childId, status: 'PENDING_CONFIRMATION' },
+        data: { status: 'REVOKED', expiresAt: now },
+      });
+      const link = await tx.familyLink.create({
+        data: {
+          parentId,
+          childId: invite.childId,
+          expiresAt: new Date(now.getTime() + PAIR_TTL_MS),
+        },
+      });
+      return { link, actor };
+    });
+    if ('limited' in outcome)
+      throw new HttpException(
+        'Too many pairing attempts. Please wait 10 minutes.',
+        HttpStatus.TOO_MANY_REQUESTS,
       );
-    }
-
-    // 3. Check parent's child limit (max 8)
-    const activeChildren = Array.from(this.links.values()).filter(
-      (l) => l.parentId === parentId && l.status === 'ACTIVE',
-    );
-    if (activeChildren.length >= MAX_CHILDREN_PER_PARENT) {
-      throw new BadRequestException(
-        `You have reached the maximum number of linked teens (${MAX_CHILDREN_PER_PARENT}).`,
-      );
-    }
-
-    // 4. Resolve invite code/token
-    const cleanKey = rawCodeOrToken.trim();
-    let inviteData = this.inviteTokens.get(cleanKey);
-
-    if (!inviteData && this.redis) {
-      try {
-        const raw =
-          (await this.redis.getClient().get(`family:invite:${cleanKey}`)) ||
-          (await this.redis.getClient().get(`family:token:${cleanKey}`));
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          inviteData = {
-            token: parsed.token || cleanKey,
-            code: cleanKey,
-            childId: parsed.childId,
-            expiresAt: new Date(Date.now() + 60000),
-          };
-        }
-      } catch (err) {
-        this.logger.warn(`Redis invite lookup failed: ${(err as Error).message}`);
-      }
-    }
-
-    if (!inviteData || new Date() > inviteData.expiresAt) {
-      // Increment failed brute-force attempt counter
-      if (this.redis) {
-        try {
-          const client = this.redis.getClient();
-          const attempts = await client.incr(rateLimitKey);
-          if (attempts === 1) {
-            await client.expire(rateLimitKey, PAIR_RATE_LIMIT_TTL);
-          }
-        } catch (err) {
-          this.logger.warn(`Failed attempt increment error: ${(err as Error).message}`);
-        }
-      }
+    if (!outcome.link || !outcome.actor)
       throw new BadRequestException(
         'Invalid or expired pairing code. Please ask your teen to refresh their QR code.',
       );
-    }
-
-    const { childId } = inviteData;
-    if (childId === parentId) {
-      throw new BadRequestException('You cannot link your own account as a teen.');
-    }
-    // 5. Check child's parent limit (max 2)
-    const existingChildParents = Array.from(this.links.values()).filter(
-      (l) => l.childId === childId && l.status === 'ACTIVE',
+    const { link, actor } = outcome;
+    this.gateway?.emitToUser(
+      link.childId,
+      'family:pair_requested',
+      this.pendingResponse(link, actor),
     );
-    if (existingChildParents.length >= MAX_PARENTS_PER_CHILD) {
-      throw new BadRequestException(
-        `The teen already has the maximum number of linked parents (${MAX_PARENTS_PER_CHILD}).`,
-      );
-    }
+    return { linkId: link.id, status: link.status };
+  }
 
-    // 6. Single-use: immediately invalidate token and clear rate limit counter on success
-    this.inviteTokens.delete(inviteData.code);
-    this.inviteTokens.delete(inviteData.token);
-    if (this.redis) {
-      try {
-        await this.redis
-          .getClient()
-          .del(
-            `family:invite:${inviteData.code}`,
-            `family:token:${inviteData.token}`,
-            rateLimitKey,
-          );
-      } catch (err) {
-        this.logger.warn(`Token invalidation error: ${(err as Error).message}`);
-      }
-    }
-
-    const child = await this.findPairingUser(childId);
-    if (!child || !this.isTeenBirthDate(child.birthDate) || Date.now() > +inviteData.expiresAt) {
-      throw new BadRequestException('This account is not eligible for teen pairing.');
-    }
-
-    const linkId = `link_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    const newLink: FamilyLinkRecord = {
-      id: linkId,
-      parentId,
-      childId,
-      status: 'PENDING_CONFIRMATION',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      parent,
-      child,
-    };
-    this.links.set(linkId, newLink);
-
-    // 7. Store pending pair request for fallback endpoint GET /api/family/pending-invite
-    const pendingPayload: PendingPairRequestDto = {
-      linkId,
-      parentId,
-      parentUsername: newLink.parent?.username || 'Guardian',
-      parentDisplayName: newLink.parent?.displayName || 'Guardian',
-      parentAvatar: newLink.parent?.avatar || null,
-      createdAt: newLink.createdAt.toISOString(),
-      expiresAt: new Date(newLink.createdAt.getTime() + PAIR_REQUEST_TTL_MS).toISOString(),
-    };
-    this.pendingRequests.set(childId, pendingPayload);
-
-    // 8. Realtime transport: Push event to child's socket session
-    try {
-      this.gateway?.emitToUser(childId, 'family:pair_requested', pendingPayload);
-      this.logger.log(`Emitted family:pair_requested to child ${childId}`);
-    } catch (err) {
-      this.logger.warn(`Gateway emit failed: ${(err as Error).message}`);
-    }
-
+  private pendingResponse(
+    link: { id: string; parentId: string; createdAt: Date; expiresAt: Date },
+    parent: { username: string; displayName: string | null; avatar: string | null },
+  ): PendingPairRequestDto {
     return {
-      linkId,
-      status: 'PENDING_CONFIRMATION',
+      linkId: link.id,
+      parentId: link.parentId,
+      parentUsername: parent.username,
+      parentDisplayName: parent.displayName ?? parent.username,
+      parentAvatar: parent.avatar,
+      createdAt: link.createdAt.toISOString(),
+      expiresAt: link.expiresAt.toISOString(),
     };
   }
 
@@ -351,124 +293,107 @@ export class FamilyService {
     linkId: string,
     approved: boolean,
   ): Promise<{ success: boolean; status: FamilyLinkStatus }> {
-    const link = this.links.get(linkId);
-    if (!link) {
-      throw new NotFoundException('Link request not found.');
-    }
-    if (link.childId !== childId) {
+    if (approved) this.assertEnrollmentOpen();
+    if (typeof approved !== 'boolean' || typeof linkId !== 'string' || !linkId)
+      throw new BadRequestException('A link ID and boolean approval are required.');
+    const lookup = await this.prisma.familyLink.findUnique({ where: { id: linkId } });
+    if (!lookup) throw new NotFoundException('Link request not found.');
+    if (lookup.childId !== childId)
       throw new ForbiddenException('You cannot confirm a link request for another account.');
-    }
-    if (link.status !== 'PENDING_CONFIRMATION') {
-      throw new BadRequestException('This link request is no longer pending.');
-    }
-    if (
-      Date.now() >= link.createdAt.getTime() + PAIR_REQUEST_TTL_MS ||
-      !this.isTeenBirthDate(link.child?.birthDate)
-    ) {
-      throw new BadRequestException('This link request has expired or is no longer eligible.');
-    }
-
-    if (this.pendingRequests.get(childId)?.linkId === linkId) this.pendingRequests.delete(childId);
-
+    const link = await this.prisma.$transaction(async (tx) => {
+      await lockFamilyUsers(tx, [childId, lookup.parentId]);
+      const current = await tx.familyLink.findUniqueOrThrow({
+        where: { id: linkId },
+        include: familyMembersInclude,
+      });
+      if (current.status !== 'PENDING_CONFIRMATION')
+        throw new BadRequestException('This link request is no longer pending.');
+      if (current.expiresAt.getTime() <= Date.now() || !isCurrentMinor(current.child.birthDate))
+        throw new BadRequestException('This link request has expired or is no longer eligible.');
+      if (approved) await this.assertEligible(tx, current.parentId, childId);
+      const result = await tx.familyLink.update({
+        where: { id: linkId },
+        data: {
+          status: approved ? 'ACTIVE' : 'REVOKED',
+          confirmedAt: approved ? new Date() : null,
+          ...(!approved ? { expiresAt: new Date() } : {}),
+        },
+      });
+      if (approved)
+        await tx.familySafeguard.upsert({
+          where: { childId },
+          create: { childId, updatedByParentId: current.parentId },
+          update: {},
+        });
+      return { ...result, child: current.child };
+    });
     if (approved) {
-      link.status = 'ACTIVE';
-      link.confirmedAt = new Date();
-      link.updatedAt = new Date();
-      this.links.set(linkId, link);
-
-      // Notify parent via WebSocket
-      try {
-        this.gateway?.emitToUser(link.parentId, 'family:pair_confirmed', {
-          linkId,
-          childId,
-          childUsername: link.child?.username,
-          childDisplayName: link.child?.displayName,
-          childAvatar: link.child?.avatar,
-        });
-        this.gateway?.emitToUser(childId, 'family:pair_confirmed', {
-          linkId,
-          parentId: link.parentId,
-        });
-      } catch (err) {
-        this.logger.warn(`Confirmation emit error: ${(err as Error).message}`);
-      }
-
-      return { success: true, status: 'ACTIVE' };
-    } else {
-      link.status = 'REVOKED';
-      link.updatedAt = new Date();
-      this.links.set(linkId, link);
-
-      try {
-        this.gateway?.emitToUser(link.parentId, 'family:pair_declined', { linkId });
-      } catch (err) {
-        this.logger.warn(`Decline emit error: ${(err as Error).message}`);
-      }
-
-      return { success: false, status: 'REVOKED' };
-    }
+      this.gateway?.emitToUser(link.parentId, 'family:pair_confirmed', {
+        linkId,
+        childId,
+        childUsername: link.child.username,
+        childDisplayName: link.child.displayName,
+        childAvatar: link.child.avatar,
+      });
+      this.gateway?.emitToUser(childId, 'family:pair_confirmed', {
+        linkId,
+        parentId: link.parentId,
+      });
+    } else this.gateway?.emitToUser(link.parentId, 'family:pair_declined', { linkId });
+    return { success: approved, status: link.status };
   }
 
-  getPendingInvite(childId: string): PendingPairRequestDto | null {
-    const request = this.pendingRequests.get(childId);
-    return request &&
-      this.links.get(request.linkId)?.status === 'PENDING_CONFIRMATION' &&
-      Date.parse(request.expiresAt) > Date.now()
-      ? request
-      : null;
+  async getPendingInvite(childId: string): Promise<PendingPairRequestDto | null> {
+    const child = await this.prisma.user.findUnique({
+      where: { id: childId },
+      select: { birthDate: true },
+    });
+    if (!isCurrentMinor(child?.birthDate)) return null;
+    const link = await this.prisma.familyLink.findFirst({
+      where: { childId, status: 'PENDING_CONFIRMATION', expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: 'desc' },
+      include: { parent: { select: familyUserSelect } },
+    });
+    return link ? this.pendingResponse(link, link.parent) : null;
   }
 
-  async getMembers(userId: string): Promise<{
-    role: 'parent' | 'child';
-    connectedChildren: any[];
-    connectedParents: any[];
-    maxChildren: number;
-    maxParents: number;
-  }> {
-    const user = await this.findPairingUser(userId);
-    const isAdult = !this.isTeenBirthDate(user?.birthDate);
-
-    const childrenLinks = Array.from(this.links.values()).filter(
-      (l) =>
-        l.parentId === userId && l.status === 'ACTIVE' && this.isTeenBirthDate(l.child?.birthDate),
+  async getMembers(userId: string) {
+    const [user, links] = await Promise.all([
+      this.prisma.user.findUnique({ where: { id: userId }, select: { birthDate: true } }),
+      this.prisma.familyLink.findMany({
+        where: { status: 'ACTIVE', OR: [{ parentId: userId }, { childId: userId }] },
+        include: familyMembersInclude,
+      }),
+    ]);
+    const active = links.filter((link) => isCurrentMinor(link.child.birthDate));
+    const connectedChildren = await Promise.all(
+      active
+        .filter((link) => link.parentId === userId)
+        .map(async (link) => ({
+          linkId: link.id,
+          id: link.childId,
+          username: link.child.username,
+          displayName: link.child.displayName,
+          avatar: link.child.avatar,
+          birthDate: null,
+          age: link.child.birthDate ? completedYears(link.child.birthDate) : null,
+          status: 'online',
+          connectedAt: link.createdAt.toISOString(),
+          safeguards: await this.safeguardService.getSafeguards(link.childId),
+        })),
     );
-    const parentLinks = Array.from(this.links.values()).filter(
-      (l) =>
-        l.childId === userId && l.status === 'ACTIVE' && this.isTeenBirthDate(l.child?.birthDate),
-    );
-
-    const connectedChildren = childrenLinks.map((l) => {
-      const child = l.child || this.mockUsers.get(l.childId);
-      const childAge = child?.birthDate ? completedYears(child.birthDate) : null;
-      const safeguards = this.safeguardService?.getSafeguards(l.childId);
-      return {
-        linkId: l.id,
-        id: l.childId,
-        username: child?.username || 'teen_user',
-        displayName: child?.displayName || 'Child',
-        avatar: child?.avatar || null,
-        birthDate: null,
-        age: childAge,
-        status: 'online',
-        connectedAt: l.createdAt.toISOString(),
-        safeguards,
-      };
-    });
-
-    const connectedParents = parentLinks.map((l) => {
-      const parent = l.parent || this.mockUsers.get(l.parentId);
-      return {
-        linkId: l.id,
-        id: l.parentId,
-        username: parent?.username || 'parent_user',
-        displayName: parent?.displayName || 'Parent',
-        avatar: parent?.avatar || null,
-        connectedAt: l.createdAt.toISOString(),
-      };
-    });
-
+    const connectedParents = active
+      .filter((link) => link.childId === userId)
+      .map((link) => ({
+        linkId: link.id,
+        id: link.parentId,
+        username: link.parent.username,
+        displayName: link.parent.displayName,
+        avatar: link.parent.avatar,
+        connectedAt: link.createdAt.toISOString(),
+      }));
     return {
-      role: isAdult ? 'parent' : 'child',
+      role: isCurrentMinor(user?.birthDate) ? 'child' : 'parent',
       connectedChildren,
       connectedParents,
       maxChildren: MAX_CHILDREN_PER_PARENT,
@@ -476,95 +401,75 @@ export class FamilyService {
     };
   }
 
-  revokeFamilyLink(userId: string, linkId: string): { success: boolean; message: string } {
-    const link = this.links.get(linkId);
-    if (!link) {
-      throw new NotFoundException('Family link not found.');
-    }
-
-    if (link.parentId !== userId && link.childId !== userId) {
+  async revokeFamilyLink(userId: string, linkId: string) {
+    const lookup = await this.prisma.familyLink.findUnique({ where: { id: linkId } });
+    if (!lookup) throw new NotFoundException('Family link not found.');
+    if (lookup.parentId !== userId && lookup.childId !== userId)
       throw new ForbiddenException('You do not have permission to disconnect this family link.');
-    }
-
-    link.status = 'REVOKED';
-    link.updatedAt = new Date();
-    this.links.set(linkId, link);
-
-    const otherUserId = link.parentId === userId ? link.childId : link.parentId;
-
-    try {
-      this.gateway?.emitToUser(otherUserId, 'family:member_removed', {
-        linkId,
-        removedByUserId: userId,
-        reason: 'REVOKED_BY_MEMBER',
+    await this.prisma.$transaction(async (tx) => {
+      await lockFamilyUsers(tx, [lookup.parentId, lookup.childId]);
+      await tx.familyLink.update({
+        where: { id: linkId },
+        data: { status: 'REVOKED', expiresAt: new Date() },
       });
-    } catch (err) {
-      this.logger.warn(`Revoke emit error: ${(err as Error).message}`);
-    }
-
+      if (!(await tx.familyLink.count({ where: { childId: lookup.childId, status: 'ACTIVE' } }))) {
+        await tx.familySafeguard.deleteMany({ where: { childId: lookup.childId } });
+        await tx.familyScreenUsage.deleteMany({ where: { userId: lookup.childId } });
+      }
+    });
+    this.gateway?.emitToUser(
+      lookup.parentId === userId ? lookup.childId : lookup.parentId,
+      'family:member_removed',
+      { linkId, removedByUserId: userId, reason: 'REVOKED_BY_MEMBER' },
+    );
     return { success: true, message: 'Family Center link has been disconnected.' };
   }
 
   async getFamilySettings(userId: string): Promise<FamilySettingsDto> {
-    const defaultSettings: FamilySettingsDto = {
-      weeklyDigest: true,
-      newFriendAlerts: true,
-      reportAlerts: true,
-      notifyLinkRequests: true,
-      pinEnabled: false,
+    const settings = await this.prisma.familySettings.findUnique({ where: { userId } });
+    return {
+      weeklyDigest: settings?.weeklyDigest ?? true,
+      newFriendAlerts: settings?.newFriendAlerts ?? true,
+      reportAlerts: settings?.reportAlerts ?? true,
+      notifyLinkRequests: settings?.notifyLinkRequests ?? true,
+      pinEnabled: settings?.pinEnabled ?? false,
       pinCode: '',
     };
-    if (this.redis) {
-      try {
-        const client = this.redis.getClient();
-        const raw = await client.get(`family:settings:${userId}`);
-        if (raw) {
-          return { ...defaultSettings, ...JSON.parse(raw) };
-        }
-      } catch (err) {
-        this.logger.warn(`Failed to get family settings from redis: ${(err as Error).message}`);
-      }
-    }
-    return defaultSettings;
   }
 
   async updateFamilySettings(
     userId: string,
     patch: Partial<FamilySettingsDto>,
   ): Promise<FamilySettingsDto> {
-    const current = await this.getFamilySettings(userId);
-    const updated: FamilySettingsDto = { ...current, ...patch };
-    if (this.redis) {
-      try {
-        const client = this.redis.getClient();
-        await client.set(`family:settings:${userId}`, JSON.stringify(updated));
-      } catch (err) {
-        this.logger.warn(`Failed to persist family settings to redis: ${(err as Error).message}`);
-      }
-    }
-    return updated;
+    const { pinCode, ...preferences } = patch;
+    const pinHash = pinCode ? await argon2.hash(pinCode) : undefined;
+    await this.prisma.$transaction(async (tx) => {
+      await lockFamilyUsers(tx, [userId]);
+      const current = await tx.familySettings.findUnique({ where: { userId } });
+      if (preferences.pinEnabled && !pinHash && !current?.pinHash)
+        throw new BadRequestException('A PIN is required to enable PIN protection.');
+      const data = {
+        ...preferences,
+        ...(pinHash ? { pinHash } : {}),
+        ...(preferences.pinEnabled === false ? { pinHash: null } : {}),
+      };
+      await tx.familySettings.upsert({
+        where: { userId },
+        create: { userId, ...data },
+        update: data,
+      });
+    });
+    return this.getFamilySettings(userId);
   }
 
-  private isTeenBirthDate(birthDate?: Date | null): boolean {
-    const age = birthDate ? completedYears(birthDate) : null;
-    return age !== null && age < 18;
+  async isActiveParentOf(parentId: string, childId: string): Promise<boolean> {
+    return hasActiveFamily(this.prisma, childId, parentId);
   }
-
-  isActiveParentOf(parentId: string, childId: string): boolean {
-    return Array.from(this.links.values()).some(
-      (link) =>
-        link.parentId === parentId &&
-        link.childId === childId &&
-        link.status === 'ACTIVE' &&
-        this.isTeenBirthDate(link.child?.birthDate),
-    );
-  }
-
   async getActivitySummary(
     childId: string,
     requesterId: string,
   ): Promise<FamilyActivitySummaryDto> {
-    if (childId !== requesterId && !this.isActiveParentOf(requesterId, childId)) {
+    if (childId !== requesterId && !(await this.isActiveParentOf(requesterId, childId))) {
       throw new ForbiddenException('You do not have permission to view activity for this account.');
     }
 
@@ -680,8 +585,8 @@ export class FamilyService {
     // 5. Purchases from safeguards (in USD)
     if (this.safeguardService) {
       try {
-        const safeguards = this.safeguardService.getSafeguards(childId);
-        purchaseAmount = safeguards.spentThisMonth || 0;
+        const safeguards = await this.safeguardService.getSafeguards(childId);
+        purchaseAmount = safeguards?.spentThisMonth || 0;
       } catch {
         purchaseAmount = 0;
       }

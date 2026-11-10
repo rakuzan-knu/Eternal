@@ -1,4 +1,5 @@
 import { PublicSearchModule } from '../common/public-search/public-search.module';
+import { FamilySafetyModule } from '../family/family-safety.module';
 import { roleControllers } from '../config/service-role';
 import { Module, forwardRef } from '@nestjs/common';
 import { PrismaModule } from '@common/prisma';
@@ -17,7 +18,7 @@ import { PrivacyRepository } from './privacy/repositories/privacy.repository';
 import { LastSeenCoalescerService } from './coalescing/last-seen-coalescer.service';
 
 @Module({
-  imports: [PrismaModule, PublicSearchModule, forwardRef(() => PostsModule)],
+  imports: [PrismaModule, PublicSearchModule, FamilySafetyModule, forwardRef(() => PostsModule)],
   controllers: roleControllers('core', [UsersController, SearchController, PrivacyController]),
   providers: [
     UsersService,

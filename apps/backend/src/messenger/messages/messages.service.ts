@@ -1,4 +1,5 @@
 import { MessageBodyService } from '../../common/cassandra/message-body.service';
+import { FamilySafeguardService } from '../../family/family-safeguard.service';
 import { DirectUploadsService } from '../../common/media/direct-uploads.service';
 import {
   BadRequestException,
@@ -55,6 +56,8 @@ import { withUnreadWriteLock } from '../unread/unread-write-lock';
 
 @Injectable()
 export class MessagesService implements OnModuleDestroy {
+  @Inject(FamilySafeguardService)
+  private readonly family!: FamilySafeguardService;
   @Inject(VisibilityResolver)
   private readonly visibility!: VisibilityResolver;
 
@@ -258,6 +261,7 @@ export class MessagesService implements OnModuleDestroy {
     userId: string,
     dto: { text?: string | undefined; attachments?: readonly unknown[] | undefined },
   ): Promise<void> {
+    await this.family.assertCanUse(userId);
     const participant = await this.assertMember(conversationId, userId);
     await this.assertChannelWritable(conversationId, userId);
     await this.assertDirectMessagingAllowed(conversationId, userId);
@@ -1046,6 +1050,8 @@ export class MessagesService implements OnModuleDestroy {
 
     const otherId = conversation.participants.find((p) => p.userId !== senderId)?.userId;
     if (!otherId) return;
+
+    await this.family.assertCanDirectMessage(senderId, otherId);
 
     const block = await this.prisma.userBlock.findFirst({
       where: {

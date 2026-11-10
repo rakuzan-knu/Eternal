@@ -1,4 +1,6 @@
 import { roleControllers } from '../config/service-role';
+import { FamilySafetyModule } from '../family/family-safety.module';
+import { FamilyAccessInterceptor } from '../family/family-access.interceptor';
 import { CommunitiesController } from './communities/communities.controller';
 import { CommunitiesService } from './communities/communities.service';
 import { CommunitiesRepository } from './communities/communities.repository';
@@ -66,6 +68,7 @@ import { WatchTogetherService } from './watch-together/watch-together.service';
 
 @Module({
   imports: [
+    FamilySafetyModule,
     PrismaModule,
     CassandraModule,
     DirectUploadsModule,
@@ -90,6 +93,7 @@ import { WatchTogetherService } from './watch-together/watch-together.service';
     WatchTogetherController,
   ]),
   providers: [
+    FamilyAccessInterceptor,
     CommunitiesService,
     CommunitiesRepository,
     SoundboardService,

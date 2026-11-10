@@ -1,4 +1,5 @@
 import { MessageBodyService } from '../../common/cassandra/message-body.service';
+import { FamilySafeguardService } from '../../family/family-safeguard.service';
 import {
   BadRequestException,
   ConflictException,
@@ -65,6 +66,8 @@ import { withUnreadWriteLock } from '../unread/unread-write-lock';
 
 @Injectable()
 export class ConversationsService implements OnModuleDestroy {
+  @Inject(FamilySafeguardService)
+  private readonly family!: FamilySafeguardService;
   @Inject(VisibilityResolver)
   private readonly visibility!: VisibilityResolver;
 
@@ -297,6 +300,8 @@ export class ConversationsService implements OnModuleDestroy {
   }
 
   async createDirect(userId: string, dto: CreateDirectConversationDto): Promise<ConversationView> {
+    await this.family.assertCanUse(userId);
+    await this.family.assertCanDirectMessage(userId, dto.participantId);
     if (userId === dto.participantId) {
       throw new BadRequestException('Cannot create a conversation with yourself');
     }

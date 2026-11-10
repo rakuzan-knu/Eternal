@@ -1,3 +1,4 @@
+import { BypassCurfew } from '../family/decorators/bypass-curfew.decorator';
 import {
   Body,
   Controller,
@@ -201,6 +202,7 @@ export class UsersController {
     return this.usersService.getProfileByUsername(username, viewer?.id ?? null);
   }
 
+  @BypassCurfew()
   @Get('me')
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
@@ -253,6 +255,7 @@ export class UsersController {
     return this.postsService.getUserReposts(id, query.limit, query.after, viewer?.id);
   }
 
+  @BypassCurfew()
   @Post(':id/block')
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
@@ -265,6 +268,7 @@ export class UsersController {
     return this.usersService.blockUser(user.id, targetId);
   }
 
+  @BypassCurfew()
   @Delete(':id/block')
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
@@ -359,6 +363,7 @@ export class UsersController {
     return this.usersService.updateUser(id, dto);
   }
 
+  @BypassCurfew()
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   @UseGuards(AuthGuard)

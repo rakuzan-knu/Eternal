@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { FamilySafeguardService } from '../family/family-safeguard.service';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { MessageBodyService } from '../common/cassandra/message-body.service';
@@ -54,6 +56,8 @@ export function ownVisibleMessagesWhere(userId: string): Prisma.MessageWhereInpu
 
 @Injectable()
 export class DataExportRepository {
+  @Inject(FamilySafeguardService)
+  private readonly family!: FamilySafeguardService;
   constructor(
     private readonly prisma: PrismaService,
     private readonly messageBodies: MessageBodyService,
@@ -162,6 +166,7 @@ export class DataExportRepository {
     if (!user) return null;
     return {
       ...user,
+      family: await this.family.getOwnData(userId),
       notificationSettings: user.notificationSettings
         ? {
             ...user.notificationSettings,

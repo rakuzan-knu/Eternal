@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useLanguageStore } from '@/shared/lib/language/languageStore';
+import React, { useEffect } from 'react';
 import { Mail, Bell, ShieldAlert, KeyRound, Check } from 'lucide-react';
 import { useThemeStore } from '@/shared/model/useThemeStore';
 import { useFamilySettingsStore } from '../../model/useFamilySettingsStore';
-import { familyApi } from '../../api/familyApi';
 
 interface FamilySettingsTabProps {
   accentColor?: string;
@@ -20,10 +20,9 @@ export const FamilySettingsTab: React.FC<FamilySettingsTabProps> = ({ accentColo
     pinEnabled,
     pinCode,
     loadSettings,
-    updateSettings,
   } = useFamilySettingsStore();
 
-  const [isSaved, setIsSaved] = useState(false);
+  const ukrainian = useLanguageStore((state) => state.currentLanguage === 'Українська');
 
   // Load from server on mount
   useEffect(() => {
@@ -38,46 +37,6 @@ export const FamilySettingsTab: React.FC<FamilySettingsTabProps> = ({ accentColo
     ? 'border-b border-white/5'
     : 'border-b border-black/5 dark:border-white/[0.06]';
 
-  const triggerAutoSave = () => {
-    setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 2000);
-  };
-
-  const handleToggleWeeklyDigest = () => {
-    const nextVal = !weeklyDigest;
-    updateSettings({ weeklyDigest: nextVal });
-    familyApi.updateSettings({ weeklyDigest: nextVal }).catch(() => {});
-    triggerAutoSave();
-  };
-
-  const handleToggleFriendAlerts = () => {
-    const nextVal = !newFriendAlerts;
-    updateSettings({ newFriendAlerts: nextVal });
-    familyApi.updateSettings({ newFriendAlerts: nextVal }).catch(() => {});
-    triggerAutoSave();
-  };
-
-  const handleToggleReportAlerts = () => {
-    const nextVal = !reportAlerts;
-    updateSettings({ reportAlerts: nextVal });
-    familyApi.updateSettings({ reportAlerts: nextVal }).catch(() => {});
-    triggerAutoSave();
-  };
-
-  const handleToggleNotifyLinkRequests = () => {
-    const nextVal = !notifyLinkRequests;
-    updateSettings({ notifyLinkRequests: nextVal });
-    familyApi.updateSettings({ notifyLinkRequests: nextVal }).catch(() => {});
-    triggerAutoSave();
-  };
-
-  const handleTogglePin = () => {
-    const nextVal = !pinEnabled;
-    updateSettings({ pinEnabled: nextVal });
-    familyApi.updateSettings({ pinEnabled: nextVal }).catch(() => {});
-    triggerAutoSave();
-  };
-
   return (
     <div className="flex flex-col gap-5 animate-fadeIn pb-8">
       <div className="flex items-center justify-between">
@@ -89,17 +48,21 @@ export const FamilySettingsTab: React.FC<FamilySettingsTabProps> = ({ accentColo
             Manage notifications, activity digests, and security preferences for all family members.
           </p>
         </div>
-
-        {/* Quiet Auto-save indicator */}
-        {isSaved && (
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/25 text-emerald-500 dark:text-emerald-400 text-xs font-semibold animate-fadeIn shrink-0">
-            <Check size={14} className="stroke-[2.5]" />
-            <span>Settings saved</span>
-          </div>
-        )}
       </div>
 
-      <div className={`rounded-2xl overflow-hidden border ${cardBaseStyle}`}>
+      <p id="family-preferences-unavailable" className="text-sm text-gray-600 dark:text-gray-400">
+        {ukrainian
+          ? 'Email-звіти, автоматичні сповіщення та захист PIN ще недоступні. Ці опції вимкнені; вони не підтверджують доставку звернень чи захист змін. Розірвати сімейний зв’язок можна без PIN.'
+          : 'Email digests, automatic alerts and PIN protection are not available. These controls are disabled; saved preferences do not confirm delivery or protect changes. Either member can disconnect without a PIN.'}
+      </p>
+      <fieldset
+        disabled
+        aria-describedby="family-preferences-unavailable"
+        className={`rounded-2xl overflow-hidden border ${cardBaseStyle}`}
+      >
+        <legend className="sr-only">
+          {ukrainian ? 'Недоступні опції' : 'Unavailable preferences'}
+        </legend>
         {/* Row 1: Weekly digest */}
         <div className={`flex items-center justify-between p-4 ${rowBaseStyle}`}>
           <div className="flex items-center gap-3.5 pr-3">
@@ -111,16 +74,17 @@ export const FamilySettingsTab: React.FC<FamilySettingsTabProps> = ({ accentColo
                 Weekly Email Digest
               </div>
               <div className="text-[11px] text-gray-500 dark:text-gray-400">
-                Receive a weekly activity summary of your teen's account every Monday.
+                Email delivery is not available.
               </div>
             </div>
           </div>
 
           <button
             type="button"
+            disabled
             role="switch"
+            aria-label="Weekly email digest"
             aria-checked={weeklyDigest}
-            onClick={handleToggleWeeklyDigest}
             style={{
               backgroundColor: weeklyDigest ? accentColor || '#5865F2' : undefined,
             }}
@@ -147,16 +111,17 @@ export const FamilySettingsTab: React.FC<FamilySettingsTabProps> = ({ accentColo
                 New Friend Alerts
               </div>
               <div className="text-[11px] text-gray-500 dark:text-gray-400">
-                Instant in-app notification whenever your teen connects with a new friend.
+                Automatic friend alerts are not available.
               </div>
             </div>
           </div>
 
           <button
             type="button"
+            disabled
             role="switch"
+            aria-label="New friend alerts"
             aria-checked={newFriendAlerts}
-            onClick={handleToggleFriendAlerts}
             style={{
               backgroundColor: newFriendAlerts ? accentColor || '#5865F2' : undefined,
             }}
@@ -191,9 +156,10 @@ export const FamilySettingsTab: React.FC<FamilySettingsTabProps> = ({ accentColo
 
           <button
             type="button"
+            disabled
             role="switch"
+            aria-label="Report alerts"
             aria-checked={reportAlerts}
-            onClick={handleToggleReportAlerts}
             style={{
               backgroundColor: reportAlerts ? accentColor || '#5865F2' : undefined,
             }}
@@ -227,9 +193,10 @@ export const FamilySettingsTab: React.FC<FamilySettingsTabProps> = ({ accentColo
 
           <button
             type="button"
+            disabled
             role="switch"
+            aria-label="Link request alerts"
             aria-checked={notifyLinkRequests}
-            onClick={handleToggleNotifyLinkRequests}
             style={{
               backgroundColor: notifyLinkRequests ? accentColor || '#5865F2' : undefined,
             }}
@@ -257,16 +224,17 @@ export const FamilySettingsTab: React.FC<FamilySettingsTabProps> = ({ accentColo
                   Parental PIN Code
                 </div>
                 <div className="text-[11px] text-gray-500 dark:text-gray-400">
-                  Require a 4-digit PIN before modifying safety limits or disconnecting accounts.
+                  PIN protection is not available; account authorization still applies.
                 </div>
               </div>
             </div>
 
             <button
               type="button"
+              disabled
               role="switch"
+              aria-label="Parental PIN"
               aria-checked={pinEnabled}
-              onClick={handleTogglePin}
               style={{
                 backgroundColor: pinEnabled ? accentColor || '#5865F2' : undefined,
               }}
@@ -289,18 +257,14 @@ export const FamilySettingsTab: React.FC<FamilySettingsTabProps> = ({ accentColo
                 maxLength={4}
                 placeholder="PIN"
                 value={pinCode || ''}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/\D/g, '');
-                  updateSettings({ pinCode: val });
-                  triggerAutoSave();
-                }}
+
                 className="w-24 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl px-3 py-1.5 text-center font-mono tracking-widest text-sm text-gray-950 dark:text-white focus:outline-none focus:border-indigo-500"
               />
               <span className="text-[11px] text-gray-500 dark:text-gray-400">Enter 4 digits</span>
             </div>
           )}
         </div>
-      </div>
+      </fieldset>
     </div>
   );
 };

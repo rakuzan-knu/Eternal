@@ -1,3 +1,4 @@
+import { BypassCurfew } from '../../family/decorators/bypass-curfew.decorator';
 import {
   Body,
   Controller,
@@ -33,6 +34,7 @@ import { ConditionalHttpCache } from '../../common/cache/etag.interceptor';
 @ApiTags('Privacy')
 @ApiBearerAuth()
 @UseGuards(AuthGuard)
+@BypassCurfew()
 @Controller('users/me/privacy')
 export class PrivacyController {
   constructor(private readonly privacyService: PrivacyService) {}

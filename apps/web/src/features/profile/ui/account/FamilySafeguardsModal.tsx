@@ -1,3 +1,4 @@
+import { useLanguageStore } from '@/shared/lib/language/languageStore';
 import React, { useState } from 'react';
 import { Shield, Clock, MessageSquare, CreditCard, Lock, Check, X } from 'lucide-react';
 import { familyApi } from '../../api/familyApi';
@@ -23,8 +24,8 @@ export const FamilySafeguardsModal: React.FC<FamilySafeguardsModalProps> = ({
   textOnAccent,
 }) => {
   const [dailyLimitMinutes, setDailyLimitMinutes] = useState(safeguards?.dailyLimitMinutes ?? 120);
-  const [curfewStart, setCurfewStart] = useState(safeguards?.curfewStart ?? '22:00');
-  const [curfewEnd, setCurfewEnd] = useState(safeguards?.curfewEnd ?? '07:00');
+  const [curfewStart, setCurfewStart] = useState(safeguards?.curfewStart ?? '');
+  const [curfewEnd, setCurfewEnd] = useState(safeguards?.curfewEnd ?? '');
   const [restrictedDMs, setRestrictedDMs] = useState(safeguards?.restrictedDirectMessages ?? true);
   const [monthlyBudget, setMonthlyBudget] = useState(safeguards?.monthlyBudget ?? 50);
   const [requireApproval, setRequireApproval] = useState(
@@ -33,10 +34,13 @@ export const FamilySafeguardsModal: React.FC<FamilySafeguardsModalProps> = ({
   const [profileLocked, setProfileLocked] = useState(safeguards?.profileLockedByParent ?? false);
 
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const ukrainian = useLanguageStore((state) => state.currentLanguage === 'Українська');
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   const handleSave = async () => {
     setIsSaving(true);
+    setSaveError(null);
     try {
       await familyApi.updateSafeguards(childId, {
         dailyLimitMinutes,
@@ -53,8 +57,12 @@ export const FamilySafeguardsModal: React.FC<FamilySafeguardsModalProps> = ({
       setTimeout(() => {
         onClose();
       }, 600);
-    } catch (err) {
-      console.error('Failed to update safeguards:', err);
+    } catch {
+      setSaveError(
+        ukrainian
+          ? 'Не вдалося зберегти обмеження. Перевірте з’єднання та повторіть спробу.'
+          : 'Could not save safeguards. Check your connection and try again.',
+      );
     } finally {
       setIsSaving(false);
     }
@@ -102,6 +110,7 @@ export const FamilySafeguardsModal: React.FC<FamilySafeguardsModalProps> = ({
             </div>
             <input
               type="range"
+              aria-label="Daily active minute limit"
               min={30}
               max={360}
               step={15}
@@ -150,6 +159,7 @@ export const FamilySafeguardsModal: React.FC<FamilySafeguardsModalProps> = ({
           <button
             type="button"
             role="switch"
+            aria-label="Restrict direct messages to mutual friends"
             aria-checked={restrictedDMs}
             onClick={() => setRestrictedDMs(!restrictedDMs)}
             style={{
@@ -168,7 +178,16 @@ export const FamilySafeguardsModal: React.FC<FamilySafeguardsModalProps> = ({
         </div>
 
         {/* 3. Spending Limit & Push Approval */}
-        <div className="flex flex-col gap-3.5 p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
+        <fieldset
+          disabled
+          className="flex flex-col gap-3.5 p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06]"
+        >
+          <legend className="sr-only">Purchases unavailable</legend>
+          <p className="text-xs text-gray-400">
+            {ukrainian
+              ? 'Платежі та погодження покупок недоступні.'
+              : 'Payments and purchase approvals are unavailable.'}
+          </p>
           <div className="flex items-center gap-2.5 text-sm font-bold text-white">
             <CreditCard size={16} className="text-white" />
             <span>Spending Limits & Purchases</span>
@@ -181,6 +200,7 @@ export const FamilySafeguardsModal: React.FC<FamilySafeguardsModalProps> = ({
             </div>
             <input
               type="range"
+              aria-label="Monthly budget unavailable"
               min={0}
               max={500}
               step={10}
@@ -204,6 +224,7 @@ export const FamilySafeguardsModal: React.FC<FamilySafeguardsModalProps> = ({
             <button
               type="button"
               role="switch"
+              aria-label="Purchase approval unavailable"
               aria-checked={requireApproval}
               onClick={() => setRequireApproval(!requireApproval)}
               style={{
@@ -220,7 +241,7 @@ export const FamilySafeguardsModal: React.FC<FamilySafeguardsModalProps> = ({
               />
             </button>
           </div>
-        </div>
+        </fieldset>
 
         {/* 4. Profile Privacy Lock */}
         <div className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
@@ -237,6 +258,7 @@ export const FamilySafeguardsModal: React.FC<FamilySafeguardsModalProps> = ({
           <button
             type="button"
             role="switch"
+            aria-label="Lock privacy settings"
             aria-checked={profileLocked}
             onClick={() => setProfileLocked(!profileLocked)}
             style={{
@@ -254,6 +276,16 @@ export const FamilySafeguardsModal: React.FC<FamilySafeguardsModalProps> = ({
           </button>
         </div>
 
+        <p className="text-xs text-gray-400">
+          {ukrainian
+            ? 'Ліміт враховує хвилини автентифікованих дій за UTC, а не весь час на пристрої. Обмеження не приховує вхідні сповіщення. Скарги, Сімейний центр і права щодо даних залишаються доступними.'
+            : 'Limits count minutes with authenticated activity in UTC, not total device time. Incoming notifications remain possible. Reports, Family Center and data rights remain accessible.'}
+        </p>
+        {saveError && (
+          <p role="alert" className="text-sm text-red-400">
+            {saveError}
+          </p>
+        )}
         {/* Footer Actions */}
         <div className="flex items-center justify-end gap-3 pt-2">
           <button
