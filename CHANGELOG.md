@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.14.1](https://github.com/rakuzan-knu/Eternal/compare/v1.14.0...v1.14.1) (2026-11-10)
+
+### 🐛 Bug Fixes
+
+* enforce retention and minimize completed service data ([#156](https://github.com/rakuzan-knu/Eternal/issues/156)) ([f293a05](https://github.com/rakuzan-knu/Eternal/commit/f293a05a18c24c530fb2b5c2d4b6546f8ed70838))
+
 ## [1.14.0](https://github.com/rakuzan-knu/Eternal/compare/v1.13.4...v1.14.0) (2026-11-08)
 
 ### ✨ Features
