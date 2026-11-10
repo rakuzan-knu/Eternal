@@ -13,7 +13,7 @@ describe('PrivacyPage', () => {
 
     // Assert main hero title exists
     expect(screen.getByText(/ETERNAL PRIVACY POLICY/i)).toBeInTheDocument();
-    expect(screen.getByText(/Updated: November 8, 2026/i)).toBeInTheDocument();
+    expect(screen.getByText(/Updated: November 10, 2026/i)).toBeInTheDocument();
 
     // Assert Section 1 & Section 2 titles in TOC and headers
     expect(screen.getAllByText(/Welcome to Eternal & The Basics/i).length).toBeGreaterThanOrEqual(

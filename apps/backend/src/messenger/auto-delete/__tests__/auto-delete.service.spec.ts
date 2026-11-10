@@ -91,25 +91,57 @@ describe('AutoDeleteService', () => {
     expect(mockGateway.emitMessageDeleted).toHaveBeenCalledWith('conv-1', 'msg-old-1', true);
   });
 
-  it('handles S3 delete error and purge error gracefully', async () => {
-    mockPrisma.user.findMany.mockResolvedValueOnce([
+  it('retains messages after storage failure and retries on the next sweep', async () => {
+    mockPrisma.user.findMany.mockResolvedValue([
       { id: 'usr-1', autoDeletePeriod: AutoDeletePeriod.DAY },
     ]);
 
     mockS3.send.mockRejectedValueOnce(new Error('S3 error'));
 
+    mockPrisma.message.findMany.mockResolvedValue([
+      {
+        id: 'msg-old-1',
+        conversationId: 'conv-1',
+        attachments: [{ url: 'https://s3.example.com/test-bucket/attachments/pic.jpg' }],
+      },
+    ]);
+
+    await service.sweep();
+    expect(mockPrisma.message.deleteMany).not.toHaveBeenCalled();
+    expect(mockGateway.emitMessageDeleted).not.toHaveBeenCalled();
+
+    await service.sweep();
+    expect(mockS3.send).toHaveBeenCalledTimes(2);
+    expect(mockPrisma.message.deleteMany).toHaveBeenCalledWith({
+      where: { id: { in: ['msg-old-1'] } },
+    });
+    expect(mockGateway.emitMessageDeleted).toHaveBeenCalledWith('conv-1', 'msg-old-1', true);
+  });
+
+  it('continues with other users when one user has a storage failure', async () => {
+    mockPrisma.user.findMany.mockResolvedValue([
+      { id: 'usr-1', autoDeletePeriod: AutoDeletePeriod.DAY },
+      { id: 'usr-2', autoDeletePeriod: AutoDeletePeriod.WEEK },
+    ]);
+    mockS3.send.mockRejectedValueOnce(new Error('Storage unavailable'));
     mockPrisma.message.findMany
       .mockResolvedValueOnce([
         {
-          id: 'msg-old-1',
+          id: 'failed',
           conversationId: 'conv-1',
           attachments: [{ url: 'https://s3.example.com/test-bucket/attachments/pic.jpg' }],
         },
       ])
-      .mockResolvedValueOnce([]);
+      .mockResolvedValueOnce([{ id: 'deleted', conversationId: 'conv-2', attachments: [] }]);
 
     await service.sweep();
-    expect(mockPrisma.message.deleteMany).toHaveBeenCalled();
+
+    expect(mockPrisma.message.deleteMany).toHaveBeenCalledTimes(1);
+    expect(mockPrisma.message.deleteMany).toHaveBeenCalledWith({
+      where: { id: { in: ['deleted'] } },
+    });
+    expect(mockGateway.emitMessageDeleted).toHaveBeenCalledTimes(1);
+    expect(mockGateway.emitMessageDeleted).toHaveBeenCalledWith('conv-2', 'deleted', true);
   });
 
   it('sweep skips tick if already running', async () => {

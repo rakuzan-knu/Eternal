@@ -133,7 +133,7 @@ export const TERMS_SECTIONS: TermsSection[] = [
         title: '5.1 Your Content & License to Eternal',
         content: [
           'You retain full intellectual property ownership of any photos, videos, stories, audio notes, and messages you upload to Eternal.',
-          'By submitting content, you grant Eternal a worldwide, royalty-free, non-exclusive license to host, store, display, format, and distribute that content solely for the purpose of operating, improving, and delivering the services to you and the audience you choose (such as public or approved followers).',
+          'By submitting content, you grant Eternal a worldwide, royalty-free, non-exclusive license to host, store, technically reproduce, format, display, and deliver that content solely as needed to provide the service features you choose and access for the audience you choose, in accordance with your settings. This license lasts only while the content is lawfully retained for those purposes under our Retention Policy. Personal data is processed on the applicable legal bases described in our Privacy Policy.',
         ],
       },
       {
@@ -480,7 +480,7 @@ export const TERMS_SECTIONS_UK: TermsSection[] = [
         title: '5.1 Права на ваш контент',
         content: [
           'Ви зберігаєте повні авторські права на всі фото, відео, історії та повідомлення, які ви публікуєте в Eternal.',
-          'Публікуючи матеріали, ви надаєте Eternal невиключну безоплатну ліцензію на відображення та доставку контенту вашій аудиторії (публічно або схваленим підписникам).',
+          'Публікуючи матеріали, ви надаєте Eternal всесвітню невиключну безоплатну ліцензію на розміщення, зберігання, технічне відтворення, форматування, відображення та доставку цього контенту виключно в обсязі, необхідному для надання обраних вами функцій сервісу та доступу обраній вами аудиторії відповідно до ваших налаштувань. Ліцензія діє лише протягом правомірного зберігання контенту для цих цілей згідно з Політикою зберігання. Персональні дані обробляються на відповідних правових підставах, описаних у Політиці приватності.',
         ],
       },
       {
@@ -656,13 +656,13 @@ export const TERMS_SECTIONS_UK: TermsSection[] = [
 export const TERMS_HERO: Record<'en' | 'uk', LegalDocumentHero> = {
   en: {
     title: "ETERNAL'S TERMS OF SERVICE",
-    effectiveDate: 'Updated: November 8, 2026',
+    effectiveDate: 'Updated: November 9, 2026',
     description:
       'These Terms of Service set forth our mutual legal agreement when you use Eternal’s visual feeds, instant chats, voice rooms, and music streaming. We made them clear, transparent, and user-first.',
   },
   uk: {
     title: 'УМОВИ ВИКОРИСТАННЯ ETERNAL',
-    effectiveDate: 'Оновлено: 8 листопада 2026 р.',
+    effectiveDate: 'Оновлено: 9 листопада 2026 р.',
     description:
       'Ці Умови використання регулюють використання стрічки публікацій, чатів, голосових кімнат та музики в Eternal. Ми зробили їх простими, прозорими та орієнтованими на користувача.',
   },

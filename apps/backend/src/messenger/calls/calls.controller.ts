@@ -9,7 +9,14 @@ import {
   UseGuards,
   Res,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import type { Response } from 'express';
 import { AuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
@@ -81,7 +88,8 @@ export class CallsController {
   @HttpCode(201)
   @ApiBearerAuth()
   @UseGuards(AuthGuard)
-  @ApiOperation({ summary: 'Submit call quality metrics and telemetry' })
+  @ApiOperation({ summary: 'Retired call quality telemetry endpoint', deprecated: true })
+  @ApiResponse({ status: 410, description: 'Call quality telemetry collection is disabled' })
   saveTelemetry(
     @CurrentUser() user: RequestUser,
     @Body() body: CreateCallTelemetryDto,

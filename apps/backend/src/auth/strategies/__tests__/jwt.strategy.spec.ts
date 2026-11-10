@@ -64,6 +64,23 @@ describe('JwtStrategy', () => {
     expect(mockUsersService.findById).toHaveBeenCalledWith('usr-100');
   });
 
+  it('rejects a previously authenticated user after the account is deleted', async () => {
+    const payload: AccessTokenPayload = {
+      sub: 'usr-deleted',
+      email: 'deleted@example.com',
+      username: 'deleted',
+      jti: 'existing-session',
+      type: 'access',
+    };
+    mockUsersService.findById
+      .mockResolvedValueOnce({ id: payload.sub, email: payload.email, username: payload.username })
+      .mockResolvedValueOnce(null);
+
+    await expect(strategy.validate(payload)).resolves.toMatchObject({ id: payload.sub });
+    await expect(strategy.validate(payload)).rejects.toThrow('User no longer exists');
+    expect(mockUsersService.findById).toHaveBeenCalledTimes(2);
+  });
+
   it('throws UnauthorizedException when payload type is not "access"', async () => {
     const invalidTypePayload = {
       sub: 'usr-100',

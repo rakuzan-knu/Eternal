@@ -17,8 +17,10 @@ describe('RetentionPolicyPage', () => {
     );
 
     expect(screen.getByText('DATA RETENTION POLICY')).toBeInTheDocument();
-    expect(screen.getByText(/Updated: November 5, 2026/i)).toBeInTheDocument();
-    expect(screen.getByText(/Verified deletion behaviour/i)).toBeInTheDocument();
+    expect(screen.getByText(/Updated: November 10, 2026/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Verified provider periods and deletion behaviour/i),
+    ).toBeInTheDocument();
   });
 
   it('renders all 5 retention policy sections in TOC and main content', () => {
@@ -37,7 +39,7 @@ describe('RetentionPolicyPage', () => {
     expect(screen.getAllByText('Your Rights and Contact').length).toBeGreaterThanOrEqual(1);
   });
 
-  it('renders specific operational retention timeframes (60 days, 30-45 days, 5 years)', () => {
+  it('distinguishes verified provider periods from unverified erasure guarantees', () => {
     render(
       <MemoryRouter>
         <RetentionPolicyPage />
@@ -45,10 +47,14 @@ describe('RetentionPolicyPage', () => {
     );
 
     expect(
-      screen.getAllByText(
-        /retention periods.*not yet confirmed|retention periods.*not yet complete|not yet verified and published/i,
-      ).length,
-    ).toBeGreaterThan(0);
+      screen.getByText(/expire temporary incoming uploads after one day/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Sentry Developer documents a 30-day period for newly ingested/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/No general 30-day or 45-day purge guarantee applies/i),
+    ).toBeInTheDocument();
     expect(screen.getByText(/no 15–30 day recovery window/i)).toBeInTheDocument();
     expect(screen.queryByText(/Age Verification Records:/i)).not.toBeInTheDocument();
   });

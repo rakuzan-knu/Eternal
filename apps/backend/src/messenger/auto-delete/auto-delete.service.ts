@@ -101,9 +101,9 @@ export class AutoDeleteService implements OnModuleInit, OnModuleDestroy {
 
       for (const message of messages) {
         for (const attachment of message.attachments) {
-          await this.deleteObjectByUrl(attachment.url).catch((e) =>
-            this.logger.warn(`Failed to delete S3 object ${attachment.url}: ${String(e)}`),
-          );
+          // Keep the database references when storage fails so a later sweep can retry.
+          // Object deletion is idempotent, including objects removed earlier in this batch.
+          await this.deleteObjectByUrl(attachment.url);
         }
       }
 
@@ -129,6 +129,7 @@ export class AutoDeleteService implements OnModuleInit, OnModuleDestroy {
       url,
       bucket: this.bucket,
       publicUrl: this.publicUrl,
+      strict: true,
     });
   }
 

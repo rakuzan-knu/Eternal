@@ -1,5 +1,5 @@
 /**
- * Production WebRTC Analytics & Alarming (Sentry & OpenTelemetry)
+ * Local WebRTC diagnostics
  *
  * Intercepts specific call termination and hardware failure modes:
  * - NotAllowedError: Microphone/Camera permission denied by user or OS
@@ -7,15 +7,12 @@
  * - NotReadableError: Camera/mic locked by another application (Zoom, Teams, etc.)
  * - RTCError / ICEFailure: DTLS/ICE handshake error, STUN/TURN unreachable
  *
- * Sends rich diagnostic context to Sentry and backend telemetry:
+ * Returns diagnostic context locally without sending it to external services:
  * - iceCandidateType (relay vs srflx vs host)
  * - Active audio and video codecs (Opus, VP9, AV1)
  * - Pre-disconnect packet loss ratio, RTT, and jitter
  * - Client OS and Browser fingerprint
  */
-
-import * as Sentry from '@sentry/react';
-import { apiClient } from '@/shared/api/httpClient';
 
 export type WebRTCErrorCategory =
   | 'PERMISSION_DENIED'
@@ -168,7 +165,7 @@ export class CallAlarming {
   }
 
   /**
-   * Capture and dispatch comprehensive call failure alarm to Sentry and Telemetry API
+   * Build local call failure context without uploading diagnostics.
    */
   public static async captureCallAlarm(params: {
     callId: string;
@@ -210,41 +207,6 @@ export class CallAlarming {
       networkType: navConn?.effectiveType || 'unknown',
       timestamp: new Date().toISOString(),
     };
-
-    // 1. Dispatch to Sentry
-    try {
-      Sentry.withScope((scope) => {
-        scope.setTag('webrtc.error_type', category);
-        scope.setTag('webrtc.candidate_type', context.iceCandidateType);
-        scope.setTag('webrtc.audio_codec', context.audioCodec);
-        scope.setTag('webrtc.video_codec', context.videoCodec);
-        scope.setTag('webrtc.network_type', context.networkType);
-        scope.setContext('webrtc_diagnostics', context as unknown as Record<string, unknown>);
-        scope.setLevel(category === 'PERMISSION_DENIED' ? 'warning' : 'error');
-
-        Sentry.captureException(errInstance);
-      });
-    } catch {
-      // Sentry dispatch ignored if not initialized
-    }
-
-    // 2. Dispatch structured telemetry to backend API
-    try {
-      void apiClient
-        .post('/calls/telemetry', {
-          callId,
-          avgRttMs: context.rttMs,
-          packetLossRatio: context.packetLossPercent / 100,
-          jitterMs: context.jitterMs,
-          audioCodec: context.audioCodec,
-          videoCodec: context.videoCodec,
-          durationMs: 0,
-          endReason: category,
-        })
-        .catch(() => {});
-    } catch {
-      // Telemetry dispatch failed
-    }
 
     return context;
   }

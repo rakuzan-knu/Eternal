@@ -35,7 +35,7 @@ Admission is an atomic Redis operation and fails closed when Redis is unavailabl
 Apply the additive `20261016090000_pending_media_objects` migration before deploying
 the registry-aware backend. With tracking enabled, completion records the final object
 in PostgreSQL before writing it to R2. Consumer validation atomically marks it retained before publishing
-content; cleanup cannot claim a retained object. A consumer that loses this race is
+content; ordinary unpublished-upload cleanup cannot claim a retained object. A consumer that loses this race is
 rejected before publication.
 
 Keep both `MEDIA_PENDING_TRACKING_ENABLED=false` and
@@ -48,7 +48,7 @@ budget and bounded storage timeouts. Failed deletions retain a durable retry rec
 Deleted-object tombstones expire after 30 days in bounded batches; registered object
 metadata still requires a registry record, so late consumers fail closed.
 
-This cleanup only covers newly tracked, unpublished uploads. It deliberately preserves
+By default this cleanup only covers newly tracked, unpublished uploads. It deliberately preserves
 historical objects and retained media, including a conservative retained object when a
 later content write fails. It does not reclaim media from deleted posts or reels.
 Do not add blanket lifecycle rules to `media/` or `reels/`.
@@ -91,6 +91,19 @@ private bucket; durable messages store `private-media://<uuid>`, never a signed 
 keeps orphan cleanup in the correct bucket. Private objects are registered even
 when general pending tracking is disabled; reclamation still needs both existing
 tracking/cleanup flags and R2 storage mode.
+
+Retained private uploads have a separate opt-in, `MEDIA_PRIVATE_ORPHAN_CLEANUP_ENABLED=false`
+by default. Deploy the shared pending-row publication fence to **all Messenger writers**
+(and any `all`-role instances) before enabling this flag on Core. It adds only completed,
+registered private uploads whose owner no longer exists and whose ID has no surviving
+`MessageAttachment.url` or `thumbnailUrl` reference anywhere, including forwarded copies.
+Cleanup locks the registry row and rechecks ownership and references after waiting;
+publication locks the same rows in key order and rechecks readiness and retained state.
+In-flight promotions, unregistered/legacy objects and public retained media are excluded.
+Storage failures keep both the locator and `DELETING` record for retry. Successful storage
+deletion removes the locator and records the existing bounded `DELETED` tombstone atomically.
+No retention periods change. Disable the new flag before rolling back the publication fence;
+the existing cleanup rollback procedure above still applies to in-flight deletion records.
 
 Authenticated `GET /uploads/direct/private/:id` issues a 60-second signed GET only
 when a visible, retained message reference and current channel membership permit

@@ -106,6 +106,7 @@ describe('env.validation', () => {
       SHARP_CACHE_MEMORY_MB: '0',
     });
     expect(result.MEDIA_ORPHAN_CLEANUP_ENABLED).toBe('false');
+    expect(result.MEDIA_PRIVATE_ORPHAN_CLEANUP_ENABLED).toBe('false');
     expect(result.COMPUTE_WORKER_POOL_SIZE).toBe(1);
     expect(result.SHARP_CACHE_MEMORY_MB).toBe(0);
     for (const invalid of [
@@ -113,6 +114,7 @@ describe('env.validation', () => {
       { SHARP_CONCURRENCY: '99' },
       { SHARP_CACHE_MEMORY_MB: '-1' },
       { MEDIA_ORPHAN_CLEANUP_ENABLED: 'yes' },
+      { MEDIA_PRIVATE_ORPHAN_CLEANUP_ENABLED: 'yes' },
     ])
       expect(() => validateEnv({ ...validBaseConfig, ...invalid })).toThrow();
   });

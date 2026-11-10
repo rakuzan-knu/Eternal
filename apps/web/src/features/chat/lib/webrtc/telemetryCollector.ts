@@ -2,10 +2,8 @@
  * WebRTC Telemetry Collector
  *
  * Aggregates call quality metrics (RTT, packet loss, jitter, codecs, duration)
- * and dispatches them to POST /calls/telemetry upon call termination.
+ * for local use upon call termination. Metrics are not uploaded.
  */
-
-import { apiClient } from '@/shared/api/httpClient';
 
 export interface TelemetryData {
   callId: string;
@@ -101,12 +99,6 @@ export class TelemetryCollector {
       durationMs,
       endReason,
     };
-
-    try {
-      await apiClient.post('/calls/telemetry', payload);
-    } catch {
-      // Ignore background telemetry errors
-    }
 
     return payload;
   }
