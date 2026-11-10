@@ -300,12 +300,12 @@ jobs:
             -e POSTGRES_DB=private_orphan_test postgres:17-alpine
           trap 'docker rm -f "$fixture" >/dev/null' EXIT
           for attempt in $(seq 1 30); do
-            if docker exec "$fixture" pg_isready -U private_orphan_fixture -d private_orphan_test >/dev/null; then
+            if docker exec "$fixture" pg_isready -h 127.0.0.1 -U private_orphan_fixture -d private_orphan_test >/dev/null; then
               break
             fi
             sleep 1
           done
-          docker exec "$fixture" pg_isready -U private_orphan_fixture -d private_orphan_test
+          docker exec "$fixture" pg_isready -h 127.0.0.1 -U private_orphan_fixture -d private_orphan_test
           PRIVATE_ORPHAN_TEST_DATABASE_URL=postgresql://private_orphan_fixture:synthetic-ci-only@127.0.0.1:15487/private_orphan_test \
             pnpm exec vitest run --project=backend apps/backend/src/common/media/private-orphan.postgres.spec.ts
 
