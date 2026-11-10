@@ -291,7 +291,7 @@ jobs:
       - name: Verify backup restore failure handling
         run: node --test scripts/db/__tests__/verify-backup.test.mjs
 
-      - name: Verify private media cleanup races on isolated PostgreSQL
+      - name: Verify media and outbox races on isolated PostgreSQL
         run: |
           fixture=eternal-private-orphan-ci
           docker run -d --name "$fixture" -p 127.0.0.1:15487:5432 \
@@ -307,7 +307,9 @@ jobs:
           done
           docker exec "$fixture" pg_isready -h 127.0.0.1 -U private_orphan_fixture -d private_orphan_test
           PRIVATE_ORPHAN_TEST_DATABASE_URL=postgresql://private_orphan_fixture:synthetic-ci-only@127.0.0.1:15487/private_orphan_test \
-            pnpm exec vitest run --project=backend apps/backend/src/common/media/private-orphan.postgres.spec.ts
+            pnpm exec vitest run --project=backend \
+              apps/backend/src/common/media/private-orphan.postgres.spec.ts \
+              apps/backend/src/common/outbox/__tests__/outbox-repository.postgres.spec.ts
 
       - name: Verify unread projection against isolated PostgreSQL
         run: |

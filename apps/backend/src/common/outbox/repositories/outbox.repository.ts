@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@common/prisma';
-import { OutboxStatus, type OutboxEvent, type Prisma } from '@prisma/client';
+import { OutboxStatus, Prisma, type OutboxEvent } from '@prisma/client';
 import type {
   CreateOutboxEventInput,
   IOutboxRepository,
@@ -54,22 +54,17 @@ export class OutboxRepository implements IOutboxRepository {
 
   async claimPendingEvents(batchSize: number, maxRetries: number): Promise<OutboxEvent[]> {
     return this.prisma.$transaction(async (tx) => {
-      const candidateEvents = await tx.outboxEvent.findMany({
-        where: {
-          eventType: {
-            notIn: [...TELEMETRY_EVENTS, ...MESSAGE_BODY_EVENTS, 'public_search.user.sync'],
-          },
-          OR: [
-            { status: OutboxStatus.PENDING },
-            {
-              status: OutboxStatus.FAILED,
-              retryCount: { lt: maxRetries },
-            },
-          ],
-        },
-        orderBy: [{ createdAt: 'asc' }],
-        take: batchSize,
-      });
+      const candidateEvents = await tx.$queryRaw<OutboxEvent[]>(Prisma.sql`
+        SELECT id, aggregate_type AS "aggregateType", aggregate_id AS "aggregateId",
+          event_type AS "eventType", payload, headers, status, retry_count AS "retryCount",
+          last_error AS "lastError", processed_at AS "processedAt", created_at AS "createdAt",
+          updated_at AS "updatedAt"
+        FROM outbox_events
+        WHERE event_type NOT IN (${Prisma.join([...TELEMETRY_EVENTS, ...MESSAGE_BODY_EVENTS, 'public_search.user.sync'])})
+          AND (status = 'PENDING' OR (status = 'FAILED' AND retry_count < ${maxRetries}))
+        ORDER BY created_at ASC LIMIT ${batchSize}
+        FOR UPDATE SKIP LOCKED
+      `);
 
       if (candidateEvents.length === 0) {
         return [];
@@ -77,7 +72,10 @@ export class OutboxRepository implements IOutboxRepository {
 
       const eventIds = candidateEvents.map((e) => e.id);
       await tx.outboxEvent.updateMany({
-        where: { id: { in: eventIds } },
+        where: {
+          id: { in: eventIds },
+          status: { in: [OutboxStatus.PENDING, OutboxStatus.FAILED] },
+        },
         data: {
           status: OutboxStatus.PROCESSING,
           updatedAt: new Date(),
@@ -89,18 +87,22 @@ export class OutboxRepository implements IOutboxRepository {
   }
 
   async markAsPublished(eventId: string): Promise<void> {
-    // Delivery needs the complete view until it succeeds. Retain IDs, not a second permanent body.
+    // Delivery/retries need the full payload until success. Only known ordinary
+    // terminal events can discard content; specialized/unknown consumers retain theirs.
     await this.prisma.$executeRaw`
       UPDATE outbox_events SET status = 'PUBLISHED', processed_at = NOW(), updated_at = NOW(),
-        last_error = NULL, payload = CASE WHEN event_type = 'MESSAGE_SENT'
-          THEN payload - 'messageView' ELSE payload END
-      WHERE id = ${eventId}
+        last_error = NULL,
+        payload = CASE WHEN event_type IN ('COMMUNITY_CHANGED', 'POST_CREATED', 'MESSAGE_SENT', 'NOTIFICATION_CREATED')
+          THEN '{}'::jsonb ELSE payload END,
+        headers = CASE WHEN event_type IN ('COMMUNITY_CHANGED', 'POST_CREATED', 'MESSAGE_SENT', 'NOTIFICATION_CREATED')
+          THEN NULL ELSE headers END
+      WHERE id = ${eventId} AND status = 'PROCESSING'
     `;
   }
 
   async markAsFailed(eventId: string, error: string): Promise<void> {
-    await this.prisma.outboxEvent.update({
-      where: { id: eventId },
+    await this.prisma.outboxEvent.updateMany({
+      where: { id: eventId, status: OutboxStatus.PROCESSING },
       data: {
         status: OutboxStatus.FAILED,
         retryCount: { increment: 1 },
