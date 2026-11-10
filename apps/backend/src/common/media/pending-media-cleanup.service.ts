@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import type { OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 import { DeleteObjectCommand } from '@aws-sdk/client-s3';
@@ -8,7 +9,7 @@ import { R2StorageService } from '../storage/r2-storage.service';
 import { PendingMediaRepository } from './pending-media.repository';
 
 @Injectable()
-export class PendingMediaCleanupService {
+export class PendingMediaCleanupService implements OnModuleInit {
   private readonly logger = new Logger(PendingMediaCleanupService.name);
   private running = false;
 
@@ -18,6 +19,15 @@ export class PendingMediaCleanupService {
     private readonly r2: R2StorageService,
     private readonly config: ConfigService,
   ) {}
+
+  onModuleInit(): void {
+    if (!runsBackground('core')) return;
+    // Sleeping instances can miss the hourly cron. Reuse the bounded pass
+    // without delaying API startup or promising a cleanup deadline.
+    void this.cleanup().catch(() => {
+      this.logger.warn('Pending media startup cleanup unavailable');
+    });
+  }
 
   @Cron('20 * * * *')
   async cleanup(): Promise<void> {
@@ -54,6 +64,7 @@ export class PendingMediaCleanupService {
           this.logger.warn('Pending media cleanup will retry an object');
         }
       }
+      this.logger.log('Pending media cleanup pass completed');
     } catch {
       this.logger.warn('Pending media cleanup unavailable');
     } finally {

@@ -1,4 +1,5 @@
 import { Test } from '@nestjs/testing';
+import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { StorageService } from '../storage/storage.service';
@@ -41,7 +42,67 @@ describe('pending media cleanup', () => {
     }).compile();
     cleanup = module.get(PendingMediaCleanupService);
   });
-  afterEach(() => vi.unstubAllEnvs());
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllEnvs();
+  });
+
+  it('starts a best-effort Core pass without blocking module initialization', async () => {
+    let finish: (() => void) | undefined;
+    const work = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    const run = vi.spyOn(cleanup, 'cleanup').mockReturnValue(work);
+    expect(cleanup.onModuleInit()).toBeUndefined();
+    expect(run).toHaveBeenCalledTimes(1);
+    finish?.();
+    await work;
+  });
+
+  it.each([
+    ['messenger', 'true'],
+    ['reels', 'true'],
+    ['music', 'true'],
+    ['core', 'false'],
+  ])('does not invoke startup cleanup on %s with background=%s', (role, background) => {
+    vi.stubEnv('SERVICE_ROLE', role);
+    vi.stubEnv('BACKGROUND_ENABLED', background);
+    const run = vi.spyOn(cleanup, 'cleanup');
+    cleanup.onModuleInit();
+    expect(run).not.toHaveBeenCalled();
+    expect(pending.pruneDeleted).not.toHaveBeenCalled();
+  });
+
+  it.each(['MEDIA_PENDING_TRACKING_ENABLED', 'MEDIA_ORPHAN_CLEANUP_ENABLED'])(
+    'keeps startup passive while %s is disabled',
+    (flag) => {
+      config.set(flag, 'false');
+      cleanup.onModuleInit();
+      expect(pending.pruneDeleted).not.toHaveBeenCalled();
+      expect(send).not.toHaveBeenCalled();
+    },
+  );
+
+  it('reuses the running guard and logs a completed startup pass without object data', async () => {
+    const log = vi.spyOn(Logger.prototype, 'log').mockImplementation(() => {});
+    cleanup.onModuleInit();
+    await cleanup.cleanup();
+    await vi.waitFor(() =>
+      expect(log).toHaveBeenCalledWith('Pending media cleanup pass completed'),
+    );
+    expect(pending.candidates).toHaveBeenCalledTimes(1);
+    expect(pending.deleted).toHaveBeenCalledWith('media/post/abandoned.webp');
+  });
+
+  it('handles an unexpected startup rejection without logging its contents', async () => {
+    const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
+    vi.spyOn(cleanup, 'cleanup').mockRejectedValue(new Error('sensitive internal details'));
+    cleanup.onModuleInit();
+    await vi.waitFor(() =>
+      expect(warn).toHaveBeenCalledWith('Pending media startup cleanup unavailable'),
+    );
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
 
   it('is disabled unless explicitly enabled after the coordinated consumer rollout', async () => {
     config.set('MEDIA_ORPHAN_CLEANUP_ENABLED', 'false');
