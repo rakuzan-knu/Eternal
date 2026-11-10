@@ -10,6 +10,7 @@ import type {
 import {
   BadRequestException,
   ForbiddenException,
+  GoneException,
   forwardRef,
   Inject,
   Injectable,
@@ -426,56 +427,8 @@ export class CallsService {
     return { iceServers };
   }
 
-  async saveTelemetry(userId: string, dto: CreateCallTelemetryDto): Promise<CallTelemetryView> {
-    const call = await this.callsRepo.findCallById(dto.callId);
-    if (!call) {
-      this.logger.debug(`Telemetry for unknown call ${dto.callId} from user ${userId} — ignoring`);
-      return {
-        id: '',
-        callId: dto.callId,
-        userId,
-        avgRttMs: dto.avgRttMs,
-        maxRttMs: dto.maxRttMs ?? null,
-        packetLossRatio: dto.packetLossRatio,
-        jitterMs: dto.jitterMs ?? null,
-        audioCodec: dto.audioCodec ?? null,
-        videoCodec: dto.videoCodec ?? null,
-        durationMs: dto.durationMs,
-        endReason: dto.endReason ?? null,
-        createdAt: new Date(),
-      };
-    }
-
-    const isMember = call.participants.some((p) => p.userId === userId);
-    if (!isMember) throw new ForbiddenException('Not a participant of this call');
-
-    const record = await this.callsRepo.saveTelemetry({
-      callId: dto.callId,
-      userId,
-      avgRttMs: dto.avgRttMs,
-      maxRttMs: dto.maxRttMs ?? null,
-      packetLossRatio: dto.packetLossRatio,
-      jitterMs: dto.jitterMs ?? null,
-      audioCodec: dto.audioCodec ?? null,
-      videoCodec: dto.videoCodec ?? null,
-      durationMs: dto.durationMs,
-      endReason: dto.endReason ?? null,
-    });
-
-    return {
-      id: record.id,
-      callId: record.callId,
-      userId: record.userId,
-      avgRttMs: record.avgRttMs,
-      maxRttMs: record.maxRttMs,
-      packetLossRatio: record.packetLossRatio,
-      jitterMs: record.jitterMs,
-      audioCodec: record.audioCodec,
-      videoCodec: record.videoCodec,
-      durationMs: record.durationMs,
-      endReason: record.endReason,
-      createdAt: record.createdAt,
-    };
+  saveTelemetry(_userId: string, _dto: CreateCallTelemetryDto): Promise<CallTelemetryView> {
+    return Promise.reject(new GoneException('Call quality telemetry collection is disabled'));
   }
 
   async getUserTelemetrySummary(userId: string): Promise<CallQualitySummaryView> {

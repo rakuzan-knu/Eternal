@@ -1,17 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { afterEach, describe, it, expect, vi, beforeEach } from 'vitest';
 import { CallAlarming } from '../webrtc/callAlarming';
 import * as Sentry from '@sentry/react';
 import { apiClient } from '@/shared/api/httpClient';
 
 vi.mock('@sentry/react', () => ({
-  withScope: vi.fn((cb: (scope: any) => void) => {
-    const scope = {
-      setTag: vi.fn(),
-      setContext: vi.fn(),
-      setLevel: vi.fn(),
-    };
-    cb(scope);
-  }),
+  withScope: vi.fn(),
   captureException: vi.fn(),
 }));
 
@@ -21,10 +14,13 @@ vi.mock('@/shared/api/httpClient', () => ({
   },
 }));
 
-describe('CallAlarming (Sentry & OpenTelemetry WebRTC Diagnostics)', () => {
+describe('CallAlarming local WebRTC diagnostics', () => {
+  const fetch = vi.fn();
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal('fetch', fetch);
   });
+  afterEach(() => vi.unstubAllGlobals());
 
   describe('categorizeError', () => {
     it('categorizes NotAllowedError as PERMISSION_DENIED', () => {
@@ -109,7 +105,7 @@ describe('CallAlarming (Sentry & OpenTelemetry WebRTC Diagnostics)', () => {
   });
 
   describe('captureCallAlarm', () => {
-    it('dispatches rich context to Sentry and POST /calls/telemetry', async () => {
+    it('returns local error context without sending diagnostics to Sentry or the API', async () => {
       const err = new Error('Microphone permission denied');
       err.name = 'NotAllowedError';
 
@@ -125,18 +121,12 @@ describe('CallAlarming (Sentry & OpenTelemetry WebRTC Diagnostics)', () => {
       expect(context.errorMessage).toBe('Microphone permission denied');
       expect(context.errorName).toBe('NotAllowedError');
 
-      // Verify Sentry was called
-      expect(Sentry.withScope).toHaveBeenCalled();
-      expect(Sentry.captureException).toHaveBeenCalledWith(err);
-
-      // Verify Telemetry API was notified
-      expect(apiClient.post).toHaveBeenCalledWith(
-        '/calls/telemetry',
-        expect.objectContaining({
-          callId: 'call-alarm-123',
-          endReason: 'PERMISSION_DENIED',
-        }),
-      );
+      expect(context.userId).toBe('usr-1');
+      expect(context.remoteUserId).toBe('usr-2');
+      expect(Sentry.withScope).not.toHaveBeenCalled();
+      expect(Sentry.captureException).not.toHaveBeenCalled();
+      expect(apiClient.post).not.toHaveBeenCalled();
+      expect(fetch).not.toHaveBeenCalled();
     });
   });
 });
