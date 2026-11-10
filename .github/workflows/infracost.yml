@@ -30,7 +30,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Infracost
-        uses: infracost/actions/setup@fb736a8f219195d6efdca58682069b16fe1bc280 # v3.0.0
+        uses: infracost/actions/setup@a5783eb98adc93aa7a0049fce0abb06fdd30770a # v3.0.0
         with:
           api-key: ${{ secrets.INFRACOST_API_KEY }}
 
