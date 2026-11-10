@@ -36,10 +36,10 @@ export const RETENTION_POLICY_DATA: Record<'en' | 'uk', RetentionPolicyTranslati
     hero: {
       archivedLink: 'Retention and deletion',
       title: 'DATA RETENTION POLICY',
-      effectiveDate: 'Updated: November 5, 2026',
-      lastUpdated: 'Updated: November 5, 2026',
+      effectiveDate: 'Updated: November 10, 2026',
+      lastUpdated: 'Updated: November 10, 2026',
       description:
-        'Verified deletion behaviour and remaining retention gaps. Exact backup, media, and log retention periods are not yet confirmed.',
+        'Verified provider periods and deletion behaviour, with remaining limits for media, backups and support records.',
     },
     toc: {
       contents: 'Table of Contents',
@@ -87,13 +87,16 @@ export const RETENTION_POLICY_DATA: Record<'en' | 'uk', RetentionPolicyTranslati
         number: '3',
         title: 'Backups, Media and Other Retention',
         iconName: 'Clock',
-        tldr: 'Exact backup and media-purge periods have not been verified.',
+        tldr: 'Some provider periods are confirmed; deletion of every copy is not guaranteed.',
         subsections: [
           {
             id: 'specific-retention-periods-details',
             title: 'Backups, Media and Other Retention',
             content: [
-              'The operators have not yet verified and published the actual retention periods for backups, stored media, diagnostic logs, moderation records, and support correspondence. No 30-day or 45-day guarantee applies by virtue of this notice.',
+              'As checked on November 9–10, 2026, Cloudflare R2 rules expire temporary incoming uploads after one day and abort incomplete multipart uploads after seven days. These rules do not erase all final media.',
+              'Unpublished uploads become eligible for application cleanup after two days. Cleanup runs in bounded passes when the service is running, so eligibility is not a guaranteed deletion deadline. Completed private media can be removed after its owner is deleted only when no remaining chat attachment references it. Complete erasure of public or older media has not been verified.',
+              'The current Render Hobby log period is seven days. Sentry Developer documents a 30-day period for newly ingested errors, logs, spans and transactions; historical retention depends on the plan when an event was received. Account deletion does not by itself erase provider copies.',
+              'There is no verified single expiry period for all backup copies, moderation records or support mail. After a support decision has been carried out and answered, unnecessary attachments and details should be removed; a minimal record may remain only for a specific continuing need, such as a dispute. Backup recovery must respect later deletion decisions. No general 30-day or 45-day purge guarantee applies.',
               'Eternal does not currently offer paid services or an identity-document age-verification process. This policy does not claim that billing records or submitted identity documents are routinely collected. Do not email an identity document unless a necessary, proportionate verification process has first been explained.',
               'Any lawful preservation for a legal obligation or claim needs an applicable basis, a defined purpose, access controls, and a limited retention period. This notice does not grant an unlimited right to retain data or use it to train safety systems.',
             ],
@@ -140,10 +143,10 @@ export const RETENTION_POLICY_DATA: Record<'en' | 'uk', RetentionPolicyTranslati
     hero: {
       archivedLink: 'Зберігання та видалення',
       title: 'ПОЛІТИКА ЗБЕРІГАННЯ ТА ВИДАЛЕННЯ ДАНИХ',
-      effectiveDate: 'Оновлено: 5 листопада 2026 р.',
-      lastUpdated: 'Оновлено: 5 листопада 2026 р.',
+      effectiveDate: 'Оновлено: 10 листопада 2026 р.',
+      lastUpdated: 'Оновлено: 10 листопада 2026 р.',
       description:
-        'Підтверджена поведінка видалення та невирішені питання зберігання. Точні строки для резервних копій, медіа й журналів ще не підтверджено.',
+        'Підтверджені строки провайдерів і поведінка видалення та невирішені питання медіа, резервних копій і звернень підтримки.',
     },
     toc: {
       contents: 'Зміст',
@@ -191,13 +194,16 @@ export const RETENTION_POLICY_DATA: Record<'en' | 'uk', RetentionPolicyTranslati
         number: '3',
         title: 'Резервні копії, медіа та інше зберігання',
         iconName: 'Clock',
-        tldr: 'Точні строки очищення резервних копій і медіа не перевірено.',
+        tldr: 'Частину строків провайдерів підтверджено; видалення кожної копії не гарантоване.',
         subsections: [
           {
             id: 'specific-retention-periods-details',
             title: 'Резервні копії, медіа та інше зберігання',
             content: [
-              'Оператори ще не перевірили й не опублікували фактичні строки зберігання резервних копій, медіа, діагностичних журналів, записів модерації та листування підтримки. Це повідомлення не встановлює гарантії очищення за 30 чи 45 днів.',
+              'За перевіркою 9–10 листопада 2026 року правила Cloudflare R2 передбачають видалення тимчасових вхідних завантажень через один день і переривання незавершених багаточастинних завантажень через сім днів. Ці правила не стирають усі остаточні медіафайли.',
+              'Неопубліковані завантаження підлягають прикладному очищенню після двох днів. Очищення виконується обмеженими проходами, коли сервіс працює, тому це не гарантований строк видалення. Завершені приватні медіа можна прибрати після видалення власника лише за відсутності посилань із вкладень чату. Повне очищення публічних або старіших медіа не підтверджене.',
+              'Поточний строк журналів Render Hobby — сім днів. Sentry Developer документує 30 днів для нових помилок, журналів, spans і transactions; історичне зберігання залежить від тарифу на момент надходження події. Видалення акаунта саме по собі не стирає копії провайдера.',
+              'Єдиного підтвердженого строку для всіх резервних копій, записів модерації та листів підтримки немає. Після виконання рішення за зверненням і відповіді зайві вкладення та відомості мають прибиратися; мінімальний запис може залишатися лише для конкретної чинної потреби, наприклад спору. Відновлення резервної копії має враховувати пізніші рішення про видалення. Загальної гарантії очищення за 30 чи 45 днів немає.',
               'Eternal наразі не пропонує платних послуг або перевірки віку через документи. Політика не стверджує, що платіжні записи чи копії документів регулярно збираються. Не надсилайте документ поштою без попереднього пояснення необхідної та пропорційної процедури перевірки.',
               'Будь-яке правомірне збереження для законного обов’язку чи спору потребує застосовної підстави, визначеної мети, обмеження доступу та строку зберігання. Повідомлення не надає необмеженого права зберігати дані чи навчати на них системи безпеки.',
             ],

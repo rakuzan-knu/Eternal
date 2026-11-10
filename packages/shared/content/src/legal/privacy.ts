@@ -77,7 +77,7 @@ export const PRIVACY_SECTIONS_EN: PrivacySection[] = [
         title: '2.2 Live voice and video calls',
         content: [
           'Voice and video rooms are real-time audio and video sessions built on low-latency WebRTC streams.',
-          'Eternal does not make server-side recordings of live call audio or video. Call quality diagnostics and temporary screen-share previews may be processed separately. Voice and video messages you choose to send are stored as chat attachments.',
+          'Eternal does not make server-side recordings of live call audio or video. Updated app versions keep call-quality diagnostics on your device without uploading them to Eternal or Sentry. Reload an older open web version to receive this change. Earlier diagnostic records and provider logs are subject to the Retention Policy. Temporary screen-share previews may be processed separately. Voice and video messages you choose to send are stored as chat attachments.',
         ],
       },
       {
@@ -386,7 +386,7 @@ export const PRIVACY_SECTIONS_UK: PrivacySection[] = [
         title: '2.2 Голосові та відеодзвінки наживо',
         content: [
           'Голосові та відеокімнати транслюються наживо через WebRTC з мінімальною затримкою.',
-          'Eternal не створює серверних записів аудіо чи відео дзвінків наживо. Діагностика якості дзвінків і тимчасові зображення демонстрації екрана можуть оброблятися окремо. Надіслані вами голосові та відеоповідомлення зберігаються як вкладення чату.',
+          'Eternal не створює серверних записів аудіо чи відео дзвінків наживо. Оновлені версії застосунку залишають діагностику якості дзвінків на вашому пристрої без надсилання до Eternal чи Sentry. Перезавантажте стару відкриту вебверсію, щоб отримати цю зміну. Попередні діагностичні записи й журнали провайдерів підпадають під Політику зберігання. Тимчасові зображення демонстрації екрана можуть оброблятися окремо. Надіслані вами голосові та відеоповідомлення зберігаються як вкладення чату.',
         ],
       },
       {
@@ -631,13 +631,13 @@ export const PRIVACY_SECTIONS_UK: PrivacySection[] = [
 export const PRIVACY_HERO: Record<'en' | 'uk', LegalDocumentHero> = {
   en: {
     title: 'ETERNAL PRIVACY POLICY',
-    effectiveDate: 'Updated: November 8, 2026',
+    effectiveDate: 'Updated: November 10, 2026',
     description:
       'We built Eternal with transparency, security, and user control at the forefront. This policy outlines how your feeds, messages, voice channels, and music integrations are handled, and how you remain in complete control of your data.',
   },
   uk: {
     title: 'ПОЛІТИКА КОНФІДЕНЦІЙНОСТІ ETERNAL',
-    effectiveDate: 'Оновлено: 8 листопада 2026 р.',
+    effectiveDate: 'Оновлено: 10 листопада 2026 р.',
     description:
       'Ми створили Eternal із турботою про прозорість, безпеку та повний контроль даних. Тут зрозумілою мовою описано, як обробляються ваші публікації, чати, голосові канали та музика, а також як ви зберігаєте повний контроль над своєю інформацією.',
   },
