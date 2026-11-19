@@ -2558,13 +2558,13 @@
         "apps/web/src/features/profile/ui/ProfileCustomizeSettingsSection.tsx:4981",
         "apps/web/src/features/profile/ui/ProfileCustomizeSettingsSection.tsx:5013",
         "apps/web/src/features/profile/ui/ProfileCustomizeSettingsSection.tsx:806",
-        "apps/web/src/features/profile/ui/account/FamilySafeguardsModal.tsx:65",
-        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:415",
-        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:519",
-        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:660",
-        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:697",
-        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:758",
-        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:843",
+        "apps/web/src/features/profile/ui/account/FamilySafeguardsModal.tsx:73",
+        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:422",
+        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:526",
+        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:667",
+        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:704",
+        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:765",
+        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:850",
         "apps/web/src/pages/Shop/ui/ShopItemModal.tsx:628",
         "apps/web/src/pages/Shop/ui/ShopItemModal.tsx:695",
         "apps/web/src/pages/Shop/ui/ShopItemModal.tsx:708",
@@ -6215,24 +6215,24 @@
         "apps/web/src/features/profile/ui/ProfileCustomizeSettingsSection.tsx:1658",
         "apps/web/src/features/profile/ui/ProfileCustomizeSettingsSection.tsx:808",
         "apps/web/src/features/profile/ui/account/FamilyActivityTab.tsx:93",
-        "apps/web/src/features/profile/ui/account/FamilySafeguardsModal.tsx:110",
-        "apps/web/src/features/profile/ui/account/FamilySafeguardsModal.tsx:156",
-        "apps/web/src/features/profile/ui/account/FamilySafeguardsModal.tsx:189",
-        "apps/web/src/features/profile/ui/account/FamilySafeguardsModal.tsx:210",
-        "apps/web/src/features/profile/ui/account/FamilySafeguardsModal.tsx:243",
-        "apps/web/src/features/profile/ui/account/FamilySafeguardsModal.tsx:270",
-        "apps/web/src/features/profile/ui/account/FamilySettingsTab.tsx:125",
-        "apps/web/src/features/profile/ui/account/FamilySettingsTab.tsx:161",
-        "apps/web/src/features/profile/ui/account/FamilySettingsTab.tsx:198",
-        "apps/web/src/features/profile/ui/account/FamilySettingsTab.tsx:234",
-        "apps/web/src/features/profile/ui/account/FamilySettingsTab.tsx:271",
-        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:293",
-        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:311",
-        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:353",
-        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:387",
-        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:579",
-        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:620",
-        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:743",
+        "apps/web/src/features/profile/ui/account/FamilySafeguardsModal.tsx:119",
+        "apps/web/src/features/profile/ui/account/FamilySafeguardsModal.tsx:166",
+        "apps/web/src/features/profile/ui/account/FamilySafeguardsModal.tsx:209",
+        "apps/web/src/features/profile/ui/account/FamilySafeguardsModal.tsx:231",
+        "apps/web/src/features/profile/ui/account/FamilySafeguardsModal.tsx:265",
+        "apps/web/src/features/profile/ui/account/FamilySafeguardsModal.tsx:302",
+        "apps/web/src/features/profile/ui/account/FamilySettingsTab.tsx:126",
+        "apps/web/src/features/profile/ui/account/FamilySettingsTab.tsx:164",
+        "apps/web/src/features/profile/ui/account/FamilySettingsTab.tsx:201",
+        "apps/web/src/features/profile/ui/account/FamilySettingsTab.tsx:239",
+        "apps/web/src/features/profile/ui/account/FamilySettingsTab.tsx:89",
+        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:300",
+        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:318",
+        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:360",
+        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:394",
+        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:586",
+        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:627",
+        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:750",
         "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1130",
         "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1204",
         "apps/web/src/features/profile/ui/integrations/ConfigureIntegrationModal.tsx:1220",
@@ -6429,7 +6429,7 @@
         "apps/web/src/features/profile/ui/ProfileShowcaseSettingsSection.tsx:167",
         "apps/web/src/features/profile/ui/ProfileShowcaseSettingsSection.tsx:183",
         "apps/web/src/features/profile/ui/ProfileShowcaseSettingsSection.tsx:26",
-        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:566",
+        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:573",
         "apps/web/src/features/stories/ui/StoryMusicCustomizerModal.tsx:396",
         "apps/web/src/features/stories/ui/StoryViewerModal.tsx:1742",
         "apps/web/src/features/stories/ui/StoryViewerModal.tsx:982",
@@ -7090,7 +7090,7 @@
         "apps/web/src/features/music/ui/MusicSearchResultsView.tsx:1061",
         "apps/web/src/features/music/ui/MusicSearchResultsView.tsx:1444",
         "apps/web/src/features/profile/ui/account/FamilyActivityTab.tsx:112",
-        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:266",
+        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:273",
         "apps/web/src/features/profile/ui/appearance/AccentThemesSection.tsx:164",
         "apps/web/src/features/profile/ui/appearance/AccentThemesSection.tsx:44",
         "apps/web/src/features/stories/lib/storyMusicUtils.ts:9",
@@ -10445,14 +10445,14 @@
         "apps/web/src/features/profile/ui/ProfileCustomizeSettingsSection.tsx:909",
         "apps/web/src/features/profile/ui/ProfileCustomizeSettingsSection.tsx:925",
         "apps/web/src/features/profile/ui/account/FamilyActivityTab.tsx:94",
-        "apps/web/src/features/profile/ui/account/FamilySafeguardsModal.tsx:270",
-        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:294",
-        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:312",
-        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:354",
-        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:388",
-        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:580",
-        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:621",
-        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:744",
+        "apps/web/src/features/profile/ui/account/FamilySafeguardsModal.tsx:302",
+        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:301",
+        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:319",
+        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:361",
+        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:395",
+        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:587",
+        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:628",
+        "apps/web/src/features/profile/ui/account/MyFamilyTab.tsx:751",
         "apps/web/src/features/profile/ui/voice/VoiceVideoTab.tsx:2007",
         "apps/web/src/features/profile/ui/voice/VoiceVideoTab.tsx:2008",
         "apps/web/src/features/profile/ui/voice/VoiceVideoTab.tsx:2009",
@@ -89356,107 +89356,107 @@
           "expression": "\"text-xs text-gray-500 dark:text-gray-400 mt-0.5\""
         },
         {
-          "line": 350,
+          "line": 351,
           "attribute": "className",
           "expression": "{`flex items-start gap-4 p-4 transition-colors ${rowBaseStyle}`}"
         },
         {
-          "line": 351,
+          "line": 352,
           "attribute": "className",
           "expression": "\"w-9 h-9 rounded-xl bg-black/5 dark:bg-white/10 flex items-center justify-center shrink-0 mt-0.5 text-gray-950 dark:text-white\""
         },
         {
-          "line": 352,
+          "line": 353,
           "attribute": "size",
           "expression": "{18}"
-        },
-        {
-          "line": 354,
-          "attribute": "className",
-          "expression": "\"flex flex-col min-w-0\""
         },
         {
           "line": 355,
           "attribute": "className",
+          "expression": "\"flex flex-col min-w-0\""
+        },
+        {
+          "line": 356,
+          "attribute": "className",
           "expression": "\"text-sm font-bold text-gray-950 dark:text-white\""
         },
         {
-          "line": 358,
+          "line": 359,
           "attribute": "className",
           "expression": "\"text-xs text-gray-500 dark:text-gray-400 mt-0.5\""
-        },
-        {
-          "line": 366,
-          "attribute": "className",
-          "expression": "{`flex items-start gap-4 p-4 transition-colors`}"
         },
         {
           "line": 367,
           "attribute": "className",
-          "expression": "\"w-9 h-9 rounded-xl bg-black/5 dark:bg-white/10 flex items-center justify-center shrink-0 mt-0.5 text-gray-950 dark:text-white\""
+          "expression": "{`flex items-start gap-4 p-4 transition-colors`}"
         },
         {
           "line": 368,
+          "attribute": "className",
+          "expression": "\"w-9 h-9 rounded-xl bg-black/5 dark:bg-white/10 flex items-center justify-center shrink-0 mt-0.5 text-gray-950 dark:text-white\""
+        },
+        {
+          "line": 369,
           "attribute": "size",
           "expression": "{18}"
         },
         {
-          "line": 370,
+          "line": 371,
           "attribute": "className",
           "expression": "\"flex flex-col min-w-0\""
         },
         {
-          "line": 371,
+          "line": 372,
           "attribute": "className",
           "expression": "\"text-sm font-bold text-gray-950 dark:text-white\""
         },
         {
-          "line": 374,
+          "line": 375,
           "attribute": "className",
           "expression": "\"text-xs text-gray-500 dark:text-gray-400 mt-0.5\""
         },
         {
-          "line": 384,
+          "line": 385,
           "attribute": "className",
           "expression": "\"flex flex-col gap-3 pt-2\""
         },
         {
-          "line": 386,
+          "line": 387,
           "attribute": "className",
           "expression": "\"text-base sm:text-lg font-bold text-gray-950 dark:text-white\""
         },
         {
-          "line": 391,
+          "line": 392,
           "attribute": "className",
           "expression": "{`flex items-start gap-4 p-4 rounded-2xl border ${cardBaseStyle}`}"
         },
         {
-          "line": 392,
+          "line": 393,
           "attribute": "className",
           "expression": "\"w-9 h-9 rounded-xl bg-red-500/15 border border-red-500/20 text-red-500 flex items-center justify-center shrink-0 mt-0.5\""
         },
         {
-          "line": 393,
+          "line": 394,
           "attribute": "size",
           "expression": "{20}"
         },
         {
-          "line": 393,
+          "line": 394,
           "attribute": "className",
           "expression": "\"stroke-[3]\""
         },
         {
-          "line": 395,
+          "line": 396,
           "attribute": "className",
           "expression": "\"flex flex-col min-w-0\""
         },
         {
-          "line": 396,
+          "line": 397,
           "attribute": "className",
           "expression": "\"text-sm font-bold text-red-500 dark:text-red-400\""
         },
         {
-          "line": 399,
+          "line": 400,
           "attribute": "className",
           "expression": "\"text-xs text-gray-600 dark:text-gray-400 mt-0.5\""
         }
@@ -89754,6 +89754,7 @@
         "text-[11px]",
         "text-gray-400",
         "text-lg",
+        "text-red-400",
         "text-sm",
         "text-white",
         "text-xs",
@@ -89772,124 +89773,114 @@
       "colorLiterals": ["#111214", "#5865F2", "#ffffff"],
       "presentation": [
         {
-          "line": 64,
+          "line": 72,
           "attribute": "className",
           "expression": "\"fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-md animate-fadeIn\""
         },
         {
-          "line": 65,
+          "line": 73,
           "attribute": "className",
           "expression": "\"relative w-full max-w-lg bg-[#111214] border border-white/10 rounded-3xl p-5 sm:p-6 shadow-2xl flex flex-col gap-5 text-white max-h-[90vh] overflow-y-auto custom-scrollbar\""
         },
         {
-          "line": 67,
+          "line": 75,
           "attribute": "className",
           "expression": "\"flex items-center justify-between border-b border-white/10 pb-4\""
         },
         {
-          "line": 68,
+          "line": 76,
           "attribute": "className",
           "expression": "\"flex items-center gap-3\""
         },
         {
-          "line": 69,
+          "line": 77,
           "attribute": "className",
           "expression": "\"w-10 h-10 rounded-2xl bg-white/10 text-white flex items-center justify-center\""
         },
         {
-          "line": 70,
+          "line": 78,
           "attribute": "size",
           "expression": "{22}"
         },
         {
-          "line": 70,
+          "line": 78,
           "attribute": "className",
           "expression": "\"text-white\""
-        },
-        {
-          "line": 73,
-          "attribute": "className",
-          "expression": "\"text-lg font-bold\""
-        },
-        {
-          "line": 74,
-          "attribute": "className",
-          "expression": "\"text-xs text-gray-400\""
         },
         {
           "line": 81,
           "attribute": "className",
-          "expression": "\"w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition cursor-pointer\""
+          "expression": "\"text-lg font-bold\""
         },
         {
-          "line": 84,
-          "attribute": "size",
-          "expression": "{18}"
+          "line": 82,
+          "attribute": "className",
+          "expression": "\"text-xs text-gray-400\""
         },
         {
           "line": 89,
           "attribute": "className",
-          "expression": "\"flex flex-col gap-3.5 p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06]\""
+          "expression": "\"w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition cursor-pointer\""
         },
         {
-          "line": 90,
-          "attribute": "className",
-          "expression": "\"flex items-center gap-2.5 text-sm font-bold text-white\""
-        },
-        {
-          "line": 91,
+          "line": 92,
           "attribute": "size",
-          "expression": "{16}"
-        },
-        {
-          "line": 91,
-          "attribute": "className",
-          "expression": "\"text-white\""
-        },
-        {
-          "line": 96,
-          "attribute": "className",
-          "expression": "\"flex flex-col gap-1.5\""
+          "expression": "{18}"
         },
         {
           "line": 97,
           "attribute": "className",
-          "expression": "\"flex justify-between text-xs\""
+          "expression": "\"flex flex-col gap-3.5 p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06]\""
         },
         {
           "line": 98,
           "attribute": "className",
-          "expression": "\"text-gray-400\""
+          "expression": "\"flex items-center gap-2.5 text-sm font-bold text-white\""
+        },
+        {
+          "line": 99,
+          "attribute": "size",
+          "expression": "{16}"
         },
         {
           "line": 99,
           "attribute": "className",
+          "expression": "\"text-white\""
+        },
+        {
+          "line": 104,
+          "attribute": "className",
+          "expression": "\"flex flex-col gap-1.5\""
+        },
+        {
+          "line": 105,
+          "attribute": "className",
+          "expression": "\"flex justify-between text-xs\""
+        },
+        {
+          "line": 106,
+          "attribute": "className",
+          "expression": "\"text-gray-400\""
+        },
+        {
+          "line": 107,
+          "attribute": "className",
           "expression": "\"font-bold text-white\""
         },
         {
-          "line": 110,
+          "line": 119,
           "attribute": "style",
           "expression": "{{ accentColor: accentColor || '#5865F2' }}"
         },
         {
-          "line": 111,
+          "line": 120,
           "attribute": "className",
           "expression": "\"w-full cursor-pointer h-1.5 bg-white/20 rounded-lg\""
         },
         {
-          "line": 116,
+          "line": 125,
           "attribute": "className",
           "expression": "\"grid grid-cols-2 gap-3 pt-2\""
-        },
-        {
-          "line": 118,
-          "attribute": "className",
-          "expression": "\"text-xs text-gray-400 block mb-1\""
-        },
-        {
-          "line": 123,
-          "attribute": "className",
-          "expression": "\"w-full bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500\""
         },
         {
           "line": 127,
@@ -89902,197 +89893,227 @@
           "expression": "\"w-full bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500\""
         },
         {
-          "line": 139,
+          "line": 136,
+          "attribute": "className",
+          "expression": "\"text-xs text-gray-400 block mb-1\""
+        },
+        {
+          "line": 141,
+          "attribute": "className",
+          "expression": "\"w-full bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500\""
+        },
+        {
+          "line": 148,
           "attribute": "className",
           "expression": "\"flex items-center justify-between p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06]\""
         },
         {
-          "line": 140,
+          "line": 149,
           "attribute": "className",
           "expression": "\"flex items-center gap-3\""
         },
         {
-          "line": 141,
+          "line": 150,
           "attribute": "size",
           "expression": "{18}"
         },
         {
-          "line": 141,
+          "line": 150,
           "attribute": "className",
           "expression": "\"text-white shrink-0\""
         },
         {
-          "line": 143,
+          "line": 152,
           "attribute": "className",
           "expression": "\"text-xs font-bold text-white\""
         },
         {
-          "line": 144,
+          "line": 153,
           "attribute": "className",
           "expression": "\"text-[11px] text-gray-400\""
         },
         {
-          "line": 155,
+          "line": 165,
           "attribute": "style",
           "expression": "{{\n              backgroundColor: restrictedDMs ? accentColor || '#5865F2' : undefined,\n            }}"
         },
         {
-          "line": 158,
+          "line": 168,
           "attribute": "className",
           "expression": "{`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${\n              restrictedDMs ? '' : 'bg-white/20'\n            }`}"
         },
         {
-          "line": 163,
+          "line": 173,
           "attribute": "className",
           "expression": "{`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${\n                restrictedDMs ? 'translate-x-5' : 'translate-x-0'\n              }`}"
         },
         {
-          "line": 171,
+          "line": 183,
           "attribute": "className",
           "expression": "\"flex flex-col gap-3.5 p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06]\""
         },
         {
-          "line": 172,
+          "line": 185,
+          "attribute": "className",
+          "expression": "\"sr-only\""
+        },
+        {
+          "line": 186,
+          "attribute": "className",
+          "expression": "\"text-xs text-gray-400\""
+        },
+        {
+          "line": 191,
           "attribute": "className",
           "expression": "\"flex items-center gap-2.5 text-sm font-bold text-white\""
         },
         {
-          "line": 173,
+          "line": 192,
           "attribute": "size",
           "expression": "{16}"
         },
         {
-          "line": 173,
+          "line": 192,
           "attribute": "className",
           "expression": "\"text-white\""
         },
         {
-          "line": 177,
+          "line": 196,
           "attribute": "className",
           "expression": "\"flex flex-col gap-1.5\""
         },
         {
-          "line": 178,
+          "line": 197,
           "attribute": "className",
           "expression": "\"flex justify-between text-xs\""
         },
         {
-          "line": 179,
+          "line": 198,
           "attribute": "className",
           "expression": "\"text-gray-400\""
         },
         {
-          "line": 180,
+          "line": 199,
           "attribute": "className",
           "expression": "\"font-bold text-white\""
         },
         {
-          "line": 189,
+          "line": 209,
           "attribute": "style",
           "expression": "{{ accentColor: accentColor || '#5865F2' }}"
         },
         {
-          "line": 190,
+          "line": 210,
           "attribute": "className",
           "expression": "\"w-full cursor-pointer h-1.5 bg-white/20 rounded-lg\""
         },
         {
-          "line": 194,
+          "line": 214,
           "attribute": "className",
           "expression": "\"flex items-center justify-between pt-2 border-t border-white/[0.06]\""
         },
         {
-          "line": 196,
+          "line": 216,
           "attribute": "className",
           "expression": "\"text-xs font-semibold text-white\""
         },
         {
-          "line": 199,
+          "line": 219,
           "attribute": "className",
           "expression": "\"text-[11px] text-gray-400\""
         },
         {
-          "line": 209,
+          "line": 230,
           "attribute": "style",
           "expression": "{{\n                backgroundColor: requireApproval ? accentColor || '#5865F2' : undefined,\n              }}"
         },
         {
-          "line": 212,
+          "line": 233,
           "attribute": "className",
           "expression": "{`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${\n                requireApproval ? '' : 'bg-white/20'\n              }`}"
         },
         {
-          "line": 217,
+          "line": 238,
           "attribute": "className",
           "expression": "{`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${\n                  requireApproval ? 'translate-x-5' : 'translate-x-0'\n                }`}"
         },
         {
-          "line": 226,
+          "line": 247,
           "attribute": "className",
           "expression": "\"flex items-center justify-between p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06]\""
         },
         {
-          "line": 227,
+          "line": 248,
           "attribute": "className",
           "expression": "\"flex items-center gap-3\""
         },
         {
-          "line": 228,
+          "line": 249,
           "attribute": "size",
           "expression": "{18}"
         },
         {
-          "line": 228,
+          "line": 249,
           "attribute": "className",
           "expression": "\"text-white shrink-0\""
         },
         {
-          "line": 230,
+          "line": 251,
           "attribute": "className",
           "expression": "\"text-xs font-bold text-white\""
         },
         {
-          "line": 231,
+          "line": 252,
           "attribute": "className",
           "expression": "\"text-[11px] text-gray-400\""
         },
         {
-          "line": 242,
+          "line": 264,
           "attribute": "style",
           "expression": "{{\n              backgroundColor: profileLocked ? accentColor || '#5865F2' : undefined,\n            }}"
         },
         {
-          "line": 245,
+          "line": 267,
           "attribute": "className",
           "expression": "{`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${\n              profileLocked ? '' : 'bg-white/20'\n            }`}"
         },
         {
-          "line": 250,
+          "line": 272,
           "attribute": "className",
           "expression": "{`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${\n                profileLocked ? 'translate-x-5' : 'translate-x-0'\n              }`}"
         },
         {
-          "line": 258,
+          "line": 279,
+          "attribute": "className",
+          "expression": "\"text-xs text-gray-400\""
+        },
+        {
+          "line": 285,
+          "attribute": "className",
+          "expression": "\"text-sm text-red-400\""
+        },
+        {
+          "line": 290,
           "attribute": "className",
           "expression": "\"flex items-center justify-end gap-3 pt-2\""
         },
         {
-          "line": 262,
+          "line": 294,
           "attribute": "className",
           "expression": "\"px-4 py-2 rounded-xl text-xs font-semibold text-gray-400 hover:text-white hover:bg-white/5 transition cursor-pointer\""
         },
         {
-          "line": 270,
+          "line": 302,
           "attribute": "style",
           "expression": "{{ backgroundColor: accentColor || '#5865F2', color: textOnAccent || '#ffffff' }}"
         },
         {
-          "line": 271,
+          "line": 303,
           "attribute": "className",
           "expression": "\"px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg hover:brightness-110 active:scale-95 transition-all cursor-pointer\""
         },
         {
-          "line": 275,
+          "line": 307,
           "attribute": "size",
           "expression": "{15}"
         }
@@ -90105,13 +90126,11 @@
         "bg-black/20",
         "bg-black/5",
         "bg-black/[0.02]",
-        "bg-emerald-500/15",
         "bg-white",
         "border-b",
         "border-black/10",
         "border-black/5",
         "border-black/8",
-        "border-emerald-500/25",
         "border-white/10",
         "border-white/5",
         "cursor-pointer",
@@ -90121,7 +90140,6 @@
         "dark:bg-white/[0.02]",
         "dark:border-white/10",
         "dark:border-white/[0.06]",
-        "dark:text-emerald-400",
         "dark:text-gray-400",
         "dark:text-white",
         "flex",
@@ -90129,8 +90147,6 @@
         "focus:border-indigo-500",
         "font-bold",
         "font-mono",
-        "font-semibold",
-        "gap-1.5",
         "gap-3",
         "gap-3.5",
         "gap-5",
@@ -90149,7 +90165,6 @@
         "pr-3",
         "pt-2",
         "px-3",
-        "py-1",
         "py-1.5",
         "rounded-2xl",
         "rounded-full",
@@ -90159,11 +90174,9 @@
         "shadow-xs",
         "sm:text-lg",
         "sm:text-sm",
-        "stroke-[2.5]",
         "text-[11px]",
         "text-base",
         "text-center",
-        "text-emerald-500",
         "text-gray-500",
         "text-gray-600",
         "text-gray-950",
@@ -90182,44 +90195,84 @@
       "colorLiterals": ["#5865F2"],
       "presentation": [
         {
-          "line": 82,
+          "line": 41,
           "attribute": "className",
           "expression": "\"flex flex-col gap-5 animate-fadeIn pb-8\""
         },
         {
-          "line": 83,
+          "line": 42,
           "attribute": "className",
           "expression": "\"flex items-center justify-between\""
         },
         {
-          "line": 85,
+          "line": 44,
           "attribute": "className",
           "expression": "\"text-base sm:text-lg font-bold text-gray-950 dark:text-white\""
         },
         {
-          "line": 88,
+          "line": 47,
           "attribute": "className",
           "expression": "\"text-xs text-gray-600 dark:text-gray-400 mt-1\""
         },
         {
-          "line": 95,
+          "line": 53,
           "attribute": "className",
-          "expression": "\"flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/25 text-emerald-500 dark:text-emerald-400 text-xs font-semibold animate-fadeIn shrink-0\""
+          "expression": "\"text-sm text-gray-600 dark:text-gray-400\""
         },
         {
-          "line": 96,
-          "attribute": "size",
-          "expression": "{14}"
-        },
-        {
-          "line": 96,
-          "attribute": "className",
-          "expression": "\"stroke-[2.5]\""
-        },
-        {
-          "line": 102,
+          "line": 61,
           "attribute": "className",
           "expression": "{`rounded-2xl overflow-hidden border ${cardBaseStyle}`}"
+        },
+        {
+          "line": 63,
+          "attribute": "className",
+          "expression": "\"sr-only\""
+        },
+        {
+          "line": 67,
+          "attribute": "className",
+          "expression": "{`flex items-center justify-between p-4 ${rowBaseStyle}`}"
+        },
+        {
+          "line": 68,
+          "attribute": "className",
+          "expression": "\"flex items-center gap-3.5 pr-3\""
+        },
+        {
+          "line": 69,
+          "attribute": "className",
+          "expression": "\"w-9 h-9 rounded-xl bg-black/5 dark:bg-white/10 flex items-center justify-center shrink-0 text-gray-950 dark:text-white\""
+        },
+        {
+          "line": 70,
+          "attribute": "size",
+          "expression": "{18}"
+        },
+        {
+          "line": 73,
+          "attribute": "className",
+          "expression": "\"text-xs sm:text-sm font-bold text-gray-950 dark:text-white\""
+        },
+        {
+          "line": 76,
+          "attribute": "className",
+          "expression": "\"text-[11px] text-gray-500 dark:text-gray-400\""
+        },
+        {
+          "line": 88,
+          "attribute": "style",
+          "expression": "{{\n              backgroundColor: weeklyDigest ? accentColor || '#5865F2' : undefined,\n            }}"
+        },
+        {
+          "line": 91,
+          "attribute": "className",
+          "expression": "{`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${\n              weeklyDigest ? '' : 'bg-black/20 dark:bg-white/20'\n            }`}"
+        },
+        {
+          "line": 96,
+          "attribute": "className",
+          "expression": "{`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${\n                weeklyDigest ? 'translate-x-5' : 'translate-x-0'\n              }`}"
         },
         {
           "line": 104,
@@ -90252,217 +90305,172 @@
           "expression": "\"text-[11px] text-gray-500 dark:text-gray-400\""
         },
         {
-          "line": 124,
-          "attribute": "style",
-          "expression": "{{\n              backgroundColor: weeklyDigest ? accentColor || '#5865F2' : undefined,\n            }}"
-        },
-        {
-          "line": 127,
-          "attribute": "className",
-          "expression": "{`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${\n              weeklyDigest ? '' : 'bg-black/20 dark:bg-white/20'\n            }`}"
-        },
-        {
-          "line": 132,
-          "attribute": "className",
-          "expression": "{`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${\n                weeklyDigest ? 'translate-x-5' : 'translate-x-0'\n              }`}"
-        },
-        {
-          "line": 140,
-          "attribute": "className",
-          "expression": "{`flex items-center justify-between p-4 ${rowBaseStyle}`}"
-        },
-        {
-          "line": 141,
-          "attribute": "className",
-          "expression": "\"flex items-center gap-3.5 pr-3\""
-        },
-        {
-          "line": 142,
-          "attribute": "className",
-          "expression": "\"w-9 h-9 rounded-xl bg-black/5 dark:bg-white/10 flex items-center justify-center shrink-0 text-gray-950 dark:text-white\""
-        },
-        {
-          "line": 143,
-          "attribute": "size",
-          "expression": "{18}"
-        },
-        {
-          "line": 146,
-          "attribute": "className",
-          "expression": "\"text-xs sm:text-sm font-bold text-gray-950 dark:text-white\""
-        },
-        {
-          "line": 149,
-          "attribute": "className",
-          "expression": "\"text-[11px] text-gray-500 dark:text-gray-400\""
-        },
-        {
-          "line": 160,
+          "line": 125,
           "attribute": "style",
           "expression": "{{\n              backgroundColor: newFriendAlerts ? accentColor || '#5865F2' : undefined,\n            }}"
         },
         {
-          "line": 163,
+          "line": 128,
           "attribute": "className",
           "expression": "{`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${\n              newFriendAlerts ? '' : 'bg-black/20 dark:bg-white/20'\n            }`}"
         },
         {
-          "line": 168,
+          "line": 133,
           "attribute": "className",
           "expression": "{`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${\n                newFriendAlerts ? 'translate-x-5' : 'translate-x-0'\n              }`}"
         },
         {
-          "line": 176,
+          "line": 141,
           "attribute": "className",
           "expression": "{`flex items-center justify-between p-4 ${rowBaseStyle}`}"
         },
         {
-          "line": 177,
+          "line": 142,
           "attribute": "className",
           "expression": "\"flex items-center gap-3.5 pr-3\""
         },
         {
-          "line": 178,
+          "line": 143,
           "attribute": "className",
           "expression": "\"w-9 h-9 rounded-xl bg-black/5 dark:bg-white/10 flex items-center justify-center shrink-0 text-gray-950 dark:text-white\""
         },
         {
-          "line": 179,
+          "line": 144,
           "attribute": "size",
           "expression": "{18}"
         },
         {
-          "line": 182,
+          "line": 147,
           "attribute": "className",
           "expression": "\"text-xs sm:text-sm font-bold text-gray-950 dark:text-white\""
         },
         {
-          "line": 185,
+          "line": 150,
           "attribute": "className",
           "expression": "\"text-[11px] text-gray-500 dark:text-gray-400\""
         },
         {
-          "line": 197,
+          "line": 163,
           "attribute": "style",
           "expression": "{{\n              backgroundColor: reportAlerts ? accentColor || '#5865F2' : undefined,\n            }}"
         },
         {
-          "line": 200,
+          "line": 166,
           "attribute": "className",
           "expression": "{`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${\n              reportAlerts ? '' : 'bg-black/20 dark:bg-white/20'\n            }`}"
         },
         {
-          "line": 205,
+          "line": 171,
           "attribute": "className",
           "expression": "{`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${\n                reportAlerts ? 'translate-x-5' : 'translate-x-0'\n              }`}"
         },
         {
-          "line": 213,
+          "line": 179,
           "attribute": "className",
           "expression": "{`flex items-center justify-between p-4 ${rowBaseStyle}`}"
         },
         {
-          "line": 214,
+          "line": 180,
           "attribute": "className",
           "expression": "\"flex items-center gap-3.5 pr-3\""
         },
         {
-          "line": 215,
+          "line": 181,
           "attribute": "className",
           "expression": "\"w-9 h-9 rounded-xl bg-black/5 dark:bg-white/10 flex items-center justify-center shrink-0 text-gray-950 dark:text-white\""
         },
         {
-          "line": 216,
+          "line": 182,
           "attribute": "size",
           "expression": "{18}"
         },
         {
-          "line": 219,
+          "line": 185,
           "attribute": "className",
           "expression": "\"text-xs sm:text-sm font-bold text-gray-950 dark:text-white\""
         },
         {
-          "line": 222,
+          "line": 188,
           "attribute": "className",
           "expression": "\"text-[11px] text-gray-500 dark:text-gray-400\""
         },
         {
-          "line": 233,
+          "line": 200,
           "attribute": "style",
           "expression": "{{\n              backgroundColor: notifyLinkRequests ? accentColor || '#5865F2' : undefined,\n            }}"
         },
         {
-          "line": 236,
+          "line": 203,
           "attribute": "className",
           "expression": "{`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${\n              notifyLinkRequests ? '' : 'bg-black/20 dark:bg-white/20'\n            }`}"
         },
         {
-          "line": 241,
+          "line": 208,
           "attribute": "className",
           "expression": "{`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${\n                notifyLinkRequests ? 'translate-x-5' : 'translate-x-0'\n              }`}"
         },
         {
-          "line": 249,
+          "line": 216,
           "attribute": "className",
           "expression": "\"flex flex-col gap-3 p-4\""
         },
         {
-          "line": 250,
+          "line": 217,
           "attribute": "className",
           "expression": "\"flex items-center justify-between\""
         },
         {
-          "line": 251,
+          "line": 218,
           "attribute": "className",
           "expression": "\"flex items-center gap-3.5 pr-3\""
         },
         {
-          "line": 252,
+          "line": 219,
           "attribute": "className",
           "expression": "\"w-9 h-9 rounded-xl bg-black/5 dark:bg-white/10 flex items-center justify-center shrink-0 text-gray-950 dark:text-white\""
         },
         {
-          "line": 253,
+          "line": 220,
           "attribute": "size",
           "expression": "{18}"
         },
         {
-          "line": 256,
+          "line": 223,
           "attribute": "className",
           "expression": "\"text-xs sm:text-sm font-bold text-gray-950 dark:text-white\""
         },
         {
-          "line": 259,
+          "line": 226,
           "attribute": "className",
           "expression": "\"text-[11px] text-gray-500 dark:text-gray-400\""
         },
         {
-          "line": 270,
+          "line": 238,
           "attribute": "style",
           "expression": "{{\n                backgroundColor: pinEnabled ? accentColor || '#5865F2' : undefined,\n              }}"
         },
         {
-          "line": 273,
+          "line": 241,
           "attribute": "className",
           "expression": "{`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${\n                pinEnabled ? '' : 'bg-black/20 dark:bg-white/20'\n              }`}"
         },
         {
-          "line": 278,
+          "line": 246,
           "attribute": "className",
           "expression": "{`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${\n                  pinEnabled ? 'translate-x-5' : 'translate-x-0'\n                }`}"
         },
         {
-          "line": 286,
+          "line": 254,
           "attribute": "className",
           "expression": "\"flex items-center gap-3 pl-12 pt-2\""
         },
         {
-          "line": 297,
+          "line": 261,
           "attribute": "className",
           "expression": "\"w-24 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl px-3 py-1.5 text-center font-mono tracking-widest text-sm text-gray-950 dark:text-white focus:outline-none focus:border-indigo-500\""
         },
         {
-          "line": 299,
+          "line": 263,
           "attribute": "className",
           "expression": "\"text-[11px] text-gray-500 dark:text-gray-400\""
         }
@@ -90688,987 +90696,992 @@
       "colorLiterals": ["#111214", "#5865F2", "#6366f1", "#8B5CF6", "#ffffff"],
       "presentation": [
         {
-          "line": 197,
+          "line": 199,
           "attribute": "className",
           "expression": "\"flex flex-col gap-6 animate-fadeIn pb-8\""
         },
         {
           "line": 200,
           "attribute": "className",
+          "expression": "\"text-xs sm:text-sm text-gray-600 dark:text-gray-300 leading-relaxed\""
+        },
+        {
+          "line": 207,
+          "attribute": "className",
           "expression": "{`relative overflow-hidden rounded-3xl p-5 sm:p-6 transition-all duration-300 ${cardBaseStyle}`}"
         },
         {
-          "line": 202,
+          "line": 209,
           "attribute": "className",
           "expression": "\"flex flex-col sm:flex-row items-center justify-between gap-5 relative z-10\""
         },
         {
-          "line": 203,
+          "line": 210,
           "attribute": "className",
           "expression": "\"flex flex-col gap-2.5 flex-1 min-w-0 pr-0 sm:pr-2\""
         },
         {
-          "line": 204,
+          "line": 211,
           "attribute": "className",
           "expression": "\"text-lg sm:text-xl font-extrabold leading-snug tracking-tight text-gray-950 dark:text-white\""
         },
         {
-          "line": 210,
+          "line": 217,
           "attribute": "className",
           "expression": "\"text-xs sm:text-sm text-gray-600 dark:text-gray-300 leading-relaxed\""
         },
         {
-          "line": 217,
+          "line": 224,
           "attribute": "className",
           "expression": "\"flex flex-col gap-3 pt-2\""
         },
         {
-          "line": 218,
+          "line": 225,
           "attribute": "className",
           "expression": "\"flex items-start gap-3\""
-        },
-        {
-          "line": 219,
-          "attribute": "className",
-          "expression": "\"w-6 h-6 rounded-full bg-black/10 dark:bg-white/15 text-gray-950 dark:text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5\""
-        },
-        {
-          "line": 222,
-          "attribute": "className",
-          "expression": "\"flex flex-col min-w-0\""
-        },
-        {
-          "line": 223,
-          "attribute": "className",
-          "expression": "\"text-sm font-bold text-gray-950 dark:text-white\""
         },
         {
           "line": 226,
           "attribute": "className",
-          "expression": "\"text-xs text-gray-700 dark:text-gray-200 mt-0.5 leading-relaxed\""
+          "expression": "\"w-6 h-6 rounded-full bg-black/10 dark:bg-white/15 text-gray-950 dark:text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5\""
         },
         {
-          "line": 232,
+          "line": 229,
           "attribute": "className",
-          "expression": "\"flex items-start gap-3\""
+          "expression": "\"flex flex-col min-w-0\""
+        },
+        {
+          "line": 230,
+          "attribute": "className",
+          "expression": "\"text-sm font-bold text-gray-950 dark:text-white\""
         },
         {
           "line": 233,
           "attribute": "className",
-          "expression": "\"w-6 h-6 rounded-full bg-black/10 dark:bg-white/15 text-gray-950 dark:text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5\""
-        },
-        {
-          "line": 236,
-          "attribute": "className",
-          "expression": "\"flex flex-col min-w-0\""
-        },
-        {
-          "line": 237,
-          "attribute": "className",
-          "expression": "\"text-sm font-bold text-gray-950 dark:text-white\""
-        },
-        {
-          "line": 240,
-          "attribute": "className",
           "expression": "\"text-xs text-gray-700 dark:text-gray-200 mt-0.5 leading-relaxed\""
         },
         {
-          "line": 246,
+          "line": 239,
           "attribute": "className",
           "expression": "\"flex items-start gap-3\""
         },
         {
-          "line": 247,
+          "line": 240,
           "attribute": "className",
           "expression": "\"w-6 h-6 rounded-full bg-black/10 dark:bg-white/15 text-gray-950 dark:text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5\""
         },
         {
-          "line": 250,
+          "line": 243,
           "attribute": "className",
           "expression": "\"flex flex-col min-w-0\""
         },
         {
-          "line": 251,
+          "line": 244,
           "attribute": "className",
           "expression": "\"text-sm font-bold text-gray-950 dark:text-white\""
         },
         {
-          "line": 254,
+          "line": 247,
           "attribute": "className",
           "expression": "\"text-xs text-gray-700 dark:text-gray-200 mt-0.5 leading-relaxed\""
         },
         {
-          "line": 263,
+          "line": 253,
+          "attribute": "className",
+          "expression": "\"flex items-start gap-3\""
+        },
+        {
+          "line": 254,
+          "attribute": "className",
+          "expression": "\"w-6 h-6 rounded-full bg-black/10 dark:bg-white/15 text-gray-950 dark:text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5\""
+        },
+        {
+          "line": 257,
+          "attribute": "className",
+          "expression": "\"flex flex-col min-w-0\""
+        },
+        {
+          "line": 258,
+          "attribute": "className",
+          "expression": "\"text-sm font-bold text-gray-950 dark:text-white\""
+        },
+        {
+          "line": 261,
+          "attribute": "className",
+          "expression": "\"text-xs text-gray-700 dark:text-gray-200 mt-0.5 leading-relaxed\""
+        },
+        {
+          "line": 270,
           "attribute": "className",
           "expression": "\"relative shrink-0 w-36 h-36 sm:w-44 sm:h-44 flex items-center justify-center select-none\""
         },
         {
-          "line": 265,
+          "line": 272,
           "attribute": "className",
           "expression": "\"absolute w-32 h-32 rounded-full blur-2xl pointer-events-none opacity-40\""
         },
         {
-          "line": 266,
+          "line": 273,
           "attribute": "style",
           "expression": "{{ backgroundColor: accentColor || '#8B5CF6' }}"
         },
         {
-          "line": 272,
+          "line": 279,
           "attribute": "className",
           "expression": "\"w-full h-full object-contain pointer-events-none select-none transition-transform duration-500 hover:scale-105\""
         },
         {
-          "line": 279,
+          "line": 286,
           "attribute": "className",
           "expression": "\"flex flex-col gap-4\""
         },
         {
-          "line": 280,
+          "line": 287,
           "attribute": "className",
           "expression": "\"flex items-center justify-between\""
         },
         {
-          "line": 281,
+          "line": 288,
           "attribute": "className",
           "expression": "\"text-xs font-extrabold uppercase tracking-wider text-gray-500 dark:text-gray-400\""
         },
         {
-          "line": 292,
+          "line": 299,
           "attribute": "style",
           "expression": "{{\n                backgroundColor: accentColor || '#5865F2',\n                color: textOnAccent || '#ffffff',\n              }}"
         },
         {
-          "line": 296,
+          "line": 303,
           "attribute": "className",
           "expression": "\"flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold shadow-sm hover:brightness-110 active:scale-95 transition-all cursor-pointer\""
         },
         {
-          "line": 298,
+          "line": 305,
           "attribute": "size",
           "expression": "{14}"
         },
         {
-          "line": 298,
+          "line": 305,
           "attribute": "className",
           "expression": "\"text-white\""
         },
         {
-          "line": 310,
+          "line": 317,
           "attribute": "style",
           "expression": "{{\n                backgroundColor: accentColor || '#5865F2',\n                color: textOnAccent || '#ffffff',\n              }}"
         },
         {
-          "line": 314,
+          "line": 321,
           "attribute": "className",
           "expression": "\"flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold shadow-sm hover:brightness-110 active:scale-95 transition-all cursor-pointer\""
         },
         {
-          "line": 316,
+          "line": 323,
           "attribute": "size",
           "expression": "{14}"
         },
         {
-          "line": 316,
+          "line": 323,
           "attribute": "className",
           "expression": "\"text-white\""
         },
         {
-          "line": 325,
+          "line": 332,
           "attribute": "className",
           "expression": "{`flex flex-col items-center justify-center p-8 sm:p-10 rounded-3xl border text-center ${cardBaseStyle}`}"
         },
         {
-          "line": 328,
+          "line": 335,
           "attribute": "className",
           "expression": "\"relative w-36 h-36 sm:w-44 sm:h-44 flex items-center justify-center select-none mb-3\""
         },
         {
-          "line": 329,
+          "line": 336,
           "attribute": "className",
           "expression": "\"absolute w-32 h-32 bg-amber-500/20 rounded-full blur-2xl pointer-events-none\""
         },
         {
-          "line": 334,
+          "line": 341,
           "attribute": "className",
           "expression": "\"w-full h-full object-contain pointer-events-none select-none transition-transform duration-500 hover:scale-105\""
         },
         {
-          "line": 338,
+          "line": 345,
           "attribute": "className",
           "expression": "\"text-base font-bold text-gray-900 dark:text-white mb-1\""
         },
         {
-          "line": 341,
+          "line": 348,
           "attribute": "className",
           "expression": "\"text-xs text-gray-500 dark:text-gray-400 max-w-sm mb-4\""
         },
         {
-          "line": 352,
+          "line": 359,
           "attribute": "style",
           "expression": "{{\n                backgroundColor: accentColor || '#5865F2',\n                color: textOnAccent || '#ffffff',\n              }}"
         },
         {
-          "line": 356,
+          "line": 363,
           "attribute": "className",
           "expression": "\"px-5 py-2.5 rounded-2xl text-xs font-bold shadow-lg hover:brightness-110 active:scale-95 transition-all cursor-pointer inline-flex items-center gap-2\""
         },
         {
-          "line": 358,
+          "line": 365,
           "attribute": "size",
           "expression": "{15}"
         },
         {
-          "line": 358,
+          "line": 365,
           "attribute": "className",
           "expression": "\"text-white\""
-        },
-        {
-          "line": 367,
-          "attribute": "className",
-          "expression": "{`flex flex-col items-center justify-center p-8 sm:p-10 rounded-3xl border text-center ${cardBaseStyle}`}"
-        },
-        {
-          "line": 369,
-          "attribute": "className",
-          "expression": "\"relative w-36 h-36 sm:w-44 sm:h-44 flex items-center justify-center select-none mb-3\""
-        },
-        {
-          "line": 370,
-          "attribute": "className",
-          "expression": "\"absolute w-28 h-28 bg-indigo-500/20 rounded-full blur-2xl\""
         },
         {
           "line": 374,
           "attribute": "className",
-          "expression": "\"w-full h-full object-contain\""
+          "expression": "{`flex flex-col items-center justify-center p-8 sm:p-10 rounded-3xl border text-center ${cardBaseStyle}`}"
+        },
+        {
+          "line": 376,
+          "attribute": "className",
+          "expression": "\"relative w-36 h-36 sm:w-44 sm:h-44 flex items-center justify-center select-none mb-3\""
         },
         {
           "line": 377,
           "attribute": "className",
+          "expression": "\"absolute w-28 h-28 bg-indigo-500/20 rounded-full blur-2xl\""
+        },
+        {
+          "line": 381,
+          "attribute": "className",
+          "expression": "\"w-full h-full object-contain\""
+        },
+        {
+          "line": 384,
+          "attribute": "className",
           "expression": "\"text-base font-bold text-gray-900 dark:text-white mb-1\""
         },
         {
-          "line": 380,
+          "line": 387,
           "attribute": "className",
           "expression": "\"text-xs text-gray-500 dark:text-gray-400 max-w-sm mb-4\""
         },
         {
-          "line": 386,
+          "line": 393,
           "attribute": "style",
           "expression": "{{\n                backgroundColor: accentColor || '#5865F2',\n                color: textOnAccent || '#ffffff',\n              }}"
         },
         {
-          "line": 390,
+          "line": 397,
           "attribute": "className",
           "expression": "\"px-5 py-2.5 rounded-2xl text-xs font-bold shadow-lg hover:brightness-110 active:scale-95 transition-all cursor-pointer inline-flex items-center gap-2\""
         },
         {
-          "line": 392,
+          "line": 399,
           "attribute": "size",
           "expression": "{15}"
         },
         {
-          "line": 392,
+          "line": 399,
           "attribute": "className",
           "expression": "\"text-white\""
-        },
-        {
-          "line": 400,
-          "attribute": "className",
-          "expression": "\"flex flex-col gap-3\""
-        },
-        {
-          "line": 404,
-          "attribute": "className",
-          "expression": "{`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl border transition-all ${cardBaseStyle}`}"
         },
         {
           "line": 407,
           "attribute": "className",
+          "expression": "\"flex flex-col gap-3\""
+        },
+        {
+          "line": 411,
+          "attribute": "className",
+          "expression": "{`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl border transition-all ${cardBaseStyle}`}"
+        },
+        {
+          "line": 414,
+          "attribute": "className",
           "expression": "\"flex items-center gap-3.5 min-w-0 flex-1\""
-        },
-        {
-          "line": 408,
-          "attribute": "className",
-          "expression": "\"relative shrink-0\""
-        },
-        {
-          "line": 412,
-          "attribute": "size",
-          "expression": "\"md\""
-        },
-        {
-          "line": 413,
-          "attribute": "className",
-          "expression": "\"w-12 h-12 rounded-full ring-2 ring-black/10 dark:ring-white/10\""
         },
         {
           "line": 415,
           "attribute": "className",
-          "expression": "\"absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white dark:border-[#111214]\""
-        },
-        {
-          "line": 418,
-          "attribute": "className",
-          "expression": "\"flex flex-col min-w-0\""
+          "expression": "\"relative shrink-0\""
         },
         {
           "line": 419,
-          "attribute": "className",
-          "expression": "\"flex items-center gap-2\""
+          "attribute": "size",
+          "expression": "\"md\""
         },
         {
           "line": 420,
           "attribute": "className",
-          "expression": "\"font-bold text-sm text-gray-950 dark:text-white truncate\""
-        },
-        {
-          "line": 423,
-          "attribute": "className",
-          "expression": "\"text-[10px] font-bold px-2 py-0.5 rounded-full bg-black/10 dark:bg-white/15 text-gray-950 dark:text-white\""
-        },
-        {
-          "line": 428,
-          "attribute": "className",
-          "expression": "\"text-xs text-gray-500 dark:text-gray-400 mt-0.5\""
-        },
-        {
-          "line": 436,
-          "attribute": "className",
-          "expression": "\"flex items-center gap-2 shrink-0 self-end sm:self-center\""
-        },
-        {
-          "line": 440,
-          "attribute": "className",
-          "expression": "\"px-3 py-1.5 rounded-xl bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 text-xs font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-1.5 transition cursor-pointer\""
-        },
-        {
-          "line": 442,
-          "attribute": "size",
-          "expression": "{14}"
-        },
-        {
-          "line": 442,
-          "attribute": "className",
-          "expression": "\"text-gray-950 dark:text-white\""
-        },
-        {
-          "line": 449,
-          "attribute": "className",
-          "expression": "\"px-3 py-1.5 rounded-xl bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 text-xs font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-1.5 transition cursor-pointer\""
-        },
-        {
-          "line": 451,
-          "attribute": "size",
-          "expression": "{14}"
-        },
-        {
-          "line": 451,
-          "attribute": "className",
-          "expression": "\"text-gray-950 dark:text-white\""
-        },
-        {
-          "line": 458,
-          "attribute": "className",
-          "expression": "\"p-1.5 rounded-xl hover:bg-red-500/10 text-gray-400 hover:text-red-500 transition cursor-pointer\""
-        },
-        {
-          "line": 462,
-          "attribute": "size",
-          "expression": "{16}"
-        },
-        {
-          "line": 472,
-          "attribute": "className",
-          "expression": "\"flex flex-col gap-3\""
-        },
-        {
-          "line": 476,
-          "attribute": "className",
-          "expression": "{`flex items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl border transition-all ${cardBaseStyle}`}"
-        },
-        {
-          "line": 478,
-          "attribute": "className",
-          "expression": "\"flex items-center gap-3.5 min-w-0\""
-        },
-        {
-          "line": 482,
-          "attribute": "size",
-          "expression": "\"md\""
-        },
-        {
-          "line": 483,
-          "attribute": "className",
           "expression": "\"w-12 h-12 rounded-full ring-2 ring-black/10 dark:ring-white/10\""
         },
         {
-          "line": 485,
+          "line": 422,
+          "attribute": "className",
+          "expression": "\"absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white dark:border-[#111214]\""
+        },
+        {
+          "line": 425,
           "attribute": "className",
           "expression": "\"flex flex-col min-w-0\""
         },
         {
-          "line": 486,
+          "line": 426,
           "attribute": "className",
           "expression": "\"flex items-center gap-2\""
         },
         {
-          "line": 487,
+          "line": 427,
           "attribute": "className",
           "expression": "\"font-bold text-sm text-gray-950 dark:text-white truncate\""
         },
         {
-          "line": 490,
+          "line": 430,
           "attribute": "className",
-          "expression": "\"text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-500 dark:text-emerald-400\""
+          "expression": "\"text-[10px] font-bold px-2 py-0.5 rounded-full bg-black/10 dark:bg-white/15 text-gray-950 dark:text-white\""
         },
         {
-          "line": 494,
+          "line": 435,
           "attribute": "className",
           "expression": "\"text-xs text-gray-500 dark:text-gray-400 mt-0.5\""
         },
         {
-          "line": 503,
+          "line": 443,
+          "attribute": "className",
+          "expression": "\"flex items-center gap-2 shrink-0 self-end sm:self-center\""
+        },
+        {
+          "line": 447,
+          "attribute": "className",
+          "expression": "\"px-3 py-1.5 rounded-xl bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 text-xs font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-1.5 transition cursor-pointer\""
+        },
+        {
+          "line": 449,
+          "attribute": "size",
+          "expression": "{14}"
+        },
+        {
+          "line": 449,
+          "attribute": "className",
+          "expression": "\"text-gray-950 dark:text-white\""
+        },
+        {
+          "line": 456,
+          "attribute": "className",
+          "expression": "\"px-3 py-1.5 rounded-xl bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 text-xs font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-1.5 transition cursor-pointer\""
+        },
+        {
+          "line": 458,
+          "attribute": "size",
+          "expression": "{14}"
+        },
+        {
+          "line": 458,
+          "attribute": "className",
+          "expression": "\"text-gray-950 dark:text-white\""
+        },
+        {
+          "line": 465,
+          "attribute": "className",
+          "expression": "\"p-1.5 rounded-xl hover:bg-red-500/10 text-gray-400 hover:text-red-500 transition cursor-pointer\""
+        },
+        {
+          "line": 469,
+          "attribute": "size",
+          "expression": "{16}"
+        },
+        {
+          "line": 479,
+          "attribute": "className",
+          "expression": "\"flex flex-col gap-3\""
+        },
+        {
+          "line": 483,
+          "attribute": "className",
+          "expression": "{`flex items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl border transition-all ${cardBaseStyle}`}"
+        },
+        {
+          "line": 485,
+          "attribute": "className",
+          "expression": "\"flex items-center gap-3.5 min-w-0\""
+        },
+        {
+          "line": 489,
+          "attribute": "size",
+          "expression": "\"md\""
+        },
+        {
+          "line": 490,
+          "attribute": "className",
+          "expression": "\"w-12 h-12 rounded-full ring-2 ring-black/10 dark:ring-white/10\""
+        },
+        {
+          "line": 492,
+          "attribute": "className",
+          "expression": "\"flex flex-col min-w-0\""
+        },
+        {
+          "line": 493,
+          "attribute": "className",
+          "expression": "\"flex items-center gap-2\""
+        },
+        {
+          "line": 494,
+          "attribute": "className",
+          "expression": "\"font-bold text-sm text-gray-950 dark:text-white truncate\""
+        },
+        {
+          "line": 497,
+          "attribute": "className",
+          "expression": "\"text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-500 dark:text-emerald-400\""
+        },
+        {
+          "line": 501,
+          "attribute": "className",
+          "expression": "\"text-xs text-gray-500 dark:text-gray-400 mt-0.5\""
+        },
+        {
+          "line": 510,
           "attribute": "className",
           "expression": "\"px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-500 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer\""
         },
         {
-          "line": 505,
+          "line": 512,
           "attribute": "size",
           "expression": "{14}"
         },
         {
-          "line": 518,
+          "line": 525,
           "attribute": "className",
           "expression": "\"fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fadeIn\""
         },
         {
-          "line": 519,
+          "line": 526,
           "attribute": "className",
           "expression": "\"relative w-full max-w-md bg-[#111214] border border-white/10 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 text-white\""
         },
         {
-          "line": 520,
+          "line": 527,
           "attribute": "className",
           "expression": "\"flex items-center justify-between\""
         },
         {
-          "line": 522,
+          "line": 529,
           "attribute": "className",
           "expression": "\"text-lg font-bold\""
-        },
-        {
-          "line": 523,
-          "attribute": "className",
-          "expression": "\"text-xs text-gray-400 mt-0.5\""
         },
         {
           "line": 530,
           "attribute": "className",
+          "expression": "\"text-xs text-gray-400 mt-0.5\""
+        },
+        {
+          "line": 537,
+          "attribute": "className",
           "expression": "\"flex items-center p-1 rounded-2xl bg-white/5 border border-white/10\""
         },
         {
-          "line": 534,
+          "line": 541,
           "attribute": "className",
           "expression": "{`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${\n                  pairMethod === 'qr'\n                    ? 'bg-white/15 text-white shadow-sm'\n                    : 'text-gray-400 hover:text-white'\n                }`}"
         },
         {
-          "line": 540,
+          "line": 547,
           "attribute": "size",
           "expression": "{14}"
         },
         {
-          "line": 540,
+          "line": 547,
           "attribute": "className",
           "expression": "\"text-white\""
         },
         {
-          "line": 546,
+          "line": 553,
           "attribute": "className",
           "expression": "{`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${\n                  pairMethod === 'code'\n                    ? 'bg-white/15 text-white shadow-sm'\n                    : 'text-gray-400 hover:text-white'\n                }`}"
         },
         {
-          "line": 552,
+          "line": 559,
           "attribute": "size",
           "expression": "{14}"
         },
         {
-          "line": 552,
-          "attribute": "className",
-          "expression": "\"text-white\""
-        },
-        {
           "line": 559,
           "attribute": "className",
-          "expression": "\"flex flex-col items-center gap-4 py-2\""
-        },
-        {
-          "line": 560,
-          "attribute": "className",
-          "expression": "\"relative w-52 h-52 rounded-3xl bg-black/50 border-2 border-dashed border-indigo-500/40 flex flex-col items-center justify-center overflow-hidden shadow-inner\""
-        },
-        {
-          "line": 561,
-          "attribute": "size",
-          "expression": "{100}"
-        },
-        {
-          "line": 561,
-          "attribute": "className",
-          "expression": "\"text-white/20\""
-        },
-        {
-          "line": 564,
-          "attribute": "animate",
-          "expression": "{{ y: [-70, 70, -70] }}"
-        },
-        {
-          "line": 565,
-          "attribute": "transition",
-          "expression": "{{ repeat: Infinity, duration: 2.2, ease: 'linear' }}"
+          "expression": "\"text-white\""
         },
         {
           "line": 566,
           "attribute": "className",
-          "expression": "\"absolute w-40 h-0.5 bg-indigo-500 shadow-[0_0_12px_#6366f1]\""
+          "expression": "\"flex flex-col items-center gap-4 py-2\""
+        },
+        {
+          "line": 567,
+          "attribute": "className",
+          "expression": "\"relative w-52 h-52 rounded-3xl bg-black/50 border-2 border-dashed border-indigo-500/40 flex flex-col items-center justify-center overflow-hidden shadow-inner\""
+        },
+        {
+          "line": 568,
+          "attribute": "size",
+          "expression": "{100}"
         },
         {
           "line": 568,
           "attribute": "className",
-          "expression": "\"absolute bottom-3 text-[10px] text-gray-400\""
+          "expression": "\"text-white/20\""
+        },
+        {
+          "line": 571,
+          "attribute": "animate",
+          "expression": "{{ y: [-70, 70, -70] }}"
+        },
+        {
+          "line": 572,
+          "attribute": "transition",
+          "expression": "{{ repeat: Infinity, duration: 2.2, ease: 'linear' }}"
         },
         {
           "line": 573,
           "attribute": "className",
+          "expression": "\"absolute w-40 h-0.5 bg-indigo-500 shadow-[0_0_12px_#6366f1]\""
+        },
+        {
+          "line": 575,
+          "attribute": "className",
+          "expression": "\"absolute bottom-3 text-[10px] text-gray-400\""
+        },
+        {
+          "line": 580,
+          "attribute": "className",
           "expression": "\"flex flex-col items-center gap-2 w-full\""
         },
         {
-          "line": 578,
+          "line": 585,
           "attribute": "style",
           "expression": "{{\n                      backgroundColor: accentColor || '#5865F2',\n                      color: textOnAccent || '#ffffff',\n                    }}"
         },
         {
-          "line": 582,
+          "line": 589,
           "attribute": "className",
           "expression": "\"w-full py-2.5 rounded-xl text-xs font-bold shadow-md hover:brightness-110 active:scale-95 transition cursor-pointer flex items-center justify-center gap-2\""
         },
         {
-          "line": 584,
+          "line": 591,
           "attribute": "size",
           "expression": "{15}"
         },
         {
-          "line": 584,
+          "line": 591,
           "attribute": "className",
           "expression": "\"text-white\""
         },
         {
-          "line": 600,
+          "line": 607,
           "attribute": "className",
           "expression": "\"flex flex-col gap-3 py-1\""
         },
         {
-          "line": 602,
+          "line": 609,
           "attribute": "className",
           "expression": "\"text-xs text-gray-400\""
         },
         {
-          "line": 604,
+          "line": 611,
           "attribute": "className",
           "expression": "\"text-white font-mono font-bold\""
         },
         {
-          "line": 612,
+          "line": 619,
           "attribute": "className",
           "expression": "\"w-full bg-white/5 border border-white/10 focus:border-indigo-500 rounded-2xl px-4 py-3 text-center text-xl font-mono tracking-widest text-white focus:outline-none\""
         },
         {
-          "line": 619,
+          "line": 626,
           "attribute": "style",
           "expression": "{{\n                    backgroundColor: accentColor || '#5865F2',\n                    color: textOnAccent || '#ffffff',\n                  }}"
         },
         {
-          "line": 623,
+          "line": 630,
           "attribute": "className",
           "expression": "\"w-full py-2.5 rounded-xl text-xs font-bold shadow-lg hover:brightness-110 active:scale-95 transition-all cursor-pointer mt-1\""
         },
         {
-          "line": 631,
+          "line": 638,
           "attribute": "className",
           "expression": "\"p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-xs text-red-400 flex items-center gap-2\""
         },
         {
-          "line": 632,
+          "line": 639,
           "attribute": "size",
           "expression": "{15}"
         },
         {
-          "line": 632,
+          "line": 639,
           "attribute": "className",
           "expression": "\"shrink-0\""
         },
         {
-          "line": 638,
+          "line": 645,
           "attribute": "className",
           "expression": "\"p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400 flex items-center gap-2\""
         },
         {
-          "line": 639,
+          "line": 646,
           "attribute": "size",
           "expression": "{15}"
         },
         {
-          "line": 639,
+          "line": 646,
           "attribute": "className",
           "expression": "\"shrink-0\""
         },
         {
-          "line": 644,
+          "line": 651,
           "attribute": "className",
           "expression": "\"flex justify-end pt-1\""
         },
         {
-          "line": 648,
+          "line": 655,
           "attribute": "className",
           "expression": "\"px-4 py-2 rounded-xl text-xs font-semibold text-gray-400 hover:text-white cursor-pointer\""
         },
         {
-          "line": 659,
+          "line": 666,
           "attribute": "className",
           "expression": "\"fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fadeIn\""
         },
         {
-          "line": 660,
+          "line": 667,
           "attribute": "className",
           "expression": "\"relative w-full max-w-sm bg-[#111214] border border-white/10 rounded-3xl p-6 shadow-2xl flex flex-col items-center gap-4 text-white text-center\""
-        },
-        {
-          "line": 661,
-          "attribute": "className",
-          "expression": "\"text-lg font-bold\""
-        },
-        {
-          "line": 662,
-          "attribute": "className",
-          "expression": "\"text-xs text-gray-400\""
-        },
-        {
-          "line": 666,
-          "attribute": "className",
-          "expression": "\"w-48 h-48 rounded-2xl bg-white p-3 flex flex-col items-center justify-center shadow-lg border-4 border-indigo-500/30\""
-        },
-        {
-          "line": 667,
-          "attribute": "size",
-          "expression": "{130}"
-        },
-        {
-          "line": 667,
-          "attribute": "className",
-          "expression": "\"text-black\""
         },
         {
           "line": 668,
           "attribute": "className",
-          "expression": "\"font-mono text-xs font-extrabold text-black tracking-widest mt-1\""
+          "expression": "\"text-lg font-bold\""
+        },
+        {
+          "line": 669,
+          "attribute": "className",
+          "expression": "\"text-xs text-gray-400\""
         },
         {
           "line": 673,
           "attribute": "className",
-          "expression": "\"flex flex-col items-center gap-1\""
+          "expression": "\"w-48 h-48 rounded-2xl bg-white p-3 flex flex-col items-center justify-center shadow-lg border-4 border-indigo-500/30\""
+        },
+        {
+          "line": 674,
+          "attribute": "size",
+          "expression": "{130}"
         },
         {
           "line": 674,
           "attribute": "className",
+          "expression": "\"text-black\""
+        },
+        {
+          "line": 675,
+          "attribute": "className",
+          "expression": "\"font-mono text-xs font-extrabold text-black tracking-widest mt-1\""
+        },
+        {
+          "line": 680,
+          "attribute": "className",
+          "expression": "\"flex flex-col items-center gap-1\""
+        },
+        {
+          "line": 681,
+          "attribute": "className",
           "expression": "\"text-2xl font-mono font-extrabold text-white tracking-widest\""
         },
         {
-          "line": 677,
+          "line": 684,
           "attribute": "className",
           "expression": "\"text-[11px] text-gray-400\""
         },
         {
-          "line": 686,
+          "line": 693,
           "attribute": "className",
           "expression": "\"w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold transition cursor-pointer\""
         },
         {
-          "line": 696,
+          "line": 703,
           "attribute": "className",
           "expression": "\"fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn\""
         },
         {
-          "line": 697,
+          "line": 704,
           "attribute": "className",
           "expression": "\"relative w-full max-w-md bg-[#111214] border border-indigo-500/40 rounded-3xl p-6 shadow-2xl flex flex-col items-center gap-4 text-white text-center\""
         },
         {
-          "line": 698,
+          "line": 705,
           "attribute": "className",
           "expression": "\"w-14 h-14 rounded-full bg-white/10 text-white flex items-center justify-center\""
         },
         {
-          "line": 699,
+          "line": 706,
           "attribute": "size",
           "expression": "{28}"
         },
         {
-          "line": 703,
+          "line": 710,
           "attribute": "className",
           "expression": "\"text-lg font-bold\""
         },
         {
-          "line": 704,
+          "line": 711,
           "attribute": "className",
           "expression": "\"text-xs text-gray-400 mt-1\""
         },
         {
-          "line": 709,
+          "line": 716,
           "attribute": "className",
           "expression": "\"flex items-center gap-3 p-3.5 rounded-2xl bg-white/5 border border-white/10 w-full justify-center\""
         },
         {
-          "line": 713,
+          "line": 720,
           "attribute": "size",
           "expression": "\"md\""
         },
         {
-          "line": 714,
+          "line": 721,
           "attribute": "className",
           "expression": "\"w-10 h-10 rounded-full\""
         },
         {
-          "line": 716,
+          "line": 723,
           "attribute": "className",
           "expression": "\"flex flex-col text-left\""
         },
         {
-          "line": 717,
+          "line": 724,
           "attribute": "className",
           "expression": "\"text-sm font-bold text-white\""
         },
         {
-          "line": 720,
+          "line": 727,
           "attribute": "className",
           "expression": "\"text-xs text-gray-400\""
         },
         {
-          "line": 724,
+          "line": 731,
           "attribute": "className",
           "expression": "\"text-[11px] text-gray-400 leading-relaxed\""
         },
         {
-          "line": 729,
+          "line": 736,
           "attribute": "className",
           "expression": "\"flex items-center gap-3 w-full pt-1\""
         },
         {
-          "line": 734,
+          "line": 741,
           "attribute": "className",
           "expression": "\"flex-1 py-2.5 rounded-2xl bg-white/10 hover:bg-white/15 text-xs font-bold text-gray-300 transition cursor-pointer\""
         },
         {
-          "line": 742,
+          "line": 749,
           "attribute": "style",
           "expression": "{{\n                  backgroundColor: accentColor || '#5865F2',\n                  color: textOnAccent || '#ffffff',\n                }}"
         },
         {
-          "line": 746,
+          "line": 753,
           "attribute": "className",
           "expression": "\"flex-1 py-2.5 rounded-2xl text-xs font-bold shadow-lg hover:brightness-110 active:scale-95 transition cursor-pointer\""
         },
         {
-          "line": 757,
+          "line": 764,
           "attribute": "className",
           "expression": "\"fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fadeIn\""
-        },
-        {
-          "line": 758,
-          "attribute": "className",
-          "expression": "\"relative w-full max-w-lg bg-[#111214] border border-white/10 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 text-white max-h-[85vh] overflow-y-auto\""
-        },
-        {
-          "line": 759,
-          "attribute": "className",
-          "expression": "\"flex items-center justify-between border-b border-white/10 pb-3\""
-        },
-        {
-          "line": 760,
-          "attribute": "className",
-          "expression": "\"flex items-center gap-3\""
-        },
-        {
-          "line": 764,
-          "attribute": "size",
-          "expression": "\"md\""
         },
         {
           "line": 765,
           "attribute": "className",
-          "expression": "\"w-10 h-10 rounded-full\""
+          "expression": "\"relative w-full max-w-lg bg-[#111214] border border-white/10 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 text-white max-h-[85vh] overflow-y-auto\""
         },
         {
-          "line": 768,
+          "line": 766,
           "attribute": "className",
-          "expression": "\"text-base font-bold\""
+          "expression": "\"flex items-center justify-between border-b border-white/10 pb-3\""
+        },
+        {
+          "line": 767,
+          "attribute": "className",
+          "expression": "\"flex items-center gap-3\""
         },
         {
           "line": 771,
+          "attribute": "size",
+          "expression": "\"md\""
+        },
+        {
+          "line": 772,
           "attribute": "className",
-          "expression": "\"text-xs text-gray-400\""
+          "expression": "\"w-10 h-10 rounded-full\""
+        },
+        {
+          "line": 775,
+          "attribute": "className",
+          "expression": "\"text-base font-bold\""
         },
         {
           "line": 778,
           "attribute": "className",
-          "expression": "\"text-xs text-gray-400 hover:text-white cursor-pointer px-2 py-1 rounded-lg hover:bg-white/5\""
+          "expression": "\"text-xs text-gray-400\""
         },
         {
           "line": 785,
           "attribute": "className",
-          "expression": "\"py-12 flex flex-col items-center justify-center text-gray-400 gap-2\""
-        },
-        {
-          "line": 786,
-          "attribute": "size",
-          "expression": "{24}"
-        },
-        {
-          "line": 786,
-          "attribute": "className",
-          "expression": "\"animate-spin text-white\""
-        },
-        {
-          "line": 787,
-          "attribute": "className",
-          "expression": "\"text-xs\""
-        },
-        {
-          "line": 790,
-          "attribute": "className",
-          "expression": "\"grid grid-cols-2 gap-3 py-2\""
-        },
-        {
-          "line": 791,
-          "attribute": "className",
-          "expression": "\"p-3.5 rounded-2xl bg-white/5 border border-white/10 flex flex-col\""
+          "expression": "\"text-xs text-gray-400 hover:text-white cursor-pointer px-2 py-1 rounded-lg hover:bg-white/5\""
         },
         {
           "line": 792,
           "attribute": "className",
-          "expression": "\"text-xs text-gray-400\""
+          "expression": "\"py-12 flex flex-col items-center justify-center text-gray-400 gap-2\""
         },
         {
           "line": 793,
-          "attribute": "className",
-          "expression": "\"text-xl font-bold text-white mt-1\""
-        },
-        {
-          "line": 797,
-          "attribute": "className",
-          "expression": "\"p-3.5 rounded-2xl bg-white/5 border border-white/10 flex flex-col\""
-        },
-        {
-          "line": 798,
-          "attribute": "className",
-          "expression": "\"text-xs text-gray-400\""
-        },
-        {
-          "line": 799,
-          "attribute": "className",
-          "expression": "\"text-xl font-bold text-white mt-1\""
-        },
-        {
-          "line": 803,
-          "attribute": "className",
-          "expression": "\"p-3.5 rounded-2xl bg-white/5 border border-white/10 flex flex-col\""
-        },
-        {
-          "line": 804,
-          "attribute": "className",
-          "expression": "\"text-xs text-gray-400\""
-        },
-        {
-          "line": 805,
-          "attribute": "className",
-          "expression": "\"text-xl font-bold text-white mt-1\""
-        },
-        {
-          "line": 809,
-          "attribute": "className",
-          "expression": "\"p-3.5 rounded-2xl bg-white/5 border border-white/10 flex flex-col\""
-        },
-        {
-          "line": 810,
-          "attribute": "className",
-          "expression": "\"text-xs text-gray-400\""
-        },
-        {
-          "line": 811,
-          "attribute": "className",
-          "expression": "\"text-xl font-bold text-white mt-1\""
-        },
-        {
-          "line": 815,
-          "attribute": "className",
-          "expression": "\"p-3.5 rounded-2xl bg-white/5 border border-white/10 flex flex-col\""
-        },
-        {
-          "line": 816,
-          "attribute": "className",
-          "expression": "\"text-xs text-gray-400\""
-        },
-        {
-          "line": 817,
-          "attribute": "className",
-          "expression": "\"text-xl font-bold text-white mt-1\""
-        },
-        {
-          "line": 842,
-          "attribute": "className",
-          "expression": "\"fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fadeIn\""
-        },
-        {
-          "line": 843,
-          "attribute": "className",
-          "expression": "\"relative w-full max-w-sm bg-[#111214] border border-white/10 rounded-3xl p-6 shadow-2xl flex flex-col items-center gap-4 text-white text-center\""
-        },
-        {
-          "line": 844,
-          "attribute": "className",
-          "expression": "\"w-12 h-12 rounded-full bg-red-500/15 text-red-500 flex items-center justify-center\""
-        },
-        {
-          "line": 845,
           "attribute": "size",
           "expression": "{24}"
         },
         {
-          "line": 848,
+          "line": 793,
           "attribute": "className",
-          "expression": "\"text-base font-bold\""
+          "expression": "\"animate-spin text-white\""
         },
         {
-          "line": 849,
+          "line": 794,
+          "attribute": "className",
+          "expression": "\"text-xs\""
+        },
+        {
+          "line": 797,
+          "attribute": "className",
+          "expression": "\"grid grid-cols-2 gap-3 py-2\""
+        },
+        {
+          "line": 798,
+          "attribute": "className",
+          "expression": "\"p-3.5 rounded-2xl bg-white/5 border border-white/10 flex flex-col\""
+        },
+        {
+          "line": 799,
           "attribute": "className",
           "expression": "\"text-xs text-gray-400\""
         },
         {
+          "line": 800,
+          "attribute": "className",
+          "expression": "\"text-xl font-bold text-white mt-1\""
+        },
+        {
+          "line": 804,
+          "attribute": "className",
+          "expression": "\"p-3.5 rounded-2xl bg-white/5 border border-white/10 flex flex-col\""
+        },
+        {
+          "line": 805,
+          "attribute": "className",
+          "expression": "\"text-xs text-gray-400\""
+        },
+        {
+          "line": 806,
+          "attribute": "className",
+          "expression": "\"text-xl font-bold text-white mt-1\""
+        },
+        {
+          "line": 810,
+          "attribute": "className",
+          "expression": "\"p-3.5 rounded-2xl bg-white/5 border border-white/10 flex flex-col\""
+        },
+        {
+          "line": 811,
+          "attribute": "className",
+          "expression": "\"text-xs text-gray-400\""
+        },
+        {
+          "line": 812,
+          "attribute": "className",
+          "expression": "\"text-xl font-bold text-white mt-1\""
+        },
+        {
+          "line": 816,
+          "attribute": "className",
+          "expression": "\"p-3.5 rounded-2xl bg-white/5 border border-white/10 flex flex-col\""
+        },
+        {
+          "line": 817,
+          "attribute": "className",
+          "expression": "\"text-xs text-gray-400\""
+        },
+        {
+          "line": 818,
+          "attribute": "className",
+          "expression": "\"text-xl font-bold text-white mt-1\""
+        },
+        {
+          "line": 822,
+          "attribute": "className",
+          "expression": "\"p-3.5 rounded-2xl bg-white/5 border border-white/10 flex flex-col\""
+        },
+        {
+          "line": 823,
+          "attribute": "className",
+          "expression": "\"text-xs text-gray-400\""
+        },
+        {
+          "line": 824,
+          "attribute": "className",
+          "expression": "\"text-xl font-bold text-white mt-1\""
+        },
+        {
+          "line": 849,
+          "attribute": "className",
+          "expression": "\"fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fadeIn\""
+        },
+        {
+          "line": 850,
+          "attribute": "className",
+          "expression": "\"relative w-full max-w-sm bg-[#111214] border border-white/10 rounded-3xl p-6 shadow-2xl flex flex-col items-center gap-4 text-white text-center\""
+        },
+        {
           "line": 851,
           "attribute": "className",
-          "expression": "\"text-white\""
+          "expression": "\"w-12 h-12 rounded-full bg-red-500/15 text-red-500 flex items-center justify-center\""
+        },
+        {
+          "line": 852,
+          "attribute": "size",
+          "expression": "{24}"
         },
         {
           "line": 855,
           "attribute": "className",
+          "expression": "\"text-base font-bold\""
+        },
+        {
+          "line": 856,
+          "attribute": "className",
+          "expression": "\"text-xs text-gray-400\""
+        },
+        {
+          "line": 858,
+          "attribute": "className",
+          "expression": "\"text-white\""
+        },
+        {
+          "line": 862,
+          "attribute": "className",
           "expression": "\"flex items-center gap-3 w-full pt-1\""
         },
         {
-          "line": 859,
+          "line": 866,
           "attribute": "className",
           "expression": "\"flex-1 py-2.5 rounded-2xl bg-white/10 hover:bg-white/15 text-xs font-bold text-gray-300 transition cursor-pointer\""
         },
         {
-          "line": 866,
+          "line": 873,
           "attribute": "className",
           "expression": "\"flex-1 py-2.5 rounded-2xl bg-red-600 hover:bg-red-500 text-xs font-bold text-white shadow-lg transition cursor-pointer\""
         }
@@ -208250,6 +208263,7 @@
         "rounded-full",
         "rounded-xl",
         "shadow-2xl",
+        "space-y-2",
         "text-center",
         "text-gray-400",
         "text-gray-500",
@@ -208269,152 +208283,157 @@
       "colorLiterals": [],
       "presentation": [
         {
-          "line": 40,
-          "attribute": "className",
-          "expression": "\"w-full max-w-md\""
-        },
-        {
           "line": 42,
           "attribute": "className",
-          "expression": "\"glass-modal border border-black/10 dark:border-white/10 rounded-3xl shadow-2xl backdrop-blur-2xl p-5 text-gray-950 dark:text-white\""
-        },
-        {
-          "line": 43,
-          "attribute": "className",
-          "expression": "\"flex items-center justify-between mb-4\""
+          "expression": "\"w-full max-w-md\""
         },
         {
           "line": 44,
           "attribute": "className",
-          "expression": "\"text-lg font-bold text-gray-950 dark:text-white\""
-        },
-        {
-          "line": 48,
-          "attribute": "className",
-          "expression": "\"w-8 h-8 flex items-center justify-center rounded-full bg-black/5 hover:bg-black/10 dark:bg-white/5 text-gray-600 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-white transition-colors active:scale-90\""
-        },
-        {
-          "line": 51,
-          "attribute": "size",
-          "expression": "{16}"
-        },
-        {
-          "line": 54,
-          "attribute": "className",
-          "expression": "\"text-sm text-gray-700 dark:text-gray-300 py-6 text-center\""
-        },
-        {
-          "line": 64,
-          "attribute": "className",
-          "expression": "\"w-full max-w-md\""
-        },
-        {
-          "line": 66,
-          "attribute": "className",
           "expression": "\"glass-modal border border-black/10 dark:border-white/10 rounded-3xl shadow-2xl backdrop-blur-2xl p-5 text-gray-950 dark:text-white\""
         },
         {
-          "line": 67,
+          "line": 45,
           "attribute": "className",
           "expression": "\"flex items-center justify-between mb-4\""
         },
         {
-          "line": 68,
-          "attribute": "className",
-          "expression": "\"flex items-center gap-2\""
-        },
-        {
-          "line": 72,
-          "attribute": "className",
-          "expression": "\"w-8 h-8 flex items-center justify-center rounded-full bg-black/5 hover:bg-black/10 dark:bg-white/5 text-gray-600 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-white transition-colors active:scale-90\""
-        },
-        {
-          "line": 75,
-          "attribute": "size",
-          "expression": "{16}"
-        },
-        {
-          "line": 77,
+          "line": 46,
           "attribute": "className",
           "expression": "\"text-lg font-bold text-gray-950 dark:text-white\""
         },
         {
-          "line": 82,
+          "line": 50,
           "attribute": "className",
           "expression": "\"w-8 h-8 flex items-center justify-center rounded-full bg-black/5 hover:bg-black/10 dark:bg-white/5 text-gray-600 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-white transition-colors active:scale-90\""
         },
         {
-          "line": 85,
+          "line": 53,
           "attribute": "size",
           "expression": "{16}"
         },
         {
-          "line": 89,
+          "line": 56,
+          "attribute": "className",
+          "expression": "\"text-sm text-gray-700 dark:text-gray-300 py-6 text-center\""
+        },
+        {
+          "line": 66,
+          "attribute": "className",
+          "expression": "\"w-full max-w-md\""
+        },
+        {
+          "line": 68,
+          "attribute": "className",
+          "expression": "\"glass-modal border border-black/10 dark:border-white/10 rounded-3xl shadow-2xl backdrop-blur-2xl p-5 text-gray-950 dark:text-white\""
+        },
+        {
+          "line": 69,
+          "attribute": "className",
+          "expression": "\"flex items-center justify-between mb-4\""
+        },
+        {
+          "line": 70,
+          "attribute": "className",
+          "expression": "\"flex items-center gap-2\""
+        },
+        {
+          "line": 74,
+          "attribute": "className",
+          "expression": "\"w-8 h-8 flex items-center justify-center rounded-full bg-black/5 hover:bg-black/10 dark:bg-white/5 text-gray-600 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-white transition-colors active:scale-90\""
+        },
+        {
+          "line": 77,
+          "attribute": "size",
+          "expression": "{16}"
+        },
+        {
+          "line": 79,
+          "attribute": "className",
+          "expression": "\"text-lg font-bold text-gray-950 dark:text-white\""
+        },
+        {
+          "line": 84,
+          "attribute": "className",
+          "expression": "\"w-8 h-8 flex items-center justify-center rounded-full bg-black/5 hover:bg-black/10 dark:bg-white/5 text-gray-600 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-white transition-colors active:scale-90\""
+        },
+        {
+          "line": 87,
+          "attribute": "size",
+          "expression": "{16}"
+        },
+        {
+          "line": 91,
           "attribute": "className",
           "expression": "\"flex flex-col gap-4\""
         },
         {
-          "line": 96,
+          "line": 98,
           "attribute": "className",
           "expression": "\"w-full bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 rounded-xl px-4 py-2.5 text-gray-950 dark:text-white placeholder:text-gray-500 text-sm focus:outline-none focus:border-purple-500 transition resize-none\""
         },
         {
-          "line": 98,
+          "line": 100,
           "attribute": "className",
           "expression": "\"text-xs text-gray-500 mt-1\""
         },
         {
-          "line": 104,
+          "line": 106,
           "attribute": "className",
           "expression": "\"block text-xs font-medium text-gray-400 mb-1.5\""
         },
         {
-          "line": 109,
+          "line": 111,
           "attribute": "className",
           "expression": "\"text-xs font-medium text-gray-400 mb-1.5\""
         },
         {
-          "line": 114,
+          "line": 116,
           "attribute": "className",
           "expression": "\"hidden\""
         },
         {
-          "line": 118,
+          "line": 120,
           "attribute": "className",
           "expression": "\"flex items-center justify-between bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-gray-800 dark:text-gray-300\""
         },
         {
-          "line": 119,
+          "line": 121,
           "attribute": "className",
           "expression": "\"truncate\""
         },
         {
-          "line": 123,
+          "line": 125,
           "attribute": "className",
           "expression": "\"text-gray-500 hover:text-white shrink-0\""
         },
         {
-          "line": 125,
+          "line": 127,
           "attribute": "size",
           "expression": "{14}"
         },
         {
-          "line": 132,
+          "line": 134,
           "attribute": "className",
           "expression": "\"w-full flex items-center gap-2 bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 hover:border-neutral-500 rounded-xl px-4 py-2.5 text-sm text-gray-600 dark:text-gray-400 transition-colors\""
         },
         {
-          "line": 134,
+          "line": 136,
           "attribute": "size",
           "expression": "{14}"
         },
         {
-          "line": 139,
+          "line": 142,
           "attribute": "className",
-          "expression": "\"text-xs text-red-400 font-medium -mt-1\""
+          "expression": "\"text-xs text-red-400 font-medium -mt-1 space-y-2\""
         },
         {
-          "line": 144,
+          "line": 146,
+          "attribute": "className",
+          "expression": "\"underline focus-visible:outline\""
+        },
+        {
+          "line": 163,
           "attribute": "className",
           "expression": "\"w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors\""
         }
