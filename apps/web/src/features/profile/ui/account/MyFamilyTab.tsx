@@ -1,3 +1,4 @@
+import { useLanguageStore } from '@/shared/lib/language/languageStore';
 import React, { useState, useEffect } from 'react';
 import {
   QrCode,
@@ -50,6 +51,7 @@ export const MyFamilyTab: React.FC<MyFamilyTabProps> = ({
     (s) => s.isGlassmorphismEnabled || s.glassmorphismOpacity > 0 || s.themeMode === 'wallpaper',
   );
   const { pinEnabled, pinCode } = useFamilySettingsStore();
+  const ukrainian = useLanguageStore((state) => state.currentLanguage === 'Українська');
 
   // Unified Parent Pairing Modal (QR scanner + alphanumeric code)
   const [isPairModalOpen, setIsPairModalOpen] = useState(false);
@@ -195,6 +197,11 @@ export const MyFamilyTab: React.FC<MyFamilyTabProps> = ({
 
   return (
     <div className="flex flex-col gap-6 animate-fadeIn pb-8">
+      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+        {ukrainian
+          ? 'Після підтвердження підлітком ми зберігаємо зв’язок і налаштування Сімейного центру. Дорослий бачить підсумки активності, а не зміст повідомлень. Код діє 10 хвилин; юридичні повноваження представника окремо не перевіряються. Будь-який учасник може розірвати зв’язок.'
+          : 'After the teen confirms, we store the Family Center connection and settings. The adult sees activity totals, not message contents. Codes expire after 10 minutes; legal guardianship is not independently verified. Either member can disconnect.'}
+      </p>
       {/* 1. Hero Explanation Card */}
       <div
         className={`relative overflow-hidden rounded-3xl p-5 sm:p-6 transition-all duration-300 ${cardBaseStyle}`}

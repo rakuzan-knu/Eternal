@@ -309,8 +309,8 @@ export const FamilyActivityTab: React.FC<FamilyActivityTabProps> = ({
                 Reports Shared by Your Teen
               </span>
               <span className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                If your teen chooses to share a safety report with you, you'll receive an email
-                notification.
+                Only the number of submitted reports is shown. Report text and email alerts are not
+                provided by Family Center.
               </span>
             </div>
           </div>
@@ -340,8 +340,9 @@ export const FamilyActivityTab: React.FC<FamilyActivityTabProps> = ({
                 Screen Time Limits
               </span>
               <span className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                Help your teen take breaks by setting daily limits and scheduled downtime when the
-                platform is restricted.
+                Set daily limits for authenticated active minutes and scheduled downtime. Reports,
+                Family Center and data-rights routes remain available; incoming notifications may
+                continue.
               </span>
             </div>
           </div>
@@ -356,8 +357,8 @@ export const FamilyActivityTab: React.FC<FamilyActivityTabProps> = ({
                 Spending Limits
               </span>
               <span className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                Set a monthly budget for your teen's purchases, including shop items, gifts, and
-                goods.
+                Payments and purchase approvals are unavailable. Spending controls cannot authorize
+                a transaction.
               </span>
             </div>
           </div>

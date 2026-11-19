@@ -1,3 +1,4 @@
+import { BypassCurfew } from '../family/decorators/bypass-curfew.decorator';
 import { Body, Controller, Header, HttpCode, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
@@ -18,6 +19,7 @@ import { DataExportService } from './data-export.service';
 @ApiBearerAuth()
 @UseGuards(AuthGuard)
 @SkipIdempotency()
+@BypassCurfew()
 @Controller('users/me/data-export')
 export class CoreDataExportController {
   constructor(private readonly exports: DataExportService) {}
@@ -40,6 +42,7 @@ export class CoreDataExportController {
 @ApiBearerAuth()
 @UseGuards(AuthGuard)
 @SkipIdempotency()
+@BypassCurfew()
 @Controller('messenger/me/data-export')
 export class MessengerDataExportController {
   constructor(private readonly exports: DataExportService) {}

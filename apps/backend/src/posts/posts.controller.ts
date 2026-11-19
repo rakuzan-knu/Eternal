@@ -1,3 +1,4 @@
+import { BypassCurfew } from '../family/decorators/bypass-curfew.decorator';
 import {
   type CreatePostDto,
   type EditPostDto,
@@ -228,6 +229,7 @@ export class PostsController {
     return this.postsService.unrepost(id, user.id);
   }
 
+  @BypassCurfew()
   @Post(':id/report')
   @UseGuards(AuthGuard)
   @ApiBearerAuth()

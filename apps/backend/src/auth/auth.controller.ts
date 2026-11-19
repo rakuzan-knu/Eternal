@@ -1,3 +1,4 @@
+import { BypassCurfew } from '../family/decorators/bypass-curfew.decorator';
 import {
   type AuthResponse,
   type ChangePasswordDto,
@@ -61,6 +62,7 @@ function extractMeta(req: Request, ip: string, ua?: string): RequestMeta {
 }
 
 @ApiTags('auth')
+@BypassCurfew()
 @Controller('auth')
 export class AuthController {
   constructor(

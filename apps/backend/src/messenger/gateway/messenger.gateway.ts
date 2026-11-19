@@ -1,3 +1,5 @@
+import { FamilyAccessInterceptor } from '../../family/family-access.interceptor';
+import { BypassCurfew } from '../../family/decorators/bypass-curfew.decorator';
 import { ownsRole } from '../../config/service-role';
 import { canViewStory } from '../../stories/story-access';
 import { publicIntegrationData } from '../../common/security/public-integration-data';
@@ -145,7 +147,7 @@ const getCorsOrigin = () => {
 };
 
 @UseFilters(WsValidationFilter)
-@UseInterceptors(WsTraceInterceptor)
+@UseInterceptors(WsTraceInterceptor, FamilyAccessInterceptor)
 @WebSocketGateway({
   namespace: '/messenger',
   cors: {
@@ -556,6 +558,7 @@ export class MessengerGateway
     await client.join(payload.conversationId);
   }
 
+  @BypassCurfew()
   @SubscribeMessage(WS_EVENTS.LEAVE_CONVERSATION)
   async handleLeave(
     @ConnectedSocket() client: AuthenticatedSocket,
@@ -597,6 +600,7 @@ export class MessengerGateway
     }
   }
 
+  @BypassCurfew()
   @SubscribeMessage(WS_EVENTS.TYPING_STOP)
   async handleTypingStop(
     @ConnectedSocket() client: AuthenticatedSocket,
@@ -973,6 +977,7 @@ export class MessengerGateway
     }
   }
 
+  @BypassCurfew()
   @SubscribeMessage(WS_EVENTS.CLIENT_HIBERNATE)
   async handleClientHibernate(
     @ConnectedSocket() client: AuthenticatedSocket,
@@ -1565,6 +1570,7 @@ export class MessengerGateway
     }
   }
 
+  @BypassCurfew()
   @SubscribeMessage('unsubscribeShowcase')
   handleUnsubscribeShowcase(
     @ConnectedSocket() client: Socket,
@@ -1710,6 +1716,7 @@ export class MessengerGateway
     await client.join(`story:${data.storyId}`);
   }
 
+  @BypassCurfew()
   @SubscribeMessage('unsubscribeStory')
   handleUnsubscribeStory(
     @ConnectedSocket() client: Socket,
@@ -1959,6 +1966,7 @@ export class MessengerGateway
     }
   }
 
+  @BypassCurfew()
   @SubscribeMessage(WS_EVENTS.CALL_REJECT)
   async handleCallReject(
     @ConnectedSocket() client: AuthenticatedSocket,
@@ -2103,6 +2111,7 @@ export class MessengerGateway
     });
   }
 
+  @BypassCurfew()
   @SubscribeMessage(WS_EVENTS.CALL_END)
   async handleCallEnd(
     @ConnectedSocket() client: AuthenticatedSocket,
@@ -2239,6 +2248,7 @@ export class MessengerGateway
     }
   }
 
+  @BypassCurfew()
   @SubscribeMessage(WS_EVENTS.CALL_SCREEN_SHARE_STOP)
   async handleCallScreenShareStop(
     @ConnectedSocket() client: AuthenticatedSocket,
@@ -2631,6 +2641,7 @@ export class MessengerGateway
   /**
    * Listener or Host leaves the room
    */
+  @BypassCurfew()
   @SubscribeMessage('jam:leave')
   async handleJamLeave(
     @ConnectedSocket() client: AuthenticatedSocket,
@@ -2899,6 +2910,7 @@ export class MessengerGateway
     };
   }
 
+  @BypassCurfew()
   @SubscribeMessage(WS_EVENTS.VOICE_MESH_LEAVE)
   async handleVoiceMeshLeave(
     @ConnectedSocket() client: AuthenticatedSocket,

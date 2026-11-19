@@ -69,6 +69,18 @@ Reuse `shared/ui/Modal` for the new-group dialog, including its input-Escape opt
 ## Profile effects
 The existing shop owns the third category and native effect dialog. `ProfileEffectPreview` composes the existing Avatar and the sole shared `ProfileEffect` overlay. Main profile header cards and MiniProfileHoverCard own the overlay boundaries; effects never extend over feeds, sidebars, navigation or actionable hit regions. The actual avatar center anchors the 3D entrance after responsive layout. Portrait media is 640 × 1120 at 60 FPS, with 2.5 seconds of action and 5.5 seconds of transparent rest. Racing nameplates remain 640 × 112, with real 60 FPS scenes. No new application token or font owner is introduced.
 
+## Family safety controls
+
+Preserve the existing settings cards, theme tokens and shared modal. Disable unavailable email, PIN and payment controls with a visible explanation. Saved preferences do not prove delivery or provide authorization. Safeguard save failures retain the draft and show an inline alert. Family pairing explains collection before confirmation; active-minute limits describe UTC accounting and preserve access to data rights, blocking, reporting and disconnection.
+
+### Canonical UI Map
+
+| Capability | Canonical owner | Source of truth | Allowed variants | Verification |
+| --- | --- | --- | --- | --- |
+| Form | Existing Family components and familyApi | API schemas and Family settings state | Read-only unavailable preferences; acknowledged safeguard save | FamilySafeguardsModal component tests |
+| Select/Listbox | shared/ui/Select.tsx | Maintained authored listbox | Existing problem-report area selector | Existing Select tests and report failure test |
+| Date | Native input type=time | Validated HH:mm and IANA timezone | Existing Family curfew inputs with OS-owned time popup | Family API validation and component tests |
+
 Three eligible visible profile effects may animate, one on smaller devices. Reduced motion, hidden pages and data saving disable animation; profile content stays unobscured, while shop previews use static posters. Hover/focus promotes a card within the same global budget. All rendering failures preserve usable profile controls.
 
 Profile card frames (2026-10-06): retain existing typography, app background/accent/text tokens, profile theme and card radii. Art colors are asset-specific metadata, not new application theme tokens. Proportional crowns occupy reserved top space; thin rails and fixed SVG corners frame the content without covering the nickname, bio or actions. Compact cards inset crowns into the banner. Shared ProfileFrameSurface/DecorationShopDialog own sizing and behavior. Frame/effect playback shares a visibility and reduced-motion budget. No card-wide image stretching or decorative interaction surfaces.

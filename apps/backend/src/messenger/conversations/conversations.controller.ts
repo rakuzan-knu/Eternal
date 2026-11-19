@@ -1,3 +1,4 @@
+import { BypassCurfew } from '../../family/decorators/bypass-curfew.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
   type AddMembersDto,
@@ -354,12 +355,14 @@ export class ConversationsController {
     return this.service.unarchiveConversation(id, user.id);
   }
 
+  @BypassCurfew()
   @Get('users/blocked')
   @ApiOperation({ summary: 'List users the current user has blocked' })
   getBlockedUsers(@CurrentUser() user: RequestUser) {
     return this.service.getBlockedUsers(user.id);
   }
 
+  @BypassCurfew()
   @Post('users/:userId/block')
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -368,6 +371,7 @@ export class ConversationsController {
     return this.service.blockUser(user.id, userId);
   }
 
+  @BypassCurfew()
   @Delete('users/:userId/block')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Unblock a user' })
@@ -375,6 +379,7 @@ export class ConversationsController {
     return this.service.unblockUser(user.id, userId);
   }
 
+  @BypassCurfew()
   @Post('users/:userId/report')
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @HttpCode(HttpStatus.NO_CONTENT)

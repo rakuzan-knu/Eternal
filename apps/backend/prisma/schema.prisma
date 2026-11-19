@@ -140,11 +140,95 @@ model User {
   musicFolders             UserMusicFolder[]
   musicPlaylists           UserPlaylist[]
   registrationAdmission   RegistrationAdmission?
+  familyChildren FamilyLink[] @relation("FamilyParent")
+  familyParents FamilyLink[] @relation("FamilyChild")
+  familyInvites FamilyInvite[]
+  familySafeguards FamilySafeguard? @relation("FamilySafeguardChild")
+  familySafeguardsUpdated FamilySafeguard[] @relation("FamilySafeguardParent")
+  familySettings FamilySettings?
+  familyScreenUsage FamilyScreenUsage[]
+  familyPairAttempts FamilyPairAttempts?
 
   @@index([activeDecorationId])
   @@index([activeNameplateId])
   @@index([activeProfileFrameId])
   @@index([activeProfileEffectId])
+}
+
+enum FamilyLinkStatus {
+  PENDING_CONFIRMATION
+  ACTIVE
+  REVOKED
+}
+
+model FamilyLink {
+  id String @id @default(uuid())
+  parentId String
+  childId String
+  status FamilyLinkStatus @default(PENDING_CONFIRMATION)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  confirmedAt DateTime?
+  expiresAt DateTime
+  parent User @relation("FamilyParent", fields: [parentId], references: [id], onDelete: Cascade)
+  child User @relation("FamilyChild", fields: [childId], references: [id], onDelete: Cascade)
+  @@index([parentId, status])
+  @@index([childId, status, createdAt])
+}
+
+model FamilyInvite {
+  id String @id @default(uuid())
+  childId String
+  codeHash String @unique
+  tokenHash String @unique
+  expiresAt DateTime
+  consumedAt DateTime?
+  child User @relation(fields: [childId], references: [id], onDelete: Cascade)
+  @@index([childId])
+}
+
+model FamilySafeguard {
+  childId String @id
+  dailyLimitMinutes Int @default(120)
+  curfewStart String?
+  curfewEnd String?
+  timezone String @default("UTC")
+  restrictedDirectMessages Boolean @default(true)
+  monthlyBudget Float @default(100)
+  spentThisMonth Float @default(0)
+  requirePurchaseApproval Boolean @default(true)
+  profileSettingsLocked Boolean @default(true)
+  updatedByParentId String?
+  updatedAt DateTime @updatedAt
+  child User @relation("FamilySafeguardChild", fields: [childId], references: [id], onDelete: Cascade)
+  updatedByParent User? @relation("FamilySafeguardParent", fields: [updatedByParentId], references: [id], onDelete: SetNull)
+}
+
+model FamilySettings {
+  userId String @id
+  weeklyDigest Boolean @default(true)
+  newFriendAlerts Boolean @default(true)
+  reportAlerts Boolean @default(true)
+  notifyLinkRequests Boolean @default(true)
+  pinEnabled Boolean @default(false)
+  pinHash String?
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model FamilyScreenUsage {
+  userId String
+  utcDate String
+  minutes Int @default(0)
+  lastMinute String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@id([userId, utcDate])
+}
+
+model FamilyPairAttempts {
+  userId String @id
+  attempts Int @default(0)
+  windowStart DateTime @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model RegistrationAdmission {

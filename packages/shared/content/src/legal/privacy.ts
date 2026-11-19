@@ -43,6 +43,7 @@ export const PRIVACY_SECTIONS_EN: PrivacySection[] = [
         content: [
           'The minimum account age is 13, subject to higher local account-age restrictions and other admission requirements. The age at which a child may consent to a particular use of personal data is a separate question. Required parental authorization and child-safety procedures cannot be replaced by accepting these Terms.',
           'Accounts below the applicable minimum age are prohibited. Registration availability is shown in the sign-up form. The initial registration market is Ukraine. We record the declared country of residence, the terms version, the acceptance time and any required parent or guardian declaration. Contact eternalnet.support@proton.me about an incorrect declaration or an under-age account.',
+          'Family Center separately stores participant-confirmed connections, preferences and safeguards. Pairing does not verify legal guardianship. A code and a confirmation request expire after 10 minutes; authenticated active-minute counters cover the current and previous UTC day. Limits do not measure total device time or hide incoming notifications. Either member can disconnect; account deletion removes that account’s Family Center records from the working database. External copies and backups are assessed separately.',
         ],
       },
       {
@@ -352,6 +353,7 @@ export const PRIVACY_SECTIONS_UK: PrivacySection[] = [
         content: [
           'Мінімальний вік для облікового запису — 13 років із вищими місцевими порогами та іншими умовами допуску. Вік самостійної згоди дитини на певну обробку даних є окремим питанням. Прийняття умов не замінює необхідної батьківської згоди та процедур захисту дітей.',
           'Облікові записи осіб молодших за застосовний мінімальний вік заборонені. Доступність реєстрації показана у формі. Перший ринок реєстрації — Україна. Ми зберігаємо заявлену країну проживання, версію умов, час їх прийняття та необхідну заяву щодо батьків або законного представника. Щодо неправильної заяви чи акаунта дитини молодшого віку звертайтеся на eternalnet.support@proton.me.',
+          'Сімейний центр окремо зберігає підтверджені учасниками зв’язки, налаштування й обмеження. Зв’язок не перевіряє юридичних повноважень представника. Код і запит підтвердження діють 10 хвилин; лічильник автентифікованих активних хвилин охоплює поточний і попередній день UTC. Обмеження не вимірює весь час на пристрої й не приховує вхідні сповіщення. Учасники можуть розірвати зв’язок; видалення акаунта видаляє його записи Сімейного центру з робочої бази. Зовнішні копії та резервні копії оцінюються окремо.',
         ],
       },
       {
