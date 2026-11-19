@@ -171,6 +171,10 @@ describe('security boundaries', () => {
         findOneForUser: jest.fn().mockResolvedValue({ type: 'GROUP', communityChannel: null }),
       },
       fastPath: { checkFastPath: () => true, computeMask: () => 0, setPermissions: jest.fn() },
+      family: {
+        assertCanUse: jest.fn().mockResolvedValue(undefined),
+        assertCanDirectMessage: jest.fn().mockResolvedValue(undefined),
+      },
       redisService: { get: cached },
       prisma: { conversation: { findUnique: jest.fn().mockResolvedValue({ type: 'GROUP' }) } },
     });
