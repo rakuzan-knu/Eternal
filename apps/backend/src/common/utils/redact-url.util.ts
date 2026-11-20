@@ -14,9 +14,17 @@ export function redactRequestUrl(value: string | undefined): string {
     const sensitive =
       lower.startsWith('openid.') ||
       lower.startsWith('x-amz-') ||
-      ['code', 'state', 'ticket', 'token', 'access_token', 'refresh_token', 'id_token'].includes(
-        lower,
-      );
+      [
+        'code',
+        'state',
+        'ticket',
+        'token',
+        'access_token',
+        'refresh_token',
+        'id_token',
+        'username',
+        'cursor',
+      ].includes(lower);
     safe.append(key, sensitive ? '[REDACTED]' : entry);
   }
   return `${path}?${safe.toString()}`;
