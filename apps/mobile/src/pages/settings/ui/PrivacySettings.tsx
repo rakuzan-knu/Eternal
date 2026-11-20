@@ -8,6 +8,12 @@ import type {
   Visibility,
 } from '@social-network/shared-contracts';
 import { Button } from '@/shared/ui';
+import {
+  diagnosticsAvailable,
+  retryDiagnosticsPreference,
+  setDiagnosticsPreference,
+  useDiagnostics,
+} from '@/shared/lib/diagnostics';
 import { Avatar, colors, common, ErrorNotice, IconButton, Sheet } from '../../feed/ui/primitives';
 import { PeoplePicker } from '../../chat/ui/PeoplePicker';
 import { useFollowRequestCount } from '../../profile/model/connections';
@@ -71,6 +77,7 @@ export function PrivacySettings({
   const privacy = usePrivacy(userId);
   const update = useUpdatePrivacy(userId);
   const requests = useFollowRequestCount(userId, !!privacy.data?.isPrivate);
+  const diagnostics = useDiagnostics();
   const [dimension, setDimension] = React.useState<PrivacyDimension | null>(null);
   const [openingExport, setOpeningExport] = React.useState(false);
   const [exportError, setExportError] = React.useState(false);
@@ -115,6 +122,36 @@ export function PrivacySettings({
           />
         )}
       </SettingsGroup>
+      {diagnosticsAvailable && (
+        <SettingsGroup title={tr('Diagnostics')}>
+          <ToggleRow
+            label={tr('Share app error reports')}
+            detail={tr(
+              'Send limited JavaScript error reports to Sentry. This choice applies on this device.',
+            )}
+            value={diagnostics.enabled}
+            disabled={diagnostics.busy}
+            onChange={(value) => void setDiagnosticsPreference(value)}
+          />
+          {diagnostics.failed && (
+            <>
+              <ErrorNotice
+                message={tr(
+                  diagnostics.retryValue === 'load'
+                    ? 'Could not read your diagnostics preference. Reporting is off.'
+                    : diagnostics.retryValue === false
+                      ? 'Reporting is off for this session. Retry to save that choice.'
+                      : "The setting wasn't saved. Try again.",
+                )}
+              />
+              <SettingsRow
+                label={tr('Retry diagnostics preference')}
+                onPress={() => void retryDiagnosticsPreference()}
+              />
+            </>
+          )}
+        </SettingsGroup>
+      )}
       {!data ? (
         <QueryState query={privacy} />
       ) : (

@@ -1,5 +1,14 @@
 export const settings = {
   'Your data': 'Ваші дані',
+  Diagnostics: 'Діагностика',
+  'Share app error reports': 'Ділитися звітами про помилки',
+  'Send limited JavaScript error reports to Sentry. This choice applies on this device.':
+    'Надсилати до Sentry звіти про помилки JavaScript з обмеженим набором даних. Вибір діє на цьому пристрої.',
+  'Retry diagnostics preference': 'Повторити збереження налаштування діагностики',
+  'Could not read your diagnostics preference. Reporting is off.':
+    'Не вдалося прочитати налаштування діагностики. Надсилання вимкнено.',
+  'Reporting is off for this session. Retry to save that choice.':
+    'Надсилання вимкнено для цієї сесії. Повторіть спробу, щоб зберегти цей вибір.',
   'Download your data in a browser': 'Завантажити свої дані у браузері',
   'Open the website and sign in to download JSON. Native file export is not available. For other requests: eternalnet.support@proton.me.':
     'Відкрийте сайт і увійдіть, щоб завантажити JSON. Нативний експорт файлу недоступний. Інші запити: eternalnet.support@proton.me.',

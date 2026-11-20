@@ -23,6 +23,10 @@ components:
 
 # Eternal design context
 
+Mobile diagnostics uses the existing Privacy settings group, switch and error
+notice. The switch starts off, stays disabled while loading or saving, and
+reports a failed save with a retry. Revoking consent stops new reports immediately.
+
 Community notification preferences reuse the existing Modal and authored Select, community button styles and runtime theme tokens. A server/channel scope selector separates account preferences from administrator settings. Use explicit inheritance and temporary-mute wording, preserve failed drafts, and show canonical unread counts as compact channel badges. No new palette, font, navigation surface or notification renderer is introduced.
 
 ## Communities and sharing
