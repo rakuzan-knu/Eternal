@@ -13,6 +13,7 @@ import NetInfo from '@react-native-community/netinfo';
 import * as Linking from 'expo-linking';
 import { useAuthStore, configureAuthStorage } from '@social-network/shared-stores';
 import { mobileSecureStorage, useAppLock } from '@/shared/lib';
+import { loadDiagnosticsPreference } from '@/shared/lib/diagnostics';
 import { LoginScreen } from '@/pages/auth-login';
 import { RegisterScreen } from '@/pages/auth-register';
 import { ForgotPasswordScreen } from '@/pages/auth-forgot-password';
@@ -356,6 +357,9 @@ function SessionQueries() {
 
 export function App() {
   const userId = useAuthStore((state) => state.user?.id);
+  React.useEffect(() => {
+    void loadDiagnosticsPreference();
+  }, []);
   return (
     <SafeAreaProvider>
       <SessionQueries key={userId || 'signed-out'} />
