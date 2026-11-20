@@ -4,8 +4,9 @@ jest.mock('dotenv', () => ({
   config: jest.fn(),
 }));
 
-jest.mock('@sentry/nestjs', () => ({
-  init: jest.fn(),
+vi.mock('@sentry/nestjs', async (importOriginal) => ({
+  ...(await importOriginal<typeof Sentry>()),
+  init: vi.fn(),
 }));
 
 interface SentryInitOptions {
@@ -61,7 +62,7 @@ describe('instrument.ts', () => {
     const sanitized = initCall.beforeSend ? initCall.beforeSend(mockEvent) : mockEvent;
     expect(sanitized.request?.headers?.['authorization']).toBeUndefined();
     expect(sanitized.request?.headers?.['cookie']).toBeUndefined();
-    expect(sanitized.request?.headers?.['content-type']).toBe('application/json');
+    expect(sanitized.request?.headers).toBeUndefined();
 
     // Test beforeSend when request or headers are undefined
     const eventWithoutHeaders = { message: 'Test error' };
@@ -99,35 +100,85 @@ describe('instrument.ts', () => {
     'https://api.example.test/v1/users/me/data-export',
     'https://messages.example.test/v1/messenger/me/data-export/',
     'https://api.example.test/v1/auth/register',
+    'https://api.example.test/v1/auth/login',
+    undefined,
   ])(
     'removes export passwords and cursors from Sentry events and transactions for %s',
     async (url) => {
       vi.resetModules();
       await import('../instrument.js');
       const options = vi.mocked(Sentry.init).mock.calls[0]?.[0];
-      if (!options?.beforeSend || !options.beforeSendTransaction)
+      if (!options?.beforeSend || !options.beforeSendTransaction || !options.beforeBreadcrumb)
         throw new Error('Missing Sentry sanitization callbacks');
+      expect(options.integrations).toEqual([expect.objectContaining({ name: 'Http' })]);
+      expect(options.dataCollection).toEqual({
+        httpBodies: [],
+        httpHeaders: false,
+        cookies: false,
+        urlQueryParams: false,
+        userInfo: false,
+      });
       const request = {
-        url,
-        data: { password: 'must-not-leave-server', cursor: 'private-continuation' },
+        method: 'POST',
+        ...(url ? { url: `${url}?cursor=private-continuation#private-fragment` } : {}),
+        data: {
+          password: 'must-not-leave-server',
+          cursor: 'private-continuation',
+          email: 'fixture@example.test',
+        },
         cookies: { session: 'private-cookie' },
         query_string: 'private-query',
-        headers: { authorization: 'Bearer private-jwt', cookie: 'private-cookie' },
+        headers: {
+          Authorization: 'Bearer private-jwt',
+          Cookie: 'private-cookie',
+          'X-Forwarded-For': '192.0.2.4',
+        },
       };
       const event = await options.beforeSend(
         { type: undefined, request: structuredClone(request) },
         {},
       );
+      const trace = {
+        trace_id: '0123456789abcdef0123456789abcdef',
+        span_id: '0123456789abcdef',
+        data: {
+          'http.client_ip': '192.0.2.4',
+          'http.user_agent': 'private-user-agent',
+          'http.target': '/v1/auth/check-username?username=private-handle',
+          url: '/v1/messenger/communities/invites/private-invite',
+          'http.response.status_code': 500,
+        },
+      };
       const transaction = await options.beforeSendTransaction(
-        { type: 'transaction', request: structuredClone(request), transaction: 'data-export' },
+        {
+          type: 'transaction',
+          request: structuredClone(request),
+          transaction: 'GET /v1/messenger/communities/invites/private-invite',
+          contexts: { trace },
+        },
         {},
       );
       for (const sanitized of [event, transaction]) {
-        expect(sanitized?.request?.data).toBe('[REDACTED]');
-        expect(JSON.stringify(sanitized)).not.toMatch(
-          /must-not-leave-server|private-continuation|private-cookie|private-query|private-jwt/,
-        );
+        expect(sanitized?.request).toEqual({ method: 'POST', ...(url ? { url } : {}) });
       }
+      expect(transaction?.contexts?.trace?.data).toEqual({
+        'http.target': '/v1/auth/check-username',
+        url: '/v1/messenger/communities/invites/[REDACTED]',
+        'http.response.status_code': 500,
+      });
+      expect(transaction?.transaction).toBe('GET /v1/messenger/communities/invites/[REDACTED]');
+      expect(
+        options.beforeBreadcrumb(
+          {
+            category: 'http',
+            data: { url: '/v1/messenger/communities/invites/private-invite?cursor=private-offset' },
+          },
+          {},
+        ),
+      ).toMatchObject({
+        category: 'http',
+        data: { url: '/v1/messenger/communities/invites/[REDACTED]' },
+      });
     },
   );
 });
