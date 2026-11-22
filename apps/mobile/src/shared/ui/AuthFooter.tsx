@@ -6,7 +6,7 @@ export function AuthFooter() {
   const links = [tr('Privacy Policy'), 'Terms of Service', 'Cookies', 'About', 'Help'];
 
   return (
-    <View style={styles.footer} accessibilityRole={'contentinfo' as any}>
+    <View style={styles.footer} role="contentinfo">
       <View style={styles.linksRow}>
         {links.map((link) => (
           <Pressable
