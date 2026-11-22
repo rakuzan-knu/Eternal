@@ -10,6 +10,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Header,
   ForbiddenException,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
@@ -22,6 +23,29 @@ import { FamilySafeguardService } from './family-safeguard.service';
 import { BypassCurfew } from './decorators/bypass-curfew.decorator';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import type { ChildSafeguards, FamilySettingsDto } from './family.types';
+
+const pairInput = z.object({ code: z.string().trim().min(1).max(256) });
+const confirmInput = z.object({ linkId: z.string().min(1).max(128), approved: z.boolean() });
+const settingsPatch = z
+  .object({
+    weeklyDigest: z.boolean(),
+    newFriendAlerts: z.boolean(),
+    reportAlerts: z.boolean(),
+    notifyLinkRequests: z.boolean(),
+    pinEnabled: z.boolean(),
+    pinCode: z.union([z.string().regex(/^\d{4,8}$/), z.literal('')]),
+  })
+  .partial()
+  .transform((input) => {
+    const patch: Partial<FamilySettingsDto> = {};
+    if (input.weeklyDigest !== undefined) patch.weeklyDigest = input.weeklyDigest;
+    if (input.newFriendAlerts !== undefined) patch.newFriendAlerts = input.newFriendAlerts;
+    if (input.reportAlerts !== undefined) patch.reportAlerts = input.reportAlerts;
+    if (input.notifyLinkRequests !== undefined) patch.notifyLinkRequests = input.notifyLinkRequests;
+    if (input.pinEnabled !== undefined) patch.pinEnabled = input.pinEnabled;
+    if (input.pinCode !== undefined) patch.pinCode = input.pinCode;
+    return patch;
+  });
 
 const curfewTime = z.union([
   z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/),
@@ -84,6 +108,7 @@ export class FamilyController {
     private readonly safeguardService: FamilySafeguardService,
   ) {}
 
+  @Header('Cache-Control', 'no-store')
   @Get('settings')
   @ApiOperation({ summary: 'Get Family Center notification and PIN settings' })
   async getSettings(@CurrentUser() user: RequestUser) {
@@ -92,7 +117,10 @@ export class FamilyController {
 
   @Put('settings')
   @ApiOperation({ summary: 'Update Family Center notification and PIN settings' })
-  async updateSettings(@CurrentUser() user: RequestUser, @Body() body: Partial<FamilySettingsDto>) {
+  async updateSettings(
+    @CurrentUser() user: RequestUser,
+    @Body(new ZodValidationPipe(settingsPatch)) body: z.output<typeof settingsPatch>,
+  ) {
     return this.familyService.updateFamilySettings(user.id, body);
   }
 
@@ -105,9 +133,13 @@ export class FamilyController {
   @Post('pair')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Initiate pairing by scanning QR or submitting pairing code (Parent)' })
-  async pair(@CurrentUser() user: RequestUser, @Body('code') code: string, @Req() req: any) {
+  async pair(
+    @CurrentUser() user: RequestUser,
+    @Body(new ZodValidationPipe(pairInput)) body: z.output<typeof pairInput>,
+    @Req() req: { ip?: string; socket?: { remoteAddress?: string } },
+  ) {
     const clientIp = req.ip || req.socket?.remoteAddress || '127.0.0.1';
-    return this.familyService.pair(user.id, code, clientIp);
+    return this.familyService.pair(user.id, body.code, clientIp);
   }
 
   @Post('confirm')
@@ -115,12 +147,12 @@ export class FamilyController {
   @ApiOperation({ summary: 'Confirm or decline pairing request on child device' })
   async confirmPair(
     @CurrentUser() user: RequestUser,
-    @Body('linkId') linkId: string,
-    @Body('approved') approved: boolean,
+    @Body(new ZodValidationPipe(confirmInput)) body: z.output<typeof confirmInput>,
   ) {
-    return this.familyService.confirmPair(user.id, linkId, approved);
+    return this.familyService.confirmPair(user.id, body.linkId, body.approved);
   }
 
+  @Header('Cache-Control', 'no-store')
   @Get('pending-invite')
   @ApiOperation({
     summary: 'Fallback query to restore pending pair prompt after network reconnect',
@@ -129,6 +161,7 @@ export class FamilyController {
     return this.familyService.getPendingInvite(user.id);
   }
 
+  @Header('Cache-Control', 'no-store')
   @Get('members')
   @ApiOperation({ summary: 'List family connections, connected children or parents' })
   async getMembers(@CurrentUser() user: RequestUser) {
@@ -141,22 +174,25 @@ export class FamilyController {
     return this.familyService.revokeFamilyLink(user.id, linkId);
   }
 
+  @Header('Cache-Control', 'no-store')
   @Get('my-activity')
   @ApiOperation({ summary: 'Get current user activity telemetry' })
   async getMyActivity(@CurrentUser() user: RequestUser) {
     return this.familyService.getActivitySummary(user.id, user.id);
   }
 
+  @Header('Cache-Control', 'no-store')
   @Get('children/:id/activity-summary')
   @ApiOperation({ summary: 'Get privacy-preserving 7-day telemetry report' })
   async getActivitySummary(@CurrentUser() user: RequestUser, @Param('id') childId: string) {
     return this.familyService.getActivitySummary(childId, user.id);
   }
 
+  @Header('Cache-Control', 'no-store')
   @Get('children/:id/safeguards')
   @ApiOperation({ summary: 'Get single source of truth safeguards for child' })
-  getSafeguards(@CurrentUser() user: RequestUser, @Param('id') childId: string) {
-    if (user.id !== childId && !this.familyService.isActiveParentOf(user.id, childId)) {
+  async getSafeguards(@CurrentUser() user: RequestUser, @Param('id') childId: string) {
+    if (user.id !== childId && !(await this.familyService.isActiveParentOf(user.id, childId))) {
       throw new ForbiddenException('You do not have permission to view these safeguards.');
     }
     return this.safeguardService.getSafeguards(childId);
@@ -164,12 +200,12 @@ export class FamilyController {
 
   @Put('children/:id/safeguards')
   @ApiOperation({ summary: 'Update parental safeguards (screen time, spending, DMs)' })
-  updateSafeguards(
+  async updateSafeguards(
     @CurrentUser() user: RequestUser,
     @Param('id') childId: string,
     @Body(new ZodValidationPipe(safeguardPatch)) body: z.output<typeof safeguardPatch>,
   ) {
-    if (!this.familyService.isActiveParentOf(user.id, childId)) {
+    if (!(await this.familyService.isActiveParentOf(user.id, childId))) {
       throw new ForbiddenException('You do not have permission to change these safeguards.');
     }
     return this.safeguardService.updateSafeguards(childId, user.id, body);

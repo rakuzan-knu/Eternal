@@ -5,6 +5,7 @@ import { BadRequestException, ForbiddenException, NotFoundException } from '@nes
 import { ConfigService } from '@nestjs/config';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '@common/prisma';
+import { FamilySafeguardService } from '../src/family/family-safeguard.service';
 import { OutboxService } from '../src/common/outbox/outbox.service';
 import { OUTBOX_REPOSITORY } from '../src/common/outbox/outbox.constants';
 import type { CreateOutboxEventInput } from '../src/common/outbox/interfaces/outbox-repository.interface';
@@ -56,6 +57,7 @@ describe.skipIf(!connectionString)(
           ConversationsRepository,
           MessagesRepository,
           MessagesService,
+          FamilySafeguardService,
           VisibilityResolver,
           { provide: PRIVACY_REPOSITORY, useClass: PrivacyRepository },
           MessengerMapper,

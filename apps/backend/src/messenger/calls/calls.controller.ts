@@ -1,3 +1,4 @@
+import { BypassCurfew } from '../../family/decorators/bypass-curfew.decorator';
 import {
   Controller,
   Get,
@@ -164,6 +165,7 @@ export class CallsController {
     return this.callsService.getCallById(id, user.id);
   }
 
+  @BypassCurfew()
   @Post(':id/decline')
   @HttpCode(200)
   @ApiBearerAuth()

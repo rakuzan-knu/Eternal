@@ -3,6 +3,7 @@ import { ArrowLeft, Upload, X as XIcon } from 'lucide-react';
 import Modal from '@/shared/ui/Modal';
 import { Select } from '@/shared/ui/Select';
 import { reportApi } from '../api/reportApi';
+import { useLanguageStore } from '@/shared/lib/language/languageStore';
 
 const AREA_OPTIONS = ['Home', 'Profile', 'Messanger', 'Feed', 'Other'];
 
@@ -12,6 +13,7 @@ interface ReportDetailsModalProps {
 }
 
 export function ReportDetailsModal({ onClose, onBack }: ReportDetailsModalProps) {
+  const ukrainian = useLanguageStore((state) => state.currentLanguage === 'Українська');
   const [description, setDescription] = useState('');
   const [area, setArea] = useState(AREA_OPTIONS[0]);
   const [screenshot, setScreenshot] = useState<File | null>(null);
@@ -136,7 +138,24 @@ export function ReportDetailsModal({ onClose, onBack }: ReportDetailsModalProps)
               )}
             </div>
 
-            {submitError && <p className="text-xs text-red-400 font-medium -mt-1">{submitError}</p>}
+            {submitError && (
+              <div role="alert" className="text-xs text-red-400 font-medium -mt-1 space-y-2">
+                <p>{submitError}</p>
+                <a
+                  href="mailto:eternalnet.support@proton.me"
+                  className="underline focus-visible:outline"
+                >
+                  {ukrainian
+                    ? 'Звернутися до підтримки електронною поштою'
+                    : 'Contact support by email'}
+                </a>
+                <p>
+                  {ukrainian
+                    ? 'Лист потрібно надіслати у вашій поштовій програмі. Вкладення додайте там; ця форма не підтвердила доставку.'
+                    : 'Send the message in your mail app and attach files there. This form has not confirmed delivery.'}
+                </p>
+              </div>
+            )}
             <button
               type="button"
               onClick={handleSubmit}

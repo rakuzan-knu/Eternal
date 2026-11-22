@@ -1,3 +1,4 @@
+import { BypassCurfew } from '../family/decorators/bypass-curfew.decorator';
 import { Controller, Delete, Get, HttpCode, HttpStatus, Param, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -9,6 +10,7 @@ import { type SessionViewDto } from '@common/contracts';
 
 @ApiTags('sessions')
 @ApiBearerAuth()
+@BypassCurfew()
 @Controller('auth/sessions')
 @UseGuards(AuthGuard)
 export class SessionsController {
