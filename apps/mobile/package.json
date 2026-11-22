@@ -23,6 +23,7 @@
     "@react-native-async-storage/async-storage": "1.23.1",
     "@react-native-community/netinfo": "11.4.1",
     "@react-native-community/slider": "4.5.5",
+    "@sentry/react-native": "~6.10.0",
     "@social-network/shared-api-client": "workspace:*",
     "@social-network/shared-content": "workspace:*",
     "@social-network/shared-contracts": "workspace:*",
