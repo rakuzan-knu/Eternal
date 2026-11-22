@@ -33,6 +33,7 @@
       ]
     ],
     "splash": {
+      "image": "../desktop/build/icons/256x256.png",
       "resizeMode": "contain",
       "backgroundColor": "#050505"
     },
