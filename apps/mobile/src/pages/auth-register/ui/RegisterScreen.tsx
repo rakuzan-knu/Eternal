@@ -385,7 +385,7 @@ export function RegistrationFields({ onNavigateLogin, onSuccess }: RegisterScree
 
             {/* GlassCard with Apple Micro-Shake Animation */}
             <Animated.View style={[styles.cardWrapper, { transform: [{ translateX: shakeAnim }] }]}>
-              <GlassCard style={styles.card} accessibilityRole={'form' as any}>
+              <GlassCard style={styles.card} role="form">
                 <View style={styles.header} accessibilityRole="header">
                   <Text style={styles.title}>{tr('Get started on Eternal')}</Text>
                   <Text style={styles.subtitle}>

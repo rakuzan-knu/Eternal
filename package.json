@@ -183,7 +183,8 @@
       "minimatch@10.2.5": "patches/minimatch@10.2.5.patch",
       "minimatch@10.2.6": "patches/minimatch@10.2.6.patch",
       "glob@10.5.0": "patches/glob@10.5.0.patch",
-      "glob@13.0.6": "patches/glob@13.0.6.patch"
+      "glob@13.0.6": "patches/glob@13.0.6.patch",
+      "@expo/cli@0.22.28": "patches/@expo__cli@0.22.28.patch"
     }
   },
   "resolutions": {
