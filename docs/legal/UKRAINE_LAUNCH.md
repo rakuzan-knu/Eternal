@@ -5,7 +5,7 @@
 9 листопада 2026, 15:25 UTC, [Core](https://social-network-backend-4h47.onrender.com/auth/registration-policy)
 і [web proxy](https://eternalnet.vercel.app/api/auth/registration-policy) підтвердили
 `registrationOpen=true`, `reviewedMarkets=[UA]`, поріг 13, policy `2026-11-08-ua-1`,
-`no-store`. [Поточні deployment IDs і SHA](../desktop/PHASE_01_STATUS.md).
+`no-store`.
 У коді відсутній або вимкнений прапорець залишає допуск закритим; це опис
 безпечного default, а не поточної production-конфігурації.
 Власники обрали самостійну реєстрацію. Ручне схвалення оператором і запрошення
