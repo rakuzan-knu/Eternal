@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.15.1](https://github.com/rakuzan-knu/Eternal/compare/v1.15.0...v1.15.1) (2026-11-22)
+
+### 🐛 Bug Fixes
+
+* restore secret scanning and patch Effect ([#166](https://github.com/rakuzan-knu/Eternal/issues/166)) ([9966674](https://github.com/rakuzan-knu/Eternal/commit/99666747c195526547bad62e23550f94d1aa2464))
+
+### 📝 Documentation
+
+* record November 9 deployment and store status ([#165](https://github.com/rakuzan-knu/Eternal/issues/165)) ([83d4bec](https://github.com/rakuzan-knu/Eternal/commit/83d4bec0199138c82399182fd5e4b26d1f2f9b74))
+
 ## [1.15.0](https://github.com/rakuzan-knu/Eternal/compare/v1.14.1...v1.15.0) (2026-11-22)
 
 ### ✨ Features
