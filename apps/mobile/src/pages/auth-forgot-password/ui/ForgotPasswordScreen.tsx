@@ -210,7 +210,7 @@ export function ForgotPasswordScreen({
             </View>
 
             {/* GlassCard matching web design */}
-            <GlassCard style={styles.card} accessibilityRole={'form' as any}>
+            <GlassCard style={styles.card} role="form">
               {resetToken ? (
                 /* Deep Link Reset Password Flow */
                 <View>

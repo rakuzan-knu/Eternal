@@ -1,112 +1,147 @@
-import { Injectable, Logger, ForbiddenException, Optional } from '@nestjs/common';
-import { RedisService } from '../redis/redis.service';
+import { Injectable, ForbiddenException } from '@nestjs/common';
+import { PrismaService } from '@common/prisma';
 import { ChildSafeguards } from './family.types';
+import { hasActiveFamily, lockFamilyUsers } from './family.persistence';
 
 export function isCurrentTimeInCurfew(
-  curfewStart: string,
-  curfewEnd: string,
-  timezone: string = 'UTC',
+  start: string,
+  end: string,
+  timezone = 'UTC',
   now = new Date(),
 ): boolean {
   try {
-    const formatter = new Intl.DateTimeFormat('en-GB', {
+    const [h, m] = new Intl.DateTimeFormat('en-GB', {
       timeZone: timezone,
       hour: '2-digit',
       minute: '2-digit',
       hour12: false,
-    });
-    const formatted = formatter.format(now);
-    const [currH, currM] = formatted.split(':').map(Number);
-    const currMinutes = currH * 60 + currM;
-
-    const [startH, startM] = curfewStart.split(':').map(Number);
-    const startMinutes = startH * 60 + startM;
-
-    const [endH, endM] = curfewEnd.split(':').map(Number);
-    const endMinutes = endH * 60 + endM;
-
-    if (startMinutes <= endMinutes) {
-      return currMinutes >= startMinutes && currMinutes < endMinutes;
-    } else {
-      // Overnight curfew (e.g. 22:00 -> 07:00)
-      return currMinutes >= startMinutes || currMinutes < endMinutes;
-    }
+    })
+      .format(now)
+      .split(':')
+      .map(Number);
+    const [sh, sm] = start.split(':').map(Number);
+    const [eh, em] = end.split(':').map(Number);
+    const current = h * 60 + m,
+      from = sh * 60 + sm,
+      to = eh * 60 + em;
+    return from <= to ? current >= from && current < to : current >= from || current < to;
   } catch {
     return false;
   }
 }
 
+type SafeguardPatch = Partial<
+  Omit<ChildSafeguards, 'childId' | 'updatedByParentId' | 'updatedAt' | 'spentThisMonth'>
+>;
 @Injectable()
 export class FamilySafeguardService {
-  private readonly logger = new Logger(FamilySafeguardService.name);
+  constructor(private readonly prisma: PrismaService) {}
 
-  // In-memory safeguards cache (backed by database / Redis in production)
-  private readonly safeguardsMap = new Map<string, ChildSafeguards>();
-
-  constructor(@Optional() private readonly redis?: RedisService) {}
-
-  getSafeguards(childId: string) {
-    return this.toResponse(this.getOrCreateSafeguards(childId));
-  }
-
-  private toResponse(safeguards: ChildSafeguards) {
-    return { ...safeguards, profileLockedByParent: safeguards.profileSettingsLocked };
-  }
-
-  private getOrCreateSafeguards(childId: string): ChildSafeguards {
-    const existing = this.safeguardsMap.get(childId);
-    if (existing) return existing;
-
-    const defaultSafeguards: ChildSafeguards = {
-      childId,
-      dailyLimitMinutes: 120,
-      curfewStart: '22:00',
-      curfewEnd: '07:00',
-      timezone: 'UTC',
-      restrictedDirectMessages: true,
-      monthlyBudget: 100,
-      spentThisMonth: 0,
-      requirePurchaseApproval: true,
-      profileSettingsLocked: true,
-      updatedByParentId: 'system',
-      updatedAt: new Date(),
+  async getOwnData(userId: string) {
+    const [links, totalLinks, invites, settings, safeguards, screenUsage, pairAttempts] =
+      await Promise.all([
+        this.prisma.familyLink.findMany({
+          where: { OR: [{ parentId: userId }, { childId: userId }] },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          take: 101,
+        }),
+        this.prisma.familyLink.count({
+          where: { OR: [{ parentId: userId }, { childId: userId }] },
+        }),
+        this.prisma.familyInvite.findMany({
+          where: { childId: userId },
+          select: { expiresAt: true, consumedAt: true },
+          orderBy: { expiresAt: 'desc' },
+          take: 101,
+        }),
+        this.prisma.familySettings.findUnique({
+          where: { userId },
+          select: {
+            weeklyDigest: true,
+            newFriendAlerts: true,
+            reportAlerts: true,
+            notifyLinkRequests: true,
+            pinEnabled: true,
+          },
+        }),
+        this.prisma.familySafeguard.findUnique({ where: { childId: userId } }),
+        this.prisma.familyScreenUsage.findMany({
+          where: { userId },
+          orderBy: { utcDate: 'desc' },
+          take: 101,
+        }),
+        this.prisma.familyPairAttempts.findUnique({
+          where: { userId },
+          select: { attempts: true, windowStart: true },
+        }),
+      ]);
+    const hasMoreLinks = links.length > 100;
+    const hasMoreInvites = invites.length > 100;
+    const hasMoreScreenUsage = screenUsage.length > 100;
+    const limitations =
+      hasMoreLinks || hasMoreInvites || hasMoreScreenUsage
+        ? [
+            'Family data is limited to the latest 100 rows per collection. Request the remaining records through the assisted data-access process.',
+          ]
+        : [];
+    return {
+      links: links.slice(0, 100),
+      totalLinks,
+      hasMoreLinks,
+      invites: invites.slice(0, 100),
+      hasMoreInvites,
+      settings,
+      safeguards,
+      screenUsage: screenUsage.slice(0, 100),
+      hasMoreScreenUsage,
+      pairAttempts,
+      limitations,
     };
-    this.safeguardsMap.set(childId, defaultSafeguards);
-    return defaultSafeguards;
   }
 
-  updateSafeguards(
-    childId: string,
-    parentId: string,
-    partial: Partial<Omit<ChildSafeguards, 'childId' | 'updatedByParentId' | 'updatedAt'>>,
-  ) {
-    const current = this.getOrCreateSafeguards(childId);
-    const updated: ChildSafeguards = {
-      ...current,
-      ...partial,
-      childId,
-      updatedByParentId: parentId,
-      updatedAt: new Date(),
-    };
-    this.safeguardsMap.set(childId, updated);
-    this.logger.log(`Child safeguards updated for ${childId} by parent ${parentId}`);
-    return this.toResponse(updated);
+  async getSafeguards(childId: string) {
+    if (!(await hasActiveFamily(this.prisma, childId))) return null;
+    const safeguards = await this.prisma.familySafeguard.findUnique({ where: { childId } });
+    return safeguards
+      ? { ...safeguards, profileLockedByParent: safeguards.profileSettingsLocked }
+      : null;
   }
 
-  async trackScreenTimeTick(childId: string): Promise<number> {
-    const dateStr = new Date().toISOString().slice(0, 10);
-    const key = `screentime:${childId}:${dateStr}`;
-    if (this.redis) {
-      try {
-        const client = this.redis.getClient();
-        const usage = await client.hincrby(key, 'usage', 1);
-        await client.expire(key, 86400 * 2); // 2-day retention
-        return usage;
-      } catch (err) {
-        this.logger.warn(`Redis screen time tracking failed: ${(err as Error).message}`);
-      }
-    }
-    return 1;
+  async updateSafeguards(childId: string, parentId: string, partial: SafeguardPatch) {
+    return this.prisma.$transaction(async (tx) => {
+      await lockFamilyUsers(tx, [childId, parentId]);
+      if (!(await hasActiveFamily(tx, childId, parentId)))
+        throw new ForbiddenException('You do not have permission to change these safeguards.');
+      const safeguards = await tx.familySafeguard.upsert({
+        where: { childId },
+        create: { childId, ...partial, updatedByParentId: parentId },
+        update: { ...partial, updatedByParentId: parentId },
+      });
+      return { ...safeguards, profileLockedByParent: safeguards.profileSettingsLocked };
+    });
+  }
+
+  // One authenticated active UTC minute, deduplicated across HTTP/WS/processes.
+  async trackScreenTimeTick(userId: string): Promise<number> {
+    return this.prisma.$transaction(async (tx) => {
+      await lockFamilyUsers(tx, [userId]);
+      if (!(await hasActiveFamily(tx, userId))) return 0;
+      const now = new Date().toISOString(),
+        utcDate = now.slice(0, 10),
+        minute = now.slice(0, 16);
+      const where = { userId_utcDate: { userId, utcDate } };
+      const current = await tx.familyScreenUsage.findUnique({ where });
+      if (current?.lastMinute === minute) return current.minutes;
+      const usage = await tx.familyScreenUsage.upsert({
+        where,
+        create: { userId, utcDate, minutes: 1, lastMinute: minute },
+        update: { minutes: { increment: 1 }, lastMinute: minute },
+      });
+      // Retain only today and yesterday, no accumulating activity history.
+      const cutoff = new Date(Date.now() - 86400_000).toISOString().slice(0, 10);
+      await tx.familyScreenUsage.deleteMany({ where: { userId, utcDate: { lt: cutoff } } });
+      return usage.minutes;
+    });
   }
 
   async checkScreenTime(childId: string): Promise<{
@@ -115,70 +150,82 @@ export class FamilySafeguardService {
     curfewEnd?: string | null;
     dailyLimitMinutes?: number;
   }> {
-    const safeguards = this.getSafeguards(childId);
-
-    // 1. Timezone-aware curfew check
-    if (safeguards.curfewStart && safeguards.curfewEnd) {
-      const inCurfew = isCurrentTimeInCurfew(
-        safeguards.curfewStart,
-        safeguards.curfewEnd,
-        safeguards.timezone,
-      );
-      if (inCurfew) {
+    const safeguards = await this.getSafeguards(childId);
+    if (!safeguards) return { isBlocked: false };
+    if (
+      safeguards.curfewStart &&
+      safeguards.curfewEnd &&
+      isCurrentTimeInCurfew(safeguards.curfewStart, safeguards.curfewEnd, safeguards.timezone)
+    )
+      return { isBlocked: true, reason: 'CURFEW_HOURS', curfewEnd: safeguards.curfewEnd };
+    if (safeguards.dailyLimitMinutes > 0) {
+      const now = new Date().toISOString();
+      const usage = await this.prisma.familyScreenUsage.findUnique({
+        where: {
+          userId_utcDate: { userId: childId, utcDate: now.slice(0, 10) },
+        },
+      });
+      // The minute already admitted by the activity tick remains usable until it ends.
+      if (
+        usage &&
+        (usage.minutes > safeguards.dailyLimitMinutes ||
+          (usage.minutes === safeguards.dailyLimitMinutes && usage.lastMinute !== now.slice(0, 16)))
+      )
         return {
           isBlocked: true,
-          reason: 'CURFEW_HOURS',
-          curfewEnd: safeguards.curfewEnd,
+          reason: 'DAILY_LIMIT_REACHED',
+          dailyLimitMinutes: safeguards.dailyLimitMinutes,
         };
-      }
     }
-
-    // 2. Daily screen time quota check (WebSocket presence ticks)
-    if (safeguards.dailyLimitMinutes > 0 && this.redis) {
-      try {
-        const dateStr = new Date().toISOString().slice(0, 10);
-        const key = `screentime:${childId}:${dateStr}`;
-        const rawUsage = await this.redis.getClient().hget(key, 'usage');
-        const usage = rawUsage ? parseInt(rawUsage, 10) : 0;
-        if (usage >= safeguards.dailyLimitMinutes) {
-          return {
-            isBlocked: true,
-            reason: 'DAILY_LIMIT_REACHED',
-            dailyLimitMinutes: safeguards.dailyLimitMinutes,
-          };
-        }
-      } catch (err) {
-        this.logger.warn(`Failed to check screen time usage: ${(err as Error).message}`);
-      }
-    }
-
     return { isBlocked: false };
   }
 
-  assertCanDirectMessage(senderId: string, recipientId: string, isMutualFriend: boolean): void {
-    const senderSafeguards = this.safeguardsMap.get(senderId);
-    const recipientSafeguards = this.safeguardsMap.get(recipientId);
+  async assertCanUse(userId: string): Promise<void> {
+    const status = await this.checkScreenTime(userId);
+    if (status.isBlocked)
+      throw new ForbiddenException({
+        code: 'FAMILY_CURFEW_ACTIVE',
+        ...status,
+        message:
+          status.reason === 'CURFEW_HOURS'
+            ? 'Downtime is active. Family Center has restricted platform access.'
+            : 'Daily screen time limit reached.',
+      });
+  }
 
-    const requiresMutual =
-      senderSafeguards?.restrictedDirectMessages || recipientSafeguards?.restrictedDirectMessages;
-
-    if (requiresMutual && !isMutualFriend) {
+  async assertCanDirectMessage(
+    senderId: string,
+    recipientId: string,
+    isMutualFriend?: boolean,
+  ): Promise<void> {
+    const [sender, recipient] = await Promise.all([
+      this.getSafeguards(senderId),
+      this.getSafeguards(recipientId),
+    ]);
+    if (!sender?.restrictedDirectMessages && !recipient?.restrictedDirectMessages) return;
+    if (isMutualFriend === undefined) {
+      const [forward, backward] = await Promise.all([
+        this.prisma.follow.count({
+          where: { followerId: senderId, followingId: recipientId, status: 'ACCEPTED' },
+        }),
+        this.prisma.follow.count({
+          where: { followerId: recipientId, followingId: senderId, status: 'ACCEPTED' },
+        }),
+      ]);
+      isMutualFriend = forward > 0 && backward > 0;
+    }
+    if (!isMutualFriend)
       throw new ForbiddenException({
         code: 'FAMILY_SAFEGUARD_DMS_BLOCKED',
         message: 'Family Center restricts direct messages from users outside of mutual friends.',
       });
-    }
   }
 
-  assertCanSpend(childId: string, amount: number): void {
-    const safeguards = this.getSafeguards(childId);
-    if (safeguards.monthlyBudget > 0) {
-      if (safeguards.spentThisMonth + amount > safeguards.monthlyBudget) {
-        throw new ForbiddenException({
-          code: 'FAMILY_SPENDING_LIMIT_EXCEEDED',
-          message: `Purchase amount exceeds the monthly spending limit ($${safeguards.monthlyBudget}).`,
-        });
-      }
-    }
+  async assertCanChangePrivacy(userId: string): Promise<void> {
+    if ((await this.getSafeguards(userId))?.profileSettingsLocked)
+      throw new ForbiddenException({
+        code: 'FAMILY_PROFILE_SETTINGS_LOCKED',
+        message: 'Family Center has locked privacy settings.',
+      });
   }
 }

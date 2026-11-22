@@ -133,6 +133,8 @@ jobs:
             fi
           done
       - name: Validate and build
+        env:
+          MAIN_VITE_SENTRY_DSN: ${{ vars.DESKTOP_SENTRY_DSN }}
         run: |
           pnpm --filter @eternal/desktop lint
           pnpm --filter @eternal/desktop test --maxWorkers=2

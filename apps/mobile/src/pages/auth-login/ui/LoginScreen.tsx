@@ -226,7 +226,7 @@ export function LoginScreen({
             </View>
 
             {/* GlassCard matching Web mobile */}
-            <GlassCard style={styles.card} accessibilityRole={'form' as any}>
+            <GlassCard style={styles.card} role="form">
               <View style={styles.header} accessibilityRole="header">
                 <Text style={styles.title}>{tr('Welcome back')}</Text>
                 <Text style={styles.subtitle}>{tr('Sign in to your account')}</Text>

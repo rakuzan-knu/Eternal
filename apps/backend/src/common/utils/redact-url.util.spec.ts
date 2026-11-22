@@ -28,4 +28,11 @@ describe('redactRequestUrl', () => {
     expect(redactRequestUrl('/launch#secret')).toBe('/launch');
     expect(redactRequestUrl('/feed')).toBe('/feed');
   });
+  it('redacts registration lookups and private pagination cursors', () => {
+    const result = redactRequestUrl(
+      '/v1/auth/check-username?UserName=private-handle&cursor=private-offset&page=2',
+    );
+    expect(result).not.toMatch(/private-handle|private-offset/);
+    expect(result).toContain('page=2');
+  });
 });

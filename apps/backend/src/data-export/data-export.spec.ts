@@ -1,3 +1,4 @@
+import { FamilySafeguardService } from '../family/family-safeguard.service';
 import {
   BadRequestException,
   PayloadTooLargeException,
@@ -203,6 +204,10 @@ describe('data export repository privacy boundary', () => {
     const module = await Test.createTestingModule({
       providers: [
         DataExportRepository,
+        {
+          provide: FamilySafeguardService,
+          useValue: { getOwnData: vi.fn().mockResolvedValue({ links: [], limitations: [] }) },
+        },
         { provide: PrismaService, useValue: prisma },
         { provide: MessageBodyService, useValue: { hydrate } },
       ],
@@ -355,6 +360,10 @@ describe('data export archived message hydration', () => {
     const module = await Test.createTestingModule({
       providers: [
         DataExportRepository,
+        {
+          provide: FamilySafeguardService,
+          useValue: { getOwnData: vi.fn().mockResolvedValue({ links: [], limitations: [] }) },
+        },
         MessageBodyService,
         { provide: PrismaService, useValue: prisma },
         { provide: MessageBodyRepository, useValue: { read } },

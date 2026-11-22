@@ -49,8 +49,27 @@ describe('PrivacyService', () => {
     };
 
     service = new PrivacyService(mockPrivacyRepo, mockRedis as unknown as RedisService);
+    Object.assign(service, {
+      family: { assertCanChangePrivacy: jest.fn().mockResolvedValue(undefined) },
+    });
   });
 
+  it('enforces a family privacy lock before changing settings or exceptions', async () => {
+    const deny = jest.fn().mockRejectedValue(new Error('Family privacy lock'));
+    Object.assign(service, { family: { assertCanChangePrivacy: deny } });
+    await expect(service.updateMyPrivacy('teen', { isPrivate: false })).rejects.toThrow(
+      'Family privacy lock',
+    );
+    await expect(
+      service.addException('teen', PrivacyDimension.MESSAGES, 'other', ExceptionMode.ALLOW),
+    ).rejects.toThrow('Family privacy lock');
+    await expect(
+      service.removeException('teen', PrivacyDimension.MESSAGES, 'other'),
+    ).rejects.toThrow('Family privacy lock');
+    expect(mockPrivacyRepo.upsertPrivacyAndUser).not.toHaveBeenCalled();
+    expect(mockPrivacyRepo.upsertException).not.toHaveBeenCalled();
+    expect(mockPrivacyRepo.deleteException).not.toHaveBeenCalled();
+  });
   describe('getMyPrivacy', () => {
     it('returns default privacy settings when no custom row exists', async () => {
       mockPrivacyRepo.getUserPrivacyAndUser.mockResolvedValueOnce({

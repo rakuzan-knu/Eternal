@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { FamilySafeguardService } from '../../family/family-safeguard.service';
 import {
   AutoDeletePeriod,
   ExceptionMode,
@@ -46,6 +47,8 @@ const VISIBILITY_KEYS = [
 
 @Injectable()
 export class PrivacyService {
+  @Inject(FamilySafeguardService)
+  private readonly family!: FamilySafeguardService;
   constructor(
     @Inject(PRIVACY_REPOSITORY)
     private readonly privacyRepo: IPrivacyRepository,
@@ -63,6 +66,7 @@ export class PrivacyService {
   }
 
   async updateMyPrivacy(userId: string, dto: UpdatePrivacyDto): Promise<PrivacySettingsDto> {
+    await this.family.assertCanChangePrivacy(userId);
     const privacyData: Prisma.UserPrivacyCreateInput = { user: { connect: { id: userId } } };
     const privacyUpdate: Prisma.UserPrivacyUpdateInput = {};
     for (const key of VISIBILITY_KEYS) {
@@ -106,6 +110,7 @@ export class PrivacyService {
     targetId: string,
     mode: ExceptionMode,
   ): Promise<void> {
+    await this.family.assertCanChangePrivacy(userId);
     await this.privacyRepo.upsertException(userId, dimension, targetId, mode);
     await this.redis.del(`user${userId}`);
   }
@@ -115,6 +120,7 @@ export class PrivacyService {
     dimension: PrivacyDimension,
     targetId: string,
   ): Promise<void> {
+    await this.family.assertCanChangePrivacy(userId);
     await this.privacyRepo.deleteException(userId, dimension, targetId);
     await this.redis.del(`user${userId}`);
   }

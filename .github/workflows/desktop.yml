@@ -131,6 +131,8 @@ jobs:
           pnpm --filter @eternal/desktop test --maxWorkers=2
           pnpm validate:actions
       - name: Build shared web renderer and Electron
+        env:
+          MAIN_VITE_SENTRY_DSN: ${{ vars.DESKTOP_SENTRY_DSN }}
         run: pnpm build:desktop
       - name: Prepare Electron for smoke tests
         if: matrix.os != 'win' || matrix.arch == 'x64'

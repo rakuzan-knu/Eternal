@@ -246,9 +246,23 @@ describe('ConversationsService', () => {
       loadContext: jest.fn().mockResolvedValue({}),
       resolve: jest.fn().mockReturnValue(true),
     };
-    Object.assign(service, { visibility: privacy });
+    Object.assign(service, {
+      visibility: privacy,
+      family: {
+        assertCanUse: jest.fn().mockResolvedValue(undefined),
+        assertCanDirectMessage: jest.fn().mockResolvedValue(undefined),
+      },
+    });
   });
 
+  it('denies family-restricted direct-conversation creation before any repository write', async () => {
+    const deny = jest.fn().mockRejectedValue(new ForbiddenException('Family restriction'));
+    Object.assign(service, { family: { assertCanUse: jest.fn(), assertCanDirectMessage: deny } });
+    await expect(service.createDirect('usr-1', { participantId: 'usr-2' })).rejects.toThrow(
+      ForbiddenException,
+    );
+    expect(mockConvsRepo.findDirectBetween).not.toHaveBeenCalled();
+  });
   describe('getConversations & getConversation', () => {
     it('fetches conversations with unread counts and block context', async () => {
       const convs = await service.getConversations('usr-1');

@@ -1,3 +1,4 @@
+import { FamilySafetyModule } from '../family/family-safety.module';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from '../auth/auth.module';
@@ -10,7 +11,7 @@ import { DataExportRepository } from './data-export.repository';
 import { DataExportService } from './data-export.service';
 
 @Module({
-  imports: [AuthModule, ConfigModule, PrismaModule, CassandraModule],
+  imports: [AuthModule, ConfigModule, PrismaModule, CassandraModule, FamilySafetyModule],
   controllers: [
     ...roleControllers('core', [CoreDataExportController]),
     ...roleControllers('messenger', [MessengerDataExportController]),
