@@ -17,6 +17,14 @@ The four Render services are in separate Hobby workspaces on Free plans. Postgre
 
 Both Vercel projects use GitHub repository `rakuzan-knu/Eternal`. Desktop uses the root `vercel.json`; Expo Web uses `apps/mobile/vercel.json`, Root Directory `apps/mobile`, and files outside that directory. Public production domains above are canonical. Generated deployment/team aliases may require Vercel authentication; do not distribute them as the app URL.
 
+## Observed state — 9 November 2026
+
+[Phase 01 status](desktop/PHASE_01_STATUS.md) records exact live SHA/deployment IDs.
+Ukraine self-registration is open after PR155, confirmed by the Core and web policy
+with `registrationOpen=true`, `[UA]`, minimum age 13 and `no-store`. The observed
+Core and Messenger revision was `d68923699d24b2082484c1ef3168d949ccaf3ece`.
+Use the readiness endpoints above for current availability.
+
 ## Release procedure
 
 Render automatic deploys are disabled. Do not enable concurrent deploys for all four services: a Core or Messenger rolling deployment can temporarily exceed the shared Redis connection allowance even when steady state fits. Deploy one service at a time, wait for its live status and dependency readiness, and check actual Redis usage. At the 30-connection limit, first deploy Core with BACKGROUND_ENABLED=false (estimated overlap: 24+4=28). Update Messenger only after the old Core instance has stopped. Restore Core background work after the old Messenger instance has stopped (estimated overlap: 20+8=28). A Core-only update also uses the background-disabled stage before restoring its workers. These estimates include all four active roles; wait for old connections to close and verify actual usage before each next deployment. Core applies compatible migrations; other roles do not.
@@ -61,8 +69,10 @@ Free quota diagnostics run hourly on Core using existing connections: PostgreSQL
 
 The current Redis Cloud Free configuration uses `redis://`. The provider's Free
 plan does not support [TLS](https://redis.io/docs/latest/operate/rc/security/database-security/tls-ssl/).
-Before opening registration, establish a shared TLS endpoint and verify persistence,
-`noeviction`, queue recovery, revocation state and Socket.IO across all four roles.
+Registration was opened for Ukraine after PR155 while this TLS gap remained.
+Establish a shared TLS endpoint and verify persistence, `noeviction`, queue recovery,
+revocation state and Socket.IO across all four roles in the separate migration phase.
+Do not close Ukraine solely because of the superseded pre-opening wording.
 Changing the URL scheme alone cannot enable TLS on this plan. A provider migration
 requires a coordinated cutover that preserves jobs and unexpired security state.
 
