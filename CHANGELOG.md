@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.15.0](https://github.com/rakuzan-knu/Eternal/compare/v1.14.1...v1.15.0) (2026-11-22)
+
+### ✨ Features
+
+* **frontend:** prepare opt-in client diagnostics ([#161](https://github.com/rakuzan-knu/Eternal/issues/161)) ([733f8ac](https://github.com/rakuzan-knu/Eternal/commit/733f8ac3d8d36aed32b2eb2fffd34755670f9041))
+
+### 🐛 Bug Fixes
+
+* **backend:** minimize HTTP telemetry data ([#160](https://github.com/rakuzan-knu/Eternal/issues/160)) ([e71f7fc](https://github.com/rakuzan-knu/Eternal/commit/e71f7fcf7bffb5521e5ec438cf2fb4ec7dd06c2a))
+* **backend:** persist family controls and clarify operator delivery ([#159](https://github.com/rakuzan-knu/Eternal/issues/159)) ([ffecc2c](https://github.com/rakuzan-knu/Eternal/commit/ffecc2c9a55037dfad8f6177f41c8ad971711b1e))
+* **frontend:** restore Expo builds and Android startup ([#162](https://github.com/rakuzan-knu/Eternal/issues/162)) ([323aaf4](https://github.com/rakuzan-knu/Eternal/commit/323aaf4f00b333896b24d99c4e04a9f151fe567f))
+
 ## [1.14.1](https://github.com/rakuzan-knu/Eternal/compare/v1.14.0...v1.14.1) (2026-11-10)
 
 ### 🐛 Bug Fixes
