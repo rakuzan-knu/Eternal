@@ -44,6 +44,7 @@ onlyBuiltDependencies:
   - 'unrs-resolver'
 
 overrides:
+  'effect@<=3.22.0': '3.22.1'
   'plist@3.1.0': '3.1.1'
   '@xmldom/xmldom': '>=0.8.15'
   axios: '>=1.20.0'
