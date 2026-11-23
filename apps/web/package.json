@@ -111,7 +111,7 @@
     "@vitejs/plugin-react-swc": "4.3.3",
     "@vitest/coverage-v8": "^4.1.11",
     "@vitest/ui": "^4.1.11",
-    "chromatic": "^18.15.0",
+    "chromatic": "^18.15.1",
     "eslint": "^9.39.5",
     "eslint-plugin-boundaries": "^7.4.4",
     "eslint-plugin-react-compiler": "19.1.0-rc.2",

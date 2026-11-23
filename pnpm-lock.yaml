@@ -901,8 +901,8 @@ importers:
         specifier: ^4.1.12
         version: 4.1.12(vitest@4.1.12)
       chromatic:
-        specifier: ^18.15.0
-        version: 18.15.0
+        specifier: ^18.15.1
+        version: 18.15.1
       eslint:
         specifier: ^9.39.5
         version: 9.39.5(jiti@2.7.0)
@@ -7291,6 +7291,9 @@ packages:
   caniuse-lite@1.0.30001826:
     resolution: {integrity: sha512-wTB+9tIbLro/BCXwLuNV1meHE4L9dS6dArMDwgYfNBPMYScqClHyGunhkCSDtHhe/69Xl0sHlKgBVZ+fNsYtWA==}
 
+  caniuse-lite@1.0.30001827:
+    resolution: {integrity: sha512-YWEDr46gSO81M8w6uPbaIy4++IXsirx2asUqvllNiD4BPf75ibxclUjWEqp8ObCenRv+UM2n5Y8xuRPT8V8FrQ==}
+
   cassandra-driver@4.10.0:
     resolution: {integrity: sha512-DHyFC6RMK28nvndZfecbGUozoYbb5NjFmlniczao8zA1IplurcshR2i6rvxpEu3Q9G45tjin4yU+iKwA10ZUtA==}
     engines: {node: '>=20'}
@@ -7370,8 +7373,8 @@ packages:
     resolution: {integrity: sha512-+IxzY9BZOQd/XuYPRmrvEVjF/nqj5kgT4kEq7VofrDoM1MxoRjEWkrCC3EtLi59TVawxTAn+orJwFQcrqEN1+g==}
     engines: {node: '>=18'}
 
-  chromatic@18.15.0:
-    resolution: {integrity: sha512-MxxIOHXayuwGWlYbbf6JB96uSzpybxtIA6oAmjMZavH1YrsIn9bZGaztQA128SJR4oOQBQ5p+5rpT98VX8UzDQ==}
+  chromatic@18.15.1:
+    resolution: {integrity: sha512-h8wshAe1nvfBlCVnAoYno264pAF5CCwebpau6DzGUqBTZ6dIeDFl+LDMHkVfYthEDJp37XT9f0EFgh98jEFyfQ==}
     engines: {node: '>=22.0.0'}
     hasBin: true
     peerDependencies:
@@ -11286,6 +11289,7 @@ packages:
 
   node-abort-controller@3.1.1:
     resolution: {integrity: sha512-AGK2yQKIjRuqnc6VkX2Xj5d+QW8xZ87pa1UK6yA6ouUyuxfHuMP6umE5QK7UmTeOAymo+Zx1Fxiuw9rVx8taHQ==}
+    deprecated: This package is no longer needed on supported Node.js versions. Node.js 16+ includes AbortController and AbortSignal as built-in globals. All Node.js versions requiring this polyfill are end-of-life. Use the built-in globals instead.
 
   node-addon-api@7.1.1:
     resolution: {integrity: sha512-5m3bsyrjFWE1xf7nz7YXdN4udnVtXK6/Yfgn5qnahL6bCkf2yKt4k3nuTKAtT4r3IG8JNR2ncsIMdZuAzJjHQQ==}
@@ -21657,7 +21661,7 @@ snapshots:
   browserslist@4.29.6:
     dependencies:
       baseline-browser-mapping: 2.11.39
-      caniuse-lite: 1.0.30001826
+      caniuse-lite: 1.0.30001827
       electron-to-chromium: 1.5.492
       node-releases: 2.0.65
       update-browserslist-db: 1.4.0(browserslist@4.29.6)
@@ -21827,6 +21831,8 @@ snapshots:
 
   caniuse-lite@1.0.30001826: {}
 
+  caniuse-lite@1.0.30001827: {}
+
   cassandra-driver@4.10.0:
     dependencies:
       adm-zip: 0.6.1
@@ -21894,7 +21900,7 @@ snapshots:
 
   chownr@3.0.0: {}
 
-  chromatic@18.15.0:
+  chromatic@18.15.1:
     dependencies:
       semver: 7.8.6
 
